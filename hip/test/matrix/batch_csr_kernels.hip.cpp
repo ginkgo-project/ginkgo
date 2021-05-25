@@ -89,7 +89,7 @@ protected:
         return gko::test::generate_uniform_batch_random_matrix<MtxType>(
             batch_size, num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, false, ref);
     }
 
     void set_up_apply_data(int num_vectors = 1)

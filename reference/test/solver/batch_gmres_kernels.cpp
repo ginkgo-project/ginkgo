@@ -81,14 +81,16 @@ protected:
     std::shared_ptr<const BDense> xex_1;
     std::shared_ptr<RBDense> bnorm_1;
     const Options opts_1{
-        "none", 500, 1e-6, 1e-11, 2, gko::stop::batch::ToleranceType::absolute};
+        gko::preconditioner::batch::type::none,   500, 1e-6, 1e-11, 2,
+        gko::stop::batch::ToleranceType::absolute};
 
     const int nrhs = 2;
     std::shared_ptr<const BDense> b_m;
     std::shared_ptr<const BDense> xex_m;
     std::shared_ptr<RBDense> bnorm_m;
     const Options opts_m{
-        "none", 500, 1e-6, 1e-11, 2, gko::stop::batch::ToleranceType::absolute};
+        gko::preconditioner::batch::type::none,   500, 1e-6, 1e-11, 2,
+        gko::stop::batch::ToleranceType::absolute};
 
     struct Result {
         std::shared_ptr<BDense> x;
