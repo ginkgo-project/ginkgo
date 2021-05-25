@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_gmres_kernels.hpp"
 
 
-#include <ginkgo/core/preconditioner/batch_preconditioner_strings.hpp>
-#include <ginkgo/core/stop/batch_stop_enum.hpp>
-
 #include "reference/base/config.hpp"
 // include device kernels for every matrix and preconditioner type
 #include "reference/log/batch_logger.hpp"
@@ -112,9 +109,9 @@ inline void initialize(
         }
     }
     // r = b - A*x
-    adv_spmv_ker(static_cast<ValueType>(-1.0), A_entry,
-                 gko::batch::to_const(x_entry), static_cast<ValueType>(1.0),
-                 r_entry);
+    advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
+                         gko::batch::to_const(x_entry),
+                         static_cast<ValueType>(1.0), r_entry);
     batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
                                           res_norms_entry);
 
@@ -302,7 +299,7 @@ inline void arnoldi_method(
     const gko::batch_dense::BatchEntry<ValueType> w_temp_entry{
         w_temp, w_entry.stride, w_entry.num_rows, w_entry.num_rhs};
 
-    spmv_ker(A_entry, v_i_entry, w_temp_entry);
+    spmv_kernel(A_entry, v_i_entry, w_temp_entry);
 
     prec.apply(gko::batch::to_const(w_temp_entry), w_entry);
 
@@ -757,9 +754,9 @@ static void apply_impl(
             copy(b_entry, r_entry, converged);
 
             // r = r - A*x
-            adv_spmv_ker(static_cast<ValueType>(-1.0), A_entry,
-                         gko::batch::to_const(x_entry),
-                         static_cast<ValueType>(1.0), r_entry);
+            advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
+                                 gko::batch::to_const(x_entry),
+                                 static_cast<ValueType>(1.0), r_entry);
             batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
                                                   res_norms_temp_entry);
 
@@ -788,16 +785,18 @@ void apply_select_prec(
     const gko::batch_dense::UniformBatch<ValueType> &b,
     const gko::batch_dense::UniformBatch<ValueType> &x)
 {
-    if (opts.preconditioner == gko::preconditioner::batch::none_str) {
+    if (opts.preconditioner == gko::preconditioner::batch::type::none) {
         apply_impl<BatchIdentity<ValueType>,
                    stop::AbsAndRelResidualMaxIter<ValueType>>(
             exec, opts, logger, a, left, right, b, x);
 
-    } else if (opts.preconditioner == gko::preconditioner::batch::jacobi_str) {
-        apply_impl<BatchJacobi<ValueType>,
-                   stop::AbsAndRelResidualMaxIter<ValueType>>(
-            exec, opts, logger, a, left, right, b, x);
-    } else {
+    }
+    // else if (opts.preconditioner == gko::preconditioner::batch::jacobi_str) {
+    //     apply_impl<BatchJacobi<ValueType>,
+    //                stop::AbsAndRelResidualMaxIter<ValueType>>(
+    //         exec, opts, logger, a, left, right, b, x);
+    // }
+    else {
         GKO_NOT_IMPLEMENTED;
     }
 }

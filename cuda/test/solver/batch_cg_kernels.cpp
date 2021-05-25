@@ -124,7 +124,7 @@ protected:
         } else {
             GKO_NOT_IMPLEMENTED;
         }
-        const gko::batch_dim normdim(nbatches, gko::dim<2>(1, nrhs));
+        const gko::batch_dim<> normdim(nbatches, gko::dim<2>(1, nrhs));
         sys.bnorm = RBDense::create(exec, normdim);
         sys.b->compute_norm2(sys.bnorm.get());
         return sys;
@@ -135,10 +135,10 @@ protected:
                                                    const BDense *const b)
     {
         std::unique_ptr<BDense> res = b->clone();
-        const size_t nbatches = x->get_num_batches();
+        const size_t nbatches = x->get_num_batch_entries();
         const int xnrhs = x->get_size().at(0)[1];
         const gko::batch_stride stride(nbatches, xnrhs);
-        const gko::batch_dim normdim(nbatches, gko::dim<2>(1, xnrhs));
+        const gko::batch_dim<> normdim(nbatches, gko::dim<2>(1, xnrhs));
         auto normsr = RBDense::create(exec, normdim);
         auto alpha =
             gko::batch_initialize<BDense>(nbatches, {-1.0}, this->exec);

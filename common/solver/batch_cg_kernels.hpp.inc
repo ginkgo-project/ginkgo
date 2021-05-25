@@ -81,9 +81,9 @@ __device__ __forceinline__ void initialize(
 
 
     // r = b - A*x
-    adv_spmv_ker(static_cast<ValueType>(-1.0), A_global_entry,
-                 gko::batch::to_const(x_shared_entry),
-                 static_cast<ValueType>(1.0), r_shared_entry);
+    advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_global_entry,
+                         gko::batch::to_const(x_shared_entry),
+                         static_cast<ValueType>(1.0), r_shared_entry);
     __syncthreads();
 
     compute_norm2<ValueType>(gko::batch::to_const(r_shared_entry),
@@ -502,8 +502,8 @@ __global__ void apply_kernel(
             }
 
             // Ap = A * p
-            spmv_ker(A_global_entry, gko::batch::to_const(p_shared_entry),
-                     Ap_shared_entry);
+            spmv_kernel(A_global_entry, gko::batch::to_const(p_shared_entry),
+                        Ap_shared_entry);
 
             __syncthreads();
 

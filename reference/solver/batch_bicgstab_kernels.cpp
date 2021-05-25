@@ -32,10 +32,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
 
-
-#include <ginkgo/core/preconditioner/batch_preconditioner_strings.hpp>
-#include <ginkgo/core/stop/batch_stop_enum.hpp>
-
 #include "reference/base/config.hpp"
 // include device kernels for every matrix and preconditioner type
 #include "reference/log/batch_logger.hpp"
@@ -98,9 +94,9 @@ inline void initialize(
         }
     }
     // r = b - A*x
-    adv_spmv_ker(static_cast<ValueType>(-1.0), A_entry,
-                 gko::batch::to_const(x_entry), static_cast<ValueType>(1.0),
-                 r_entry);
+    advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
+                         gko::batch::to_const(x_entry),
+                         static_cast<ValueType>(1.0), r_entry);
     batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
                                           res_norms_entry);
 
@@ -543,7 +539,7 @@ static void apply_impl(
             prec.apply(gko::batch::to_const(p_entry), p_hat_entry);
 
             // v = A * p_hat
-            spmv_ker(A_entry, gko::batch::to_const(p_hat_entry), v_entry);
+            spmv_kernel(A_entry, gko::batch::to_const(p_hat_entry), v_entry);
 
             // alpha = rho_new / < r_hat , v>
             compute_alpha(gko::batch::to_const(rho_new_entry),
@@ -589,7 +585,7 @@ static void apply_impl(
             prec.apply(gko::batch::to_const(s_entry), s_hat_entry);
 
             // t = A * s_hat
-            spmv_ker(A_entry, gko::batch::to_const(s_hat_entry), t_entry);
+            spmv_kernel(A_entry, gko::batch::to_const(s_hat_entry), t_entry);
 
             // omega_new = <t,s> / <t,t>
             compute_omega_new(gko::batch::to_const(t_entry),
@@ -637,16 +633,19 @@ void apply_select_prec(
     const gko::batch_dense::UniformBatch<ValueType> &b,
     const gko::batch_dense::UniformBatch<ValueType> &x)
 {
-    if (opts.preconditioner == gko::preconditioner::batch::none_str) {
+    if (opts.preconditioner == gko::preconditioner::batch::type::none) {
         apply_impl<BatchIdentity<ValueType>,
                    stop::AbsAndRelResidualMaxIter<ValueType>>(
             exec, opts, logger, a, left, right, b, x);
 
-    } else if (opts.preconditioner == gko::preconditioner::batch::jacobi_str) {
-        apply_impl<BatchJacobi<ValueType>,
-                   stop::AbsAndRelResidualMaxIter<ValueType>>(
-            exec, opts, logger, a, left, right, b, x);
-    } else {
+    }
+    // else if (opts.preconditioner == gko::preconditioner::batch::type::jacobi)
+    // {
+    //     apply_impl<BatchJacobi<ValueType>,
+    //                stop::AbsAndRelResidualMaxIter<ValueType>>(
+    //         exec, opts, logger, a, left, right, b, x);
+    // }
+    else {
         GKO_NOT_IMPLEMENTED;
     }
 }
