@@ -282,7 +282,7 @@ __device__ __forceinline__ void initialize(
     }
 
     curandState_t state;
-    curand_init(0, threadIdx.x, 0, &state);
+    curand_init(0, threadIdx.x, 0, &state);  // TODO: Have a random seed value
     /* curand_init (
         unsigned long long seed, unsigned long long sequence,
         unsigned long long offset, curandState_t *state)  */
@@ -305,19 +305,18 @@ __device__ __forceinline__ void initialize(
         } else {
             ValueType val = zero<ValueType>();
 
-            //  if(is_complex<ValueType>() == true)
-            //  {
-            // val = static_cast<thrust::complex<ValueType>>(
-            // static_cast<real_type>(curand_normal(&state)) ,
-            // static_cast<real_type>(curand_normal(&state))  );
-            //  val = thrust::complex<real_type>(
-            //  static_cast<real_type>(curand_normal(&state)) ,
-            //  static_cast<real_type>(curand_normal(&state)));
-            //  }
-            //  else{
 
-            val = static_cast<ValueType>(curand_normal(&state));
-            // }
+            if (is_complex<ValueType>() == true) {
+                // TODO: Random generation of complex number
+
+                // real_type re = curand_normal(&state);
+                // real_type im = curand_normal(&state);
+                // val = ValueType{ re,im };
+
+                val = static_cast<ValueType>(curand_normal(&state));
+            } else {
+                val = static_cast<ValueType>(curand_normal(&state));
+            }
 
             Subspace_vectors_shared_entry
                 .values[vec_index * nrows *

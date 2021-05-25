@@ -169,38 +169,47 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     const gko::batch_dense::UniformBatch<cu_value_type> x_b =
         get_batch_struct(x);
 
-    // TODO: Use this only if smoothing is ON, else pass a {nullptr,0,0,0}
-    std::unique_ptr<gko::matrix::Dense<ValueType>> Subspace_vectors_cpu =
-        gko::matrix::Dense<ValueType>::create(
-            exec->get_master(),
-            gko::dim<2>{x_b.num_rows * opts.subspace_dim_val, 1}, 1);
 
-    auto dist = std::normal_distribution<remove_complex<ValueType>>(0.0, 1.0);
-    auto seed = 15;
-    auto gen = std::ranlux48(seed);
+    std::unique_ptr<gko::matrix::Dense<ValueType>> Subspace_vectors;
 
-    for (int vec_index = 0; vec_index < opts.subspace_dim_val; vec_index++) {
-        for (int row_index = 0; row_index < x_b.num_rows; row_index++) {
-            ValueType val = get_rand_value<ValueType>(dist, gen);
+    gko::batch_dense::BatchEntry<const cu_value_type> Subspace_vectors_entry;
 
-            Subspace_vectors_cpu->at(vec_index * x_b.num_rows + row_index, 0) =
-                val;
+
+    if (opts.deterministic_gen == true) {
+        std::unique_ptr<gko::matrix::Dense<ValueType>> Subspace_vectors_cpu =
+            gko::matrix::Dense<ValueType>::create(
+                exec->get_master(),
+                gko::dim<2>{x_b.num_rows * opts.subspace_dim_val, 1}, 1);
+
+        auto dist =
+            std::normal_distribution<remove_complex<ValueType>>(0.0, 1.0);
+        auto seed = 15;
+        auto gen = std::ranlux48(seed);
+
+        for (int vec_index = 0; vec_index < opts.subspace_dim_val;
+             vec_index++) {
+            for (int row_index = 0; row_index < x_b.num_rows; row_index++) {
+                ValueType val = get_rand_value<ValueType>(dist, gen);
+
+                Subspace_vectors_cpu->at(vec_index * x_b.num_rows + row_index,
+                                         0) = val;
+            }
         }
-    }
 
-    std::unique_ptr<gko::matrix::Dense<ValueType>> Subspace_vectors{
-        gko::clone(exec, Subspace_vectors_cpu)};
+        Subspace_vectors = gko::clone(exec, Subspace_vectors_cpu);
 
 
-    const gko::batch_dense::BatchEntry<const cu_value_type>
         Subspace_vectors_entry = {
             as_cuda_type(Subspace_vectors->get_const_values()),
             Subspace_vectors->get_stride(),
             static_cast<int>(Subspace_vectors->get_size()[0]),
             static_cast<int>(Subspace_vectors->get_size()[1])};
 
-    // const gko::batch_dense::BatchEntry< const cu_value_type >
-    // Subspace_vectors_entry = {nullptr , 0,0,0};
+    } else {
+        Subspace_vectors_entry = {nullptr, 0, 0, 0};
+    }
+
+
     if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
         const gko::batch_csr::UniformBatch<cu_value_type> m_b =
             get_batch_struct(const_cast<matrix::BatchCsr<ValueType> *>(amat));
