@@ -163,9 +163,9 @@ TYPED_TEST(BatchBicgstab, CanBeCleared)
 
     this->solver->clear();
 
-    ASSERT_EQ(this->solver->get_num_batches(), 0);
+    ASSERT_EQ(this->solver->get_num_batch_entries(), 0);
     // ASSERT_EQ(this->solver->get_size().at(0), gko::dim<2>(0, 0));
-    ASSERT_EQ(this->solver->get_size().get_num_batches(), 0);
+    ASSERT_EQ(this->solver->get_size().get_num_batch_entries(), 0);
     auto solver_mtx =
         static_cast<Solver *>(this->solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
