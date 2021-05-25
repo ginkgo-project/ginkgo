@@ -283,5 +283,69 @@ TYPED_TEST(BatchFinalLogger, LogsConvergenceTwoIterations)
     ASSERT_EQ(iters_log.get_const_data()[1 * this->nrhs + 3], 10);
 }
 
+TYPED_TEST(BatchFinalLogger, FirstIterationResetsLogger)
+{
+    using real_type = typename TestFixture::real_type;
+    using BatchLog = typename TestFixture::BatchLog;
+    constexpr int max_nrhs = TestFixture::max_nrhs;
+    gko::Array<real_type> res_norms_log(this->exec, this->nbatch * this->nrhs);
+    gko::Array<int> iters_log(this->exec, this->nbatch * this->nrhs);
+    for (int i = 0; i < this->nbatch * this->nrhs; i++) {
+        res_norms_log.get_data()[i] = 0.0;
+        iters_log.get_data()[i] = -1;
+    }
+    const int maxits = 20;
+    BatchLog blog_h(this->nrhs, maxits, res_norms_log.get_data(),
+                    iters_log.get_data());
+    for (size_t ib = 0; ib < this->nbatch; ib++) {
+        real_type resnv[max_nrhs];
+        for (int i = 0; i < this->nrhs; i++) {
+            resnv[i] = i + 1.0;
+        }
+
+        // First suppose 1st RHS has converged
+        int iter = 5;
+        uint32_t converged = 0xfffffff1;
+        blog_h.log_iteration(ib, iter, resnv, converged);
+
+        // suppose we move to the next linear system and
+        // run the first iteration when nothing has converged
+        blog_h.log_iteration(ib, 0, resnv, 0 - (1 << this->nrhs));
+
+        for (int i = 0; i < this->nrhs; i++) {
+            resnv[i] = i + ib + 10.0;
+        }
+
+        // Then other RHS converged for different small systems
+        if (ib == 0) {
+            iter = 8;
+            converged = 0xfffffff5;
+            blog_h.log_iteration(ib, iter, resnv, converged);
+        } else {
+            iter = 10;
+            converged = 0xfffffff9;
+            blog_h.log_iteration(ib, iter, resnv, converged);
+        }
+    }
+
+    // the latest residual norms are logged
+    for (size_t i = 0; i < this->nbatch; i++) {
+        for (int j = 0; j < this->nrhs; j++) {
+            ASSERT_EQ(res_norms_log.get_const_data()[i * this->nrhs + j],
+                      i + j + 10.0);
+        }
+    }
+    // The iterations at which the convergence of each RHS were flagged
+    //  are logged.
+    ASSERT_EQ(iters_log.get_const_data()[0 * this->nrhs + 0], 8);
+    ASSERT_EQ(iters_log.get_const_data()[1 * this->nrhs + 0], 10);
+    ASSERT_EQ(iters_log.get_const_data()[0 * this->nrhs + 1], maxits - 1);
+    ASSERT_EQ(iters_log.get_const_data()[1 * this->nrhs + 1], maxits - 1);
+    ASSERT_EQ(iters_log.get_const_data()[0 * this->nrhs + 2], 8);
+    ASSERT_EQ(iters_log.get_const_data()[1 * this->nrhs + 2], maxits - 1);
+    ASSERT_EQ(iters_log.get_const_data()[0 * this->nrhs + 3], maxits - 1);
+    ASSERT_EQ(iters_log.get_const_data()[1 * this->nrhs + 3], 10);
+}
+
 
 }  // namespace
