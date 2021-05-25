@@ -70,7 +70,7 @@ void simple_apply(std::shared_ptr<const OmpExecutor> exec,
     const auto b_ub = get_batch_struct(b);
     const auto c_ub = get_batch_struct(c);
 #pragma omp parallel for
-    for (size_type batch = 0; batch < c->get_num_batches(); ++batch) {
+    for (size_type batch = 0; batch < c->get_num_batch_entries(); ++batch) {
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);
         const auto c_b = gko::batch::batch_entry(c_ub, batch);
@@ -79,7 +79,8 @@ void simple_apply(std::shared_ptr<const OmpExecutor> exec,
 
 
     // #pragma omp parallel for
-    //     for (size_type batch = 0; batch < c->get_num_batches(); ++batch) {
+    //     for (size_type batch = 0; batch < c->get_num_batch_entries();
+    //     ++batch) {
     // #pragma omp parallel for
     //         for (size_type row = 0; row < c->get_size().at(batch)[0]; ++row)
     //         {
@@ -123,7 +124,7 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
     const auto alpha_ub = get_batch_struct(alpha);
     const auto beta_ub = get_batch_struct(beta);
 #pragma omp parallel for
-    for (size_type batch = 0; batch < c->get_num_batches(); ++batch) {
+    for (size_type batch = 0; batch < c->get_num_batch_entries(); ++batch) {
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);
         const auto c_b = gko::batch::batch_entry(c_ub, batch);
@@ -132,7 +133,8 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
         apply(alpha_b.values[0], a_b, b_b, beta_b.values[0], c_b);
     }
     // #pragma omp parallel for
-    //     for (size_type batch = 0; batch < c->get_num_batches(); ++batch) {
+    //     for (size_type batch = 0; batch < c->get_num_batch_entries();
+    //     ++batch) {
     //         if (beta->at(batch, 0, 0) != zero<ValueType>()) {
     // #pragma omp parallel for
     //             for (size_type row = 0; row < c->get_size().at(batch)[0];
@@ -180,14 +182,15 @@ void scale(std::shared_ptr<const OmpExecutor> exec,
     const auto x_ub = get_batch_struct(x);
     const auto alpha_ub = get_batch_struct(alpha);
 #pragma omp parallel for
-    for (size_type batch = 0; batch < x->get_num_batches(); ++batch) {
+    for (size_type batch = 0; batch < x->get_num_batch_entries(); ++batch) {
         const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
         scale(alpha_b, x_b);
     }
 
     // #pragma omp parallel for
-    //     for (size_type batch = 0; batch < x->get_num_batches(); ++batch) {
+    //     for (size_type batch = 0; batch < x->get_num_batch_entries();
+    //     ++batch) {
     //         if (alpha->get_size().at(batch)[1] == 1) {
     // #pragma omp parallel for
     //             for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
@@ -221,7 +224,7 @@ void add_scaled(std::shared_ptr<const OmpExecutor> exec,
     const auto y_ub = get_batch_struct(y);
     const auto alpha_ub = get_batch_struct(alpha);
 #pragma omp parallel for
-    for (size_type batch = 0; batch < y->get_num_batches(); ++batch) {
+    for (size_type batch = 0; batch < y->get_num_batch_entries(); ++batch) {
         const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
         const auto y_b = gko::batch::batch_entry(y_ub, batch);
@@ -229,7 +232,8 @@ void add_scaled(std::shared_ptr<const OmpExecutor> exec,
     }
 
     // #pragma omp parallel for
-    //     for (size_type batch = 0; batch < y->get_num_batches(); ++batch) {
+    //     for (size_type batch = 0; batch < y->get_num_batch_entries();
+    //     ++batch) {
     //         if (alpha->get_size().at(batch)[1] == 1) {
     // #pragma omp parallel for
     //             for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
@@ -263,7 +267,7 @@ void add_scaled_diag(std::shared_ptr<const OmpExecutor> exec,
     GKO_NOT_IMPLEMENTED;
 // {
 //  #pragma omp parallel for
-// for (size_type batch = 0; batch < y->get_num_batches(); ++batch) {
+// for (size_type batch = 0; batch < y->get_num_batch_entries(); ++batch) {
 //     const auto diag_values = x->get_const_values();
 //        #pragma omp parallel for
 //     for (size_type i = 0; i < x->get_size().at(batch)[0]; i++) {
@@ -286,7 +290,8 @@ void compute_dot(std::shared_ptr<const OmpExecutor> exec,
     const auto y_ub = get_batch_struct(y);
     const auto res_ub = get_batch_struct(result);
 #pragma omp parallel for
-    for (size_type batch = 0; batch < result->get_num_batches(); ++batch) {
+    for (size_type batch = 0; batch < result->get_num_batch_entries();
+         ++batch) {
         const auto res_b = gko::batch::batch_entry(res_ub, batch);
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
         const auto y_b = gko::batch::batch_entry(y_ub, batch);
@@ -294,7 +299,8 @@ void compute_dot(std::shared_ptr<const OmpExecutor> exec,
     }
 
     // #pragma omp parallel for
-    //     for (size_type batch = 0; batch < result->get_num_batches(); ++batch)
+    //     for (size_type batch = 0; batch < result->get_num_batch_entries();
+    //     ++batch)
     //     {
     // #pragma omp parallel for
     //         for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
@@ -321,14 +327,16 @@ void compute_norm2(std::shared_ptr<const OmpExecutor> exec,
     const auto x_ub = get_batch_struct(x);
     const auto res_ub = get_batch_struct(result);
 #pragma omp parallel for
-    for (size_type batch = 0; batch < result->get_num_batches(); ++batch) {
+    for (size_type batch = 0; batch < result->get_num_batch_entries();
+         ++batch) {
         const auto res_b = gko::batch::batch_entry(res_ub, batch);
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
         compute_norm2(x_b, res_b);
     }
 
     // #pragma omp parallel for
-    //     for (size_type batch = 0; batch < result->get_num_batches(); ++batch)
+    //     for (size_type batch = 0; batch < result->get_num_batch_entries();
+    //     ++batch)
     //     {
     // #pragma omp parallel for
     //         for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
@@ -360,7 +368,7 @@ void convert_to_batch_csr(std::shared_ptr<const DefaultExecutor> exec,
     GKO_ASSERT(source->get_size().stores_equal_sizes() == true);
     auto num_rows = result->get_size().at(0)[0];
     auto num_cols = result->get_size().at(0)[1];
-    auto num_batches = result->get_num_batches();
+    auto num_batches = result->get_num_batch_entries();
 
     auto row_ptrs = result->get_row_ptrs();
     auto col_idxs = result->get_col_idxs();
@@ -420,7 +428,8 @@ void count_nonzeros(std::shared_ptr<const OmpExecutor> exec,
                     size_type *const result)
 {
 #pragma omp parallel for
-    for (size_type batch = 0; batch < source->get_num_batches(); ++batch) {
+    for (size_type batch = 0; batch < source->get_num_batch_entries();
+         ++batch) {
         auto num_rows = source->get_size().at(batch)[0];
         auto num_cols = source->get_size().at(batch)[1];
         auto num_nonzeros = 0;
@@ -446,7 +455,8 @@ void calculate_max_nnz_per_row(
     const matrix::BatchDense<ValueType> *const source, size_type *const result)
 {
 #pragma omp parallel for
-    for (size_type batch = 0; batch < source->get_num_batches(); ++batch) {
+    for (size_type batch = 0; batch < source->get_num_batch_entries();
+         ++batch) {
         auto num_rows = source->get_size().at(batch)[0];
         auto num_cols = source->get_size().at(batch)[1];
         size_type num_stored_elements_per_row = 0;
@@ -476,7 +486,8 @@ void calculate_nonzeros_per_row(
     Array<size_type> *const result)
 {
     size_type cumul_prev_rows = 0;
-    for (size_type batch = 0; batch < source->get_num_batches(); ++batch) {
+    for (size_type batch = 0; batch < source->get_num_batch_entries();
+         ++batch) {
         auto num_rows = source->get_size().at(batch)[0];
         auto num_cols = source->get_size().at(batch)[1];
         auto row_nnz_val = result->get_data() + cumul_prev_rows;
@@ -507,7 +518,8 @@ void calculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
                           size_type *const slice_size)
 {
 #pragma omp parallel for
-    for (size_type batch = 0; batch < source->get_num_batches(); ++batch) {
+    for (size_type batch = 0; batch < source->get_num_batch_entries();
+         ++batch) {
         auto num_rows = source->get_size().at(batch)[0];
         auto num_cols = source->get_size().at(batch)[1];
         auto slice_num = ceildiv(num_rows, slice_size[batch]);
@@ -544,7 +556,7 @@ void transpose(std::shared_ptr<const OmpExecutor> exec,
                matrix::BatchDense<ValueType> *const trans)
 {
 #pragma omp parallel for
-    for (size_type batch = 0; batch < orig->get_num_batches(); ++batch) {
+    for (size_type batch = 0; batch < orig->get_num_batch_entries(); ++batch) {
 #pragma omp parallel for
         for (size_type i = 0; i < orig->get_size().at(batch)[0]; ++i) {
             for (size_type j = 0; j < orig->get_size().at(batch)[1]; ++j) {
@@ -563,7 +575,7 @@ void conj_transpose(std::shared_ptr<const OmpExecutor> exec,
                     matrix::BatchDense<ValueType> *const trans)
 {
 #pragma omp parallel for
-    for (size_type batch = 0; batch < orig->get_num_batches(); ++batch) {
+    for (size_type batch = 0; batch < orig->get_num_batch_entries(); ++batch) {
 #pragma omp parallel for
         for (size_type i = 0; i < orig->get_size().at(batch)[0]; ++i) {
             for (size_type j = 0; j < orig->get_size().at(batch)[1]; ++j) {
