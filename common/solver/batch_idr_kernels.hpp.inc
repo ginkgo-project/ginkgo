@@ -225,30 +225,12 @@ __device__ __forceinline__ void initialize(
 
     // omega = 1
     for (int rhs = threadIdx.x; rhs < nrhs; rhs += blockDim.x) {
-        printf("\n Set omega to 1 in initialize\n\n");
-
         omega_shared_entry.values[rhs] = one<ValueType>();
-
-
-        printf("\n  rhs: %d, omega_shared_entry.values[rhs]: %lg \n", rhs,
-               omega_shared_entry.values[rhs]);
     }
 
 
-    // TO BE REMOVED
-    __syncthreads();
-
-    if (blockIdx.x == 0 && threadIdx.x == 0)
-        printf("\n In initialize tid: %d, omega:  %g", threadIdx.x,
-               omega_shared_entry.values[0]);
-
-    __syncthreads();
-
-    // TO BE REMOVED
-
-
     // M = Identity
-    for (int tid = threadIdx.x; tid < nrows * nrhs * subspace_dim;
+    for (int tid = threadIdx.x; tid < subspace_dim * nrhs * subspace_dim;
          tid += blockDim.x) {
         int row_index = tid / (subspace_dim * nrhs);
         int col_index = (tid % (subspace_dim * nrhs)) / nrhs;
@@ -1315,17 +1297,6 @@ __global__ void apply_kernel(
 
         __syncthreads();
 
-
-        // TO BE REMOVED
-        if (threadIdx.x == 0 && blockIdx.x == 0)
-            printf("\n tid: %d, omega:  %g", threadIdx.x,
-                   omega_shared_entry.values[0]);
-
-        __syncthreads();
-
-        // TO BE REMOVED
-
-
         // stopping criterion object
         StopType stop(nrhs, max_iter, abs_tol, rel_tol,
                       static_cast<stop::tolerance>(tol_type), converged,
@@ -1337,20 +1308,6 @@ __global__ void apply_kernel(
         while (1) {
             outer_iter++;
 
-            __syncthreads();
-
-            if (blockIdx.x == 0 && threadIdx.x == 0) {
-                printf(
-                    "\n outer_iter: %d, res_norms_shared_entry.values: %g \n",
-                    outer_iter, res_norms_shared_entry.values[0]);
-
-                if (1) {
-                    printf("\n and the  r is: \n");
-                    printf(" r(0): %g \n", r_shared_entry.values[0]);
-                    printf(" r(1): %g \n", r_shared_entry.values[1]);
-                    printf(" r(2): %g \n", r_shared_entry.values[2]);
-                }
-            }
 
             __syncthreads();
 
@@ -1485,31 +1442,6 @@ __global__ void apply_kernel(
                 __syncthreads();
 
 
-                // TO BE REMOVED
-                compute_norm2<ValueType>(
-                    gko::batch::to_const(r_shared_entry),
-                    res_norms_temp_shared_entry);  // store residual norms in
-                                                   // temp entry
-
-                __syncthreads();
-
-                if (blockIdx.x == 0 && threadIdx.x == 0) {
-                    printf(
-                        "\n Inside inner loop, outer_iter: %d, k: %d ,  "
-                        "res_norms_temp_shared_entry.values: %g \n",
-                        outer_iter, k, res_norms_temp_shared_entry.values[0]);
-
-                    if (1) {
-                        printf("\n and the  r is: \n");
-                        printf(" r(0): %g \n", r_shared_entry.values[0]);
-                        printf(" r(1): %g \n", r_shared_entry.values[1]);
-                        printf(" r(2): %g \n", r_shared_entry.values[2]);
-                    }
-                }
-
-                // TO BE REMOVED-end
-
-
                 if (smoothing == true) {
                     smoothing_operation(
                         t_shared_entry, xs_shared_entry, rs_shared_entry,
@@ -1517,6 +1449,7 @@ __global__ void apply_kernel(
                         gko::batch::to_const(r_shared_entry), rho_shared_entry,
                         t_norms_shared_entry, converged);
                 }
+
 
                 // if k + 1 <= subspace_dim - 1
                 //     f(i) = 0 , where i = 0,...,k
