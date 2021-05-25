@@ -335,6 +335,7 @@ TEST_F(Fbcsr, SortSortedMatrixIsEquivalentToRef)
     dmtx->sort_by_column_index();
 
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
 }
 
 
@@ -346,6 +347,7 @@ TEST_F(Fbcsr, SortUnsortedMatrixIsEquivalentToRef)
     uns_mtx.omp->sort_by_column_index();
 
     GKO_ASSERT_MTX_NEAR(uns_mtx.ref, uns_mtx.omp, 0);
+    ASSERT_TRUE(uns_mtx.omp->is_sorted_by_column_index());
 }
 
 
