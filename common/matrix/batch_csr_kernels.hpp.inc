@@ -57,21 +57,6 @@ __device__ __forceinline__ void spmv_ker_1(
     }
 }
 
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size, sm_multiplier) void spmv(
-    const gko::batch_csr::UniformBatch<const ValueType> a,
-    const batch_dense::UniformBatch<const ValueType> b,
-    const batch_dense::UniformBatch<ValueType> c)
-{
-    for (size_type ibatch = blockIdx.x; ibatch < a.num_batch;
-         ibatch += gridDim.x) {
-        const auto a_b = gko::batch::batch_entry(a, ibatch);
-        const auto b_b = gko::batch::batch_entry(b, ibatch);
-        const auto c_b = gko::batch::batch_entry(c, ibatch);
-        spmv_kernel(a_b, b_b, c_b);
-    }
-}
-
 
 /**
  * Device kernel for SpMV of one CSR matrix in a batch.
@@ -79,7 +64,7 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void spmv(
  * Assumes the input and output multi-vectors are stored row-major.
  */
 template <typename ValueType>
-__device__ __forceinline__ void spmv_ker(
+__device__ __forceinline__ void spmv_kernel(
     const gko::batch_csr::BatchEntry<const ValueType> &a,
     const gko::batch_dense::BatchEntry<const ValueType> &b,
     const gko::batch_dense::BatchEntry<ValueType> &c)
@@ -140,7 +125,7 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void spmv(
         const auto a_b = gko::batch::batch_entry(a, ibatch);
         const auto b_b = gko::batch::batch_entry(b, ibatch);
         const auto c_b = gko::batch::batch_entry(c, ibatch);
-        spmv_ker(a_b, b_b, c_b);
+        spmv_kernel(a_b, b_b, c_b);
     }
 }
 
@@ -178,7 +163,7 @@ __device__ __forceinline__ void adv_spmv_ker_1(
  * Assumes the input and output multi-vectors are stored row-major.
  */
 template <typename ValueType>
-__device__ __forceinline__ void adv_spmv_ker(
+__device__ __forceinline__ void advanced_spmv_kernel(
     const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType> &a,
     const gko::batch_dense::BatchEntry<const ValueType> &b,
     const ValueType beta, const gko::batch_dense::BatchEntry<ValueType> &c)
