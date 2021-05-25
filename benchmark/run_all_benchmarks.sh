@@ -175,6 +175,14 @@ else
     DETAILED_STR="--detailed=true"
 fi
 
+# Control whether to run detailed benchmarks or not.
+# Default setting is detailed=false. To activate, set DETAILED=1.
+if  [ ! "${PRINT_RES_ITERS}" ] || [ "${PRINT_RES_ITERS}" -eq 0 ]; then
+    PRINT_RES_ITER_STR="--print_residuals_and_iters=false"
+else
+    PRINT_RES_ITER_STR="--print_residuals_and_iters=true"
+fi
+
 if  [ ! "${BATCH_SCALING}" ] ; then
     BATCH_SCALING_STR="--batch_scaling=none"
     echo "BATCH_SCALING environment variable not set - assuming \"none\"" 1>&2
@@ -391,6 +399,7 @@ run_batch_solver_benchmarks() {
                     --executor="${EXECUTOR}" --batch_solvers="${BATCH_SOLVERS}" \
                     --preconditioners="${PRECONDS}" \
                     --num_duplications="${NUM_BATCH_DUP}" "${BATCH_SCALING_STR}" \
+                    "${PRINT_RES_ITER_STR}" \
                     --num_batches="${NUM_BATCH_ENTRIES}" "${SS_STR}" \
                     --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
                     ${SOLVERS_RHS_FLAG} ${DETAILED_STR} ${SOLVERS_INITIAL_GUESS_FLAG} \
