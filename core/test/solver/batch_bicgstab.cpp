@@ -62,12 +62,13 @@ protected:
               std::static_pointer_cast<const gko::ReferenceExecutor>(
                   this->exec),
               nrows, nbatch)),
-          batchbicgstab_factory(Solver::build()
-                                    .with_max_iterations(def_max_iters)
-                                    .with_abs_residual_tol(def_abs_res_tol)
-                                    .with_tolerance_type(def_tol_type)
-                                    .with_preconditioner("none")
-                                    .on(exec)),
+          batchbicgstab_factory(
+              Solver::build()
+                  .with_max_iterations(def_max_iters)
+                  .with_abs_residual_tol(def_abs_res_tol)
+                  .with_tolerance_type(def_tol_type)
+                  .with_preconditioner(gko::preconditioner::batch::type::none)
+                  .on(exec)),
           solver(batchbicgstab_factory->generate(mtx))
     {}
 
@@ -164,7 +165,7 @@ TYPED_TEST(BatchBicgstab, CanBeCleared)
     this->solver->clear();
 
     ASSERT_EQ(this->solver->get_num_batch_entries(), 0);
-    // ASSERT_EQ(this->solver->get_size().at(0), gko::dim<2>(0, 0));
+
     ASSERT_EQ(this->solver->get_size().get_num_batch_entries(), 0);
     auto solver_mtx =
         static_cast<Solver *>(this->solver.get())->get_system_matrix();
@@ -202,29 +203,17 @@ TYPED_TEST(BatchBicgstab, CanSetCriteria)
 TYPED_TEST(BatchBicgstab, CanSetPreconditionerInFactory)
 {
     using Solver = typename TestFixture::Solver;
-    const std::string batchbicgstab_precond = "none";
+    const auto batchbicgstab_precond = gko::preconditioner::batch::type::none;
 
     auto batchbicgstab_factory =
-        Solver::build().with_max_iterations(3).with_preconditioner("none").on(
-            this->exec);
+        Solver::build()
+            .with_max_iterations(3)
+            .with_preconditioner(gko::preconditioner::batch::type::none)
+            .on(this->exec);
     auto solver = batchbicgstab_factory->generate(this->mtx);
     auto precond = solver->get_parameters().preconditioner;
 
-    ASSERT_NE(precond, "");
     ASSERT_EQ(precond, batchbicgstab_precond);
-}
-
-
-TYPED_TEST(BatchBicgstab, ThrowsOnWrongPreconditionerInFactory)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    std::string unavailable_prec = "smoothed_aggregation";
-    auto batchbicgstab_factory =
-        Solver::build().with_preconditioner(unavailable_prec).on(this->exec);
-
-    ASSERT_THROW(batchbicgstab_factory->generate(this->mtx),
-                 gko::NotImplemented);
 }
 
 
@@ -239,19 +228,20 @@ TYPED_TEST(BatchBicgstab, ThrowsOnRectangularMatrixInFactory)
                  gko::DimensionMismatch);
 }
 
+
 // TYPED_TEST(BatchBicgstab, SolverTransposeRetainsFactoryParameters)
 // {
 //     using Solver = typename TestFixture::Solver;
 
 //     auto batchbicgstab_factory =
 // Solver::build().with_max_iterations(3).with_rel_residual_tol(0.25f)
-// .with_tolerance_type(gko::stop::batch::ToleranceType::relative).with_preconditioner("none").on(this->exec);
+// .with_tolerance_type(gko::stop::batch::ToleranceType::relative).with_preconditioner(gko::preconditioner::batch::type::none).on(this->exec);
 //     auto solver = batchbicgstab_factory->generate(this->mtx);
 // 	auto solver_trans = gko::as<Solver>(solver->transpose());
 // 	auto params = solver_trans->get_parameters();
 
-// 	ASSERT_EQ(params.preconditioner, "none");
-// 	ASSERT_EQ(params.max_iterations, 3);
+// 	ASSERT_EQ(params.preconditioner,
+// gko::preconditioner::batch::type::none); ASSERT_EQ(params.max_iterations, 3);
 // 	ASSERT_EQ(params.rel_residual_tol, 0.25);
 // 	ASSERT_EQ(params.tolerance_type,
 // gko::stop::batch::ToleranceType::relative);
