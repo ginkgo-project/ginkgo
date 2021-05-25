@@ -11,5 +11,3 @@ target_link_libraries(batched-solver Ginkgo::ginkgo)
 
 # Copy the data files to the execution directory
 configure_file(data/A.mtx data/A.mtx COPYONLY)
-configure_file(data/b.mtx data/b.mtx COPYONLY)
-configure_file(data/x0.mtx data/x0.mtx COPYONLY)
