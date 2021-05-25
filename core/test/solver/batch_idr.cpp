@@ -62,12 +62,13 @@ protected:
               std::static_pointer_cast<const gko::ReferenceExecutor>(
                   this->exec),
               nrows, nbatch)),
-          batchidr_factory(Solver::build()
-                               .with_max_iterations(def_max_iters)
-                               .with_abs_residual_tol(def_abs_res_tol)
-                               .with_tolerance_type(def_tol_type)
-                               .with_preconditioner("none")
-                               .on(exec)),
+          batchidr_factory(
+              Solver::build()
+                  .with_max_iterations(def_max_iters)
+                  .with_abs_residual_tol(def_abs_res_tol)
+                  .with_tolerance_type(def_tol_type)
+                  .with_preconditioner(gko::preconditioner::batch::type::none)
+                  .on(exec)),
           solver(batchidr_factory->generate(mtx))
     {}
 
@@ -202,28 +203,17 @@ TYPED_TEST(BatchIdr, CanSetCriteria)
 TYPED_TEST(BatchIdr, CanSetPreconditionerInFactory)
 {
     using Solver = typename TestFixture::Solver;
-    const std::string batchidr_precond = "none";
+    const auto batchidr_precond = gko::preconditioner::batch::type::none;
 
     auto batchidr_factory =
-        Solver::build().with_max_iterations(3).with_preconditioner("none").on(
-            this->exec);
+        Solver::build()
+            .with_max_iterations(3)
+            .with_preconditioner(gko::preconditioner::batch::type::none)
+            .on(this->exec);
     auto solver = batchidr_factory->generate(this->mtx);
     auto precond = solver->get_parameters().preconditioner;
 
-    ASSERT_NE(precond, "");
     ASSERT_EQ(precond, batchidr_precond);
-}
-
-
-TYPED_TEST(BatchIdr, ThrowsOnWrongPreconditionerInFactory)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    std::string unavailable_prec = "smoothed_aggregation";
-    auto batchidr_factory =
-        Solver::build().with_preconditioner(unavailable_prec).on(this->exec);
-
-    ASSERT_THROW(batchidr_factory->generate(this->mtx), gko::NotImplemented);
 }
 
 
@@ -247,13 +237,13 @@ TYPED_TEST(BatchIdr, ThrowsOnRectangularMatrixInFactory)
 //            .with_max_iterations(3)
 //            .with_rel_residual_tol(0.25f)
 //            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-//            .with_preconditioner("none")
+//            .with_preconditioner(gko::preconditioner::batch::type::none)
 //            .on(this->exec);
 //    auto solver = batchidr_factory->generate(this->mtx);
 //    auto solver_trans = gko::as<Solver>(solver->transpose());
 //    auto params = solver_trans->get_parameters();
 
-//    ASSERT_EQ(params.preconditioner, "none");
+//    ASSERT_EQ(params.preconditioner, gko::preconditioner::batch::type::none);
 //    ASSERT_EQ(params.max_iterations, 3);
 //    ASSERT_EQ(params.rel_residual_tol, 0.25);
 //    ASSERT_EQ(params.tolerance_type,

@@ -51,7 +51,7 @@ namespace batch_cg {
  */
 template <typename RealType>
 struct BatchCgOptions {
-    std::string preconditioner;
+    preconditioner::batch::type preconditioner;
     int max_its;
     RealType rel_residual_tol;
     RealType abs_residual_tol;
