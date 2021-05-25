@@ -36,8 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/preconditioner/batch_preconditioner_strings.hpp>
-#include <ginkgo/core/stop/batch_stop_enum.hpp>
+
 
 #include "hip/base/config.hip.hpp"
 #include "hip/base/math.hip.hpp"
@@ -92,15 +91,8 @@ static void apply_impl(
     using real_type = gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
 
-    if (opts.preconditioner == gko::preconditioner::batch::jacobi_str) {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(
-                apply_kernel<BatchJacobi<ValueType>,
-                             stop::AbsAndRelResidualMaxIter<ValueType>>),
-            dim3(nbatch), dim3(default_block_size), 0, 0, opts.max_its,
-            opts.abs_residual_tol, opts.rel_residual_tol, opts.tol_type, logger,
-            a, left, right, b, x);
-    } else if (opts.preconditioner == gko::preconditioner::batch::none_str) {
+
+    if (opts.preconditioner == gko::preconditioner::batch::type::none) {
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(
                 apply_kernel<BatchIdentity<ValueType>,
