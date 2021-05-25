@@ -358,20 +358,20 @@ int main(int argc, char *argv[])
     // batch matrix class (- which is a batchlinop ), and check_size_equality()
     // is a non const member function of batch_dim<> class
     gko::batch_dim<> batch_sz_x = x_dense_batch->get_size();
-    batch_sz_x.check_size_equality();
-    x_dense_batch->set_size(batch_sz_x);
+    // batch_sz_x.check_size_equality();
+    // x_dense_batch->set_size(batch_sz_x);
 
     gko::batch_dim<> batch_sz_b = b_dense_batch->get_size();
-    batch_sz_b.check_size_equality();
-    b_dense_batch->set_size(batch_sz_b);
+    // batch_sz_b.check_size_equality();
+    // b_dense_batch->set_size(batch_sz_b);
 
     gko::batch_dim<> batch_sz_lt = left_scale_dense_batch->get_size();
-    batch_sz_lt.check_size_equality();
-    left_scale_dense_batch->set_size(batch_sz_lt);
+    // batch_sz_lt.check_size_equality();
+    // left_scale_dense_batch->set_size(batch_sz_lt);
 
     gko::batch_dim<> batch_sz_rt = right_scale_dense_batch->get_size();
-    batch_sz_rt.check_size_equality();
-    right_scale_dense_batch->set_size(batch_sz_rt);
+    // batch_sz_rt.check_size_equality();
+    // right_scale_dense_batch->set_size(batch_sz_rt);
 
     std::cout << "\n Generating solver factory and solver object\n"
               << std::endl;
@@ -382,7 +382,7 @@ int main(int argc, char *argv[])
             .with_abs_residual_tol(1e-11)
             .with_tolerance_type(gko::stop::batch::ToleranceType::absolute)
             .with_max_iterations(6)
-            .with_preconditioner("none")
+            .with_preconditioner(gko::preconditioner::batch::type::none)
             .with_smoothing(false)
             .with_deterministic(true)
             .with_subspace_dim(2)
