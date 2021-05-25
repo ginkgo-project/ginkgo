@@ -264,6 +264,11 @@ void compute_partial_dot(dim3 grid, dim3 block, size_t dynamic_shared_memory,
     });
 }
 
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(compute_partial_dot,
+                                           compute_partial_dot)
+GKO_ENABLE_DEFAULT_CONFIG_CALL(compute_partial_dot_call, compute_partial_dot,
+                               KCFG_1D, kcfg_1d_list)
+
 
 template <ConfigSetType cfg = KCFG_1D::encode(256, 32), typename ValueType>
 void finalize_dot_computation(
@@ -301,51 +306,10 @@ void finalize_dot_computation(dim3 grid, dim3 block,
     });
 }
 
-template <ConfigSetType cfg = KCFG_1D::encode(256, 32), typename ValueType>
-void compute_dot(std::shared_ptr<const DpcppExecutor> exec,
-                 const matrix::Dense<ValueType> *x,
-                 const matrix::Dense<ValueType> *y,
-                 matrix::Dense<ValueType> *result)
-{
-    constexpr auto work_per_thread = 32;
-    constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
-    constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
-    std::cout << "dot " << cfg << " " << wg_size << " " << sg_size << std::endl;
-    constexpr auto work_per_block = work_per_thread * wg_size;
-    const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
-    const dim3 block_dim{sg_size, 1, wg_size / sg_size};
-    Array<ValueType> work(exec, grid_dim.x);
-    // TODO: write a kernel which does this more efficiently
-    for (size_type col = 0; col < x->get_size()[1]; ++col) {
-        compute_partial_dot<cfg>(grid_dim, block_dim, 0, exec->get_queue(),
-                                 x->get_size()[0], x->get_const_values() + col,
-                                 x->get_stride(), y->get_const_values() + col,
-                                 y->get_stride(), work.get_data());
-        finalize_dot_computation<cfg>(1, block_dim, 0, exec->get_queue(),
-                                      grid_dim.x, work.get_const_data(),
-                                      result->get_values() + col);
-    }
-}
-
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(compute_dot_config, compute_dot)
-
-template <typename ValueType>
-void compute_dot_call(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Dense<ValueType> *x,
-                      const matrix::Dense<ValueType> *y,
-                      matrix::Dense<ValueType> *result)
-{
-    auto queue = exec->get_queue();
-    compute_dot_config(
-        kcfg_1d_list,
-        [&queue](::gko::ConfigSetType cfg) {
-            return validate(queue, KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
-        },
-        ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
-        ::gko::syn::value_list<gko::size_type>(), ::gko::syn::type_list<>(),
-        exec, x, y, result);
-}
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(finalize_dot_computation,
+                                           finalize_dot_computation)
+GKO_ENABLE_DEFAULT_CONFIG_CALL(finalize_dot_computation_call,
+                               finalize_dot_computation, KCFG_1D, kcfg_1d_list)
 
 
 template <ConfigSetType cfg = KCFG_1D::encode(256, 32), typename ValueType>
@@ -386,6 +350,11 @@ void compute_partial_norm2(dim3 grid, dim3 block, size_t dynamic_shared_memory,
     });
 }
 
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(compute_partial_norm2,
+                                           compute_partial_norm2)
+GKO_ENABLE_DEFAULT_CONFIG_CALL(compute_partial_norm2_call,
+                               compute_partial_norm2, KCFG_1D, kcfg_1d_list)
+
 
 template <ConfigSetType cfg = KCFG_1D::encode(256, 32), typename ValueType>
 void finalize_norm2_computation(
@@ -423,53 +392,11 @@ void finalize_norm2_computation(dim3 grid, dim3 block,
     });
 }
 
-
-template <ConfigSetType cfg = KCFG_1D::encode(256, 32), typename ValueType>
-void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,
-                   const matrix::Dense<ValueType> *x,
-                   matrix::Dense<remove_complex<ValueType>> *result)
-{
-    using norm_type = remove_complex<ValueType>;
-    // // TODO: these are tuning parameters obtained experimentally, once
-    // // we decide how to handle this uniformly, they should be modified
-    // // appropriately
-    constexpr auto work_per_thread = 32;
-    constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
-    constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
-
-    constexpr auto work_per_block = work_per_thread * wg_size;
-    const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
-    const dim3 block_dim{sg_size, 1, wg_size / sg_size};
-    Array<norm_type> work(exec, grid_dim.x);
-    // TODO: write a kernel which does this more efficiently
-    for (size_type col = 0; col < x->get_size()[1]; ++col) {
-        compute_partial_norm2<cfg>(
-            grid_dim, block_dim, 0, exec->get_queue(), x->get_size()[0],
-            x->get_const_values() + col, x->get_stride(), work.get_data());
-        finalize_norm2_computation<cfg>(1, block_dim, 0, exec->get_queue(),
-                                        grid_dim.x, work.get_const_data(),
-                                        result->get_values() + col);
-    }
-}
-
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(compute_norm2_config, compute_norm2)
-
-template <typename ValueType>
-void compute_norm2_call(std::shared_ptr<const DpcppExecutor> exec,
-                        const matrix::Dense<ValueType> *x,
-                        matrix::Dense<remove_complex<ValueType>> *result)
-{
-    auto queue = exec->get_queue();
-    compute_norm2_config(
-        kcfg_1d_list,
-        [&queue](::gko::ConfigSetType cfg) {
-            return validate(queue, KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
-        },
-        ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
-        ::gko::syn::value_list<gko::size_type>(), ::gko::syn::type_list<>(),
-        exec, x, result);
-}
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(finalize_norm2_computation,
+                                           finalize_norm2_computation)
+GKO_ENABLE_DEFAULT_CONFIG_CALL(finalize_norm2_computation_call,
+                               finalize_norm2_computation, KCFG_1D,
+                               kcfg_1d_list)
 
 
 template <typename ValueType, typename IndexType>
@@ -1055,7 +982,32 @@ void compute_dot(std::shared_ptr<const DpcppExecutor> exec,
         // TODO: these are tuning parameters obtained experimentally, once
         // we decide how to handle this uniformly, they should be modified
         // appropriately
-        kernel::compute_dot_call(exec, x, y, result);
+        constexpr auto work_per_thread = 32;
+        auto queue = exec->get_queue();
+        constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
+        const ConfigSetType cfg =
+            get_first_cfg(kcfg_1d_array, [&queue](ConfigSetType cfg) {
+                return validate(queue, KCFG_1D::decode<0>(cfg),
+                                KCFG_1D::decode<1>(cfg));
+            });
+        const auto wg_size = KCFG_1D::decode<0>(cfg);
+        const auto sg_size = KCFG_1D::decode<1>(cfg);
+        std::cout << "dot " << cfg << " " << wg_size << " " << sg_size
+                  << std::endl;
+        const auto work_per_block = work_per_thread * wg_size;
+        const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
+        const dim3 block_dim{sg_size, 1, wg_size / sg_size};
+        Array<ValueType> work(exec, grid_dim.x);
+        // TODO: write a kernel which does this more efficiently
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            kernel::compute_partial_dot_call(
+                grid_dim, block_dim, 0, exec->get_queue(), cfg,
+                x->get_size()[0], x->get_const_values() + col, x->get_stride(),
+                y->get_const_values() + col, y->get_stride(), work.get_data());
+            kernel::finalize_dot_computation_call(
+                1, block_dim, 0, exec->get_queue(), cfg, grid_dim.x,
+                work.get_const_data(), result->get_values() + col);
+        }
     }
 }
 
@@ -1084,7 +1036,35 @@ void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,
                 result->get_values() + col);
         }
     } else {
-        kernel::compute_norm2_call(exec, x, result);
+        using norm_type = remove_complex<ValueType>;
+        // TODO: these are tuning parameters obtained experimentally, once
+        // we decide how to handle this uniformly, they should be modified
+        // appropriately
+        constexpr auto work_per_thread = 32;
+        auto queue = exec->get_queue();
+        constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
+        const ConfigSetType cfg =
+            get_first_cfg(kcfg_1d_array, [&queue](ConfigSetType cfg) {
+                return validate(queue, KCFG_1D::decode<0>(cfg),
+                                KCFG_1D::decode<1>(cfg));
+            });
+        const auto wg_size = KCFG_1D::decode<0>(cfg);
+        const auto sg_size = KCFG_1D::decode<1>(cfg);
+
+        const auto work_per_block = work_per_thread * wg_size;
+        const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
+        const dim3 block_dim{sg_size, 1, wg_size / sg_size};
+        Array<norm_type> work(exec, grid_dim.x);
+        // TODO: write a kernel which does this more efficiently
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            kernel::compute_partial_norm2_call(
+                grid_dim, block_dim, 0, exec->get_queue(), cfg,
+                x->get_size()[0], x->get_const_values() + col, x->get_stride(),
+                work.get_data());
+            kernel::finalize_norm2_computation_call(
+                1, block_dim, 0, exec->get_queue(), cfg, grid_dim.x,
+                work.get_const_data(), result->get_values() + col);
+        }
     }
 }
 
@@ -1127,6 +1107,16 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Dense<ValueType> *source,
                     matrix::Csr<ValueType, IndexType> *result)
 {
+    auto queue = exec->get_queue();
+    constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
+    const ConfigSetType cfg =
+        get_first_cfg(kcfg_1d_array, [&queue](ConfigSetType cfg) {
+            return validate(queue, KCFG_1D::decode<0>(cfg),
+                            KCFG_1D::decode<1>(cfg));
+        });
+    const auto wg_size = KCFG_1D::decode<0>(cfg);
+    const auto sg_size = KCFG_1D::decode<1>(cfg);
+
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
 
@@ -1136,20 +1126,20 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
 
     auto stride = source->get_stride();
 
-    const auto rows_per_block = ceildiv(default_block_size, config::warp_size);
+    const auto rows_per_block = ceildiv(wg_size, sg_size);
     const auto grid_dim_nnz = ceildiv(source->get_size()[0], rows_per_block);
 
-    kernel::count_nnz_per_row_call(
-        grid_dim_nnz, default_block_size, 0, exec->get_queue(), num_rows,
-        num_cols, stride, source->get_const_values(), row_ptrs);
+    kernel::count_nnz_per_row_call(grid_dim_nnz, wg_size, 0, exec->get_queue(),
+                                   cfg, num_rows, num_cols, stride,
+                                   source->get_const_values(), row_ptrs);
 
     components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
-    size_type grid_dim = ceildiv(num_rows, default_block_size);
+    size_type grid_dim = ceildiv(num_rows, wg_size);
 
-    kernel::fill_in_csr(grid_dim, default_block_size, 0, exec->get_queue(),
-                        num_rows, num_cols, stride, source->get_const_values(),
-                        row_ptrs, col_idxs, values);
+    kernel::fill_in_csr(grid_dim, wg_size, 0, exec->get_queue(), num_rows,
+                        num_cols, stride, source->get_const_values(), row_ptrs,
+                        col_idxs, values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1197,6 +1187,16 @@ void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
                       const matrix::Dense<ValueType> *source,
                       matrix::Sellp<ValueType, IndexType> *result)
 {
+    auto queue = exec->get_queue();
+    constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
+    const ConfigSetType cfg =
+        get_first_cfg(kcfg_1d_array, [&queue](ConfigSetType cfg) {
+            return validate(queue, KCFG_1D::decode<0>(cfg),
+                            KCFG_1D::decode<1>(cfg));
+        });
+    const auto wg_size = KCFG_1D::decode<0>(cfg);
+    const auto sg_size = KCFG_1D::decode<1>(cfg);
+
     const auto stride = source->get_stride();
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
@@ -1215,34 +1215,24 @@ void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
     const int slice_num = ceildiv(num_rows, slice_size);
 
     auto nnz_per_row = Array<size_type>(exec, num_rows);
-    std::cout << "calculate_nonzeros_per_row" << std::endl;
+
     calculate_nonzeros_per_row(exec, source, &nnz_per_row);
-    exec->synchronize();
-    std::cout << "calculate_nonzeros_per_row finish" << std::endl;
+
     auto grid_dim = slice_num;
 
     if (grid_dim > 0) {
-        std::cout << "calculate_slice_lengths" << std::endl;
         kernel::calculate_slice_lengths_call(
-            grid_dim, config::warp_size, 0, exec->get_queue(), num_rows,
-            slice_size, slice_num, stride_factor, nnz_per_row.get_const_data(),
+            grid_dim, sg_size, 0, exec->get_queue(), cfg, num_rows, slice_size,
+            slice_num, stride_factor, nnz_per_row.get_const_data(),
             slice_lengths, slice_sets);
-        exec->synchronize();
-        std::cout << "calculate_slice_lengths finish" << std::endl;
     }
-    std::cout << "prefix_sum" << std::endl;
     components::prefix_sum(exec, slice_sets, slice_num + 1);
-    // exec->synchronize();
-    std::cout << "prefix_sum finish" << std::endl;
-    grid_dim = ceildiv(num_rows, default_block_size);
+    grid_dim = ceildiv(num_rows, wg_size);
     if (grid_dim > 0) {
-        std::cout << "fill_in_sellp" << std::endl;
-        kernel::fill_in_sellp(grid_dim, default_block_size, 0,
-                              exec->get_queue(), num_rows, num_cols, slice_size,
-                              stride, source->get_const_values(), slice_lengths,
+        kernel::fill_in_sellp(grid_dim, wg_size, 0, exec->get_queue(), num_rows,
+                              num_cols, slice_size, stride,
+                              source->get_const_values(), slice_lengths,
                               slice_sets, col_idxs, vals);
-        exec->synchronize();
-        std::cout << "fill_in_sellp finish" << std::endl;
     }
 }
 
@@ -1300,14 +1290,14 @@ void calculate_max_nnz_per_row(std::shared_ptr<const DpcppExecutor> exec,
     auto block_results = Array<size_type>(exec, grid_dim);
 
     kernel::reduce_max_nnz_call(
-        grid_dim, wg_size, wg_size * sizeof(size_type), exec->get_queue(),
+        grid_dim, wg_size, wg_size * sizeof(size_type), exec->get_queue(), cfg,
         num_rows, nnz_per_row.get_const_data(), block_results.get_data());
 
     auto d_result = Array<size_type>(exec, 1);
 
     kernel::reduce_max_nnz_call(
-        1, wg_size, wg_size * sizeof(size_type), exec->get_queue(), grid_dim,
-        block_results.get_const_data(), d_result.get_data());
+        1, wg_size, wg_size * sizeof(size_type), exec->get_queue(), cfg,
+        grid_dim, block_results.get_const_data(), d_result.get_data());
 
     *result = exec->copy_val_to_host(d_result.get_const_data());
 }
@@ -1336,8 +1326,8 @@ void calculate_nonzeros_per_row(std::shared_ptr<const DpcppExecutor> exec,
     const dim3 grid_size(grid_x, 1, 1);
     if (grid_x > 0) {
         kernel::count_nnz_per_row_call(
-            grid_size, block_size, 0, exec->get_queue(), source->get_size()[0],
-            source->get_size()[1], source->get_stride(),
+            grid_size, block_size, 0, exec->get_queue(), cfg,
+            source->get_size()[0], source->get_size()[1], source->get_stride(),
             source->get_const_values(), result->get_data());
     }
 }
@@ -1380,23 +1370,23 @@ void calculate_total_cols(std::shared_ptr<const DpcppExecutor> exec,
     auto grid_dim = ceildiv(slice_num * sg_size, wg_size);
 
     kernel::reduce_max_nnz_per_slice_call(
-        grid_dim, wg_size, 0, exec->get_queue(), num_rows, slice_size,
+        grid_dim, wg_size, 0, exec->get_queue(), cfg, num_rows, slice_size,
         stride_factor, nnz_per_row.get_const_data(),
         max_nnz_per_slice.get_data());
 
     grid_dim = ceildiv(slice_num, wg_size);
     auto block_results = Array<size_type>(exec, grid_dim);
 
-    kernel::reduce_total_cols(grid_dim, wg_size, wg_size * sizeof(size_type),
-                              exec->get_queue(), slice_num,
-                              max_nnz_per_slice.get_const_data(),
-                              block_results.get_data());
+    kernel::reduce_total_cols_call(
+        grid_dim, wg_size, wg_size * sizeof(size_type), exec->get_queue(), cfg,
+        slice_num, max_nnz_per_slice.get_const_data(),
+        block_results.get_data());
 
     auto d_result = Array<size_type>(exec, 1);
 
-    kernel::reduce_total_cols(
-        1, wg_size, wg_size * sizeof(size_type), exec->get_queue(), grid_dim,
-        block_results.get_const_data(), d_result.get_data());
+    kernel::reduce_total_cols_call(
+        1, wg_size, wg_size * sizeof(size_type), exec->get_queue(), cfg,
+        grid_dim, block_results.get_const_data(), d_result.get_data());
 
     *result = exec->copy_val_to_host(d_result.get_const_data());
 }
