@@ -34,8 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <omp.h>
 
-#include <ginkgo/core/preconditioner/batch_preconditioner_strings.hpp>
-#include <ginkgo/core/stop/batch_stop_enum.hpp>
 
 #include "omp/base/config.hpp"
 // include device kernels for every matrix and preconditioner type

@@ -213,9 +213,9 @@ __device__ __forceinline__ void initialize(
 
 
     // r = b - A*x
-    adv_spmv_ker(static_cast<ValueType>(-1.0), A_global_entry,
-                 gko::batch::to_const(x_shared_entry),
-                 static_cast<ValueType>(1.0), r_shared_entry);
+    advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_global_entry,
+                         gko::batch::to_const(x_shared_entry),
+                         static_cast<ValueType>(1.0), r_shared_entry);
     __syncthreads();
 
     // compute residual norms
@@ -1384,8 +1384,9 @@ __global__ void apply_kernel(
 
 
                 // g_k = A * u_k
-                spmv_ker(A_global_entry, gko::batch::to_const(u_k_shared_entry),
-                         g_k_shared_entry);
+                spmv_kernel(A_global_entry,
+                            gko::batch::to_const(u_k_shared_entry),
+                            g_k_shared_entry);
 
                 __syncthreads();
 
@@ -1490,8 +1491,8 @@ __global__ void apply_kernel(
             __syncthreads();
 
             // t = A *v
-            spmv_ker(A_global_entry, gko::batch::to_const(v_shared_entry),
-                     t_shared_entry);
+            spmv_kernel(A_global_entry, gko::batch::to_const(v_shared_entry),
+                        t_shared_entry);
 
             __syncthreads();
 
