@@ -261,31 +261,33 @@ ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
     size_type grid_dim = size;
     auto block_results = Array<ValueType>(exec);
     ValueType answer = zero<ValueType>();
-    for (auto &cfg : kcfg_1d_array) {
-        const auto block_size = KCFG_1D::decode<0>(cfg);
-        const auto warp_size = KCFG_1D::decode<1>(cfg);
-        if (!validate(exec->get_queue(), block_size, warp_size)) {
-            continue;
-        }
-        if (size > block_size) {
-            const auto n = ceildiv(size, block_size);
-            grid_dim = (n <= block_size) ? n : block_size;
+    auto queue = exec->get_queue();
+    constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
+    const ConfigSetType cfg =
+        get_first_cfg(kcfg_1d_array, [&queue](ConfigSetType cfg) {
+            return validate(queue, KCFG_1D::decode<0>(cfg),
+                            KCFG_1D::decode<1>(cfg));
+        });
+    const auto wg_size = KCFG_1D::decode<0>(cfg);
+    const auto sg_size = KCFG_1D::decode<1>(cfg);
 
-            block_results.resize_and_reset(grid_dim);
+    if (size > wg_size) {
+        const auto n = ceildiv(size, wg_size);
+        grid_dim = (n <= wg_size) ? n : wg_size;
 
-            reduce_add_array_call(grid_dim, block_size, 0, exec->get_queue(),
-                                  size, source, block_results.get_data());
+        block_results.resize_and_reset(grid_dim);
 
-            block_results_val = block_results.get_const_data();
-        }
+        reduce_add_array_call(grid_dim, wg_size, 0, exec->get_queue(), cfg,
+                              size, source, block_results.get_data());
 
-        auto d_result = Array<ValueType>(exec, 1);
-
-        reduce_add_array_call(1, block_size, 0, exec->get_queue(), grid_dim,
-                              block_results_val, d_result.get_data());
-        answer = exec->copy_val_to_host(d_result.get_const_data());
-        break;
+        block_results_val = block_results.get_const_data();
     }
+
+    auto d_result = Array<ValueType>(exec, 1);
+
+    reduce_add_array_call(1, wg_size, 0, exec->get_queue(), cfg, grid_dim,
+                          block_results_val, d_result.get_data());
+    answer = exec->copy_val_to_host(d_result.get_const_data());
     return answer;
 }
 
