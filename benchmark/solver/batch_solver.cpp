@@ -308,11 +308,11 @@ void solve_system(const std::string &sol_name,
             add_or_set_member(solver_json, "rhs_norm",
                               rapidjson::Value(rapidjson::kObjectType),
                               allocator);
+            auto unbatch_b = b->unbatch();
             for (size_type i = 0; i < nbatch; ++i) {
                 add_or_set_member(
                     solver_json["rhs_norm"], std::to_string(i).c_str(),
                     rapidjson::Value(rapidjson::kArrayType), allocator);
-                auto unbatch_b = b->unbatch();
                 solver_json["rhs_norm"][std::to_string(i).c_str()].PushBack(
                     compute_norm2(lend(unbatch_b[i])), allocator);
             }
@@ -332,8 +332,9 @@ void solve_system(const std::string &sol_name,
         // warm run
         for (unsigned int i = 0; i < FLAGS_warmup; i++) {
             auto x_clone = clone(x);
-            auto solver =
-                generate_solver(exec, sol_name)->generate(system_matrix);
+            std::shared_ptr<const gko::BatchLinOp> mat_clone =
+                clone(system_matrix);
+            auto solver = generate_solver(exec, sol_name)->generate(mat_clone);
 
             if (FLAGS_batch_scaling == "explicit") {
                 dynamic_cast<gko::EnableBatchScaledSolver<etype> *>(
@@ -345,7 +346,7 @@ void solve_system(const std::string &sol_name,
             solver->remove_logger(gko::lend(logger));
             exec->synchronize();
         }
-        size_type nrhs = b->get_size().at(0)[1];
+        const size_type nrhs = b->get_size().at(0)[1];
         if (FLAGS_warmup > 0 &&
             (FLAGS_print_residuals_and_iters || FLAGS_detailed)) {
             add_or_set_member(solver_json, "num_iters",
@@ -368,12 +369,13 @@ void solve_system(const std::string &sol_name,
         if (FLAGS_detailed && !FLAGS_overhead) {
             // slow run, get the time of each functions
             auto x_clone = clone(x);
+            std::shared_ptr<const gko::BatchLinOp> mat_clone =
+                clone(system_matrix);
 
             auto gen_logger =
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(gen_logger);
-            auto solver =
-                generate_solver(exec, sol_name)->generate(system_matrix);
+            auto solver = generate_solver(exec, sol_name)->generate(mat_clone);
 
             if (FLAGS_batch_scaling == "explicit") {
                 dynamic_cast<gko::EnableBatchScaledSolver<etype> *>(
@@ -428,11 +430,12 @@ void solve_system(const std::string &sol_name,
         auto apply_timer = get_timer(exec, FLAGS_gpu_timer);
         for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
             auto x_clone = clone(x);
+            std::shared_ptr<const gko::BatchLinOp> mat_clone =
+                clone(system_matrix);
 
             exec->synchronize();
             generate_timer->tic();
-            auto solver =
-                generate_solver(exec, sol_name)->generate(system_matrix);
+            auto solver = generate_solver(exec, sol_name)->generate(mat_clone);
             if (FLAGS_batch_scaling == "explicit") {
                 dynamic_cast<gko::EnableBatchScaledSolver<etype> *>(
                     solver.get())
