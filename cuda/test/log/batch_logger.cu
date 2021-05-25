@@ -334,5 +334,80 @@ TYPED_TEST(BatchFinalLogger, LogsConvergenceTwoIterations)
     ASSERT_EQ(iters_log.get_const_data()[1 * this->nrhs + 3], 10);
 }
 
+template <typename RealType>
+__global__ void ex_iter_3(
+    const size_t nbatch, const int nrhs,
+    gko::kernels::cuda::batch_log::FinalLogger<RealType> blog,
+    const uint32_t conv_0, const uint32_t conv_1, const uint32_t conv_2,
+    const int iter_0, const int iter_1, const int iter_2)
+{
+    constexpr int max_nrhs = 6;
+    for (size_t ib = blockIdx.x; ib < nbatch; ib += gridDim.x) {
+        __shared__ RealType resnv[max_nrhs];
+        for (int i = 0; i < nrhs; i++) {
+            resnv[i] = i + 1.0;
+        }
+
+        // suppose 1st RHS converged
+        blog.log_iteration(ib, iter_0, resnv, conv_0);
+
+        // now suppose we start a new solve and nothing has converged
+        blog.log_iteration(ib, 0, resnv, 0 - (1 << nrhs));
+
+        for (int i = 0; i < nrhs; i++) {
+            resnv[i] = i + ib + 10.0;
+        }
+
+        if (ib == 0) {
+            blog.log_iteration(ib, iter_1, resnv, conv_1);
+        } else {
+            blog.log_iteration(ib, iter_2, resnv, conv_2);
+        }
+    }
+}
+
+TYPED_TEST(BatchFinalLogger, FirstIterationResetsLogger)
+{
+    using real_type = typename TestFixture::real_type;
+    using BatchLog = typename TestFixture::BatchLog;
+    gko::Array<real_type> res_norms_log(this->exec, this->nbatch * this->nrhs);
+    gko::Array<int> iters_log(this->exec, this->nbatch * this->nrhs);
+    for (int i = 0; i < this->nbatch * this->nrhs; i++) {
+        res_norms_log.get_data()[i] = 0.0;
+        iters_log.get_data()[i] = -1;
+    }
+    gko::Array<real_type> d_res_norms_log(this->cuexec, res_norms_log);
+    gko::Array<int> d_iters_log(this->cuexec, iters_log);
+    const int maxits = 20;
+
+    BatchLog blog(this->nrhs, maxits, d_res_norms_log.get_data(),
+                  d_iters_log.get_data());
+    std::array<uint32_t, 3> convergeds{0xfffffff1, 0xfffffff5, 0xfffffff9};
+    std::array<int, 3> iters{5, 8, 10};
+    ex_iter_3<<<this->nbatch, this->dbs>>>(
+        this->nbatch, this->nrhs, blog, convergeds[0], convergeds[1],
+        convergeds[2], iters[0], iters[1], iters[2]);
+
+    res_norms_log = d_res_norms_log;
+    iters_log = d_iters_log;
+    // the latest residual norms are logged
+    for (size_t i = 0; i < this->nbatch; i++) {
+        for (int j = 0; j < this->nrhs; j++) {
+            ASSERT_EQ(res_norms_log.get_const_data()[i * this->nrhs + j],
+                      i + j + 10.0);
+        }
+    }
+    // The iterations at which the convergence of each RHS were flagged
+    //  are logged.
+    ASSERT_EQ(iters_log.get_const_data()[0 * this->nrhs + 0], 8);
+    ASSERT_EQ(iters_log.get_const_data()[1 * this->nrhs + 0], 10);
+    ASSERT_EQ(iters_log.get_const_data()[0 * this->nrhs + 1], maxits - 1);
+    ASSERT_EQ(iters_log.get_const_data()[1 * this->nrhs + 1], maxits - 1);
+    ASSERT_EQ(iters_log.get_const_data()[0 * this->nrhs + 2], 8);
+    ASSERT_EQ(iters_log.get_const_data()[1 * this->nrhs + 2], maxits - 1);
+    ASSERT_EQ(iters_log.get_const_data()[0 * this->nrhs + 3], maxits - 1);
+    ASSERT_EQ(iters_log.get_const_data()[1 * this->nrhs + 3], 10);
+}
+
 
 }  // namespace
