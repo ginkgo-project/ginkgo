@@ -52,7 +52,7 @@ constexpr int max_restart = 5;
  */
 template <typename RealType>
 struct BatchGmresOptions {
-    std::string preconditioner;
+    preconditioner::batch::type preconditioner;
     int max_its;
     RealType rel_residual_tol;
     RealType abs_residual_tol;
