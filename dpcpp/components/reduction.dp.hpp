@@ -42,9 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
-
 #include <ginkgo/core/synthesizer/containers.hpp>
+
+
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
@@ -241,7 +241,7 @@ GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(reduce_add_array_config,
                                            reduce_add_array);
 
 GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_add_array_call, reduce_add_array_config,
-                               KCFG_1D, kcfg_1d_list);
+                               kcfg_1d_list);
 
 
 /**
@@ -277,7 +277,7 @@ ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
 
         block_results.resize_and_reset(grid_dim);
 
-        reduce_add_array_call(grid_dim, wg_size, 0, exec->get_queue(), cfg,
+        reduce_add_array_call(cfg, grid_dim, wg_size, 0, exec->get_queue(),
                               size, source, block_results.get_data());
 
         block_results_val = block_results.get_const_data();
@@ -285,7 +285,7 @@ ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
 
     auto d_result = Array<ValueType>(exec, 1);
 
-    reduce_add_array_call(1, wg_size, 0, exec->get_queue(), cfg, grid_dim,
+    reduce_add_array_call(cfg, 1, wg_size, 0, exec->get_queue(), grid_dim,
                           block_results_val, d_result.get_data());
     answer = exec->copy_val_to_host(d_result.get_const_data());
     return answer;

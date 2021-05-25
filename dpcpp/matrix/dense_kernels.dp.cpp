@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 
 
+#include <iostream>
+
+
 #include <CL/sycl.hpp>
 #include <oneapi/mkl.hpp>
 
@@ -45,7 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-#include <iostream>
 
 
 #include "core/components/prefix_sum.hpp"
@@ -188,11 +190,6 @@ void compute_partial_reduce(
     }
 }
 
-// GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(compute_partial_reduce_config,
-//                                            compute_partial_reduce);
-// GKO_ENABLE_DEFAULT_CONFIG_CALL(compute_partial_reduce_call,
-// compute_partial_reduce_config,
-//                                KCFG_1D, kcfg_1d_list);
 
 template <ConfigSetType cfg = KCFG_1D::encode(256, 32), typename ValueType,
           typename CallableReduce, typename CallableFinalize>
@@ -267,7 +264,7 @@ void compute_partial_dot(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(compute_partial_dot,
                                            compute_partial_dot)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(compute_partial_dot_call, compute_partial_dot,
-                               KCFG_1D, kcfg_1d_list)
+                               kcfg_1d_list)
 
 
 template <ConfigSetType cfg = KCFG_1D::encode(256, 32), typename ValueType>
@@ -309,7 +306,7 @@ void finalize_dot_computation(dim3 grid, dim3 block,
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(finalize_dot_computation,
                                            finalize_dot_computation)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(finalize_dot_computation_call,
-                               finalize_dot_computation, KCFG_1D, kcfg_1d_list)
+                               finalize_dot_computation, kcfg_1d_list)
 
 
 template <ConfigSetType cfg = KCFG_1D::encode(256, 32), typename ValueType>
@@ -353,7 +350,7 @@ void compute_partial_norm2(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(compute_partial_norm2,
                                            compute_partial_norm2)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(compute_partial_norm2_call,
-                               compute_partial_norm2, KCFG_1D, kcfg_1d_list)
+                               compute_partial_norm2, kcfg_1d_list)
 
 
 template <ConfigSetType cfg = KCFG_1D::encode(256, 32), typename ValueType>
@@ -395,8 +392,7 @@ void finalize_norm2_computation(dim3 grid, dim3 block,
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(finalize_norm2_computation,
                                            finalize_norm2_computation)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(finalize_norm2_computation_call,
-                               finalize_norm2_computation, KCFG_1D,
-                               kcfg_1d_list)
+                               finalize_norm2_computation, kcfg_1d_list)
 
 
 template <typename ValueType, typename IndexType>
@@ -452,7 +448,7 @@ void count_nnz_per_row(size_type num_rows, size_type num_cols, size_type stride,
 GKO_ENABLE_DEFAULT_HOST_CONFIG(count_nnz_per_row, count_nnz_per_row)
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(count_nnz_per_row, count_nnz_per_row)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(count_nnz_per_row_call, count_nnz_per_row,
-                               KCFG_1D, kcfg_1d_list)
+                               kcfg_1d_list)
 
 
 template <typename ValueType, typename IndexType>
@@ -552,7 +548,7 @@ GKO_ENABLE_DEFAULT_HOST_CONFIG(calculate_slice_lengths, calculate_slice_lengths)
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(calculate_slice_lengths,
                                            calculate_slice_lengths)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(calculate_slice_lengths_call,
-                               calculate_slice_lengths, KCFG_1D, kcfg_1d_list)
+                               calculate_slice_lengths, kcfg_1d_list)
 
 
 template <typename ValueType, typename IndexType>
@@ -627,7 +623,7 @@ void reduce_max_nnz(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 }
 
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(reduce_max_nnz, reduce_max_nnz);
-GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_max_nnz_call, reduce_max_nnz, KCFG_1D,
+GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_max_nnz_call, reduce_max_nnz,
                                kcfg_1d_list)
 
 template <ConfigSetType cfg>
@@ -666,7 +662,7 @@ GKO_ENABLE_DEFAULT_HOST_CONFIG(reduce_max_nnz_per_slice,
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(reduce_max_nnz_per_slice,
                                            reduce_max_nnz_per_slice)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_max_nnz_per_slice_call,
-                               reduce_max_nnz_per_slice, KCFG_1D, kcfg_1d_list)
+                               reduce_max_nnz_per_slice, kcfg_1d_list)
 
 
 template <ConfigSetType cfg>
@@ -708,7 +704,7 @@ void reduce_total_cols(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(reduce_total_cols,
                                            reduce_total_cols);
 GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_total_cols_call, reduce_total_cols,
-                               KCFG_1D, kcfg_1d_list)
+                               kcfg_1d_list)
 
 
 template <typename IndexType, typename ValueType>
@@ -1001,11 +997,11 @@ void compute_dot(std::shared_ptr<const DpcppExecutor> exec,
         // TODO: write a kernel which does this more efficiently
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
             kernel::compute_partial_dot_call(
-                grid_dim, block_dim, 0, exec->get_queue(), cfg,
+                cfg, grid_dim, block_dim, 0, exec->get_queue(),
                 x->get_size()[0], x->get_const_values() + col, x->get_stride(),
                 y->get_const_values() + col, y->get_stride(), work.get_data());
             kernel::finalize_dot_computation_call(
-                1, block_dim, 0, exec->get_queue(), cfg, grid_dim.x,
+                cfg, 1, block_dim, 0, exec->get_queue(), grid_dim.x,
                 work.get_const_data(), result->get_values() + col);
         }
     }
@@ -1058,11 +1054,11 @@ void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,
         // TODO: write a kernel which does this more efficiently
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
             kernel::compute_partial_norm2_call(
-                grid_dim, block_dim, 0, exec->get_queue(), cfg,
+                cfg, grid_dim, block_dim, 0, exec->get_queue(),
                 x->get_size()[0], x->get_const_values() + col, x->get_stride(),
                 work.get_data());
             kernel::finalize_norm2_computation_call(
-                1, block_dim, 0, exec->get_queue(), cfg, grid_dim.x,
+                cfg, 1, block_dim, 0, exec->get_queue(), grid_dim.x,
                 work.get_const_data(), result->get_values() + col);
         }
     }
@@ -1129,9 +1125,9 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
     const auto rows_per_block = ceildiv(wg_size, sg_size);
     const auto grid_dim_nnz = ceildiv(source->get_size()[0], rows_per_block);
 
-    kernel::count_nnz_per_row_call(grid_dim_nnz, wg_size, 0, exec->get_queue(),
-                                   cfg, num_rows, num_cols, stride,
-                                   source->get_const_values(), row_ptrs);
+    kernel::count_nnz_per_row_call(
+        cfg, grid_dim_nnz, wg_size, 0, exec->get_queue(), num_rows, num_cols,
+        stride, source->get_const_values(), row_ptrs);
 
     components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
@@ -1222,7 +1218,7 @@ void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
 
     if (grid_dim > 0) {
         kernel::calculate_slice_lengths_call(
-            grid_dim, sg_size, 0, exec->get_queue(), cfg, num_rows, slice_size,
+            cfg, grid_dim, sg_size, 0, exec->get_queue(), num_rows, slice_size,
             slice_num, stride_factor, nnz_per_row.get_const_data(),
             slice_lengths, slice_sets);
     }
@@ -1290,13 +1286,13 @@ void calculate_max_nnz_per_row(std::shared_ptr<const DpcppExecutor> exec,
     auto block_results = Array<size_type>(exec, grid_dim);
 
     kernel::reduce_max_nnz_call(
-        grid_dim, wg_size, wg_size * sizeof(size_type), exec->get_queue(), cfg,
+        cfg, grid_dim, wg_size, wg_size * sizeof(size_type), exec->get_queue(),
         num_rows, nnz_per_row.get_const_data(), block_results.get_data());
 
     auto d_result = Array<size_type>(exec, 1);
 
     kernel::reduce_max_nnz_call(
-        1, wg_size, wg_size * sizeof(size_type), exec->get_queue(), cfg,
+        cfg, 1, wg_size, wg_size * sizeof(size_type), exec->get_queue(),
         grid_dim, block_results.get_const_data(), d_result.get_data());
 
     *result = exec->copy_val_to_host(d_result.get_const_data());
@@ -1326,7 +1322,7 @@ void calculate_nonzeros_per_row(std::shared_ptr<const DpcppExecutor> exec,
     const dim3 grid_size(grid_x, 1, 1);
     if (grid_x > 0) {
         kernel::count_nnz_per_row_call(
-            grid_size, block_size, 0, exec->get_queue(), cfg,
+            cfg, grid_size, block_size, 0, exec->get_queue(),
             source->get_size()[0], source->get_size()[1], source->get_stride(),
             source->get_const_values(), result->get_data());
     }
@@ -1370,7 +1366,7 @@ void calculate_total_cols(std::shared_ptr<const DpcppExecutor> exec,
     auto grid_dim = ceildiv(slice_num * sg_size, wg_size);
 
     kernel::reduce_max_nnz_per_slice_call(
-        grid_dim, wg_size, 0, exec->get_queue(), cfg, num_rows, slice_size,
+        cfg, grid_dim, wg_size, 0, exec->get_queue(), num_rows, slice_size,
         stride_factor, nnz_per_row.get_const_data(),
         max_nnz_per_slice.get_data());
 
@@ -1378,14 +1374,14 @@ void calculate_total_cols(std::shared_ptr<const DpcppExecutor> exec,
     auto block_results = Array<size_type>(exec, grid_dim);
 
     kernel::reduce_total_cols_call(
-        grid_dim, wg_size, wg_size * sizeof(size_type), exec->get_queue(), cfg,
+        cfg, grid_dim, wg_size, wg_size * sizeof(size_type), exec->get_queue(),
         slice_num, max_nnz_per_slice.get_const_data(),
         block_results.get_data());
 
     auto d_result = Array<size_type>(exec, 1);
 
     kernel::reduce_total_cols_call(
-        1, wg_size, wg_size * sizeof(size_type), exec->get_queue(), cfg,
+        cfg, 1, wg_size, wg_size * sizeof(size_type), exec->get_queue(),
         grid_dim, block_results.get_const_data(), d_result.get_data());
 
     *result = exec->copy_val_to_host(d_result.get_const_data());

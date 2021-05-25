@@ -44,9 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 
 
-#include "dpcpp/test/utils.hpp"
-
-
 namespace {
 
 

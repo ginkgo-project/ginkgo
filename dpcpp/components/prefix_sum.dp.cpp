@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <CL/sycl.hpp>
 
 
-#include <include/ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 #include "dpcpp/base/helper.hpp"
@@ -57,12 +57,12 @@ constexpr auto block_cfg_list =
 
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(start_prefix_sum, start_prefix_sum)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(start_prefix_sum_call, start_prefix_sum,
-                               BlockCfg, block_cfg_list)
+                               block_cfg_list)
 
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(finalize_prefix_sum,
                                            finalize_prefix_sum)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(finalize_prefix_sum_call, finalize_prefix_sum,
-                               BlockCfg, block_cfg_list)
+                               block_cfg_list)
 
 
 template <typename IndexType>
@@ -81,13 +81,14 @@ void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType *counts,
         auto num_blocks = ceildiv(num_entries, wg_size);
         Array<IndexType> block_sum_array(exec, num_blocks - 1);
         auto block_sums = block_sum_array.get_data();
-        start_prefix_sum_call(num_blocks, wg_size, 0, exec->get_queue(), cfg,
+        start_prefix_sum_call(cfg, num_blocks, wg_size, 0, exec->get_queue(),
                               num_entries, counts, block_sums);
         // add the total sum of the previous block only when the number of block
         // is larger than 1.
         if (num_blocks > 1) {
-            finalize_prefix_sum_call(num_blocks, wg_size, 0, exec->get_queue(),
-                                     cfg, num_entries, counts, block_sums);
+            finalize_prefix_sum_call(cfg, num_blocks, wg_size, 0,
+                                     exec->get_queue(), num_entries, counts,
+                                     block_sums);
         }
     }
 }
