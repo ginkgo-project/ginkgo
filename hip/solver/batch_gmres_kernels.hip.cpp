@@ -36,8 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/preconditioner/batch_preconditioner_strings.hpp>
-#include <ginkgo/core/stop/batch_stop_enum.hpp>
+
 
 #include "hip/base/config.hip.hpp"
 #include "hip/base/math.hip.hpp"
