@@ -121,6 +121,8 @@ DEFINE_bool(overhead, false,
 DEFINE_uint32(num_duplications, 1, "The number of duplications");
 DEFINE_uint32(num_batches, 1, "The number of batch entries");
 DEFINE_string(batch_scaling, "none", "Whether to use scaled matrices");
+DEFINE_bool(print_residuals_and_iters, false,
+            "Whether to print the final residuals for each batch entry");
 DEFINE_bool(using_suite_sparse, true,
             "Whether the suitesparse matrices are being used");
 
@@ -137,6 +139,35 @@ DEFINE_bool(using_suite_sparse, true,
                  "\"spmv\": \"<matrix format>\" } }\n"
               << "  ]" << std::endl;
     std::exit(1);
+}
+
+
+/**
+ * Function which outputs the input format for benchmarks similar to the spmv.
+ */
+[[noreturn]] void print_batch_config_error_and_exit()
+{
+    std::cerr << "Input has to be a JSON array of matrix configuration folder "
+                 "locations:\n"
+              << "  [\n"
+              << "    { \"problem\": \"my_folder\" },\n"
+              << "    { \"problem\": \"my_folder2\" }\n"
+              << "  ]" << std::endl;
+    std::exit(1);
+}
+
+
+/**
+ * Validates whether the input format is correct for spmv-like benchmarks.
+ *
+ * @param value  the JSON value to test.
+ */
+void validate_batch_option_object(const rapidjson::Value &value)
+{
+    if (!value.IsObject() || !value.HasMember("problem") ||
+        !value["problem"].IsString()) {
+        print_batch_config_error_and_exit();
+    }
 }
 
 
@@ -254,7 +285,8 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
 void solve_system(const std::string &sol_name,
                   std::shared_ptr<gko::Executor> exec,
                   std::shared_ptr<const gko::BatchLinOp> system_matrix,
-                  const batch_vec<etype> *b, batch_vec<etype> *x,
+                  const batch_vec<etype> *b,
+                  const batch_vec<etype> *scaling_vec, batch_vec<etype> *x,
                   rapidjson::Value &test_case,
                   rapidjson::MemoryPoolAllocator<> &allocator)
 {
@@ -268,6 +300,9 @@ void solve_system(const std::string &sol_name,
         add_or_set_member(solver_case, solver_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
         auto &solver_json = solver_case[solver_name];
+        add_or_set_member(solver_json, "scaling",
+                          rapidjson::StringRef(FLAGS_batch_scaling.c_str()),
+                          allocator);
         size_type nbatch = system_matrix->get_num_batch_entries();
         if (FLAGS_detailed && b->get_size().at(0)[1] == 1 && !FLAGS_overhead) {
             add_or_set_member(solver_json, "rhs_norm",
@@ -299,13 +334,20 @@ void solve_system(const std::string &sol_name,
             auto x_clone = clone(x);
             auto solver =
                 generate_solver(exec, sol_name)->generate(system_matrix);
+
+            if (FLAGS_batch_scaling == "explicit") {
+                dynamic_cast<gko::EnableBatchScaledSolver<etype> *>(
+                    solver.get())
+                    ->batch_scale(lend(scaling_vec), lend(scaling_vec));
+            }
             solver->add_logger(logger);
             solver->apply(lend(b), lend(x));
             solver->remove_logger(gko::lend(logger));
             exec->synchronize();
         }
         size_type nrhs = b->get_size().at(0)[1];
-        if (FLAGS_warmup > 0) {
+        if (FLAGS_warmup > 0 &&
+            (FLAGS_print_residuals_and_iters || FLAGS_detailed)) {
             add_or_set_member(solver_json, "num_iters",
                               rapidjson::Value(rapidjson::kObjectType),
                               allocator);
@@ -330,10 +372,14 @@ void solve_system(const std::string &sol_name,
             auto gen_logger =
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(gen_logger);
-
             auto solver =
                 generate_solver(exec, sol_name)->generate(system_matrix);
 
+            if (FLAGS_batch_scaling == "explicit") {
+                dynamic_cast<gko::EnableBatchScaledSolver<etype> *>(
+                    solver.get())
+                    ->batch_scale(lend(scaling_vec), lend(scaling_vec));
+            }
             exec->remove_logger(gko::lend(gen_logger));
             gen_logger->write_data(solver_json["generate"]["components"],
                                    allocator, 1);
@@ -348,7 +394,7 @@ void solve_system(const std::string &sol_name,
             apply_logger->write_data(solver_json["apply"]["components"],
                                      allocator, 1);
 
-            // // slow run, gets the recurrent and true residuals of each
+            // slow run, gets the recurrent and true residuals of each
             // iteration
             if (b->get_size().at(0)[1] == 1) {
                 x_clone = clone(x);
@@ -387,6 +433,11 @@ void solve_system(const std::string &sol_name,
             generate_timer->tic();
             auto solver =
                 generate_solver(exec, sol_name)->generate(system_matrix);
+            if (FLAGS_batch_scaling == "explicit") {
+                dynamic_cast<gko::EnableBatchScaledSolver<etype> *>(
+                    solver.get())
+                    ->batch_scale(lend(scaling_vec), lend(scaling_vec));
+            }
             generate_timer->toc();
 
             exec->synchronize();
@@ -395,7 +446,8 @@ void solve_system(const std::string &sol_name,
             apply_timer->toc();
 
             if (b->get_size().at(0)[1] == 1 && i == FLAGS_repetitions - 1 &&
-                !FLAGS_overhead) {
+                !FLAGS_overhead &&
+                (FLAGS_print_residuals_and_iters || FLAGS_detailed)) {
                 auto residual = compute_batch_residual_norm(
                     lend(system_matrix), lend(b), lend(x_clone));
                 add_or_set_member(solver_json, "residual_norm",
@@ -460,7 +512,11 @@ int main(int argc, char *argv[])
     test_cases.ParseStream(jcin);
 
     if (!test_cases.IsArray()) {
-        print_config_error_and_exit();
+        if (FLAGS_using_suite_sparse) {
+            print_batch_config_error_and_exit();
+        } else {
+            print_config_error_and_exit();
+        }
     }
 
     auto engine = get_engine();
@@ -469,7 +525,11 @@ int main(int argc, char *argv[])
     for (auto &test_case : test_cases.GetArray()) {
         try {
             // set up benchmark
-            validate_option_object(test_case);
+            if (FLAGS_using_suite_sparse) {
+                validate_option_object(test_case);
+            } else {
+                validate_batch_option_object(test_case);
+            }
             if (!test_case.HasMember("batch_solver")) {
                 test_case.AddMember("batch_solver",
                                     rapidjson::Value(rapidjson::kObjectType),
@@ -493,6 +553,7 @@ int main(int argc, char *argv[])
             std::shared_ptr<gko::BatchLinOp> system_matrix;
             std::unique_ptr<Vec> b;
             std::unique_ptr<Vec> x;
+            std::unique_ptr<Vec> scaling_vec;
             std::string fbase;
             if (FLAGS_using_suite_sparse) {
                 GKO_ASSERT(ndup == nbatch);
@@ -526,8 +587,35 @@ int main(int argc, char *argv[])
             } else {
                 system_matrix = share(formats::batch_matrix_factory2.at(
                     "batch_csr")(exec, ndup, data));
+                if (FLAGS_batch_scaling == "explicit") {
+                    scaling_vec = Vec::create(exec);
+                    scaling_vec->read(scale_data);
+                }
             }
-            b = generate_rhs(exec, system_matrix, engine, fbase);
+            if (FLAGS_using_suite_sparse) {
+                b = generate_rhs(exec, system_matrix, engine, fbase);
+            } else {
+                if (FLAGS_rhs_generation == "file") {
+                    auto b_data = std::vector<gko::matrix_data<etype>>(nbatch);
+                    for (size_type i = 0; i < data.size(); ++i) {
+                        std::string b_str;
+                        if (FLAGS_batch_scaling == "implicit") {
+                            b_str = "b_scaled.mtx";
+                        } else {
+                            b_str = "b.mtx";
+                        }
+                        fbase = std::string(test_case["problem"].GetString()) +
+                                "/" + std::to_string(i) + "/";
+                        std::string fname = fbase + b_str;
+                        std::ifstream mtx_fd(fname);
+                        b_data[i] = gko::read_raw<etype>(mtx_fd);
+                    }
+                    b = Vec::create(exec);
+                    b->read(b_data);
+                } else {
+                    b = generate_rhs(exec, system_matrix, engine, fbase);
+                }
+            }
             x = generate_initial_guess(exec, system_matrix, b.get(), engine);
 
             std::clog << "Batch Matrix has: "
@@ -544,8 +632,8 @@ int main(int argc, char *argv[])
             auto sol_name = begin(solvers);
             for (const auto &solver_name : solvers) {
                 std::clog << "\tRunning solver: " << *sol_name << std::endl;
-                solve_system(solver_name, exec, system_matrix, lend(b), lend(x),
-                             test_case, allocator);
+                solve_system(solver_name, exec, system_matrix, lend(b),
+                             lend(scaling_vec), lend(x), test_case, allocator);
                 backup_results(test_cases);
             }
         } catch (const std::exception &e) {
