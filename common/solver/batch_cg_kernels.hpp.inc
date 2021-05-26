@@ -55,27 +55,11 @@ __device__ __forceinline__ void initialize(
 
 
     // copy x from global to shared memory
-    for (int li = threadIdx.x;
-         li < x_shared_entry.num_rows * x_shared_entry.num_rhs;
-         li += blockDim.x) {
-        int r = li / x_shared_entry.num_rhs;
-        int c = li % x_shared_entry.num_rhs;
-
-        x_shared_entry.values[r * x_shared_entry.stride + c] =
-            x_global_entry.values[r * x_global_entry.stride + c];
-    }
+    copy(gko::batch::to_const(x_global_entry), x_shared_entry);
 
 
     // r = b
-    for (int li = threadIdx.x;
-         li < r_shared_entry.num_rows * r_shared_entry.num_rhs;
-         li += blockDim.x) {
-        int r = li / r_shared_entry.num_rhs;
-        int c = li % r_shared_entry.num_rhs;
-
-        r_shared_entry.values[r * r_shared_entry.stride + c] =
-            b_global_entry.values[r * b_global_entry.stride + c];
-    }
+    copy(b_global_entry, r_shared_entry);
 
     __syncthreads();
 
@@ -97,15 +81,7 @@ __device__ __forceinline__ void initialize(
 
 
     // p = z
-    for (int li = threadIdx.x;
-         li < p_shared_entry.num_rows * p_shared_entry.num_rhs;
-         li += blockDim.x) {
-        int r = li / p_shared_entry.num_rhs;
-        int c = li % p_shared_entry.num_rhs;
-
-        p_shared_entry.values[r * p_shared_entry.stride + c] =
-            z_shared_entry.values[r * z_shared_entry.stride + c];
-    }
+    copy(gko::batch::to_const(z_shared_entry), p_shared_entry);
 
 
     // rho_old = r' * z
@@ -296,40 +272,62 @@ __global__ void apply_kernel(
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
 
-    // constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
-
-    if (batch_config<ValueType>::max_num_rows *
-            batch_config<ValueType>::max_num_rhs <
-        nrows * nrhs) {
-        if (blockIdx.x == 0 && threadIdx.x == 0) {
-            printf(
-                " Static vector size not enough!, allocated: %d , required: %d "
-                "\n",
-                batch_config<ValueType>::max_num_rows *
-                    batch_config<ValueType>::max_num_rhs,
-                nrows * nrhs);
-        }
-        return;
-    }
-
-    if (batch_config<ValueType>::max_num_rows < nrows) {
-        if (blockIdx.x == 0 && threadIdx.x == 0) {
-            printf(
-                " Compile time constant: max_num_rows < actual rows in "
-                "matrix\n");
-        }
-        return;
-    }
-
-    if (batch_config<ValueType>::max_num_rhs < nrhs) {
-        if (blockIdx.x == 0 && threadIdx.x == 0) {
-            printf(" Compile time constant: max_rhs < actual rhs in matrix!\n");
-        }
-        return;
-    }
-
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
+#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
+
+        extern __shared__ char local_mem_sh[];
+        ValueType *const r_sh = reinterpret_cast<ValueType *>(local_mem_sh);
+        ValueType *const z_sh = r_sh + nrows * nrhs;
+        ValueType *const p_sh = z_sh + nrows * nrhs;
+        ValueType *const Ap_sh = p_sh + nrows * nrhs;
+        ValueType *const x_sh = Ap_sh + nrows * nrhs;
+        ValueType *const prec_work_sh = x_sh + nrows * nrhs;
+        ValueType *const rho_old_sh =
+            prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
+        ValueType *const rho_new_sh = rho_old_sh + nrhs;
+        ValueType *const alpha_sh = rho_new_sh + nrhs;
+        ValueType *const beta_sh = alpha_sh + nrhs;
+        real_type *const norms_rhs_sh =
+            reinterpret_cast<real_type *>(beta_sh + nrhs);
+        real_type *const norms_res_sh = norms_rhs_sh + nrhs;
+        real_type *const norms_res_temp_sh = norms_res_sh + nrhs;
+
+#else
+
+        if (batch_config<ValueType>::max_num_rows *
+                batch_config<ValueType>::max_num_rhs <
+            nrows * nrhs) {
+            if (blockIdx.x == 0 && threadIdx.x == 0) {
+                printf(
+                    " Static vector size not enough!, allocated: %d , "
+                    "required: %d "
+                    "\n",
+                    batch_config<ValueType>::max_num_rows *
+                        batch_config<ValueType>::max_num_rhs,
+                    nrows * nrhs);
+            }
+            return;
+        }
+
+        if (batch_config<ValueType>::max_num_rows < nrows) {
+            if (blockIdx.x == 0 && threadIdx.x == 0) {
+                printf(
+                    " Compile time constant: max_num_rows < actual rows in "
+                    "matrix\n");
+            }
+            return;
+        }
+
+        if (batch_config<ValueType>::max_num_rhs < nrhs) {
+            if (blockIdx.x == 0 && threadIdx.x == 0) {
+                printf(
+                    " Compile time constant: max_rhs < actual rhs in "
+                    "matrix!\n");
+            }
+            return;
+        }
+
         __shared__ UninitializedArray<ValueType,
                                       batch_config<ValueType>::max_num_rows *
                                           batch_config<ValueType>::max_num_rhs>
@@ -360,6 +358,40 @@ __global__ void apply_kernel(
         __shared__ UninitializedArray<ValueType, PrecType::work_size>
             prec_work_sh;
 
+        __shared__
+            UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
+                rho_old_sh;
+
+        __shared__
+            UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
+                rho_new_sh;
+
+        __shared__
+            UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
+                alpha_sh;
+
+
+        __shared__
+            UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
+                beta_sh;
+
+
+        __shared__
+            UninitializedArray<real_type, batch_config<ValueType>::max_num_rhs>
+                norms_rhs_sh;
+
+
+        __shared__
+            UninitializedArray<real_type, batch_config<ValueType>::max_num_rhs>
+                norms_res_sh;
+
+
+        __shared__
+            UninitializedArray<real_type, batch_config<ValueType>::max_num_rhs>
+                norms_res_temp_sh;
+
+
+#endif
 
         uint32 converged = 0;
 
@@ -408,50 +440,30 @@ __global__ void apply_kernel(
             Ap_sh, static_cast<size_type>(nrhs), nrows, nrhs};
 
 
-        __shared__
-            UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
-                rho_old_sh;
         const gko::batch_dense::BatchEntry<ValueType> rho_old_shared_entry{
             rho_old_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
 
-        __shared__
-            UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
-                rho_new_sh;
         const gko::batch_dense::BatchEntry<ValueType> rho_new_shared_entry{
             rho_new_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
 
-        __shared__
-            UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
-                alpha_sh;
         const gko::batch_dense::BatchEntry<ValueType> alpha_shared_entry{
             alpha_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
 
-        __shared__
-            UninitializedArray<ValueType, batch_config<ValueType>::max_num_rhs>
-                beta_sh;
         const gko::batch_dense::BatchEntry<ValueType> beta_shared_entry{
             beta_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
 
-        __shared__
-            UninitializedArray<real_type, batch_config<ValueType>::max_num_rhs>
-                norms_rhs_sh;
         const gko::batch_dense::BatchEntry<real_type> rhs_norms_shared_entry{
             norms_rhs_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
 
-        __shared__
-            UninitializedArray<real_type, batch_config<ValueType>::max_num_rhs>
-                norms_res_sh;
         const gko::batch_dense::BatchEntry<real_type> res_norms_shared_entry{
             norms_res_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-        __shared__
-            UninitializedArray<real_type, batch_config<ValueType>::max_num_rhs>
-                norms_res_temp_sh;
+
         const gko::batch_dense::BatchEntry<real_type>
             res_norms_temp_shared_entry{norms_res_temp_sh,
                                         static_cast<size_type>(nrhs), 1, nrhs};
@@ -462,10 +474,10 @@ __global__ void apply_kernel(
 
 
         // initialization
-        // compute b norms (precond b or what ?)
+        // compute b norms
         // r = b - A*x
         // z = precond*r
-        // compute residual norms (? precond res or what ?)
+        // compute residual norms
         // rho_old = r' * z (' is for hermitian transpose)
         // p = z
         initialize(A_global_entry, b_global_entry,
@@ -578,15 +590,8 @@ __global__ void apply_kernel(
         __syncthreads();
 
         // copy x back to global memory
-        for (int li = threadIdx.x;
-             li < x_global_entry.num_rows * x_global_entry.num_rhs;
-             li += blockDim.x) {
-            int r = li / x_global_entry.num_rhs;
-            int c = li % x_global_entry.num_rhs;
+        copy(gko::batch::to_const(x_shared_entry), x_global_entry);
 
-            x_global_entry.values[r * x_global_entry.stride + c] =
-                x_shared_entry.values[r * x_shared_entry.stride + c];
-        }
 
         __syncthreads();
     }
