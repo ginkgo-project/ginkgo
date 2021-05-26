@@ -68,6 +68,10 @@ protected:
                   .with_abs_residual_tol(def_abs_res_tol)
                   .with_tolerance_type(def_tol_type)
                   .with_preconditioner(gko::preconditioner::batch::type::none)
+                  .with_deterministic(false)
+                  .with_smoothing(true)
+                  .with_complex_subspace(false)
+                  .with_subspace_dim(3)
                   .on(exec)),
           solver(batchidr_factory->generate(mtx))
     {}
@@ -165,7 +169,6 @@ TYPED_TEST(BatchIdr, CanBeCleared)
     this->solver->clear();
 
     ASSERT_EQ(this->solver->get_num_batch_entries(), 0);
-    // ASSERT_EQ(this->solver->get_size().at(0), gko::dim<2>(0, 0));
     ASSERT_EQ(this->solver->get_size().get_num_batch_entries(), 0);
     auto solver_mtx =
         static_cast<Solver *>(this->solver.get())->get_system_matrix();
@@ -189,6 +192,10 @@ TYPED_TEST(BatchIdr, CanSetCriteria)
             .with_max_iterations(22)
             .with_rel_residual_tol(static_cast<RT>(0.25))
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_deterministic(false)
+            .with_smoothing(true)
+            .with_complex_subspace(true)
+            .with_subspace_dim(3)
             .on(this->exec);
     auto solver = batchidr_factory->generate(this->mtx);
 
@@ -197,6 +204,10 @@ TYPED_TEST(BatchIdr, CanSetCriteria)
     ASSERT_NEAR(solver->get_parameters().rel_residual_tol, 0.25, tol);
     ASSERT_EQ(solver->get_parameters().tolerance_type,
               gko::stop::batch::ToleranceType::relative);
+    ASSERT_EQ(solver->get_parameters().deterministic, false);
+    ASSERT_EQ(solver->get_parameters().smoothing, true);
+    ASSERT_EQ(solver->get_parameters().complex_subspace, true);
+    ASSERT_EQ(solver->get_parameters().subspace_dim, 3);
 }
 
 
@@ -226,6 +237,27 @@ TYPED_TEST(BatchIdr, ThrowsOnRectangularMatrixInFactory)
 
     ASSERT_THROW(this->batchidr_factory->generate(rectangular_mtx),
                  gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(BatchIdr, CanSetScalingVectors)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using Dense = typename TestFixture::Dense;
+
+    auto batchidr_factory = Solver::build().on(this->exec);
+    auto solver = batchidr_factory->generate(this->mtx);
+    auto left_scale = Dense::create(
+        this->exec, gko::batch_dim<>(2, gko::dim<2>(this->nrows, 1)));
+    auto right_scale = Dense::create_with_config_of(left_scale.get());
+    solver->batch_scale(left_scale.get(), right_scale.get());
+
+    auto s_solver =
+        dynamic_cast<gko::EnableBatchScaledSolver<value_type> *>(solver.get());
+    ASSERT_TRUE(s_solver);
+    ASSERT_EQ(s_solver->get_left_scaling_vector(), left_scale.get());
+    ASSERT_EQ(s_solver->get_right_scaling_vector(), right_scale.get());
 }
 
 // TYPED_TEST(BatchIdr, SolverTransposeRetainsFactoryParameters)
