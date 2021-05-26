@@ -60,7 +60,7 @@ struct BatchCgOptions {
 
 
 /**
- * Calculates the amount of in-solver storage needed by batch-Bicgstab.
+ * Calculates the amount of in-solver storage needed by batch-Cg.
  *
  * The calculation includes multivectors for
  * - r
