@@ -58,12 +58,9 @@ namespace solver {
  * This solver solves a batch of linear systems using Bicgstab algorithm.
  *
  * Unless otherwise specified via the `preconditioner` factory parameter, this
- * implementation does not use any preconditioner by default.
- * The only stopping criterion currently available is controlled by the
- * `max_iterations` and `rel_residual_tol` factory parameters. The solver is
- * stopped whrn the maximum iterations are reached, or the relative residual
- * is smaller than the specified tolerance.
- *
+ * implementation does not use any preconditioner by default. The type of
+ * tolerance( absolute or relative ) and the maximum number of iterations to be
+ * used in the stopping criterion can be set via the factory parameters.
  *
  * @tparam ValueType  precision of matrix elements
  *
@@ -130,10 +127,6 @@ public:
          * To specify which tolerance is to be considered.
          *
          */
-        // ::gko::stop::batch::ToleranceType
-        // GKO_FACTORY_PARAMETER_SCALAR(tolerance_type,
-        // ::gko::stop::batch::ToleranceType::absolute);
-
         ::gko::stop::batch::ToleranceType GKO_FACTORY_PARAMETER_SCALAR(
             tolerance_type, ::gko::stop::batch::ToleranceType::absolute);
     };
@@ -158,9 +151,6 @@ protected:
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
-        // GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_); //won't work as
-        // get_size() is not there in BatchLinop to check if each small matrix
-        // in the batch is square
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
     }
 
