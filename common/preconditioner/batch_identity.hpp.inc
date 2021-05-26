@@ -30,23 +30,59 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/preconditioner/batch_identity.hpp"
-
+/**
+ *  Identity preconditioner for batch solvers. ( To be able to have
+ * unpreconditioned solves )
+ */
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE void BatchIdentity<ValueType>::apply(
-    const gko::batch_dense::BatchEntry<const ValueType> &r,
-    const gko::batch_dense::BatchEntry<ValueType> &z) const
-{
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+class BatchIdentity final {
+public:
+    using value_type = ValueType;
+
+    /**
+     * The size of the work vector required in case of static allocation.
+     */
+    static constexpr int work_size = 1;
 
 
-    for (int li = threadIdx.x; li < r.num_rows * r.num_rhs; li += blockDim.x) {
-        const int row = li / r.num_rhs;
-
-        const int col = li % r.num_rhs;
-
-        z.values[row * z.stride + col] = r.values[row * r.stride + col];
+    /**
+     * The size of the work vector required in case of dynamic allocation.
+     *
+     * For the Identity preconditioner, this is unnecessary, but this function
+     * is part of a 'batch preconditioner interface' because other
+     * preconditioners may need it.
+     */
+    __host__ __device__ static constexpr int dynamic_work_size(
+        const int num_rows, int)
+    {
+        return 1;
     }
 
-#endif
-}
+
+    /**
+     * Sets the input and generates the identity preconditioner.(Nothing needs
+     * to be actually generated.)
+     *
+     * @param mat  Matrix for which to build an Ideniity preconditioner.
+     * @param work  A 'work-vector', which is unneecessary here as no
+     * preconditioner values are to be stored.
+     */
+    __device__ __forceinline__ void generate(
+        const gko::batch_csr::BatchEntry<const ValueType> &mat,
+        ValueType *const __restrict__ work)
+    {}
+
+    __device__ __forceinline__ void apply(
+        const gko::batch_dense::BatchEntry<const ValueType> &r,
+        const gko::batch_dense::BatchEntry<ValueType> &z) const
+    {
+        for (int li = threadIdx.x; li < r.num_rows * r.num_rhs;
+             li += blockDim.x) {
+            const int row = li / r.num_rhs;
+
+            const int col = li % r.num_rhs;
+
+            z.values[row * z.stride + col] = r.values[row * r.stride + col];
+        }
+    }
+};
