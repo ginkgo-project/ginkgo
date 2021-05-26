@@ -90,14 +90,9 @@ inline void initialize(
     batch_dense::compute_norm2<ValueType>(b_entry, rhs_norms_entry);
 
 
-// r = b
-#pragma omp parallel for
-    for (int r = 0; r < r_entry.num_rows; r++) {
-        for (int c = 0; c < r_entry.num_rhs; c++) {
-            r_entry.values[r * r_entry.stride + c] =
-                b_entry.values[r * b_entry.stride + c];
-        }
-    }
+    // r = b
+    batch_dense::copy(b_entry, r_entry);
+
     // r = b - A*x
     advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
                          gko::batch::to_const(x_entry),
@@ -105,11 +100,11 @@ inline void initialize(
     batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
                                           res_norms_entry);
 
+    batch_dense::copy(gko::batch::to_const(r_entry), r_hat_entry);
+
 #pragma omp parallel for
-    for (int r = 0; r < r_entry.num_rows; r++) {
-        for (int c = 0; c < r_entry.num_rhs; c++) {
-            r_hat_entry.values[r * r_hat_entry.stride + c] =
-                r_entry.values[r * r_entry.stride + c];
+    for (int r = 0; r < p_entry.num_rows; r++) {
+        for (int c = 0; c < p_entry.num_rhs; c++) {
             p_entry.values[r * p_entry.stride + c] = zero<ValueType>();
             v_entry.values[r * v_entry.stride + c] = zero<ValueType>();
         }
@@ -337,7 +332,7 @@ inline void copy(
     const uint32 &converged)
 {
 #pragma omp parallel for
-    for (int r = 0; r < source_entry.num_rhs; r++) {
+    for (int r = 0; r < source_entry.num_rows; r++) {
         for (int c = 0; c < source_entry.num_rhs; c++) {
             const uint32 conv = converged & (1 << c);
 
