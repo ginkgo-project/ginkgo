@@ -61,6 +61,37 @@ struct BatchGmresOptions {
 };
 
 
+/**
+ * Calculates the amount of in-solver storage needed by batch-Gmres.
+ *
+ * The calculation includes multivectors for
+ * - r
+ * - z
+ * - w
+ * - x
+ * - cs
+ * - sn
+ * - s
+ * matrices for
+ * - Hessenberg matrix
+ * - Krylov subspace basis vectors
+ * and small arrays for
+ * - rhs_norms
+ * - res_norms
+ * - res_temp_norms
+ */
+template <typename ValueType>
+inline int local_memory_requirement(const int num_rows, const int num_rhs,
+                                    const int restart_num)
+{
+    return (4 * num_rows * num_rhs + 2 * restart_num * num_rhs +
+            (restart_num + 1) * num_rhs +
+            restart_num * (restart_num + 1) * num_rhs +
+            num_rows * (restart_num + 1) * num_rhs) *
+               sizeof(ValueType) +
+           3 * num_rhs * sizeof(typename gko::remove_complex<ValueType>);
+}
+
 #define GKO_DECLARE_BATCH_GMRES_APPLY_KERNEL(_type)                \
     void apply(std::shared_ptr<const DefaultExecutor> exec,        \
                const gko::kernels::batch_gmres::BatchGmresOptions< \
