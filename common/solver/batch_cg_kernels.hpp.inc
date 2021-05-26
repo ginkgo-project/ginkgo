@@ -279,13 +279,13 @@ __device__ __forceinline__ void copy(
 // unnamed namespace
 
 
-template <typename PrecType, typename StopType, typename LogType,
+template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 __global__ void apply_kernel(
     const int max_iter, const gko::remove_complex<ValueType> abs_tol,
     const gko::remove_complex<ValueType> rel_tol,
     const gko::stop::batch::ToleranceType tol_type, LogType logger,
-    const BatchMatrixType a,
+    PrecType prec_shared, const BatchMatrixType a,
     const gko::batch_dense::UniformBatch<const ValueType> left,
     const gko::batch_dense::UniformBatch<const ValueType> right,
     const gko::batch_dense::UniformBatch<ValueType> b,
@@ -458,7 +458,7 @@ __global__ void apply_kernel(
 
 
         // generate preconditioner
-        PrecType prec_shared(A_global_entry, prec_work_sh);
+        prec_shared.generate(A_global_entry, prec_work_sh);
 
 
         // initialization
