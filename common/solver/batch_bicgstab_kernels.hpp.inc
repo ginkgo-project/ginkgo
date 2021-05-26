@@ -78,15 +78,7 @@ __device__ __forceinline__ void initialize(
 
 
     // r = b
-    for (int li = threadIdx.x;
-         li < r_shared_entry.num_rows * r_shared_entry.num_rhs;
-         li += blockDim.x) {
-        int r = li / r_shared_entry.num_rhs;
-        int c = li % r_shared_entry.num_rhs;
-
-        r_shared_entry.values[r * r_shared_entry.stride + c] =
-            b_global_entry.values[r * b_global_entry.stride + c];
-    }
+    copy(b_global_entry, r_shared_entry);
     __syncthreads();
 
     // r = b - A*x
@@ -98,15 +90,14 @@ __device__ __forceinline__ void initialize(
     compute_norm2<ValueType>(gko::batch::to_const(r_shared_entry),
                              res_norms_shared_entry);
 
+    copy(gko::batch::to_const(r_shared_entry), r_hat_shared_entry);
 
     for (int li = threadIdx.x;
-         li < r_shared_entry.num_rows * r_shared_entry.num_rhs;
+         li < p_shared_entry.num_rows * p_shared_entry.num_rhs;
          li += blockDim.x) {
-        int r = li / r_shared_entry.num_rhs;
-        int c = li % r_shared_entry.num_rhs;
+        int r = li / p_shared_entry.num_rhs;
+        int c = li % p_shared_entry.num_rhs;
 
-        r_hat_shared_entry.values[r * r_hat_shared_entry.stride + c] =
-            r_shared_entry.values[r * r_shared_entry.stride + c];
         p_shared_entry.values[r * p_shared_entry.stride + c] =
             zero<ValueType>();
         v_shared_entry.values[r * v_shared_entry.stride + c] =
@@ -854,15 +845,7 @@ __global__ void apply_kernel(
         __syncthreads();
 
         // copy x back to global memory
-        for (int li = threadIdx.x;
-             li < x_global_entry.num_rows * x_global_entry.num_rhs;
-             li += blockDim.x) {
-            int r = li / x_global_entry.num_rhs;
-            int c = li % x_global_entry.num_rhs;
-
-            x_global_entry.values[r * x_global_entry.stride + c] =
-                x_shared_entry.values[r * x_shared_entry.stride + c];
-        }
+        copy(gko::batch::to_const(x_shared_entry), x_global_entry);
 
         __syncthreads();
     }
