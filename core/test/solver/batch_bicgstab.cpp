@@ -229,6 +229,27 @@ TYPED_TEST(BatchBicgstab, ThrowsOnRectangularMatrixInFactory)
 }
 
 
+TYPED_TEST(BatchBicgstab, CanSetScalingVectors)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using Dense = typename TestFixture::Dense;
+
+    auto batchbicgstab_factory = Solver::build().on(this->exec);
+    auto solver = batchbicgstab_factory->generate(this->mtx);
+    auto left_scale = Dense::create(
+        this->exec, gko::batch_dim<>(2, gko::dim<2>(this->nrows, 1)));
+    auto right_scale = Dense::create_with_config_of(left_scale.get());
+    solver->batch_scale(left_scale.get(), right_scale.get());
+
+    auto s_solver =
+        dynamic_cast<gko::EnableBatchScaledSolver<value_type> *>(solver.get());
+    ASSERT_TRUE(s_solver);
+    ASSERT_EQ(s_solver->get_left_scaling_vector(), left_scale.get());
+    ASSERT_EQ(s_solver->get_right_scaling_vector(), right_scale.get());
+}
+
+
 // TYPED_TEST(BatchBicgstab, SolverTransposeRetainsFactoryParameters)
 // {
 //     using Solver = typename TestFixture::Solver;
