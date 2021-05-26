@@ -49,7 +49,7 @@ namespace gko {
 namespace kernels {
 namespace hip {
 
-
+#define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 1
 constexpr int default_block_size = 128;
 constexpr int sm_multiplier = 4;
 
@@ -93,20 +93,44 @@ static void apply_impl(
 
 
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
+        const int shared_size =
+#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
+            gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
+                a.num_rows, b.num_rhs) +
+            BatchIdentity<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
+                sizeof(ValueType);
+#else
+            0;
+#endif
+
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(
                 apply_kernel<stop::AbsAndRelResidualMaxIter<ValueType>>),
-            dim3(nbatch), dim3(default_block_size), 0, 0, opts.max_its,
-            opts.abs_residual_tol, opts.rel_residual_tol, opts.tol_type, logger,
-            BatchIdentity<ValueType>(), a, left, right, b, x);
+            dim3(nbatch), dim3(default_block_size), shared_size, 0,
+            opts.max_its, opts.abs_residual_tol, opts.rel_residual_tol,
+            opts.tol_type, logger, BatchIdentity<ValueType>(), a, left, right,
+            b, x);
+
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
+        const int shared_size =
+#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
+            gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
+                a.num_rows, b.num_rhs) +
+            BatchJacobi<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
+                sizeof(ValueType);
+#else
+            0;
+#endif
+
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(
                 apply_kernel<stop::AbsAndRelResidualMaxIter<ValueType>>),
-            dim3(nbatch), dim3(default_block_size), 0, 0, opts.max_its,
-            opts.abs_residual_tol, opts.rel_residual_tol, opts.tol_type, logger,
-            BatchJacobi<ValueType>(), a, left, right, b, x);
+            dim3(nbatch), dim3(default_block_size), shared_size, 0,
+            opts.max_its, opts.abs_residual_tol, opts.rel_residual_tol,
+            opts.tol_type, logger, BatchJacobi<ValueType>(), a, left, right, b,
+            x);
+
     } else {
         GKO_NOT_IMPLEMENTED;
     }
