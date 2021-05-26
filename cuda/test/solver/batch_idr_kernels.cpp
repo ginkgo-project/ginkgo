@@ -224,12 +224,10 @@ protected:
 
     int single_iters_regression()
     {
-        if (std::is_same<value_type, float>::value) {
-            return 42;
-        } else if (std::is_same<value_type, std::complex<float>>::value) {
-            return 44;
+        if (std::is_same<real_type, float>::value) {
+            return 3;
         } else if (std::is_same<real_type, double>::value) {
-            return 62;
+            return 2;
         } else {
             return -1;
         }
@@ -295,14 +293,14 @@ protected:
 
 
         if (std::is_same<value_type, float>::value) {
-            iters[0] = 42;
-            iters[1] = 27;
+            iters[0] = 3;
+            iters[1] = 2;
         } else if (std::is_same<value_type, std::complex<float>>::value) {
-            iters[0] = 44;
-            iters[1] = 44;
+            iters[0] = 3;
+            iters[1] = 3;
         } else if (std::is_same<real_type, double>::value) {
-            iters[0] = 62;
-            iters[1] = 31;
+            iters[0] = 2;
+            iters[1] = 2;
         } else {
             iters[0] = -1;
             iters[1] = -1;
@@ -337,7 +335,7 @@ TYPED_TEST(BatchIdr, StencilSystemNoneLoggerIsCorrect)
         this->r_1.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
-        // ASSERT_EQ(iter_array[i], ref_iters);
+        ASSERT_EQ(iter_array[i], ref_iters);
         ASSERT_LE(res_log_array[i], this->opts_1.abs_residual_tol);
         ASSERT_NEAR(res_log_array[i], this->r_1.resnorm->get_const_values()[i],
                     10 * r<value_type>::value);
@@ -369,7 +367,7 @@ TYPED_TEST(BatchIdr, StencilMultipleSystemNoneLoggerIsCorrect)
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
         for (size_t j = 0; j < this->nrhs; j++) {
-            // ASSERT_EQ(iter_array[i * this->nrhs + j], ref_iters[j]);
+            ASSERT_EQ(iter_array[i * this->nrhs + j], ref_iters[j]);
             ASSERT_LE(res_log_array[i * this->nrhs + j],
                       this->opts_m.abs_residual_tol);
 
