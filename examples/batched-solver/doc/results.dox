@@ -1,0 +1,16 @@
+<h1>Results</h1>
+The following is the expected result:
+
+@code{.cpp}
+
+Residual norm sqrt(r^T r):
+%%MatrixMarket matrix array real general
+1 1
+2.10788e-15
+%%MatrixMarket matrix array real general
+1 1
+2.10788e-15
+
+@endcode
+
+<h3> Comments about programming and debugging </h3>

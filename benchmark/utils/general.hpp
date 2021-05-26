@@ -124,6 +124,8 @@ void initialize_argument_parsing(int *argc, char **argv[], std::string &header,
     gflags::ParseCommandLineFlags(argc, argv, true);
 }
 
+using size_type = gko::size_type;
+
 /**
  * Print general benchmark informations using the common available parameters
  *
@@ -416,9 +418,35 @@ std::unique_ptr<vec<ValueType>> create_vector(
 
 // utilities for computing norms and residuals
 template <typename ValueType>
+ValueType get_norm(const batch_vec<ValueType> *norm, size_type batch)
+{
+    return clone(norm->get_executor()->get_master(), norm)->at(batch, 0, 0);
+}
+
+
+// utilities for computing norms and residuals
+template <typename ValueType>
 ValueType get_norm(const vec<ValueType> *norm)
 {
     return clone(norm->get_executor()->get_master(), norm)->at(0, 0);
+}
+
+
+template <typename ValueType>
+std::vector<gko::remove_complex<ValueType>> compute_norm2(
+    const batch_vec<ValueType> *b)
+{
+    auto exec = b->get_executor();
+    auto nbatch = b->get_num_batch_entries();
+    auto b_norm =
+        gko::batch_initialize<batch_vec<gko::remove_complex<ValueType>>>(
+            nbatch, {0.0}, exec);
+    b->compute_norm2(lend(b_norm));
+    std::vector<gko::remove_complex<ValueType>> vec_norm{};
+    for (size_type i = 0; i < nbatch; ++i) {
+        vec_norm.push_back(get_norm(lend(b_norm), i));
+    }
+    return std::move(vec_norm);
 }
 
 
@@ -430,6 +458,22 @@ gko::remove_complex<ValueType> compute_norm2(const vec<ValueType> *b)
         gko::initialize<vec<gko::remove_complex<ValueType>>>({0.0}, exec);
     b->compute_norm2(lend(b_norm));
     return get_norm(lend(b_norm));
+}
+
+
+template <typename ValueType>
+std::vector<gko::remove_complex<ValueType>> compute_batch_residual_norm(
+    const gko::BatchLinOp *system_matrix, const batch_vec<ValueType> *b,
+    const batch_vec<ValueType> *x)
+{
+    auto exec = system_matrix->get_executor();
+    auto nbatch = b->get_num_batch_entries();
+    auto one = gko::batch_initialize<batch_vec<ValueType>>(nbatch, {1.0}, exec);
+    auto neg_one =
+        gko::batch_initialize<batch_vec<ValueType>>(nbatch, {-1.0}, exec);
+    auto res = clone(b);
+    system_matrix->apply(lend(one), lend(x), lend(neg_one), lend(res));
+    return compute_norm2(lend(res));
 }
 
 

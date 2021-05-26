@@ -40,6 +40,11 @@ if [ ! "${NUM_BATCH_DUP}" ]; then
     echo "NUM_BATCH_DUP environment variable not set - assuming \"${NUM_BATCH_DUP}\"" 1>&2
 fi
 
+if [ ! "${BATCH_SOLVERS}" ]; then
+    BATCH_SOLVERS="richardson"
+    echo "BATCH_SOLVERS    environment variable not set - assuming \"${BATCH_SOLVERS}\"" 1>&2
+fi
+
 if [ ! "${SOLVERS}" ]; then
     SOLVERS="bicgstab,cg,cgs,fcg,gmres,cb_gmres_reduce1,idr"
     echo "SOLVERS    environment variable not set - assuming \"${SOLVERS}\"" 1>&2
@@ -143,9 +148,17 @@ else
     DETAILED_STR="--detailed=true"
 fi
 
+# Control whether to run detailed benchmarks or not.
+# Default setting is detailed=false. To activate, set DETAILED=1.
+if  [ ! "${PRINT_RES_ITERS}" ] || [ "${PRINT_RES_ITERS}" -eq 0 ]; then
+    PRINT_RES_ITER_STR="--print_residuals_and_iters=false"
+else
+    PRINT_RES_ITER_STR="--print_residuals_and_iters=true"
+fi
+
 if  [ ! "${BATCH_SCALING}" ] ; then
-    BATCH_SCALING_STR="none"
-    echo "BATCH_SCALING_STRING environment variable not set - assuming \"${BATCH_SCALING_STR}\"" 1>&2
+    BATCH_SCALING_STR="--batch_scaling=none"
+    echo "BATCH_SCALING environment variable not set - assuming \"none\"" 1>&2
 fi
 
 if  [ "${BATCH_SCALING}" == "none" ] ; then
@@ -340,6 +353,31 @@ run_solver_benchmarks() {
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
 
+
+# Runs the solver benchmarks for all supported solvers by using file $1 as the
+# input, and updating it with the results. Backups are created after each
+# benchmark run, to prevent data loss in case of a crash. Once the benchmarking
+# is completed, the backups and the results are combined, and the newest file is
+# taken as the final result.
+run_batch_solver_benchmarks() {
+    [ "${DRY_RUN}" == "true" ] && return
+    cp "$1" "$1.imd" # make sure we're not loosing the original input
+    cat "$1.imd"
+    ./solver/batch_solver${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
+                    --executor="${EXECUTOR}" --batch_solvers="${BATCH_SOLVERS}" \
+                    --preconditioners="${PRECONDS}" \
+                    --num_duplications="${NUM_BATCH_DUP}" "${BATCH_SCALING_STR}" \
+                    "${PRINT_RES_ITER_STR}" \
+                    --num_batches="${NUM_BATCH_ENTRIES}" "${SS_STR}" \
+                    --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
+                    ${SOLVERS_RHS_FLAG} ${DETAILED_STR} ${SOLVERS_INITIAL_GUESS_FLAG} \
+                    --gpu_timer=${GPU_TIMER} \
+                    --jacobi_max_block_size=${SOLVERS_JACOBI_MAX_BS} --device_id="${DEVICE_ID}" \
+                    --gmres_restart="${SOLVERS_GMRES_RESTART}" \
+                    <"$1.imd" 2>&1 >"$1"
+    keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
+}
+
 # A list of block sizes that should be run for the block-Jacobi preconditioner
 BLOCK_SIZES="$(seq 1 32)"
 # A lis of precision reductions to run the block-Jacobi preconditioner for
@@ -418,6 +456,11 @@ if [ $use_batch_matrix -eq 1 ]; then
         if [ "${BENCHMARK}" == "batch_spmv" ]; then
             echo -e "(${p}/${NUM_BATCH_MAT_TYPES}) Running Batch SpMV for ${lmat} class" 1>&2
             run_batch_spmv_benchmarks "${RESULT_FILE}"
+        fi
+
+        if [ "${BENCHMARK}" == "batch_solver" ]; then
+             echo -e "(${p}/${NUM_BATCH_MAT_TYPES}) Running batch solvers for ${lmat} class" 1>&2
+             run_batch_solver_benchmarks "${RESULT_FILE}"
         fi
     done
 fi
@@ -509,14 +552,25 @@ EOT
             run_conversion_benchmarks "${RESULT_FILE}"
         fi
 
-        if [ "${BENCHMARK}" != "solver" -o \
-            "$(${SSGET} -i "$i" -prows)" != "$(${SSGET} -i "$i" -pcols)" ]; then
+        if [ "$(${SSGET} -i "$i" -prows)" != "$(${SSGET} -i "$i" -pcols)" ]; then
             [ "${DRY_RUN}" != "true" ] && ${SSGET} -i "$i" -c >/dev/null
             continue
         fi
 
-        echo -e "${PREFIX}Running solvers for ${GROUP}/${NAME}" 1>&2
-        run_solver_benchmarks "${RESULT_FILE}"
+        if [ "${BENCHMARK}" == "solver" ]; then
+            echo -e "${PREFIX}Running SpMV for ${GROUP}/${NAME}" 1>&2
+            run_spmv_benchmarks "${RESULT_FILE}"
+            echo -e "${PREFIX}Running solvers for ${GROUP}/${NAME}" 1>&2
+            run_solver_benchmarks "${RESULT_FILE}"
+        fi
+
+        if [ "${BENCHMARK}" == "batch_solver" ]; then
+            echo -e "${PREFIX}Running Batch SpMV for ${GROUP}/${NAME}" 1>&2
+            NUM_BATCH_ENTRIES=${NUM_BATCH_DUP}
+            run_batch_spmv_benchmarks "${RESULT_FILE}"
+            echo -e "${PREFIX}Running batch solvers for ${GROUP}/${NAME}" 1>&2
+            run_batch_solver_benchmarks "${RESULT_FILE}"
+        fi
 
         echo -e "${PREFIX}Cleaning up problem ${GROUP}/${NAME}" 1>&2
         [ "${DRY_RUN}" != "true" ] && ${SSGET} -i "$i" -c >/dev/null
