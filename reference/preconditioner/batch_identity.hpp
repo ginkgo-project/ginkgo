@@ -44,18 +44,47 @@ namespace kernels {
 namespace reference {
 
 
-#include "core/preconditioner/batch_identity.hpp"
-
+/**
+ *  Identity preconditioner for batch solvers. ( To be able to have
+ * unpreconditioned solves )
+ */
 template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE void BatchIdentity<ValueType>::apply(
-    const gko::batch_dense::BatchEntry<const ValueType> &r,
-    const gko::batch_dense::BatchEntry<ValueType> &z) const
-{
-    for (int i = 0; i < matrix_.num_rows; i++) {
-        for (int j = 0; j < r.num_rhs; j++)
-            z.values[i * z.stride + j] = r.values[i * r.stride + j];
+class BatchIdentity final {
+public:
+    using value_type = ValueType;
+
+    /**
+     * The size of the work vector required in case of static allocation.
+     */
+    static constexpr int work_size = 1;
+
+    /**
+     * The size of the work vector required in case of dynamic allocation.
+     */
+    static int dynamic_work_size(const int nrows, int) { return 1; }
+
+
+    /**
+     * Sets the input and generates the identity preconditioner.(Nothing needs
+     * to be actually generated.)
+     *
+     * @param mat  Matrix for which to build an Ideniity preconditioner.
+     * @param work  A 'work-vector', which is unneecessary here as no
+     * preconditioner values are to be stored.
+     */
+    inline void generate(const gko::batch_csr::BatchEntry<const ValueType> &mat,
+                         ValueType *const work)
+    {}
+
+    inline void apply(const gko::batch_dense::BatchEntry<const ValueType> &r,
+                      const gko::batch_dense::BatchEntry<ValueType> &z) const
+    {
+        for (int i = 0; i < r.num_rows; i++) {
+            for (int j = 0; j < r.num_rhs; j++)
+                z.values[i * z.stride + j] = r.values[i * r.stride + j];
+        }
     }
-}
+};
 
 
 }  // namespace reference
