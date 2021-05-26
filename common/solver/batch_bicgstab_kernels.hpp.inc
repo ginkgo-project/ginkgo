@@ -66,15 +66,7 @@ __device__ __forceinline__ void initialize(
     compute_norm2<ValueType>(b_global_entry, rhs_norms_shared_entry);
 
     // copy x from global to shared memory
-    for (int li = threadIdx.x;
-         li < x_shared_entry.num_rows * x_shared_entry.num_rhs;
-         li += blockDim.x) {
-        int r = li / x_shared_entry.num_rhs;
-        int c = li % x_shared_entry.num_rhs;
-
-        x_shared_entry.values[r * x_shared_entry.stride + c] =
-            x_global_entry.values[r * x_global_entry.stride + c];
-    }
+    copy(gko::batch::to_const(x_global_entry), x_shared_entry);
 
 
     // r = b
