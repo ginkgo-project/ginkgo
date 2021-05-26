@@ -55,7 +55,7 @@ __device__ __forceinline__ void initialize(
 
 
     // copy x from global to shared memory
-    copy(gko::batch::to_const(x_global_entry), x_shared_entry);
+    copy(x_global_entry, x_shared_entry);
 
 
     // r = b
