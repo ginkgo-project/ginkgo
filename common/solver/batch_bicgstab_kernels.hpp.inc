@@ -66,7 +66,7 @@ __device__ __forceinline__ void initialize(
     compute_norm2<ValueType>(b_global_entry, rhs_norms_shared_entry);
 
     // copy x from global to shared memory
-    copy(gko::batch::to_const(x_global_entry), x_shared_entry);
+    copy(x_global_entry, x_shared_entry);
 
 
     // r = b
