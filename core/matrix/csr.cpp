@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include <map>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -49,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
+#include "core/components/validation_helpers.hpp"
 #include "core/matrix/csr_kernels.hpp"
 
 
@@ -339,6 +341,33 @@ void Csr<ValueType, IndexType>::read(const mat_data &data)
     tmp->move_to(this);
 }
 
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::validate_impl() const
+{
+    bool valid = false;
+    std::map<std::string, std::function<bool()>> constraints_map{
+        {"is_finite",
+         [this] {
+             return ::gko::validate::is_finite<ValueType>(
+                 values_.get_const_data(), values_.get_num_elems());
+         }},
+        {"is_within_bounds",
+         [this] {
+             return ::gko::validate::is_within_bounds<IndexType>(
+                 col_idxs_.get_const_data(), col_idxs_.get_num_elems(), 0,
+                 this->get_size()[1]);
+         }},
+        {"is_row_ordered", [this] {
+             return ::gko::validate::is_row_ordered<IndexType>(
+                 row_ptrs_.get_const_data(), row_ptrs_.get_num_elems());
+         }}};
+
+    for (auto const &x : constraints_map) {
+        if (!x.second()) {
+            throw gko::Invalid(__FILE__, __LINE__, "Csr", x.first);
+        };
+    }
+}
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::write(mat_data &data) const
