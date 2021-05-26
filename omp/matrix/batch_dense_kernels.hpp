@@ -209,6 +209,21 @@ inline void compute_dot_product(const BatchEntry<const ValueType> &x,
 }
 
 
+template <typename ValueType>
+inline void copy(
+    const gko::batch_dense::BatchEntry<const ValueType> &source_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &destination_entry)
+{
+#pragma omp parallel for
+    for (int r = 0; r < source_entry.num_rows; r++) {
+        for (int c = 0; c < source_entry.num_rhs; c++) {
+            destination_entry.values[r * destination_entry.stride + c] =
+                source_entry.values[r * source_entry.stride + c];
+        }
+    }
+}
+
+
 /**
  * Multiplies with a diagonal matrix represented as a dense vector.
  *
