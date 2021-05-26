@@ -97,6 +97,7 @@ function(ginkgo_add_typed_benchmark_executables name use_lib_linops)
 endfunction(ginkgo_add_typed_benchmark_executables)
 
 
+add_subdirectory(blas)
 add_subdirectory(conversions)
 add_subdirectory(matrix_generator)
 add_subdirectory(matrix_statistics)

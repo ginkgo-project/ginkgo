@@ -342,7 +342,7 @@ public:
         const -> decltype(std::declval<accessor>()(
             std::forward<DimensionTypes>(dimensions)...))
     {
-        static_assert(sizeof...(dimensions) <= dimensionality,
+        static_assert(sizeof...(DimensionTypes) <= dimensionality,
                       "Too many dimensions in range call");
         return accessor_(std::forward<DimensionTypes>(dimensions)...);
     }
