@@ -78,29 +78,16 @@ __device__ __forceinline__ void initialize(
     // Compute norms of rhs
     compute_norm2<ValueType>(b_global_entry, rhs_norms_shared_entry);
 
-
+    /*
     // copy x from global to shared memory
-    for (int li = threadIdx.x;
-         li < x_shared_entry.num_rows * x_shared_entry.num_rhs;
-         li += blockDim.x) {
-        int r = li / x_shared_entry.num_rhs;
-        int c = li % x_shared_entry.num_rhs;
-
-        x_shared_entry.values[r * x_shared_entry.stride + c] =
-            x_global_entry.values[r * x_global_entry.stride + c];
-    }
-
+    copy(x_global_entry, x_shared_entry);
 
     // r = b
-    for (int li = threadIdx.x;
-         li < r_shared_entry.num_rows * r_shared_entry.num_rhs;
-         li += blockDim.x) {
-        int r = li / r_shared_entry.num_rhs;
-        int c = li % r_shared_entry.num_rhs;
+    copy(b_global_entry, r_shared_entry);
+    */
 
-        r_shared_entry.values[r * r_shared_entry.stride + c] =
-            b_global_entry.values[r * b_global_entry.stride + c];
-    }
+    copy(x_global_entry, x_shared_entry, 0x00000000);
+    copy(b_global_entry, r_shared_entry, 0x00000000);
 
     __syncthreads();
 
@@ -511,46 +498,71 @@ __global__ void apply_kernel(
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
 
-    // constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
-
-    if (batch_config<ValueType>::max_num_rows *
-            batch_config<ValueType>::max_num_rhs <
-        nrows * nrhs) {
-        if (blockIdx.x == 0 && threadIdx.x == 0) {
-            printf(
-                " Static vector size not enough!, allocated: %d , required: %d "
-                "\n",
-                batch_config<ValueType>::max_num_rows *
-                    batch_config<ValueType>::max_num_rhs,
-                nrows * nrhs);
-        }
-        return;
-    }
-
-    if (batch_config<ValueType>::max_num_rows < nrows) {
-        if (blockIdx.x == 0 && threadIdx.x == 0) {
-            printf(
-                " Compile time constant: max_num_rows < actual rows in "
-                "matrix\n");
-        }
-        return;
-    }
-
-    if (batch_config<ValueType>::max_num_rhs < nrhs) {
-        if (blockIdx.x == 0 && threadIdx.x == 0) {
-            printf(" Compile time constant: max_rhs < actual rhs in matrix!\n");
-        }
-        return;
-    }
-
-    if (gko::kernels::batch_gmres::max_restart < restart) {
-        if (threadIdx.x == 0 && blockIdx.x == 0) {
-            printf(" compile time constant max_restart < restart\n");
-        }
-        return;
-    }
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
+#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
+
+        extern __shared__ char local_mem_sh[];
+        ValueType *const r_sh = reinterpret_cast<ValueType *>(local_mem_sh);
+        ValueType *const z_sh = r_sh + nrows * nrhs;
+        ValueType *const w_sh = z_sh + nrows * nrhs;
+        ValueType *const x_sh = w_sh + nrows * nrhs;
+        ValueType *const cs_sh = x_sh + nrows * nrhs;
+        ValueType *const sn_sh = cs_sh + restart * nrhs;
+        ValueType *const s_sh = sn_sh + restart * nrhs;
+        ValueType *const H_sh = s_sh + (restart + 1) * nrhs;
+        ValueType *const V_sh = H_sh + restart * (restart + 1) * nrhs;
+        ValueType *const prec_work_sh = V_sh + nrows * (restart + 1) * nrhs;
+
+        real_type *const norms_rhs_sh = reinterpret_cast<real_type *>(
+            prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz));
+        real_type *const norms_res_sh = norms_rhs_sh + nrhs;
+        real_type *const norms_res_temp_sh = norms_res_sh + nrhs;
+
+
+#else
+
+        if (batch_config<ValueType>::max_num_rows *
+                batch_config<ValueType>::max_num_rhs <
+            nrows * nrhs) {
+            if (blockIdx.x == 0 && threadIdx.x == 0) {
+                printf(
+                    " Static vector size not enough!, allocated: %d , "
+                    "required: %d "
+                    "\n",
+                    batch_config<ValueType>::max_num_rows *
+                        batch_config<ValueType>::max_num_rhs,
+                    nrows * nrhs);
+            }
+            return;
+        }
+
+        if (batch_config<ValueType>::max_num_rows < nrows) {
+            if (blockIdx.x == 0 && threadIdx.x == 0) {
+                printf(
+                    " Compile time constant: max_num_rows < actual rows in "
+                    "matrix\n");
+            }
+            return;
+        }
+
+        if (batch_config<ValueType>::max_num_rhs < nrhs) {
+            if (blockIdx.x == 0 && threadIdx.x == 0) {
+                printf(
+                    " Compile time constant: max_rhs < actual rhs in "
+                    "matrix!\n");
+            }
+            return;
+        }
+
+        if (gko::kernels::batch_gmres::max_restart < restart) {
+            if (threadIdx.x == 0 && blockIdx.x == 0) {
+                printf(" compile time constant max_restart < restart\n");
+            }
+            return;
+        }
+
+
         __shared__ UninitializedArray<ValueType,
                                       batch_config<ValueType>::max_num_rows *
                                           batch_config<ValueType>::max_num_rhs>
@@ -601,6 +613,22 @@ __global__ void apply_kernel(
 
         __shared__ UninitializedArray<ValueType, PrecType::work_size>
             prec_work_sh;
+
+
+        __shared__
+            UninitializedArray<real_type, batch_config<ValueType>::max_num_rhs>
+                norms_rhs_sh;
+
+        __shared__
+            UninitializedArray<real_type, batch_config<ValueType>::max_num_rhs>
+                norms_res_sh;
+
+
+        __shared__
+            UninitializedArray<real_type, batch_config<ValueType>::max_num_rhs>
+                norms_res_temp_sh;
+
+#endif
 
 
         uint32 converged = 0;
@@ -689,22 +717,15 @@ __global__ void apply_kernel(
         // V_entry.stride , nrows, nrhs}; So if nrhs=1, effectively the cols.
         // are stored contiguously in memory one after the other.
 
-        __shared__
-            UninitializedArray<real_type, batch_config<ValueType>::max_num_rhs>
-                norms_rhs_sh;
+
         const gko::batch_dense::BatchEntry<real_type> rhs_norms_shared_entry{
             norms_rhs_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
 
-        __shared__
-            UninitializedArray<real_type, batch_config<ValueType>::max_num_rhs>
-                norms_res_sh;
         const gko::batch_dense::BatchEntry<real_type> res_norms_shared_entry{
             norms_res_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-        __shared__
-            UninitializedArray<real_type, batch_config<ValueType>::max_num_rhs>
-                norms_res_temp_sh;
+
         const gko::batch_dense::BatchEntry<real_type>
             res_norms_temp_shared_entry{norms_res_temp_sh,
                                         static_cast<size_type>(nrhs), 1, nrhs};
@@ -715,10 +736,10 @@ __global__ void apply_kernel(
 
 
         // initialization
-        // compute b norms (precond b or what ?)
+        // compute b norms
         // r = b - A*x
         // z = precond*r
-        // compute residual norms (? precond res or what ?)
+        // compute residual norms
         // initialize V, H, cs, sn with zeroes
         initialize(A_global_entry, b_global_entry,
                    gko::batch::to_const(x_global_entry), x_shared_entry,
@@ -954,14 +975,6 @@ __global__ void apply_kernel(
         __syncthreads();
 
         // copy x back to global memory
-        for (int li = threadIdx.x;
-             li < x_global_entry.num_rows * x_global_entry.num_rhs;
-             li += blockDim.x) {
-            int r = li / x_global_entry.num_rhs;
-            int c = li % x_global_entry.num_rhs;
-
-            x_global_entry.values[r * x_global_entry.stride + c] =
-                x_shared_entry.values[r * x_shared_entry.stride + c];
-        }
+        copy(gko::batch::to_const(x_shared_entry), x_global_entry);
     }
 }
