@@ -57,15 +57,8 @@ public:
 
     /**
      * The size of the work vector required in case of dynamic allocation.
-     *
-     * For the Jacobi preconditioner, this is unnecessary, but this function is
-     * part of a 'batch preconditioner interface' because other preconditioners
-     * may need it.
      */
-    static int dynamic_work_size(int, int)
-    {
-        return batch_config<ValueType>::max_num_rows;
-    }
+    static int dynamic_work_size(const int nrows, int) { return nrows; }
 
     /**
      * Sets the input and generates the preconditioner by storing the inverse
@@ -76,16 +69,15 @@ public:
      *              entries. It must be allocated with at least the amount
      *              of memory given by work_size or dynamic_work_size.
      */
-    BatchJacobi(const gko::batch_csr::BatchEntry<const ValueType> &mat,
-                ValueType *const work)
-        : matrix_{mat}, work_{work}
+    void generate(const gko::batch_csr::BatchEntry<const ValueType> &mat,
+                  ValueType *const work)
     {
+        work_ = work;
 #pragma omp parallel for
-        for (int i = 0; i < matrix_.num_rows; i++) {
-            for (int j = matrix_.row_ptrs[i]; j < matrix_.row_ptrs[i + 1];
-                 j++) {
-                if (matrix_.col_idxs[j] == i) {
-                    work_[i] = one<ValueType>() / matrix_.values[j];
+        for (int i = 0; i < mat.num_rows; i++) {
+            for (int j = mat.row_ptrs[i]; j < mat.row_ptrs[i + 1]; j++) {
+                if (mat.col_idxs[j] == i) {
+                    work_[i] = one<ValueType>() / mat.values[j];
                     break;
                 }
             }
@@ -96,7 +88,7 @@ public:
                const gko::batch_dense::BatchEntry<ValueType> &z) const
     {
 #pragma omp parallel for
-        for (int i = 0; i < matrix_.num_rows; i++) {
+        for (int i = 0; i < r.num_rows; i++) {
             for (int j = 0; j < r.num_rhs; j++) {
                 z.values[i * z.stride + j] =
                     work_[i] * r.values[i * r.stride + j];
@@ -105,8 +97,7 @@ public:
     }
 
 private:
-    ValueType *const work_;
-    const gko::batch_csr::BatchEntry<const ValueType> &matrix_;
+    ValueType *work_;
 };
 
 
