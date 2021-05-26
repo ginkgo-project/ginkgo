@@ -60,10 +60,9 @@ namespace solver {
  *
  * Unless otherwise specified via the `preconditioner` factory parameter, this
  * implementation does not use any preconditioner by default.
- * The only stopping criterion currently available is controlled by the
- * `max_iterations` and `rel_residual_tol` factory parameters. The solver is
- * stopped whrn the maximum iterations are reached, or the relative residual
- * is smaller than the specified tolerance.
+ * The type of tolerance( absolute or relative ) and the maximum number of
+ * iterations to be used in the stopping criterion can be set via the factory
+ * parameters.
  *
  *
  * @tparam ValueType  precision of matrix elements
@@ -131,9 +130,6 @@ public:
          * To specify which tolerance is to be considered.
          *
          */
-        // ::gko::stop::batch::ToleranceType
-        // GKO_FACTORY_PARAMETER_SCALAR(tolerance_type,
-        // ::gko::stop::batch::ToleranceType::absolute);
 
         ::gko::stop::batch::ToleranceType GKO_FACTORY_PARAMETER_SCALAR(
             tolerance_type, ::gko::stop::batch::ToleranceType::absolute);
