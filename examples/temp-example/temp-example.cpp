@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
 
     // generate the solver factory object
     auto solver_fac =
-        gko::solver::BatchIdr<ValueType>::build()
+        gko::solver::BatchGmres<ValueType>::build()
             .with_abs_residual_tol(1e-11)
             .with_tolerance_type(gko::stop::batch::ToleranceType::absolute)
             .with_max_iterations(6)
