@@ -59,6 +59,38 @@ struct BatchBicgstabOptions {
 };
 
 
+/**
+ * Calculates the amount of in-solver storage needed by batch-Bicgstab.
+ *
+ * The calculation includes multivectors for
+ * - r
+ * - r_hat
+ * - p
+ * - p_hat
+ * - v
+ * - s
+ * - s_hat
+ * - t
+ * - x
+ * and small arrays for
+ * - rho_old
+ * - rho_new
+ * - omega_old
+ * - omega_new
+ * - alpha
+ * - beta
+ * - rhs_norms
+ * - res_norms
+ * - res_temp_norms
+ */
+template <typename ValueType>
+inline int local_memory_requirement(const int num_rows, const int num_rhs)
+{
+    return (9 * num_rows * num_rhs + 6 * num_rhs) * sizeof(ValueType) +
+           3 * num_rhs * sizeof(typename gko::remove_complex<ValueType>);
+}
+
+
 #define GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL(_type)                   \
     void apply(std::shared_ptr<const DefaultExecutor> exec,              \
                const gko::kernels::batch_bicgstab::BatchBicgstabOptions< \
