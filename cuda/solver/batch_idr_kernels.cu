@@ -90,13 +90,22 @@ static void apply_impl(
     const size_type nbatch = a.num_batch;
 
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-        apply_kernel<BatchIdentity<ValueType>,
-                     stop::AbsAndRelResidualMaxIter<ValueType>>
+        apply_kernel<stop::AbsAndRelResidualMaxIter<ValueType>>
             <<<nbatch, default_block_size>>>(
                 opts.max_its, opts.abs_residual_tol, opts.rel_residual_tol,
                 opts.subspace_dim_val, opts.kappa_val, opts.to_use_smoothing,
-                opts.deterministic_gen, opts.tol_type, logger, a, left, right,
-                b, x, Subspace_vectors_entry);
+                opts.deterministic_gen, opts.tol_type, logger,
+                BatchIdentity<ValueType>(), a, left, right, b, x,
+                Subspace_vectors_entry);
+    } else if (opts.preconditioner ==
+               gko::preconditioner::batch::type::jacobi) {
+        apply_kernel<stop::AbsAndRelResidualMaxIter<ValueType>>
+            <<<nbatch, default_block_size>>>(
+                opts.max_its, opts.abs_residual_tol, opts.rel_residual_tol,
+                opts.subspace_dim_val, opts.kappa_val, opts.to_use_smoothing,
+                opts.deterministic_gen, opts.tol_type, logger,
+                BatchJacobi<ValueType>(), a, left, right, b, x,
+                Subspace_vectors_entry);
     } else {
         GKO_NOT_IMPLEMENTED;
     }

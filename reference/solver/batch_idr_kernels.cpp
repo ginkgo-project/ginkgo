@@ -775,12 +775,12 @@ template <typename T>
 using BatchIdrOptions = gko::kernels::batch_idr::BatchIdrOptions<T>;
 
 
-template <typename PrecType, typename StopType, typename LogType,
+template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 static void apply_impl(
     std::shared_ptr<const ReferenceExecutor> exec,
     const BatchIdrOptions<remove_complex<ValueType>> &opts, LogType logger,
-    const BatchMatrixType &a,
+    PrecType prec, const BatchMatrixType &a,
     const gko::batch_dense::UniformBatch<const ValueType> &left,
     const gko::batch_dense::UniformBatch<const ValueType> &right,
     const gko::batch_dense::UniformBatch<ValueType> &b,
@@ -1004,7 +1004,7 @@ static void apply_impl(
             norms_res_temp, static_cast<size_type>(nrhs), 1, nrhs};
 
         // generate preconditioner
-        const PrecType prec(A_entry, prec_work);
+        prec.generate(A_entry, prec_work);
 
         // initialization
         // compute b norms
@@ -1245,18 +1245,17 @@ void apply_select_prec(
     const gko::batch_dense::UniformBatch<ValueType> &x)
 {
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-        apply_impl<BatchIdentity<ValueType>,
-                   stop::AbsAndRelResidualMaxIter<ValueType>>(
-            exec, opts, logger, a, left, right, b, x);
+        BatchIdentity<ValueType> prec;
 
-    }
-    //  else if (opts.preconditioner == gko::preconditioner::batch::jacobi_str)
-    //  {
-    //     apply_impl<BatchJacobi<ValueType>,
-    //                stop::AbsAndRelResidualMaxIter<ValueType>>(
-    //         exec, opts, logger, a, left, right, b, x);
-    // }
-    else {
+        apply_impl<stop::AbsAndRelResidualMaxIter<ValueType>>(
+            exec, opts, logger, prec, a, left, right, b, x);
+
+    } else if (opts.preconditioner ==
+               gko::preconditioner::batch::type::jacobi) {
+        BatchJacobi<ValueType> prec;
+        apply_impl<stop::AbsAndRelResidualMaxIter<ValueType>>(
+            exec, opts, logger, prec, a, left, right, b, x);
+    } else {
         GKO_NOT_IMPLEMENTED;
     }
 }
