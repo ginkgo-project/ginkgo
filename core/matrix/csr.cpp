@@ -344,18 +344,23 @@ void Csr<ValueType, IndexType>::read(const mat_data &data)
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::validate_impl() const
 {
-    bool valid = false;
     std::map<std::string, std::function<bool()>> constraints_map{
         {"is_finite",
          [this] {
              return ::gko::validate::is_finite<ValueType>(
                  values_.get_const_data(), values_.get_num_elems());
          }},
-        {"is_within_bounds",
+        {"column index is_within_bounds",
          [this] {
              return ::gko::validate::is_within_bounds<IndexType>(
                  col_idxs_.get_const_data(), col_idxs_.get_num_elems(), 0,
                  this->get_size()[1]);
+         }},
+        {"row pointer is_within_bounds",
+         [this] {
+             return ::gko::validate::is_within_bounds<IndexType>(
+                 row_ptrs_.get_const_data(), row_ptrs_.get_num_elems(), 0,
+                 values_.get_num_elems());
          }},
         {"is_row_ordered", [this] {
              return ::gko::validate::is_row_ordered<IndexType>(
