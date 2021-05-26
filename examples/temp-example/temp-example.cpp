@@ -383,9 +383,9 @@ int main(int argc, char *argv[])
             .with_tolerance_type(gko::stop::batch::ToleranceType::absolute)
             .with_max_iterations(6)
             .with_preconditioner(gko::preconditioner::batch::type::none)
-            .with_smoothing(false)
-            .with_deterministic(true)
-            .with_subspace_dim(2)
+            //.with_smoothing(false)
+            //.with_deterministic(true)
+            //.with_subspace_dim(2)
             .on(exec);
 
     // generate the solver object
