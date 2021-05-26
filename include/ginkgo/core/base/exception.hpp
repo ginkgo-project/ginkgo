@@ -148,6 +148,29 @@ public:
     {}
 };
 
+/**
+ * Invalid is thrown in case it a LinOp does not satisfy
+ * its set of constraints, eg. when the system matrix of
+ * the Cg solver is not symmetric.
+ */
+class Invalid : public Error {
+public:
+    /**
+     * Initializes an Invalid error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the function where the error occured
+     * @param obj_type  The object type on which the requested operation
+                       cannot be performed.
+     */
+    Invalid(const std::string &file, int line, const std::string &lin_op,
+            const std::string &constraint)
+        : Error(file, line,
+                "LinOp " + lin_op + " is not valid, the " + constraint +
+                    " constraint is not satisfied.")
+    {}
+};
 
 /**
  * NotSupported is thrown in case it is not possible to

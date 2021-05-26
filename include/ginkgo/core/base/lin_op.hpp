@@ -158,6 +158,7 @@ public:
     {
         this->template log<log::Logger::linop_apply_started>(this, b, x);
         this->validate_application_parameters(b, x);
+        this->validate();
         auto exec = this->get_executor();
         this->apply_impl(make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, x).get());
@@ -172,6 +173,7 @@ public:
     {
         this->template log<log::Logger::linop_apply_started>(this, b, x);
         this->validate_application_parameters(b, x);
+        this->validate();
         auto exec = this->get_executor();
         this->apply_impl(make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, x).get());
@@ -195,6 +197,7 @@ public:
         this->template log<log::Logger::linop_advanced_apply_started>(
             this, alpha, b, beta, x);
         this->validate_application_parameters(alpha, b, beta, x);
+        this->validate();
         auto exec = this->get_executor();
         this->apply_impl(make_temporary_clone(exec, alpha).get(),
                          make_temporary_clone(exec, b).get(),
@@ -214,6 +217,7 @@ public:
         this->template log<log::Logger::linop_advanced_apply_started>(
             this, alpha, b, beta, x);
         this->validate_application_parameters(alpha, b, beta, x);
+        this->validate();
         auto exec = this->get_executor();
         this->apply_impl(make_temporary_clone(exec, alpha).get(),
                          make_temporary_clone(exec, b).get(),
@@ -313,6 +317,14 @@ protected:
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
         GKO_ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
     }
+
+    void validate() const
+    {
+        if (true) validate_impl();
+
+    };  // const = 0;
+
+    virtual void validate_impl() const {};  // const = 0;
 
 private:
     dim<2> size_{};
