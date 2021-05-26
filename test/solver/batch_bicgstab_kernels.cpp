@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
+#include <ginkgo/core/solver/batch_bicgstab.hpp>
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
@@ -61,94 +61,147 @@ protected:
     BatchBicgstab()
         : exec(gko::ReferenceExecutor::create()),
           ompexec(gko::OmpExecutor::create()),
-          xex_1(gko::batch_initialize<BDense>(nbatch, {1.0, 3.0, 2.0}, exec)),
-          b_1(gko::batch_initialize<BDense>(nbatch, {-1.0, 3.0, 1.0}, exec)),
-          d_b_1(gko::clone(ompexec, b_1)),
-          xex_m(gko::batch_initialize<BDense>(
-              nbatch,
-              std::initializer_list<std::initializer_list<value_type>>{
-                  {1.0, 1.0}, {3.0, 0.0}, {2.0, 0.0}},
-              exec)),
-          b_m(gko::batch_initialize<BDense>(
-              nbatch,
-              std::initializer_list<std::initializer_list<value_type>>{
-                  {-1.0, 2.0}, {3.0, -1.0}, {1.0, 0.0}},
-              exec)),
-          d_b_m(gko::clone(ompexec, b_m))
+          sys_1(get_poisson_problem(1, nbatch)),
+          sys_m(get_poisson_problem(nrhs, nbatch))
     {}
 
-    // NOTE: Avoided extra copies b/w Reference and OmpExecutor while accessing
-    // the objects' underneath arrays as the objects which have exec: omp can be
-    // accessed directly, so copying of objects to the Reference Executor is not
-    // required. At the same time, made sure that everything is on the same
-    // executor while calling apply on linop or batchlinops.
-    std::shared_ptr<const gko::ReferenceExecutor> exec;
+    void TearDown()
+    {
+        if (ompexec != nullptr) {
+            ASSERT_NO_THROW(ompexec->synchronize());
+        }
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> exec;
     std::shared_ptr<const gko::OmpExecutor> ompexec;
 
     const size_t nbatch = 2;
     const int nrows = 3;
-    std::shared_ptr<const BDense> b_1;
-    std::shared_ptr<const BDense> d_b_1;
-    std::shared_ptr<const BDense> xex_1;
-    std::shared_ptr<RBDense> bnorm_1;
-    const Options opts_1{gko::preconditioner::batch::type::none, 500, 1e-6,
+    const Options opts_1{gko::preconditioner::batch::type::none, 10, 1e-6,
                          1e-11, gko::stop::batch::ToleranceType::absolute};
-
     const int nrhs = 2;
-    std::shared_ptr<const BDense> b_m;
-    std::shared_ptr<const BDense> d_b_m;
-    std::shared_ptr<const BDense> xex_m;
-    std::shared_ptr<RBDense> bnorm_m;
-    const Options opts_m{gko::preconditioner::batch::type::none, 500, 1e-6,
+    const Options opts_m{gko::preconditioner::batch::type::none, 10, 1e-6,
                          1e-11, gko::stop::batch::ToleranceType::absolute};
 
+
+    struct LinSys {
+        std::unique_ptr<Mtx> mtx;
+        std::unique_ptr<BDense> b;
+        std::unique_ptr<RBDense> bnorm;
+        std::unique_ptr<BDense> xex;
+    };
+    LinSys sys_1;
+    LinSys sys_m;
     struct Result {
-        std::shared_ptr<BDense> d_x;
-        std::shared_ptr<RBDense> resnorm;
-        gko::log::BatchLogData<value_type> d_logdata;
+        std::shared_ptr<BDense> x;
         std::shared_ptr<BDense> residual;
+        std::shared_ptr<RBDense> resnorm;
+        gko::log::BatchLogData<value_type> logdata;
     };
     Result r_1;
     Result r_m;
 
-    Result solve_poisson_uniform_1(const Options opts,
-                                   const BDense *const d_left_scale = nullptr,
-                                   const BDense *const d_right_scale = nullptr)
+    LinSys get_poisson_problem(const int nrhs, const size_t nbatches)
     {
-        bnorm_1 = gko::batch_initialize<RBDense>(nbatch, {0.0}, exec);
-        b_1->compute_norm2(bnorm_1.get());
+        LinSys sys;
+        sys.mtx = gko::test::create_poisson1d_batch<value_type>(exec, nrows,
+                                                                nbatches);
+        if (nrhs == 1) {
+            sys.b =
+                gko::batch_initialize<BDense>(nbatches, {-1.0, 3.0, 1.0}, exec);
+            sys.xex =
+                gko::batch_initialize<BDense>(nbatches, {1.0, 3.0, 2.0}, exec);
+        } else if (nrhs == 2) {
+            sys.b = gko::batch_initialize<BDense>(
+                nbatches,
+                std::initializer_list<std::initializer_list<value_type>>{
+                    {-1.0, 2.0}, {3.0, -1.0}, {1.0, 0.0}},
+                exec);
+            sys.xex = gko::batch_initialize<BDense>(
+                nbatches,
+                std::initializer_list<std::initializer_list<value_type>>{
+                    {1.0, 1.0}, {3.0, 0.0}, {2.0, 0.0}},
+                exec);
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
+        const gko::batch_dim<> normdim(nbatches, gko::dim<2>(1, nrhs));
+        sys.bnorm = RBDense::create(exec, normdim);
+        sys.b->compute_norm2(sys.bnorm.get());
+        return sys;
+    }
 
+    std::unique_ptr<RBDense> compute_residual_norm(const Mtx *const rmtx,
+                                                   const BDense *const x,
+                                                   const BDense *const b)
+    {
+        std::unique_ptr<BDense> res = b->clone();
+        const size_t nbatches = x->get_num_batch_entries();
+        const int xnrhs = x->get_size().at(0)[1];
+        const gko::batch_stride stride(nbatches, xnrhs);
+        const gko::batch_dim<> normdim(nbatches, gko::dim<2>(1, xnrhs));
+        auto normsr = RBDense::create(exec, normdim);
+        auto alpha =
+            gko::batch_initialize<BDense>(nbatches, {-1.0}, this->exec);
+        auto beta = gko::batch_initialize<BDense>(nbatches, {1.0}, this->exec);
+        rmtx->apply(alpha.get(), x, beta.get(), res.get());
+        res->compute_norm2(normsr.get());
+        return normsr;
+    }
+
+    // Uses sys_1
+    Result solve_poisson_uniform_1(const BDense *const left_scale = nullptr,
+                                   const BDense *const right_scale = nullptr)
+    {
         const int nrhs_1 = 1;
+        Result res;
+        std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>(nrows, nrhs_1));
+        res.x = BDense::create(exec, sizes);
+        value_type *const xvalsinit = res.x->get_values();
+        for (size_t i = 0; i < nbatch * nrows * nrhs_1; i++) {
+            xvalsinit[i] = gko::zero<value_type>();
+        }
 
-        auto orig_mtx = gko::test::create_poisson1d_batch<value_type>(
-            this->exec, nrows, nbatch);
+        std::vector<gko::dim<2>> normsizes(nbatch, gko::dim<2>(1, nrhs_1));
+        gko::log::BatchLogData<value_type> logdata;
+        logdata.res_norms = gko::matrix::BatchDense<real_type>::create(
+            this->ompexec, normsizes);
+        logdata.iter_counts.set_executor(this->ompexec);
+        logdata.iter_counts.resize_and_reset(nrhs_1 * nbatch);
 
-        auto d_mtx = gko::clone(ompexec, orig_mtx);
-
-        Result result;
-
-        result.residual = b_1->clone();
-        result.d_x = gko::batch_initialize<BDense>(nbatch, {0.0, 0.0, 0.0},
-                                                   this->ompexec);
-
-        std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>(1, nrhs_1));
-        result.d_logdata.res_norms =
-            gko::matrix::BatchDense<real_type>::create(this->ompexec, sizes);
-        result.d_logdata.iter_counts.set_executor(this->ompexec);
-        result.d_logdata.iter_counts.resize_and_reset(nrhs_1 * nbatch);
+        auto mtx = Mtx::create(this->ompexec);
+        auto b = BDense::create(this->ompexec);
+        auto x = BDense::create(this->ompexec);
+        mtx->copy_from(gko::lend(sys_1.mtx));
+        b->copy_from(gko::lend(sys_1.b));
+        x->copy_from(gko::lend(res.x));
+        auto d_left = BDense::create(ompexec);
+        auto d_right = BDense::create(ompexec);
+        if (left_scale) {
+            d_left->copy_from(left_scale);
+        }
+        if (right_scale) {
+            d_right->copy_from(right_scale);
+        }
+        auto d_left_ptr = left_scale ? d_left.get() : nullptr;
+        auto d_right_ptr = right_scale ? d_right.get() : nullptr;
 
         gko::kernels::omp::batch_bicgstab::apply<value_type>(
-            this->ompexec, opts, d_mtx.get(), d_left_scale, d_right_scale,
-            d_b_1.get(), result.d_x.get(), result.d_logdata);
+            this->ompexec, opts_1, mtx.get(), d_left_ptr, d_right_ptr, b.get(),
+            x.get(), logdata);
 
-        result.resnorm =
-            gko::batch_initialize<RBDense>(nbatch, {0.0}, this->exec);
-        auto alpha = gko::batch_initialize<BDense>(nbatch, {-1.0}, this->exec);
-        auto beta = gko::batch_initialize<BDense>(nbatch, {1.0}, this->exec);
-        orig_mtx->apply(alpha.get(), gko::clone(exec, result.d_x).get(),
-                        beta.get(), result.residual.get());
-        result.residual->compute_norm2(result.resnorm.get());
-        return result;
+        res.x->copy_from(gko::lend(x));
+        auto rnorms =
+            compute_residual_norm(sys_1.mtx.get(), res.x.get(), sys_1.b.get());
+
+        res.logdata.res_norms =
+            gko::matrix::BatchDense<real_type>::create(this->exec, sizes);
+        res.logdata.iter_counts.set_executor(this->exec);
+        res.logdata.res_norms->copy_from(logdata.res_norms.get());
+        res.logdata.iter_counts = logdata.iter_counts;
+
+        res.resnorm = std::move(rnorms);
+        return std::move(res);
     }
 
 
@@ -165,40 +218,45 @@ protected:
 
     Result solve_poisson_uniform_mult()
     {
-        bnorm_m = gko::batch_initialize<RBDense>(nbatch, {{0.0, 0.0}}, exec);
-        b_m->compute_norm2(bnorm_m.get());
-
-        const int nrows = 3;
-        auto mtx = gko::test::create_poisson1d_batch<value_type>(this->exec,
-                                                                 nrows, nbatch);
-        auto d_mtx = gko::clone(this->ompexec, mtx);
-
-        Result result;
-        result.d_x = gko::batch_initialize<BDense>(
+        Result res;
+        res.x = gko::batch_initialize<BDense>(
             nbatch,
             std::initializer_list<std::initializer_list<value_type>>{
                 {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}},
-            this->ompexec);
+            this->exec);
 
+        const Options opts{gko::preconditioner::batch::type::none, 10, 1e-6,
+                           1e-11, gko::stop::batch::ToleranceType::absolute};
         std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>(1, nrhs));
-        result.d_logdata.res_norms =
+        gko::log::BatchLogData<value_type> logdata;
+        logdata.res_norms =
             gko::matrix::BatchDense<real_type>::create(this->ompexec, sizes);
-        result.d_logdata.iter_counts.set_executor(this->ompexec);
-        result.d_logdata.iter_counts.resize_and_reset(nrhs * nbatch);
+        logdata.iter_counts.set_executor(this->ompexec);
+        logdata.iter_counts.resize_and_reset(nrhs * nbatch);
+
+        auto mtx = Mtx::create(this->ompexec);
+        auto b = BDense::create(this->ompexec);
+        auto x = BDense::create(this->ompexec);
+        mtx->copy_from(gko::lend(sys_m.mtx));
+        b->copy_from(gko::lend(sys_m.b));
+        x->copy_from(gko::lend(res.x));
 
         gko::kernels::omp::batch_bicgstab::apply<value_type>(
-            this->ompexec, opts_m, d_mtx.get(), nullptr, nullptr, d_b_m.get(),
-            result.d_x.get(), result.d_logdata);
+            this->ompexec, opts_m, mtx.get(), nullptr, nullptr, b.get(),
+            x.get(), logdata);
 
-        result.residual = b_m->clone();
-        result.resnorm =
-            gko::batch_initialize<RBDense>(nbatch, {{0.0, 0.0}}, this->exec);
-        auto alpha = gko::batch_initialize<BDense>(nbatch, {-1.0}, this->exec);
-        auto beta = gko::batch_initialize<BDense>(nbatch, {1.0}, this->exec);
-        mtx->apply(alpha.get(), gko::clone(exec, result.d_x).get(), beta.get(),
-                   result.residual.get());
-        result.residual->compute_norm2(result.resnorm.get());
-        return result;
+        res.x->copy_from(gko::lend(x));
+        auto rnorms =
+            compute_residual_norm(sys_m.mtx.get(), res.x.get(), sys_m.b.get());
+
+        res.logdata.res_norms =
+            gko::matrix::BatchDense<real_type>::create(this->exec, sizes);
+        res.logdata.iter_counts.set_executor(this->exec);
+        res.logdata.res_norms->copy_from(logdata.res_norms.get());
+        res.logdata.iter_counts = logdata.iter_counts;
+
+        res.resnorm = std::move(rnorms);
+        return res;
     }
 
 
@@ -224,25 +282,25 @@ TYPED_TEST_SUITE(BatchBicgstab, gko::test::ValueTypes);
 
 TYPED_TEST(BatchBicgstab, SolvesStencilSystemNone)
 {
-    this->r_1 = this->solve_poisson_uniform_1(this->opts_1);
-
-    GKO_ASSERT_BATCH_MTX_NEAR(this->r_1.d_x, this->xex_1,
+    this->r_1 = this->solve_poisson_uniform_1();
+    GKO_ASSERT_BATCH_MTX_NEAR(this->r_1.x, this->sys_1.xex,
                               1e-6 /*r<value_type>::value*/);
 }
+
 
 TYPED_TEST(BatchBicgstab, StencilSystemNoneLoggerIsCorrect)
 {
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
 
-    this->r_1 = this->solve_poisson_uniform_1(this->opts_1);
+    this->r_1 = this->solve_poisson_uniform_1();
 
     const int ref_iters = this->single_iters_regression();
 
     const int *const iter_array =
-        this->r_1.d_logdata.iter_counts.get_const_data();
+        this->r_1.logdata.iter_counts.get_const_data();
     const real_type *const res_log_array =
-        this->r_1.d_logdata.res_norms->get_const_values();
+        this->r_1.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
         ASSERT_EQ(iter_array[i], ref_iters);
@@ -256,8 +314,7 @@ TYPED_TEST(BatchBicgstab, StencilSystemNoneLoggerIsCorrect)
 TYPED_TEST(BatchBicgstab, SolvesStencilMultipleSystemNone)
 {
     this->r_m = this->solve_poisson_uniform_mult();
-
-    GKO_ASSERT_BATCH_MTX_NEAR(this->r_m.d_x, this->xex_m,
+    GKO_ASSERT_BATCH_MTX_NEAR(this->r_m.x, this->sys_m.xex,
                               1e-6 /*r<value_type>::value*/);
 }
 
@@ -272,9 +329,9 @@ TYPED_TEST(BatchBicgstab, StencilMultipleSystemNoneLoggerIsCorrect)
     const std::vector<int> ref_iters = this->multiple_iters_regression();
 
     const int *const iter_array =
-        this->r_m.d_logdata.iter_counts.get_const_data();
+        this->r_m.logdata.iter_counts.get_const_data();
     const real_type *const res_log_array =
-        this->r_m.d_logdata.res_norms->get_const_values();
+        this->r_m.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
         for (size_t j = 0; j < this->nrhs; j++) {
@@ -291,20 +348,56 @@ TYPED_TEST(BatchBicgstab, StencilMultipleSystemNoneLoggerIsCorrect)
 }
 
 
+TYPED_TEST(BatchBicgstab, CoreSolvesSystemJacobi)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    using BDense = typename TestFixture::BDense;
+    using Solver = gko::solver::BatchBicgstab<value_type>;
+    using LinSys = typename TestFixture::LinSys;
+    auto useexec = this->ompexec;
+    std::unique_ptr<typename Solver::Factory> batchbicgstab_factory =
+        Solver::build()
+            .with_max_iterations(100)
+            .with_rel_residual_tol(1e-6f)
+            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .on(useexec);
+    const int nrhs_1 = 1;
+    const size_t nbatch = 3;
+    const LinSys sys = this->get_poisson_problem(nrhs_1, nbatch);
+    auto rx =
+        gko::batch_initialize<BDense>(nbatch, {0.0, 0.0, 0.0}, this->exec);
+    std::unique_ptr<Mtx> mtx = Mtx::create(useexec);
+    auto b = BDense::create(useexec);
+    auto x = BDense::create(useexec);
+    mtx->copy_from(gko::lend(sys.mtx));
+    b->copy_from(gko::lend(sys.b));
+    x->copy_from(gko::lend(rx));
+
+    std::unique_ptr<Solver> solver =
+        batchbicgstab_factory->generate(gko::give(mtx));
+    solver->apply(b.get(), x.get());
+
+    rx->copy_from(gko::lend(x));
+
+    GKO_ASSERT_BATCH_MTX_NEAR(rx, sys.xex, 1e-5 /*r<value_type>::value*/);
+}
+
+
 TYPED_TEST(BatchBicgstab, UnitScalingDoesNotChangeResult)
 {
     using Result = typename TestFixture::Result;
     using BDense = typename TestFixture::BDense;
-    auto d_left_scale = gko::batch_initialize<BDense>(
-        this->nbatch, {1.0, 1.0, 1.0}, this->ompexec);
-    auto d_right_scale = gko::batch_initialize<BDense>(
-        this->nbatch, {1.0, 1.0, 1.0}, this->ompexec);
+    auto left_scale = gko::batch_initialize<BDense>(
+        this->nbatch, {1.0, 1.0, 1.0}, this->exec);
+    auto right_scale = gko::batch_initialize<BDense>(
+        this->nbatch, {1.0, 1.0, 1.0}, this->exec);
 
-    Result result = this->solve_poisson_uniform_1(
-        this->opts_1, d_left_scale.get(), d_right_scale.get());
+    Result result =
+        this->solve_poisson_uniform_1(left_scale.get(), right_scale.get());
 
-
-    GKO_ASSERT_BATCH_MTX_NEAR(result.d_x, this->xex_1,
+    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex,
                               1e-6 /*r<value_type>::value*/);
 }
 
@@ -313,18 +406,16 @@ TYPED_TEST(BatchBicgstab, GeneralScalingDoesNotChangeResult)
 {
     using Result = typename TestFixture::Result;
     using BDense = typename TestFixture::BDense;
-    using Options = typename TestFixture::Options;
-    auto d_left_scale = gko::batch_initialize<BDense>(
-        this->nbatch, {0.8, 0.9, 0.95}, this->ompexec);
-    auto d_right_scale = gko::batch_initialize<BDense>(
-        this->nbatch, {1.0, 1.5, 1.05}, this->ompexec);
+    auto left_scale = gko::batch_initialize<BDense>(
+        this->nbatch, {0.8, 0.9, 0.95}, this->exec);
+    auto right_scale = gko::batch_initialize<BDense>(
+        this->nbatch, {1.0, 1.5, 1.05}, this->exec);
 
+    Result result =
+        this->solve_poisson_uniform_1(left_scale.get(), right_scale.get());
 
-    Result result = this->solve_poisson_uniform_1(
-        this->opts_1, d_left_scale.get(), d_right_scale.get());
-
-    GKO_ASSERT_BATCH_MTX_NEAR(result.d_x, this->xex_1,
-                              1e-06 /*r<value_type>::value*/);
+    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex,
+                              1e-6 /*r<value_type>::value*/);
 }
 
 
