@@ -68,7 +68,7 @@ inline void copy(
     const uint32 &converged)
 {
 #pragma omp parallel for
-    for (int r = 0; r < source_entry.num_rhs; r++) {
+    for (int r = 0; r < source_entry.num_rows; r++) {
         for (int c = 0; c < source_entry.num_rhs; c++) {
             const uint32 conv = converged & (1 << c);
 
