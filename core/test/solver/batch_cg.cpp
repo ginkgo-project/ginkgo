@@ -165,7 +165,6 @@ TYPED_TEST(BatchCg, CanBeCleared)
     this->solver->clear();
 
     ASSERT_EQ(this->solver->get_num_batch_entries(), 0);
-    // ASSERT_EQ(this->solver->get_size().at(0), gko::dim<2>(0, 0));
     ASSERT_EQ(this->solver->get_size().get_num_batch_entries(), 0);
     auto solver_mtx =
         static_cast<Solver *>(this->solver.get())->get_system_matrix();
@@ -229,6 +228,26 @@ TYPED_TEST(BatchCg, ThrowsOnRectangularMatrixInFactory)
                  gko::DimensionMismatch);
 }
 
+
+TYPED_TEST(BatchCg, CanSetScalingVectors)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using Dense = typename TestFixture::Dense;
+
+    auto batchcg_factory = Solver::build().on(this->exec);
+    auto solver = batchcg_factory->generate(this->mtx);
+    auto left_scale = Dense::create(
+        this->exec, gko::batch_dim<>(2, gko::dim<2>(this->nrows, 1)));
+    auto right_scale = Dense::create_with_config_of(left_scale.get());
+    solver->batch_scale(left_scale.get(), right_scale.get());
+
+    auto s_solver =
+        dynamic_cast<gko::EnableBatchScaledSolver<value_type> *>(solver.get());
+    ASSERT_TRUE(s_solver);
+    ASSERT_EQ(s_solver->get_left_scaling_vector(), left_scale.get());
+    ASSERT_EQ(s_solver->get_right_scaling_vector(), right_scale.get());
+}
 
 // TYPED_TEST(BatchCg, SolverTransposeRetainsFactoryParameters)
 // {
