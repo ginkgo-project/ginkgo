@@ -59,7 +59,7 @@ namespace {
 
 
 using namespace gko::kernels::dpcpp;
-using KCfg = gko::ConfigSet<12, 7>;
+using KCfg = gko::ConfigSet<11, 7>;
 constexpr auto default_config_list =
     ::gko::syn::value_list<::gko::ConfigSetType, KCfg::encode(64, 64),
                            KCfg::encode(32, 32), KCfg::encode(16, 16),
