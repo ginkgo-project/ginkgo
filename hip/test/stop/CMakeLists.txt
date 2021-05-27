@@ -1,2 +1,3 @@
+ginkgo_create_hip_test(batch_additional_criteria)
 ginkgo_create_hip_test(criterion_kernels)
 ginkgo_create_test(residual_norm_kernels)
