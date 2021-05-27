@@ -674,23 +674,40 @@ void Dense<ValueType>::write(mat_data32 &data) const
 template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::transpose() const
 {
-    auto exec = this->get_executor();
-    auto trans_cpy = Dense::create(exec, gko::transpose(this->get_size()));
-
-    exec->run(dense::make_transpose(this, trans_cpy.get()));
-
-    return std::move(trans_cpy);
+    auto result =
+        Dense::create(this->get_executor(), gko::transpose(this->get_size()));
+    this->transpose(result.get());
+    return result;
 }
 
 
 template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::conj_transpose() const
 {
-    auto exec = this->get_executor();
-    auto trans_cpy = Dense::create(exec, gko::transpose(this->get_size()));
+    auto result =
+        Dense::create(this->get_executor(), gko::transpose(this->get_size()));
+    this->conj_transpose(result.get());
+    return result;
+}
 
-    exec->run(dense::make_conj_transpose(this, trans_cpy.get()));
-    return std::move(trans_cpy);
+
+template <typename ValueType>
+void Dense<ValueType>::transpose(Dense<ValueType> *output) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(output, gko::transpose(this->get_size()));
+    auto exec = this->get_executor();
+    exec->run(
+        dense::make_transpose(this, make_temporary_clone(exec, output).get()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::conj_transpose(Dense<ValueType> *output) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(output, gko::transpose(this->get_size()));
+    auto exec = this->get_executor();
+    exec->run(dense::make_conj_transpose(
+        this, make_temporary_clone(exec, output).get()));
 }
 
 
@@ -698,16 +715,9 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::permute(
     const Array<int32> *permutation_indices) const
 {
-    GKO_ASSERT_IS_SQUARE_MATRIX(this);
-    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
-    auto exec = this->get_executor();
-    auto permute_cpy = Dense::create(exec, this->get_size());
-
-    exec->run(dense::make_symm_permute(
-        make_temporary_clone(exec, permutation_indices).get(), this,
-        permute_cpy.get()));
-
-    return std::move(permute_cpy);
+    auto result = Dense::create(this->get_executor(), this->get_size());
+    this->permute(permutation_indices, result.get());
+    return result;
 }
 
 
@@ -715,16 +725,39 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::permute(
     const Array<int64> *permutation_indices) const
 {
+    auto result = Dense::create(this->get_executor(), this->get_size());
+    this->permute(permutation_indices, result.get());
+    return result;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::permute(const Array<int32> *permutation_indices,
+                               Dense<ValueType> *output) const
+{
     GKO_ASSERT_IS_SQUARE_MATRIX(this);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
     auto exec = this->get_executor();
-    auto permute_cpy = Dense::create(exec, this->get_size());
 
     exec->run(dense::make_symm_permute(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        permute_cpy.get()));
+        make_temporary_clone(exec, output).get()));
+}
 
-    return std::move(permute_cpy);
+
+template <typename ValueType>
+void Dense<ValueType>::permute(const Array<int64> *permutation_indices,
+                               Dense<ValueType> *output) const
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(this);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
+    auto exec = this->get_executor();
+
+    exec->run(dense::make_symm_permute(
+        make_temporary_clone(exec, permutation_indices).get(), this,
+        make_temporary_clone(exec, output).get()));
 }
 
 
@@ -732,16 +765,9 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::inverse_permute(
     const Array<int32> *permutation_indices) const
 {
-    GKO_ASSERT_IS_SQUARE_MATRIX(this);
-    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
-    auto exec = this->get_executor();
-    auto permute_cpy = Dense::create(exec, this->get_size());
-
-    exec->run(dense::make_inv_symm_permute(
-        make_temporary_clone(exec, permutation_indices).get(), this,
-        permute_cpy.get()));
-
-    return std::move(permute_cpy);
+    auto result = Dense::create(this->get_executor(), this->get_size());
+    this->inverse_permute(permutation_indices, result.get());
+    return result;
 }
 
 
@@ -749,16 +775,39 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::inverse_permute(
     const Array<int64> *permutation_indices) const
 {
+    auto result = Dense::create(this->get_executor(), this->get_size());
+    this->inverse_permute(permutation_indices, result.get());
+    return result;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::inverse_permute(const Array<int32> *permutation_indices,
+                                       Dense<ValueType> *output) const
+{
     GKO_ASSERT_IS_SQUARE_MATRIX(this);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
     auto exec = this->get_executor();
-    auto permute_cpy = Dense::create(exec, this->get_size());
 
     exec->run(dense::make_inv_symm_permute(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        permute_cpy.get()));
+        make_temporary_clone(exec, output).get()));
+}
 
-    return std::move(permute_cpy);
+
+template <typename ValueType>
+void Dense<ValueType>::inverse_permute(const Array<int64> *permutation_indices,
+                                       Dense<ValueType> *output) const
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(this);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
+    auto exec = this->get_executor();
+
+    exec->run(dense::make_inv_symm_permute(
+        make_temporary_clone(exec, permutation_indices).get(), this,
+        make_temporary_clone(exec, output).get()));
 }
 
 
@@ -766,15 +815,9 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::row_permute(
     const Array<int32> *permutation_indices) const
 {
-    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
-    auto exec = this->get_executor();
-    auto permute_cpy = Dense::create(exec, this->get_size());
-
-    exec->run(dense::make_row_gather(
-        make_temporary_clone(exec, permutation_indices).get(), this,
-        permute_cpy.get()));
-
-    return std::move(permute_cpy);
+    auto result = Dense::create(this->get_executor(), this->get_size());
+    this->row_permute(permutation_indices, result.get());
+    return result;
 }
 
 
@@ -782,15 +825,37 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::row_permute(
     const Array<int64> *permutation_indices) const
 {
+    auto result = Dense::create(this->get_executor(), this->get_size());
+    this->row_permute(permutation_indices, result.get());
+    return result;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_permute(const Array<int32> *permutation_indices,
+                                   Dense<ValueType> *output) const
+{
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     auto exec = this->get_executor();
-    auto permute_cpy = Dense::create(exec, this->get_size());
 
     exec->run(dense::make_row_gather(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        permute_cpy.get()));
+        make_temporary_clone(exec, output).get()));
+}
 
-    return std::move(permute_cpy);
+
+template <typename ValueType>
+void Dense<ValueType>::row_permute(const Array<int64> *permutation_indices,
+                                   Dense<ValueType> *output) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
+    auto exec = this->get_executor();
+
+    exec->run(dense::make_row_gather(
+        make_temporary_clone(exec, permutation_indices).get(), this,
+        make_temporary_clone(exec, output).get()));
 }
 
 
@@ -800,12 +865,9 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_gather(
 {
     auto exec = this->get_executor();
     dim<2> out_dim{row_indices->get_num_elems(), this->get_size()[1]};
-    auto row_gathered = Dense::create(exec, out_dim);
-
-    exec->run(
-        dense::make_row_gather(make_temporary_clone(exec, row_indices).get(),
-                               this, row_gathered.get()));
-    return row_gathered;
+    auto result = Dense::create(exec, out_dim);
+    this->row_gather(row_indices, result.get());
+    return result;
 }
 
 
@@ -815,12 +877,9 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_gather(
 {
     auto exec = this->get_executor();
     dim<2> out_dim{row_indices->get_num_elems(), this->get_size()[1]};
-    auto row_gathered = Dense::create(exec, out_dim);
-
-    exec->run(
-        dense::make_row_gather(make_temporary_clone(exec, row_indices).get(),
-                               this, row_gathered.get()));
-    return row_gathered;
+    auto result = Dense::create(exec, out_dim);
+    this->row_gather(row_indices, result.get());
+    return result;
 }
 
 
@@ -854,18 +913,40 @@ void Dense<ValueType>::row_gather(const Array<int64> *row_indices,
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
-    const Array<int32> *permutation_indices) const
+void Dense<ValueType>::column_permute(const Array<int32> *permutation_indices,
+                                      Dense<ValueType> *output) const
 {
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     auto exec = this->get_executor();
-    auto permute_cpy = Dense::create(exec, this->get_size());
 
     exec->run(dense::make_column_permute(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        permute_cpy.get()));
+        make_temporary_clone(exec, output).get()));
+}
 
-    return std::move(permute_cpy);
+
+template <typename ValueType>
+void Dense<ValueType>::column_permute(const Array<int64> *permutation_indices,
+                                      Dense<ValueType> *output) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
+    auto exec = this->get_executor();
+
+    exec->run(dense::make_column_permute(
+        make_temporary_clone(exec, permutation_indices).get(), this,
+        make_temporary_clone(exec, output).get()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
+    const Array<int32> *permutation_indices) const
+{
+    auto result = Dense::create(this->get_executor(), this->get_size());
+    this->column_permute(permutation_indices, result.get());
+    return result;
 }
 
 
@@ -873,15 +954,37 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
     const Array<int64> *permutation_indices) const
 {
-    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
+    auto result = Dense::create(this->get_executor(), this->get_size());
+    this->column_permute(permutation_indices, result.get());
+    return result;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::inverse_row_permute(
+    const Array<int32> *permutation_indices, Dense<ValueType> *output) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     auto exec = this->get_executor();
-    auto permute_cpy = Dense::create(exec, this->get_size());
 
-    exec->run(dense::make_column_permute(
+    exec->run(dense::make_inverse_row_permute(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        permute_cpy.get()));
+        make_temporary_clone(exec, output).get()));
+}
 
-    return std::move(permute_cpy);
+
+template <typename ValueType>
+void Dense<ValueType>::inverse_row_permute(
+    const Array<int64> *permutation_indices, Dense<ValueType> *output) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
+    auto exec = this->get_executor();
+
+    exec->run(dense::make_inverse_row_permute(
+        make_temporary_clone(exec, permutation_indices).get(), this,
+        make_temporary_clone(exec, output).get()));
 }
 
 
@@ -889,15 +992,9 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::inverse_row_permute(
     const Array<int32> *permutation_indices) const
 {
-    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
-    auto exec = this->get_executor();
-    auto inverse_permute_cpy = Dense::create(exec, this->get_size());
-
-    exec->run(dense::make_inverse_row_permute(
-        make_temporary_clone(exec, permutation_indices).get(), this,
-        inverse_permute_cpy.get()));
-
-    return std::move(inverse_permute_cpy);
+    auto result = Dense::create(this->get_executor(), this->get_size());
+    this->inverse_row_permute(permutation_indices, result.get());
+    return result;
 }
 
 
@@ -905,15 +1002,37 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::inverse_row_permute(
     const Array<int64> *permutation_indices) const
 {
-    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
+    auto result = Dense::create(this->get_executor(), this->get_size());
+    this->inverse_row_permute(permutation_indices, result.get());
+    return result;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::inverse_column_permute(
+    const Array<int32> *permutation_indices, Dense<ValueType> *output) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     auto exec = this->get_executor();
-    auto inverse_permute_cpy = Dense::create(exec, this->get_size());
 
-    exec->run(dense::make_inverse_row_permute(
+    exec->run(dense::make_inverse_column_permute(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        inverse_permute_cpy.get()));
+        make_temporary_clone(exec, output).get()));
+}
 
-    return std::move(inverse_permute_cpy);
+
+template <typename ValueType>
+void Dense<ValueType>::inverse_column_permute(
+    const Array<int64> *permutation_indices, Dense<ValueType> *output) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
+    auto exec = this->get_executor();
+
+    exec->run(dense::make_inverse_column_permute(
+        make_temporary_clone(exec, permutation_indices).get(), this,
+        make_temporary_clone(exec, output).get()));
 }
 
 
@@ -921,15 +1040,9 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
     const Array<int32> *permutation_indices) const
 {
-    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
-    auto exec = this->get_executor();
-    auto inverse_permute_cpy = Dense::create(exec, this->get_size());
-
-    exec->run(dense::make_inverse_column_permute(
-        make_temporary_clone(exec, permutation_indices).get(), this,
-        inverse_permute_cpy.get()));
-
-    return std::move(inverse_permute_cpy);
+    auto result = Dense::create(this->get_executor(), this->get_size());
+    this->inverse_column_permute(permutation_indices, result.get());
+    return result;
 }
 
 
@@ -937,26 +1050,30 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
     const Array<int64> *permutation_indices) const
 {
-    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
+    auto result = Dense::create(this->get_executor(), this->get_size());
+    this->inverse_column_permute(permutation_indices, result.get());
+    return result;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::extract_diagonal(Diagonal<ValueType> *output) const
+{
     auto exec = this->get_executor();
-    auto inverse_permute_cpy = Dense::create(exec, this->get_size());
+    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
+    GKO_ASSERT_EQ(output->get_size()[0], diag_size);
 
-    exec->run(dense::make_inverse_column_permute(
-        make_temporary_clone(exec, permutation_indices).get(), this,
-        inverse_permute_cpy.get()));
-
-    return std::move(inverse_permute_cpy);
+    exec->run(dense::make_extract_diagonal(
+        this, make_temporary_clone(exec, output).get()));
 }
 
 
 template <typename ValueType>
 std::unique_ptr<Diagonal<ValueType>> Dense<ValueType>::extract_diagonal() const
 {
-    auto exec = this->get_executor();
-
     const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
-    auto diag = Diagonal<ValueType>::create(exec, diag_size);
-    exec->run(dense::make_extract_diagonal(this, lend(diag)));
+    auto diag = Diagonal<ValueType>::create(this->get_executor(), diag_size);
+    this->extract_diagonal(diag.get());
     return diag;
 }
 
@@ -964,9 +1081,7 @@ std::unique_ptr<Diagonal<ValueType>> Dense<ValueType>::extract_diagonal() const
 template <typename ValueType>
 void Dense<ValueType>::compute_absolute_inplace()
 {
-    auto exec = this->get_executor();
-
-    exec->run(dense::make_inplace_absolute_dense(this));
+    this->get_executor()->run(dense::make_inplace_absolute_dense(this));
 }
 
 
@@ -974,14 +1089,22 @@ template <typename ValueType>
 std::unique_ptr<typename Dense<ValueType>::absolute_type>
 Dense<ValueType>::compute_absolute() const
 {
+    // do not inherit the stride
+    auto result = absolute_type::create(this->get_executor(), this->get_size());
+    this->compute_absolute(result.get());
+    return result;
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_absolute(
+    Dense<ValueType>::absolute_type *output) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     auto exec = this->get_executor();
 
-    // do not inherit the stride
-    auto abs_dense = absolute_type::create(exec, this->get_size());
-
-    exec->run(dense::make_outplace_absolute_dense(this, abs_dense.get()));
-
-    return abs_dense;
+    exec->run(dense::make_outplace_absolute_dense(
+        this, make_temporary_clone(exec, output).get()));
 }
 
 
@@ -989,22 +1112,18 @@ template <typename ValueType>
 std::unique_ptr<typename Dense<ValueType>::complex_type>
 Dense<ValueType>::make_complex() const
 {
-    auto exec = this->get_executor();
-
-    auto complex_dense = complex_type::create(exec, this->get_size());
-
-    exec->run(dense::make_make_complex(this, complex_dense.get()));
-
-    return complex_dense;
+    auto result = complex_type::create(this->get_executor(), this->get_size());
+    this->make_complex(result.get());
+    return result;
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::make_complex(Dense<to_complex<ValueType>> *result) const
+void Dense<ValueType>::make_complex(
+    typename Dense<ValueType>::complex_type *result) const
 {
-    auto exec = this->get_executor();
-
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
+    auto exec = this->get_executor();
 
     exec->run(dense::make_make_complex(
         this, make_temporary_clone(exec, result).get()));
@@ -1012,25 +1131,21 @@ void Dense<ValueType>::make_complex(Dense<to_complex<ValueType>> *result) const
 
 
 template <typename ValueType>
-std::unique_ptr<typename Dense<ValueType>::absolute_type>
+std::unique_ptr<typename Dense<ValueType>::real_type>
 Dense<ValueType>::get_real() const
 {
-    auto exec = this->get_executor();
-
-    auto real_dense = absolute_type::create(exec, this->get_size());
-
-    exec->run(dense::make_get_real(this, real_dense.get()));
-
-    return real_dense;
+    auto result = real_type::create(this->get_executor(), this->get_size());
+    this->get_real(result.get());
+    return result;
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::get_real(Dense<remove_complex<ValueType>> *result) const
+void Dense<ValueType>::get_real(
+    typename Dense<ValueType>::real_type *result) const
 {
-    auto exec = this->get_executor();
-
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
+    auto exec = this->get_executor();
 
     exec->run(
         dense::make_get_real(this, make_temporary_clone(exec, result).get()));
@@ -1038,25 +1153,21 @@ void Dense<ValueType>::get_real(Dense<remove_complex<ValueType>> *result) const
 
 
 template <typename ValueType>
-std::unique_ptr<typename Dense<ValueType>::absolute_type>
+std::unique_ptr<typename Dense<ValueType>::real_type>
 Dense<ValueType>::get_imag() const
 {
-    auto exec = this->get_executor();
-
-    auto imag_dense = absolute_type::create(exec, this->get_size());
-
-    exec->run(dense::make_get_imag(this, imag_dense.get()));
-
-    return imag_dense;
+    auto result = real_type::create(this->get_executor(), this->get_size());
+    this->get_imag(result.get());
+    return result;
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::get_imag(Dense<remove_complex<ValueType>> *result) const
+void Dense<ValueType>::get_imag(
+    typename Dense<ValueType>::real_type *result) const
 {
-    auto exec = this->get_executor();
-
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
+    auto exec = this->get_executor();
 
     exec->run(
         dense::make_get_imag(this, make_temporary_clone(exec, result).get()));
