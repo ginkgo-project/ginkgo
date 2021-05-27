@@ -116,19 +116,21 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
-template <typename ValueType>
+template <typename InValueType, typename OutValueType>
 void copy(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Dense<ValueType> *input,
-          matrix::Dense<ValueType> *output)
+          const matrix::Dense<InValueType> *input,
+          matrix::Dense<OutValueType> *output)
 {
     for (size_type row = 0; row < input->get_size()[0]; ++row) {
         for (size_type col = 0; col < input->get_size()[1]; ++col) {
-            output->at(row, col) = input->at(row, col);
+            output->at(row, col) =
+                static_cast<OutValueType>(input->at(row, col));
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COPY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(
+    GKO_DECLARE_DENSE_COPY_KERNEL);
 
 
 template <typename ValueType>

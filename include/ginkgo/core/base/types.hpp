@@ -546,12 +546,28 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     _macro(std::complex<float>, std::complex<double>) GKO_NOT_IMPLEMENTED; \
     template <>                                                            \
     _macro(std::complex<double>, std::complex<float>) GKO_NOT_IMPLEMENTED
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(_macro)         \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro);                    \
+    template <>                                                           \
+    _macro(float, float) GKO_NOT_IMPLEMENTED;                             \
+    template <>                                                           \
+    _macro(double, double) GKO_NOT_IMPLEMENTED;                           \
+    template <>                                                           \
+    _macro(std::complex<float>, std::complex<float>) GKO_NOT_IMPLEMENTED; \
+    template <>                                                           \
+    _macro(std::complex<double>, std::complex<double>) GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)       \
     template _macro(float, double);                             \
     template _macro(double, float);                             \
     template _macro(std::complex<float>, std::complex<double>); \
     template _macro(std::complex<double>, std::complex<float>)
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(_macro) \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro);            \
+    template _macro(float, float);                                \
+    template _macro(double, double);                              \
+    template _macro(std::complex<float>, std::complex<float>);    \
+    template _macro(std::complex<double>, std::complex<double>)
 #endif
 
 
