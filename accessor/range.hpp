@@ -102,6 +102,8 @@ public:
 
     range(const range &other) = default;
 
+    range(range &other) = default;
+
     /**
      * Returns the length of the specified dimension of the range.
      *
