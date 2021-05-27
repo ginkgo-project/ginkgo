@@ -334,6 +334,7 @@ void solve_system(const std::string &sol_name,
             auto x_clone = clone(x);
             std::shared_ptr<const gko::BatchLinOp> mat_clone =
                 clone(system_matrix);
+            std::shared_ptr<const gko::BatchLinOp> b_clone = clone(b);
             auto solver = generate_solver(exec, sol_name)->generate(mat_clone);
 
             if (FLAGS_batch_scaling == "explicit") {
@@ -342,7 +343,7 @@ void solve_system(const std::string &sol_name,
                     ->batch_scale(lend(scaling_vec), lend(scaling_vec));
             }
             solver->add_logger(logger);
-            solver->apply(lend(b), lend(x));
+            solver->apply(lend(b_clone), lend(x));
             solver->remove_logger(gko::lend(logger));
             exec->synchronize();
         }
@@ -371,6 +372,7 @@ void solve_system(const std::string &sol_name,
             auto x_clone = clone(x);
             std::shared_ptr<const gko::BatchLinOp> mat_clone =
                 clone(system_matrix);
+            std::shared_ptr<const gko::BatchLinOp> b_clone = clone(b);
 
             auto gen_logger =
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
@@ -390,7 +392,7 @@ void solve_system(const std::string &sol_name,
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(apply_logger);
 
-            solver->apply(lend(b), lend(x_clone));
+            solver->apply(lend(b_clone), lend(x_clone));
 
             exec->remove_logger(gko::lend(apply_logger));
             apply_logger->write_data(solver_json["apply"]["components"],
@@ -400,9 +402,14 @@ void solve_system(const std::string &sol_name,
             // iteration
             if (b->get_size().at(0)[1] == 1) {
                 x_clone = clone(x);
-                solver->add_logger(logger);
-                solver->apply(lend(b), lend(x_clone));
-                solver->remove_logger(gko::lend(logger));
+                std::shared_ptr<const gko::BatchLinOp> mat_clone2 =
+                    clone(system_matrix);
+                std::shared_ptr<const gko::BatchLinOp> b_clone2 = clone(b);
+                auto solver2 =
+                    generate_solver(exec, sol_name)->generate(mat_clone2);
+                solver2->add_logger(logger);
+                solver2->apply(lend(b_clone2), lend(x_clone));
+                solver2->remove_logger(gko::lend(logger));
                 add_or_set_member(solver_json["apply"], "implicit_resnorms",
                                   rapidjson::Value(rapidjson::kObjectType),
                                   allocator);
@@ -432,6 +439,7 @@ void solve_system(const std::string &sol_name,
             auto x_clone = clone(x);
             std::shared_ptr<const gko::BatchLinOp> mat_clone =
                 clone(system_matrix);
+            std::shared_ptr<const gko::BatchLinOp> b_clone = clone(b);
 
             exec->synchronize();
             generate_timer->tic();
@@ -445,7 +453,7 @@ void solve_system(const std::string &sol_name,
 
             exec->synchronize();
             apply_timer->tic();
-            solver->apply(lend(b), lend(x_clone));
+            solver->apply(lend(b_clone), lend(x_clone));
             apply_timer->toc();
 
             if (b->get_size().at(0)[1] == 1 && i == FLAGS_repetitions - 1 &&
@@ -504,7 +512,8 @@ int main(int argc, char *argv[])
         "Running " + FLAGS_batch_solvers + " with " +
         std::to_string(FLAGS_max_iters) + " iterations and residual goal of " +
         ss_rel_res_goal.str() + "\nThe number of right hand sides is " +
-        std::to_string(FLAGS_nrhs) + "\n";
+        std::to_string(FLAGS_nrhs) + "\nThe number of batch entries is " +
+        std::to_string(FLAGS_num_batches) + "\n";
     print_general_information(extra_information);
 
     auto exec = get_executor();
