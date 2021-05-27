@@ -40,6 +40,7 @@ set(GINKGO_HIP_SOURCES
     matrix/sparsity_csr_kernels.hip.cpp
     multigrid/pgm_kernels.hip.cpp
     preconditioner/batch_jacobi_kernels.hip.cpp
+    preconditioner/batch_identity_kernels.hip.cpp
     preconditioner/isai_kernels.hip.cpp
     preconditioner/jacobi_advanced_apply_kernel.hip.cpp
     preconditioner/jacobi_generate_kernel.hip.cpp
