@@ -29,3 +29,95 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
+
+#ifndef GKO_CORE_PRECONDITIONER_BATCH_IDENTITY_KERNELS_HPP_
+#define GKO_CORE_PRECONDITIONER_BATCH_IDENTITY_KERNELS_HPP_
+
+
+#include <ginkgo/core/matrix/batch_csr.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
+
+
+namespace gko {
+namespace kernels {
+
+
+/**
+ * @fn batch_identity_apply
+ *
+ * This kernel builds a Identity preconditioner for each matrix in
+ * the input batch of matrices and applies them to the corresponding vectors
+ * in the input vector batches.
+ *
+ * These functions are mostly meant only for experimentation and testing.
+ *
+ * @param exec  The executor on which to run the kernel.
+ * @param a  The batch of matrices for which to build the preconditioner.
+ * @param b  The batch of input (RHS) vectors.
+ * @param x  The batch of output (solution) vectors.
+ */
+#define GKO_DECLARE_BATCH_IDENTITY_KERNEL(_type)                           \
+    void batch_identity_apply(std::shared_ptr<const DefaultExecutor> exec, \
+                              const matrix::BatchCsr<_type> *a,            \
+                              const matrix::BatchDense<_type> *b,          \
+                              matrix::BatchDense<_type> *x)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES \
+    template <typename ValueType>    \
+    GKO_DECLARE_BATCH_IDENTITY_KERNEL(ValueType)
+
+
+namespace omp {
+namespace batch_identity {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace batch_identity
+}  // namespace omp
+
+
+namespace cuda {
+namespace batch_identity {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace batch_identity
+}  // namespace cuda
+
+
+namespace reference {
+namespace batch_identity {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace batch_identity
+}  // namespace reference
+
+
+namespace hip {
+namespace batch_identity {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace batch_identity
+}  // namespace hip
+
+
+namespace dpcpp {
+namespace batch_identity {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace batch_identity
+}  // namespace dpcpp
+
+
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
+
+
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif  // GKO_CORE_PRECONDITIONER_BATCH_IDENTITY_KERNELS_HPP_
