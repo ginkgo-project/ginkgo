@@ -86,3 +86,25 @@ public:
         }
     }
 };
+
+
+template <typename ValueType>
+__global__ void batch_identity(
+    BatchIdentity<ValueType> prec,
+    const gko::batch_csr::UniformBatch<const ValueType> a,
+    const gko::batch_dense::UniformBatch<const ValueType> b,
+    const gko::batch_dense::UniformBatch<ValueType> x)
+{
+    for (size_type batch = blockIdx.x; batch < a.num_batch;
+         batch += gridDim.x) {
+        const auto a_b = gko::batch::batch_entry(a, batch);
+        const auto b_b = gko::batch::batch_entry(b, batch);
+        const auto x_b = gko::batch::batch_entry(x, batch);
+
+        //__shared__ ValueType prec_work[BatchJacobi<ValueType>::work_size];
+        extern __shared__ char local_mem[];
+        const auto prec_work = reinterpret_cast<ValueType *>(local_mem);
+        prec.generate(a_b, prec_work);
+        prec.apply(b_b, x_b);
+    }
+}
