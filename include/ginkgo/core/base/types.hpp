@@ -41,6 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <stdexcept>
+#include <string>
 #include <type_traits>
 
 
@@ -226,16 +228,16 @@ constexpr std::enable_if_t<Size == sizeof(ValueType) * 8, ValueType> mask()
 /**
  * shift calculates the number of bits for shifting
  *
- * @tparam num_groups  the number of elements in array
  * @tparam current_shift  the current position of shifting
+ * @tparam num_groups  the number of elements in array
  *
  * @return the number of shifting bits
  *
  * @note this is the last case of nested template
  */
-template <int num_groups, int current_shift>
+template <int current_shift, int num_groups>
 constexpr std::enable_if_t<(num_groups == current_shift + 1), int> shift(
-    const std::array<char, num_groups> &bits)
+    const std::array<unsigned char, num_groups> &bits)
 {
     return 0;
 }
@@ -245,12 +247,12 @@ constexpr std::enable_if_t<(num_groups == current_shift + 1), int> shift(
  *
  * @note this is the usual case of nested template
  */
-template <int num_groups, int current_shift>
+template <int current_shift, int num_groups>
 constexpr std::enable_if_t<(num_groups > current_shift + 1), int> shift(
-    const std::array<char, num_groups> &bits)
+    const std::array<unsigned char, num_groups> &bits)
 {
     return bits[current_shift + 1] +
-           shift<num_groups, (current_shift + 1)>(bits);
+           shift<(current_shift + 1), num_groups>(bits);
 }
 
 
@@ -262,23 +264,42 @@ using ConfigSetType = unsigned int;
 
 /**
  * ConfigSet is a way to embed several information into one integer by given
- * certain bits. The usage will be the following
- * Set the method with bits Cfg = ConfigSet<nb_1, nb_2, ..., nb_k>
- * Encode the given infomation encoded = Cfg::encode(i_1, i_2, ..., i_k)
- * Decode the specific position information i_t = Cfg::decode<t>(encoded)
+ * certain bits.
+ *
+ * The usage will be the following
+ * Set the method with bits Cfg = ConfigSet<b_0, b_1, ..., b_k>
+ * Encode the given infomation encoded = Cfg::encode(x_0, x_1, ..., x_k)
+ * Decode the specific position information x_t = Cfg::decode<t>(encoded)
  * The encoded result will use 32 bits to record
- * rrrrr1..12....2...k..k, which 1/2/k means the bits store the information for
- * 1/2/k position and r is for rest of unused bits.
+ * rrrrr0..01....1...k..k, which 1/2/.../k means the bits store the information
+ * for 1/2/.../k position and r is for rest of unused bits.
+ *
+ * Denote B_t = sum_(t+1)^(k) b_i and F(X) = Cfg::encode(x_0, ..., x_k)
+ * We can write F(X) = sum_0^k (x_i << B_i)
+ * for all i, we have 0 <= x_i < 2^(b_i)
+ * x_i, B_i are non-negative, so the F(X) = 0 <=> X = {0}, x_i = 0 for all i
+ * Assume F(X) = F(Y), then
+ * 0 = |F(X) - F(Y)| = |F(X-Y)| = F(|X - Y|)
+ * |x_i - y_i| is still in the same range 0 <= |x_i - y_i| < 2^(b_i)
+ * Thus, F(|X - Y|) = 0 -> |X - Y| = {0}, x_i - y_i = 0 -> X = Y
+ * F is one-to-one function if 0 <= x_i < 2^(b_i) for all i
+ * For any encoded result R, we can use the following to get the decoded series.
+ * for i = k to 0
+ *   x_i = R % b_i
+ *   R = R / bi
+ * Thus, any R in the range [0, 2^(B_0)) we have a series X such that F(X) = R
+ * F is onto function.
+ * Thus, F is bijection
  *
  * @tparam num_bits...  the number of bits for each position.
  *
- * @note the num_bit is required at least $log_2(maxval) + 1$
+ * @note the num_bit is required at least $ceil(log_2(maxval) + 1)$
  */
-template <int... num_bits>
+template <unsigned char... num_bits>
 class ConfigSet {
 public:
     static constexpr size_type num_groups = sizeof...(num_bits);
-    static constexpr std::array<char, num_groups> bits{num_bits...};
+    static constexpr std::array<unsigned char, num_groups> bits{num_bits...};
 
     /**
      * Decodes the `position` information from encoded
@@ -294,7 +315,7 @@ public:
     {
         static_assert(position < num_groups,
                       "This position is over the bounds.");
-        constexpr int shift = detail::shift<num_groups, position>(bits);
+        constexpr int shift = detail::shift<position, num_groups>(bits);
         constexpr auto mask = detail::mask<bits[position]>();
         return (encoded >> shift) & mask;
     }
@@ -319,7 +340,7 @@ public:
      * @tparam Rest...  the rest type
      *
      * @param first  the current encoded information
-     * @param rest...  the rest of others information waits for encoding
+     * @param rest...  the rest of other information waiting for encoding
      *
      * @return the encoded integer
      */
@@ -328,7 +349,20 @@ public:
                                       ConfigSetType>
     encode(ConfigSetType first, Rest &&... rest)
     {
-        constexpr int shift = detail::shift<num_groups, current_iter>(bits);
+        constexpr auto bound = detail::mask<bits[current_iter]>();
+        if (first > bound) {
+            throw std::out_of_range(
+                std::to_string(first) + " at " + std::to_string(current_iter) +
+                " postion is out of range of " +
+                std::to_string(detail::mask<bits[current_iter]>()) +
+                " representation");
+        }
+        constexpr int shift = detail::shift<current_iter, num_groups>(bits);
+        if (current_iter == 0) {
+            static_assert(
+                bits[current_iter] + shift <= sizeof(ConfigSetType) * 8,
+                "the total bits usage is larger than ConfigSetType bits");
+        }
         return (first << shift) |
                encode<current_iter + 1>(std::forward<Rest>(rest)...);
     }
