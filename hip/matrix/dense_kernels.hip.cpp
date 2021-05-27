@@ -120,10 +120,10 @@ void apply(std::shared_ptr<const HipExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
-template <typename ValueType>
+template <typename InValueType, typename OutValueType>
 void copy(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Dense<ValueType> *input,
-          matrix::Dense<ValueType> *output)
+          const matrix::Dense<InValueType> *input,
+          matrix::Dense<OutValueType> *output)
 {
     const auto num_blocks = ceildiv(input->get_size()[0] * input->get_size()[1],
                                     default_block_size);
@@ -134,7 +134,8 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
                        as_hip_type(output->get_values()));
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COPY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(
+    GKO_DECLARE_DENSE_COPY_KERNEL);
 
 
 template <typename ValueType>

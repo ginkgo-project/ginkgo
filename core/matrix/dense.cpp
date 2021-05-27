@@ -360,9 +360,17 @@ template <typename ValueType>
 void Dense<ValueType>::convert_to(
     Dense<next_precision<ValueType>> *result) const
 {
-    result->values_ = this->values_;
-    result->stride_ = this->stride_;
-    result->set_size(this->get_size());
+    if (result->get_size() && result->get_size() == this->get_size()) {
+        // here we don't need to use the target executor, since the copy back
+        // invokes the non-converting convert_to(Dense<ValueType>*).
+        auto exec = this->get_executor();
+        exec->run(
+            dense::make_copy(this, make_temporary_clone(exec, result).get()));
+    } else {
+        result->values_ = this->values_;
+        result->stride_ = this->stride_;
+        result->set_size(this->get_size());
+    }
 }
 
 
