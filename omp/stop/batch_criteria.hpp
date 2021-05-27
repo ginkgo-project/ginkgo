@@ -48,11 +48,10 @@ namespace kernels {
 namespace omp {
 namespace stop {
 
-
 namespace detail {
 
 
-constexpr uint32 pow(const uint32 x, const int N)
+constexpr uint32 power(const uint32 x, const int N)
 {
     uint32 ans = 1;
     for (int i = 0; i < N; i++) {
@@ -64,16 +63,28 @@ constexpr uint32 pow(const uint32 x, const int N)
 
 }  // namespace detail
 
+
+// TODO: Remove this
+enum class tolerance {
+
+    absolute,
+    relative
+
+};
+
+
 /**
  * A stopping criterion for batch solvers that comprises a
- * maximum iteration count as well as relative residual tolerance.
+ * maximum iteration count as well as relative residual tolerance or absolute
+ * residual tolerance - which one to consider can be chosen.
  *
  * At most 32 right-hand-side vectors are supported.
  */
 template <typename ValueType>
-class RelResidualMaxIter {
+class AbsAndRelResidualMaxIter {
 public:
     using real_type = remove_complex<ValueType>;
+    // using tolerance = ::gko::stop::batch::ToleranceType;
     using bitset_type = uint32;
     static constexpr int max_nrhs = 32;
 
@@ -88,12 +99,16 @@ public:
      *                          be passed to the \ref check_converged function.
      * @param rhs_b_norms  The reference RHS norms.
      */
-    RelResidualMaxIter(const int num_rhs, const int max_iters,
-                       const real_type rel_res_tol,
-                       bitset_type &converge_bitset,
-                       const real_type *const rhs_b_norms)
+    AbsAndRelResidualMaxIter(const int num_rhs, const int max_iters,
+                             const real_type abs_res_tol,
+                             const real_type rel_res_tol,
+                             const tolerance type_of_tol,
+                             bitset_type &converge_bitset,
+                             const real_type *const rhs_b_norms)
         : nrhs{num_rhs},
           rel_tol{rel_res_tol},
+          abs_tol{abs_res_tol},
+          tol_type{type_of_tol},
           max_its{max_iters},
           rhs_norms{rhs_b_norms}
     {
@@ -140,88 +155,38 @@ public:
         }
     }
 
+
 private:
     int nrhs;
     int max_its;
     const real_type rel_tol;
+    const real_type abs_tol;
+    const tolerance tol_type;
     const real_type *const rhs_norms;
-    static constexpr uint32 all_true = detail::pow(2, 32) - 1;
+    static constexpr uint32 all_true = detail::power(2, 32) - 1;
 
     void check_norms(const real_type *const res_norms,
                      bitset_type &converged) const
     {
 #pragma omp parallel for reduction(| : converged)
         for (int i = 0; i < nrhs; i++) {
-            if (res_norms[i] / rhs_norms[i] < rel_tol) {
-                converged = converged | (1 << i);
+            // don't check for RHSs which have already converged.
+            if (converged & (1 << i)) {
+                continue;
+            }
+
+            if (tol_type == tolerance::absolute) {
+                if (res_norms[i] < abs_tol) {
+                    converged |= (1 << i);
+                }
+            } else if (tol_type == tolerance::relative) {
+                if (res_norms[i] / rhs_norms[i] < rel_tol) {
+                    converged |= (1 << i);
+                }
             }
         }
     }
 };
-
-}  // namespace stop
-}  // namespace omp
-}  // namespace kernels
-}  // namespace gko
-
-
-namespace gko {
-namespace kernels {
-namespace omp {
-
-
-#include "core/stop/batch_criteria.hpp"
-
-namespace stop {
-
-template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE bool
-AbsAndRelResidualMaxIter<ValueType>::check_converged(
-    const int iter, const real_type *const residual_norms,
-    const gko::batch_dense::BatchEntry<const ValueType> &residual,
-    bitset_type &converged) const
-{
-    if (iter >= max_its - 1) {
-        return true;
-    }
-
-    if (residual_norms) {
-        check_norms(residual_norms, converged);
-    } else {
-        real_type norms[32];
-        batch_dense::compute_norm2<ValueType>(residual, {norms, 32, 1, nrhs});
-        check_norms(norms, converged);
-    }
-
-    if (converged == all_true) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE void AbsAndRelResidualMaxIter<ValueType>::check_norms(
-    const real_type *const res_norms, bitset_type &converged) const
-{
-#pragma omp parallel for reduction(| : converged)
-    for (int i = 0; i < nrhs; i++) {
-        // don't check for RHSs which have already converged.
-        if (converged & (1 << i)) {
-            continue;
-        }
-
-        if (tol_type == tolerance::absolute) {
-            if (res_norms[i] < abs_tol) {
-                converged |= (1 << i);
-            }
-        } else if (tol_type == tolerance::relative) {
-            if (res_norms[i] / rhs_norms[i] < rel_tol) {
-                converged |= (1 << i);
-            }
-        }
-    }
-}
 
 }  // namespace stop
 }  // namespace omp
