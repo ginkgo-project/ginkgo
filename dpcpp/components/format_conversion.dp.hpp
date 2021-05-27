@@ -30,55 +30,89 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <algorithm>
-#include <numeric>
+#ifndef GKO_DPCPP_COMPONENTS_FORMAT_CONVERSION_DP_HPP_
+#define GKO_DPCPP_COMPONENTS_FORMAT_CONVERSION_DP_HPP_
 
 
 #include <CL/sycl.hpp>
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/executor.hpp>
+
+
+#include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/components/cooperative_groups.dp.hpp"
+#include "dpcpp/components/thread_ids.dp.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace dpcpp {
+namespace ell {
+namespace kernel {
 
 
 /**
  * @internal
  *
- * Converts an array of indexes `idxs` in any order to an array of pointers
- * `ptrs`. This is used for transposing a csr matrix when calculating the row
- * pointers of the transposed matrix out of the column indices of the original
- * matrix.
+ * It counts the number of explicit nonzeros per row of Ell.
  */
-template <typename IndexType>
-inline void convert_unsorted_idxs_to_ptrs(const IndexType *idxs,
-                                          size_type num_nonzeros,
-                                          IndexType *ptrs,
-                                          size_type length) GKO_NOT_IMPLEMENTED;
+template <typename ValueType, typename IndexType>
+void count_nnz_per_row(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+                       sycl::queue *stream, size_type num_rows,
+                       size_type max_nnz_per_row, size_type stride,
+                       const ValueType *values, IndexType *result);
+
+
+}  // namespace kernel
+}  // namespace ell
+
+
+namespace coo {
+namespace kernel {
 
 
 /**
  * @internal
  *
- * Converts an array of indexes `idxs` which are already stored in an increasing
- * order to an array of pointers `ptrs`. This is used to calculate the row
- * pointers when converting a coo matrix to a csr matrix.
+ * It converts the row index of Coo to the row pointer of Csr.
  */
 template <typename IndexType>
-inline void convert_sorted_idxs_to_ptrs(const IndexType *idxs,
-                                        size_type num_nonzeros, IndexType *ptrs,
-                                        size_type length) GKO_NOT_IMPLEMENTED;
+void convert_row_idxs_to_ptrs(dim3 grid, dim3 block,
+                              size_t dynamic_shared_memory, sycl::queue *stream,
+                              const IndexType *idxs, size_type num_nonzeros,
+                              IndexType *ptrs, size_type length);
 
 
-template <typename IndexType>
-inline void convert_ptrs_to_idxs(const IndexType *ptrs, size_type num_rows,
-                                 IndexType *idxs) GKO_NOT_IMPLEMENTED;
+}  // namespace kernel
 
 
+namespace host_kernel {
+
+
+/**
+ * @internal
+ *
+ * It calculates the number of warps used in Coo Spmv depending on the GPU
+ * architecture and the number of stored elements.
+ */
+template <size_type subwarp_size = config::warp_size>
+size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
+                           const size_type nnz)
+{
+    size_type nwarps_in_dpcpp = exec->get_num_computing_units() * 7;
+    size_type multiple = 8;
+    return std::min(multiple * nwarps_in_dpcpp,
+                    size_type(ceildiv(nnz, config::warp_size)));
+}
+
+
+}  // namespace host_kernel
+}  // namespace coo
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_DPCPP_COMPONENTS_FORMAT_CONVERSION_DP_HPP_

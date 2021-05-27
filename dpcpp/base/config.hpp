@@ -59,6 +59,11 @@ struct config {
      * to maximize GPU occupancy.
      */
     static constexpr uint32 min_warps_per_block = 4;
+
+    /**
+     * The maximal number of threads allowed in a CUDA warp.
+     */
+    static constexpr uint32 max_block_size = 256;
 };
 
 
