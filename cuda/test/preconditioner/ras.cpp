@@ -124,7 +124,7 @@ protected:
     std::unique_ptr<typename Cg::Factory> cg_factory;
 };
 
-TYPED_TEST_SUITE(RasPrecond, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(RasPrecond, gko::test::ValueSingleIndexTypes);
 
 
 TYPED_TEST(RasPrecond, KnowsItsExecutor)
