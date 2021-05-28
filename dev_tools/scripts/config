@@ -32,6 +32,8 @@
     - RemoveTest: "true"
 - "_builder\.hpp"
     - CoreSuffix: "_builder"
+- "dpcpp/test/base/dim3\.dp\.cpp"
+    - FixInclude: "dpcpp/base/dim3.dp.hpp"
 - "components.*_kernels(\.hip|\.dp)?\.(cu|cpp|hpp|cuh)"
     - CoreSuffix: "_kernels"
     - RemoveTest: "true"

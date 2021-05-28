@@ -1,1 +1,2 @@
 ginkgo_create_dpcpp_test(executor)
+ginkgo_create_dpcpp_test(dim3)

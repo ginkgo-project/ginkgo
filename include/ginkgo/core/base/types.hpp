@@ -34,12 +34,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_BASE_TYPES_HPP_
 
 
+#include <array>
 #include <cassert>
 #include <climits>
 #include <complex>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <stdexcept>
+#include <string>
 #include <type_traits>
 
 
