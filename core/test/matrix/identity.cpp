@@ -96,36 +96,6 @@ TYPED_TEST(Identity, FailsConstructionWithRectangularSize)
 }
 
 
-TYPED_TEST(Identity, AppliesToVector)
-{
-    using Id = typename TestFixture::Id;
-    using Vec = typename TestFixture::Vec;
-    auto identity = Id::create(this->exec, 3);
-    auto x = Vec::create(this->exec, gko::dim<2>{3, 1});
-    auto b = gko::initialize<Vec>({2.0, 1.0, 5.0}, this->exec);
-
-    identity->apply(b.get(), x.get());
-
-    GKO_ASSERT_MTX_NEAR(x, l({2.0, 1.0, 5.0}), 0.0);
-}
-
-
-TYPED_TEST(Identity, AppliesToMultipleVectors)
-{
-    using Id = typename TestFixture::Id;
-    using Vec = typename TestFixture::Vec;
-    using T = typename TestFixture::value_type;
-    auto identity = Id::create(this->exec, 3);
-    auto x = Vec::create(this->exec, gko::dim<2>{3, 2}, 3);
-    auto b = gko::initialize<Vec>(
-        3, {I<T>{2.0, 3.0}, I<T>{1.0, 2.0}, I<T>{5.0, -1.0}}, this->exec);
-
-    identity->apply(b.get(), x.get());
-
-    GKO_ASSERT_MTX_NEAR(x, l({{2.0, 3.0}, {1.0, 2.0}, {5.0, -1.0}}), 0.0);
-}
-
-
 template <typename T>
 class IdentityFactory : public ::testing::Test {
 protected:
