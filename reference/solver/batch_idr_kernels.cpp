@@ -236,7 +236,7 @@ inline void initialize(
     // M = identity
     for (int row_index = 0; row_index < subspace_dim; row_index++) {
         for (int col_index = 0; col_index < subspace_dim; col_index++) {
-            for (int rhs_index = 0; rhs_index < num_rows; rhs_index++) {
+            for (int rhs_index = 0; rhs_index < num_rhs; rhs_index++) {
                 ValueType val = zero<ValueType>();
 
                 if (row_index == col_index) {
