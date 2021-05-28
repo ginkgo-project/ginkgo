@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/ell.hpp>
 
+#include <map>
 
 #include <algorithm>
 
@@ -47,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
+#include "core/components/validation_helpers.hpp"
 #include "core/matrix/ell_kernels.hpp"
 
 
@@ -247,6 +249,28 @@ void Ell<ValueType, IndexType>::write(mat_data &data) const
                 data.nonzeros.emplace_back(row, col, val);
             }
         }
+    }
+}
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::validate_impl() const
+{
+    std::map<std::string, std::function<bool()>> constraints_map{
+        {"is_finite",
+         [this] {
+             return ::gko::validate::is_finite<ValueType>(
+                 values_.get_const_data(), values_.get_num_elems());
+         }},
+        {"column index is_within_bounds", [this] {
+             return ::gko::validate::is_within_bounds<IndexType>(
+                 col_idxs_.get_const_data(), col_idxs_.get_num_elems(), 0,
+                 this->get_size()[1]);
+         }}};
+
+    for (auto const &x : constraints_map) {
+        if (!x.second()) {
+            throw gko::Invalid(__FILE__, __LINE__, "Diagonal", x.first);
+        };
     }
 }
 
