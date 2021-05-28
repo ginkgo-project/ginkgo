@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/diagonal.hpp>
 
+#include <map>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
@@ -40,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/absolute_array.hpp"
+#include "core/components/validation_helpers.hpp"
 #include "core/matrix/diagonal_kernels.hpp"
 
 
@@ -286,6 +288,22 @@ template <typename ValueType>
 void Diagonal<ValueType>::write(mat_data32& data) const
 {
     write_impl(this, data);
+}
+
+template <typename ValueType>
+void Diagonal<ValueType>::validate_impl() const
+{
+    std::map<std::string, std::function<bool()>> constraints_map{
+        {"is_finite", [this] {
+             return ::gko::validate::is_finite<ValueType>(
+                 values_.get_const_data(), values_.get_num_elems());
+         }}};
+
+    for (auto const &x : constraints_map) {
+        if (!x.second()) {
+            throw gko::Invalid(__FILE__, __LINE__, "Diagonal", x.first);
+        };
+    }
 }
 
 

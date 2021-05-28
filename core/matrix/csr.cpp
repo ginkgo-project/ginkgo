@@ -364,11 +364,16 @@ void Csr<ValueType, IndexType>::validate_impl() const
          [this] {
              return ::gko::validate::is_within_bounds<IndexType>(
                  row_ptrs_.get_const_data(), row_ptrs_.get_num_elems(), 0,
-                 values_.get_num_elems());
+                 values_.get_num_elems() + 1);
          }},
-        {"is_row_ordered", [this] {
+        {"is_row_ordered",
+         [this] {
              return ::gko::validate::is_row_ordered<IndexType>(
                  row_ptrs_.get_const_data(), row_ptrs_.get_num_elems());
+         }},
+        {"row pointer has_unique_idxs", [this] {
+             return ::gko::validate::has_unique_idxs(row_ptrs_.get_const_data(),
+                                                     row_ptrs_.get_num_elems());
          }}};
 
     for (auto const &x : constraints_map) {

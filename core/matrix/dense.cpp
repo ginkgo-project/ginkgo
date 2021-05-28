@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <map>
 #include <type_traits>
 
 
@@ -53,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/components/validation_helpers.hpp"
 #include "core/matrix/dense_kernels.hpp"
 
 
@@ -729,7 +731,6 @@ inline void write_impl(const MatrixType* mtx, MatrixData& data)
 
 }  // namespace
 
-
 template <typename ValueType>
 void Dense<ValueType>::write(mat_data& data) const
 {
@@ -743,6 +744,21 @@ void Dense<ValueType>::write(mat_data32& data) const
     write_impl(this, data);
 }
 
+template <typename ValueType>
+void Dense<ValueType>::validate_impl() const
+{
+    std::map<std::string, std::function<bool()>> constraints_map{
+        {"is_finite", [this] {
+             return ::gko::validate::is_finite<ValueType>(
+                 values_.get_const_data(), values_.get_num_elems());
+         }}};
+
+    for (auto const &x : constraints_map) {
+        if (!x.second()) {
+            throw gko::Invalid(__FILE__, __LINE__, "Dense", x.first);
+        };
+    }
+}
 
 template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::transpose() const

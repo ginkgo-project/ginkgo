@@ -285,6 +285,12 @@ void Hybrid<ValueType, IndexType>::write(mat_data& data) const
     }
 }
 
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::validate_impl() const
+{
+    ell_->validate_impl();
+    coo_->validate_impl();
+}
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Diagonal<ValueType>>

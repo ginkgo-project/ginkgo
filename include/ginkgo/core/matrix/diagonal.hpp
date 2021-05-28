@@ -158,6 +158,8 @@ public:
 
     void write(mat_data32& data) const override;
 
+    void validate_impl() const override;
+
     /**
      * Creates a constant (immutable) Diagonal matrix from a constant array.
      *
@@ -177,6 +179,7 @@ public:
         return std::unique_ptr<const Diagonal>(new Diagonal{
             exec, size, gko::detail::array_const_cast(std::move(values))});
     }
+
 
 protected:
     /**
