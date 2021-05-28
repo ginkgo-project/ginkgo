@@ -153,6 +153,10 @@ public:
 
     void validate_data() const override;
 
+    const local_mtx_type* create_submatrix() const { GKO_NOT_IMPLEMENTED; }
+
+    local_mtx_type* create_submatrix() { GKO_NOT_IMPLEMENTED; }
+
 protected:
     Vector(std::shared_ptr<const Executor> exec,
            std::shared_ptr<mpi::communicator> comm,

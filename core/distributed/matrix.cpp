@@ -160,6 +160,19 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
 
 
 template <typename ValueType, typename LocalIndexType>
+std::vector<
+    std::shared_ptr<typename Matrix<ValueType, LocalIndexType>::LocalMtx>>
+Matrix<ValueType, LocalIndexType>::get_block_approx(
+    const Overlap<size_type> &block_overlaps,
+    const Array<size_type> &block_sizes) const
+{
+    return std::vector<
+        std::shared_ptr<typename Matrix<ValueType, LocalIndexType>::LocalMtx>>{
+        this->get_local_matrix()};
+}
+
+
+template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::communicate(
     const LocalVec* local_b) const
 {

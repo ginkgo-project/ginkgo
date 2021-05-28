@@ -116,6 +116,8 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(Ras, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    bool is_distributed() const { return is_distributed_; }
+
 protected:
     /**
      * Creates an empty Ras preconditioner.
@@ -151,10 +153,14 @@ protected:
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
+    template <typename VectorType>
+    void apply_dense_impl(const VectorType *b, VectorType *x) const;
+
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
 private:
+    bool is_distributed_;
     std::vector<std::shared_ptr<LinOp>> inner_solvers_;
     Overlap<size_type> overlaps_;
     std::vector<dim<2>> block_dims_;

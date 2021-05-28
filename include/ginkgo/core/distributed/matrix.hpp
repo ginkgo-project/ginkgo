@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/cache.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
+#include <ginkgo/core/base/overlap.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -63,6 +64,9 @@ public:
     using value_type = ValueType;
     using index_type = global_index_type;
     using local_index_type = LocalIndexType;
+    using GlobalVec = Vector<value_type>;
+    using LocalVec = matrix::Dense<value_type>;
+    using LocalMtx = matrix::Csr<value_type, local_index_type>;
 
     using GlobalVec = Vector<value_type, LocalIndexType>;
     using LocalVec = gko::matrix::Dense<value_type>;
@@ -91,6 +95,10 @@ public:
     {
         return partition_.get();
     }
+
+    std::vector<std::shared_ptr<LocalMtx>> get_block_approx(
+        const Overlap<size_type>& block_overlaps,
+        const Array<size_type>& block_sizes) const;
 
 protected:
     Matrix(std::shared_ptr<const Executor> exec,
