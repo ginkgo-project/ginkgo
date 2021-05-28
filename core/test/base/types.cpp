@@ -42,6 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include "core/base/types.hpp"
+
+
 namespace {
 
 
@@ -115,9 +118,9 @@ TEST(ConfigSet, MaskCorrectly)
 
     ASSERT_EQ(mask3_u, 7u);
     ASSERT_EQ(fullmask_u, 0xffffffffu);
-    ASSERT_TRUE((std::is_same<decltype(mask3_u), const unsigned int>::value));
+    ASSERT_TRUE((std::is_same<decltype(mask3_u), const std::uint32_t>::value));
     ASSERT_TRUE(
-        (std::is_same<decltype(fullmask_u), const unsigned int>::value));
+        (std::is_same<decltype(fullmask_u), const std::uint32_t>::value));
     ASSERT_EQ(mask3_u64, 7ull);
     ASSERT_EQ(fullmask_u64, 0xffffffffffffffffull);
     ASSERT_TRUE(
@@ -207,16 +210,6 @@ TEST(ConfigSet, ConfigSetSomeFullCorrectly)
     ASSERT_EQ(decoded_1, 11);
     ASSERT_EQ(decoded_2, 13);
     ASSERT_EQ(decoded_3, 19);
-}
-
-
-TEST(ConfigSet, ThrowOutOfBoundWhenExceedRepresentation)
-{
-    using Cfg = gko::ConfigSet<3, 2, 1>;
-
-    ASSERT_THROW(auto a = Cfg::encode(0, 0, 2), std::out_of_range);
-    ASSERT_THROW(auto a = Cfg::encode(0, 4, 0), std::out_of_range);
-    ASSERT_THROW(auto a = Cfg::encode(8, 0, 0), std::out_of_range);
 }
 
 

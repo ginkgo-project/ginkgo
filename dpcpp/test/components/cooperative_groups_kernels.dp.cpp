@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/types.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "dpcpp/base/config.hpp"
@@ -61,7 +62,7 @@ namespace {
 using namespace gko::kernels::dpcpp;
 using KCfg = gko::ConfigSet<11, 7>;
 constexpr auto default_config_list =
-    ::gko::syn::value_list<::gko::ConfigSetType, KCfg::encode(64, 64),
+    ::gko::syn::value_list<std::uint32_t, KCfg::encode(64, 64),
                            KCfg::encode(32, 32), KCfg::encode(16, 16),
                            KCfg::encode(8, 8), KCfg::encode(4, 4)>();
 
@@ -115,7 +116,7 @@ protected:
 
 
 // kernel implementation
-template <::gko::ConfigSetType config>
+template <std::uint32_t config>
 __WG_BOUND__(KCfg::decode<0>(config))
 void cg_shuffle(bool *s, sycl::nd_item<3> item_ct1)
 {
@@ -148,14 +149,14 @@ void cg_shuffle_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_shuffle_config, cg_shuffle_host)
 
 // the call
-void cg_shuffle_config_call(::gko::ConfigSetType desired_cfg, dim3 grid,
-                            dim3 block, size_t dynamic_shared_memory,
-                            sycl::queue *queue, bool *s)
+void cg_shuffle_config_call(std::uint32_t desired_cfg, dim3 grid, dim3 block,
+                            size_t dynamic_shared_memory, sycl::queue *queue,
+                            bool *s)
 {
     cg_shuffle_config(
         default_config_list,
         // validate
-        [&desired_cfg](::gko::ConfigSetType cfg) { return cfg == desired_cfg; },
+        [&desired_cfg](std::uint32_t cfg) { return cfg == desired_cfg; },
         ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
         ::gko::syn::value_list<gko::size_type>(), ::gko::syn::type_list<>(),
         grid, block, dynamic_shared_memory, queue, s);
@@ -167,7 +168,7 @@ TEST_P(CooperativeGroups, Shuffle)
 }
 
 
-template <::gko::ConfigSetType config>
+template <std::uint32_t config>
 __WG_BOUND__(KCfg::decode<0>(config))
 void cg_all(bool *s, sycl::nd_item<3> item_ct1)
 {
@@ -189,7 +190,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_all_call, cg_all, default_config_list)
 TEST_P(CooperativeGroups, All) { test_all_subgroup(cg_all_call<bool *>); }
 
 
-template <::gko::ConfigSetType config>
+template <std::uint32_t config>
 __WG_BOUND__(KCfg::decode<0>(config))
 void cg_any(bool *s, sycl::nd_item<3> item_ct1)
 {
@@ -210,7 +211,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_any_call, cg_any, default_config_list)
 TEST_P(CooperativeGroups, Any) { test_all_subgroup(cg_any_call<bool *>); }
 
 
-template <::gko::ConfigSetType config>
+template <std::uint32_t config>
 __WG_BOUND__(KCfg::decode<0>(config))
 void cg_ballot(bool *s, sycl::nd_item<3> item_ct1)
 {
