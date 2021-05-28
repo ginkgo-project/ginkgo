@@ -2004,7 +2004,7 @@ TYPED_TEST(Dense, NonSquareSubmatrixIsTransposableIntoDense)
 
     this->mtx4->create_submatrix({0, 1}, {0, 2})->transpose(trans.get());
 
-    GKO_ASSERT_MTX_NEAR(trans, l<T>({{1.0}, {3.0}}), 0.0);
+    GKO_ASSERT_MTX_NEAR(trans, l({1.0, 3.0}), 0.0);
     ASSERT_EQ(trans->get_stride(), 5);
 }
 
@@ -4186,7 +4186,7 @@ TYPED_TEST(DenseComplex, Dot)
 
     a->compute_dot(b.get(), result.get());
 
-    GKO_ASSERT_MTX_NEAR(result, l<T>({T{22.0, 15.0}}), 0.0);
+    GKO_ASSERT_MTX_NEAR(result, l({T{22.0, 15.0}}), 0.0);
 }
 
 
@@ -4203,7 +4203,7 @@ TYPED_TEST(DenseComplex, ConjDot)
 
     a->compute_conj_dot(b.get(), result.get());
 
-    GKO_ASSERT_MTX_NEAR(result, l<T>({T{10.0, -25.0}}), 0.0);
+    GKO_ASSERT_MTX_NEAR(result, l({T{10.0, -25.0}}), 0.0);
 }
 
 
