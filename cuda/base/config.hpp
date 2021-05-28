@@ -86,9 +86,9 @@ struct batch_config {
      * `config::warp_size`.
      */
     static constexpr int max_num_rhs =
-        2;  // NOTE: max_num_rhs has to be an even number to avoid cuda
-            // misaligned address issues while using complex datatypes(in
-            // reference to the shared memory in solver kernels)
+        32;  // NOTE: max_num_rhs has to be an even number to avoid cuda
+             // misaligned address issues while using complex datatypes(in
+             // reference to the shared memory in solver kernels)
 };
 
 
