@@ -65,6 +65,7 @@ protected:
     using NormVector = gko::matrix::Dense<gko::remove_complex<vtype>>;
     using Arr = gko::Array<itype>;
     using ComplexMtx = gko::matrix::Dense<std::complex<vtype>>;
+    using Diagonal = gko::matrix::Diagonal<vtype>;
     using MixedComplexMtx =
         gko::matrix::Dense<gko::next_precision<std::complex<vtype>>>;
 
@@ -535,18 +536,6 @@ TEST_F(Dense, ComputeConjDotComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, IsTransposable)
-{
-    set_up_apply_data();
-
-    auto trans = x->transpose();
-    auto dtrans = dx->transpose();
-
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
-                        static_cast<Mtx *>(trans.get()), 0);
-}
-
-
 TEST_F(Dense, ConvertToCooIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -730,6 +719,38 @@ TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, IsTransposable)
+{
+    set_up_apply_data();
+
+    auto trans = x->transpose();
+    auto dtrans = dx->transpose();
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
+                        static_cast<Mtx *>(trans.get()), 0);
+}
+
+
+TEST_F(Dense, IsTransposableIntoDenseCrossExecutor)
+{
+    set_up_apply_data();
+    auto row_span = gko::span{0, x->get_size()[0] - 2};
+    auto col_span = gko::span{0, x->get_size()[1] - 2};
+    auto sub_x = x->create_submatrix(row_span, col_span);
+    auto sub_dx = dx->create_submatrix(row_span, col_span);
+    // create the target matrices on another executor to
+    // force temporary clone
+    auto trans = Mtx::create(ref, gko::transpose(sub_x->get_size()));
+    auto dtrans = Mtx::create(ref, gko::transpose(sub_x->get_size()),
+                              sub_x->get_size()[0] + 4);
+
+    sub_x->transpose(trans.get());
+    sub_dx->transpose(dtrans.get());
+
+    GKO_ASSERT_MTX_NEAR(dtrans, trans, 0);
+}
+
+
 TEST_F(Dense, CanGatherRows)
 {
     set_up_apply_data();
@@ -769,6 +790,21 @@ TEST_F(Dense, IsPermutable)
 }
 
 
+TEST_F(Dense, IsPermutableIntoDenseCrossExecutor)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, square->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dpermuted =
+        Mtx::create(ref, square->get_size(), square->get_size()[1] + 2);
+
+    square->permute(rpermute_idxs.get(), permuted.get());
+    dsquare->permute(rpermute_idxs.get(), dpermuted.get());
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
 TEST_F(Dense, IsInversePermutable)
 {
     set_up_apply_data();
@@ -778,6 +814,21 @@ TEST_F(Dense, IsInversePermutable)
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(permuted.get()),
                         static_cast<Mtx *>(dpermuted.get()), 0);
+}
+
+
+TEST_F(Dense, IsInversePermutableIntoDenseCrossExecutor)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, square->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dpermuted =
+        Mtx::create(ref, square->get_size(), square->get_size()[1] + 2);
+
+    square->inverse_permute(rpermute_idxs.get(), permuted.get());
+    dsquare->inverse_permute(rpermute_idxs.get(), dpermuted.get());
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
 }
 
 
@@ -793,6 +844,20 @@ TEST_F(Dense, IsRowPermutable)
 }
 
 
+TEST_F(Dense, IsRowPermutableIntoDenseCrossExecutor)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dpermuted = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
+
+    x->row_permute(rpermute_idxs.get(), permuted.get());
+    dx->row_permute(rpermute_idxs.get(), dpermuted.get());
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
 TEST_F(Dense, IsColPermutable)
 {
     set_up_apply_data();
@@ -802,6 +867,20 @@ TEST_F(Dense, IsColPermutable)
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(c_permute.get()),
                         static_cast<Mtx *>(dc_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsColPermutableIntoDenseCrossExecutor)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dpermuted = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
+
+    x->column_permute(cpermute_idxs.get(), permuted.get());
+    dx->column_permute(cpermute_idxs.get(), dpermuted.get());
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
 }
 
 
@@ -817,6 +896,20 @@ TEST_F(Dense, IsInverseRowPermutable)
 }
 
 
+TEST_F(Dense, IsInverseRowPermutableIntoDenseCrossExecutor)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dpermuted = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
+
+    x->inverse_row_permute(rpermute_idxs.get(), permuted.get());
+    dx->inverse_row_permute(rpermute_idxs.get(), dpermuted.get());
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
+}
+
+
 TEST_F(Dense, IsInverseColPermutable)
 {
     set_up_apply_data();
@@ -826,6 +919,20 @@ TEST_F(Dense, IsInverseColPermutable)
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(inverse_c_permute.get()),
                         static_cast<Mtx *>(d_inverse_c_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsInverseColPermutableIntoDenseCrossExecutor)
+{
+    set_up_apply_data();
+    auto permuted = Mtx::create(ref, x->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dpermuted = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
+
+    x->inverse_column_permute(cpermute_idxs.get(), permuted.get());
+    dx->inverse_column_permute(cpermute_idxs.get(), dpermuted.get());
+
+    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
 }
 
 
@@ -840,12 +947,40 @@ TEST_F(Dense, ExtractDiagonalOnTallSkinnyIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, ExtractDiagonalOnTallSkinnyIntoDenseCrossExecutor)
+{
+    set_up_apply_data();
+    auto diag = Diagonal::create(ref, x->get_size()[1]);
+    // test make_temporary_clone
+    auto ddiag = Diagonal::create(ref, x->get_size()[1]);
+
+    x->extract_diagonal(diag.get());
+    dx->extract_diagonal(ddiag.get());
+
+    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+}
+
+
 TEST_F(Dense, ExtractDiagonalOnShortFatIsEquivalentToRef)
 {
     set_up_apply_data();
 
     auto diag = y->extract_diagonal();
     auto ddiag = dy->extract_diagonal();
+
+    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+}
+
+
+TEST_F(Dense, ExtractDiagonalOnShortFatIntoDenseCrossExecutor)
+{
+    set_up_apply_data();
+    auto diag = Diagonal::create(ref, y->get_size()[0]);
+    // test make_temporary_clone
+    auto ddiag = Diagonal::create(ref, y->get_size()[0]);
+
+    y->extract_diagonal(diag.get());
+    dy->extract_diagonal(ddiag.get());
 
     GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
 }
@@ -873,6 +1008,20 @@ TEST_F(Dense, OutplaceAbsoluteMatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, OutplaceAbsoluteMatrixIntoDenseCrossExecutor)
+{
+    set_up_apply_data();
+    auto abs_x = NormVector::create(ref, x->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dabs_x = NormVector::create(ref, x->get_size(), x->get_size()[1] + 2);
+
+    x->compute_absolute(abs_x.get());
+    dx->compute_absolute(dabs_x.get());
+
+    GKO_ASSERT_MTX_NEAR(abs_x, dabs_x, 1e-14);
+}
+
+
 TEST_F(Dense, MakeComplexIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -884,13 +1033,15 @@ TEST_F(Dense, MakeComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MakeComplexWithGivenResultIsEquivalentToRef)
+TEST_F(Dense, MakeComplexIntoDenseCrossExecutor)
 {
     set_up_apply_data();
-
     auto complex_x = ComplexMtx::create(ref, x->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dcomplex_x =
+        ComplexMtx::create(ref, x->get_size(), x->get_size()[1] + 2);
+
     x->make_complex(complex_x.get());
-    auto dcomplex_x = ComplexMtx::create(hip, x->get_size());
     dx->make_complex(dcomplex_x.get());
 
     GKO_ASSERT_MTX_NEAR(complex_x, dcomplex_x, 0);
@@ -908,13 +1059,14 @@ TEST_F(Dense, GetRealIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, GetRealWithGivenResultIsEquivalentToRef)
+TEST_F(Dense, GetRealIntoDenseCrossExecutor)
 {
     set_up_apply_data();
-
     auto real_x = Mtx::create(ref, x->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dreal_x = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
+
     x->get_real(real_x.get());
-    auto dreal_x = Mtx::create(hip, dx->get_size());
     dx->get_real(dreal_x.get());
 
     GKO_ASSERT_MTX_NEAR(real_x, dreal_x, 0);
@@ -932,13 +1084,14 @@ TEST_F(Dense, GetImagIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, GetImagWithGivenResultIsEquivalentToRef)
+TEST_F(Dense, GetImagIntoDenseCrossExecutor)
 {
     set_up_apply_data();
-
     auto imag_x = Mtx::create(ref, x->get_size());
+    // test make_temporary_clone and non-default stride
+    auto dimag_x = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
+
     x->get_imag(imag_x.get());
-    auto dimag_x = Mtx::create(hip, dx->get_size());
     dx->get_imag(dimag_x.get());
 
     GKO_ASSERT_MTX_NEAR(imag_x, dimag_x, 0);
