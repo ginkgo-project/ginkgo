@@ -148,8 +148,9 @@ protected:
 
     explicit BatchRichardson(const Factory *factory,
                              std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchLinOp<BatchRichardson>(factory->get_executor(),
-                                            system_matrix->get_size()),
+        : EnableBatchLinOp<BatchRichardson>(
+              factory->get_executor(),
+              gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
