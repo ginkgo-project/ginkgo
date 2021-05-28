@@ -113,6 +113,8 @@ public:
 
     void write(mat_data& data) const override;
 
+    void validate_impl() const override;
+
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
     std::unique_ptr<absolute_type> compute_absolute() const override;

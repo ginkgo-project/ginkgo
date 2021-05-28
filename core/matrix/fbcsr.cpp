@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "accessor/range.hpp"
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
+#include "core/components/validation_helpers.hpp"
 #include "core/matrix/fbcsr_kernels.hpp"
 
 
@@ -420,6 +421,44 @@ void Fbcsr<ValueType, IndexType>::write(mat_data& data) const
     }
 }
 
+template <typename ValueType, typename IndexType>
+void Fbcsr<ValueType, IndexType>::validate_impl() const
+{
+    std::map<std::string, std::function<bool()>> constraints_map{
+        {"is_finite",
+         [this] {
+             return ::gko::validate::is_finite<ValueType>(
+                 values_.get_const_data(), values_.get_num_elems());
+         }},
+        {"column index is_within_bounds",
+         [this] {
+             return ::gko::validate::is_within_bounds<IndexType>(
+                 col_idxs_.get_const_data(), col_idxs_.get_num_elems(), 0,
+                 nbcols_);
+         }},
+        {"row pointer is_within_bounds",
+         [this] {
+             return ::gko::validate::is_within_bounds<IndexType>(
+                 row_ptrs_.get_const_data(), row_ptrs_.get_num_elems(), 0,
+                 nbcols_ + 1);
+         }},
+        {"is_row_ordered",
+         [this] {
+             return ::gko::validate::is_row_ordered<IndexType>(
+                 row_ptrs_.get_const_data(), row_ptrs_.get_num_elems());
+         }},
+        {"row pointer has_unique_idxs", [this] {
+             return ::gko::validate::has_unique_idxs(row_ptrs_.get_const_data(),
+                                                     row_ptrs_.get_num_elems());
+         }}};
+
+
+    for (auto const &x : constraints_map) {
+        if (!x.second()) {
+            throw gko::Invalid(__FILE__, __LINE__, "Fbcsr", x.first);
+        };
+    }
+}
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Fbcsr<ValueType, IndexType>::transpose() const
