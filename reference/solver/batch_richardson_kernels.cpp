@@ -93,7 +93,7 @@ static void apply_impl(
         ValueType *const prec_work = delta_x + nrows * nrhs;
         const auto norms = reinterpret_cast<real_type *>(
             prec_work + PrecType::dynamic_work_size(nrows, a.num_nnz));
-        real_type *const init_rel_res_norm = norms + nrhs;
+        real_type *const init_res_norm = norms + nrhs;
 
         uint32 converged = 0;
 
@@ -122,19 +122,18 @@ static void apply_impl(
                                                                     1, 1};
         const gko::batch_dense::BatchEntry<real_type> norms_b{
             norms, static_cast<size_type>(nrhs), 1, nrhs};
+        const gko::batch_dense::BatchEntry<real_type> init_res_norm_b{
+            init_res_norm, static_cast<size_type>(nrhs), 1, nrhs};
 
         prec.generate(a_b, prec_work);
 
         // initial residual
         batch_dense::compute_norm2<ValueType>(gko::batch::to_const(b_b),
                                               norms_b);
-
-        for (int j = 0; j < nrhs; j++) {
-            init_rel_res_norm[j] = norms_b.values[j];
-        }
+        batch_dense::copy(gko::batch::to_const(norms_b), init_res_norm_b);
 
         StopType stop(nrhs, opts.max_its, opts.rel_residual_tol, converged,
-                      init_rel_res_norm);
+                      init_res_norm_b.values);
 
         int iter = 0;
         while (true) {
