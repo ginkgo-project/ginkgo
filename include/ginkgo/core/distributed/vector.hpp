@@ -40,6 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if GKO_HAVE_MPI
 
 
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
@@ -151,6 +153,10 @@ public:
     local_mtx_type *get_local();
 
     void validate_data() const override;
+
+    const local_mtx_type *create_submatrix() const { GKO_NOT_IMPLEMENTED; }
+
+    local_mtx_type *create_submatrix() { GKO_NOT_IMPLEMENTED; }
 
 protected:
     Vector(std::shared_ptr<const Executor> exec,

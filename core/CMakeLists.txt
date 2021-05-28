@@ -63,6 +63,7 @@ endif()
 if (GINKGO_BUILD_MPI)
     target_sources(ginkgo PRIVATE
         distributed/matrix.cpp
+        distributed/block_approx.cpp
         distributed/vector.cpp)
     target_link_libraries(ginkgo PUBLIC "${MPI_C_LIBRARIES}" "${MPI_CXX_LIBRARIES}")
     target_include_directories(ginkgo SYSTEM PUBLIC ${MPI_INCLUDE_PATH})

@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_DISTRIBUTED_MATRIX_HPP_
-#define GKO_PUBLIC_CORE_DISTRIBUTED_MATRIX_HPP_
+#ifndef GKO_PUBLIC_CORE_DISTRIBUTED_BLOCK_APPROX_HPP_
+#define GKO_PUBLIC_CORE_DISTRIBUTED_BLOCK_APPROX_HPP_
 
 
 #include <ginkgo/config.hpp>
@@ -40,94 +40,92 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if GKO_HAVE_MPI
 
 
-#include <numeric>
-#include <unordered_map>
-#include <unordered_set>
+#include <vector>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/cache.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
-#include <ginkgo/core/base/overlap.hpp>
 #include <ginkgo/core/distributed/base.hpp>
+#include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
 namespace distributed {
 
 template <typename ValueType = double, typename LocalIndexType = int32>
-class Matrix : public EnableLinOp<Matrix<ValueType, LocalIndexType>>,
-               public EnableCreateMethod<Matrix<ValueType, LocalIndexType>>,
-               public DistributedBase {
-    friend class EnableCreateMethod<Matrix>;
-    friend class EnablePolymorphicObject<Matrix, LinOp>;
+class BlockApprox
+    : public EnableLinOp<BlockApprox<Matrix<ValueType, LocalIndexType>>>,
+      public EnableCreateMethod<BlockApprox<Matrix<ValueType, LocalIndexType>>>,
+      public DistributedBase {
+    friend class EnableCreateMethod<BlockApprox>;
+    friend class EnablePolymorphicObject<BlockApprox, LinOp>;
 
 public:
     using value_type = ValueType;
     using index_type = global_index_type;
     using local_index_type = LocalIndexType;
-    using GlobalVec = Vector<value_type>;
-    using LocalVec = matrix::Dense<value_type>;
-    using LocalMtx = matrix::Csr<value_type, local_index_type>;
+    using MatrixType = typename Matrix<ValueType, LocalIndexType>::LocalMtx;
 
-    void read_distributed(
-        const matrix_data<ValueType, global_index_type> &data,
-        std::shared_ptr<const Partition<local_index_type>> partition);
+    size_type get_num_blocks() const { return diagonal_blocks_.size(); }
 
-    void read_distributed(
-        const Array<matrix_data_entry<ValueType, global_index_type>> &data,
-        dim<2> size,
-        std::shared_ptr<const Partition<local_index_type>> partition);
+    std::vector<dim<2>> get_block_dimensions() const { return block_dims_; }
 
-    void validate_data() const override;
+    std::vector<size_type> get_block_nonzeros() const { return block_nnzs_; }
 
-    std::shared_ptr<LocalMtx> get_local_matrix() const
+    const Overlap<size_type> &get_overlaps() const { return block_overlaps_; }
+
+    std::vector<std::shared_ptr<MatrixType>> get_block_mtxs() const
     {
-        return std::make_shared<LocalMtx>(diag_mtx_);
+        return diagonal_blocks_;
     }
-
-    std::shared_ptr<LocalMtx> get_non_local_matrix() const
-    {
-        return std::make_shared<LocalMtx>(offdiag_mtx_);
-    }
-
-    std::vector<std::shared_ptr<LocalMtx>> get_block_approx(
-        const Overlap<size_type> &block_overlaps,
-        const Array<size_type> &block_sizes) const;
 
 protected:
-    Matrix(std::shared_ptr<const Executor> exec,
-           std::shared_ptr<mpi::communicator> comm =
-               std::make_shared<mpi::communicator>());
+    BlockApprox(std::shared_ptr<const Executor> exec,
+                const Array<size_type> &num_blocks = {},
+                const Overlap<size_type> &block_overlaps = {})
+        : EnableLinOp<BlockApprox<value_type, local_index_type>>{exec,
+                                                                 dim<2>{}},
+          block_overlaps_{block_overlaps},
+          diagonal_blocks_{}
+    {}
 
-    void communicate(const LocalVec *local_b) const;
+    BlockApprox(std::shared_ptr<const Executor> exec,
+                const Matrix<value_type, local_index_type> *matrix,
+                const Array<size_type> &num_blocks = {},
+                const Overlap<size_type> &block_overlaps = {})
+        : EnableLinOp<
+              BlockApprox<value_type, local_index_type>>{exec,
+                                                         matrix->get_size()},
+          block_overlaps_{block_overlaps},
+          diagonal_blocks_{}
+    {
+        this->generate(num_blocks, block_overlaps, matrix);
+    }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
+    void generate(const Array<size_type> &num_blocks,
+                  const Overlap<size_type> &block_overlaps,
+                  const Matrix<value_type, local_index_type> *matrix);
+
 private:
-    std::vector<comm_index_type> send_offsets_;
-    std::vector<comm_index_type> send_sizes_;
-    std::vector<comm_index_type> recv_offsets_;
-    std::vector<comm_index_type> recv_sizes_;
-    Array<local_index_type> gather_idxs_;
-    LocalVec one_scalar_;
-    mutable DenseCache<value_type> host_send_buffer_;
-    mutable DenseCache<value_type> host_recv_buffer_;
-    mutable DenseCache<value_type> send_buffer_;
-    mutable DenseCache<value_type> recv_buffer_;
-    LocalMtx diag_mtx_;
-    LocalMtx offdiag_mtx_;
+    Overlap<size_type> block_overlaps_;
+    std::vector<dim<2>> block_dims_;
+    std::vector<size_type> block_nnzs_;
+    std::vector<std::shared_ptr<MatrixType>> diagonal_blocks_;
 };
 
 
 }  // namespace distributed
 }  // namespace gko
 
-#endif  // GKO_HAVE_MPI
-#endif  // GKO_PUBLIC_CORE_DISTRIBUTED_MATRIX_HPP_
+
+#endif
+
+#endif
