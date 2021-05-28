@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/log/batch_convergence.hpp>
 
 
 #include "core/solver/batch_richardson_kernels.hpp"
@@ -210,9 +211,9 @@ protected:
     int single_iters_regression()
     {
         if (std::is_same<real_type, float>::value) {
-            return 50;
+            return 40;
         } else if (std::is_same<real_type, double>::value) {
-            return 108;
+            return 98;
         } else {
             return -1;
         }
@@ -263,11 +264,11 @@ protected:
     {
         std::vector<int> iters(2);
         if (std::is_same<real_type, float>::value) {
-            iters[0] = 50;
-            iters[1] = 48;
+            iters[0] = 40;
+            iters[1] = 40;
         } else if (std::is_same<real_type, double>::value) {
-            iters[0] = 108;
-            iters[1] = 106;
+            iters[0] = 98;
+            iters[1] = 98;
         } else {
             iters[0] = -1;
             iters[1] = -1;
@@ -277,7 +278,6 @@ protected:
 };
 
 TYPED_TEST_SUITE(BatchRich, gko::test::ValueTypes);
-
 
 TYPED_TEST(BatchRich, SolvesStencilSystemJacobi)
 {
@@ -461,11 +461,94 @@ TYPED_TEST(BatchRich, GeneralScalingDoesNotChangeResult)
     for (size_t i = 0; i < this->nbatch; i++) {
         ASSERT_LE(result.resnorm->get_const_values()[i] /
                       this->sys_1.bnorm->get_const_values()[i],
-                  this->opts_1.rel_residual_tol);
+                  3 * this->opts_1.rel_residual_tol);
     }
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex,
                               1e-5 /*r<value_type>::value*/);
 }
 
+TEST(BatchRich, CanSolveWithoutScaling)
+{
+    using T = std::complex<float>;
+    using RT = typename gko::remove_complex<T>;
+    using Solver = gko::solver::BatchRichardson<T>;
+    using Dense = gko::matrix::BatchDense<T>;
+    using RDense = gko::matrix::BatchDense<RT>;
+    using Mtx = typename gko::matrix::BatchCsr<T>;
+    const RT tol = std::numeric_limits<RT>::epsilon() * 1e5;
+    std::shared_ptr<gko::ReferenceExecutor> refexec =
+        gko::ReferenceExecutor::create();
+    std::shared_ptr<const gko::CudaExecutor> exec =
+        gko::CudaExecutor::create(0, refexec);
+    const int maxits = 10000;
+    auto batchrich_factory = Solver::build()
+                                 .with_max_iterations(maxits)
+                                 .with_rel_residual_tol(tol)
+                                 .with_relaxation_factor(RT{0.95})
+                                 .on(exec);
+    const int nrows = 40;
+    const size_t nbatch = 3;
+    std::shared_ptr<Mtx> ref_mtx =
+        gko::test::create_poisson1d_batch<T>(refexec, nrows, nbatch);
+    std::shared_ptr<Mtx> mtx = Mtx::create(exec);
+    mtx->copy_from(ref_mtx.get());
+    auto solver = batchrich_factory->generate(mtx);
+    std::shared_ptr<const gko::log::BatchConvergence<T>> logger =
+        gko::log::BatchConvergence<T>::create(exec);
+    solver->add_logger(logger);
+    const int nrhs = 3;
+    auto ref_b = Dense::create(
+        refexec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrhs)));
+    auto ref_x = Dense::create_with_config_of(ref_b.get());
+    auto ref_res = Dense::create_with_config_of(ref_b.get());
+    auto ref_bnorm =
+        RDense::create(refexec, gko::batch_dim<>(nbatch, gko::dim<2>(1, nrhs)));
+    for (size_t ib = 0; ib < nbatch; ib++) {
+        for (int j = 0; j < nrhs; j++) {
+            ref_bnorm->at(ib, 0, j) = gko::zero<RT>();
+            const T val = 1.0 + std::cos(ib / 2.0 - j / 4.0);
+            for (int i = 0; i < nrows; i++) {
+                ref_b->at(ib, i, j) = val;
+                ref_x->at(ib, i, j) = 0.0;
+                ref_res->at(ib, i, j) = val;
+                ref_bnorm->at(ib, 0, j) += gko::squared_norm(val);
+            }
+            ref_bnorm->at(ib, 0, j) = std::sqrt(ref_bnorm->at(ib, 0, j));
+        }
+    }
+    auto x = Dense::create(exec);
+    x->copy_from(ref_x.get());
+    auto res = Dense::create(exec);
+    res->copy_from(ref_res.get());
+    auto b = Dense::create(exec);
+    b->copy_from(ref_b.get());
+    auto alpha = gko::batch_initialize<Dense>(nbatch, {-1.0}, exec);
+    auto beta = gko::batch_initialize<Dense>(nbatch, {1.0}, exec);
+    if (exec != nullptr) {
+        ASSERT_NO_THROW(exec->synchronize());
+    }
+
+    solver->apply(b.get(), x.get());
+
+    mtx->apply(alpha.get(), x.get(), beta.get(), res.get());
+    auto rnorm =
+        RDense::create(exec, gko::batch_dim<>(nbatch, gko::dim<2>(1, nrhs)));
+    res->compute_norm2(rnorm.get());
+    auto ref_rnorm = RDense::create(refexec);
+    ref_rnorm->copy_from(rnorm.get());
+    gko::Array<int> r_iter_array(refexec);
+    r_iter_array = logger->get_num_iterations();
+    auto r_logged_res = RDense::create(refexec);
+    r_logged_res->copy_from(logger->get_residual_norm());
+    ASSERT_NO_THROW(exec->synchronize());
+    for (size_t ib = 0; ib < nbatch; ib++) {
+        for (int j = 0; j < nrhs; j++) {
+            ASSERT_LE(ref_rnorm->at(ib, 0, j) / ref_bnorm->at(ib, 0, j), tol);
+            ASSERT_GT(r_iter_array.get_const_data()[ib * nrhs + j], 0);
+            ASSERT_LE(r_iter_array.get_const_data()[ib * nrhs + j], maxits);
+        }
+    }
+    GKO_ASSERT_BATCH_MTX_NEAR(r_logged_res, ref_rnorm, r<T>::value);
+}
 
 }  // namespace
