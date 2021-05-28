@@ -30,16 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/batch_idr_kernels.hpp"
-
+#include <ginkgo/core/solver/batch_idr.hpp>
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/log/batch_convergence.hpp>
 
-#include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/executor.hpp>
-
-
+#include "core/solver/batch_idr_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
 
@@ -328,6 +325,79 @@ TYPED_TEST(BatchIdr, GeneralScalingDoesNotChangeResult)
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->xex_1,
                               1e-06 /*r<value_type>::value*/);
+}
+
+
+TEST(BatchIdr, CanSolveWithoutScaling)
+{
+    using T = std::complex<float>;
+    using RT = typename gko::remove_complex<T>;
+    using Solver = gko::solver::BatchIdr<T>;
+    using Dense = gko::matrix::BatchDense<T>;
+    using RDense = gko::matrix::BatchDense<RT>;
+    using Mtx = typename gko::matrix::BatchCsr<T>;
+    const RT tol = 1e-4;
+    std::shared_ptr<gko::ReferenceExecutor> exec =
+        gko::ReferenceExecutor::create();
+    auto batchidr_factory =
+        Solver::build()
+            .with_max_iterations(10000)
+            .with_abs_residual_tol(tol)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::absolute)
+            .with_subspace_dim(2)
+            .with_smoothing(true)
+            .with_deterministic(false)
+            .with_complex_subspace(false)
+            .on(exec);
+    const int nrows = 40;
+    const size_t nbatch = 3;
+    std::shared_ptr<Mtx> mtx =
+        gko::test::create_poisson1d_batch<T>(exec, nrows, nbatch);
+    auto solver = batchidr_factory->generate(mtx);
+    std::shared_ptr<const gko::log::BatchConvergence<T>> logger =
+        gko::log::BatchConvergence<T>::create(exec);
+    solver->add_logger(logger);
+    const int nrhs = 5;
+    auto b =
+        Dense::create(exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrhs)));
+    auto x = Dense::create_with_config_of(b.get());
+    auto res = Dense::create_with_config_of(b.get());
+    auto alpha = gko::batch_initialize<Dense>(nbatch, {-1.0}, exec);
+    auto beta = gko::batch_initialize<Dense>(nbatch, {1.0}, exec);
+    auto bnorm =
+        RDense::create(exec, gko::batch_dim<>(nbatch, gko::dim<2>(1, nrhs)));
+
+    for (size_t ib = 0; ib < nbatch; ib++) {
+        for (int j = 0; j < nrhs; j++) {
+            bnorm->at(ib, 0, j) = gko::zero<RT>();
+            const T val = 1.0 + std::cos(ib / 2.0 - j / 4.0);
+            for (int i = 0; i < nrows; i++) {
+                b->at(ib, i, j) = val;
+                x->at(ib, i, j) = 0.0;
+                res->at(ib, i, j) = val;
+                bnorm->at(ib, 0, j) += gko::squared_norm(val);
+            }
+            bnorm->at(ib, 0, j) = std::sqrt(bnorm->at(ib, 0, j));
+        }
+    }
+
+
+    solver->apply(b.get(), x.get());
+
+    mtx->apply(alpha.get(), x.get(), beta.get(), res.get());
+    auto rnorm =
+        RDense::create(exec, gko::batch_dim<>(nbatch, gko::dim<2>(1, nrhs)));
+    res->compute_norm2(rnorm.get());
+    const auto iter_array = logger->get_num_iterations();
+    const auto logged_res = logger->get_residual_norm();
+
+    for (size_t ib = 0; ib < nbatch; ib++) {
+        for (int j = 0; j < nrhs; j++) {
+            ASSERT_LE(logged_res->at(ib, 0, j), tol);
+            ASSERT_GT(iter_array.get_const_data()[ib * nrhs + j], 0);
+        }
+    }
+    GKO_ASSERT_BATCH_MTX_NEAR(logged_res, rnorm, tol);
 }
 
 
