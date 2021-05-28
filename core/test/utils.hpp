@@ -99,6 +99,18 @@ using RealValueAndIndexTypes =
 #endif
 
 
+using ValueSingleIndexTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<std::tuple<float, gko::int32>,
+                     std::tuple<std::complex<float>, gko::int32>>;
+#else
+    ::testing::Types<std::tuple<float, gko::int32>,
+                     std::tuple<double, gko::int32>,
+                     std::tuple<std::complex<float>, gko::int32>,
+                     std::tuple<std::complex<double>, gko::int32>>;
+#endif
+
+
 using ValueIndexTypes =
 #if GINKGO_DPCPP_SINGLE_MODE
     ::testing::Types<std::tuple<float, gko::int32>,
