@@ -59,7 +59,7 @@ __global__ void apply_kernel(
         ValueType *const prec_work = residual + 2 * num_rows * num_rhs;
         const auto norms = reinterpret_cast<real_type *>(
             prec_work + PrecType::dynamic_work_size(num_rows, mat.num_nnz));
-        real_type *const init_rel_res_norm = norms + num_rhs;
+        real_type *const init_res_norm = norms + num_rhs;
 #else
         constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
         constexpr int max_nrows = batch_config<ValueType>::max_num_rows;
@@ -69,20 +69,11 @@ __global__ void apply_kernel(
             }
             return;
         }
-        //__shared__ UninitializedArray<ValueType, max_nrows*max_nrhs>
-        // residual_un;
-        //__shared__ UninitializedArray<ValueType, max_nrows*max_nrhs>
-        // delta_x_un;
-        //__shared__ UninitializedArray<ValueType, PrecType::work_size>
-        //    prec_work_un;
-        // ValueType *const residual = residual_un;
-        // ValueType *const delta_x = delta_x_un;
-        // ValueType *const prec_work = prec_work_un;
         __shared__ ValueType residual[max_nrows * max_nrhs];
         __shared__ ValueType delta_x[max_nrows * max_nrhs];
         __shared__ ValueType prec_work[PrecType::work_size];
         __shared__ real_type norms[max_nrhs];
-        __shared__ real_type init_rel_res_norm[max_nrhs];
+        __shared__ real_type init_res_norm[max_nrhs];
 #endif
 
         uint32 converged = 0;
@@ -112,22 +103,20 @@ __global__ void apply_kernel(
         const gko::batch_dense::BatchEntry<const ValueType> relax_b{&relax, 1,
                                                                     1, 1};
 
-        for (int iz = threadIdx.x; iz < num_rhs; iz += blockDim.x) {
-            norms[iz] = 0.0;
-        }
         const gko::batch_dense::BatchEntry<real_type> norms_b{
             norms, static_cast<size_type>(num_rhs), 1, num_rhs};
+        const gko::batch_dense::BatchEntry<real_type> init_res_norm_b{
+            init_res_norm, static_cast<size_type>(num_rhs), 1, num_rhs};
 
         prec.generate(a_b, prec_work);
 
         // initial residual
         copy(b_b, r_b);
         compute_norm2<ValueType>(gko::batch::to_const(r_b), norms_b);
-        for (int iz = threadIdx.x; iz < num_rows * num_rhs; iz += blockDim.x) {
-            init_rel_res_norm[iz] = norms_b.values[iz];
-        }
+        copy(gko::batch::to_const(norms_b), init_res_norm_b);
 
-        StopType stop(num_rhs, max_iter, rel_tol, converged, init_rel_res_norm);
+        StopType stop(num_rhs, max_iter, rel_tol, converged,
+                      init_res_norm_b.values);
 
         int iter = 0;
         while (true) {
@@ -146,9 +135,6 @@ __global__ void apply_kernel(
 
             compute_norm2<ValueType>(gko::batch::to_const(r_b), norms_b);
             __syncthreads();
-            for (int j = threadIdx.x; j < num_rhs; j += blockDim.x) {
-                norms[j] = sqrt(norms[j]);
-            }
 
             const bool all_converged =
                 stop.check_converged(iter, norms, {NULL, 0, 0, 0}, converged);
