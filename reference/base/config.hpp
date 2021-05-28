@@ -52,7 +52,7 @@ struct batch_config {
     /**
      * Max number of RHS vectors in a linear system
      */
-    static constexpr int max_num_rhs = 5;
+    static constexpr int max_num_rhs = 32;
 };
 
 
