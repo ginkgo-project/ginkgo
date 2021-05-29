@@ -36,7 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "curand_kernel.h"
 
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "cuda/base/config.hpp"
@@ -191,12 +190,13 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
         get_batch_struct(x);
 
 
-    std::unique_ptr<gko::matrix::Dense<ValueType>> Subspace_vectors;
-
     gko::batch_dense::BatchEntry<const cu_value_type> Subspace_vectors_entry;
 
+    std::unique_ptr<gko::matrix::Dense<ValueType>> Subspace_vectors;
 
     if (opts.deterministic_gen == true) {
+        /*
+
         std::unique_ptr<gko::matrix::Dense<ValueType>> Subspace_vectors_cpu =
             gko::matrix::Dense<ValueType>::create(
                 exec->get_master(),
@@ -217,6 +217,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
             }
         }
 
+
         Subspace_vectors = gko::clone(exec, Subspace_vectors_cpu);
 
 
@@ -225,6 +226,35 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
             Subspace_vectors->get_stride(),
             static_cast<int>(Subspace_vectors->get_size()[0]),
             static_cast<int>(Subspace_vectors->get_size()[1])};
+
+        */
+
+
+        Array<ValueType> arr(exec->get_master(),
+                             x_b.num_rows * opts.subspace_dim_val);
+
+        auto dist =
+            std::normal_distribution<remove_complex<ValueType>>(0.0, 1.0);
+
+        auto seed = 15;
+        auto gen = std::ranlux48(seed);
+
+        for (int vec_index = 0; vec_index < opts.subspace_dim_val;
+             vec_index++) {
+            for (int row_index = 0; row_index < x_b.num_rows; row_index++) {
+                ValueType val = get_rand_value<ValueType>(dist, gen);
+
+                arr.get_data()[vec_index * x_b.num_rows + row_index] = val;
+            }
+        }
+
+
+        arr.set_executor(exec);
+
+        Subspace_vectors_entry = {
+            as_cuda_type(arr.get_const_data()), 1,
+            static_cast<int>(x_b.num_rows * opts.subspace_dim_val), 1};
+
 
     } else {
         Subspace_vectors_entry = {nullptr, 0, 0, 0};
