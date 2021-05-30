@@ -328,7 +328,9 @@ const std::map<std::string, std::function<std::unique_ptr<gko::BatchLinOp>(
                                 const std::vector<gko::matrix_data<etype>>&)>>
     batch_matrix_factory2{
         {"batch_csr",
-         read_batch_matrix_from_batch_data<gko::matrix::BatchCsr<etype>>}};
+         read_batch_matrix_from_batch_data<gko::matrix::BatchCsr<etype>>},
+        {"batch_dense",
+         read_batch_matrix_from_batch_data<gko::matrix::BatchDense<etype>>}};
 
 
 const std::map<std::string, std::function<std::unique_ptr<gko::BatchLinOp>(
