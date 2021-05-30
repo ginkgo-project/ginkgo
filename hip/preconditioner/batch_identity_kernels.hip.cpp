@@ -37,13 +37,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
-#include "hip/matrix/batch_struct.hpp"
-#include "hip/preconditioner/batch_identity.hpp"
+#include "hip/matrix/batch_struct.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace hip {
+
+
+namespace batch_identity {
+
+
+constexpr int default_block_size = 128;
+// constexpr int sm_multiplier = 4;
+
+#include "common/components/uninitialized_array.hpp.inc"
+#include "common/preconditioner/batch_identity.hpp.inc"
 
 
 template <typename ValueType>
@@ -61,14 +70,14 @@ void batch_identity_apply(std::shared_ptr<const gko::HipExecutor> exec,
                             sizeof(ValueType);
 
     hipLaunchKernelGGL(HIP_KERNEL_NAME(batch_identity), dim3(nbatch),
-                       dim3(default_block_size), shared_size, 0, a_ub, b_ub,
-                       x_ub);
+                       dim3(default_block_size), shared_size, 0,
+                       BatchIdentity<hip_type<ValueType>>(), a_ub, b_ub, x_ub);
 }
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDENTITY_KERNEL);
 
-
+}  // namespace batch_identity
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko

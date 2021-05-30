@@ -37,13 +37,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
-#include "reference/matrix/batch_struct.hpp"
-#include "reference/preconditioner/batch_jacobi.hpp"
-
+#include "hip/base/config.hip.hpp"
+#include "hip/base/math.hip.hpp"
+#include "hip/base/types.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/diagonal_block_manipulation.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
+#include "hip/components/uninitialized_array.hip.hpp"
+#include "hip/components/warp_blas.hip.hpp"
+#include "hip/matrix/batch_struct.hip.hpp"
 
 namespace gko {
 namespace kernels {
 namespace hip {
+
+
+namespace batch_jacobi {
+
+
+constexpr int default_block_size = 128;
+// constexpr int sm_multiplier = 4;
+
+
+#include "common/components/uninitialized_array.hpp.inc"
+#include "common/preconditioner/batch_jacobi.hpp.inc"
 
 
 template <typename ValueType>
@@ -51,11 +68,24 @@ void batch_jacobi_apply(std::shared_ptr<const gko::HipExecutor> exec,
                         const matrix::BatchCsr<ValueType> *const a,
                         const matrix::BatchDense<ValueType> *const b,
                         matrix::BatchDense<ValueType> *const x)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto a_ub = get_batch_struct(a);
+    const auto b_ub = get_batch_struct(b);
+    const auto x_ub = get_batch_struct(x);
+    const size_type nbatch = a->get_num_batch_entries();
+    const int shared_size =
+        BatchJacobi<ValueType>::dynamic_work_size(a_ub.num_rows, a_ub.num_nnz) *
+        sizeof(ValueType);
+
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(batch_jacobi), dim3(nbatch),
+                       dim3(default_block_size), shared_size, 0,
+                       BatchJacobi<hip_type<ValueType>>(), a_ub, b_ub, x_ub);
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_KERNEL);
 
-
+}  // namespace batch_jacobi
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
