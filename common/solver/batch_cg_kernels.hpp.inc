@@ -33,6 +33,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
+template <typename ValueType>
+__device__ __forceinline__ void copy(
+    const gko::batch_dense::BatchEntry<const ValueType> &src_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &dest_shared_entry,
+    const uint32 &converged)
+{
+    for (int li = threadIdx.x;
+         li < dest_shared_entry.num_rhs * dest_shared_entry.num_rows;
+         li += blockDim.x) {
+        int r = li / dest_shared_entry.num_rhs;
+        int c = li % dest_shared_entry.num_rhs;
+
+        const uint32 conv = converged & (1 << c);
+
+        if (conv) {
+            continue;
+        }
+
+        dest_shared_entry.values[r * dest_shared_entry.stride + c] =
+            src_shared_entry.values[r * src_shared_entry.stride + c];
+    }
+}
+
 
 template <typename BatchMatrixType_entry, typename PrecType, typename ValueType>
 __device__ __forceinline__ void initialize(
@@ -55,11 +78,11 @@ __device__ __forceinline__ void initialize(
 
 
     // copy x from global to shared memory
-    copy(x_global_entry, x_shared_entry);
+    copy(x_global_entry, x_shared_entry, 0x00000000);
 
 
     // r = b
-    copy(b_global_entry, r_shared_entry);
+    copy(b_global_entry, r_shared_entry, 0x00000000);
 
     __syncthreads();
 
@@ -81,7 +104,7 @@ __device__ __forceinline__ void initialize(
 
 
     // p = z
-    copy(gko::batch::to_const(z_shared_entry), p_shared_entry);
+    copy(gko::batch::to_const(z_shared_entry), p_shared_entry, 0x00000000);
 
 
     // rho_old = r' * z
@@ -222,30 +245,6 @@ __device__ __forceinline__ void update_r(
         r_shared_entry.values[r * r_shared_entry.stride + c] -=
             alpha_shared_entry.values[0 * alpha_shared_entry.stride + c] *
             Ap_shared_entry.values[r * Ap_shared_entry.stride + c];
-    }
-}
-
-
-template <typename ValueType>
-__device__ __forceinline__ void copy(
-    const gko::batch_dense::BatchEntry<const ValueType> &src_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &dest_shared_entry,
-    const uint32 &converged)
-{
-    for (int li = threadIdx.x;
-         li < dest_shared_entry.num_rhs * dest_shared_entry.num_rows;
-         li += blockDim.x) {
-        int r = li / dest_shared_entry.num_rhs;
-        int c = li % dest_shared_entry.num_rhs;
-
-        const uint32 conv = converged & (1 << c);
-
-        if (conv) {
-            continue;
-        }
-
-        dest_shared_entry.values[r * dest_shared_entry.stride + c] =
-            src_shared_entry.values[r * src_shared_entry.stride + c];
     }
 }
 
