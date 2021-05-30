@@ -272,6 +272,42 @@ __global__ void apply_kernel(
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
 
+    // TODO: Move these conditional statements to the #else part once you make
+    // sure that there are no static allocations (in device functions and
+    // stopping criterion check_converged) which use the values in batch config
+    // struct.
+    if (batch_config<ValueType>::max_num_rows *
+            batch_config<ValueType>::max_num_rhs <
+        nrows * nrhs) {
+        if (blockIdx.x == 0 && threadIdx.x == 0) {
+            printf(
+                " Static vector size not enough!, allocated: %d , "
+                "required: %d "
+                "\n",
+                batch_config<ValueType>::max_num_rows *
+                    batch_config<ValueType>::max_num_rhs,
+                nrows * nrhs);
+        }
+        return;
+    }
+
+    if (batch_config<ValueType>::max_num_rows < nrows) {
+        if (blockIdx.x == 0 && threadIdx.x == 0) {
+            printf(
+                " Compile time constant: max_num_rows < actual rows in "
+                "matrix\n");
+        }
+        return;
+    }
+
+    if (batch_config<ValueType>::max_num_rhs < nrhs) {
+        if (blockIdx.x == 0 && threadIdx.x == 0) {
+            printf(
+                " Compile time constant: max_rhs < actual rhs in "
+                "matrix!\n");
+        }
+        return;
+    }
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
@@ -295,38 +331,6 @@ __global__ void apply_kernel(
 
 #else
 
-        if (batch_config<ValueType>::max_num_rows *
-                batch_config<ValueType>::max_num_rhs <
-            nrows * nrhs) {
-            if (blockIdx.x == 0 && threadIdx.x == 0) {
-                printf(
-                    " Static vector size not enough!, allocated: %d , "
-                    "required: %d "
-                    "\n",
-                    batch_config<ValueType>::max_num_rows *
-                        batch_config<ValueType>::max_num_rhs,
-                    nrows * nrhs);
-            }
-            return;
-        }
-
-        if (batch_config<ValueType>::max_num_rows < nrows) {
-            if (blockIdx.x == 0 && threadIdx.x == 0) {
-                printf(
-                    " Compile time constant: max_num_rows < actual rows in "
-                    "matrix\n");
-            }
-            return;
-        }
-
-        if (batch_config<ValueType>::max_num_rhs < nrhs) {
-            if (blockIdx.x == 0 && threadIdx.x == 0) {
-                printf(
-                    " Compile time constant: max_rhs < actual rhs in "
-                    "matrix!\n");
-            }
-            return;
-        }
 
         __shared__ UninitializedArray<ValueType,
                                       batch_config<ValueType>::max_num_rows *
