@@ -381,7 +381,7 @@ TEST(BatchGmres, CanSolveWithoutScaling)
         }
     }
 
-    GKO_ASSERT_BATCH_MTX_NEAR(logged_res, rnorm, 5000 * tol);
+    GKO_ASSERT_BATCH_MTX_NEAR(logged_res, rnorm, 6000 * tol);
 }
 
 
