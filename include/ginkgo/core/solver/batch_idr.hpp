@@ -208,7 +208,8 @@ public:
         /**
          * Subspace Dimension
          */
-        size_type GKO_FACTORY_PARAMETER_SCALAR(subspace_dim, 2u);
+        size_type GKO_FACTORY_PARAMETER_SCALAR(subspace_dim,
+                                               static_cast<size_type>(2));
 
 
         /**
