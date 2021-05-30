@@ -311,20 +311,21 @@ TYPED_TEST(BatchCg, GeneralScalingDoesNotChangeResult)
 
 TEST(BatchCg, CanSolveWithoutScaling)
 {
-    using T = std::complex<float>;
+    using T = std::complex<double>;
     using RT = typename gko::remove_complex<T>;
     using Solver = gko::solver::BatchCg<T>;
     using Dense = gko::matrix::BatchDense<T>;
     using RDense = gko::matrix::BatchDense<RT>;
     using Mtx = typename gko::matrix::BatchCsr<T>;
-    const RT tol = 1e-3;
+    const RT tol = 1e-2;
     std::shared_ptr<gko::ReferenceExecutor> exec =
         gko::ReferenceExecutor::create();
     auto batchcg_factory =
         Solver::build()
             .with_max_iterations(10000)
-            .with_abs_residual_tol(tol)
-            .with_tolerance_type(gko::stop::batch::ToleranceType::absolute)
+            .with_rel_residual_tol(tol)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .on(exec);
     const int nrows = 40;
     const size_t nbatch = 3;
@@ -334,7 +335,7 @@ TEST(BatchCg, CanSolveWithoutScaling)
     std::shared_ptr<const gko::log::BatchConvergence<T>> logger =
         gko::log::BatchConvergence<T>::create(exec);
     solver->add_logger(logger);
-    const int nrhs = 5;
+    const int nrhs = 6;
     auto b =
         Dense::create(exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrhs)));
     auto x = Dense::create_with_config_of(b.get());
@@ -369,11 +370,12 @@ TEST(BatchCg, CanSolveWithoutScaling)
 
     for (size_t ib = 0; ib < nbatch; ib++) {
         for (int j = 0; j < nrhs; j++) {
-            ASSERT_LE(logged_res->at(ib, 0, j), tol);
+            ASSERT_LE(logged_res->at(ib, 0, j) / bnorm->at(ib, 0, j), tol);
             ASSERT_GT(iter_array.get_const_data()[ib * nrhs + j], 0);
         }
     }
-    GKO_ASSERT_BATCH_MTX_NEAR(logged_res, rnorm, tol);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(logged_res, rnorm, 200 * tol);
 }
 
 

@@ -72,7 +72,7 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
 
-    const size_t nbatch = 1;
+    const size_t nbatch = 2;
     const int nrows = 3;
     std::shared_ptr<const BDense> b_1;
     std::shared_ptr<const BDense> xex_1;
@@ -330,23 +330,24 @@ TYPED_TEST(BatchIdr, GeneralScalingDoesNotChangeResult)
 
 TEST(BatchIdr, CanSolveWithoutScaling)
 {
-    using T = std::complex<float>;
+    using T = std::complex<double>;
     using RT = typename gko::remove_complex<T>;
     using Solver = gko::solver::BatchIdr<T>;
     using Dense = gko::matrix::BatchDense<T>;
     using RDense = gko::matrix::BatchDense<RT>;
     using Mtx = typename gko::matrix::BatchCsr<T>;
-    const RT tol = 1e-4;
+    const RT tol = 1e-3;
     std::shared_ptr<gko::ReferenceExecutor> exec =
         gko::ReferenceExecutor::create();
     auto batchidr_factory =
         Solver::build()
             .with_max_iterations(10000)
-            .with_abs_residual_tol(tol)
-            .with_tolerance_type(gko::stop::batch::ToleranceType::absolute)
-            .with_subspace_dim(2)
-            .with_smoothing(true)
-            .with_deterministic(false)
+            .with_rel_residual_tol(tol)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
+            .with_subspace_dim(1)
+            .with_smoothing(false)
+            .with_deterministic(true)
             .with_complex_subspace(false)
             .on(exec);
     const int nrows = 40;
@@ -385,19 +386,25 @@ TEST(BatchIdr, CanSolveWithoutScaling)
     solver->apply(b.get(), x.get());
 
     mtx->apply(alpha.get(), x.get(), beta.get(), res.get());
+
+
     auto rnorm =
         RDense::create(exec, gko::batch_dim<>(nbatch, gko::dim<2>(1, nrhs)));
     res->compute_norm2(rnorm.get());
+
+
     const auto iter_array = logger->get_num_iterations();
     const auto logged_res = logger->get_residual_norm();
 
     for (size_t ib = 0; ib < nbatch; ib++) {
         for (int j = 0; j < nrhs; j++) {
-            ASSERT_LE(logged_res->at(ib, 0, j), tol);
+            ASSERT_LE(logged_res->at(ib, 0, j) / bnorm->at(ib, 0, j), tol);
             ASSERT_GT(iter_array.get_const_data()[ib * nrhs + j], 0);
         }
     }
-    GKO_ASSERT_BATCH_MTX_NEAR(logged_res, rnorm, tol);
+
+
+    GKO_ASSERT_BATCH_MTX_NEAR(logged_res, rnorm, 1000 * tol);
 }
 
 
