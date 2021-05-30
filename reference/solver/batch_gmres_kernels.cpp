@@ -449,6 +449,20 @@ static void apply_impl(
     const auto nrhs = b.num_rhs;
     const auto restart = opts.restart_num;
 
+
+    // TODO: Remove these assert statements once you make sure that there are no
+    // static allocations (in device functions and stopping criterion
+    // check_converged) which use the values in batch config struct and the
+    // compile time constant max_restart.
+    GKO_ASSERT((batch_config<ValueType>::max_num_rows *
+                    batch_config<ValueType>::max_num_rhs >=
+                nrows * nrhs));
+    GKO_ASSERT(batch_config<ValueType>::max_num_rows >= nrows);
+    GKO_ASSERT(batch_config<ValueType>::max_num_rhs >= nrhs);
+
+    GKO_ASSERT(restart <= gko::kernels::batch_gmres::max_restart);
+
+
     const int local_size_bytes =
         gko::kernels::batch_gmres::local_memory_requirement<ValueType>(
             nrows, nrhs, restart) +
@@ -587,6 +601,8 @@ static void apply_impl(
         int outer_iter = -1;
         bool inner_loop_break_flag = false;
 
+        // Note: restart - inner iterations and the outer iteration:  are
+        // counted as (restart + 1) number of iterations instead of one.
         while (1) {
             ++outer_iter;
 
