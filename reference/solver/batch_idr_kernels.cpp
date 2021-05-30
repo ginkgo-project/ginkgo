@@ -773,6 +773,18 @@ static void apply_impl(
     const auto smoothing = opts.to_use_smoothing;
     const auto deterministic = opts.deterministic_gen;
 
+    // TODO: Remove these assert statements once you make sure that there are no
+    // static allocations (in device functions and stopping criterion
+    // check_converged) which use the values in batch config struct and the
+    // compile time constant max_subspace_dim.
+    GKO_ASSERT((batch_config<ValueType>::max_num_rows *
+                    batch_config<ValueType>::max_num_rhs >=
+                nrows * nrhs));
+    GKO_ASSERT(batch_config<ValueType>::max_num_rows >= nrows);
+    GKO_ASSERT(batch_config<ValueType>::max_num_rhs >= nrhs);
+
+    GKO_ASSERT(subspace_dim <= gko::kernels::batch_idr::max_subspace_dim);
+
     const int local_size_bytes =
         gko::kernels::batch_idr::local_memory_requirement<ValueType>(
             nrows, nrhs, subspace_dim) +
