@@ -1,3 +1,4 @@
 ginkgo_create_test(jacobi_kernels)
 ginkgo_create_hip_test(batch_identity_kernels)
+ginkgo_create_hip_test(batch_jacobi_kernels)
 ginkgo_create_hip_test(isai_kernels)
