@@ -209,7 +209,7 @@ TEST_F(BatchCsr, AdvancedApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, 10 * eps);
 }
 
 
