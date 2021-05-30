@@ -79,16 +79,16 @@ struct batch_config {
     /**
      * Max number of rows per matrix in a batch of (small) sparse matrices.
      */
-    static constexpr int max_num_rows = 36;
+    static constexpr int max_num_rows = 150;
 
     /**
      * Max number of RHS vectors in a linear system. This can be at most
      * `config::warp_size`.
      */
     static constexpr int max_num_rhs =
-        32;  // NOTE: max_num_rhs has to be an even number to avoid cuda
-             // misaligned address issues while using complex datatypes(in
-             // reference to the shared memory in solver kernels)
+        6;  // NOTE: max_num_rhs has to be an even number to avoid cuda
+            // misaligned address issues while using complex datatypes(in
+            // reference to the shared memory in solver kernels)
 };
 
 
