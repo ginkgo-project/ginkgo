@@ -410,6 +410,7 @@ void solve_system(const std::string &sol_name,
                 solver2->add_logger(logger);
                 solver2->apply(lend(b_clone2), lend(x_clone));
                 solver2->remove_logger(gko::lend(logger));
+                exec->synchronize();
                 add_or_set_member(solver_json["apply"], "implicit_resnorms",
                                   rapidjson::Value(rapidjson::kObjectType),
                                   allocator);
@@ -600,8 +601,10 @@ int main(int argc, char *argv[])
                 system_matrix = share(formats::batch_matrix_factory2.at(
                     "batch_csr")(exec, ndup, data));
                 if (FLAGS_batch_scaling == "explicit") {
-                    scaling_vec = Vec::create(exec);
-                    scaling_vec->read(scale_data);
+                    auto temp_scaling_op = formats::batch_matrix_factory2.at(
+                        "batch_dense")(exec, ndup, scale_data);
+                    scaling_vec = std::move(std::unique_ptr<Vec>(
+                        static_cast<Vec *>(temp_scaling_op.release())));
                 }
             }
             if (FLAGS_using_suite_sparse) {
@@ -622,8 +625,10 @@ int main(int argc, char *argv[])
                         std::ifstream mtx_fd(fname);
                         b_data[i] = gko::read_raw<etype>(mtx_fd);
                     }
-                    b = Vec::create(exec);
-                    b->read(b_data);
+                    auto temp_b_op = formats::batch_matrix_factory2.at(
+                        "batch_dense")(exec, ndup, b_data);
+                    b = std::move(std::unique_ptr<Vec>(
+                        static_cast<Vec *>(temp_b_op.release())));
                 } else {
                     b = generate_rhs(exec, system_matrix, engine, fbase);
                 }
