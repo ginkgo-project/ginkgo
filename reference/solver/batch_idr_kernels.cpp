@@ -601,7 +601,8 @@ inline void compute_omega(
     real_type norms_r[batch_config<ValueType>::max_num_rhs];
     const auto nrhs = omega_entry.num_rhs;
     const gko::batch_dense::BatchEntry<real_type> norms_r_entry{
-        norms_r, nrhs, static_cast<int>(1), static_cast<int>(nrhs)};
+        norms_r, static_cast<size_type>(nrhs), static_cast<int>(1),
+        static_cast<int>(nrhs)};
     batch_dense::compute_norm2(gko::batch::to_const(r_entry), norms_r_entry);
 
     // omega = ( t * r )/ (t * t)
