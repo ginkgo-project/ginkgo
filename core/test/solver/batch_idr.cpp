@@ -71,7 +71,7 @@ protected:
                   .with_deterministic(false)
                   .with_smoothing(true)
                   .with_complex_subspace(false)
-                  .with_subspace_dim(3)
+                  .with_subspace_dim(static_cast<gko::size_type>(3))
                   .on(exec)),
           solver(batchidr_factory->generate(mtx))
     {}
@@ -195,7 +195,7 @@ TYPED_TEST(BatchIdr, CanSetCriteria)
             .with_deterministic(false)
             .with_smoothing(true)
             .with_complex_subspace(true)
-            .with_subspace_dim(3)
+            .with_subspace_dim(static_cast<gko::size_type>(3))
             .on(this->exec);
     auto solver = batchidr_factory->generate(this->mtx);
 
@@ -207,7 +207,8 @@ TYPED_TEST(BatchIdr, CanSetCriteria)
     ASSERT_EQ(solver->get_parameters().deterministic, false);
     ASSERT_EQ(solver->get_parameters().smoothing, true);
     ASSERT_EQ(solver->get_parameters().complex_subspace, true);
-    ASSERT_EQ(solver->get_parameters().subspace_dim, 3);
+    ASSERT_EQ(solver->get_parameters().subspace_dim,
+              static_cast<gko::size_type>(3));
 }
 
 
