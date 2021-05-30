@@ -495,7 +495,6 @@ TEST(BatchRich, CanSolveWithoutScaling)
     auto solver = batchrich_factory->generate(mtx);
     std::shared_ptr<const gko::log::BatchConvergence<T>> logger =
         gko::log::BatchConvergence<T>::create(exec);
-    solver->add_logger(logger);
     const int nrhs = 3;
     auto ref_b = Dense::create(
         refexec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrhs)));
@@ -528,7 +527,9 @@ TEST(BatchRich, CanSolveWithoutScaling)
         ASSERT_NO_THROW(exec->synchronize());
     }
 
+    solver->add_logger(logger);
     solver->apply(b.get(), x.get());
+    solver->remove_logger(logger.get());
 
     mtx->apply(alpha.get(), x.get(), beta.get(), res.get());
     auto rnorm =
@@ -536,10 +537,8 @@ TEST(BatchRich, CanSolveWithoutScaling)
     res->compute_norm2(rnorm.get());
     auto ref_rnorm = RDense::create(refexec);
     ref_rnorm->copy_from(rnorm.get());
-    gko::Array<int> r_iter_array(refexec);
-    r_iter_array = logger->get_num_iterations();
-    auto r_logged_res = RDense::create(refexec);
-    r_logged_res->copy_from(logger->get_residual_norm());
+    auto r_iter_array = logger->get_num_iterations();
+    auto r_logged_res = logger->get_residual_norm();
     ASSERT_NO_THROW(exec->synchronize());
     for (size_t ib = 0; ib < nbatch; ib++) {
         for (int j = 0; j < nrhs; j++) {

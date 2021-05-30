@@ -64,9 +64,10 @@ public:
     using real_type = remove_complex<ValueType>;
 
     /**
-     * Copies arrays of iterations and residual norms into this.
+     * Copies arrays of iterations and residual norms into this (on the host).
      *
-     * A deep copy is done so the arguments can be on any executor.
+     * The arguments can be on any executor and the data is copied to the host
+     * executor.
      *
      * @param num_iterations  Array (size number of matrices x number of
      *     right-hand sides) which stores the iteration count at which each RHS
@@ -119,7 +120,7 @@ public:
 
 protected:
     /**
-     * Creates a Convergence logger.
+     * Creates a batch convergence logger.
      *
      * @param exec  the executor
      * @param enabled_events  the events enabled for this logger. By default all
@@ -129,8 +130,9 @@ protected:
         std::shared_ptr<const gko::Executor> exec,
         const mask_type &enabled_events = Logger::all_events_mask)
         : Logger(exec, enabled_events),
-          num_iterations_(exec),
-          residual_norm_(matrix::BatchDense<real_type>::create(exec))
+          num_iterations_(exec->get_master()),
+          residual_norm_(
+              matrix::BatchDense<real_type>::create(exec->get_master()))
     {}
 
 private:
