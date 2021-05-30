@@ -263,6 +263,15 @@ static void apply_impl(
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
 
+    // TODO: Remove these assert statements once you make sure that there are no
+    // static allocations (in device functions and stopping criterion
+    // check_converged) which use the values in batch config struct.
+    GKO_ASSERT((batch_config<ValueType>::max_num_rows *
+                    batch_config<ValueType>::max_num_rhs >=
+                nrows * nrhs));
+    GKO_ASSERT(batch_config<ValueType>::max_num_rows >= nrows);
+    GKO_ASSERT(batch_config<ValueType>::max_num_rhs >= nrhs);
+
     const int local_size_bytes =
         gko::kernels::batch_cg::local_memory_requirement<ValueType>(nrows,
                                                                     nrhs) +

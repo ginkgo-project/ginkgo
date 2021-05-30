@@ -192,9 +192,11 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
 
     gko::batch_dense::BatchEntry<const cu_value_type> Subspace_vectors_entry;
 
-    std::unique_ptr<gko::matrix::Dense<ValueType>> Subspace_vectors;
+    // std::unique_ptr<gko::matrix::Dense<ValueType>> Subspace_vectors;
 
     if (opts.deterministic_gen == true) {
+        // Note: Usage of dense matrix here leads to compilation errors. So, for
+        // the time being, use Array as an alternative.
         /*
 
         std::unique_ptr<gko::matrix::Dense<ValueType>> Subspace_vectors_cpu =
