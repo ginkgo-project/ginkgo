@@ -323,9 +323,10 @@ TEST(BatchBicgstab, CanSolveWithoutScaling)
         gko::ReferenceExecutor::create();
     auto batchbicgstab_factory =
         Solver::build()
-            .with_max_iterations(100)
-            .with_abs_residual_tol(tol)
-            .with_tolerance_type(gko::stop::batch::ToleranceType::absolute)
+            .with_max_iterations(10000)
+            .with_rel_residual_tol(tol)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .on(exec);
     const int nrows = 40;
     const size_t nbatch = 3;
@@ -362,6 +363,7 @@ TEST(BatchBicgstab, CanSolveWithoutScaling)
     solver->apply(b.get(), x.get());
 
     mtx->apply(alpha.get(), x.get(), beta.get(), res.get());
+
     auto rnorm =
         RDense::create(exec, gko::batch_dim<>(nbatch, gko::dim<2>(1, nrhs)));
     res->compute_norm2(rnorm.get());
@@ -370,11 +372,13 @@ TEST(BatchBicgstab, CanSolveWithoutScaling)
 
     for (size_t ib = 0; ib < nbatch; ib++) {
         for (int j = 0; j < nrhs; j++) {
-            ASSERT_LE(logged_res->at(ib, 0, j), tol);
+            ASSERT_LE(logged_res->at(ib, 0, j) / bnorm->at(ib, 0, j), tol);
             ASSERT_GT(iter_array.get_const_data()[ib * nrhs + j], 0);
         }
     }
-    GKO_ASSERT_BATCH_MTX_NEAR(logged_res, rnorm, tol);
+
+
+    GKO_ASSERT_BATCH_MTX_NEAR(logged_res, rnorm, 100 * tol);
 }
 
 
