@@ -406,24 +406,45 @@ gko::remove_complex<ValueType> compute_residual_norm(
 }
 
 
-template <typename ValueType>
-gko::remove_complex<ValueType> compute_max_relative_norm2(
-    vec<ValueType> *result, const vec<ValueType> *answer)
+template <typename ValueTypeRes, typename ValueTypeAns>
+gko::remove_complex<std::conditional_t<
+    sizeof(ValueTypeRes) < sizeof(ValueTypeAns), ValueTypeAns, ValueTypeRes>>
+compute_max_relative_norm2(vec<ValueTypeRes> *result,
+                           const vec<ValueTypeAns> *answer)
 {
-    using rc_vtype = gko::remove_complex<ValueType>;
+    using res_type =
+        std::conditional_t<sizeof(ValueTypeRes) < sizeof(ValueTypeAns),
+                           ValueTypeAns, ValueTypeRes>;
+    using rc_vtype = gko::remove_complex<res_type>;
     auto exec = answer->get_executor();
     auto answer_norm =
         vec<rc_vtype>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
-    answer->compute_norm2(lend(answer_norm));
-    auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
-    result->add_scaled(lend(neg_one), lend(answer));
     auto absolute_norm =
         vec<rc_vtype>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
-    result->compute_norm2(lend(absolute_norm));
+    auto neg_one = gko::initialize<vec<res_type>>({-1.0}, exec);
+
+    if (std::is_same<ValueTypeRes, ValueTypeAns>::value) {
+        answer->compute_norm2(lend(answer_norm));
+        result->add_scaled(lend(neg_one), lend(answer));
+        result->compute_norm2(lend(absolute_norm));
+    } else if (sizeof(ValueTypeRes) < sizeof(ValueTypeAns)) {
+        auto new_result = vec<res_type>::create(exec, result->get_size());
+        result->convert_to(lend(new_result));
+        answer->compute_norm2(lend(answer_norm));
+        new_result->add_scaled(lend(neg_one), lend(answer));
+        new_result->compute_norm2(lend(absolute_norm));
+    } else {
+        auto new_answer = vec<res_type>::create(exec, answer->get_size());
+        answer->convert_to(lend(new_answer));
+        answer->compute_norm2(lend(answer_norm));
+        result->add_scaled(lend(neg_one), lend(new_answer));
+        result->compute_norm2(lend(absolute_norm));
+    }
     auto host_answer_norm =
         clone(answer_norm->get_executor()->get_master(), answer_norm);
     auto host_absolute_norm =
         clone(absolute_norm->get_executor()->get_master(), absolute_norm);
+
     rc_vtype max_relative_norm2 = 0;
     for (gko::size_type i = 0; i < host_answer_norm->get_size()[1]; i++) {
         max_relative_norm2 =

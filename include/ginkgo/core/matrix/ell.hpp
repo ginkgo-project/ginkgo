@@ -230,6 +230,13 @@ public:
         return this->get_const_col_idxs()[this->linearize_index(row, idx)];
     }
 
+    bool increase_arithmetic() const { return increase_arithmetic_; }
+
+    void set_increase_arithmetic(bool increase_arithmetic)
+    {
+        increase_arithmetic_ = increase_arithmetic;
+    }
+
 protected:
     /**
      * Creates an uninitialized Ell matrix of the specified size.
@@ -273,7 +280,8 @@ protected:
           values_(exec, stride * num_stored_elements_per_row),
           col_idxs_(exec, stride * num_stored_elements_per_row),
           num_stored_elements_per_row_(num_stored_elements_per_row),
-          stride_(stride)
+          stride_(stride),
+          increase_arithmetic_{false}
     {}
 
 
@@ -305,7 +313,8 @@ protected:
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           num_stored_elements_per_row_{num_stored_elements_per_row},
-          stride_{stride}
+          stride_{stride},
+          increase_arithmetic_{false}
     {
         GKO_ASSERT_EQ(num_stored_elements_per_row_ * stride_,
                       values_.get_num_elems());
@@ -328,6 +337,7 @@ private:
     Array<index_type> col_idxs_;
     size_type num_stored_elements_per_row_;
     size_type stride_;
+    bool increase_arithmetic_;
 };
 
 

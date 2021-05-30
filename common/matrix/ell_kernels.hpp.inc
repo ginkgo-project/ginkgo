@@ -45,12 +45,27 @@ __device__ void spmv_kernel(
     const size_type c_stride, Closure op)
 {
     const auto tidx = thread::get_thread_id_flat();
+    using arithmetic_type = decltype(val(0, 0) + val(0, 0));
+    /*
+    constexpr char ot_char =
+        std::is_same<OutputValueType, double>::value
+            ? 'd'
+            : (std::is_same<OutputValueType, float>::value ? 'f' : 'o');
+    constexpr char at_char =
+        std::is_same<arithmetic_type, double>::value
+            ? 'd'
+            : (std::is_same<arithmetic_type, float>::value ? 'f' : 'o');
+    if (tidx == 0) {
+        printf("SpMV: output: %c; arithmetic: %c\n", ot_char, at_char);
+    }
+    */
+
     const decltype(tidx) column_id = blockIdx.y;
     if (num_thread_per_worker == 1) {
         // Specialize the num_thread_per_worker = 1. It doesn't need the shared
         // memory, __syncthreads, and atomic_add
         if (tidx < num_rows) {
-            auto temp = zero<OutputValueType>();
+            auto temp = zero<arithmetic_type>();
             for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
                 const auto ind = tidx + idx * stride;
                 const auto col_idx = col[ind];
@@ -70,13 +85,13 @@ __device__ void spmv_kernel(
             const auto worker_id = tidx / num_rows;
             const auto step_size = num_worker_per_row * num_thread_per_worker;
             __shared__ UninitializedArray<
-                OutputValueType, default_block_size / num_thread_per_worker>
+                arithmetic_type, default_block_size / num_thread_per_worker>
                 storage;
             if (idx_in_worker == 0) {
                 storage[threadIdx.x] = 0;
             }
             __syncthreads();
-            auto temp = zero<OutputValueType>();
+            auto temp = zero<arithmetic_type>();
             for (size_type idx =
                      worker_id * num_thread_per_worker + idx_in_worker;
                  idx < num_stored_elements_per_row; idx += step_size) {

@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
+#include <type_traits>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -120,20 +121,24 @@ GKO_INLINE auto as_cuda_accessor(
         acc.get_accessor().get_stride());
 }
 
-
-template <int info, typename InputValueType, typename MatrixValueType,
-          typename OutputValueType, typename IndexType>
-void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
-                   const matrix::Ell<MatrixValueType, IndexType> *a,
-                   const matrix::Dense<InputValueType> *b,
-                   matrix::Dense<OutputValueType> *c,
-                   const matrix::Dense<MatrixValueType> *alpha = nullptr,
-                   const matrix::Dense<OutputValueType> *beta = nullptr)
+template <bool increased_arithmetic, int info, typename InputValueType,
+          typename MatrixValueType, typename OutputValueType,
+          typename IndexType>
+void new_abstract_spmv(int num_worker_per_row,
+                       const matrix::Ell<MatrixValueType, IndexType> *a,
+                       const matrix::Dense<InputValueType> *b,
+                       matrix::Dense<OutputValueType> *c,
+                       const matrix::Dense<MatrixValueType> *alpha,
+                       const matrix::Dense<OutputValueType> *beta)
 {
-    using a_accessor =
-        gko::acc::reduced_row_major<1, OutputValueType, const MatrixValueType>;
-    using b_accessor =
-        gko::acc::reduced_row_major<2, OutputValueType, const InputValueType>;
+    using arithmetic_precision =
+        std::conditional_t<increased_arithmetic,
+                           increase_precision<OutputValueType>,
+                           OutputValueType>;
+    using a_accessor = gko::acc::reduced_row_major<1, arithmetic_precision,
+                                                   const MatrixValueType>;
+    using b_accessor = gko::acc::reduced_row_major<2, arithmetic_precision,
+                                                   const InputValueType>;
 
     const auto nrows = a->get_size()[0];
     const auto stride = a->get_stride();
@@ -174,6 +179,24 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
                 as_cuda_type(c->get_values()), c->get_stride());
     } else {
         GKO_KERNEL_NOT_FOUND;
+    }
+}
+template <int info, typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
+void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
+                   const matrix::Ell<MatrixValueType, IndexType> *a,
+                   const matrix::Dense<InputValueType> *b,
+                   matrix::Dense<OutputValueType> *c, bool increased_arithmetic,
+                   const matrix::Dense<MatrixValueType> *alpha = nullptr,
+                   const matrix::Dense<OutputValueType> *beta = nullptr)
+{
+    if (increased_arithmetic) {
+        // std::cout << "Increase Arithmetic set!\n";
+        new_abstract_spmv<true, info>(num_worker_per_row, a, b, c, alpha, beta);
+    } else {
+        // std::cout << "Increase Arithmetic NOT set!\n";
+        new_abstract_spmv<false, info>(num_worker_per_row, a, b, c, alpha,
+                                       beta);
     }
 }
 
@@ -250,8 +273,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     select_abstract_spmv(
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
-        syn::value_list<int>(), syn::type_list<>(), num_worker_per_row, a, b,
-        c);
+        syn::value_list<int>(), syn::type_list<>(), num_worker_per_row, a, b, c,
+        a->increase_arithmetic());
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
@@ -285,7 +308,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
         syn::value_list<int>(), syn::type_list<>(), num_worker_per_row, a, b, c,
-        alpha, beta);
+        a->increase_arithmetic(), alpha, beta);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(

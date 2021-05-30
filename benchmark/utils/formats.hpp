@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <map>
 #include <string>
+#include <type_traits>
 
 
 #include <gflags/gflags.h>
@@ -196,6 +197,12 @@ std::unique_ptr<MatrixType> read_matrix_from_data(
     }
 
 
+template <typename T>
+using bench_reduce_precision_t = std::conditional_t<
+    std::is_same<gko::reduce_precision<T>, std::complex<gko::half>>::value ||
+        std::is_same<gko::reduce_precision<T>, gko::half>::value,
+    T, gko::reduce_precision<T>>;
+
 // clang-format off
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
@@ -222,6 +229,42 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
              }
              auto mat = gko::matrix::Ell<gko::next_precision<etype>>::create(std::move(exec));
              mat->read(conv_data);
+             return mat;
+         }},
+        {"ell<fr>_r",
+         [](std::shared_ptr<const gko::Executor> exec,
+            const gko::matrix_data<etype> &data) {
+             gko::matrix_data<bench_reduce_precision_t<etype>> conv_data;
+             conv_data.size = data.size;
+             conv_data.nonzeros.resize(data.nonzeros.size());
+             auto it = conv_data.nonzeros.begin();
+             for (auto &el : data.nonzeros) {
+                 it->row = el.row;
+                 it->column = el.column;
+                 it->value = el.value;
+                 ++it;
+             }
+             auto mat = gko::matrix::Ell<bench_reduce_precision_t<etype>>::create(std::move(exec), gko::dim<2>{}, true);
+             mat->read(conv_data);
+             mat->set_increase_arithmetic(true);
+             return mat;
+         }},
+        {"ell<rr>_r",
+         [](std::shared_ptr<const gko::Executor> exec,
+            const gko::matrix_data<etype> &data) {
+             gko::matrix_data<bench_reduce_precision_t<etype>> conv_data;
+             conv_data.size = data.size;
+             conv_data.nonzeros.resize(data.nonzeros.size());
+             auto it = conv_data.nonzeros.begin();
+             for (auto &el : data.nonzeros) {
+                 it->row = el.row;
+                 it->column = el.column;
+                 it->value = el.value;
+                 ++it;
+             }
+             auto mat = gko::matrix::Ell<bench_reduce_precision_t<etype>>::create(std::move(exec), gko::dim<2>{}, false);
+             mat->read(conv_data);
+             mat->set_increase_arithmetic(false);
              return mat;
          }},
 #ifdef HAS_CUDA

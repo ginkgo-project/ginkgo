@@ -62,12 +62,16 @@ DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 
 // This function supposes that management of `FLAGS_overwrite` is done before
 // calling it
+template <typename InOutType = etype>
 void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
                 const gko::matrix_data<etype> &data, const vec<etype> *b,
                 const vec<etype> *x, const vec<etype> *answer,
                 rapidjson::Value &test_case,
                 rapidjson::MemoryPoolAllocator<> &allocator)
 {
+    auto x_clone = gko::matrix::Dense<InOutType>::create(exec);
+    auto b_clone = gko::matrix::Dense<InOutType>::create(exec);
+    b->convert_to(lend(b_clone));
     try {
         auto &spmv_case = test_case["spmv"];
         add_or_set_member(spmv_case, format_name,
@@ -82,9 +86,9 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
         storage_logger->write_data(spmv_case[format_name], allocator);
         // check the residual
         if (FLAGS_detailed) {
-            auto x_clone = clone(x);
+            x->convert_to(lend(x_clone));
             exec->synchronize();
-            system_matrix->apply(lend(b), lend(x_clone));
+            system_matrix->apply(lend(b_clone), lend(x_clone));
             exec->synchronize();
             auto max_relative_norm2 =
                 compute_max_relative_norm2(lend(x_clone), lend(answer));
@@ -93,9 +97,9 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
         }
         // warm run
         for (unsigned int i = 0; i < FLAGS_warmup; i++) {
-            auto x_clone = clone(x);
+            x->convert_to(lend(x_clone));
             exec->synchronize();
-            system_matrix->apply(lend(b), lend(x_clone));
+            system_matrix->apply(lend(b_clone), lend(x_clone));
             exec->synchronize();
         }
 
@@ -124,10 +128,10 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             gko::_tuned_value = val;
             auto tuning_timer = get_timer(exec, FLAGS_gpu_timer);
             for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
-                auto x_clone = clone(x);
+                x->convert_to(lend(x_clone));
                 exec->synchronize();
                 tuning_timer->tic();
-                system_matrix->apply(lend(b), lend(x_clone));
+                system_matrix->apply(lend(b_clone), lend(x_clone));
                 tuning_timer->toc();
             }
             tuning_case["time"].PushBack(tuning_timer->compute_average_time(),
@@ -142,10 +146,10 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
         // timed run
         auto timer = get_timer(exec, FLAGS_gpu_timer);
         for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
-            auto x_clone = clone(x);
+            x->convert_to(lend(x_clone));
             exec->synchronize();
             timer->tic();
-            system_matrix->apply(lend(b), lend(x_clone));
+            system_matrix->apply(lend(b_clone), lend(x_clone));
             timer->toc();
         }
         add_or_set_member(spmv_case[format_name], "time",
@@ -225,19 +229,35 @@ int main(int argc, char *argv[])
                                     allocator);
             }
 
-            // Compute the result from ginkgo::coo as the correct answer
+            // Compute the result from ginkgo::ell as the correct answer
             auto answer = vec<etype>::create(exec);
             if (FLAGS_detailed) {
                 auto system_matrix =
-                    share(formats::matrix_factory.at("coo")(exec, data));
+                    share(formats::matrix_factory.at("ell")(exec, data));
                 answer->copy_from(lend(x));
                 exec->synchronize();
                 system_matrix->apply(lend(b), lend(answer));
                 exec->synchronize();
             }
             for (const auto &format_name : formats) {
-                apply_spmv(format_name.c_str(), exec, data, lend(b), lend(x),
-                           lend(answer), test_case, allocator);
+                const auto len = format_name.size();
+                // std::cout << "Running " << format_name;
+                if (format_name[len - 2] == '_' &&
+                    format_name[len - 1] == 'r') {
+                    using inout_type = formats::bench_reduce_precision_t<etype>;
+                    // std::cout << ": InOut is " << typeid(inout_type).name()
+                    //          << '\n';
+                    apply_spmv<inout_type>(format_name.c_str(), exec, data,
+                                           lend(b), lend(x), lend(answer),
+                                           test_case, allocator);
+                } else {
+                    using inout_type = etype;
+                    // std::cout << ": InOut is " << typeid(inout_type).name()
+                    //          << '\n';
+                    apply_spmv<inout_type>(format_name.c_str(), exec, data,
+                                           lend(b), lend(x), lend(answer),
+                                           test_case, allocator);
+                }
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
                 if (spmv_case[format_name.c_str()]["completed"].GetBool()) {
