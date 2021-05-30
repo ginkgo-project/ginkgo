@@ -50,11 +50,11 @@ namespace kernels {
 namespace cuda {
 
 
+namespace batch_jacobi {
+
+
 constexpr int default_block_size = 128;
 // constexpr int sm_multiplier = 4;
-
-
-namespace batch_jacobi {
 
 
 #include "common/components/uninitialized_array.hpp.inc"
