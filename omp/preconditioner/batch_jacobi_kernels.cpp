@@ -37,13 +37,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
-#include "reference/matrix/batch_struct.hpp"
-#include "reference/preconditioner/batch_jacobi.hpp"
+#include "omp/matrix/batch_struct.hpp"
+#include "omp/preconditioner/batch_jacobi.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace omp {
+
+namespace batch_jacobi {
 
 
 template <typename ValueType>
@@ -51,11 +53,35 @@ void batch_jacobi_apply(std::shared_ptr<const gko::OmpExecutor> exec,
                         const matrix::BatchCsr<ValueType> *const a,
                         const matrix::BatchDense<ValueType> *const b,
                         matrix::BatchDense<ValueType> *const x)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto a_ub = get_batch_struct(a);
+    const auto b_ub = get_batch_struct(b);
+    const auto x_ub = get_batch_struct(x);
+    const int local_size_bytes =
+        BatchJacobi<ValueType>::dynamic_work_size(a_ub.num_rows, a_ub.num_nnz) *
+        sizeof(ValueType);
+    using byte = unsigned char;
+
+#pragma omp parallel for
+    for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
+        Array<byte> local_space(exec, local_size_bytes);
+        BatchJacobi<ValueType> prec;
+
+        const auto a_b = gko::batch::batch_entry(a_ub, batch);
+        const auto b_b = gko::batch::batch_entry(b_ub, batch);
+        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+
+        const auto prec_work =
+            reinterpret_cast<ValueType *>(local_space.get_data());
+        prec.generate(a_b, prec_work);
+        prec.apply(b_b, x_b);
+    }
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_KERNEL);
 
-
+}  // namespace batch_jacobi
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko

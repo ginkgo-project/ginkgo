@@ -108,6 +108,8 @@ public:
                               static_cast<size_type>(
                                   batch_config<ValueType>::max_num_rhs),
                               1, nrhs});
+
+            __syncthreads();
             check_norms(norms, converged);
         }
 
