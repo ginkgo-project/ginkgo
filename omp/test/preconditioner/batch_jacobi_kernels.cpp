@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "core/preconditioner/batch_identity_kernels.hpp"
+#include "core/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
 
@@ -63,14 +63,14 @@ T get_num(T)
 }
 
 template <typename T>
-class BatchIdentity : public ::testing::Test {
+class BatchJacobi : public ::testing::Test {
 protected:
     using value_type = T;
     using real_type = gko::remove_complex<value_type>;
     using Mtx = gko::matrix::BatchCsr<value_type, int>;
     using BDense = gko::matrix::BatchDense<value_type>;
 
-    BatchIdentity()
+    BatchJacobi()
         : exec(gko::ReferenceExecutor::create()),
           ompexec(gko::OmpExecutor::create()),
           ref_mtx(gko::test::generate_uniform_batch_random_matrix<Mtx>(
@@ -116,7 +116,7 @@ protected:
     std::unique_ptr<Mtx> omp_mtx;
     static constexpr real_type eps = std::numeric_limits<real_type>::epsilon();
 
-    void check_identity(const int nrhs)
+    void check_jacobi(const int nrhs)
     {
         auto ref_b = gko::test::generate_uniform_batch_random_matrix<BDense>(
             nbatch, nrows, nrhs, std::uniform_int_distribution<>(nrhs, nrhs),
@@ -129,9 +129,9 @@ protected:
         auto omp_x = BDense::create(
             ompexec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrhs)));
 
-        gko::kernels::omp::batch_identity::batch_identity_apply(
+        gko::kernels::omp::batch_jacobi::batch_jacobi_apply(
             ompexec, omp_mtx.get(), omp_b.get(), omp_x.get());
-        gko::kernels::reference::batch_identity::batch_identity_apply(
+        gko::kernels::reference::batch_jacobi::batch_jacobi_apply(
             exec, ref_mtx.get(), ref_b.get(), ref_x.get());
 
         ompexec->synchronize();
@@ -139,18 +139,18 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(BatchIdentity, gko::test::ValueTypes);
+TYPED_TEST_SUITE(BatchJacobi, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchIdentity, ApplySingleIsEquivalentToReference)
+TYPED_TEST(BatchJacobi, ApplySingleIsEquivalentToReference)
 {
-    this->check_identity(1);
+    this->check_jacobi(1);
 }
 
 
-TYPED_TEST(BatchIdentity, ApplyMultipleIsEquivalentToReference)
+TYPED_TEST(BatchJacobi, ApplyMultipleIsEquivalentToReference)
 {
-    this->check_identity(2);
+    this->check_jacobi(2);
 }
 
 
