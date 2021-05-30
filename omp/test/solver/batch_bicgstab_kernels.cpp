@@ -302,7 +302,8 @@ TYPED_TEST(BatchBicgstab, StencilSystemNoneLoggerIsCorrect)
         this->r_1.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
-        ASSERT_EQ(iter_array[i], ref_iters);
+        GKO_ASSERT((iter_array[i] <= ref_iters + 1) &&
+                   (iter_array[i] >= ref_iters - 1));
         ASSERT_LE(res_log_array[i], this->opts_1.abs_residual_tol);
         ASSERT_NEAR(res_log_array[i], this->r_1.resnorm->get_const_values()[i],
                     10 * r<value_type>::value);
@@ -334,7 +335,8 @@ TYPED_TEST(BatchBicgstab, StencilMultipleSystemNoneLoggerIsCorrect)
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
         for (size_t j = 0; j < this->nrhs; j++) {
-            ASSERT_EQ(iter_array[i * this->nrhs + j], ref_iters[j]);
+            GKO_ASSERT((iter_array[i * this->nrhs + j] <= ref_iters[j] + 1) &&
+                       (iter_array[i * this->nrhs + j] >= ref_iters[j] - 1));
             ASSERT_LE(res_log_array[i * this->nrhs + j],
                       this->opts_m.abs_residual_tol);
 
