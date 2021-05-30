@@ -45,6 +45,8 @@ namespace gko {
 namespace kernels {
 namespace omp {
 
+namespace batch_identity {
+
 
 template <typename ValueType>
 void batch_identity_apply(std::shared_ptr<const gko::OmpExecutor> exec,
@@ -79,7 +81,7 @@ void batch_identity_apply(std::shared_ptr<const gko::OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDENTITY_KERNEL);
 
-
+}  // namespace batch_identity
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko
