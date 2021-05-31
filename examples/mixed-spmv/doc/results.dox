@@ -1,0 +1,16 @@
+<h1>Results</h1>
+The following is the expected result (omp):
+
+@code{.cpp}
+
+High Precision time(s): 1.2272200000e-05
+High Precision result norm: 1.1581546305e+01
+Low Precision time(s): 1.2360400000e-05
+Low Precision relative error: 4.4554843634e-08
+Hp * Lp -> Hp time(s): 1.2302300000e-05
+Hp * Lp -> Hp relative error: 1.4490698720e-08
+Lp * Lp -> Hp time(s): 1.2614800000e-05
+Lp * Lp -> Hp relative error: 1.4490698720e-08
+@endcode
+
+<h3> Comments about programming and debugging </h3>
