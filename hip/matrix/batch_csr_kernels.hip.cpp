@@ -102,15 +102,15 @@ template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const HipExecutor> exec,
           const matrix::BatchCsr<ValueType, IndexType> *const a,
           const matrix::BatchDense<ValueType> *const b,
-          matrix::BatchDense<ValueType> *const c)
-{
-    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
-    const auto a_ub = get_batch_struct(a);
-    const auto b_ub = get_batch_struct(b);
-    const auto c_ub = get_batch_struct(c);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(spmv), dim3(num_blocks),
-                       dim3(default_block_size), 0, 0, a_ub, b_ub, c_ub);
-}
+          matrix::BatchDense<ValueType> *const c) GKO_NOT_IMPLEMENTED;
+// {
+//     const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+//     const auto a_ub = get_batch_struct(a);
+//     const auto b_ub = get_batch_struct(b);
+//     const auto c_ub = get_batch_struct(c);
+//     hipLaunchKernelGGL(HIP_KERNEL_NAME(spmv), dim3(num_blocks),
+//                        dim3(default_block_size), 0, 0, a_ub, b_ub, c_ub);
+// }
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -123,18 +123,18 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                    const matrix::BatchCsr<ValueType, IndexType> *const a,
                    const matrix::BatchDense<ValueType> *const b,
                    const matrix::BatchDense<ValueType> *const beta,
-                   matrix::BatchDense<ValueType> *const c)
-{
-    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
-    const auto a_ub = get_batch_struct(a);
-    const auto b_ub = get_batch_struct(b);
-    const auto c_ub = get_batch_struct(c);
-    const auto alpha_ub = get_batch_struct(alpha);
-    const auto beta_ub = get_batch_struct(beta);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(advanced_spmv), dim3(num_blocks),
-                       dim3(default_block_size), 0, 0, alpha_ub, a_ub, b_ub,
-                       beta_ub, c_ub);
-}
+                   matrix::BatchDense<ValueType> *const c) GKO_NOT_IMPLEMENTED;
+// {
+//     const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+//     const auto a_ub = get_batch_struct(a);
+//     const auto b_ub = get_batch_struct(b);
+//     const auto c_ub = get_batch_struct(c);
+//     const auto alpha_ub = get_batch_struct(alpha);
+//     const auto beta_ub = get_batch_struct(beta);
+//     hipLaunchKernelGGL(HIP_KERNEL_NAME(advanced_spmv), dim3(num_blocks),
+//                        dim3(default_block_size), 0, 0, alpha_ub, a_ub, b_ub,
+//                        beta_ub, c_ub);
+// }
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -239,19 +239,21 @@ void batch_scale(std::shared_ptr<const HipExecutor> exec,
                  const matrix::BatchDense<ValueType> *const left_scale,
                  const matrix::BatchDense<ValueType> *const right_scale,
                  matrix::BatchCsr<ValueType, IndexType> *const mat)
-{
-    if (!left_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
-    if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+    GKO_NOT_IMPLEMENTED;
+// {
+//     if (!left_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+//     if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
 
-    const auto m_ub = get_batch_struct(mat);
-    const auto left_ub = get_batch_struct(left_scale);
-    const auto right_ub = get_batch_struct(right_scale);
+//     const auto m_ub = get_batch_struct(mat);
+//     const auto left_ub = get_batch_struct(left_scale);
+//     const auto right_ub = get_batch_struct(right_scale);
 
-    constexpr int block_size = 512;
-    const int num_blocks = exec->get_num_multiprocessor();
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(uniform_batch_scale), dim3(num_blocks),
-                       dim3(block_size), 0, 0, left_ub, right_ub, m_ub);
-}
+//     constexpr int block_size = 512;
+//     const int num_blocks = exec->get_num_multiprocessor();
+//     hipLaunchKernelGGL(HIP_KERNEL_NAME(uniform_batch_scale),
+//     dim3(num_blocks),
+//                        dim3(block_size), 0, 0, left_ub, right_ub, m_ub);
+// }
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
