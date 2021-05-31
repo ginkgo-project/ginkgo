@@ -81,8 +81,7 @@ namespace kernels {
 #define GKO_DECLARE_COO_CONVERT_TO_BCCOO_KERNEL(ValueType, IndexType)      \
     void convert_to_bccoo(std::shared_ptr<const DefaultExecutor> exec,     \
                           const matrix::Coo<ValueType, IndexType> *source, \
-                          matrix::Bccoo<ValueType, IndexType> *result,     \
-                          size_type block_size)
+                          matrix::Bccoo<ValueType, IndexType> *result)
 
 #define GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
     void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,     \
@@ -93,6 +92,13 @@ namespace kernels {
     void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,   \
                           const matrix::Coo<ValueType, IndexType> *orig, \
                           matrix::Diagonal<ValueType> *diag)
+
+#define GKO_DECLARE_MEM_SIZE_BCCOO_KERNEL(ValueType, IndexType)               \
+    void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,        \
+                        const IndexType *row_idxs, const IndexType *col_idxs, \
+                        const size_type num_rows, IndexType rows,             \
+                        IndexType offsets, const size_type block_size,        \
+                        size_type *mem_size)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                               \
     template <typename ValueType, typename IndexType>              \
@@ -110,7 +116,9 @@ namespace kernels {
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_MEM_SIZE_BCCOO_KERNEL(ValueType, IndexType)
 
 
 namespace omp {

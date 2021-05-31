@@ -71,13 +71,13 @@ inline void convert_ptrs_to_idxs(const IndexType *ptrs, size_type num_rows,
 }
 
 
+/*
 template <typename ValueType, typename IndexType>
 inline size_type mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                                 const IndexType *row_idxs,
                                 const IndexType *col_idxs,
                                 const IndexType num_rows,
                                 const IndexType block_size) GKO_NOT_IMPLEMENTED;
-/*
 {
     size_type p = 0;
     for (size_type b = 0; b < nb; b++) {
