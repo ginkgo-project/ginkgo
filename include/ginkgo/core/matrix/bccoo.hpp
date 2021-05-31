@@ -230,6 +230,13 @@ public:
     size_type get_num_stored_elements() const noexcept { return num_nonzeros_; }
 
     /**
+     * Returns the block size used in the definition of the matrix.
+     *
+     * @return the block size used in the definition of the matrix.
+     */
+    size_type get_block_size() const noexcept { return rows_.get_num_elems(); }
+
+    /**
      * Returns the number of blocks used in the definition of the matrix.
      *
      * @return the number of blocks used in the definition of the matrix.
@@ -315,27 +322,6 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
-     * @param num_blocks    number of blocks
-     * @param num_bytes     number of bytes
-     */
-    /*
-        Bccoo(std::shared_ptr<const Executor> exec, const dim<2> &size =
-       dim<2>{}, size_type num_nonzeros = {}, size_type num_blocks = {},
-              size_type num_bytes = {})
-            : EnableLinOp<Bccoo>(exec, size),
-              rows_(exec, num_blocks),
-              offsets_(exec, num_blocks + 1),
-              data_(exec, num_bytes),
-                                            num_nonzeros_{num_nonzeros}
-        {}
-    */
-
-    /**
-     * Creates an uninitialized BCCOO matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_nonzeros  number of nonzeros
      * @param block_size    number of nonzeros in each block
      * @param num_bytes     number of bytes
      */
@@ -347,22 +333,26 @@ protected:
           offsets_(exec, (num_nonzeros - 1) / block_size + 2),
           data_(exec, num_bytes),
           num_nonzeros_{num_nonzeros},
-          block_size{block_size}
+          block_size_{block_size}
     {}
 
     /**
-     * Creates a BCCOO matrix from already allocated (and initialized) row
-     * index, column index and value arrays.
+     * Creates a BCCOO matrix from already allocated (and initialized) rows
+     * offsets and data arrays.
      *
-     * @tparam ValuesArray  type of `values` array
-     * @tparam ColIdxsArray  type of `col_idxs` array
-     * @tparam RowIdxArray  type of `row_idxs` array
+     * @tparam DataArray  type of `data` array
+     * @tparam OffIdxsArray  type of `offsets` array
+     * @tparam RowIdxArray  type of `rows` array
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
-     * @param values  array of matrix values
-     * @param col_idxs  array of column indexes
-     * @param row_idxs  array of row pointers
+     * @param data  array of matrix indexes and matrix values
+     * @param offsets  array of positions of the first entry of each block in
+     * data array
+     * @param rows  array of row index of the first entry of each block in data
+     * array
+     * @param num_nonzeros  number of nonzeros
+     * @param block_size    number of nonzeros in each block
      *
      * @note If one of `row_idxs`, `col_idxs` or `values` is not an rvalue, not
      *       an array of IndexType, IndexType and ValueType, respectively, or
@@ -370,22 +360,19 @@ protected:
      *       created, and the original array data will not be used in the
      *       matrix.
      */
-    /*
-    // JIAE
-        template <typename ValuesArray, typename ColIdxsArray,
-                  typename RowIdxsArray>
-        Bccoo(std::shared_ptr<const Executor> exec, const dim<2> &size,
-              ValuesArray &&values, ColIdxsArray &&col_idxs,
-              RowIdxsArray &&row_idxs)
-            : EnableLinOp<Bccoo>(exec, size),
-              values_{exec, std::forward<ValuesArray>(values)},
-              col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
-              row_idxs_{exec, std::forward<RowIdxsArray>(row_idxs)}
-        {
-            GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
-            GKO_ASSERT_EQ(values_.get_num_elems(), row_idxs_.get_num_elems());
-        }
-    */
+    template <typename DataArray, typename OffIdxsArray, typename RowIdxsArray>
+    Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
+          DataArray&& data, OffIdxsArray&& offsets, RowIdxsArray&& rows,
+          size_type num_nonzeros = {}, size_type block_size = {})
+        : EnableLinOp<Bccoo>(exec, size),
+          data_{exec, std::forward<DataArray>(data)},
+          offsets_{exec, std::forward<OffIdxsArray>(offsets)},
+          rows_{exec, std::forward<RowIdxsArray>(rows)},
+          num_nonzeros_{num_nonzeros},
+          block_size_{block_size}
+    {
+        GKO_ASSERT_EQ(rows_.get_num_elems() + 1, offsets_.get_num_elems());
+    }
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
@@ -403,7 +390,7 @@ private:
     array<index_type> rows_;
     array<index_type> offsets_;  // To fix to int64 should be a better option
     array<uint8> data_;
-    size_type block_size;
+    size_type block_size_;
     size_type num_nonzeros_;
     // size_type num_blocks_;
     // size_type num_bytes_;
