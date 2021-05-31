@@ -60,19 +60,21 @@ void batch_identity_apply(std::shared_ptr<const gko::HipExecutor> exec,
                           const matrix::BatchCsr<ValueType> *const a,
                           const matrix::BatchDense<ValueType> *const b,
                           matrix::BatchDense<ValueType> *const x)
-{
-    const auto a_ub = get_batch_struct(a);
-    const auto b_ub = get_batch_struct(b);
-    const auto x_ub = get_batch_struct(x);
-    const size_type nbatch = a->get_num_batch_entries();
-    const int shared_size = BatchIdentity<ValueType>::dynamic_work_size(
-                                a_ub.num_rows, a_ub.num_nnz) *
-                            sizeof(ValueType);
+    GKO_NOT_IMPLEMENTED;
+// {
+//     const auto a_ub = get_batch_struct(a);
+//     const auto b_ub = get_batch_struct(b);
+//     const auto x_ub = get_batch_struct(x);
+//     const size_type nbatch = a->get_num_batch_entries();
+//     const int shared_size = BatchIdentity<ValueType>::dynamic_work_size(
+//                                 a_ub.num_rows, a_ub.num_nnz) *
+//                             sizeof(ValueType);
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(batch_identity), dim3(nbatch),
-                       dim3(default_block_size), shared_size, 0,
-                       BatchIdentity<hip_type<ValueType>>(), a_ub, b_ub, x_ub);
-}
+//     hipLaunchKernelGGL(HIP_KERNEL_NAME(batch_identity), dim3(nbatch),
+//                        dim3(default_block_size), shared_size, 0,
+//                        BatchIdentity<hip_type<ValueType>>(), a_ub, b_ub,
+//                        x_ub);
+// }
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDENTITY_KERNEL);
