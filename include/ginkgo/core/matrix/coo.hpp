@@ -123,12 +123,8 @@ public:
 
     void move_to(Coo<next_precision<ValueType>, IndexType>* result) override;
 
-    //    void convert_to(size_type block_size, Bccoo<ValueType, IndexType>
-    //    *other) const override;
     void convert_to(Bccoo<ValueType, IndexType>* other) const override;
 
-    //    void move_to(size_type block_size, Bccoo<ValueType, IndexType> *other)
-    //    override;
     void move_to(Bccoo<ValueType, IndexType>* other) override;
 
     void convert_to(Csr<ValueType, IndexType>* other) const override;
