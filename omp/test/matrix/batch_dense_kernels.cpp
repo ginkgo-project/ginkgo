@@ -168,7 +168,7 @@ TEST_F(BatchDense, SingleVectorScaleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, MultipleVectorOmpScaleIsEquivalentToRef)
+TEST_F(BatchDense, MultipleVectorScaleIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -190,7 +190,7 @@ TEST_F(BatchDense, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, SingleVectorOmpAddScaledIsEquivalentToRef)
+TEST_F(BatchDense, SingleVectorAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -201,7 +201,7 @@ TEST_F(BatchDense, SingleVectorOmpAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, MultipleVectorOmpAddScaledIsEquivalentToRef)
+TEST_F(BatchDense, MultipleVectorAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -212,8 +212,7 @@ TEST_F(BatchDense, MultipleVectorOmpAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense,
-       MultipleVectorOmpAddScaledWithDifferentAlphaIsEquivalentToRef)
+TEST_F(BatchDense, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -251,7 +250,7 @@ TEST_F(BatchDense,
 //}
 
 
-TEST_F(BatchDense, SingleVectorOmpComputeDotIsEquivalentToRef)
+TEST_F(BatchDense, SingleVectorComputeDotIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -262,7 +261,7 @@ TEST_F(BatchDense, SingleVectorOmpComputeDotIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, MultipleVectorOmpComputeDotIsEquivalentToRef)
+TEST_F(BatchDense, MultipleVectorComputeDotIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
