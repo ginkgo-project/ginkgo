@@ -98,7 +98,7 @@ static void apply_impl(
             0;
 #endif
 
-        apply_kernel<stop::AbsAndRelResidualMaxIter<ValueType>>
+        apply_kernel<stop::AbsOrRelResidualMaxIter<ValueType>>
             <<<nbatch, default_block_size, shared_size>>>(
                 opts.max_its, opts.abs_residual_tol, opts.rel_residual_tol,
                 opts.tol_type, logger, BatchIdentity<ValueType>(), a, left,
@@ -115,7 +115,7 @@ static void apply_impl(
             0;
 #endif
 
-        apply_kernel<stop::AbsAndRelResidualMaxIter<ValueType>>
+        apply_kernel<stop::AbsOrRelResidualMaxIter<ValueType>>
             <<<nbatch, default_block_size, shared_size>>>(
                 opts.max_its, opts.abs_residual_tol, opts.rel_residual_tol,
                 opts.tol_type, logger, BatchJacobi<ValueType>(), a, left, right,

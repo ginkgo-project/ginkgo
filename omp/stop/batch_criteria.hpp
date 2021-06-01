@@ -49,8 +49,6 @@ namespace kernels {
 namespace omp {
 namespace stop {
 
-namespace detail {}  // namespace detail
-
 
 // TODO: Remove this
 enum class tolerance {
@@ -69,7 +67,7 @@ enum class tolerance {
  * At most 32 right-hand-side vectors are supported.
  */
 template <typename ValueType>
-class AbsAndRelResidualMaxIter {
+class AbsOrRelResidualMaxIter {
 public:
     using real_type = remove_complex<ValueType>;
     // using tolerance = ::gko::stop::batch::ToleranceType;
@@ -87,12 +85,11 @@ public:
      *                          be passed to the \ref check_converged function.
      * @param rhs_b_norms  The reference RHS norms.
      */
-    AbsAndRelResidualMaxIter(const int num_rhs, const int max_iters,
-                             const real_type abs_res_tol,
-                             const real_type rel_res_tol,
-                             const tolerance type_of_tol,
-                             bitset_type &converge_bitset,
-                             const real_type *const rhs_b_norms)
+    AbsOrRelResidualMaxIter(bitset_type &converge_bitset, const int num_rhs,
+                            const int max_iters, const real_type abs_res_tol,
+                            const real_type rel_res_tol,
+                            const tolerance type_of_tol,
+                            const real_type *const rhs_b_norms)
         : nrhs{num_rhs},
           rel_tol{rel_res_tol},
           abs_tol{abs_res_tol},

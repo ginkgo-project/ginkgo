@@ -145,21 +145,6 @@ private:
 
 namespace stop {
 
-namespace detail {
-
-
-constexpr uint32 power(const uint32 x, const int N)
-{
-    uint32 ans = 1;
-    for (int i = 0; i < N; i++) {
-        ans *= x;
-    }
-    return ans;
-}
-
-
-}  // namespace detail
-
 
 // TODO: Remove this
 enum class tolerance {
@@ -177,7 +162,7 @@ enum class tolerance {
  * At most 32 right-hand-side vectors are supported.
  */
 template <typename ValueType>
-class AbsAndRelResidualMaxIter {
+class AbsOrRelResidualMaxIter {
 public:
     using real_type = remove_complex<ValueType>;
     // using tolerance = ::gko::stop::batch::ToleranceType;
@@ -195,7 +180,7 @@ public:
      *                          be passed to the \ref check_converged function.
      * @param rhs_b_norms  The reference RHS norms.
      */
-    __device__ __forceinline__ AbsAndRelResidualMaxIter(
+    __device__ __forceinline__ AbsOrRelResidualMaxIter(
         const int num_rhs, const int max_iters, const real_type abs_res_tol,
         const real_type rel_res_tol, const tolerance type_of_tol,
         const real_type *const rhs_b_norms, bitset_type &converge_bitset)
@@ -236,11 +221,10 @@ public:
         if (residual_norms) {
             check_norms(residual_norms, converged);
         } else {
-            //__shared__ UninitializedArray<real_type, 32> norms;
-
             __shared__ real_type norms[batch_config<ValueType>::max_num_rhs];
 
-            compute_norm2<ValueType>(residual, {norms, 32, 1, nrhs});
+            compute_norm2<ValueType>(
+                residual, {norms, static_cast<size_type>(nrhs), 1, nrhs});
 
             __syncthreads();
 
