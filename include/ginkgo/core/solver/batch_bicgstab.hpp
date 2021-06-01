@@ -125,7 +125,6 @@ public:
 
         /**
          * To specify which tolerance is to be considered.
-         *
          */
         ::gko::stop::batch::ToleranceType GKO_FACTORY_PARAMETER_SCALAR(
             tolerance_type, ::gko::stop::batch::ToleranceType::absolute);
