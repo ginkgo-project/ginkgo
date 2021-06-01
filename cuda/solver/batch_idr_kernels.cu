@@ -161,9 +161,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     using cu_value_type = cuda_type<ValueType>;
 
     if (opts.is_complex_subspace == true &&
-        !is_complex<ValueType>())  // Currently, the option of having complex
-                                   // subspace for real matrices is not
-                                   // supported.
+        !is_complex<ValueType>())
     {
         GKO_NOT_IMPLEMENTED;
     }

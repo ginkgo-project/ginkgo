@@ -173,12 +173,10 @@ protected:
           system_matrix_{std::move(system_matrix)}
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
-        restart_ = parameters_.restart;
     }
 
 private:
     std::shared_ptr<const BatchLinOp> system_matrix_{};
-    int restart_;
 };
 
 

@@ -42,7 +42,7 @@ public:
     /**
      * The size of the work vector required in case of static allocation.
      */
-    static constexpr int work_size = 1;
+    static constexpr int work_size = 0;
 
 
     /**
@@ -53,9 +53,9 @@ public:
      * preconditioners may need it.
      */
     __host__ __device__ static constexpr int dynamic_work_size(
-        const int num_rows, int)
+        int, int)
     {
-        return 1;
+        return 0;
     }
 
 
@@ -69,7 +69,7 @@ public:
      */
     __device__ __forceinline__ void generate(
         const gko::batch_csr::BatchEntry<const ValueType> &mat,
-        ValueType *const __restrict__ work)
+        ValueType *)
     {}
 
     __device__ __forceinline__ void apply(
