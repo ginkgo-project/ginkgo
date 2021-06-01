@@ -45,7 +45,7 @@ namespace gko {
 namespace kernels {
 namespace batch_gmres {
 
-constexpr int max_restart = 5;
+constexpr int max_restart = 20;
 
 /**
  * Options controlling the batch Gmres solver.
@@ -64,13 +64,16 @@ struct BatchGmresOptions {
 /**
  * Calculates the amount of in-solver storage needed by batch-Gmres.
  *
- * The calculation includes multivectors for
+ * The calculation includes
+ * multivectors (length of each vector: number of rows in system matrix) for
  * - r
  * - z
  * - w
  * - x
+ * multivectors (length of each vector: restart ) for
  * - cs
  * - sn
+ * multivectors (length of each vector: restart + 1) for
  * - s
  * matrices for
  * - Hessenberg matrix
