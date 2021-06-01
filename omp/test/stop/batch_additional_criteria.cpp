@@ -56,7 +56,7 @@ void conv_check(const int nrhs, const int nrows,
                 const T *const residual, uint32_t *const converged,
                 bool *const all_conv, gko::stop::batch::ToleranceType tol_type)
 {
-    using BatchStop = gko::kernels::omp::stop::AbsAndRelResidualMaxIter<T>;
+    using BatchStop = gko::kernels::omp::stop::AbsOrRelResidualMaxIter<T>;
     const int maxits = 10;
     const int iter = 5;
     const gko::remove_complex<T> rel_tol = 1e-5;
@@ -64,9 +64,9 @@ void conv_check(const int nrhs, const int nrows,
     gko::batch_dense::BatchEntry<const T> res{
         residual, static_cast<size_t>(nrhs), nrows, nrhs};
 
-    BatchStop bstop(nrhs, maxits, abs_tol, rel_tol,
+    BatchStop bstop(*converged, nrhs, maxits, abs_tol, rel_tol,
                     static_cast<gko::kernels::omp::stop::tolerance>(tol_type),
-                    *converged, bnorms);
+                    bnorms);
     *all_conv = bstop.check_converged(iter, res_norms, res, *converged);
 }
 

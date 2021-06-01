@@ -72,6 +72,8 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
 
+    const real_type eps = r<value_type>::value;
+
     const size_t nbatch = 2;
     const int nrows = 3;
     std::shared_ptr<const BDense> b_1;
@@ -79,14 +81,14 @@ protected:
     std::shared_ptr<RBDense> bnorm_1;
     const Options opts_1{gko::preconditioner::batch::type::none,
                          500,
-                         1e-6,
-                         1e-11,
+                         static_cast<real_type>(1e3) * eps,
+                         eps,
                          2,
                          false,
                          0.70,
                          true,
                          true,
-                         gko::stop::batch::ToleranceType::absolute};
+                         gko::stop::batch::ToleranceType::relative};
 
     const int nrhs = 2;
     std::shared_ptr<const BDense> b_m;
@@ -94,8 +96,8 @@ protected:
     std::shared_ptr<RBDense> bnorm_m;
     const Options opts_m{gko::preconditioner::batch::type::none,
                          500,
-                         1e-6,
-                         1e-11,
+                         static_cast<real_type>(1e3) * eps,
+                         eps,
                          2,
                          false,
                          0.70,
@@ -155,7 +157,7 @@ protected:
     int single_iters_regression() const
     {
         if (std::is_same<real_type, float>::value) {
-            return 3;
+            return 2;
         } else if (std::is_same<real_type, double>::value) {
             return 2;
         } else {
@@ -204,8 +206,8 @@ protected:
     {
         std::vector<int> iters(2);
         if (std::is_same<real_type, float>::value) {
-            iters[0] = 3;
-            iters[1] = 3;
+            iters[0] = 2;
+            iters[1] = 2;
         } else if (std::is_same<real_type, double>::value) {
             iters[0] = 2;
             iters[1] = 2;
@@ -220,16 +222,15 @@ protected:
 TYPED_TEST_SUITE(BatchIdr, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchIdr, SolvesStencilSystemNone)
+TYPED_TEST(BatchIdr, SolvesStencilSystem)
 {
     this->r_1 = this->solve_poisson_uniform_1(this->opts_1);
 
 
-    GKO_ASSERT_BATCH_MTX_NEAR(this->r_1.x, this->xex_1,
-                              1e-6 /*r<value_type>::value*/);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->r_1.x, this->xex_1, this->eps);
 }
 
-TYPED_TEST(BatchIdr, StencilSystemNoneLoggerIsCorrect)
+TYPED_TEST(BatchIdr, StencilSystemLoggerIsCorrect)
 {
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
@@ -244,24 +245,27 @@ TYPED_TEST(BatchIdr, StencilSystemNoneLoggerIsCorrect)
         this->r_1.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
-        ASSERT_EQ(iter_array[i], ref_iters);
-        ASSERT_LE(res_log_array[i], this->opts_1.abs_residual_tol);
+
+        GKO_ASSERT((iter_array[i] <= ref_iters + 1) &&
+                   (iter_array[i] >= ref_iters - 1));
+
+        ASSERT_LE(res_log_array[i] / this->bnorm_1->at(i, 0, 0),
+                  this->opts_1.rel_residual_tol);
         ASSERT_NEAR(res_log_array[i], this->r_1.resnorm->get_const_values()[i],
-                    10 * r<value_type>::value);
+                    10 * this->eps);
     }
 }
 
 
-TYPED_TEST(BatchIdr, SolvesStencilMultipleSystemNone)
+TYPED_TEST(BatchIdr, SolvesStencilMultipleSystem)
 {
     this->r_m = this->solve_poisson_uniform_mult();
 
-    GKO_ASSERT_BATCH_MTX_NEAR(this->r_m.x, this->xex_m,
-                              1e-6 /*r<value_type>::value*/);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->r_m.x, this->xex_m, this->eps);
 }
 
 
-TYPED_TEST(BatchIdr, StencilMultipleSystemNoneLoggerIsCorrect)
+TYPED_TEST(BatchIdr, StencilMultipleSystemLoggerIsCorrect)
 {
     using value_type = typename TestFixture::value_type;
     // using value_type = float;
@@ -278,14 +282,16 @@ TYPED_TEST(BatchIdr, StencilMultipleSystemNoneLoggerIsCorrect)
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
         for (size_t j = 0; j < this->nrhs; j++) {
-            ASSERT_EQ(iter_array[i * this->nrhs + j], ref_iters[j]);
+            GKO_ASSERT((iter_array[i * this->nrhs + j] <= ref_iters[j] + 1) &&
+                       (iter_array[i * this->nrhs + j] >= ref_iters[j] - 1));
+
             ASSERT_LE(res_log_array[i * this->nrhs + j],
                       this->opts_m.abs_residual_tol);
 
             ASSERT_NEAR(
                 res_log_array[i * this->nrhs + j],
                 this->r_m.resnorm->get_const_values()[i * this->nrhs + j],
-                10 * r<value_type>::value);
+                this->eps);
         }
     }
 }
@@ -304,8 +310,7 @@ TYPED_TEST(BatchIdr, UnitScalingDoesNotChangeResult)
         this->opts_1, left_scale.get(), right_scale.get());
 
 
-    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->xex_1,
-                              1e-6 /*r<value_type>::value*/);
+    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->xex_1, this->eps);
 }
 
 
@@ -323,8 +328,7 @@ TYPED_TEST(BatchIdr, GeneralScalingDoesNotChangeResult)
     Result result = this->solve_poisson_uniform_1(
         this->opts_1, left_scale.get(), right_scale.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->xex_1,
-                              1e-06 /*r<value_type>::value*/);
+    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->xex_1, this->eps);
 }
 
 

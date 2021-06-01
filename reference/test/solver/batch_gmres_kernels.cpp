@@ -72,22 +72,30 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
 
+    const real_type eps = r<value_type>::value;
+
     const size_t nbatch = 2;
     const int nrows = 3;
     std::shared_ptr<const BDense> b_1;
     std::shared_ptr<const BDense> xex_1;
     std::shared_ptr<RBDense> bnorm_1;
-    const Options opts_1{
-        gko::preconditioner::batch::type::none,   500, 1e-6, 1e-11, 2,
-        gko::stop::batch::ToleranceType::absolute};
+    const Options opts_1{gko::preconditioner::batch::type::none,
+                         500,
+                         static_cast<real_type>(10) * eps,
+                         eps,
+                         2,
+                         gko::stop::batch::ToleranceType::relative};
 
     const int nrhs = 2;
     std::shared_ptr<const BDense> b_m;
     std::shared_ptr<const BDense> xex_m;
     std::shared_ptr<RBDense> bnorm_m;
-    const Options opts_m{
-        gko::preconditioner::batch::type::none,   500, 1e-6, 1e-11, 2,
-        gko::stop::batch::ToleranceType::absolute};
+    const Options opts_m{gko::preconditioner::batch::type::none,
+                         500,
+                         static_cast<real_type>(10) * eps,
+                         eps,
+                         2,
+                         gko::stop::batch::ToleranceType::absolute};
 
     struct Result {
         std::shared_ptr<BDense> x;
@@ -141,9 +149,9 @@ protected:
     int single_iters_regression() const
     {
         if (std::is_same<real_type, float>::value) {
-            return 45;
+            return 26;
         } else if (std::is_same<real_type, double>::value) {
-            return 62;
+            return 74;
         } else {
             return -1;
         }
@@ -190,11 +198,11 @@ protected:
     {
         std::vector<int> iters(2);
         if (std::is_same<real_type, float>::value) {
-            iters[0] = 45;
-            iters[1] = 46;
+            iters[0] = 35;
+            iters[1] = 17;
         } else if (std::is_same<real_type, double>::value) {
-            iters[0] = 62;
-            iters[1] = 31;
+            iters[0] = 83;
+            iters[1] = 40;
         } else {
             iters[0] = -1;
             iters[1] = -1;
@@ -206,16 +214,15 @@ protected:
 TYPED_TEST_SUITE(BatchGmres, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchGmres, SolvesStencilSystemNone)
+TYPED_TEST(BatchGmres, SolvesStencilSystem)
 {
     this->r_1 = this->solve_poisson_uniform_1(this->opts_1);
 
 
-    GKO_ASSERT_BATCH_MTX_NEAR(this->r_1.x, this->xex_1,
-                              1e-6 /*r<value_type>::value*/);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->r_1.x, this->xex_1, 1e2 * this->eps);
 }
 
-TYPED_TEST(BatchGmres, StencilSystemNoneLoggerIsCorrect)
+TYPED_TEST(BatchGmres, StencilSystemLoggerIsCorrect)
 {
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
@@ -230,24 +237,29 @@ TYPED_TEST(BatchGmres, StencilSystemNoneLoggerIsCorrect)
         this->r_1.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
-        ASSERT_EQ(iter_array[i], ref_iters);
-        ASSERT_LE(res_log_array[i], this->opts_1.abs_residual_tol);
+
+        GKO_ASSERT((iter_array[i] <= ref_iters + 1) &&
+                   (iter_array[i] >= ref_iters - 1));
+
+        ASSERT_LE(res_log_array[i] / this->bnorm_1->at(i, 0, 0),
+                  this->opts_1.rel_residual_tol);
         ASSERT_NEAR(res_log_array[i], this->r_1.resnorm->get_const_values()[i],
-                    10 * r<value_type>::value);
+                    10 * this->eps);
     }
 }
 
 
-TYPED_TEST(BatchGmres, SolvesStencilMultipleSystemNone)
+TYPED_TEST(BatchGmres, SolvesStencilMultipleSystem)
 {
+    using value_type = typename TestFixture::value_type;
+
     this->r_m = this->solve_poisson_uniform_mult();
 
-    GKO_ASSERT_BATCH_MTX_NEAR(this->r_m.x, this->xex_m,
-                              1e-6 /*r<value_type>::value*/);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->r_m.x, this->xex_m, this->eps);
 }
 
 
-TYPED_TEST(BatchGmres, StencilMultipleSystemNoneLoggerIsCorrect)
+TYPED_TEST(BatchGmres, StencilMultipleSystemLoggerIsCorrect)
 {
     using value_type = typename TestFixture::value_type;
     // using value_type = float;
@@ -264,14 +276,16 @@ TYPED_TEST(BatchGmres, StencilMultipleSystemNoneLoggerIsCorrect)
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
         for (size_t j = 0; j < this->nrhs; j++) {
-            ASSERT_EQ(iter_array[i * this->nrhs + j], ref_iters[j]);
+            GKO_ASSERT((iter_array[i * this->nrhs + j] <= ref_iters[j] + 1) &&
+                       (iter_array[i * this->nrhs + j] >= ref_iters[j] - 1));
+
             ASSERT_LE(res_log_array[i * this->nrhs + j],
                       this->opts_m.abs_residual_tol);
 
             ASSERT_NEAR(
                 res_log_array[i * this->nrhs + j],
                 this->r_m.resnorm->get_const_values()[i * this->nrhs + j],
-                10 * r<value_type>::value);
+                10 * this->eps);
         }
     }
 }
@@ -279,6 +293,8 @@ TYPED_TEST(BatchGmres, StencilMultipleSystemNoneLoggerIsCorrect)
 
 TYPED_TEST(BatchGmres, UnitScalingDoesNotChangeResult)
 {
+    using value_type = typename TestFixture::value_type;
+
     using Result = typename TestFixture::Result;
     using BDense = typename TestFixture::BDense;
     auto left_scale = gko::batch_initialize<BDense>(
@@ -290,13 +306,13 @@ TYPED_TEST(BatchGmres, UnitScalingDoesNotChangeResult)
         this->opts_1, left_scale.get(), right_scale.get());
 
 
-    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->xex_1,
-                              1e-6 /*r<value_type>::value*/);
+    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->xex_1, 1e2 * this->eps);
 }
 
 
 TYPED_TEST(BatchGmres, GeneralScalingDoesNotChangeResult)
 {
+    using value_type = typename TestFixture::value_type;
     using Result = typename TestFixture::Result;
     using BDense = typename TestFixture::BDense;
     using Options = typename TestFixture::Options;
@@ -309,8 +325,7 @@ TYPED_TEST(BatchGmres, GeneralScalingDoesNotChangeResult)
     Result result = this->solve_poisson_uniform_1(
         this->opts_1, left_scale.get(), right_scale.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->xex_1,
-                              1e-06 /*r<value_type>::value*/);
+    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->xex_1, 1e2 * this->eps);
 }
 
 
@@ -381,7 +396,7 @@ TEST(BatchGmres, CanSolveWithoutScaling)
         }
     }
 
-    GKO_ASSERT_BATCH_MTX_NEAR(logged_res, rnorm, 6000 * tol);
+    GKO_ASSERT_BATCH_MTX_NEAR(logged_res, rnorm, 1e4 * tol);
 }
 
 
