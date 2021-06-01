@@ -661,8 +661,8 @@ __global__ void apply_kernel(
 
         // stopping criterion object
         StopType stop(nrhs, max_iter, abs_tol, rel_tol,
-                      static_cast<stop::tolerance>(tol_type), converged,
-                      rhs_norms_shared_entry.values);
+                      static_cast<stop::tolerance>(tol_type),
+                      rhs_norms_shared_entry.values, converged);
 
         int iter = -1;
 
