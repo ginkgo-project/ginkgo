@@ -331,16 +331,19 @@ void Dense<ValueType>::compute_norm2_impl(LinOp *result) const
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Dense<ValueType> *result) const
 {
-    if (result->get_size() && result->get_size() == this->get_size()) {
-        // it's important we clone the const *this instead of result, since
-        // otherwise the copy_back_deleter of the temporary_clone calls
-        // convert_to again with the same dimensions, causing an infinite
-        // recursion. For the same reason we need to check that the result size
-        // is not zero, since otherwise it could come from the initial
-        // convert_to call in make_temporary_clone.
-        auto exec = result->get_executor();
-        exec->run(
-            dense::make_copy(make_temporary_clone(exec, this).get(), result));
+    if (result->get_size() == this->get_size()) {
+        // we need to create a executor-local clone of the target data, that
+        // will be copied back later.
+        auto exec = this->get_executor();
+        auto result_array = make_temporary_clone(exec, &result->values_);
+        // create a (value, not pointer to avoid allocation overhead) view
+        // matrix on the array to avoid special-casing cross-executor copies
+        auto tmp_result =
+            Dense{exec, result->get_size(),
+                  Array<ValueType>::view(exec, result_array->get_num_elems(),
+                                         result_array->get_data()),
+                  result->get_stride()};
+        exec->run(dense::make_copy(this, &tmp_result));
     } else {
         result->values_ = this->values_;
         result->stride_ = this->stride_;
@@ -360,9 +363,7 @@ template <typename ValueType>
 void Dense<ValueType>::convert_to(
     Dense<next_precision<ValueType>> *result) const
 {
-    if (result->get_size() && result->get_size() == this->get_size()) {
-        // here we don't need to use the target executor, since the copy back
-        // invokes the non-converting convert_to(Dense<ValueType>*).
+    if (result->get_size() == this->get_size()) {
         auto exec = this->get_executor();
         exec->run(
             dense::make_copy(this, make_temporary_clone(exec, result).get()));
