@@ -56,12 +56,12 @@ public:
     /**
      * The size of the work vector required in case of static allocation.
      */
-    static constexpr int work_size = 1;
+    static constexpr int work_size = 0;
 
     /**
      * The size of the work vector required in case of dynamic allocation.
      */
-    static int dynamic_work_size(const int nrows, int) { return 1; }
+    static int dynamic_work_size(int, int) { return 0; }
 
 
     /**
