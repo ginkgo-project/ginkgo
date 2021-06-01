@@ -297,7 +297,7 @@ public:
         const Array<int64> *permutation_indices) const override;
 
     /**
-     * Writes the symetrically permuted matrix into the given output matrix.
+     * Writes the symmetrically permuted matrix into the given output matrix.
      *
      * @param permutation_indices  The array containing permutation indices.
      *                             It must have `this->get_size()[0]` elements.
@@ -319,7 +319,7 @@ public:
         const Array<int64> *permutation_indices) const override;
 
     /**
-     * Writes the inverse symetrically permuted matrix into the given output
+     * Writes the inverse symmetrically permuted matrix into the given output
      * matrix.
      *
      * @param permutation_indices  The array containing permutation indices.
