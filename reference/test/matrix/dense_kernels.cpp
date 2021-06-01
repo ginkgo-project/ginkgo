@@ -128,6 +128,7 @@ TYPED_TEST(Dense, CopyRespectsStride)
     m->convert_to(m2.get());
 
     EXPECT_EQ(m2->at(0, 0), value_type{1.0});
+    EXPECT_EQ(m2->get_stride(), 2);
     EXPECT_EQ(m2->at(1, 0), value_type{2.0});
     EXPECT_EQ(m2->get_values(), original_data);
     EXPECT_EQ(original_data[1], TypeParam{3.0});
