@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
+#include "omp/base/config.hpp"
 #include "omp/matrix/batch_dense_kernels.hpp"
 #include "omp/matrix/batch_struct.hpp"
 
@@ -48,10 +49,7 @@ namespace kernels {
 namespace omp {
 namespace stop {
 
-namespace detail {
-
-
-}  // namespace detail
+namespace detail {}  // namespace detail
 
 
 // TODO: Remove this
@@ -133,8 +131,8 @@ public:
             check_norms(residual_norms, converged);
         } else {
             real_type norms[batch_config<ValueType>::max_num_rhs];
-            batch_dense::compute_norm2<ValueType>(residual,
-                                                  {norms, static_cast<size_type>(nrhs), 1, nrhs});
+            batch_dense::compute_norm2<ValueType>(
+                residual, {norms, static_cast<size_type>(nrhs), 1, nrhs});
             check_norms(norms, converged);
         }
 
