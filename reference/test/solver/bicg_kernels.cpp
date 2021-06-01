@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/time.hpp>
 
 
+#include "core/solver/bicg_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -102,12 +103,55 @@ protected:
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec))
 
 
-    {}
+    {
+        auto small_size = gko::dim<2>{2, 2};
+        auto small_scalar_size = gko::dim<2>{1, small_size[1]};
+        small_b = Mtx::create(exec, small_size, small_size[1] + 1);
+        small_x = Mtx::create(exec, small_size, small_size[1] + 2);
+        small_one = Mtx::create(exec, small_size);
+        small_zero = Mtx::create(exec, small_size);
+        small_prev_rho = Mtx::create(exec, small_scalar_size);
+        small_rho = Mtx::create(exec, small_scalar_size);
+        small_beta = Mtx::create(exec, small_scalar_size);
+        small_zero->fill(0);
+        small_one->fill(1);
+        small_r = small_zero->clone();
+        small_z = small_zero->clone();
+        small_p = small_zero->clone();
+        small_q = small_zero->clone();
+        small_r2 = small_zero->clone();
+        small_z2 = small_zero->clone();
+        small_p2 = small_zero->clone();
+        small_q2 = small_zero->clone();
+        small_stop = gko::Array<gko::stopping_status>(exec, small_size[1]);
+        stopped.stop(1);
+        non_stopped.reset();
+        std::fill_n(small_stop.get_data(), small_stop.get_num_elems(),
+                    non_stopped);
+    }
 
-    std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> mtx_big;
     std::shared_ptr<Mtx> mtx_non_symmetric;
+    std::unique_ptr<Mtx> small_one;
+    std::unique_ptr<Mtx> small_zero;
+    std::unique_ptr<Mtx> small_prev_rho;
+    std::unique_ptr<Mtx> small_beta;
+    std::unique_ptr<Mtx> small_rho;
+    std::unique_ptr<Mtx> small_x;
+    std::unique_ptr<Mtx> small_b;
+    std::unique_ptr<Mtx> small_r;
+    std::unique_ptr<Mtx> small_z;
+    std::unique_ptr<Mtx> small_p;
+    std::unique_ptr<Mtx> small_q;
+    std::unique_ptr<Mtx> small_r2;
+    std::unique_ptr<Mtx> small_z2;
+    std::unique_ptr<Mtx> small_p2;
+    std::unique_ptr<Mtx> small_q2;
+    gko::Array<gko::stopping_status> small_stop;
+    gko::stopping_status stopped;
+    gko::stopping_status non_stopped;
     std::unique_ptr<typename Solver::Factory> bicg_factory;
     std::unique_ptr<typename Solver::Factory> bicg_factory_big;
     std::unique_ptr<typename Solver::Factory> bicg_factory_big2;
@@ -115,6 +159,134 @@ protected:
 };
 
 TYPED_TEST_SUITE(Bicg, gko::test::ValueTypes);
+
+
+TYPED_TEST(Bicg, KernelInitialize)
+{
+    this->small_b->fill(2);
+    this->small_r->fill(0);
+    this->small_z->fill(1);
+    this->small_p->fill(1);
+    this->small_q->fill(1);
+    this->small_r2->fill(0);
+    this->small_z2->fill(1);
+    this->small_p2->fill(1);
+    this->small_q2->fill(1);
+    this->small_prev_rho->fill(0);
+    this->small_rho->fill(1);
+    std::fill_n(this->small_stop.get_data(), this->small_stop.get_num_elems(),
+                this->stopped);
+
+    gko::kernels::reference::bicg::initialize(
+        this->exec, this->small_b.get(), this->small_r.get(),
+        this->small_z.get(), this->small_p.get(), this->small_q.get(),
+        this->small_prev_rho.get(), this->small_rho.get(), this->small_r2.get(),
+        this->small_z2.get(), this->small_p2.get(), this->small_q2.get(),
+        &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_r, this->small_b, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_z, this->small_zero, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_p, this->small_zero, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_q, this->small_zero, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_r2, this->small_b, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_z2, this->small_zero, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_p2, this->small_zero, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_q2, this->small_zero, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_rho, l({{0.0, 0.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_prev_rho, l({{1.0, 1.0}}), 0);
+    ASSERT_EQ(this->small_stop.get_data()[0], this->non_stopped);
+    ASSERT_EQ(this->small_stop.get_data()[1], this->non_stopped);
+}
+
+
+TYPED_TEST(Bicg, KernelStep1)
+{
+    this->small_p->fill(3);
+    this->small_z->fill(-2);
+    this->small_p2->fill(3);
+    this->small_z2->fill(-2);
+    this->small_rho->at(0) = 2;
+    this->small_rho->at(1) = 3;
+    this->small_prev_rho->at(0) = 8;
+    this->small_prev_rho->at(1) = 3;
+    this->small_stop.get_data()[1] = this->stopped;
+
+    gko::kernels::reference::bicg::step_1(
+        this->exec, this->small_p.get(), this->small_z.get(),
+        this->small_p2.get(), this->small_z2.get(), this->small_rho.get(),
+        this->small_prev_rho.get(), &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_p, l({{-1.25, 3.0}, {-1.25, 3.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_p2, l({{-1.25, 3.0}, {-1.25, 3.0}}), 0);
+}
+
+
+TYPED_TEST(Bicg, KernelStep1DivByZero)
+{
+    this->small_p->fill(3);
+    this->small_z->fill(-2);
+    this->small_p2->fill(3);
+    this->small_z2->fill(-2);
+    this->small_rho->fill(1);
+    this->small_prev_rho->fill(0);
+
+    gko::kernels::reference::bicg::step_1(
+        this->exec, this->small_p.get(), this->small_z.get(),
+        this->small_p2.get(), this->small_z2.get(), this->small_rho.get(),
+        this->small_prev_rho.get(), &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_p, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_p2, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
+}
+
+
+TYPED_TEST(Bicg, KernelStep2)
+{
+    this->small_x->fill(-2);
+    this->small_p->fill(3);
+    this->small_r->fill(4);
+    this->small_q->fill(-5);
+    this->small_r2->fill(4);
+    this->small_q2->fill(-5);
+    this->small_rho->at(0) = 2;
+    this->small_rho->at(1) = 3;
+    this->small_beta->at(0) = 8;
+    this->small_beta->at(1) = 3;
+    this->small_stop.get_data()[1] = this->stopped;
+
+    gko::kernels::reference::bicg::step_2(
+        this->exec, this->small_x.get(), this->small_r.get(),
+        this->small_r2.get(), this->small_p.get(), this->small_q.get(),
+        this->small_q2.get(), this->small_beta.get(), this->small_rho.get(),
+        &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_x, l({{-1.25, -2.0}, {-1.25, -2.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_r, l({{5.25, 4.0}, {5.25, 4.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_r2, l({{5.25, 4.0}, {5.25, 4.0}}), 0);
+}
+
+
+TYPED_TEST(Bicg, KernelStep2DivByZero)
+{
+    this->small_x->fill(-2);
+    this->small_p->fill(3);
+    this->small_r->fill(4);
+    this->small_q->fill(-5);
+    this->small_r2->fill(4);
+    this->small_q2->fill(-5);
+    this->small_rho->fill(1);
+    this->small_beta->fill(0);
+
+    gko::kernels::reference::bicg::step_2(
+        this->exec, this->small_x.get(), this->small_r.get(),
+        this->small_r2.get(), this->small_p.get(), this->small_q.get(),
+        this->small_q2.get(), this->small_beta.get(), this->small_rho.get(),
+        &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_x, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_r, l({{4.0, 4.0}, {4.0, 4.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_r2, l({{4.0, 4.0}, {4.0, 4.0}}), 0);
+}
 
 
 TYPED_TEST(Bicg, SolvesStencilSystem)

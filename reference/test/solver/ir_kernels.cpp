@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
+#include "core/solver/ir_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -75,12 +76,28 @@ protected:
                   .on(exec))
     {}
 
-    std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<typename Solver::Factory> ir_factory;
 };
 
 TYPED_TEST_SUITE(Ir, gko::test::ValueTypes);
+
+
+TYPED_TEST(Ir, KernelInitialize)
+{
+    gko::stopping_status stopped;
+    gko::stopping_status non_stopped;
+    auto stop = gko::Array<gko::stopping_status>(this->exec, 2);
+    stopped.stop(1);
+    non_stopped.reset();
+    std::fill_n(stop.get_data(), stop.get_num_elems(), non_stopped);
+
+    gko::kernels::reference::ir::initialize(this->exec, &stop);
+
+    ASSERT_EQ(stop.get_data()[0], non_stopped);
+    ASSERT_EQ(stop.get_data()[1], non_stopped);
+}
 
 
 TYPED_TEST(Ir, SolvesTriangularSystem)
