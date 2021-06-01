@@ -112,27 +112,30 @@ public:
      * Gets the subspace dimension of the solver.
      *
      * @return the subspace Dimension*/
-    size_type get_subspace_dim() const { return subspace_dim_; }
+    size_type get_subspace_dim() const { return parameters_.subspace_dim; }
 
     /**
      * Sets the subspace dimension of the solver.
      *
      * @param other  the new subspace Dimension*/
-    void set_subspace_dim(const size_type other) { subspace_dim_ = other; }
+    void set_subspace_dim(const size_type other)
+    {
+        parameters_.subspace_dim = other;
+    }
 
     /**
      * Gets the kappa parameter of the solver.
      *
      * @return the kappa parameter
      */
-    real_type get_kappa() const { return kappa_; }
+    real_type get_kappa() const { return parameters_.kappa; }
 
     /**
      * Sets the kappa parameter of the solver.
      *
      * @param other  the new kappa parameter
      */
-    void set_kappa(const real_type other) { kappa_ = other; }
+    void set_kappa(const real_type other) { parameters_.kappa = other; }
 
 
     /**
@@ -140,7 +143,7 @@ public:
      *
      * @return the complex_subspace parameter
      */
-    bool get_complex_subspace() const { return complex_subspace_; }
+    bool get_complex_subspace() const { return parameters_.complex_subspace; }
 
 
     /**
@@ -148,21 +151,27 @@ public:
      *
      * @param other  the new complex_subspace parameter
      */
-    void set_complex_subpsace(const bool other) { complex_subspace_ = other; }
+    void set_complex_subpsace(const bool other)
+    {
+        parameters_.complex_subspace = other;
+    }
 
     /**
      * Gets the deterministic parameter of the solver.
      *
      * @return the deterministic parameter
      */
-    bool get_deterministic() const { return deterministic_; }
+    bool get_deterministic() const { return parameters_.deterministic; }
 
     /**
      * Sets the deterministic parameter of the solver.
      *
      * @param other  the new deterministic parameter
      */
-    void set_deterministic(const bool other) { deterministic_ = other; }
+    void set_deterministic(const bool other)
+    {
+        parameters_.deterministic = other;
+    }
 
 
     /**
@@ -171,7 +180,7 @@ public:
      *
      * @return the smoothing paramter
      */
-    bool get_smoothing() const { return smoothing_; }
+    bool get_smoothing() const { return parameters_.smoothing; }
 
 
     /**
@@ -179,7 +188,7 @@ public:
      *
      * @param other the new smoothing paramter
      */
-    void set_smoothing(const bool other) { smoothing_ = other; }
+    void set_smoothing(const bool other) { parameters_.smoothing = other; }
 
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -220,8 +229,8 @@ public:
 
 
         /**
-         * If set to true, IDR is supposed to use a complex subspace S also for real
-         * problems, allowing for faster convergence and better results by
+         * If set to true, IDR is supposed to use a complex subspace S also for
+         * real problems, allowing for faster convergence and better results by
          * acknowledging the influence of complex eigenvectors.
          *
          * The default is false.
@@ -275,11 +284,6 @@ protected:
           system_matrix_{std::move(system_matrix)}
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
-        complex_subspace_ = parameters_.complex_subspace;
-        subspace_dim_ = parameters_.subspace_dim;
-        kappa_ = parameters_.kappa;
-        deterministic_ = parameters_.deterministic;
-        smoothing_ = parameters_.smoothing;
     }
 
 private:
