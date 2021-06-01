@@ -576,16 +576,21 @@ namespace detail {
 template <typename T>
 struct temporary_clone_helper<Array<T>> {
     static std::unique_ptr<Array<T>> create(
-        std::shared_ptr<const Executor> exec, Array<T> *ptr)
+        std::shared_ptr<const Executor> exec, Array<T> *ptr, bool copy_data)
     {
-        return std::make_unique<Array<T>>(std::move(exec), *ptr);
+        if (copy_data) {
+            return std::make_unique<Array<T>>(std::move(exec), *ptr);
+        } else {
+            return std::make_unique<Array<T>>(std::move(exec),
+                                              ptr->get_num_elems());
+        }
     }
 };
 
 template <typename T>
 struct temporary_clone_helper<const Array<T>> {
     static std::unique_ptr<const Array<T>> create(
-        std::shared_ptr<const Executor> exec, const Array<T> *ptr)
+        std::shared_ptr<const Executor> exec, const Array<T> *ptr, bool)
     {
         return std::make_unique<const Array<T>>(std::move(exec), *ptr);
     }

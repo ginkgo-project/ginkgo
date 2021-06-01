@@ -135,6 +135,28 @@ TYPED_TEST(Dense, CopyRespectsStride)
 }
 
 
+TYPED_TEST(Dense, TemporaryOutputCloneWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    auto other = gko::OmpExecutor::create();
+    auto m =
+        gko::initialize<gko::matrix::Dense<TypeParam>>({1.0, 2.0}, this->exec);
+
+    {
+        auto clone = gko::make_temporary_output_clone(other, m.get());
+        clone->at(0) = 4.0;
+        clone->at(1) = 5.0;
+
+        ASSERT_EQ(m->at(0), value_type{1.0});
+        ASSERT_EQ(m->at(1), value_type{2.0});
+        ASSERT_EQ(clone->get_size(), m->get_size());
+        ASSERT_EQ(clone->get_executor(), other);
+    }
+    ASSERT_EQ(m->at(0), value_type{4.0});
+    ASSERT_EQ(m->at(1), value_type{5.0});
+}
+
+
 TYPED_TEST(Dense, CanBeFilledWithValue)
 {
     using value_type = typename TestFixture::value_type;

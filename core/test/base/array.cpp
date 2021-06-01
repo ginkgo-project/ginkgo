@@ -272,6 +272,14 @@ TYPED_TEST(Array, CanCreateTemporaryCloneOnSameExecutor)
 }
 
 
+TYPED_TEST(Array, CanCreateTemporaryOutputCloneOnSameExecutor)
+{
+    auto tmp_clone = make_temporary_output_clone(this->exec, &this->x);
+
+    ASSERT_EQ(tmp_clone.get(), &this->x);
+}
+
+
 // For tests between different memory, check cuda/test/base/array.cu
 TYPED_TEST(Array, DoesNotCreateATemporaryCloneBetweenSameMemory)
 {
@@ -296,6 +304,27 @@ TYPED_TEST(Array, DoesNotCopyBackTemporaryCloneBetweenSameMemory)
 
     this->assert_equal_to_original_x(this->x, false);
     EXPECT_EQ(this->x.get_data()[0], TypeParam{0});
+}
+
+
+TYPED_TEST(Array, CanCreateTemporaryOutputCloneOnDifferentExecutors)
+{
+    auto other = gko::OmpExecutor::create();
+
+    {
+        auto tmp_clone = make_temporary_output_clone(other, &this->x);
+        tmp_clone->get_data()[0] = 4;
+        tmp_clone->get_data()[1] = 5;
+
+        // there is no reliable way to check the memory is uninitialized
+        ASSERT_EQ(tmp_clone->get_num_elems(), this->x.get_num_elems());
+        ASSERT_EQ(tmp_clone->get_executor(), other);
+        ASSERT_EQ(this->x.get_executor(), this->exec);
+        ASSERT_EQ(this->x.get_data()[0], TypeParam{5});
+        ASSERT_EQ(this->x.get_data()[1], TypeParam{2});
+    }
+    ASSERT_EQ(this->x.get_data()[0], TypeParam{4});
+    ASSERT_EQ(this->x.get_data()[1], TypeParam{5});
 }
 
 
