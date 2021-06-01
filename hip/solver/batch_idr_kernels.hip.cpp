@@ -38,11 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "hip/base/config.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/matrix/batch_struct.hip.hpp"
 
 
 namespace gko {
@@ -59,16 +57,6 @@ constexpr int sm_multiplier = 4;
  * @ingroup batch_idr
  */
 namespace batch_idr {
-
-#include "common/components/uninitialized_array.hpp.inc"
-
-
-#include "common/log/batch_logger.hpp.inc"
-#include "common/matrix/batch_csr_kernels.hpp.inc"
-#include "common/matrix/batch_dense_kernels.hpp.inc"
-#include "common/preconditioner/batch_identity.hpp.inc"
-#include "common/preconditioner/batch_jacobi.hpp.inc"
-#include "common/stop/batch_criteria.hpp.inc"
 
 
 template <typename T>
