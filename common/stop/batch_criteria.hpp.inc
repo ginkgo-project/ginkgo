@@ -198,7 +198,7 @@ public:
     __device__ __forceinline__ AbsAndRelResidualMaxIter(
         const int num_rhs, const int max_iters, const real_type abs_res_tol,
         const real_type rel_res_tol, const tolerance type_of_tol,
-        bitset_type &converge_bitset, const real_type *const rhs_b_norms)
+        const real_type *const rhs_b_norms, bitset_type &converge_bitset)
         : nrhs{num_rhs},
           rel_tol{rel_res_tol},
           abs_tol{abs_res_tol},
@@ -206,7 +206,7 @@ public:
           max_its{max_iters},
           rhs_norms{rhs_b_norms}
     {
-        if (nrhs > 32) {
+        if (nrhs > max_nrhs) {
             printf("Batch stopping criterion: Too many right hand sides!\n");
         }
         converge_bitset = 0 - (1 << num_rhs);
@@ -261,7 +261,7 @@ private:
     const real_type abs_tol;
     const tolerance tol_type;
     const real_type *const rhs_norms;
-    static constexpr uint32 all_true = detail::power(2, 32) - 1;
+    static constexpr bitset_type all_true = ~static_cast<bitset_type>(0);
 
     __device__ __forceinline__ void check_norms(
         const real_type *const res_norms, bitset_type &converged) const
@@ -289,7 +289,7 @@ private:
         }
 
         // copy the converged value to all threads in the warp
-        converged = __shfl_sync(0xffffffff, converged, 0);
+        converged = __shfl_sync(all_true, converged, 0);
         // note that every warp does all this redundantly
     }
 };
