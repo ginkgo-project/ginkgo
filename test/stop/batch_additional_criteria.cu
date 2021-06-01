@@ -72,7 +72,7 @@ __global__ void conv_check(const int nrhs, const int nrows,
                            bool *const all_conv,
                            gko::stop::batch::ToleranceType tol_type)
 {
-    using BatchStop = gko::kernels::cuda::stop::AbsAndRelResidualMaxIter<T>;
+    using BatchStop = gko::kernels::cuda::stop::AbsOrRelResidualMaxIter<T>;
     const int maxits = 10;
     const int iter = 5;
     const gko::remove_complex<T> rel_tol = 1e-5;
