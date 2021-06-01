@@ -106,14 +106,14 @@ public:
      *
      * @return the restart number
      */
-    int get_restart_number() const { return restart_; }
+    int get_restart_number() const { return parameters_.restart; }
 
     /**
      * Sets the restart paramter
      *
      * @param other  the new restart number
      */
-    void set_restart_number(const int &other) { restart_ = other; }
+    void set_restart_number(const int &other) { parameters_.restart = other; }
 
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
