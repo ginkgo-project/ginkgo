@@ -155,7 +155,7 @@ protected:
 };
 
 
-TEST_F(BatchDense, SingleVectorOmpScaleIsEquivalentToRef)
+TEST_F(BatchDense, SingleVectorScaleIsEquivalentToRef)
 {
     set_up_vector_data(1);
     auto result = Mtx::create(ref);
@@ -179,7 +179,7 @@ TEST_F(BatchDense, MultipleVectorOmpScaleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, MultipleVectorOmpScaleWithDifferentAlphaIsEquivalentToRef)
+TEST_F(BatchDense, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -273,7 +273,7 @@ TEST_F(BatchDense, MultipleVectorOmpComputeDotIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, OmpComputeNorm2IsEquivalentToRef)
+TEST_F(BatchDense, ComputeNorm2IsEquivalentToRef)
 {
     set_up_vector_data(20);
     auto norm_size =
