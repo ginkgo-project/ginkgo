@@ -76,13 +76,13 @@ struct matrix_accessor {
 
 
 template <typename T>
-struct device_map_impl {
+struct to_device_type_impl {
     using type = std::decay_t<hip_type<T>>;
     static type map_to_device(T in) { return as_hip_type(in); }
 };
 
 template <typename ValueType>
-struct device_map_impl<matrix::Dense<ValueType> *&> {
+struct to_device_type_impl<matrix::Dense<ValueType> *&> {
     using type = matrix_accessor<hip_type<ValueType>>;
     static type map_to_device(matrix::Dense<ValueType> *mtx)
     {
@@ -91,7 +91,7 @@ struct device_map_impl<matrix::Dense<ValueType> *&> {
 };
 
 template <typename ValueType>
-struct device_map_impl<const matrix::Dense<ValueType> *&> {
+struct to_device_type_impl<const matrix::Dense<ValueType> *&> {
     using type = matrix_accessor<const hip_type<ValueType>>;
     static type map_to_device(const matrix::Dense<ValueType> *mtx)
     {
@@ -100,7 +100,7 @@ struct device_map_impl<const matrix::Dense<ValueType> *&> {
 };
 
 template <typename ValueType>
-struct device_map_impl<Array<ValueType> &> {
+struct to_device_type_impl<Array<ValueType> &> {
     using type = hip_type<ValueType> *;
     static type map_to_device(Array<ValueType> &array)
     {
@@ -109,7 +109,7 @@ struct device_map_impl<Array<ValueType> &> {
 };
 
 template <typename ValueType>
-struct device_map_impl<const Array<ValueType> &> {
+struct to_device_type_impl<const Array<ValueType> &> {
     using type = const hip_type<ValueType> *;
     static type map_to_device(const Array<ValueType> &array)
     {
@@ -119,9 +119,9 @@ struct device_map_impl<const Array<ValueType> &> {
 
 
 template <typename T>
-typename device_map_impl<T>::type map_to_device(T &&param)
+typename to_device_type_impl<T>::type map_to_device(T &&param)
 {
-    return device_map_impl<T>::map_to_device(param);
+    return to_device_type_impl<T>::map_to_device(param);
 }
 
 
@@ -241,7 +241,6 @@ void run_kernel(std::shared_ptr<const HipExecutor> exec, KernelFunction fn,
     hipLaunchKernelGGL(kernels::hip::generic_kernel_1d, num_blocks, block_size,
                        0, 0, size, fn, kernels::hip::map_to_device(args)...);
 }
-
 
 template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const HipExecutor> exec, KernelFunction fn,

@@ -1014,8 +1014,8 @@ is_finite(const T &value)
  *
  * @tparam T  value type of the parameters
  *
- * @param a  the first parameter
- * @param b  the second parameter
+ * @param a  the dividend
+ * @param b  the divisor
  *
  * @return the value of `a / b` if b is non-zero, zero otherwise.
  */

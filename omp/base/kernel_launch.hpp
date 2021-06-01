@@ -65,13 +65,13 @@ struct matrix_accessor {
 
 
 template <typename T>
-struct device_map_impl {
+struct to_device_type_impl {
     using type = std::decay_t<T>;
     static type map_to_device(T in) { return in; }
 };
 
 template <typename ValueType>
-struct device_map_impl<matrix::Dense<ValueType> *&> {
+struct to_device_type_impl<matrix::Dense<ValueType> *&> {
     using type = matrix_accessor<ValueType>;
     static type map_to_device(matrix::Dense<ValueType> *mtx)
     {
@@ -80,7 +80,7 @@ struct device_map_impl<matrix::Dense<ValueType> *&> {
 };
 
 template <typename ValueType>
-struct device_map_impl<const matrix::Dense<ValueType> *&> {
+struct to_device_type_impl<const matrix::Dense<ValueType> *&> {
     using type = matrix_accessor<const ValueType>;
     static type map_to_device(const matrix::Dense<ValueType> *mtx)
     {
@@ -89,7 +89,7 @@ struct device_map_impl<const matrix::Dense<ValueType> *&> {
 };
 
 template <typename ValueType>
-struct device_map_impl<Array<ValueType> &> {
+struct to_device_type_impl<Array<ValueType> &> {
     using type = ValueType *;
     static type map_to_device(Array<ValueType> &array)
     {
@@ -98,7 +98,7 @@ struct device_map_impl<Array<ValueType> &> {
 };
 
 template <typename ValueType>
-struct device_map_impl<const Array<ValueType> &> {
+struct to_device_type_impl<const Array<ValueType> &> {
     using type = const ValueType *;
     static type map_to_device(const Array<ValueType> &array)
     {
@@ -108,9 +108,9 @@ struct device_map_impl<const Array<ValueType> &> {
 
 
 template <typename T>
-typename device_map_impl<T>::type map_to_device(T &&param)
+typename to_device_type_impl<T>::type map_to_device(T &&param)
 {
-    return device_map_impl<T>::map_to_device(param);
+    return to_device_type_impl<T>::map_to_device(param);
 }
 
 
@@ -183,21 +183,22 @@ struct device_unpack_2d_impl<compact_dense_wrapper<ValueType>> {
 
 
 template <typename T>
-typename device_unpack_1d_impl<typename device_map_impl<T>::type>::type
+typename device_unpack_1d_impl<typename to_device_type_impl<T>::type>::type
 map_unpack_to_device(T &&param, size_type i, size_type size)
 {
-    return device_unpack_1d_impl<typename device_map_impl<T>::type>::unpack(
-        device_map_impl<T>::map_to_device(param), i, size);
+    return device_unpack_1d_impl<typename to_device_type_impl<T>::type>::unpack(
+        to_device_type_impl<T>::map_to_device(param), i, size);
 }
 
 
 template <typename T>
-typename device_unpack_2d_impl<typename device_map_impl<T>::type>::type
+typename device_unpack_2d_impl<typename to_device_type_impl<T>::type>::type
 map_unpack_to_device(T &&param, size_type row, size_type col,
                      size_type num_rows, size_type num_cols)
 {
-    return device_unpack_2d_impl<typename device_map_impl<T>::type>::unpack(
-        device_map_impl<T>::map_to_device(param), row, col, num_rows, num_cols);
+    return device_unpack_2d_impl<typename to_device_type_impl<T>::type>::unpack(
+        to_device_type_impl<T>::map_to_device(param), row, col, num_rows,
+        num_cols);
 }
 
 
@@ -216,7 +217,6 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
         }();
     }
 }
-
 
 template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,

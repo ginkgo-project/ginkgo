@@ -79,7 +79,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             u(row, col) = u_hat(row, col) = p(row, col) = q(row, col) =
                 v_hat(row, col) = t(row, col) = zero(u(row, col));
         },
-        p->get_size(), b, compact(r), compact(r_tld), compact(p), compact(q),
+        b->get_size(), b, compact(r), compact(r_tld), compact(p), compact(q),
         compact(u), compact(u_hat), compact(v_hat), compact(t), vector(alpha),
         vector(beta), vector(gamma), vector(prev_rho), vector(rho),
         *stop_status);
@@ -101,8 +101,9 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto row, auto col, auto r, auto u, auto p, auto q,
                       auto beta, auto rho, auto prev_rho, auto stop) {
             if (!stop[col].has_stopped()) {
-                auto tmp = safe_divide(rho[col], prev_rho[col]);
-                if (row == 0) {
+                auto prev_rho_zero = prev_rho[col] == zero(prev_rho[col]);
+                auto tmp = prev_rho_zero ? beta[col] : rho[col] / prev_rho[col];
+                if (row == 0 && !prev_rho_zero) {
                     beta[col] = tmp;
                 }
                 u(row, col) = r(row, col) + tmp * q(row, col);
@@ -110,7 +111,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                     u(row, col) + tmp * (q(row, col) + tmp * p(row, col));
             }
         },
-        p->get_size(), compact(r), compact(u), compact(p), compact(q),
+        r->get_size(), compact(r), compact(u), compact(p), compact(q),
         vector(beta), vector(rho), vector(prev_rho), *stop_status);
 }
 
@@ -131,8 +132,9 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto row, auto col, auto u, auto v_hat, auto q, auto t,
                       auto alpha, auto rho, auto gamma, auto stop) {
             if (!stop[col].has_stopped()) {
-                auto tmp = safe_divide(rho[col], gamma[col]);
-                if (row == 0) {
+                auto gamma_is_zero = gamma[col] == zero(gamma[col]);
+                auto tmp = gamma_is_zero ? alpha[col] : rho[col] / gamma[col];
+                if (row == 0 && !gamma_is_zero) {
                     alpha[col] = tmp;
                 }
                 q(row, col) = u(row, col) - tmp * v_hat(row, col);
