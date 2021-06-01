@@ -288,7 +288,7 @@ TYPED_TEST(BatchCg, SolvesStencilSystemNone)
 }
 
 
-TYPED_TEST(BatchCg, StencilSystemNoneLoggerIsCorrect)
+TYPED_TEST(BatchCg, StencilSystemLoggerIsCorrect)
 {
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
