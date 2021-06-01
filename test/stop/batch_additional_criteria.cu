@@ -82,7 +82,7 @@ __global__ void conv_check(const int nrhs, const int nrows,
 
     BatchStop bstop(nrhs, maxits, abs_tol, rel_tol,
                     static_cast<gko::kernels::cuda::stop::tolerance>(tol_type),
-                    *converged, bnorms);
+                    bnorms, *converged);
     *all_conv = bstop.check_converged(iter, res_norms, res, *converged);
 }
 
