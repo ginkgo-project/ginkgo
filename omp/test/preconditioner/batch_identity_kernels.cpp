@@ -85,7 +85,7 @@ protected:
     const int nrows = 50;
     std::unique_ptr<Mtx> ref_mtx;
     std::unique_ptr<Mtx> omp_mtx;
-    static constexpr real_type eps = std::numeric_limits<real_type>::epsilon();
+
 
     void check_identity(const int nrhs)
     {
@@ -106,7 +106,7 @@ protected:
             exec, ref_mtx.get(), ref_b.get(), ref_x.get());
 
         ompexec->synchronize();
-        GKO_ASSERT_BATCH_MTX_NEAR(ref_x, omp_x, 5 * eps);
+        GKO_ASSERT_BATCH_MTX_NEAR(ref_x, omp_x, 0);
     }
 };
 

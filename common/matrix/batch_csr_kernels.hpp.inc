@@ -49,32 +49,40 @@ __device__ __forceinline__ void spmv_kernel(
     auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
 
     const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
-    const int num_subwarp_grps_per_block =
-        ceildiv(blockDim.x, tile_size);
+    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
 
 
     for (int row_and_rhs_combination = subwarp_grp_id;
          row_and_rhs_combination < a.num_rows * b.num_rhs;
          row_and_rhs_combination += num_subwarp_grps_per_block) {
         const int row = row_and_rhs_combination / b.num_rhs;
-        int rhs = row_and_rhs_combination % b.num_rhs;
+        const int rhs = row_and_rhs_combination % b.num_rhs;
 
-        int row_start = a.row_ptrs[row];
-        int row_end = a.row_ptrs[row + 1];
+        const int row_start = a.row_ptrs[row];
+        const int row_end = a.row_ptrs[row + 1];
 
         ValueType temp = zero<ValueType>();
 
 
         for (int i = subwarp_grp.thread_rank() + row_start; i < row_end;
              i += subwarp_grp.size()) {
-            int col = a.col_idxs[i];
-            ValueType val = a.values[i];
+            const int col = a.col_idxs[i];
+            const ValueType val = a.values[i];
 
             temp += val * b.values[col * b.stride + rhs];
         }
 
+
+        const int gap_rounded_off = static_cast<int>(
+            pow(2, ceil(log2(static_cast<double>(
+                       row_end -
+                       row_start)))));  // round off to the closest power of 2
         // subwarp_grp level reduction
-        for (int i = subwarp_grp.size() / 2; i > 0; i /= 2) {
+        for (int i = static_cast<int>(
+                         min(static_cast<double>(gap_rounded_off),
+                             static_cast<double>(subwarp_grp.size()))) /
+                     2;
+             i > 0; i /= 2) {
             temp += subwarp_grp.shfl_down(temp, i);
         }
 
@@ -118,35 +126,42 @@ __device__ __forceinline__ void advanced_spmv_kernel(
 
     auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
 
-    const int subwarp_grp_id = floor(static_cast<double>(threadIdx.x) /
-                                     static_cast<double>(tile_size));
+    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
 
-    const int num_subwarp_grps_per_block =
-        ceil(static_cast<double>(blockDim.x) / static_cast<double>(tile_size));
+    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
 
 
     for (int row_and_rhs_combination = subwarp_grp_id;
          row_and_rhs_combination < a.num_rows * b.num_rhs;
          row_and_rhs_combination += num_subwarp_grps_per_block) {
-        int row = row_and_rhs_combination / b.num_rhs;
-        int rhs = row_and_rhs_combination % b.num_rhs;
+        const int row = row_and_rhs_combination / b.num_rhs;
+        const int rhs = row_and_rhs_combination % b.num_rhs;
 
-        int row_start = a.row_ptrs[row];
-        int row_end = a.row_ptrs[row + 1];
+        const int row_start = a.row_ptrs[row];
+        const int row_end = a.row_ptrs[row + 1];
 
         ValueType temp = zero<ValueType>();
 
 
         for (int i = subwarp_grp.thread_rank() + row_start; i < row_end;
              i += subwarp_grp.size()) {
-            int col = a.col_idxs[i];
-            ValueType val = a.values[i];
+            const int col = a.col_idxs[i];
+            const ValueType val = a.values[i];
 
             temp += alpha * val * b.values[col * b.stride + rhs];
         }
 
+
+        const int gap_rounded_off = static_cast<int>(
+            pow(2, ceil(log2(static_cast<double>(
+                       row_end -
+                       row_start)))));  // round off to the closest power of 2
         // subwarp_grp level reduction
-        for (int i = subwarp_grp.size() / 2; i > 0; i /= 2) {
+        for (int i = static_cast<int>(
+                         min(static_cast<double>(gap_rounded_off),
+                             static_cast<double>(subwarp_grp.size()))) /
+                     2;
+             i > 0; i /= 2) {
             temp += subwarp_grp.shfl_down(temp, i);
         }
 
