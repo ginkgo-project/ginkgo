@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/types.hpp"
 #include "dpcpp/base/helper.hpp"
 #include "dpcpp/components/prefix_sum.dp.hpp"
 
@@ -52,7 +53,7 @@ namespace components {
 using BlockCfg = ConfigSet<11>;
 
 constexpr auto block_cfg_list =
-    ::gko::syn::value_list<ConfigSetType, BlockCfg::encode(512),
+    ::gko::syn::value_list<std::uint32_t, BlockCfg::encode(512),
                            BlockCfg::encode(256), BlockCfg::encode(128)>();
 
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(start_prefix_sum, start_prefix_sum)
@@ -73,8 +74,8 @@ void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType *counts,
     if (num_entries > 0) {
         auto queue = exec->get_queue();
         constexpr auto block_cfg_array = as_array(block_cfg_list);
-        const ConfigSetType cfg =
-            get_first_cfg(block_cfg_array, [&queue](ConfigSetType cfg) {
+        const std::uint32_t cfg =
+            get_first_cfg(block_cfg_array, [&queue](std::uint32_t cfg) {
                 return validate(queue, BlockCfg::decode<0>(cfg), 16);
             });
         const auto wg_size = BlockCfg::decode<0>(cfg);

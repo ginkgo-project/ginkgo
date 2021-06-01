@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/synthesizer/containers.hpp>
 
 
+#include "core/base/types.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
@@ -63,7 +64,7 @@ namespace dpcpp {
 constexpr int default_block_size = 256;
 using KCFG_1D = ConfigSet<11, 7>;
 constexpr auto kcfg_1d_list =
-    syn::value_list<ConfigSetType, KCFG_1D::encode(512, 64),
+    syn::value_list<std::uint32_t, KCFG_1D::encode(512, 64),
                     KCFG_1D::encode(512, 32), KCFG_1D::encode(512, 16),
                     KCFG_1D::encode(256, 32), KCFG_1D::encode(256, 16),
                     KCFG_1D::encode(256, 8)>();
@@ -201,7 +202,7 @@ void reduce_array(size_type size, const ValueType *__restrict__ source,
  * `source` of any size. Has to be called a second time on `result` to reduce
  * an array larger than `block_size`.
  */
-template <ConfigSetType cfg, typename ValueType>
+template <std::uint32_t cfg, typename ValueType>
 void reduce_add_array(
     size_type size, const ValueType *__restrict__ source,
     ValueType *__restrict__ result, sycl::nd_item<3> item_ct1,
@@ -216,7 +217,7 @@ void reduce_add_array(
     }
 }
 
-template <ConfigSetType cfg = KCFG_1D::encode(256, 32), typename ValueType>
+template <std::uint32_t cfg = KCFG_1D::encode(256, 32), typename ValueType>
 void reduce_add_array(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                       sycl::queue *stream, size_type size,
                       const ValueType *source, ValueType *result)
@@ -263,8 +264,8 @@ ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
     ValueType answer = zero<ValueType>();
     auto queue = exec->get_queue();
     constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
-    const ConfigSetType cfg =
-        get_first_cfg(kcfg_1d_array, [&queue](ConfigSetType cfg) {
+    const std::uint32_t cfg =
+        get_first_cfg(kcfg_1d_array, [&queue](std::uint32_t cfg) {
             return validate(queue, KCFG_1D::decode<0>(cfg),
                             KCFG_1D::decode<1>(cfg));
         });
