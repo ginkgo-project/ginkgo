@@ -246,13 +246,14 @@ public:
 
 
         /**
-        * If set to true, the vectors spanning the subspace S are chosen
-        * deterministically. This is mostly needed for testing purposes.
-        *
-        * Note: If 'deterministic' is set to true, the subspace vectors are
-
-        * The default behaviour is to choose the subspace vectors randomly.
-        */
+         * If set to true, the vectors spanning the subspace S are chosen
+         * deterministically. This is mostly needed for testing purposes.
+         *
+         * Note: If 'deterministic' is set to true, the subspace vectors are
+         * generated in serial on the CPU, which can be very slow.
+         *
+         * The default behaviour is to choose the subspace vectors randomly.
+         */
         bool GKO_FACTORY_PARAMETER_SCALAR(deterministic, false);
 
 

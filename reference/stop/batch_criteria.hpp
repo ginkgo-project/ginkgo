@@ -153,21 +153,6 @@ namespace kernels {
 namespace reference {
 namespace stop {
 
-namespace detail {
-
-
-constexpr uint32 power(const uint32 x, const int N)
-{
-    uint32 ans = 1;
-    for (int i = 0; i < N; i++) {
-        ans *= x;
-    }
-    return ans;
-}
-
-
-}  // namespace detail
-
 
 // TODO: Remove this
 enum class tolerance {
@@ -186,7 +171,7 @@ enum class tolerance {
  * At most 32 right-hand-side vectors are supported.
  */
 template <typename ValueType>
-class AbsAndRelResidualMaxIter {
+class AbsOrRelResidualMaxIter {
 public:
     using real_type = remove_complex<ValueType>;
     // using tolerance = ::gko::stop::batch::ToleranceType;
@@ -204,12 +189,11 @@ public:
      *                          be passed to the \ref check_converged function.
      * @param rhs_b_norms  The reference RHS norms.
      */
-    AbsAndRelResidualMaxIter(const int num_rhs, const int max_iters,
-                             const real_type abs_res_tol,
-                             const real_type rel_res_tol,
-                             const tolerance type_of_tol,
-                             bitset_type &converge_bitset,
-                             const real_type *const rhs_b_norms)
+    AbsOrRelResidualMaxIter(bitset_type &converge_bitset, const int num_rhs,
+                            const int max_iters, const real_type abs_res_tol,
+                            const real_type rel_res_tol,
+                            const tolerance type_of_tol,
+                            const real_type *const rhs_b_norms)
         : nrhs{num_rhs},
           rel_tol{rel_res_tol},
           abs_tol{abs_res_tol},
@@ -217,7 +201,7 @@ public:
           max_its{max_iters},
           rhs_norms{rhs_b_norms}
     {
-        if (nrhs > 32) {
+        if (nrhs > max_nrhs) {
             printf("Batch stopping criterion: Too many right hand sides!\n");
         }
         converge_bitset = 0 - (1 << num_rhs);
@@ -247,9 +231,9 @@ public:
         if (residual_norms) {
             check_norms(residual_norms, converged);
         } else {
-            real_type norms[32];
-            batch_dense::compute_norm2<ValueType>(residual,
-                                                  {norms, 32, 1, nrhs});
+            real_type norms[batch_config<ValueType>::max_num_rhs];
+            batch_dense::compute_norm2<ValueType>(
+                residual, {norms, static_cast<gko::size_type>(nrhs), 1, nrhs});
             check_norms(norms, converged);
         }
 
@@ -267,7 +251,7 @@ private:
     const real_type abs_tol;
     const tolerance tol_type;
     const real_type *const rhs_norms;
-    static constexpr uint32 all_true = detail::power(2, 32) - 1;
+    static constexpr uint32 all_true = ~static_cast<bitset_type>(0);
 
     void check_norms(const real_type *const res_norms,
                      bitset_type &converged) const

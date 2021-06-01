@@ -52,8 +52,7 @@ protected:
     using value_type = T;
     using real_type = gko::remove_complex<value_type>;
     using BDense = gko::matrix::BatchDense<value_type>;
-    using BatchStop =
-        gko::kernels::reference::stop::AbsAndRelResidualMaxIter<T>;
+    using BatchStop = gko::kernels::reference::stop::AbsOrRelResidualMaxIter<T>;
 
     AbsRelResMaxIter()
         : exec(gko::ReferenceExecutor::create()), b_norms(ref_norms())
@@ -96,10 +95,10 @@ TYPED_TEST(AbsRelResMaxIter, DetectsOneRelConvergenceWithNorms)
     resnv[conv_col] = 2 * this->rel_tol;
     gko::batch_dense::BatchEntry<const value_type> res{
         nullptr, this->def_stride, this->nrows, this->nrhs};
-    BatchStop bstop(this->nrhs, maxits, this->abs_tol, this->rel_tol,
+    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
                     static_cast<gko::kernels::reference::stop::tolerance>(
                         gko::stop::batch::ToleranceType::relative),
-                    converged, this->b_norms.data());
+                    this->b_norms.data());
     const bool all_conv =
         bstop.check_converged(iter, resnv.data(), res, converged);
 
@@ -126,10 +125,10 @@ TYPED_TEST(AbsRelResMaxIter, DetectsOneAbsConvergenceWithNorms)
     resnv[conv_col] = (1 / 2) * this->abs_tol;
     gko::batch_dense::BatchEntry<const value_type> res{
         nullptr, this->def_stride, this->nrows, this->nrhs};
-    BatchStop bstop(this->nrhs, maxits, this->abs_tol, this->rel_tol,
+    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
                     static_cast<gko::kernels::reference::stop::tolerance>(
                         gko::stop::batch::ToleranceType::absolute),
-                    converged, this->b_norms.data());
+                    this->b_norms.data());
     const bool all_conv =
         bstop.check_converged(iter, resnv.data(), res, converged);
 
@@ -161,10 +160,10 @@ TYPED_TEST(AbsRelResMaxIter, DetectsTwoRelConvergencesWithNorms)
         nullptr, this->def_stride, this->nrows, this->nrhs};
 
 
-    BatchStop bstop(this->nrhs, maxits, this->abs_tol, this->rel_tol,
+    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
                     static_cast<gko::kernels::reference::stop::tolerance>(
                         gko::stop::batch::ToleranceType::relative),
-                    converged, this->b_norms.data());
+                    this->b_norms.data());
     const bool all_conv =
         bstop.check_converged(iter, resnv.data(), res, converged);
 
@@ -193,10 +192,10 @@ TYPED_TEST(AbsRelResMaxIter, DetectsTwoAbsConvergencesWithNorms)
     gko::batch_dense::BatchEntry<const value_type> res{
         nullptr, this->def_stride, this->nrows, this->nrhs};
 
-    BatchStop bstop(this->nrhs, maxits, this->abs_tol, this->rel_tol,
+    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
                     static_cast<gko::kernels::reference::stop::tolerance>(
                         gko::stop::batch::ToleranceType::absolute),
-                    converged, this->b_norms.data());
+                    this->b_norms.data());
     const bool all_conv =
         bstop.check_converged(iter, resnv.data(), res, converged);
 
@@ -225,10 +224,10 @@ TYPED_TEST(AbsRelResMaxIter, DetectsAllRelConvergenceWithNorms)
         nullptr, this->def_stride, this->nrows, this->nrhs};
 
 
-    BatchStop bstop(this->nrhs, maxits, this->abs_tol, this->rel_tol,
+    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
                     static_cast<gko::kernels::reference::stop::tolerance>(
                         gko::stop::batch::ToleranceType::relative),
-                    converged, this->b_norms.data());
+                    this->b_norms.data());
     bool all_conv = bstop.check_converged(iter, resnv.data(), res, converged);
 
     ASSERT_FALSE(all_conv);
@@ -259,10 +258,10 @@ TYPED_TEST(AbsRelResMaxIter, DetectsAllAbsConvergenceWithNorms)
     gko::batch_dense::BatchEntry<const value_type> res{
         nullptr, this->def_stride, this->nrows, this->nrhs};
 
-    BatchStop bstop(this->nrhs, maxits, this->abs_tol, this->rel_tol,
+    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
                     static_cast<gko::kernels::reference::stop::tolerance>(
                         gko::stop::batch::ToleranceType::absolute),
-                    converged, this->b_norms.data());
+                    this->b_norms.data());
     bool all_conv = bstop.check_converged(iter, resnv.data(), res, converged);
 
     ASSERT_FALSE(all_conv);
@@ -297,10 +296,10 @@ TYPED_TEST(AbsRelResMaxIter, DetectsRelConvergencesWithResidualVector)
                                                        this->nrows, this->nrhs};
 
 
-    BatchStop bstop(this->nrhs, maxits, this->abs_tol, this->rel_tol,
+    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
                     static_cast<gko::kernels::reference::stop::tolerance>(
                         gko::stop::batch::ToleranceType::relative),
-                    converged, this->b_norms.data());
+                    this->b_norms.data());
     const bool all_conv = bstop.check_converged(iter, nullptr, res, converged);
 
     ASSERT_FALSE(all_conv);
@@ -330,10 +329,10 @@ TYPED_TEST(AbsRelResMaxIter, DetectsAbsConvergencesWithResidualVector)
                                                        this->nrows, this->nrhs};
 
 
-    BatchStop bstop(this->nrhs, maxits, this->abs_tol, this->rel_tol,
+    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
                     static_cast<gko::kernels::reference::stop::tolerance>(
                         gko::stop::batch::ToleranceType::absolute),
-                    converged, this->b_norms.data());
+                    this->b_norms.data());
     const bool all_conv = bstop.check_converged(iter, nullptr, res, converged);
 
     ASSERT_FALSE(all_conv);
