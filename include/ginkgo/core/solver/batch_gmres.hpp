@@ -142,7 +142,7 @@ public:
         /**
          * Restart parameter for Gmres
          */
-        int GKO_FACTORY_PARAMETER_SCALAR(restart, 2);
+        int GKO_FACTORY_PARAMETER_SCALAR(restart, 10);
 
         /**
          * To specify which tolerance is to be considered.
