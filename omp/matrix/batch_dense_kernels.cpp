@@ -76,34 +76,6 @@ void simple_apply(std::shared_ptr<const OmpExecutor> exec,
         const auto c_b = gko::batch::batch_entry(c_ub, batch);
         simple_apply(a_b, b_b, c_b);
     }
-
-
-    // #pragma omp parallel for
-    //     for (size_type batch = 0; batch < c->get_num_batch_entries();
-    //     ++batch) {
-    // #pragma omp parallel for
-    //         for (size_type row = 0; row < c->get_size().at(batch)[0]; ++row)
-    //         {
-    //             for (size_type col = 0; col < c->get_size().at(batch)[1];
-    //             ++col) {
-    //                 c->at(batch, row, col) = zero<ValueType>();
-    //             }
-    //         }
-
-    // #pragma omp parallel for
-    //         for (size_type row = 0; row < c->get_size().at(batch)[0]; ++row)
-    //         {
-    //             for (size_type inner = 0; inner < a->get_size().at(batch)[1];
-    //                  ++inner) {
-    //                 for (size_type col = 0; col < c->get_size().at(batch)[1];
-    //                      ++col) {
-    //                     c->at(batch, row, col) +=
-    //                         a->at(batch, row, inner) * b->at(batch, inner,
-    //                         col);
-    //                 }
-    //             }
-    //         }
-    //     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -132,43 +104,6 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
         const auto beta_b = gko::batch::batch_entry(beta_ub, batch);
         apply(alpha_b.values[0], a_b, b_b, beta_b.values[0], c_b);
     }
-    // #pragma omp parallel for
-    //     for (size_type batch = 0; batch < c->get_num_batch_entries();
-    //     ++batch) {
-    //         if (beta->at(batch, 0, 0) != zero<ValueType>()) {
-    // #pragma omp parallel for
-    //             for (size_type row = 0; row < c->get_size().at(batch)[0];
-    //             ++row) {
-    //                 for (size_type col = 0; col < c->get_size().at(batch)[1];
-    //                      ++col) {
-    //                     c->at(batch, row, col) *= beta->at(batch, 0, 0);
-    //                 }
-    //             }
-    //         } else {
-    // #pragma omp parallel for
-    //             for (size_type row = 0; row < c->get_size().at(batch)[0];
-    //             ++row) {
-    //                 for (size_type col = 0; col < c->get_size().at(batch)[1];
-    //                      ++col) {
-    //                     c->at(batch, row, col) *= zero<ValueType>();
-    //                 }
-    //             }
-    //         }
-
-    // #pragma omp parallel for
-    //         for (size_type row = 0; row < c->get_size().at(batch)[0]; ++row)
-    //         {
-    //             for (size_type inner = 0; inner < a->get_size().at(batch)[1];
-    //                  ++inner) {
-    //                 for (size_type col = 0; col < c->get_size().at(batch)[1];
-    //                      ++col) {
-    //                     c->at(batch, row, col) += alpha->at(batch, 0, 0) *
-    //                                               a->at(batch, row, inner) *
-    //                                               b->at(batch, inner, col);
-    //                 }
-    //             }
-    //         }
-    //     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL);
@@ -187,28 +122,6 @@ void scale(std::shared_ptr<const OmpExecutor> exec,
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
         scale(alpha_b, x_b);
     }
-
-    // #pragma omp parallel for
-    //     for (size_type batch = 0; batch < x->get_num_batch_entries();
-    //     ++batch) {
-    //         if (alpha->get_size().at(batch)[1] == 1) {
-    // #pragma omp parallel for
-    //             for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
-    //                 for (size_type j = 0; j < x->get_size().at(batch)[1];
-    //                 ++j) {
-    //                     x->at(batch, i, j) *= alpha->at(batch, 0, 0);
-    //                 }
-    //             }
-    //         } else {
-    // #pragma omp parallel for
-    //             for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
-    //                 for (size_type j = 0; j < x->get_size().at(batch)[1];
-    //                 ++j) {
-    //                     x->at(batch, i, j) *= alpha->at(batch, 0, j);
-    //                 }
-    //             }
-    //         }
-    //     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
@@ -230,30 +143,6 @@ void add_scaled(std::shared_ptr<const OmpExecutor> exec,
         const auto y_b = gko::batch::batch_entry(y_ub, batch);
         add_scaled(alpha_b, x_b, y_b);
     }
-
-    // #pragma omp parallel for
-    //     for (size_type batch = 0; batch < y->get_num_batch_entries();
-    //     ++batch) {
-    //         if (alpha->get_size().at(batch)[1] == 1) {
-    // #pragma omp parallel for
-    //             for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
-    //                 for (size_type j = 0; j < x->get_size().at(batch)[1];
-    //                 ++j) {
-    //                     y->at(batch, i, j) +=
-    //                         alpha->at(batch, 0, 0) * x->at(batch, i, j);
-    //                 }
-    //             }
-    //         } else {
-    // #pragma omp parallel for
-    //             for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
-    //                 for (size_type j = 0; j < x->get_size().at(batch)[1];
-    //                 ++j) {
-    //                     y->at(batch, i, j) +=
-    //                         alpha->at(batch, 0, j) * x->at(batch, i, j);
-    //                 }
-    //             }
-    //         }
-    //     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL);
@@ -297,23 +186,6 @@ void compute_dot(std::shared_ptr<const OmpExecutor> exec,
         const auto y_b = gko::batch::batch_entry(y_ub, batch);
         compute_dot_product(x_b, y_b, res_b);
     }
-
-    // #pragma omp parallel for
-    //     for (size_type batch = 0; batch < result->get_num_batch_entries();
-    //     ++batch)
-    //     {
-    // #pragma omp parallel for
-    //         for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
-    //             result->at(batch, 0, j) = zero<ValueType>();
-    //         }
-    // #pragma omp parallel for
-    //         for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
-    //             for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
-    //                 result->at(batch, 0, j) +=
-    //                     conj(x->at(batch, i, j)) * y->at(batch, i, j);
-    //             }
-    //         }
-    //     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL);
@@ -333,27 +205,6 @@ void compute_norm2(std::shared_ptr<const OmpExecutor> exec,
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
         compute_norm2(x_b, res_b);
     }
-
-    // #pragma omp parallel for
-    //     for (size_type batch = 0; batch < result->get_num_batch_entries();
-    //     ++batch)
-    //     {
-    // #pragma omp parallel for
-    //         for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
-    //             result->at(batch, 0, j) = zero<remove_complex<ValueType>>();
-    //         }
-    // #pragma omp parallel for
-    //         for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
-    //             for (size_type i = 0; i < x->get_size().at(batch)[0]; ++i) {
-    //                 result->at(batch, 0, j) += squared_norm(x->at(batch, i,
-    //                 j));
-    //             }
-    //         }
-    // #pragma omp parallel for
-    //         for (size_type j = 0; j < x->get_size().at(batch)[1]; ++j) {
-    //             result->at(batch, 0, j) = sqrt(result->at(batch, 0, j));
-    //         }
-    //     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

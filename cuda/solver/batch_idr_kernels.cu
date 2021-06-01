@@ -99,7 +99,7 @@ static void apply_impl(
             0;
 #endif
 
-        apply_kernel<stop::AbsAndRelResidualMaxIter<ValueType>>
+        apply_kernel<stop::AbsOrRelResidualMaxIter<ValueType>>
             <<<nbatch, default_block_size, shared_size>>>(
                 opts.max_its, opts.abs_residual_tol, opts.rel_residual_tol,
                 opts.subspace_dim_val, opts.kappa_val, opts.to_use_smoothing,
@@ -119,7 +119,7 @@ static void apply_impl(
 #endif
 
 
-        apply_kernel<stop::AbsAndRelResidualMaxIter<ValueType>>
+        apply_kernel<stop::AbsOrRelResidualMaxIter<ValueType>>
             <<<nbatch, default_block_size, shared_size>>>(
                 opts.max_its, opts.abs_residual_tol, opts.rel_residual_tol,
                 opts.subspace_dim_val, opts.kappa_val, opts.to_use_smoothing,
@@ -131,6 +131,7 @@ static void apply_impl(
     }
 }
 
+namespace {
 
 template <typename ValueType, typename Distribution, typename Generator>
 typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
@@ -147,6 +148,8 @@ get_rand_value(Distribution &&dist, Generator &&gen)
     return ValueType(dist(gen), dist(gen));
 }
 
+}  // unnamed namespace
+
 
 template <typename ValueType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
@@ -160,9 +163,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
 {
     using cu_value_type = cuda_type<ValueType>;
 
-    if (opts.is_complex_subspace == true &&
-        !is_complex<ValueType>())
-    {
+    if (opts.is_complex_subspace == true && !is_complex<ValueType>()) {
         GKO_NOT_IMPLEMENTED;
     }
 

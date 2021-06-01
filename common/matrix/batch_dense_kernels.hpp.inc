@@ -45,10 +45,10 @@ template <typename ValueType>
 __device__ __forceinline__ void scale(const BatchEntry<const ValueType> &alpha,
                                       const BatchEntry<ValueType> &x)
 {
-    int max_li = x.num_rows * x.num_rhs;
+    const int max_li = x.num_rows * x.num_rhs;
     for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
-        int row = li / x.num_rhs;
-        int col = li % x.num_rhs;
+        const int row = li / x.num_rhs;
+        const int col = li % x.num_rhs;
 
         if (alpha.num_rhs == 1) {
             x.values[row * x.stride + col] =
@@ -80,10 +80,10 @@ __device__ __forceinline__ void add_scaled(
     const gko::batch_dense::BatchEntry<const ValueType> &x,
     const gko::batch_dense::BatchEntry<ValueType> &y)
 {
-    int max_li = x.num_rows * x.num_rhs;
+    const int max_li = x.num_rows * x.num_rhs;
     for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
-        int row = li / x.num_rhs;
-        int col = li % x.num_rhs;
+        const int row = li / x.num_rhs;
+        const int col = li % x.num_rhs;
 
         if (alpha.num_rhs == 1) {
             y.values[row * y.stride + col] +=
