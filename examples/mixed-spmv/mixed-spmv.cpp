@@ -97,15 +97,23 @@ double timing(std::shared_ptr<const gko::Executor> exec,
     for (int i = 0; i < warmup; i++) {
         A->apply(lend(b), lend(x));
     }
-    exec->synchronize();
-    auto start = std::chrono::steady_clock::now();
+    double total_sec = 0;
     for (int i = 0; i < rep; i++) {
-        A->apply(lend(b), lend(x));
+        auto xx = x->clone();
+        exec->synchronize();
+        auto start = std::chrono::steady_clock::now();
+        A->apply(lend(b), lend(xx));
+        exec->synchronize();
+        auto stop = std::chrono::steady_clock::now();
+        std::chrono::duration<double> duration_time = stop - start;
+        total_sec += duration_time.count();
+        if (i + 1 == rep) {
+            // copy the result back to x
+            x->copy_from(lend(xx));
+        }
     }
-    exec->synchronize();
-    auto stop = std::chrono::steady_clock::now();
-    std::chrono::duration<double> duration_time = stop - start;
-    return duration_time.count() / rep;
+
+    return total_sec / rep;
 }
 
 

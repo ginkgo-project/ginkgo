@@ -34,6 +34,7 @@ my %style = (
     "logging"         => ',height=.25,width=.25,fillcolor="gold"',
     "stopping-criteria"         => ',height=.25,width=.25,fillcolor="deepskyblue"',
     "preconditioners" => ',height=.25,width=.25,fillcolor="crimson"',
+    "mixed-precision" => ',height=.25,width=.25,fillcolor="aquamarine"',
     "unfinished"     => ',height=.25,width=.25,style="dashed"',
     );
 
@@ -194,6 +195,7 @@ my %kind_descriptions = (
     "logging"         => 'Logging in Ginkgo',
     "stopping-criteria"         => 'Stopping criteria',
     "preconditioners" => 'Preconditioners',
+    "mixed-precision" => 'Mixed Precision',
     "unfinished"     => 'Unfinished codes',
     );
 
@@ -211,12 +213,12 @@ foreach $kind (keys %style)
 }
 # now add connections to make sure they appear nicely next to each other
 # in the legend
-print "  basic -- techniques -- logging -- stopping_criteria -- preconditioners -- unfinished;\n";
+print "  basic -- techniques -- logging -- stopping_criteria -- preconditioners -- mixed_precision -- unfinished;\n";
 
 # we need to tell 'dot' that all of these are at the same
 # rank to ensure they appear next to (as opposed to atop)
 # each other
-print "  {rank=same; basic, techniques, logging, stopping_criteria, preconditioners, unfinished}";
+print "  {rank=same; basic, techniques, logging, stopping_criteria, preconditioners, mixed_precision, unfinished}";
 
 # end the graph
 print "}\n";
