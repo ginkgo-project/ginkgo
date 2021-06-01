@@ -51,16 +51,6 @@ namespace stop {
 namespace detail {
 
 
-constexpr uint32 power(const uint32 x, const int N)
-{
-    uint32 ans = 1;
-    for (int i = 0; i < N; i++) {
-        ans *= x;
-    }
-    return ans;
-}
-
-
 }  // namespace detail
 
 
@@ -112,7 +102,7 @@ public:
           max_its{max_iters},
           rhs_norms{rhs_b_norms}
     {
-        if (nrhs > 32) {
+        if (nrhs > max_nrhs) {
             printf("Batch stopping criterion: Too many right hand sides!\n");
         }
         converge_bitset = 0 - (1 << num_rhs);
@@ -142,9 +132,9 @@ public:
         if (residual_norms) {
             check_norms(residual_norms, converged);
         } else {
-            real_type norms[32];
+            real_type norms[batch_config<ValueType>::max_num_rhs];
             batch_dense::compute_norm2<ValueType>(residual,
-                                                  {norms, 32, 1, nrhs});
+                                                  {norms, static_cast<size_type>(nrhs), 1, nrhs});
             check_norms(norms, converged);
         }
 
@@ -163,7 +153,7 @@ private:
     const real_type abs_tol;
     const tolerance tol_type;
     const real_type *const rhs_norms;
-    static constexpr uint32 all_true = detail::power(2, 32) - 1;
+    static constexpr bitset_type all_true = ~static_cast<bitset_type>(0);
 
     void check_norms(const real_type *const res_norms,
                      bitset_type &converged) const

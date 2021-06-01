@@ -51,18 +51,6 @@ namespace {
 
 
 template <typename T>
-std::complex<T> get_num(std::complex<T>)
-{
-    return {5.0, 1.5};
-}
-
-template <typename T>
-T get_num(T)
-{
-    return 5.0;
-}
-
-template <typename T>
 class BatchIdentity : public ::testing::Test {
 protected:
     using value_type = T;
@@ -80,23 +68,6 @@ protected:
               exec)),
           cu_mtx(Mtx::create(cuexec))
     {
-        // make diagonal larger
-        const int *const row_ptrs = ref_mtx->get_const_row_ptrs();
-        const int *const col_idxs = ref_mtx->get_const_col_idxs();
-        value_type *const vals = ref_mtx->get_values();
-        const int nnz = row_ptrs[nrows];
-        for (int irow = 0; irow < nrows; irow++) {
-            for (int iz = row_ptrs[irow]; iz < row_ptrs[irow + 1]; iz++) {
-                if (col_idxs[iz] == irow) {
-                    for (size_t ibatch = 0; ibatch < nbatch; ibatch++) {
-                        // TODO: take care of any padding here
-                        const size_t valpos = iz + ibatch * nnz;
-                        vals[valpos] =
-                            get_num(T{}) + static_cast<T>(std::sin(irow));
-                    }
-                }
-            }
-        }
         cu_mtx->copy_from(ref_mtx.get());
     }
 
@@ -135,7 +106,7 @@ protected:
             exec, ref_mtx.get(), ref_b.get(), ref_x.get());
 
         cuexec->synchronize();
-        GKO_ASSERT_BATCH_MTX_NEAR(ref_x, cu_x, 5 * eps);
+        GKO_ASSERT_BATCH_MTX_NEAR(ref_x, cu_x, 0.0);
     }
 };
 
