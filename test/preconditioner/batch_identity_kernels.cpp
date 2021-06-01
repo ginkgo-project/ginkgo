@@ -85,7 +85,7 @@ protected:
     const int nrows = 50;
     std::unique_ptr<Mtx> ref_mtx;
     std::unique_ptr<Mtx> cu_mtx;
-    static constexpr real_type eps = std::numeric_limits<real_type>::epsilon();
+
 
     void check_identity(const int nrhs)
     {

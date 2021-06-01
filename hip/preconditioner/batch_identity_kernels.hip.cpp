@@ -36,8 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_csr.hpp>
 
 
-#include "core/matrix/batch_struct.hpp"
-#include "hip/matrix/batch_struct.hip.hpp"
+//#include "core/matrix/batch_struct.hpp"
+//#include "hip/matrix/batch_struct.hip.hpp"
 
 
 namespace gko {
@@ -51,8 +51,8 @@ namespace batch_identity {
 constexpr int default_block_size = 128;
 // constexpr int sm_multiplier = 4;
 
-#include "common/components/uninitialized_array.hpp.inc"
-#include "common/preconditioner/batch_identity.hpp.inc"
+// #include "common/components/uninitialized_array.hpp.inc"
+// #include "common/preconditioner/batch_identity.hpp.inc"
 
 
 template <typename ValueType>
