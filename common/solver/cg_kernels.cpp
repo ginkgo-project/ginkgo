@@ -70,7 +70,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             r(row, col) = b(row, col);
             z(row, col) = p(row, col) = q(row, col) = zero(z(row, col));
         },
-        p->get_size(), b, compact(r), compact(z), compact(p), compact(q),
+        b->get_size(), b, compact(r), compact(z), compact(p), compact(q),
         vector(prev_rho), vector(rho), *stop_status);
 }
 

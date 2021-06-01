@@ -79,7 +79,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             p2(row, col) = zero(p2(row, col));
             q2(row, col) = zero(q2(row, col));
         },
-        p->get_size(), b, compact(r), compact(z), compact(p), compact(q),
+        b->get_size(), b, compact(r), compact(z), compact(p), compact(q),
         vector(prev_rho), vector(rho), compact(r2), compact(z2), compact(p2),
         compact(q2), *stop_status);
 }
@@ -133,7 +133,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
                 r2(row, col) -= tmp * q2(row, col);
             }
         },
-        p->get_size(), x, compact(r), compact(r2), compact(p), compact(q),
+        x->get_size(), x, compact(r), compact(r2), compact(p), compact(q),
         compact(q2), vector(beta), vector(rho), *stop_status);
 }
 

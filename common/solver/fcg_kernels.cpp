@@ -72,7 +72,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             t(row, col) = r(row, col) = b(row, col);
             z(row, col) = p(row, col) = q(row, col) = zero(z(row, col));
         },
-        p->get_size(), b, r, z, p, q, t, prev_rho, rho, rho_t, *stop_status);
+        b->get_size(), b, compact(r), compact(z), compact(p), compact(q),
+        compact(t), vector(prev_rho), vector(rho), vector(rho_t), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
@@ -94,7 +95,8 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                 p(row, col) = z(row, col) + tmp * p(row, col);
             }
         },
-        p->get_size(), p, z, rho_t, prev_rho, *stop_status);
+        p->get_size(), compact(p), compact(z), vector(rho_t), vector(prev_rho),
+        *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_1_KERNEL);
@@ -113,15 +115,16 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto t, auto p,
                       auto q, auto beta, auto rho, auto stop) {
-            if (!stop[col].has_stopped()) {
-                auto tmp = safe_divide(rho[col], beta[col]);
+            if (!stop[col].has_stopped() && beta[col] != zero(beta[col])) {
+                auto tmp = rho[col] / beta[col];
                 auto prev_r = r(row, col);
                 x(row, col) += tmp * p(row, col);
                 r(row, col) -= tmp * q(row, col);
                 t(row, col) = r(row, col) - prev_r;
             }
         },
-        x->get_size(), x, r, t, p, q, beta, rho, *stop_status);
+        x->get_size(), x, compact(r), compact(t), compact(p), compact(q),
+        vector(beta), vector(rho), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_2_KERNEL);

@@ -77,7 +77,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             rr(row, col) = z(row, col) = v(row, col) = s(row, col) =
                 t(row, col) = y(row, col) = p(row, col) = zero(rr(row, col));
         },
-        p->get_size(), b, compact(r), compact(rr), compact(y), compact(s),
+        b->get_size(), b, compact(r), compact(rr), compact(y), compact(s),
         compact(t), compact(z), compact(v), compact(p), vector(prev_rho),
         vector(rho), vector(alpha), vector(beta), vector(gamma), vector(omega),
         *stop_status);
@@ -107,7 +107,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                               tmp * (p(row, col) - omega[col] * v(row, col));
             }
         },
-        p->get_size(), compact(r), compact(p), compact(v), vector(rho),
+        r->get_size(), compact(r), compact(p), compact(v), vector(rho),
         vector(prev_rho), vector(alpha), vector(omega), *stop_status);
 }
 
@@ -165,7 +165,7 @@ void step_3(
                 r(row, col) = s(row, col) - tmp * t(row, col);
             }
         },
-        r->get_size(), x, compact(r), compact(s), compact(t), compact(y),
+        x->get_size(), x, compact(r), compact(s), compact(t), compact(y),
         compact(z), vector(alpha), vector(beta), vector(gamma), vector(omega),
         *stop_status);
 }
