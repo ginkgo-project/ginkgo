@@ -38,11 +38,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "hip/base/config.hip.hpp"
+//#include "hip/base/config.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/matrix/batch_struct.hip.hpp"
+//#include "hip/matrix/batch_struct.hip.hpp"
 
 
 namespace gko {
@@ -60,18 +60,18 @@ constexpr int sm_multiplier = 4;
  */
 namespace batch_bicgstab {
 
-#include "common/components/uninitialized_array.hpp.inc"
+// #include "common/components/uninitialized_array.hpp.inc"
 
 
-#include "common/log/batch_logger.hpp.inc"
-#include "common/matrix/batch_csr_kernels.hpp.inc"
-#include "common/matrix/batch_dense_kernels.hpp.inc"
-#include "common/preconditioner/batch_identity.hpp.inc"
-#include "common/preconditioner/batch_jacobi.hpp.inc"
-#include "common/stop/batch_criteria.hpp.inc"
+// #include "common/log/batch_logger.hpp.inc"
+// #include "common/matrix/batch_csr_kernels.hpp.inc"
+// #include "common/matrix/batch_dense_kernels.hpp.inc"
+// #include "common/preconditioner/batch_identity.hpp.inc"
+// #include "common/preconditioner/batch_jacobi.hpp.inc"
+// #include "common/stop/batch_criteria.hpp.inc"
 
 
-#include "common/solver/batch_bicgstab_kernels.hpp.inc"
+// #include "common/solver/batch_bicgstab_kernels.hpp.inc"
 
 
 template <typename T>
@@ -106,7 +106,7 @@ using BatchBicgstabOptions =
 
 //         hipLaunchKernelGGL(
 //             HIP_KERNEL_NAME(
-//                 apply_kernel<stop::AbsAndRelResidualMaxIter<ValueType>>),
+//                 apply_kernel<stop::AbsOrRelResidualMaxIter<ValueType>>),
 //             dim3(nbatch), dim3(default_block_size), shared_size, 0,
 //             opts.max_its, opts.abs_residual_tol, opts.rel_residual_tol,
 //             opts.tol_type, logger, BatchIdentity<ValueType>(), a, left,
@@ -127,7 +127,7 @@ using BatchBicgstabOptions =
 
 //         hipLaunchKernelGGL(
 //             HIP_KERNEL_NAME(
-//                 apply_kernel<stop::AbsAndRelResidualMaxIter<ValueType>>),
+//                 apply_kernel<stop::AbsOrRelResidualMaxIter<ValueType>>),
 //             dim3(nbatch), dim3(default_block_size), shared_size, 0,
 //             opts.max_its, opts.abs_residual_tol, opts.rel_residual_tol,
 //             opts.tol_type, logger, BatchJacobi<ValueType>(), a, left, right,

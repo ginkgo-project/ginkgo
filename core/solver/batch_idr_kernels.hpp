@@ -46,7 +46,7 @@ namespace gko {
 namespace kernels {
 namespace batch_idr {
 
-constexpr int max_subspace_dim = 4;
+constexpr int max_subspace_dim = 6;
 
 /**
  * Options controlling the batch Idr solver.
@@ -68,7 +68,8 @@ struct BatchIdrOptions {
 /**
  * Calculates the amount of in-solver storage needed by batch-Idr.
  *
- * The calculation includes multivectors for
+ * The calculation includes:
+ * multivectors (length of each vector: number of rows in system matrix) for
  * - r
  * - t
  * - v
@@ -76,6 +77,7 @@ struct BatchIdrOptions {
  * - xs
  * - rs
  * - helper
+ * multivectors (length of each vector: subspace dimension) for
  * - f
  * - c
  * matrices for
