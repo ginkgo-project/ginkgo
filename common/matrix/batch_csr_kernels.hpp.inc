@@ -48,17 +48,15 @@ __device__ __forceinline__ void spmv_kernel(
 
     auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
 
-    const int subwarp_grp_id = floor(static_cast<double>(threadIdx.x) /
-                                     static_cast<double>(tile_size));
-
+    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
     const int num_subwarp_grps_per_block =
-        ceil(static_cast<double>(blockDim.x) / static_cast<double>(tile_size));
+        ceildiv(blockDim.x, tile_size);
 
 
     for (int row_and_rhs_combination = subwarp_grp_id;
          row_and_rhs_combination < a.num_rows * b.num_rhs;
          row_and_rhs_combination += num_subwarp_grps_per_block) {
-        int row = row_and_rhs_combination / b.num_rhs;
+        const int row = row_and_rhs_combination / b.num_rhs;
         int rhs = row_and_rhs_combination % b.num_rhs;
 
         int row_start = a.row_ptrs[row];

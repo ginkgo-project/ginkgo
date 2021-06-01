@@ -220,11 +220,13 @@ public:
 
 
         /**
-         * If set to true, IDR will use a complex subspace S also for real
+         * If set to true, IDR is supposed to use a complex subspace S also for real
          * problems, allowing for faster convergence and better results by
          * acknowledging the influence of complex eigenvectors.
          *
          * The default is false.
+         * Currently, the option of having complex subspace for real matrices
+         * is not supported.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(complex_subspace, false);
 
@@ -282,11 +284,6 @@ protected:
 
 private:
     std::shared_ptr<const BatchLinOp> system_matrix_{};
-    bool complex_subspace_;
-    size_type subspace_dim_;
-    real_type kappa_;
-    bool deterministic_;
-    bool smoothing_;
 };
 
 
