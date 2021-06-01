@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/types.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 
 
@@ -142,7 +143,7 @@ bool validate(sycl::queue *queue, unsigned workgroup_size,
 
 
 template <typename IterArr, typename Validate>
-ConfigSetType get_first_cfg(IterArr &arr, Validate verify)
+std::uint32_t get_first_cfg(IterArr &arr, Validate verify)
 {
     for (auto &cfg : arr) {
         if (verify(cfg)) {
