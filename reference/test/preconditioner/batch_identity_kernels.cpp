@@ -90,8 +90,7 @@ TYPED_TEST(BatchIdentity, AppliesToSingleVector)
     gko::kernels::reference::batch_identity::batch_identity_apply(
         this->exec, this->mtx.get(), b.get(), x.get());
 
-    const auto eps = r<value_type>::value;
-    GKO_ASSERT_BATCH_MTX_NEAR(x, xex, eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(x, xex, 0.0);
 }
 
 TYPED_TEST(BatchIdentity, AppliesToMultipleVectors)
@@ -112,8 +111,7 @@ TYPED_TEST(BatchIdentity, AppliesToMultipleVectors)
     gko::kernels::reference::batch_identity::batch_identity_apply(
         this->exec, this->mtx.get(), b.get(), x.get());
 
-    const auto eps = r<T>::value;
-    GKO_ASSERT_BATCH_MTX_NEAR(x, xex, eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(x, xex, 0.0);
 }
 
 }  // namespace
