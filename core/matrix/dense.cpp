@@ -335,7 +335,7 @@ void Dense<ValueType>::convert_to(Dense<ValueType> *result) const
         // we need to create a executor-local clone of the target data, that
         // will be copied back later.
         auto exec = this->get_executor();
-        auto result_array = make_temporary_clone(exec, &result->values_);
+        auto result_array = make_temporary_output_clone(exec, &result->values_);
         // create a (value, not pointer to avoid allocation overhead) view
         // matrix on the array to avoid special-casing cross-executor copies
         auto tmp_result =
@@ -365,8 +365,8 @@ void Dense<ValueType>::convert_to(
 {
     if (result->get_size() == this->get_size()) {
         auto exec = this->get_executor();
-        exec->run(
-            dense::make_copy(this, make_temporary_clone(exec, result).get()));
+        exec->run(dense::make_copy(
+            this, make_temporary_output_clone(exec, result).get()));
     } else {
         result->values_ = this->values_;
         result->stride_ = this->stride_;
@@ -697,8 +697,8 @@ void Dense<ValueType>::transpose(Dense<ValueType> *output) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(output, gko::transpose(this->get_size()));
     auto exec = this->get_executor();
-    exec->run(
-        dense::make_transpose(this, make_temporary_clone(exec, output).get()));
+    exec->run(dense::make_transpose(
+        this, make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -708,7 +708,7 @@ void Dense<ValueType>::conj_transpose(Dense<ValueType> *output) const
     GKO_ASSERT_EQUAL_DIMENSIONS(output, gko::transpose(this->get_size()));
     auto exec = this->get_executor();
     exec->run(dense::make_conj_transpose(
-        this, make_temporary_clone(exec, output).get()));
+        this, make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -743,7 +743,7 @@ void Dense<ValueType>::permute(const Array<int32> *permutation_indices,
 
     exec->run(dense::make_symm_permute(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        make_temporary_clone(exec, output).get()));
+        make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -758,7 +758,7 @@ void Dense<ValueType>::permute(const Array<int64> *permutation_indices,
 
     exec->run(dense::make_symm_permute(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        make_temporary_clone(exec, output).get()));
+        make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -793,7 +793,7 @@ void Dense<ValueType>::inverse_permute(const Array<int32> *permutation_indices,
 
     exec->run(dense::make_inv_symm_permute(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        make_temporary_clone(exec, output).get()));
+        make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -808,7 +808,7 @@ void Dense<ValueType>::inverse_permute(const Array<int64> *permutation_indices,
 
     exec->run(dense::make_inv_symm_permute(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        make_temporary_clone(exec, output).get()));
+        make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -842,7 +842,7 @@ void Dense<ValueType>::row_permute(const Array<int32> *permutation_indices,
 
     exec->run(dense::make_row_gather(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        make_temporary_clone(exec, output).get()));
+        make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -856,7 +856,7 @@ void Dense<ValueType>::row_permute(const Array<int64> *permutation_indices,
 
     exec->run(dense::make_row_gather(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        make_temporary_clone(exec, output).get()));
+        make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -894,7 +894,7 @@ void Dense<ValueType>::row_gather(const Array<int32> *row_indices,
 
     exec->run(dense::make_row_gather(
         make_temporary_clone(exec, row_indices).get(), this,
-        make_temporary_clone(exec, row_gathered).get()));
+        make_temporary_output_clone(exec, row_gathered).get()));
 }
 
 
@@ -909,7 +909,7 @@ void Dense<ValueType>::row_gather(const Array<int64> *row_indices,
 
     this->get_executor()->run(dense::make_row_gather(
         make_temporary_clone(exec, row_indices).get(), this,
-        make_temporary_clone(exec, row_gathered).get()));
+        make_temporary_output_clone(exec, row_gathered).get()));
 }
 
 
@@ -923,7 +923,7 @@ void Dense<ValueType>::column_permute(const Array<int32> *permutation_indices,
 
     exec->run(dense::make_column_permute(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        make_temporary_clone(exec, output).get()));
+        make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -937,7 +937,7 @@ void Dense<ValueType>::column_permute(const Array<int64> *permutation_indices,
 
     exec->run(dense::make_column_permute(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        make_temporary_clone(exec, output).get()));
+        make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -971,7 +971,7 @@ void Dense<ValueType>::inverse_row_permute(
 
     exec->run(dense::make_inverse_row_permute(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        make_temporary_clone(exec, output).get()));
+        make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -985,7 +985,7 @@ void Dense<ValueType>::inverse_row_permute(
 
     exec->run(dense::make_inverse_row_permute(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        make_temporary_clone(exec, output).get()));
+        make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -1019,7 +1019,7 @@ void Dense<ValueType>::inverse_column_permute(
 
     exec->run(dense::make_inverse_column_permute(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        make_temporary_clone(exec, output).get()));
+        make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -1033,7 +1033,7 @@ void Dense<ValueType>::inverse_column_permute(
 
     exec->run(dense::make_inverse_column_permute(
         make_temporary_clone(exec, permutation_indices).get(), this,
-        make_temporary_clone(exec, output).get()));
+        make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -1065,7 +1065,7 @@ void Dense<ValueType>::extract_diagonal(Diagonal<ValueType> *output) const
     GKO_ASSERT_EQ(output->get_size()[0], diag_size);
 
     exec->run(dense::make_extract_diagonal(
-        this, make_temporary_clone(exec, output).get()));
+        this, make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -1105,7 +1105,7 @@ void Dense<ValueType>::compute_absolute(
     auto exec = this->get_executor();
 
     exec->run(dense::make_outplace_absolute_dense(
-        this, make_temporary_clone(exec, output).get()));
+        this, make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -1127,7 +1127,7 @@ void Dense<ValueType>::make_complex(
     auto exec = this->get_executor();
 
     exec->run(dense::make_make_complex(
-        this, make_temporary_clone(exec, result).get()));
+        this, make_temporary_output_clone(exec, result).get()));
 }
 
 
@@ -1148,8 +1148,8 @@ void Dense<ValueType>::get_real(
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
 
-    exec->run(
-        dense::make_get_real(this, make_temporary_clone(exec, result).get()));
+    exec->run(dense::make_get_real(
+        this, make_temporary_output_clone(exec, result).get()));
 }
 
 
@@ -1170,8 +1170,8 @@ void Dense<ValueType>::get_imag(
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
 
-    exec->run(
-        dense::make_get_imag(this, make_temporary_clone(exec, result).get()));
+    exec->run(dense::make_get_imag(
+        this, make_temporary_output_clone(exec, result).get()));
 }
 
 

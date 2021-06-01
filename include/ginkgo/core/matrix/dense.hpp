@@ -660,7 +660,7 @@ public:
     {
         auto exec = this->get_executor();
         this->compute_dot_impl(make_temporary_clone(exec, b).get(),
-                               make_temporary_clone(exec, result).get());
+                               make_temporary_output_clone(exec, result).get());
     }
 
     /**
@@ -674,8 +674,9 @@ public:
     void compute_conj_dot(const LinOp *b, LinOp *result) const
     {
         auto exec = this->get_executor();
-        this->compute_conj_dot_impl(make_temporary_clone(exec, b).get(),
-                                    make_temporary_clone(exec, result).get());
+        this->compute_conj_dot_impl(
+            make_temporary_clone(exec, b).get(),
+            make_temporary_output_clone(exec, result).get());
     }
 
     /**
@@ -688,7 +689,8 @@ public:
     void compute_norm2(LinOp *result) const
     {
         auto exec = this->get_executor();
-        this->compute_norm2_impl(make_temporary_clone(exec, result).get());
+        this->compute_norm2_impl(
+            make_temporary_output_clone(exec, result).get());
     }
 
     /**
@@ -818,8 +820,10 @@ protected:
           values_{exec, std::forward<ValuesArray>(values)},
           stride_{stride}
     {
-        GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
-                             values_.get_num_elems());
+        if (size[0] > 0 && size[1] > 0) {
+            GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
+                                 values_.get_num_elems());
+        }
     }
 
     /**
@@ -936,6 +940,27 @@ private:
 
 
 }  // namespace matrix
+
+
+namespace detail {
+
+
+template <typename ValueType>
+struct temporary_clone_helper<matrix::Dense<ValueType>> {
+    static std::unique_ptr<matrix::Dense<ValueType>> create(
+        std::shared_ptr<const Executor> exec, matrix::Dense<ValueType> *ptr,
+        bool copy_data)
+    {
+        if (copy_data) {
+            return gko::clone(std::move(exec), ptr);
+        } else {
+            return matrix::Dense<ValueType>::create(exec, ptr->get_size());
+        }
+    }
+};
+
+
+}  // namespace detail
 
 
 /**
