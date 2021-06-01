@@ -827,14 +827,14 @@ protected:
     }
 
     /**
-     * Creates a Dense matrix with the same configuration as the callers matrix.
+     * Creates a Dense matrix with the same size as the callers matrix.
+     * Note that the stride is not preserved!
      *
-     * @returns a Dense matrix with the same configuration as the caller.
+     * @returns a Dense matrix with the same size as the caller.
      */
     virtual std::unique_ptr<Dense> create_with_same_config() const
     {
-        return Dense::create(this->get_executor(), this->get_size(),
-                             this->get_stride());
+        return Dense::create(this->get_executor(), this->get_size());
     }
 
     /**
