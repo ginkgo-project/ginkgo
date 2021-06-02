@@ -75,7 +75,7 @@ void BlockApprox<ValueType, LocalIndexType>::apply_impl(const LinOp *b,
     // Get local block
     auto dense_b = as<Dense>(b);
     auto dense_x = as<Dense>(x);
-    GKO_ASSERT(diagonal_block_.size() == 1);
+    GKO_ASSERT(diagonal_blocks_.size() == 1);
     for (auto i = 0; i < diagonal_blocks_.size(); ++i) {
         this->diagonal_blocks_[i]->apply(dense_b, dense_x);
     }
@@ -93,7 +93,7 @@ void BlockApprox<ValueType, LocalIndexType>::apply_impl(const LinOp *alpha,
 
     auto dense_b = as<Dense>(b);
     auto dense_x = as<Dense>(x);
-    GKO_ASSERT(diagonal_block_.size() == 1);
+    GKO_ASSERT(diagonal_blocks_.size() == 1);
     for (auto i = 0; i < diagonal_blocks_.size(); ++i) {
         this->diagonal_blocks_[i]->apply(alpha, dense_b, beta, dense_x);
     }

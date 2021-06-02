@@ -62,6 +62,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_RESTRICT
 #endif  // defined(__CUDACC__) || defined(__HIPCC__)
 
+#if defined(__GCC__)
+#define GKO_ALWAYS_INLINE __attribute__((always_inline))
+#else
+#define GKO_ALWAYS_INLINE
+#endif
+
 
 #if (defined(__CUDA_ARCH__) && defined(__APPLE__)) || \
     defined(__HIP_DEVICE_COMPILE__)

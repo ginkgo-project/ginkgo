@@ -58,9 +58,14 @@ int main(int argc, char* argv[])
     using LocalIndexType = int;  // GlobalIndexType;
     using dist_mtx = gko::distributed::Matrix<ValueType, LocalIndexType>;
     using dist_vec = gko::distributed::Vector<ValueType, LocalIndexType>;
+    using block_approx =
+        gko::distributed::BlockApprox<ValueType, LocalIndexType>;
     using vec = gko::matrix::Dense<ValueType>;
     using part_type = gko::distributed::Partition<LocalIndexType>;
-    using solver = gko::solver::Bicgstab<ValueType>;
+    using ras = gko::preconditioner::Ras<ValueType, LocalIndexType>;
+    using solver = gko::solver::Cg<ValueType>;
+    using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
+    using paric = gko::preconditioner::Ic<ValueType, LocalIndexType>;
 
     // Print the ginkgo version information.
     // std::cout << gko::version_info::get() << std::endl;
@@ -171,15 +176,49 @@ int main(int argc, char* argv[])
     b->copy_from(b_host.get());
     x->copy_from(x_host.get());
 
+    auto block_A = block_approx::create(exec, A.get());
+
+    auto ras_precond =
+        ras::build()
+            .with_solver(bj::build().on(exec))
+            // paric::build().on(exec)
+            // cg::build()
+            //     .with_preconditioner(bj::build().on(exec))
+            //     .with_criteria(
+            //         gko::stop::Iteration::build().with_max_iters(20u).on(
+            //             exec),
+            //         gko::stop::ResidualNorm<ValueType>::build()
+            //             .with_reduction_factor(inner_reduction_factor)
+            //             .on(exec))
+            //     .on(exec))
+            .on(exec)
+            ->generate(gko::share(block_A));
+
+    gko::remove_complex<ValueType> reduction_factor = 1e-10;
+    std::shared_ptr<gko::stop::Iteration::Factory> iter_stop =
+        gko::stop::Iteration::build().with_max_iters(num_rows).on(exec);
+    std::shared_ptr<gko::stop::ResidualNorm<ValueType>::Factory> tol_stop =
+        gko::stop::ResidualNorm<ValueType>::build()
+            .with_reduction_factor(reduction_factor)
+            .on(exec);
+    std::shared_ptr<gko::stop::Combined::Factory> combined_stop =
+        gko::stop::Combined::build()
+            .with_criteria(iter_stop, tol_stop)
+            .on(exec);
+
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create(
+            exec, gko::log::Logger::criterion_check_completed_mask);
+    combined_stop->add_logger(logger);
     MPI_Barrier(MPI_COMM_WORLD);
     ValueType t_read_setup_end = MPI_Wtime();
 
-    auto Ainv =
-        solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u).on(exec))
-            .on(exec)
-            ->generate(A);
+    auto Ainv = solver::build()
+                    .with_generated_preconditioner(gko::share(ras_precond))
+                    .with_criteria(combined_stop)
+                    .on(exec)
+                    ->generate(A);
+    Ainv->add_logger(logger);
     MPI_Barrier(MPI_COMM_WORLD);
     ValueType t_solver_generate_end = MPI_Wtime();
 
@@ -187,6 +226,7 @@ int main(int argc, char* argv[])
 
     MPI_Barrier(MPI_COMM_WORLD);
     ValueType t_solver_apply_end = MPI_Wtime();
+    // Ainv->remove_logger(logger.get());
 
     x_host->copy_from(x.get());
     auto one = gko::initialize<vec>({1.0}, exec);
@@ -197,12 +237,18 @@ int main(int argc, char* argv[])
 
     MPI_Barrier(MPI_COMM_WORLD);
     ValueType t_end = MPI_Wtime();
+    auto l_res_norm =
+        gko::as<vec>(
+            gko::clone(exec->get_master(), logger->get_residual_norm()).get())
+            ->at(0);
 
     if (comm->rank() == 0) {
         // clang-format off
     std::cout << "\nNum rows in matrix: " << num_rows
               << "\nNum ranks: " << comm->size()
               << "\nFinal Res norm: " << *result->get_values()
+              << "\nNum iters: " << logger->get_num_iterations()
+              << "\nLogger res norm: " << l_res_norm
               << "\nInit time: " << t_init_end - t_init
               << "\nRead time: " << t_read_setup_end - t_init
               << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
