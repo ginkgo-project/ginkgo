@@ -57,8 +57,8 @@ namespace distributed {
 
 template <typename ValueType = double, typename LocalIndexType = int32>
 class BlockApprox
-    : public EnableLinOp<BlockApprox<Matrix<ValueType, LocalIndexType>>>,
-      public EnableCreateMethod<BlockApprox<Matrix<ValueType, LocalIndexType>>>,
+    : public EnableLinOp<BlockApprox<ValueType, LocalIndexType>>,
+      public EnableCreateMethod<BlockApprox<ValueType, LocalIndexType>>,
       public DistributedBase {
     friend class EnableCreateMethod<BlockApprox>;
     friend class EnablePolymorphicObject<BlockApprox, LinOp>;

@@ -89,7 +89,6 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
 {
     using LocalVector = matrix::Dense<ValueType>;
     if (is_distributed()) {
-        using block_t = distributed::BlockApprox<ValueType, IndexType>;
         this->inner_solvers_[0]->apply(detail::get_local(dense_b),
                                        detail::get_local(dense_x));
     } else {
@@ -192,7 +191,7 @@ void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
 {
     using block_t = matrix::BlockApprox<matrix::Csr<ValueType, IndexType>>;
     using dist_block_t = distributed::BlockApprox<ValueType, IndexType>;
-    if (as<block_t>(system_matrix)) {
+    if (dynamic_cast<const block_t *>(system_matrix) != nullptr) {
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
         auto block_mtxs = as<block_t>(system_matrix)->get_block_mtxs();
         this->overlaps_ = as<block_t>(system_matrix)->get_overlaps();
@@ -203,7 +202,7 @@ void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
                 parameters_.solver->generate(block_mtxs[i]));
         }
         this->is_distributed_ = false;
-    } else if (as<dist_block_t>(system_matrix)) {
+    } else if (dynamic_cast<const dist_block_t *>(system_matrix) != nullptr) {
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
         auto block_mtxs = as<dist_block_t>(system_matrix)->get_block_mtxs();
         this->overlaps_ = as<dist_block_t>(system_matrix)->get_overlaps();
