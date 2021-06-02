@@ -218,7 +218,7 @@ detail::temporary_clone<T> make_temporary_output_clone(
     static_assert(
         !std::is_const<T>::value,
         "make_temporary_output_clone should only be used on non-const objects");
-    return detail::temporary_clone<T>(std::move(exec), ptr);
+    return detail::temporary_clone<T>(std::move(exec), ptr, false);
 }
 
 
