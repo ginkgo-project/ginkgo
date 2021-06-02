@@ -116,7 +116,7 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(Ras, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    bool is_distributed() const { return is_distributed_; }
+    bool is_distributed() const { return this->is_distributed_; }
 
 protected:
     /**

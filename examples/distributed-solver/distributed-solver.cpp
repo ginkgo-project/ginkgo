@@ -64,8 +64,10 @@ int main(int argc, char* argv[])
     using part_type = gko::distributed::Partition<LocalIndexType>;
     using ras = gko::preconditioner::Ras<ValueType, LocalIndexType>;
     using solver = gko::solver::Cg<ValueType>;
+    using cg = gko::solver::Cg<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
-    using paric = gko::preconditioner::Ic<ValueType, LocalIndexType>;
+    using paric = gko::preconditioner::Ic<
+        gko::solver::LowerTrs<ValueType, LocalIndexType>, LocalIndexType>;
 
     // Print the ginkgo version information.
     // std::cout << gko::version_info::get() << std::endl;
@@ -90,6 +92,7 @@ int main(int argc, char* argv[])
     const auto grid_dim =
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);
     const auto comm = gko::mpi::communicator::create_world();
+    const gko::size_type inner_iter = argc >= 4 ? std::atoi(argv[3]) : 10u;
     const auto rank = comm->rank();
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -178,21 +181,24 @@ int main(int argc, char* argv[])
 
     auto block_A = block_approx::create(exec, A.get());
 
-    auto ras_precond =
-        ras::build()
-            .with_solver(bj::build().on(exec))
-            // paric::build().on(exec)
-            // cg::build()
-            //     .with_preconditioner(bj::build().on(exec))
-            //     .with_criteria(
-            //         gko::stop::Iteration::build().with_max_iters(20u).on(
-            //             exec),
-            //         gko::stop::ResidualNorm<ValueType>::build()
-            //             .with_reduction_factor(inner_reduction_factor)
-            //             .on(exec))
-            //     .on(exec))
-            .on(exec)
-            ->generate(gko::share(block_A));
+    gko::remove_complex<ValueType> inner_reduction_factor = 1e-2;
+    auto inner_solver = gko::share(
+        // bj::build().on(exec));
+        // paric::build().on(exec))
+        cg::build()
+            .with_preconditioner(bj::build().on(exec))
+            .with_criteria(gko::stop::Iteration::build()
+                               .with_max_iters(inner_iter)
+                               .on(exec)
+                           // gko::stop::ResidualNorm<ValueType>::build()
+                           //     .with_reduction_factor(inner_reduction_factor)
+                           //     .on(exec)
+                           )
+            .on(exec));
+    auto ras_precond = ras::build()
+                           .with_solver(inner_solver)
+                           .on(exec)
+                           ->generate(gko::share(block_A));
 
     gko::remove_complex<ValueType> reduction_factor = 1e-10;
     std::shared_ptr<gko::stop::Iteration::Factory> iter_stop =

@@ -63,8 +63,8 @@ Matrix<ValueType, LocalIndexType>::Matrix(
       local_to_global_row{exec},
       local_to_global_offdiag_col{exec},
       one_scalar_{exec, dim<2>{1, 1}},
-      diag_mtx_{exec},
-      offdiag_mtx_{exec}
+      diag_mtx_{LocalMtx::create(exec)},
+      offdiag_mtx_{LocalMtx::create(exec)}
 {
     auto one_val = one<ValueType>();
     exec->copy_from(exec->get_master().get(), 1, &one_val,
@@ -123,8 +123,8 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
         local_to_global_offdiag_col, ValueType{}));
 
     dim<2> offdiag_dim{local_size, recv_gather_idxs.get_num_elems()};
-    this->diag_mtx_.read(diag_data, diag_dim);
-    this->offdiag_mtx_.read(offdiag_data, offdiag_dim);
+    this->diag_mtx_->read(diag_data, diag_dim);
+    this->offdiag_mtx_->read(offdiag_data, offdiag_dim);
 
     // exchange step 1: determine recv_sizes, send_sizes, send_offsets
     exec->get_master()->copy_from(exec.get(), num_parts + 1,
@@ -166,9 +166,7 @@ Matrix<ValueType, LocalIndexType>::get_block_approx(
     const Overlap<size_type> &block_overlaps,
     const Array<size_type> &block_sizes) const
 {
-    return std::vector<
-        std::shared_ptr<typename Matrix<ValueType, LocalIndexType>::LocalMtx>>{
-        this->get_local_matrix()};
+    return std::vector<std::shared_ptr<LocalMtx>>{this->get_local_matrix()};
 }
 
 
@@ -215,10 +213,10 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
 {
     auto dense_b = as<GlobalVec>(b);
     auto dense_x = as<GlobalVec>(x);
-    diag_mtx_.apply(dense_b->get_local(), dense_x->get_local());
+    diag_mtx_->apply(dense_b->get_local(), dense_x->get_local());
     this->communicate(dense_b->get_local());
-    offdiag_mtx_.apply(&one_scalar_, recv_buffer_.get(), &one_scalar_,
-                       dense_x->get_local());
+    offdiag_mtx_->apply(&one_scalar_, recv_buffer_.get(), &one_scalar_,
+                        dense_x->get_local());
 }
 
 
@@ -232,11 +230,11 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* alpha,
     auto vec_x = as<GlobalVec>(x);
     auto local_alpha = as<LocalVec>(alpha);
     auto local_beta = as<LocalVec>(beta);
-    diag_mtx_.apply(local_alpha, vec_b->get_local(), local_beta,
-                    vec_x->get_local());
+    diag_mtx_->apply(local_alpha, vec_b->get_local(), local_beta,
+                     vec_x->get_local());
     this->communicate(vec_b->get_local());
-    offdiag_mtx_.apply(local_alpha, recv_buffer_.get(), &one_scalar_,
-                       vec_x->get_local());
+    offdiag_mtx_->apply(local_alpha, recv_buffer_.get(), &one_scalar_,
+                        vec_x->get_local());
 }
 
 
@@ -245,15 +243,15 @@ void Matrix<ValueType, LocalIndexType>::validate_data() const
 {
     LinOp::validate_data();
     one_scalar_.validate_data();
-    diag_mtx_.validate_data();
-    offdiag_mtx_.validate_data();
+    diag_mtx_->validate_data();
+    offdiag_mtx_->validate_data();
     const auto exec = this->get_executor();
     const auto host_exec = exec->get_master();
     const auto comm = this->get_communicator();
     // executors
     GKO_VALIDATION_CHECK(one_scalar_.get_executor() == exec);
-    GKO_VALIDATION_CHECK(diag_mtx_.get_executor() == exec);
-    GKO_VALIDATION_CHECK(offdiag_mtx_.get_executor() == exec);
+    GKO_VALIDATION_CHECK(diag_mtx_->get_executor() == exec);
+    GKO_VALIDATION_CHECK(offdiag_mtx_->get_executor() == exec);
     GKO_VALIDATION_CHECK(gather_idxs_.get_executor() == exec);
     GKO_VALIDATION_CHECK(host_send_buffer_.get() == nullptr ||
                          host_send_buffer_->get_executor() == host_exec);
@@ -264,12 +262,12 @@ void Matrix<ValueType, LocalIndexType>::validate_data() const
     GKO_VALIDATION_CHECK(recv_buffer_.get() == nullptr ||
                          recv_buffer_->get_executor() == exec);
     // sizes are matching
-    const auto num_local_rows = diag_mtx_.get_size()[0];
-    const auto num_offdiag_cols = offdiag_mtx_.get_size()[1];
+    const auto num_local_rows = diag_mtx_->get_size()[0];
+    const auto num_offdiag_cols = offdiag_mtx_->get_size()[1];
     const auto num_gather_rows = gather_idxs_.get_num_elems();
-    GKO_VALIDATION_CHECK(num_local_rows == diag_mtx_.get_size()[1]);
-    GKO_VALIDATION_CHECK(num_local_rows == offdiag_mtx_.get_size()[0]);
-    auto num_local_rows_sum = diag_mtx_.get_size()[0];
+    GKO_VALIDATION_CHECK(num_local_rows == diag_mtx_->get_size()[1]);
+    GKO_VALIDATION_CHECK(num_local_rows == offdiag_mtx_->get_size()[0]);
+    auto num_local_rows_sum = diag_mtx_->get_size()[0];
     mpi::all_reduce(&num_local_rows_sum, 1, mpi::op_type::sum,
                     this->get_communicator());
     GKO_VALIDATION_CHECK(num_local_rows_sum == this->get_size()[0]);
