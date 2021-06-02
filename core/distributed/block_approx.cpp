@@ -55,7 +55,7 @@ void BlockApprox<ValueType, LocalIndexType>::generate(
 {
     auto num_blocks = block_sizes.get_num_elems();
     auto block_mtxs = matrix->get_block_approx(block_overlaps, block_sizes);
-
+    GKO_ASSERT(block_mtxs[0]->get_executor() != nullptr);
     for (size_type j = 0; j < block_mtxs.size(); ++j) {
         diagonal_blocks_.emplace_back(std::move(block_mtxs[j]));
         block_dims_.emplace_back(diagonal_blocks_.back()->get_size());

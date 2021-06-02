@@ -137,7 +137,13 @@ void Cg<ValueType>::apply_dense_impl(const VectorType *dense_b,
     // prev_rho = 1.0
     // z = p = q = 0
 
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
+    GKO_ASSERT(dense_x->get_executor() != nullptr);
+    GKO_ASSERT(r->get_executor() != nullptr);
+    GKO_ASSERT(neg_one_op->get_executor() != nullptr);
+    GKO_ASSERT(one_op->get_executor() != nullptr);
+    GKO_ASSERT(this->system_matrix_->get_executor() != nullptr);
+    this->system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
+                                r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_,
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
@@ -154,7 +160,7 @@ void Cg<ValueType>::apply_dense_impl(const VectorType *dense_b,
      * 1x norm2 residual   n
      */
     while (true) {
-        get_preconditioner()->apply(r.get(), z.get());
+        this->get_preconditioner()->apply(r.get(), z.get());
         r->compute_conj_dot(z.get(), rho.get());
 
         ++iter;
@@ -174,7 +180,7 @@ void Cg<ValueType>::apply_dense_impl(const VectorType *dense_b,
         exec->run(cg::make_step_1(detail::get_local(p.get()),
                                   detail::get_local(z.get()), rho.get(),
                                   prev_rho.get(), &stop_status));
-        system_matrix_->apply(p.get(), q.get());
+        this->system_matrix_->apply(p.get(), q.get());
         p->compute_conj_dot(q.get(), beta.get());
         // tmp = rho / beta
         // x = x + tmp * p

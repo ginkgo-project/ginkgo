@@ -89,6 +89,7 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
 {
     using LocalVector = matrix::Dense<ValueType>;
     if (is_distributed()) {
+        GKO_ASSERT(this->inner_solvers_.size() > 0);
         this->inner_solvers_[0]->apply(detail::get_local(dense_b),
                                        detail::get_local(dense_x));
     } else {
@@ -211,8 +212,9 @@ void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
         const auto num_subdomains = block_mtxs.size();
         for (size_type i = 0; i < num_subdomains; ++i) {
             this->inner_solvers_.emplace_back(
-                parameters_.solver->generate(block_mtxs[i]));
+                parameters_.solver->generate(gko::share(block_mtxs[i])));
         }
+
         this->is_distributed_ = true;
     }
 }

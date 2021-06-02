@@ -86,12 +86,14 @@ public:
 
     std::shared_ptr<LocalMtx> get_local_matrix() const
     {
-        return std::make_shared<LocalMtx>(diag_mtx_);
+        GKO_ASSERT(diag_mtx_->get_executor() != nullptr);
+        return diag_mtx_;
     }
 
     std::shared_ptr<LocalMtx> get_non_local_matrix() const
     {
-        return std::make_shared<LocalMtx>(offdiag_mtx_);
+        GKO_ASSERT(offdiag_mtx_->get_executor() != nullptr);
+        return offdiag_mtx_;
     }
 
     std::vector<std::shared_ptr<LocalMtx>> get_block_approx(
@@ -121,8 +123,8 @@ private:
     mutable DenseCache<value_type> host_recv_buffer_;
     mutable DenseCache<value_type> send_buffer_;
     mutable DenseCache<value_type> recv_buffer_;
-    LocalMtx diag_mtx_;
-    LocalMtx offdiag_mtx_;
+    std::shared_ptr<LocalMtx> diag_mtx_;
+    std::shared_ptr<LocalMtx> offdiag_mtx_;
 };
 
 
