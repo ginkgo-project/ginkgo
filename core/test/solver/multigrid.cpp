@@ -105,7 +105,7 @@ public:
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
-        int GKO_FACTORY_PARAMETER(value, 5);
+        int GKO_FACTORY_PARAMETER_SCALAR(value, 5);
     };
     GKO_ENABLE_LIN_OP_FACTORY(DummyLinOpWithFactory, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

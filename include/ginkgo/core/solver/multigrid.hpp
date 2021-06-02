@@ -204,7 +204,7 @@ public:
          * Criterion factories.
          */
         std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER(criteria, nullptr);
+            GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
 
         /**
          * MultigridLevel Factory list
@@ -218,7 +218,7 @@ public:
          *                   use the level as the index when mg_level size > 1
          */
         std::function<size_type(const size_type, const LinOp *)>
-            GKO_FACTORY_PARAMETER(mg_level_index, nullptr);
+            GKO_FACTORY_PARAMETER_SCALAR(mg_level_index, nullptr);
 
         /**
          * Pre-smooth Factory list.
@@ -230,16 +230,16 @@ public:
          * Identity Factory. Identity Factory updates x = x + relaxation *
          * residual.
          */
-        std::vector<std::shared_ptr<const LinOpFactory>> GKO_FACTORY_PARAMETER(
-            pre_smoother, nullptr);
+        std::vector<std::shared_ptr<const LinOpFactory>>
+            GKO_FACTORY_PARAMETER_VECTOR(pre_smoother, nullptr);
 
         /**
          * Post-smooth Factory list.
          * It is similar to Pre-smooth Factory list. It is ignored if
          * post_uses_pre = true.
          */
-        std::vector<std::shared_ptr<const LinOpFactory>> GKO_FACTORY_PARAMETER(
-            post_smoother, nullptr);
+        std::vector<std::shared_ptr<const LinOpFactory>>
+            GKO_FACTORY_PARAMETER_VECTOR(post_smoother, nullptr);
 
         /**
          * Mid-smooth Factory list. If it contains availble elements, multigrid
@@ -248,58 +248,58 @@ public:
          * It is similar to Pre-smooth Factory list. It is ignored if
          * multigrid_mid_uses is not mid.
          */
-        std::vector<std::shared_ptr<const LinOpFactory>> GKO_FACTORY_PARAMETER(
-            mid_smoother, nullptr);
+        std::vector<std::shared_ptr<const LinOpFactory>>
+            GKO_FACTORY_PARAMETER_VECTOR(mid_smoother, nullptr);
 
         /**
          * Whether Post-related calls use corresponding pre-related calls.
          */
-        bool GKO_FACTORY_PARAMETER(post_uses_pre, true);
+        bool GKO_FACTORY_PARAMETER_SCALAR(post_uses_pre, true);
 
         /**
          * Which Mid-related calls use pre/mid/post-related calls.
          * Availble options: pre/mid/post.
          */
-        multigrid_mid_uses GKO_FACTORY_PARAMETER(mid_case,
-                                                 multigrid_mid_uses::pre);
+        multigrid_mid_uses GKO_FACTORY_PARAMETER_SCALAR(
+            mid_case, multigrid_mid_uses::pre);
 
         /**
          * The maximum level can be generated
          */
-        size_type GKO_FACTORY_PARAMETER(max_levels, 10);
+        size_type GKO_FACTORY_PARAMETER_SCALAR(max_levels, 10);
 
         /**
          * The minimal coarse rows.
          * If generation gets the matrix which contains less than
          * `min_coarse_rows`, the generation stops.
          */
-        size_type GKO_FACTORY_PARAMETER(min_coarse_rows, 2);
+        size_type GKO_FACTORY_PARAMETER_SCALAR(min_coarse_rows, 2);
 
         /**
          * Coarsest factory list.
          */
-        std::vector<std::shared_ptr<const LinOpFactory>> GKO_FACTORY_PARAMETER(
-            coarsest_solver, nullptr);
+        std::vector<std::shared_ptr<const LinOpFactory>>
+            GKO_FACTORY_PARAMETER_VECTOR(coarsest_solver, nullptr);
 
         /**
          * Custom solver selector (level, matrix)
          * default selector: use the first factory
          */
         std::function<size_type(const size_type, const LinOp *)>
-            GKO_FACTORY_PARAMETER(solver_index, nullptr);
+            GKO_FACTORY_PARAMETER_SCALAR(solver_index, nullptr);
 
         /**
          * Multigrid cycle type
          * Options: v, f, w, kfcg and kgcr
          */
-        multigrid_cycle GKO_FACTORY_PARAMETER(cycle, multigrid_cycle::v);
+        multigrid_cycle GKO_FACTORY_PARAMETER_SCALAR(cycle, multigrid_cycle::v);
 
         /**
          * kcycle_base is a factor to choose how often enable FCG/GCR step.
          * This parameter is ignored on v, w, f cycle.
          * Enable the FCG/GCR step when level % kcycle_base == 0
          */
-        size_type GKO_FACTORY_PARAMETER(kcycle_base, 1);
+        size_type GKO_FACTORY_PARAMETER_SCALAR(kcycle_base, 1);
 
         /**
          * kcycle_rel_tol decides whether run the second iteration of FCG/GCR
@@ -308,7 +308,8 @@ public:
          * kcycle_rel_tol == inf: always run two iterations.
          * ||updated_r|| <= kcycle_rel_tol ||r||: run second iteration.
          */
-        remove_complex<ValueType> GKO_FACTORY_PARAMETER(kcycle_rel_tol, 0.25);
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(kcycle_rel_tol,
+                                                               0.25);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
