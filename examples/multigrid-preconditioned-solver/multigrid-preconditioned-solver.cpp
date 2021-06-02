@@ -88,12 +88,13 @@ int main(int argc, char *argv[])
     // Create RHS and initial guess as 1
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
-    // auto host_b = vec::create(exec->get_master(), gko::dim<2>(size, 1));
-    auto host_b =
-        share(gko::read<vec>(std::ifstream("data/b.mtx"), exec->get_master()));
+    auto host_b = vec::create(exec->get_master(), gko::dim<2>(size, 1));
+    // auto host_b =
+    //     share(gko::read<vec>(std::ifstream("data/b.mtx"),
+    //     exec->get_master()));
     for (auto i = 0; i < size; i++) {
         host_x->at(i, 0) = 0.;
-        // host_b->at(i, 0) = 1.;
+        host_b->at(i, 0) = 1.;
     }
     auto x = vec::create(exec);
     auto b = vec::create(exec);
@@ -142,7 +143,7 @@ int main(int argc, char *argv[])
     auto multigrid_gen =
         mg::build()
             .with_max_levels(9u)
-            .with_min_coarse_rows(50u)
+            .with_min_coarse_rows(10u)
             .with_pre_smoother(gko::share(smoother_gen))
             .with_post_uses_pre(true)
             .with_mg_level(gko::share(mg_level_gen))
