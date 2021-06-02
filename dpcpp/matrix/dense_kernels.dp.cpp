@@ -569,28 +569,25 @@ void calculate_slice_lengths(size_type num_rows, size_type slice_size,
     constexpr auto sg_size = cfg;
     const auto sliceid = item_ct1.get_group(2);
     const auto tid_in_warp = item_ct1.get_local_id(2);
+    const bool runable = sliceid * slice_size + tid_in_warp < num_rows;
+    size_type thread_result = 0;
+    for (size_type i = tid_in_warp; i < slice_size; i += sg_size) {
+        thread_result =
+            (i + slice_size * sliceid < num_rows)
+                ? max(thread_result, nnz_per_row[sliceid * slice_size + i])
+                : thread_result;
+    }
 
-    if (sliceid * slice_size + tid_in_warp < num_rows) {
-        size_type thread_result = 0;
-        for (size_type i = tid_in_warp; i < slice_size; i += sg_size) {
-            thread_result =
-                (i + slice_size * sliceid < num_rows)
-                    ? max(thread_result, nnz_per_row[sliceid * slice_size + i])
-                    : thread_result;
-        }
+    auto warp_tile =
+        group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
+    auto warp_result = ::gko::kernels::dpcpp::reduce(
+        warp_tile, thread_result,
+        [](const size_type &a, const size_type &b) { return max(a, b); });
 
-        auto warp_tile =
-            group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
-        auto warp_result = ::gko::kernels::dpcpp::reduce(
-            warp_tile, thread_result,
-            [](const size_type &a, const size_type &b) { return max(a, b); });
-
-        if (tid_in_warp == 0) {
-            auto slice_length =
-                ceildiv(warp_result, stride_factor) * stride_factor;
-            slice_lengths[sliceid] = slice_length;
-            slice_sets[sliceid] = slice_length;
-        }
+    if (tid_in_warp == 0 && runable) {
+        auto slice_length = ceildiv(warp_result, stride_factor) * stride_factor;
+        slice_lengths[sliceid] = slice_length;
+        slice_sets[sliceid] = slice_length;
     }
 }
 
