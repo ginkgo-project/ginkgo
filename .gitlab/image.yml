@@ -65,8 +65,7 @@
   image: ginkgohub/cuda:110-gnu9-llvm9-intel2020
   tags:
     - private_ci
-    - controller
-    - cpu
+    - nvidia-gpu
 
 .use_gko-amd-gnu8-llvm7:
   image: ginkgohub/rocm:gnu8-llvm7
