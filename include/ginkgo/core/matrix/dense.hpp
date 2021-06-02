@@ -933,6 +933,33 @@ protected:
                                idx % this->get_size()[1]);
     }
 
+    template <typename IndexType>
+    void permute_impl(const Array<IndexType> *permutation, Dense *output) const;
+
+    template <typename IndexType>
+    void inverse_permute_impl(const Array<IndexType> *permutation,
+                              Dense *output) const;
+
+    template <typename IndexType>
+    void row_permute_impl(const Array<IndexType> *permutation,
+                          Dense *output) const;
+
+    template <typename IndexType>
+    void inverse_row_permute_impl(const Array<IndexType> *permutation,
+                                  Dense *output) const;
+
+    template <typename IndexType>
+    void row_gather_impl(const Array<IndexType> *row_indices,
+                         Dense *output) const;
+
+    template <typename IndexType>
+    void column_permute_impl(const Array<IndexType> *permutation,
+                             Dense *output) const;
+
+    template <typename IndexType>
+    void inverse_column_permute_impl(const Array<IndexType> *permutation,
+                                     Dense *output) const;
+
 private:
     Array<value_type> values_;
     size_type stride_;
