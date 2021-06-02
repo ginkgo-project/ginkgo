@@ -64,7 +64,6 @@ include:
     - if [ -n "${CUDA_ARCH}" ]; then
       CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
       CUDA_HOST_STR=-DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER});
-      export CUDA_VISIBLE_DEVICES=$((RANDOM % 2));
       fi
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja
@@ -98,7 +97,6 @@ include:
     - if [ -n "${CUDA_ARCH}" ]; then
       CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
       CUDA_HOST_STR=-DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER});
-      export CUDA_VISIBLE_DEVICES=$((RANDOM % 2));
       fi
     - if [ -n "${SYCL_DEVICE_FILTER}" ]; then export SYCL_DEVICE_FILTER; fi
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
@@ -509,7 +507,7 @@ build/cuda102/intel/cuda/debug/static:
 
 # cuda 11.0 and friends
 build/cuda110/gcc/cuda/debug/shared:
-  <<: *default_build
+  <<: *default_build_with_test
   extends:
     - .full_test_condition
     - .use_gko-cuda110-gnu9-llvm9-intel2020
@@ -519,10 +517,10 @@ build/cuda110/gcc/cuda/debug/shared:
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
-    CUDA_ARCH: 35
+    CUDA_ARCH: 61
 
 build/cuda110/clang/cuda/release/static:
-  <<: *default_build
+  <<: *default_build_with_test
   extends:
     - .full_test_condition
     - .use_gko-cuda110-gnu9-llvm9-intel2020
@@ -534,10 +532,10 @@ build/cuda110/clang/cuda/release/static:
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 35
+    CUDA_ARCH: 61
 
 build/cuda110/intel/cuda/debug/static:
-  <<: *default_build
+  <<: *default_build_with_test
   extends:
     - .quick_test_condition
     - .use_gko-cuda110-gnu9-llvm9-intel2020
@@ -550,7 +548,7 @@ build/cuda110/intel/cuda/debug/static:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 35
+    CUDA_ARCH: 61
 
 # HIP AMD
 build/amd/gcc/hip/debug/shared:
