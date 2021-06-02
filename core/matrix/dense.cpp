@@ -331,7 +331,7 @@ void Dense<ValueType>::compute_norm2_impl(LinOp *result) const
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Dense<ValueType> *result) const
 {
-    if (result->get_size() == this->get_size()) {
+    if (this->get_size() && result->get_size() == this->get_size()) {
         // we need to create a executor-local clone of the target data, that
         // will be copied back later.
         auto exec = this->get_executor();
