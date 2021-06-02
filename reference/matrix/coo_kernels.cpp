@@ -148,19 +148,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_FILL_IN_DENSE_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+// template <typename ValueType, typename IndexType>
+template <typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                     const IndexType* row_idxs, const IndexType* col_idxs,
-                    const size_type num_rows, IndexType rows, IndexType offsets,
-                    const size_type block_size,
+                    const size_type num_rows, IndexType* rows,
+                    IndexType* offsets, const size_type num_stored_elements,
+                    const size_type num_blocks, const size_type block_size,
                     size_type* mem_size)  // GKO_NOT_IMPLEMENTED;
 /* */
 {
-    size_type num_stored_elements = row_idxs.size();
-    size_type num_blocks = rows.size();
-    size_type p = 0;
+    //    size_type num_stored_elements = row_idxs.size();
+    //    size_type num_blocks = rows.size();
     offsets[0] = 0;
     for (size_type b = 0; b < num_blocks; b++) {
+        size_type p = 0;
         size_type k = b * block_size;
         size_type r = row_idxs[k];
         size_type c = 0;
@@ -185,25 +187,26 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         }
         offsets[b + 1] = p;
     }
+    for (int b = 0; b < num_blocks; b++) offsets[b + 1] += offsets[b];
 }
 /* */
 
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_MEM_SIZE_BCCOO_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_MEM_SIZE_BCCOO_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void fill_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 const IndexType* row_idxs, const IndexType* col_idxs,
-                const Valuetype* values, const size_type num_rows,
+                const ValueType* values, const size_type num_rows,
                 const IndexType* rows, const IndexType* offsets, uint8* data,
+                const size_type num_stored_elements, const size_type num_blocks,
                 const size_type block_size)
-// GKO_NOT_IMPLEMENTED;
-/* */
+//  GKO_NOT_IMPLEMENTED;
+/*  */
 {
-    size_type num_stored_elements = row_idxs.size();
-    size_type num_blocks = rows.size();
+    //    size_type num_stored_elements = row_idxs.size();
+    //    size_type num_blocks = rows.size();
     for (size_type b = 0; b < num_blocks; b++) {
         size_type p = offsets[b];
         size_type k = b * block_size;
@@ -233,7 +236,7 @@ void fill_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 p += 4;
             }
             c = col_idxs[k];
-            *(ValueType*)(j + p) = values[k];
+            *(ValueType*)(data + p) = values[k];
             p += sizeof(ValueType);
         }
     }
@@ -244,12 +247,13 @@ void fill_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
 template <typename ValueType, typename IndexType>
 void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Coo<ValueType, IndexType>* source,
-                      matrix::Bccoo<ValueType, IndexType>* result,
-                      size_type block_size) GKO_NOT_IMPLEMENTED;
+                      matrix::Bccoo<ValueType, IndexType>* result)
+// GKO_NOT_IMPLEMENTED;
 /* */
 {
     auto num_rows = result->get_size()[0];
     const auto nnz = result->get_num_stored_elements();
+    const auto num_blocks = result->get_num_blocks();
 
     const auto source_row_idxs = source->get_const_row_idxs();
     const auto source_col_idxs = source->get_const_col_idxs();
@@ -262,7 +266,8 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     auto result_data = result->get_data();
 
     fill_bccoo(exec, source_row_idxs, source_col_idxs, source_values, num_rows,
-               result_rows, result_offsets, result_data, result_block_size);
+               result_rows, result_offsets, result_data, nnz, num_blocks,
+               result_block_size);
 }
 /* */
 
