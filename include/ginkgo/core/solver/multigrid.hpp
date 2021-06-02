@@ -210,7 +210,7 @@ public:
          * MultigridLevel Factory list
          */
         std::vector<std::shared_ptr<const gko::LinOpFactory>>
-            GKO_FACTORY_PARAMETER_VECTOR(mg_level_a, nullptr);
+            GKO_FACTORY_PARAMETER_VECTOR(mg_level, nullptr);
 
         /**
          * Custom selector (level, matrix)
@@ -254,14 +254,14 @@ public:
         /**
          * Whether Post-related calls use corresponding pre-related calls.
          */
-        bool GKO_FACTORY_PARAMETER(post_uses_pre, false);
+        bool GKO_FACTORY_PARAMETER(post_uses_pre, true);
 
         /**
          * Which Mid-related calls use pre/mid/post-related calls.
          * Availble options: pre/mid/post.
          */
         multigrid_mid_uses GKO_FACTORY_PARAMETER(mid_case,
-                                                 multigrid_mid_uses::mid);
+                                                 multigrid_mid_uses::pre);
 
         /**
          * The maximum level can be generated
@@ -345,11 +345,11 @@ protected:
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
         if (!parameters_.mg_level_index) {
-            if (parameters_.mg_level_a.size() == 1) {
+            if (parameters_.mg_level.size() == 1) {
                 mg_level_index_ = [](const size_type, const LinOp *) {
                     return size_type{0};
                 };
-            } else if (parameters_.mg_level_a.size() > 1) {
+            } else if (parameters_.mg_level.size() > 1) {
                 mg_level_index_ = [](const size_type level, const LinOp *) {
                     return level;
                 };
@@ -366,13 +366,13 @@ protected:
         } else {
             solver_index_ = parameters_.solver_index;
         }
-        const auto mg_level_len = parameters_.mg_level_a.size();
+        const auto mg_level_len = parameters_.mg_level.size();
         if (mg_level_len == 0) {
             GKO_NOT_SUPPORTED(this);
         } else {
             // each mg_level can not be nullptr
             for (size_type i = 0; i < mg_level_len; i++) {
-                if (parameters_.mg_level_a.at(i) == nullptr) {
+                if (parameters_.mg_level.at(i) == nullptr) {
                     GKO_NOT_SUPPORTED(this);
                 }
             }

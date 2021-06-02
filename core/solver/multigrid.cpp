@@ -369,8 +369,8 @@ void Multigrid<ValueType>::generate()
     while (level < parameters_.max_levels &&
            num_rows > parameters_.min_coarse_rows) {
         auto index = mg_level_index_(level, lend(matrix));
-        GKO_ENSURE_IN_BOUNDS(index, parameters_.mg_level_a.size());
-        auto mg_level_factory = parameters_.mg_level_a.at(index);
+        GKO_ENSURE_IN_BOUNDS(index, parameters_.mg_level.size());
+        auto mg_level_factory = parameters_.mg_level.at(index);
         // coarse generate
         std::cout << "123" << std::endl;
         auto mg_level = as<gko::multigrid::MultigridLevel>(
