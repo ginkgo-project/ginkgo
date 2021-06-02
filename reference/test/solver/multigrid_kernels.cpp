@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
 
@@ -351,7 +351,7 @@ protected:
                 .with_max_levels(2u)
                 .with_post_uses_pre(true)
                 .with_mid_case(gko::solver::multigrid_mid_uses::pre)
-                .with_mg_level_a(coarse_factory)
+                .with_mg_level(coarse_factory)
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(4u).on(exec),
                     gko::stop::Time::build()
@@ -372,10 +372,12 @@ protected:
         return std::move(
             Solver::build()
                 .with_max_levels(2u)
-                .with_mg_level_a(this->rp_factory, this->rp_factory)
+                .with_mg_level(this->rp_factory, this->rp_factory)
                 .with_pre_smoother(nullptr, this->lo_factory)
                 .with_mid_smoother(this->lo_factory, nullptr)
                 .with_post_smoother(this->lo_factory, nullptr)
+                .with_post_uses_pre(false)
+                .with_mid_case(gko::solver::multigrid_mid_uses::mid)
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(1u).on(
                         this->exec))
@@ -390,7 +392,7 @@ protected:
         return std::move(
             Solver::build()
                 .with_max_levels(2u)
-                .with_mg_level_a(this->rp_factory, this->rp_factory)
+                .with_mg_level(this->rp_factory, this->rp_factory)
                 .with_pre_smoother(nullptr, this->lo_factory)
                 .with_coarsest_solver(this->lo_factory)
                 .with_post_uses_pre(true)
@@ -412,7 +414,7 @@ protected:
         return std::move(
             Solver::build()
                 .with_max_levels(2u)
-                .with_mg_level_a(this->rp_factory)
+                .with_mg_level(this->rp_factory)
                 .with_pre_smoother(this->lo_factory)
                 .with_coarsest_solver(this->lo_factory)
                 .with_post_uses_pre(true)

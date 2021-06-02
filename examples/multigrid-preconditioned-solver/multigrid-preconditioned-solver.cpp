@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
             .with_min_coarse_rows(50u)
             .with_pre_smoother(gko::share(smoother_gen))
             .with_post_uses_pre(true)
-            .with_mg_level_a(gko::share(mg_level_gen))
+            .with_mg_level(gko::share(mg_level_gen))
             .with_coarsest_solver(gko::share(smoother_gen))
             .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
             // .with_criteria(
