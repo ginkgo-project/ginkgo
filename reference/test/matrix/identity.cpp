@@ -78,6 +78,22 @@ TYPED_TEST(Identity, AppliesToVector)
 }
 
 
+TYPED_TEST(Identity, AppliesToMultipleVectors)
+{
+    using Id = typename TestFixture::Id;
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto identity = Id::create(this->exec, 3);
+    auto x = Vec::create(this->exec, gko::dim<2>{3, 2}, 3);
+    auto b = gko::initialize<Vec>(
+        3, {I<T>{2.0, 3.0}, I<T>{1.0, 2.0}, I<T>{5.0, -1.0}}, this->exec);
+
+    identity->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({{2.0, 3.0}, {1.0, 2.0}, {5.0, -1.0}}), 0.0);
+}
+
+
 TYPED_TEST(Identity, AppliesToMixedVector)
 {
     using Id = typename TestFixture::Id;

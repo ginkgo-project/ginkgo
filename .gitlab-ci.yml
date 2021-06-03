@@ -327,40 +327,6 @@ build/cuda92/gcc/all/release/shared:
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
 
-# Make sure that our jobs run when HWLOC is
-# forcibly switched off
-build/cuda92/intel/cuda/release/static:
-  <<: *default_build
-  extends:
-    - .full_test_condition
-    - .use_gko-cuda92-gnu7-llvm50-intel2017
-  variables:
-    <<: *default_variables
-    C_COMPILER: "icc"
-    CXX_COMPILER: "icpc"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_HWLOC: "OFF"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 35
-
-# Build CUDA NVIDIA without omp
-build/cuda92/intel/cuda_wo_omp/release/shared:
-  <<: *default_build
-  extends:
-    - .quick_test_condition
-    - .use_gko-cuda92-gnu7-llvm50-intel2017
-  variables:
-    <<: *default_variables
-    C_COMPILER: "icc"
-    CXX_COMPILER: "icpc"
-    BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
-    BUILD_HWLOC: "OFF"
-    BUILD_TYPE: "Release"
-    CUDA_ARCH: 35
-
 # cuda 10.0 and friends
 # Make sure that our jobs run when using self-installed
 # third-party HWLOC.
@@ -378,6 +344,8 @@ build/cuda100/gcc/all/debug/shared:
     FAST_TESTS: "ON"
     CUDA_ARCH: 35
 
+# Make sure that our jobs run when HWLOC is
+# forcibly switched off
 build/cuda100/clang/all/release/static:
   <<: *default_build
   extends:
@@ -390,6 +358,7 @@ build/cuda100/clang/all/release/static:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
+    BUILD_HWLOC: "OFF"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
@@ -405,6 +374,22 @@ build/cuda100/intel/cuda/release/shared:
     CXX_COMPILER: "icpc"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_TYPE: "Release"
+    CUDA_ARCH: 35
+
+# Build CUDA NVIDIA without omp
+build/cuda100/intel/cuda_wo_omp/release/shared:
+  <<: *default_build
+  extends:
+    - .full_test_condition
+    - .use_gko-cuda100-gnu7-llvm60-intel2018
+  variables:
+    <<: *default_variables
+    C_COMPILER: "icc"
+    CXX_COMPILER: "icpc"
+    BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
+    BUILD_HWLOC: "OFF"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
 

@@ -84,6 +84,15 @@ void apply(std::shared_ptr<const DpcppExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
+template <typename InValueType, typename OutValueType>
+void copy(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::Dense<InValueType> *input,
+          matrix::Dense<OutValueType> *output) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(
+    GKO_DECLARE_DENSE_COPY_KERNEL);
+
+
 template <typename ValueType>
 void fill(std::shared_ptr<const DefaultExecutor> exec,
           matrix::Dense<ValueType> *mat, ValueType value) GKO_NOT_IMPLEMENTED;

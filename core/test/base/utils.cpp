@@ -410,13 +410,39 @@ TEST_F(TemporaryClone, DoesNotCopyToSameMemory)
 }
 
 
+TEST_F(TemporaryClone, OutputDoesNotCopyToSameMemory)
+{
+    auto other = gko::ReferenceExecutor::create();
+    auto clone = make_temporary_output_clone(other, gko::lend(obj));
+
+    ASSERT_NE(clone.get()->get_executor(), other);
+    ASSERT_EQ(obj->get_executor(), ref);
+}
+
+
 TEST_F(TemporaryClone, CopiesBackAfterLeavingScope)
 {
+    obj->data = 4;
     {
         auto clone = make_temporary_clone(omp, gko::lend(obj));
         clone.get()->data = 7;
-    }
 
+        ASSERT_EQ(obj->data, 4);
+    }
+    ASSERT_EQ(obj->get_executor(), ref);
+    ASSERT_EQ(obj->data, 7);
+}
+
+
+TEST_F(TemporaryClone, OutputCopiesBackAfterLeavingScope)
+{
+    obj->data = 4;
+    {
+        auto clone = make_temporary_output_clone(omp, gko::lend(obj));
+        clone.get()->data = 7;
+
+        ASSERT_EQ(obj->data, 4);
+    }
     ASSERT_EQ(obj->get_executor(), ref);
     ASSERT_EQ(obj->data, 7);
 }
