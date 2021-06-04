@@ -354,7 +354,7 @@ endif()
 file(MAKE_DIRECTORY ${Ginkgo_BINARY_DIR}/test_install)
 set(TOOLSET "")
 if (NOT "${CMAKE_GENERATOR_TOOLSET}" STREQUAL "")
-    set(TOOLSET "-T ${CMAKE_GENERATOR_TOOLSET}")
+    set(TOOLSET "-T${CMAKE_GENERATOR_TOOLSET}")
 endif()
 add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET} -H${Ginkgo_SOURCE_DIR}/test_install
