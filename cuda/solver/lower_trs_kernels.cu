@@ -104,6 +104,7 @@ __device__ void store(thrust::complex<ValueType> *values, int index,
     store(imag, 2 * index, value.imag());
 }
 
+
 template <typename ValueType, typename IndexType>
 __global__ void sptrsv_naive_caching_kernel(
     const IndexType *const rowptrs, const IndexType *const colidxs,
@@ -153,7 +154,7 @@ __global__ void sptrsv_naive_caching_kernel(
         sum += load(x_p, 0) * vals[i];
     }
 
-    const auto r = (b[row] - sum) / vals[rowptrs[row + 1] - 1];
+    const auto r = (b[row] - sum) / vals[row_end];
 
     store(x_s, self_shid, r);
     __threadfence_block();
@@ -163,6 +164,41 @@ __global__ void sptrsv_naive_caching_kernel(
     __threadfence();
     ready[row] = 1;
 }
+
+
+template <typename ValueType, typename IndexType>
+__global__ void sptrsv_naive_legacy_kernel(
+    const IndexType *const rowptrs, const IndexType *const colidxs,
+    const ValueType *const vals, const ValueType *const b, ValueType *const x,
+    volatile uint32 *const ready, const size_type n)
+{
+    const auto gid = thread::get_thread_id_flat<IndexType>();
+    const auto row = gid;
+
+    if (row >= n) {
+        return;
+    }
+
+    const auto row_end = rowptrs[row + 1] - 1;
+
+    ValueType sum = 0.0;
+    auto j = rowptrs[row];
+    while (j <= row_end) {
+        auto col = colidxs[j];
+        while (ready[col]) {
+            sum += vals[j] * load(x, col);
+            ++j;
+            col = colidxs[j];
+        }
+        if (row == col) {
+            store(x, row, (b[row] - sum) / vals[row_end]);
+            ++j;
+            __threadfence();
+            ready[row] = 1;
+        }
+    }
+}
+
 
 template <typename ValueType, typename IndexType>
 void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
@@ -178,11 +214,20 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
 
-    sptrsv_naive_caching_kernel<<<grid_size, block_size>>>(
-        matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-        as_cuda_type(matrix->get_const_values()),
-        as_cuda_type(b->get_const_values()), as_cuda_type(x->get_values()),
-        ready.get_data(), n);
+    // Pre-Volta GPUs may deadlock due to missing independent thread scheduling.
+    if (exec->get_major_version() < 7) {
+        sptrsv_naive_legacy_kernel<<<grid_size, block_size>>>(
+            matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
+            as_cuda_type(matrix->get_const_values()),
+            as_cuda_type(b->get_const_values()), as_cuda_type(x->get_values()),
+            ready.get_data(), n);
+    } else {
+        sptrsv_naive_caching_kernel<<<grid_size, block_size>>>(
+            matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
+            as_cuda_type(matrix->get_const_values()),
+            as_cuda_type(b->get_const_values()), as_cuda_type(x->get_values()),
+            ready.get_data(), n);
+    }
 }
 
 
@@ -225,7 +270,6 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
     if (matrix->get_strategy()->get_name() == "sparselib") {
         solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
                                            trans_x, b, x);
-
     } else {
         sptrsv_naive_caching(exec, matrix, b, x);
     }
