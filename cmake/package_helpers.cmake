@@ -20,7 +20,7 @@ function(ginkgo_load_git_package package_name package_url package_tag)
         download/CMakeLists.txt)
     set(TOOLSET "")
     if (NOT "${CMAKE_GENERATOR_TOOLSET}" STREQUAL "")
-        set(TOOLSET "-T ${CMAKE_GENERATOR_TOOLSET}")
+        set(TOOLSET "-T${CMAKE_GENERATOR_TOOLSET}")
     endif()
     execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" "${TOOLSET}" .
         RESULT_VARIABLE result
@@ -73,7 +73,7 @@ function(ginkgo_load_and_configure_package package_name package_url package_hash
         download/CMakeLists.txt)
     set(TOOLSET "")
     if (NOT "${CMAKE_GENERATOR_TOOLSET}" STREQUAL "")
-        set(TOOLSET "-T ${CMAKE_GENERATOR_TOOLSET}")
+        set(TOOLSET "-T${CMAKE_GENERATOR_TOOLSET}")
     endif()
     execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" "${TOOLSET}" .
         RESULT_VARIABLE result
