@@ -680,7 +680,7 @@ public:
     }
 
     /**
-     * Computes the Euclidian (L^2) norm of this matrix.
+     * Computes the column-wise Euclidian (L^2) norm of this matrix.
      *
      * @param result  a Dense row vector, used to store the norm
      *                (the number of columns in the vector must match the number
