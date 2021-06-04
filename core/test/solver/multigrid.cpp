@@ -70,38 +70,16 @@ protected:
 };
 
 
-class DummyLinOpWithFactory : public gko::EnableLinOp<DummyLinOpWithFactory>,
-                              public gko::multigrid::MultigridLevel {
+template <typename ValueType>
+class DummyLinOpWithFactory
+    : public gko::EnableLinOp<DummyLinOpWithFactory<ValueType>>,
+      public gko::multigrid::EnableMultigridLevel<ValueType> {
 public:
     DummyLinOpWithFactory(std::shared_ptr<const gko::Executor> exec)
         : gko::EnableLinOp<DummyLinOpWithFactory>(exec)
     {}
 
     bool apply_uses_initial_guess() const override { return true; }
-
-    std::shared_ptr<const LinOp> get_fine_op() const override
-    {
-        return std::make_shared<DummyLinOp>(this->get_executor(),
-                                            op_->get_size());
-    }
-
-    std::shared_ptr<const LinOp> get_restrict_op() const override
-    {
-        return std::make_shared<DummyLinOp>(this->get_executor(),
-                                            gko::dim<2>{n_ - 1, n_});
-    }
-
-    std::shared_ptr<const LinOp> get_coarse_op() const override
-    {
-        return std::make_shared<DummyLinOp>(this->get_executor(),
-                                            gko::dim<2>{n_ - 1, n_ - 1});
-    }
-
-    std::shared_ptr<const LinOp> get_prolong_op() const override
-    {
-        return std::make_shared<DummyLinOp>(this->get_executor(),
-                                            gko::dim<2>{n_, n_ - 1});
-    }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -113,11 +91,20 @@ public:
     DummyLinOpWithFactory(const Factory *factory,
                           std::shared_ptr<const gko::LinOp> op)
         : gko::EnableLinOp<DummyLinOpWithFactory>(factory->get_executor(),
-                                                  transpose(op->get_size())),
+                                                  op->get_size()),
+          gko::multigrid::EnableMultigridLevel<ValueType>(op),
           parameters_{factory->get_parameters()},
           op_{op},
           n_{op->get_size()[0]}
-    {}
+    {
+        this->set_multigrid_level(
+            std::make_shared<DummyLinOp>(this->get_executor(),
+                                         gko::dim<2>{n_, n_ - 1}),
+            std::make_shared<DummyLinOp>(this->get_executor(),
+                                         gko::dim<2>{n_ - 1, n_ - 1}),
+            std::make_shared<DummyLinOp>(this->get_executor(),
+                                         gko::dim<2>{n_ - 1, n_}));
+    }
 
     std::shared_ptr<const gko::LinOp> op_;
     gko::size_type n_;
@@ -181,8 +168,8 @@ protected:
     using value_type = T;
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Multigrid<value_type>;
-    using DummyRPFactory = DummyLinOpWithFactory;
-    using DummyFactory = DummyLinOpWithFactory;
+    using DummyRPFactory = DummyLinOpWithFactory<value_type>;
+    using DummyFactory = DummyLinOpWithFactory<value_type>;
 
     Multigrid()
         : exec(gko::ReferenceExecutor::create()),
@@ -220,10 +207,10 @@ protected:
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<typename Solver::Factory> multigrid_factory;
     std::unique_ptr<gko::LinOp> solver;
-    std::shared_ptr<DummyRPFactory::Factory> rp_factory;
-    std::shared_ptr<DummyRPFactory::Factory> rp_factory2;
-    std::shared_ptr<DummyFactory::Factory> lo_factory;
-    std::shared_ptr<DummyFactory::Factory> lo_factory2;
+    std::shared_ptr<typename DummyRPFactory::Factory> rp_factory;
+    std::shared_ptr<typename DummyRPFactory::Factory> rp_factory2;
+    std::shared_ptr<typename DummyFactory::Factory> lo_factory;
+    std::shared_ptr<typename DummyFactory::Factory> lo_factory2;
     std::shared_ptr<const gko::stop::CriterionFactory> criterion;
 
     static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
