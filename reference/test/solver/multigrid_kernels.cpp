@@ -196,10 +196,10 @@ protected:
     mutable std::vector<int> step;
 };
 
-
+template <typename ValueType>
 class DummyMultigridLevelWithFactory
-    : public gko::EnableLinOp<DummyMultigridLevelWithFactory>,
-      public gko::multigrid::MultigridLevel {
+    : public gko::EnableLinOp<DummyMultigridLevelWithFactory<ValueType>>,
+      public gko::multigrid::EnableMultigridLevel<ValueType> {
 public:
     const std::vector<int> get_rstr_step() const
     {
@@ -221,28 +221,12 @@ public:
                               Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    std::shared_ptr<const LinOp> get_fine_op() const override { return op_; }
-
-    std::shared_ptr<const LinOp> get_restrict_op() const override
-    {
-        return restrict_;
-    }
-
-    std::shared_ptr<const LinOp> get_coarse_op() const override
-    {
-        return coarse_;
-    }
-
-    std::shared_ptr<const LinOp> get_prolong_op() const override
-    {
-        return prolong_;
-    }
-
 protected:
     DummyMultigridLevelWithFactory(const Factory *factory,
                                    std::shared_ptr<const gko::LinOp> op)
         : gko::EnableLinOp<DummyMultigridLevelWithFactory>(
-              factory->get_executor()),
+              factory->get_executor(), op->get_size()),
+          gko::multigrid::EnableMultigridLevel<ValueType>(op),
           parameters_{factory->get_parameters()},
           op_{op}
     {
@@ -251,6 +235,7 @@ protected:
         coarse_ = DummyLinOp::create(exec, gko::dim<2>{n});
         restrict_ = DummyRestrictOp::create(exec, gko::dim<2>{n, n + 1});
         prolong_ = DummyProlongOp::create(exec, gko::dim<2>{n + 1, n});
+        this->set_multigrid_level(prolong_, coarse_, restrict_);
     }
 
     std::shared_ptr<const gko::LinOp> op_;
@@ -278,18 +263,30 @@ protected:
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Multigrid<value_type>;
     using Coarse = gko::multigrid::AmgxPgm<value_type>;
+    using CoarseNext = gko::multigrid::AmgxPgm<gko::next_precision<value_type>>;
     using Smoother = gko::preconditioner::Jacobi<value_type>;
     using CoarsestSolver = gko::solver::Cg<value_type>;
-    using DummyRPFactory = DummyMultigridLevelWithFactory;
+    using DummyRPFactory = DummyMultigridLevelWithFactory<value_type>;
     using DummyFactory = DummyLinOpWithFactory<value_type>;
     Multigrid()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Csr>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
+          mtx2(gko::initialize<Csr>({{2, -1.0, 0.0, 0.0, 0.0, 0.0},
+                                     {-1.0, 2, -1.0, 0.0, 0.0, 0.0},
+                                     {0.0, -1.0, 2, -1.0, 0.0, 0.0},
+                                     {0.0, 0.0, -1.0, 2, -1.0, 0.0},
+                                     {0.0, 0.0, 0.0, -1.0, 2, -1.0},
+                                     {0.0, 0.0, 0.0, 0.0, -1.0, 2}},
+                                    exec)),
           coarse_factory(Coarse::build()
                              .with_max_iterations(2u)
                              .with_max_unassigned_ratio(0.1)
                              .on(exec)),
+          coarsenext_factory(CoarseNext::build()
+                                 .with_max_iterations(2u)
+                                 .with_max_unassigned_ratio(0.1)
+                                 .on(exec)),
           smoother_factory(
               gko::give(Smoother::build().with_max_block_size(1u).on(exec))),
           coarsest_factory(
@@ -365,6 +362,30 @@ protected:
                 .on(exec));
     }
 
+    std::unique_ptr<typename Solver::Factory> get_mixed_multigrid_factory(
+        gko::solver::multigrid_cycle cycle)
+    {
+        return std::move(
+            Solver::build()
+                .with_pre_smoother(smoother_factory)
+                .with_coarsest_solver(coarsest_factory)
+                .with_max_levels(2u)
+                .with_post_uses_pre(true)
+                .with_mid_case(gko::solver::multigrid_mid_uses::pre)
+                .with_mg_level(coarse_factory, coarsenext_factory)
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(100u).on(exec),
+                    gko::stop::Time::build()
+                        .with_time_limit(std::chrono::seconds(100))
+                        .on(exec),
+                    gko::stop::ResidualNormReduction<value_type>::build()
+                        .with_reduction_factor(r<value_type>::value)
+                        .on(exec))
+                .with_cycle(cycle)
+                .with_min_coarse_rows(1u)
+                .on(exec));
+    }
+
 
     std::unique_ptr<typename Solver::Factory> get_factory_individual(
         gko::solver::multigrid_cycle cycle)
@@ -431,10 +452,12 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::shared_ptr<Csr> mtx;
+    std::shared_ptr<Csr> mtx2;
     std::shared_ptr<typename Coarse::Factory> coarse_factory;
+    std::shared_ptr<typename CoarseNext::Factory> coarsenext_factory;
     std::shared_ptr<typename Smoother::Factory> smoother_factory;
     std::shared_ptr<typename CoarsestSolver::Factory> coarsest_factory;
-    std::shared_ptr<DummyRPFactory::Factory> rp_factory;
+    std::shared_ptr<typename DummyRPFactory::Factory> rp_factory;
     std::shared_ptr<typename DummyFactory::Factory> lo_factory;
     std::shared_ptr<Mtx> b;
     std::shared_ptr<Mtx> x;
@@ -542,6 +565,9 @@ TYPED_TEST(Multigrid, VCycleIndividual)
     using Mtx = typename TestFixture::Mtx;
     auto solver = this->get_factory_individual(gko::solver::multigrid_cycle::v)
                       ->generate(this->mtx);
+    auto factory =
+        this->get_factory_individual(gko::solver::multigrid_cycle::v);
+    // std::cout << factory->pre_smoother.at(0) << std::endl;
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
@@ -1008,6 +1034,130 @@ TYPED_TEST(Multigrid, SolvesStencilSystemByKgcrCycle)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value);
+}
+
+TYPED_TEST(Multigrid, SolvesStencilSystem2ByVCycle)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    auto multigrid_factory =
+        this->get_mixed_multigrid_factory(gko::solver::multigrid_cycle::v);
+    auto solver = multigrid_factory->generate(this->mtx2);
+    auto mg_level_list = solver->get_mg_level_list();
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 0.0, -3.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    ASSERT_TRUE((std::dynamic_pointer_cast<
+                 const gko::multigrid::EnableMultigridLevel<value_type>>(
+        mg_level_list.at(0))));
+    ASSERT_TRUE(
+        (std::dynamic_pointer_cast<const gko::multigrid::EnableMultigridLevel<
+             gko::next_precision<value_type>>>(mg_level_list.at(1))));
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0, 1.0, 3.0, 2.0}),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Multigrid, SolvesStencilSystem2ByWCycle)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    auto multigrid_factory =
+        this->get_mixed_multigrid_factory(gko::solver::multigrid_cycle::w);
+    auto solver = multigrid_factory->generate(this->mtx2);
+    auto mg_level_list = solver->get_mg_level_list();
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 0.0, -3.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    ASSERT_TRUE((std::dynamic_pointer_cast<
+                 const gko::multigrid::EnableMultigridLevel<value_type>>(
+        mg_level_list.at(0))));
+    ASSERT_TRUE(
+        (std::dynamic_pointer_cast<const gko::multigrid::EnableMultigridLevel<
+             gko::next_precision<value_type>>>(mg_level_list.at(1))));
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0, 1.0, 3.0, 2.0}),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Multigrid, SolvesStencilSystem2ByFCycle)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    auto multigrid_factory =
+        this->get_mixed_multigrid_factory(gko::solver::multigrid_cycle::f);
+    auto solver = multigrid_factory->generate(this->mtx2);
+    auto mg_level_list = solver->get_mg_level_list();
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 0.0, -3.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    ASSERT_TRUE((std::dynamic_pointer_cast<
+                 const gko::multigrid::EnableMultigridLevel<value_type>>(
+        mg_level_list.at(0))));
+    ASSERT_TRUE(
+        (std::dynamic_pointer_cast<const gko::multigrid::EnableMultigridLevel<
+             gko::next_precision<value_type>>>(mg_level_list.at(1))));
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0, 1.0, 3.0, 2.0}),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Multigrid, SolvesStencilSystem2ByKfcgCycle)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    auto multigrid_factory =
+        this->get_mixed_multigrid_factory(gko::solver::multigrid_cycle::kfcg);
+    auto solver = multigrid_factory->generate(this->mtx2);
+    auto mg_level_list = solver->get_mg_level_list();
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 0.0, -3.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    ASSERT_TRUE((std::dynamic_pointer_cast<
+                 const gko::multigrid::EnableMultigridLevel<value_type>>(
+        mg_level_list.at(0))));
+    ASSERT_TRUE(
+        (std::dynamic_pointer_cast<const gko::multigrid::EnableMultigridLevel<
+             gko::next_precision<value_type>>>(mg_level_list.at(1))));
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0, 1.0, 3.0, 2.0}),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Multigrid, SolvesStencilSystem2ByKgcrCycle)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    auto multigrid_factory =
+        this->get_mixed_multigrid_factory(gko::solver::multigrid_cycle::kgcr);
+    auto solver = multigrid_factory->generate(this->mtx2);
+    auto mg_level_list = solver->get_mg_level_list();
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 0.0, -3.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    ASSERT_TRUE((std::dynamic_pointer_cast<
+                 const gko::multigrid::EnableMultigridLevel<value_type>>(
+        mg_level_list.at(0))));
+    ASSERT_TRUE(
+        (std::dynamic_pointer_cast<const gko::multigrid::EnableMultigridLevel<
+             gko::next_precision<value_type>>>(mg_level_list.at(1))));
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0, 1.0, 3.0, 2.0}),
+                        r<value_type>::value);
 }
 
 
