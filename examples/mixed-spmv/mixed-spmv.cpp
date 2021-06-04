@@ -89,7 +89,8 @@ get_rand_value(ValueDistribution &&value_dist, Engine &&gen)
  * @return seconds
  */
 double timing(std::shared_ptr<const gko::Executor> exec,
-              std::shared_ptr<gko::LinOp> A, std::shared_ptr<gko::LinOp> b,
+              std::shared_ptr<const gko::LinOp> A,
+              std::shared_ptr<const gko::LinOp> b,
               std::shared_ptr<gko::LinOp> x)
 {
     int warmup = 2;
@@ -99,12 +100,16 @@ double timing(std::shared_ptr<const gko::Executor> exec,
     }
     double total_sec = 0;
     for (int i = 0; i < rep; i++) {
+        // always clone the x in each apply
         auto xx = x->clone();
+        // synchronize to make sure data is already on device
         exec->synchronize();
         auto start = std::chrono::steady_clock::now();
         A->apply(lend(b), lend(xx));
+        // synchronize to make sure the operation is done
         exec->synchronize();
         auto stop = std::chrono::steady_clock::now();
+        // get the duration in seconds
         std::chrono::duration<double> duration_time = stop - start;
         total_sec += duration_time.count();
         if (i + 1 == rep) {
@@ -195,26 +200,31 @@ int main(int argc, char *argv[])
     // read the matrix into HighPrecision and LowPrecision.
     auto hp_A = share(gko::read<hp_mtx>(std::ifstream("data/A.mtx"), exec));
     auto lp_A = share(gko::read<lp_mtx>(std::ifstream("data/A.mtx"), exec));
-    auto host_b =
-        hp_vec::create(exec->get_master(), gko::dim<2>{hp_A->get_size()[1], 1});
-    std::ranlux48 rand_engine(30);
+    // Set the shortcut for each dimension
+    auto A_dim = hp_A->get_size();
+    auto b_dim = gko::dim<2>{A_dim[1], 1};
+    auto x_dim = gko::dim<2>{A_dim[0], b_dim[1]};
+    auto host_b = hp_vec::create(exec->get_master(), b_dim);
+    // fill the b vector with some random data
+    std::ranlux48 rand_engine(32);
     auto dist = std::uniform_real_distribution<RealValueType>(0.0, 1.0);
     for (int i = 0; i < host_b->get_size()[0]; i++) {
-        host_b->get_values()[i] =
-            get_rand_value<HighPrecision>(dist, rand_engine);
+        host_b->at(i, 0) = get_rand_value<HighPrecision>(dist, rand_engine);
     }
+    // copy the data from host to device
     auto hp_b = share(hp_vec::create(exec));
     auto lp_b = share(lp_vec::create(exec));
     hp_b->copy_from(lend(host_b));
     lp_b->copy_from(lend(hp_b));
-    auto hp_x = share(hp_vec::create(
-        exec, gko::dim<2>{hp_A->get_size()[0], hp_b->get_size()[1]}));
-    auto lp_x = share(lp_vec::create(
-        exec, gko::dim<2>{lp_A->get_size()[0], lp_b->get_size()[1]}));
+
+    // create several result x vector in different precision
+    auto hp_x = share(hp_vec::create(exec, x_dim));
+    auto lp_x = share(lp_vec::create(exec, x_dim));
     auto hplp_x = share(hp_x->clone());
     auto lplp_x = share(hp_x->clone());
+    auto lphp_x = share(hp_x->clone());
 
-    // @sect3{Measure the time of applu}
+    // @sect3{Measure the time of apply}
     // We measure the time among different combination of apply operation.
 
     // Hp * Hp -> Hp
@@ -223,12 +233,14 @@ int main(int argc, char *argv[])
     auto lp_sec = timing(exec, lp_A, lp_b, lp_x);
     // Hp * Lp -> Hp
     auto hplp_sec = timing(exec, hp_A, lp_b, hplp_x);
-    // Lp * Lp -> Lp
+    // Lp * Lp -> Hp
     auto lplp_sec = timing(exec, lp_A, lp_b, lplp_x);
+    // Lp * Hp -> Hp
+    auto lphp_sec = timing(exec, lp_A, hp_b, lphp_x);
 
 
     // To measure error of result.
-    // neg_one are objects that represent the numbers which allow for a
+    // neg_one is an object that represent the number -1.0 which allows for a
     // uniform interface when computing on any device. To compute the residual,
     // all you need to do is call the add_scaled method, which in this case is
     // an axpy and equivalent to the LAPACK axpy routine. Finally, you compute
@@ -238,9 +250,11 @@ int main(int argc, char *argv[])
     auto lp_diff_norm = gko::initialize<real_vec>({0.0}, exec->get_master());
     auto hplp_diff_norm = gko::initialize<real_vec>({0.0}, exec->get_master());
     auto lplp_diff_norm = gko::initialize<real_vec>({0.0}, exec->get_master());
+    auto lphp_diff_norm = gko::initialize<real_vec>({0.0}, exec->get_master());
     auto lp_diff = hp_x->clone();
     auto hplp_diff = hp_x->clone();
     auto lplp_diff = hp_x->clone();
+    auto lphp_diff = hp_x->clone();
 
     hp_x->compute_norm2(lend(hp_x_norm));
     lp_diff->add_scaled(lend(neg_one), lend(lp_x));
@@ -249,23 +263,25 @@ int main(int argc, char *argv[])
     hplp_diff->compute_norm2(lend(hplp_diff_norm));
     lplp_diff->add_scaled(lend(neg_one), lend(lplp_x));
     lplp_diff->compute_norm2(lend(lplp_diff_norm));
+    lphp_diff->add_scaled(lend(neg_one), lend(lphp_x));
+    lphp_diff->compute_norm2(lend(lphp_diff_norm));
     exec->synchronize();
 
     std::cout.precision(10);
     std::cout << std::scientific;
     std::cout << "High Precision time(s): " << hp_sec << std::endl;
-    std::cout << "High Precision result norm: " << hp_x_norm->get_values()[0]
+    std::cout << "High Precision result norm: " << hp_x_norm->at(0)
               << std::endl;
     std::cout << "Low Precision time(s): " << lp_sec << std::endl;
     std::cout << "Low Precision relative error: "
-              << lp_diff_norm->get_values()[0] / hp_x_norm->get_values()[0]
-              << "\n";
+              << lp_diff_norm->at(0) / hp_x_norm->at(0) << "\n";
     std::cout << "Hp * Lp -> Hp time(s): " << hplp_sec << std::endl;
     std::cout << "Hp * Lp -> Hp relative error: "
-              << hplp_diff_norm->get_values()[0] / hp_x_norm->get_values()[0]
-              << "\n";
+              << hplp_diff_norm->at(0) / hp_x_norm->at(0) << "\n";
     std::cout << "Lp * Lp -> Hp time(s): " << lplp_sec << std::endl;
     std::cout << "Lp * Lp -> Hp relative error: "
-              << lplp_diff_norm->get_values()[0] / hp_x_norm->get_values()[0]
-              << "\n";
+              << lplp_diff_norm->at(0) / hp_x_norm->at(0) << "\n";
+    std::cout << "Lp * Hp -> Hp time(s): " << lplp_sec << std::endl;
+    std::cout << "Lp * Hp -> Hp relative error: "
+              << lphp_diff_norm->at(0) / hp_x_norm->at(0) << "\n";
 }
