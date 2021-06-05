@@ -72,7 +72,6 @@ struct BatchCgOptions {
  * - rho_old
  * - rho_new
  * - alpha
- * - beta
  * - rhs_norms
  * - res_norms
  * - res_temp_norms
@@ -80,7 +79,7 @@ struct BatchCgOptions {
 template <typename ValueType>
 inline int local_memory_requirement(const int num_rows, const int num_rhs)
 {
-    return (5 * num_rows * num_rhs + 4 * num_rhs) * sizeof(ValueType) +
+    return (5 * num_rows * num_rhs + 3 * num_rhs) * sizeof(ValueType) +
            3 * num_rhs * sizeof(typename gko::remove_complex<ValueType>);
 }
 
