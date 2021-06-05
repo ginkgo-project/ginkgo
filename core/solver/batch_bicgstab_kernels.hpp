@@ -75,10 +75,9 @@ struct BatchBicgstabOptions {
  * and small arrays for
  * - rho_old
  * - rho_new
- * - omega_old
- * - omega_new
+ * - omega
  * - alpha
- * - beta
+ * - temp
  * - rhs_norms
  * - res_norms
  * - res_temp_norms
@@ -86,7 +85,7 @@ struct BatchBicgstabOptions {
 template <typename ValueType>
 inline int local_memory_requirement(const int num_rows, const int num_rhs)
 {
-    return (9 * num_rows * num_rhs + 6 * num_rhs) * sizeof(ValueType) +
+    return (9 * num_rows * num_rhs + 5 * num_rhs) * sizeof(ValueType) +
            3 * num_rhs * sizeof(typename gko::remove_complex<ValueType>);
 }
 
