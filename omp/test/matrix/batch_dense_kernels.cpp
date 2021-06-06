@@ -87,8 +87,8 @@ protected:
     void set_up_vector_data(gko::size_type num_vecs,
                             bool different_alpha = false)
     {
-        x = gen_mtx<Mtx>(batch_size, 1000, num_vecs);
-        y = gen_mtx<Mtx>(batch_size, 1000, num_vecs);
+        x = gen_mtx<Mtx>(batch_size, 75, num_vecs);
+        y = gen_mtx<Mtx>(batch_size, 75, num_vecs);
         if (different_alpha) {
             alpha = gen_mtx<Mtx>(batch_size, 1, num_vecs);
         } else {
@@ -227,27 +227,7 @@ TEST_F(BatchDense, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 //{
 // TODO (script:batch_dense): change the code imported from matrix/dense if
 // needed
-//    auto mat = gen_mtx<Mtx>(532, 532);
-//    gko::Array<Mtx::value_type> diag_values(ref, 532);
-//    gko::kernels::reference::components::fill_array(ref,
-//    diag_values.get_data(),
-//                                                    532,
-//                                                    Mtx::value_type{2.0});
-//    auto diag =
-//        gko::matrix::Diagonal<Mtx::value_type>::create(ref, 532, diag_values);
-//    alpha = gko::initialize<Mtx>({2.0}, ref);
-//    auto dmat = Mtx::create(omp);
-//    dmat->copy_from(mat.get());
-//    auto ddiag = gko::matrix::Diagonal<Mtx::value_type>::create(omp);
-//    ddiag->copy_from(diag.get());
-//    dalpha = Mtx::create(omp);
-//    dalpha->copy_from(alpha.get());
-//
-//    mat->add_scaled(alpha.get(), diag.get());
-//    dmat->add_scaled(dalpha.get(), ddiag.get());
-//
 //    GKO_ASSERT_MTX_NEAR(mat, dmat, 1e-14);
-//}
 
 
 TEST_F(BatchDense, SingleVectorComputeDotIsEquivalentToRef)
