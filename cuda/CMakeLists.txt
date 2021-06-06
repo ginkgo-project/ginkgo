@@ -157,6 +157,10 @@ target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPA
 target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device)
 target_compile_options(ginkgo_cuda
         PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
+# we handle CUDA architecture flags for now, disable CMake handling
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
+    set_target_properties(ginkgo_cuda PROPERTIES CUDA_ARCHITECTURES OFF)
+endif()
 list(GET CUDA_RUNTIME_LIBS 0 CUDA_FIRST_LIB)
 get_filename_component(GKO_CUDA_LIBDIR "${CUDA_FIRST_LIB}" DIRECTORY)
 
