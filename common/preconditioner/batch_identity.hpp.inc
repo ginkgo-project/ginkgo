@@ -39,11 +39,6 @@ class BatchIdentity final {
 public:
     using value_type = ValueType;
 
-    /**
-     * The size of the work vector required in case of static allocation.
-     */
-    static constexpr int work_size = 0;
-
 
     /**
      * The size of the work vector required in case of dynamic allocation.
@@ -52,8 +47,7 @@ public:
      * is part of a 'batch preconditioner interface' because other
      * preconditioners may need it.
      */
-    __host__ __device__ static constexpr int dynamic_work_size(
-        int, int)
+    __host__ __device__ static constexpr int dynamic_work_size(int, int)
     {
         return 0;
     }
@@ -68,8 +62,7 @@ public:
      * preconditioner values are to be stored.
      */
     __device__ __forceinline__ void generate(
-        const gko::batch_csr::BatchEntry<const ValueType> &mat,
-        ValueType *)
+        const gko::batch_csr::BatchEntry<const ValueType> &mat, ValueType *)
     {}
 
     __device__ __forceinline__ void apply(
