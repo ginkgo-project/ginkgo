@@ -264,6 +264,7 @@ if (GINKGO_BUILD_OMP)
 endif()
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
 add_subdirectory(include)        # Public API self-contained check
+add_subdirectory(common)
 
 # Non core directories and targets
 if(GINKGO_BUILD_EXAMPLES)

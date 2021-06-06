@@ -5,6 +5,18 @@ function(ginkgo_create_test test_name)
     add_executable(${TEST_TARGET_NAME} ${test_name}.cpp)
     target_compile_features("${TEST_TARGET_NAME}" PUBLIC cxx_std_14)
     target_compile_options("${TEST_TARGET_NAME}" PRIVATE ${GINKGO_COMPILER_FLAGS})
+    if (GINKGO_BUILD_HIP)
+        target_compile_definitions("${TEST_TARGET_NAME}" PRIVATE GKO_TEST_HIP)
+    endif()
+    if (GINKGO_BUILD_OMP)
+        target_compile_definitions("${TEST_TARGET_NAME}" PRIVATE GKO_TEST_OMP)
+    endif()
+    if(GINKGO_BUILD_CUDA)
+        target_compile_definitions("${TEST_TARGET_NAME}" PRIVATE GKO_TEST_CUDA)
+    endif()
+    if(GINKGO_BUILD_DPCPP)
+        target_compile_definitions("${TEST_TARGET_NAME}" PRIVATE GKO_TEST_DPCPP)
+    endif()
     target_include_directories("${TEST_TARGET_NAME}"
         PRIVATE
         "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"
