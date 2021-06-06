@@ -70,9 +70,11 @@ struct BatchGmresOptions {
  * - z
  * - w
  * - x
+ * - helper
  * multivectors (length of each vector: restart ) for
  * - cs
  * - sn
+ * - y
  * multivectors (length of each vector: restart + 1) for
  * - s
  * matrices for
@@ -82,17 +84,18 @@ struct BatchGmresOptions {
  * - rhs_norms
  * - res_norms
  * - res_temp_norms
+ * - tmp_norms
  */
 template <typename ValueType>
 inline int local_memory_requirement(const int num_rows, const int num_rhs,
                                     const int restart_num)
 {
-    return (4 * num_rows * num_rhs + 2 * restart_num * num_rhs +
+    return (5 * num_rows * num_rhs + 3 * restart_num * num_rhs +
             (restart_num + 1) * num_rhs +
             restart_num * (restart_num + 1) * num_rhs +
             num_rows * (restart_num + 1) * num_rhs) *
                sizeof(ValueType) +
-           3 * num_rhs * sizeof(typename gko::remove_complex<ValueType>);
+           4 * num_rhs * sizeof(typename gko::remove_complex<ValueType>);
 }
 
 #define GKO_DECLARE_BATCH_GMRES_APPLY_KERNEL(_type)                \
