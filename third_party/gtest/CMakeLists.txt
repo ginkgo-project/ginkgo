@@ -1,21 +1,21 @@
-message(STATUS "Configuring and building gtest")
-if(MSVC)
-    # Force using shared runtime library when MSVC builds shared libraries
-    ginkgo_load_git_package(gtest_external
-        "https://github.com/google/googletest.git"
-        "6a7ed316a5cdc07b6d26362c90770787513822d4"
-        # Work around the linking errors when compiling gtest with CUDA
-        "-Dgtest_disable_pthreads=ON" "-Dgtest_force_shared_crt=ON")
-else()
-    ginkgo_load_git_package(gtest_external
-        "https://github.com/google/googletest.git"
-        "6a7ed316a5cdc07b6d26362c90770787513822d4"
-        # Work around the linking errors when compiling gtest with CUDA
-        "-Dgtest_disable_pthreads=ON"
-        "-DCMAKE_CXX_FLAGS=-fPIC")
+if(NOT GTest_FOUND)
+    message(STATUS "Fetching external GTest")
+    include(FetchContent)
+    FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG        6a7ed316a5cdc07b6d26362c90770787513822d4
+    )
+    set(gtest_disable_pthreads ON)
+    if(MSVC)
+        set(gtest_force_shared_crt ON)
+    endif()
+    FetchContent_GetProperties(googletest)
+    if(NOT googletest_POPULATED)
+        FetchContent_Populate(googletest)
+    endif()
+    add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR} EXCLUDE_FROM_ALL)
+    # by default, the outdated targets are not being exported
+    add_library(GTest::Main ALIAS gtest_main)
+    add_library(GTest::GTest ALIAS gtest)
 endif()
-
-ginkgo_add_external_target(GTest::GTest gtest src/googletest/include build/lib
-    STATIC "d" gtest_external FALSE)
-ginkgo_add_external_target(GTest::Main gtest_main src/googletest/include build/lib
-    STATIC "d" gtest_external FALSE)
