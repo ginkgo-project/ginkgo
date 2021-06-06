@@ -77,6 +77,8 @@ struct BatchIdrOptions {
  * - xs
  * - rs
  * - helper
+ * a single vector (length : number of rows in system matrix)
+ * - temp_for_single_rhs
  * multivectors (length of each vector: subspace dimension) for
  * - f
  * - c
@@ -87,24 +89,25 @@ struct BatchIdrOptions {
  * - M
  * and small arrays for
  * - omega
- * - alpha
- * - beta
- * - rho
- * - t_r_dot
+ * - temp1
+ * - temp2
  * - norms_t
+ * - norms_r
  * - rhs_norms
  * - res_norms
  * - res_temp_norms
+ * - tmp_norms (this one is of length: subspace_dim)
  */
 template <typename ValueType>
 inline int local_memory_requirement(const int num_rows, const int num_rhs,
                                     const int subspace_dim)
 {
-    return (7 * num_rows * num_rhs + 2 * subspace_dim * num_rhs +
+    return (7 * num_rows * num_rhs + num_rows + 2 * subspace_dim * num_rhs +
             num_rows * subspace_dim + 2 * num_rows * subspace_dim * num_rhs +
-            subspace_dim * subspace_dim * num_rhs + 5 * num_rhs) *
+            subspace_dim * subspace_dim * num_rhs + 3 * num_rhs) *
                sizeof(ValueType) +
-           4 * num_rhs * sizeof(typename gko::remove_complex<ValueType>);
+           (5 * num_rhs + subspace_dim) *
+               sizeof(typename gko::remove_complex<ValueType>);
 }
 
 
