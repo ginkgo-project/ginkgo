@@ -36,6 +36,10 @@ if(GINKGO_BUILD_CUDA)
     add_executable(test_install_cuda ${CMAKE_CURRENT_BINARY_DIR}/test_install.cu)
     target_compile_options(test_install_cuda
         PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
+    # we handle CUDA architecture flags for now, disable CMake handling
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
+        set_target_properties(test_install_cuda PROPERTIES CUDA_ARCHITECTURES OFF)
+    endif()
     target_compile_definitions(test_install_cuda PRIVATE HAS_CUDA=1)
     target_compile_definitions(test_install_cuda PRIVATE HAS_REFERENCE=${HAS_REFERENCE})
     target_link_libraries(test_install_cuda PRIVATE Ginkgo::ginkgo)
