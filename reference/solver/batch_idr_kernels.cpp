@@ -100,14 +100,12 @@ get_rand_value(Distribution &&dist, Generator &&gen)
 template <typename ValueType>
 inline void orthonormalize_subspace_vectors(
     const gko::batch_dense::BatchEntry<ValueType> &Subspace_vectors_entry,
-    const int num_rows, const int subspace_dim)
+    const int num_rows, const int subspace_dim,
+    const gko::batch_dense::BatchEntry<ValueType> &temp_for_single_rhs_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
+        &tmp_norms_entry)
 {
     using real_type = typename gko::remove_complex<ValueType>;
-
-    real_type norms[gko::kernels::batch_idr::max_subspace_dim];
-
-    const gko::batch_dense::BatchEntry<real_type> norms_entry{
-        norms, static_cast<size_type>(subspace_dim), 1, subspace_dim};
 
     for (int i = 0; i < subspace_dim; i++) {
         const gko::batch_dense::BatchEntry<ValueType> p_i_entry{
@@ -115,10 +113,8 @@ inline void orthonormalize_subspace_vectors(
                  .values[i * num_rows * Subspace_vectors_entry.stride],
             Subspace_vectors_entry.stride, num_rows, 1};
 
-        ValueType w_i[batch_config<ValueType>::max_num_rows];
-
-        const gko::batch_dense::BatchEntry<ValueType> w_i_entry{w_i, 1,
-                                                                num_rows, 1};
+        const gko::batch_dense::BatchEntry<ValueType> &w_i_entry =
+            temp_for_single_rhs_entry;
 
         // w_i = p_i
         batch_dense::copy(gko::batch::to_const(p_i_entry), w_i_entry);
@@ -139,7 +135,7 @@ inline void orthonormalize_subspace_vectors(
                                              gko::batch::to_const(p_i_entry),
                                              mul_entry);
             mul_entry.values[0] /= static_cast<ValueType>(
-                norms_entry.values[j] * norms_entry.values[j]);
+                tmp_norms_entry.values[j] * tmp_norms_entry.values[j]);
 
             mul_entry.values[0] *= -one<ValueType>();
             batch_dense::add_scaled(gko::batch::to_const(mul_entry),
@@ -151,7 +147,7 @@ inline void orthonormalize_subspace_vectors(
 
         batch_dense::compute_norm2(gko::batch::to_const(w_i_entry),
                                    gko::batch_dense::BatchEntry<real_type>{
-                                       &norms_entry.values[i], 1, 1, 1});
+                                       &tmp_norms_entry.values[i], 1, 1, 1});
     }
 
     // e_k = w_k / || w_k ||
@@ -162,7 +158,8 @@ inline void orthonormalize_subspace_vectors(
             Subspace_vectors_entry.stride, num_rows, 1};
 
         ValueType scale_factor =
-            one<ValueType>() / static_cast<ValueType>(norms_entry.values[k]);
+            one<ValueType>() /
+            static_cast<ValueType>(tmp_norms_entry.values[k]);
 
         batch_dense::scale(
             gko::batch_dense::BatchEntry<const ValueType>{&scale_factor, 1, 1,
@@ -189,7 +186,10 @@ inline void initialize(
     const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
         &rhs_norms_entry,
     const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &res_norms_entry)
+        &res_norms_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &temp_for_single_rhs_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
+        &tmp_norms_entry)
 {
     // Compute norms of rhs
     batch_dense::compute_norm2<ValueType>(b_entry, rhs_norms_entry);
@@ -266,7 +266,8 @@ inline void initialize(
 
     // orthonormailize Subspace_vectors
     orthonormalize_subspace_vectors(Subspace_vectors_entry, num_rows,
-                                    subspace_dim);
+                                    subspace_dim, temp_for_single_rhs_entry,
+                                    tmp_norms_entry);
 }
 
 
@@ -317,6 +318,7 @@ inline void update_c(
     const gko::batch_dense::BatchEntry<const ValueType> &M_entry,
     const gko::batch_dense::BatchEntry<const ValueType> &f_entry,
     const gko::batch_dense::BatchEntry<ValueType> &c_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &temp_sum_entry,
     const uint32 &converged)
 {
     const auto subspace_dim = M_entry.num_rows;
@@ -324,8 +326,9 @@ inline void update_c(
     // upper triangular solve
     // solve top to bottom
     for (int row_index = 0; row_index < subspace_dim; row_index++) {
-        ValueType temp_sum[batch_config<ValueType>::max_num_rhs] = {
-            zero<ValueType>()};
+        for (int rhs_index = 0; rhs_index < nrhs; rhs_index++) {
+            temp_sum_entry.values[rhs_index] = zero<ValueType>();
+        }
 
         for (int col_index = 0; col_index < row_index; col_index++) {
             for (int rhs_index = 0; rhs_index < nrhs; rhs_index++) {
@@ -334,7 +337,7 @@ inline void update_c(
                 if (conv) {
                     continue;
                 }
-                temp_sum[rhs_index] +=
+                temp_sum_entry.values[rhs_index] +=
                     M_entry.values[row_index * M_entry.stride +
                                    col_index * nrhs + rhs_index] *
                     c_entry.values[col_index * c_entry.stride + rhs_index];
@@ -349,7 +352,7 @@ inline void update_c(
             }
             c_entry.values[row_index * c_entry.stride + rhs_index] =
                 (f_entry.values[row_index * f_entry.stride + rhs_index] -
-                 temp_sum[rhs_index]) /
+                 temp_sum_entry.values[rhs_index]) /
                 M_entry.values[row_index * M_entry.stride + row_index * nrhs +
                                rhs_index];
         }
@@ -392,9 +395,9 @@ inline void update_u_k(
     const gko::batch_dense::BatchEntry<const ValueType> &omega_entry,
     const gko::batch_dense::BatchEntry<const ValueType> &c_entry,
     const gko::batch_dense::BatchEntry<const ValueType> &v_entry,
+    const gko::batch_dense::BatchEntry<const ValueType> &U_entry,
     const size_type k,
     const gko::batch_dense::BatchEntry<ValueType> &helper_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &U_entry,
     const gko::batch_dense::BatchEntry<ValueType> &u_k_entry,
     const uint32 &converged)
 {
@@ -429,13 +432,13 @@ inline void update_u_k(
 template <typename ValueType>
 inline void update_g_k_and_u_k(
     const size_type k,
-    const gko::batch_dense::BatchEntry<ValueType> &alpha_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &g_k_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &u_k_entry,
     const gko::batch_dense::BatchEntry<const ValueType> &G_entry,
     const gko::batch_dense::BatchEntry<const ValueType> &U_entry,
     const gko::batch_dense::BatchEntry<const ValueType> &Subspace_vectors_entry,
     const gko::batch_dense::BatchEntry<const ValueType> &M_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &alpha_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &g_k_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &u_k_entry,
     const uint32 &converged)
 {
     const auto nrows = g_k_entry.num_rows;
@@ -473,15 +476,15 @@ inline void update_g_k_and_u_k(
                     continue;
                 }
 
+                const ValueType alpha = alpha_entry.values[rhs];
+
                 g_k_entry.values[row * g_k_entry.stride + rhs] -=
-                    alpha_entry.values[rhs] *
-                    G_entry.values[i * nrows * G_entry.stride +
-                                   row * G_entry.stride + rhs];
+                    alpha * G_entry.values[i * nrows * G_entry.stride +
+                                           row * G_entry.stride + rhs];
 
                 u_k_entry.values[row * u_k_entry.stride + rhs] -=
-                    alpha_entry.values[rhs] *
-                    U_entry.values[i * nrows * U_entry.stride +
-                                   row * U_entry.stride + rhs];
+                    alpha * U_entry.values[i * nrows * U_entry.stride +
+                                           row * U_entry.stride + rhs];
             }
         }
     }
@@ -534,10 +537,12 @@ inline void update_M(
 
 
 template <typename ValueType>
-inline void update_r_inner_loop(
-    const gko::batch_dense::BatchEntry<ValueType> &r_entry,
+inline void update_r_and_x_inner_loop(
     const gko::batch_dense::BatchEntry<const ValueType> &g_k_entry,
+    const gko::batch_dense::BatchEntry<const ValueType> &u_k_entry,
     const gko::batch_dense::BatchEntry<const ValueType> &beta_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &r_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &x_entry,
     const uint32 &converged)
 {
     for (int row = 0; row < g_k_entry.num_rows; row++) {
@@ -548,32 +553,14 @@ inline void update_r_inner_loop(
                 continue;
             }
 
+            const ValueType beta = beta_entry.values[rhs];
+
             r_entry.values[row * r_entry.stride + rhs] -=
-                beta_entry.values[rhs] *
-                g_k_entry.values[row * g_k_entry.stride + rhs];
-        }
-    }
-}
+                beta * g_k_entry.values[row * g_k_entry.stride + rhs];
 
-
-template <typename ValueType>
-inline void update_x_inner_loop(
-    const gko::batch_dense::BatchEntry<ValueType> &x_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &u_k_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &beta_entry,
-    const uint32 &converged)
-{
-    for (int row = 0; row < u_k_entry.num_rows; row++) {
-        for (int rhs = 0; rhs < u_k_entry.num_rhs; rhs++) {
-            const uint32 conv = converged & (1 << rhs);
-
-            if (conv) {
-                continue;
-            }
 
             x_entry.values[row * x_entry.stride + rhs] +=
-                beta_entry.values[rhs] *
-                u_k_entry.values[row * u_k_entry.stride + rhs];
+                beta * u_k_entry.values[row * u_k_entry.stride + rhs];
         }
     }
 }
@@ -581,28 +568,24 @@ inline void update_x_inner_loop(
 
 template <typename ValueType>
 inline void compute_omega(
-    const gko::batch_dense::BatchEntry<ValueType> &omega_entry,
     const gko::batch_dense::BatchEntry<const ValueType> &t_entry,
     const gko::batch_dense::BatchEntry<const ValueType> &r_entry,
     const gko::batch_dense::BatchEntry<ValueType> &rho_entry,
     const gko::batch_dense::BatchEntry<ValueType> &t_r_dot_entry,
     const gko::batch_dense::BatchEntry<gko::remove_complex<ValueType>>
         &norms_t_entry,
+    const gko::batch_dense::BatchEntry<gko::remove_complex<ValueType>>
+        &norms_r_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &omega_entry,
     const gko::remove_complex<ValueType> kappa, const uint32 &converged)
 {
-    using real_type = typename gko::remove_complex<ValueType>;
-
     batch_dense::compute_dot_product(gko::batch::to_const(t_entry),
                                      gko::batch::to_const(r_entry),
                                      t_r_dot_entry);
 
     batch_dense::compute_norm2(gko::batch::to_const(t_entry), norms_t_entry);
 
-    real_type norms_r[batch_config<ValueType>::max_num_rhs];
-    const auto nrhs = omega_entry.num_rhs;
-    const gko::batch_dense::BatchEntry<real_type> norms_r_entry{
-        norms_r, static_cast<size_type>(nrhs), static_cast<int>(1),
-        static_cast<int>(nrhs)};
+
     batch_dense::compute_norm2(gko::batch::to_const(r_entry), norms_r_entry);
 
     // omega = ( t * r )/ (t * t)
@@ -643,11 +626,14 @@ inline void compute_omega(
     }
 }
 
+
 template <typename ValueType>
-inline void update_r_outer_loop(
-    const gko::batch_dense::BatchEntry<ValueType> &r_entry,
+inline void update_r_and_x_outer_loop(
     const gko::batch_dense::BatchEntry<const ValueType> &t_entry,
+    const gko::batch_dense::BatchEntry<const ValueType> &v_entry,
     const gko::batch_dense::BatchEntry<const ValueType> &omega_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &r_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &x_entry,
     const uint32 &converged)
 {
     for (int row = 0; row < t_entry.num_rows; row++) {
@@ -658,44 +644,25 @@ inline void update_r_outer_loop(
                 continue;
             }
 
+            const ValueType omega = omega_entry.values[rhs];
+
             r_entry.values[row * r_entry.stride + rhs] -=
-                omega_entry.values[rhs] *
-                t_entry.values[row * t_entry.stride + rhs];
-        }
-    }
-}
-
-
-template <typename ValueType>
-inline void update_x_outer_loop(
-    const gko::batch_dense::BatchEntry<ValueType> &x_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &v_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &omega_entry,
-    const uint32 &converged)
-{
-    for (int row = 0; row < v_entry.num_rows; row++) {
-        for (int rhs = 0; rhs < v_entry.num_rhs; rhs++) {
-            const uint32 conv = converged & (1 << rhs);
-
-            if (conv) {
-                continue;
-            }
+                omega * t_entry.values[row * t_entry.stride + rhs];
 
             x_entry.values[row * x_entry.stride + rhs] +=
-                omega_entry.values[rhs] *
-                v_entry.values[row * v_entry.stride + rhs];
+                omega * v_entry.values[row * v_entry.stride + rhs];
         }
     }
 }
 
 template <typename ValueType>
 inline void smoothing_operation(
+    const gko::batch_dense::BatchEntry<const ValueType> &x_entry,
+    const gko::batch_dense::BatchEntry<const ValueType> &r_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &gamma_entry,
     const gko::batch_dense::BatchEntry<ValueType> &t_entry,
     const gko::batch_dense::BatchEntry<ValueType> &xs_entry,
     const gko::batch_dense::BatchEntry<ValueType> &rs_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &x_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &r_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &rho_entry,
     const gko::batch_dense::BatchEntry<gko::remove_complex<ValueType>>
         &norms_t_entry,
     const uint32 &converged)
@@ -712,19 +679,20 @@ inline void smoothing_operation(
     }
 
 
-    // rho = (t * rs)/(t * t)
+    // gamma = (t * rs)/(t * t)
     batch_dense::compute_dot_product(gko::batch::to_const(t_entry),
-                                     gko::batch::to_const(rs_entry), rho_entry);
+                                     gko::batch::to_const(rs_entry),
+                                     gamma_entry);
     batch_dense::compute_norm2(gko::batch::to_const(t_entry), norms_t_entry);
 
     for (int rhs = 0; rhs < t_entry.num_rhs; rhs++) {
-        rho_entry.values[rhs] /= static_cast<ValueType>(
+        gamma_entry.values[rhs] /= static_cast<ValueType>(
             norms_t_entry.values[rhs] * norms_t_entry.values[rhs]);
     }
 
 
-    // rs = rs - rho*(rs - r)
-    // xs = xs - rho*(xs - x)
+    // rs = rs - gamma*(rs - r)
+    // xs = xs - gamma*(xs - x)
     for (int row = 0; row < rs_entry.num_rows; row++) {
         for (int rhs = 0; rhs < rs_entry.num_rhs; rhs++) {
             const uint32 conv = converged & (1 << rhs);
@@ -734,15 +702,15 @@ inline void smoothing_operation(
             }
 
             rs_entry.values[row * rs_entry.stride + rhs] =
-                (one<ValueType>() - rho_entry.values[rhs]) *
+                (one<ValueType>() - gamma_entry.values[rhs]) *
                     rs_entry.values[row * rs_entry.stride + rhs] +
-                rho_entry.values[rhs] *
+                gamma_entry.values[rhs] *
                     r_entry.values[row * r_entry.stride + rhs];
 
             xs_entry.values[row * xs_entry.stride + rhs] =
-                (one<ValueType>() - rho_entry.values[rhs]) *
+                (one<ValueType>() - gamma_entry.values[rhs]) *
                     xs_entry.values[row * xs_entry.stride + rhs] +
-                rho_entry.values[rhs] *
+                gamma_entry.values[rhs] *
                     x_entry.values[row * x_entry.stride + rhs];
         }
     }
@@ -774,17 +742,6 @@ static void apply_impl(
     const auto smoothing = opts.to_use_smoothing;
     const auto deterministic = opts.deterministic_gen;
 
-    // TODO: Remove these assert statements once you make sure that there are no
-    // static allocations (in device functions and stopping criterion
-    // check_converged) which use the values in batch config struct and the
-    // compile time constant max_subspace_dim.
-    GKO_ASSERT((batch_config<ValueType>::max_num_rows *
-                    batch_config<ValueType>::max_num_rhs >=
-                nrows * nrhs));
-    GKO_ASSERT(batch_config<ValueType>::max_num_rows >= nrows);
-    GKO_ASSERT(batch_config<ValueType>::max_num_rhs >= nrhs);
-
-    GKO_ASSERT(subspace_dim <= gko::kernels::batch_idr::max_subspace_dim);
 
     const int local_size_bytes =
         gko::kernels::batch_idr::local_memory_requirement<ValueType>(
@@ -809,18 +766,17 @@ static void apply_impl(
         ValueType *const U = G + nrows * subspace_dim * nrhs;
         ValueType *const M = U + nrows * subspace_dim * nrhs;
         ValueType *const prec_work = M + subspace_dim * subspace_dim * nrhs;
-        ;
-        ValueType *const omega =
+        ValueType *const temp_for_single_rhs =
             prec_work + PrecType::dynamic_work_size(nrows, a.num_nnz);
-        ValueType *const alpha = omega + nrhs;
-        ValueType *const beta = alpha + nrhs;
-        ValueType *const rho = beta + nrhs;
-        ValueType *const t_r_dot = rho + nrhs;
-        real_type *const norms_t =
-            reinterpret_cast<real_type *>(t_r_dot + nrhs);
-        real_type *const norms_rhs = norms_t + nrhs;
+        ValueType *const omega = temp_for_single_rhs + nrows;
+        ValueType *const temp1 = omega + nrhs;
+        ValueType *const temp2 = temp1 + nrhs;
+        real_type *const norms_t = reinterpret_cast<real_type *>(temp2 + nrhs);
+        real_type *const norms_r = norms_t + nrhs;
+        real_type *const norms_rhs = norms_r + nrhs;
         real_type *const norms_res = norms_rhs + nrhs;
         real_type *const norms_res_temp = norms_res + nrhs;
+        real_type *const norms_tmp = norms_res_temp + nrhs;
 
 
         uint32 converged = 0;
@@ -941,29 +897,24 @@ static void apply_impl(
         // j*nrhs  + rhs_k ]
 
 
+        const gko::batch_dense::BatchEntry<ValueType> temp_for_single_rhs_entry{
+            temp_for_single_rhs, static_cast<size_type>(1), nrows, 1};
+
         const gko::batch_dense::BatchEntry<ValueType> omega_entry{
             omega, static_cast<size_type>(nrhs), 1, nrhs};
 
 
-        const gko::batch_dense::BatchEntry<ValueType> alpha_entry{
-            alpha, static_cast<size_type>(nrhs), 1, nrhs};
+        const gko::batch_dense::BatchEntry<ValueType> temp1_entry{
+            temp1, static_cast<size_type>(nrhs), 1, nrhs};
 
-
-        const gko::batch_dense::BatchEntry<ValueType> beta_entry{
-            beta, static_cast<size_type>(nrhs), 1, nrhs};
-
-
-        const gko::batch_dense::BatchEntry<ValueType> rho_entry{
-            rho, static_cast<size_type>(nrhs), 1, nrhs};
-
-
-        const gko::batch_dense::BatchEntry<ValueType> t_r_dot_entry{
-            t_r_dot, static_cast<size_type>(nrhs), 1, nrhs};
-
+        const gko::batch_dense::BatchEntry<ValueType> temp2_entry{
+            temp2, static_cast<size_type>(nrhs), 1, nrhs};
 
         const gko::batch_dense::BatchEntry<real_type> t_norms_entry{
             norms_t, static_cast<size_type>(nrhs), 1, nrhs};
 
+        const gko::batch_dense::BatchEntry<real_type> r_norms_entry{
+            norms_r, static_cast<size_type>(nrhs), 1, nrhs};
 
         const gko::batch_dense::BatchEntry<real_type> rhs_norms_entry{
             norms_rhs, static_cast<size_type>(nrhs), 1, nrhs};
@@ -975,6 +926,11 @@ static void apply_impl(
 
         const gko::batch_dense::BatchEntry<real_type> res_norms_temp_entry{
             norms_res_temp, static_cast<size_type>(nrhs), 1, nrhs};
+
+
+        const gko::batch_dense::BatchEntry<real_type> tmp_norms_entry{
+            norms_tmp, static_cast<size_type>(subspace_dim), 1,
+            static_cast<int>(subspace_dim)};
 
         // generate preconditioner
         prec.generate(A_entry, prec_work);
@@ -991,7 +947,8 @@ static void apply_impl(
         initialize(A_entry, b_entry, gko::batch::to_const(x_entry), r_entry,
                    G_entry, U_entry, M_entry, Subspace_vectors_entry,
                    deterministic, xs_entry, rs_entry, smoothing, omega_entry,
-                   rhs_norms_entry, res_norms_entry);
+                   rhs_norms_entry, res_norms_entry, temp_for_single_rhs_entry,
+                   tmp_norms_entry);
 
 
         // stopping criterion object
@@ -1034,7 +991,8 @@ static void apply_impl(
 
                 // solve c from Mc = f (Lower Triangular solve)
                 update_c(gko::batch::to_const(M_entry),
-                         gko::batch::to_const(f_entry), c_entry, converged);
+                         gko::batch::to_const(f_entry), c_entry, temp1_entry,
+                         converged);
 
                 // v = r - ( c(k) * g_k  +  c(k+1) * g_(k+1)  + ...  +
                 // c(subspace_dim - 1) * g_(subspace_dim - 1))
@@ -1054,8 +1012,9 @@ static void apply_impl(
                 // c(subspace_dim - 1) * u_(subspace_dim - 1) )
                 update_u_k(gko::batch::to_const(omega_entry),
                            gko::batch::to_const(c_entry),
-                           gko::batch::to_const(v_entry), k, helper_entry,
-                           gko::batch::to_const(U_entry), u_k_entry, converged);
+                           gko::batch::to_const(v_entry),
+                           gko::batch::to_const(U_entry), k, helper_entry,
+                           u_k_entry, converged);
 
 
                 // g_k = A * u_k
@@ -1068,11 +1027,13 @@ static void apply_impl(
                 //     g_k = g_k - alpha * g_i
                 //     u_k = u_k - alpha * u_i
                 // end
-                update_g_k_and_u_k(k, alpha_entry, g_k_entry, u_k_entry,
-                                   gko::batch::to_const(G_entry),
+                const gko::batch_dense::BatchEntry<ValueType> &alpha_entry =
+                    temp1_entry;
+                update_g_k_and_u_k(k, gko::batch::to_const(G_entry),
                                    gko::batch::to_const(U_entry),
                                    gko::batch::to_const(Subspace_vectors_entry),
-                                   gko::batch::to_const(M_entry), converged);
+                                   gko::batch::to_const(M_entry), alpha_entry,
+                                   g_k_entry, u_k_entry, converged);
 
 
                 // M(i,k) = p_i * g_k where i = k , k + 1, ... , subspace_dim -1
@@ -1082,6 +1043,8 @@ static void apply_impl(
 
 
                 // beta = f(k)/M(k,k)
+                const gko::batch_dense::BatchEntry<ValueType> &beta_entry =
+                    temp1_entry;
                 for (int rhs = 0; rhs < nrhs; rhs++) {
                     const uint32 conv = converged & (1 << rhs);
 
@@ -1096,22 +1059,20 @@ static void apply_impl(
 
 
                 // r = r - beta * g_k
-                update_r_inner_loop(r_entry, gko::batch::to_const(g_k_entry),
-                                    gko::batch::to_const(beta_entry),
-                                    converged);
-
-
                 // x = x + beta * u_k
-                update_x_inner_loop(x_entry, gko::batch::to_const(u_k_entry),
-                                    gko::batch::to_const(beta_entry),
-                                    converged);
+                update_r_and_x_inner_loop(gko::batch::to_const(g_k_entry),
+                                          gko::batch::to_const(u_k_entry),
+                                          gko::batch::to_const(beta_entry),
+                                          r_entry, x_entry, converged);
 
 
                 if (smoothing == true) {
-                    smoothing_operation(t_entry, xs_entry, rs_entry,
-                                        gko::batch::to_const(x_entry),
+                    const gko::batch_dense::BatchEntry<ValueType> &gamma_entry =
+                        temp2_entry;
+                    smoothing_operation(gko::batch::to_const(x_entry),
                                         gko::batch::to_const(r_entry),
-                                        rho_entry, t_norms_entry, converged);
+                                        gamma_entry, t_entry, xs_entry,
+                                        rs_entry, t_norms_entry, converged);
                 }
 
 
@@ -1154,25 +1115,30 @@ static void apply_impl(
             // if |rho| < kappa
             //      omega = omega * kappa / |rho|
             // end if
-            compute_omega(omega_entry, gko::batch::to_const(t_entry),
+            const gko::batch_dense::BatchEntry<ValueType> &t_r_dot_entry =
+                temp1_entry;
+            const gko::batch_dense::BatchEntry<ValueType> &rho_entry =
+                temp2_entry;
+            compute_omega(gko::batch::to_const(t_entry),
                           gko::batch::to_const(r_entry), rho_entry,
-                          t_r_dot_entry, t_norms_entry, kappa, converged);
+                          t_r_dot_entry, t_norms_entry, r_norms_entry,
+                          omega_entry, kappa, converged);
 
 
             // r = r - omega * t
-            update_r_outer_loop(r_entry, gko::batch::to_const(t_entry),
-                                gko::batch::to_const(omega_entry), converged);
-
             // x = x + omega * v
-            update_x_outer_loop(x_entry, gko::batch::to_const(v_entry),
-                                gko::batch::to_const(omega_entry), converged);
+            update_r_and_x_outer_loop(
+                gko::batch::to_const(t_entry), gko::batch::to_const(v_entry),
+                gko::batch::to_const(omega_entry), r_entry, x_entry, converged);
 
 
             if (smoothing == true) {
-                smoothing_operation(t_entry, xs_entry, rs_entry,
-                                    gko::batch::to_const(x_entry),
-                                    gko::batch::to_const(r_entry), rho_entry,
-                                    t_norms_entry, converged);
+                const gko::batch_dense::BatchEntry<ValueType> &gamma_entry =
+                    temp2_entry;
+                smoothing_operation(gko::batch::to_const(x_entry),
+                                    gko::batch::to_const(r_entry), gamma_entry,
+                                    t_entry, xs_entry, rs_entry, t_norms_entry,
+                                    converged);
 
                 batch_dense::compute_norm2<ValueType>(
                     gko::batch::to_const(rs_entry),
