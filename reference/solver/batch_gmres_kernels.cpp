@@ -169,10 +169,10 @@ inline void initialize(
 }
 
 template <typename ValueType>
-inline void GeneratePlaneRotation(const ValueType *const x,
-                                  const ValueType *const y, ValueType *const cs,
-                                  ValueType *const sn, const int nrhs,
-                                  const uint32 &converged)
+inline void generate_plane_rotation(const ValueType *const x,
+                                    const ValueType *const y, const int nrhs,
+                                    ValueType *const cs, ValueType *const sn,
+                                    const uint32 &converged)
 {
     for (int c = 0; c < nrhs; c++) {
         const uint32 conv = converged & (1 << c);
@@ -185,22 +185,25 @@ inline void GeneratePlaneRotation(const ValueType *const x,
             cs[c] = one<ValueType>();
             sn[c] = zero<ValueType>();
         } else if (abs(y[c]) > abs(x[c])) {
-            ValueType temp = x[c] / y[c];
-            sn[c] = one<ValueType>() / sqrt(one<ValueType>() + temp * temp);
-            cs[c] = temp * sn[c];
+            const ValueType temp = x[c] / y[c];
+            sn[c] = (one<ValueType>() * conj(y[c])) /
+                    (sqrt(one<ValueType>() + temp * temp) * y[c]);
+            cs[c] = (conj(x[c]) / conj(y[c])) * sn[c];
+
         } else {
-            ValueType temp = y[c] / x[c];
-            cs[c] = one<ValueType>() / sqrt(one<ValueType>() + temp * temp);
-            sn[c] = temp * cs[c];
+            const ValueType temp = y[c] / x[c];
+            cs[c] = (one<ValueType>() * conj(x[c])) /
+                    (sqrt(one<ValueType>() + temp * temp) * x[c]);
+            sn[c] = (conj(y[c]) / conj(x[c])) * cs[c];
         }
     }
 }
 
 template <typename ValueType>
-inline void ApplyPlaneRotation(ValueType *const x, ValueType *const y,
-                               const ValueType *const cs,
-                               const ValueType *const sn, const int nrhs,
-                               const uint32 &converged)
+inline void apply_plane_rotation(const ValueType *const cs,
+                                 const ValueType *const sn, const int nrhs,
+                                 ValueType *const x, ValueType *const y,
+                                 const uint32 &converged)
 {
     for (int c = 0; c < nrhs; c++) {
         const uint32 conv = converged & (1 << c);
@@ -209,17 +212,19 @@ inline void ApplyPlaneRotation(ValueType *const x, ValueType *const y,
             continue;
         }
 
-        ValueType temp = cs[c] * x[c] + sn[c] * y[c];
-        y[c] = -one<ValueType>() * sn[c] * x[c] + cs[c] * y[c];
+        const ValueType temp = cs[c] * x[c] + sn[c] * y[c];
+        y[c] = -one<ValueType>() * conj(sn[c]) * x[c] + conj(cs[c]) * y[c];
         x[c] = temp;
     }
 }
 
 template <typename ValueType>
 inline void update_v_naught_and_s(
+    const gko::batch_dense::BatchEntry<const ValueType> &z_entry,
     const gko::batch_dense::BatchEntry<ValueType> &V_entry,
     const gko::batch_dense::BatchEntry<ValueType> &s_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &z_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
+        &tmp_norms_entry,
     const uint32 &converged)
 {
     using real_type = typename gko::remove_complex<ValueType>;
@@ -227,10 +232,8 @@ inline void update_v_naught_and_s(
     const gko::batch_dense::BatchEntry<ValueType> v_naught_entry{
         V_entry.values, V_entry.stride, z_entry.num_rows, V_entry.num_rhs};
 
-
-    real_type z_norms[batch_config<ValueType>::max_num_rhs];
-    const gko::batch_dense::BatchEntry<real_type> z_norms_entry{
-        z_norms, z_entry.stride, 1, z_entry.num_rhs};
+    const gko::batch_dense::BatchEntry<real_type> &z_norms_entry =
+        tmp_norms_entry;
 
     batch_dense::compute_norm2(z_entry, z_norms_entry);
 
@@ -278,6 +281,9 @@ inline void arnoldi_method(
     const gko::batch_dense::BatchEntry<ValueType> &V_entry,
     const gko::batch_dense::BatchEntry<ValueType> &H_entry,
     const gko::batch_dense::BatchEntry<ValueType> &w_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &helper_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
+        &tmp_norms_entry,
     const PrecType &prec, const uint32 &converged)
 {
     using real_type = typename gko::remove_complex<ValueType>;
@@ -289,15 +295,10 @@ inline void arnoldi_method(
         &V_entry.values[i * V_entry.stride * num_rows], V_entry.stride,
         num_rows, V_entry.num_rhs};
 
-    ValueType w_temp[batch_config<ValueType>::max_num_rows *
-                     batch_config<ValueType>::max_num_rhs];
 
-    const gko::batch_dense::BatchEntry<ValueType> w_temp_entry{
-        w_temp, w_entry.stride, w_entry.num_rows, w_entry.num_rhs};
+    spmv_kernel(A_entry, v_i_entry, helper_entry);
 
-    spmv_kernel(A_entry, v_i_entry, w_temp_entry);
-
-    prec.apply(gko::batch::to_const(w_temp_entry), w_entry);
+    prec.apply(gko::batch::to_const(helper_entry), w_entry);
 
 
     for (int k = 0; k <= i; k++) {
@@ -331,9 +332,8 @@ inline void arnoldi_method(
     }
 
 
-    real_type w_norms[batch_config<ValueType>::max_num_rhs];
-    gko::batch_dense::BatchEntry<real_type> w_norms_entry{
-        w_norms, w_entry.stride, 1, w_entry.num_rhs};
+    const gko::batch_dense::BatchEntry<real_type> &w_norms_entry =
+        tmp_norms_entry;
 
     batch_dense::compute_norm2(gko::batch::to_const(w_entry), w_norms_entry);
 
@@ -373,19 +373,13 @@ inline void arnoldi_method(
 
 template <typename ValueType>
 inline void update_x(
-    const gko::batch_dense::BatchEntry<ValueType> &x_entry, const int m,
-    const gko::batch_dense::BatchEntry<const ValueType> &H_entry,
+    const int m, const gko::batch_dense::BatchEntry<const ValueType> &H_entry,
     const gko::batch_dense::BatchEntry<const ValueType> &s_entry,
     const gko::batch_dense::BatchEntry<const ValueType> &V_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &x_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &y_entry,
     const uint32 &converged)
 {
-    ValueType y[gko::kernels::batch_gmres::max_restart *
-                batch_config<ValueType>::max_num_rhs];
-
-    const gko::batch_dense::BatchEntry<ValueType> y_entry{
-        y, static_cast<size_type>(x_entry.num_rhs), m + 1, x_entry.num_rhs};
-
-
     // upper triangular solve
     for (int r = m; r >= 0; r--) {
         for (int c = 0; c < y_entry.num_rhs; c++) {
@@ -450,19 +444,6 @@ static void apply_impl(
     const auto restart = opts.restart_num;
 
 
-    // TODO: Remove these assert statements once you make sure that there are no
-    // static allocations (in device functions and stopping criterion
-    // check_converged) which use the values in batch config struct and the
-    // compile time constant max_restart.
-    GKO_ASSERT((batch_config<ValueType>::max_num_rows *
-                    batch_config<ValueType>::max_num_rhs >=
-                nrows * nrhs));
-    GKO_ASSERT(batch_config<ValueType>::max_num_rows >= nrows);
-    GKO_ASSERT(batch_config<ValueType>::max_num_rhs >= nrhs);
-
-    GKO_ASSERT(restart <= gko::kernels::batch_gmres::max_restart);
-
-
     const int local_size_bytes =
         gko::kernels::batch_gmres::local_memory_requirement<ValueType>(
             nrows, nrhs, restart) +
@@ -475,9 +456,11 @@ static void apply_impl(
         ValueType *const r = reinterpret_cast<ValueType *>(shared_space);
         ValueType *const z = r + nrows * nrhs;
         ValueType *const w = z + nrows * nrhs;
-        ValueType *const cs = w + nrows * nrhs;
+        ValueType *const helper = w + nrows * nrhs;
+        ValueType *const cs = helper + nrows * nrhs;
         ValueType *const sn = cs + restart * nrhs;
-        ValueType *const s = sn + restart * nrhs;
+        ValueType *const y = sn + restart * nrhs;
+        ValueType *const s = y + restart * nrhs;
         ValueType *const H = s + (restart + 1) * nrhs;  // Hessenberg matrix
         ValueType *const V = H + restart * (restart + 1) *
                                      nrhs;  // Krylov subspace basis vectors
@@ -487,6 +470,7 @@ static void apply_impl(
             prec_work + PrecType::dynamic_work_size(nrows, a.num_nnz));
         real_type *const norms_res = norms_rhs + nrhs;
         real_type *const norms_res_temp = norms_res + nrhs;
+        real_type *const norms_tmp = norms_res_temp + nrhs;
 
         uint32 converged = 0;
 
@@ -533,6 +517,11 @@ static void apply_impl(
             // a col. of the matrix
             w, static_cast<size_type>(nrhs), nrows, nrhs};
 
+        const gko::batch_dense::BatchEntry<ValueType> helper_entry{
+            // storage:row-major ,vector corresponding to each rhs is stored as
+            // a col. of the matrix
+            helper, static_cast<size_type>(nrhs), nrows, nrhs};
+
         const gko::batch_dense::BatchEntry<ValueType> cs_entry{
             // storage:row-major ,vector corresponding to each rhs is stored as
             // a col. of the matrix
@@ -542,6 +531,11 @@ static void apply_impl(
             // storage:row-major ,vector corresponding to each rhs is stored as
             // a col. of the matrix
             sn, static_cast<size_type>(nrhs), restart, nrhs};
+
+        const gko::batch_dense::BatchEntry<ValueType> y_entry{
+            // storage:row-major ,vector corresponding to each rhs is stored as
+            // a col. of the matrix
+            y, static_cast<size_type>(nrhs), restart, nrhs};
 
 
         const gko::batch_dense::BatchEntry<ValueType> s_entry{
@@ -578,6 +572,10 @@ static void apply_impl(
 
         const gko::batch_dense::BatchEntry<real_type> res_norms_temp_entry{
             norms_res_temp, static_cast<size_type>(nrhs), 1, nrhs};
+
+        const gko::batch_dense::BatchEntry<real_type> tmp_norms_entry{
+            norms_tmp, static_cast<size_type>(nrhs), 1, nrhs};
+
 
         // generate preconditioner
         prec.generate(A_entry, prec_work);
@@ -621,12 +619,10 @@ static void apply_impl(
             // KrylovBasis_0 = z/norm(z)
             // s -> fill with zeroes
             // s(0) = norm(z)
-            update_v_naught_and_s(V_entry, s_entry,
-                                  gko::batch::to_const(z_entry), converged);
+            update_v_naught_and_s(gko::batch::to_const(z_entry), V_entry,
+                                  s_entry, tmp_norms_entry, converged);
 
-            for (int inner_iter = -1; inner_iter < restart - 1;) {
-                inner_iter++;
-
+            for (int inner_iter = 0; inner_iter < restart; inner_iter++) {
                 // w_temp = A * v_i
                 // w = precond * w_temp
                 // i = inner_iter
@@ -637,54 +633,55 @@ static void apply_impl(
                 // Hessenburg(i+1, i) = norm(w)
                 // KrylovBasis_i+1 = w / Hessenburg(i+1,i)
                 arnoldi_method(A_entry, inner_iter, V_entry, H_entry, w_entry,
-                               prec, converged);
+                               helper_entry, tmp_norms_entry, prec, converged);
 
 
                 for (int k = 0; k < inner_iter; k++) {
                     // temp = cs(k) * Hessenberg( k, inner_iter )  +   sn(k) *
-                    // Hessenberg(k + 1, inner_iter) Hessenberg(k + 1,
-                    // inner_iter) = -1 * sn(k) * Hessenberg( k , inner_iter) +
-                    // cs(k) * Hessenberg(k + 1 , inner_iter)
-                    // Hessenberg(k,inner_iter) = temp
-                    ApplyPlaneRotation(
+                    // Hessenberg(k + 1, inner_iter)
+                    // Hessenberg(k + 1, inner_iter) = -1 * conj(sn(k)) *
+                    // Hessenberg( k , inner_iter) + conj(cs(k)) * Hessenberg(k
+                    // + 1 , inner_iter) Hessenberg(k,inner_iter) = temp
+                    apply_plane_rotation(
+
+                        &cs_entry.values[k * cs_entry.stride],
+                        &sn_entry.values[k * sn_entry.stride], nrhs,
                         &H_entry.values[k * H_entry.stride + inner_iter * nrhs],
                         &H_entry.values[(k + 1) * H_entry.stride +
                                         inner_iter * nrhs],
-                        &cs_entry.values[k * cs_entry.stride],
-                        &sn_entry.values[k * sn_entry.stride], nrhs, converged);
+                        converged);
                 }
 
                 // compute sine and cos
-                GeneratePlaneRotation(
+                generate_plane_rotation(
                     &H_entry.values[inner_iter * H_entry.stride +
                                     inner_iter * nrhs],
                     &H_entry.values[(inner_iter + 1) * H_entry.stride +
                                     inner_iter * nrhs],
-                    &cs_entry.values[inner_iter * cs_entry.stride],
-                    &sn_entry.values[inner_iter * cs_entry.stride], nrhs,
-                    converged);
+                    nrhs, &cs_entry.values[inner_iter * cs_entry.stride],
+                    &sn_entry.values[inner_iter * cs_entry.stride], converged);
 
                 // temp = cs(inner_iter) * s(inner_iter)
-                // s(inner_iter + 1) = -1 * sn(inner_iter) * s(inner_iter)
+                // s(inner_iter + 1) = -1 * conj(sn(inner_iter)) * s(inner_iter)
                 // s(inner_iter) = temp
                 // Hessenberg(inner_iter , inner_iter) = cs(inner_iter) *
                 // Hessenberg(inner_iter , inner_iter) + sn(inner_iter) *
                 // Hessenberg(inner_iter + 1, inner_iter) Hessenberg(inner_iter
                 // + 1, inner_iter) = 0
-                ApplyPlaneRotation(
-                    &s_entry.values[inner_iter * s_entry.stride],
-                    &s_entry.values[(inner_iter + 1) * s_entry.stride],
+                apply_plane_rotation(
                     &cs_entry.values[inner_iter * cs_entry.stride],
                     &sn_entry.values[inner_iter * sn_entry.stride], nrhs,
+                    &s_entry.values[inner_iter * s_entry.stride],
+                    &s_entry.values[(inner_iter + 1) * s_entry.stride],
                     converged);
 
-                ApplyPlaneRotation(
+                apply_plane_rotation(
+                    &cs_entry.values[inner_iter * cs_entry.stride],
+                    &sn_entry.values[inner_iter * sn_entry.stride], nrhs,
                     &H_entry.values[inner_iter * H_entry.stride +
                                     inner_iter * nrhs],
                     &H_entry.values[(inner_iter + 1) * H_entry.stride +
                                     inner_iter * nrhs],
-                    &cs_entry.values[inner_iter * cs_entry.stride],
-                    &sn_entry.values[inner_iter * sn_entry.stride], nrhs,
                     converged);
 
                 for (int c = 0; c < nrhs; c++) {
@@ -718,9 +715,10 @@ static void apply_impl(
 
                 // y = Hessenburg(0 : inner_iter,0 : inner_iter) \ s(0 :
                 // inner_iter) x = x + KrylovBasis(:, 0 : inner_iter ) * y
-                update_x(x_entry, inner_iter, gko::batch::to_const(H_entry),
+                update_x(inner_iter, gko::batch::to_const(H_entry),
                          gko::batch::to_const(s_entry),
-                         gko::batch::to_const(V_entry), ~converged_recent);
+                         gko::batch::to_const(V_entry), x_entry, y_entry,
+                         ~converged_recent);
 
                 logger.log_iteration(
                     ibatch, outer_iter * (restart + 1) + inner_iter + 1,
@@ -738,9 +736,10 @@ static void apply_impl(
 
             // y = Hessenburg(0:restart - 1,0:restart - 1) \ s(0:restart-1)
             // x = x + KrylovBasis(:,0 : restart - 1) * y
-            update_x(x_entry, restart - 1, gko::batch::to_const(H_entry),
+            update_x(restart - 1, gko::batch::to_const(H_entry),
                      gko::batch::to_const(s_entry),
-                     gko::batch::to_const(V_entry), converged);
+                     gko::batch::to_const(V_entry), x_entry, y_entry,
+                     converged);
 
 
             // r = b
