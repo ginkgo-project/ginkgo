@@ -96,8 +96,9 @@ enum struct isai_type { lower, upper, general, spd };
  * @tparam IsaiType  determines if the ISAI is generated for a general square
  *         matrix, a lower triangular matrix, an upper triangular matrix or an
  *         spd matrix
- * @tparam ValueType  precision of matrix elements
- * @tparam IndexType  precision of matrix indexes
+ * @tparam ValueType    arithmetic precision of matrix elements
+ * @tparam IndexType    precision of matrix indexes
+ * @tparam StorageType  storage precision of matrix elements
  *
  * @ingroup isai
  * @ingroup precond
@@ -141,7 +142,6 @@ public:
                                                     Comp, Csr>::type>
     get_approximate_inverse() const
     {
-        auto exec = this->get_executor();
         std::shared_ptr<const LinOp> return_inv;
         if (IsaiType == isai_type::spd) {
             auto ops = as<Comp>(approximate_inverse_)->get_operators();
@@ -199,15 +199,6 @@ public:
          */
         std::shared_ptr<LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             excess_solver_factory, nullptr);
-
-        /**
-         * @brief Parameter for reducing preconditioner storage precision.
-         *
-         * Reduces the preconditioner storage precision up to reduce_precision
-         * times. For value types double and complex<double>, storage precision
-         * can be reduced up to two times, for float and complex<float> once.
-         */
-        int GKO_FACTORY_PARAMETER_SCALAR(reduce_precision, 0);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
@@ -233,7 +224,6 @@ protected:
         : EnableLinOp<Isai>(factory->get_executor(), system_matrix->get_size()),
           parameters_{factory->get_parameters()}
     {
-        const auto exec = this->get_executor();
         const auto skip_sorting = parameters_.skip_sorting;
         const auto power = parameters_.sparsity_power;
         const auto excess_limit = parameters_.excess_limit;
@@ -325,6 +315,11 @@ private:
      *
      * @param skip_sorting  dictates if the sorting of the input matrix should
      *                      be skipped.
+     *
+     * @param power  determines which power of the input matrix should be used
+     *               for the sparsity pattern.
+     *
+     * @param excess_limit the size limit for the excess system.
      */
     void generate_inverse(std::shared_ptr<const LinOp> to_invert,
                           bool skip_sorting, int power,
