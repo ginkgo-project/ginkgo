@@ -216,16 +216,15 @@ endif()
 
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
-ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
-ginkgo_find_package(gflags gflags FALSE 2.2.2)
-ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
+find_package(GTest 1.10.0)
+find_package(gflags QUIET 2.2.2)
+find_package(RapidJSON QUIET 1.1.0)
 if(GINKGO_HAVE_HWLOC)
     ginkgo_find_package(HWLOC hwloc FALSE 2.1)
     if (NOT HWLOC_FOUND)
         set(GINKGO_USE_EXTERNAL_HWLOC 0)
     endif()
 endif()
-# third_party needs to be after flag modification.
 add_subdirectory(third_party)    # Third-party tools and libraries
 
 # Load CMake helpers
