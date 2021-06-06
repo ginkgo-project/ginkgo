@@ -224,10 +224,8 @@ TEST_F(BatchDense, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 
 
 // TEST_F(BatchDense, AddsScaledDiagIsEquivalentToRef)
-//{
 // TODO (script:batch_dense): change the code imported from matrix/dense if
 // needed
-//    GKO_ASSERT_MTX_NEAR(mat, dmat, 1e-14);
 
 
 TEST_F(BatchDense, SingleVectorComputeDotIsEquivalentToRef)
