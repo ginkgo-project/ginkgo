@@ -307,6 +307,9 @@ static void apply_impl(
     const auto nrhs = b.num_rhs;
 
 
+    GKO_ASSERT(batch_config<ValueType>::max_num_rhs >=
+               nrhs);  // required for static allocation in stopping criterion
+
     const int local_size_bytes =
         gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
             nrows, nrhs) +
@@ -432,10 +435,8 @@ static void apply_impl(
                    res_norms_entry);
 
         // stopping criterion object
-        StopType stop(converged, nrhs, opts.max_its, opts.abs_residual_tol,
-                      opts.rel_residual_tol,
-                      static_cast<stop::tolerance>(opts.tol_type),
-                      rhs_norms_entry.values);
+        StopType stop(nrhs, opts.max_its, opts.residual_tol,
+                      rhs_norms_entry.values, converged);
 
         int iter = -1;
 
@@ -567,14 +568,29 @@ void apply_select_prec(
 {
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
         BatchIdentity<ValueType> prec;
-        apply_impl<stop::AbsOrRelResidualMaxIter<ValueType>>(
-            exec, opts, logger, prec, a, left, right, b, x);
+
+        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
+            apply_impl<stop::AbsResidualMaxIter<ValueType>>(
+                exec, opts, logger, prec, a, left, right, b, x);
+        } else {
+            apply_impl<stop::RelResidualMaxIter<ValueType>>(
+                exec, opts, logger, prec, a, left, right, b, x);
+        }
+
 
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
         BatchJacobi<ValueType> prec;
-        apply_impl<stop::AbsOrRelResidualMaxIter<ValueType>>(
-            exec, opts, logger, prec, a, left, right, b, x);
+
+        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
+            apply_impl<stop::AbsResidualMaxIter<ValueType>>(
+                exec, opts, logger, prec, a, left, right, b, x);
+        } else {
+            apply_impl<stop::RelResidualMaxIter<ValueType>>(
+                exec, opts, logger, prec, a, left, right, b, x);
+        }
+
+
     } else {
         GKO_NOT_IMPLEMENTED;
     }

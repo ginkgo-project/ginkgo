@@ -65,7 +65,7 @@ protected:
           batchgmres_factory(
               Solver::build()
                   .with_max_iterations(def_max_iters)
-                  .with_abs_residual_tol(def_abs_res_tol)
+                  .with_residual_tol(def_abs_res_tol)
                   .with_tolerance_type(def_tol_type)
                   .with_preconditioner(gko::preconditioner::batch::type::none)
                   .with_restart(2)
@@ -187,7 +187,7 @@ TYPED_TEST(BatchGmres, CanSetCriteria)
     auto batchgmres_factory =
         Solver::build()
             .with_max_iterations(22)
-            .with_rel_residual_tol(static_cast<RT>(0.25))
+            .with_residual_tol(static_cast<RT>(0.25))
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_restart(3)
             .on(this->exec);
@@ -195,10 +195,28 @@ TYPED_TEST(BatchGmres, CanSetCriteria)
 
     ASSERT_EQ(solver->get_parameters().max_iterations, 22);
     const RT tol = std::numeric_limits<RT>::epsilon();
-    ASSERT_NEAR(solver->get_parameters().rel_residual_tol, 0.25, tol);
+    ASSERT_NEAR(solver->get_parameters().residual_tol, 0.25, tol);
     ASSERT_EQ(solver->get_parameters().tolerance_type,
               gko::stop::batch::ToleranceType::relative);
     ASSERT_EQ(solver->get_parameters().restart, 3);
+}
+
+
+TYPED_TEST(BatchGmres, CanChangeCriteriaThroughSolverObject)
+{
+    using Solver = typename TestFixture::Solver;
+    using RT = typename TestFixture::real_type;
+
+    auto batchgmres_factory = Solver::build().with_restart(3).on(this->exec);
+    auto solver = batchgmres_factory->generate(this->mtx);
+
+    ASSERT_EQ(solver->get_parameters().restart, 3);
+    ASSERT_EQ(solver->get_restart_number(), 3);
+
+    solver->set_restart_number(2);
+
+    ASSERT_EQ(solver->get_restart_number(), 2);
+    ASSERT_EQ(solver->get_parameters().restart, 2);
 }
 
 
@@ -259,7 +277,7 @@ TYPED_TEST(BatchGmres, CanSetScalingVectors)
 //    auto batchgmres_factory =
 //        Solver::build()
 //            .with_max_iterations(3)
-//            .with_rel_residual_tol(0.25f)
+//            .with_residual_tol(0.25f)
 //            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
 //            .with_preconditioner(gko::preconditioner::batch::type::none)
 //            .on(this->exec);
@@ -269,7 +287,7 @@ TYPED_TEST(BatchGmres, CanSetScalingVectors)
 
 //    ASSERT_EQ(params.preconditioner, gko::preconditioner::batch::type::none);
 //    ASSERT_EQ(params.max_iterations, 3);
-//    ASSERT_EQ(params.rel_residual_tol, 0.25);
+//    ASSERT_EQ(params.residual_tol, 0.25);
 //    ASSERT_EQ(params.tolerance_type,
 //    gko::stop::batch::ToleranceType::relative);
 // }
