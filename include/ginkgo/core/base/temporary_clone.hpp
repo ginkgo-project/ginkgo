@@ -143,12 +143,6 @@ public:
     explicit temporary_clone(std::shared_ptr<const Executor> exec, pointer ptr,
                              bool copy_data = true)
     {
-        if (!ptr->get_executor()) {
-            std::cout << " ptr has nullptr exec for ptr " << ptr << std::endl;
-        }
-        if (!exec) {
-            std::cout << " exec is nullptr for ptr" << ptr << std::endl;
-        }
         if (ptr->get_executor()->memory_accessible(exec)) {
             // just use the object we already have
             handle_ = handle_type(ptr, null_deleter<T>());

@@ -209,7 +209,6 @@ void Vector<ValueType, LocalIndexType>::compute_dot(const LinOp* b,
     mpi::all_reduce(dense_res_host->get_values(),
                     static_cast<int>(this->get_size()[1]), mpi::op_type::sum,
                     this->get_communicator());
-    dense_res->copy_from(dense_res_host.get());
 }
 
 
@@ -228,7 +227,6 @@ void Vector<ValueType, LocalIndexType>::compute_conj_dot(const LinOp* b,
     mpi::all_reduce(dense_res_host->get_values(),
                     static_cast<int>(this->get_size()[1]), mpi::op_type::sum,
                     this->get_communicator());
-    dense_res->copy_from(dense_res_host.get());
 }
 
 
@@ -242,13 +240,16 @@ void Vector<ValueType, LocalIndexType>::compute_norm2(LinOp* result) const
     exec->run(
         vector::make_compute_norm2_sqr(this->get_local(), dense_res.get()));
     exec->synchronize();
-    auto dense_res_host =
-        make_temporary_clone(exec->get_master(), dense_res.get());
-    mpi::all_reduce(dense_res_host->get_values(),
-                    static_cast<int>(this->get_size()[1]), mpi::op_type::sum,
-                    this->get_communicator());
+    {
+        auto dense_res_host =
+            make_temporary_clone(exec->get_master(), dense_res.get());
+        mpi::all_reduce(dense_res_host->get_values(),
+                        static_cast<int>(this->get_size()[1]),
+                        mpi::op_type::sum, this->get_communicator());
+    }
+    exec->synchronize();
     exec->run(vector::make_compute_sqrt(dense_res.get()));
-    dense_res->copy_from(dense_res_host.get());
+    exec->synchronize();
 }
 
 
