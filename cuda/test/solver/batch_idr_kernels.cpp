@@ -81,7 +81,6 @@ protected:
     const Options opts_1{gko::preconditioner::batch::type::none,
                          500,
                          static_cast<real_type>(1e3) * eps,
-                         eps,
                          2,
                          false,
                          0.70,
@@ -92,7 +91,6 @@ protected:
 
     const Options opts_m{gko::preconditioner::batch::type::none,
                          500,
-                         static_cast<real_type>(1e3) * eps,
                          eps,
                          2,
                          false,
@@ -327,7 +325,7 @@ TYPED_TEST(BatchIdr, StencilSystemLoggerIsCorrect)
                    (iter_array[i] >= ref_iters - 1));
 
         ASSERT_LE(res_log_array[i] / this->sys_1.bnorm->at(i, 0, 0),
-                  this->opts_1.rel_residual_tol);
+                  this->opts_1.residual_tol);
         ASSERT_NEAR(res_log_array[i], this->r_1.resnorm->get_const_values()[i],
                     10 * this->eps);
     }
@@ -361,7 +359,7 @@ TYPED_TEST(BatchIdr, StencilMultipleSystemLoggerIsCorrect)
                        (iter_array[i * this->nrhs + j] >= ref_iters[j] - 1));
 
             ASSERT_LE(res_log_array[i * this->nrhs + j],
-                      this->opts_m.abs_residual_tol);
+                      this->opts_m.residual_tol);
 
             ASSERT_NEAR(
                 res_log_array[i * this->nrhs + j],
@@ -383,7 +381,7 @@ TYPED_TEST(BatchIdr, CoreSolvesSystemJacobi)
     std::unique_ptr<typename Solver::Factory> batchidr_factory =
         Solver::build()
             .with_max_iterations(100)
-            .with_rel_residual_tol(1e-6f)
+            .with_residual_tol(1e-6f)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .with_deterministic(true)
             .with_subspace_dim(static_cast<gko::size_type>(2))
@@ -459,7 +457,7 @@ TEST(BatchIdr, CanSolveWithoutScaling)
     auto batchidr_factory =
         Solver::build()
             .with_max_iterations(maxits)
-            .with_rel_residual_tol(tol)
+            .with_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .with_subspace_dim(static_cast<gko::size_type>(1))

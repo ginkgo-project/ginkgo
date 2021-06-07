@@ -47,69 +47,26 @@ namespace {
 
 
 template <typename T>
-class AbsRelResMaxIter : public ::testing::Test {
+class AbsResMaxIter : public ::testing::Test {
 protected:
     using value_type = T;
     using real_type = gko::remove_complex<value_type>;
     using BDense = gko::matrix::BatchDense<value_type>;
-    using BatchStop = gko::kernels::reference::stop::AbsOrRelResidualMaxIter<T>;
+    using BatchStop = gko::kernels::reference::stop::AbsResidualMaxIter<T>;
 
-    AbsRelResMaxIter()
-        : exec(gko::ReferenceExecutor::create()), b_norms(ref_norms())
-    {}
+    AbsResMaxIter() : exec(gko::ReferenceExecutor::create()) {}
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     const int nrows = 100;
     const int nrhs = 4;
     const size_t def_stride = static_cast<size_t>(nrhs);
-    const std::vector<real_type> b_norms;
-    const real_type rel_tol = 1e-5;
-    const real_type abs_tol = 1e-11;
-
-    std::vector<real_type> ref_norms() const
-    {
-        std::vector<real_type> vec(nrhs);
-        for (int i = 0; i < nrhs; i++) {
-            vec[i] = 2.0 + i / 10.0;
-        }
-        return vec;
-    }
+    const real_type tol = 1e-5;
 };
 
-TYPED_TEST_SUITE(AbsRelResMaxIter, gko::test::ValueTypes);
+TYPED_TEST_SUITE(AbsResMaxIter, gko::test::ValueTypes);
 
 
-TYPED_TEST(AbsRelResMaxIter, DetectsOneRelConvergenceWithNorms)
-{
-    using value_type = typename TestFixture::value_type;
-    using real_type = typename TestFixture::real_type;
-    using BatchStop = typename TestFixture::BatchStop;
-    const int maxits = 10;
-    const int iter = 5;
-    uint32_t converged;
-    std::vector<real_type> resnv(this->nrhs);
-    for (int i = 0; i < this->nrhs; i++) {
-        resnv[i] = 3.0;
-    }
-    const int conv_col = 2;
-    resnv[conv_col] = 2 * this->rel_tol;
-    gko::batch_dense::BatchEntry<const value_type> res{
-        nullptr, this->def_stride, this->nrows, this->nrhs};
-    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
-                    static_cast<gko::kernels::reference::stop::tolerance>(
-                        gko::stop::batch::ToleranceType::relative),
-                    this->b_norms.data());
-    const bool all_conv =
-        bstop.check_converged(iter, resnv.data(), res, converged);
-
-    ASSERT_FALSE(all_conv);
-    ASSERT_TRUE(converged & (1 << conv_col));
-    ASSERT_FALSE(converged & 1);
-    ASSERT_FALSE(converged & (1 << 1));
-    ASSERT_FALSE(converged & (1 << 3));
-}
-
-TYPED_TEST(AbsRelResMaxIter, DetectsOneAbsConvergenceWithNorms)
+TYPED_TEST(AbsResMaxIter, DetectsOneConvergenceWithNorms)
 {
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
@@ -122,13 +79,12 @@ TYPED_TEST(AbsRelResMaxIter, DetectsOneAbsConvergenceWithNorms)
         resnv[i] = 6.0;
     }
     const int conv_col = 2;
-    resnv[conv_col] = (1 / 2) * this->abs_tol;
+    resnv[conv_col] = (1 / 2) * this->tol;
     gko::batch_dense::BatchEntry<const value_type> res{
         nullptr, this->def_stride, this->nrows, this->nrhs};
-    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
-                    static_cast<gko::kernels::reference::stop::tolerance>(
-                        gko::stop::batch::ToleranceType::absolute),
-                    this->b_norms.data());
+
+    BatchStop bstop(this->nrhs, maxits, this->tol, nullptr, converged);
+
     const bool all_conv =
         bstop.check_converged(iter, resnv.data(), res, converged);
 
@@ -140,40 +96,7 @@ TYPED_TEST(AbsRelResMaxIter, DetectsOneAbsConvergenceWithNorms)
 }
 
 
-TYPED_TEST(AbsRelResMaxIter, DetectsTwoRelConvergencesWithNorms)
-{
-    using value_type = typename TestFixture::value_type;
-    using real_type = typename TestFixture::real_type;
-    using BatchStop = typename TestFixture::BatchStop;
-    const int maxits = 10;
-    const int iter = 5;
-    uint32_t converged;
-    std::vector<real_type> resnv(this->nrhs);
-    for (int i = 0; i < this->nrhs; i++) {
-        resnv[i] = 3.0;
-    }
-    const std::vector<int> conv_col{1, 3};
-    for (int i = 0; i < conv_col.size(); i++) {
-        resnv[conv_col[i]] = this->rel_tol + this->rel_tol / 10.0;
-    }
-    gko::batch_dense::BatchEntry<const value_type> res{
-        nullptr, this->def_stride, this->nrows, this->nrhs};
-
-
-    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
-                    static_cast<gko::kernels::reference::stop::tolerance>(
-                        gko::stop::batch::ToleranceType::relative),
-                    this->b_norms.data());
-    const bool all_conv =
-        bstop.check_converged(iter, resnv.data(), res, converged);
-
-    ASSERT_FALSE(all_conv);
-    for (int i = 0; i < conv_col.size(); i++) {
-        ASSERT_TRUE(converged & (1 << conv_col[i]));
-    }
-}
-
-TYPED_TEST(AbsRelResMaxIter, DetectsTwoAbsConvergencesWithNorms)
+TYPED_TEST(AbsResMaxIter, DetectsTwoConvergencesWithNorms)
 {
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
@@ -187,15 +110,11 @@ TYPED_TEST(AbsRelResMaxIter, DetectsTwoAbsConvergencesWithNorms)
     }
     const std::vector<int> conv_col{1, 3};
     for (int i = 0; i < conv_col.size(); i++) {
-        resnv[conv_col[i]] = this->abs_tol / (i + 2);
+        resnv[conv_col[i]] = this->tol / (i + 2);
     }
     gko::batch_dense::BatchEntry<const value_type> res{
         nullptr, this->def_stride, this->nrows, this->nrhs};
-
-    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
-                    static_cast<gko::kernels::reference::stop::tolerance>(
-                        gko::stop::batch::ToleranceType::absolute),
-                    this->b_norms.data());
+    BatchStop bstop(this->nrhs, maxits, this->tol, nullptr, converged);
     const bool all_conv =
         bstop.check_converged(iter, resnv.data(), res, converged);
 
@@ -206,7 +125,7 @@ TYPED_TEST(AbsRelResMaxIter, DetectsTwoAbsConvergencesWithNorms)
 }
 
 
-TYPED_TEST(AbsRelResMaxIter, DetectsAllRelConvergenceWithNorms)
+TYPED_TEST(AbsResMaxIter, DetectsAllConvergenceWithNorms)
 {
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
@@ -216,24 +135,19 @@ TYPED_TEST(AbsRelResMaxIter, DetectsAllRelConvergenceWithNorms)
     uint32_t converged;
     std::vector<real_type> resnv(this->nrhs);
     for (int i = 0; i < this->nrhs; i++) {
-        resnv[i] = 3.0;
+        resnv[i] = 6.0;
     }
-    resnv[1] = 1.5 * this->rel_tol;
-    resnv[3] = 1.6 * this->rel_tol;
+    resnv[1] = 0.5 * this->tol;
+    resnv[3] = 0.6 * this->tol;
     gko::batch_dense::BatchEntry<const value_type> res{
         nullptr, this->def_stride, this->nrows, this->nrhs};
-
-
-    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
-                    static_cast<gko::kernels::reference::stop::tolerance>(
-                        gko::stop::batch::ToleranceType::relative),
-                    this->b_norms.data());
+    BatchStop bstop(this->nrhs, maxits, this->tol, nullptr, converged);
     bool all_conv = bstop.check_converged(iter, resnv.data(), res, converged);
 
     ASSERT_FALSE(all_conv);
 
-    resnv[0] = 1.1 * this->rel_tol;
-    resnv[2] = 1.6 * this->rel_tol;
+    resnv[0] = 0.1 * this->tol;
+    resnv[2] = 0.3 * this->tol;
     all_conv = bstop.check_converged(iter, resnv.data(), res, converged);
 
     ASSERT_TRUE(all_conv);
@@ -241,40 +155,7 @@ TYPED_TEST(AbsRelResMaxIter, DetectsAllRelConvergenceWithNorms)
 }
 
 
-TYPED_TEST(AbsRelResMaxIter, DetectsAllAbsConvergenceWithNorms)
-{
-    using value_type = typename TestFixture::value_type;
-    using real_type = typename TestFixture::real_type;
-    using BatchStop = typename TestFixture::BatchStop;
-    const int maxits = 10;
-    const int iter = 5;
-    uint32_t converged;
-    std::vector<real_type> resnv(this->nrhs);
-    for (int i = 0; i < this->nrhs; i++) {
-        resnv[i] = 3.0;
-    }
-    resnv[1] = 0.5 * this->abs_tol;
-    resnv[3] = 0.6 * this->abs_tol;
-    gko::batch_dense::BatchEntry<const value_type> res{
-        nullptr, this->def_stride, this->nrows, this->nrhs};
-
-    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
-                    static_cast<gko::kernels::reference::stop::tolerance>(
-                        gko::stop::batch::ToleranceType::absolute),
-                    this->b_norms.data());
-    bool all_conv = bstop.check_converged(iter, resnv.data(), res, converged);
-
-    ASSERT_FALSE(all_conv);
-
-    resnv[0] = 0.1 * this->abs_tol;
-    resnv[2] = 0.6 * this->abs_tol;
-    all_conv = bstop.check_converged(iter, resnv.data(), res, converged);
-
-    ASSERT_TRUE(all_conv);
-    ASSERT_FALSE(~converged);
-}
-
-TYPED_TEST(AbsRelResMaxIter, DetectsRelConvergencesWithResidualVector)
+TYPED_TEST(AbsResMaxIter, DetectsConvergencesWithResidualVector)
 {
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
@@ -287,56 +168,18 @@ TYPED_TEST(AbsRelResMaxIter, DetectsRelConvergencesWithResidualVector)
     const int r_stride = 3;
     for (int i = 0; i < this->nrows; i++) {
         for (int j = 0; j < this->nrhs; j++) {
-            resv[i * r_stride + j] =
-                100 * this->rel_tol * gko::one<value_type>();
+            resv[i * r_stride + j] = 100 * this->tol * gko::one<value_type>();
         }
-        resv[i * r_stride + conv_col] = this->rel_tol / 100;
+        resv[i * r_stride + conv_col] = this->tol / 100;
     }
     gko::batch_dense::BatchEntry<const value_type> res{resv.data(), r_stride,
                                                        this->nrows, this->nrhs};
-
-
-    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
-                    static_cast<gko::kernels::reference::stop::tolerance>(
-                        gko::stop::batch::ToleranceType::relative),
-                    this->b_norms.data());
+    BatchStop bstop(this->nrhs, maxits, this->tol, nullptr, converged);
     const bool all_conv = bstop.check_converged(iter, nullptr, res, converged);
 
     ASSERT_FALSE(all_conv);
     ASSERT_TRUE(converged & (1 << conv_col));
 }
 
-
-TYPED_TEST(AbsRelResMaxIter, DetectsAbsConvergencesWithResidualVector)
-{
-    using value_type = typename TestFixture::value_type;
-    using real_type = typename TestFixture::real_type;
-    using BatchStop = typename TestFixture::BatchStop;
-    const int maxits = 10;
-    const int iter = 5;
-    uint32_t converged;
-    const int conv_col = 2;
-    std::vector<value_type> resv(this->nrows * this->nrhs);
-    const int r_stride = 3;
-    for (int i = 0; i < this->nrows; i++) {
-        for (int j = 0; j < this->nrhs; j++) {
-            resv[i * r_stride + j] =
-                100 * this->abs_tol * gko::one<value_type>();
-        }
-        resv[i * r_stride + conv_col] = this->abs_tol / 100;
-    }
-    gko::batch_dense::BatchEntry<const value_type> res{resv.data(), r_stride,
-                                                       this->nrows, this->nrhs};
-
-
-    BatchStop bstop(converged, this->nrhs, maxits, this->abs_tol, this->rel_tol,
-                    static_cast<gko::kernels::reference::stop::tolerance>(
-                        gko::stop::batch::ToleranceType::absolute),
-                    this->b_norms.data());
-    const bool all_conv = bstop.check_converged(iter, nullptr, res, converged);
-
-    ASSERT_FALSE(all_conv);
-    ASSERT_TRUE(converged & (1 << conv_col));
-}
 
 }  // namespace
