@@ -18,7 +18,11 @@ function(ginkgo_load_git_package package_name package_url package_tag)
     endif()
     configure_file(${PACKAGE_DOWNLOADER_SCRIPT}
         download/CMakeLists.txt)
-    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+    set(TOOLSET "")
+    if (NOT "${CMAKE_GENERATOR_TOOLSET}" STREQUAL "")
+        set(TOOLSET "-T${CMAKE_GENERATOR_TOOLSET}")
+    endif()
+    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" "${TOOLSET}" .
         RESULT_VARIABLE result
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/download)
     if(result)
@@ -67,7 +71,11 @@ function(ginkgo_load_and_configure_package package_name package_url package_hash
     endif()
     configure_file(${NON_CMAKE_PACKAGE_DOWNLOADER_SCRIPT}
         download/CMakeLists.txt)
-    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+    set(TOOLSET "")
+    if (NOT "${CMAKE_GENERATOR_TOOLSET}" STREQUAL "")
+        set(TOOLSET "-T${CMAKE_GENERATOR_TOOLSET}")
+    endif()
+    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" "${TOOLSET}" .
         RESULT_VARIABLE result
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/download)
     if(result)
