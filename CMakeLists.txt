@@ -18,6 +18,10 @@ include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
 include(cmake/build_type_helpers.cmake)
 
+# Load other CMake helpers
+include(cmake/build_helpers.cmake)
+include(cmake/install_helpers.cmake)
+
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
 endif()
@@ -226,10 +230,6 @@ if(GINKGO_HAVE_HWLOC)
     endif()
 endif()
 add_subdirectory(third_party)    # Third-party tools and libraries
-
-# Load CMake helpers
-include(cmake/build_helpers.cmake)
-include(cmake/install_helpers.cmake)
 
 if(MSVC)
     if(BUILD_SHARED_LIBS)
