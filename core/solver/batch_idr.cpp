@@ -56,8 +56,7 @@ std::unique_ptr<BatchLinOp> BatchIdr<ValueType>::transpose() const
     return build()
         .with_preconditioner(parameters_.preconditioner)
         .with_max_iterations(parameters_.max_iterations)
-        .with_rel_residual_tol(parameters_.rel_residual_tol)
-        .with_abs_residual_tol(parameters_.abs_residual_tol)
+        .with_residual_tol(parameters_.residual_tol)
         .with_subspace_dim(parameters_.subspace_dim)
         .with_complex_subspace(parameters_.complex_subspace)
         .with_kappa(parameters_.kappa)
@@ -76,8 +75,7 @@ std::unique_ptr<BatchLinOp> BatchIdr<ValueType>::conj_transpose() const
     return build()
         .with_preconditioner(parameters_.preconditioner)
         .with_max_iterations(parameters_.max_iterations)
-        .with_rel_residual_tol(parameters_.rel_residual_tol)
-        .with_abs_residual_tol(parameters_.abs_residual_tol)
+        .with_residual_tol(parameters_.residual_tol)
         .with_subspace_dim(parameters_.subspace_dim)
         .with_complex_subspace(parameters_.complex_subspace)
         .with_kappa(parameters_.kappa)
@@ -100,15 +98,10 @@ void BatchIdr<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
     const kernels::batch_idr::BatchIdrOptions<remove_complex<ValueType>> opts{
-        parameters_.preconditioner,
-        parameters_.max_iterations,
-        parameters_.rel_residual_tol,
-        parameters_.abs_residual_tol,
-        parameters_.subspace_dim,
-        parameters_.complex_subspace,
-        parameters_.kappa,
-        parameters_.smoothing,
-        parameters_.deterministic,
+        parameters_.preconditioner,   parameters_.max_iterations,
+        parameters_.residual_tol,     parameters_.subspace_dim,
+        parameters_.complex_subspace, parameters_.kappa,
+        parameters_.smoothing,        parameters_.deterministic,
         parameters_.tolerance_type};
 
     log::BatchLogData<ValueType> logdata;
