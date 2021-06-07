@@ -38,66 +38,64 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/stop/batch_stop_enum.hpp>
 
 
 #include "core/matrix/batch_struct.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/types.hpp"
-
-
-namespace gko {
-namespace kernels {
-namespace cuda {
-
-constexpr int default_block_size = 128;
-constexpr int sm_multiplier = 4;
-
-#include "common/matrix/batch_dense_kernels.hpp.inc"
-#include "common/stop/batch_criteria.hpp.inc"
-
-}  // namespace cuda
-}  // namespace kernels
-}  // namespace gko
+#include "omp/stop/batch_criteria.hpp"
 
 
 namespace {
 
 template <typename T>
-__global__ void conv_check(const int nrhs, const int nrows,
-                           const gko::remove_complex<T> *const res_norms,
-                           const T *const residual, uint32_t *const converged,
-                           bool *const all_conv)
+void conv_check(const int nrhs, const int nrows,
+                const gko::remove_complex<T> *const bnorms,
+                const gko::remove_complex<T> *const res_norms,
+                const T *const residual, uint32_t *const converged,
+                bool *const all_conv)
 {
-    using BatchStop = gko::kernels::cuda::stop::AbsResidualMaxIter<T>;
+    using BatchStop = gko::kernels::omp::stop::RelResidualMaxIter<T>;
     const int maxits = 10;
     const int iter = 5;
     const gko::remove_complex<T> tol = 1e-5;
     gko::batch_dense::BatchEntry<const T> res{
         residual, static_cast<size_t>(nrhs), nrows, nrhs};
-    BatchStop bstop(nrhs, maxits, tol, nullptr, *converged);
+    BatchStop bstop(nrhs, maxits, tol, bnorms, *converged);
     *all_conv = bstop.check_converged(iter, res_norms, res, *converged);
 }
 
 
 template <typename T>
-class AbsResMaxIter : public ::testing::Test {
+class RelResMaxIter : public ::testing::Test {
 protected:
     using value_type = T;
     using real_type = gko::remove_complex<value_type>;
 
-    AbsResMaxIter()
+    RelResMaxIter()
         : exec(gko::ReferenceExecutor::create()),
-          cuexec(gko::CudaExecutor::create(0, exec))
+          ompexec(gko::OmpExecutor::create()),
+          b_norms(ref_norms())
     {}
 
     std::shared_ptr<gko::ReferenceExecutor> exec;
-    std::shared_ptr<const gko::CudaExecutor> cuexec;
+    std::shared_ptr<const gko::OmpExecutor> ompexec;
     const int nrows = 100;
     const int nrhs = 4;
     const size_t def_stride = static_cast<size_t>(nrhs);
+    const gko::Array<real_type> b_norms;
     const real_type tol = 1e-5;
+
+    gko::Array<real_type> ref_norms() const
+    {
+        gko::Array<real_type> vec(exec, nrhs);
+        for (int i = 0; i < nrhs; i++) {
+            vec.get_data()[i] = 2.0 + i / 10.0;
+        }
+        gko::Array<real_type> cvec(ompexec, vec);
+        return cvec;
+    }
 
     void check_helper(const std::vector<int> conv_col, const bool all,
                       const bool resvec = false)
@@ -114,20 +112,20 @@ protected:
                 other_cols.push_back(i);
             }
         }
-        const auto dbs = gko::kernels::cuda::default_block_size;
+
         gko::Array<real_type> h_resnorms(this->exec, this->nrhs);
         for (int i = 0; i < nrhs; i++) {
             h_resnorms.get_data()[i] = 3.0;
         }
         for (int i = 0; i < conv_col.size(); i++) {
-            h_resnorms.get_data()[conv_col[i]] = this->tol / 2.0;
+            h_resnorms.get_data()[conv_col[i]] = this->tol + this->tol / 10.0;
         }
-        const gko::Array<real_type> resnorms(this->cuexec, h_resnorms);
-        gko::Array<uint32_t> converged(this->cuexec, 1);
-        gko::Array<bool> all_conv(this->cuexec, 1);
+        const gko::Array<real_type> resnorms(this->ompexec, h_resnorms);
+        gko::Array<uint32_t> converged(this->ompexec, 1);
+        gko::Array<bool> all_conv(this->ompexec, 1);
         const value_type *res{nullptr};
         gko::Array<value_type> h_resm(exec, nrows * nrhs);
-        gko::Array<value_type> resm(cuexec, nrows * nrhs);
+        gko::Array<value_type> resm(ompexec, nrows * nrhs);
         if (resvec) {
             value_type *const h_r = h_resm.get_data();
             for (int i = 0; i < nrows; i++) {
@@ -144,9 +142,8 @@ protected:
 
         const real_type *const resnormptr =
             resvec ? nullptr : resnorms.get_const_data();
-        conv_check<<<1, dbs>>>(nrhs, nrows, resnormptr,
-                               gko::kernels::cuda::as_cuda_type(res),
-                               converged.get_data(), all_conv.get_data());
+        conv_check(nrhs, nrows, b_norms.get_const_data(), resnormptr, res,
+                   converged.get_data(), all_conv.get_data());
 
         gko::Array<uint32_t> h_converged(this->exec, converged);
         gko::Array<bool> h_all_conv(this->exec, all_conv);
@@ -165,30 +162,30 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(AbsResMaxIter, gko::test::ValueTypes);
+TYPED_TEST_SUITE(RelResMaxIter, gko::test::ValueTypes);
 
 
-TYPED_TEST(AbsResMaxIter, DetectsOneConvergenceWithNorms)
+TYPED_TEST(RelResMaxIter, DetectsOneConvergenceWithNorms)
 {
     const std::vector<int> conv_col{1};
     this->check_helper(conv_col, false);
 }
 
-TYPED_TEST(AbsResMaxIter, DetectsTwoConvergencesWithNorms)
+TYPED_TEST(RelResMaxIter, DetectsTwoConvergencesWithNorms)
 {
     const std::vector<int> conv_col{1, 3};
     this->check_helper(conv_col, false);
 }
 
 
-TYPED_TEST(AbsResMaxIter, DetectsAllConvergenceWithNorms)
+TYPED_TEST(RelResMaxIter, DetectsAllConvergenceWithNorms)
 {
     const std::vector<int> conv_col{0, 1, 2, 3};
     this->check_helper(conv_col, true);
 }
 
 
-TYPED_TEST(AbsResMaxIter, DetectsConvergencesWithResidualVector)
+TYPED_TEST(RelResMaxIter, DetectsConvergencesWithResidualVector)
 {
     const std::vector<int> conv_col{1, 2};
     this->check_helper(conv_col, false, true);

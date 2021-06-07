@@ -64,7 +64,7 @@ public:
      */
     __device__ __forceinline__ RelResidualMaxIter(
         const int num_rhs, const int max_iters, const real_type rel_res_tol,
-        bitset_type &converge_bitset, const real_type *const rhs_b_norms)
+        const real_type *const rhs_b_norms, bitset_type &converge_bitset)
         : nrhs{num_rhs},
           rel_tol{rel_res_tol},
           max_its{max_iters},
@@ -104,10 +104,7 @@ public:
             __shared__ real_type norms[batch_config<ValueType>::max_num_rhs];
             compute_norm2<ValueType>(
                 residual, gko::batch_dense::BatchEntry<real_type>{
-                              norms,
-                              static_cast<size_type>(
-                                  batch_config<ValueType>::max_num_rhs),
-                              1, nrhs});
+                              norms, static_cast<size_type>(nrhs), 1, nrhs});
 
             __syncthreads();
             check_norms(norms, converged);
@@ -140,34 +137,19 @@ private:
     }
 };
 
-}  // namespace stop
-
-
-namespace stop {
-
-
-// TODO: Remove this
-enum class tolerance {
-
-    absolute,
-    relative
-
-};
 
 /**
  * A stopping criterion for batch solvers that comprises a
- * maximum iteration count as well as relative residual tolerance or absolute
- * residual tolerance - which one to consider can be chosen.
+ * maximum iteration count as well as absolute residual tolerance.
  *
- * At most 32 right-hand-side vectors are supported.
+ * At most `batch_config::max_num_rhs` right-hand-side vectors are supported.
  */
 template <typename ValueType>
-class AbsOrRelResidualMaxIter {
+class AbsResidualMaxIter {
 public:
     using real_type = remove_complex<ValueType>;
-    // using tolerance = ::gko::stop::batch::ToleranceType;
-    using bitset_type = uint32;
-    static constexpr int max_nrhs = 32;
+    using bitset_type = config::lane_mask_type;
+    static constexpr int max_nrhs = config::warp_size;
 
     /**
      * Set up the stopping criterion and convergence variable.
@@ -180,21 +162,19 @@ public:
      *                          be passed to the \ref check_converged function.
      * @param rhs_b_norms  The reference RHS norms.
      */
-    __device__ __forceinline__ AbsOrRelResidualMaxIter(
+    __device__ __forceinline__ AbsResidualMaxIter(
         const int num_rhs, const int max_iters, const real_type abs_res_tol,
-        const real_type rel_res_tol, const tolerance type_of_tol,
         const real_type *const rhs_b_norms, bitset_type &converge_bitset)
         : nrhs{num_rhs},
-          rel_tol{rel_res_tol},
           abs_tol{abs_res_tol},
-          tol_type{type_of_tol},
           max_its{max_iters},
           rhs_norms{rhs_b_norms}
     {
         if (nrhs > max_nrhs) {
             printf("Batch stopping criterion: Too many right hand sides!\n");
         }
-        converge_bitset = 0 - (1 << num_rhs);
+        // converge_bitset = 0 - (1 << num_rhs);
+        converge_bitset = (~static_cast<bitset_type>(0) << num_rhs);
     }
 
     /**
@@ -222,28 +202,21 @@ public:
             check_norms(residual_norms, converged);
         } else {
             __shared__ real_type norms[batch_config<ValueType>::max_num_rhs];
-
             compute_norm2<ValueType>(
-                residual, {norms, static_cast<size_type>(nrhs), 1, nrhs});
+                residual, gko::batch_dense::BatchEntry<real_type>{
+                              norms, static_cast<size_type>(nrhs), 1, nrhs});
 
             __syncthreads();
-
             check_norms(norms, converged);
         }
 
-        if (converged == all_true) {
-            return true;
-        }
-
-        return false;
+        return (converged == all_true);
     }
 
 private:
     int nrhs;
     int max_its;
-    const real_type rel_tol;
     const real_type abs_tol;
-    const tolerance tol_type;
     const real_type *const rhs_norms;
     static constexpr bitset_type all_true = ~static_cast<bitset_type>(0);
 
@@ -262,11 +235,7 @@ private:
                 ichk = 1;
             }
 
-            if (tol_type == tolerance::relative) {
-                ichk = (res_norms[rhs_index] / rhs_norms[rhs_index] < rel_tol);
-            } else if (tol_type == tolerance::absolute) {
-                ichk = (res_norms[rhs_index] < abs_tol);
-            }
+            ichk = (res_norms[rhs_index] < abs_tol);
 
             const bitset_type wchk = __ballot_sync(activemask, ichk);
             converged |= wchk;
