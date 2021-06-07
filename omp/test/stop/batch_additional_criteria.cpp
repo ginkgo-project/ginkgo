@@ -51,36 +51,30 @@ namespace {
 
 template <typename T>
 void conv_check(const int nrhs, const int nrows,
-                const gko::remove_complex<T> *const bnorms,
                 const gko::remove_complex<T> *const res_norms,
                 const T *const residual, uint32_t *const converged,
-                bool *const all_conv, gko::stop::batch::ToleranceType tol_type)
+                bool *const all_conv)
 {
-    using BatchStop = gko::kernels::omp::stop::AbsOrRelResidualMaxIter<T>;
+    using BatchStop = gko::kernels::omp::stop::AbsResidualMaxIter<T>;
     const int maxits = 10;
     const int iter = 5;
-    const gko::remove_complex<T> rel_tol = 1e-5;
-    const gko::remove_complex<T> abs_tol = 1e-11;
+    const gko::remove_complex<T> tol = 1e-5;
     gko::batch_dense::BatchEntry<const T> res{
         residual, static_cast<size_t>(nrhs), nrows, nrhs};
-
-    BatchStop bstop(*converged, nrhs, maxits, abs_tol, rel_tol,
-                    static_cast<gko::kernels::omp::stop::tolerance>(tol_type),
-                    bnorms);
+    BatchStop bstop(nrhs, maxits, tol, nullptr, *converged);
     *all_conv = bstop.check_converged(iter, res_norms, res, *converged);
 }
 
 
 template <typename T>
-class AbsRelResMaxIter : public ::testing::Test {
+class AbsResMaxIter : public ::testing::Test {
 protected:
     using value_type = T;
     using real_type = gko::remove_complex<value_type>;
 
-    AbsRelResMaxIter()
+    AbsResMaxIter()
         : exec(gko::ReferenceExecutor::create()),
-          ompexec(gko::OmpExecutor::create()),
-          b_norms(ref_norms())
+          ompexec(gko::OmpExecutor::create())
     {}
 
     std::shared_ptr<gko::ReferenceExecutor> exec;
@@ -88,23 +82,10 @@ protected:
     const int nrows = 100;
     const int nrhs = 4;
     const size_t def_stride = static_cast<size_t>(nrhs);
-    const gko::Array<real_type> b_norms;
-    const real_type rel_tol = 1e-5;
-    const real_type abs_tol = 1e-11;
-
-    gko::Array<real_type> ref_norms() const
-    {
-        gko::Array<real_type> vec(exec, nrhs);
-        for (int i = 0; i < nrhs; i++) {
-            vec.get_data()[i] = 2.0 + i / 10.0;
-        }
-        gko::Array<real_type> ompvec(ompexec, vec);
-        return ompvec;
-    }
+    const real_type tol = 1e-5;
 
     void check_helper(const std::vector<int> conv_col, const bool all,
-                      const bool resvec,
-                      gko::stop::batch::ToleranceType tol_type)
+                      const bool resvec = false)
     {
         std::vector<int> other_cols;
         for (int i = 0; i < nrhs; i++) {
@@ -120,63 +101,36 @@ protected:
         }
 
         gko::Array<real_type> h_resnorms(this->exec, this->nrhs);
-
-
         for (int i = 0; i < nrhs; i++) {
             h_resnorms.get_data()[i] = 3.0;
         }
-
-        if (tol_type == gko::stop::batch::ToleranceType::relative) {
-            for (int i = 0; i < conv_col.size(); i++) {
-                h_resnorms.get_data()[conv_col[i]] =
-                    this->rel_tol + this->rel_tol / 10.0;
-            }
-        } else {
-            for (int i = 0; i < conv_col.size(); i++) {
-                h_resnorms.get_data()[conv_col[i]] = this->abs_tol / 2.0;
-            }
+        for (int i = 0; i < conv_col.size(); i++) {
+            h_resnorms.get_data()[conv_col[i]] = this->tol / 2.0;
         }
-
-
         const gko::Array<real_type> resnorms(this->ompexec, h_resnorms);
         gko::Array<uint32_t> converged(this->ompexec, 1);
         gko::Array<bool> all_conv(this->ompexec, 1);
         const value_type *res{nullptr};
         gko::Array<value_type> h_resm(exec, nrows * nrhs);
         gko::Array<value_type> resm(ompexec, nrows * nrhs);
-
         if (resvec) {
             value_type *const h_r = h_resm.get_data();
-
-            if (tol_type == gko::stop::batch::ToleranceType::relative) {
-                for (int i = 0; i < nrows; i++) {
-                    for (int j = 0; j < nrhs; j++) {
-                        h_r[i * nrhs + j] = 100 * this->rel_tol;
-                    }
-                    for (size_t j = 0; j < conv_col.size(); j++) {
-                        h_r[i * nrhs + conv_col[j]] = this->rel_tol / 100;
-                    }
+            for (int i = 0; i < nrows; i++) {
+                for (int j = 0; j < nrhs; j++) {
+                    h_r[i * nrhs + j] = 100 * tol;
                 }
-
-            } else {
-                for (int i = 0; i < nrows; i++) {
-                    for (int j = 0; j < nrhs; j++) {
-                        h_r[i * nrhs + j] = 100 * this->abs_tol;
-                    }
-                    for (size_t j = 0; j < conv_col.size(); j++) {
-                        h_r[i * nrhs + conv_col[j]] = this->abs_tol / 100;
-                    }
+                for (size_t j = 0; j < conv_col.size(); j++) {
+                    h_r[i * nrhs + conv_col[j]] = tol / 100;
                 }
             }
-
             resm = h_resm;
             res = resm.get_const_data();
         }
 
         const real_type *const resnormptr =
             resvec ? nullptr : resnorms.get_const_data();
-        conv_check(nrhs, nrows, b_norms.get_const_data(), resnormptr, res,
-                   converged.get_data(), all_conv.get_data(), tol_type);
+        conv_check(nrhs, nrows, resnormptr, res, converged.get_data(),
+                   all_conv.get_data());
 
         gko::Array<uint32_t> h_converged(this->exec, converged);
         gko::Array<bool> h_all_conv(this->exec, all_conv);
@@ -195,68 +149,33 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(AbsRelResMaxIter, gko::test::ValueTypes);
+TYPED_TEST_SUITE(AbsResMaxIter, gko::test::ValueTypes);
 
 
-TYPED_TEST(AbsRelResMaxIter, DetectsOneRelConvergenceWithNorms)
+TYPED_TEST(AbsResMaxIter, DetectsOneConvergenceWithNorms)
 {
     const std::vector<int> conv_col{1};
-    this->check_helper(conv_col, false, false,
-                       gko::stop::batch::ToleranceType::relative);
+    this->check_helper(conv_col, false);
 }
 
-TYPED_TEST(AbsRelResMaxIter, DetectsOneAbsConvergenceWithNorms)
-{
-    const std::vector<int> conv_col{1};
-    this->check_helper(conv_col, false, false,
-                       gko::stop::batch::ToleranceType::absolute);
-}
-
-TYPED_TEST(AbsRelResMaxIter, DetectsTwoRelConvergencesWithNorms)
+TYPED_TEST(AbsResMaxIter, DetectsTwoConvergencesWithNorms)
 {
     const std::vector<int> conv_col{1, 3};
-    this->check_helper(conv_col, false, false,
-                       gko::stop::batch::ToleranceType::relative);
+    this->check_helper(conv_col, false);
 }
 
 
-TYPED_TEST(AbsRelResMaxIter, DetectsTwoAbsConvergencesWithNorms)
-{
-    const std::vector<int> conv_col{1, 3};
-    this->check_helper(conv_col, false, false,
-                       gko::stop::batch::ToleranceType::absolute);
-}
-
-
-TYPED_TEST(AbsRelResMaxIter, DetectsAllRelConvergenceWithNorms)
+TYPED_TEST(AbsResMaxIter, DetectsAllConvergenceWithNorms)
 {
     const std::vector<int> conv_col{0, 1, 2, 3};
-    this->check_helper(conv_col, true, false,
-                       gko::stop::batch::ToleranceType::relative);
+    this->check_helper(conv_col, true);
 }
 
 
-TYPED_TEST(AbsRelResMaxIter, DetectsAllAbsConvergenceWithNorms)
-{
-    const std::vector<int> conv_col{0, 1, 2, 3};
-    this->check_helper(conv_col, true, false,
-                       gko::stop::batch::ToleranceType::absolute);
-}
-
-
-TYPED_TEST(AbsRelResMaxIter, DetectsRelConvergencesWithResidualVector)
+TYPED_TEST(AbsResMaxIter, DetectsConvergencesWithResidualVector)
 {
     const std::vector<int> conv_col{1, 2};
-    this->check_helper(conv_col, false, true,
-                       gko::stop::batch::ToleranceType::relative);
-}
-
-
-TYPED_TEST(AbsRelResMaxIter, DetectsAbsConvergencesWithResidualVector)
-{
-    const std::vector<int> conv_col{1, 2};
-    this->check_helper(conv_col, false, true,
-                       gko::stop::batch::ToleranceType::absolute);
+    this->check_helper(conv_col, false, true);
 }
 
 
