@@ -15,6 +15,7 @@ Heroux Mike <maherou@sandia.gov> Sandia National Laboratories
 Hoemmen Mark <mhoemme@sandia.gov> Sandia National Laboratories
 Holeksa Claudius <mail@keldu.de> Karlsruhe Institute of Technology
 Kashi Aditya <aditya.kashi@kit.edu> Karlsruhe Institute of Technology
+Koch Marcel <marcel.koch@kit.edu> Karlsruhe Institute of Technology
 Maier Matthias <matthias@43-1.org> Texas A&M University
 Nayak Pratik <pratik.nayak@kit.edu> Karlsruhe Institute of Technology
 Olenik Gregor <go@hpsim.de> HPSim
