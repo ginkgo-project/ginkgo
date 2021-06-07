@@ -15,6 +15,11 @@ if(NOT GTest_FOUND)
         FetchContent_Populate(googletest)
     endif()
     add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR} EXCLUDE_FROM_ALL)
+    # make sure the tests DLLs are placed in the working path for CTest
+    set_target_properties(gtest gtest_main PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${GINKGO_LIBRARY_PATH}"
+        ARCHIVE_OUTPUT_DIRECTORY "${GINKGO_LIBRARY_PATH}"
+        LIBRARY_OUTPUT_DIRECTORY "${GINKGO_LIBRARY_PATH}")
     # by default, the outdated targets are not being exported
     add_library(GTest::Main ALIAS gtest_main)
     add_library(GTest::GTest ALIAS gtest)
