@@ -39,6 +39,10 @@ class BatchIdentity final {
 public:
     using value_type = ValueType;
 
+    /**
+     * The size of the work vector required in case of static allocation.
+     */
+    static constexpr int work_size = 0;
 
     /**
      * The size of the work vector required in case of dynamic allocation.

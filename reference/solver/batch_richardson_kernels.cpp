@@ -132,8 +132,8 @@ static void apply_impl(
                                               norms_b);
         batch_dense::copy(gko::batch::to_const(norms_b), init_res_norm_b);
 
-        StopType stop(nrhs, opts.max_its, opts.rel_residual_tol, converged,
-                      init_res_norm_b.values);
+        StopType stop(nrhs, opts.max_its, opts.rel_residual_tol,
+                      init_res_norm_b.values, converged);
 
         int iter = 0;
         while (true) {

@@ -467,10 +467,9 @@ __device__ __forceinline__ void update_x(
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 __global__ void apply_kernel(
-    const int max_iter, const gko::remove_complex<ValueType> abs_tol,
-    const gko::remove_complex<ValueType> rel_tol, const int restart,
-    const gko::stop::batch::ToleranceType tol_type, LogType logger,
-    PrecType prec_shared, const BatchMatrixType a,
+    const int max_iter, const gko::remove_complex<ValueType> tol,
+    const int restart, LogType logger, PrecType prec_shared,
+    const BatchMatrixType a,
     const gko::batch_dense::UniformBatch<const ValueType> left,
     const gko::batch_dense::UniformBatch<const ValueType> right,
     const gko::batch_dense::UniformBatch<ValueType> b,
@@ -481,6 +480,8 @@ __global__ void apply_kernel(
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
 
+    assert(batch_config<ValueType>::max_num_rhs >=
+           nrhs);  // required for static allocation in stopping criterion
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
         extern __shared__ char local_mem_sh[];
@@ -637,9 +638,8 @@ __global__ void apply_kernel(
 
 
         // stopping criterion object
-        StopType stop(nrhs, max_iter, abs_tol, rel_tol,
-                      static_cast<stop::tolerance>(tol_type),
-                      rhs_norms_shared_entry.values, converged);
+        StopType stop(nrhs, max_iter, tol, rhs_norms_shared_entry.values,
+                      converged);
 
         int outer_iter = -1;
         bool inner_loop_break_flag = false;
