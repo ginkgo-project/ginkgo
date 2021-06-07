@@ -80,15 +80,14 @@ protected:
     std::shared_ptr<const BDense> xex_1;
     std::shared_ptr<RBDense> bnorm_1;
     const Options opts_1{gko::preconditioner::batch::type::none, 500,
-                         static_cast<real_type>(1e3) * eps, eps,
+                         static_cast<real_type>(1e3) * eps,
                          gko::stop::batch::ToleranceType::relative};
 
     const int nrhs = 2;
     std::shared_ptr<const BDense> b_m;
     std::shared_ptr<const BDense> xex_m;
     std::shared_ptr<RBDense> bnorm_m;
-    const Options opts_m{gko::preconditioner::batch::type::none, 500,
-                         static_cast<real_type>(1e3) * eps, eps,
+    const Options opts_m{gko::preconditioner::batch::type::none, 500, eps,
                          gko::stop::batch::ToleranceType::absolute};
 
     struct Result {
@@ -236,7 +235,7 @@ TYPED_TEST(BatchCg, StencilSystemLoggerIsCorrect)
         GKO_ASSERT((iter_array[i] <= ref_iters + 1) &&
                    (iter_array[i] >= ref_iters - 1));
         ASSERT_LE(res_log_array[i] / this->bnorm_1->at(i, 0, 0),
-                  this->opts_1.rel_residual_tol);
+                  this->opts_1.residual_tol);
         ASSERT_NEAR(res_log_array[i], this->r_1.resnorm->get_const_values()[i],
                     10 * this->eps);
     }
@@ -273,7 +272,7 @@ TYPED_TEST(BatchCg, StencilMultipleSystemLoggerIsCorrect)
                        (iter_array[i * this->nrhs + j] >= ref_iters[j] - 1));
 
             ASSERT_LE(res_log_array[i * this->nrhs + j],
-                      this->opts_m.abs_residual_tol);
+                      this->opts_m.residual_tol);
 
             ASSERT_NEAR(
                 res_log_array[i * this->nrhs + j],
@@ -337,7 +336,7 @@ TEST(BatchCg, CanSolveWithoutScaling)
     auto batchcg_factory =
         Solver::build()
             .with_max_iterations(10000)
-            .with_rel_residual_tol(tol)
+            .with_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .on(exec);

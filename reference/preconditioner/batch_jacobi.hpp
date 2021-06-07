@@ -50,6 +50,11 @@ template <typename ValueType>
 class BatchJacobi final {
 public:
     /**
+     * The size of the work vector required in case of static allocation.
+     */
+    static constexpr int work_size = batch_config<ValueType>::max_num_rows;
+
+    /**
      * The size of the work vector required in case of dynamic allocation.
      */
     static int dynamic_work_size(const int nrows, int) { return nrows; }

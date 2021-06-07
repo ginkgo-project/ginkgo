@@ -94,8 +94,8 @@ TYPED_TEST(RelResMaxIter, DetectsOneConvergenceWithNorms)
     resnv[conv_col] = 2 * this->tol;
     gko::batch_dense::BatchEntry<const value_type> res{
         nullptr, this->def_stride, this->nrows, this->nrhs};
-    BatchStop bstop(this->nrhs, maxits, this->tol, converged,
-                    this->b_norms.data());
+    BatchStop bstop(this->nrhs, maxits, this->tol, this->b_norms.data(),
+                    converged);
     const bool all_conv =
         bstop.check_converged(iter, resnv.data(), res, converged);
 
@@ -125,8 +125,8 @@ TYPED_TEST(RelResMaxIter, DetectsTwoConvergencesWithNorms)
     }
     gko::batch_dense::BatchEntry<const value_type> res{
         nullptr, this->def_stride, this->nrows, this->nrhs};
-    BatchStop bstop(this->nrhs, maxits, this->tol, converged,
-                    this->b_norms.data());
+    BatchStop bstop(this->nrhs, maxits, this->tol, this->b_norms.data(),
+                    converged);
     const bool all_conv =
         bstop.check_converged(iter, resnv.data(), res, converged);
 
@@ -153,8 +153,8 @@ TYPED_TEST(RelResMaxIter, DetectsAllConvergenceWithNorms)
     resnv[3] = 1.6 * this->tol;
     gko::batch_dense::BatchEntry<const value_type> res{
         nullptr, this->def_stride, this->nrows, this->nrhs};
-    BatchStop bstop(this->nrhs, maxits, this->tol, converged,
-                    this->b_norms.data());
+    BatchStop bstop(this->nrhs, maxits, this->tol, this->b_norms.data(),
+                    converged);
     bool all_conv = bstop.check_converged(iter, resnv.data(), res, converged);
 
     ASSERT_FALSE(all_conv);
@@ -187,8 +187,8 @@ TYPED_TEST(RelResMaxIter, DetectsConvergencesWithResidualVector)
     }
     gko::batch_dense::BatchEntry<const value_type> res{resv.data(), r_stride,
                                                        this->nrows, this->nrhs};
-    BatchStop bstop(this->nrhs, maxits, this->tol, converged,
-                    this->b_norms.data());
+    BatchStop bstop(this->nrhs, maxits, this->tol, this->b_norms.data(),
+                    converged);
     const bool all_conv = bstop.check_converged(iter, nullptr, res, converged);
 
     ASSERT_FALSE(all_conv);
