@@ -55,8 +55,7 @@ template <typename RealType>
 struct BatchIdrOptions {
     preconditioner::batch::type preconditioner;
     int max_its;
-    RealType rel_residual_tol;
-    RealType abs_residual_tol;
+    RealType residual_tol;
     size_type subspace_dim_val;
     bool is_complex_subspace;
     RealType kappa_val;

@@ -99,13 +99,22 @@ static void apply_impl(
             0;
 #endif
 
-        apply_kernel<stop::AbsOrRelResidualMaxIter<ValueType>>
-            <<<nbatch, default_block_size, shared_size>>>(
-                opts.max_its, opts.abs_residual_tol, opts.rel_residual_tol,
-                opts.subspace_dim_val, opts.kappa_val, opts.to_use_smoothing,
-                opts.deterministic_gen, opts.tol_type, logger,
-                BatchIdentity<ValueType>(), a, left, right, b, x,
-                Subspace_vectors_entry);
+        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
+            apply_kernel<stop::AbsResidualMaxIter<ValueType>>
+                <<<nbatch, default_block_size, shared_size>>>(
+                    opts.max_its, opts.residual_tol, opts.subspace_dim_val,
+                    opts.kappa_val, opts.to_use_smoothing,
+                    opts.deterministic_gen, logger, BatchIdentity<ValueType>(),
+                    a, left, right, b, x, Subspace_vectors_entry);
+        } else {
+            apply_kernel<stop::RelResidualMaxIter<ValueType>>
+                <<<nbatch, default_block_size, shared_size>>>(
+                    opts.max_its, opts.residual_tol, opts.subspace_dim_val,
+                    opts.kappa_val, opts.to_use_smoothing,
+                    opts.deterministic_gen, logger, BatchIdentity<ValueType>(),
+                    a, left, right, b, x, Subspace_vectors_entry);
+        }
+
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
         const int shared_size =
@@ -119,13 +128,22 @@ static void apply_impl(
 #endif
 
 
-        apply_kernel<stop::AbsOrRelResidualMaxIter<ValueType>>
-            <<<nbatch, default_block_size, shared_size>>>(
-                opts.max_its, opts.abs_residual_tol, opts.rel_residual_tol,
-                opts.subspace_dim_val, opts.kappa_val, opts.to_use_smoothing,
-                opts.deterministic_gen, opts.tol_type, logger,
-                BatchJacobi<ValueType>(), a, left, right, b, x,
-                Subspace_vectors_entry);
+        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
+            apply_kernel<stop::AbsResidualMaxIter<ValueType>>
+                <<<nbatch, default_block_size, shared_size>>>(
+                    opts.max_its, opts.residual_tol, opts.subspace_dim_val,
+                    opts.kappa_val, opts.to_use_smoothing,
+                    opts.deterministic_gen, logger, BatchJacobi<ValueType>(), a,
+                    left, right, b, x, Subspace_vectors_entry);
+        } else {
+            apply_kernel<stop::RelResidualMaxIter<ValueType>>
+                <<<nbatch, default_block_size, shared_size>>>(
+                    opts.max_its, opts.residual_tol, opts.subspace_dim_val,
+                    opts.kappa_val, opts.to_use_smoothing,
+                    opts.deterministic_gen, logger, BatchJacobi<ValueType>(), a,
+                    left, right, b, x, Subspace_vectors_entry);
+        }
+
     } else {
         GKO_NOT_IMPLEMENTED;
     }

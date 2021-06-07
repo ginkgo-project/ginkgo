@@ -115,8 +115,8 @@ __global__ void apply_kernel(
         compute_norm2<ValueType>(gko::batch::to_const(r_b), norms_b);
         copy(gko::batch::to_const(norms_b), init_res_norm_b);
 
-        StopType stop(num_rhs, max_iter, rel_tol, converged,
-                      init_res_norm_b.values);
+        StopType stop(num_rhs, max_iter, rel_tol, init_res_norm_b.values,
+                      converged);
 
         int iter = 0;
         while (true) {

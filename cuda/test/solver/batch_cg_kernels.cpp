@@ -78,13 +78,12 @@ protected:
     const size_t nbatch = 2;
     const int nrows = 3;
     const Options opts_1{gko::preconditioner::batch::type::none, 500,
-                         static_cast<real_type>(1e2) * eps, eps,
+                         static_cast<real_type>(1e2) * eps,
                          gko::stop::batch::ToleranceType::relative};
 
 
     const int nrhs = 2;
-    const Options opts_m{gko::preconditioner::batch::type::none, 500,
-                         static_cast<real_type>(1e3) * eps, eps,
+    const Options opts_m{gko::preconditioner::batch::type::none, 500, eps,
                          gko::stop::batch::ToleranceType::absolute};
 
     struct LinSys {
@@ -228,8 +227,6 @@ protected:
                 {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}},
             this->exec);
 
-        const Options opts{gko::preconditioner::batch::type::none, 10, 1e-6,
-                           1e-11, gko::stop::batch::ToleranceType::absolute};
         std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>(1, nrhs));
         gko::log::BatchLogData<value_type> logdata;
         logdata.res_norms =
@@ -312,7 +309,7 @@ TYPED_TEST(BatchCg, StencilSystemLoggerIsCorrect)
                    (iter_array[i] >= ref_iters - 1));
 
         ASSERT_LE(res_log_array[i] / this->sys_1.bnorm->at(i, 0, 0),
-                  this->opts_1.rel_residual_tol);
+                  this->opts_1.residual_tol);
 
         ASSERT_NEAR(res_log_array[i], this->r_1.resnorm->get_const_values()[i],
                     10 * this->eps);
@@ -347,7 +344,7 @@ TYPED_TEST(BatchCg, StencilMultipleSystemLoggerIsCorrect)
                        (iter_array[i * this->nrhs + j] >= ref_iters[j] - 1));
 
             ASSERT_LE(res_log_array[i * this->nrhs + j],
-                      this->opts_m.abs_residual_tol);
+                      this->opts_m.residual_tol);
 
             ASSERT_NEAR(
                 res_log_array[i * this->nrhs + j],
@@ -369,7 +366,7 @@ TYPED_TEST(BatchCg, CoreSolvesSystemJacobi)
     std::unique_ptr<typename Solver::Factory> batchcg_factory =
         Solver::build()
             .with_max_iterations(100)
-            .with_rel_residual_tol(1e-6f)
+            .with_residual_tol(1e-6f)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(useexec);
@@ -443,7 +440,7 @@ TEST(BatchCg, CanSolveWithoutScaling)
     auto batchcg_factory =
         Solver::build()
             .with_max_iterations(maxits)
-            .with_rel_residual_tol(tol)
+            .with_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .on(exec);
