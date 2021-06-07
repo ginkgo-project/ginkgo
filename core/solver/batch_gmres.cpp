@@ -56,8 +56,7 @@ std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::transpose() const
     return build()
         .with_preconditioner(parameters_.preconditioner)
         .with_max_iterations(parameters_.max_iterations)
-        .with_rel_residual_tol(parameters_.rel_residual_tol)
-        .with_abs_residual_tol(parameters_.abs_residual_tol)
+        .with_residual_tol(parameters_.residual_tol)
         .with_restart(parameters_.restart)
         .with_tolerance_type(parameters_.tolerance_type)
         .on(this->get_executor())
@@ -72,8 +71,7 @@ std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::conj_transpose() const
     return build()
         .with_preconditioner(parameters_.preconditioner)
         .with_max_iterations(parameters_.max_iterations)
-        .with_rel_residual_tol(parameters_.rel_residual_tol)
-        .with_abs_residual_tol(parameters_.abs_residual_tol)
+        .with_residual_tol(parameters_.residual_tol)
         .with_restart(parameters_.restart)
         .with_tolerance_type(parameters_.tolerance_type)
         .on(this->get_executor())
@@ -92,9 +90,9 @@ void BatchGmres<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
     const kernels::batch_gmres::BatchGmresOptions<remove_complex<ValueType>>
-        opts{parameters_.preconditioner,   parameters_.max_iterations,
-             parameters_.rel_residual_tol, parameters_.abs_residual_tol,
-             parameters_.restart,          parameters_.tolerance_type};
+        opts{parameters_.preconditioner, parameters_.max_iterations,
+             parameters_.residual_tol, parameters_.restart,
+             parameters_.tolerance_type};
 
     log::BatchLogData<ValueType> logdata;
 
