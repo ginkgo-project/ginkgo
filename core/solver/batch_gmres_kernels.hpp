@@ -54,8 +54,7 @@ template <typename RealType>
 struct BatchGmresOptions {
     preconditioner::batch::type preconditioner;
     int max_its;
-    RealType rel_residual_tol;
-    RealType abs_residual_tol;
+    RealType residual_tol;
     int restart_num;
     ::gko::stop::batch::ToleranceType tol_type;
 };

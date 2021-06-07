@@ -53,8 +53,7 @@ template <typename RealType>
 struct BatchCgOptions {
     preconditioner::batch::type preconditioner;
     int max_its;
-    RealType rel_residual_tol;
-    RealType abs_residual_tol;
+    RealType residual_tol;
     ::gko::stop::batch::ToleranceType tol_type;
 };
 

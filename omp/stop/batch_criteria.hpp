@@ -50,27 +50,16 @@ namespace omp {
 namespace stop {
 
 
-// TODO: Remove this
-enum class tolerance {
-
-    absolute,
-    relative
-
-};
-
-
 /**
  * A stopping criterion for batch solvers that comprises a
- * maximum iteration count as well as relative residual tolerance or absolute
- * residual tolerance - which one to consider can be chosen.
+ * maximum iteration count as well as relative residual tolerance.
  *
  * At most 32 right-hand-side vectors are supported.
  */
 template <typename ValueType>
-class AbsOrRelResidualMaxIter {
+class RelResidualMaxIter {
 public:
     using real_type = remove_complex<ValueType>;
-    // using tolerance = ::gko::stop::batch::ToleranceType;
     using bitset_type = uint32;
     static constexpr int max_nrhs = 32;
 
@@ -85,21 +74,16 @@ public:
      *                          be passed to the \ref check_converged function.
      * @param rhs_b_norms  The reference RHS norms.
      */
-    AbsOrRelResidualMaxIter(bitset_type &converge_bitset, const int num_rhs,
-                            const int max_iters, const real_type abs_res_tol,
-                            const real_type rel_res_tol,
-                            const tolerance type_of_tol,
-                            const real_type *const rhs_b_norms)
-        : nrhs{num_rhs},
-          rel_tol{rel_res_tol},
-          abs_tol{abs_res_tol},
-          tol_type{type_of_tol},
-          max_its{max_iters},
-          rhs_norms{rhs_b_norms}
+    RelResidualMaxIter(const int num_rhs, const int max_iters,
+                       const real_type rel_res_tol,
+                       const real_type *const rhs_b_norms,
+                       bitset_type &converge_bitset)
+        : nrhs_{num_rhs},
+          rel_tol_{rel_res_tol},
+          max_its_{max_iters},
+          rhs_norms_{rhs_b_norms}
     {
-        if (nrhs > max_nrhs) {
-            printf("Batch stopping criterion: Too many right hand sides!\n");
-        }
+        GKO_ENSURE_IN_BOUNDS(nrhs_, 32);
         converge_bitset = 0 - (1 << num_rhs);
     }
 
@@ -120,54 +104,146 @@ public:
         const gko::batch_dense::BatchEntry<const ValueType> &residual,
         bitset_type &converged) const
     {
-        if (iter >= max_its - 1) {
+        if (iter >= max_its_ - 1) {
             return true;
         }
 
         if (residual_norms) {
             check_norms(residual_norms, converged);
         } else {
-            real_type norms[batch_config<ValueType>::max_num_rhs];
+            constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
+            real_type norms[max_nrhs];
             batch_dense::compute_norm2<ValueType>(
-                residual, {norms, static_cast<size_type>(nrhs), 1, nrhs});
+                residual, {norms, static_cast<size_type>(nrhs_), 1, nrhs_});
             check_norms(norms, converged);
         }
 
-        if (converged == all_true) {
+        if (converged == all_true_) {
             return true;
         } else {
             return false;
         }
     }
 
-
 private:
-    int nrhs;
-    int max_its;
-    const real_type rel_tol;
-    const real_type abs_tol;
-    const tolerance tol_type;
-    const real_type *const rhs_norms;
-    static constexpr bitset_type all_true = ~static_cast<bitset_type>(0);
+    int nrhs_;
+    int max_its_;
+    const real_type rel_tol_;
+    const real_type *const rhs_norms_;
+    static constexpr uint32 all_true_ = ~static_cast<bitset_type>(0);
 
     void check_norms(const real_type *const res_norms,
                      bitset_type &converged) const
     {
 #pragma omp parallel for reduction(| : converged)
-        for (int i = 0; i < nrhs; i++) {
+        for (int i = 0; i < nrhs_; i++) {
             // don't check for RHSs which have already converged.
             if (converged & (1 << i)) {
                 continue;
             }
 
-            if (tol_type == tolerance::absolute) {
-                if (res_norms[i] < abs_tol) {
-                    converged |= (1 << i);
-                }
-            } else if (tol_type == tolerance::relative) {
-                if (res_norms[i] / rhs_norms[i] < rel_tol) {
-                    converged |= (1 << i);
-                }
+            if (res_norms[i] / rhs_norms_[i] < rel_tol_) {
+                converged = converged | (1 << i);
+            }
+        }
+    }
+};
+
+
+/**
+ * A stopping criterion for batch solvers that comprises a
+ * maximum iteration count as well as absolute residual tolerance.
+ *
+ * At most 32 right-hand-side vectors are supported.
+ */
+template <typename ValueType>
+class AbsResidualMaxIter {
+public:
+    using real_type = remove_complex<ValueType>;
+    using bitset_type = uint32;
+    static constexpr int max_nrhs = 32;
+
+    /**
+     * Set up the stopping criterion and convergence variable.
+     *
+     * @param num_rhs  The number of right-hand-sides in the linear systems.
+     * @param max_iters  Maximum number of iterations allowed.
+     * @param converged_bitset  A bit-set representing the state of convergence
+     *                          of each RHS: 1 for converged and 0 otherwise.
+     *                          It is initialized appropriately here, and must
+     *                          be passed to the \ref check_converged function.
+     * @param rhs_b_norms  The reference RHS norms.
+     */
+    AbsResidualMaxIter(const int num_rhs, const int max_iters,
+                       const real_type abs_res_tol,
+                       const real_type *const rhs_b_norms,
+                       bitset_type &converge_bitset)
+        : nrhs_{num_rhs},
+          abs_tol_{abs_res_tol},
+          max_its_{max_iters},
+          rhs_norms_{rhs_b_norms}
+    {
+        GKO_ENSURE_IN_BOUNDS(nrhs_, 32);
+        converge_bitset = 0 - (1 << num_rhs);
+    }
+
+    /**
+     * Checks whether the different right hand sides have converged.
+     *
+     * @param iter  The current iteration count.
+     * @param residual_norms  (Optional) current residual norm of each RHS.
+     * @param residual  Current residual vectors. Unused if residual_norms
+     *                  are provided.
+     * @param converged  Bits representing converged (1) or not (0) for each
+     *                   RHS. The 'right-most' bit corresponds to the first RHS.
+     *
+     * @return  True if all RHS have converged, false otherwise.
+     */
+    bool check_converged(
+        const int iter, const real_type *const residual_norms,
+        const gko::batch_dense::BatchEntry<const ValueType> &residual,
+        bitset_type &converged) const
+    {
+        if (iter >= max_its_ - 1) {
+            return true;
+        }
+
+        if (residual_norms) {
+            check_norms(residual_norms, converged);
+        } else {
+            constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
+            real_type norms[max_nrhs];
+            batch_dense::compute_norm2<ValueType>(
+                residual, {norms, static_cast<size_type>(nrhs_), 1, nrhs_});
+            check_norms(norms, converged);
+        }
+
+        if (converged == all_true_) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+private:
+    int nrhs_;
+    int max_its_;
+    const real_type abs_tol_;
+    const real_type *const rhs_norms_;
+    static constexpr uint32 all_true_ = ~static_cast<bitset_type>(0);
+
+    void check_norms(const real_type *const res_norms,
+                     bitset_type &converged) const
+    {
+#pragma omp parallel for reduction(| : converged)
+        for (int i = 0; i < nrhs_; i++) {
+            // don't check for RHSs which have already converged.
+            if (converged & (1 << i)) {
+                continue;
+            }
+
+            if (res_norms[i] < abs_tol_) {
+                converged = converged | (1 << i);
             }
         }
     }
