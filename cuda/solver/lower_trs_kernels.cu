@@ -206,16 +206,17 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
                           const matrix::Dense<ValueType> *b,
                           matrix::Dense<ValueType> *x)
 {
-    const IndexType n = matrix->get_size()[0];
+    // Pre-Volta GPUs may deadlock due to missing independent thread scheduling.
+    const auto is_fallback_required = exec->get_major_version() < 7;
 
+    const IndexType n = matrix->get_size()[0];
     Array<uint32> ready(exec, n);
     cudaMemset(ready.get_data(), 0, n * sizeof(uint32));
 
-    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 block_size(is_fallback_required ? 32 : default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
 
-    // Pre-Volta GPUs may deadlock due to missing independent thread scheduling.
-    if (exec->get_major_version() < 7) {
+    if (is_fallback_required) {
         sptrsv_naive_legacy_kernel<<<grid_size, block_size>>>(
             matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
             as_cuda_type(matrix->get_const_values()),
