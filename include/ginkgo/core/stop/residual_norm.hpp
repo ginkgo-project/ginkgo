@@ -137,13 +137,25 @@ protected:
             } else {
                 this->starting_tau_ = NormVector::create(
                     exec, dim<2>{1, args.initial_residual->get_size()[1]});
-                if (dynamic_cast<const ComplexVector *>(
-                        args.initial_residual)) {
-                    auto dense_r = as<ComplexVector>(args.initial_residual);
-                    dense_r->compute_norm2(this->starting_tau_.get());
+                if (dynamic_cast<const distributed::DistributedBase *>(
+                        args.b.get())) {
+                    if (dynamic_cast<const DistributedComplexVector *>(
+                            args.b.get())) {
+                        auto dense_rhs = as<DistributedComplexVector>(args.b);
+                        dense_rhs->compute_norm2(this->starting_tau_.get());
+                    } else {
+                        auto dense_rhs = as<DistributedVector>(args.b);
+                        dense_rhs->compute_norm2(this->starting_tau_.get());
+                    }
                 } else {
-                    auto dense_r = as<Vector>(args.initial_residual);
-                    dense_r->compute_norm2(this->starting_tau_.get());
+                    if (dynamic_cast<const ComplexVector *>(
+                            args.initial_residual)) {
+                        auto dense_r = as<ComplexVector>(args.initial_residual);
+                        dense_r->compute_norm2(this->starting_tau_.get());
+                    } else {
+                        auto dense_r = as<Vector>(args.initial_residual);
+                        dense_r->compute_norm2(this->starting_tau_.get());
+                    }
                 }
             }
             break;

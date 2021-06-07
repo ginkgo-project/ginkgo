@@ -156,8 +156,10 @@ int main(int argc, char *argv[])
                 if (i < grid_dim - 1)
                     A_data.nonzeros.emplace_back(idx, idx + grid_dim * grid_dim,
                                                  -1);
-                b_data.nonzeros.emplace_back(
-                    idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
+                // b_data.nonzeros.emplace_back(
+                //     idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
+                b_data.nonzeros.emplace_back(idx, 0, 1.0);
+                x_data.nonzeros.emplace_back(idx, 0, 1.0);
             }
         }
     }
@@ -178,22 +180,26 @@ int main(int argc, char *argv[])
     b->copy_from(b_host.get());
     x->copy_from(x_host.get());
 
+    x_host->copy_from(x.get());
+    auto one = gko::initialize<vec>({1.0}, exec);
+    auto minus_one = gko::initialize<vec>({-1.0}, exec);
+    A_host->apply(lend(minus_one), lend(x_host), lend(one), lend(b_host));
+    auto initial_resnorm = gko::initialize<vec>({0.0}, exec->get_master());
+    b_host->compute_norm2(gko::lend(initial_resnorm));
+    b_host->copy_from(b.get());
+
     auto block_A = block_approx::create(exec, A.get());
 
     gko::remove_complex<ValueType> inner_reduction_factor = 1e-2;
-    auto inner_solver = gko::share(
-        // bj::build().on(exec));
-        // paric::build().on(exec))
-        cg::build()
-            .with_preconditioner(bj::build().on(exec))
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(inner_iter)
-                               .on(exec)
-                           // gko::stop::ResidualNorm<ValueType>::build()
-                           //     .with_reduction_factor(inner_reduction_factor)
-                           //     .on(exec)
-                           )
-            .on(exec));
+    auto inner_solver = gko::share(bj::build().on(exec));
+    // paric::build().on(exec))
+    // cg::build()
+    //     .with_preconditioner(bj::build().on(exec))
+    //     .with_criteria(gko::stop::Iteration::build()
+    //                        .with_max_iters(inner_iter)
+    //                        .on(exec)
+    //                    )
+    // .on(exec));
     auto ras_precond = ras::build()
                            .with_solver(inner_solver)
                            .on(exec)
@@ -201,11 +207,13 @@ int main(int argc, char *argv[])
 
     gko::remove_complex<ValueType> reduction_factor = 1e-10;
     std::shared_ptr<gko::stop::Iteration::Factory> iter_stop =
-        gko::stop::Iteration::build().with_max_iters(num_rows).on(exec);
-    std::shared_ptr<gko::stop::ResidualNorm<ValueType>::Factory> tol_stop =
-        gko::stop::ResidualNorm<ValueType>::build()
-            .with_reduction_factor(reduction_factor)
+        gko::stop::Iteration::build()
+            .with_max_iters(static_cast<gko::size_type>(num_rows))
             .on(exec);
+    std::shared_ptr<gko::stop::ImplicitResidualNorm<ValueType>::Factory>
+        tol_stop = gko::stop::ImplicitResidualNorm<ValueType>::build()
+                       .with_reduction_factor(reduction_factor)
+                       .on(exec);
     std::shared_ptr<gko::stop::Combined::Factory> combined_stop =
         gko::stop::Combined::build()
             .with_criteria(iter_stop, tol_stop)
@@ -234,8 +242,8 @@ int main(int argc, char *argv[])
     // Ainv->remove_logger(logger.get());
 
     x_host->copy_from(x.get());
-    auto one = gko::initialize<vec>({1.0}, exec);
-    auto minus_one = gko::initialize<vec>({-1.0}, exec);
+    one = gko::initialize<vec>({1.0}, exec);
+    minus_one = gko::initialize<vec>({-1.0}, exec);
     A_host->apply(lend(minus_one), lend(x_host), lend(one), lend(b_host));
     auto result = gko::initialize<vec>({0.0}, exec->get_master());
     b_host->compute_norm2(lend(result));
@@ -251,6 +259,7 @@ int main(int argc, char *argv[])
         // clang-format off
     std::cout << "\nNum rows in matrix: " << num_rows
               << "\nNum ranks: " << comm->size()
+              << "\nFinal Res norm: " << *initial_resnorm->get_values()
               << "\nFinal Res norm: " << *result->get_values()
               << "\nNum iters: " << logger->get_num_iterations()
               << "\nLogger res norm: " << l_res_norm
