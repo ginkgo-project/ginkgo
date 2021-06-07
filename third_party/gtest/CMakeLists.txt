@@ -6,9 +6,10 @@ if(NOT GTest_FOUND)
         GIT_REPOSITORY https://github.com/google/googletest.git
         GIT_TAG        6a7ed316a5cdc07b6d26362c90770787513822d4
     )
-    set(gtest_disable_pthreads ON)
+    # need to set the variables in CACHE due to CMP0077
+    set(gtest_disable_pthreads ON CACHE INTERNAL "")
     if(MSVC)
-        set(gtest_force_shared_crt ON)
+        set(gtest_force_shared_crt ON CACHE INTERNAL "")
     endif()
     FetchContent_GetProperties(googletest)
     if(NOT googletest_POPULATED)

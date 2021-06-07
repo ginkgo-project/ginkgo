@@ -6,7 +6,8 @@ if(NOT gflags_FOUND)
         GIT_REPOSITORY https://github.com/gflags/gflags.git
         GIT_TAG        f7388c6655e699f777a5a74a3c9880b9cfaabe59
     )
-    set(gtest_disable_pthreads ON)
+    # need to set the variables in CACHE due to CMP0077
+    set(gtest_disable_pthreads ON CACHE INTERNAL "")
     FetchContent_GetProperties(gflags)
     if(NOT gflags_POPULATED)
         FetchContent_Populate(gflags)
