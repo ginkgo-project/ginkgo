@@ -366,7 +366,7 @@ TYPED_TEST(BatchCg, CoreSolvesSystemJacobi)
     std::unique_ptr<typename Solver::Factory> batchcg_factory =
         Solver::build()
             .with_max_iterations(100)
-            .with_residual_tol(1e-6f)
+            .with_rel_residual_tol(1e-6f)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(useexec);
@@ -440,7 +440,7 @@ TEST(BatchCg, CanSolveWithoutScaling)
     auto batchcg_factory =
         Solver::build()
             .with_max_iterations(maxits)
-            .with_residual_tol(tol)
+            .with_rel_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .on(exec);

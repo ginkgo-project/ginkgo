@@ -116,11 +116,16 @@ public:
          */
         int GKO_FACTORY_PARAMETER_SCALAR(max_iterations, 100);
 
-        /**
-         * Residual tolerance.
-         */
-        real_type GKO_FACTORY_PARAMETER_SCALAR(residual_tol, 1e-8);
 
+        /**
+         * Absolute residual tolerance.
+         */
+        real_type GKO_FACTORY_PARAMETER_SCALAR(abs_residual_tol, 1e-11);
+
+        /**
+         * Relative residual tolerance.
+         */
+        real_type GKO_FACTORY_PARAMETER_SCALAR(rel_residual_tol, 1e-6);
 
         /**
          * To specify which tolerance is to be considered.
