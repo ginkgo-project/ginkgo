@@ -61,26 +61,6 @@ namespace batch_idr {
 
 namespace {
 
-template <typename ValueType>
-inline void copy(
-    const gko::batch_dense::BatchEntry<const ValueType> &source_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &destination_entry,
-    const uint32 &converged)
-{
-    for (int r = 0; r < source_entry.num_rows; r++) {
-        for (int c = 0; c < source_entry.num_rhs; c++) {
-            const uint32 conv = converged & (1 << c);
-
-            if (conv) {
-                continue;
-            }
-
-            destination_entry.values[r * destination_entry.stride + c] =
-                source_entry.values[r * source_entry.stride + c];
-        }
-    }
-}
-
 
 template <typename ValueType, typename Distribution, typename Generator>
 typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
@@ -367,7 +347,7 @@ inline void update_v(
     const gko::batch_dense::BatchEntry<ValueType> &v_entry, const size_type k,
     const uint32 &converged)
 {
-    copy(gko::batch::to_const(r_entry), v_entry, converged);
+    batch_dense::copy(gko::batch::to_const(r_entry), v_entry, converged);
 
     const auto subspace_dim = c_entry.num_rows;
     const auto nrows = r_entry.num_rows;
@@ -425,7 +405,7 @@ inline void update_u_k(
         }
     }
 
-    copy(gko::batch::to_const(helper_entry), u_k_entry, converged);
+    batch_dense::copy(gko::batch::to_const(helper_entry), u_k_entry, converged);
 }
 
 
@@ -581,12 +561,14 @@ inline void compute_omega(
 {
     batch_dense::compute_dot_product(gko::batch::to_const(t_entry),
                                      gko::batch::to_const(r_entry),
-                                     t_r_dot_entry);
+                                     t_r_dot_entry, converged);
 
-    batch_dense::compute_norm2(gko::batch::to_const(t_entry), norms_t_entry);
+    batch_dense::compute_norm2(gko::batch::to_const(t_entry), norms_t_entry,
+                               converged);
 
 
-    batch_dense::compute_norm2(gko::batch::to_const(r_entry), norms_r_entry);
+    batch_dense::compute_norm2(gko::batch::to_const(r_entry), norms_r_entry,
+                               converged);
 
     // omega = ( t * r )/ (t * t)
     for (int rhs = 0; rhs < omega_entry.num_rhs; rhs++) {
@@ -682,8 +664,9 @@ inline void smoothing_operation(
     // gamma = (t * rs)/(t * t)
     batch_dense::compute_dot_product(gko::batch::to_const(t_entry),
                                      gko::batch::to_const(rs_entry),
-                                     gamma_entry);
-    batch_dense::compute_norm2(gko::batch::to_const(t_entry), norms_t_entry);
+                                     gamma_entry, converged);
+    batch_dense::compute_norm2(gko::batch::to_const(t_entry), norms_t_entry,
+                               converged);
 
     for (int rhs = 0; rhs < t_entry.num_rhs; rhs++) {
         gamma_entry.values[rhs] /= static_cast<ValueType>(
@@ -777,8 +760,7 @@ static void apply_impl(
         real_type *const norms_r = norms_t + nrhs;
         real_type *const norms_rhs = norms_r + nrhs;
         real_type *const norms_res = norms_rhs + nrhs;
-        real_type *const norms_res_temp = norms_res + nrhs;
-        real_type *const norms_tmp = norms_res_temp + nrhs;
+        real_type *const norms_tmp = norms_res + nrhs;
 
 
         uint32 converged = 0;
@@ -925,11 +907,6 @@ static void apply_impl(
         const gko::batch_dense::BatchEntry<real_type> res_norms_entry{
             norms_res, static_cast<size_type>(nrhs), 1, nrhs};
 
-
-        const gko::batch_dense::BatchEntry<real_type> res_norms_temp_entry{
-            norms_res_temp, static_cast<size_type>(nrhs), 1, nrhs};
-
-
         const gko::batch_dense::BatchEntry<real_type> tmp_norms_entry{
             norms_tmp, static_cast<size_type>(subspace_dim), 1,
             static_cast<int>(subspace_dim)};
@@ -1002,7 +979,8 @@ static void apply_impl(
 
 
                 // helper = v
-                copy(gko::batch::to_const(v_entry), helper_entry, converged);
+                batch_dense::copy(gko::batch::to_const(v_entry), helper_entry,
+                                  converged);
 
                 // v = precond * helper
                 prec.apply(gko::batch::to_const(helper_entry), v_entry);
@@ -1141,30 +1119,20 @@ static void apply_impl(
                                     converged);
 
                 batch_dense::compute_norm2<ValueType>(
-                    gko::batch::to_const(rs_entry),
-                    res_norms_temp_entry);  // store residual norms in temp
-                                            // entry
+                    gko::batch::to_const(rs_entry), res_norms_entry,
+                    converged);  // residual norms
 
-                copy(gko::batch::to_const(res_norms_temp_entry),
-                     res_norms_entry,
-                     converged);  // copy into res_norms entry only for those
-                                  // RHSs which have not yet converged.
+
             } else {
                 batch_dense::compute_norm2<ValueType>(
-                    gko::batch::to_const(r_entry),
-                    res_norms_temp_entry);  // store residual norms in temp
-                                            // entry
-
-                copy(gko::batch::to_const(res_norms_temp_entry),
-                     res_norms_entry,
-                     converged);  // copy into res_norms entry only for those
-                                  // RHSs which have not yet converged.
+                    gko::batch::to_const(r_entry), res_norms_entry,
+                    converged);  // residual norms
             }
         }
 
         if (smoothing == true) {
-            copy(gko::batch::to_const(xs_entry), x_entry, 0x00000000);
-            copy(gko::batch::to_const(rs_entry), r_entry, 0x00000000);
+            batch_dense::copy(gko::batch::to_const(xs_entry), x_entry);
+            batch_dense::copy(gko::batch::to_const(rs_entry), r_entry);
         }
 
         if (left_entry.values) {
