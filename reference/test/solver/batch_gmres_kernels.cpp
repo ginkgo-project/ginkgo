@@ -337,7 +337,7 @@ TEST(BatchGmres, CanSolveWithoutScaling)
     auto batchgmres_factory =
         Solver::build()
             .with_max_iterations(10000)
-            .with_residual_tol(tol)
+            .with_rel_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .with_restart(2)
