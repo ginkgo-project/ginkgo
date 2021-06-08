@@ -98,7 +98,8 @@ protected:
         }
     }
 
-    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
+                                 gko::size_type num_cols)
     {
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
@@ -108,10 +109,12 @@ protected:
 
     void initialize_data()
     {
-        int m = 597;
-        int n = 17;
-        x = gen_mtx(m, n);
-        b = gen_mtx(m, n);
+        gko::size_type m = 597;
+        gko::size_type n = 17;
+        x_full = gen_mtx(m, n + 3);
+        b_full = gen_mtx(m, n + 2);
+        x = x_full->create_submatrix(gko::span{0, m}, gko::span{0, n});
+        b = b_full->create_submatrix(gko::span{0, m}, gko::span{0, n});
         r = gen_mtx(m, n);
         z = gen_mtx(m, n);
         p = gen_mtx(m, n);
@@ -126,11 +129,19 @@ protected:
         beta = gen_mtx(1, n);
         gamma = gen_mtx(1, n);
         omega = gen_mtx(1, n);
+        // check correct handling for zero values
+        prev_rho->at(2) = 0.0;
+        prev_rho->at(4) = 0.0;
+        beta->at(2) = 0.0;
+        omega->at(2) = 0.0;
+        omega->at(3) = 0.0;
         stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
             new gko::Array<gko::stopping_status>(ref, n));
         for (size_t i = 0; i < n; ++i) {
             stop_status->get_data()[i].reset();
         }
+        // check correct handling for stopped columns
+        stop_status->get_data()[1].stop(1);
 
         d_x = Mtx::create(exec);
         d_b = Mtx::create(exec);
@@ -181,6 +192,8 @@ protected:
     std::unique_ptr<Solver::Factory> exec_bicgstab_factory;
     std::unique_ptr<Solver::Factory> ref_bicgstab_factory;
 
+    std::unique_ptr<Mtx> x_full;
+    std::unique_ptr<Mtx> b_full;
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> r;
