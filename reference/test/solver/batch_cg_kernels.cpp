@@ -231,7 +231,6 @@ TYPED_TEST(BatchCg, StencilSystemLoggerIsCorrect)
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
 
-
         GKO_ASSERT((iter_array[i] <= ref_iters + 1) &&
                    (iter_array[i] >= ref_iters - 1));
         ASSERT_LE(res_log_array[i] / this->bnorm_1->at(i, 0, 0),
