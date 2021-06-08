@@ -335,41 +335,4 @@ TEST_F(Bicg, ApplyWithSuiteSparseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Bicg, ApplyWithRandomMatrixIsEquivalentToRef)
-{
-    auto mtx = gen_mtx(50, 50);
-    auto x = gen_mtx(50, 3);
-    auto b = gen_mtx(50, 3);
-    auto d_mtx = Mtx::create(exec);
-    d_mtx->copy_from(mtx.get());
-    auto d_x = Mtx::create(exec);
-    d_x->copy_from(x.get());
-    auto d_b = Mtx::create(exec);
-    d_b->copy_from(b.get());
-    auto bicg_factory =
-        gko::solver::Bicg<>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(ref),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(1e-14)
-                    .on(ref))
-            .on(ref);
-    auto d_bicg_factory =
-        gko::solver::Bicg<>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(exec),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(1e-14)
-                    .on(exec))
-            .on(exec);
-    auto solver = bicg_factory->generate(std::move(mtx));
-    auto d_solver = d_bicg_factory->generate(std::move(d_mtx));
-
-    solver->apply(b.get(), x.get());
-    d_solver->apply(d_b.get(), d_x.get());
-
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
-}
-
-
 }  // namespace
