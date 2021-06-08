@@ -33,29 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
-template <typename ValueType>
-__device__ __forceinline__ void copy(
-    const gko::batch_dense::BatchEntry<const ValueType> &src_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &dest_shared_entry,
-    const uint32 &converged)
-{
-    for (int li = threadIdx.x;
-         li < dest_shared_entry.num_rhs * dest_shared_entry.num_rows;
-         li += blockDim.x) {
-        const int r = li / dest_shared_entry.num_rhs;
-        const int c = li % dest_shared_entry.num_rhs;
-
-        const uint32 conv = converged & (1 << c);
-
-        if (conv) {
-            continue;
-        }
-
-        dest_shared_entry.values[r * dest_shared_entry.stride + c] =
-            src_shared_entry.values[r * src_shared_entry.stride + c];
-    }
-}
-
 
 template <typename BatchMatrixType_entry, typename PrecType, typename ValueType>
 __device__ __forceinline__ void initialize(
@@ -78,13 +55,11 @@ __device__ __forceinline__ void initialize(
 
 
     // copy x from global to shared memory
-    copy(x_global_entry, x_shared_entry,
-         0x00000000);  // TODO: Use normal copy function
+    copy(x_global_entry, x_shared_entry);
 
 
     // r = b
-    copy(b_global_entry, r_shared_entry,
-         0x00000000);  // TODO: Use normal copy function
+    copy(b_global_entry, r_shared_entry);
 
     __syncthreads();
 
@@ -106,8 +81,7 @@ __device__ __forceinline__ void initialize(
 
 
     // p = z
-    copy(gko::batch::to_const(z_shared_entry), p_shared_entry,
-         0x00000000);  // TODO: Use normal copy function
+    copy(gko::batch::to_const(z_shared_entry), p_shared_entry);
 
 
     // rho_old = r' * z
@@ -148,38 +122,20 @@ __device__ __forceinline__ void update_p(
 
 
 template <typename ValueType>
-__device__ __forceinline__ void compute_alpha(
+__device__ __forceinline__ void update_x_and_r(
     const gko::batch_dense::BatchEntry<const ValueType> &rho_old_shared_entry,
     const gko::batch_dense::BatchEntry<const ValueType> &p_shared_entry,
     const gko::batch_dense::BatchEntry<const ValueType> &Ap_shared_entry,
     const gko::batch_dense::BatchEntry<ValueType> &alpha_shared_entry,
-    const uint32 &converged)
-{
-    compute_dot_product<ValueType>(p_shared_entry, Ap_shared_entry,
-                                   alpha_shared_entry);
-    __syncthreads();
-
-    for (int c = threadIdx.x; c < alpha_shared_entry.num_rhs; c += blockDim.x) {
-        const uint32 conv = converged & (1 << c);
-
-        if (conv) {
-            continue;
-        }
-        alpha_shared_entry.values[c] =
-            rho_old_shared_entry.values[c] / alpha_shared_entry.values[c];
-    }
-}
-
-
-template <typename ValueType>
-__device__ __forceinline__ void update_x_and_r(
-    const gko::batch_dense::BatchEntry<const ValueType> &p_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &Ap_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &alpha_shared_entry,
     const gko::batch_dense::BatchEntry<ValueType> &x_shared_entry,
     const gko::batch_dense::BatchEntry<ValueType> &r_shared_entry,
     const uint32 &converged)
 {
+    compute_dot_product<ValueType>(p_shared_entry, Ap_shared_entry,
+                                   alpha_shared_entry, converged);
+    __syncthreads();
+
+
     for (int li = threadIdx.x;
          li < x_shared_entry.num_rows * x_shared_entry.num_rhs;
          li += blockDim.x) {
@@ -192,7 +148,8 @@ __device__ __forceinline__ void update_x_and_r(
             continue;
         }
 
-        const ValueType alpha = alpha_shared_entry.values[c];
+        const ValueType alpha =
+            rho_old_shared_entry.values[c] / alpha_shared_entry.values[c];
 
         x_shared_entry.values[r * x_shared_entry.stride + c] +=
 
@@ -243,7 +200,6 @@ __global__ void apply_kernel(
         real_type *const norms_rhs_sh =
             reinterpret_cast<real_type *>(alpha_sh + nrhs);
         real_type *const norms_res_sh = norms_rhs_sh + nrhs;
-        real_type *const norms_res_temp_sh = norms_res_sh + nrhs;
 
 
         uint32 converged = 0;
@@ -313,11 +269,6 @@ __global__ void apply_kernel(
             norms_res_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
 
-        const gko::batch_dense::BatchEntry<real_type>
-            res_norms_temp_shared_entry{norms_res_temp_sh,
-                                        static_cast<size_type>(nrhs), 1, nrhs};
-
-
         // generate preconditioner
         prec_shared.generate(A_global_entry, prec_work_sh);
 
@@ -368,32 +319,21 @@ __global__ void apply_kernel(
             __syncthreads();
 
             // alpha = rho_old / (p' * Ap)
-            compute_alpha(gko::batch::to_const(rho_old_shared_entry),
-                          gko::batch::to_const(p_shared_entry),
-                          gko::batch::to_const(Ap_shared_entry),
-                          alpha_shared_entry, converged);
-
-            __syncthreads();
-
-
             // x = x + alpha * p
             // r = r - alpha * Ap
-            update_x_and_r(gko::batch::to_const(p_shared_entry),
+            update_x_and_r(gko::batch::to_const(rho_old_shared_entry),
+                           gko::batch::to_const(p_shared_entry),
                            gko::batch::to_const(Ap_shared_entry),
-                           gko::batch::to_const(alpha_shared_entry),
-                           x_shared_entry, r_shared_entry, converged);
+                           alpha_shared_entry, x_shared_entry, r_shared_entry,
+                           converged);
 
             __syncthreads();
 
-            compute_norm2<ValueType>(
-                gko::batch::to_const(r_shared_entry),
-                res_norms_temp_shared_entry);  // residual norms
+            compute_norm2<ValueType>(gko::batch::to_const(r_shared_entry),
+                                     res_norms_shared_entry,
+                                     converged);  // residual norms
             __syncthreads();
-            copy(gko::batch::to_const(res_norms_temp_shared_entry),
-                 res_norms_shared_entry,
-                 converged);  // update res norms only for those RHSs which have
-                              // not yet converged.
-            __syncthreads();
+
 
             // z = precond * r
             prec_shared.apply(gko::batch::to_const(r_shared_entry),
@@ -404,7 +344,7 @@ __global__ void apply_kernel(
             // rho_new =  (r)' * (z)
             compute_dot_product<ValueType>(gko::batch::to_const(r_shared_entry),
                                            gko::batch::to_const(z_shared_entry),
-                                           rho_new_shared_entry);
+                                           rho_new_shared_entry, converged);
 
             __syncthreads();
 
