@@ -78,10 +78,8 @@ __device__ __forceinline__ void spmv_kernel(
                        row_end -
                        row_start)))));  // round off to the closest power of 2
         // subwarp_grp level reduction
-        for (int i = static_cast<int>(
-                         min(static_cast<double>(gap_rounded_off),
-                             static_cast<double>(subwarp_grp.size()))) /
-                     2;
+        for (int i =
+                 min(gap_rounded_off, static_cast<int>(subwarp_grp.size())) / 2;
              i > 0; i /= 2) {
             temp += subwarp_grp.shfl_down(temp, i);
         }
@@ -157,10 +155,8 @@ __device__ __forceinline__ void advanced_spmv_kernel(
                        row_end -
                        row_start)))));  // round off to the closest power of 2
         // subwarp_grp level reduction
-        for (int i = static_cast<int>(
-                         min(static_cast<double>(gap_rounded_off),
-                             static_cast<double>(subwarp_grp.size()))) /
-                     2;
+        for (int i =
+                 min(gap_rounded_off, static_cast<int>(subwarp_grp.size())) / 2;
              i > 0; i /= 2) {
             temp += subwarp_grp.shfl_down(temp, i);
         }
