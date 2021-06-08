@@ -82,7 +82,6 @@ struct BatchGmresOptions {
  * and small arrays for
  * - rhs_norms
  * - res_norms
- * - res_temp_norms
  * - tmp_norms
  */
 template <typename ValueType>
@@ -94,7 +93,7 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs,
             restart_num * (restart_num + 1) * num_rhs +
             num_rows * (restart_num + 1) * num_rhs) *
                sizeof(ValueType) +
-           4 * num_rhs * sizeof(typename gko::remove_complex<ValueType>);
+           3 * num_rhs * sizeof(typename gko::remove_complex<ValueType>);
 }
 
 #define GKO_DECLARE_BATCH_GMRES_APPLY_KERNEL(_type)                \
