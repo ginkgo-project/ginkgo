@@ -34,30 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-template <typename ValueType>
-__device__ __forceinline__ void copy(
-    const gko::batch_dense::BatchEntry<const ValueType> &src_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &dest_shared_entry,
-    const uint32 &converged)
-{
-    for (int li = threadIdx.x;
-         li < dest_shared_entry.num_rhs * dest_shared_entry.num_rows;
-         li += blockDim.x) {
-        const int r = li / dest_shared_entry.num_rhs;
-        const int c = li % dest_shared_entry.num_rhs;
-
-        const uint32 conv = converged & (1 << c);
-
-        if (conv) {
-            continue;
-        }
-
-        dest_shared_entry.values[r * dest_shared_entry.stride + c] =
-            src_shared_entry.values[r * src_shared_entry.stride + c];
-    }
-}
-
-
 template <typename BatchMatrixType_entry, typename ValueType>
 __device__ __forceinline__ void initialize(
     const BatchMatrixType_entry &A_global_entry,
@@ -90,15 +66,12 @@ __device__ __forceinline__ void initialize(
     compute_norm2<ValueType>(b_global_entry, rhs_norms_shared_entry);
 
     // copy x from global to shared memory
-    copy(x_global_entry, x_shared_entry,
-         0x00000000);  // TODO: Use simple copy function here to avoid uint32
-                       // dependency or use static_cast<bitset_type>(0)
+    copy(x_global_entry, x_shared_entry);
 
 
     // r = b
-    copy(b_global_entry, r_shared_entry, 0x00000000);
-    // TODO: Use simple copy function here to avoid uint32
-    // dependency or use static_cast<bitset_type>(0)
+    copy(b_global_entry, r_shared_entry);
+
     __syncthreads();
 
     // r = b - A*x
@@ -110,9 +83,7 @@ __device__ __forceinline__ void initialize(
     compute_norm2<ValueType>(gko::batch::to_const(r_shared_entry),
                              res_norms_shared_entry);
 
-    copy(gko::batch::to_const(r_shared_entry), r_hat_shared_entry,
-         0x00000000);  // TODO: Use simple copy function here to avoid uint32
-                       // dependency or use static_cast<bitset_type>(0)
+    copy(gko::batch::to_const(r_shared_entry), r_hat_shared_entry);
 
     for (int li = threadIdx.x;
          li < p_shared_entry.num_rows * p_shared_entry.num_rhs;
@@ -172,7 +143,7 @@ __device__ __forceinline__ void compute_alpha(
     const uint32 &converged)
 {
     compute_dot_product<ValueType>(r_hat_shared_entry, v_shared_entry,
-                                   alpha_shared_entry);
+                                   alpha_shared_entry, converged);
     __syncthreads();
 
     for (int c = threadIdx.x; c < alpha_shared_entry.num_rhs; c += blockDim.x) {
@@ -224,9 +195,9 @@ __device__ __forceinline__ void compute_omega(
     const uint32 &converged)
 {
     compute_dot_product<ValueType>(t_shared_entry, s_shared_entry,
-                                   omega_shared_entry);
+                                   omega_shared_entry, converged);
     compute_dot_product<ValueType>(t_shared_entry, t_shared_entry,
-                                   temp_shared_entry);
+                                   temp_shared_entry, converged);
 
     __syncthreads();
 
@@ -351,7 +322,6 @@ __global__ void apply_kernel(
         real_type *const norms_rhs_sh =
             reinterpret_cast<real_type *>(temp_sh + nrhs);
         real_type *const norms_res_sh = norms_rhs_sh + nrhs;
-        real_type *const norms_res_temp_sh = norms_res_sh + nrhs;
 
 
         uint32 converged = 0;
@@ -432,9 +402,6 @@ __global__ void apply_kernel(
         const gko::batch_dense::BatchEntry<real_type> res_norms_shared_entry{
             norms_res_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-        const gko::batch_dense::BatchEntry<real_type>
-            res_norms_temp_shared_entry{norms_res_temp_sh,
-                                        static_cast<size_type>(nrhs), 1, nrhs};
 
         // generate preconditioner
         prec_shared.generate(A_global_entry, prec_work_sh);
@@ -485,7 +452,8 @@ __global__ void apply_kernel(
             // rho_new =  < r_hat , r > = (r_hat)' * (r)
             compute_dot_product<ValueType>(
                 gko::batch::to_const(r_hat_shared_entry),
-                gko::batch::to_const(r_shared_entry), rho_new_shared_entry);
+                gko::batch::to_const(r_shared_entry), rho_new_shared_entry,
+                converged);
 
 
             __syncthreads();
@@ -532,18 +500,9 @@ __global__ void apply_kernel(
 
             __syncthreads();
 
-
             compute_norm2<ValueType>(
-                gko::batch::to_const(s_shared_entry),
-                res_norms_temp_shared_entry);  // an estimate of residual norms
-
-            __syncthreads();
-
-
-            copy(gko::batch::to_const(res_norms_temp_shared_entry),
-                 res_norms_shared_entry,
-                 converged);  // update res norms only for those RHSs which have
-                              // not yet converged.
+                gko::batch::to_const(s_shared_entry), res_norms_shared_entry,
+                converged);  // an estimate of residual norms
 
             __syncthreads();
 
@@ -609,15 +568,10 @@ __global__ void apply_kernel(
 
             __syncthreads();
 
+            compute_norm2<ValueType>(gko::batch::to_const(r_shared_entry),
+                                     res_norms_shared_entry,
+                                     converged);  // residual norms
 
-            compute_norm2<ValueType>(
-                gko::batch::to_const(r_shared_entry),
-                res_norms_temp_shared_entry);  // residual norms
-            __syncthreads();
-            copy(gko::batch::to_const(res_norms_temp_shared_entry),
-                 res_norms_shared_entry,
-                 converged);  // update res norms only for those RHSs which have
-                              // not yet converged.
             __syncthreads();
 
             // rho_old = rho_new
