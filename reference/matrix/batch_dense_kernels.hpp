@@ -231,6 +231,164 @@ inline void compute_dot_product(const BatchEntry<const ValueType> &x,
 }
 
 
+template <typename ValueType>
+inline void copy(
+    const gko::batch_dense::BatchEntry<const ValueType> &source_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &destination_entry,
+    const uint32 &converged)
+{
+    for (int r = 0; r < source_entry.num_rows; r++) {
+        for (int c = 0; c < source_entry.num_rhs; c++) {
+            const uint32 conv = converged & (1 << c);
+
+            if (conv) {
+                continue;
+            }
+
+            destination_entry.values[r * destination_entry.stride + c] =
+                source_entry.values[r * source_entry.stride + c];
+        }
+    }
+}
+
+
+template <typename ValueType>
+inline void scale(const BatchEntry<const ValueType> &alpha,
+                  const BatchEntry<ValueType> &x, const uint32 &converged)
+{
+    if (alpha.num_rhs == 1) {
+        for (int i = 0; i < x.num_rows; ++i) {
+            for (int j = 0; j < x.num_rhs; ++j) {
+                const uint32 conv = converged & (1 << j);
+
+                if (conv) {
+                    continue;
+                }
+
+
+                x.values[i * x.stride + j] *= alpha.values[0];
+            }
+        }
+    } else {
+        for (int i = 0; i < x.num_rows; ++i) {
+            for (int j = 0; j < x.num_rhs; ++j) {
+                const uint32 conv = converged & (1 << j);
+
+                if (conv) {
+                    continue;
+                }
+
+                x.values[i * x.stride + j] *= alpha.values[j];
+            }
+        }
+    }
+}
+
+
+template <typename ValueType>
+inline void add_scaled(const BatchEntry<const ValueType> &alpha,
+                       const BatchEntry<const ValueType> &x,
+                       const BatchEntry<ValueType> &y, const uint32 &converged)
+{
+    if (alpha.num_rhs == 1) {
+        for (int i = 0; i < x.num_rows; ++i) {
+            for (int j = 0; j < x.num_rhs; ++j) {
+                const uint32 conv = converged & (1 << j);
+
+                if (conv) {
+                    continue;
+                }
+
+                y.values[i * y.stride + j] +=
+                    alpha.values[0] * x.values[i * x.stride + j];
+            }
+        }
+    } else {
+        for (int i = 0; i < x.num_rows; ++i) {
+            for (int j = 0; j < x.num_rhs; ++j) {
+                const uint32 conv = converged & (1 << j);
+
+                if (conv) {
+                    continue;
+                }
+
+
+                y.values[i * y.stride + j] +=
+                    alpha.values[j] * x.values[i * x.stride + j];
+            }
+        }
+    }
+}
+
+
+template <typename ValueType>
+inline void compute_norm2(const BatchEntry<const ValueType> &x,
+                          const BatchEntry<remove_complex<ValueType>> &result,
+                          const uint32 &converged)
+{
+    for (int j = 0; j < x.num_rhs; ++j) {
+        const uint32 conv = converged & (1 << j);
+
+        if (conv) {
+            continue;
+        }
+
+        result.values[j] = zero<remove_complex<ValueType>>();
+    }
+    for (int i = 0; i < x.num_rows; ++i) {
+        for (size_type j = 0; j < x.num_rhs; ++j) {
+            const uint32 conv = converged & (1 << j);
+
+            if (conv) {
+                continue;
+            }
+
+            result.values[j] += squared_norm(x.values[i * x.stride + j]);
+        }
+    }
+    for (int j = 0; j < x.num_rhs; ++j) {
+        const uint32 conv = converged & (1 << j);
+
+        if (conv) {
+            continue;
+        }
+
+        result.values[j] = sqrt(result.values[j]);
+    }
+}
+
+
+template <typename ValueType>
+inline void compute_dot_product(const BatchEntry<const ValueType> &x,
+                                const BatchEntry<const ValueType> &y,
+                                const BatchEntry<ValueType> &result,
+                                const uint32 &converged)
+{
+    for (int c = 0; c < result.num_rhs; c++) {
+        const uint32 conv = converged & (1 << c);
+
+        if (conv) {
+            continue;
+        }
+
+        result.values[c] = zero<ValueType>();
+    }
+
+    for (int r = 0; r < x.num_rows; r++) {
+        for (int c = 0; c < x.num_rhs; c++) {
+            const uint32 conv = converged & (1 << c);
+
+            if (conv) {
+                continue;
+            }
+
+            result.values[c] +=
+                conj(x.values[r * x.stride + c]) * y.values[r * y.stride + c];
+        }
+    }
+}
+
+
 }  // namespace batch_dense
 }  // namespace reference
 }  // namespace kernels

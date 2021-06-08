@@ -151,7 +151,7 @@ inline void compute_alpha(
     const uint32 &converged)
 {
     batch_dense::compute_dot_product<ValueType>(r_hat_entry, v_entry,
-                                                alpha_entry);
+                                                alpha_entry, converged);
 
 #pragma omp parallel for
     for (int c = 0; c < alpha_entry.num_rhs; c++) {
@@ -197,8 +197,10 @@ inline void compute_omega(
     const gko::batch_dense::BatchEntry<ValueType> &omega_entry,
     const uint32 &converged)
 {
-    batch_dense::compute_dot_product<ValueType>(t_entry, s_entry, omega_entry);
-    batch_dense::compute_dot_product<ValueType>(t_entry, t_entry, temp_entry);
+    batch_dense::compute_dot_product<ValueType>(t_entry, s_entry, omega_entry,
+                                                converged);
+    batch_dense::compute_dot_product<ValueType>(t_entry, t_entry, temp_entry,
+                                                converged);
 
 #pragma omp parallel for
     for (int c = 0; c < omega_entry.num_rhs; c++) {
@@ -271,27 +273,6 @@ inline void update_x_middle(
 }
 
 
-template <typename ValueType>
-inline void copy(
-    const gko::batch_dense::BatchEntry<const ValueType> &source_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &destination_entry,
-    const uint32 &converged)
-{
-#pragma omp parallel for
-    for (int r = 0; r < source_entry.num_rows; r++) {
-        for (int c = 0; c < source_entry.num_rhs; c++) {
-            const uint32 conv = converged & (1 << c);
-
-            if (conv) {
-                continue;
-            }
-
-            destination_entry.values[r * destination_entry.stride + c] =
-                source_entry.values[r * source_entry.stride + c];
-        }
-    }
-}
-
 }  // unnamed namespace
 
 
@@ -348,7 +329,6 @@ static void apply_impl(
         ValueType *const temp = alpha + nrhs;
         real_type *const norms_rhs = reinterpret_cast<real_type *>(temp + nrhs);
         real_type *const norms_res = norms_rhs + nrhs;
-        real_type *const norms_res_temp = norms_res + nrhs;
 
 
         uint32 converged = 0;
@@ -426,8 +406,6 @@ static void apply_impl(
         const gko::batch_dense::BatchEntry<real_type> res_norms_entry{
             norms_res, static_cast<size_type>(nrhs), 1, nrhs};
 
-        const gko::batch_dense::BatchEntry<real_type> res_norms_temp_entry{
-            norms_res_temp, static_cast<size_type>(nrhs), 1, nrhs};
 
         // generate preconditioner
         prec.generate(A_entry, prec_work);
@@ -468,7 +446,7 @@ static void apply_impl(
             // rho_new =  < r_hat , r > = (r_hat)' * (r)
             batch_dense::compute_dot_product<ValueType>(
                 gko::batch::to_const(r_hat_entry),
-                gko::batch::to_const(r_entry), rho_new_entry);
+                gko::batch::to_const(r_entry), rho_new_entry, converged);
 
 
             // beta = (rho_new / rho_old)*(alpha / omega)
@@ -498,12 +476,10 @@ static void apply_impl(
             update_s(gko::batch::to_const(r_entry),
                      gko::batch::to_const(alpha_entry),
                      gko::batch::to_const(v_entry), s_entry, converged);
-            batch_dense::compute_norm2<ValueType>(
-                gko::batch::to_const(s_entry),
-                res_norms_temp_entry);  // an estimate of residual norms
-            copy(gko::batch::to_const(res_norms_temp_entry), res_norms_entry,
-                 converged);  // copy into res_norms entry only for those RHSs
-                              // which have not yet converged.
+            batch_dense::compute_norm2<ValueType>(gko::batch::to_const(s_entry),
+                                                  res_norms_entry,
+                                                  converged);  // residual norms
+
 
             const uint32 converged_prev = converged;
 
@@ -549,15 +525,13 @@ static void apply_impl(
                            gko::batch::to_const(t_entry), x_entry, r_entry,
                            converged);
 
-            batch_dense::compute_norm2<ValueType>(
-                gko::batch::to_const(r_entry),
-                res_norms_temp_entry);  // store residual norms in temp entry
-            copy(gko::batch::to_const(res_norms_temp_entry), res_norms_entry,
-                 converged);  // copy into res_norms entry only for those RHSs
-                              // which have not yet converged.
+            batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
+                                                  res_norms_entry,
+                                                  converged);  // residual norms
 
             // rho_old = rho_new
-            copy(gko::batch::to_const(rho_new_entry), rho_old_entry, converged);
+            batch_dense::copy(gko::batch::to_const(rho_new_entry),
+                              rho_old_entry, converged);
         }
 
         if (left_entry.values) {
