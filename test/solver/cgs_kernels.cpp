@@ -48,7 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/cgs_kernels.hpp"
-#include "hip/test/utils.hip.hpp"
+#include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
@@ -63,22 +64,21 @@ protected:
 
     void SetUp()
     {
-        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        hip = gko::HipExecutor::create(0, ref);
+        init_executor(ref, exec);
 
         mtx = gen_mtx(123, 123);
         gko::test::make_diag_dominant(mtx.get());
-        d_mtx = Mtx::create(hip);
+        d_mtx = Mtx::create(exec);
         d_mtx->copy_from(mtx.get());
-        hip_cgs_factory =
+        exec_cgs_factory =
             Solver::build()
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(246u).on(hip),
+                    gko::stop::Iteration::build().with_max_iters(246u).on(exec),
                     gko::stop::ResidualNorm<>::build()
                         .with_reduction_factor(1e-15)
-                        .on(hip))
-                .on(hip);
+                        .on(exec))
+                .on(exec);
         ref_cgs_factory =
             Solver::build()
                 .with_criteria(
@@ -91,8 +91,8 @@ protected:
 
     void TearDown()
     {
-        if (hip != nullptr) {
-            ASSERT_NO_THROW(hip->synchronize());
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
         }
     }
 
@@ -129,51 +129,51 @@ protected:
             stop_status->get_data()[i].reset();
         }
 
-        d_b = Mtx::create(hip);
+        d_b = Mtx::create(exec);
         d_b->copy_from(b.get());
-        d_r = Mtx::create(hip);
+        d_r = Mtx::create(exec);
         d_r->copy_from(r.get());
-        d_r_tld = Mtx::create(hip);
+        d_r_tld = Mtx::create(exec);
         d_r_tld->copy_from(r_tld.get());
-        d_p = Mtx::create(hip);
+        d_p = Mtx::create(exec);
         d_p->copy_from(p.get());
-        d_q = Mtx::create(hip);
+        d_q = Mtx::create(exec);
         d_q->copy_from(q.get());
-        d_u = Mtx::create(hip);
+        d_u = Mtx::create(exec);
         d_u->copy_from(u.get());
-        d_u_hat = Mtx::create(hip);
+        d_u_hat = Mtx::create(exec);
         d_u_hat->copy_from(u_hat.get());
-        d_v_hat = Mtx::create(hip);
+        d_v_hat = Mtx::create(exec);
         d_v_hat->copy_from(v_hat.get());
-        d_t = Mtx::create(hip);
+        d_t = Mtx::create(exec);
         d_t->copy_from(t.get());
-        d_x = Mtx::create(hip);
+        d_x = Mtx::create(exec);
         d_x->copy_from(x.get());
-        d_alpha = Mtx::create(hip);
+        d_alpha = Mtx::create(exec);
         d_alpha->copy_from(alpha.get());
-        d_beta = Mtx::create(hip);
+        d_beta = Mtx::create(exec);
         d_beta->copy_from(beta.get());
-        d_gamma = Mtx::create(hip);
+        d_gamma = Mtx::create(exec);
         d_gamma->copy_from(gamma.get());
-        d_rho_prev = Mtx::create(hip);
+        d_rho_prev = Mtx::create(exec);
         d_rho_prev->copy_from(rho_prev.get());
-        d_rho = Mtx::create(hip);
+        d_rho = Mtx::create(exec);
         d_rho->copy_from(rho.get());
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(hip, n));
+            new gko::Array<gko::stopping_status>(exec, n));
         // because there is no public function copy_from, use overloaded =
         // operator
         *d_stop_status = *stop_status;
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::HipExecutor> hip;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::ranlux48 rand_engine;
 
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> d_mtx;
-    std::unique_ptr<Solver::Factory> hip_cgs_factory;
+    std::unique_ptr<Solver::Factory> exec_cgs_factory;
     std::unique_ptr<Solver::Factory> ref_cgs_factory;
 
     std::unique_ptr<Mtx> b;
@@ -212,7 +212,7 @@ protected:
 };
 
 
-TEST_F(Cgs, HipCgsInitializeIsEquivalentToRef)
+TEST_F(Cgs, CgsInitializeIsEquivalentToRef)
 {
     initialize_data();
 
@@ -220,8 +220,8 @@ TEST_F(Cgs, HipCgsInitializeIsEquivalentToRef)
         ref, b.get(), r.get(), r_tld.get(), p.get(), q.get(), u.get(),
         u_hat.get(), v_hat.get(), t.get(), alpha.get(), beta.get(), gamma.get(),
         rho_prev.get(), rho.get(), stop_status.get());
-    gko::kernels::hip::cgs::initialize(
-        hip, d_b.get(), d_r.get(), d_r_tld.get(), d_p.get(), d_q.get(),
+    gko::kernels::EXEC_NAMESPACE::cgs::initialize(
+        exec, d_b.get(), d_r.get(), d_r_tld.get(), d_p.get(), d_q.get(),
         d_u.get(), d_u_hat.get(), d_v_hat.get(), d_t.get(), d_alpha.get(),
         d_beta.get(), d_gamma.get(), d_rho_prev.get(), d_rho.get(),
         d_stop_status.get());
@@ -243,16 +243,16 @@ TEST_F(Cgs, HipCgsInitializeIsEquivalentToRef)
 }
 
 
-TEST_F(Cgs, HipCgsStep1IsEquivalentToRef)
+TEST_F(Cgs, CgsStep1IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::cgs::step_1(ref, r.get(), u.get(), p.get(),
                                          q.get(), beta.get(), rho.get(),
                                          rho_prev.get(), stop_status.get());
-    gko::kernels::hip::cgs::step_1(hip, d_r.get(), d_u.get(), d_p.get(),
-                                   d_q.get(), d_beta.get(), d_rho.get(),
-                                   d_rho_prev.get(), d_stop_status.get());
+    gko::kernels::EXEC_NAMESPACE::cgs::step_1(
+        exec, d_r.get(), d_u.get(), d_p.get(), d_q.get(), d_beta.get(),
+        d_rho.get(), d_rho_prev.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_u, u, 1e-14);
@@ -260,16 +260,16 @@ TEST_F(Cgs, HipCgsStep1IsEquivalentToRef)
 }
 
 
-TEST_F(Cgs, HipCgsStep2IsEquivalentToRef)
+TEST_F(Cgs, CgsStep2IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::cgs::step_2(ref, u.get(), v_hat.get(), q.get(),
                                          t.get(), alpha.get(), rho.get(),
                                          gamma.get(), stop_status.get());
-    gko::kernels::hip::cgs::step_2(hip, d_u.get(), d_v_hat.get(), d_q.get(),
-                                   d_t.get(), d_alpha.get(), d_rho.get(),
-                                   d_gamma.get(), d_stop_status.get());
+    gko::kernels::EXEC_NAMESPACE::cgs::step_2(
+        exec, d_u.get(), d_v_hat.get(), d_q.get(), d_t.get(), d_alpha.get(),
+        d_rho.get(), d_gamma.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_t, t, 1e-14);
@@ -277,58 +277,58 @@ TEST_F(Cgs, HipCgsStep2IsEquivalentToRef)
 }
 
 
-TEST_F(Cgs, HipCgsStep3IsEquivalentToRef)
+TEST_F(Cgs, CgsStep3IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::cgs::step_3(ref, t.get(), u_hat.get(), r.get(),
                                          x.get(), alpha.get(),
                                          stop_status.get());
-    gko::kernels::hip::cgs::step_3(hip, d_t.get(), d_u_hat.get(), d_r.get(),
-                                   d_x.get(), d_alpha.get(),
-                                   d_stop_status.get());
+    gko::kernels::EXEC_NAMESPACE::cgs::step_3(
+        exec, d_t.get(), d_u_hat.get(), d_r.get(), d_x.get(), d_alpha.get(),
+        d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
 }
 
 
-TEST_F(Cgs, HipCgsApplyOneRHSIsEquivalentToRef)
+TEST_F(Cgs, CgsApplyOneRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 1;
     auto ref_solver = ref_cgs_factory->generate(mtx);
-    auto hip_solver = hip_cgs_factory->generate(d_mtx);
+    auto exec_solver = exec_cgs_factory->generate(d_mtx);
     auto b = gen_mtx(m, n);
     auto x = gen_mtx(m, n);
-    auto d_b = Mtx::create(hip);
-    auto d_x = Mtx::create(hip);
+    auto d_b = Mtx::create(exec);
+    auto d_x = Mtx::create(exec);
     d_b->copy_from(b.get());
     d_x->copy_from(x.get());
 
     ref_solver->apply(b.get(), x.get());
-    hip_solver->apply(d_b.get(), d_x.get());
+    exec_solver->apply(d_b.get(), d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
 }
 
 
-TEST_F(Cgs, HipCgsApplyMultipleRHSIsEquivalentToRef)
+TEST_F(Cgs, CgsApplyMultipleRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 16;
-    auto hip_solver = hip_cgs_factory->generate(d_mtx);
+    auto exec_solver = exec_cgs_factory->generate(d_mtx);
     auto ref_solver = ref_cgs_factory->generate(mtx);
     auto b = gen_mtx(m, n);
     auto x = gen_mtx(m, n);
-    auto d_b = Mtx::create(hip);
-    auto d_x = Mtx::create(hip);
+    auto d_b = Mtx::create(exec);
+    auto d_x = Mtx::create(exec);
     d_b->copy_from(b.get());
     d_x->copy_from(x.get());
 
     ref_solver->apply(b.get(), x.get());
-    hip_solver->apply(d_b.get(), d_x.get());
+    exec_solver->apply(d_b.get(), d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);

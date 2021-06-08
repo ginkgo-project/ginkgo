@@ -49,6 +49,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/bicg_kernels.hpp"
 #include "core/test/utils.hpp"
+#include "matrices/config.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
@@ -56,19 +58,33 @@ namespace {
 
 class Bicg : public ::testing::Test {
 protected:
+    using value_type = gko::default_precision;
+    using index_type = gko::int32;
     using Mtx = gko::matrix::Dense<>;
+    using Csr = gko::matrix::Csr<value_type, index_type>;
     Bicg() : rand_engine(30) {}
 
     void SetUp()
     {
         ref = gko::ReferenceExecutor::create();
-        omp = gko::OmpExecutor::create();
+        init_executor(ref, exec);
+
+        std::string file_name(gko::matrices::location_ani1_mtx);
+        auto input_file = std::ifstream(file_name, std::ios::in);
+        if (!input_file) {
+            FAIL() << "Could not find the file \"" << file_name
+                   << "\", which is required for this test.\n";
+        }
+        csr = gko::read<Csr>(input_file, ref);
+        auto csr_hip_temp = Csr::create(exec);
+        csr_hip_temp->copy_from(gko::lend(csr));
+        d_csr = gko::give(csr_hip_temp);
     }
 
     void TearDown()
     {
-        if (omp != nullptr) {
-            ASSERT_NO_THROW(omp->synchronize());
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
         }
     }
 
@@ -103,39 +119,39 @@ protected:
             stop_status->get_data()[i].reset();
         }
 
-        d_b = Mtx::create(omp);
+        d_b = Mtx::create(exec);
         d_b->copy_from(b.get());
-        d_r = Mtx::create(omp);
+        d_r = Mtx::create(exec);
         d_r->copy_from(r.get());
-        d_z = Mtx::create(omp);
+        d_z = Mtx::create(exec);
         d_z->copy_from(z.get());
-        d_p = Mtx::create(omp);
+        d_p = Mtx::create(exec);
         d_p->copy_from(p.get());
-        d_q = Mtx::create(omp);
+        d_q = Mtx::create(exec);
         d_q->copy_from(q.get());
-        d_r2 = Mtx::create(omp);
+        d_r2 = Mtx::create(exec);
         d_r2->copy_from(r2.get());
-        d_z2 = Mtx::create(omp);
+        d_z2 = Mtx::create(exec);
         d_z2->copy_from(z2.get());
-        d_p2 = Mtx::create(omp);
+        d_p2 = Mtx::create(exec);
         d_p2->copy_from(p2.get());
-        d_q2 = Mtx::create(omp);
+        d_q2 = Mtx::create(exec);
         d_q2->copy_from(q2.get());
-        d_x = Mtx::create(omp);
+        d_x = Mtx::create(exec);
         d_x->copy_from(x.get());
-        d_beta = Mtx::create(omp);
+        d_beta = Mtx::create(exec);
         d_beta->copy_from(beta.get());
-        d_prev_rho = Mtx::create(omp);
+        d_prev_rho = Mtx::create(exec);
         d_prev_rho->copy_from(prev_rho.get());
-        d_rho = Mtx::create(omp);
+        d_rho = Mtx::create(exec);
         d_rho->copy_from(rho.get());
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(omp, n));
+            new gko::Array<gko::stopping_status>(exec, n));
         *d_stop_status = *stop_status;
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::OmpExecutor> omp;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::ranlux48 rand_engine;
 
@@ -152,6 +168,7 @@ protected:
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> prev_rho;
     std::unique_ptr<Mtx> rho;
+    std::shared_ptr<Csr> csr;
     std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
 
     std::unique_ptr<Mtx> d_b;
@@ -167,19 +184,20 @@ protected:
     std::unique_ptr<Mtx> d_beta;
     std::unique_ptr<Mtx> d_prev_rho;
     std::unique_ptr<Mtx> d_rho;
+    std::shared_ptr<Csr> d_csr;
     std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
 };
 
 
-TEST_F(Bicg, OmpBicgInitializeIsEquivalentToRef)
+TEST_F(Bicg, BicgInitializeIsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::bicg::initialize(
         ref, b.get(), r.get(), z.get(), p.get(), q.get(), prev_rho.get(),
         rho.get(), r2.get(), z2.get(), p2.get(), q2.get(), stop_status.get());
-    gko::kernels::omp::bicg::initialize(
-        omp, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(),
+    gko::kernels::EXEC_NAMESPACE::bicg::initialize(
+        exec, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(),
         d_prev_rho.get(), d_rho.get(), d_r2.get(), d_z2.get(), d_p2.get(),
         d_q2.get(), d_stop_status.get());
 
@@ -197,16 +215,16 @@ TEST_F(Bicg, OmpBicgInitializeIsEquivalentToRef)
 }
 
 
-TEST_F(Bicg, OmpBicgStep1IsEquivalentToRef)
+TEST_F(Bicg, BicgStep1IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::bicg::step_1(ref, p.get(), z.get(), p2.get(),
                                           z2.get(), rho.get(), prev_rho.get(),
                                           stop_status.get());
-    gko::kernels::omp::bicg::step_1(omp, d_p.get(), d_z.get(), d_p2.get(),
-                                    d_z2.get(), d_rho.get(), d_prev_rho.get(),
-                                    d_stop_status.get());
+    gko::kernels::EXEC_NAMESPACE::bicg::step_1(
+        exec, d_p.get(), d_z.get(), d_p2.get(), d_z2.get(), d_rho.get(),
+        d_prev_rho.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
@@ -215,16 +233,16 @@ TEST_F(Bicg, OmpBicgStep1IsEquivalentToRef)
 }
 
 
-TEST_F(Bicg, OmpBicgStep2IsEquivalentToRef)
+TEST_F(Bicg, BicgStep2IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::bicg::step_2(
         ref, x.get(), r.get(), r2.get(), p.get(), q.get(), q2.get(), beta.get(),
         rho.get(), stop_status.get());
-    gko::kernels::omp::bicg::step_2(
-        omp, d_x.get(), d_r.get(), d_r2.get(), d_p.get(), d_q.get(), d_q2.get(),
-        d_beta.get(), d_rho.get(), d_stop_status.get());
+    gko::kernels::EXEC_NAMESPACE::bicg::step_2(
+        exec, d_x.get(), d_r.get(), d_r2.get(), d_p.get(), d_q.get(),
+        d_q2.get(), d_beta.get(), d_rho.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
@@ -241,11 +259,11 @@ TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
     gko::test::make_hpd(mtx.get());
     auto x = gen_mtx(50, 3);
     auto b = gen_mtx(50, 3);
-    auto d_mtx = Mtx::create(omp);
+    auto d_mtx = Mtx::create(exec);
     d_mtx->copy_from(mtx.get());
-    auto d_x = Mtx::create(omp);
+    auto d_x = Mtx::create(exec);
     d_x->copy_from(x.get());
-    auto d_b = Mtx::create(omp);
+    auto d_b = Mtx::create(exec);
     d_b->copy_from(b.get());
     auto bicg_factory =
         gko::solver::Bicg<>::build()
@@ -258,13 +276,47 @@ TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
     auto d_bicg_factory =
         gko::solver::Bicg<>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(omp),
+                gko::stop::Iteration::build().with_max_iters(50u).on(exec),
                 gko::stop::ResidualNorm<>::build()
                     .with_reduction_factor(1e-14)
-                    .on(omp))
-            .on(omp);
+                    .on(exec))
+            .on(exec);
     auto solver = bicg_factory->generate(std::move(mtx));
     auto d_solver = d_bicg_factory->generate(std::move(d_mtx));
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(d_b.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+}
+
+
+TEST_F(Bicg, ApplyWithSuiteSparseMatrixIsEquivalentToRef)
+{
+    auto x = gen_mtx(36, 1);
+    auto b = gen_mtx(36, 1);
+    auto d_x = Mtx::create(exec);
+    d_x->copy_from(x.get());
+    auto d_b = Mtx::create(exec);
+    d_b->copy_from(b.get());
+    auto bicg_factory =
+        gko::solver::Bicg<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(50u).on(ref),
+                gko::stop::ResidualNorm<>::build()
+                    .with_reduction_factor(1e-14)
+                    .on(ref))
+            .on(ref);
+    auto d_bicg_factory =
+        gko::solver::Bicg<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(50u).on(exec),
+                gko::stop::ResidualNorm<>::build()
+                    .with_reduction_factor(1e-14)
+                    .on(exec))
+            .on(exec);
+    auto solver = bicg_factory->generate(std::move(csr));
+    auto d_solver = d_bicg_factory->generate(std::move(d_csr));
 
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());
@@ -278,11 +330,11 @@ TEST_F(Bicg, ApplyWithRandomMatrixIsEquivalentToRef)
     auto mtx = gen_mtx(50, 50);
     auto x = gen_mtx(50, 3);
     auto b = gen_mtx(50, 3);
-    auto d_mtx = Mtx::create(omp);
+    auto d_mtx = Mtx::create(exec);
     d_mtx->copy_from(mtx.get());
-    auto d_x = Mtx::create(omp);
+    auto d_x = Mtx::create(exec);
     d_x->copy_from(x.get());
-    auto d_b = Mtx::create(omp);
+    auto d_b = Mtx::create(exec);
     d_b->copy_from(b.get());
     auto bicg_factory =
         gko::solver::Bicg<>::build()
@@ -295,11 +347,11 @@ TEST_F(Bicg, ApplyWithRandomMatrixIsEquivalentToRef)
     auto d_bicg_factory =
         gko::solver::Bicg<>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(omp),
+                gko::stop::Iteration::build().with_max_iters(50u).on(exec),
                 gko::stop::ResidualNorm<>::build()
                     .with_reduction_factor(1e-14)
-                    .on(omp))
-            .on(omp);
+                    .on(exec))
+            .on(exec);
     auto solver = bicg_factory->generate(std::move(mtx));
     auto d_solver = d_bicg_factory->generate(std::move(d_mtx));
 

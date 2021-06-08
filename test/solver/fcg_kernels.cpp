@@ -48,7 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/fcg_kernels.hpp"
-#include "hip/test/utils.hip.hpp"
+#include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
@@ -63,15 +64,14 @@ protected:
 
     void SetUp()
     {
-        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        hip = gko::HipExecutor::create(0, ref);
+        init_executor(ref, exec);
     }
 
     void TearDown()
     {
-        if (hip != nullptr) {
-            ASSERT_NO_THROW(hip->synchronize());
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
         }
     }
 
@@ -104,35 +104,35 @@ protected:
             stop_status->get_data()[i].reset();
         }
 
-        d_b = Mtx::create(hip);
+        d_b = Mtx::create(exec);
         d_b->copy_from(b.get());
-        d_r = Mtx::create(hip);
+        d_r = Mtx::create(exec);
         d_r->copy_from(r.get());
-        d_t = Mtx::create(hip);
+        d_t = Mtx::create(exec);
         d_t->copy_from(t.get());
-        d_z = Mtx::create(hip);
+        d_z = Mtx::create(exec);
         d_z->copy_from(z.get());
-        d_p = Mtx::create(hip);
+        d_p = Mtx::create(exec);
         d_p->copy_from(p.get());
-        d_q = Mtx::create(hip);
+        d_q = Mtx::create(exec);
         d_q->copy_from(q.get());
-        d_x = Mtx::create(hip);
+        d_x = Mtx::create(exec);
         d_x->copy_from(x.get());
-        d_beta = Mtx::create(hip);
+        d_beta = Mtx::create(exec);
         d_beta->copy_from(beta.get());
-        d_prev_rho = Mtx::create(hip);
+        d_prev_rho = Mtx::create(exec);
         d_prev_rho->copy_from(prev_rho.get());
-        d_rho_t = Mtx::create(hip);
+        d_rho_t = Mtx::create(exec);
         d_rho_t->copy_from(rho_t.get());
-        d_rho = Mtx::create(hip);
+        d_rho = Mtx::create(exec);
         d_rho->copy_from(rho.get());
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(hip, n));
+            new gko::Array<gko::stopping_status>(exec, n));
         *d_stop_status = *stop_status;
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::HipExecutor> hip;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::ranlux48 rand_engine;
 
@@ -164,15 +164,15 @@ protected:
 };
 
 
-TEST_F(Fcg, HipFcgInitializeIsEquivalentToRef)
+TEST_F(Fcg, FcgInitializeIsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::fcg::initialize(
         ref, b.get(), r.get(), z.get(), p.get(), q.get(), t.get(),
         prev_rho.get(), rho.get(), rho_t.get(), stop_status.get());
-    gko::kernels::hip::fcg::initialize(
-        hip, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(), d_t.get(),
+    gko::kernels::EXEC_NAMESPACE::fcg::initialize(
+        exec, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(), d_t.get(),
         d_prev_rho.get(), d_rho.get(), d_rho_t.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
@@ -187,29 +187,30 @@ TEST_F(Fcg, HipFcgInitializeIsEquivalentToRef)
 }
 
 
-TEST_F(Fcg, HipFcgStep1IsEquivalentToRef)
+TEST_F(Fcg, FcgStep1IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::fcg::step_1(ref, p.get(), z.get(), rho_t.get(),
                                          prev_rho.get(), stop_status.get());
-    gko::kernels::hip::fcg::step_1(hip, d_p.get(), d_z.get(), d_rho_t.get(),
-                                   d_prev_rho.get(), d_stop_status.get());
+    gko::kernels::EXEC_NAMESPACE::fcg::step_1(exec, d_p.get(), d_z.get(),
+                                              d_rho_t.get(), d_prev_rho.get(),
+                                              d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
 }
 
 
-TEST_F(Fcg, HipFcgStep2IsEquivalentToRef)
+TEST_F(Fcg, FcgStep2IsEquivalentToRef)
 {
     initialize_data();
     gko::kernels::reference::fcg::step_2(ref, x.get(), r.get(), t.get(),
                                          p.get(), q.get(), beta.get(),
                                          rho.get(), stop_status.get());
-    gko::kernels::hip::fcg::step_2(hip, d_x.get(), d_r.get(), d_t.get(),
-                                   d_p.get(), d_q.get(), d_beta.get(),
-                                   d_rho.get(), d_stop_status.get());
+    gko::kernels::EXEC_NAMESPACE::fcg::step_2(
+        exec, d_x.get(), d_r.get(), d_t.get(), d_p.get(), d_q.get(),
+        d_beta.get(), d_rho.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
@@ -223,11 +224,11 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
     gko::test::make_hpd(mtx.get());
     auto x = gen_mtx(50, 3);
     auto b = gen_mtx(50, 3);
-    auto d_mtx = Mtx::create(hip);
+    auto d_mtx = Mtx::create(exec);
     d_mtx->copy_from(mtx.get());
-    auto d_x = Mtx::create(hip);
+    auto d_x = Mtx::create(exec);
     d_x->copy_from(x.get());
-    auto d_b = Mtx::create(hip);
+    auto d_b = Mtx::create(exec);
     d_b->copy_from(b.get());
     auto fcg_factory =
         Solver::build()
@@ -240,11 +241,11 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
     auto d_fcg_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(hip),
+                gko::stop::Iteration::build().with_max_iters(50u).on(exec),
                 gko::stop::ResidualNorm<>::build()
                     .with_reduction_factor(1e-14)
-                    .on(hip))
-            .on(hip);
+                    .on(exec))
+            .on(exec);
     auto solver = fcg_factory->generate(std::move(mtx));
     auto d_solver = d_fcg_factory->generate(std::move(d_mtx));
 
