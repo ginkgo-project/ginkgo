@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/batch_struct.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
-#include "omp/stop/batch_criteria.hpp"
+#include "reference/stop/batch_criteria.hpp"
 
 
 namespace {
@@ -56,7 +56,7 @@ void conv_check(const int nrhs, const int nrows,
                 const T *const residual, uint32_t *const converged,
                 bool *const all_conv)
 {
-    using BatchStop = gko::kernels::omp::stop::RelResidualMaxIter<T>;
+    using BatchStop = gko::kernels::reference::stop::RelResidualMaxIter<T>;
     const int maxits = 10;
     const int iter = 5;
     const gko::remove_complex<T> tol = 1e-5;
