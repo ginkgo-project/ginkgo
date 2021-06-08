@@ -165,16 +165,6 @@ const cuda_type<ValueType> *vector(const matrix::Dense<ValueType> *mtx)
 
 
 template <typename T>
-struct device_unpack_1d_impl {
-    using type = T;
-    static __device__ __forceinline__ type unpack(T param, size_type, size_type)
-    {
-        return param;
-    }
-};
-
-
-template <typename T>
 struct device_unpack_2d_impl {
     using type = T;
     static __device__ __forceinline__ type unpack(T param, size_type, size_type,
@@ -204,7 +194,7 @@ __global__ __launch_bounds__(default_block_size) void generic_kernel_1d(
     if (tidx >= size) {
         return;
     }
-    fn(tidx, device_unpack_1d_impl<KernelArgs>::unpack(args, tidx, size)...);
+    fn(tidx, args...);
 }
 
 

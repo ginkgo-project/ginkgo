@@ -156,13 +156,6 @@ const ValueType *vector(const matrix::Dense<ValueType> *mtx)
 
 
 template <typename T>
-struct device_unpack_1d_impl {
-    using type = T;
-    static type unpack(T param, size_type, size_type) { return param; }
-};
-
-
-template <typename T>
 struct device_unpack_2d_impl {
     using type = T;
     static type unpack(T param, size_type, size_type, size_type, size_type)
@@ -180,15 +173,6 @@ struct device_unpack_2d_impl<compact_dense_wrapper<ValueType>> {
         return {param.data, num_cols};
     }
 };
-
-
-template <typename T>
-typename device_unpack_1d_impl<typename to_device_type_impl<T>::type>::type
-map_unpack_to_device(T &&param, size_type i, size_type size)
-{
-    return device_unpack_1d_impl<typename to_device_type_impl<T>::type>::unpack(
-        to_device_type_impl<T>::map_to_device(param), i, size);
-}
 
 
 template <typename T>
@@ -212,9 +196,7 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
 {
 #pragma omp parallel for
     for (size_type i = 0; i < size; i++) {
-        [&]() {
-            fn(i, kernels::omp::map_unpack_to_device(args, i, size)...);
-        }();
+        [&]() { fn(i, kernels::omp::map_to_device(args)...); }();
     }
 }
 
@@ -222,15 +204,15 @@ template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
                 dim<2> size, KernelArgs &&... args)
 {
-#pragma omp parallel for
-    for (size_type i = 0; i < size[0] * size[1]; i++) {
-        auto row = i / size[1];
-        auto col = i % size[1];
-        [&]() {
-            fn(row, col,
-               kernels::omp::map_unpack_to_device(args, row, col, size[0],
-                                                  size[1])...);
-        }();
+#pragma omp parallel for collapse(2)
+    for (size_type row = 0; row < size[0]; row++) {
+        for (size_type col = 0; col < size[1]; col++) {
+            [&]() {
+                fn(row, col,
+                   kernels::omp::map_unpack_to_device(args, row, col, size[0],
+                                                      size[1])...);
+            }();
+        }
     }
 }
 

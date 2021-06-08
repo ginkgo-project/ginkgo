@@ -159,13 +159,6 @@ const ValueType *vector(const matrix::Dense<ValueType> *mtx)
 
 
 template <typename T>
-struct device_unpack_1d_impl {
-    using type = T;
-    static type unpack(T param, size_type, size_type) { return param; }
-};
-
-
-template <typename T>
 struct device_unpack_2d_impl {
     using type = T;
     static type unpack(T param, size_type, size_type, size_type, size_type)
@@ -191,7 +184,7 @@ void generic_kernel_1d(sycl::handler &cgh, size_type size, KernelFunction fn,
 {
     cgh.parallel_for(sycl::range<1>{size}, [=](sycl::id<1> idx_id) {
         auto idx = static_cast<size_type>(idx_id[0]);
-        fn(idx, device_unpack_1d_impl<KernelArgs>::unpack(args, idx, size)...);
+        fn(idx, args...);
     });
 }
 
@@ -200,10 +193,9 @@ template <typename KernelFunction, typename... KernelArgs>
 void generic_kernel_2d(sycl::handler &cgh, size_type rows, size_type cols,
                        KernelFunction fn, KernelArgs... args)
 {
-    cgh.parallel_for(sycl::range<1>{rows * cols}, [=](sycl::id<1> idx_id) {
-        auto idx = static_cast<size_type>(idx_id[0]);
-        auto row = idx / cols;
-        auto col = idx % cols;
+    cgh.parallel_for(sycl::range<2>{rows, cols}, [=](sycl::id<2> idx) {
+        auto row = static_cast<size_type>(idx[0]);
+        auto col = static_cast<size_type>(idx[1]);
         fn(row, col,
            device_unpack_2d_impl<KernelArgs>::unpack(args, row, col, rows,
                                                      cols)...);
