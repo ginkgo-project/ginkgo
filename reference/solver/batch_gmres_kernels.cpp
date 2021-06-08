@@ -59,27 +59,6 @@ namespace batch_gmres {
 namespace {
 
 
-template <typename ValueType>
-inline void copy(
-    const gko::batch_dense::BatchEntry<const ValueType> &source_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &destination_entry,
-    const uint32 &converged)
-{
-    for (int r = 0; r < source_entry.num_rows; r++) {
-        for (int c = 0; c < source_entry.num_rhs; c++) {
-            const uint32 conv = converged & (1 << c);
-
-            if (conv) {
-                continue;
-            }
-
-            destination_entry.values[r * destination_entry.stride + c] =
-                source_entry.values[r * source_entry.stride + c];
-        }
-    }
-}
-
-
 template <typename BatchMatrixType_entry, typename PrecType, typename ValueType>
 inline void initialize(
     const BatchMatrixType_entry &A_entry,
@@ -136,17 +115,6 @@ inline void initialize(
         }
     }
 
-    // for(int vec_num  = 0; vec_num < restart + 1; vec_num++)
-    // {
-    //     for(int row_idx = 0; row_idx < num_rows ; row_idx++)
-    //     {
-    //         for(int rhs_idx = 0; rhs_idx < num_rhs ; rhs_idx++)
-    //         {
-    //             V_entry.values[vec_num * V_entry.stride*num_rows + row_idx *
-    //             V_entry.stride + rhs_idx] = zero<ValueType>();
-    //         }
-    //     }
-    // }
 
     // initialize H with zeroes
     for (int r = 0; r < H_entry.num_rows; r++) {
@@ -154,18 +122,6 @@ inline void initialize(
             H_entry.values[r * H_entry.stride + c] = zero<ValueType>();
         }
     }
-
-    // for(int row_idx = 0; row_idx < restart + 1; row_idx++)
-    // {
-    //     for(int col_idx = 0; col_idx < restart; col_idx++)
-    //     {
-    //         for(int rhs_idx = 0; rhs_idx < num_rhs ; rhs_idx++)
-    //         {
-    //             H_entry.values[row_idx * H_entry.stride + col_idx*num_rhs +
-    //             rhs_idx] = zero<ValueType>();
-    //         }
-    //     }
-    // }
 }
 
 template <typename ValueType>
@@ -235,7 +191,7 @@ inline void update_v_naught_and_s(
     const gko::batch_dense::BatchEntry<real_type> &z_norms_entry =
         tmp_norms_entry;
 
-    batch_dense::compute_norm2(z_entry, z_norms_entry);
+    batch_dense::compute_norm2(z_entry, z_norms_entry, converged);
 
     for (int r = 0; r < v_naught_entry.num_rows; r++) {
         for (int c = 0; c < v_naught_entry.num_rhs; c++) {
@@ -312,7 +268,7 @@ inline void arnoldi_method(
 
 
         batch_dense::compute_dot_product(gko::batch::to_const(w_entry),
-                                         v_k_entry, h_k_i_entry);
+                                         v_k_entry, h_k_i_entry, converged);
 
 
         for (int r = 0; r < w_entry.num_rows; r++) {
@@ -335,7 +291,8 @@ inline void arnoldi_method(
     const gko::batch_dense::BatchEntry<real_type> &w_norms_entry =
         tmp_norms_entry;
 
-    batch_dense::compute_norm2(gko::batch::to_const(w_entry), w_norms_entry);
+    batch_dense::compute_norm2(gko::batch::to_const(w_entry), w_norms_entry,
+                               converged);
 
     const gko::batch_dense::BatchEntry<ValueType> h_i_plus_1_i_entry{
         &H_entry.values[(i + 1) * H_entry.stride + i * num_rhs],
@@ -471,8 +428,7 @@ static void apply_impl(
         real_type *const norms_rhs = reinterpret_cast<real_type *>(
             prec_work + PrecType::dynamic_work_size(nrows, a.num_nnz));
         real_type *const norms_res = norms_rhs + nrhs;
-        real_type *const norms_res_temp = norms_res + nrhs;
-        real_type *const norms_tmp = norms_res_temp + nrhs;
+        real_type *const norms_tmp = norms_res + nrhs;
 
         uint32 converged = 0;
 
@@ -571,9 +527,6 @@ static void apply_impl(
         const gko::batch_dense::BatchEntry<real_type> res_norms_entry{
             norms_res, static_cast<size_type>(nrhs), 1, nrhs};
 
-
-        const gko::batch_dense::BatchEntry<real_type> res_norms_temp_entry{
-            norms_res_temp, static_cast<size_type>(nrhs), 1, nrhs};
 
         const gko::batch_dense::BatchEntry<real_type> tmp_norms_entry{
             norms_tmp, static_cast<size_type>(nrhs), 1, nrhs};
@@ -697,13 +650,16 @@ static void apply_impl(
 
                 // estimate of residual norms
                 // residual = abs(s(inner_iter + 1))
-                for (int c = 0; c < res_norms_temp_entry.num_rhs; c++) {
-                    res_norms_temp_entry.values[c] = abs(
+                for (int c = 0; c < res_norms_entry.num_rhs; c++) {
+                    const uint32 conv = converged & (1 << c);
+
+                    if (conv) {
+                        continue;
+                    }
+
+                    res_norms_entry.values[c] = abs(
                         s_entry.values[(inner_iter + 1) * s_entry.stride + c]);
                 }
-
-                copy(gko::batch::to_const(res_norms_temp_entry),
-                     res_norms_entry, converged);
 
                 const uint32 converged_prev = converged;
 
@@ -743,17 +699,15 @@ static void apply_impl(
 
 
             // r = b
-            copy(b_entry, r_entry, converged);
+            batch_dense::copy(b_entry, r_entry, converged);
 
             // r = r - A*x
             advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
                                  gko::batch::to_const(x_entry),
                                  static_cast<ValueType>(1.0), r_entry);
             batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
-                                                  res_norms_temp_entry);
+                                                  res_norms_entry, converged);
 
-            copy(gko::batch::to_const(res_norms_temp_entry), res_norms_entry,
-                 converged);
 
             // z = precond * r
             prec.apply(gko::batch::to_const(r_entry), z_entry);
