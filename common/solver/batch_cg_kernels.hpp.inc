@@ -46,9 +46,7 @@ __device__ __forceinline__ void initialize(
     const gko::batch_dense::BatchEntry<ValueType> &rho_old_shared_entry,
     const gko::batch_dense::BatchEntry<ValueType> &p_shared_entry,
     const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &rhs_norms_shared_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &res_norms_shared_entry)
+        &rhs_norms_shared_entry)
 {
     // Compute norms of rhs
     compute_norm2<ValueType>(b_global_entry, rhs_norms_shared_entry);
@@ -69,9 +67,6 @@ __device__ __forceinline__ void initialize(
                          gko::batch::to_const(x_shared_entry),
                          static_cast<ValueType>(1.0), r_shared_entry);
     __syncthreads();
-
-    compute_norm2<ValueType>(gko::batch::to_const(r_shared_entry),
-                             res_norms_shared_entry);
 
 
     // z = precond * r
@@ -161,6 +156,26 @@ __device__ __forceinline__ void update_x_and_r(
     }
 }
 
+
+template <typename ValueType>
+__device__ __forceinline__ void use_implicit_norms(
+    const gko::batch_dense::BatchEntry<const ValueType> &rho_old_shared_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
+        &res_norms_shared_entry,
+    const uint32 &converged)
+{
+    for (int c = threadIdx.x; c < res_norms_shared_entry.num_rhs;
+         c += blockDim.x) {
+        const uint32 conv = converged & (1 << c);
+
+        if (conv) {
+            continue;
+        }
+
+        res_norms_shared_entry.values[c] =
+            sqrt(abs(rho_old_shared_entry.values[c]));
+    }
+}
 
 }  // namespace
 
@@ -277,14 +292,13 @@ __global__ void apply_kernel(
         // compute b norms
         // r = b - A*x
         // z = precond*r
-        // compute residual norms
         // rho_old = r' * z (' is for hermitian transpose)
         // p = z
         initialize(A_global_entry, b_global_entry,
                    gko::batch::to_const(x_global_entry), x_shared_entry,
                    r_shared_entry, prec_shared, z_shared_entry,
-                   rho_old_shared_entry, p_shared_entry, rhs_norms_shared_entry,
-                   res_norms_shared_entry);
+                   rho_old_shared_entry, p_shared_entry,
+                   rhs_norms_shared_entry);
 
 
         __syncthreads();
@@ -300,6 +314,11 @@ __global__ void apply_kernel(
         while (1) {
             ++iter;
 
+            use_implicit_norms(gko::batch::to_const(rho_old_shared_entry),
+                               res_norms_shared_entry,
+                               converged);  // use implicit residual norms
+
+            __syncthreads();
 
             bool all_converged =
                 stop.check_converged(iter, res_norms_shared_entry.values,
@@ -327,11 +346,6 @@ __global__ void apply_kernel(
                            alpha_shared_entry, x_shared_entry, r_shared_entry,
                            converged);
 
-            __syncthreads();
-
-            compute_norm2<ValueType>(gko::batch::to_const(r_shared_entry),
-                                     res_norms_shared_entry,
-                                     converged);  // residual norms
             __syncthreads();
 
 
