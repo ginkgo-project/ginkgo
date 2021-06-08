@@ -69,9 +69,7 @@ inline void initialize(
     const gko::batch_dense::BatchEntry<ValueType> &rho_old_entry,
     const gko::batch_dense::BatchEntry<ValueType> &p_entry,
     const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &rhs_norms_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &res_norms_entry)
+        &rhs_norms_entry)
 {
     // Compute norms of rhs
     batch_dense::compute_norm2<ValueType>(b_entry, rhs_norms_entry);
@@ -84,10 +82,6 @@ inline void initialize(
     advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
                          gko::batch::to_const(x_entry),
                          static_cast<ValueType>(1.0), r_entry);
-    batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
-                                          res_norms_entry);
-
-
     // z = precond * r
     prec.apply(gko::batch::to_const(r_entry), z_entry);
 
@@ -165,6 +159,24 @@ inline void update_x_and_r(
     }
 }
 
+
+template <typename ValueType>
+inline void use_implicit_norms(
+    const gko::batch_dense::BatchEntry<const ValueType> &rho_old_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
+        &res_norms_entry,
+    const uint32 &converged)
+{
+    for (int c = 0; c < res_norms_entry.num_rhs; c++) {
+        const uint32 conv = converged & (1 << c);
+
+        if (conv) {
+            continue;
+        }
+
+        res_norms_entry.values[c] = sqrt(abs(rho_old_entry.values[c]));
+    }
+}
 
 }  // unnamed namespace
 
@@ -284,12 +296,10 @@ static void apply_impl(
         // compute b norms
         // r = b - A*x
         // z = precond*r
-        // compute residual norms
         // rho_old = r' * z (' is for hermitian transpose)
         // p = z
         initialize(A_entry, b_entry, gko::batch::to_const(x_entry), r_entry,
-                   prec, z_entry, rho_old_entry, p_entry, rhs_norms_entry,
-                   res_norms_entry);
+                   prec, z_entry, rho_old_entry, p_entry, rhs_norms_entry);
 
         // stopping criterion object
         StopType stop(nrhs, opts.max_its, opts.residual_tol,
@@ -300,6 +310,9 @@ static void apply_impl(
         while (1) {
             ++iter;
 
+            use_implicit_norms(gko::batch::to_const(rho_old_entry),
+                               res_norms_entry,
+                               converged);  // use implicit residual norms
 
             bool all_converged = stop.check_converged(
                 iter, res_norms_entry.values, {NULL, 0, 0, 0}, converged);
@@ -321,10 +334,6 @@ static void apply_impl(
                            gko::batch::to_const(p_entry),
                            gko::batch::to_const(Ap_entry), alpha_entry, x_entry,
                            r_entry, converged);
-
-            batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
-                                                  res_norms_entry,
-                                                  converged);  // residual norms
 
 
             // z = precond * r
