@@ -70,7 +70,7 @@ namespace stop = gko::kernels::reference::stop;
 namespace batch_log = gko::kernels::reference::batch_log;
 
 
-#include "reference/solver/batch_cg_kernels.hpp"
+#include "reference/solver/batch_cg_kernels.hpp.inc"
 
 
 }  // unnamed namespace
@@ -90,7 +90,6 @@ static void apply_impl(
     const gko::batch_dense::UniformBatch<ValueType> &b,
     const gko::batch_dense::UniformBatch<ValueType> &x)
 {
-    using real_type = typename gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
@@ -106,8 +105,13 @@ static void apply_impl(
 
     Array<byte> local_space(exec, local_size_bytes);
 
+
 #pragma omp parallel for firstprivate(logger) firstprivate(local_space)
-#include "reference/solver/batch_cg_body.hpp"
+    for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
+        batch_entry_cg_impl<StopType, PrecType, LogType, BatchMatrixType,
+                            ValueType, byte>(opts, logger, prec, a, left, right,
+                                             b, x, ibatch, local_space);
+    }
 }
 
 
