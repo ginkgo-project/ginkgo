@@ -261,7 +261,7 @@ protected:
     using rmc_value_type = gko::remove_complex<value_type>;
     using Csr = gko::matrix::Csr<value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
-    using Solver = gko::solver::Multigrid<value_type>;
+    using Solver = gko::solver::Multigrid;
     using Coarse = gko::multigrid::AmgxPgm<value_type>;
     using CoarseNext = gko::multigrid::AmgxPgm<gko::next_precision<value_type>>;
     using Smoother = gko::preconditioner::Jacobi<value_type>;

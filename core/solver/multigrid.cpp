@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <iostream>
+#include <typeinfo>
 
 
 #include <ginkgo/core/base/exception.hpp>
@@ -70,6 +71,24 @@ GKO_REGISTER_OPERATION(kcycle_check_stop, multigrid::kcycle_check_stop);
 
 namespace {
 
+template <template <typename> class Base, typename T, typename func,
+          typename... Args>
+void run(T obj, func, Args... args)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+
+template <template <typename> class Base, typename K, typename... Types,
+          typename T, typename func, typename... Args>
+void run(T obj, func f, Args... args)
+{
+    if (auto dobj = std::dynamic_pointer_cast<const Base<K>>(obj)) {
+        f(dobj, args...);
+    } else {
+        run<Base, Types...>(obj, f, args...);
+    }
+}
 
 template <typename ValueType>
 void handle_list(
@@ -108,13 +127,11 @@ void handle_list(
 }
 
 
-template <typename ValueType>
 struct MultigridState {
     MultigridState(std::shared_ptr<const Executor> exec_in,
-                   const LinOp *system_matrix_in,
-                   const Multigrid<ValueType> *multigrid_in,
+                   const LinOp *system_matrix_in, const Multigrid *multigrid_in,
                    const size_type nrhs_in, const size_type k_base_in = 1,
-                   const remove_complex<ValueType> rel_tol_in = 1)
+                   const double rel_tol_in = 1)
         : exec{std::move(exec_in)},
           system_matrix(system_matrix_in),
           multigrid(multigrid_in),
@@ -149,41 +166,18 @@ struct MultigridState {
             auto next_nrows =
                 mg_level_list.at(i)->get_coarse_op()->get_size()[0];
             auto mg_level = mg_level_list.at(i);
-            // #define FOR_EACH(...)                                                       \
-//     if (std::dynamic_pointer_cast<                                          \
-//             const gko::multigrid::EnableMultigridLevel<HEAD(__VA_ARGS__)>>( \
-//             mg_level)) {                                                    \
-//         this->allocate_memory<HEAD(__VA_ARGS__)>(i, cycle, current_nrows,   \
-//                                                  next_nrows);               \
-//     } else {                                                                \
-//         FOR_EACH(TAIL(...));                                                \
-//     }
 
-            //     FOR_EACH(float, double, complex<float>, complex<double>);
-
-            if (std::dynamic_pointer_cast<
-                    const gko::multigrid::EnableMultigridLevel<float>>(
-                    mg_level)) {
-                this->allocate_memory<float>(i, cycle, current_nrows,
-                                             next_nrows);
-            } else if (std::dynamic_pointer_cast<
-                           const gko::multigrid::EnableMultigridLevel<double>>(
-                           mg_level)) {
-                this->allocate_memory<double>(i, cycle, current_nrows,
-                                              next_nrows);
-            } else if (std::dynamic_pointer_cast<
-                           const gko::multigrid::EnableMultigridLevel<
-                               std::complex<float>>>(mg_level)) {
-                this->allocate_memory<std::complex<float>>(
-                    i, cycle, current_nrows, next_nrows);
-            } else if (std::dynamic_pointer_cast<
-                           const gko::multigrid::EnableMultigridLevel<
-                               std::complex<double>>>(mg_level)) {
-                this->allocate_memory<std::complex<double>>(
-                    i, cycle, current_nrows, next_nrows);
-            } else {
-                GKO_NOT_IMPLEMENTED;
-            }
+            run<gko::multigrid::EnableMultigridLevel, float, double,
+                std::complex<float>, std::complex<double>>(
+                mg_level,
+                [this](auto mg_level, auto i, auto cycle, auto current_nrows,
+                       auto next_nrows) {
+                    using value_type = typename std::decay_t<
+                        detail::pointee<decltype(mg_level)>>::value_type;
+                    this->allocate_memory<value_type>(i, cycle, current_nrows,
+                                                      next_nrows);
+                },
+                i, cycle, current_nrows, next_nrows);
 
             current_nrows = next_nrows;
         }
@@ -232,24 +226,13 @@ struct MultigridState {
             return;
         }
         auto mg_level = multigrid->get_mg_level_list().at(level);
-        if (std::dynamic_pointer_cast<
-                const gko::multigrid::EnableMultigridLevel<float>>(mg_level)) {
-            this->run_cycle<float>(cycle, level, matrix, b, x);
-        } else if (std::dynamic_pointer_cast<
-                       const gko::multigrid::EnableMultigridLevel<double>>(
-                       mg_level)) {
-            this->run_cycle<double>(cycle, level, matrix, b, x);
-        } else if (std::dynamic_pointer_cast<
-                       const gko::multigrid::EnableMultigridLevel<
-                           std::complex<float>>>(mg_level)) {
-            this->run_cycle<std::complex<float>>(cycle, level, matrix, b, x);
-        } else if (std::dynamic_pointer_cast<
-                       const gko::multigrid::EnableMultigridLevel<
-                           std::complex<double>>>(mg_level)) {
-            this->run_cycle<std::complex<double>>(cycle, level, matrix, b, x);
-        } else {
-            GKO_NOT_IMPLEMENTED;
-        }
+        run<gko::multigrid::EnableMultigridLevel, float, double,
+            std::complex<float>, std::complex<double>>(
+            mg_level, [&, this](auto mg_level) {
+                using value_type = typename std::decay_t<
+                    detail::pointee<decltype(mg_level)>>::value_type;
+                this->run_cycle<value_type>(cycle, level, matrix, b, x);
+            });
     }
 
     template <typename VT>
@@ -418,18 +401,17 @@ struct MultigridState {
     std::vector<std::shared_ptr<const LinOp>> neg_one_list;
     std::shared_ptr<const Executor> exec;
     const LinOp *system_matrix;
-    const Multigrid<ValueType> *multigrid;
+    const Multigrid *multigrid;
     size_type nrhs;
     size_type k_base;
-    remove_complex<ValueType> rel_tol;
+    double rel_tol;
 };
 
 
 }  // namespace
 
 
-template <typename ValueType>
-void Multigrid<ValueType>::generate()
+void Multigrid::generate()
 {
     // generate coarse matrix until reaching max_level or min_coarse_rows
     auto num_rows = system_matrix_->get_size()[0];
@@ -452,42 +434,31 @@ void Multigrid<ValueType>::generate()
             // do not reduce dimension
             break;
         }
-#define COPY                                                            \
-    handle_list<VT>(exec, index, matrix, parameters_.pre_smoother,      \
-                    pre_smoother_list_);                                \
-    if (parameters_.mid_case == multigrid_mid_uses::mid) {              \
-        handle_list<VT>(exec, index, matrix, parameters_.mid_smoother,  \
-                        mid_smoother_list_);                            \
-    }                                                                   \
-    if (!parameters_.post_uses_pre) {                                   \
-        handle_list<VT>(exec, index, matrix, parameters_.post_smoother, \
-                        post_smoother_list_);                           \
-    }
 
+        run<gko::multigrid::EnableMultigridLevel, float, double,
+            std::complex<float>, std::complex<double>>(
+            mg_level,
+            [this](auto mg_level, auto index, auto matrix) {
+                using value_type = typename std::decay_t<
+                    detail::pointee<decltype(mg_level)>>::value_type;
+                auto exec = this->get_executor();
+                handle_list<value_type>(exec, index, matrix,
+                                        parameters_.pre_smoother,
+                                        pre_smoother_list_);
+                if (parameters_.mid_case == multigrid_mid_uses::mid) {
+                    handle_list<value_type>(exec, index, matrix,
+                                            parameters_.mid_smoother,
+                                            mid_smoother_list_);
+                }
+                if (!parameters_.post_uses_pre) {
+                    handle_list<value_type>(exec, index, matrix,
+                                            parameters_.post_smoother,
+                                            post_smoother_list_);
+                }
+            },
+            index, matrix);
         std::cout << "generate " << level << std::endl;
 
-        if (std::dynamic_pointer_cast<
-                gko::multigrid::EnableMultigridLevel<float>>(mg_level)) {
-            using VT = float;
-            COPY
-        } else if (std::dynamic_pointer_cast<
-                       gko::multigrid::EnableMultigridLevel<double>>(
-                       mg_level)) {
-            using VT = double;
-            COPY
-        } else if (std::dynamic_pointer_cast<
-                       gko::multigrid::EnableMultigridLevel<
-                           std::complex<float>>>(mg_level)) {
-            using VT = std::complex<float>;
-            COPY
-        } else if (std::dynamic_pointer_cast<
-                       gko::multigrid::EnableMultigridLevel<
-                           std::complex<double>>>(mg_level)) {
-            using VT = std::complex<double>;
-            COPY
-        } else {
-            GKO_NOT_IMPLEMENTED;
-        }
         mg_level_list_.emplace_back(mg_level);
         matrix = mg_level_list_.back()->get_coarse_op();
         std::cout << num_rows << " -> " << matrix->get_size()[0] << std::endl;
@@ -505,101 +476,107 @@ void Multigrid<ValueType>::generate()
     // Generate at least one level
     GKO_ASSERT_EQ(level > 0, true);
     auto last_mg_level = mg_level_list_.back();
-#define SOLVER                                                                \
-    if (parameters_.coarsest_solver.size() == 0) {                            \
-        coarsest_solver_ =                                                    \
-            matrix::Identity<VT>::create(exec, matrix->get_size()[0]);        \
-    } else {                                                                  \
-        auto temp_index = solver_index_(level, lend(matrix));                 \
-        GKO_ENSURE_IN_BOUNDS(temp_index, parameters_.coarsest_solver.size()); \
-        auto solver = parameters_.coarsest_solver.at(temp_index);             \
-        if (solver == nullptr) {                                              \
-            coarsest_solver_ =                                                \
-                matrix::Identity<VT>::create(exec, matrix->get_size()[0]);    \
-        } else {                                                              \
-            coarsest_solver_ = solver->generate(matrix);                      \
-        }                                                                     \
-    }
 
     // generate coarsest solver
-    if (std::dynamic_pointer_cast<
-            const gko::multigrid::EnableMultigridLevel<float>>(last_mg_level)) {
-        using VT = float;
-        SOLVER
-    } else if (std::dynamic_pointer_cast<
-                   const gko::multigrid::EnableMultigridLevel<double>>(
-                   last_mg_level)) {
-        using VT = double;
-        SOLVER
-    } else if (std::dynamic_pointer_cast<
-                   const gko::multigrid::EnableMultigridLevel<
-                       std::complex<float>>>(last_mg_level)) {
-        using VT = std::complex<float>;
-        SOLVER
-    } else if (std::dynamic_pointer_cast<
-                   const gko::multigrid::EnableMultigridLevel<
-                       std::complex<double>>>(last_mg_level)) {
-        using VT = std::complex<double>;
-        SOLVER
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    run<gko::multigrid::EnableMultigridLevel, float, double,
+        std::complex<float>, std::complex<double>>(
+        last_mg_level,
+        [this](auto mg_level, auto level, auto matrix) {
+            using value_type = typename std::decay_t<
+                detail::pointee<decltype(mg_level)>>::value_type;
+            auto exec = this->get_executor();
+            if (parameters_.coarsest_solver.size() == 0) {
+                coarsest_solver_ = matrix::Identity<value_type>::create(
+                    exec, matrix->get_size()[0]);
+            } else {
+                auto temp_index = solver_index_(level, lend(matrix));
+                GKO_ENSURE_IN_BOUNDS(temp_index,
+                                     parameters_.coarsest_solver.size());
+                auto solver = parameters_.coarsest_solver.at(temp_index);
+                if (solver == nullptr) {
+                    coarsest_solver_ = matrix::Identity<value_type>::create(
+                        exec, matrix->get_size()[0]);
+                } else {
+                    coarsest_solver_ = solver->generate(matrix);
+                }
+            }
+        },
+        level, matrix);
 }
 
 
-template <typename ValueType>
-void Multigrid<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Multigrid::apply_impl(const LinOp *b, LinOp *x) const
 {
-    auto exec = this->get_executor();
-    constexpr uint8 RelativeStoppingId{1};
-    Array<stopping_status> stop_status(exec, b->get_size()[1]);
-    bool one_changed{};
-    auto state = MultigridState<ValueType>(
-        exec, system_matrix_.get(), this, b->get_size()[1],
-        parameters_.kcycle_base, parameters_.kcycle_rel_tol);
-    exec->run(multigrid::make_initialize(&stop_status));
-    // compute the residual at the r_list(0);
-    auto r = state.r_list.at(0);
-    r->copy_from(b);
-    system_matrix_->apply(neg_one_op_.get(), x, one_op_.get(), r.get());
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
-        x, r.get());
-    int iter = -1;
-    while (true) {
-        ++iter;
-        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
-                                                            x);
-        if (stop_criterion->update()
-                .num_iterations(iter)
-                .residual(r.get())
-                .solution(x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
-            break;
-        }
-
-        state.run_cycle(cycle_, 0, system_matrix_, b, x);
+    auto lambda = [this](auto mg_level, auto b, auto x) {
+        using value_type = typename std::decay_t<
+            detail::pointee<decltype(mg_level)>>::value_type;
+        std::cout << "lambda " << typeid(value_type).name() << std::endl;
+        auto exec = this->get_executor();
+        auto neg_one_op =
+            initialize<matrix::Dense<value_type>>({-one<value_type>()}, exec);
+        auto one_op =
+            initialize<matrix::Dense<value_type>>({one<value_type>()}, exec);
+        constexpr uint8 RelativeStoppingId{1};
+        Array<stopping_status> stop_status(exec, b->get_size()[1]);
+        bool one_changed{};
+        auto state =
+            MultigridState(exec, system_matrix_.get(), this, b->get_size()[1],
+                           parameters_.kcycle_base, parameters_.kcycle_rel_tol);
+        exec->run(multigrid::make_initialize(&stop_status));
+        // compute the residual at the r_list(0);
+        auto r = state.r_list.at(0);
         r->copy_from(b);
-        system_matrix_->apply(neg_one_op_.get(), x, one_op_.get(), r.get());
-    }
+        system_matrix_->apply(lend(neg_one_op), x, lend(one_op), r.get());
+        auto stop_criterion = stop_criterion_factory_->generate(
+            system_matrix_,
+            std::shared_ptr<const LinOp>(b, [](const LinOp *) {}), x, r.get());
+        int iter = -1;
+        while (true) {
+            ++iter;
+            this->template log<log::Logger::iteration_complete>(this, iter,
+                                                                r.get(), x);
+            if (stop_criterion->update()
+                    .num_iterations(iter)
+                    .residual(r.get())
+                    .solution(x)
+                    .check(RelativeStoppingId, true, &stop_status,
+                           &one_changed)) {
+                break;
+            }
+
+            state.run_cycle(cycle_, 0, system_matrix_, b, x);
+            r->copy_from(b);
+            system_matrix_->apply(lend(neg_one_op), x, lend(one_op), r.get());
+        }
+    };
+
+    auto first_mg_level = this->get_mg_level_list().front();
+
+    run<gko::multigrid::EnableMultigridLevel, float, double,
+        std::complex<float>, std::complex<double>>(first_mg_level, lambda, b,
+                                                   x);
 }
 
 
-template <typename ValueType>
-void Multigrid<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                      const LinOp *beta, LinOp *x) const
+void Multigrid::apply_impl(const LinOp *alpha, const LinOp *b,
+                           const LinOp *beta, LinOp *x) const
 {
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
+    auto lambda = [this](auto mg_level, auto alpha, auto b, auto beta, auto x) {
+        using value_type = typename std::decay_t<
+            detail::pointee<decltype(mg_level)>>::value_type;
+        std::cout << "lambda " << typeid(value_type).name() << std::endl;
+        auto dense_x = as<matrix::Dense<value_type>>(x);
+        auto x_clone = dense_x->clone();
+        this->apply(b, x_clone.get());
+        dense_x->scale(beta);
+        dense_x->add_scaled(alpha, x_clone.get());
+    };
+    auto first_mg_level = this->get_mg_level_list().front();
 
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, x_clone.get());
+    run<gko::multigrid::EnableMultigridLevel, float, double,
+        std::complex<float>, std::complex<double>>(first_mg_level, lambda,
+                                                   alpha, b, beta, x);
 }
-
-
-#define GKO_DECLARE_MULTIGRID(_type) class Multigrid<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID);
 
 
 }  // namespace solver

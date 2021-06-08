@@ -85,15 +85,11 @@ enum class multigrid_mid_uses { pre, mid, post };
  * @ingroup solvers
  * @ingroup LinOp
  */
-template <typename ValueType = default_precision>
-class Multigrid : public EnableLinOp<Multigrid<ValueType>> {
+class Multigrid : public EnableLinOp<Multigrid> {
     friend class EnableLinOp<Multigrid>;
     friend class EnablePolymorphicObject<Multigrid, LinOp>;
 
 public:
-    using value_type = ValueType;
-    using vector_type = matrix::Dense<ValueType>;
-
     /**
      * Return true as iterative solvers use the data in x as an initial guess.
      *
@@ -308,8 +304,7 @@ public:
          * kcycle_rel_tol == inf: always run two iterations.
          * ||updated_r|| <= kcycle_rel_tol ||r||: run second iteration.
          */
-        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(kcycle_rel_tol,
-                                                               0.25);
+        double GKO_FACTORY_PARAMETER_SCALAR(kcycle_rel_tol, 0.25);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -335,11 +330,7 @@ protected:
         : EnableLinOp<Multigrid>(factory->get_executor(),
                                  transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix},
-          one_op_{std::move(initialize<vector_type>({one<ValueType>()},
-                                                    factory->get_executor()))},
-          neg_one_op_{std::move(initialize<vector_type>(
-              {-one<ValueType>()}, factory->get_executor()))}
+          system_matrix_{system_matrix}
     {
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
 
@@ -419,8 +410,6 @@ private:
     std::shared_ptr<LinOp> coarsest_solver_{};
     std::function<size_type(const size_type, const LinOp *)> mg_level_index_;
     std::function<size_type(const size_type, const LinOp *)> solver_index_;
-    std::shared_ptr<matrix::Dense<ValueType>> one_op_;
-    std::shared_ptr<matrix::Dense<ValueType>> neg_one_op_;
     multigrid_cycle cycle_;
 };
 
