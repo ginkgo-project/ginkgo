@@ -33,30 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-template <typename ValueType>
-__device__ __forceinline__ void copy(
-    const gko::batch_dense::BatchEntry<const ValueType> &src_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &dest_shared_entry,
-    const uint32 &converged)
-{
-    for (int li = threadIdx.x;
-         li < dest_shared_entry.num_rhs * dest_shared_entry.num_rows;
-         li += blockDim.x) {
-        int r = li / dest_shared_entry.num_rhs;
-        int c = li % dest_shared_entry.num_rhs;
-
-        const uint32 conv = converged & (1 << c);
-
-        if (conv) {
-            continue;
-        }
-
-        dest_shared_entry.values[r * dest_shared_entry.stride + c] =
-            src_shared_entry.values[r * src_shared_entry.stride + c];
-    }
-}
-
-
 template <typename BatchMatrixType_entry, typename PrecType, typename ValueType>
 __device__ __forceinline__ void initialize(
     const BatchMatrixType_entry &A_global_entry,
@@ -78,16 +54,13 @@ __device__ __forceinline__ void initialize(
     // Compute norms of rhs
     compute_norm2<ValueType>(b_global_entry, rhs_norms_shared_entry);
 
-    /*
+
     // copy x from global to shared memory
     copy(x_global_entry, x_shared_entry);
 
     // r = b
     copy(b_global_entry, r_shared_entry);
-    */
-    // TODO: using normal copy functions leads to compilation errors
-    copy(x_global_entry, x_shared_entry, 0x00000000);
-    copy(b_global_entry, r_shared_entry, 0x00000000);
+
 
     __syncthreads();
 
@@ -117,28 +90,22 @@ __device__ __forceinline__ void initialize(
     }
 
 
-    for (int li = threadIdx.x;
-         li < V_shared_entry.num_rows * V_shared_entry.num_rhs;
-         li += blockDim.x) {
-        const int r = li / V_shared_entry.num_rhs;
-        const int c = li % V_shared_entry.num_rhs;
+    for (int tid = threadIdx.x;
+         tid < V_shared_entry.num_rows * V_shared_entry.num_rhs;
+         tid += blockDim.x) {
+        const int row_index =
+            (tid / V_shared_entry.num_rhs) % x_shared_entry.num_rows;
 
-        V_shared_entry.values[r * V_shared_entry.stride + c] =
-            zero<ValueType>();
+        const int basis_vec_index =
+            (tid / V_shared_entry.num_rhs) / x_shared_entry.num_rows;
+
+        const int rhs_index = tid % V_shared_entry.num_rhs;
+
+        V_shared_entry
+            .values[(basis_vec_index * x_shared_entry.num_rows + row_index) *
+                        V_shared_entry.stride +
+                    rhs_index] = zero<ValueType>();
     }
-
-    // for(int tid = threadIdx.x ; tid  < V_shared_entry.num_rows *
-    // V_shared_entry.num_rhs ; tid += blockDim.x)
-    // {
-    //     int row_index = ( tid / V_shared_entry.num_rhs ) %
-    //     x_shared_entry.num_rows; int basis_vec_index =  ( tid /
-    //     V_shared_entry.num_rhs ) / x_shared_entry.num_rows ; int rhs_index =
-    //     tid % V_shared_entry.num_rhs;
-
-    //     V_shared_entry.values[ ( basis_vec_index * x_shared_entry.num_rows  +
-    //     row_index ) * V_shared_entry.stride + rhs_index ] =
-    //     zero<ValueType>();
-    // }
 
 
     for (int li = threadIdx.x;
@@ -183,7 +150,7 @@ __device__ __forceinline__ void update_v_naught_and_s(
     const gko::batch_dense::BatchEntry<real_type> &z_norms_shared_entry =
         tmp_norms_shared_entry;
 
-    compute_norm2(z_shared_entry, z_norms_shared_entry);
+    compute_norm2(z_shared_entry, z_norms_shared_entry, converged);
 
     __syncthreads();
 
@@ -270,7 +237,7 @@ __device__ __forceinline__ void arnoldi(
             w_shared_entry.num_rhs};
 
         compute_dot_product(gko::batch::to_const(w_shared_entry),
-                            v_k_shared_entry, h_k_i_shared_entry);
+                            v_k_shared_entry, h_k_i_shared_entry, converged);
 
         __syncthreads();
 
@@ -302,7 +269,8 @@ __device__ __forceinline__ void arnoldi(
     const gko::batch_dense::BatchEntry<real_type> &w_norms_shared_entry =
         tmp_norms_shared_entry;
 
-    compute_norm2(gko::batch::to_const(w_shared_entry), w_norms_shared_entry);
+    compute_norm2(gko::batch::to_const(w_shared_entry), w_norms_shared_entry,
+                  converged);
 
     const gko::batch_dense::BatchEntry<ValueType> h_i_plus_1_i_shared_entry{
         &H_shared_entry.values[(i + 1) * H_shared_entry.stride + i * num_rhs],
@@ -501,8 +469,7 @@ __global__ void apply_kernel(
         real_type *const norms_rhs_sh = reinterpret_cast<real_type *>(
             prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz));
         real_type *const norms_res_sh = norms_rhs_sh + nrhs;
-        real_type *const norms_res_temp_sh = norms_res_sh + nrhs;
-        real_type *const norms_tmp_sh = norms_res_temp_sh + nrhs;
+        real_type *const norms_tmp_sh = norms_res_sh + nrhs;
 
 
         uint32 converged = 0;
@@ -609,10 +576,6 @@ __global__ void apply_kernel(
         const gko::batch_dense::BatchEntry<real_type> res_norms_shared_entry{
             norms_res_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-
-        const gko::batch_dense::BatchEntry<real_type>
-            res_norms_temp_shared_entry{norms_res_temp_sh,
-                                        static_cast<size_type>(nrhs), 1, nrhs};
 
         const gko::batch_dense::BatchEntry<real_type> tmp_norms_shared_entry{
             norms_tmp_sh, static_cast<size_type>(nrhs), 1, nrhs};
@@ -844,12 +807,8 @@ __global__ void apply_kernel(
 
 
             compute_norm2<ValueType>(gko::batch::to_const(r_shared_entry),
-                                     res_norms_temp_shared_entry);
+                                     res_norms_shared_entry, converged);
 
-            __syncthreads();
-
-            copy(gko::batch::to_const(res_norms_temp_shared_entry),
-                 res_norms_shared_entry, converged);
 
             prec_shared.apply(gko::batch::to_const(r_shared_entry),
                               z_shared_entry);
