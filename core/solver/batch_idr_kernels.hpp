@@ -94,7 +94,6 @@ struct BatchIdrOptions {
  * - norms_r
  * - rhs_norms
  * - res_norms
- * - res_temp_norms
  * - tmp_norms (this one is of length: subspace_dim)
  */
 template <typename ValueType>
@@ -105,7 +104,7 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs,
             num_rows * subspace_dim + 2 * num_rows * subspace_dim * num_rhs +
             subspace_dim * subspace_dim * num_rhs + 3 * num_rhs) *
                sizeof(ValueType) +
-           (5 * num_rhs + subspace_dim) *
+           (4 * num_rhs + subspace_dim) *
                sizeof(typename gko::remove_complex<ValueType>);
 }
 
