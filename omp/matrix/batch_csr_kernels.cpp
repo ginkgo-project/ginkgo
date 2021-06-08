@@ -50,9 +50,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/components/prefix_sum.hpp"
-#include "omp/components/format_conversion.hpp"
-#include "omp/matrix/batch_csr_kernels.hpp"
 #include "omp/matrix/batch_struct.hpp"
+#include "reference/matrix/batch_csr_kernels.hpp"
 
 namespace gko {
 namespace kernels {
@@ -79,7 +78,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);
         const auto c_b = gko::batch::batch_entry(c_ub, batch);
-        spmv_kernel(a_b, b_b, c_b);
+        gko::kernels::reference::spmv_kernel(a_b, b_b, c_b);
     }
 }
 
@@ -101,14 +100,15 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     const auto c_ub = get_batch_struct(c);
     const auto alpha_ub = get_batch_struct(alpha);
     const auto beta_ub = get_batch_struct(beta);
+#pragma omp parallel for
     for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);
         const auto c_b = gko::batch::batch_entry(c_ub, batch);
         const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
         const auto beta_b = gko::batch::batch_entry(beta_ub, batch);
-        gko::kernels::omp::advanced_spmv_kernel(alpha_b.values[0], a_b, b_b,
-                                                beta_b.values[0], c_b);
+        gko::kernels::reference::advanced_spmv_kernel(
+            alpha_b.values[0], a_b, b_b, beta_b.values[0], c_b);
     }
 }
 
@@ -135,7 +135,7 @@ void batch_scale(std::shared_ptr<const OmpExecutor> exec,
         auto a_b = gko::batch::batch_entry(a_ub, ibatch);
         auto left_b = gko::batch::batch_entry(left_ub, ibatch);
         auto right_b = gko::batch::batch_entry(right_ub, ibatch);
-        gko::kernels::omp::batch_scale(left_b, right_b, a_b);
+        gko::kernels::reference::batch_scale(left_b, right_b, a_b);
     }
 }
 
