@@ -37,13 +37,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "omp/base/config.hpp"
 // include device kernels for every matrix and preconditioner type
-#include "omp/log/batch_logger.hpp"
-#include "omp/matrix/batch_csr_kernels.hpp"
-#include "omp/matrix/batch_dense_kernels.hpp"
 #include "omp/matrix/batch_struct.hpp"
-#include "omp/preconditioner/batch_identity.hpp"
-#include "omp/preconditioner/batch_jacobi.hpp"
-#include "omp/stop/batch_criteria.hpp"
+#include "reference/log/batch_logger.hpp"
+#include "reference/matrix/batch_csr_kernels.hpp"
+#include "reference/matrix/batch_dense_kernels.hpp"
+#include "reference/preconditioner/batch_identity.hpp"
+#include "reference/preconditioner/batch_jacobi.hpp"
+#include "reference/stop/batch_criteria.hpp"
+
 
 namespace gko {
 namespace kernels {
