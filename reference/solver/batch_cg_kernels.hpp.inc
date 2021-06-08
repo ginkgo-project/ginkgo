@@ -31,7 +31,144 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
+template <typename BatchMatrixType_entry, typename PrecType, typename ValueType>
+inline void initialize(
+    const BatchMatrixType_entry &A_entry,
+    const gko::batch_dense::BatchEntry<const ValueType> &b_entry,
+    const gko::batch_dense::BatchEntry<const ValueType> &x_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &r_entry,
+    const PrecType &prec,
+    const gko::batch_dense::BatchEntry<ValueType> &z_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &rho_old_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &p_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
+        &rhs_norms_entry)
+{
+    // Compute norms of rhs
+    batch_dense::compute_norm2<ValueType>(b_entry, rhs_norms_entry);
+
+
+    // r = b
+    batch_dense::copy(b_entry, r_entry);
+
+    // r = b - A*x
+    advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
+                         gko::batch::to_const(x_entry),
+                         static_cast<ValueType>(1.0), r_entry);
+    // z = precond * r
+    prec.apply(gko::batch::to_const(r_entry), z_entry);
+
+
+    // p = z
+    batch_dense::copy(gko::batch::to_const(z_entry), p_entry);
+
+    // rho_old = r' * z
+    batch_dense::compute_dot_product(gko::batch::to_const(r_entry),
+                                     gko::batch::to_const(z_entry),
+                                     rho_old_entry);
+}
+
+
+template <typename ValueType>
+inline void update_p(
+    const gko::batch_dense::BatchEntry<const ValueType> &rho_new_entry,
+    const gko::batch_dense::BatchEntry<const ValueType> &rho_old_entry,
+    const gko::batch_dense::BatchEntry<const ValueType> &z_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &p_entry,
+    const uint32 &converged)
+{
+    for (int r = 0; r < p_entry.num_rows; r++) {
+        for (int c = 0; c < p_entry.num_rhs; c++) {
+            const uint32 conv = converged & (1 << c);
+
+            if (conv) {
+                continue;
+            }
+
+
+            const ValueType beta =
+                rho_new_entry.values[c] / rho_old_entry.values[c];
+
+            p_entry.values[r * p_entry.stride + c] =
+                z_entry.values[r * z_entry.stride + c] +
+                beta * p_entry.values[r * p_entry.stride + c];
+        }
+    }
+}
+
+
+template <typename ValueType>
+inline void update_x_and_r(
+    const gko::batch_dense::BatchEntry<const ValueType> &rho_old_entry,
+    const gko::batch_dense::BatchEntry<const ValueType> &p_entry,
+    const gko::batch_dense::BatchEntry<const ValueType> &Ap_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &alpha_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &x_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &r_entry,
+    const uint32 &converged)
+{
+    batch_dense::compute_dot_product<ValueType>(p_entry, Ap_entry, alpha_entry,
+                                                converged);
+
+    for (int r = 0; r < r_entry.num_rows; r++) {
+        for (int c = 0; c < r_entry.num_rhs; c++) {
+            const uint32 conv = converged & (1 << c);
+
+            if (conv) {
+                continue;
+            }
+
+            const ValueType alpha =
+                rho_old_entry.values[c] / alpha_entry.values[c];
+
+            x_entry.values[r * x_entry.stride + c] +=
+
+                alpha * p_entry.values[r * p_entry.stride + c];
+
+            r_entry.values[r * r_entry.stride + c] -=
+
+                alpha * Ap_entry.values[r * Ap_entry.stride + c];
+        }
+    }
+}
+
+
+template <typename ValueType>
+inline void use_implicit_norms(
+    const gko::batch_dense::BatchEntry<const ValueType> &rho_old_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
+        &res_norms_entry,
+    const uint32 &converged)
+{
+    for (int c = 0; c < res_norms_entry.num_rhs; c++) {
+        const uint32 conv = converged & (1 << c);
+
+        if (conv) {
+            continue;
+        }
+
+        res_norms_entry.values[c] = sqrt(abs(rho_old_entry.values[c]));
+    }
+}
+
+
+template <typename StopType, typename PrecType, typename LogType,
+          typename BatchMatrixType, typename ValueType, typename byte>
+inline void batch_entry_cg_impl(
+    const gko::kernels::batch_cg::BatchCgOptions<remove_complex<ValueType>>
+        &opts,
+    LogType logger, PrecType prec, const BatchMatrixType &a,
+    const gko::batch_dense::UniformBatch<const ValueType> &left,
+    const gko::batch_dense::UniformBatch<const ValueType> &right,
+    const gko::batch_dense::UniformBatch<ValueType> &b,
+    const gko::batch_dense::UniformBatch<ValueType> &x, const size_type ibatch,
+    Array<byte> &local_space)
+{
+    using real_type = typename gko::remove_complex<ValueType>;
+    const size_type nbatch = a.num_batch;
+    const auto nrows = a.num_rows;
+    const auto nrhs = b.num_rhs;
+
     byte *const shared_space = local_space.get_data();
     ValueType *const r = reinterpret_cast<ValueType *>(shared_space);
     ValueType *const z = r + nrows * nrhs;
