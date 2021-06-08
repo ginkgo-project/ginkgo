@@ -35,30 +35,6 @@ namespace {
 
 
 template <typename ValueType>
-__device__ __forceinline__ void copy(
-    const gko::batch_dense::BatchEntry<const ValueType> &src_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &dest_shared_entry,
-    const uint32 &converged)
-{
-    for (int li = threadIdx.x;
-         li < dest_shared_entry.num_rhs * dest_shared_entry.num_rows;
-         li += blockDim.x) {
-        const int r = li / dest_shared_entry.num_rhs;
-        const int c = li % dest_shared_entry.num_rhs;
-
-        const uint32 conv = converged & (1 << c);
-
-        if (conv) {
-            continue;
-        }
-
-        dest_shared_entry.values[r * dest_shared_entry.stride + c] =
-            src_shared_entry.values[r * src_shared_entry.stride + c];
-    }
-}
-
-
-template <typename ValueType>
 __device__ __forceinline__ void orthonormalize_subspace_vectors(
     const gko::batch_dense::BatchEntry<ValueType>
         &Subspace_vectors_shared_entry,
@@ -81,8 +57,7 @@ __device__ __forceinline__ void orthonormalize_subspace_vectors(
             temp_for_single_rhs_shared_entry;
 
         // w_i = p_i
-        copy(gko::batch::to_const(p_i_shared_entry), w_i_shared_entry,
-             0x00000000);  // TODO:Use normal copy function
+        copy(gko::batch::to_const(p_i_shared_entry), w_i_shared_entry);
 
 
         for (int j = 0; j < i; j++) {
@@ -125,8 +100,7 @@ __device__ __forceinline__ void orthonormalize_subspace_vectors(
         __syncthreads();
 
         // p_i = w_i
-        copy(gko::batch::to_const(w_i_shared_entry), p_i_shared_entry,
-             0x00000000);  // TODO:Use normal copy function
+        copy(gko::batch::to_const(w_i_shared_entry), p_i_shared_entry);
 
         compute_norm2(gko::batch::to_const(w_i_shared_entry),
                       gko::batch_dense::BatchEntry<real_type>{
@@ -140,8 +114,8 @@ __device__ __forceinline__ void orthonormalize_subspace_vectors(
 
     for (int tid = threadIdx.x; tid < subspace_dim * num_rows;
          tid += blockDim.x) {
-        int row_index = tid % num_rows;
-        int vec_index = tid / num_rows;
+        const int row_index = tid % num_rows;
+        const int vec_index = tid / num_rows;
 
         Subspace_vectors_shared_entry
             .values[vec_index * num_rows *
@@ -190,10 +164,8 @@ __device__ __forceinline__ void initialize(
 
 
     // copy x from global to shared memory
-    copy(x_global_entry, x_shared_entry,
-         0x00000000);  // TODO:Use normal copy function
-    copy(b_global_entry, r_shared_entry,
-         0x00000000);  // TODO:Use normal copy function
+    copy(x_global_entry, x_shared_entry);
+    copy(b_global_entry, r_shared_entry);
 
 
     __syncthreads();
@@ -253,10 +225,8 @@ __device__ __forceinline__ void initialize(
     if (smoothing == true) {
         // xs = x
         // rs = r
-        copy(gko::batch::to_const(x_shared_entry), xs_shared_entry,
-             0x00000000);  // TODO:Use normal copy function
-        copy(gko::batch::to_const(r_shared_entry), rs_shared_entry,
-             0x00000000);  // TODO:Use normal copy function
+        copy(gko::batch::to_const(x_shared_entry), xs_shared_entry);
+        copy(gko::batch::to_const(r_shared_entry), rs_shared_entry);
     }
 
     curandState_t state;
@@ -326,19 +296,17 @@ __device__ __forceinline__ void update_f(
 
     auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
 
-    const int subwarp_grp_id = floor(static_cast<double>(threadIdx.x) /
-                                     static_cast<double>(tile_size));
 
-    const int num_subwarp_grps_per_block =
-        ceil(static_cast<double>(blockDim.x) / static_cast<double>(tile_size));
+    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
 
 
     for (int vec_and_rhs_combination = subwarp_grp_id;
          vec_and_rhs_combination < subspace_dim * r_shared_entry.num_rhs;
          vec_and_rhs_combination += num_subwarp_grps_per_block) {
-        int vec = vec_and_rhs_combination / r_shared_entry.num_rhs;
+        const int vec = vec_and_rhs_combination / r_shared_entry.num_rhs;
 
-        int rhs = vec_and_rhs_combination % r_shared_entry.num_rhs;
+        const int rhs = vec_and_rhs_combination % r_shared_entry.num_rhs;
 
         const uint32 conv = converged & (1 << rhs);
 
@@ -530,11 +498,9 @@ __device__ __forceinline__ void update_g_k_and_u_k(
 
         auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
 
-        const int subwarp_grp_id = floor(static_cast<double>(threadIdx.x) /
-                                         static_cast<double>(tile_size));
+        const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
 
-        const int num_subwarp_grps_per_block = ceil(
-            static_cast<double>(blockDim.x) / static_cast<double>(tile_size));
+        const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
 
 
         for (int rhs_index = subwarp_grp_id;
@@ -629,19 +595,18 @@ __device__ __forceinline__ void update_M(
 
     auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
 
-    const int subwarp_grp_id = floor(static_cast<double>(threadIdx.x) /
-                                     static_cast<double>(tile_size));
 
-    const int num_subwarp_grps_per_block =
-        ceil(static_cast<double>(blockDim.x) / static_cast<double>(tile_size));
+    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+
+    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
 
     // M(i,k) = p_i * g_k where i = k , k + 1, ... , subspace_dim -1
 
     for (int i_and_rhs_combination = subwarp_grp_id;
          i_and_rhs_combination < (subspace_dim - k) * nrhs;
          i_and_rhs_combination += num_subwarp_grps_per_block) {
-        int i = (i_and_rhs_combination / nrhs) + k;
-        int rhs = i_and_rhs_combination % nrhs;
+        const int i = (i_and_rhs_combination / nrhs) + k;
+        const int rhs = i_and_rhs_combination % nrhs;
 
         const uint32 conv = converged & (1 << rhs);
 
@@ -685,8 +650,8 @@ __device__ __forceinline__ void update_r_and_x_inner_loop(
     for (int li = threadIdx.x;
          li < g_k_shared_entry.num_rows * g_k_shared_entry.num_rhs;
          li += blockDim.x) {
-        int row = li / g_k_shared_entry.num_rhs;
-        int rhs = li % g_k_shared_entry.num_rhs;
+        const int row = li / g_k_shared_entry.num_rhs;
+        const int rhs = li % g_k_shared_entry.num_rhs;
 
         const uint32 conv = converged & (1 << rhs);
 
@@ -735,8 +700,9 @@ __device__ __forceinline__ void smoothing_operation(
     // gamma = (t * rs)/(t * t)
     compute_dot_product(gko::batch::to_const(t_shared_entry),
                         gko::batch::to_const(rs_shared_entry),
-                        gamma_shared_entry);
-    compute_norm2(gko::batch::to_const(t_shared_entry), norms_t_shared_entry);
+                        gamma_shared_entry, converged);
+    compute_norm2(gko::batch::to_const(t_shared_entry), norms_t_shared_entry,
+                  converged);
 
     __syncthreads();
 
@@ -793,12 +759,14 @@ __device__ __forceinline__ void compute_omega(
 {
     compute_dot_product(gko::batch::to_const(t_shared_entry),
                         gko::batch::to_const(r_shared_entry),
-                        t_r_dot_shared_entry);
+                        t_r_dot_shared_entry, converged);
 
-    compute_norm2(gko::batch::to_const(t_shared_entry), norms_t_shared_entry);
+    compute_norm2(gko::batch::to_const(t_shared_entry), norms_t_shared_entry,
+                  converged);
 
 
-    compute_norm2(gko::batch::to_const(r_shared_entry), norms_r_shared_entry);
+    compute_norm2(gko::batch::to_const(r_shared_entry), norms_r_shared_entry,
+                  converged);
 
     __syncthreads();
 
@@ -930,8 +898,7 @@ __global__ void apply_kernel(
         real_type *const norms_r_sh = norms_t_sh + nrhs;
         real_type *const norms_rhs_sh = norms_r_sh + nrhs;
         real_type *const norms_res_sh = norms_rhs_sh + nrhs;
-        real_type *const norms_res_temp_sh = norms_res_sh + nrhs;
-        real_type *const norms_tmp_sh = norms_res_temp_sh + nrhs;
+        real_type *const norms_tmp_sh = norms_res_sh + nrhs;
 
 
         uint32 converged = 0;
@@ -1089,10 +1056,6 @@ __global__ void apply_kernel(
         const gko::batch_dense::BatchEntry<real_type> res_norms_shared_entry{
             norms_res_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-
-        const gko::batch_dense::BatchEntry<real_type>
-            res_norms_temp_shared_entry{norms_res_temp_sh,
-                                        static_cast<size_type>(nrhs), 1, nrhs};
 
         const gko::batch_dense::BatchEntry<real_type> tmp_norms_shared_entry{
             norms_tmp_sh, static_cast<size_type>(subspace_dim), 1,
@@ -1367,27 +1330,14 @@ __global__ void apply_kernel(
 
                 __syncthreads();
 
-                compute_norm2<ValueType>(
-                    gko::batch::to_const(rs_shared_entry),
-                    res_norms_temp_shared_entry);  // store residual norms in
-                                                   // temp entry
-                __syncthreads();
+                compute_norm2<ValueType>(gko::batch::to_const(rs_shared_entry),
+                                         res_norms_shared_entry,
+                                         converged);  // store residual norms
 
-                copy(gko::batch::to_const(res_norms_temp_shared_entry),
-                     res_norms_shared_entry,
-                     converged);  // copy into res_norms entry only for those
-                                  // RHSs which have not yet converged.
+
             } else {
-                compute_norm2<ValueType>(
-                    gko::batch::to_const(r_shared_entry),
-                    res_norms_temp_shared_entry);  // store residual norms in
-                                                   // temp entry
-                __syncthreads();
-
-                copy(gko::batch::to_const(res_norms_temp_shared_entry),
-                     res_norms_shared_entry,
-                     converged);  // copy into res_norms entry only for those
-                                  // RHSs which have not yet converged.
+                compute_norm2<ValueType>(gko::batch::to_const(r_shared_entry),
+                                         res_norms_shared_entry, converged);
             }
 
             __syncthreads();

@@ -87,7 +87,7 @@ public:
     void log_iteration(const size_type batch_idx, const int iter,
                        const real_type *const res_norm, const uint32 converged)
     {
-        if (converged != init_converged_ || iter >= max_iters_ - 2) {
+        if (converged != init_converged_ || iter >= max_iters_ - 1) {
 #pragma omp parallel for
             for (int j = 0; j < nrhs_; j++) {
                 const uint32 jconv = converged & (1 << j);
