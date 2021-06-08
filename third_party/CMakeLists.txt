@@ -10,7 +10,7 @@ if(GINKGO_BUILD_CUDA OR (GINKGO_BUILD_HIP AND
 endif()
 
 # For each external package, check if they are already available, otherwise use ours
-if(GINKGO_BUILD_TESTS)
+if(GINKGO_BUILD_TESTS AND (NOT GTest_FOUND))
     add_subdirectory(gtest)
 endif()
 
@@ -26,8 +26,12 @@ else()
 endif()
 
 if(GINKGO_BUILD_BENCHMARKS)
-    add_subdirectory(gflags)
-    add_subdirectory(rapidjson)
+    if (NOT gflags_FOUND)
+        add_subdirectory(gflags)
+    endif()
+    if (NOT RapidJSON_FOUND)
+        add_subdirectory(rapidjson)
+    endif()
 endif()
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)

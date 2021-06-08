@@ -1,3 +1,4 @@
+message(STATUS "Fetching git-cmake-format")
 include(FetchContent)
 FetchContent_Declare(
     git_cmake_format
@@ -6,7 +7,6 @@ FetchContent_Declare(
 )
 FetchContent_GetProperties(git_cmake_format)
 if(NOT git_cmake_format_POPULATED)
-    message(STATUS "Fetching git-cmake-format")
     FetchContent_Populate(git_cmake_format)
+    add_subdirectory(${git_cmake_format_SOURCE_DIR} ${git_cmake_format_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
-add_subdirectory(${git_cmake_format_SOURCE_DIR} ${git_cmake_format_BINARY_DIR} EXCLUDE_FROM_ALL)
