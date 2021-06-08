@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
     using fcg = gko::solver::Fcg<ValueType>;
     using cg = gko::solver::Cg<ValueType>;
     using ir = gko::solver::Ir<ValueType>;
-    using mg = gko::solver::Multigrid<ValueType>;
+    using mg = gko::solver::Multigrid;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
     using amgx_pgm = gko::multigrid::AmgxPgm<ValueType, IndexType>;
 

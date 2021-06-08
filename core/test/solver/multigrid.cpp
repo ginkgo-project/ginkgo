@@ -167,7 +167,7 @@ class Multigrid : public ::testing::Test {
 protected:
     using value_type = T;
     using Mtx = gko::matrix::Dense<value_type>;
-    using Solver = gko::solver::Multigrid<value_type>;
+    using Solver = gko::solver::Multigrid;
     using DummyRPFactory = DummyLinOpWithFactory<value_type>;
     using DummyFactory = DummyLinOpWithFactory<value_type>;
 
