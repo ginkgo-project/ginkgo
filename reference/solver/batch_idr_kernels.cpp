@@ -61,7 +61,8 @@ namespace batch_idr {
 
 namespace {
 
-#include "reference/solver/batch_idr_kernels.hpp"
+#include "reference/solver/batch_idr_kernels.hpp.inc"
+
 }  // unnamed namespace
 
 template <typename T>
@@ -79,14 +80,11 @@ static void apply_impl(
     const gko::batch_dense::UniformBatch<ValueType> &b,
     const gko::batch_dense::UniformBatch<ValueType> &x)
 {
-    using real_type = typename gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
     const auto subspace_dim = opts.subspace_dim_val;
-    const auto kappa = opts.kappa_val;
-    const auto smoothing = opts.to_use_smoothing;
-    const auto deterministic = opts.deterministic_gen;
+
 
     GKO_ASSERT(batch_config<ValueType>::max_num_rhs >=
                nrhs);  // required for static allocation in stopping criterion
@@ -98,7 +96,11 @@ static void apply_impl(
     using byte = unsigned char;
     Array<byte> local_space(exec, local_size_bytes);
 
-#include "reference/solver/batch_idr_body.hpp"
+    for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
+        batch_entry_idr_impl<StopType, PrecType, LogType, BatchMatrixType,
+                             ValueType, byte>(opts, logger, prec, a, left,
+                                              right, b, x, ibatch, local_space);
+    }
 }
 
 template <typename BatchType, typename LoggerType, typename ValueType>
