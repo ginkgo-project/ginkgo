@@ -72,12 +72,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             }
             r(row, col) = b(row, col);
             r2(row, col) = b(row, col);
-            z(row, col) = zero(z(row, col));
-            p(row, col) = zero(p(row, col));
-            q(row, col) = zero(q(row, col));
-            z2(row, col) = zero(z2(row, col));
-            p2(row, col) = zero(p2(row, col));
-            q2(row, col) = zero(q2(row, col));
+            z(row, col) = p(row, col) = q(row, col) = z2(row, col) =
+                p2(row, col) = q2(row, col) = zero(z(row, col));
         },
         b->get_size(), b, compact(r), compact(z), compact(p), compact(q),
         vector(prev_rho), vector(rho), compact(r2), compact(z2), compact(p2),
