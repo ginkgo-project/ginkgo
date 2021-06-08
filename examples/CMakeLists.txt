@@ -22,6 +22,9 @@ set(EXAMPLES_EXEC_LIST
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
     custom-stopping-criterion
+    distributed-spmv
+    distributed-solver
+    distributed-ras-ir
     ginkgo-overhead
     minimal-cuda-solver
     mixed-spmv
