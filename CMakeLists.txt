@@ -261,6 +261,9 @@ if (GINKGO_BUILD_OMP)
 endif()
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
 add_subdirectory(include)        # Public API self-contained check
+if (GINKGO_BUILD_TESTS)
+    add_subdirectory(test)       # Tests running on all executors
+endif()
 
 # Non core directories and targets
 if(GINKGO_BUILD_EXAMPLES)
@@ -331,21 +334,20 @@ ginkgo_modify_flags(CMAKE_CUDA_FLAGS_RELEASE)
 ginkgo_install()
 
 if(MSVC)
-    # Set path/command with $<CONFIG>
-    set(GINKGO_TEST_INSTALL_COMMAND "${Ginkgo_BINARY_DIR}/test_install/$<CONFIG>/test_install")
-    set(GINKGO_TEST_EXPORTBUILD_COMMAND "${Ginkgo_BINARY_DIR}/test_exportbuild/$<CONFIG>/test_exportbuild")
-    if(GINKGO_BUILD_CUDA)
-        set(GINKGO_TEST_INSTALL_CUDA_COMMAND "${Ginkgo_BINARY_DIR}/test_install/$<CONFIG>/test_install_cuda")
-    endif()
+    set(GINKGO_TEST_INSTALL_DIR "${Ginkgo_BINARY_DIR}/test/build_install/$<CONFIG>/")
+    set(GINKGO_TEST_EXPORTBUILD_DIR "${Ginkgo_BINARY_DIR}/test/build_export/$<CONFIG>/")
 else()
-    set(GINKGO_TEST_INSTALL_COMMAND "${Ginkgo_BINARY_DIR}/test_install/test_install")
-    set(GINKGO_TEST_EXPORTBUILD_COMMAND "${Ginkgo_BINARY_DIR}/test_exportbuild/test_exportbuild")
-    if(GINKGO_BUILD_CUDA)
-        set(GINKGO_TEST_INSTALL_CUDA_COMMAND "${Ginkgo_BINARY_DIR}/test_install/test_install_cuda")
-    endif()
-    if(GINKGO_BUILD_HIP)
-        set(GINKGO_TEST_INSTALL_HIP_COMMAND "${Ginkgo_BINARY_DIR}/test_install/test_install_hip")
-    endif()
+    set(GINKGO_TEST_INSTALL_DIR "${Ginkgo_BINARY_DIR}/test/build_install/")
+    set(GINKGO_TEST_EXPORTBUILD_DIR "${Ginkgo_BINARY_DIR}/test/build_export/")
+endif()
+
+set(GINKGO_TEST_INSTALL_COMMAND "${GINKGO_TEST_INSTALL_DIR}/test_install")
+set(GINKGO_TEST_EXPORTBUILD_COMMAND "${GINKGO_TEST_EXPORTBUILD_DIR}/test_exportbuild")
+if(GINKGO_BUILD_CUDA)
+    set(GINKGO_TEST_INSTALL_CUDA_COMMAND "${GINKGO_TEST_EXPORTBUILD_DIR}/test_install_cuda")
+endif()
+if(GINKGO_BUILD_HIP)
+    set(GINKGO_TEST_INSTALL_HIP_COMMAND "${GINKGO_TEST_INSTALL_DIR}/test_install_hip")
 endif()
 
 file(MAKE_DIRECTORY ${Ginkgo_BINARY_DIR}/test_install)
@@ -354,7 +356,7 @@ if (NOT "${CMAKE_GENERATOR_TOOLSET}" STREQUAL "")
     set(TOOLSET "-T${CMAKE_GENERATOR_TOOLSET}")
 endif()
 add_custom_target(test_install
-    COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET} -H${Ginkgo_SOURCE_DIR}/test_install
+    COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET} -H${GINKGO_TEST_INSTALL_DIR}
     -B${Ginkgo_BINARY_DIR}/test_install
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
@@ -371,7 +373,7 @@ add_custom_target(test_install
     COMMENT "Running a test on the installed binaries. This requires running `(sudo) make install` first.")
 
 add_custom_target(test_exportbuild
-    COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET} -H${Ginkgo_SOURCE_DIR}/test_exportbuild
+    COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} ${TOOLSET} -H${GINKGO_TEST_EXPORTBUILD_DIR}
     -B${Ginkgo_BINARY_DIR}/test_exportbuild
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}

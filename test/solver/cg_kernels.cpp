@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/cg_kernels.hpp"
 #include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
@@ -62,13 +63,13 @@ protected:
     void SetUp()
     {
         ref = gko::ReferenceExecutor::create();
-        omp = gko::OmpExecutor::create();
+        init_executor(ref, exec);
     }
 
     void TearDown()
     {
-        if (omp != nullptr) {
-            ASSERT_NO_THROW(omp->synchronize());
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
         }
     }
 
@@ -99,31 +100,31 @@ protected:
             stop_status->get_data()[i].reset();
         }
 
-        d_b = Mtx::create(omp);
+        d_b = Mtx::create(exec);
         d_b->copy_from(b.get());
-        d_r = Mtx::create(omp);
+        d_r = Mtx::create(exec);
         d_r->copy_from(r.get());
-        d_z = Mtx::create(omp);
+        d_z = Mtx::create(exec);
         d_z->copy_from(z.get());
-        d_p = Mtx::create(omp);
+        d_p = Mtx::create(exec);
         d_p->copy_from(p.get());
-        d_q = Mtx::create(omp);
+        d_q = Mtx::create(exec);
         d_q->copy_from(q.get());
-        d_x = Mtx::create(omp);
+        d_x = Mtx::create(exec);
         d_x->copy_from(x.get());
-        d_beta = Mtx::create(omp);
+        d_beta = Mtx::create(exec);
         d_beta->copy_from(beta.get());
-        d_prev_rho = Mtx::create(omp);
+        d_prev_rho = Mtx::create(exec);
         d_prev_rho->copy_from(prev_rho.get());
-        d_rho = Mtx::create(omp);
+        d_rho = Mtx::create(exec);
         d_rho->copy_from(rho.get());
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(omp, n));
+            new gko::Array<gko::stopping_status>(exec, n));
         *d_stop_status = *stop_status;
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::OmpExecutor> omp;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::ranlux48 rand_engine;
 
@@ -151,16 +152,16 @@ protected:
 };
 
 
-TEST_F(Cg, OmpCgInitializeIsEquivalentToRef)
+TEST_F(Cg, CgInitializeIsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::cg::initialize(ref, b.get(), r.get(), z.get(),
                                             p.get(), q.get(), prev_rho.get(),
                                             rho.get(), stop_status.get());
-    gko::kernels::omp::cg::initialize(omp, d_b.get(), d_r.get(), d_z.get(),
-                                      d_p.get(), d_q.get(), d_prev_rho.get(),
-                                      d_rho.get(), d_stop_status.get());
+    gko::kernels::EXEC_NAMESPACE::cg::initialize(
+        exec, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(),
+        d_prev_rho.get(), d_rho.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
@@ -172,29 +173,30 @@ TEST_F(Cg, OmpCgInitializeIsEquivalentToRef)
 }
 
 
-TEST_F(Cg, OmpCgStep1IsEquivalentToRef)
+TEST_F(Cg, CgStep1IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::cg::step_1(ref, p.get(), z.get(), rho.get(),
                                         prev_rho.get(), stop_status.get());
-    gko::kernels::omp::cg::step_1(omp, d_p.get(), d_z.get(), d_rho.get(),
-                                  d_prev_rho.get(), d_stop_status.get());
+    gko::kernels::EXEC_NAMESPACE::cg::step_1(exec, d_p.get(), d_z.get(),
+                                             d_rho.get(), d_prev_rho.get(),
+                                             d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
 }
 
 
-TEST_F(Cg, OmpCgStep2IsEquivalentToRef)
+TEST_F(Cg, CgStep2IsEquivalentToRef)
 {
     initialize_data();
     gko::kernels::reference::cg::step_2(ref, x.get(), r.get(), p.get(), q.get(),
                                         beta.get(), rho.get(),
                                         stop_status.get());
-    gko::kernels::omp::cg::step_2(omp, d_x.get(), d_r.get(), d_p.get(),
-                                  d_q.get(), d_beta.get(), d_rho.get(),
-                                  d_stop_status.get());
+    gko::kernels::EXEC_NAMESPACE::cg::step_2(exec, d_x.get(), d_r.get(),
+                                             d_p.get(), d_q.get(), d_beta.get(),
+                                             d_rho.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
@@ -209,11 +211,11 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
     gko::test::make_hpd(mtx.get());
     auto x = gen_mtx(50, 3);
     auto b = gen_mtx(50, 3);
-    auto d_mtx = Mtx::create(omp);
+    auto d_mtx = Mtx::create(exec);
     d_mtx->copy_from(mtx.get());
-    auto d_x = Mtx::create(omp);
+    auto d_x = Mtx::create(exec);
     d_x->copy_from(x.get());
-    auto d_b = Mtx::create(omp);
+    auto d_b = Mtx::create(exec);
     d_b->copy_from(b.get());
     auto cg_factory =
         gko::solver::Cg<>::build()
@@ -226,11 +228,11 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
     auto d_cg_factory =
         gko::solver::Cg<>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(omp),
+                gko::stop::Iteration::build().with_max_iters(50u).on(exec),
                 gko::stop::ResidualNorm<>::build()
                     .with_reduction_factor(1e-14)
-                    .on(omp))
-            .on(omp);
+                    .on(exec))
+            .on(exec);
     auto solver = cg_factory->generate(std::move(mtx));
     auto d_solver = d_cg_factory->generate(std::move(d_mtx));
 

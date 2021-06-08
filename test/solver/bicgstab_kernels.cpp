@@ -49,7 +49,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/bicgstab_kernels.hpp"
-#include "hip/test/utils.hip.hpp"
+#include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
@@ -64,23 +65,22 @@ protected:
 
     void SetUp()
     {
-        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        hip = gko::HipExecutor::create(0, ref);
+        init_executor(ref, exec);
 
         mtx = gen_mtx(123, 123);
         gko::test::make_diag_dominant(mtx.get());
-        d_mtx = Mtx::create(hip);
+        d_mtx = Mtx::create(exec);
         d_mtx->copy_from(mtx.get());
-
-        hip_bicgstab_factory =
+        exec_bicgstab_factory =
             Solver::build()
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(246u).on(hip),
+                    gko::stop::Iteration::build().with_max_iters(246u).on(exec),
                     gko::stop::ResidualNorm<>::build()
                         .with_reduction_factor(1e-15)
-                        .on(hip))
-                .on(hip);
+                        .on(exec))
+                .on(exec);
+
         ref_bicgstab_factory =
             Solver::build()
                 .with_criteria(
@@ -93,8 +93,8 @@ protected:
 
     void TearDown()
     {
-        if (hip != nullptr) {
-            ASSERT_NO_THROW(hip->synchronize());
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
         }
     }
 
@@ -132,24 +132,24 @@ protected:
             stop_status->get_data()[i].reset();
         }
 
-        d_x = Mtx::create(hip);
-        d_b = Mtx::create(hip);
-        d_r = Mtx::create(hip);
-        d_z = Mtx::create(hip);
-        d_p = Mtx::create(hip);
-        d_t = Mtx::create(hip);
-        d_s = Mtx::create(hip);
-        d_y = Mtx::create(hip);
-        d_v = Mtx::create(hip);
-        d_rr = Mtx::create(hip);
-        d_prev_rho = Mtx::create(hip);
-        d_rho = Mtx::create(hip);
-        d_alpha = Mtx::create(hip);
-        d_beta = Mtx::create(hip);
-        d_gamma = Mtx::create(hip);
-        d_omega = Mtx::create(hip);
+        d_x = Mtx::create(exec);
+        d_b = Mtx::create(exec);
+        d_r = Mtx::create(exec);
+        d_z = Mtx::create(exec);
+        d_p = Mtx::create(exec);
+        d_t = Mtx::create(exec);
+        d_s = Mtx::create(exec);
+        d_y = Mtx::create(exec);
+        d_v = Mtx::create(exec);
+        d_rr = Mtx::create(exec);
+        d_prev_rho = Mtx::create(exec);
+        d_rho = Mtx::create(exec);
+        d_alpha = Mtx::create(exec);
+        d_beta = Mtx::create(exec);
+        d_gamma = Mtx::create(exec);
+        d_omega = Mtx::create(exec);
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(hip));
+            new gko::Array<gko::stopping_status>(exec));
 
         d_x->copy_from(x.get());
         d_b->copy_from(b.get());
@@ -172,13 +172,13 @@ protected:
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::HipExecutor> hip;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::ranlux48 rand_engine;
 
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> d_mtx;
-    std::unique_ptr<Solver::Factory> hip_bicgstab_factory;
+    std::unique_ptr<Solver::Factory> exec_bicgstab_factory;
     std::unique_ptr<Solver::Factory> ref_bicgstab_factory;
 
     std::unique_ptr<Mtx> x;
@@ -219,7 +219,7 @@ protected:
 };
 
 
-TEST_F(Bicgstab, HipBicgstabInitializeIsEquivalentToRef)
+TEST_F(Bicgstab, BicgstabInitializeIsEquivalentToRef)
 {
     initialize_data();
 
@@ -227,8 +227,8 @@ TEST_F(Bicgstab, HipBicgstabInitializeIsEquivalentToRef)
         ref, b.get(), r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(),
         v.get(), p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
         gamma.get(), omega.get(), stop_status.get());
-    gko::kernels::hip::bicgstab::initialize(
-        hip, d_b.get(), d_r.get(), d_rr.get(), d_y.get(), d_s.get(), d_t.get(),
+    gko::kernels::EXEC_NAMESPACE::bicgstab::initialize(
+        exec, d_b.get(), d_r.get(), d_rr.get(), d_y.get(), d_s.get(), d_t.get(),
         d_z.get(), d_v.get(), d_p.get(), d_prev_rho.get(), d_rho.get(),
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get(),
         d_stop_status.get());
@@ -251,46 +251,46 @@ TEST_F(Bicgstab, HipBicgstabInitializeIsEquivalentToRef)
 }
 
 
-TEST_F(Bicgstab, HipBicgstabStep1IsEquivalentToRef)
+TEST_F(Bicgstab, BicgstabStep1IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::bicgstab::step_1(
         ref, r.get(), p.get(), v.get(), rho.get(), prev_rho.get(), alpha.get(),
         omega.get(), stop_status.get());
-    gko::kernels::hip::bicgstab::step_1(
-        hip, d_r.get(), d_p.get(), d_v.get(), d_rho.get(), d_prev_rho.get(),
+    gko::kernels::EXEC_NAMESPACE::bicgstab::step_1(
+        exec, d_r.get(), d_p.get(), d_v.get(), d_rho.get(), d_prev_rho.get(),
         d_alpha.get(), d_omega.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
 }
 
 
-TEST_F(Bicgstab, HipBicgstabStep2IsEquivalentToRef)
+TEST_F(Bicgstab, BicgstabStep2IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::bicgstab::step_2(ref, r.get(), s.get(), v.get(),
                                               rho.get(), alpha.get(),
                                               beta.get(), stop_status.get());
-    gko::kernels::hip::bicgstab::step_2(hip, d_r.get(), d_s.get(), d_v.get(),
-                                        d_rho.get(), d_alpha.get(),
-                                        d_beta.get(), d_stop_status.get());
+    gko::kernels::EXEC_NAMESPACE::bicgstab::step_2(
+        exec, d_r.get(), d_s.get(), d_v.get(), d_rho.get(), d_alpha.get(),
+        d_beta.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_s, s, 1e-14);
 }
 
 
-TEST_F(Bicgstab, HipBicgstabStep3IsEquivalentToRef)
+TEST_F(Bicgstab, BicgstabStep3IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::bicgstab::step_3(
         ref, x.get(), r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
         beta.get(), gamma.get(), omega.get(), stop_status.get());
-    gko::kernels::hip::bicgstab::step_3(
-        hip, d_x.get(), d_r.get(), d_s.get(), d_t.get(), d_y.get(), d_z.get(),
+    gko::kernels::EXEC_NAMESPACE::bicgstab::step_3(
+        exec, d_x.get(), d_r.get(), d_s.get(), d_t.get(), d_y.get(), d_z.get(),
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get(),
         d_stop_status.get());
 
@@ -300,42 +300,42 @@ TEST_F(Bicgstab, HipBicgstabStep3IsEquivalentToRef)
 }
 
 
-TEST_F(Bicgstab, HipBicgstabApplyOneRHSIsEquivalentToRef)
+TEST_F(Bicgstab, BicgstabApplyOneRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 1;
     auto ref_solver = ref_bicgstab_factory->generate(mtx);
-    auto hip_solver = hip_bicgstab_factory->generate(d_mtx);
+    auto exec_solver = exec_bicgstab_factory->generate(d_mtx);
     auto b = gen_mtx(m, n);
     auto x = gen_mtx(m, n);
-    auto d_b = Mtx::create(hip);
-    auto d_x = Mtx::create(hip);
+    auto d_b = Mtx::create(exec);
+    auto d_x = Mtx::create(exec);
     d_b->copy_from(b.get());
     d_x->copy_from(x.get());
 
     ref_solver->apply(b.get(), x.get());
-    hip_solver->apply(d_b.get(), d_x.get());
+    exec_solver->apply(d_b.get(), d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
 }
 
 
-TEST_F(Bicgstab, HipBicgstabApplyMultipleRHSIsEquivalentToRef)
+TEST_F(Bicgstab, BicgstabApplyMultipleRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 16;
-    auto hip_solver = hip_bicgstab_factory->generate(d_mtx);
+    auto exec_solver = exec_bicgstab_factory->generate(d_mtx);
     auto ref_solver = ref_bicgstab_factory->generate(mtx);
     auto b = gen_mtx(m, n);
     auto x = gen_mtx(m, n);
-    auto d_b = Mtx::create(hip);
-    auto d_x = Mtx::create(hip);
+    auto d_b = Mtx::create(exec);
+    auto d_x = Mtx::create(exec);
     d_b->copy_from(b.get());
     d_x->copy_from(x.get());
 
     ref_solver->apply(b.get(), x.get());
-    hip_solver->apply(d_b.get(), d_x.get());
+    exec_solver->apply(d_b.get(), d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);

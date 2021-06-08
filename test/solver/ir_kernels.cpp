@@ -48,7 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/ir_kernels.hpp"
-#include "hip/test/utils.hip.hpp"
+#include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
@@ -62,14 +63,7 @@ protected:
     void SetUp()
     {
         ref = gko::ReferenceExecutor::create();
-        hip = gko::HipExecutor::create(0, ref);
-    }
-
-    void TearDown()
-    {
-        if (hip != nullptr) {
-            ASSERT_NO_THROW(hip->synchronize());
-        }
+        init_executor(ref, exec);
     }
 
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
@@ -81,7 +75,7 @@ protected:
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::HipExecutor> hip;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::ranlux48 rand_engine;
 };
@@ -93,10 +87,10 @@ TEST_F(Ir, InitializeIsEquivalentToRef)
     for (size_t i = 0; i < stop_status.get_num_elems(); ++i) {
         stop_status.get_data()[i].reset();
     }
-    auto d_stop_status = gko::Array<gko::stopping_status>(hip, stop_status);
+    auto d_stop_status = gko::Array<gko::stopping_status>(exec, stop_status);
 
     gko::kernels::reference::ir::initialize(ref, &stop_status);
-    gko::kernels::hip::ir::initialize(hip, &d_stop_status);
+    gko::kernels::EXEC_NAMESPACE::ir::initialize(exec, &d_stop_status);
 
     auto tmp = gko::Array<gko::stopping_status>(ref, d_stop_status);
     for (int i = 0; i < stop_status.get_num_elems(); ++i) {
@@ -110,9 +104,9 @@ TEST_F(Ir, ApplyIsEquivalentToRef)
     auto mtx = gen_mtx(50, 50);
     auto x = gen_mtx(50, 3);
     auto b = gen_mtx(50, 3);
-    auto d_mtx = clone(hip, mtx);
-    auto d_x = clone(hip, x);
-    auto d_b = clone(hip, b);
+    auto d_mtx = clone(exec, mtx);
+    auto d_x = clone(exec, x);
+    auto d_b = clone(exec, b);
     // Forget about accuracy - Richardson is not going to converge for a random
     // matrix, just check that a couple of iterations gives the same result on
     // both executors
@@ -124,8 +118,8 @@ TEST_F(Ir, ApplyIsEquivalentToRef)
     auto d_ir_factory =
         gko::solver::Ir<>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(hip))
-            .on(hip);
+                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
+            .on(exec);
     auto solver = ir_factory->generate(std::move(mtx));
     auto d_solver = d_ir_factory->generate(std::move(d_mtx));
 
@@ -141,9 +135,9 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
     auto mtx = gen_mtx(50, 50);
     auto x = gen_mtx(50, 3);
     auto b = gen_mtx(50, 3);
-    auto d_mtx = clone(hip, mtx);
-    auto d_x = clone(hip, x);
-    auto d_b = clone(hip, b);
+    auto d_mtx = clone(exec, mtx);
+    auto d_x = clone(exec, x);
+    auto d_b = clone(exec, b);
 
     auto ir_factory =
         gko::solver::Ir<>::build()
@@ -162,11 +156,11 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
                 gko::solver::Gmres<>::build()
                     .with_criteria(
                         gko::stop::Iteration::build().with_max_iters(1u).on(
-                            hip))
-                    .on(hip))
+                            exec))
+                    .on(exec))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(hip))
-            .on(hip);
+                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
+            .on(exec);
     auto solver = ir_factory->generate(std::move(mtx));
     auto d_solver = d_ir_factory->generate(std::move(d_mtx));
 
@@ -184,9 +178,9 @@ TEST_F(Ir, RichardsonApplyIsEquivalentToRef)
     auto mtx = gen_mtx(50, 50);
     auto x = gen_mtx(50, 3);
     auto b = gen_mtx(50, 3);
-    auto d_mtx = clone(hip, mtx);
-    auto d_x = clone(hip, x);
-    auto d_b = clone(hip, b);
+    auto d_mtx = clone(exec, mtx);
+    auto d_x = clone(exec, x);
+    auto d_b = clone(exec, b);
     // Forget about accuracy - Richardson is not going to converge for a random
     // matrix, just check that a couple of iterations gives the same result on
     // both executors
@@ -199,9 +193,9 @@ TEST_F(Ir, RichardsonApplyIsEquivalentToRef)
     auto d_ir_factory =
         gko::solver::Ir<>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(hip))
+                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .with_relaxation_factor(0.9)
-            .on(hip);
+            .on(exec);
     auto solver = ir_factory->generate(std::move(mtx));
     auto d_solver = d_ir_factory->generate(std::move(d_mtx));
 
@@ -217,9 +211,9 @@ TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
     auto mtx = gen_mtx(50, 50);
     auto x = gen_mtx(50, 3);
     auto b = gen_mtx(50, 3);
-    auto d_mtx = clone(hip, mtx);
-    auto d_x = clone(hip, x);
-    auto d_b = clone(hip, b);
+    auto d_mtx = clone(exec, mtx);
+    auto d_x = clone(exec, x);
+    auto d_b = clone(exec, b);
     auto ir_factory =
         gko::solver::Ir<>::build()
             .with_solver(
@@ -238,12 +232,12 @@ TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
                 gko::solver::Gmres<>::build()
                     .with_criteria(
                         gko::stop::Iteration::build().with_max_iters(1u).on(
-                            hip))
-                    .on(hip))
+                            exec))
+                    .on(exec))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(hip))
+                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .with_relaxation_factor(0.9)
-            .on(hip);
+            .on(exec);
     auto solver = ir_factory->generate(std::move(mtx));
     auto d_solver = d_ir_factory->generate(std::move(d_mtx));
 
