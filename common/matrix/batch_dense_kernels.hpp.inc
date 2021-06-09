@@ -220,18 +220,14 @@ __device__ __forceinline__ void compute_dot_product(
     }
 }
 
+// clang-format off
 template <typename ValueType>
-__global__ __launch_bounds__(
-    default_block_size,
-    sm_multiplier) void compute_dot_product(const gko::batch_dense::
-                                                UniformBatch<const ValueType>
-                                                    x,
-                                            const gko::batch_dense::
-                                                UniformBatch<const ValueType>
-                                                    y,
-                                            const gko::batch_dense::
-                                                UniformBatch<ValueType>
-                                                    result)
+__global__ __launch_bounds__(default_block_size, sm_multiplier)
+    // clang-format on
+    void compute_dot_product(
+        const gko::batch_dense::UniformBatch<const ValueType> x,
+        const gko::batch_dense::UniformBatch<const ValueType> y,
+        const gko::batch_dense::UniformBatch<ValueType> result)
 {
     for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
          ibatch += gridDim.x) {
