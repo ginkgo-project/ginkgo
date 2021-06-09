@@ -123,41 +123,6 @@ struct compact_dense_wrapper {
 };
 
 
-template <typename ValueType>
-compact_dense_wrapper<ValueType> compact(matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
-    return {mtx->get_values()};
-}
-
-
-template <typename ValueType>
-compact_dense_wrapper<const ValueType> compact(
-    const matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
-    return {mtx->get_const_values()};
-}
-
-
-template <typename ValueType>
-ValueType *vector(matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_size()[0] == 1 ||
-               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
-    return mtx->get_values();
-}
-
-
-template <typename ValueType>
-const ValueType *vector(const matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_size()[0] == 1 ||
-               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
-    return mtx->get_const_values();
-}
-
-
 template <typename T>
 struct device_unpack_2d_impl {
     using type = T;
@@ -205,6 +170,42 @@ void generic_kernel_2d(sycl::handler &cgh, size_type rows, size_type cols,
 
 }  // namespace dpcpp
 }  // namespace kernels
+
+
+template <typename ValueType>
+kernels::dpcpp::compact_dense_wrapper<ValueType> compact(
+    matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
+    return {mtx->get_values()};
+}
+
+
+template <typename ValueType>
+kernels::dpcpp::compact_dense_wrapper<const ValueType> compact(
+    const matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
+    return {mtx->get_const_values()};
+}
+
+
+template <typename ValueType>
+ValueType *vector(matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_size()[0] == 1 ||
+               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
+    return mtx->get_values();
+}
+
+
+template <typename ValueType>
+const ValueType *vector(const matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_size()[0] == 1 ||
+               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
+    return mtx->get_const_values();
+}
 
 
 template <typename KernelFunction, typename... KernelArgs>

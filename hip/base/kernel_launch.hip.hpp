@@ -131,42 +131,6 @@ struct compact_dense_wrapper {
 };
 
 
-template <typename ValueType>
-compact_dense_wrapper<hip_type<ValueType>> compact(
-    matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
-    return {as_hip_type(mtx->get_values())};
-}
-
-
-template <typename ValueType>
-compact_dense_wrapper<const hip_type<ValueType>> compact(
-    const matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
-    return {as_hip_type(mtx->get_const_values())};
-}
-
-
-template <typename ValueType>
-hip_type<ValueType> *vector(matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_size()[0] == 1 ||
-               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
-    return as_hip_type(mtx->get_values());
-}
-
-
-template <typename ValueType>
-const hip_type<ValueType> *vector(const matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_size()[0] == 1 ||
-               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
-    return as_hip_type(mtx->get_const_values());
-}
-
-
 template <typename T>
 struct device_unpack_2d_impl {
     using type = T;
@@ -219,6 +183,43 @@ __global__ __launch_bounds__(default_block_size) void generic_kernel_2d(
 
 }  // namespace hip
 }  // namespace kernels
+
+
+template <typename ValueType>
+kernels::hip::compact_dense_wrapper<kernels::hip::hip_type<ValueType>> compact(
+    matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
+    return {kernels::hip::as_hip_type(mtx->get_values())};
+}
+
+
+template <typename ValueType>
+kernels::hip::compact_dense_wrapper<const kernels::hip::hip_type<ValueType>>
+compact(const matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
+    return {kernels::hip::as_hip_type(mtx->get_const_values())};
+}
+
+
+template <typename ValueType>
+kernels::hip::hip_type<ValueType> *vector(matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_size()[0] == 1 ||
+               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
+    return kernels::hip::as_hip_type(mtx->get_values());
+}
+
+
+template <typename ValueType>
+const kernels::hip::hip_type<ValueType> *vector(
+    const matrix::Dense<ValueType> *mtx)
+{
+    GKO_ASSERT(mtx->get_size()[0] == 1 ||
+               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
+    return kernels::hip::as_hip_type(mtx->get_const_values());
+}
 
 
 template <typename KernelFunction, typename... KernelArgs>
