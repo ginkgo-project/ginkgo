@@ -51,14 +51,11 @@ __device__ __forceinline__ void orthonormalize_subspace_vectors(
             &Subspace_vectors_shared_entry
                  .values[i * num_rows * Subspace_vectors_shared_entry.stride],
             Subspace_vectors_shared_entry.stride, num_rows, 1};
-
-
         const gko::batch_dense::BatchEntry<ValueType> &w_i_shared_entry =
             temp_for_single_rhs_shared_entry;
 
         // w_i = p_i
         copy(gko::batch::to_const(p_i_shared_entry), w_i_shared_entry);
-
 
         for (int j = 0; j < i; j++) {
             // w_i = w_i - proj(p_i) on w_j that is w_i = w_i - (< w_j , p_i >
@@ -72,23 +69,20 @@ __device__ __forceinline__ void orthonormalize_subspace_vectors(
                              Subspace_vectors_shared_entry.stride],
                 Subspace_vectors_shared_entry.stride, num_rows, 1};
 
-            __shared__ ValueType mul_sh;
+            __shared__ UninitializedArray<ValueType, 1> mul_sh;
             const gko::batch_dense::BatchEntry<ValueType> mul_shared_entry{
-                &mul_sh, 1, 1, 1};
+                mul_sh, 1, 1, 1};
             compute_dot_product(gko::batch::to_const(w_j_shared_entry),
                                 gko::batch::to_const(p_i_shared_entry),
                                 mul_shared_entry);
-
             __syncthreads();
 
             if (threadIdx.x == 0) {
                 mul_shared_entry.values[0] /=
                     static_cast<ValueType>(tmp_norms_shared_entry.values[j] *
                                            tmp_norms_shared_entry.values[j]);
-
                 mul_shared_entry.values[0] *= -one<ValueType>();
             }
-
             __syncthreads();
 
             add_scaled(gko::batch::to_const(mul_shared_entry),
@@ -96,16 +90,13 @@ __device__ __forceinline__ void orthonormalize_subspace_vectors(
                        w_i_shared_entry);
         }
 
-
         __syncthreads();
 
         // p_i = w_i
         copy(gko::batch::to_const(w_i_shared_entry), p_i_shared_entry);
-
         compute_norm2(gko::batch::to_const(w_i_shared_entry),
                       gko::batch_dense::BatchEntry<real_type>{
                           &tmp_norms_shared_entry.values[i], 1, 1, 1});
-
         __syncthreads();
     }
 
@@ -116,7 +107,6 @@ __device__ __forceinline__ void orthonormalize_subspace_vectors(
          tid += blockDim.x) {
         const int row_index = tid % num_rows;
         const int vec_index = tid / num_rows;
-
         Subspace_vectors_shared_entry
             .values[vec_index * num_rows *
                         Subspace_vectors_shared_entry.stride +
