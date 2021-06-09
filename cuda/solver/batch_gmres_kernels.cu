@@ -58,8 +58,9 @@ constexpr int sm_multiplier = 4;
  */
 namespace batch_gmres {
 
-#include "common/components/reduction.hpp.inc"
 #include "common/components/uninitialized_array.hpp.inc"
+
+#include "common/components/reduction.hpp.inc"
 #include "common/log/batch_logger.hpp.inc"
 #include "common/matrix/batch_csr_kernels.hpp.inc"
 #include "common/matrix/batch_dense_kernels.hpp.inc"
