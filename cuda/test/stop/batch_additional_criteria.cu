@@ -56,8 +56,9 @@ namespace cuda {
 constexpr int default_block_size = 128;
 constexpr int sm_multiplier = 4;
 
-#include "common/components/reduction.hpp.inc"
 #include "common/components/uninitialized_array.hpp.inc"
+
+#include "common/components/reduction.hpp.inc"
 #include "common/matrix/batch_dense_kernels.hpp.inc"
 #include "common/stop/batch_criteria.hpp.inc"
 
