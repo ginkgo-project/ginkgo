@@ -9,7 +9,7 @@ set(GINKGO_DPCPP_VERSION ${GINKGO_DPCPP_VERSION} PARENT_SCOPE)
 find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}")
 set(GINKGO_MKL_ROOT "${MKL_ROOT}" PARENT_SCOPE)
 
-add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
+add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> $<TARGET_OBJECTS:ginkgo_device_mutex> "")
 target_sources(ginkgo_dpcpp
     PRIVATE
     base/version.dp.cpp
