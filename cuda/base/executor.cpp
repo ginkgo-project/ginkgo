@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
@@ -64,6 +65,8 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
                          alloc_mode),
         [device_id](CudaExecutor *exec) {
             auto device_reset = exec->get_device_reset();
+            std::lock_guard<std::recursive_mutex> guard(
+                device_type::mutex[device_id]);
             delete exec;
             if (!CudaExecutor::get_num_execs(device_id) && device_reset) {
                 cuda::device_guard g(device_id);

@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
+#include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/machine_topology.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
@@ -1408,6 +1409,8 @@ public:
     int get_closest_numa() const { return this->get_exec_info().numa_node; }
 
 protected:
+    using device_type = NvidiaDevice;
+
     void set_gpu_property();
 
     void init_handles();
@@ -1450,20 +1453,23 @@ protected:
 
     static void increase_num_execs(unsigned device_id)
     {
-        std::lock_guard<std::mutex> guard(mutex[device_id]);
-        num_execs[device_id]++;
+        std::lock_guard<std::recursive_mutex> guard(
+            device_type::mutex[device_id]);
+        device_type::num_execs[device_id]++;
     }
 
     static void decrease_num_execs(unsigned device_id)
     {
-        std::lock_guard<std::mutex> guard(mutex[device_id]);
-        num_execs[device_id]--;
+        std::lock_guard<std::recursive_mutex> guard(
+            device_type::mutex[device_id]);
+        device_type::num_execs[device_id]--;
     }
 
     static unsigned get_num_execs(unsigned device_id)
     {
-        std::lock_guard<std::mutex> guard(mutex[device_id]);
-        return num_execs[device_id];
+        std::lock_guard<std::recursive_mutex> guard(
+            device_type::mutex[device_id]);
+        return device_type::num_execs[device_id];
     }
 
     void populate_exec_info(const MachineTopology *mach_topo) override;
@@ -1476,9 +1482,6 @@ private:
     handle_manager<cublasContext> cublas_handle_;
     handle_manager<cusparseContext> cusparse_handle_;
 
-    static constexpr int max_devices = 64;
-    static unsigned num_execs[max_devices];
-    static std::mutex mutex[max_devices];
     allocation_mode alloc_mode_;
 };
 
@@ -1625,6 +1628,12 @@ public:
     }
 
 protected:
+#if (GINKGO_HIP_PLATFORM_NVCC == 1)
+    using device_type = NvidiaDevice;
+#else
+    using device_type = AmdDevice;
+#endif
+
     void set_gpu_property();
 
     void init_handles();
@@ -1667,20 +1676,23 @@ protected:
 
     static void increase_num_execs(int device_id)
     {
-        std::lock_guard<std::mutex> guard(mutex[device_id]);
-        num_execs[device_id]++;
+        std::lock_guard<std::recursive_mutex> guard(
+            device_type::mutex[device_id]);
+        device_type::num_execs[device_id]++;
     }
 
     static void decrease_num_execs(int device_id)
     {
-        std::lock_guard<std::mutex> guard(mutex[device_id]);
-        num_execs[device_id]--;
+        std::lock_guard<std::recursive_mutex> guard(
+            device_type::mutex[device_id]);
+        device_type::num_execs[device_id]--;
     }
 
     static int get_num_execs(int device_id)
     {
-        std::lock_guard<std::mutex> guard(mutex[device_id]);
-        return num_execs[device_id];
+        std::lock_guard<std::recursive_mutex> guard(
+            device_type::mutex[device_id]);
+        return device_type::num_execs[device_id];
     }
 
     void populate_exec_info(const MachineTopology *mach_topo) override;
@@ -1693,9 +1705,6 @@ private:
     handle_manager<hipblasContext> hipblas_handle_;
     handle_manager<hipsparseContext> hipsparse_handle_;
 
-    static constexpr int max_devices = 64;
-    static int num_execs[max_devices];
-    static std::mutex mutex[max_devices];
     allocation_mode alloc_mode_;
 };
 

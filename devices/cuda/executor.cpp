@@ -64,10 +64,4 @@ bool CudaExecutor::verify_memory_to(const HipExecutor *dest_exec) const
 }
 
 
-unsigned CudaExecutor::num_execs[max_devices];
-
-
-std::mutex CudaExecutor::mutex[max_devices];
-
-
 }  // namespace gko
