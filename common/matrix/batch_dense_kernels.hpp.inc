@@ -121,16 +121,21 @@ __device__ __forceinline__ void compute_norm2(
     const gko::batch_dense::BatchEntry<const ValueType> &x,
     const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result)
 {
-    for (int c = threadIdx.x; c < x.num_rhs; c += blockDim.x) {
-        result.values[c] = zero<remove_complex<ValueType>>();
-
-        for (int r = 0; r < x.num_rows; r++) {
-            result.values[c] += squared_norm(x.values[r * x.stride + c]);
+    using real_type = remove_complex<ValueType>;
+    for (int col = 0; col < x.num_rhs; col++) {
+        __shared__ UninitializedArray<real_type, default_block_size> work;
+        work[threadIdx.x] = zero<real_type>();
+        // first sum across block-length chunks
+        for (int i = threadIdx.x; i < x.num_rows; i += blockDim.x) {
+            work[i] += squared_norm(x.values[i * x.stride + col]);
         }
-
-        result.values[c] = sqrt(result.values[c]);
+        __syncthreads();
+        reduce(group::this_thread_block(), static_cast<real_type *>(work),
+               [](const real_type &a, const real_type &b) { return a + b; });
+        if (threadIdx.x == 0) {
+            result.values[col] = sqrt(work[0]);
+        }
     }
-    // TODO: put a parallel reduce here
 }
 
 template <typename ValueType>
@@ -197,15 +202,22 @@ __device__ __forceinline__ void compute_dot_product(
     const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
     const BatchEntry<ValueType> &result)
 {
-    for (int c = threadIdx.x; c < x.num_rhs; c += blockDim.x) {
-        result.values[c] = zero<ValueType>();
-
-        for (int r = 0; r < x.num_rows; r++) {
-            result.values[c] +=
-                conj(x.values[r * x.stride + c]) * y.values[r * y.stride + c];
+    for (int col = 0; col < x.num_rhs; col++) {
+        __shared__ UninitializedArray<ValueType, default_block_size> work;
+        work[threadIdx.x] = zero<ValueType>();
+        // first sum across block-length chunks
+        for (int i = threadIdx.x; i < x.num_rows; i += blockDim.x) {
+            work[i] += conj(x.values[i * x.stride + col]) *
+                       y.values[i * y.stride + col];
+        }
+        __syncthreads();
+        // next, reduce in the block
+        reduce(group::this_thread_block(), static_cast<ValueType *>(work),
+               [](const ValueType &a, const ValueType &b) { return a + b; });
+        if (threadIdx.x == 0) {
+            result.values[col] = work[0];
         }
     }
-    // TODO: put a parallel reduce here
 }
 
 template <typename ValueType>
