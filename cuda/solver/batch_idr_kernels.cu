@@ -32,8 +32,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_idr_kernels.hpp"
 
+
+#include <curand_kernel.h>
 #include <random>
-#include "curand_kernel.h"
+
 
 #include <ginkgo/core/base/math.hpp>
 
@@ -60,7 +62,9 @@ constexpr int sm_multiplier = 4;
  */
 namespace batch_idr {
 
+
 #include "common/components/uninitialized_array.hpp.inc"
+
 
 #include "common/components/reduction.hpp.inc"
 #include "common/log/batch_logger.hpp.inc"
@@ -68,9 +72,9 @@ namespace batch_idr {
 #include "common/matrix/batch_dense_kernels.hpp.inc"
 #include "common/preconditioner/batch_identity.hpp.inc"
 #include "common/preconditioner/batch_jacobi.hpp.inc"
+#include "common/solver/batch_idr_kernels.hpp.inc"
 #include "common/stop/batch_criteria.hpp.inc"
 
-#include "common/solver/batch_idr_kernels.hpp.inc"
 
 template <typename T>
 using BatchIdrOptions = gko::kernels::batch_idr::BatchIdrOptions<T>;
