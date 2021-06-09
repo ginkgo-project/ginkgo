@@ -36,7 +36,7 @@ function(ginkgo_create_test test_name)
 endfunction(ginkgo_create_test)
 
 function(ginkgo_create_dpcpp_test test_name)
-    ginkgo_build_test_name(${test_name} TEST_TARGET_NAME)
+    ginkgo_build_test_name(${test_name} test_target_name)
     add_executable(${test_target_name} ${test_name}.dp.cpp)
     target_compile_features(${test_target_name} PUBLIC cxx_std_17)
     target_compile_options(${test_target_name} PRIVATE "${GINKGO_DPCPP_FLAGS}")
@@ -71,6 +71,15 @@ function(ginkgo_create_cuda_test test_name)
     target_compile_features(${test_target_name} PUBLIC cxx_std_14)
     target_compile_options(${test_target_name}
         PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
+    if(MSVC)
+        target_compile_options(${test_target_name}
+            PRIVATE
+                $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda --expt-relaxed-constexpr>)
+    else()
+        target_compile_options(${test_target_name}
+            PRIVATE
+                $<$<COMPILE_LANGUAGE:CUDA>:--expt-extended-lambda --expt-relaxed-constexpr>)
+    endif()
     target_link_libraries(${test_target_name} PRIVATE ${ARGN})
     # we handle CUDA architecture flags for now, disable CMake handling
     if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
@@ -97,6 +106,7 @@ ginkgo_build_test_name(${test_name} test_target_name)
             HIPCC_OPTIONS ${GINKGO_TEST_HIP_DEFINES} # ${GINKGO_HIPCC_OPTIONS}
             # NVCC_OPTIONS  ${GINKGO_TEST_HIP_DEFINES} ${GINKGO_HIP_NVCC_OPTIONS}
             # CLANG_OPTIONS ${GINKGO_TEST_HIP_DEFINES} ${GINKGO_HIP_CLANG_OPTIONS}
+            --expt-relaxed-constexpr --expt-extended-lambda
             )
     else() # hcc/clang
         hip_add_executable(${test_target_name} ${test_name}.hip.cpp

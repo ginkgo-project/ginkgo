@@ -1,0 +1,3 @@
+ginkgo_create_test(kernel_launch)
+find_package(OpenMP 3.0 REQUIRED)
+target_link_libraries(omp_test_base_kernel_launch PRIVATE OpenMP::OpenMP_CXX)
