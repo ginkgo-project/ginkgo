@@ -163,8 +163,8 @@ set(GINKGO_HIP_SOURCES
     factorization/par_ilut_select_kernel.hip.cpp
     factorization/par_ilut_spgeam_kernel.hip.cpp
     factorization/par_ilut_sweep_kernel.hip.cpp
-    matrix/batch_dense_kernels.hip.cpp
     matrix/batch_csr_kernels.hip.cpp
+    matrix/batch_dense_kernels.hip.cpp
     matrix/coo_kernels.hip.cpp
     matrix/csr_kernels.hip.cpp
     matrix/dense_kernels.hip.cpp
@@ -176,20 +176,25 @@ set(GINKGO_HIP_SOURCES
     matrix/sparsity_csr_kernels.hip.cpp
     multigrid/amgx_pgm_kernels.hip.cpp
     preconditioner/batch_jacobi_kernels.hip.cpp
+    preconditioner/batch_identity_kernels.hip.cpp
     preconditioner/isai_kernels.hip.cpp
     preconditioner/jacobi_advanced_apply_kernel.hip.cpp
     preconditioner/jacobi_generate_kernel.hip.cpp
     preconditioner/jacobi_kernels.hip.cpp
     preconditioner/jacobi_simple_apply_kernel.hip.cpp
     reorder/rcm_kernels.hip.cpp
+    solver/batch_bicgstab_kernels.hip.cpp
+    solver/batch_cg_kernels.hip.cpp
+    solver/batch_gmres_kernels.hip.cpp
+    solver/batch_idr_kernels.hip.cpp
     solver/batch_richardson_kernels.hip.cpp
     solver/bicg_kernels.hip.cpp
     solver/bicgstab_kernels.hip.cpp
+    solver/cb_gmres_kernels.hip.cpp
     solver/cg_kernels.hip.cpp
     solver/cgs_kernels.hip.cpp
     solver/fcg_kernels.hip.cpp
     solver/gmres_kernels.hip.cpp
-    solver/cb_gmres_kernels.hip.cpp
     solver/idr_kernels.hip.cpp
     solver/ir_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp

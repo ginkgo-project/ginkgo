@@ -57,10 +57,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/multigrid/amgx_pgm_kernels.hpp"
+#include "core/preconditioner/batch_identity_kernels.hpp"
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
+#include "core/solver/batch_bicgstab_kernels.hpp"
+#include "core/solver/batch_cg_kernels.hpp"
+#include "core/solver/batch_gmres_kernels.hpp"
+#include "core/solver/batch_idr_kernels.hpp"
 #include "core/solver/batch_richardson_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
@@ -721,6 +726,55 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL);
 
 
 }  // namespace batch_rich
+
+
+namespace batch_bicgstab {
+
+
+template <typename ValueType>
+GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);
+
+
+}  // namespace batch_bicgstab
+
+
+namespace batch_cg {
+
+
+template <typename ValueType>
+GKO_DECLARE_BATCH_CG_APPLY_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG_APPLY_KERNEL);
+
+
+}  // namespace batch_cg
+
+
+namespace batch_gmres {
+
+
+template <typename ValueType>
+GKO_DECLARE_BATCH_GMRES_APPLY_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_GMRES_APPLY_KERNEL);
+
+
+}  // namespace batch_gmres
+
+
+// TODO (script:batch_idr): adapt this block as needed
+namespace batch_idr {
+
+
+template <typename ValueType>
+GKO_DECLARE_BATCH_IDR_APPLY_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDR_APPLY_KERNEL);
+
+
+}  // namespace batch_idr
 
 
 namespace sparsity_csr {
@@ -1522,6 +1576,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_KERNEL);
 
 
 }  // namespace batch_jacobi
+
+
+namespace batch_identity {
+
+
+template <typename ValueType>
+GKO_DECLARE_BATCH_IDENTITY_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDENTITY_KERNEL);
+
+
+}  // namespace batch_identity
 
 
 namespace set_all_statuses {

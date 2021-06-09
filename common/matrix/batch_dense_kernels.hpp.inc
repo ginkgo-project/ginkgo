@@ -30,25 +30,67 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+
+template <typename ValueType>
+using BatchEntry = gko::batch_dense::BatchEntry<ValueType>;
+
+
+/**
+ *
+ *   Scales the vectors in global or shared memory with a factor of alpha(alpha
+ * is in global memory or shared memory or even the thread's local memory)
+ *
+ */
+template <typename ValueType>
+__device__ __forceinline__ void scale(const BatchEntry<const ValueType> &alpha,
+                                      const BatchEntry<ValueType> &x)
+{
+    const int max_li = x.num_rows * x.num_rhs;
+    for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
+        const int row = li / x.num_rhs;
+        const int col = li % x.num_rhs;
+
+        if (alpha.num_rhs == 1) {
+            x.values[row * x.stride + col] =
+                alpha.values[0] * x.values[row * x.stride + col];
+        } else {
+            x.values[row * x.stride + col] =
+                alpha.values[col] * x.values[row * x.stride + col];
+        }
+    }
+}
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size, sm_multiplier) void scale(
+    const gko::batch_dense::UniformBatch<const ValueType> alpha,
+    const gko::batch_dense::UniformBatch<ValueType> x)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
+         ibatch += gridDim.x) {
+        const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
+        const auto x_b = gko::batch::batch_entry(x, ibatch);
+        scale(alpha_b, x_b);
+    }
+}
+
+
 template <typename ValueType>
 __device__ __forceinline__ void add_scaled(
     const gko::batch_dense::BatchEntry<const ValueType> &alpha,
     const gko::batch_dense::BatchEntry<const ValueType> &x,
     const gko::batch_dense::BatchEntry<ValueType> &y)
 {
-    if (alpha.num_rhs == 1) {
-        for (int i = threadIdx.x; i < x.num_rows; i += blockDim.x) {
-            for (int j = 0; j < x.num_rhs; ++j) {
-                y.values[i * y.stride + j] +=
-                    alpha.values[0] * x.values[i * x.stride + j];
-            }
-        }
-    } else {
-        for (int i = threadIdx.x; i < x.num_rows; i += blockDim.x) {
-            for (int j = 0; j < x.num_rhs; ++j) {
-                y.values[i * y.stride + j] +=
-                    alpha.values[j] * x.values[i * x.stride + j];
-            }
+    const int max_li = x.num_rows * x.num_rhs;
+    for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
+        const int row = li / x.num_rhs;
+        const int col = li % x.num_rhs;
+
+        if (alpha.num_rhs == 1) {
+            y.values[row * y.stride + col] +=
+                alpha.values[0] * x.values[row * x.stride + col];
+        } else {
+            y.values[row * y.stride + col] +=
+                alpha.values[col] * x.values[row * x.stride + col];
         }
     }
 }
@@ -79,22 +121,16 @@ __device__ __forceinline__ void compute_norm2(
     const gko::batch_dense::BatchEntry<const ValueType> &x,
     const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result)
 {
-    for (int j = threadIdx.x; j < x.num_rhs; j += blockDim.x) {
-        result.values[j] = zero<remove_complex<ValueType>>();
-    }
-    __syncthreads();
-    // TODO: replace this with a parallel reduce below
-    if (threadIdx.x == 0) {
-        for (int i = 0; i < x.num_rows; i++) {
-            for (int j = 0; j < x.num_rhs; ++j) {
-                result.values[j] += squared_norm(x.values[i * x.stride + j]);
-            }
+    for (int c = threadIdx.x; c < x.num_rhs; c += blockDim.x) {
+        result.values[c] = zero<remove_complex<ValueType>>();
+
+        for (int r = 0; r < x.num_rows; r++) {
+            result.values[c] += squared_norm(x.values[r * x.stride + c]);
         }
+
+        result.values[c] = sqrt(result.values[c]);
     }
-    __syncthreads();
-    for (int j = threadIdx.x; j < x.num_rhs; j += blockDim.x) {
-        result.values[j] = sqrt(result.values[j]);
-    }
+    // TODO: put a parallel reduce here
 }
 
 template <typename ValueType>
@@ -148,4 +184,174 @@ __device__ __forceinline__ void copy(
         const int j = iz % in.num_rhs;
         out.values[i * out.stride + j] = in.values[i * in.stride + j];
     }
+}
+
+
+/**
+ * Computes the dot product of some column vectors in global or shared memory.
+ *
+ * @param result  Holds dot product value for vector in x and y.
+ */
+template <typename ValueType>
+__device__ __forceinline__ void compute_dot_product(
+    const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
+    const BatchEntry<ValueType> &result)
+{
+    for (int c = threadIdx.x; c < x.num_rhs; c += blockDim.x) {
+        result.values[c] = zero<ValueType>();
+
+        for (int r = 0; r < x.num_rows; r++) {
+            result.values[c] +=
+                conj(x.values[r * x.stride + c]) * y.values[r * y.stride + c];
+        }
+    }
+    // TODO: put a parallel reduce here
+}
+
+template <typename ValueType>
+__global__ __launch_bounds__(
+    default_block_size,
+    sm_multiplier) void compute_dot_product(const gko::batch_dense::
+                                                UniformBatch<const ValueType>
+                                                    x,
+                                            const gko::batch_dense::
+                                                UniformBatch<const ValueType>
+                                                    y,
+                                            const gko::batch_dense::
+                                                UniformBatch<ValueType>
+                                                    result)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
+         ibatch += gridDim.x) {
+        const auto x_b = gko::batch::batch_entry(x, ibatch);
+        const auto y_b = gko::batch::batch_entry(y, ibatch);
+        const auto r_b = gko::batch::batch_entry(result, ibatch);
+        compute_dot_product(x_b, y_b, r_b);
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void compute_norm2(
+    const gko::batch_dense::BatchEntry<const ValueType> &x,
+    const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result,
+    const uint32 &converged)
+{
+    for (int c = threadIdx.x; c < x.num_rhs; c += blockDim.x) {
+        const uint32 conv = converged & (1 << c);
+
+        if (conv) {
+            continue;
+        }
+
+        result.values[c] = zero<remove_complex<ValueType>>();
+
+        for (int r = 0; r < x.num_rows; r++) {
+            result.values[c] += squared_norm(x.values[r * x.stride + c]);
+        }
+
+        result.values[c] = sqrt(result.values[c]);
+    }
+    // TODO: put a parallel reduce here
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void add_scaled(
+    const gko::batch_dense::BatchEntry<const ValueType> &alpha,
+    const gko::batch_dense::BatchEntry<const ValueType> &x,
+    const gko::batch_dense::BatchEntry<ValueType> &y, const uint32 &converged)
+{
+    const int max_li = x.num_rows * x.num_rhs;
+    for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
+        const int row = li / x.num_rhs;
+        const int col = li % x.num_rhs;
+
+        const uint32 conv = converged & (1 << col);
+
+        if (conv) {
+            continue;
+        }
+
+        if (alpha.num_rhs == 1) {
+            y.values[row * y.stride + col] +=
+                alpha.values[0] * x.values[row * x.stride + col];
+        } else {
+            y.values[row * y.stride + col] +=
+                alpha.values[col] * x.values[row * x.stride + col];
+        }
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void scale(const BatchEntry<const ValueType> &alpha,
+                                      const BatchEntry<ValueType> &x,
+                                      const uint32 &converged)
+{
+    const int max_li = x.num_rows * x.num_rhs;
+    for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
+        const int row = li / x.num_rhs;
+        const int col = li % x.num_rhs;
+
+        const uint32 conv = converged & (1 << col);
+
+        if (conv) {
+            continue;
+        }
+
+        if (alpha.num_rhs == 1) {
+            x.values[row * x.stride + col] =
+                alpha.values[0] * x.values[row * x.stride + col];
+        } else {
+            x.values[row * x.stride + col] =
+                alpha.values[col] * x.values[row * x.stride + col];
+        }
+    }
+}
+
+template <typename ValueType>
+__device__ __forceinline__ void copy(
+    const gko::batch_dense::BatchEntry<const ValueType> &src_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType> &dest_shared_entry,
+    const uint32 &converged)
+{
+    for (int li = threadIdx.x;
+         li < dest_shared_entry.num_rhs * dest_shared_entry.num_rows;
+         li += blockDim.x) {
+        const int r = li / dest_shared_entry.num_rhs;
+        const int c = li % dest_shared_entry.num_rhs;
+
+        const uint32 conv = converged & (1 << c);
+
+        if (conv) {
+            continue;
+        }
+
+        dest_shared_entry.values[r * dest_shared_entry.stride + c] =
+            src_shared_entry.values[r * src_shared_entry.stride + c];
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void compute_dot_product(
+    const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
+    const BatchEntry<ValueType> &result, const uint32 &converged)
+{
+    for (int c = threadIdx.x; c < x.num_rhs; c += blockDim.x) {
+        const uint32 conv = converged & (1 << c);
+
+        if (conv) {
+            continue;
+        }
+
+        result.values[c] = zero<ValueType>();
+
+        for (int r = 0; r < x.num_rows; r++) {
+            result.values[c] +=
+                conj(x.values[r * x.stride + c]) * y.values[r * y.stride + c];
+        }
+    }
+    // TODO: put a parallel reduce here
 }
