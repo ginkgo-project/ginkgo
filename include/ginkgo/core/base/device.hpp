@@ -30,35 +30,53 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#ifndef GKO_PUBLIC_CORE_BASE_DEVICE_HPP_
+#define GKO_PUBLIC_CORE_BASE_DEVICE_HPP_
+
+
+#include <array>
+#include <cstdint>
+#include <mutex>
+#include <type_traits>
+
+
+#include <ginkgo/config.hpp>
 
 
 namespace gko {
 
 
-std::shared_ptr<Executor> HipExecutor::get_master() noexcept { return master_; }
+class CudaExecutor;
+
+class HipExecutor;
 
 
-std::shared_ptr<const Executor> HipExecutor::get_master() const noexcept
-{
-    return master_;
-}
-
-
-bool HipExecutor::verify_memory_to(const HipExecutor *dest_exec) const
-{
-    return this->get_device_id() == dest_exec->get_device_id();
-}
-
-
-bool HipExecutor::verify_memory_to(const CudaExecutor *dest_exec) const
-{
+class NvidiaDevice {
+    friend class CudaExecutor;
 #if GINKGO_HIP_PLATFORM_NVCC
-    return this->get_device_id() == dest_exec->get_device_id();
-#else
-    return false;
+    friend class HipExecutor;
 #endif
-}
+
+private:
+    static constexpr int max_devices = 64;
+    static std::recursive_mutex mutex[max_devices];
+    static int num_execs[max_devices];
+};
+
+
+class AmdDevice {
+// to avoid both GINKGO_HIP_PLATFORM_* zero
+#if !GINKGO_HIP_PLATFORM_NVCC
+    friend class HipExecutor;
+#endif
+
+private:
+    static constexpr int max_devices = 64;
+    static std::recursive_mutex mutex[max_devices];
+    static int num_execs[max_devices];
+};
 
 
 }  // namespace gko
+
+#endif  // GKO_PUBLIC_CORE_BASE_DEVICE_HPP_

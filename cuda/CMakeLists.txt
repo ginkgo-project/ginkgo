@@ -64,7 +64,7 @@ find_library(CUSPARSE cusparse
 find_library(CURAND curand
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
-add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
+add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> $<TARGET_OBJECTS:ginkgo_device_mutex> "")
 target_sources(ginkgo_cuda
     PRIVATE
     base/exception.cpp

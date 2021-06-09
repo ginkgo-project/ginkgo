@@ -30,35 +30,25 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#include <atomic>
+#include <memory>
+#include <mutex>
+
+
+#include <ginkgo/core/base/device.hpp>
 
 
 namespace gko {
 
 
-std::shared_ptr<Executor> HipExecutor::get_master() noexcept { return master_; }
+std::recursive_mutex NvidiaDevice::mutex[max_devices];
+
+int NvidiaDevice::num_execs[max_devices];
 
 
-std::shared_ptr<const Executor> HipExecutor::get_master() const noexcept
-{
-    return master_;
-}
+std::recursive_mutex AmdDevice::mutex[max_devices];
 
-
-bool HipExecutor::verify_memory_to(const HipExecutor *dest_exec) const
-{
-    return this->get_device_id() == dest_exec->get_device_id();
-}
-
-
-bool HipExecutor::verify_memory_to(const CudaExecutor *dest_exec) const
-{
-#if GINKGO_HIP_PLATFORM_NVCC
-    return this->get_device_id() == dest_exec->get_device_id();
-#else
-    return false;
-#endif
-}
+int AmdDevice::num_execs[max_devices];
 
 
 }  // namespace gko

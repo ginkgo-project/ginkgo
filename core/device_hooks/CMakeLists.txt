@@ -1,6 +1,7 @@
 if(NOT GINKGO_BUILD_CUDA)
     add_library(ginkgo_cuda
         $<TARGET_OBJECTS:ginkgo_cuda_device>
+        $<TARGET_OBJECTS:ginkgo_device_mutex>
         cuda_hooks.cpp)
     target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device)
     ginkgo_compile_features(ginkgo_cuda)
@@ -11,6 +12,7 @@ endif()
 if (NOT GINKGO_BUILD_DPCPP)
     add_library(ginkgo_dpcpp
         $<TARGET_OBJECTS:ginkgo_dpcpp_device>
+        $<TARGET_OBJECTS:ginkgo_device_mutex>
         dpcpp_hooks.cpp)
     target_link_libraries(ginkgo_dpcpp PUBLIC ginkgo_device)
     ginkgo_compile_features(ginkgo_dpcpp)
@@ -21,6 +23,7 @@ endif()
 if(NOT GINKGO_BUILD_HIP)
     add_library(ginkgo_hip
         $<TARGET_OBJECTS:ginkgo_hip_device>
+        $<TARGET_OBJECTS:ginkgo_device_mutex>
         hip_hooks.cpp)
     target_link_libraries(ginkgo_hip PUBLIC ginkgo_device)
     ginkgo_compile_features(ginkgo_hip)
@@ -31,6 +34,7 @@ endif()
 if (NOT GINKGO_BUILD_OMP)
     add_library(ginkgo_omp
         $<TARGET_OBJECTS:ginkgo_omp_device>
+        $<TARGET_OBJECTS:ginkgo_device_mutex>
         omp_hooks.cpp)
     ginkgo_compile_features(ginkgo_omp)
     target_link_libraries(ginkgo_omp PRIVATE ginkgo_cuda)
@@ -44,6 +48,7 @@ endif()
 if (NOT GINKGO_BUILD_REFERENCE)
     add_library(ginkgo_reference
         $<TARGET_OBJECTS:ginkgo_reference_device>
+        $<TARGET_OBJECTS:ginkgo_device_mutex>
         reference_hooks.cpp)
     target_link_libraries(ginkgo_reference PUBLIC ginkgo_device)
     ginkgo_compile_features(ginkgo_reference)
