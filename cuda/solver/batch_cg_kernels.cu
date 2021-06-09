@@ -58,7 +58,9 @@ constexpr int sm_multiplier = 4;
  */
 namespace batch_cg {
 
+
 #include "common/components/uninitialized_array.hpp.inc"
+
 
 #include "common/components/reduction.hpp.inc"
 #include "common/log/batch_logger.hpp.inc"
@@ -66,10 +68,9 @@ namespace batch_cg {
 #include "common/matrix/batch_dense_kernels.hpp.inc"
 #include "common/preconditioner/batch_identity.hpp.inc"
 #include "common/preconditioner/batch_jacobi.hpp.inc"
+#include "common/solver/batch_cg_kernels.hpp.inc"
 #include "common/stop/batch_criteria.hpp.inc"
 
-
-#include "common/solver/batch_cg_kernels.hpp.inc"
 
 template <typename T>
 using BatchCgOptions = gko::kernels::batch_cg::BatchCgOptions<T>;
