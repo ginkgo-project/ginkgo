@@ -111,9 +111,35 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void add_scaled(
 }
 
 
+namespace {
+
+template <typename ValueType>
+__device__ __forceinline__ void one_norm2(
+    const BatchEntry<const ValueType> &x, const int col,
+    remove_complex<ValueType> *const result)
+{
+    using real_type = remove_complex<ValueType>;
+    __shared__ UninitializedArray<real_type, default_block_size> work;
+    work[threadIdx.x] = zero<real_type>();
+    // first sum across block-length chunks
+    for (int i = threadIdx.x; i < x.num_rows; i += blockDim.x) {
+        work[i] += squared_norm(x.values[i * x.stride + col]);
+    }
+    __syncthreads();
+    reduce(group::this_thread_block(), static_cast<real_type *>(work),
+           [](const real_type &a, const real_type &b) { return a + b; });
+    if (threadIdx.x == 0) {
+        result[col] = sqrt(work[0]);
+    }
+}
+
+}  // namespace
+
+
 /**
  * Computes the 2-norms of some column vectors in global or shared memory.
  *
+ * @param x  A row-major multivector with nrhs columns.
  * @param result  Holds norm value for each vector in x.
  */
 template <typename ValueType>
@@ -121,20 +147,31 @@ __device__ __forceinline__ void compute_norm2(
     const gko::batch_dense::BatchEntry<const ValueType> &x,
     const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result)
 {
-    using real_type = remove_complex<ValueType>;
     for (int col = 0; col < x.num_rhs; col++) {
-        __shared__ UninitializedArray<real_type, default_block_size> work;
-        work[threadIdx.x] = zero<real_type>();
-        // first sum across block-length chunks
-        for (int i = threadIdx.x; i < x.num_rows; i += blockDim.x) {
-            work[i] += squared_norm(x.values[i * x.stride + col]);
+        one_norm2(x, col, result.values);
+    }
+}
+
+/**
+ * Computes the 2-norms of some column vectors in global or shared memory.
+ *
+ * @param x  A row-major multivector with nrhs columns.
+ * @param result  Holds norm value for each vector in x.
+ * @param converged  A bitset with the first nrhs bits corresponding to the
+ *   different vectors in x. A set bit indicates that RHS should be skipped.
+ */
+template <typename ValueType>
+__device__ __forceinline__ void compute_norm2(
+    const gko::batch_dense::BatchEntry<const ValueType> &x,
+    const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result,
+    const uint32 &converged)
+{
+    for (int c = 0; c < x.num_rhs; c++) {
+        const uint32 conv = converged & (1 << c);
+        if (conv) {
+            continue;
         }
-        __syncthreads();
-        reduce(group::this_thread_block(), static_cast<real_type *>(work),
-               [](const real_type &a, const real_type &b) { return a + b; });
-        if (threadIdx.x == 0) {
-            result.values[col] = sqrt(work[0]);
-        }
+        one_norm2(x, c, result.values);
     }
 }
 
@@ -192,6 +229,31 @@ __device__ __forceinline__ void copy(
 }
 
 
+namespace {
+
+template <typename ValueType>
+__device__ __forceinline__ void one_dot_product(
+    const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
+    const int col, ValueType *const result)
+{
+    __shared__ UninitializedArray<ValueType, default_block_size> work;
+    work[threadIdx.x] = zero<ValueType>();
+    // first sum across block-length chunks
+    for (int i = threadIdx.x; i < x.num_rows; i += blockDim.x) {
+        work[i] +=
+            conj(x.values[i * x.stride + col]) * y.values[i * y.stride + col];
+    }
+    __syncthreads();
+    // next, reduce in the block
+    reduce(group::this_thread_block(), static_cast<ValueType *>(work),
+           [](const ValueType &a, const ValueType &b) { return a + b; });
+    if (threadIdx.x == 0) {
+        result[col] = work[0];
+    }
+}
+
+}  // namespace
+
 /**
  * Computes the dot product of some column vectors in global or shared memory.
  *
@@ -203,20 +265,30 @@ __device__ __forceinline__ void compute_dot_product(
     const BatchEntry<ValueType> &result)
 {
     for (int col = 0; col < x.num_rhs; col++) {
-        __shared__ UninitializedArray<ValueType, default_block_size> work;
-        work[threadIdx.x] = zero<ValueType>();
-        // first sum across block-length chunks
-        for (int i = threadIdx.x; i < x.num_rows; i += blockDim.x) {
-            work[i] += conj(x.values[i * x.stride + col]) *
-                       y.values[i * y.stride + col];
+        one_dot_product(x, y, col, result.values);
+    }
+}
+
+/**
+ * Computes the dot product of respective column vectors from two multivectors.
+ *
+ * @param x  A row-major multivector with nrhs columns.
+ * @param y  A row-major multivector with nrhs columns.
+ * @param result  Holds dot product value for each vector in x or y.
+ * @param converged  A bitset with the first nrhs bits corresponding to the
+ *   different vectors in x. A set bit indicates that RHS should be skipped.
+ */
+template <typename ValueType>
+__device__ __forceinline__ void compute_dot_product(
+    const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
+    const BatchEntry<ValueType> &result, const uint32 &converged)
+{
+    for (int c = 0; c < x.num_rhs; c++) {
+        const uint32 conv = converged & (1 << c);
+        if (conv) {
+            continue;
         }
-        __syncthreads();
-        // next, reduce in the block
-        reduce(group::this_thread_block(), static_cast<ValueType *>(work),
-               [](const ValueType &a, const ValueType &b) { return a + b; });
-        if (threadIdx.x == 0) {
-            result.values[col] = work[0];
-        }
+        one_dot_product(x, y, c, result.values);
     }
 }
 
@@ -240,31 +312,6 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier)
 
 
 template <typename ValueType>
-__device__ __forceinline__ void compute_norm2(
-    const gko::batch_dense::BatchEntry<const ValueType> &x,
-    const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result,
-    const uint32 &converged)
-{
-    for (int c = threadIdx.x; c < x.num_rhs; c += blockDim.x) {
-        const uint32 conv = converged & (1 << c);
-
-        if (conv) {
-            continue;
-        }
-
-        result.values[c] = zero<remove_complex<ValueType>>();
-
-        for (int r = 0; r < x.num_rows; r++) {
-            result.values[c] += squared_norm(x.values[r * x.stride + c]);
-        }
-
-        result.values[c] = sqrt(result.values[c]);
-    }
-    // TODO: put a parallel reduce here
-}
-
-
-template <typename ValueType>
 __device__ __forceinline__ void add_scaled(
     const gko::batch_dense::BatchEntry<const ValueType> &alpha,
     const gko::batch_dense::BatchEntry<const ValueType> &x,
@@ -274,13 +321,10 @@ __device__ __forceinline__ void add_scaled(
     for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
         const int row = li / x.num_rhs;
         const int col = li % x.num_rhs;
-
         const uint32 conv = converged & (1 << col);
-
         if (conv) {
             continue;
         }
-
         if (alpha.num_rhs == 1) {
             y.values[row * y.stride + col] +=
                 alpha.values[0] * x.values[row * x.stride + col];
@@ -303,11 +347,9 @@ __device__ __forceinline__ void scale(const BatchEntry<const ValueType> &alpha,
         const int col = li % x.num_rhs;
 
         const uint32 conv = converged & (1 << col);
-
         if (conv) {
             continue;
         }
-
         if (alpha.num_rhs == 1) {
             x.values[row * x.stride + col] =
                 alpha.values[0] * x.values[row * x.stride + col];
@@ -329,37 +371,11 @@ __device__ __forceinline__ void copy(
          li += blockDim.x) {
         const int r = li / dest_shared_entry.num_rhs;
         const int c = li % dest_shared_entry.num_rhs;
-
         const uint32 conv = converged & (1 << c);
-
         if (conv) {
             continue;
         }
-
         dest_shared_entry.values[r * dest_shared_entry.stride + c] =
             src_shared_entry.values[r * src_shared_entry.stride + c];
     }
-}
-
-
-template <typename ValueType>
-__device__ __forceinline__ void compute_dot_product(
-    const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
-    const BatchEntry<ValueType> &result, const uint32 &converged)
-{
-    for (int c = threadIdx.x; c < x.num_rhs; c += blockDim.x) {
-        const uint32 conv = converged & (1 << c);
-
-        if (conv) {
-            continue;
-        }
-
-        result.values[c] = zero<ValueType>();
-
-        for (int r = 0; r < x.num_rows; r++) {
-            result.values[c] +=
-                conj(x.values[r * x.stride + c]) * y.values[r * y.stride + c];
-        }
-    }
-    // TODO: put a parallel reduce here
 }
