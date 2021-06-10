@@ -63,9 +63,9 @@ void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::BatchDense<ValueType> *const b,
                   matrix::BatchDense<ValueType> *const c)
 {
-    const auto a_ub = get_batch_struct(a);
-    const auto b_ub = get_batch_struct(b);
-    const auto c_ub = get_batch_struct(c);
+    const auto a_ub = host::get_batch_struct(a);
+    const auto b_ub = host::get_batch_struct(b);
+    const auto c_ub = host::get_batch_struct(c);
     for (size_type batch = 0; batch < c->get_num_batch_entries(); ++batch) {
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);
@@ -86,11 +86,11 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::BatchDense<ValueType> *const beta,
            matrix::BatchDense<ValueType> *const c)
 {
-    const auto a_ub = get_batch_struct(a);
-    const auto b_ub = get_batch_struct(b);
-    const auto c_ub = get_batch_struct(c);
-    const auto alpha_ub = get_batch_struct(alpha);
-    const auto beta_ub = get_batch_struct(beta);
+    const auto a_ub = host::get_batch_struct(a);
+    const auto b_ub = host::get_batch_struct(b);
+    const auto c_ub = host::get_batch_struct(c);
+    const auto alpha_ub = host::get_batch_struct(alpha);
+    const auto beta_ub = host::get_batch_struct(beta);
     for (size_type batch = 0; batch < c->get_num_batch_entries(); ++batch) {
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);
@@ -109,8 +109,8 @@ void scale(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::BatchDense<ValueType> *alpha,
            matrix::BatchDense<ValueType> *x)
 {
-    const auto x_ub = get_batch_struct(x);
-    const auto alpha_ub = get_batch_struct(alpha);
+    const auto x_ub = host::get_batch_struct(x);
+    const auto alpha_ub = host::get_batch_struct(alpha);
     for (size_type batch = 0; batch < x->get_num_batch_entries(); ++batch) {
         const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
@@ -127,9 +127,9 @@ void add_scaled(std::shared_ptr<const ReferenceExecutor> exec,
                 const matrix::BatchDense<ValueType> *x,
                 matrix::BatchDense<ValueType> *y)
 {
-    const auto x_ub = get_batch_struct(x);
-    const auto y_ub = get_batch_struct(y);
-    const auto alpha_ub = get_batch_struct(alpha);
+    const auto x_ub = host::get_batch_struct(x);
+    const auto y_ub = host::get_batch_struct(y);
+    const auto alpha_ub = host::get_batch_struct(alpha);
     for (size_type batch = 0; batch < y->get_num_batch_entries(); ++batch) {
         const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
@@ -165,9 +165,9 @@ void compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
                  const matrix::BatchDense<ValueType> *y,
                  matrix::BatchDense<ValueType> *result)
 {
-    const auto x_ub = get_batch_struct(x);
-    const auto y_ub = get_batch_struct(y);
-    const auto res_ub = get_batch_struct(result);
+    const auto x_ub = host::get_batch_struct(x);
+    const auto y_ub = host::get_batch_struct(y);
+    const auto res_ub = host::get_batch_struct(result);
     for (size_type batch = 0; batch < result->get_num_batch_entries();
          ++batch) {
         const auto res_b = gko::batch::batch_entry(res_ub, batch);
@@ -185,8 +185,8 @@ void compute_norm2(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::BatchDense<ValueType> *x,
                    matrix::BatchDense<remove_complex<ValueType>> *result)
 {
-    const auto x_ub = get_batch_struct(x);
-    const auto res_ub = get_batch_struct(result);
+    const auto x_ub = host::get_batch_struct(x);
+    const auto res_ub = host::get_batch_struct(result);
     for (size_type batch = 0; batch < result->get_num_batch_entries();
          ++batch) {
         const auto res_b = gko::batch::batch_entry(res_ub, batch);

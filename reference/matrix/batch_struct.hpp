@@ -44,7 +44,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace reference {
+/**
+ * @brief A namespace for shared functionality between omp and reference
+ *  executors.
+ */
+namespace host {
 
 
 /** @file batch_struct.hpp
@@ -103,7 +107,7 @@ inline gko::batch_csr::UniformBatch<const ValueType> get_batch_struct(
  */
 template <typename ValueType>
 inline gko::batch_csr::UniformBatch<ValueType> get_batch_struct(
-    matrix::BatchCsr<ValueType> *const op)
+    matrix::BatchCsr<ValueType, int32> *const op)
 {
     return {op->get_values(),
             op->get_const_col_idxs(),
@@ -134,7 +138,7 @@ inline gko::batch_dense::UniformBatch<const ValueType> maybe_null_batch_struct(
 }
 
 
-}  // namespace reference
+}  // namespace host
 }  // namespace kernels
 }  // namespace gko
 
