@@ -72,25 +72,6 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::BatchDense<ValueType> *a,
                   const matrix::BatchDense<ValueType> *b,
                   matrix::BatchDense<ValueType> *c) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    if (cublas::is_supported<ValueType>::value) {
-//        auto handle = exec->get_cublas_handle();
-//        {
-//            cublas::pointer_mode_guard pm_guard(handle);
-//            auto alpha = one<ValueType>();
-//            auto beta = zero<ValueType>();
-//            cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_size()[1],
-//                         c->get_size()[0], a->get_size()[1], &alpha,
-//                         b->get_const_values(), b->get_stride(),
-//                         a->get_const_values(), a->get_stride(), &beta,
-//                         c->get_values(), c->get_stride());
-//        }
-//    } else {
-//        GKO_NOT_IMPLEMENTED;
-//    }
-//}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL);
@@ -103,20 +84,6 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
            const matrix::BatchDense<ValueType> *b,
            const matrix::BatchDense<ValueType> *beta,
            matrix::BatchDense<ValueType> *c) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    if (cublas::is_supported<ValueType>::value) {
-//        cublas::gemm(exec->get_cublas_handle(), CUBLAS_OP_N, CUBLAS_OP_N,
-//                     c->get_size()[1], c->get_size()[0], a->get_size()[1],
-//                     alpha->get_const_values(), b->get_const_values(),
-//                     b->get_stride(), a->get_const_values(), a->get_stride(),
-//                     beta->get_const_values(), c->get_values(),
-//                     c->get_stride());
-//    } else {
-//        GKO_NOT_IMPLEMENTED;
-//    }
-//}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL);
 
@@ -156,17 +123,6 @@ void add_scaled_diag(std::shared_ptr<const CudaExecutor> exec,
                      const matrix::BatchDense<ValueType> *alpha,
                      const matrix::Diagonal<ValueType> *x,
                      matrix::BatchDense<ValueType> *y) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    const auto size = y->get_size()[0];
-//    const auto grid_dim = ceildiv(size, default_block_size);
-//
-//    kernel::add_scaled_diag<<<grid_dim, default_block_size>>>(
-//        size, as_cuda_type(alpha->get_const_values()),
-//        as_cuda_type(x->get_const_values()), as_cuda_type(y->get_values()),
-//        y->get_stride());
-//}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_ADD_SCALED_DIAG_KERNEL);
@@ -218,16 +174,6 @@ template <typename ValueType>
 void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::BatchDense<ValueType> *source,
                     size_type *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    const auto num_rows = source->get_size()[0];
-//    auto nnz_per_row = Array<size_type>(exec, num_rows);
-//
-//    calculate_nonzeros_per_row(exec, source, &nnz_per_row);
-//
-//    *result = reduce_add_array(exec, num_rows, nnz_per_row.get_const_data());
-//}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_COUNT_NONZEROS_KERNEL);
@@ -237,34 +183,6 @@ template <typename ValueType>
 void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
                                const matrix::BatchDense<ValueType> *source,
                                size_type *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    const auto num_rows = source->get_size()[0];
-//    auto nnz_per_row = Array<size_type>(exec, num_rows);
-//
-//    calculate_nonzeros_per_row(exec, source, &nnz_per_row);
-//
-//    const auto n = ceildiv(num_rows, default_block_size);
-//    const size_type grid_dim =
-//        (n <= default_block_size) ? n : default_block_size;
-//
-//    auto block_results = Array<size_type>(exec, grid_dim);
-//
-//    kernel::reduce_max_nnz<<<grid_dim, default_block_size,
-//                             default_block_size * sizeof(size_type)>>>(
-//        num_rows, as_cuda_type(nnz_per_row.get_const_data()),
-//        as_cuda_type(block_results.get_data()));
-//
-//    auto d_result = Array<size_type>(exec, 1);
-//
-//    kernel::reduce_max_nnz<<<1, default_block_size,
-//                             default_block_size * sizeof(size_type)>>>(
-//        grid_dim, as_cuda_type(block_results.get_const_data()),
-//        as_cuda_type(d_result.get_data()));
-//
-//    *result = exec->copy_val_to_host(d_result.get_const_data());
-//}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
@@ -274,20 +192,6 @@ template <typename ValueType>
 void calculate_nonzeros_per_row(std::shared_ptr<const CudaExecutor> exec,
                                 const matrix::BatchDense<ValueType> *source,
                                 Array<size_type> *result) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    const dim3 block_size(default_block_size, 1, 1);
-//    auto rows_per_block = ceildiv(default_block_size, config::warp_size);
-//    const size_t grid_x = ceildiv(source->get_size()[0], rows_per_block);
-//    const dim3 grid_size(grid_x, 1, 1);
-//    if (grid_x > 0) {
-//        kernel::count_nnz_per_row<<<grid_size, block_size>>>(
-//            source->get_size()[0], source->get_size()[1],
-//            source->get_stride(), as_cuda_type(source->get_const_values()),
-//            as_cuda_type(result->get_data()));
-//    }
-//}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL);
@@ -296,52 +200,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
                           const matrix::BatchDense<ValueType> *source,
-                          size_type *result, size_type *stride_factor,
-                          size_type *slice_size) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    const auto num_rows = source->get_size()[0];
-//
-//    if (num_rows == 0) {
-//        *result = 0;
-//        return;
-//    }
-//
-//    const auto num_cols = source->get_size()[1];
-//    const auto slice_num = ceildiv(num_rows, slice_size);
-//
-//    auto nnz_per_row = Array<size_type>(exec, num_rows);
-//
-//    calculate_nonzeros_per_row(exec, source, &nnz_per_row);
-//
-//    auto max_nnz_per_slice = Array<size_type>(exec, slice_num);
-//
-//    auto grid_dim = ceildiv(slice_num * config::warp_size,
-//    default_block_size);
-//
-//    kernel::reduce_max_nnz_per_slice<<<grid_dim, default_block_size>>>(
-//        num_rows, slice_size, stride_factor,
-//        as_cuda_type(nnz_per_row.get_const_data()),
-//        as_cuda_type(max_nnz_per_slice.get_data()));
-//
-//    grid_dim = ceildiv(slice_num, default_block_size);
-//    auto block_results = Array<size_type>(exec, grid_dim);
-//
-//    kernel::reduce_total_cols<<<grid_dim, default_block_size,
-//                                default_block_size * sizeof(size_type)>>>(
-//        slice_num, as_cuda_type(max_nnz_per_slice.get_const_data()),
-//        as_cuda_type(block_results.get_data()));
-//
-//    auto d_result = Array<size_type>(exec, 1);
-//
-//    kernel::reduce_total_cols<<<1, default_block_size,
-//                                default_block_size * sizeof(size_type)>>>(
-//        grid_dim, as_cuda_type(block_results.get_const_data()),
-//        as_cuda_type(d_result.get_data()));
-//
-//    *result = exec->copy_val_to_host(d_result.get_const_data());
-//}
+                          size_type *result, const size_type *stride_factor,
+                          const size_type *slice_size) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CALCULATE_TOTAL_COLS_KERNEL);
@@ -351,26 +211,6 @@ template <typename ValueType>
 void transpose(std::shared_ptr<const CudaExecutor> exec,
                const matrix::BatchDense<ValueType> *orig,
                matrix::BatchDense<ValueType> *trans) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    if (cublas::is_supported<ValueType>::value) {
-//        auto handle = exec->get_cublas_handle();
-//        {
-//            cublas::pointer_mode_guard pm_guard(handle);
-//            auto alpha = one<ValueType>();
-//            auto beta = zero<ValueType>();
-//            cublas::geam(
-//                handle, CUBLAS_OP_T, CUBLAS_OP_N, orig->get_size()[0],
-//                orig->get_size()[1], &alpha, orig->get_const_values(),
-//                orig->get_stride(), &beta, static_cast<ValueType *>(nullptr),
-//                trans->get_size()[1], trans->get_values(),
-//                trans->get_stride());
-//        }
-//    } else {
-//        GKO_NOT_IMPLEMENTED;
-//    }
-//};
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_TRANSPOSE_KERNEL);
 
@@ -379,26 +219,6 @@ template <typename ValueType>
 void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::BatchDense<ValueType> *orig,
                     matrix::BatchDense<ValueType> *trans) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
-//    if (cublas::is_supported<ValueType>::value) {
-//        auto handle = exec->get_cublas_handle();
-//        {
-//            cublas::pointer_mode_guard pm_guard(handle);
-//            auto alpha = one<ValueType>();
-//            auto beta = zero<ValueType>();
-//            cublas::geam(
-//                handle, CUBLAS_OP_C, CUBLAS_OP_N, orig->get_size()[0],
-//                orig->get_size()[1], &alpha, orig->get_const_values(),
-//                orig->get_stride(), &beta, static_cast<ValueType *>(nullptr),
-//                trans->get_size()[1], trans->get_values(),
-//                trans->get_stride());
-//        }
-//    } else {
-//        GKO_NOT_IMPLEMENTED;
-//    }
-//}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CONJ_TRANSPOSE_KERNEL);
