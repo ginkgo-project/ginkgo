@@ -68,9 +68,9 @@ void spmv(std::shared_ptr<const ReferenceExecutor>,
           const matrix::BatchDense<ValueType> *const b,
           matrix::BatchDense<ValueType> *const c)
 {
-    const auto a_ub = get_batch_struct(a);
-    const auto b_ub = get_batch_struct(b);
-    const auto c_ub = get_batch_struct(c);
+    const auto a_ub = host::get_batch_struct(a);
+    const auto b_ub = host::get_batch_struct(b);
+    const auto c_ub = host::get_batch_struct(c);
     for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);
@@ -91,11 +91,11 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor>,
                    const matrix::BatchDense<ValueType> *const beta,
                    matrix::BatchDense<ValueType> *const c)
 {
-    const auto a_ub = get_batch_struct(a);
-    const auto b_ub = get_batch_struct(b);
-    const auto c_ub = get_batch_struct(c);
-    const auto alpha_ub = get_batch_struct(alpha);
-    const auto beta_ub = get_batch_struct(beta);
+    const auto a_ub = host::get_batch_struct(a);
+    const auto b_ub = host::get_batch_struct(b);
+    const auto c_ub = host::get_batch_struct(c);
+    const auto alpha_ub = host::get_batch_struct(alpha);
+    const auto beta_ub = host::get_batch_struct(beta);
     for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);
@@ -121,9 +121,9 @@ void batch_scale(std::shared_ptr<const ReferenceExecutor>,
     if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
 
     const size_type nbatches = mat->get_num_batch_entries();
-    const auto a_ub = get_batch_struct(mat);
-    const auto left_ub = get_batch_struct(left_scale);
-    const auto right_ub = get_batch_struct(right_scale);
+    const auto a_ub = host::get_batch_struct(mat);
+    const auto left_ub = host::get_batch_struct(left_scale);
+    const auto right_ub = host::get_batch_struct(right_scale);
 
     for (size_type ibatch = 0; ibatch < nbatches; ibatch++) {
         auto a_b = gko::batch::batch_entry(a_ub, ibatch);
