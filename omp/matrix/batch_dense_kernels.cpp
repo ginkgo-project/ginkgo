@@ -148,21 +148,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL);
 
 
 template <typename ValueType>
-void add_scaled_diag(std::shared_ptr<const OmpExecutor> exec,
-                     const matrix::BatchDense<ValueType> *const alpha,
-                     const matrix::Diagonal<ValueType> *const x,
-                     matrix::BatchDense<ValueType> *const y)
-    GKO_NOT_IMPLEMENTED;
-// {
-//  #pragma omp parallel for
-// for (size_type batch = 0; batch < y->get_num_batch_entries(); ++batch) {
-//     const auto diag_values = x->get_const_values();
-//        #pragma omp parallel for
-//     for (size_type i = 0; i < x->get_size().at(batch)[0]; i++) {
-//         y->at(batch,i, i) += alpha->at(batch,0, 0) * diag_values[i];
-//     }
-// }
-// }
+void add_scaled_diag(std::shared_ptr<const OmpExecutor>,
+                     const matrix::BatchDense<ValueType> *,
+                     const matrix::Diagonal<ValueType> *,
+                     matrix::BatchDense<ValueType> *) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_ADD_SCALED_DIAG_KERNEL);
@@ -231,7 +220,7 @@ void convert_to_batch_csr(std::shared_ptr<const DefaultExecutor> exec,
         IndexType row_nnz{};
         for (size_type col = 0; col < num_cols; ++col) {
             auto val = source->at(0, row, col);
-            row_nnz += val != zero<ValueType>();
+            row_nnz += static_cast<IndexType>(val != zero<ValueType>());
         }
         row_ptrs[row] = row_nnz;
     }
@@ -244,7 +233,7 @@ void convert_to_batch_csr(std::shared_ptr<const DefaultExecutor> exec,
         for (size_type col = 0; col < num_cols; ++col) {
             auto val = source->at(0, row, col);
             if (val != zero<ValueType>()) {
-                col_idxs[cur_ptr] = col;
+                col_idxs[cur_ptr] = static_cast<IndexType>(col);
                 ++cur_ptr;
             }
         }
@@ -255,7 +244,6 @@ void convert_to_batch_csr(std::shared_ptr<const DefaultExecutor> exec,
         size_type cur_ptr =
             batch * row_ptrs[num_rows];  // as row_ptrs[num_rows] is the num of
                                          // non zero elements in the matrix
-
         for (size_type row = 0; row < num_rows; ++row) {
             for (size_type col = 0; col < num_cols; ++col) {
                 auto val = source->at(batch, row, col);
@@ -282,12 +270,12 @@ void count_nonzeros(std::shared_ptr<const OmpExecutor> exec,
          ++batch) {
         auto num_rows = source->get_size().at(batch)[0];
         auto num_cols = source->get_size().at(batch)[1];
-        auto num_nonzeros = 0;
+        size_type num_nonzeros = 0;
 
         for (size_type row = 0; row < num_rows; ++row) {
             for (size_type col = 0; col < num_cols; ++col) {
-                num_nonzeros +=
-                    (source->at(batch, row, col) != zero<ValueType>());
+                num_nonzeros += static_cast<size_type>(
+                    source->at(batch, row, col) != zero<ValueType>());
             }
         }
         result[batch] = num_nonzeros;
@@ -300,7 +288,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void calculate_max_nnz_per_row(
-    std::shared_ptr<const OmpExecutor> exec,
+    std::shared_ptr<const OmpExecutor>,
     const matrix::BatchDense<ValueType> *const source, size_type *const result)
 {
 #pragma omp parallel for
@@ -314,8 +302,8 @@ void calculate_max_nnz_per_row(
         for (size_type row = 0; row < num_rows; ++row) {
             num_nonzeros = 0;
             for (size_type col = 0; col < num_cols; ++col) {
-                num_nonzeros +=
-                    (source->at(batch, row, col) != zero<ValueType>());
+                num_nonzeros += static_cast<size_type>(
+                    source->at(batch, row, col) != zero<ValueType>());
             }
             num_stored_elements_per_row =
                 std::max(num_nonzeros, num_stored_elements_per_row);
@@ -330,7 +318,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void calculate_nonzeros_per_row(
-    std::shared_ptr<const OmpExecutor> exec,
+    std::shared_ptr<const OmpExecutor>,
     const matrix::BatchDense<ValueType> *const source,
     Array<size_type> *const result)
 {
@@ -346,8 +334,8 @@ void calculate_nonzeros_per_row(
             size_type num_nonzeros = 0;
 
             for (size_type col = 0; col < num_cols; ++col) {
-                num_nonzeros +=
-                    (source->at(batch, row, col) != zero<ValueType>());
+                num_nonzeros += static_cast<size_type>(
+                    source->at(batch, row, col) != zero<ValueType>());
             }
             row_nnz_val[row] = num_nonzeros;
             ++cumul_prev_rows;
@@ -360,11 +348,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void calculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
+void calculate_total_cols(std::shared_ptr<const OmpExecutor>,
                           const matrix::BatchDense<ValueType> *const source,
                           size_type *const result,
-                          size_type *const stride_factor,
-                          size_type *const slice_size)
+                          const size_type *const stride_factor,
+                          const size_type *const slice_size)
 {
 #pragma omp parallel for
     for (size_type batch = 0; batch < source->get_num_batch_entries();
@@ -372,8 +360,9 @@ void calculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
         auto num_rows = source->get_size().at(batch)[0];
         auto num_cols = source->get_size().at(batch)[1];
         auto slice_num = ceildiv(num_rows, slice_size[batch]);
-        auto total_cols = 0;
-        auto temp = 0, slice_temp = 0;
+        size_type total_cols = 0;
+        size_type temp = 0;
+        size_type slice_temp = 0;
 
         for (size_type slice = 0; slice < slice_num; slice++) {
             slice_temp = 0;
@@ -382,8 +371,9 @@ void calculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
                  row++) {
                 temp = 0;
                 for (size_type col = 0; col < num_cols; col++) {
-                    temp += (source->at(batch, row + slice * slice_size[batch],
-                                        col) != zero<ValueType>());
+                    temp += static_cast<size_type>(
+                        source->at(batch, row + slice * slice_size[batch],
+                                   col) != zero<ValueType>());
                 }
                 slice_temp = (slice_temp < temp) ? temp : slice_temp;
             }
@@ -400,7 +390,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void transpose(std::shared_ptr<const OmpExecutor> exec,
+void transpose(std::shared_ptr<const OmpExecutor>,
                const matrix::BatchDense<ValueType> *const orig,
                matrix::BatchDense<ValueType> *const trans)
 {
@@ -418,7 +408,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType>
-void conj_transpose(std::shared_ptr<const OmpExecutor> exec,
+void conj_transpose(std::shared_ptr<const OmpExecutor>,
                     const matrix::BatchDense<ValueType> *const orig,
                     matrix::BatchDense<ValueType> *const trans)
 {
