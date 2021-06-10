@@ -33,8 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_idr_kernels.hpp"
 
 
-#include <curand_kernel.h>
 #include <random>
+
+
+#include <curand_kernel.h>
 
 
 #include <ginkgo/core/base/math.hpp>
@@ -64,8 +66,7 @@ namespace batch_idr {
 
 
 #include "common/components/uninitialized_array.hpp.inc"
-
-
+// include all depedencies (note: do not remove this comment)
 #include "common/components/reduction.hpp.inc"
 #include "common/log/batch_logger.hpp.inc"
 #include "common/matrix/batch_csr_kernels.hpp.inc"
