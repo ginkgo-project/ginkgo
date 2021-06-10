@@ -153,19 +153,14 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
         b->get_size().at(0)[1], opts.max_its, logdata.res_norms->get_values(),
         logdata.iter_counts.get_data());
 
-    const gko::batch_dense::UniformBatch<const ValueType> b_b =
-        host::get_batch_struct(b);
-
     const gko::batch_dense::UniformBatch<const ValueType> left_sb =
         host::maybe_null_batch_struct(left_scale);
     const gko::batch_dense::UniformBatch<const ValueType> right_sb =
         host::maybe_null_batch_struct(right_scale);
     const auto to_scale = left_sb.values || right_sb.values;
-    if (to_scale) {
-        if (!left_sb.values || !right_sb.values) {
-            // one-sided scaling not implemented
-            GKO_NOT_IMPLEMENTED;
-        }
+    if (to_scale && !(left_sb.values && right_sb.values)) {
+        // one-sided scaling not implemented
+        GKO_NOT_IMPLEMENTED;
     }
 
     const gko::batch_dense::UniformBatch<ValueType> x_b =
