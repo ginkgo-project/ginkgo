@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
 
-#include <omp.h>
+
 #include "omp/base/config.hpp"
 #include "reference/matrix/batch_struct.hpp"
 // include device kernels for every matrix and preconditioner type
