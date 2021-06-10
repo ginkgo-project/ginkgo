@@ -218,8 +218,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const HipExecutor> exec,
                           const matrix::BatchDense<ValueType> *source,
-                          size_type *result, size_type *stride_factor,
-                          size_type *slice_size) GKO_NOT_IMPLEMENTED;
+                          size_type *result, const size_type *stride_factor,
+                          const size_type *slice_size) GKO_NOT_IMPLEMENTED;
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
