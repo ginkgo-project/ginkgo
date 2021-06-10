@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // include device kernels for every matrix and preconditioner type
 #include "reference/matrix/batch_csr_kernels.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
-#include "reference/matrix/batch_struct.hpp"
+//#include "reference/matrix/batch_struct.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
 #include "reference/stop/batch_criteria.hpp"
 
@@ -213,22 +213,23 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
         static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
         logdata.res_norms->get_values(), logdata.iter_counts.get_data());
 
-    const auto left_sb = maybe_null_batch_struct(left_scale);
-    const auto right_sb = maybe_null_batch_struct(right_scale);
+    const auto left_sb = host::maybe_null_batch_struct(left_scale);
+    const auto right_sb = host::maybe_null_batch_struct(right_scale);
     const auto to_scale = left_sb.values || right_sb.values;
     if (to_scale && !(left_sb.values && right_sb.values)) {
         // one-sided scaling not implemented
         GKO_NOT_IMPLEMENTED;
     }
-    const gko::batch_dense::UniformBatch<ValueType> x_b = get_batch_struct(x);
+    const gko::batch_dense::UniformBatch<ValueType> x_b =
+        host::get_batch_struct(x);
 
     if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
         // We pinky-promise not to change the matrix and RHS if no scaling was
         // requested
-        const auto a_b =
-            get_batch_struct(const_cast<matrix::BatchCsr<ValueType> *>(a_mat));
-        const auto b_b =
-            get_batch_struct(const_cast<matrix::BatchDense<ValueType> *>(b));
+        const auto a_b = host::get_batch_struct(
+            const_cast<matrix::BatchCsr<ValueType> *>(a_mat));
+        const auto b_b = host::get_batch_struct(
+            const_cast<matrix::BatchDense<ValueType> *>(b));
         apply_select_prec(exec, opts, logger, a_b, left_sb, right_sb, b_b, x_b);
     } else {
         GKO_NOT_IMPLEMENTED;
