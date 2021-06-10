@@ -326,9 +326,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const ReferenceExecutor> exec,
-                          const matrix::BatchDense<ValueType> *source,
-                          size_type *result, size_type *stride_factor,
-                          size_type *slice_size)
+                          const matrix::BatchDense<ValueType> *const source,
+                          size_type *const result,
+                          const size_type *const stride_factor,
+                          const size_type *const slice_size)
 {
     for (size_type batch = 0; batch < source->get_num_batch_entries();
          ++batch) {
