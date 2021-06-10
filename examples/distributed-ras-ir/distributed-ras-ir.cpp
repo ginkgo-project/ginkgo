@@ -188,6 +188,8 @@ int main(int argc, char *argv[])
     auto initial_resnorm = gko::initialize<vec>({0.0}, exec->get_master());
     b_host->compute_norm2(gko::lend(initial_resnorm));
     b_host->copy_from(b.get());
+    MPI_Barrier(MPI_COMM_WORLD);
+    ValueType t_read_setup_end = MPI_Wtime();
 
     auto block_A = block_approx::create(exec, A.get());
 
@@ -205,6 +207,8 @@ int main(int argc, char *argv[])
                            .with_solver(inner_solver)
                            .on(exec)
                            ->generate(gko::share(block_A));
+    MPI_Barrier(MPI_COMM_WORLD);
+    ValueType t_prec_setup_end = MPI_Wtime();
 
     gko::remove_complex<ValueType> reduction_factor = 1e-10;
     std::shared_ptr<gko::stop::Iteration::Factory> iter_stop =
@@ -225,7 +229,7 @@ int main(int argc, char *argv[])
             exec, gko::log::Logger::criterion_check_completed_mask);
     combined_stop->add_logger(logger);
     MPI_Barrier(MPI_COMM_WORLD);
-    ValueType t_read_setup_end = MPI_Wtime();
+    ValueType t_logger_setup_end = MPI_Wtime();
 
     auto solver_gen =
         ir::build()
@@ -280,7 +284,9 @@ int main(int argc, char *argv[])
               << "\nNum iters: " << logger->get_num_iterations()
               << "\nLogger res norm: " << l_res_norm
               << "\nInit time: " << t_init_end - t_init
-              << "\nRead time: " << t_read_setup_end - t_init
+              << "\nRead time: " << t_read_setup_end - t_init_end
+              << "\nPrec setup time: " << t_prec_setup_end - t_read_setup_end
+              << "\nLogger setup time: " << t_logger_setup_end - t_prec_setup_end
               << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
               << "\nSolver apply time: " << t_solver_apply_end - t_solver_generate_end
               << "\nTotal time: " << t_end - t_init

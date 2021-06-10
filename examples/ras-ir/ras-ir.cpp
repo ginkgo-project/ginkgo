@@ -73,11 +73,11 @@ int main(int argc, char *argv[])
         std::exit(-1);
     }
 
-    gko::size_type num_subdomains = argc >= 2 ? std::atoi(argv[1]) : 1;
+    const auto executor_string = argc >= 2 ? argv[3] : "omp";
+    const auto grid_dim = argc >= 3 ? std::atoi(argv[2]) : 100;
     gko::size_type overlap = argc >= 3 ? std::atoi(argv[2]) : 0;
     ValueType relax_fac = argc >= 4 ? std::atof(argv[3]) : 1.0;
-    const auto mat_string = argc >= 5 ? argv[4] : "A.mtx";
-    const auto executor_string = argc >= 6 ? argv[5] : "omp";
+    gko::size_type num_subdomains = argc >= 5 ? std::atoi(argv[6]) : 1;
     RealValueType inner_reduction_factor =
         argc >= 7 ? std::atof(argv[6]) : 1e-3;
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -103,45 +103,84 @@ int main(int argc, char *argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    // Read data
-    auto A = share(
-        gko::read<mtx>(std::ifstream("data/" + std::string(mat_string)), exec));
+    // assemble matrix: 7-pt stencil
+    const auto num_rows = grid_dim * grid_dim * grid_dim;
+
+    gko::matrix_data<ValueType, IndexType> A_data;
+    gko::matrix_data<ValueType, IndexType> b_data;
+    gko::matrix_data<ValueType, IndexType> x_data;
+    A_data.size = {num_rows, num_rows};
+    b_data.size = {num_rows, 1};
+    x_data.size = {num_rows, 1};
+    for (int i = 0; i < grid_dim; i++) {
+        for (int j = 0; j < grid_dim; j++) {
+            for (int k = 0; k < grid_dim; k++) {
+                auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
+                if (i > 0)
+                    A_data.nonzeros.emplace_back(idx, idx - grid_dim * grid_dim,
+                                                 -1);
+                if (j > 0)
+                    A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
+                if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
+                A_data.nonzeros.emplace_back(idx, idx, 8);
+                if (k < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + 1, -1);
+                if (j < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
+                if (i < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + grid_dim * grid_dim,
+                                                 -1);
+                // b_data.nonzeros.emplace_back(
+                //     idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
+                b_data.nonzeros.emplace_back(idx, 0, 1.0);
+                x_data.nonzeros.emplace_back(idx, 0, 1.0);
+            }
+        }
+    }
+
+    auto A_host = gko::share(mtx::create(exec->get_master()));
+    auto x_host = vec::create(exec->get_master());
+    auto b_host = vec::create(exec->get_master());
+    A_host->read(A_data);
+    b_host->read(b_data);
+    x_host->read(x_data);
+    auto A = gko::share(mtx::create(exec));
+    auto x = vec::create(exec);
+    auto b = vec::create(exec);
+    A->copy_from(A_host.get());
+    b->copy_from(b_host.get());
+    x->copy_from(x_host.get());
+
     // Create RHS and initial guess as 1
     gko::size_type size = A->get_size()[0];
-    std::cout << "\n Num rows " << size << std::endl;
-    auto host_x = gko::matrix::Dense<ValueType>::create(exec->get_master(),
-                                                        gko::dim<2>(size, 1));
-    for (auto i = 0; i < size; i++) {
-        host_x->at(i, 0) = 1.;
-    }
-    auto x = gko::matrix::Dense<ValueType>::create(exec);
-    auto b = gko::matrix::Dense<ValueType>::create(exec);
-    x->copy_from(host_x.get());
-    b->copy_from(host_x.get());
 
-    // Calculate initial residual by overwriting b
+    x_host->copy_from(x.get());
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto initres = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(initres));
-    std::cout << "Initial residual norm sqrt(r^T r):\n";
-    write(std::cout, lend(initres));
+    A_host->apply(gko::lend(neg_one), gko::lend(x_host), gko::lend(one),
+                  gko::lend(b_host));
+    auto initial_resnorm = gko::initialize<vec>({0.0}, exec->get_master());
+    b_host->compute_norm2(gko::lend(initial_resnorm));
+    b_host->copy_from(b.get());
 
-    // copy b again
-    b->copy_from(host_x.get());
-    gko::size_type max_iters = 5000u;
-    RealValueType outer_reduction_factor{1e-6};
-    auto iter_stop =
-        gko::stop::Iteration::build().with_max_iters(max_iters).on(exec);
-    auto tol_stop = gko::stop::ResidualNorm<ValueType>::build()
-                        .with_reduction_factor(outer_reduction_factor)
-                        .on(exec);
+    gko::remove_complex<ValueType> reduction_factor = 1e-10;
+    std::shared_ptr<gko::stop::Iteration::Factory> iter_stop =
+        gko::stop::Iteration::build()
+            .with_max_iters(static_cast<gko::size_type>(num_rows))
+            .on(exec);
+    std::shared_ptr<gko::stop::ResidualNorm<ValueType>::Factory> tol_stop =
+        gko::stop::ResidualNorm<ValueType>::build()
+            .with_reduction_factor(reduction_factor)
+            .on(exec);
+    std::shared_ptr<gko::stop::Combined::Factory> combined_stop =
+        gko::stop::Combined::build()
+            .with_criteria(iter_stop, tol_stop)
+            .on(exec);
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create(exec);
-    iter_stop->add_logger(logger);
-    tol_stop->add_logger(logger);
+        gko::log::Convergence<ValueType>::create(
+            exec, gko::log::Logger::criterion_check_completed_mask);
+    combined_stop->add_logger(logger);
 
     auto block_sizes = gko::Array<gko::size_type>(exec, num_subdomains);
     auto block_overlaps =
@@ -163,11 +202,11 @@ int main(int argc, char *argv[])
                     .with_preconditioner(bj::build().on(exec))
                     .with_criteria(
                         //
-                        // gko::stop::Iteration::build().with_max_iters(20u).on(
-                        //     exec),
-                        gko::stop::ResidualNorm<ValueType>::build()
-                            .with_reduction_factor(inner_reduction_factor)
-                            .on(exec))
+                        gko::stop::Iteration::build().with_max_iters(10u).on(
+                            exec))
+                    // gko::stop::ResidualNorm<ValueType>::build()
+                    //     .with_reduction_factor(inner_reduction_factor)
+                    //     .on(exec))
                     .on(exec))
             .on(exec)
             ->generate(gko::share(block_A));
@@ -182,7 +221,7 @@ int main(int argc, char *argv[])
             //                 .with_reduction_factor(inner_reduction_factor)
             //                 .on(exec))
             //         .on(exec))
-            .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
+            .with_criteria(combined_stop)
             .on(exec);
     // Create solver
     auto solver = solver_gen->generate(A);
@@ -196,16 +235,21 @@ int main(int argc, char *argv[])
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
     // Calculate residual
-    auto res = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(res));
+    auto res = gko::initialize<real_vec>({0.0}, exec->get_master());
+    A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
+    b->compute_norm2(gko::lend(res));
 
-    std::cout << "Final residual norm sqrt(r^T r):\n";
-    write(std::cout, lend(res));
 
+    auto l_res_norm =
+        gko::as<vec>(
+            gko::clone(exec->get_master(), logger->get_residual_norm()).get())
+            ->at(0);
     // Print solver statistics
     std::cout << "IR iteration count:     " << logger->get_num_iterations()
               << std::endl;
+    std::cout << "Initial Res norm: " << *initial_resnorm->get_values()
+              << "\nFinal Res norm: " << *res->get_values()
+              << "\nIR logger final res:     " << l_res_norm << std::endl;
     std::cout << "IR execution time [ms]: "
               << static_cast<double>(time.count()) / 1000000.0 << std::endl;
 }
