@@ -53,9 +53,9 @@ void batch_identity_apply(std::shared_ptr<const gko::ReferenceExecutor> exec,
                           const matrix::BatchDense<ValueType> *const b,
                           matrix::BatchDense<ValueType> *const x)
 {
-    const auto a_ub = get_batch_struct(a);
-    const auto b_ub = get_batch_struct(b);
-    const auto x_ub = get_batch_struct(x);
+    const auto a_ub = host::get_batch_struct(a);
+    const auto b_ub = host::get_batch_struct(b);
+    const auto x_ub = host::get_batch_struct(x);
     const int local_size_bytes = BatchIdentity<ValueType>::dynamic_work_size(
                                      a_ub.num_rows, a_ub.num_nnz) *
                                  sizeof(ValueType);

@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_cg_kernels.hpp"
 
 #include "omp/base/config.hpp"
+#include "reference/matrix/batch_struct.hpp"
 // include device kernels for every matrix and preconditioner type
-#include "omp/matrix/batch_struct.hpp"
 #include "reference/log/batch_logger.hpp"
 #include "reference/matrix/batch_csr_kernels.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
@@ -170,12 +170,12 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
         logdata.iter_counts.get_data());
 
     const gko::batch_dense::UniformBatch<const ValueType> b_b =
-        get_batch_struct(b);
+        host::get_batch_struct(b);
 
     const gko::batch_dense::UniformBatch<const ValueType> left_sb =
-        maybe_null_batch_struct(left_scale);
+        host::maybe_null_batch_struct(left_scale);
     const gko::batch_dense::UniformBatch<const ValueType> right_sb =
-        maybe_null_batch_struct(right_scale);
+        host::maybe_null_batch_struct(right_scale);
     const auto to_scale = left_sb.values || right_sb.values;
     if (to_scale) {
         if (!left_sb.values || !right_sb.values) {
@@ -184,20 +184,23 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
         }
     }
 
-    const gko::batch_dense::UniformBatch<ValueType> x_b = get_batch_struct(x);
+    const gko::batch_dense::UniformBatch<ValueType> x_b =
+        host::get_batch_struct(x);
     if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
         // if(to_scale) {
         // We pinky-promise not to change the matrix and RHS if no scaling was
         // requested
         const gko::batch_csr::UniformBatch<ValueType> a_b =
-            get_batch_struct(const_cast<matrix::BatchCsr<ValueType> *>(a_mat));
+            host::get_batch_struct(
+                const_cast<matrix::BatchCsr<ValueType> *>(a_mat));
         const gko::batch_dense::UniformBatch<ValueType> b_b =
-            get_batch_struct(const_cast<matrix::BatchDense<ValueType> *>(b));
+            host::get_batch_struct(
+                const_cast<matrix::BatchDense<ValueType> *>(b));
         apply_select_prec(exec, opts, logger, a_b, left_sb, right_sb, b_b, x_b);
         // } else {
         // 	const gko::batch_csr::UniformBatch<const ValueType> a_b =
-        // get_batch_struct(a_mat); 	apply_select_prec(exec, opts, logger,
-        // a_b, left_sb, right_sb, &b_b, b_b, x_b);
+        // host::get_batch_struct(a_mat); 	apply_select_prec(exec, opts,
+        // logger, a_b, left_sb, right_sb, &b_b, b_b, x_b);
         // }
 
     } else {
