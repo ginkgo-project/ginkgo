@@ -167,28 +167,21 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
            gko::log::BatchLogData<ValueType> &logdata)
 {
     batch_log::FinalLogger<remove_complex<ValueType>> logger(
-        b->get_size().at(0)[1], opts.max_its, logdata.res_norms->get_values(),
-        logdata.iter_counts.get_data());
-
-    const gko::batch_dense::UniformBatch<const ValueType> b_b =
-        host::get_batch_struct(b);
-
+        static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
+        logdata.res_norms->get_values(), logdata.iter_counts.get_data());
     const gko::batch_dense::UniformBatch<const ValueType> left_sb =
         host::maybe_null_batch_struct(left_scale);
     const gko::batch_dense::UniformBatch<const ValueType> right_sb =
         host::maybe_null_batch_struct(right_scale);
     const auto to_scale = left_sb.values || right_sb.values;
-    if (to_scale) {
-        if (!left_sb.values || !right_sb.values) {
-            // one-sided scaling not implemented
-            GKO_NOT_IMPLEMENTED;
-        }
+    if (to_scale && !(left_sb.values && right_sb.values)) {
+        // one-sided scaling not implemented
+        GKO_NOT_IMPLEMENTED;
     }
 
     const gko::batch_dense::UniformBatch<ValueType> x_b =
         host::get_batch_struct(x);
     if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
-        // if(to_scale) {
         // We pinky-promise not to change the matrix and RHS if no scaling was
         // requested
         const gko::batch_csr::UniformBatch<ValueType> a_b =
@@ -198,12 +191,6 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
             host::get_batch_struct(
                 const_cast<matrix::BatchDense<ValueType> *>(b));
         apply_select_prec(exec, opts, logger, a_b, left_sb, right_sb, b_b, x_b);
-        // } else {
-        // 	const gko::batch_csr::UniformBatch<const ValueType> a_b =
-        // host::get_batch_struct(a_mat); 	apply_select_prec(exec, opts,
-        // logger, a_b, left_sb, right_sb, &b_b, b_b, x_b);
-        // }
-
     } else {
         GKO_NOT_IMPLEMENTED;
     }
