@@ -82,10 +82,8 @@ static void apply_impl(
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
-
-
-    GKO_ASSERT(batch_config<ValueType>::max_num_rhs >=
-               nrhs);  // required for static allocation in stopping criterion
+    // required for static allocation in stopping criterion
+    GKO_ASSERT(batch_config<ValueType>::max_num_rhs >= nrhs);
 
     const int local_size_bytes =
         gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
@@ -93,7 +91,6 @@ static void apply_impl(
         PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
     using byte = unsigned char;
     Array<byte> local_space(exec, local_size_bytes);
-
     for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
         batch_entry_bicgstab_impl<StopType, PrecType, LogType, BatchMatrixType,
                                   ValueType, byte>(
@@ -114,7 +111,6 @@ void apply_select_prec(
 {
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
         BatchIdentity<ValueType> prec;
-
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             apply_impl<stop::AbsResidualMaxIter<ValueType>>(
                 exec, opts, logger, prec, a, left, right, b, x);
@@ -122,12 +118,9 @@ void apply_select_prec(
             apply_impl<stop::RelResidualMaxIter<ValueType>>(
                 exec, opts, logger, prec, a, left, right, b, x);
         }
-
-
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
         BatchJacobi<ValueType> prec;
-
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             apply_impl<stop::AbsResidualMaxIter<ValueType>>(
                 exec, opts, logger, prec, a, left, right, b, x);
@@ -135,8 +128,6 @@ void apply_select_prec(
             apply_impl<stop::RelResidualMaxIter<ValueType>>(
                 exec, opts, logger, prec, a, left, right, b, x);
         }
-
-
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -154,22 +145,17 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
            gko::log::BatchLogData<ValueType> &logdata)
 {
     batch_log::FinalLogger<remove_complex<ValueType>> logger(
-        b->get_size().at(0)[1], opts.max_its, logdata.res_norms->get_values(),
-        logdata.iter_counts.get_data());
-
-    const gko::batch_dense::UniformBatch<const ValueType> b_b =
-        host::get_batch_struct(b);
+        static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
+        logdata.res_norms->get_values(), logdata.iter_counts.get_data());
 
     const gko::batch_dense::UniformBatch<const ValueType> left_sb =
         host::maybe_null_batch_struct(left_scale);
     const gko::batch_dense::UniformBatch<const ValueType> right_sb =
         host::maybe_null_batch_struct(right_scale);
     const auto to_scale = left_sb.values || right_sb.values;
-    if (to_scale) {
-        if (!left_sb.values || !right_sb.values) {
-            // one-sided scaling not implemented
-            GKO_NOT_IMPLEMENTED;
-        }
+    if (to_scale && !(left_sb.values && right_sb.values)) {
+        // one-sided scaling not implemented
+        GKO_NOT_IMPLEMENTED;
     }
 
     const gko::batch_dense::UniformBatch<ValueType> x_b =
