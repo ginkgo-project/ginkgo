@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
-#include "omp/matrix/batch_struct.hpp"
+#include "reference/matrix/batch_struct.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
 
 
@@ -56,9 +56,9 @@ void batch_identity_apply(std::shared_ptr<const gko::OmpExecutor> exec,
 {
     using gko::kernels::reference::BatchIdentity;
 
-    const auto a_ub = get_batch_struct(a);
-    const auto b_ub = get_batch_struct(b);
-    const auto x_ub = get_batch_struct(x);
+    const auto a_ub = host::get_batch_struct(a);
+    const auto b_ub = host::get_batch_struct(b);
+    const auto x_ub = host::get_batch_struct(x);
     const int local_size_bytes = BatchIdentity<ValueType>::dynamic_work_size(
                                      a_ub.num_rows, a_ub.num_nnz) *
                                  sizeof(ValueType);

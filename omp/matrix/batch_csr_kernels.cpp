@@ -50,8 +50,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/components/prefix_sum.hpp"
-#include "omp/matrix/batch_struct.hpp"
 #include "reference/matrix/batch_csr_kernels.hpp"
+#include "reference/matrix/batch_struct.hpp"
 
 namespace gko {
 namespace kernels {
@@ -70,9 +70,9 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::BatchDense<ValueType> *b,
           matrix::BatchDense<ValueType> *c)
 {
-    const auto a_ub = get_batch_struct(a);
-    const auto b_ub = get_batch_struct(b);
-    const auto c_ub = get_batch_struct(c);
+    const auto a_ub = host::get_batch_struct(a);
+    const auto b_ub = host::get_batch_struct(b);
+    const auto c_ub = host::get_batch_struct(c);
 #pragma omp parallel for
     for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
@@ -95,11 +95,11 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::BatchDense<ValueType> *beta,
                    matrix::BatchDense<ValueType> *c)
 {
-    const auto a_ub = get_batch_struct(a);
-    const auto b_ub = get_batch_struct(b);
-    const auto c_ub = get_batch_struct(c);
-    const auto alpha_ub = get_batch_struct(alpha);
-    const auto beta_ub = get_batch_struct(beta);
+    const auto a_ub = host::get_batch_struct(a);
+    const auto b_ub = host::get_batch_struct(b);
+    const auto c_ub = host::get_batch_struct(c);
+    const auto alpha_ub = host::get_batch_struct(alpha);
+    const auto beta_ub = host::get_batch_struct(beta);
 #pragma omp parallel for
     for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
@@ -126,9 +126,9 @@ void batch_scale(std::shared_ptr<const OmpExecutor> exec,
     if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
 
     const size_type nbatches = mat->get_num_batch_entries();
-    const auto a_ub = get_batch_struct(mat);
-    const auto left_ub = get_batch_struct(left_scale);
-    const auto right_ub = get_batch_struct(right_scale);
+    const auto a_ub = host::get_batch_struct(mat);
+    const auto left_ub = host::get_batch_struct(left_scale);
+    const auto right_ub = host::get_batch_struct(right_scale);
 
 #pragma omp parallel for
     for (size_type ibatch = 0; ibatch < nbatches; ibatch++) {
