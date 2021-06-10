@@ -14,8 +14,8 @@ if(GINKGO_BUILD_TESTS AND (NOT GTest_FOUND))
     add_subdirectory(gtest)
 endif()
 
-if(GINKGO_HAVE_HWLOC AND NOT GINKGO_USE_EXTERNAL_HWLOC)
-    ginkgo_add_subdirectory(HWLOC hwloc)
+if(GINKGO_BUILD_HWLOC AND (NOT HWLOC_FOUND))
+    add_subdirectory(hwloc)
 endif()
 
 if(GINKGO_DEVEL_TOOLS)

@@ -212,9 +212,6 @@ variables:
 Ginkgo relies on third party packages in different cases. These third party
 packages can be turned off by disabling the relevant options.
 
-+ GINKGO_BUILD_CUDA=ON:
-  [CudaArchitectureSelector](https://github.com/ginkgo-project/CudaArchitectureSelector)
-  (CAS) is a CMake helper to manage CUDA architecture settings;
 + GINKGO_BUILD_TESTS=ON: Our tests are implemented with [Google
   Test](https://github.com/google/googletest);
 + GINKGO_BUILD_BENCHMARKS=ON: For argument management we use
@@ -227,14 +224,10 @@ packages can be turned off by disabling the relevant options.
   [hwloc](https://www.open-mpi.org/projects/hwloc) to detect and control cores
   and devices.
 
-Usually, Ginkgo uses the internal version of each package. For each of the
-packages `GTEST`, `GFLAGS`, `RAPIDJSON` and `CAS`, it is possible to force
-Ginkgo to try to use an external version of a package. For this, Ginkgo provides
-two ways to find packages. To rely on the CMake `find_package` command, use the
-CMake option `-DGINKGO_USE_EXTERNAL_<package>=ON`. `HWLOC` works the opposite
-way, Ginkgo always looks for the system's `hwloc` first. In addition, when
-installing Ginkgo, `hwloc` will be installed as well into the Ginkgo directory
-if there were no system `hwloc` detected.
+Ginkgo attempts to use pre-installed versions of these package if they match
+version requirements using `find_package`. Otherwise, the configuration step
+will download the files for each of the packages `GTest`, `gflags`,
+`RapidJSON` and `hwloc` and build them internally.
 
 Note that, if the external packages were not installed to the default location,
 the CMake option `-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the
@@ -243,19 +236,8 @@ more Information, see the [CMake documentation for
 CMAKE_PREFIX_PATH](https://cmake.org/cmake/help/v3.9/variable/CMAKE_PREFIX_PATH.html)
 for details.
 
-To manually configure the paths, Ginkgo relies on the [standard xSDK Installation
-policies](https://xsdk.info/policies/) for all packages except `CAS` (as it is
-neither a library nor a header, it cannot be expressed through the `TPL`
-format):
-+ `-DTPL_ENABLE_<package>=ON`
-+ `-DTPL_<package>_LIBRARIES=/path/to/libraries.{so|a}`
-+ `-DTPL_<package>_INCLUDE_DIRS=/path/to/header/directory`
-
-When applicable (e.g. for `GTest` libraries), a `;` separated list can be given
-to the `TPL_<package>_{LIBRARIES|INCLUDE_DIRS}` variables.
-
-Note that for convenience, the options `GINKGO_INSTALL_RPATH[_.*]` can be used
-to make bind the Ginkgo shared libraries to the path of its dependencies.
+For convenience, the options `GINKGO_INSTALL_RPATH[_.*]` can be used
+to bind the installed Ginkgo shared libraries to the path of its dependencies.
 
 ### Installing Ginkgo
 
