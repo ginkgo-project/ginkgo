@@ -63,6 +63,8 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
+          stopped{},
+          non_stopped{},
           fcg_factory(
               Solver::build()
                   .with_criteria(

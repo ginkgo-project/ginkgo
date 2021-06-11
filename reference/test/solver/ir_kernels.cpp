@@ -86,8 +86,8 @@ TYPED_TEST_SUITE(Ir, gko::test::ValueTypes);
 
 TYPED_TEST(Ir, KernelInitialize)
 {
-    gko::stopping_status stopped;
-    gko::stopping_status non_stopped;
+    gko::stopping_status stopped{};
+    gko::stopping_status non_stopped{};
     auto stop = gko::Array<gko::stopping_status>(this->exec, 2);
     stopped.stop(1);
     non_stopped.reset();
