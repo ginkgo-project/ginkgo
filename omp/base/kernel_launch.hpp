@@ -220,14 +220,14 @@ void run_kernel_blocked_cols(std::shared_ptr<const OmpExecutor> exec,
 {
     const auto rows = size[0];
     const auto cols = size[1];
-    const auto rounded_cols = cols / 8 * 8;
-    const auto remainder_cols = cols % 8;
+    const auto rounded_cols = cols / 4 * 4;
+    const auto remainder_cols = cols % 4;
     GKO_ASSERT(rounded_cols + remainder_cols == cols);
 #pragma omp parallel for
     for (size_type row = 0; row < rows; row++) {
-        for (size_type base_col = 0; base_col < rounded_cols; base_col += 8) {
+        for (size_type base_col = 0; base_col < rounded_cols; base_col += 4) {
 #pragma unroll
-            for (size_type i = 0; i < 8; i++) {
+            for (size_type i = 0; i < 4; i++) {
                 [&]() {
                     fn(row, base_col + i,
                        kernels::omp::map_unpack_to_device(args, cols)...);
@@ -269,26 +269,6 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
     }
     if (cols == 4) {
         run_kernel_fixed_cols<4>(exec, fn, size,
-                                 std::forward<KernelArgs>(args)...);
-        return;
-    }
-    if (cols == 5) {
-        run_kernel_fixed_cols<5>(exec, fn, size,
-                                 std::forward<KernelArgs>(args)...);
-        return;
-    }
-    if (cols == 6) {
-        run_kernel_fixed_cols<6>(exec, fn, size,
-                                 std::forward<KernelArgs>(args)...);
-        return;
-    }
-    if (cols == 7) {
-        run_kernel_fixed_cols<7>(exec, fn, size,
-                                 std::forward<KernelArgs>(args)...);
-        return;
-    }
-    if (cols == 8) {
-        run_kernel_fixed_cols<8>(exec, fn, size,
                                  std::forward<KernelArgs>(args)...);
         return;
     }
