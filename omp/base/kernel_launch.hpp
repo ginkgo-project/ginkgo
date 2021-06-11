@@ -196,20 +196,146 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
     }
 }
 
-template <typename KernelFunction, typename... KernelArgs>
-void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
-                dim<2> size, KernelArgs &&... args)
+template <size_type cols, typename KernelFunction, typename... KernelArgs>
+void run_kernel_fixed_cols(std::shared_ptr<const OmpExecutor> exec,
+                           KernelFunction fn, dim<2> size,
+                           KernelArgs &&... args)
 {
     const auto rows = size[0];
-    const auto cols = size[1];
 #pragma omp parallel for
     for (size_type row = 0; row < rows; row++) {
+#pragma unroll
         for (size_type col = 0; col < cols; col++) {
             [&]() {
                 fn(row, col, kernels::omp::map_unpack_to_device(args, cols)...);
             }();
         }
     }
+}
+
+template <size_type remainder_cols, typename KernelFunction,
+          typename... KernelArgs>
+void run_kernel_blocked_cols(std::shared_ptr<const OmpExecutor> exec,
+                             KernelFunction fn, dim<2> size,
+                             KernelArgs &&... args)
+{
+    const auto rows = size[0];
+    const auto cols = size[1];
+    const auto rounded_cols = cols / 8 * 8;
+    GKO_ASSERT(rounded_cols + remainder_cols == cols);
+#pragma omp parallel for
+    for (size_type row = 0; row < rows; row++) {
+        for (size_type base_col = 0; base_col < rounded_cols; base_col += 8) {
+#pragma unroll
+            for (size_type i = 0; i < 8; i++) {
+                [&]() {
+                    fn(row, base_col + i,
+                       kernels::omp::map_unpack_to_device(args, cols)...);
+                }();
+            }
+        }
+#pragma unroll
+        for (size_type i = 0; i < remainder_cols; i++) {
+            [&]() {
+                fn(row, rounded_cols + i,
+                   kernels::omp::map_unpack_to_device(args, cols)...);
+            }();
+        }
+    }
+}
+
+template <typename KernelFunction, typename... KernelArgs>
+void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
+                dim<2> size, KernelArgs &&... args)
+{
+    const auto rows = size[0];
+    const auto cols = size[1];
+    if (cols <= 0) {
+        return;
+    }
+    if (cols == 1) {
+        run_kernel_fixed_cols<1>(exec, fn, size,
+                                 std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (cols == 2) {
+        run_kernel_fixed_cols<2>(exec, fn, size,
+                                 std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (cols == 3) {
+        run_kernel_fixed_cols<3>(exec, fn, size,
+                                 std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (cols == 4) {
+        run_kernel_fixed_cols<4>(exec, fn, size,
+                                 std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (cols == 5) {
+        run_kernel_fixed_cols<5>(exec, fn, size,
+                                 std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (cols == 6) {
+        run_kernel_fixed_cols<6>(exec, fn, size,
+                                 std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (cols == 7) {
+        run_kernel_fixed_cols<7>(exec, fn, size,
+                                 std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (cols == 8) {
+        run_kernel_fixed_cols<8>(exec, fn, size,
+                                 std::forward<KernelArgs>(args)...);
+        return;
+    }
+    const auto rem_cols = cols % 8;
+    if (rem_cols == 0) {
+        run_kernel_blocked_cols<0>(exec, fn, size,
+                                   std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (rem_cols == 1) {
+        run_kernel_blocked_cols<1>(exec, fn, size,
+                                   std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (rem_cols == 2) {
+        run_kernel_blocked_cols<2>(exec, fn, size,
+                                   std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (rem_cols == 3) {
+        run_kernel_blocked_cols<3>(exec, fn, size,
+                                   std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (rem_cols == 4) {
+        run_kernel_blocked_cols<4>(exec, fn, size,
+                                   std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (rem_cols == 5) {
+        run_kernel_blocked_cols<5>(exec, fn, size,
+                                   std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (rem_cols == 6) {
+        run_kernel_blocked_cols<6>(exec, fn, size,
+                                   std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (rem_cols == 7) {
+        run_kernel_blocked_cols<7>(exec, fn, size,
+                                   std::forward<KernelArgs>(args)...);
+        return;
+    }
+    // should be unreachable
+    GKO_ASSERT(false);
 }
 
 
