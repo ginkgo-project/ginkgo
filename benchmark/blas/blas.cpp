@@ -447,7 +447,8 @@ void apply_blas(const char *operation_name, std::shared_ptr<gko::Executor> exec,
 
         // timed run
         auto timer = get_timer(exec, FLAGS_gpu_timer);
-        for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
+        const auto repetitions = get_repetitions();
+        for (unsigned int i = 0; i < repetitions; i++) {
             op->prepare();
             exec->synchronize();
             timer->tic();
