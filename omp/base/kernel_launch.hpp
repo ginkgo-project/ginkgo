@@ -213,7 +213,8 @@ void run_kernel_fixed_cols(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
-template <typename KernelFunction, typename... KernelArgs>
+template <size_type remainder_cols, typename KernelFunction,
+          typename... KernelArgs>
 void run_kernel_blocked_cols(std::shared_ptr<const OmpExecutor> exec,
                              KernelFunction fn, dim<2> size,
                              KernelArgs &&... args)
@@ -221,7 +222,6 @@ void run_kernel_blocked_cols(std::shared_ptr<const OmpExecutor> exec,
     const auto rows = size[0];
     const auto cols = size[1];
     const auto rounded_cols = cols / 4 * 4;
-    const auto remainder_cols = cols % 4;
     GKO_ASSERT(rounded_cols + remainder_cols == cols);
 #pragma omp parallel for
     for (size_type row = 0; row < rows; row++) {
@@ -234,6 +234,7 @@ void run_kernel_blocked_cols(std::shared_ptr<const OmpExecutor> exec,
                 }();
             }
         }
+#pragma unroll
         for (size_type i = 0; i < remainder_cols; i++) {
             [&]() {
                 fn(row, rounded_cols + i,
@@ -272,7 +273,29 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
                                  std::forward<KernelArgs>(args)...);
         return;
     }
-    run_kernel_blocked_cols(exec, fn, size, std::forward<KernelArgs>(args)...);
+    const auto rem_cols = cols % 4;
+    if (rem_cols == 0) {
+        run_kernel_blocked_cols<0>(exec, fn, size,
+                                   std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (rem_cols == 1) {
+        run_kernel_blocked_cols<1>(exec, fn, size,
+                                   std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (rem_cols == 2) {
+        run_kernel_blocked_cols<2>(exec, fn, size,
+                                   std::forward<KernelArgs>(args)...);
+        return;
+    }
+    if (rem_cols == 3) {
+        run_kernel_blocked_cols<3>(exec, fn, size,
+                                   std::forward<KernelArgs>(args)...);
+        return;
+    }
+    // should be unreachable
+    GKO_ASSERT(false);
 }
 
 
