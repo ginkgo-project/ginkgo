@@ -159,6 +159,7 @@ void run_preconditioner(const char *precond_name,
                               allocator);
         }
 
+        const auto repetitions = get_repetitions();
         {
             // fast run, gets total time
             auto x_clone = clone(x);
@@ -174,28 +175,27 @@ void run_preconditioner(const char *precond_name,
             exec->synchronize();
             generate_timer->tic();
             std::unique_ptr<gko::LinOp> precond_op;
-            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+            for (auto i = 0u; i < repetitions; ++i) {
                 precond_op = precond->generate(system_matrix);
             }
             generate_timer->toc();
 
             // the timer is out of the loops to reduce calling synchronize
             // overhead, so the timer does not know the number of repetitions.
-            auto generate_time =
-                generate_timer->get_total_time() / FLAGS_repetitions;
+            auto generate_time = generate_timer->get_total_time() / repetitions;
             add_or_set_member(this_precond_data["generate"], "time",
                               generate_time, allocator);
 
             exec->synchronize();
             apply_timer->tic();
-            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+            for (auto i = 0u; i < repetitions; ++i) {
                 precond_op->apply(lend(b), lend(x_clone));
             }
             apply_timer->toc();
 
             // the timer is out of the loops to reduce calling synchronize
             // overhead, so the timer does not know the number of repetitions.
-            auto apply_time = apply_timer->get_total_time() / FLAGS_repetitions;
+            auto apply_time = apply_timer->get_total_time() / repetitions;
             add_or_set_member(this_precond_data["apply"], "time", apply_time,
                               allocator);
         }
@@ -209,24 +209,24 @@ void run_preconditioner(const char *precond_name,
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(gen_logger);
             std::unique_ptr<gko::LinOp> precond_op;
-            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+            for (auto i = 0u; i < repetitions; ++i) {
                 precond_op = precond->generate(system_matrix);
             }
             exec->remove_logger(gko::lend(gen_logger));
 
             gen_logger->write_data(this_precond_data["generate"]["components"],
-                                   allocator, FLAGS_repetitions);
+                                   allocator, repetitions);
 
             auto apply_logger =
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(apply_logger);
-            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+            for (auto i = 0u; i < repetitions; ++i) {
                 precond_op->apply(lend(b), lend(x_clone));
             }
             exec->remove_logger(gko::lend(apply_logger));
 
             apply_logger->write_data(this_precond_data["apply"]["components"],
-                                     allocator, FLAGS_repetitions);
+                                     allocator, repetitions);
         }
 
         add_or_set_member(this_precond_data, "completed", true, allocator);

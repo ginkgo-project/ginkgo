@@ -80,8 +80,9 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
             matrix_to->clear();
         }
         auto timer = get_timer(exec, FLAGS_gpu_timer);
+        const auto repetitions = get_repetitions();
         // timed run
-        for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
+        for (unsigned int i = 0; i < repetitions; i++) {
             exec->synchronize();
             timer->tic();
             matrix_to->copy_from(matrix_from);

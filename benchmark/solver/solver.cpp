@@ -473,7 +473,8 @@ void solve_system(const std::string &solver_name,
         // timed run
         auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
         auto apply_timer = get_timer(exec, FLAGS_gpu_timer);
-        for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
+        const auto repetitions = get_repetitions();
+        for (unsigned int i = 0; i < repetitions; i++) {
             auto x_clone = clone(x);
 
             exec->synchronize();
@@ -488,7 +489,7 @@ void solve_system(const std::string &solver_name,
             solver->apply(lend(b), lend(x_clone));
             apply_timer->toc();
 
-            if (b->get_size()[1] == 1 && i == FLAGS_repetitions - 1 &&
+            if (b->get_size()[1] == 1 && i == repetitions - 1 &&
                 !FLAGS_overhead) {
                 auto residual = compute_residual_norm(lend(system_matrix),
                                                       lend(b), lend(x_clone));

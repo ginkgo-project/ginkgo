@@ -87,7 +87,7 @@ DEFINE_uint32(seed, 42, "Seed used for the random number generator");
 
 DEFINE_uint32(warmup, 2, "Warm-up repetitions");
 
-DEFINE_uint32(repetitions, 10,
+DEFINE_string(repetitions, "10",
               "Number of runs used to obtain an averaged result.");
 
 
@@ -433,5 +433,12 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
     return max_relative_norm2;
 }
 
+
+// parses the repetitions flag
+unsigned int get_repetitions()
+{
+    const std::string reps_str = FLAGS_repetitions;
+    return static_cast<unsigned int>(std::stoi(reps_str));
+}
 
 #endif  // GKO_BENCHMARK_UTILS_GENERAL_HPP_
