@@ -200,9 +200,11 @@ template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
                 dim<2> size, KernelArgs &&... args)
 {
+    const auto rows = size[0];
+    const auto cols = size[1];
 #pragma omp parallel for collapse(2)
-    for (size_type row = 0; row < size[0]; row++) {
-        for (size_type col = 0; col < size[1]; col++) {
+    for (size_type row = 0; row < rows; row++) {
+        for (size_type col = 0; col < cols; col++) {
             [&]() {
                 fn(row, col,
                    kernels::omp::map_unpack_to_device(args, size[1])...);
