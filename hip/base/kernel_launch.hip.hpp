@@ -134,8 +134,7 @@ struct compact_dense_wrapper {
 template <typename T>
 struct device_unpack_2d_impl {
     using type = T;
-    static __device__ __forceinline__ type unpack(T param, size_type, size_type,
-                                                  size_type, size_type)
+    static __device__ __forceinline__ type unpack(T param, size_type)
     {
         return param;
     }
@@ -145,8 +144,7 @@ template <typename ValueType>
 struct device_unpack_2d_impl<compact_dense_wrapper<ValueType>> {
     using type = matrix_accessor<ValueType>;
     static __device__ __forceinline__ type
-    unpack(compact_dense_wrapper<ValueType> param, size_type, size_type,
-           size_type, size_type num_cols)
+    unpack(compact_dense_wrapper<ValueType> param, size_type num_cols)
     {
         return {param.data, num_cols};
     }
@@ -175,9 +173,7 @@ __global__ __launch_bounds__(default_block_size) void generic_kernel_2d(
     if (row >= rows) {
         return;
     }
-    fn(row, col,
-       device_unpack_2d_impl<KernelArgs>::unpack(args, row, col, rows,
-                                                 cols)...);
+    fn(row, col, device_unpack_2d_impl<KernelArgs>::unpack(args, cols)...);
 }
 
 

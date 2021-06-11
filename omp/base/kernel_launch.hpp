@@ -123,17 +123,14 @@ struct compact_dense_wrapper {
 template <typename T>
 struct device_unpack_2d_impl {
     using type = T;
-    static type unpack(T param, size_type, size_type, size_type, size_type)
-    {
-        return param;
-    }
+    static type unpack(T param, size_type) { return param; }
 };
 
 template <typename ValueType>
 struct device_unpack_2d_impl<compact_dense_wrapper<ValueType>> {
     using type = matrix_accessor<ValueType>;
-    static type unpack(compact_dense_wrapper<ValueType> param, size_type,
-                       size_type, size_type, size_type num_cols)
+    static type unpack(compact_dense_wrapper<ValueType> param,
+                       size_type num_cols)
     {
         return {param.data, num_cols};
     }
@@ -142,12 +139,10 @@ struct device_unpack_2d_impl<compact_dense_wrapper<ValueType>> {
 
 template <typename T>
 typename device_unpack_2d_impl<typename to_device_type_impl<T>::type>::type
-map_unpack_to_device(T &&param, size_type row, size_type col,
-                     size_type num_rows, size_type num_cols)
+map_unpack_to_device(T &&param, size_type num_cols)
 {
     return device_unpack_2d_impl<typename to_device_type_impl<T>::type>::unpack(
-        to_device_type_impl<T>::map_to_device(param), row, col, num_rows,
-        num_cols);
+        to_device_type_impl<T>::map_to_device(param), num_cols);
 }
 
 
@@ -210,8 +205,7 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
         for (size_type col = 0; col < size[1]; col++) {
             [&]() {
                 fn(row, col,
-                   kernels::omp::map_unpack_to_device(args, row, col, size[0],
-                                                      size[1])...);
+                   kernels::omp::map_unpack_to_device(args, size[1])...);
             }();
         }
     }
