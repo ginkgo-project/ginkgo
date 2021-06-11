@@ -66,7 +66,8 @@ protected:
               gko::matrix::Dense<>::create(exec, dim<2>{4, 4}, 5)),
           vec_dense(gko::matrix::Dense<>::create(exec, dim<2>{1, 4}))
     {
-        auto ref_iota_dense = gko::matrix::Dense<>::create(exec, dim<2>{4, 4});
+        auto ref_iota_dense =
+            gko::matrix::Dense<>::create(exec->get_master(), dim<2>{4, 4});
         for (int i = 0; i < 16; i++) {
             zero_array.get_data()[i] = 0;
             iota_array.get_data()[i] = i;

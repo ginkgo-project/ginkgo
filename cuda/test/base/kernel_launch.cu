@@ -54,7 +54,8 @@ using std::is_same;
 class KernelLaunch : public ::testing::Test {
 protected:
     KernelLaunch()
-        : exec(gko::CudaExecutor::create(0, gko::ReferenceExecutor::create())),
+        : exec(gko::CudaExecutor::create(0, gko::ReferenceExecutor::create(),
+                                         false, gko::allocation_mode::device)),
           zero_array(exec->get_master(), 16),
           iota_array(exec->get_master(), 16),
           iota_transp_array(exec->get_master(), 16),
@@ -64,7 +65,8 @@ protected:
               gko::matrix::Dense<>::create(exec, dim<2>{4, 4}, 5)),
           vec_dense(gko::matrix::Dense<>::create(exec, dim<2>{1, 4}))
     {
-        auto ref_iota_dense = gko::matrix::Dense<>::create(exec, dim<2>{4, 4});
+        auto ref_iota_dense =
+            gko::matrix::Dense<>::create(exec->get_master(), dim<2>{4, 4});
         for (int i = 0; i < 16; i++) {
             zero_array.get_data()[i] = 0;
             iota_array.get_data()[i] = i;
