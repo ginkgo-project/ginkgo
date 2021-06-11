@@ -30,6 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_BENCHMARK_UTILS_TIMER_HPP_
+#define GKO_BENCHMARK_UTILS_TIMER_HPP_
+
+
 #include <ginkgo/ginkgo.hpp>
 
 
@@ -385,3 +389,5 @@ std::shared_ptr<Timer> get_timer(std::shared_ptr<const gko::Executor> exec,
     // No cuda/hip executor available or no gpu_timer used
     return std::make_shared<CpuTimer>(exec);
 }
+
+#endif  // GKO_BENCHMARK_UTILS_TIMER_HPP_
