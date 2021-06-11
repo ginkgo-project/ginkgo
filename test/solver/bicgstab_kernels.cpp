@@ -335,8 +335,8 @@ TEST_F(Bicgstab, BicgstabApplyOneRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 10);
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 10);
+    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
 }
 
 
@@ -356,8 +356,8 @@ TEST_F(Bicgstab, BicgstabApplyMultipleRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 10);
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 10);
+    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
 }
 
 
