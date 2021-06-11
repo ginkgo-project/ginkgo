@@ -75,7 +75,7 @@ function(ginkgo_create_cuda_test test_name)
         target_compile_options(${test_target_name}
             PRIVATE
                 $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda --expt-relaxed-constexpr>)
-    else()
+    elseif(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
         target_compile_options(${test_target_name}
             PRIVATE
                 $<$<COMPILE_LANGUAGE:CUDA>:--expt-extended-lambda --expt-relaxed-constexpr>)
