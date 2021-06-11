@@ -370,4 +370,84 @@ TYPED_TEST(Ir, UseAsRichardson)
 }
 
 
+TYPED_TEST(Ir, DefaultSmootherBuildWithSolver)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    auto solver = gko::as<Solver>(share(this->solver));
+
+    auto smoother_factory = gko::solver::smoother_build<value_type>(solver);
+    auto criteria =
+        std::dynamic_pointer_cast<const gko::stop::Iteration::Factory>(
+            smoother_factory->get_parameters().criteria.at(0));
+
+    ASSERT_EQ(smoother_factory->get_parameters().relaxation_factor,
+              value_type{0.9});
+    ASSERT_NE(criteria.get(), nullptr);
+    ASSERT_EQ(criteria->get_parameters().max_iters, 1);
+    ASSERT_EQ(smoother_factory->get_parameters().generated_solver.get(),
+              solver.get());
+}
+
+
+TYPED_TEST(Ir, DefaultSmootherBuildWithFactory)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    auto factory = share(this->ir_factory);
+
+    auto smoother_factory = gko::solver::smoother_build<value_type>(factory);
+    auto criteria =
+        std::dynamic_pointer_cast<const gko::stop::Iteration::Factory>(
+            smoother_factory->get_parameters().criteria.at(0));
+
+    ASSERT_EQ(smoother_factory->get_parameters().relaxation_factor,
+              value_type{0.9});
+    ASSERT_NE(criteria.get(), nullptr);
+    ASSERT_EQ(criteria->get_parameters().max_iters, 1);
+    ASSERT_EQ(smoother_factory->get_parameters().solver.get(), factory.get());
+}
+
+
+TYPED_TEST(Ir, SmootherBuildWithSolver)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    auto solver = gko::as<Solver>(share(this->solver));
+
+    auto smoother_factory =
+        gko::solver::smoother_build<value_type>(solver, 3, value_type{0.5});
+    auto criteria =
+        std::dynamic_pointer_cast<const gko::stop::Iteration::Factory>(
+            smoother_factory->get_parameters().criteria.at(0));
+
+    ASSERT_EQ(smoother_factory->get_parameters().relaxation_factor,
+              value_type{0.5});
+    ASSERT_NE(criteria.get(), nullptr);
+    ASSERT_EQ(criteria->get_parameters().max_iters, 3);
+    ASSERT_EQ(smoother_factory->get_parameters().generated_solver.get(),
+              solver.get());
+}
+
+
+TYPED_TEST(Ir, SmootherBuildWithFactory)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    auto factory = share(this->ir_factory);
+
+    auto smoother_factory =
+        gko::solver::smoother_build<value_type>(factory, 3, value_type{0.5});
+    auto criteria =
+        std::dynamic_pointer_cast<const gko::stop::Iteration::Factory>(
+            smoother_factory->get_parameters().criteria.at(0));
+
+    ASSERT_EQ(smoother_factory->get_parameters().relaxation_factor,
+              value_type{0.5});
+    ASSERT_NE(criteria.get(), nullptr);
+    ASSERT_EQ(criteria->get_parameters().max_iters, 3);
+    ASSERT_EQ(smoother_factory->get_parameters().solver.get(), factory.get());
+}
+
+
 }  // namespace

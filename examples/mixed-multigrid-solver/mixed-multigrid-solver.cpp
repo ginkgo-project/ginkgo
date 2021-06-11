@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
     auto smoother_gen2 = gko::share(
         ir2::build()
             .with_solver(bj2::build().with_max_block_size(1u).on(exec))
-            .with_relaxation_factor(0.9)
+            .with_relaxation_factor(0.9f)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .on(exec));
@@ -156,7 +156,8 @@ int main(int argc, char *argv[])
                                gko::share(smoother_gen2))
             .with_post_uses_pre(true)
             .with_mg_level(gko::share(mg_level_gen), gko::share(mg_level_gen2))
-            .with_coarsest_solver(gko::share(coarsest_solver_gen))
+            .with_coarsest_solver(
+                gko::share(bj2::build().with_max_block_size(1u).on(exec)))
             .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
             .on(exec);
 

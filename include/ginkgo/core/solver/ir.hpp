@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 
 namespace gko {
@@ -248,6 +249,33 @@ private:
 
 template <typename ValueType = default_precision>
 using Richardson = Ir<ValueType>;
+
+
+template <typename ValueType>
+auto smoother_build(std::shared_ptr<LinOpFactory> factory,
+                    size_type iteration = 1, ValueType relaxation_factor = 0.9)
+{
+    auto exec = factory->get_executor();
+    return Ir<ValueType>::build()
+        .with_solver(factory)
+        .with_relaxation_factor(relaxation_factor)
+        .with_criteria(
+            gko::stop::Iteration::build().with_max_iters(iteration).on(exec))
+        .on(exec);
+}
+
+template <typename ValueType>
+auto smoother_build(std::shared_ptr<LinOp> solver, size_type iteration = 1,
+                    ValueType relaxation_factor = 0.9)
+{
+    auto exec = solver->get_executor();
+    return Ir<ValueType>::build()
+        .with_generated_solver(solver)
+        .with_relaxation_factor(relaxation_factor)
+        .with_criteria(
+            gko::stop::Iteration::build().with_max_iters(iteration).on(exec))
+        .on(exec);
+}
 
 
 }  // namespace solver

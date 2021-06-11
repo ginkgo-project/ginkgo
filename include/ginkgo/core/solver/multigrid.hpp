@@ -34,27 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_SOLVER_MULTIGRID_HPP_
 
 
+#include <complex>
 #include <functional>
 #include <memory>
 #include <utility>
 
-
-// #include <ginkgo/core/base/abstract_factory.hpp>
-// #include <ginkgo/core/base/array.hpp>
-// #include <ginkgo/core/base/dim.hpp>
-// #include <ginkgo/core/base/exception_helpers.hpp>
-// #include <ginkgo/core/base/lin_op.hpp>
-// #include <ginkgo/core/base/math.hpp>
-// #include <ginkgo/core/base/polymorphic_object.hpp>
-// #include <ginkgo/core/base/types.hpp>
-// #include <ginkgo/core/base/utils.hpp>
-// #include <ginkgo/core/log/logger.hpp>
-// #include <ginkgo/core/matrix/csr.hpp>
-// #include <ginkgo/core/matrix/dense.hpp>
-// #include <ginkgo/core/matrix/identity.hpp>
-// #include <ginkgo/core/multigrid/multigrid_level.hpp>
-// #include <ginkgo/core/stop/combined.hpp>
-// #include <ginkgo/core/stop/criterion.hpp>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -305,6 +289,18 @@ public:
          * ||updated_r|| <= kcycle_rel_tol ||r||: run second iteration.
          */
         double GKO_FACTORY_PARAMETER_SCALAR(kcycle_rel_tol, 0.25);
+
+        /**
+         * smoother_relax is the relaxation factor of auto generated smoother
+         * when the given smoother does not use the initial guess.
+         */
+        std::complex<double> GKO_FACTORY_PARAMETER_SCALAR(smoother_relax, 0.9);
+
+        /**
+         * smoother_iters is the number of iteration of auto generated smoother
+         * when the given smoother does not use the initial guess.
+         */
+        size_type GKO_FACTORY_PARAMETER_SCALAR(smoother_iters, 1);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -70,16 +71,20 @@ protected:
 };
 
 
-template <typename ValueType>
+template <typename ValueType, bool uses_initial_guess = true>
 class DummyLinOpWithFactory
-    : public gko::EnableLinOp<DummyLinOpWithFactory<ValueType>>,
+    : public gko::EnableLinOp<
+          DummyLinOpWithFactory<ValueType, uses_initial_guess>>,
       public gko::multigrid::EnableMultigridLevel<ValueType> {
 public:
     DummyLinOpWithFactory(std::shared_ptr<const gko::Executor> exec)
         : gko::EnableLinOp<DummyLinOpWithFactory>(exec)
     {}
 
-    bool apply_uses_initial_guess() const override { return true; }
+    bool apply_uses_initial_guess() const override
+    {
+        return uses_initial_guess;
+    }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -118,50 +123,6 @@ protected:
 };
 
 
-// class DummyRestrictProlongOpWithFactory
-//     : public gko::multigrid::EnableRestrictProlong<
-//           DummyRestrictProlongOpWithFactory> {
-// public:
-//     DummyRestrictProlongOpWithFactory(std::shared_ptr<const gko::Executor>
-//     exec)
-//         : gko::multigrid::EnableRestrictProlong<
-//               DummyRestrictProlongOpWithFactory>(exec)
-//     {}
-
-//     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-//     {
-//         int GKO_FACTORY_PARAMETER(value, 5);
-//     };
-//     GKO_ENABLE_RESTRICT_PROLONG_FACTORY(DummyRestrictProlongOpWithFactory,
-//                                         parameters, Factory);
-//     GKO_ENABLE_BUILD_METHOD(Factory);
-
-//     DummyRestrictProlongOpWithFactory(const Factory *factory,
-//                                       std::shared_ptr<const gko::LinOp> op)
-//         : gko::multigrid::EnableRestrictProlong<
-//               DummyRestrictProlongOpWithFactory>(factory->get_executor()),
-//           parameters_{factory->get_parameters()},
-//           op_{op}
-//     {
-//         gko::size_type n = op_->get_size()[0] - 1;
-//         auto coarse = DummyLinOp::create(this->get_executor(),
-//         gko::dim<2>{n}); this->set_coarse_fine(gko::give(coarse),
-//         op_->get_size()[0]);
-//     }
-
-//     std::shared_ptr<const gko::LinOp> op_;
-
-// protected:
-//     void restrict_apply_impl(const gko::LinOp *b, gko::LinOp *x) const
-//     override
-//     {}
-
-//     void prolong_applyadd_impl(const gko::LinOp *b,
-//                                gko::LinOp *x) const override
-//     {}
-// };
-
-
 template <typename T>
 class Multigrid : public ::testing::Test {
 protected:
@@ -170,6 +131,7 @@ protected:
     using Solver = gko::solver::Multigrid;
     using DummyRPFactory = DummyLinOpWithFactory<value_type>;
     using DummyFactory = DummyLinOpWithFactory<value_type>;
+    using DummyFactoryWoGuess = DummyLinOpWithFactory<value_type, false>;
 
     Multigrid()
         : exec(gko::ReferenceExecutor::create()),
@@ -422,6 +384,70 @@ TYPED_TEST(Multigrid, DefaultBehaviorGivenEmptyList)
     ASSERT_EQ(mid_smoother.at(0), nullptr);
     ASSERT_EQ(post_smoother.at(0), nullptr);
     ASSERT_NE(identity, nullptr);
+}
+
+
+TYPED_TEST(Multigrid, DefaultGenerateSmoother)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    using DummyFactoryWoGuess = typename TestFixture::DummyFactoryWoGuess;
+    auto factory_without_initial_guess =
+        share(DummyFactoryWoGuess::build().on(this->exec));
+    auto solver = Solver::build()
+                      .with_max_levels(1u)
+                      .with_pre_smoother(factory_without_initial_guess)
+                      .with_mg_level(this->rp_factory)
+                      .with_criteria(this->criterion)
+                      .on(this->exec)
+                      ->generate(this->mtx);
+
+    auto pre_smoother = solver->get_pre_smoother_list().at(0);
+    auto ir = std::dynamic_pointer_cast<const gko::solver::Ir<value_type>>(
+        pre_smoother);
+    // only 1 critria, so the type is original type not Combined
+    auto iters_stop =
+        std::dynamic_pointer_cast<const gko::stop::Iteration::Factory>(
+            ir->get_stop_criterion_factory());
+
+    ASSERT_NE(ir.get(), nullptr);
+    ASSERT_NE(iters_stop.get(), nullptr);
+    ASSERT_EQ(ir->get_parameters().relaxation_factor, value_type{0.9});
+    ASSERT_EQ(iters_stop->get_parameters().max_iters, 1);
+}
+
+
+TYPED_TEST(Multigrid, GenerateSmoother)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    using DummyFactoryWoGuess = typename TestFixture::DummyFactoryWoGuess;
+    auto factory_without_initial_guess =
+        share(DummyFactoryWoGuess::build().on(this->exec));
+    auto solver = Solver::build()
+                      .with_max_levels(1u)
+                      .with_pre_smoother(factory_without_initial_guess)
+                      .with_smoother_iters(3u)
+                      .with_smoother_relax(0.5)
+                      .with_mg_level(this->rp_factory)
+                      .with_criteria(this->criterion)
+                      .on(this->exec)
+                      ->generate(this->mtx);
+
+    auto pre_smoother = solver->get_pre_smoother_list().at(0);
+    auto ir = std::dynamic_pointer_cast<const gko::solver::Ir<value_type>>(
+        pre_smoother);
+    // only 1 critria, so the type is original type not Combined
+    auto iters_stop =
+        std::dynamic_pointer_cast<const gko::stop::Iteration::Factory>(
+            ir->get_stop_criterion_factory());
+
+    ASSERT_NE(ir.get(), nullptr);
+    ASSERT_NE(iters_stop.get(), nullptr);
+    ASSERT_EQ(ir->get_parameters().relaxation_factor, value_type{0.5});
+    ASSERT_EQ(iters_stop->get_parameters().max_iters, 3);
 }
 
 
