@@ -58,10 +58,15 @@ namespace {
 
 class Bicg : public ::testing::Test {
 protected:
-    using value_type = gko::default_precision;
+#if GINKGO_COMMON_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
+    using Mtx = gko::matrix::Dense<value_type>;
     using index_type = gko::int32;
-    using Mtx = gko::matrix::Dense<>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
+
     Bicg() : rand_engine(30) {}
 
     void SetUp()
@@ -94,7 +99,7 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
     }
 
     void initialize_data()
@@ -211,16 +216,16 @@ TEST_F(Bicg, BicgInitializeIsEquivalentToRef)
         d_prev_rho.get(), d_rho.get(), d_r2.get(), d_z2.get(), d_p2.get(),
         d_q2.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_q, q, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_r2, r2, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_z2, z2, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_p2, p2, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_q2, q2, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_z, z, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_p, p, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_q, q, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_r2, r2, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_z2, z2, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_p2, p2, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_q2, q2, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_prev_rho, prev_rho, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_rho, rho, ::r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(*d_stop_status, *stop_status);
 }
 
@@ -236,10 +241,10 @@ TEST_F(Bicg, BicgStep1IsEquivalentToRef)
         exec, d_p.get(), d_z.get(), d_p2.get(), d_z2.get(), d_rho.get(),
         d_prev_rho.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_p2, p2, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_z2, z2, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_p, p, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_z, z, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_p2, p2, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_z2, z2, ::r<value_type>::value);
 }
 
 
@@ -254,12 +259,12 @@ TEST_F(Bicg, BicgStep2IsEquivalentToRef)
         exec, d_x.get(), d_r.get(), d_r2.get(), d_p.get(), d_q.get(),
         d_q2.get(), d_beta.get(), d_rho.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_r2, r2, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_q, q, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_q2, q2, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_r2, r2, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_p, p, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_q, q, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_q2, q2, ::r<value_type>::value);
 }
 
 
@@ -276,19 +281,19 @@ TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
     auto d_b = Mtx::create(exec);
     d_b->copy_from(b.get());
     auto bicg_factory =
-        gko::solver::Bicg<>::build()
+        gko::solver::Bicg<value_type>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(50u).on(ref),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(1e-14)
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(::r<value_type>::value)
                     .on(ref))
             .on(ref);
     auto d_bicg_factory =
-        gko::solver::Bicg<>::build()
+        gko::solver::Bicg<value_type>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(50u).on(exec),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(1e-14)
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(::r<value_type>::value)
                     .on(exec))
             .on(exec);
     auto solver = bicg_factory->generate(std::move(mtx));
@@ -297,7 +302,7 @@ TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 10);
 }
 
 
@@ -310,19 +315,19 @@ TEST_F(Bicg, ApplyWithSuiteSparseMatrixIsEquivalentToRef)
     auto d_b = Mtx::create(exec);
     d_b->copy_from(b.get());
     auto bicg_factory =
-        gko::solver::Bicg<>::build()
+        gko::solver::Bicg<value_type>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(50u).on(ref),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(1e-14)
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(::r<value_type>::value)
                     .on(ref))
             .on(ref);
     auto d_bicg_factory =
-        gko::solver::Bicg<>::build()
+        gko::solver::Bicg<value_type>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(50u).on(exec),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(1e-14)
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(::r<value_type>::value)
                     .on(exec))
             .on(exec);
     auto solver = bicg_factory->generate(std::move(csr));
@@ -331,7 +336,7 @@ TEST_F(Bicg, ApplyWithSuiteSparseMatrixIsEquivalentToRef)
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
 }
 
 

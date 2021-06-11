@@ -58,8 +58,14 @@ namespace {
 
 class Bicgstab : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
-    using Solver = gko::solver::Bicgstab<>;
+#if GINKGO_COMMON_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
+    using index_type = gko::int32;
+    using Mtx = gko::matrix::Dense<value_type>;
+    using Solver = gko::solver::Bicgstab<value_type>;
 
     Bicgstab() : rand_engine(30) {}
 
@@ -76,8 +82,8 @@ protected:
             Solver::build()
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(246u).on(exec),
-                    gko::stop::ResidualNorm<>::build()
-                        .with_reduction_factor(1e-15)
+                    gko::stop::ResidualNorm<value_type>::build()
+                        .with_reduction_factor(::r<value_type>::value)
                         .on(exec))
                 .on(exec);
 
@@ -85,8 +91,8 @@ protected:
             Solver::build()
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(246u).on(ref),
-                    gko::stop::ResidualNorm<>::build()
-                        .with_reduction_factor(1e-15)
+                    gko::stop::ResidualNorm<value_type>::build()
+                        .with_reduction_factor(::r<value_type>::value)
                         .on(ref))
                 .on(ref);
     }
@@ -104,7 +110,7 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
+            std::normal_distribution<value_type>(0.0, 1.0), rand_engine, ref);
     }
 
     void initialize_data()
@@ -246,20 +252,20 @@ TEST_F(Bicgstab, BicgstabInitializeIsEquivalentToRef)
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get(),
         d_stop_status.get());
 
-    GKO_EXPECT_MTX_NEAR(d_r, r, 1e-14);
-    GKO_EXPECT_MTX_NEAR(d_z, z, 1e-14);
-    GKO_EXPECT_MTX_NEAR(d_p, p, 1e-14);
-    GKO_EXPECT_MTX_NEAR(d_y, y, 1e-14);
-    GKO_EXPECT_MTX_NEAR(d_t, t, 1e-14);
-    GKO_EXPECT_MTX_NEAR(d_s, s, 1e-14);
-    GKO_EXPECT_MTX_NEAR(d_rr, rr, 1e-14);
-    GKO_EXPECT_MTX_NEAR(d_v, v, 1e-14);
-    GKO_EXPECT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
-    GKO_EXPECT_MTX_NEAR(d_rho, rho, 1e-14);
-    GKO_EXPECT_MTX_NEAR(d_alpha, alpha, 1e-14);
-    GKO_EXPECT_MTX_NEAR(d_beta, beta, 1e-14);
-    GKO_EXPECT_MTX_NEAR(d_gamma, gamma, 1e-14);
-    GKO_EXPECT_MTX_NEAR(d_omega, omega, 1e-14);
+    GKO_EXPECT_MTX_NEAR(d_r, r, ::r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(d_z, z, ::r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(d_p, p, ::r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(d_y, y, ::r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(d_t, t, ::r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(d_s, s, ::r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(d_rr, rr, ::r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(d_v, v, ::r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(d_prev_rho, prev_rho, ::r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(d_rho, rho, ::r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(d_alpha, alpha, ::r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(d_beta, beta, ::r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(d_gamma, gamma, ::r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(d_omega, omega, ::r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(*d_stop_status, *stop_status);
 }
 
@@ -275,7 +281,7 @@ TEST_F(Bicgstab, BicgstabStep1IsEquivalentToRef)
         exec, d_r.get(), d_p.get(), d_v.get(), d_rho.get(), d_prev_rho.get(),
         d_alpha.get(), d_omega.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_p, p, ::r<value_type>::value);
 }
 
 
@@ -290,8 +296,8 @@ TEST_F(Bicgstab, BicgstabStep2IsEquivalentToRef)
         exec, d_r.get(), d_s.get(), d_v.get(), d_rho.get(), d_alpha.get(),
         d_beta.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_s, s, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_alpha, alpha, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_s, s, ::r<value_type>::value);
 }
 
 
@@ -307,9 +313,9 @@ TEST_F(Bicgstab, BicgstabStep3IsEquivalentToRef)
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get(),
         d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(d_omega, omega, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_omega, omega, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);
 }
 
 
@@ -329,8 +335,8 @@ TEST_F(Bicgstab, BicgstabApplyOneRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 10);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 10);
 }
 
 
@@ -350,8 +356,8 @@ TEST_F(Bicgstab, BicgstabApplyMultipleRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 10);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 10);
 }
 
 
