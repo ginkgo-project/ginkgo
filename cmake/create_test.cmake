@@ -121,6 +121,10 @@ function(ginkgo_create_cuda_test test_name)
         )
     target_compile_options(${TEST_TARGET_NAME}
         PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
+    # we handle CUDA architecture flags for now, disable CMake handling
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
+        set_target_properties(${TEST_TARGET_NAME} PROPERTIES CUDA_ARCHITECTURES OFF)
+    endif()
     set_target_properties(${TEST_TARGET_NAME} PROPERTIES
         OUTPUT_NAME ${test_name})
     if (GINKGO_FAST_TESTS)

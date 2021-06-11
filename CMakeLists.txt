@@ -18,6 +18,10 @@ include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
 include(cmake/build_type_helpers.cmake)
 
+# Load other CMake helpers
+include(cmake/build_helpers.cmake)
+include(cmake/install_helpers.cmake)
+
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
 endif()
@@ -178,11 +182,8 @@ if(GINKGO_BUILD_HWLOC AND (MSVC OR WIN32 OR CYGWIN OR APPLE))
     message(WARNING "Ginkgo does not support HWLOC on Windows/MacOS, switch GINKGO_BUILD_HWLOC to OFF")
 endif()
 if(GINKGO_BUILD_HWLOC)
-    # By default always use external HWLOC
-    set(GINKGO_USE_EXTERNAL_HWLOC 1)
     set(GINKGO_HAVE_HWLOC 1)
 else()
-    set(GINKGO_USE_EXTERNAL_HWLOC 0)
     set(GINKGO_HAVE_HWLOC 0)
     message(STATUS "HWLOC is being forcibly switched off")
 endif()
@@ -216,21 +217,17 @@ endif()
 
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
-ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
-ginkgo_find_package(gflags gflags FALSE 2.2.2)
-ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
-if(GINKGO_HAVE_HWLOC)
-    ginkgo_find_package(HWLOC hwloc FALSE 2.1)
-    if (NOT HWLOC_FOUND)
-        set(GINKGO_USE_EXTERNAL_HWLOC 0)
-    endif()
+if(GINKGO_BUILD_TESTS)
+    find_package(GTest 1.10.0) # No need for QUIET as CMake ships FindGTest
 endif()
-# third_party needs to be after flag modification.
+if(GINKGO_BUILD_BENCHMARKS)
+    find_package(gflags 2.2.2 QUIET)
+    find_package(RapidJSON 1.1.0 QUIET)
+endif()
+if(GINKGO_BUILD_HWLOC)
+    find_package(HWLOC 2.1) # No need for QUIET as we ship FindHWLOC
+endif()
 add_subdirectory(third_party)    # Third-party tools and libraries
-
-# Load CMake helpers
-include(cmake/build_helpers.cmake)
-include(cmake/install_helpers.cmake)
 
 if(MSVC)
     if(BUILD_SHARED_LIBS)

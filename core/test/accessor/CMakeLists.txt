@@ -14,7 +14,9 @@ function(create_accessor_test test_name)
     set_target_properties("${TEST_TARGET_NAME}" PROPERTIES
         OUTPUT_NAME "${test_name}")
     target_link_libraries("${TEST_TARGET_NAME}" PRIVATE GTest::Main GTest::GTest ${ARGN})
-    add_test(NAME "${REL_BINARY_DIR}/${test_name}" COMMAND "${TEST_TARGET_NAME}")
+    add_test(NAME "${REL_BINARY_DIR}/${test_name}"
+        COMMAND "${TEST_TARGET_NAME}"
+        WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>")
 endfunction(create_accessor_test)
 
 create_accessor_test(index_span)

@@ -10,12 +10,12 @@ if(GINKGO_BUILD_CUDA OR (GINKGO_BUILD_HIP AND
 endif()
 
 # For each external package, check if they are already available, otherwise use ours
-if(GINKGO_BUILD_TESTS)
-    ginkgo_add_subdirectory(GTest gtest)
+if(GINKGO_BUILD_TESTS AND (NOT GTest_FOUND))
+    add_subdirectory(gtest)
 endif()
 
-if(GINKGO_HAVE_HWLOC AND NOT GINKGO_USE_EXTERNAL_HWLOC)
-    ginkgo_add_subdirectory(HWLOC hwloc)
+if(GINKGO_BUILD_HWLOC AND (NOT HWLOC_FOUND))
+    add_subdirectory(hwloc)
 endif()
 
 if(GINKGO_DEVEL_TOOLS)
@@ -26,15 +26,11 @@ else()
 endif()
 
 if(GINKGO_BUILD_BENCHMARKS)
-    ginkgo_add_subdirectory(gflags gflags)
-    ginkgo_add_subdirectory(RapidJSON rapidjson)
-    if(WIN32)
-        target_link_libraries(gflags INTERFACE shlwapi.lib)
+    if (NOT gflags_FOUND)
+        add_subdirectory(gflags)
     endif()
-    # RapidJSON does not provide a modern CMake target so far. Let's fix that!
-    if(RapidJSON_FOUND)
-        add_library(rapidjson INTERFACE)
-        target_include_directories(rapidjson INTERFACE ${RapidJSON_INCLUDE_DIRS})
+    if (NOT RapidJSON_FOUND)
+        add_subdirectory(rapidjson)
     endif()
 endif()
 
