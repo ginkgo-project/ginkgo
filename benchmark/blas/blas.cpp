@@ -464,6 +464,8 @@ void apply_blas(const char *operation_name, std::shared_ptr<gko::Executor> exec,
                           allocator);
         add_or_set_member(blas_case[operation_name], "bandwidth", mem / runtime,
                           allocator);
+        add_or_set_member(blas_case[operation_name], "repetitions", repetitions,
+                          allocator);
 
         // compute and write benchmark data
         add_or_set_member(blas_case[operation_name], "completed", true,

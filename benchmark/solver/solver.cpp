@@ -501,6 +501,7 @@ void solve_system(const std::string &solver_name,
                           generate_timer->compute_average_time(), allocator);
         add_or_set_member(solver_json["apply"], "time",
                           apply_timer->compute_average_time(), allocator);
+        add_or_set_member(solver_json, "repetitions", repetitions, allocator);
 
         // compute and write benchmark data
         add_or_set_member(solver_json, "completed", true, allocator);
