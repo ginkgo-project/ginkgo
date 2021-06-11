@@ -57,8 +57,13 @@ namespace {
 
 class Fcg : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
-    using Solver = gko::solver::Fcg<>;
+#if GINKGO_COMMON_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
+    using Mtx = gko::matrix::Dense<value_type>;
+    using Solver = gko::solver::Fcg<value_type>;
 
     Fcg() : rand_engine(30) {}
 
@@ -81,7 +86,7 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
+            std::normal_distribution<value_type>(0.0, 1.0), rand_engine, ref);
     }
 
     void initialize_data()
@@ -185,14 +190,14 @@ TEST_F(Fcg, FcgInitializeIsEquivalentToRef)
         exec, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(), d_t.get(),
         d_prev_rho.get(), d_rho.get(), d_rho_t.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_t, t, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_q, q, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_rho_t, rho_t, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_t, t, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_z, z, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_p, p, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_q, q, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_prev_rho, prev_rho, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_rho, rho, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_rho_t, rho_t, ::r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(*d_stop_status, *stop_status);
 }
 
@@ -207,8 +212,8 @@ TEST_F(Fcg, FcgStep1IsEquivalentToRef)
                                               d_rho_t.get(), d_prev_rho.get(),
                                               d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(d_p, p, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_z, z, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_p, p, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_z, z, ::r<value_type>::value);
 }
 
 
@@ -222,9 +227,9 @@ TEST_F(Fcg, FcgStep2IsEquivalentToRef)
         exec, d_x.get(), d_r.get(), d_t.get(), d_p.get(), d_q.get(),
         d_beta.get(), d_rho.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_t, t, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_t, t, ::r<value_type>::value);
 }
 
 
@@ -244,16 +249,16 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(50u).on(ref),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(1e-14)
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(::r<value_type>::value)
                     .on(ref))
             .on(ref);
     auto d_fcg_factory =
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(50u).on(exec),
-                gko::stop::ResidualNorm<>::build()
-                    .with_reduction_factor(1e-14)
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(::r<value_type>::value)
                     .on(exec))
             .on(exec);
     auto solver = fcg_factory->generate(std::move(mtx));
@@ -262,7 +267,7 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 10);
 }
 
 

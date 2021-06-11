@@ -57,7 +57,13 @@ namespace {
 
 class Ir : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+#if GINKGO_COMMON_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
+    using Mtx = gko::matrix::Dense<value_type>;
+
     Ir() : rand_engine(30) {}
 
     void SetUp()
@@ -71,7 +77,7 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -111,12 +117,12 @@ TEST_F(Ir, ApplyIsEquivalentToRef)
     // matrix, just check that a couple of iterations gives the same result on
     // both executors
     auto ir_factory =
-        gko::solver::Ir<>::build()
+        gko::solver::Ir<value_type>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(ref))
             .on(ref);
     auto d_ir_factory =
-        gko::solver::Ir<>::build()
+        gko::solver::Ir<value_type>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .on(exec);
@@ -126,7 +132,7 @@ TEST_F(Ir, ApplyIsEquivalentToRef)
     solver->apply(lend(b), lend(x));
     d_solver->apply(lend(d_b), lend(d_x));
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value);
 }
 
 
@@ -140,9 +146,9 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
     auto d_b = clone(exec, b);
 
     auto ir_factory =
-        gko::solver::Ir<>::build()
+        gko::solver::Ir<value_type>::build()
             .with_solver(
-                gko::solver::Gmres<>::build()
+                gko::solver::Gmres<value_type>::build()
                     .with_criteria(
                         gko::stop::Iteration::build().with_max_iters(1u).on(
                             ref))
@@ -151,9 +157,9 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
                 gko::stop::Iteration::build().with_max_iters(2u).on(ref))
             .on(ref);
     auto d_ir_factory =
-        gko::solver::Ir<>::build()
+        gko::solver::Ir<value_type>::build()
             .with_solver(
-                gko::solver::Gmres<>::build()
+                gko::solver::Gmres<value_type>::build()
                     .with_criteria(
                         gko::stop::Iteration::build().with_max_iters(1u).on(
                             exec))
@@ -167,9 +173,10 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
     solver->apply(lend(b), lend(x));
     d_solver->apply(lend(d_b), lend(d_x));
 
-    // Note: 1e-12 instead of 1e-14, as the difference in the inner gmres
-    // iteration gets amplified by the difference in IR.
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    // Note:r<value_type>::value * 1e2 instead ofr<value_type>::value, as
+    // the difference in the inner gmres iteration gets amplified by the
+    // difference in IR.
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e2);
 }
 
 
@@ -185,16 +192,16 @@ TEST_F(Ir, RichardsonApplyIsEquivalentToRef)
     // matrix, just check that a couple of iterations gives the same result on
     // both executors
     auto ir_factory =
-        gko::solver::Ir<>::build()
+        gko::solver::Ir<value_type>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(ref))
-            .with_relaxation_factor(0.9)
+            .with_relaxation_factor(value_type{0.9})
             .on(ref);
     auto d_ir_factory =
-        gko::solver::Ir<>::build()
+        gko::solver::Ir<value_type>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(exec))
-            .with_relaxation_factor(0.9)
+            .with_relaxation_factor(value_type{0.9})
             .on(exec);
     auto solver = ir_factory->generate(std::move(mtx));
     auto d_solver = d_ir_factory->generate(std::move(d_mtx));
@@ -202,7 +209,7 @@ TEST_F(Ir, RichardsonApplyIsEquivalentToRef)
     solver->apply(lend(b), lend(x));
     d_solver->apply(lend(d_b), lend(d_x));
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value);
 }
 
 
@@ -215,28 +222,28 @@ TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
     auto d_x = clone(exec, x);
     auto d_b = clone(exec, b);
     auto ir_factory =
-        gko::solver::Ir<>::build()
+        gko::solver::Ir<value_type>::build()
             .with_solver(
-                gko::solver::Gmres<>::build()
+                gko::solver::Gmres<value_type>::build()
                     .with_criteria(
                         gko::stop::Iteration::build().with_max_iters(1u).on(
                             ref))
                     .on(ref))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(ref))
-            .with_relaxation_factor(0.9)
+            .with_relaxation_factor(value_type{0.9})
             .on(ref);
     auto d_ir_factory =
-        gko::solver::Ir<>::build()
+        gko::solver::Ir<value_type>::build()
             .with_solver(
-                gko::solver::Gmres<>::build()
+                gko::solver::Gmres<value_type>::build()
                     .with_criteria(
                         gko::stop::Iteration::build().with_max_iters(1u).on(
                             exec))
                     .on(exec))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(exec))
-            .with_relaxation_factor(0.9)
+            .with_relaxation_factor(value_type{0.9})
             .on(exec);
     auto solver = ir_factory->generate(std::move(mtx));
     auto d_solver = d_ir_factory->generate(std::move(d_mtx));
@@ -244,9 +251,10 @@ TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
     solver->apply(lend(b), lend(x));
     d_solver->apply(lend(d_b), lend(d_x));
 
-    // Note: 1e-12 instead of 1e-14, as the difference in the inner gmres
-    // iteration gets amplified by the difference in IR.
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    // Note:r<value_type>::value * 1e2 instead ofr<value_type>::value, as
+    // the difference in the inner gmres iteration gets amplified by the
+    // difference in IR.
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e2);
 }
 
 

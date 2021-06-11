@@ -53,6 +53,13 @@ using std::is_same;
 
 class KernelLaunch : public ::testing::Test {
 protected:
+#if GINKGO_DPCPP_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
+    using Mtx = gko::matrix::Dense<value_type>;
+
     KernelLaunch()
         : exec(gko::DpcppExecutor::create(
               0, gko::ReferenceExecutor::create(),
@@ -60,14 +67,12 @@ protected:
           zero_array(exec->get_master(), 16),
           iota_array(exec->get_master(), 16),
           iota_transp_array(exec->get_master(), 16),
-          iota_dense(gko::matrix::Dense<>::create(exec, dim<2>{4, 4})),
-          zero_dense(gko::matrix::Dense<>::create(exec, dim<2>{4, 4})),
-          zero_dense_padded(
-              gko::matrix::Dense<>::create(exec, dim<2>{4, 4}, 5)),
-          vec_dense(gko::matrix::Dense<>::create(exec, dim<2>{1, 4}))
+          iota_dense(Mtx::create(exec, dim<2>{4, 4})),
+          zero_dense(Mtx::create(exec, dim<2>{4, 4})),
+          zero_dense_padded(Mtx::create(exec, dim<2>{4, 4}, 5)),
+          vec_dense(Mtx::create(exec, dim<2>{1, 4}))
     {
-        auto ref_iota_dense =
-            gko::matrix::Dense<>::create(exec->get_master(), dim<2>{4, 4});
+        auto ref_iota_dense = Mtx::create(exec->get_master(), dim<2>{4, 4});
         for (int i = 0; i < 16; i++) {
             zero_array.get_data()[i] = 0;
             iota_array.get_data()[i] = i;
@@ -86,10 +91,10 @@ protected:
     gko::Array<int> zero_array;
     gko::Array<int> iota_array;
     gko::Array<int> iota_transp_array;
-    std::unique_ptr<gko::matrix::Dense<>> iota_dense;
-    std::unique_ptr<gko::matrix::Dense<>> zero_dense;
-    std::unique_ptr<gko::matrix::Dense<>> zero_dense_padded;
-    std::unique_ptr<gko::matrix::Dense<>> vec_dense;
+    std::unique_ptr<Mtx> iota_dense;
+    std::unique_ptr<Mtx> zero_dense;
+    std::unique_ptr<Mtx> zero_dense_padded;
+    std::unique_ptr<Mtx> vec_dense;
 };
 
 
@@ -134,10 +139,11 @@ TEST_F(KernelLaunch, Runs1DDense)
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d2, auto d_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
-            static_assert(is_same<decltype(d(0, 0)), double &>::value, "type");
-            static_assert(is_same<decltype(d2(0, 0)), const double &>::value,
+            static_assert(is_same<decltype(d(0, 0)), value_type &>::value,
                           "type");
-            static_assert(is_same<decltype(d_ptr), const double *>::value,
+            static_assert(
+                is_same<decltype(d2(0, 0)), const value_type &>::value, "type");
+            static_assert(is_same<decltype(d_ptr), const value_type *>::value,
                           "type");
             bool pointers_correct = d.data == d_ptr && d2.data == d_ptr;
             bool strides_correct = d.stride == 5 && d2.stride == 5;
@@ -153,7 +159,7 @@ TEST_F(KernelLaunch, Runs1DDense)
             }
         },
         16, zero_dense_padded.get(),
-        static_cast<const gko::matrix::Dense<> *>(zero_dense_padded.get()),
+        static_cast<const Mtx *>(zero_dense_padded.get()),
         zero_dense_padded->get_const_values());
 
     GKO_ASSERT_MTX_NEAR(zero_dense_padded, iota_dense, 0.0);
@@ -204,15 +210,19 @@ TEST_F(KernelLaunch, Runs2DDense)
         [] GKO_KERNEL(auto i, auto j, auto d, auto d2, auto d_ptr, auto d3,
                       auto d4, auto d2_ptr, auto d3_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
-            static_assert(is_same<decltype(d(0, 0)), double &>::value, "type");
-            static_assert(is_same<decltype(d2(0, 0)), const double &>::value,
+            static_assert(is_same<decltype(d(0, 0)), value_type &>::value,
                           "type");
-            static_assert(is_same<decltype(d_ptr), const double *>::value,
+            static_assert(
+                is_same<decltype(d2(0, 0)), const value_type &>::value, "type");
+            static_assert(is_same<decltype(d_ptr), const value_type *>::value,
                           "type");
-            static_assert(is_same<decltype(d3(0, 0)), double &>::value, "type");
-            static_assert(is_same<decltype(d4), double *>::value, "type");
-            static_assert(is_same<decltype(d2_ptr), double *>::value, "type");
-            static_assert(is_same<decltype(d3_ptr), double *>::value, "type");
+            static_assert(is_same<decltype(d3(0, 0)), value_type &>::value,
+                          "type");
+            static_assert(is_same<decltype(d4), value_type *>::value, "type");
+            static_assert(is_same<decltype(d2_ptr), value_type *>::value,
+                          "type");
+            static_assert(is_same<decltype(d3_ptr), value_type *>::value,
+                          "type");
             bool pointers_correct = d.data == d_ptr && d2.data == d_ptr &&
                                     d3.data == d2_ptr && d4 == d3_ptr;
             bool strides_correct =
@@ -231,7 +241,7 @@ TEST_F(KernelLaunch, Runs2DDense)
             }
         },
         dim<2>{4, 4}, zero_dense_padded.get(),
-        static_cast<const gko::matrix::Dense<> *>(zero_dense_padded.get()),
+        static_cast<const Mtx *>(zero_dense_padded.get()),
         zero_dense_padded->get_const_values(), gko::compact(zero_dense.get()),
         gko::vector(vec_dense.get()), zero_dense->get_values(),
         vec_dense->get_values());
