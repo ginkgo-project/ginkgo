@@ -344,6 +344,7 @@ protected:
         return std::move(
             Solver::build()
                 .with_pre_smoother(smoother_factory)
+                .with_smoother_relax(1.0)
                 .with_coarsest_solver(coarsest_factory)
                 .with_max_levels(2u)
                 .with_post_uses_pre(true)
@@ -368,6 +369,7 @@ protected:
         return std::move(
             Solver::build()
                 .with_pre_smoother(smoother_factory)
+                .with_smoother_relax(1.0)
                 .with_coarsest_solver(coarsest_factory)
                 .with_max_levels(2u)
                 .with_post_uses_pre(true)

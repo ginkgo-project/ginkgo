@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/multigrid.hpp>
 
 
+#include <complex>
 #include <iostream>
 #include <typeinfo>
 
@@ -90,12 +91,28 @@ void run(T obj, func f, Args... args)
     }
 }
 
+template <typename ValueType, typename T>
+std::enable_if_t<is_complex_s<ValueType>::value == is_complex_s<T>::value,
+                 ValueType>
+casting(const T &x)
+{
+    return static_cast<ValueType>(x);
+}
+
+template <typename ValueType, typename T>
+std::enable_if_t<!is_complex_s<ValueType>::value && is_complex_s<T>::value,
+                 ValueType>
+casting(const T &x)
+{
+    return static_cast<ValueType>(real(x));
+}
+
 template <typename ValueType>
 void handle_list(
-    std::shared_ptr<const Executor> &exec, size_type index,
-    std::shared_ptr<const LinOp> &matrix,
+    size_type index, std::shared_ptr<const LinOp> &matrix,
     std::vector<std::shared_ptr<const LinOpFactory>> &smoother_list,
-    std::vector<std::shared_ptr<LinOp>> &smoother)
+    std::vector<std::shared_ptr<LinOp>> &smoother, size_type iteration,
+    std::complex<double> relaxation_factor)
 {
     auto list_size = smoother_list.size();
     if (list_size != 0) {
@@ -109,15 +126,9 @@ void handle_list(
             if (solver->apply_uses_initial_guess() == true) {
                 smoother.emplace_back(give(solver));
             } else {
-                // if it is not use initial guess, use it as inner solver of Ir
-                // with 1 iteration and relaxation_factor 1
-                auto ir =
-                    Ir<ValueType>::build()
-                        .with_generated_solver(give(solver))
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                exec))
-                        .on(exec);
+                auto ir = smoother_build<ValueType>(
+                    give(solver), iteration,
+                    casting<ValueType>(relaxation_factor));
                 smoother.emplace_back(give(ir->generate(matrix)));
             }
         }
@@ -441,19 +452,20 @@ void Multigrid::generate()
             [this](auto mg_level, auto index, auto matrix) {
                 using value_type = typename std::decay_t<
                     detail::pointee<decltype(mg_level)>>::value_type;
-                auto exec = this->get_executor();
-                handle_list<value_type>(exec, index, matrix,
-                                        parameters_.pre_smoother,
-                                        pre_smoother_list_);
+                handle_list<value_type>(
+                    index, matrix, parameters_.pre_smoother, pre_smoother_list_,
+                    parameters_.smoother_iters, parameters_.smoother_relax);
                 if (parameters_.mid_case == multigrid_mid_uses::mid) {
-                    handle_list<value_type>(exec, index, matrix,
-                                            parameters_.mid_smoother,
-                                            mid_smoother_list_);
+                    handle_list<value_type>(
+                        index, matrix, parameters_.mid_smoother,
+                        mid_smoother_list_, parameters_.smoother_iters,
+                        parameters_.smoother_relax);
                 }
                 if (!parameters_.post_uses_pre) {
-                    handle_list<value_type>(exec, index, matrix,
-                                            parameters_.post_smoother,
-                                            post_smoother_list_);
+                    handle_list<value_type>(
+                        index, matrix, parameters_.post_smoother,
+                        post_smoother_list_, parameters_.smoother_iters,
+                        parameters_.smoother_relax);
                 }
             },
             index, matrix);
