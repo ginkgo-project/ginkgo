@@ -202,12 +202,11 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
 {
     const auto rows = size[0];
     const auto cols = size[1];
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for
     for (size_type row = 0; row < rows; row++) {
         for (size_type col = 0; col < cols; col++) {
             [&]() {
-                fn(row, col,
-                   kernels::omp::map_unpack_to_device(args, size[1])...);
+                fn(row, col, kernels::omp::map_unpack_to_device(args, cols)...);
             }();
         }
     }
