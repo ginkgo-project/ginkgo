@@ -1,0 +1,38 @@
+[
+    {
+        "name": "executor",
+        "base": "ReferenceExecutor"
+    },
+    {
+        "name": "executorO",
+        "base": "OmpExecutor"
+    },
+    {
+        "name": "executorH",
+        "base": "HipExecutor"
+    },
+    {
+        "name": "A",
+        "base": "Dense",
+        "type": "float",
+        "exec": "executor",
+        "dim": [3, 3],
+        "stride": 4
+    },
+    {
+        "name": "B",
+        "base": "Dense",
+        "type": "double",
+        "exec": {
+            "base": "CudaExecutor"
+        },
+        "dim": [3, 3]
+    },
+    {
+        "name": "C",
+        "base": "Dense",
+        "exec": "executorO",
+        "dim": [4, 4],
+        "read": "data/A.mtx"
+    }
+]
