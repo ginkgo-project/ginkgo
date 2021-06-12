@@ -331,6 +331,8 @@ if(GINKGO_BUILD_BENCHMARKS)
     add_subdirectory(benchmark)
 endif()
 
+add_subdirectory(extension)
+
 if(GINKGO_DEVEL_TOOLS)
     add_custom_target(add_license
         COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/add_license.sh
