@@ -119,8 +119,54 @@ int main(int argc, char *argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    // assemble matrix: 7-pt stencil
-    const auto num_rows = grid_dim * grid_dim * grid_dim;
+
+    // gko::matrix_data<ValueType, GlobalIndexType> A_data;
+    // gko::matrix_data<ValueType, GlobalIndexType> b_data;
+    // gko::matrix_data<ValueType, GlobalIndexType> x_data;
+    // A_data.size = {num_rows, num_rows};
+    // b_data.size = {num_rows, 1};
+    // x_data.size = {num_rows, 1};
+    // for (int i = 0; i < grid_dim; i++) {
+    //     for (int j = 0; j < grid_dim; j++) {
+    //         for (int k = 0; k < grid_dim; k++) {
+    //             auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
+    //             if (i > 0)
+    //                 A_data.nonzeros.emplace_back(idx, idx - grid_dim *
+    //                 grid_dim,
+    //                                              -1);
+    //             if (j > 0)
+    //                 A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
+    //             if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
+    //             A_data.nonzeros.emplace_back(idx, idx, 8);
+    //             if (k < grid_dim - 1)
+    //                 A_data.nonzeros.emplace_back(idx, idx + 1, -1);
+    //             if (j < grid_dim - 1)
+    //                 A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
+    //             if (i < grid_dim - 1)
+    //                 A_data.nonzeros.emplace_back(idx, idx + grid_dim *
+    //                 grid_dim,
+    //                                              -1);
+    //             // b_data.nonzeros.emplace_back(
+    //             //     idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
+    //             b_data.nonzeros.emplace_back(idx, 0, 1.0);
+    //             x_data.nonzeros.emplace_back(idx, 0, 1.0);
+    //         }
+    //     }
+    // }
+
+
+    std::ifstream a_stream{"data/A.mtx"};
+    auto A_data = gko::read_raw<ValueType, GlobalIndexType>(a_stream);
+    gko::matrix_data<ValueType, GlobalIndexType> b_data;
+    gko::matrix_data<ValueType, GlobalIndexType> x_data;
+    const auto num_rows = A_data.size[0];
+    b_data.size = {num_rows, 1};
+    x_data.size = {num_rows, 1};
+    gko::size_type size = num_rows;
+    for (auto i = 0; i < size; i++) {
+        b_data.nonzeros.emplace_back(i, 0, 1.0);
+        x_data.nonzeros.emplace_back(i, 0, 1.0);
+    }
 
     // build partition: uniform number of rows per rank
     gko::Array<gko::int64> ranges_array{
@@ -132,39 +178,6 @@ int main(int argc, char *argv[])
     ranges_array.get_data()[comm->size()] = num_rows;
     auto partition = gko::share(
         part_type::build_from_contiguous(exec->get_master(), ranges_array));
-
-    gko::matrix_data<ValueType, GlobalIndexType> A_data;
-    gko::matrix_data<ValueType, GlobalIndexType> b_data;
-    gko::matrix_data<ValueType, GlobalIndexType> x_data;
-    A_data.size = {num_rows, num_rows};
-    b_data.size = {num_rows, 1};
-    x_data.size = {num_rows, 1};
-    for (int i = 0; i < grid_dim; i++) {
-        for (int j = 0; j < grid_dim; j++) {
-            for (int k = 0; k < grid_dim; k++) {
-                auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
-                if (i > 0)
-                    A_data.nonzeros.emplace_back(idx, idx - grid_dim * grid_dim,
-                                                 -1);
-                if (j > 0)
-                    A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
-                if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
-                A_data.nonzeros.emplace_back(idx, idx, 8);
-                if (k < grid_dim - 1)
-                    A_data.nonzeros.emplace_back(idx, idx + 1, -1);
-                if (j < grid_dim - 1)
-                    A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
-                if (i < grid_dim - 1)
-                    A_data.nonzeros.emplace_back(idx, idx + grid_dim * grid_dim,
-                                                 -1);
-                // b_data.nonzeros.emplace_back(
-                //     idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
-                b_data.nonzeros.emplace_back(idx, 0, 1.0);
-                x_data.nonzeros.emplace_back(idx, 0, 1.0);
-            }
-        }
-    }
-
 
     ValueType t_init_end = MPI_Wtime();
 
@@ -199,9 +212,13 @@ int main(int argc, char *argv[])
         // paric::build().on(exec))
         cg::build()
             .with_preconditioner(bj::build().on(exec))
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(inner_iter)
-                               .on(exec))
+            .with_criteria(
+                // gko::stop::Iteration::build()
+                //     .with_max_iters(inner_iter)
+                //     .on(exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_reduction_factor(inner_reduction_factor)
+                    .on(exec))
             .on(exec));
     auto ras_precond = ras::build()
                            .with_solver(inner_solver)
@@ -210,7 +227,7 @@ int main(int argc, char *argv[])
     MPI_Barrier(MPI_COMM_WORLD);
     ValueType t_prec_setup_end = MPI_Wtime();
 
-    gko::remove_complex<ValueType> reduction_factor = 1e-10;
+    gko::remove_complex<ValueType> reduction_factor = 1e-2;
     std::shared_ptr<gko::stop::Iteration::Factory> iter_stop =
         gko::stop::Iteration::build()
             .with_max_iters(static_cast<gko::size_type>(num_rows))
