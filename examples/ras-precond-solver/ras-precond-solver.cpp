@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
     const RealValueType inner_reduction_factor{1e-5};
     auto ras_precond =
         ras::build()
-            .with_solver(
+            .with_inner_solver(
                 // bj::build().on(exec)
                 // paric::build().on(exec)
                 cg::build()
