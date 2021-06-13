@@ -218,7 +218,7 @@ int main(int argc, char* argv[])
     //                    )
     // .on(exec));
     auto ras_precond = ras::build()
-                           .with_solver(inner_solver)
+                           .with_inner_solver(inner_solver)
                            .on(exec)
                            ->generate(gko::share(block_A));
 

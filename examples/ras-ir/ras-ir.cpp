@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
     // Create solver factory
     auto ras_precond =
         ras::build()
-            .with_solver(
+            .with_inner_solver(
                 // bj::build().on(exec))
                 // paric::build().on(exec)
                 cg::build()

@@ -122,13 +122,25 @@ public:
          * Inner solver factory.
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            solver, nullptr);
+            inner_solver, nullptr);
+
+        /**
+         * Coarse solver factories.
+         */
+        std::vector<std::shared_ptr<const LinOpFactory>>
+            GKO_FACTORY_PARAMETER_SCALAR(coarse_solvers, nullptr);
+
+        /**
+         * Generated Coarse solvers.
+         */
+        std::vector<std::shared_ptr<const LinOp>> GKO_FACTORY_PARAMETER_VECTOR(
+            generated_coarse_solvers, nullptr);
 
         /**
          * Generated Inner solvers.
          */
         std::vector<std::shared_ptr<const LinOp>> GKO_FACTORY_PARAMETER_VECTOR(
-            generated_solvers, nullptr);
+            generated_inner_solvers, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ras, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -160,9 +172,9 @@ protected:
         if (parameters_.overlaps.get_num_elems() > 0) {
             this->overlaps_ = parameters_.overlaps;
         }
-        if (parameters_.generated_solvers[0]) {
+        if (parameters_.generated_inner_solvers[0]) {
             this->inner_solvers_ = std::vector<std::shared_ptr<const LinOp>>(
-                parameters_.generated_solvers);
+                parameters_.generated_inner_solvers);
         } else {
             this->generate(lend(system_matrix));
         }

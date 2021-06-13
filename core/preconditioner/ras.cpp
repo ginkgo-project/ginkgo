@@ -207,7 +207,7 @@ void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
         const auto num_subdomains = block_mtxs.size();
         for (size_type i = 0; i < num_subdomains; ++i) {
             this->inner_solvers_.emplace_back(
-                parameters_.solver->generate(block_mtxs[i]));
+                parameters_.inner_solver->generate(block_mtxs[i]));
         }
         this->is_distributed_ = false;
     } else if (dynamic_cast<const block_t *>(system_matrix) != nullptr) {
@@ -217,7 +217,7 @@ void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
         const auto num_subdomains = block_mtxs.size();
         for (size_type i = 0; i < num_subdomains; ++i) {
             this->inner_solvers_.emplace_back(
-                parameters_.solver->generate(block_mtxs[i]));
+                parameters_.inner_solver->generate(block_mtxs[i]));
         }
         this->is_distributed_ = false;
     } else if (dynamic_cast<const dist_mat *>(system_matrix) != nullptr) {
@@ -229,7 +229,7 @@ void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
         const auto num_subdomains = block_mtxs.size();
         for (size_type i = 0; i < num_subdomains; ++i) {
             this->inner_solvers_.emplace_back(
-                parameters_.solver->generate(gko::share(block_mtxs[i])));
+                parameters_.inner_solver->generate(gko::share(block_mtxs[i])));
         }
         this->is_distributed_ = true;
     } else if (dynamic_cast<const dist_block_t *>(system_matrix) != nullptr) {
@@ -237,7 +237,7 @@ void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
         const auto num_subdomains = block_mtxs.size();
         for (size_type i = 0; i < num_subdomains; ++i) {
             this->inner_solvers_.emplace_back(
-                parameters_.solver->generate(gko::share(block_mtxs[i])));
+                parameters_.inner_solver->generate(gko::share(block_mtxs[i])));
         }
         this->is_distributed_ = true;
     }

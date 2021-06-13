@@ -96,24 +96,24 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(3u).on(exec))
                   .on(exec)),
-          ras_factory(
-              Ras::build()
-                  .with_solver(Cg::build()
+          ras_factory(Ras::build()
+                          .with_inner_solver(
+                              Cg::build()
+                                  .with_criteria(gko::stop::Iteration::build()
+                                                     .with_max_iters(3u)
+                                                     .on(exec))
+                                  .on(exec))
+                          .on(exec)),
+          ras_factory2(Ras::build()
+                           .with_overlaps(block_overlaps)
+                           .with_block_dimensions(block_sizes)
+                           .with_inner_solver(
+                               Cg::build()
                                    .with_criteria(gko::stop::Iteration::build()
                                                       .with_max_iters(3u)
                                                       .on(exec))
                                    .on(exec))
-                  .on(exec)),
-          ras_factory2(
-              Ras::build()
-                  .with_overlaps(block_overlaps)
-                  .with_block_dimensions(block_sizes)
-                  .with_solver(Cg::build()
-                                   .with_criteria(gko::stop::Iteration::build()
-                                                      .with_max_iters(3u)
-                                                      .on(exec))
-                                   .on(exec))
-                  .on(exec))
+                           .on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
