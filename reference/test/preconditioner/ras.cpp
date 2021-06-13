@@ -103,6 +103,16 @@ protected:
                                                       .with_max_iters(3u)
                                                       .on(exec))
                                    .on(exec))
+                  .on(exec)),
+          ras_factory2(
+              Ras::build()
+                  .with_overlaps(block_overlaps)
+                  .with_block_dimensions(block_sizes)
+                  .with_solver(Cg::build()
+                                   .with_criteria(gko::stop::Iteration::build()
+                                                      .with_max_iters(3u)
+                                                      .on(exec))
+                                   .on(exec))
                   .on(exec))
     {}
 
@@ -121,6 +131,7 @@ protected:
         gko::matrix::BlockApprox<gko::matrix::Csr<value_type, index_type>>>
         ov_block_mtx;
     std::unique_ptr<typename Ras::Factory> ras_factory;
+    std::unique_ptr<typename Ras::Factory> ras_factory2;
     std::unique_ptr<typename Cg::Factory> cg_factory;
 };
 
@@ -168,6 +179,37 @@ TYPED_TEST(RasPrecond, CanApply)
     EXPECT_EQ(x1->at(0), block_x->at(2));
     EXPECT_EQ(x1->at(1), block_x->at(3));
     EXPECT_EQ(x1->at(2), block_x->at(4));
+}
+
+
+TYPED_TEST(RasPrecond, CanApplyWithSelfGenerate)
+{
+    using DenseMtx = typename TestFixture::DenseMtx;
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto solver = this->ras_factory2->generate(gko::share(this->csr_mtx));
+    ASSERT_EQ(solver->get_size(), gko::dim<2>(5, 5));
+
+    auto solver0 = this->cg_factory->generate(this->ov_csr_mtx0);
+    auto solver1 = this->cg_factory->generate(this->ov_csr_mtx1);
+    auto block_b =
+        gko::initialize<DenseMtx>({1.0, -1.0, -1.0, 3.0, 1.0}, this->exec);
+    auto block_x =
+        gko::initialize<DenseMtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto b0 = gko::initialize<DenseMtx>(I<T>({1.0, -1.0, -1.0}), this->exec);
+    auto x0 = gko::initialize<DenseMtx>(I<T>({0.0, 0.0, 0.0}), this->exec);
+    auto b1 = gko::initialize<DenseMtx>({-1.0, -1.0, 3.0, 1.0}, this->exec);
+    auto x1 = gko::initialize<DenseMtx>({0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver0->apply(gko::lend(b0), gko::lend(x0));
+    solver1->apply(gko::lend(b1), gko::lend(x1));
+    solver->apply(gko::lend(block_b), gko::lend(block_x));
+
+    EXPECT_EQ(x0->at(0), block_x->at(0));
+    EXPECT_EQ(x0->at(1), block_x->at(1));
+    EXPECT_EQ(x1->at(1), block_x->at(2));
+    EXPECT_EQ(x1->at(2), block_x->at(3));
+    EXPECT_EQ(x1->at(3), block_x->at(4));
 }
 
 

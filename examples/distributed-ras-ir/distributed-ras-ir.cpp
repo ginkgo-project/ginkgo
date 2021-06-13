@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
     MPI_Barrier(MPI_COMM_WORLD);
     ValueType t_prec_setup_end = MPI_Wtime();
 
-    gko::remove_complex<ValueType> reduction_factor = 1e-2;
+    gko::remove_complex<ValueType> reduction_factor = 1e-10;
     std::shared_ptr<gko::stop::Iteration::Factory> iter_stop =
         gko::stop::Iteration::build()
             .with_max_iters(static_cast<gko::size_type>(num_rows))
