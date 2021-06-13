@@ -94,6 +94,7 @@ if(MSVC OR WIN32 OR CYGWIN OR APPLE)
 else()
     option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is ON. If a system HWLOC is not found, then we try to build it ourselves. Switch this OFF to disable HWLOC." ON)
 endif()
+option(GINKGO_BUILD_PAPI "Build Ginkgo with PAPI. Default is OFF." OFF)
 option(GINKGO_DPCPP_SINGLE_MODE "Do not compile double kernels for the DPC++ backend." OFF)
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
 option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) to the installation RPATH." ON)
@@ -181,9 +182,11 @@ check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 
 # Automatically find PAPI and search for the required 'sde' component
 set(GINKGO_HAVE_PAPI_SDE 0)
-find_package(PAPI OPTIONAL_COMPONENTS sde)
-if(PAPI_sde_FOUND)
-    set(GINKGO_HAVE_PAPI_SDE 1)
+if(GINKGO_BUILD_PAPI)
+    find_package(PAPI OPTIONAL_COMPONENTS sde)
+    if(PAPI_sde_FOUND)
+        set(GINKGO_HAVE_PAPI_SDE 1)
+    endif()
 endif()
 
 # Switch off HWLOC for Windows and MacOS

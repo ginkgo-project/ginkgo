@@ -72,9 +72,10 @@ init_finalize::init_finalize(int &argc, char **&argv,
     auto flag = is_initialized();
     if (!flag) {
         this->required_thread_support_ = MPI_THREAD_SERIALIZED;
-        GKO_ASSERT_NO_MPI_ERRORS(
-            MPI_Init_thread(&argc, &argv, this->required_thread_support_,
-                            &(this->provided_thread_support_)));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Init(&argc, &argv));
+        // GKO_ASSERT_NO_MPI_ERRORS(
+        //     MPI_Init_thread(&argc, &argv, this->required_thread_support_,
+        //                     &(this->provided_thread_support_)));
     } else {
         // GKO_MPI_INITIALIZED;
     }
