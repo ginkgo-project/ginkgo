@@ -108,10 +108,27 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
+         * Block dimensions.
+         */
+        gko::Array<size_type> GKO_FACTORY_PARAMETER_SCALAR(block_dimensions,
+                                                           nullptr);
+
+        /**
+         * Overlap
+         */
+        gko::Overlap<size_type> GKO_FACTORY_PARAMETER_SCALAR(overlaps, nullptr);
+
+        /**
          * Inner solver factory.
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
             solver, nullptr);
+
+        /**
+         * Generated Inner solvers.
+         */
+        std::vector<std::shared_ptr<const LinOp>> GKO_FACTORY_PARAMETER_VECTOR(
+            generated_solvers, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ras, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -140,7 +157,15 @@ protected:
                            gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()}
     {
-        this->generate(lend(system_matrix));
+        if (parameters_.overlaps.get_num_elems() > 0) {
+            this->overlaps_ = parameters_.overlaps;
+        }
+        if (parameters_.generated_solvers[0]) {
+            this->inner_solvers_ = std::vector<std::shared_ptr<const LinOp>>(
+                parameters_.generated_solvers);
+        } else {
+            this->generate(lend(system_matrix));
+        }
     }
 
     /**
@@ -161,9 +186,10 @@ protected:
 
 private:
     bool is_distributed_;
-    std::vector<std::shared_ptr<LinOp>> inner_solvers_;
+    std::vector<std::shared_ptr<const LinOp>> inner_solvers_;
     Overlap<size_type> overlaps_;
     std::vector<dim<2>> block_dims_;
+    std::shared_ptr<const LinOp> block_system_matrix_;
 };
 
 

@@ -190,10 +190,27 @@ std::unique_ptr<LinOp> Ras<ValueType, IndexType>::conj_transpose() const
 template <typename ValueType, typename IndexType>
 void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
 {
-    using block_t = matrix::BlockApprox<matrix::Csr<ValueType, IndexType>>;
+    using base_mat = matrix::Csr<ValueType, IndexType>;
+    using dist_mat = distributed::Matrix<ValueType, IndexType>;
+    using block_t = matrix::BlockApprox<base_mat>;
     using dist_block_t = distributed::BlockApprox<ValueType, IndexType>;
-    if (dynamic_cast<const block_t *>(system_matrix) != nullptr) {
-        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
+    GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
+    if (dynamic_cast<const base_mat *>(system_matrix) != nullptr) {
+        auto mat = as<const base_mat>(system_matrix);
+        this->block_system_matrix_ =
+            block_t::create(mat->get_executor(), mat,
+                            parameters_.block_dimensions, this->overlaps_);
+        auto block_mtxs =
+            as<block_t>(this->block_system_matrix_)->get_block_mtxs();
+        this->block_dims_ =
+            as<block_t>(this->block_system_matrix_)->get_block_dimensions();
+        const auto num_subdomains = block_mtxs.size();
+        for (size_type i = 0; i < num_subdomains; ++i) {
+            this->inner_solvers_.emplace_back(
+                parameters_.solver->generate(block_mtxs[i]));
+        }
+        this->is_distributed_ = false;
+    } else if (dynamic_cast<const block_t *>(system_matrix) != nullptr) {
         auto block_mtxs = as<block_t>(system_matrix)->get_block_mtxs();
         this->overlaps_ = as<block_t>(system_matrix)->get_overlaps();
         this->block_dims_ = as<block_t>(system_matrix)->get_block_dimensions();
@@ -203,18 +220,25 @@ void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
                 parameters_.solver->generate(block_mtxs[i]));
         }
         this->is_distributed_ = false;
-    } else if (dynamic_cast<const dist_block_t *>(system_matrix) != nullptr) {
-        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
-        auto block_mtxs = as<dist_block_t>(system_matrix)->get_block_mtxs();
-        this->overlaps_ = as<dist_block_t>(system_matrix)->get_overlaps();
-        this->block_dims_ =
-            as<dist_block_t>(system_matrix)->get_block_dimensions();
+    } else if (dynamic_cast<const dist_mat *>(system_matrix) != nullptr) {
+        auto mat = as<const dist_mat>(system_matrix);
+        this->block_system_matrix_ =
+            dist_block_t::create(mat->get_executor(), mat);
+        auto block_mtxs =
+            as<dist_block_t>(this->block_system_matrix_)->get_block_mtxs();
         const auto num_subdomains = block_mtxs.size();
         for (size_type i = 0; i < num_subdomains; ++i) {
             this->inner_solvers_.emplace_back(
                 parameters_.solver->generate(gko::share(block_mtxs[i])));
         }
-
+        this->is_distributed_ = true;
+    } else if (dynamic_cast<const dist_block_t *>(system_matrix) != nullptr) {
+        auto block_mtxs = as<dist_block_t>(system_matrix)->get_block_mtxs();
+        const auto num_subdomains = block_mtxs.size();
+        for (size_type i = 0; i < num_subdomains; ++i) {
+            this->inner_solvers_.emplace_back(
+                parameters_.solver->generate(gko::share(block_mtxs[i])));
+        }
         this->is_distributed_ = true;
     }
 }
