@@ -64,6 +64,8 @@ namespace batch_rich {
 
 
 #include "common/components/uninitialized_array.hpp.inc"
+// include all depedencies (note: do not remove this comment)
+#include "common/components/reduction.hpp.inc"
 #include "common/log/batch_logger.hpp.inc"
 #include "common/matrix/batch_csr_kernels.hpp.inc"
 #include "common/matrix/batch_dense_kernels.hpp.inc"

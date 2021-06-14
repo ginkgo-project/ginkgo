@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/config.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/thread_ids.cuh"
 #include "cuda/matrix/batch_struct.hpp"
 
 
@@ -57,18 +58,17 @@ constexpr int sm_multiplier = 4;
  */
 namespace batch_bicgstab {
 
+
 #include "common/components/uninitialized_array.hpp.inc"
-
-
+// include all depedencies (note: do not remove this comment)
+#include "common/components/reduction.hpp.inc"
 #include "common/log/batch_logger.hpp.inc"
 #include "common/matrix/batch_csr_kernels.hpp.inc"
 #include "common/matrix/batch_dense_kernels.hpp.inc"
 #include "common/preconditioner/batch_identity.hpp.inc"
 #include "common/preconditioner/batch_jacobi.hpp.inc"
-#include "common/stop/batch_criteria.hpp.inc"
-
-
 #include "common/solver/batch_bicgstab_kernels.hpp.inc"
+#include "common/stop/batch_criteria.hpp.inc"
 
 
 template <typename T>

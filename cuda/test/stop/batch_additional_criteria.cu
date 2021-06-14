@@ -45,17 +45,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils/batch.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/types.hpp"
+#include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
 namespace kernels {
 namespace cuda {
 
+
 constexpr int default_block_size = 128;
 constexpr int sm_multiplier = 4;
 
+
+#include "common/components/uninitialized_array.hpp.inc"
+// include all depedencies (note: do not remove this comment)
+#include "common/components/reduction.hpp.inc"
 #include "common/matrix/batch_dense_kernels.hpp.inc"
 #include "common/stop/batch_criteria.hpp.inc"
+
 
 }  // namespace cuda
 }  // namespace kernels

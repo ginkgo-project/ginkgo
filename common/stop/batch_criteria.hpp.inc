@@ -104,8 +104,10 @@ public:
             __shared__ real_type norms[batch_config<ValueType>::max_num_rhs];
             compute_norm2<ValueType>(
                 residual, gko::batch_dense::BatchEntry<real_type>{
-                              norms, static_cast<size_type>(nrhs), 1, nrhs});
-
+                              norms,
+                              static_cast<size_type>(
+                                  batch_config<ValueType>::max_num_rhs),
+                              1, nrhs});
             __syncthreads();
             check_norms(norms, converged);
         }

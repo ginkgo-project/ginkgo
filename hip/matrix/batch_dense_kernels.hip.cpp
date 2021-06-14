@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
+
 #include "core/components/prefix_sum.hpp"
 //#include "hip/base/config.hip.hpp"
 #include "hip/base/hipblas_bindings.hip.hpp"
@@ -218,8 +219,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const HipExecutor> exec,
                           const matrix::BatchDense<ValueType> *source,
-                          size_type *result, size_type *stride_factor,
-                          size_type *slice_size) GKO_NOT_IMPLEMENTED;
+                          size_type *result, const size_type *stride_factor,
+                          const size_type *slice_size) GKO_NOT_IMPLEMENTED;
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
