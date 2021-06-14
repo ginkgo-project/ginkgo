@@ -139,6 +139,8 @@ class Dense
     friend class Dense<to_complex<ValueType>>;
 
 public:
+    using EnableLinOp<Dense>::convert_to;
+    using EnableLinOp<Dense>::move_to;
     using ReadableFromMatrixData<ValueType, int32>::read;
     using ReadableFromMatrixData<ValueType, int64>::read;
 
@@ -206,10 +208,6 @@ public:
     }
 
     friend class Dense<next_precision<ValueType>>;
-
-    void convert_to(Dense<ValueType>* result) const override;
-
-    void move_to(Dense<ValueType>* result) override;
 
     void convert_to(Dense<next_precision<ValueType>>* result) const override;
 
@@ -883,6 +881,14 @@ public:
             exec, size, gko::detail::array_const_cast(std::move(values)),
             stride});
     }
+
+    Dense& operator=(const Dense& other);
+
+    Dense& operator=(Dense&& other);
+
+    Dense(const Dense& other);
+
+    Dense(Dense&& other);
 
 protected:
     /**

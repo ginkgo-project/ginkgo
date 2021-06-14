@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -70,25 +71,16 @@ constexpr size_type default_krylov_dim = 100u;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Gmres : public EnableLinOp<Gmres<ValueType>>,
-              public Preconditionable,
-              public Transposable {
+class Gmres
+    : public EnableLinOp<Gmres<ValueType>>,
+      public EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>,
+      public Transposable {
     friend class EnableLinOp<Gmres>;
     friend class EnablePolymorphicObject<Gmres, LinOp>;
 
 public:
     using value_type = ValueType;
     using transposed_type = Gmres<ValueType>;
-
-    /**
-     * Gets the system operator (matrix) of the linear system.
-     *
-     * @return the system operator (matrix)
-     */
-    std::shared_ptr<const LinOp> get_system_matrix() const
-    {
-        return system_matrix_;
-    }
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -114,28 +106,6 @@ public:
      * @param other  the new Krylov dimension
      */
     void set_krylov_dim(size_type other) { krylov_dim_ = other; }
-
-    /**
-     * Gets the stopping criterion factory of the solver.
-     *
-     * @return the stopping criterion factory
-     */
-    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
-        const
-    {
-        return stop_criterion_factory_;
-    }
-
-    /**
-     * Sets the stopping criterion of the solver.
-     *
-     * @param other  the new stopping criterion factory
-     */
-    void set_stop_criterion_factory(
-        std::shared_ptr<const stop::CriterionFactory> other)
-    {
-        stop_criterion_factory_ = std::move(other);
-    }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -183,33 +153,18 @@ protected:
                    std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Gmres>(factory->get_executor(),
                              gko::transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()},
-          system_matrix_{std::move(system_matrix)}
+          EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>{
+              std::move(system_matrix), factory->get_parameters()},
+          parameters_{factory->get_parameters()}
     {
-        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
-        if (parameters_.generated_preconditioner) {
-            GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.generated_preconditioner,
-                                        this);
-            set_preconditioner(parameters_.generated_preconditioner);
-        } else if (parameters_.preconditioner) {
-            set_preconditioner(
-                parameters_.preconditioner->generate(system_matrix_));
-        } else {
-            set_preconditioner(matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()));
-        }
         if (parameters_.krylov_dim) {
             krylov_dim_ = parameters_.krylov_dim;
         } else {
             krylov_dim_ = default_krylov_dim;
         }
-        stop_criterion_factory_ =
-            stop::combine(std::move(parameters_.criteria));
     }
 
 private:
-    std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     size_type krylov_dim_;
 };
 
