@@ -52,20 +52,10 @@ std::shared_ptr<gko::matrix::Dense<T>> build_dense(ResourceManager *rm,
     std::cout << "is_double?" << std::is_same<T, double>::value << std::endl;
     std::cout << "is_float?" << std::is_same<T, float>::value << std::endl;
 
-    std::shared_ptr<Executor> exec_ptr;
-    assert(item.HasMember("exec"));
-    std::cout << item.HasMember("exec") << std::endl;
-    if (item["exec"].IsString()) {
-        std::string exec = item["exec"].GetString();
-        exec_ptr = rm->search_data<Executor>(exec);
-        std::cout << exec_ptr.get() << std::endl;
-    } else if (item["exec"].IsObject()) {
-        // create a object
-        exec_ptr = rm->build_item<Executor>(item["exec"]);
-        std::cout << exec_ptr.get() << std::endl;
-    }
+    // std::shared_ptr<Executor> exec_ptr;
+    auto exec_ptr = get_pointer<Executor>(rm, item["exec"]);
     auto size = get_value_with_default(item, "dim", gko::dim<2>{});
-    auto stride = get_value_with_default(item, "stride", size_type{0});
+    auto stride = get_value_with_default(item, "stride", size[1]);
     auto ptr = share(gko::matrix::Dense<T>::create(exec_ptr, size, stride));
     if (item.HasMember("read")) {
         std::ifstream mtx_fd(item["read"].GetString());
@@ -79,13 +69,13 @@ std::shared_ptr<gko::matrix::Dense<T>> build_dense(ResourceManager *rm,
 
 }  // namespace
 
-#define CONNECT(T, func)                                                     \
-    template <>                                                              \
-    std::shared_ptr<gko::matrix::Dense<T>> ResourceManager::build_item<      \
-        RM_LinOp, RM_LinOp::Dense, gko::matrix::Dense<T>>(rapidjson::Value & \
-                                                          item)              \
-    {                                                                        \
-        return func<T>(this, item);                                          \
+#define CONNECT(T, func)                                         \
+    template <>                                                  \
+    std::shared_ptr<gko::matrix::Dense<T>>                       \
+        ResourceManager::build_item_impl<gko::matrix::Dense<T>>( \
+            rapidjson::Value & item)                             \
+    {                                                            \
+        return func<T>(this, item);                              \
     }
 
 CONNECT(double, build_dense);
@@ -111,14 +101,10 @@ ResourceManager::build_item<RM_LinOp, RM_LinOp::Dense, gko::LinOp>(
     };
     if (vt == std::string{"double"}) {
         using type = double;
-        return this
-            ->build_item<RM_LinOp, RM_LinOp::Dense, gko::matrix::Dense<type>>(
-                item);
+        return this->build_item<gko::matrix::Dense<type>>(item);
     } else {
         using type = float;
-        return this
-            ->build_item<RM_LinOp, RM_LinOp::Dense, gko::matrix::Dense<type>>(
-                item);
+        return this->build_item<gko::matrix::Dense<type>>(item);
     }
 }
 

@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <rapidjson/document.h>
 #include <ginkgo/ginkgo.hpp>
+#include <resource_manager/base/resource_manager.hpp>
 
 namespace gko {
 namespace extension {
@@ -48,19 +49,19 @@ T get_value(rapidjson::Value &item, std::string &key)
 }
 
 template <>
-int get_value(rapidjson::Value &item, std::string &key)
+int get_value<int>(rapidjson::Value &item, std::string &key)
 {
     return item[key.c_str()].GetInt();
 }
 
 template <>
-size_type get_value(rapidjson::Value &item, std::string &key)
+size_type get_value<size_type>(rapidjson::Value &item, std::string &key)
 {
     return item[key.c_str()].GetInt64();
 }
 
 template <>
-dim<2> get_value(rapidjson::Value &item, std::string &key)
+dim<2> get_value<dim<2>>(rapidjson::Value &item, std::string &key)
 {
     auto array = item[key.c_str()].GetArray();
     assert(array.Size() == 2);
@@ -68,7 +69,7 @@ dim<2> get_value(rapidjson::Value &item, std::string &key)
 }
 
 template <>
-std::string get_value(rapidjson::Value &item, std::string &key)
+std::string get_value<std::string>(rapidjson::Value &item, std::string &key)
 {
     return item[key.c_str()].GetString();
 }
@@ -81,6 +82,45 @@ T get_value_with_default(rapidjson::Value &item, std::string key, T default_val)
     } else {
         return get_value<T>(item, key);
     }
+}
+
+
+template <typename T>
+std::shared_ptr<T> get_pointer(ResourceManager *rm, rapidjson::Value &item)
+{
+    std::shared_ptr<T> ptr;
+    if (item.IsString()) {
+        std::string opt = item.GetString();
+        ptr = std::dynamic_pointer_cast<T>(rm->search_data<T>(opt));
+    } else if (item.IsObject()) {
+        // create a object
+        ptr = rm->build_item<T>(item);
+    } else {
+        assert(false);
+    }
+    assert(ptr.get() == nullptr);
+    return std::move(ptr);
+}
+
+
+template <typename T>
+std::vector<std::shared_ptr<const T>> get_pointer_vector(ResourceManager *rm,
+                                                         rapidjson::Value &item)
+{
+    std::vector<std::shared_ptr<const T>> vec;
+    if (item.IsArray()) {
+        for (auto &v : item.GetArray()) {
+            auto ptr = get_pointer<T>(rm, v);
+            std::cout << "array " << ptr << std::endl;
+            vec.emplace_back(ptr);
+        }
+    } else {
+        auto ptr = get_pointer<T>(rm, item);
+        std::cout << "item " << ptr << std::endl;
+        vec.emplace_back(ptr);
+    }
+    std::cout << "vec " << vec.size() << std::endl;
+    return vec;
 }
 
 

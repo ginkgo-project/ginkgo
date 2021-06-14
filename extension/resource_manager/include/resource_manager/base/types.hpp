@@ -54,29 +54,63 @@ using CriterionFactoryMap =
     std::unordered_map<std::string, std::shared_ptr<CriterionFactory>>;
 
 
-template <typename T>
+template <typename T, typename = void>
 struct map_type {
     using type = void;
 };
 
-template <>
-struct map_type<Executor> {
+template <typename T>
+struct map_type<T, typename std::enable_if<
+                       std::is_convertible<T *, Executor *>::value>::type> {
     using type = ExecutorMap;
 };
 
-template <>
-struct map_type<LinOp> {
+template <typename T>
+struct map_type<T, typename std::enable_if<
+                       std::is_convertible<T *, LinOp *>::value>::type> {
     using type = LinOpMap;
 };
 
-template <>
-struct map_type<LinOpFactory> {
+template <typename T>
+struct map_type<T, typename std::enable_if<
+                       std::is_convertible<T *, LinOpFactory *>::value>::type> {
     using type = LinOpFactoryMap;
 };
 
-template <>
-struct map_type<CriterionFactory> {
+template <typename T>
+struct map_type<T, typename std::enable_if<std::is_convertible<
+                       T *, CriterionFactory *>::value>::type> {
     using type = CriterionFactoryMap;
+};
+
+
+template <typename T, typename = void>
+struct base_type {
+    using type = void;
+};
+
+template <typename T>
+struct base_type<T, typename std::enable_if<
+                        std::is_convertible<T *, Executor *>::value>::type> {
+    using type = Executor;
+};
+
+template <typename T>
+struct base_type<T, typename std::enable_if<
+                        std::is_convertible<T *, LinOp *>::value>::type> {
+    using type = LinOp;
+};
+
+template <typename T>
+struct base_type<T, typename std::enable_if<std::is_convertible<
+                        T *, LinOpFactory *>::value>::type> {
+    using type = LinOpFactory;
+};
+
+template <typename T>
+struct base_type<T, typename std::enable_if<std::is_convertible<
+                        T *, CriterionFactory *>::value>::type> {
+    using type = CriterionFactory;
 };
 
 
