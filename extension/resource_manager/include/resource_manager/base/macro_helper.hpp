@@ -84,6 +84,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         if (it == _base_type##Select.end()) {                                 \
             return nullptr;                                                   \
         } else {                                                              \
+            std::cout << "Found!" << std::endl;                               \
             return it->second(item);                                          \
         }                                                                     \
     }
@@ -97,17 +98,58 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     }
 
 
-#define IMPLEMENT_BRIDGE(_enum_type, _enum_item, _impl_type)              \
-    template <>                                                           \
-    std::shared_ptr<typename gkobase<_enum_type>::type>                   \
-        ResourceManager::build_item<_enum_type, _enum_type::_enum_item,   \
-                                    typename gkobase<_enum_type>::type>(  \
-            rapidjson::Value & item)                                      \
-    {                                                                     \
-        return this                                                       \
-            ->build_item<_enum_type, _enum_type::_enum_item, _impl_type>( \
-                item);                                                    \
+#define IMPLEMENT_BRIDGE(_enum_type, _enum_item, _impl_type)             \
+    template <>                                                          \
+    std::shared_ptr<typename gkobase<_enum_type>::type>                  \
+        ResourceManager::build_item<_enum_type, _enum_type::_enum_item,  \
+                                    typename gkobase<_enum_type>::type>( \
+            rapidjson::Value & item)                                     \
+    {                                                                    \
+        return this->build_item<_impl_type>(item);                       \
     }
 
+#define IMPLEMENT_TINY_BRIDGE(_enum_type, _enum_item, _impl_type)          \
+    template <>                                                            \
+    std::shared_ptr<_impl_type> ResourceManager::build_item<               \
+        _enum_type, _enum_type::_enum_item, _impl_type>(rapidjson::Value & \
+                                                        item)              \
+    {                                                                      \
+        return this->build_item<_impl_type>(item);                         \
+    }
+
+// clang-format off
+#define BUILD_FACTORY(type_, rm_, item_)     \
+    [&]() {                                   \
+        auto factory_alias_ = type_::build(); \
+        auto &rm_alias_ = rm_;               \
+        auto &item_alias_ = item_;
+
+#define ON_EXECUTOR                                                \
+        auto executor =                                            \
+            get_pointer<Executor>(rm_alias_, item_alias_["exec"]); \
+        return factory_alias_.on(executor);                        \
+    }                                                              \
+    ();
+// clang-format on
+
+
+#define WITH_POINTER(_param_type, _param_name)                               \
+    if (item_alias_.HasMember(#_param_name)) {                               \
+        factory_alias_.with_##_param_name(                                   \
+            get_pointer<_param_type>(rm_alias_, item_alias_[#_param_name])); \
+    }
+
+#define WITH_POINTER_ARRAY(_param_type, _param_name)                       \
+    if (item_alias_.HasMember(#_param_name)) {                             \
+        factory_alias_.with_##_param_name(get_pointer_vector<_param_type>( \
+            rm_alias_, item_alias_[#_param_name]));                        \
+    }
+
+#define WITH_VALUE(_param_type, _param_name)            \
+    if (item_alias_.HasMember(#_param_name)) {          \
+        std::string name{#_param_name};                 \
+        factory_alias_.with_##_param_name(              \
+            get_value<_param_type>(item_alias_, name)); \
+    }
 
 #endif  // GKOEXT_RESOURCE_MANAGER_BASE_MACRO_HELPER_HPP_

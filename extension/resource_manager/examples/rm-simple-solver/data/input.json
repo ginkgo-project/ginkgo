@@ -34,5 +34,21 @@
         "exec": "executorO",
         "dim": [4, 4],
         "read": "data/A.mtx"
+    },
+    {
+        "name": "Cg",
+        "base": "Cg",
+        "factory": {
+            "name": "CgFactory",
+            "exec": "executorO",
+            "criteria": [
+                {
+                    "name": "10Iter",
+                    "base": "Iteration",
+                    "max_iters": 10
+                }
+            ]
+        },
+        "generate": "C"
     }
 ]

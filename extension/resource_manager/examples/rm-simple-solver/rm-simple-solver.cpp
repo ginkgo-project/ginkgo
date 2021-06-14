@@ -51,23 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int main(int argc, char *argv[])
 {
-    // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
-    // with one column/one row. The advantage of this concept is that using
-    // multiple vectors is a now a natural extension of adding columns/rows are
-    // necessary.
-    using ValueType = double;
-    using RealValueType = gko::remove_complex<ValueType>;
-    using IndexType = int;
-    using vec = gko::matrix::Dense<ValueType>;
-    using real_vec = gko::matrix::Dense<RealValueType>;
-    // The gko::matrix::Csr class is used here, but any other matrix class such
-    // as gko::matrix::Coo, gko::matrix::Hybrid, gko::matrix::Ell or
-    // gko::matrix::Sellp could also be used.
-    using mtx = gko::matrix::Csr<ValueType, IndexType>;
-    // The gko::solver::Cg is used here, but any other solver class can also be
-    // used.
-    using cg = gko::solver::Cg<ValueType>;
-
     using Rm = gko::extension::resource_manager::ResourceManager;
 
     // Print the ginkgo version information.
@@ -78,4 +61,18 @@ int main(int argc, char *argv[])
     rapidjson::Document f;
     f.ParseStream(jcin);
     resource_manager.read(f);
+
+    auto solver = resource_manager.search_data<gko::LinOp>("solver");
+    auto b = resource_manager.search_data<gko::LinOp>("b");
+    auto x = resource_manager.search_data<gko::matrix::Dense<double>>("x");
+
+    std::cout << "Output all map information\n";
+    resource_manager.output_map_info();
+    std::cout << "Apply:\n";
+    solver->apply(lend(b), lend(x));
+
+    std::cout << "Solution (x):\n";
+    write(std::cout, lend(x));
+
+    return 0;
 }

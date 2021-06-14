@@ -1,0 +1,43 @@
+[
+    {
+        "name": "executor",
+        "base": "ReferenceExecutor"
+    },
+    {
+        "name": "b",
+        "base": "Dense",
+        "type": "double",
+        "exec": {
+            "base": "ReferenceExecutor"
+        },
+        "read": "data/b.mtx"
+    },
+    {
+        "name": "x",
+        "base": "Dense",
+        "type": "double",
+        "exec": "executor",
+        "read": "data/x0.mtx"
+    },
+    {
+        "name": "solver",
+        "base": "Cg",
+        "factory": {
+            "name": "CgFactory",
+            "exec": "executor",
+            "criteria": [
+                {
+                    "name": "20Iter",
+                    "base": "Iteration",
+                    "max_iters": 20,
+                    "exec": "executor"
+                }
+            ]
+        },
+        "generate": {
+                "base": "Dense",
+                "exec": "executor",
+                "read": "data/A.mtx"
+        }
+    }
+]
