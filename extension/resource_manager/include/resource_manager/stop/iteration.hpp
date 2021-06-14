@@ -30,30 +30,58 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKOEXT_RESOURCE_MANAGER_HPP_
-#define GKOEXT_RESOURCE_MANAGER_HPP_
+#ifndef GKOEXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
+#define GKOEXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
 
-#include <map>
+
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
-#include "resource_manager/base/types.hpp"
-#include "resource_manager/executor/executor.hpp"
-#include "resource_manager/linop/dense.hpp"
-#include "resource_manager/solver/cg.hpp"
-#include "resource_manager/stop/iteration.hpp"
+
+#include <type_traits>
+
+
 namespace gko {
 namespace extension {
 namespace resource_manager {
+namespace {
 
 
-// the implementation in the end
-IMPLEMENT_BASE_BUILD_ITEM_IMPL(Executor, RM_Executor, ENUM_EXECUTER);
-IMPLEMENT_BASE_BUILD_ITEM_IMPL(LinOp, RM_LinOp, ENUM_LINOP);
-IMPLEMENT_BASE_BUILD_ITEM_IMPL(LinOpFactory, RM_LinOpFactory,
-                               ENUM_LINOPFACTORY);
-IMPLEMENT_BASE_BUILD_ITEM_IMPL(CriterionFactory, RM_CriterionFactory,
-                               ENUM_CRITERIONFACTORY);
+std::shared_ptr<typename gko::stop::Iteration::Factory> build_iteraion_factory(
+    ResourceManager *rm, rapidjson::Value &item)
+{
+    auto exec_ptr = get_pointer<Executor>(rm, item["exec"]);
+    auto ptr = BUILD_FACTORY(gko::stop::Iteration, rm, item)
+        WITH_VALUE(size_type, max_iters) ON_EXECUTOR;
+    return ptr;
+}
+
+
+}  // namespace
+
+
+#define CONNECT_STOP_FACTORY(base, func)                          \
+    template <>                                                   \
+    std::shared_ptr<typename base::Factory>                       \
+        ResourceManager::build_item_impl<typename base::Factory>( \
+            rapidjson::Value & item)                              \
+    {                                                             \
+        return func(this, item);                                  \
+    }
+
+
+CONNECT_STOP_FACTORY(gko::stop::Iteration, build_iteraion_factory);
+
+
+template <>
+std::shared_ptr<CriterionFactory>
+ResourceManager::build_item<RM_CriterionFactory, RM_CriterionFactory::Iteration,
+                            CriterionFactory>(rapidjson::Value &item)
+{
+    std::cout << "build_iteraion_factory" << std::endl;
+
+    return this->build_item<gko::stop::Iteration::Factory>(item);
+}
 
 
 }  // namespace resource_manager
@@ -61,4 +89,4 @@ IMPLEMENT_BASE_BUILD_ITEM_IMPL(CriterionFactory, RM_CriterionFactory,
 }  // namespace gko
 
 
-#endif  // GKOEXT_RESOURCE_MANAGER_HPP_
+#endif  // GKOEXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_

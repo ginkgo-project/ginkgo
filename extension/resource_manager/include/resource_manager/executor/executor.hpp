@@ -74,8 +74,7 @@ namespace resource_manager {
 
 template <>
 std::shared_ptr<gko::CudaExecutor>
-ResourceManager::build_item<RM_Executor, RM_Executor::CudaExecutor,
-                            gko::CudaExecutor>(rapidjson::Value &item)
+ResourceManager::build_item_impl<gko::CudaExecutor>(rapidjson::Value &item)
 {
     std::cout << "Cuda" << std::endl;
     auto device_id = get_value_with_default(item, "device_id", 0);
@@ -83,11 +82,11 @@ ResourceManager::build_item<RM_Executor, RM_Executor::CudaExecutor,
 }
 
 IMPLEMENT_BRIDGE(RM_Executor, CudaExecutor, CudaExecutor)
+// IMPLEMENT_TINY_BRIDGE(RM_Executor, CudaExecutor, CudaExecutor)
 
 template <>
 std::shared_ptr<gko::HipExecutor>
-ResourceManager::build_item<RM_Executor, RM_Executor::HipExecutor,
-                            gko::HipExecutor>(rapidjson::Value &item)
+ResourceManager::build_item_impl<gko::HipExecutor>(rapidjson::Value &item)
 {
     std::cout << "Hip" << std::endl;
     auto device_id = get_value_with_default<int>(item, "device_id", 0);
@@ -96,11 +95,11 @@ ResourceManager::build_item<RM_Executor, RM_Executor::HipExecutor,
 
 
 IMPLEMENT_BRIDGE(RM_Executor, HipExecutor, HipExecutor)
+// IMPLEMENT_TINY_BRIDGE(RM_Executor, HipExecutor, HipExecutor)
 
 template <>
 std::shared_ptr<gko::DpcppExecutor>
-ResourceManager::build_item<RM_Executor, RM_Executor::DpcppExecutor,
-                            gko::DpcppExecutor>(rapidjson::Value &item)
+ResourceManager::build_item_impl<gko::DpcppExecutor>(rapidjson::Value &item)
 {
     std::cout << "DPCPP" << std::endl;
     auto device_id = get_value_with_default<int>(item, "device_id", 0);
@@ -109,12 +108,11 @@ ResourceManager::build_item<RM_Executor, RM_Executor::DpcppExecutor,
 
 
 IMPLEMENT_BRIDGE(RM_Executor, DpcppExecutor, DpcppExecutor)
-
+// IMPLEMENT_TINY_BRIDGE(RM_Executor, DpcppExecutor, DpcppExecutor)
 
 template <>
 std::shared_ptr<gko::ReferenceExecutor>
-ResourceManager::build_item<RM_Executor, RM_Executor::ReferenceExecutor,
-                            gko::ReferenceExecutor>(rapidjson::Value &item)
+ResourceManager::build_item_impl<gko::ReferenceExecutor>(rapidjson::Value &item)
 {
     std::cout << "REFERENCE" << std::endl;
     return ReferenceExecutor::create();
@@ -122,19 +120,19 @@ ResourceManager::build_item<RM_Executor, RM_Executor::ReferenceExecutor,
 
 
 IMPLEMENT_BRIDGE(RM_Executor, ReferenceExecutor, ReferenceExecutor)
+// IMPLEMENT_TINY_BRIDGE(RM_Executor, ReferenceExecutor, ReferenceExecutor)
 
 
 template <>
 std::shared_ptr<gko::OmpExecutor>
-ResourceManager::build_item<RM_Executor, RM_Executor::OmpExecutor,
-                            gko::OmpExecutor>(rapidjson::Value &item)
+ResourceManager::build_item_impl<gko::OmpExecutor>(rapidjson::Value &item)
 {
     std::cout << "OMP" << std::endl;
     return OmpExecutor::create();
 }
 
-
 IMPLEMENT_BRIDGE(RM_Executor, OmpExecutor, OmpExecutor)
+// IMPLEMENT_TINY_BRIDGE(RM_Executor, OmpExecutor, OmpExecutor)
 
 
 }  // namespace resource_manager

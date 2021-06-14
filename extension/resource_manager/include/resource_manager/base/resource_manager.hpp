@@ -61,7 +61,7 @@ public:
     std::shared_ptr<T> search_data(std::string key)
     {
         auto it = this->get_map<T>().find(key);
-        return it->second;
+        return std::dynamic_pointer_cast<T>(it->second);
     }
 
     // contain name
@@ -70,14 +70,19 @@ public:
     template <typename T>
     std::shared_ptr<T> build_item(rapidjson::Value &item)
     {
-        return nullptr;
+        auto ptr = this->build_item_impl<T>(item);
+        // if need to store the data, how to do that
+        if (item.HasMember("name")) {
+            this->insert_data<T>(item["name"].GetString(), ptr);
+        }
+        return ptr;
     }
 
     template <typename T>
     std::shared_ptr<T> build_item(std::string &base, rapidjson::Value &item)
     {
         return nullptr;
-    };
+    }
 
     template <typename T, T base, typename U = typename gkobase<T>::type>
     std::shared_ptr<U> build_item(rapidjson::Value &item)
@@ -110,13 +115,34 @@ public:
         }
     }
 
+    void output_map_info()
+    {
+        this->output_map_info<ExecutorMap>();
+        this->output_map_info<LinOpMap>();
+        this->output_map_info<LinOpFactoryMap>();
+        this->output_map_info<CriterionFactoryMap>();
+    }
+
+    template <typename T>
+    void output_map_info()
+    {
+        for (auto const &x : this->get_map_impl<T>()) {
+            std::cout << x.first << ": " << x.second.get() << std::endl;
+        }
+    }
 
 protected:
     template <typename T>
+    std::shared_ptr<T> build_item_impl(rapidjson::Value &item);
+
+    template <typename T>
     typename map_type<T>::type &get_map()
     {
-        // GKO_NOT_IMPLEMENTED;
+        return this->get_map_impl<typename map_type<T>::type>();
     }
+
+    template <typename T>
+    T &get_map_impl();
 
     DECLARE_BASE_BUILD_ITEM(Executor, RM_Executor);
     DECLARE_BASE_BUILD_ITEM(LinOp, RM_LinOp);
@@ -134,25 +160,25 @@ private:
 
 
 template <>
-map_type<Executor>::type &ResourceManager::get_map<Executor>()
+ExecutorMap &ResourceManager::get_map_impl<ExecutorMap>()
 {
     return executor_map_;
 }
 
 template <>
-map_type<LinOp>::type &ResourceManager::get_map<LinOp>()
+LinOpMap &ResourceManager::get_map_impl<LinOpMap>()
 {
     return linop_map_;
 }
 
 template <>
-map_type<LinOpFactory>::type &ResourceManager::get_map<LinOpFactory>()
+LinOpFactoryMap &ResourceManager::get_map_impl<LinOpFactoryMap>()
 {
     return linopfactory_map_;
 }
 
 template <>
-map_type<CriterionFactory>::type &ResourceManager::get_map<CriterionFactory>()
+CriterionFactoryMap &ResourceManager::get_map_impl<CriterionFactoryMap>()
 {
     return criterionfactory_map_;
 }
@@ -178,11 +204,16 @@ void ResourceManager::build_item(rapidjson::Value &item)
         auto ptr = this->build_item<LinOp>(base, item);
         std::cout << "123" << std::endl;
         if (ptr == nullptr) {
+            std::cout << "LinOpFactory" << std::endl;
+            auto ptr = this->build_item<LinOpFactory>(base, item);
+            if (ptr == nullptr) {
+                std::cout << "StopFactory" << std::endl;
+                auto ptr = this->build_item<CriterionFactory>(base, item);
+            }
         } else {
-            this->insert_data<LinOp>(name, ptr);
         }
     } else {
-        this->insert_data<Executor>(name, ptr);
+        // this->insert_data<Executor>(name, ptr);
     }
     // go through all possiblilty from map and call the build_item<>
     // must contain name
@@ -195,6 +226,33 @@ std::shared_ptr<Executor> ResourceManager::build_item<Executor>(
     assert(item.HasMember("base"));
     std::string base = item["base"].GetString();
     return this->build_item<Executor>(base, item);
+}
+
+template <>
+std::shared_ptr<LinOp> ResourceManager::build_item<LinOp>(
+    rapidjson::Value &item)
+{
+    assert(item.HasMember("base"));
+    std::string base = item["base"].GetString();
+    return this->build_item<LinOp>(base, item);
+}
+
+template <>
+std::shared_ptr<LinOpFactory> ResourceManager::build_item<LinOpFactory>(
+    rapidjson::Value &item)
+{
+    assert(item.HasMember("base"));
+    std::string base = item["base"].GetString();
+    return this->build_item<LinOpFactory>(base, item);
+}
+
+template <>
+std::shared_ptr<CriterionFactory> ResourceManager::build_item<CriterionFactory>(
+    rapidjson::Value &item)
+{
+    assert(item.HasMember("base"));
+    std::string base = item["base"].GetString();
+    return this->build_item<CriterionFactory>(base, item);
 }
 
 
