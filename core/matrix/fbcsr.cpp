@@ -87,6 +87,53 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType, typename IndexType>
+Fbcsr<ValueType, IndexType>& Fbcsr<ValueType, IndexType>::operator=(
+    const Fbcsr& other)
+{
+    if (&other != this) {
+        EnableLinOp<Fbcsr>::operator=(other);
+        // block size is immutable except for assignment
+        bs_ = other.bs_;
+        values_ = other.values_;
+        col_idxs_ = other.col_idxs_;
+        row_ptrs_ = other.row_ptrs_;
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Fbcsr<ValueType, IndexType>& Fbcsr<ValueType, IndexType>::operator=(
+    Fbcsr&& other)
+{
+    if (&other != this) {
+        EnableLinOp<Fbcsr>::operator=(std::move(other));
+        // block size is immutable except for assignment
+        bs_ = other.bs_;
+        values_ = std::move(other.values_);
+        col_idxs_ = std::move(other.col_idxs_);
+        row_ptrs_ = std::move(other.row_ptrs_);
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Fbcsr<ValueType, IndexType>::Fbcsr(const Fbcsr& other)
+    : Fbcsr{other.get_executor()}
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+Fbcsr<ValueType, IndexType>::Fbcsr(Fbcsr&& other) : Fbcsr{other.get_executor()}
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* const b,
                                              LinOp* const x) const
 {
@@ -138,6 +185,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
     result->col_idxs_ = this->col_idxs_;
     result->row_ptrs_ = this->row_ptrs_;
     result->set_size(this->get_size());
+    // block sizes are immutable except for assignment/conversion
     result->bs_ = this->bs_;
 }
 

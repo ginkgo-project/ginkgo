@@ -269,6 +269,14 @@ public:
             num_stored_elements_per_row, stride});
     }
 
+    Ell& operator=(const Ell& other);
+
+    Ell& operator=(Ell&& other);
+
+    Ell(const Ell& other);
+
+    Ell(Ell&& other);
+
 protected:
     /**
      * Creates an uninitialized Ell matrix of the specified size.

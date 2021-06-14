@@ -350,6 +350,14 @@ public:
                       gko::detail::array_const_cast(std::move(row_ptrs))});
     }
 
+    Fbcsr& operator=(const Fbcsr& other);
+
+    Fbcsr& operator=(Fbcsr&& other);
+
+    Fbcsr(const Fbcsr& other);
+
+    Fbcsr(Fbcsr&& other);
+
 protected:
     /**
      * Creates an uninitialized FBCSR matrix with the given block size.

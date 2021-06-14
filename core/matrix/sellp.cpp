@@ -79,6 +79,56 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>& Sellp<ValueType, IndexType>::operator=(
+    const Sellp& other)
+{
+    if (&other != this) {
+        EnableLinOp<Sellp>::operator=(other);
+        values_ = other.values_;
+        col_idxs_ = other.col_idxs_;
+        slice_lengths_ = other.slice_lengths_;
+        slice_sets_ = other.slice_sets_;
+        slice_size_ = other.slice_size_;
+        stride_factor_ = other.stride_factor_;
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>& Sellp<ValueType, IndexType>::operator=(
+    Sellp&& other)
+{
+    if (&other != this) {
+        EnableLinOp<Sellp>::operator=(other);
+        values_ = std::move(other.values_);
+        col_idxs_ = std::move(other.col_idxs_);
+        slice_lengths_ = std::move(other.slice_lengths_);
+        slice_sets_ = std::move(other.slice_sets_);
+        // slice_size and stride_factor are immutable
+        slice_size_ = other.slice_size_;
+        stride_factor_ = other.stride_factor_;
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>::Sellp(const Sellp& other)
+    : Sellp(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>::Sellp(Sellp&& other) : Sellp(other.get_executor())
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(

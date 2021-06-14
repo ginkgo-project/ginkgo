@@ -632,23 +632,13 @@ public:
     template <typename HybType>
     std::shared_ptr<typename HybType::strategy_type> get_strategy() const;
 
-    /**
-     * Copies data from another Hybrid.
-     *
-     * @param other  the Hybrid to copy from
-     *
-     * @return this
-     */
-    Hybrid& operator=(const Hybrid& other)
-    {
-        if (&other == this) {
-            return *this;
-        }
-        EnableLinOp<Hybrid<ValueType, IndexType>>::operator=(other);
-        this->coo_->copy_from(other.get_coo());
-        this->ell_->copy_from(other.get_ell());
-        return *this;
-    }
+    Hybrid& operator=(const Hybrid& other);
+
+    Hybrid& operator=(Hybrid&& other);
+
+    Hybrid(const Hybrid& other);
+
+    Hybrid(Hybrid&& other);
 
 protected:
     /**
@@ -732,9 +722,9 @@ protected:
         size_type num_nonzeros = {},
         std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
         : EnableLinOp<Hybrid>(exec, size),
-          ell_(std::move(ell_type::create(
-              exec, size, num_stored_elements_per_row, stride))),
-          coo_(std::move(coo_type::create(exec, size, num_nonzeros))),
+          ell_(ell_type::create(exec, size, num_stored_elements_per_row,
+                                stride)),
+          coo_(coo_type::create(exec, size, num_nonzeros)),
           strategy_(std::move(strategy))
     {}
 
