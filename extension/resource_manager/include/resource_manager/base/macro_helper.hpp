@@ -34,12 +34,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKOEXT_RESOURCE_MANAGER_BASE_MACRO_HELPER_HPP_
 
 
+// MSVC tends to use __VA_ARGS__ as one item
+// To expand __VA_ARGS__ as other compilers, another workaround is to use the
+// `/Zc:preprocessor` or `/experimental:preprocessor`
+#define UNPACK_VA_ARGS(_x) _x
 #define ENUM_VALUE_(_name) _name
 #define ENUM_VALUE_ASSIGN_(_name, _assign) _name = _assign
 #define MACRO_OVERLOAD_(_1, _2, _NAME, ...) _NAME
-#define ENUM_VALUE(...)                                                   \
-    MACRO_OVERLOAD_(__VA_ARGS__, ENUM_VALUE_ASSIGN_, ENUM_VALUE_, UNUSED) \
-    (__VA_ARGS__)
+#define ENUM_VALUE(...)                                             \
+    UNPACK_VA_ARGS(MACRO_OVERLOAD_(__VA_ARGS__, ENUM_VALUE_ASSIGN_, \
+                                   ENUM_VALUE_, UNUSED)(__VA_ARGS__))
 
 
 // clang-format off
@@ -53,9 +57,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define ENUM_LAMBDA_ASSIGN_(_name, _assign) ENUM_LAMBDA_(_name)
 
-#define ENUM_LAMBDA(...)                                                    \
-    MACRO_OVERLOAD_(__VA_ARGS__, ENUM_LAMBDA_ASSIGN_, ENUM_LAMBDA_, UNUSED) \
-    (__VA_ARGS__)
+#define ENUM_LAMBDA(...)                                             \
+    UNPACK_VA_ARGS(MACRO_OVERLOAD_(__VA_ARGS__, ENUM_LAMBDA_ASSIGN_, \
+                                   ENUM_LAMBDA_, UNUSED)(__VA_ARGS__))
 
 #define ENUM_CLASS(_enum_type, _type, _list) \
     enum class _enum_type : _type { _list(ENUM_VALUE) }
