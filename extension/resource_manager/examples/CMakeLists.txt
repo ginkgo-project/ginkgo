@@ -1,5 +1,7 @@
 set(EXAMPLES_EXEC_LIST
-    rm-simple-solver)
+    rm-simple-solver
+    rm-simple-solver-separate
+    )
 
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}

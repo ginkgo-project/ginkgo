@@ -1,0 +1,12 @@
+[
+    {
+        "name": "executor",
+        "base": "ReferenceExecutor"
+    },
+    {
+        "name": "A",
+        "base": "Dense",
+        "type": "double",
+        "exec": "executor"
+    }
+]
