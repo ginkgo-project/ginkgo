@@ -1,0 +1,9 @@
+{
+    "name": "b",
+    "base": "Dense",
+    "type": "double",
+    "exec": {
+        "base": "ReferenceExecutor"
+    },
+    "read": "data/b.mtx"
+}
