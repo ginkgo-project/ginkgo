@@ -64,6 +64,18 @@ find_library(CUSPARSE cusparse
 find_library(CURAND curand
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
+if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
+	if(GINKGO_CUDA_BATCH_SOLVERS_MAXREGCOUNT)
+        set_source_files_properties(
+            solver/batch_bicgstab_kernels.cu
+            solver/batch_cg_kernels.cu
+            solver/batch_gmres_kernels.cu
+            solver/batch_idr_kernels.cu
+            solver/batch_richardson_kernels.cu
+			PROPERTIES COMPILE_FLAGS "-maxrregcount ${GINKGO_CUDA_BATCH_SOLVERS_MAXREGCOUNT}")
+    endif()
+endif()
+
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 set(GKO_CUDA_COMMON_SOURCES
     ../common/unified/components/precision_conversion.cpp
