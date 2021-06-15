@@ -88,4 +88,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // clang-format on
 
 
+/* Did we build OMP? */
+#cmakedefine GINKGO_BUILD_OMP
+
+/* Did we build Reference? */
+#cmakedefine GINKGO_BUILD_REFERENCE
+
 #endif  // GKO_INCLUDE_CONFIG_H

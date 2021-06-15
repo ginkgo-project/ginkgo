@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
                     exec))
             .on(exec);
     auto A = gko::initialize<mtx>({1.0}, exec);
-    auto b = gko::initialize<vec>({std::nan("")}, exec);
+    auto b = gko::initialize<vec>({1.0}, exec);
     auto x = gko::initialize<vec>({0.0}, exec);
 
     auto tic = std::chrono::steady_clock::now();
