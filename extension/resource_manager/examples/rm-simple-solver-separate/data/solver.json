@@ -1,0 +1,19 @@
+[
+    {
+        "name": "solver",
+        "base": "Cg",
+        "factory": {
+            "name": "CgFactory",
+            "exec": "executor",
+            "criteria": [
+                {
+                    "name": "20Iter",
+                    "base": "Iteration",
+                    "max_iters": 20,
+                    "exec": "executor"
+                }
+            ]
+        },
+        "generate": "A"
+    }
+]
