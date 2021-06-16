@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKOEXT_RESOURCE_MANAGER_LINOP_DENSE_HPP_
 
 
+#include "resource_manager/base/generic_constructor.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
@@ -46,14 +47,15 @@ namespace extension {
 namespace resource_manager {
 namespace {
 template <typename T>
-std::shared_ptr<gko::matrix::Dense<T>> build_dense(ResourceManager *rm,
-                                                   rapidjson::Value &item)
+std::shared_ptr<gko::matrix::Dense<T>> build_dense(
+    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
     std::cout << "is_double?" << std::is_same<T, double>::value << std::endl;
     std::cout << "is_float?" << std::is_same<T, float>::value << std::endl;
 
     // std::shared_ptr<Executor> exec_ptr;
-    auto exec_ptr = get_pointer<Executor>(rm, item["exec"]);
+    auto exec_ptr = get_pointer<Executor>(manager, item["exec"], exec, linop);
     auto size = get_value_with_default(item, "dim", gko::dim<2>{});
     auto stride = get_value_with_default(item, "stride", size[1]);
     auto ptr = share(gko::matrix::Dense<T>::create(exec_ptr, size, stride));
@@ -69,22 +71,25 @@ std::shared_ptr<gko::matrix::Dense<T>> build_dense(ResourceManager *rm,
 
 }  // namespace
 
-#define CONNECT(T, func)                                         \
-    template <>                                                  \
-    std::shared_ptr<gko::matrix::Dense<T>>                       \
-        ResourceManager::build_item_impl<gko::matrix::Dense<T>>( \
-            rapidjson::Value & item)                             \
-    {                                                            \
-        return func<T>(this, item);                              \
+#define CONNECT(T, func)                                               \
+    template <>                                                        \
+    std::shared_ptr<gko::matrix::Dense<T>>                             \
+    create_from_config<gko::matrix::Dense<T>>(                         \
+        rapidjson::Value & item, std::shared_ptr<const Executor> exec, \
+        std::shared_ptr<const LinOp> linop, ResourceManager * manager) \
+    {                                                                  \
+        return func<T>(item, exec, linop, manager);                    \
     }
 
 CONNECT(double, build_dense);
 CONNECT(float, build_dense);
 
+
 template <>
 std::shared_ptr<gko::LinOp>
-ResourceManager::build_item<RM_LinOp, RM_LinOp::Dense, gko::LinOp>(
-    rapidjson::Value &item)
+create_from_config<RM_LinOp, RM_LinOp::Dense, gko::LinOp>(
+    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
     std::cout << "build_dense" << std::endl;
     // go though the type
@@ -101,10 +106,20 @@ ResourceManager::build_item<RM_LinOp, RM_LinOp::Dense, gko::LinOp>(
     };
     if (vt == std::string{"double"}) {
         using type = double;
-        return this->build_item<gko::matrix::Dense<type>>(item);
+        if (manager == nullptr) {
+            return create_from_config<gko::matrix::Dense<type>>(item, exec,
+                                                                linop, manager);
+        } else {
+            return manager->build_item<gko::matrix::Dense<type>>(item);
+        }
     } else {
         using type = float;
-        return this->build_item<gko::matrix::Dense<type>>(item);
+        if (manager == nullptr) {
+            return create_from_config<gko::matrix::Dense<type>>(item, exec,
+                                                                linop, manager);
+        } else {
+            return manager->build_item<gko::matrix::Dense<type>>(item);
+        }
     }
 }
 

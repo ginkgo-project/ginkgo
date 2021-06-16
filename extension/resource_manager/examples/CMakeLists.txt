@@ -1,6 +1,7 @@
 set(EXAMPLES_EXEC_LIST
     rm-simple-solver
     rm-simple-solver-separate
+    standalone-simple-solver
     )
 
 set(EXAMPLES_LIST
