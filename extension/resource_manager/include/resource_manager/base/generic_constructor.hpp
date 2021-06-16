@@ -50,47 +50,39 @@ namespace resource_manager {
 
 class ResourceManager;
 
-template <typename T>
-std::shared_ptr<T> create_from_config_(rapidjson::Value &item, std::string base,
-                                       std::shared_ptr<const Executor> exec,
-                                       std::shared_ptr<const LinOp> linop,
-                                       ResourceManager *manager);
+DECLARE_SELECTION(LinOp, RM_LinOp);
+DECLARE_SELECTION(LinOpFactory, RM_LinOpFactory);
+DECLARE_SELECTION(Executor, RM_Executor);
+DECLARE_SELECTION(CriterionFactory, RM_CriterionFactory);
 
 
 template <typename T>
 std::shared_ptr<T> create_from_config(rapidjson::Value &item, std::string base,
                                       std::shared_ptr<const Executor> exec,
                                       std::shared_ptr<const LinOp> linop,
-                                      ResourceManager *manager)
-{
-    std::cout << "create_from_config" << std::endl;
-    return create_from_config_<T>(item, base, exec, linop, manager);
-}
-// template <typename T>
-// std::shared_ptr<T> create_from_config(rapidjson::Value &item, std::string
-// base,
-//                                       std::shared_ptr<const Executor> exec,
-//                                       ResourceManager *manager = nullptr)
-// {
-//     return create_from_config<T>(item, base, exec, nullptr, manager);
-// }
+                                      ResourceManager *manager);
 
-// template <typename T>
-// std::shared_ptr<T> create_from_config(rapidjson::Value &item, std::string
-// base,
-//                                       std::shared_ptr<const LinOp> linop,
-//                                       ResourceManager *manager = nullptr)
-// {
-//     return create_from_config<T>(item, base, nullptr, linop, manager);
-// }
 
-// template <typename T>
-// std::shared_ptr<T> create_from_config(rapidjson::Value &item, std::string
-// base,
-//                                       ResourceManager *manager = nullptr)
-// {
-//     return create_from_config<T>(item, base, nullptr, nullptr, manager);
-// }
+CREATE_DEFAULT_IMPL(Executor);
+CREATE_DEFAULT_IMPL(LinOp);
+CREATE_DEFAULT_IMPL(LinOpFactory);
+CREATE_DEFAULT_IMPL(CriterionFactory);
+
+template <typename T>
+struct Generic {
+    using type = std::shared_ptr<T>;
+    static type build(rapidjson::Value &item,
+                      std::shared_ptr<const Executor> exec,
+                      std::shared_ptr<const LinOp> linop,
+                      ResourceManager *manager);
+};
+
+
+GENERIC_BASE_IMPL(Executor);
+GENERIC_BASE_IMPL(LinOp);
+GENERIC_BASE_IMPL(LinOpFactory);
+GENERIC_BASE_IMPL(CriterionFactory);
+
 
 template <typename T>
 std::shared_ptr<T> create_from_config(rapidjson::Value &item,
@@ -98,10 +90,9 @@ std::shared_ptr<T> create_from_config(rapidjson::Value &item,
                                       std::shared_ptr<const LinOp> linop,
                                       ResourceManager *manager = nullptr)
 {
-    assert(item.HasMember("base"));
-    return create_from_config<T>(item, item["base"].GetString(), exec, linop,
-                                 manager);
+    return Generic<T>::build(item, exec, linop, manager);
 }
+
 
 template <typename T>
 std::shared_ptr<T> create_from_config(rapidjson::Value &item,

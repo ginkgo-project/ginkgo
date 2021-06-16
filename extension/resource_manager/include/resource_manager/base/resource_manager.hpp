@@ -72,7 +72,7 @@ public:
     std::shared_ptr<T> build_item(rapidjson::Value &item)
     {
         std::cout << "create_from_config" << std::endl;
-        auto ptr = create_from_config<T>(item, nullptr, nullptr, this);
+        auto ptr = Generic<T>::build(item, nullptr, nullptr, this);
         // if need to store the data, how to do that
         if (item.HasMember("name")) {
             this->insert_data<T>(item["name"].GetString(), ptr);

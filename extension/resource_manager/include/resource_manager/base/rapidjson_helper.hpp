@@ -94,7 +94,7 @@ std::shared_ptr<T> get_pointer(
     std::shared_ptr<T> ptr;
     if (rm == nullptr) {
         if (item.IsObject()) {
-            ptr = create_from_config<T>(item, exec, linop, rm);
+            ptr = Generic<T>::build(item, exec, linop, rm);
         } else {
             assert(false);
         }
