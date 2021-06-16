@@ -47,4 +47,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_manager/base/types.hpp"
 
 
+namespace gko {
+namespace extension {
+namespace resource_manager {
+template <typename T>
+std::shared_ptr<T> call(rapidjson::Value &item,
+                        std::shared_ptr<const Executor> exec,
+                        std::shared_ptr<const LinOp> linop,
+                        ResourceManager *manager)
+{
+    if (manager == nullptr) {
+        return Generic<T>::build(item, exec, linop, manager);
+    } else {
+        return manager->build_item<T>(item);
+    }
+}
+}  // namespace resource_manager
+}  // namespace extension
+}  // namespace gko
+
 #endif  // GKOEXT_RESOURCE_MANAGER_BASE_GENERIC_BASE_SELECTOR_HPP_
