@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/time.hpp>
 
 
+#include "core/solver/cgs_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -62,6 +63,8 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
+          stopped{},
+          non_stopped{},
           cgs_factory(
               Solver::build()
                   .with_criteria(
@@ -97,17 +100,220 @@ protected:
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec))
-    {}
+    {
+        auto small_size = gko::dim<2>{2, 2};
+        auto small_scalar_size = gko::dim<2>{1, small_size[1]};
+        small_b = Mtx::create(exec, small_size, small_size[1] + 1);
+        small_x = Mtx::create(exec, small_size, small_size[1] + 2);
+        small_one = Mtx::create(exec, small_size);
+        small_zero = Mtx::create(exec, small_size);
+        small_prev_rho = Mtx::create(exec, small_scalar_size);
+        small_rho = Mtx::create(exec, small_scalar_size);
+        small_alpha = Mtx::create(exec, small_scalar_size);
+        small_beta = Mtx::create(exec, small_scalar_size);
+        small_gamma = Mtx::create(exec, small_scalar_size);
+        small_zero->fill(0);
+        small_one->fill(1);
+        small_r = small_zero->clone();
+        small_r = small_zero->clone();
+        small_r_tld = small_zero->clone();
+        small_p = small_zero->clone();
+        small_q = small_zero->clone();
+        small_u = small_zero->clone();
+        small_u_hat = small_zero->clone();
+        small_v = small_zero->clone();
+        small_v_hat = small_zero->clone();
+        small_t = small_zero->clone();
+        small_stop = gko::Array<gko::stopping_status>(exec, small_size[1]);
+        stopped.stop(1);
+        non_stopped.reset();
+        std::fill_n(small_stop.get_data(), small_stop.get_num_elems(),
+                    non_stopped);
+    }
 
-    std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> mtx_big;
+    std::unique_ptr<Mtx> small_one;
+    std::unique_ptr<Mtx> small_zero;
+    std::unique_ptr<Mtx> small_prev_rho;
+    std::unique_ptr<Mtx> small_rho;
+    std::unique_ptr<Mtx> small_alpha;
+    std::unique_ptr<Mtx> small_beta;
+    std::unique_ptr<Mtx> small_gamma;
+    std::unique_ptr<Mtx> small_x;
+    std::unique_ptr<Mtx> small_b;
+    std::unique_ptr<Mtx> small_r;
+    std::unique_ptr<Mtx> small_r_tld;
+    std::unique_ptr<Mtx> small_p;
+    std::unique_ptr<Mtx> small_q;
+    std::unique_ptr<Mtx> small_u;
+    std::unique_ptr<Mtx> small_u_hat;
+    std::unique_ptr<Mtx> small_v;
+    std::unique_ptr<Mtx> small_v_hat;
+    std::unique_ptr<Mtx> small_t;
+    gko::Array<gko::stopping_status> small_stop;
+    gko::stopping_status stopped;
+    gko::stopping_status non_stopped;
     std::unique_ptr<typename Solver::Factory> cgs_factory;
     std::unique_ptr<typename Solver::Factory> cgs_factory_big;
     std::unique_ptr<typename Solver::Factory> cgs_factory_big2;
 };
 
 TYPED_TEST_SUITE(Cgs, gko::test::ValueTypes);
+
+
+TYPED_TEST(Cgs, KernelInitialize)
+{
+    this->small_b->fill(2);
+    this->small_r->fill(0);
+    this->small_r_tld->fill(0);
+    this->small_p->fill(1);
+    this->small_q->fill(1);
+    this->small_u->fill(1);
+    this->small_u_hat->fill(1);
+    this->small_v_hat->fill(1);
+    this->small_t->fill(1);
+    this->small_prev_rho->fill(0);
+    this->small_rho->fill(1);
+    std::fill_n(this->small_stop.get_data(), this->small_stop.get_num_elems(),
+                this->stopped);
+
+    gko::kernels::reference::cgs::initialize(
+        this->exec, this->small_b.get(), this->small_r.get(),
+        this->small_r_tld.get(), this->small_p.get(), this->small_q.get(),
+        this->small_u.get(), this->small_u_hat.get(), this->small_v_hat.get(),
+        this->small_t.get(), this->small_alpha.get(), this->small_beta.get(),
+        this->small_gamma.get(), this->small_prev_rho.get(),
+        this->small_rho.get(), &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_r, this->small_b, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_r_tld, this->small_b, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_p, this->small_zero, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_q, this->small_zero, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_u, this->small_zero, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_u_hat, this->small_zero, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_v_hat, this->small_zero, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_t, this->small_zero, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_rho, l({{0.0, 0.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_prev_rho, l({{1.0, 1.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_alpha, l({{1.0, 1.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_beta, l({{1.0, 1.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_gamma, l({{1.0, 1.0}}), 0);
+    ASSERT_EQ(this->small_stop.get_data()[0], this->non_stopped);
+    ASSERT_EQ(this->small_stop.get_data()[1], this->non_stopped);
+}
+
+
+TYPED_TEST(Cgs, KernelStep1)
+{
+    this->small_r->fill(1);
+    this->small_p->fill(-2);
+    this->small_q->fill(3);
+    this->small_u->fill(-4);
+    this->small_beta->fill(2);
+    this->small_prev_rho->at(0) = 2;
+    this->small_prev_rho->at(1) = 3;
+    this->small_rho->at(0) = -4;
+    this->small_rho->at(1) = 4;
+    this->small_stop.get_data()[1] = this->stopped;
+
+    gko::kernels::reference::cgs::step_1(
+        this->exec, this->small_r.get(), this->small_u.get(),
+        this->small_p.get(), this->small_q.get(), this->small_beta.get(),
+        this->small_rho.get(), this->small_prev_rho.get(), &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_u, l({{-5.0, -4.0}, {-5.0, -4.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_p, l({{-19.0, -2.0}, {-19.0, -2.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_beta, l({{-2.0, 2.0}}), 0);
+}
+
+
+TYPED_TEST(Cgs, KernelStep1DivZero)
+{
+    this->small_r->fill(1);
+    this->small_p->fill(-2);
+    this->small_q->fill(3);
+    this->small_u->fill(-4);
+    this->small_beta->fill(2);
+    this->small_prev_rho->fill(0);
+    this->small_rho->fill(3);
+
+    gko::kernels::reference::cgs::step_1(
+        this->exec, this->small_r.get(), this->small_u.get(),
+        this->small_p.get(), this->small_q.get(), this->small_beta.get(),
+        this->small_rho.get(), this->small_prev_rho.get(), &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_u, l({{7.0, 7.0}, {7.0, 7.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_p, l({{5.0, 5.0}, {5.0, 5.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_beta, l({{2.0, 2.0}}), 0);
+}
+
+
+TYPED_TEST(Cgs, KernelStep2)
+{
+    this->small_q->fill(1);
+    this->small_u->fill(-2);
+    this->small_v_hat->fill(3);
+    this->small_t->fill(-4);
+    this->small_alpha->fill(2);
+    this->small_gamma->at(0) = 2;
+    this->small_gamma->at(1) = 3;
+    this->small_rho->at(0) = -4;
+    this->small_rho->at(1) = 4;
+    this->small_stop.get_data()[1] = this->stopped;
+
+    gko::kernels::reference::cgs::step_2(
+        this->exec, this->small_u.get(), this->small_v_hat.get(),
+        this->small_q.get(), this->small_t.get(), this->small_alpha.get(),
+        this->small_rho.get(), this->small_gamma.get(), &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_q, l({{4.0, 1.0}, {4.0, 1.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_t, l({{2.0, -4.0}, {2.0, -4.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_alpha, l({{-2.0, 2.0}}), 0);
+}
+
+
+TYPED_TEST(Cgs, KernelStep2DivZero)
+{
+    this->small_q->fill(1);
+    this->small_u->fill(-2);
+    this->small_v_hat->fill(3);
+    this->small_t->fill(-4);
+    this->small_alpha->fill(2);
+    this->small_gamma->fill(0);
+    this->small_rho->fill(-3);
+
+    gko::kernels::reference::cgs::step_2(
+        this->exec, this->small_u.get(), this->small_v_hat.get(),
+        this->small_q.get(), this->small_t.get(), this->small_alpha.get(),
+        this->small_rho.get(), this->small_gamma.get(), &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_q, l({{-8.0, -8.0}, {-8.0, -8.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_t, l({{-10.0, -10.0}, {-10.0, -10.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_alpha, l({{2.0, 2.0}}), 0);
+}
+
+
+TYPED_TEST(Cgs, KernelStep3)
+{
+    this->small_r->fill(1);
+    this->small_t->fill(-2);
+    this->small_x->fill(3);
+    this->small_u_hat->fill(-4);
+    this->small_beta->fill(2);
+    this->small_alpha->at(0) = 2;
+    this->small_alpha->at(1) = 3;
+    this->small_stop.get_data()[1] = this->stopped;
+
+    gko::kernels::reference::cgs::step_3(
+        this->exec, this->small_t.get(), this->small_u_hat.get(),
+        this->small_r.get(), this->small_x.get(), this->small_alpha.get(),
+        &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_r, l({{5.0, 1.0}, {5.0, 1.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_x, l({{-5.0, 3.0}, {-5.0, 3.0}}), 0);
+}
 
 
 TYPED_TEST(Cgs, SolvesDenseSystem)

@@ -139,7 +139,7 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
     // r = dense_b
     // r_tld = r
     // rho = 0.0
-    // rho_prev = 1.0
+    // rho_prev = alpha = beta = gamma = 1.0
     // p = q = u = u_hat = v_hat = t = 0
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
