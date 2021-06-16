@@ -73,11 +73,11 @@ int main(int argc, char *argv[])
         std::exit(-1);
     }
 
-    const auto executor_string = argc >= 2 ? argv[3] : "omp";
+    const auto executor_string = argc >= 2 ? argv[1] : "omp";
     const auto grid_dim = argc >= 3 ? std::atoi(argv[2]) : 100;
-    gko::size_type overlap = argc >= 3 ? std::atoi(argv[2]) : 0;
-    ValueType relax_fac = argc >= 4 ? std::atof(argv[3]) : 1.0;
-    gko::size_type num_subdomains = argc >= 5 ? std::atoi(argv[6]) : 1;
+    gko::size_type overlap = argc >= 4 ? std::atoi(argv[3]) : 0;
+    ValueType relax_fac = argc >= 5 ? std::atof(argv[4]) : 1.0;
+    gko::size_type num_subdomains = argc >= 6 ? std::atoi(argv[5]) : 1;
     RealValueType inner_reduction_factor =
         argc >= 7 ? std::atof(argv[6]) : 1e-3;
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -104,64 +104,77 @@ int main(int argc, char *argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     // assemble matrix: 7-pt stencil
-    const auto num_rows = grid_dim * grid_dim * grid_dim;
+    // const auto num_rows = grid_dim * grid_dim * grid_dim;
 
-    gko::matrix_data<ValueType, IndexType> A_data;
-    gko::matrix_data<ValueType, IndexType> b_data;
-    gko::matrix_data<ValueType, IndexType> x_data;
-    A_data.size = {num_rows, num_rows};
-    b_data.size = {num_rows, 1};
-    x_data.size = {num_rows, 1};
-    for (int i = 0; i < grid_dim; i++) {
-        for (int j = 0; j < grid_dim; j++) {
-            for (int k = 0; k < grid_dim; k++) {
-                auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
-                if (i > 0)
-                    A_data.nonzeros.emplace_back(idx, idx - grid_dim * grid_dim,
-                                                 -1);
-                if (j > 0)
-                    A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
-                if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
-                A_data.nonzeros.emplace_back(idx, idx, 8);
-                if (k < grid_dim - 1)
-                    A_data.nonzeros.emplace_back(idx, idx + 1, -1);
-                if (j < grid_dim - 1)
-                    A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
-                if (i < grid_dim - 1)
-                    A_data.nonzeros.emplace_back(idx, idx + grid_dim * grid_dim,
-                                                 -1);
-                // b_data.nonzeros.emplace_back(
-                //     idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
-                b_data.nonzeros.emplace_back(idx, 0, 1.0);
-                x_data.nonzeros.emplace_back(idx, 0, 1.0);
-            }
-        }
+    // gko::matrix_data<ValueType, IndexType> A_data;
+    // gko::matrix_data<ValueType, IndexType> b_data;
+    // gko::matrix_data<ValueType, IndexType> x_data;
+    // A_data.size = {num_rows, num_rows};
+    // b_data.size = {num_rows, 1};
+    // x_data.size = {num_rows, 1};
+    // for (int i = 0; i < grid_dim; i++) {
+    //     for (int j = 0; j < grid_dim; j++) {
+    //         for (int k = 0; k < grid_dim; k++) {
+    //             auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
+    //             if (i > 0)
+    //                 A_data.nonzeros.emplace_back(idx, idx - grid_dim *
+    //                 grid_dim,
+    //                                              -1);
+    //             if (j > 0)
+    //                 A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
+    //             if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
+    //             A_data.nonzeros.emplace_back(idx, idx, 8);
+    //             if (k < grid_dim - 1)
+    //                 A_data.nonzeros.emplace_back(idx, idx + 1, -1);
+    //             if (j < grid_dim - 1)
+    //                 A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
+    //             if (i < grid_dim - 1)
+    //                 A_data.nonzeros.emplace_back(idx, idx + grid_dim *
+    //                 grid_dim,
+    //                                              -1);
+    //             // b_data.nonzeros.emplace_back(
+    //             //     idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
+    //             b_data.nonzeros.emplace_back(idx, 0, 1.0);
+    //             x_data.nonzeros.emplace_back(idx, 0, 1.0);
+    //         }
+    //     }
+    // }
+
+    // auto A_host = gko::share(mtx::create(exec->get_master()));
+    // auto x_host = vec::create(exec->get_master());
+    // auto b_host = vec::create(exec->get_master());
+    // A_host->read(A_data);
+    // b_host->read(b_data);
+    // x_host->read(x_data);
+    // auto A = gko::share(mtx::create(exec));
+    // auto x = vec::create(exec);
+    // auto b = vec::create(exec);
+    // A->copy_from(A_host.get());
+    // b->copy_from(b_host.get());
+    // x->copy_from(x_host.get());
+    // Read data
+    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    gko::size_type size = A->get_size()[0];
+    gko::size_type num_rows = A->get_size()[0];
+    auto x_host = gko::matrix::Dense<ValueType>::create(exec->get_master(),
+                                                        gko::dim<2>(size, 1));
+    for (auto i = 0; i < size; i++) {
+        x_host->at(i, 0) = 1.;
     }
-
-    auto A_host = gko::share(mtx::create(exec->get_master()));
-    auto x_host = vec::create(exec->get_master());
-    auto b_host = vec::create(exec->get_master());
-    A_host->read(A_data);
-    b_host->read(b_data);
-    x_host->read(x_data);
-    auto A = gko::share(mtx::create(exec));
-    auto x = vec::create(exec);
-    auto b = vec::create(exec);
-    A->copy_from(A_host.get());
-    b->copy_from(b_host.get());
+    auto x = gko::matrix::Dense<ValueType>::create(exec);
+    auto b = gko::matrix::Dense<ValueType>::create(exec);
+    b->copy_from(x_host.get());
+    for (auto i = 0; i < size; i++) {
+        x_host->at(i, 0) = 0.;
+    }
     x->copy_from(x_host.get());
 
-    // Create RHS and initial guess as 1
-    gko::size_type size = A->get_size()[0];
-
-    x_host->copy_from(x.get());
     auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    A_host->apply(gko::lend(neg_one), gko::lend(x_host), gko::lend(one),
-                  gko::lend(b_host));
+    auto minus_one = gko::initialize<vec>({-1.0}, exec);
+    A->apply(lend(minus_one), lend(b), lend(one), lend(x));
     auto initial_resnorm = gko::initialize<vec>({0.0}, exec->get_master());
-    b_host->compute_norm2(gko::lend(initial_resnorm));
-    b_host->copy_from(b.get());
+    x->compute_norm2(gko::lend(initial_resnorm));
+    x->copy_from(x_host.get());
 
     gko::remove_complex<ValueType> reduction_factor = 1e-10;
     std::shared_ptr<gko::stop::Iteration::Factory> iter_stop =
@@ -190,11 +203,20 @@ int main(int argc, char *argv[])
         block_sizes.get_data()[num_subdomains - 1] =
             size / num_subdomains + size % num_subdomains;
     }
-    auto block_A =
-        block_approx::create(exec, A.get(), block_sizes, block_overlaps);
+    // auto block_A =
+    //     block_approx::create(exec, A.get(), block_sizes, block_overlaps);
     // Create solver factory
     auto ras_precond =
         ras::build()
+            .with_block_dimensions(block_sizes)
+            .with_overlaps(block_overlaps)
+            .with_coarse_solvers(
+                // ir::build()
+                //     .with_criteria(
+                //         gko::stop::Iteration::build().with_max_iters(1u).on(
+                //             exec))
+                //     .on(exec))
+                bj::build().with_max_block_size(32u).on(exec))
             .with_inner_solver(
                 // bj::build().on(exec))
                 // paric::build().on(exec)
@@ -202,14 +224,14 @@ int main(int argc, char *argv[])
                     .with_preconditioner(bj::build().on(exec))
                     .with_criteria(
                         //
-                        gko::stop::Iteration::build().with_max_iters(10u).on(
+                        gko::stop::Iteration::build().with_max_iters(100u).on(
                             exec))
                     // gko::stop::ResidualNorm<ValueType>::build()
                     //     .with_reduction_factor(inner_reduction_factor)
                     //     .on(exec))
                     .on(exec))
             .on(exec)
-            ->generate(gko::share(block_A));
+            ->generate(A);
     auto solver_gen =
         ir::build()
             .with_generated_solver(share(ras_precond))
@@ -236,7 +258,7 @@ int main(int argc, char *argv[])
 
     // Calculate residual
     auto res = gko::initialize<real_vec>({0.0}, exec->get_master());
-    A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
+    A->apply(gko::lend(one), gko::lend(x), gko::lend(minus_one), gko::lend(b));
     b->compute_norm2(gko::lend(res));
 
 
@@ -245,6 +267,7 @@ int main(int argc, char *argv[])
             gko::clone(exec->get_master(), logger->get_residual_norm()).get())
             ->at(0);
     // Print solver statistics
+    std::cout << "Problem num rows:     " << A->get_size()[0] << std::endl;
     std::cout << "IR iteration count:     " << logger->get_num_iterations()
               << std::endl;
     std::cout << "Initial Res norm: " << *initial_resnorm->get_values()

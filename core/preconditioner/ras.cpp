@@ -88,6 +88,11 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
                                                  VectorType *dense_x) const
 {
     using LocalVector = matrix::Dense<ValueType>;
+    if (this->coarse_solvers_.size() > 0) {
+        for (size_type i = 0; i < this->coarse_solvers_.size(); ++i) {
+            this->coarse_solvers_[i]->apply(dense_b, dense_x);
+        }
+    }
     if (is_distributed()) {
         GKO_ASSERT(this->inner_solvers_.size() > 0);
         this->inner_solvers_[0]->apply(detail::get_local(dense_b),
@@ -208,6 +213,13 @@ void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
         for (size_type i = 0; i < num_subdomains; ++i) {
             this->inner_solvers_.emplace_back(
                 parameters_.inner_solver->generate(block_mtxs[i]));
+        }
+        if (parameters_.coarse_solvers[0]) {
+            for (size_type i = 0; i < parameters_.coarse_solvers.size(); ++i) {
+                this->coarse_solvers_.emplace_back(
+                    parameters_.coarse_solvers[i]->generate(
+                        this->system_matrix_));
+            }
         }
         this->is_distributed_ = false;
     } else if (dynamic_cast<const block_t *>(system_matrix) != nullptr) {

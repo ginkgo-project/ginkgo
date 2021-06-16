@@ -167,6 +167,7 @@ protected:
                  std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Ras>(factory->get_executor(),
                            gko::transpose(system_matrix->get_size())),
+          system_matrix_{system_matrix},
           parameters_{factory->get_parameters()}
     {
         if (parameters_.overlaps.get_num_elems() > 0) {
@@ -199,9 +200,11 @@ protected:
 private:
     bool is_distributed_;
     std::vector<std::shared_ptr<const LinOp>> inner_solvers_;
+    std::vector<std::shared_ptr<const LinOp>> coarse_solvers_;
     Overlap<size_type> overlaps_;
     std::vector<dim<2>> block_dims_;
     std::shared_ptr<const LinOp> block_system_matrix_;
+    std::shared_ptr<const LinOp> system_matrix_;
 };
 
 
