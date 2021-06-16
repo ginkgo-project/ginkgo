@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKOEXT_RESOURCE_MANAGER_SOLVER_CG_HPP_
 
 
+#include "resource_manager/base/generic_base_selector.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
@@ -44,21 +45,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace extension {
 namespace resource_manager {
-namespace {
+
+
 template <typename T>
 std::shared_ptr<typename gko::solver::Cg<T>::Factory> build_cg_factory(
     rapidjson::Value &item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
     auto exec_ptr = get_pointer<Executor>(manager, item["exec"], exec, linop);
-    // auto ptr =
-    //     gko::solver::Cg<T>::build()
-    //         .with_criteria(
-    //             gko::stop::Iteration::build().with_max_iters(10u).on(exec_ptr))
-    //         .with_generated_preconditioner(
-    //             get_pointer<LinOp>(manager, item,
-    //             "generated_preconditioner"))
-    //         .on(exec_ptr);
     auto ptr = BUILD_FACTORY(gko::solver::Cg<T>, manager, item, exec, linop)
         WITH_POINTER(LinOp, generated_preconditioner)
             WITH_POINTER(LinOpFactory, preconditioner)
@@ -67,45 +61,24 @@ std::shared_ptr<typename gko::solver::Cg<T>::Factory> build_cg_factory(
 }
 
 
-template <typename T, typename U = gko::solver::Cg<T>>
-std::shared_ptr<U> build_cg(rapidjson::Value &item,
-                            std::shared_ptr<const Executor> exec,
-                            std::shared_ptr<const LinOp> linop,
-                            ResourceManager *manager)
-{
-    auto factory =
-        get_pointer<typename U::Factory>(manager, item["factory"], exec, linop);
-    auto mtx = get_pointer<LinOp>(manager, item["generate"], exec, linop);
-    auto ptr = factory->generate(mtx);
-    return std::move(ptr);
-}
+CONNECT_GENERIC_SUB(gko::solver::Cg, PACK(float), Factory, build_cg_factory);
+CONNECT_GENERIC_SUB(gko::solver::Cg, double, Factory, build_cg_factory);
 
-}  // namespace
-
-#define CONNECT_CG(base, T, func)                                      \
-    template <>                                                        \
-    std::shared_ptr<base<T>> create_from_config<base<T>>(              \
-        rapidjson::Value & item, std::shared_ptr<const Executor> exec, \
-        std::shared_ptr<const LinOp> linop, ResourceManager * manager) \
-    {                                                                  \
-        return func<T>(item, exec, linop, manager);                    \
+template <typename T>
+struct Generic<gko::solver::Cg<T>> {
+    using type = std::shared_ptr<gko::solver::Cg<T>>;
+    static type build(rapidjson::Value &item,
+                      std::shared_ptr<const Executor> exec,
+                      std::shared_ptr<const LinOp> linop,
+                      ResourceManager *manager)
+    {
+        auto factory = get_pointer<typename gko::solver::Cg<T>::Factory>(
+            manager, item["factory"], exec, linop);
+        auto mtx = get_pointer<LinOp>(manager, item["generate"], exec, linop);
+        auto ptr = factory->generate(mtx);
+        return std::move(ptr);
     }
-
-#define CONNECT_FACTORY(base, T, func)                                 \
-    template <>                                                        \
-    std::shared_ptr<typename base<T>::Factory>                         \
-    create_from_config<typename base<T>::Factory>(                     \
-        rapidjson::Value & item, std::shared_ptr<const Executor> exec, \
-        std::shared_ptr<const LinOp> linop, ResourceManager * manager) \
-    {                                                                  \
-        return func<T>(item, exec, linop, manager);                    \
-    }
-
-
-CONNECT_FACTORY(gko::solver::Cg, double, build_cg_factory);
-CONNECT_FACTORY(gko::solver::Cg, float, build_cg_factory);
-CONNECT_CG(gko::solver::Cg, double, build_cg);
-CONNECT_CG(gko::solver::Cg, float, build_cg);
+};
 
 
 template <>
@@ -122,22 +95,12 @@ std::shared_ptr<gko::LinOpFactory> create_from_config<
     }
     if (vt == std::string{"double"}) {
         using type = double;
-        if (manager == nullptr) {
-            return create_from_config<typename gko::solver::Cg<type>::Factory>(
-                item, exec, linop, manager);
-        } else {
-            return manager->build_item<typename gko::solver::Cg<type>::Factory>(
-                item);
-        }
+        return call<typename gko::solver::Cg<type>::Factory>(item, exec, linop,
+                                                             manager);
     } else {
         using type = float;
-        if (manager == nullptr) {
-            return create_from_config<typename gko::solver::Cg<type>::Factory>(
-                item, exec, linop, manager);
-        } else {
-            return manager->build_item<typename gko::solver::Cg<type>::Factory>(
-                item);
-        }
+        return call<typename gko::solver::Cg<type>::Factory>(item, exec, linop,
+                                                             manager);
     }
 }
 
@@ -155,20 +118,10 @@ create_from_config<RM_LinOp, RM_LinOp::Cg, gko::LinOp>(
     }
     if (vt == std::string{"double"}) {
         using type = double;
-        if (manager == nullptr) {
-            return create_from_config<gko::solver::Cg<type>>(item, exec, linop,
-                                                             manager);
-        } else {
-            return manager->build_item<gko::solver::Cg<type>>(item);
-        }
+        return call<gko::solver::Cg<type>>(item, exec, linop, manager);
     } else {
         using type = float;
-        if (manager == nullptr) {
-            return create_from_config<gko::solver::Cg<type>>(item, exec, linop,
-                                                             manager);
-        } else {
-            return manager->build_item<gko::solver::Cg<type>>(item);
-        }
+        return call<gko::solver::Cg<type>>(item, exec, linop, manager);
     }
 }
 

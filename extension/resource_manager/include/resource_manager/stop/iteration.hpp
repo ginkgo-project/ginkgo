@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKOEXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
 
 
+#include "resource_manager/base/generic_base_selector.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
@@ -44,53 +45,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace extension {
 namespace resource_manager {
-namespace {
-
-
-std::shared_ptr<typename gko::stop::Iteration::Factory> build_iteraion_factory(
-    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
-    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
-{
-    auto exec_ptr = get_pointer<Executor>(manager, item["exec"], exec, linop);
-    auto ptr = BUILD_FACTORY(gko::stop::Iteration, manager, item, exec, linop)
-        WITH_VALUE(size_type, max_iters) ON_EXECUTOR;
-    return ptr;
-}
-
-
-}  // namespace
-
-
-#define CONNECT_STOP_FACTORY(base, func)                               \
-    template <>                                                        \
-    std::shared_ptr<typename base::Factory>                            \
-    create_from_config<typename base::Factory>(                        \
-        rapidjson::Value & item, std::shared_ptr<const Executor> exec, \
-        std::shared_ptr<const LinOp> linop, ResourceManager * manager) \
-    {                                                                  \
-        return func(item, exec, linop, manager);                       \
-    }
-
-
-CONNECT_STOP_FACTORY(gko::stop::Iteration, build_iteraion_factory);
 
 
 template <>
-std::shared_ptr<CriterionFactory> create_from_config<
-    RM_CriterionFactory, RM_CriterionFactory::Iteration, CriterionFactory>(
-    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
-    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
-{
-    std::cout << "build_iteraion_factory" << std::endl;
-
-    if (manager == nullptr) {
-        return create_from_config<typename gko::stop::Iteration::Factory>(
-            item, exec, linop, manager);
-    } else {
-        return manager->build_item<typename gko::stop::Iteration::Factory>(
-            item);
+struct Generic<gko::stop::Iteration::Factory> {
+    using type = std::shared_ptr<gko::stop::Iteration::Factory>;
+    static type build(rapidjson::Value &item,
+                      std::shared_ptr<const Executor> exec,
+                      std::shared_ptr<const LinOp> linop,
+                      ResourceManager *manager)
+    {
+        auto exec_ptr =
+            get_pointer<Executor>(manager, item["exec"], exec, linop);
+        auto ptr =
+            BUILD_FACTORY(gko::stop::Iteration, manager, item, exec, linop)
+                WITH_VALUE(size_type, max_iters) ON_EXECUTOR;
+        return ptr;
     }
-}
+};
+
+IMPLEMENT_BRIDGE(RM_CriterionFactory, Iteration, gko::stop::Iteration::Factory);
 
 
 }  // namespace resource_manager
