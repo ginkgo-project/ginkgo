@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKOEXT_RESOURCE_MANAGER_SOLVER_CG_HPP_
 
 
-#include "resource_manager/base/generic_base_selector.hpp"
+#include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
@@ -52,11 +52,18 @@ std::shared_ptr<typename gko::solver::Cg<T>::Factory> build_cg_factory(
     rapidjson::Value &item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
-    auto exec_ptr = get_pointer<Executor>(manager, item["exec"], exec, linop);
-    auto ptr = BUILD_FACTORY(gko::solver::Cg<T>, manager, item, exec, linop)
-        WITH_POINTER(LinOp, generated_preconditioner)
-            WITH_POINTER(LinOpFactory, preconditioner)
-                WITH_POINTER_ARRAY(CriterionFactory, criteria) ON_EXECUTOR;
+    auto exec_ptr =
+        get_pointer_check<Executor>(manager, item, "exec", exec, linop);
+    std::cout << "CgFactory " << exec_ptr.get() << std::endl;
+    auto ptr = [&]() {
+        BUILD_FACTORY(gko::solver::Cg<T>, manager, item, exec_ptr, linop);
+        SET_POINTER(LinOp, generated_preconditioner);
+        SET_POINTER(LinOpFactory, preconditioner);
+        SET_POINTER_ARRAY(CriterionFactory, criteria);
+        SET_EXECUTOR;
+    }();
+
+
     return ptr;
 }
 
@@ -64,21 +71,8 @@ std::shared_ptr<typename gko::solver::Cg<T>::Factory> build_cg_factory(
 CONNECT_GENERIC_SUB(gko::solver::Cg, PACK(float), Factory, build_cg_factory);
 CONNECT_GENERIC_SUB(gko::solver::Cg, double, Factory, build_cg_factory);
 
-template <typename T>
-struct Generic<gko::solver::Cg<T>> {
-    using type = std::shared_ptr<gko::solver::Cg<T>>;
-    static type build(rapidjson::Value &item,
-                      std::shared_ptr<const Executor> exec,
-                      std::shared_ptr<const LinOp> linop,
-                      ResourceManager *manager)
-    {
-        auto factory = get_pointer<typename gko::solver::Cg<T>::Factory>(
-            manager, item["factory"], exec, linop);
-        auto mtx = get_pointer<LinOp>(manager, item["generate"], exec, linop);
-        auto ptr = factory->generate(mtx);
-        return std::move(ptr);
-    }
-};
+
+SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::solver::Cg, typename T, T);
 
 
 template <>

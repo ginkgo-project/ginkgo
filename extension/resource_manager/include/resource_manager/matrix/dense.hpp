@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKOEXT_RESOURCE_MANAGER_MATRIX_DENSE_HPP_
 
 
-#include "resource_manager/base/generic_base_selector.hpp"
 #include "resource_manager/base/generic_constructor.hpp"
+#include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
@@ -62,7 +62,7 @@ struct Generic<gko::matrix::Dense<T>> {
 
         // std::shared_ptr<Executor> exec_ptr;
         auto exec_ptr =
-            get_pointer<Executor>(manager, item["exec"], exec, linop);
+            get_pointer_check<Executor>(manager, item, "exec", exec, linop);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
         auto stride = get_value_with_default(item, "stride", size[1]);
         auto ptr = share(gko::matrix::Dense<T>::create(exec_ptr, size, stride));
