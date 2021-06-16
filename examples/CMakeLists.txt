@@ -36,7 +36,7 @@ if(GINKGO_BUILD_EXTLIB_EXAMPLE)
     list(APPEND EXAMPLES_LIST external-lib-interfacing)
 endif()
 
-find_package(OpenCV)
+find_package(OpenCV QUIET)
 if(OpenCV_FOUND)
     list(APPEND EXAMPLES_LIST heat-equation)
 endif()
