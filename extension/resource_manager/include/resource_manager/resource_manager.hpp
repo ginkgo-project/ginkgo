@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_manager/base/resource_manager.hpp"
 #include "resource_manager/base/types.hpp"
 #include "resource_manager/executor/executor.hpp"
-#include "resource_manager/linop/dense.hpp"
+#include "resource_manager/matrix/dense.hpp"
 #include "resource_manager/solver/cg.hpp"
 #include "resource_manager/stop/iteration.hpp"
 

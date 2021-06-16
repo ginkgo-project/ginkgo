@@ -47,14 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 // clang-format off
-#define ENUM_LAMBDA_(_name)                                            \
-    {                                                                  \
-        #_name, [&](arg_type item) {                                   \
-            return this->build_item<enum_type, enum_type::_name>(item); \
-        }                                                              \
-    }
-
-#define ENUM_LAMBDA2_(_name)                                             \
+#define ENUM_LAMBDA_(_name)                                             \
     {                                                                    \
         #_name, [&](arg_type item, std::shared_ptr<const Executor> exec, \
                     std::shared_ptr<const LinOp> linop,                  \
@@ -67,123 +60,63 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define ENUM_LAMBDA_ASSIGN_(_name, _assign) ENUM_LAMBDA_(_name)
 
-#define ENUM_LAMBDA2_ASSIGN_(_name, _assign) ENUM_LAMBDA2_(_name)
-
 #define ENUM_LAMBDA(...)                                             \
     UNPACK_VA_ARGS(MACRO_OVERLOAD_(__VA_ARGS__, ENUM_LAMBDA_ASSIGN_, \
                                    ENUM_LAMBDA_, UNUSED)(__VA_ARGS__))
 
-
-#define ENUM_LAMBDA2(...)                                             \
-    UNPACK_VA_ARGS(MACRO_OVERLOAD_(__VA_ARGS__, ENUM_LAMBDA2_ASSIGN_, \
-                                   ENUM_LAMBDA2_, UNUSED)(__VA_ARGS__))
-
 #define ENUM_CLASS(_enum_type, _type, _list) \
     enum class _enum_type : _type { _list(ENUM_VALUE) }
+
 
 #define ENUM_MAP(_name, _enum_type, _return_type, _arg_type, _list, _keyword) \
     using enum_type = _enum_type;                                             \
     using arg_type = _arg_type;                                               \
-    _keyword std::map<std::string, std::function<_return_type(arg_type)>>     \
+    _keyword std::map<std::string,                                            \
+                      std::function<_return_type(                             \
+                          arg_type, std::shared_ptr<const Executor>,          \
+                          std::shared_ptr<const LinOp>, ResourceManager *)>>  \
         _name                                                                 \
     {                                                                         \
         _list(ENUM_LAMBDA)                                                    \
     }
+#define DECLARE_SELECTION(_base_type, _enum_type)                      \
+    std::shared_ptr<_base_type> create_from_config_(                   \
+        _enum_type, rapidjson::Value &, std::string,                   \
+        std::shared_ptr<const Executor>, std::shared_ptr<const LinOp>, \
+        ResourceManager *)
 
-#define ENUM_MAP2(_name, _enum_type, _return_type, _arg_type, _list, _keyword) \
-    using enum_type = _enum_type;                                              \
-    using arg_type = _arg_type;                                                \
-    _keyword std::map<std::string,                                             \
-                      std::function<_return_type(                              \
-                          arg_type, std::shared_ptr<const Executor>,           \
-                          std::shared_ptr<const LinOp>, ResourceManager *)>>   \
-        _name                                                                  \
-    {                                                                          \
-        _list(ENUM_LAMBDA2)                                                    \
-    }
-
-
-#define DECLARE_BASE_BUILD_ITEM(_base_type, _enum_type)                    \
-    std::shared_ptr<_base_type> build_item_impl(_enum_type, std::string &, \
-                                                rapidjson::Value &)
-
-#define IMPLEMENT_BASE_BUILD_ITEM_IMPL(_base_type, _enum_type, _list)         \
-    std::shared_ptr<_base_type> ResourceManager::build_item_impl(             \
-        _enum_type, std::string &base, rapidjson::Value &item)                \
+#define IMPLEMENT_SELECTION(_base_type, _enum_type, _list)                    \
+    std::shared_ptr<_base_type> create_from_config_(                          \
+        _enum_type, rapidjson::Value &item, std::string base,                 \
+        std::shared_ptr<const Executor> exec,                                 \
+        std::shared_ptr<const LinOp> linop, ResourceManager *manager)         \
     {                                                                         \
+        std::cout << "search on enum" << std::endl;                           \
         ENUM_MAP(_base_type##Select, _enum_type, std::shared_ptr<_base_type>, \
                  rapidjson::Value &, _list, static);                          \
         auto it = _base_type##Select.find(base);                              \
         if (it == _base_type##Select.end()) {                                 \
+            std::cout << "Not Found" << std::endl;                            \
             return nullptr;                                                   \
         } else {                                                              \
             std::cout << "Found!" << std::endl;                               \
-            return it->second(item);                                          \
+            return it->second(item, exec, linop, manager);                    \
         }                                                                     \
     }
 
-#define IMPLEMENT_SELECTION(_base_type, _enum_type, _list)                     \
-    template <>                                                                \
-    std::shared_ptr<_base_type> create_from_config_<_base_type>(               \
-        rapidjson::Value & item, std::string base,                             \
-        std::shared_ptr<const Executor> exec,                                  \
-        std::shared_ptr<const LinOp> linop, ResourceManager * manager)         \
-    {                                                                          \
-        std::cout << "search on enum" << std::endl;                            \
-        ENUM_MAP2(_base_type##Select, _enum_type, std::shared_ptr<_base_type>, \
-                  rapidjson::Value &, _list, static);                          \
-        auto it = _base_type##Select.find(base);                               \
-        if (it == _base_type##Select.end()) {                                  \
-            std::cout << "Not Found" << std::endl;                             \
-            return nullptr;                                                    \
-        } else {                                                               \
-            std::cout << "Found!" << std::endl;                                \
-            return it->second(item, exec, linop, manager);                     \
-        }                                                                      \
+
+#define IMPLEMENT_BRIDGE(_enum_type, _enum_item, _impl_type)           \
+    template <>                                                        \
+    std::shared_ptr<typename gkobase<_enum_type>::type>                \
+    create_from_config<_enum_type, _enum_type::_enum_item,             \
+                       typename gkobase<_enum_type>::type>(            \
+        rapidjson::Value & item, std::shared_ptr<const Executor> exec, \
+        std::shared_ptr<const LinOp> linop, ResourceManager * manager) \
+    {                                                                  \
+        std::cout << "enter bridge" << std::endl;                      \
+        return call<_impl_type>(item, exec, linop, manager);           \
     }
 
-#define IMPLEMENT_BASE_BUILD_ITEM(_base_type, _enum_base_item)           \
-    template <>                                                          \
-    std::shared_ptr<_base_type> ResourceManager::build_item<_base_type>( \
-        std::string & base, rapidjson::Value & item)                     \
-    {                                                                    \
-        return this->build_item_impl(_enum_base_item, base, item);       \
-    }
-
-
-#define IMPLEMENT_BRIDGE(_enum_type, _enum_item, _impl_type)             \
-    template <>                                                          \
-    std::shared_ptr<typename gkobase<_enum_type>::type>                  \
-        ResourceManager::build_item<_enum_type, _enum_type::_enum_item,  \
-                                    typename gkobase<_enum_type>::type>( \
-            rapidjson::Value & item)                                     \
-    {                                                                    \
-        return this->build_item<_impl_type>(item);                       \
-    }
-
-#define IMPLEMENT_BRIDGE2(_enum_type, _enum_item, _impl_type)                  \
-    template <>                                                                \
-    std::shared_ptr<typename gkobase<_enum_type>::type>                        \
-    create_from_config<_enum_type, _enum_type::_enum_item,                     \
-                       typename gkobase<_enum_type>::type>(                    \
-        rapidjson::Value & item, std::shared_ptr<const Executor> exec,         \
-        std::shared_ptr<const LinOp> linop, ResourceManager * manager)         \
-    {                                                                          \
-        if (manager == nullptr) {                                              \
-            return create_from_config<_impl_type>(item, exec, linop, manager); \
-        } else {                                                               \
-            return manager->build_item<_impl_type>(item);                      \
-        }                                                                      \
-    }
-
-#define IMPLEMENT_TINY_BRIDGE(_enum_type, _enum_item, _impl_type)          \
-    template <>                                                            \
-    std::shared_ptr<_impl_type> ResourceManager::build_item<               \
-        _enum_type, _enum_type::_enum_item, _impl_type>(rapidjson::Value & \
-                                                        item)              \
-    {                                                                      \
-        return this->build_item<_impl_type>(item);                         \
-    }
 
 // clang-format off
 #define BUILD_FACTORY(type_, rm_, item_, exec_, linop_)     \
@@ -221,5 +154,48 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         factory_alias_.with_##_param_name(              \
             get_value<_param_type>(item_alias_, name)); \
     }
+
+
+#define CONNECT_GENERIC_SUB(base, T, inner_type, func)              \
+    template <>                                                     \
+    struct Generic<typename base<T>::inner_type> {                  \
+        using type = std::shared_ptr<typename base<T>::inner_type>; \
+        static type build(rapidjson::Value &item,                   \
+                          std::shared_ptr<const Executor> exec,     \
+                          std::shared_ptr<const LinOp> linop,       \
+                          ResourceManager *manager)                 \
+        {                                                           \
+            return func<T>(item, exec, linop, manager);             \
+        }                                                           \
+    };
+
+#define CREATE_DEFAULT_IMPL(_base_type)                                     \
+    template <>                                                             \
+    std::shared_ptr<_base_type> create_from_config<_base_type>(             \
+        rapidjson::Value & item, std::string base,                          \
+        std::shared_ptr<const Executor> exec,                               \
+        std::shared_ptr<const LinOp> linop, ResourceManager * manager)      \
+    {                                                                       \
+        return create_from_config_(RM_##_base_type::_base_type, item, base, \
+                                   exec, linop, manager);                   \
+    }
+
+#define PACK(...) __VA_ARGS__
+
+#define GENERIC_BASE_IMPL(_base_type)                                  \
+    template <>                                                        \
+    struct Generic<_base_type> {                                       \
+        using type = std::shared_ptr<_base_type>;                      \
+        static type build(rapidjson::Value &item,                      \
+                          std::shared_ptr<const Executor> exec,        \
+                          std::shared_ptr<const LinOp> linop,          \
+                          ResourceManager *manager)                    \
+        {                                                              \
+            assert(item.HasMember("base"));                            \
+            return create_from_config<_base_type>(                     \
+                item, item["base"].GetString(), exec, linop, manager); \
+        }                                                              \
+    }
+
 
 #endif  // GKOEXT_RESOURCE_MANAGER_BASE_MACRO_HELPER_HPP_

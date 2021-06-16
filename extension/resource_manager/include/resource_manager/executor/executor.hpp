@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <memory>
+#include "resource_manager/base/generic_base_selector.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
@@ -47,78 +48,88 @@ namespace resource_manager {
 
 
 template <>
-std::shared_ptr<gko::CudaExecutor> create_from_config<gko::CudaExecutor>(
-    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
-    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
-{
-    std::cout << "Cuda" << std::endl;
-    auto device_id = get_value_with_default(item, "device_id", 0);
-    return CudaExecutor::create(device_id, ReferenceExecutor::create());
-}
+struct Generic<gko::CudaExecutor> {
+    using type = std::shared_ptr<gko::CudaExecutor>;
+    static type build(rapidjson::Value &item,
+                      std::shared_ptr<const Executor> exec,
+                      std::shared_ptr<const LinOp> linop,
+                      ResourceManager *manager)
+    {
+        std::cout << "Cuda" << std::endl;
+        auto device_id = get_value_with_default(item, "device_id", 0);
+        return CudaExecutor::create(device_id, ReferenceExecutor::create());
+    }
+};
 
 
-IMPLEMENT_BRIDGE2(RM_Executor, CudaExecutor, CudaExecutor)
-
-// IMPLEMENT_TINY_BRIDGE(RM_Executor, CudaExecutor, CudaExecutor)
-
-template <>
-std::shared_ptr<gko::HipExecutor> create_from_config<gko::HipExecutor>(
-    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
-    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
-{
-    std::cout << "Hip" << std::endl;
-    auto device_id = get_value_with_default<int>(item, "device_id", 0);
-    return HipExecutor::create(device_id, ReferenceExecutor::create());
-}
-
-IMPLEMENT_BRIDGE2(RM_Executor, HipExecutor, HipExecutor)
-
-// IMPLEMENT_TINY_BRIDGE(RM_Executor, HipExecutor, HipExecutor)
+IMPLEMENT_BRIDGE(RM_Executor, CudaExecutor, CudaExecutor)
 
 template <>
-std::shared_ptr<gko::DpcppExecutor> create_from_config<gko::DpcppExecutor>(
-    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
-    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
-{
-    std::cout << "DPCPP" << std::endl;
-    auto device_id = get_value_with_default<int>(item, "device_id", 0);
-    return DpcppExecutor::create(device_id, ReferenceExecutor::create());
-}
+struct Generic<gko::HipExecutor> {
+    using type = std::shared_ptr<gko::HipExecutor>;
+    static type build(rapidjson::Value &item,
+                      std::shared_ptr<const Executor> exec,
+                      std::shared_ptr<const LinOp> linop,
+                      ResourceManager *manager)
+    {
+        std::cout << "Hip" << std::endl;
+        auto device_id = get_value_with_default(item, "device_id", 0);
+        return HipExecutor::create(device_id, ReferenceExecutor::create());
+    }
+};
 
-
-IMPLEMENT_BRIDGE2(RM_Executor, DpcppExecutor, DpcppExecutor)
-
-// IMPLEMENT_TINY_BRIDGE(RM_Executor, DpcppExecutor, DpcppExecutor)
-
-template <>
-std::shared_ptr<gko::ReferenceExecutor>
-create_from_config<gko::ReferenceExecutor>(rapidjson::Value &item,
-                                           std::shared_ptr<const Executor> exec,
-                                           std::shared_ptr<const LinOp> linop,
-                                           ResourceManager *manager)
-{
-    std::cout << "REFERENCE" << std::endl;
-    return ReferenceExecutor::create();
-}
-
-
-IMPLEMENT_BRIDGE2(RM_Executor, ReferenceExecutor, ReferenceExecutor)
-
-// IMPLEMENT_TINY_BRIDGE(RM_Executor, ReferenceExecutor, ReferenceExecutor)
+IMPLEMENT_BRIDGE(RM_Executor, HipExecutor, HipExecutor)
 
 
 template <>
-std::shared_ptr<gko::OmpExecutor> create_from_config<gko::OmpExecutor>(
-    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
-    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
-{
-    std::cout << "OMP" << std::endl;
-    return OmpExecutor::create();
-}
+struct Generic<gko::DpcppExecutor> {
+    using type = std::shared_ptr<gko::DpcppExecutor>;
+    static type build(rapidjson::Value &item,
+                      std::shared_ptr<const Executor> exec,
+                      std::shared_ptr<const LinOp> linop,
+                      ResourceManager *manager)
+    {
+        std::cout << "Dpcpp" << std::endl;
+        auto device_id = get_value_with_default(item, "device_id", 0);
+        return DpcppExecutor::create(device_id, ReferenceExecutor::create());
+    }
+};
 
-IMPLEMENT_BRIDGE2(RM_Executor, OmpExecutor, OmpExecutor)
 
-// IMPLEMENT_TINY_BRIDGE(RM_Executor, OmpExecutor, OmpExecutor)
+IMPLEMENT_BRIDGE(RM_Executor, DpcppExecutor, DpcppExecutor)
+
+
+template <>
+struct Generic<gko::ReferenceExecutor> {
+    using type = std::shared_ptr<gko::ReferenceExecutor>;
+    static type build(rapidjson::Value &item,
+                      std::shared_ptr<const Executor> exec,
+                      std::shared_ptr<const LinOp> linop,
+                      ResourceManager *manager)
+    {
+        std::cout << "Reference" << std::endl;
+        return ReferenceExecutor::create();
+    }
+};
+
+
+IMPLEMENT_BRIDGE(RM_Executor, ReferenceExecutor, ReferenceExecutor)
+
+
+template <>
+struct Generic<gko::OmpExecutor> {
+    using type = std::shared_ptr<gko::OmpExecutor>;
+    static type build(rapidjson::Value &item,
+                      std::shared_ptr<const Executor> exec,
+                      std::shared_ptr<const LinOp> linop,
+                      ResourceManager *manager)
+    {
+        std::cout << "Omp" << std::endl;
+        return OmpExecutor::create();
+    }
+};
+
+IMPLEMENT_BRIDGE(RM_Executor, OmpExecutor, OmpExecutor)
 
 
 }  // namespace resource_manager
