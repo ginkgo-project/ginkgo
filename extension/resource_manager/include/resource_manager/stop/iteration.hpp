@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKOEXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
 
 
-#include "resource_manager/base/generic_base_selector.hpp"
+#include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
@@ -56,10 +56,12 @@ struct Generic<gko::stop::Iteration::Factory> {
                       ResourceManager *manager)
     {
         auto exec_ptr =
-            get_pointer<Executor>(manager, item["exec"], exec, linop);
-        auto ptr =
-            BUILD_FACTORY(gko::stop::Iteration, manager, item, exec, linop)
-                WITH_VALUE(size_type, max_iters) ON_EXECUTOR;
+            get_pointer_check<Executor>(manager, item, "exec", exec, linop);
+        auto ptr = [&]() {
+            BUILD_FACTORY(gko::stop::Iteration, manager, item, exec, linop);
+            SET_VALUE(size_type, max_iters);
+            SET_EXECUTOR;
+        }();
         return ptr;
     }
 };

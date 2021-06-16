@@ -118,37 +118,32 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     }
 
 
-// clang-format off
-#define BUILD_FACTORY(type_, rm_, item_, exec_, linop_)     \
-    [&]() {                                   \
-        auto factory_alias_ = type_::build(); \
-        auto &rm_alias_ = rm_;               \
-        auto &item_alias_ = item_;\
-        auto &exec_alias_ = exec_;\
-        auto &linop_alias_ = linop_;
+#define BUILD_FACTORY(type_, rm_, item_, exec_, linop_) \
+    auto factory_alias_ = type_::build();               \
+    auto &rm_alias_ = rm_;                              \
+    auto &item_alias_ = item_;                          \
+    auto &exec_alias_ = exec_;                          \
+    auto &linop_alias_ = linop_
 
-#define ON_EXECUTOR                                                \
-        auto executor =                                            \
-            get_pointer<Executor>(rm_alias_, item_alias_["exec"], exec_alias_, linop_alias_); \
-        return factory_alias_.on(executor);                        \
-    }                                                              \
-    ();
-// clang-format on
+#define SET_EXECUTOR                                                \
+    auto executor = get_pointer_check<Executor>(                    \
+        rm_alias_, item_alias_, "exec", exec_alias_, linop_alias_); \
+    return factory_alias_.on(executor)
 
 
-#define WITH_POINTER(_param_type, _param_name)                                 \
+#define SET_POINTER(_param_type, _param_name)                                  \
     if (item_alias_.HasMember(#_param_name)) {                                 \
         factory_alias_.with_##_param_name(get_pointer<_param_type>(            \
             rm_alias_, item_alias_[#_param_name], exec_alias_, linop_alias_)); \
     }
 
-#define WITH_POINTER_ARRAY(_param_type, _param_name)                           \
+#define SET_POINTER_ARRAY(_param_type, _param_name)                            \
     if (item_alias_.HasMember(#_param_name)) {                                 \
         factory_alias_.with_##_param_name(get_pointer_vector<_param_type>(     \
             rm_alias_, item_alias_[#_param_name], exec_alias_, linop_alias_)); \
     }
 
-#define WITH_VALUE(_param_type, _param_name)            \
+#define SET_VALUE(_param_type, _param_name)             \
     if (item_alias_.HasMember(#_param_name)) {          \
         std::string name{#_param_name};                 \
         factory_alias_.with_##_param_name(              \
@@ -195,6 +190,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             return create_from_config<_base_type>(                     \
                 item, item["base"].GetString(), exec, linop, manager); \
         }                                                              \
+    }
+
+#define SIMPLE_LINOP_WITH_FACTORY_IMPL(_base, _template, _type)             \
+    template <_template>                                                    \
+    struct Generic<_base<_type>> {                                          \
+        using type = std::shared_ptr<_base<_type>>;                         \
+        static type build(rapidjson::Value &item,                           \
+                          std::shared_ptr<const Executor> exec,             \
+                          std::shared_ptr<const LinOp> linop,               \
+                          ResourceManager *manager)                         \
+        {                                                                   \
+            std::cout << #_base << exec.get() << std::endl;                 \
+            auto factory = get_pointer<typename _base<_type>::Factory>(     \
+                manager, item["factory"], exec, linop);                     \
+            auto mtx =                                                      \
+                get_pointer<LinOp>(manager, item["generate"], exec, linop); \
+            auto ptr = factory->generate(mtx);                              \
+            return std::move(ptr);                                          \
+        }                                                                   \
     }
 
 
