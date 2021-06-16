@@ -39,8 +39,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/block_approx.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -61,6 +64,8 @@ protected:
     using CsrMtx = gko::matrix::Csr<value_type, index_type>;
     using Ras = gko::preconditioner::Ras<value_type, index_type>;
     using Cg = gko::solver::Cg<value_type>;
+    using Ir = gko::solver::Ir<value_type>;
+    using Bj = gko::preconditioner::Jacobi<value_type, index_type>;
 
     RasPrecond()
         : exec(gko::ReferenceExecutor::create()),
@@ -132,7 +137,9 @@ protected:
         ov_block_mtx;
     std::unique_ptr<typename Ras::Factory> ras_factory;
     std::unique_ptr<typename Ras::Factory> ras_factory2;
+    std::unique_ptr<typename Ras::Factory> ras_factory3;
     std::unique_ptr<typename Cg::Factory> cg_factory;
+    std::unique_ptr<typename Ir::Factory> ir_factory;
 };
 
 TYPED_TEST_SUITE(RasPrecond, gko::test::ValueIndexTypes);

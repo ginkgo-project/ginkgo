@@ -120,60 +120,74 @@ int main(int argc, char* argv[])
     // that you would need to use.
 
     // assemble matrix: 7-pt stencil
-    const auto num_rows = grid_dim * grid_dim * grid_dim;
+    // const auto num_rows = grid_dim * grid_dim * grid_dim;
 
-    gko::matrix_data<ValueType, IndexType> A_data;
-    gko::matrix_data<ValueType, IndexType> b_data;
-    gko::matrix_data<ValueType, IndexType> x_data;
-    A_data.size = {num_rows, num_rows};
-    b_data.size = {num_rows, 1};
-    x_data.size = {num_rows, 1};
-    for (int i = 0; i < grid_dim; i++) {
-        for (int j = 0; j < grid_dim; j++) {
-            for (int k = 0; k < grid_dim; k++) {
-                auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
-                if (i > 0)
-                    A_data.nonzeros.emplace_back(idx, idx - grid_dim * grid_dim,
-                                                 -1);
-                if (j > 0)
-                    A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
-                if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
-                A_data.nonzeros.emplace_back(idx, idx, 8);
-                if (k < grid_dim - 1)
-                    A_data.nonzeros.emplace_back(idx, idx + 1, -1);
-                if (j < grid_dim - 1)
-                    A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
-                if (i < grid_dim - 1)
-                    A_data.nonzeros.emplace_back(idx, idx + grid_dim * grid_dim,
-                                                 -1);
-                // b_data.nonzeros.emplace_back(
-                //     idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
-                b_data.nonzeros.emplace_back(idx, 0, 1.0);
-                x_data.nonzeros.emplace_back(idx, 0, 1.0);
-            }
-        }
+    // gko::matrix_data<ValueType, IndexType> A_data;
+    // gko::matrix_data<ValueType, IndexType> b_data;
+    // gko::matrix_data<ValueType, IndexType> x_data;
+    // A_data.size = {num_rows, num_rows};
+    // b_data.size = {num_rows, 1};
+    // x_data.size = {num_rows, 1};
+    // for (int i = 0; i < grid_dim; i++) {
+    //     for (int j = 0; j < grid_dim; j++) {
+    //         for (int k = 0; k < grid_dim; k++) {
+    //             auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
+    //             if (i > 0)
+    //                 A_data.nonzeros.emplace_back(idx, idx - grid_dim *
+    //                 grid_dim,
+    //                                              -1);
+    //             if (j > 0)
+    //                 A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
+    //             if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
+    //             A_data.nonzeros.emplace_back(idx, idx, 8);
+    //             if (k < grid_dim - 1)
+    //                 A_data.nonzeros.emplace_back(idx, idx + 1, -1);
+    //             if (j < grid_dim - 1)
+    //                 A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
+    //             if (i < grid_dim - 1)
+    //                 A_data.nonzeros.emplace_back(idx, idx + grid_dim *
+    //                 grid_dim,
+    //                                              -1);
+    //             // b_data.nonzeros.emplace_back(
+    //             //     idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
+    //             b_data.nonzeros.emplace_back(idx, 0, 1.0);
+    //             x_data.nonzeros.emplace_back(idx, 0, 1.0);
+    //         }
+    //     }
+    // }
+
+    // auto A_host = gko::share(mtx::create(exec->get_master()));
+    // A_host->read(A_data);
+    // b_host->read(b_data);
+    // x_host->read(x_data);
+    // auto A = share(mtx::create(exec));
+    // auto b = vec::create(exec);
+    // auto x = vec::create(exec);
+    // A->copy_from(A_host.get());
+    // b->copy_from(b_host.get());
+    // x->copy_from(x_host.get());
+    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    gko::size_type size = A->get_size()[0];
+    gko::size_type num_rows = A->get_size()[0];
+    auto x_host = gko::matrix::Dense<ValueType>::create(exec->get_master(),
+                                                        gko::dim<2>(size, 1));
+    for (auto i = 0; i < size; i++) {
+        x_host->at(i, 0) = 1.;
     }
-
-    auto A_host = gko::share(mtx::create(exec->get_master()));
-    auto x_host = vec::create(exec->get_master());
-    auto b_host = vec::create(exec->get_master());
-    A_host->read(A_data);
-    b_host->read(b_data);
-    x_host->read(x_data);
-    auto A = share(mtx::create(exec));
-    auto b = vec::create(exec);
-    auto x = vec::create(exec);
-    A->copy_from(A_host.get());
-    b->copy_from(b_host.get());
+    auto x = gko::matrix::Dense<ValueType>::create(exec);
+    auto b = gko::matrix::Dense<ValueType>::create(exec);
+    b->copy_from(x_host.get());
+    for (auto i = 0; i < size; i++) {
+        x_host->at(i, 0) = 0.;
+    }
     x->copy_from(x_host.get());
 
-    x_host->copy_from(x.get());
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
-    A_host->apply(lend(minus_one), lend(x_host), lend(one), lend(b_host));
+    A->apply(lend(minus_one), lend(b), lend(one), lend(x));
     auto initial_resnorm = gko::initialize<vec>({0.0}, exec->get_master());
-    b_host->compute_norm2(gko::lend(initial_resnorm));
-    b_host->copy_from(b.get());
+    x->compute_norm2(gko::lend(initial_resnorm));
+    x->copy_from(x_host.get());
 
     // @sect3{Creating the solver}
     // Generate the gko::solver factory. Ginkgo uses the concept of Factories to
@@ -252,9 +266,9 @@ int main(int argc, char* argv[])
     x_host->copy_from(x.get());
     one = gko::initialize<vec>({1.0}, exec);
     minus_one = gko::initialize<vec>({-1.0}, exec);
-    A_host->apply(lend(minus_one), lend(x_host), lend(one), lend(b_host));
+    A->apply(lend(minus_one), lend(x), lend(one), lend(b));
     auto result = gko::initialize<vec>({0.0}, exec->get_master());
-    b_host->compute_norm2(lend(result));
+    b->compute_norm2(lend(result));
 
     auto l_res_norm =
         gko::as<vec>(
