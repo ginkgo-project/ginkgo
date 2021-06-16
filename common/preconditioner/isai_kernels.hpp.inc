@@ -381,6 +381,9 @@ __global__ __launch_bounds__(default_block_size) void scale_excess_solution(
     const IndexType offset = excess_block_ptrs[e_start];
     const IndexType block_begin = excess_block_ptrs[row] - offset;
     const IndexType block_end = excess_block_ptrs[row + 1] - offset;
+    if (block_end == block_begin) {
+        return;
+    }
     const auto diag = excess_solution[block_end - 1];
     const ValueType scal = one<ValueType>() / sqrt(diag);
 
