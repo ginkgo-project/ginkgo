@@ -287,10 +287,10 @@ protected:
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
-    size_type subspace_dim_;
-    remove_complex<ValueType> kappa_;
-    bool deterministic_;
-    bool complex_subspace_;
+    size_type subspace_dim_{};
+    remove_complex<ValueType> kappa_{};
+    bool deterministic_{};
+    bool complex_subspace_{};
 };
 
 
