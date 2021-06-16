@@ -467,7 +467,7 @@ Dense<ValueType>& Dense<ValueType>::operator=(const Dense& other)
         EnableLinOp<Dense>::operator=(other);
         // NOTE: keep this consistent with resize(...)
         if (old_size != other.get_size()) {
-            stride_ = this->get_size()[1];
+            stride_ = other.get_stride();
             values_.resize_and_reset(this->get_size()[0] * stride_);
         }
         // we need to create a executor-local clone of the target data, that
@@ -519,15 +519,15 @@ template <typename ValueType>
 void Dense<ValueType>::convert_to(
     Dense<next_precision<ValueType>>* result) const
 {
-    if (result->get_size() == this->get_size()) {
-        auto exec = this->get_executor();
-        exec->run(dense::make_copy(
-            this, make_temporary_output_clone(exec, result).get()));
-    } else {
-        result->values_ = this->values_;
-        result->stride_ = this->stride_;
+    if (result->get_size() != this->get_size()) {
         result->set_size(this->get_size());
+        result->stride_ = stride_;
+        result->values_.resize_and_reset(result->get_size()[0] *
+                                         result->stride_);
     }
+    auto exec = this->get_executor();
+    exec->run(dense::make_copy(
+        this, make_temporary_output_clone(exec, result).get()));
 }
 
 
