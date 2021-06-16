@@ -145,6 +145,8 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class Csr<to_complex<ValueType>, IndexType>;
 
 public:
+    using EnableLinOp<Csr>::convert_to;
+    using EnableLinOp<Csr>::move_to;
     using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
@@ -630,32 +632,6 @@ public:
         index_type max_length_per_row_;
     };
 
-    void convert_to(Csr<ValueType, IndexType> *result) const override
-    {
-        bool same_executor = this->get_executor() == result->get_executor();
-        // NOTE: as soon as strategies are improved, this can be reverted
-        result->values_ = this->values_;
-        result->col_idxs_ = this->col_idxs_;
-        result->row_ptrs_ = this->row_ptrs_;
-        result->srow_ = this->srow_;
-        result->set_size(this->get_size());
-        if (!same_executor) {
-            convert_strategy_helper(result);
-        } else {
-            result->set_strategy(std::move(this->get_strategy()->copy()));
-        }
-        // END NOTE
-    }
-
-    void move_to(Csr<ValueType, IndexType> *result) override
-    {
-        bool same_executor = this->get_executor() == result->get_executor();
-        EnableLinOp<Csr>::move_to(result);
-        if (!same_executor) {
-            detail::strategy_rebuild_helper(result);
-        }
-    }
-
     friend class Csr<next_precision<ValueType>, IndexType>;
 
     void convert_to(
@@ -847,6 +823,14 @@ public:
         strategy_ = std::move(strategy->copy());
         this->make_srow();
     }
+
+    Csr &operator=(const Csr &other);
+
+    Csr &operator=(Csr &&other);
+
+    Csr(const Csr &other);
+
+    Csr(Csr &&other);
 
 protected:
     /**

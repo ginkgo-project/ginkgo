@@ -69,6 +69,47 @@ protected:
 TYPED_TEST_SUITE(Perturbation, gko::test::ValueTypes);
 
 
+TYPED_TEST(Perturbation, CopiesOnSameExecutor)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto per = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
+                                                    this->projector);
+    auto out = per->create_default();
+
+    per->convert_to(out.get());
+
+    ASSERT_EQ(out->get_size(), per->get_size());
+    ASSERT_EQ(out->get_executor(), per->get_executor());
+    ASSERT_EQ(out->get_scalar(), per->get_scalar());
+    ASSERT_EQ(out->get_basis(), per->get_basis());
+    ASSERT_EQ(out->get_projector(), per->get_projector());
+}
+
+
+TYPED_TEST(Perturbation, MovesOnSameExecutor)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto per = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
+                                                    this->projector);
+    auto per2 = per->clone();
+    auto out = per->create_default();
+
+    per->move_to(out.get());
+
+    ASSERT_EQ(out->get_size(), per2->get_size());
+    ASSERT_EQ(out->get_executor(), per2->get_executor());
+    ASSERT_EQ(out->get_scalar(), per2->get_scalar());
+    ASSERT_EQ(out->get_basis(), per2->get_basis());
+    ASSERT_EQ(out->get_projector(), per2->get_projector());
+    // same executor, empty object
+    ASSERT_EQ(per->get_size(), gko::dim<2>{});
+    ASSERT_EQ(per->get_executor(), per2->get_executor());
+    ASSERT_EQ(per->get_scalar(), nullptr);
+    ASSERT_EQ(per->get_basis(), nullptr);
+    ASSERT_EQ(per->get_projector(), nullptr);
+}
+
+
 TYPED_TEST(Perturbation, AppliesToVector)
 {
     /*

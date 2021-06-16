@@ -94,7 +94,7 @@ template <typename ValueType, typename IndexType>
 void LowerTrs<ValueType, IndexType>::generate()
 {
     this->get_executor()->run(lower_trs::make_generate(
-        gko::lend(system_matrix_), gko::lend(this->solve_struct_),
+        lend(this->get_system_matrix()), gko::lend(this->solve_struct_),
         parameters_.num_rhs));
 }
 
@@ -128,8 +128,8 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
                 trans_x = Vector::create(exec);
             }
             exec->run(lower_trs::make_solve(
-                gko::lend(system_matrix_), gko::lend(this->solve_struct_),
-                gko::lend(trans_b), gko::lend(trans_x), dense_b, dense_x));
+                lend(this->get_system_matrix()), lend(this->solve_struct_),
+                lend(trans_b), lend(trans_x), dense_b, dense_x));
         },
         b, x);
 }

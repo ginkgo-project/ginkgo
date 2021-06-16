@@ -111,6 +111,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/lower_trs.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/solver/solver_traits.hpp>
 #include <ginkgo/core/solver/upper_trs.hpp>
 

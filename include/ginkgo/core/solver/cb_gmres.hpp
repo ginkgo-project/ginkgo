@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -120,22 +121,13 @@ enum class storage_precision {
  */
 template <typename ValueType = default_precision>
 class CbGmres : public EnableLinOp<CbGmres<ValueType>>,
-                public Preconditionable {
+                public EnablePreconditionedIterativeSolver<ValueType,
+                                                           CbGmres<ValueType>> {
     friend class EnableLinOp<CbGmres>;
     friend class EnablePolymorphicObject<CbGmres, LinOp>;
 
 public:
     using value_type = ValueType;
-
-    /**
-     * Gets the system operator (matrix) of the linear system.
-     *
-     * @return the system operator (matrix)
-     */
-    std::shared_ptr<const LinOp> get_system_matrix() const
-    {
-        return system_matrix_;
-    }
 
     /**
      * Returns the Krylov dimension.
@@ -213,29 +205,14 @@ protected:
                      std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<CbGmres>(factory->get_executor(),
                                transpose(system_matrix->get_size())),
+          EnablePreconditionedIterativeSolver<ValueType, CbGmres<ValueType>>{
+              std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()},
-          system_matrix_{std::move(system_matrix)}
-    {
-        if (parameters_.generated_preconditioner) {
-            GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.generated_preconditioner,
-                                        this);
-            set_preconditioner(parameters_.generated_preconditioner);
-        } else if (parameters_.preconditioner) {
-            set_preconditioner(
-                parameters_.preconditioner->generate(system_matrix_));
-        } else {
-            set_preconditioner(matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()[0]));
-        }
-        krylov_dim_ = parameters_.krylov_dim;
-        stop_criterion_factory_ =
-            stop::combine(std::move(parameters_.criteria));
-        storage_precision_ = parameters_.storage_precision;
-    }
+          krylov_dim_{parameters_.krylov_dim},
+          storage_precision_{parameters_.storage_precision}
+    {}
 
 private:
-    std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     size_type krylov_dim_;
     cb_gmres::storage_precision storage_precision_;
 };

@@ -70,6 +70,57 @@ GKO_REGISTER_OPERATION(initialize_precisions, jacobi::initialize_precisions);
 
 
 template <typename ValueType, typename IndexType>
+Jacobi<ValueType, IndexType> &Jacobi<ValueType, IndexType>::operator=(
+    const Jacobi &other)
+{
+    if (&other != this) {
+        EnableLinOp<Jacobi>::operator=(other);
+        storage_scheme_ = other.storage_scheme_;
+        num_blocks_ = other.num_blocks_;
+        blocks_ = other.blocks_;
+        conditioning_ = other.conditioning_;
+        parameters_ = other.parameters_;
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Jacobi<ValueType, IndexType> &Jacobi<ValueType, IndexType>::operator=(
+    Jacobi &&other)
+{
+    if (&other != this) {
+        EnableLinOp<Jacobi>::operator=(std::move(other));
+        // reset size values to 0 in other
+        storage_scheme_ =
+            std::exchange(other.storage_scheme_,
+                          block_interleaved_storage_scheme<index_type>{});
+        num_blocks_ = std::exchange(other.num_blocks_, 0);
+        blocks_ = std::move(other.blocks_);
+        conditioning_ = std::move(other.conditioning_);
+        parameters_ = std::exchange(other.parameters_, parameters_type{});
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Jacobi<ValueType, IndexType>::Jacobi(const Jacobi &other)
+    : Jacobi{other.get_executor()}
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+Jacobi<ValueType, IndexType>::Jacobi(Jacobi &&other)
+    : Jacobi{other.get_executor()}
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Jacobi<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     precision_dispatch_real_complex<ValueType>(

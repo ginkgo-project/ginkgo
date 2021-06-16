@@ -266,6 +266,58 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
 
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
+Isai<IsaiType, ValueType, IndexType>
+    &Isai<IsaiType, ValueType, IndexType>::operator=(const Isai &other)
+{
+    if (&other != this) {
+        EnableLinOp<Isai>::operator=(other);
+        auto exec = this->get_executor();
+        approximate_inverse_ = other.approximate_inverse_;
+        parameters_ = other.parameters_;
+        if (approximate_inverse_ &&
+            other.approximate_inverse_->get_executor() != exec) {
+            approximate_inverse_ = gko::clone(exec, approximate_inverse_);
+        }
+    }
+    return *this;
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+Isai<IsaiType, ValueType, IndexType>
+    &Isai<IsaiType, ValueType, IndexType>::operator=(Isai &&other)
+{
+    if (&other != this) {
+        EnableLinOp<Isai>::operator=(std::move(other));
+        auto exec = this->get_executor();
+        approximate_inverse_ = std::move(other.approximate_inverse_);
+        parameters_ = std::exchange(other.parameters_, parameters_type{});
+        if (approximate_inverse_ &&
+            other.approximate_inverse_->get_executor() != exec) {
+            approximate_inverse_ = gko::clone(exec, approximate_inverse_);
+        }
+    }
+    return *this;
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+Isai<IsaiType, ValueType, IndexType>::Isai(const Isai &other)
+    : Isai{other.get_executor()}
+{
+    *this = other;
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+Isai<IsaiType, ValueType, IndexType>::Isai(Isai &&other)
+    : Isai{other.get_executor()}
+{
+    *this = std::move(other);
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::transpose() const
 {
     auto is_spd = IsaiType == isai_type::spd;

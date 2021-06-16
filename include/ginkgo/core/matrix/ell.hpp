@@ -230,6 +230,14 @@ public:
         return this->get_const_col_idxs()[this->linearize_index(row, idx)];
     }
 
+    Ell &operator=(const Ell &other);
+
+    Ell &operator=(Ell &&other);
+
+    Ell(const Ell &other);
+
+    Ell(Ell &&other);
+
 protected:
     /**
      * Creates an uninitialized Ell matrix of the specified size.

@@ -320,6 +320,14 @@ public:
      */
     index_type get_num_block_cols() const noexcept { return nbcols_; }
 
+    Fbcsr &operator=(const Fbcsr &other);
+
+    Fbcsr &operator=(Fbcsr &&other);
+
+    Fbcsr(const Fbcsr &other);
+
+    Fbcsr(Fbcsr &&other);
+
 protected:
     /**
      * Creates an uninitialized FBCSR matrix with the given block size.

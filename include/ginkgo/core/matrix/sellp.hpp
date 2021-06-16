@@ -282,6 +282,14 @@ public:
             ->get_const_col_idxs()[this->linearize_index(row, slice_set, idx)];
     }
 
+    Sellp &operator=(const Sellp &other);
+
+    Sellp &operator=(Sellp &&other);
+
+    Sellp(const Sellp &other);
+
+    Sellp(Sellp &&other);
+
 protected:
     /**
      * Creates an uninitialized Sellp matrix of the specified size.

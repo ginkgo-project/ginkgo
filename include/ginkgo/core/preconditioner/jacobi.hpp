@@ -293,6 +293,14 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    Jacobi &operator=(const Jacobi &other);
+
+    Jacobi &operator=(Jacobi &&other);
+
+    Jacobi(const Jacobi &other);
+
+    Jacobi(Jacobi &&other);
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**

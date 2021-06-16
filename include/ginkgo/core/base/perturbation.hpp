@@ -102,6 +102,14 @@ public:
         return scalar_;
     }
 
+    Perturbation &operator=(const Perturbation &other);
+
+    Perturbation &operator=(Perturbation &&other);
+
+    Perturbation(const Perturbation &other);
+
+    Perturbation(Perturbation &&other);
+
 protected:
     /**
      * Creates an empty perturbation operator (0x0 operator).

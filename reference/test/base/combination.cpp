@@ -70,6 +70,58 @@ protected:
 TYPED_TEST_SUITE(Combination, gko::test::ValueTypes);
 
 
+TYPED_TEST(Combination, CopiesOnSameExecutor)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto cmb = gko::Combination<TypeParam>::create(
+        this->coefficients[0], this->operators[0], this->coefficients[1],
+        this->operators[1]);
+    auto out = cmb->create_default();
+
+    cmb->convert_to(out.get());
+
+    ASSERT_EQ(out->get_size(), cmb->get_size());
+    ASSERT_EQ(out->get_executor(), cmb->get_executor());
+    ASSERT_EQ(out->get_operators().size(), cmb->get_operators().size());
+    ASSERT_EQ(out->get_operators().size(), 2);
+    ASSERT_EQ(out->get_coefficients().size(), cmb->get_coefficients().size());
+    ASSERT_EQ(out->get_coefficients().size(), 2);
+    ASSERT_EQ(out->get_operators()[0], cmb->get_operators()[0]);
+    ASSERT_EQ(out->get_operators()[1], cmb->get_operators()[1]);
+    ASSERT_EQ(out->get_coefficients()[0], cmb->get_coefficients()[0]);
+    ASSERT_EQ(out->get_coefficients()[1], cmb->get_coefficients()[1]);
+}
+
+
+TYPED_TEST(Combination, MovesOnSameExecutor)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto cmb = gko::Combination<TypeParam>::create(
+        this->coefficients[0], this->operators[0], this->coefficients[1],
+        this->operators[1]);
+    auto cmb2 = cmb->clone();
+    auto out = cmb->create_default();
+
+    cmb->move_to(out.get());
+
+    ASSERT_EQ(out->get_size(), cmb2->get_size());
+    ASSERT_EQ(out->get_executor(), cmb2->get_executor());
+    ASSERT_EQ(out->get_operators().size(), cmb2->get_operators().size());
+    ASSERT_EQ(out->get_operators().size(), 2);
+    ASSERT_EQ(out->get_coefficients().size(), cmb2->get_coefficients().size());
+    ASSERT_EQ(out->get_coefficients().size(), 2);
+    ASSERT_EQ(out->get_operators()[0], cmb2->get_operators()[0]);
+    ASSERT_EQ(out->get_operators()[1], cmb2->get_operators()[1]);
+    ASSERT_EQ(out->get_coefficients()[0], cmb2->get_coefficients()[0]);
+    ASSERT_EQ(out->get_coefficients()[1], cmb2->get_coefficients()[1]);
+    // empty size, empty operators, same executor
+    ASSERT_EQ(cmb->get_size(), gko::dim<2>{});
+    ASSERT_EQ(cmb->get_executor(), cmb2->get_executor());
+    ASSERT_EQ(cmb->get_operators().size(), 0);
+    ASSERT_EQ(cmb->get_coefficients().size(), 0);
+}
+
+
 TYPED_TEST(Combination, AppliesToVector)
 {
     /*

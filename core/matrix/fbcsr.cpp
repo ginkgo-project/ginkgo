@@ -150,6 +150,53 @@ private:
 
 
 template <typename ValueType, typename IndexType>
+Fbcsr<ValueType, IndexType> &Fbcsr<ValueType, IndexType>::operator=(
+    const Fbcsr &other)
+{
+    if (&other != this) {
+        EnableLinOp<Fbcsr>::operator=(other);
+        bs_ = other.bs_;
+        nbcols_ = other.nbcols_;
+        values_ = other.values_;
+        col_idxs_ = other.col_idxs_;
+        row_ptrs_ = other.row_ptrs_;
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Fbcsr<ValueType, IndexType> &Fbcsr<ValueType, IndexType>::operator=(
+    Fbcsr &&other)
+{
+    if (&other != this) {
+        EnableLinOp<Fbcsr>::operator=(std::move(other));
+        bs_ = std::exchange(other.bs_, 1);
+        nbcols_ = std::exchange(other.nbcols_, 0);
+        values_ = std::move(other.values_);
+        col_idxs_ = std::move(other.col_idxs_);
+        row_ptrs_ = std::move(other.row_ptrs_);
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Fbcsr<ValueType, IndexType>::Fbcsr(const Fbcsr &other)
+    : Fbcsr{other.get_executor()}
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+Fbcsr<ValueType, IndexType>::Fbcsr(Fbcsr &&other) : Fbcsr{other.get_executor()}
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const b,
                                              LinOp *const x) const
 {

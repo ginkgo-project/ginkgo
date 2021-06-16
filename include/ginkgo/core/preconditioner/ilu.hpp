@@ -206,6 +206,42 @@ public:
         return std::move(transposed);
     }
 
+    Ilu &operator=(const Ilu &other)
+    {
+        if (&other != this) {
+            EnableLinOp<Ilu>::operator=(other);
+            auto exec = this->get_executor();
+            l_solver_ = other.l_solver_;
+            u_solver_ = other.u_solver_;
+            parameters_ = other.parameters_;
+            if (other.get_executor() != exec) {
+                l_solver_ = gko::clone(exec, l_solver_);
+                u_solver_ = gko::clone(exec, u_solver_);
+            }
+        }
+        return *this;
+    }
+
+    Ilu &operator=(Ilu &&other)
+    {
+        if (&other != this) {
+            EnableLinOp<Ilu>::operator=(other);
+            auto exec = this->get_executor();
+            l_solver_ = std::move(other.l_solver_);
+            u_solver_ = std::move(other.u_solver_);
+            parameters_ = std::exchange(other.parameters_, parameters_type{});
+            if (other.get_executor() != exec) {
+                l_solver_ = gko::clone(exec, l_solver_);
+                u_solver_ = gko::clone(exec, u_solver_);
+            }
+        }
+        return *this;
+    }
+
+    Ilu(const Ilu &other) : Ilu{other.get_executor()} { *this = other; }
+
+    Ilu(Ilu &&other) : Ilu{other.get_executor()} { *this = std::move(other); }
+
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override
     {

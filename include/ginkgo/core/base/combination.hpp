@@ -88,7 +88,35 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    Combination &operator=(const Combination &other);
+
+    Combination &operator=(Combination &&other);
+
+    Combination(const Combination &other);
+
+    Combination(Combination &&other);
+
 protected:
+    void add_operators() {}
+
+    template <typename... Rest>
+    void add_operators(std::shared_ptr<const LinOp> coef,
+                       std::shared_ptr<const LinOp> oper, Rest &&... rest)
+    {
+        GKO_ASSERT_EQUAL_DIMENSIONS(coef, dim<2>(1, 1));
+        GKO_ASSERT_EQUAL_DIMENSIONS(oper, this->get_size());
+        auto exec = this->get_executor();
+        coefficients_.push_back(std::move(coef));
+        operators_.push_back(std::move(oper));
+        if (coefficients_.back()->get_executor() != exec) {
+            coefficients_.back() = gko::clone(exec, coefficients_.back());
+        }
+        if (operators_.back()->get_executor() != exec) {
+            operators_.back() = gko::clone(exec, operators_.back());
+        }
+        add_operators(std::forward<Rest>(rest)...);
+    }
+
     /**
      * Creates an empty linear combination (0x0 operator).
      *
@@ -127,16 +155,16 @@ protected:
                   throw OutOfBoundsError(__FILE__, __LINE__, 1, 0);
               }
               return (*operator_begin)->get_executor();
-          }()),
-          coefficients_(coefficient_begin, coefficient_end),
-          operators_(operator_begin, operator_end)
+          }())
     {
-        for (const auto &c : coefficients_) {
-            GKO_ASSERT_EQUAL_DIMENSIONS(c, dim<2>(1, 1));
-        }
-        this->set_size(operators_[0]->get_size());
-        for (const auto &o : operators_) {
-            GKO_ASSERT_EQUAL_DIMENSIONS(o, this->get_size());
+        GKO_ASSERT_EQ(std::distance(coefficient_begin, coefficient_end),
+                      std::distance(operator_begin, operator_end));
+        this->set_size((*operator_begin)->get_size());
+        auto coefficient_it = coefficient_begin;
+        for (auto operator_it = operator_begin; operator_it != operator_end;
+             ++operator_it) {
+            add_operators(*coefficient_it, *operator_it);
+            ++coefficient_it;
         }
     }
 
@@ -153,33 +181,11 @@ protected:
     template <typename... Rest>
     explicit Combination(std::shared_ptr<const LinOp> coef,
                          std::shared_ptr<const LinOp> oper, Rest &&... rest)
-        : Combination(std::forward<Rest>(rest)...)
+        : Combination(oper->get_executor())
     {
-        GKO_ASSERT_EQUAL_DIMENSIONS(coef, dim<2>(1, 1));
-        GKO_ASSERT_EQUAL_DIMENSIONS(oper, this->get_size());
-        coefficients_.insert(begin(coefficients_), coef);
-        operators_.insert(begin(operators_), oper);
+        this->set_size(oper->get_size());
+        add_operators(coef, oper, std::forward<Rest>(rest)...);
     }
-
-    /**
-     * Creates a linear combination of operators using the specified list of
-     * coefficients and operators.
-     *
-     * @tparam Rest  types of trailing parameters
-     *
-     * @param coef  the first coefficient
-     * @param oper  the first operator
-     *
-     * @note this is the base case of the template constructor
-     *       Combination(std::shared_ptr<const LinOp>, std::shared_ptr<const
-     *       LinOp>, Rest &&...)
-     */
-    explicit Combination(std::shared_ptr<const LinOp> coef,
-                         std::shared_ptr<const LinOp> oper)
-        : EnableLinOp<Combination>(oper->get_executor(), oper->get_size()),
-          coefficients_{coef},
-          operators_{oper}
-    {}
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
 

@@ -63,7 +63,7 @@ std::unique_ptr<LinOp> Fcg<ValueType>::transpose() const
     return build()
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -76,7 +76,7 @@ std::unique_ptr<LinOp> Fcg<ValueType>::conj_transpose() const
     return build()
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -135,9 +135,10 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
     // rho_t = 1.0
     // z = p = q = 0
 
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_,
+    this->get_system_matrix()->apply(neg_one_op.get(), dense_x, one_op.get(),
+                                     r.get());
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
+        this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
         r.get());
 
@@ -152,7 +153,7 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
      * 1x norm2 residual        n
      */
     while (true) {
-        get_preconditioner()->apply(r.get(), z.get());
+        this->get_preconditioner()->apply(r.get(), z.get());
         r->compute_conj_dot(z.get(), rho.get());
         t->compute_conj_dot(z.get(), rho_t.get());
 
@@ -172,7 +173,7 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
         // p = z + tmp * p
         exec->run(fcg::make_step_1(p.get(), z.get(), rho_t.get(),
                                    prev_rho.get(), &stop_status));
-        system_matrix_->apply(p.get(), q.get());
+        this->get_system_matrix()->apply(p.get(), q.get());
         p->compute_conj_dot(q.get(), beta.get());
         // tmp = rho / beta
         // [prev_r = r] in registers

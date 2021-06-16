@@ -100,6 +100,50 @@ size_type calculate_max_nnz_per_row(
 
 
 template <typename ValueType, typename IndexType>
+Ell<ValueType, IndexType> &Ell<ValueType, IndexType>::operator=(
+    const Ell &other)
+{
+    if (&other != this) {
+        EnableLinOp<Ell>::operator=(other);
+        values_ = other.values_;
+        col_idxs_ = other.col_idxs_;
+        num_stored_elements_per_row_ = other.num_stored_elements_per_row_;
+        stride_ = other.stride_;
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Ell<ValueType, IndexType> &Ell<ValueType, IndexType>::operator=(Ell &&other)
+{
+    if (&other != this) {
+        EnableLinOp<Ell>::operator=(std::move(other));
+        values_ = std::move(other.values_);
+        col_idxs_ = std::move(other.col_idxs_);
+        num_stored_elements_per_row_ =
+            std::exchange(other.num_stored_elements_per_row_, 0);
+        stride_ = std::exchange(other.stride_, 0);
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Ell<ValueType, IndexType>::Ell(const Ell &other) : Ell(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+Ell<ValueType, IndexType>::Ell(Ell &&other) : Ell(other.get_executor())
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     mixed_precision_dispatch_real_complex<ValueType>(

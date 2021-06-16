@@ -66,7 +66,7 @@ std::unique_ptr<LinOp> Cgs<ValueType>::transpose() const
     return build()
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -79,7 +79,7 @@ std::unique_ptr<LinOp> Cgs<ValueType>::conj_transpose() const
     return build()
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -142,9 +142,10 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
     // rho_prev = 1.0
     // p = q = u = u_hat = v_hat = t = 0
 
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_,
+    this->get_system_matrix()->apply(neg_one_op.get(), dense_x, one_op.get(),
+                                     r.get());
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
+        this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
         r.get());
     r_tld->copy_from(r.get());
@@ -181,8 +182,8 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
         exec->run(cgs::make_step_1(r.get(), u.get(), p.get(), q.get(),
                                    beta.get(), rho.get(), rho_prev.get(),
                                    &stop_status));
-        get_preconditioner()->apply(p.get(), t.get());
-        system_matrix_->apply(t.get(), v_hat.get());
+        this->get_preconditioner()->apply(p.get(), t.get());
+        this->get_system_matrix()->apply(t.get(), v_hat.get());
         r_tld->compute_conj_dot(v_hat.get(), gamma.get());
         // alpha = rho / gamma
         // q = u - alpha * v_hat
@@ -191,8 +192,8 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
                                    alpha.get(), rho.get(), gamma.get(),
                                    &stop_status));
 
-        get_preconditioner()->apply(t.get(), u_hat.get());
-        system_matrix_->apply(u_hat.get(), t.get());
+        this->get_preconditioner()->apply(t.get(), u_hat.get());
+        this->get_system_matrix()->apply(u_hat.get(), t.get());
         // r = r - alpha * t
         // x = x + alpha * u_hat
         exec->run(cgs::make_step_3(t.get(), u_hat.get(), r.get(), dense_x,

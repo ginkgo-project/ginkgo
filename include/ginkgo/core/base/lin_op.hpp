@@ -240,6 +240,22 @@ public:
      */
     virtual bool apply_uses_initial_guess() const { return false; }
 
+    LinOp &operator=(const LinOp &) = default;
+
+    LinOp &operator=(LinOp &&other)
+    {
+        this->set_size(other.get_size());
+        other.set_size({});
+        return *this;
+    }
+
+    LinOp(const LinOp &) = default;
+
+    LinOp(LinOp &&other) : LinOp{other.get_executor(), other.get_size()}
+    {
+        other.set_size({});
+    }
+
 protected:
     /**
      * Creates a linear operator.

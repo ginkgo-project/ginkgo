@@ -143,6 +143,14 @@ public:
                                             Csr>::type>(approximate_inverse_);
     }
 
+    Isai &operator=(const Isai &other);
+
+    Isai &operator=(Isai &&other);
+
+    Isai(const Isai &other);
+
+    Isai(Isai &&other);
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**

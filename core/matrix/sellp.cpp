@@ -111,6 +111,58 @@ size_type calculate_total_cols(const matrix_data<ValueType, IndexType> &data,
 
 
 template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType> &Sellp<ValueType, IndexType>::operator=(
+    const Sellp &other)
+{
+    if (&other != this) {
+        EnableLinOp<Sellp>::operator=(other);
+        values_ = other.values_;
+        col_idxs_ = other.col_idxs_;
+        slice_lengths_ = other.slice_lengths_;
+        slice_sets_ = other.slice_sets_;
+        slice_size_ = other.slice_size_;
+        stride_factor_ = other.stride_factor_;
+        total_cols_ = other.total_cols_;
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType> &Sellp<ValueType, IndexType>::operator=(
+    Sellp &&other)
+{
+    if (&other != this) {
+        EnableLinOp<Sellp>::operator=(other);
+        values_ = std::move(other.values_);
+        col_idxs_ = std::move(other.col_idxs_);
+        slice_lengths_ = std::move(other.slice_lengths_);
+        slice_sets_ = std::move(other.slice_sets_);
+        slice_size_ = std::exchange(other.slice_size_, default_slice_size);
+        stride_factor_ =
+            std::exchange(other.stride_factor_, default_stride_factor);
+        total_cols_ = std::exchange(other.total_cols_, 0);
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>::Sellp(const Sellp &other)
+    : Sellp(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>::Sellp(Sellp &&other) : Sellp(other.get_executor())
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     precision_dispatch_real_complex<ValueType>(

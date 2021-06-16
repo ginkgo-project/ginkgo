@@ -67,7 +67,7 @@ std::unique_ptr<LinOp> Idr<ValueType>::transpose() const
     return build()
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -80,7 +80,7 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
     return build()
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -106,7 +106,7 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType> *dense_b,
 
     constexpr uint8 RelativeStoppingId{1};
 
-    const auto problem_size = system_matrix_->get_size()[0];
+    const auto problem_size = this->get_size()[0];
     const auto nrhs = dense_b->get_size()[1];
 
     auto residual = Vector::create_with_config_of(dense_b);
@@ -152,8 +152,8 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType> *dense_b,
 
     // residual = b - Ax
     residual->copy_from(dense_b);
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
-                          residual.get());
+    this->get_system_matrix()->apply(neg_one_op.get(), dense_x, one_op.get(),
+                                     residual.get());
     residual->compute_norm2(residual_norm.get());
 
     // g = u = 0
@@ -163,8 +163,8 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType> *dense_b,
         u->get_values(), problem_size * u->get_stride(), zero<SubspaceType>()));
 
 
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_,
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
+        this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
         residual.get());
 
@@ -212,7 +212,7 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType> *dense_b,
                                        residual.get(), g.get(), c.get(),
                                        v.get(), &stop_status));
 
-            get_preconditioner()->apply(v.get(), helper.get());
+            this->get_preconditioner()->apply(v.get(), helper.get());
 
             // u_k = omega * precond_vector + sum i=[k,s) of (c_i * u_i)
             exec->run(idr::make_step_2(nrhs, k, omega.get(), helper.get(),
@@ -222,7 +222,7 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType> *dense_b,
                                            span{k * nrhs, (k + 1) * nrhs});
 
             // g_k = Au_k
-            system_matrix_->apply(u_k.get(), helper.get());
+            this->get_system_matrix()->apply(u_k.get(), helper.get());
 
             // for i = [0,k)
             //     alpha = p^H_i * g_k / m_i,i
@@ -243,8 +243,8 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType> *dense_b,
                                        &stop_status));
         }
 
-        get_preconditioner()->apply(residual.get(), helper.get());
-        system_matrix_->apply(helper.get(), t.get());
+        this->get_preconditioner()->apply(residual.get(), helper.get());
+        this->get_system_matrix()->apply(helper.get(), t.get());
 
         t->compute_conj_dot(residual.get(), omega.get());
         t->compute_conj_dot(t.get(), tht.get());

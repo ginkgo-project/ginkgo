@@ -206,7 +206,6 @@ void CbGmres<ValueType>::apply_dense_impl(
     // the type of `value` matters, the content does not)
     auto apply_templated = [&](auto value) {
         using storage_type = decltype(value);
-        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
 
         using Vector = matrix::Dense<ValueType>;
         using VectorNorms = matrix::Dense<remove_complex<ValueType>>;
@@ -221,6 +220,8 @@ void CbGmres<ValueType>::apply_dense_impl(
         auto one_op = initialize<Vector>({one<ValueType>()}, exec);
         auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
+        const auto num_rows = this->get_size()[1];
+        const auto num_rhs = dense_b->get_size()[1];
         auto residual = Vector::create_with_config_of(dense_b);
         /* The dimensions {x, y, z} explained for the krylov_bases:
          * - x: selects the krylov vector (which has krylov_dim + 1 vectors)
@@ -228,9 +229,7 @@ void CbGmres<ValueType>::apply_dense_impl(
          * - z: selects which column-element of said krylov vector should be
          *      used
          */
-        const dim<3> krylov_bases_dim{krylov_dim_ + 1,
-                                      system_matrix_->get_size()[1],
-                                      dense_b->get_size()[1]};
+        const dim<3> krylov_bases_dim{krylov_dim_ + 1, num_rows, num_rhs};
         Range3dHelper helper(exec, krylov_bases_dim);
         auto krylov_bases_range = helper.get_range();
 
@@ -283,8 +282,8 @@ void CbGmres<ValueType>::apply_dense_impl(
             &stop_status, krylov_dim_));
         // residual = dense_b
         // givens_sin = givens_cos = 0
-        system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
-                              residual.get());
+        this->get_system_matrix()->apply(neg_one_op.get(), dense_x,
+                                         one_op.get(), residual.get());
         // residual = residual - Ax
 
         exec->run(cb_gmres::make_initialize_2(
@@ -297,8 +296,8 @@ void CbGmres<ValueType>::apply_dense_impl(
         // next_krylov_basis = residual / residual_norm
         // final_iter_nums = {0, ..., 0}
 
-        auto stop_criterion = stop_criterion_factory_->generate(
-            system_matrix_,
+        auto stop_criterion = this->get_stop_criterion_factory()->generate(
+            this->get_system_matrix(),
             std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}),
             dense_x, residual.get());
 
@@ -414,8 +413,8 @@ void CbGmres<ValueType>::apply_dense_impl(
                 // x = x + get_preconditioner() * krylov_bases * y
                 residual->copy_from(dense_b);
                 // residual = dense_b
-                system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
-                                      residual.get());
+                this->get_system_matrix()->apply(neg_one_op.get(), dense_x,
+                                                 one_op.get(), residual.get());
                 // residual = residual - Ax
                 exec->run(cb_gmres::make_initialize_2(
                     residual.get(), residual_norm.get(),
@@ -444,8 +443,8 @@ void CbGmres<ValueType>::apply_dense_impl(
                 span{0, restart_iter + 2}, span{0, dense_b->get_size()[1]});
 
             // Start of arnoldi
-            system_matrix_->apply(preconditioned_vector.get(),
-                                  next_krylov_basis.get());
+            this->get_system_matrix()->apply(preconditioned_vector.get(),
+                                             next_krylov_basis.get());
             // next_krylov_basis = A * preconditioned_vector
             exec->run(cb_gmres::make_step_1(
                 next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),

@@ -329,33 +329,57 @@ void Dense<ValueType>::compute_norm2_impl(LinOp *result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Dense<ValueType> *result) const
+Dense<ValueType> &Dense<ValueType>::operator=(const Dense &other)
 {
-    if (this->get_size() && result->get_size() == this->get_size()) {
+    if (&other != this) {
+        auto old_size = this->get_size();
+        EnableLinOp<Dense>::operator=(other);
+        if (old_size != other.get_size()) {
+            stride_ = other.get_stride();
+            values_.resize_and_reset(this->get_size()[0] * stride_);
+        }
         // we need to create a executor-local clone of the target data, that
         // will be copied back later.
-        auto exec = this->get_executor();
-        auto result_array = make_temporary_output_clone(exec, &result->values_);
+        auto exec = other.get_executor();
+        auto exec_values_array =
+            make_temporary_output_clone(exec, &this->values_);
         // create a (value, not pointer to avoid allocation overhead) view
         // matrix on the array to avoid special-casing cross-executor copies
-        auto tmp_result =
-            Dense{exec, result->get_size(),
-                  Array<ValueType>::view(exec, result_array->get_num_elems(),
-                                         result_array->get_data()),
-                  result->get_stride()};
-        exec->run(dense::make_copy(this, &tmp_result));
-    } else {
-        result->values_ = this->values_;
-        result->stride_ = this->stride_;
-        result->set_size(this->get_size());
+        auto exec_this_view = Dense{
+            exec, this->get_size(),
+            Array<ValueType>::view(exec, exec_values_array->get_num_elems(),
+                                   exec_values_array->get_data()),
+            this->get_stride()};
+        exec->run(dense::make_copy(&other, &exec_this_view));
     }
+    return *this;
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Dense<ValueType> *result)
+Dense<ValueType> &Dense<ValueType>::operator=(Dense<ValueType> &&other)
 {
-    this->convert_to(result);
+    if (&other != this) {
+        EnableLinOp<Dense>::operator=(std::move(other));
+        values_ = std::move(other.values_);
+        stride_ = std::exchange(other.stride_, 0);
+    }
+    return *this;
+}
+
+
+template <typename ValueType>
+Dense<ValueType>::Dense(const Dense<ValueType> &other)
+    : Dense(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType>
+Dense<ValueType>::Dense(Dense<ValueType> &&other) : Dense(other.get_executor())
+{
+    *this = std::move(other);
 }
 
 
@@ -363,15 +387,15 @@ template <typename ValueType>
 void Dense<ValueType>::convert_to(
     Dense<next_precision<ValueType>> *result) const
 {
-    if (result->get_size() == this->get_size()) {
-        auto exec = this->get_executor();
-        exec->run(dense::make_copy(
-            this, make_temporary_output_clone(exec, result).get()));
-    } else {
-        result->values_ = this->values_;
-        result->stride_ = this->stride_;
+    if (result->get_size() != this->get_size()) {
         result->set_size(this->get_size());
+        result->stride_ = stride_;
+        result->values_.resize_and_reset(result->get_size()[0] *
+                                         result->stride_);
     }
+    auto exec = this->get_executor();
+    exec->run(dense::make_copy(
+        this, make_temporary_output_clone(exec, result).get()));
 }
 
 
@@ -594,20 +618,31 @@ namespace {
 template <typename MatrixType, typename MatrixData>
 inline void read_impl(MatrixType *mtx, const MatrixData &data)
 {
-    auto tmp = MatrixType::create(mtx->get_executor()->get_master(), data.size);
+    std::unique_ptr<MatrixType> tmp;
+    auto host_mtx = mtx;
+    // we create a new object if we are on a GPU executor or need reallocation
+    if (mtx->get_executor() != mtx->get_executor()->get_master() ||
+        mtx->get_size() != data.size) {
+        tmp = MatrixType::create(mtx->get_executor()->get_master(), data.size);
+        host_mtx = tmp.get();
+    }
+
     size_type ind = 0;
     for (size_type row = 0; row < data.size[0]; ++row) {
         for (size_type col = 0; col < data.size[1]; ++col) {
             if (ind < data.nonzeros.size() && data.nonzeros[ind].row == row &&
                 data.nonzeros[ind].column == col) {
-                tmp->at(row, col) = data.nonzeros[ind].value;
+                host_mtx->at(row, col) = data.nonzeros[ind].value;
                 ++ind;
             } else {
-                tmp->at(row, col) = zero<typename MatrixType::value_type>();
+                host_mtx->at(row, col) =
+                    zero<typename MatrixType::value_type>();
             }
         }
     }
-    tmp->move_to(mtx);
+    if (host_mtx != mtx) {
+        host_mtx->move_to(mtx);
+    }
 }
 
 

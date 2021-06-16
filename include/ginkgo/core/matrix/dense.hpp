@@ -199,10 +199,6 @@ public:
 
     friend class Dense<next_precision<ValueType>>;
 
-    void convert_to(Dense<ValueType> *result) const override;
-
-    void move_to(Dense<ValueType> *result) override;
-
     void convert_to(Dense<next_precision<ValueType>> *result) const override;
 
     void move_to(Dense<next_precision<ValueType>> *result) override;
@@ -769,6 +765,14 @@ public:
                         this->get_const_values()))),
             stride);
     }
+
+    Dense &operator=(const Dense &other);
+
+    Dense &operator=(Dense &&other);
+
+    Dense(const Dense &other);
+
+    Dense(Dense &&other);
 
 protected:
     /**

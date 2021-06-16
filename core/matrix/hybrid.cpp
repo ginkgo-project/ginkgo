@@ -100,6 +100,61 @@ void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
 
 
 template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType> &Hybrid<ValueType, IndexType>::operator=(
+    const Hybrid &other)
+{
+    if (&other != this) {
+        EnableLinOp<Hybrid>::operator=(other);
+        auto exec = this->get_executor();
+        coo_ = other.coo_;
+        ell_ = other.ell_;
+        strategy_ = other.strategy_;
+        if (other.get_executor() != exec) {
+            coo_ = gko::clone(exec, coo_);
+            ell_ = gko::clone(exec, ell_);
+        }
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType> &Hybrid<ValueType, IndexType>::operator=(
+    Hybrid &&other)
+{
+    if (&other != this) {
+        EnableLinOp<Hybrid>::operator=(std::move(other));
+        auto exec = this->get_executor();
+        coo_ = std::move(other.coo_);
+        ell_ = std::move(other.ell_);
+        strategy_ =
+            std::exchange(other.strategy_, std::make_shared<automatic>());
+        if (other.get_executor() != exec) {
+            coo_ = gko::clone(exec, coo_);
+            ell_ = gko::clone(exec, ell_);
+        }
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(const Hybrid &other)
+    : Hybrid(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(Hybrid &&other)
+    : Hybrid(other.get_executor())
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     precision_dispatch_real_complex<ValueType>(

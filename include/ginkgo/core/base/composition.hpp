@@ -85,7 +85,33 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    Composition &operator=(const Composition &other);
+
+    Composition &operator=(Composition &&other);
+
+    Composition(const Composition &other);
+
+    Composition(Composition &&other);
+
 protected:
+    void add_operators() {}
+
+    template <typename... Rest>
+    void add_operators(std::shared_ptr<const LinOp> oper, Rest &&... rest)
+    {
+        if (!operators_.empty()) {
+            GKO_ASSERT_CONFORMANT(this, oper);
+        }
+        auto exec = this->get_executor();
+        operators_.push_back(std::move(oper));
+        if (operators_.back()->get_executor() != exec) {
+            operators_.back() = gko::clone(exec, operators_.back());
+        }
+        this->set_size(dim<2>{operators_.front()->get_size()[0],
+                              operators_.back()->get_size()[1]});
+        add_operators(std::forward<Rest>(rest)...);
+    }
+
     /**
      * Creates an empty operator composition (0x0 operator).
      *
@@ -114,13 +140,10 @@ protected:
               }
               return (*begin)->get_executor();
           }()),
-          storage_{(*begin)->get_executor()},
-          operators_(begin, end)
+          storage_{this->get_executor()}
     {
-        this->set_size(gko::dim<2>{operators_.front()->get_size()[0],
-                                   operators_.back()->get_size()[1]});
-        for (size_type i = 1; i < operators_.size(); ++i) {
-            GKO_ASSERT_CONFORMANT(operators_[i - 1], operators_[i]);
+        for (auto it = begin; it != end; ++it) {
+            add_operators(*it);
         }
     }
 
@@ -134,27 +157,10 @@ protected:
      */
     template <typename... Rest>
     explicit Composition(std::shared_ptr<const LinOp> oper, Rest &&... rest)
-        : Composition(std::forward<Rest>(rest)...)
+        : Composition(oper->get_executor())
     {
-        GKO_ASSERT_CONFORMANT(oper, operators_[0]);
-        operators_.insert(begin(operators_), oper);
-        this->set_size(gko::dim<2>{operators_.front()->get_size()[0],
-                                   operators_.back()->get_size()[1]});
+        add_operators(oper, std::forward<Rest>(rest)...);
     }
-
-    /**
-     * Creates a composition of operators using the specified list of operators.
-     *
-     * @param oper  the first operator
-     *
-     * @note this is the base case of the template constructor
-     *       Composition(std::shared_ptr<const LinOp>, Rest &&...)
-     */
-    explicit Composition(std::shared_ptr<const LinOp> oper)
-        : EnableLinOp<Composition>(oper->get_executor(), oper->get_size()),
-          operators_{oper},
-          storage_{oper->get_executor()}
-    {}
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
 

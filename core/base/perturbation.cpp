@@ -39,6 +39,61 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 
+template <typename ValueType>
+Perturbation<ValueType> &Perturbation<ValueType>::operator=(
+    const Perturbation &other)
+{
+    if (&other != this) {
+        EnableLinOp<Perturbation>::operator=(other);
+        auto exec = this->get_executor();
+        scalar_ = other.scalar_;
+        basis_ = other.basis_;
+        projector_ = other.projector_;
+        if (other.get_executor() != exec) {
+            scalar_ = gko::clone(exec, scalar_);
+            basis_ = gko::clone(exec, basis_);
+            projector_ = gko::clone(exec, projector_);
+        }
+    }
+    return *this;
+}
+
+
+template <typename ValueType>
+Perturbation<ValueType> &Perturbation<ValueType>::operator=(
+    Perturbation &&other)
+{
+    if (&other != this) {
+        EnableLinOp<Perturbation>::operator=(std::move(other));
+        auto exec = this->get_executor();
+        scalar_ = std::move(other.scalar_);
+        basis_ = std::move(other.basis_);
+        projector_ = std::move(other.projector_);
+        if (other.get_executor() != exec) {
+            scalar_ = gko::clone(exec, scalar_);
+            basis_ = gko::clone(exec, basis_);
+            projector_ = gko::clone(exec, projector_);
+        }
+    }
+    return *this;
+}
+
+
+template <typename ValueType>
+Perturbation<ValueType>::Perturbation(const Perturbation &other)
+    : Perturbation(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType>
+Perturbation<ValueType>::Perturbation(Perturbation &&other)
+    : Perturbation(other.get_executor())
+{
+    *this = std::move(other);
+}
+
 
 template <typename ValueType>
 void Perturbation<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
