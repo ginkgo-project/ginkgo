@@ -46,60 +46,39 @@ namespace extension {
 namespace resource_manager {
 
 
-// template <typename T>
-// std::shared_ptr<T> get_gko_ptr(rapidjson::Value &item,
-//                                std::shared_ptr<T> default_ptr)
-// {
-//     if (item.IsString()) {
-//         this->search_<T>(item.GetString());
-//     } else if (item.IsObject()) {
-//         this->build_item<>
-//     }
-// }
-
-// template <typename T>
-// std::shared_ptr<T> get_gko_ptr_arr(rapidjson::Value &item,
-//                                    std::shared_ptr<T> default_ptr)
-// {
-//     if
-//         arr
-//         {
-//         for
-//             loop this->get_gko_ptr
-//         }
-//     else {
-//         this->get_gko_ptr
-//     }
-// }
-
 template <>
-std::shared_ptr<gko::CudaExecutor>
-ResourceManager::build_item_impl<gko::CudaExecutor>(rapidjson::Value &item)
+std::shared_ptr<gko::CudaExecutor> create_from_config<gko::CudaExecutor>(
+    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
     std::cout << "Cuda" << std::endl;
     auto device_id = get_value_with_default(item, "device_id", 0);
     return CudaExecutor::create(device_id, ReferenceExecutor::create());
 }
 
-IMPLEMENT_BRIDGE(RM_Executor, CudaExecutor, CudaExecutor)
+
+IMPLEMENT_BRIDGE2(RM_Executor, CudaExecutor, CudaExecutor)
+
 // IMPLEMENT_TINY_BRIDGE(RM_Executor, CudaExecutor, CudaExecutor)
 
 template <>
-std::shared_ptr<gko::HipExecutor>
-ResourceManager::build_item_impl<gko::HipExecutor>(rapidjson::Value &item)
+std::shared_ptr<gko::HipExecutor> create_from_config<gko::HipExecutor>(
+    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
     std::cout << "Hip" << std::endl;
     auto device_id = get_value_with_default<int>(item, "device_id", 0);
     return HipExecutor::create(device_id, ReferenceExecutor::create());
 }
 
+IMPLEMENT_BRIDGE2(RM_Executor, HipExecutor, HipExecutor)
 
-IMPLEMENT_BRIDGE(RM_Executor, HipExecutor, HipExecutor)
 // IMPLEMENT_TINY_BRIDGE(RM_Executor, HipExecutor, HipExecutor)
 
 template <>
-std::shared_ptr<gko::DpcppExecutor>
-ResourceManager::build_item_impl<gko::DpcppExecutor>(rapidjson::Value &item)
+std::shared_ptr<gko::DpcppExecutor> create_from_config<gko::DpcppExecutor>(
+    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
     std::cout << "DPCPP" << std::endl;
     auto device_id = get_value_with_default<int>(item, "device_id", 0);
@@ -107,31 +86,38 @@ ResourceManager::build_item_impl<gko::DpcppExecutor>(rapidjson::Value &item)
 }
 
 
-IMPLEMENT_BRIDGE(RM_Executor, DpcppExecutor, DpcppExecutor)
+IMPLEMENT_BRIDGE2(RM_Executor, DpcppExecutor, DpcppExecutor)
+
 // IMPLEMENT_TINY_BRIDGE(RM_Executor, DpcppExecutor, DpcppExecutor)
 
 template <>
 std::shared_ptr<gko::ReferenceExecutor>
-ResourceManager::build_item_impl<gko::ReferenceExecutor>(rapidjson::Value &item)
+create_from_config<gko::ReferenceExecutor>(rapidjson::Value &item,
+                                           std::shared_ptr<const Executor> exec,
+                                           std::shared_ptr<const LinOp> linop,
+                                           ResourceManager *manager)
 {
     std::cout << "REFERENCE" << std::endl;
     return ReferenceExecutor::create();
 }
 
 
-IMPLEMENT_BRIDGE(RM_Executor, ReferenceExecutor, ReferenceExecutor)
+IMPLEMENT_BRIDGE2(RM_Executor, ReferenceExecutor, ReferenceExecutor)
+
 // IMPLEMENT_TINY_BRIDGE(RM_Executor, ReferenceExecutor, ReferenceExecutor)
 
 
 template <>
-std::shared_ptr<gko::OmpExecutor>
-ResourceManager::build_item_impl<gko::OmpExecutor>(rapidjson::Value &item)
+std::shared_ptr<gko::OmpExecutor> create_from_config<gko::OmpExecutor>(
+    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
     std::cout << "OMP" << std::endl;
     return OmpExecutor::create();
 }
 
-IMPLEMENT_BRIDGE(RM_Executor, OmpExecutor, OmpExecutor)
+IMPLEMENT_BRIDGE2(RM_Executor, OmpExecutor, OmpExecutor)
+
 // IMPLEMENT_TINY_BRIDGE(RM_Executor, OmpExecutor, OmpExecutor)
 
 
