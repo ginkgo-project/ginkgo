@@ -86,12 +86,12 @@ T get_value_with_default(rapidjson::Value &item, std::string key, T default_val)
 
 
 template <typename T>
-std::shared_ptr<T> get_pointer(
-    ResourceManager *rm, rapidjson::Value &item,
-    std::shared_ptr<const gko::Executor> exec = nullptr,
-    std::shared_ptr<const LinOp> linop = nullptr)
+std::shared_ptr<const T> get_pointer(ResourceManager *rm,
+                                     rapidjson::Value &item,
+                                     std::shared_ptr<const gko::Executor> exec,
+                                     std::shared_ptr<const LinOp> linop)
 {
-    std::shared_ptr<T> ptr;
+    std::shared_ptr<const T> ptr;
     if (rm == nullptr) {
         if (item.IsObject()) {
             ptr = Generic<T>::build(item, exec, linop, rm);
@@ -101,10 +101,8 @@ std::shared_ptr<T> get_pointer(
     } else {
         if (item.IsString()) {
             std::string opt = item.GetString();
-            ptr = std::dynamic_pointer_cast<T>(rm->search_data<T>(opt));
-
+            ptr = rm->search_data<T>(opt);
         } else if (item.IsObject()) {
-            // create a object
             ptr = rm->build_item<T>(item);
         } else {
             assert(false);
@@ -112,6 +110,100 @@ std::shared_ptr<T> get_pointer(
     }
     assert(ptr.get() == nullptr);
     return std::move(ptr);
+}
+
+template <>
+std::shared_ptr<const Executor> get_pointer<Executor>(
+    ResourceManager *rm, rapidjson::Value &item,
+    std::shared_ptr<const gko::Executor> exec,
+    std::shared_ptr<const LinOp> linop)
+{
+    std::shared_ptr<const Executor> ptr;
+    if (rm == nullptr) {
+        if (item.IsObject()) {
+            ptr = Generic<Executor>::build(item, exec, linop, rm);
+        } else if (item.IsString() &&
+                   std::string(item.GetString()) == std::string("inherit")) {
+            ptr = exec;
+        } else {
+            assert(false);
+        }
+    } else {
+        if (item.IsString()) {
+            std::string opt = item.GetString();
+            if (opt == std::string("inherit")) {
+                ptr = exec;
+            } else {
+                ptr = rm->search_data<Executor>(opt);
+            }
+        } else if (item.IsObject()) {
+            ptr = rm->build_item<Executor>(item);
+        } else {
+            assert(false);
+        }
+    }
+    assert(ptr.get() == nullptr);
+    return std::move(ptr);
+}
+
+template <>
+std::shared_ptr<const LinOp> get_pointer<LinOp>(
+    ResourceManager *rm, rapidjson::Value &item,
+    std::shared_ptr<const gko::Executor> exec,
+    std::shared_ptr<const LinOp> linop)
+{
+    std::shared_ptr<const LinOp> ptr;
+    if (rm == nullptr) {
+        if (item.IsObject()) {
+            ptr = Generic<LinOp>::build(item, exec, linop, rm);
+        } else if (item.IsString() &&
+                   std::string(item.GetString()) == std::string("given")) {
+            ptr = linop;
+        } else {
+            assert(false);
+        }
+    } else {
+        if (item.IsString()) {
+            std::string opt = item.GetString();
+            if (opt == std::string("given")) {
+                ptr = linop;
+            } else {
+                ptr = rm->search_data<LinOp>(opt);
+            }
+        } else if (item.IsObject()) {
+            ptr = rm->build_item<LinOp>(item);
+        } else {
+            assert(false);
+        }
+    }
+    assert(ptr.get() == nullptr);
+    return std::move(ptr);
+}
+
+template <typename T>
+std::shared_ptr<const T> get_pointer_check(
+    ResourceManager *rm, rapidjson::Value &item, std::string key,
+    std::shared_ptr<const gko::Executor> exec,
+    std::shared_ptr<const LinOp> linop)
+{
+    assert(item.HasMember(key.c_str()));
+    return get_pointer<T>(rm, item[key.c_str()], exec, linop);
+}
+
+template <>
+std::shared_ptr<const Executor> get_pointer_check<Executor>(
+    ResourceManager *rm, rapidjson::Value &item, std::string key,
+    std::shared_ptr<const gko::Executor> exec,
+    std::shared_ptr<const LinOp> linop)
+{
+    if (item.HasMember(key.c_str())) {
+        return get_pointer<Executor>(rm, item[key.c_str()], exec, linop);
+    } else if (exec != nullptr) {
+        return exec;
+    } else {
+        assert(false);
+        return nullptr;
+    }
 }
 
 
