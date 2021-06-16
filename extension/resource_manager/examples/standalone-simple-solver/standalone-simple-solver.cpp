@@ -30,36 +30,49 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKOEXT_RESOURCE_MANAGER_HPP_
-#define GKOEXT_RESOURCE_MANAGER_HPP_
+// @sect3{Include files}
 
+// This is the main ginkgo header file.
+#include <ginkgo/ginkgo.hpp>
+
+#include <rapidjson/document.h>
+#include <rapidjson/istreamwrapper.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <resource_manager/resource_manager.hpp>
+// Add the fstream header to read from data from files.
+#include <fstream>
+// Add the C++ iostream header to output information to the console.
+#include <iostream>
+// Add the STL map header for the executor selection
 #include <map>
-#include "resource_manager/base/generic_base_selector.hpp"
-#include "resource_manager/base/generic_constructor.hpp"
-#include "resource_manager/base/macro_helper.hpp"
-#include "resource_manager/base/rapidjson_helper.hpp"
-#include "resource_manager/base/resource_manager.hpp"
-#include "resource_manager/base/types.hpp"
-#include "resource_manager/executor/executor.hpp"
-#include "resource_manager/linop/dense.hpp"
-#include "resource_manager/solver/cg.hpp"
-#include "resource_manager/stop/iteration.hpp"
-
-namespace gko {
-namespace extension {
-namespace resource_manager {
+// Add the string manipulation header to handle strings.
+#include <string>
 
 
-IMPLEMENT_SELECTION(Executor, RM_Executor, ENUM_EXECUTER);
-IMPLEMENT_SELECTION(LinOp, RM_LinOp, ENUM_LINOP);
-IMPLEMENT_SELECTION(LinOpFactory, RM_LinOpFactory, ENUM_LINOPFACTORY);
-IMPLEMENT_SELECTION(CriterionFactory, RM_CriterionFactory,
-                    ENUM_CRITERIONFACTORY);
+int main(int argc, char *argv[])
+{
+    using mtx = gko::matrix::Dense<double>;
+    // Print the ginkgo version information.
+    std::cout << gko::version_info::get() << std::endl;
 
+    std::ifstream solver_json("data/solver.json");
+    rapidjson::IStreamWrapper solver_in(solver_json);
+    rapidjson::Document f_solver;
+    f_solver.ParseStream(solver_in);
 
-}  // namespace resource_manager
-}  // namespace extension
-}  // namespace gko
+    auto solver =
+        gko::extension::resource_manager::create_from_config<gko::LinOp>(
+            f_solver);
+    auto exec = solver->get_executor();
 
+    auto x = share(gko::read<mtx>(std::ifstream("data/x0.mtx"), exec));
+    auto b = share(gko::read<mtx>(std::ifstream("data/b.mtx"), exec));
 
-#endif  // GKOEXT_RESOURCE_MANAGER_HPP_
+    std::cout << "Apply:\n";
+    solver->apply(lend(b), lend(x));
+
+    std::cout << "Solution (x):\n";
+    write(std::cout, lend(x));
+
+    return 0;
+}

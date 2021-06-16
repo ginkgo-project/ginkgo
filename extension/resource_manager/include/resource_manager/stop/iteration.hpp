@@ -48,10 +48,11 @@ namespace {
 
 
 std::shared_ptr<typename gko::stop::Iteration::Factory> build_iteraion_factory(
-    ResourceManager *rm, rapidjson::Value &item)
+    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
-    auto exec_ptr = get_pointer<Executor>(rm, item["exec"]);
-    auto ptr = BUILD_FACTORY(gko::stop::Iteration, rm, item)
+    auto exec_ptr = get_pointer<Executor>(manager, item["exec"], exec, linop);
+    auto ptr = BUILD_FACTORY(gko::stop::Iteration, manager, item, exec, linop)
         WITH_VALUE(size_type, max_iters) ON_EXECUTOR;
     return ptr;
 }
@@ -60,13 +61,14 @@ std::shared_ptr<typename gko::stop::Iteration::Factory> build_iteraion_factory(
 }  // namespace
 
 
-#define CONNECT_STOP_FACTORY(base, func)                          \
-    template <>                                                   \
-    std::shared_ptr<typename base::Factory>                       \
-        ResourceManager::build_item_impl<typename base::Factory>( \
-            rapidjson::Value & item)                              \
-    {                                                             \
-        return func(this, item);                                  \
+#define CONNECT_STOP_FACTORY(base, func)                               \
+    template <>                                                        \
+    std::shared_ptr<typename base::Factory>                            \
+    create_from_config<typename base::Factory>(                        \
+        rapidjson::Value & item, std::shared_ptr<const Executor> exec, \
+        std::shared_ptr<const LinOp> linop, ResourceManager * manager) \
+    {                                                                  \
+        return func(item, exec, linop, manager);                       \
     }
 
 
@@ -74,13 +76,20 @@ CONNECT_STOP_FACTORY(gko::stop::Iteration, build_iteraion_factory);
 
 
 template <>
-std::shared_ptr<CriterionFactory>
-ResourceManager::build_item<RM_CriterionFactory, RM_CriterionFactory::Iteration,
-                            CriterionFactory>(rapidjson::Value &item)
+std::shared_ptr<CriterionFactory> create_from_config<
+    RM_CriterionFactory, RM_CriterionFactory::Iteration, CriterionFactory>(
+    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
     std::cout << "build_iteraion_factory" << std::endl;
 
-    return this->build_item<gko::stop::Iteration::Factory>(item);
+    if (manager == nullptr) {
+        return create_from_config<typename gko::stop::Iteration::Factory>(
+            item, exec, linop, manager);
+    } else {
+        return manager->build_item<typename gko::stop::Iteration::Factory>(
+            item);
+    }
 }
 
 

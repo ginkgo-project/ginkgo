@@ -86,17 +86,29 @@ T get_value_with_default(rapidjson::Value &item, std::string key, T default_val)
 
 
 template <typename T>
-std::shared_ptr<T> get_pointer(ResourceManager *rm, rapidjson::Value &item)
+std::shared_ptr<T> get_pointer(
+    ResourceManager *rm, rapidjson::Value &item,
+    std::shared_ptr<const gko::Executor> exec = nullptr,
+    std::shared_ptr<const LinOp> linop = nullptr)
 {
     std::shared_ptr<T> ptr;
-    if (item.IsString()) {
-        std::string opt = item.GetString();
-        ptr = std::dynamic_pointer_cast<T>(rm->search_data<T>(opt));
-    } else if (item.IsObject()) {
-        // create a object
-        ptr = rm->build_item<T>(item);
+    if (rm == nullptr) {
+        if (item.IsObject()) {
+            ptr = create_from_config<T>(item, exec, linop, rm);
+        } else {
+            assert(false);
+        }
     } else {
-        assert(false);
+        if (item.IsString()) {
+            std::string opt = item.GetString();
+            ptr = std::dynamic_pointer_cast<T>(rm->search_data<T>(opt));
+
+        } else if (item.IsObject()) {
+            // create a object
+            ptr = rm->build_item<T>(item);
+        } else {
+            assert(false);
+        }
     }
     assert(ptr.get() == nullptr);
     return std::move(ptr);
@@ -104,18 +116,20 @@ std::shared_ptr<T> get_pointer(ResourceManager *rm, rapidjson::Value &item)
 
 
 template <typename T>
-std::vector<std::shared_ptr<const T>> get_pointer_vector(ResourceManager *rm,
-                                                         rapidjson::Value &item)
+std::vector<std::shared_ptr<const T>> get_pointer_vector(
+    ResourceManager *rm, rapidjson::Value &item,
+    std::shared_ptr<const gko::Executor> exec = nullptr,
+    std::shared_ptr<const LinOp> linop = nullptr)
 {
     std::vector<std::shared_ptr<const T>> vec;
     if (item.IsArray()) {
         for (auto &v : item.GetArray()) {
-            auto ptr = get_pointer<T>(rm, v);
+            auto ptr = get_pointer<T>(rm, v, exec, linop);
             std::cout << "array " << ptr << std::endl;
             vec.emplace_back(ptr);
         }
     } else {
-        auto ptr = get_pointer<T>(rm, item);
+        auto ptr = get_pointer<T>(rm, item, exec, linop);
         std::cout << "item " << ptr << std::endl;
         vec.emplace_back(ptr);
     }

@@ -1,0 +1,27 @@
+{
+    "name": "solver",
+    "base": "Cg",
+    "factory": {
+        "name": "CgFactory",
+        "exec": {
+            "base": "ReferenceExecutor"
+        },
+        "criteria": [
+            {
+                "name": "20Iter",
+                "base": "Iteration",
+                "max_iters": 20,
+                "exec": {
+                    "base": "ReferenceExecutor"
+                }
+            }
+        ]
+    },
+    "generate": {
+        "base": "Dense",
+        "exec": {
+            "base": "ReferenceExecutor"
+        },
+        "read": "data/A.mtx"
+    }
+}
