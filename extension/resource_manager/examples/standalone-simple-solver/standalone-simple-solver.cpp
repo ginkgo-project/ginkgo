@@ -60,10 +60,19 @@ int main(int argc, char *argv[])
     rapidjson::Document f_solver;
     f_solver.ParseStream(solver_in);
 
+    std::ifstream A_json("data/A.json");
+    rapidjson::IStreamWrapper A_in(A_json);
+    rapidjson::Document f_A;
+    f_A.ParseStream(A_in);
+
+    auto exec = share(gko::ReferenceExecutor::create());
+    auto A = gko::extension::resource_manager::create_from_config<gko::LinOp>(
+        f_A, exec);
     auto solver =
         gko::extension::resource_manager::create_from_config<gko::LinOp>(
-            f_solver);
-    auto exec = solver->get_executor();
+            f_solver, exec, A);
+    std::cout << exec.get() << std::endl;
+
 
     auto x = share(gko::read<mtx>(std::ifstream("data/x0.mtx"), exec));
     auto b = share(gko::read<mtx>(std::ifstream("data/b.mtx"), exec));

@@ -68,17 +68,36 @@ public:
     // contain name
     void build_item(rapidjson::Value &item);
 
+
     template <typename T>
-    std::shared_ptr<T> build_item(rapidjson::Value &item)
+    std::shared_ptr<T> build_item(
+        rapidjson::Value &item, std::string base,
+        std::shared_ptr<const Executor> exec = nullptr,
+        std::shared_ptr<const LinOp> linop = nullptr)
     {
         std::cout << "create_from_config" << std::endl;
-        auto ptr = Generic<T>::build(item, nullptr, nullptr, this);
+        auto ptr = create_from_config<T>(item, base, exec, linop, this);
         // if need to store the data, how to do that
         if (item.HasMember("name")) {
             this->insert_data<T>(item["name"].GetString(), ptr);
         }
         return ptr;
     }
+
+    template <typename T>
+    std::shared_ptr<T> build_item(
+        rapidjson::Value &item, std::shared_ptr<const Executor> exec = nullptr,
+        std::shared_ptr<const LinOp> linop = nullptr)
+    {
+        std::cout << "create_from_config" << std::endl;
+        auto ptr = Generic<T>::build(item, exec, linop, this);
+        // if need to store the data, how to do that
+        if (item.HasMember("name")) {
+            this->insert_data<T>(item["name"].GetString(), ptr);
+        }
+        return ptr;
+    }
+
 
     void read(rapidjson::Value &dom)
     {
