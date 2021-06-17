@@ -206,4 +206,19 @@ TEST_F(BatchDense, CudaComputeNorm2IsEquivalentToRef)
 }
 
 
+TEST_F(BatchDense, CudaComputeDotIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+    auto dot_size =
+        gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
+    auto dot_expected = Mtx::create(this->ref, dot_size);
+    auto ddot = Mtx::create(this->cuda, dot_size);
+
+    x->compute_dot(y.get(), dot_expected.get());
+    dx->compute_dot(dy.get(), ddot.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 1e-14);
+}
+
+
 }  // namespace
