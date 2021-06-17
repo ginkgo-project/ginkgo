@@ -1,5 +1,3 @@
-
-
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
@@ -117,8 +115,7 @@ default_stride(const matrix::Dense<ValueType> *mtx)
 template <typename ValueType>
 kernels::cuda::cuda_type<ValueType> *rowvector(matrix::Dense<ValueType> *mtx)
 {
-    GKO_ASSERT(mtx->get_size()[0] == 1 ||
-               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
+    GKO_ASSERT(mtx->get_size()[0] == 1);
     return kernels::cuda::as_cuda_type(mtx->get_values());
 }
 
@@ -127,8 +124,7 @@ template <typename ValueType>
 const kernels::cuda::cuda_type<ValueType> *rowvector(
     const matrix::Dense<ValueType> *mtx)
 {
-    GKO_ASSERT(mtx->get_size()[0] == 1 ||
-               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
+    GKO_ASSERT(mtx->get_size()[0] == 1);
     return kernels::cuda::as_cuda_type(mtx->get_const_values());
 }
 

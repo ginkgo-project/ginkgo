@@ -1,5 +1,3 @@
-
-
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
@@ -112,8 +110,7 @@ kernels::dpcpp::default_stride_dense_wrapper<const ValueType> default_stride(
 template <typename ValueType>
 ValueType *rowvector(matrix::Dense<ValueType> *mtx)
 {
-    GKO_ASSERT(mtx->get_size()[0] == 1 ||
-               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
+    GKO_ASSERT(mtx->get_size()[0] == 1);
     return mtx->get_values();
 }
 
@@ -121,8 +118,7 @@ ValueType *rowvector(matrix::Dense<ValueType> *mtx)
 template <typename ValueType>
 const ValueType *rowvector(const matrix::Dense<ValueType> *mtx)
 {
-    GKO_ASSERT(mtx->get_size()[0] == 1 ||
-               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
+    GKO_ASSERT(mtx->get_size()[0] == 1);
     return mtx->get_const_values();
 }
 

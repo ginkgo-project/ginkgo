@@ -828,7 +828,6 @@ protected:
 
     /**
      * Creates a Dense matrix with the same size as the callers matrix.
-     * Note that the stride is not preserved!
      *
      * @returns a Dense matrix with the same size as the caller.
      */
