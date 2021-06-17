@@ -114,76 +114,8 @@ typename to_device_type_impl<T>::type map_to_device(T &&param)
 }
 
 
-template <typename ValueType>
-struct compact_dense_wrapper {
-    ValueType *data;
-};
-
-
-template <typename T>
-struct device_unpack_2d_impl {
-    using type = T;
-    static type unpack(T param, size_type) { return param; }
-};
-
-template <typename ValueType>
-struct device_unpack_2d_impl<compact_dense_wrapper<ValueType>> {
-    using type = matrix_accessor<ValueType>;
-    static type unpack(compact_dense_wrapper<ValueType> param,
-                       size_type num_cols)
-    {
-        return {param.data, num_cols};
-    }
-};
-
-
-template <typename T>
-typename device_unpack_2d_impl<typename to_device_type_impl<T>::type>::type
-map_unpack_to_device(T &&param, size_type num_cols)
-{
-    return device_unpack_2d_impl<typename to_device_type_impl<T>::type>::unpack(
-        to_device_type_impl<T>::map_to_device(param), num_cols);
-}
-
-
 }  // namespace omp
 }  // namespace kernels
-
-
-template <typename ValueType>
-kernels::omp::compact_dense_wrapper<ValueType> compact(
-    matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
-    return {mtx->get_values()};
-}
-
-
-template <typename ValueType>
-kernels::omp::compact_dense_wrapper<const ValueType> compact(
-    const matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
-    return {mtx->get_const_values()};
-}
-
-
-template <typename ValueType>
-ValueType *vector(matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_size()[0] == 1 ||
-               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
-    return mtx->get_values();
-}
-
-
-template <typename ValueType>
-const ValueType *vector(const matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_size()[0] == 1 ||
-               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
-    return mtx->get_const_values();
-}
 
 
 template <typename KernelFunction, typename... KernelArgs>
@@ -196,28 +128,26 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
     }
 }
 
-template <size_type cols, typename KernelFunction, typename... KernelArgs>
-void run_kernel_fixed_cols(std::shared_ptr<const OmpExecutor> exec,
-                           KernelFunction fn, dim<2> size,
-                           KernelArgs &&... args)
+template <size_type cols, typename KernelFunction, typename... MappedKernelArgs>
+void run_kernel_fixed_cols_impl(std::shared_ptr<const OmpExecutor> exec,
+                                KernelFunction fn, dim<2> size,
+                                MappedKernelArgs... args)
 {
     const auto rows = size[0];
 #pragma omp parallel for
     for (size_type row = 0; row < rows; row++) {
 #pragma unroll
         for (size_type col = 0; col < cols; col++) {
-            [&]() {
-                fn(row, col, kernels::omp::map_unpack_to_device(args, cols)...);
-            }();
+            [&]() { fn(row, col, args...); }();
         }
     }
 }
 
 template <size_type remainder_cols, typename KernelFunction,
-          typename... KernelArgs>
-void run_kernel_blocked_cols(std::shared_ptr<const OmpExecutor> exec,
-                             KernelFunction fn, dim<2> size,
-                             KernelArgs &&... args)
+          typename... MappedKernelArgs>
+void run_kernel_blocked_cols_impl(std::shared_ptr<const OmpExecutor> exec,
+                                  KernelFunction fn, dim<2> size,
+                                  MappedKernelArgs... args)
 {
     const auto rows = size[0];
     const auto cols = size[1];
@@ -228,25 +158,19 @@ void run_kernel_blocked_cols(std::shared_ptr<const OmpExecutor> exec,
         for (size_type base_col = 0; base_col < rounded_cols; base_col += 4) {
 #pragma unroll
             for (size_type i = 0; i < 4; i++) {
-                [&]() {
-                    fn(row, base_col + i,
-                       kernels::omp::map_unpack_to_device(args, cols)...);
-                }();
+                [&]() { fn(row, base_col + i, args...); }();
             }
         }
 #pragma unroll
         for (size_type i = 0; i < remainder_cols; i++) {
-            [&]() {
-                fn(row, rounded_cols + i,
-                   kernels::omp::map_unpack_to_device(args, cols)...);
-            }();
+            [&]() { fn(row, rounded_cols + i, args...); }();
         }
     }
 }
 
-template <typename KernelFunction, typename... KernelArgs>
-void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
-                dim<2> size, KernelArgs &&... args)
+template <typename KernelFunction, typename... MappedKernelArgs>
+void run_kernel_impl(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
+                     dim<2> size, MappedKernelArgs... args)
 {
     const auto rows = size[0];
     const auto cols = size[1];
@@ -254,48 +178,48 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
         return;
     }
     if (cols == 1) {
-        run_kernel_fixed_cols<1>(exec, fn, size,
-                                 std::forward<KernelArgs>(args)...);
+        run_kernel_fixed_cols_impl<1>(exec, fn, size, args...);
         return;
     }
     if (cols == 2) {
-        run_kernel_fixed_cols<2>(exec, fn, size,
-                                 std::forward<KernelArgs>(args)...);
+        run_kernel_fixed_cols_impl<2>(exec, fn, size, args...);
         return;
     }
     if (cols == 3) {
-        run_kernel_fixed_cols<3>(exec, fn, size,
-                                 std::forward<KernelArgs>(args)...);
+        run_kernel_fixed_cols_impl<3>(exec, fn, size, args...);
         return;
     }
     if (cols == 4) {
-        run_kernel_fixed_cols<4>(exec, fn, size,
-                                 std::forward<KernelArgs>(args)...);
+        run_kernel_fixed_cols_impl<4>(exec, fn, size, args...);
         return;
     }
     const auto rem_cols = cols % 4;
     if (rem_cols == 0) {
-        run_kernel_blocked_cols<0>(exec, fn, size,
-                                   std::forward<KernelArgs>(args)...);
+        run_kernel_blocked_cols_impl<0>(exec, fn, size, args...);
         return;
     }
     if (rem_cols == 1) {
-        run_kernel_blocked_cols<1>(exec, fn, size,
-                                   std::forward<KernelArgs>(args)...);
+        run_kernel_blocked_cols_impl<1>(exec, fn, size, args...);
         return;
     }
     if (rem_cols == 2) {
-        run_kernel_blocked_cols<2>(exec, fn, size,
-                                   std::forward<KernelArgs>(args)...);
+        run_kernel_blocked_cols_impl<2>(exec, fn, size, args...);
         return;
     }
     if (rem_cols == 3) {
-        run_kernel_blocked_cols<3>(exec, fn, size,
-                                   std::forward<KernelArgs>(args)...);
+        run_kernel_blocked_cols_impl<3>(exec, fn, size, args...);
         return;
     }
     // should be unreachable
     GKO_ASSERT(false);
+}
+
+
+template <typename KernelFunction, typename... KernelArgs>
+void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
+                dim<2> size, KernelArgs &&... args)
+{
+    run_kernel_impl(exec, fn, size, kernels::omp::map_to_device(args)...);
 }
 
 

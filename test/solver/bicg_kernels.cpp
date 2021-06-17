@@ -65,7 +65,6 @@ protected:
 #endif
     using Mtx = gko::matrix::Dense<value_type>;
     using index_type = gko::int32;
-    using Csr = gko::matrix::Csr<value_type, index_type>;
 
     Bicg() : rand_engine(30) {}
 
@@ -80,10 +79,8 @@ protected:
             FAIL() << "Could not find the file \"" << file_name
                    << "\", which is required for this test.\n";
         }
-        csr = gko::read<Csr>(input_file, ref);
-        auto csr_hip_temp = Csr::create(exec);
-        csr_hip_temp->copy_from(gko::lend(csr));
-        d_csr = gko::give(csr_hip_temp);
+        mtx_ani = gko::read<Mtx>(input_file, ref);
+        d_mtx_ani = gko::clone(exec, mtx_ani.get());
     }
 
     void TearDown()
@@ -94,33 +91,35 @@ protected:
     }
 
     std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
-                                 gko::size_type num_cols)
+                                 gko::size_type num_cols, gko::size_type stride)
     {
-        return gko::test::generate_random_matrix<Mtx>(
+        auto tmp_mtx = gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
+        auto result = Mtx::create(ref, gko::dim<2>{num_rows, num_cols}, stride);
+        result->copy_from(tmp_mtx.get());
+        return result;
     }
 
     void initialize_data()
     {
         gko::size_type m = 597;
         gko::size_type n = 43;
-        b_full = gen_mtx(m, n + 2);
-        b = b_full->create_submatrix(gko::span{0, m}, gko::span{0, n});
-        r = gen_mtx(m, n);
-        z = gen_mtx(m, n);
-        p = gen_mtx(m, n);
-        q = gen_mtx(m, n);
-        r2 = gen_mtx(m, n);
-        z2 = gen_mtx(m, n);
-        p2 = gen_mtx(m, n);
-        q2 = gen_mtx(m, n);
-        x_full = gen_mtx(m, n + 3);
-        x = x_full->create_submatrix(gko::span{0, m}, gko::span{0, n});
-        beta = gen_mtx(1, n);
-        prev_rho = gen_mtx(1, n);
-        rho = gen_mtx(1, n);
+        // all vectors need the same stride as b, except x
+        b = gen_mtx(m, n, n + 2);
+        r = gen_mtx(m, n, n + 2);
+        z = gen_mtx(m, n, n + 2);
+        p = gen_mtx(m, n, n + 2);
+        q = gen_mtx(m, n, n + 2);
+        r2 = gen_mtx(m, n, n + 2);
+        z2 = gen_mtx(m, n, n + 2);
+        p2 = gen_mtx(m, n, n + 2);
+        q2 = gen_mtx(m, n, n + 2);
+        x = gen_mtx(m, n, n + 3);
+        beta = gen_mtx(1, n, n);
+        prev_rho = gen_mtx(1, n, n);
+        rho = gen_mtx(1, n, n);
         // check correct handling for zero values
         beta->at(2) = 0.0;
         prev_rho->at(2) = 0.0;
@@ -168,7 +167,6 @@ protected:
 
     std::ranlux48 rand_engine;
 
-    std::unique_ptr<Mtx> b_full;
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> r;
     std::unique_ptr<Mtx> z;
@@ -178,12 +176,11 @@ protected:
     std::unique_ptr<Mtx> z2;
     std::unique_ptr<Mtx> p2;
     std::unique_ptr<Mtx> q2;
-    std::unique_ptr<Mtx> x_full;
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> prev_rho;
     std::unique_ptr<Mtx> rho;
-    std::shared_ptr<Csr> csr;
+    std::shared_ptr<Mtx> mtx_ani;
     std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
 
     std::unique_ptr<Mtx> d_b;
@@ -199,7 +196,7 @@ protected:
     std::unique_ptr<Mtx> d_beta;
     std::unique_ptr<Mtx> d_prev_rho;
     std::unique_ptr<Mtx> d_rho;
-    std::shared_ptr<Csr> d_csr;
+    std::shared_ptr<Mtx> d_mtx_ani;
     std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
 };
 
@@ -270,10 +267,10 @@ TEST_F(Bicg, BicgStep2IsEquivalentToRef)
 
 TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50);
+    auto mtx = gen_mtx(50, 50, 53);
     gko::test::make_hpd(mtx.get());
-    auto x = gen_mtx(50, 3);
-    auto b = gen_mtx(50, 3);
+    auto x = gen_mtx(50, 3, 5);
+    auto b = gen_mtx(50, 3, 4);
     auto d_mtx = Mtx::create(exec);
     d_mtx->copy_from(mtx.get());
     auto d_x = Mtx::create(exec);
@@ -308,8 +305,8 @@ TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
 
 TEST_F(Bicg, ApplyWithSuiteSparseMatrixIsEquivalentToRef)
 {
-    auto x = gen_mtx(36, 1);
-    auto b = gen_mtx(36, 1);
+    auto x = gen_mtx(36, 1, 2);
+    auto b = gen_mtx(36, 1, 3);
     auto d_x = Mtx::create(exec);
     d_x->copy_from(x.get());
     auto d_b = Mtx::create(exec);
@@ -330,8 +327,8 @@ TEST_F(Bicg, ApplyWithSuiteSparseMatrixIsEquivalentToRef)
                     .with_reduction_factor(::r<value_type>::value)
                     .on(exec))
             .on(exec);
-    auto solver = bicg_factory->generate(std::move(csr));
-    auto d_solver = d_bicg_factory->generate(std::move(d_csr));
+    auto solver = bicg_factory->generate(std::move(mtx_ani));
+    auto d_solver = d_bicg_factory->generate(std::move(d_mtx_ani));
 
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());

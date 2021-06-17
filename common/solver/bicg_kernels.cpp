@@ -36,7 +36,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "core/base/simple_kernels.hpp"
+#include "core/base/simple_kernels_solver.hpp"
+
+
+using gko::solver::default_stride;
+using gko::solver::rowvector;
 
 
 namespace gko {
@@ -60,7 +64,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::Dense<ValueType> *q2,
                 Array<stopping_status> *stop_status)
 {
-    run_kernel(
+    run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto z, auto p,
                       auto q, auto prev_rho, auto rho, auto r2, auto z2,
@@ -75,9 +79,11 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             z(row, col) = p(row, col) = q(row, col) = z2(row, col) =
                 p2(row, col) = q2(row, col) = zero(z(row, col));
         },
-        b->get_size(), b, compact(r), compact(z), compact(p), compact(q),
-        vector(prev_rho), vector(rho), compact(r2), compact(z2), compact(p2),
-        compact(q2), *stop_status);
+        b->get_size(), b->get_stride(), default_stride(b), default_stride(r),
+        default_stride(z), default_stride(p), default_stride(q),
+        rowvector(prev_rho), rowvector(rho), default_stride(r2),
+        default_stride(z2), default_stride(p2), default_stride(q2),
+        *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_INITIALIZE_KERNEL);
@@ -91,7 +97,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *prev_rho,
             const Array<stopping_status> *stop_status)
 {
-    run_kernel(
+    run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto p, auto z, auto p2, auto z2,
                       auto rho, auto prev_rho, auto stop) {
@@ -101,8 +107,9 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                 p2(row, col) = z2(row, col) + tmp * p2(row, col);
             }
         },
-        p->get_size(), compact(p), compact(z), compact(p2), compact(z2),
-        vector(rho), vector(prev_rho), *stop_status);
+        p->get_size(), p->get_stride(), default_stride(p), default_stride(z),
+        default_stride(p2), default_stride(z2), rowvector(rho),
+        rowvector(prev_rho), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_STEP_1_KERNEL);
@@ -118,7 +125,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             const Array<stopping_status> *stop_status)
 {
-    run_kernel(
+    run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto r2, auto p,
                       auto q, auto q2, auto beta, auto rho, auto stop) {
@@ -129,8 +136,9 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
                 r2(row, col) -= tmp * q2(row, col);
             }
         },
-        x->get_size(), x, compact(r), compact(r2), compact(p), compact(q),
-        compact(q2), vector(beta), vector(rho), *stop_status);
+        x->get_size(), r->get_stride(), x, default_stride(r),
+        default_stride(r2), default_stride(p), default_stride(q),
+        default_stride(q2), rowvector(beta), rowvector(rho), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_STEP_2_KERNEL);

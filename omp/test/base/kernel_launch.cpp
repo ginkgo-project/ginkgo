@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
+#include "omp/base/kernel_launch_solver.hpp"
 
 
 namespace {
@@ -59,9 +60,8 @@ protected:
           iota_array(exec, 16),
           iota_transp_array(exec, 16),
           iota_dense(gko::matrix::Dense<>::create(exec, dim<2>{4, 4})),
-          zero_dense(gko::matrix::Dense<>::create(exec, dim<2>{4, 4})),
-          zero_dense_padded(
-              gko::matrix::Dense<>::create(exec, dim<2>{4, 4}, 5)),
+          zero_dense(gko::matrix::Dense<>::create(exec, dim<2>{4, 4}, 6)),
+          zero_dense2(gko::matrix::Dense<>::create(exec, dim<2>{4, 4}, 5)),
           vec_dense(gko::matrix::Dense<>::create(exec, dim<2>{1, 4}))
     {
         for (int i = 0; i < 16; i++) {
@@ -70,7 +70,7 @@ protected:
             iota_transp_array.get_data()[i] = (i % 4 * 4) + i / 4;
             iota_dense->at(i / 4, i % 4) = i;
             zero_dense->at(i / 4, i % 4) = 0.0;
-            zero_dense_padded->at(i / 4, i % 4) = 0.0;
+            zero_dense2->at(i / 4, i % 4) = 0.0;
         }
     }
 
@@ -80,7 +80,7 @@ protected:
     gko::Array<int> iota_transp_array;
     std::unique_ptr<gko::matrix::Dense<>> iota_dense;
     std::unique_ptr<gko::matrix::Dense<>> zero_dense;
-    std::unique_ptr<gko::matrix::Dense<>> zero_dense_padded;
+    std::unique_ptr<gko::matrix::Dense<>> zero_dense2;
     std::unique_ptr<gko::matrix::Dense<>> vec_dense;
 };
 
@@ -144,11 +144,11 @@ TEST_F(KernelLaunch, Runs1DDense)
                 d(i / 4, i % 4) = 0;
             }
         },
-        16, zero_dense_padded.get(),
-        static_cast<const gko::matrix::Dense<> *>(zero_dense_padded.get()),
-        zero_dense_padded->get_const_values());
+        16, zero_dense2.get(),
+        static_cast<const gko::matrix::Dense<> *>(zero_dense2.get()),
+        zero_dense2->get_const_values());
 
-    GKO_ASSERT_MTX_NEAR(zero_dense_padded, iota_dense, 0.0);
+    GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);
 }
 
 
@@ -191,7 +191,7 @@ TEST_F(KernelLaunch, Runs2DArray)
 
 TEST_F(KernelLaunch, Runs2DDense)
 {
-    gko::run_kernel(
+    gko::run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d2, auto d_ptr, auto d3,
                       auto d4, auto d2_ptr, auto d3_ptr) {
@@ -208,7 +208,7 @@ TEST_F(KernelLaunch, Runs2DDense)
             bool pointers_correct = d.data == d_ptr && d2.data == d_ptr &&
                                     d3.data == d2_ptr && d4 == d3_ptr;
             bool strides_correct =
-                d.stride == 5 && d2.stride == 5 && d3.stride == 4;
+                d.stride == 5 && d2.stride == 5 && d3.stride == 6;
             bool accessors_2d_correct =
                 &d(0, 0) == d_ptr && &d(1, 0) == d_ptr + d.stride &&
                 &d2(0, 0) == d_ptr && &d2(1, 0) == d_ptr + d2.stride &&
@@ -222,13 +222,14 @@ TEST_F(KernelLaunch, Runs2DDense)
                 d(i, j) = 0;
             }
         },
-        dim<2>{4, 4}, zero_dense_padded.get(),
-        static_cast<const gko::matrix::Dense<> *>(zero_dense_padded.get()),
-        zero_dense_padded->get_const_values(), gko::compact(zero_dense.get()),
-        gko::vector(vec_dense.get()), zero_dense->get_values(),
+        dim<2>{4, 4}, zero_dense->get_stride(), zero_dense2.get(),
+        static_cast<const gko::matrix::Dense<> *>(zero_dense2.get()),
+        zero_dense2->get_const_values(),
+        gko::solver::default_stride(zero_dense.get()),
+        gko::solver::rowvector(vec_dense.get()), zero_dense->get_values(),
         vec_dense->get_values());
 
-    GKO_ASSERT_MTX_NEAR(zero_dense_padded, iota_dense, 0.0);
+    GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);
 }
 
 

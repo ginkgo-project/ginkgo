@@ -92,14 +92,14 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
                 x(row, col) *= alpha[col];
             },
-            x->get_size(), vector(alpha), x);
+            x->get_size(), alpha->get_const_values(), x);
     } else {
         run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
                 x(row, col) *= alpha[0];
             },
-            x->get_size(), vector(alpha), x);
+            x->get_size(), alpha->get_const_values(), x);
     }
 }
 
@@ -117,14 +117,14 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
                 y(row, col) += alpha[col] * x(row, col);
             },
-            x->get_size(), vector(alpha), x, y);
+            x->get_size(), alpha->get_const_values(), x, y);
     } else {
         run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
                 y(row, col) += alpha[0] * x(row, col);
             },
-            x->get_size(), vector(alpha), x, y);
+            x->get_size(), alpha->get_const_values(), x, y);
     }
 }
 
@@ -143,7 +143,7 @@ void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto alpha, auto diag, auto y) {
             y(i, i) += alpha[0] * diag[i];
         },
-        x->get_size()[0], vector(alpha), x->get_const_values(), y);
+        x->get_size()[0], alpha->get_const_values(), x->get_const_values(), y);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL);

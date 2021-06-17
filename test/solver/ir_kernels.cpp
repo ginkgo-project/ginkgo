@@ -72,12 +72,16 @@ protected:
         init_executor(ref, exec);
     }
 
-    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
+                                 gko::size_type num_cols, gko::size_type stride)
     {
-        return gko::test::generate_random_matrix<Mtx>(
+        auto tmp_mtx = gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
+        auto result = Mtx::create(ref, gko::dim<2>{num_rows, num_cols}, stride);
+        result->copy_from(tmp_mtx.get());
+        return result;
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -107,9 +111,9 @@ TEST_F(Ir, InitializeIsEquivalentToRef)
 
 TEST_F(Ir, ApplyIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50);
-    auto x = gen_mtx(50, 3);
-    auto b = gen_mtx(50, 3);
+    auto mtx = gen_mtx(50, 50, 52);
+    auto x = gen_mtx(50, 3, 8);
+    auto b = gen_mtx(50, 3, 5);
     auto d_mtx = clone(exec, mtx);
     auto d_x = clone(exec, x);
     auto d_b = clone(exec, b);
@@ -138,9 +142,9 @@ TEST_F(Ir, ApplyIsEquivalentToRef)
 
 TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50);
-    auto x = gen_mtx(50, 3);
-    auto b = gen_mtx(50, 3);
+    auto mtx = gen_mtx(50, 50, 54);
+    auto x = gen_mtx(50, 3, 6);
+    auto b = gen_mtx(50, 3, 10);
     auto d_mtx = clone(exec, mtx);
     auto d_x = clone(exec, x);
     auto d_b = clone(exec, b);
@@ -182,9 +186,9 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
 
 TEST_F(Ir, RichardsonApplyIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50);
-    auto x = gen_mtx(50, 3);
-    auto b = gen_mtx(50, 3);
+    auto mtx = gen_mtx(50, 50, 54);
+    auto x = gen_mtx(50, 3, 4);
+    auto b = gen_mtx(50, 3, 3);
     auto d_mtx = clone(exec, mtx);
     auto d_x = clone(exec, x);
     auto d_b = clone(exec, b);
@@ -215,9 +219,9 @@ TEST_F(Ir, RichardsonApplyIsEquivalentToRef)
 
 TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50);
-    auto x = gen_mtx(50, 3);
-    auto b = gen_mtx(50, 3);
+    auto mtx = gen_mtx(50, 50, 52);
+    auto x = gen_mtx(50, 3, 4);
+    auto b = gen_mtx(50, 3, 7);
     auto d_mtx = clone(exec, mtx);
     auto d_x = clone(exec, x);
     auto d_b = clone(exec, b);

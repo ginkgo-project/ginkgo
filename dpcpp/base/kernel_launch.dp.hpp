@@ -117,29 +117,6 @@ typename to_device_type_impl<T>::type map_to_device(T &&param)
 }
 
 
-template <typename ValueType>
-struct compact_dense_wrapper {
-    ValueType *data;
-};
-
-
-template <typename T>
-struct device_unpack_2d_impl {
-    using type = T;
-    static type unpack(T param, size_type) { return param; }
-};
-
-template <typename ValueType>
-struct device_unpack_2d_impl<compact_dense_wrapper<ValueType>> {
-    using type = matrix_accessor<ValueType>;
-    static type unpack(compact_dense_wrapper<ValueType> param,
-                       size_type num_cols)
-    {
-        return {param.data, num_cols};
-    }
-};
-
-
 template <typename KernelFunction, typename... KernelArgs>
 void generic_kernel_1d(sycl::handler &cgh, size_type size, KernelFunction fn,
                        KernelArgs... args)
@@ -158,49 +135,13 @@ void generic_kernel_2d(sycl::handler &cgh, size_type rows, size_type cols,
     cgh.parallel_for(sycl::range<2>{rows, cols}, [=](sycl::id<2> idx) {
         auto row = static_cast<size_type>(idx[0]);
         auto col = static_cast<size_type>(idx[1]);
-        fn(row, col, device_unpack_2d_impl<KernelArgs>::unpack(args, cols)...);
+        fn(row, col, args...);
     });
 }
 
 
 }  // namespace dpcpp
 }  // namespace kernels
-
-
-template <typename ValueType>
-kernels::dpcpp::compact_dense_wrapper<ValueType> compact(
-    matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
-    return {mtx->get_values()};
-}
-
-
-template <typename ValueType>
-kernels::dpcpp::compact_dense_wrapper<const ValueType> compact(
-    const matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
-    return {mtx->get_const_values()};
-}
-
-
-template <typename ValueType>
-ValueType *vector(matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_size()[0] == 1 ||
-               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
-    return mtx->get_values();
-}
-
-
-template <typename ValueType>
-const ValueType *vector(const matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_size()[0] == 1 ||
-               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
-    return mtx->get_const_values();
-}
 
 
 template <typename KernelFunction, typename... KernelArgs>

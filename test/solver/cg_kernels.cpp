@@ -80,29 +80,31 @@ protected:
     }
 
     std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
-                                 gko::size_type num_cols)
+                                 gko::size_type num_cols, gko::size_type stride)
     {
-        return gko::test::generate_random_matrix<Mtx>(
+        auto tmp_mtx = gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
+        auto result = Mtx::create(ref, gko::dim<2>{num_rows, num_cols}, stride);
+        result->copy_from(tmp_mtx.get());
+        return result;
     }
 
     void initialize_data()
     {
         gko::size_type m = 597;
         gko::size_type n = 43;
-        b_full = gen_mtx(m, n + 2);
-        b = b_full->create_submatrix(gko::span{0, m}, gko::span{0, n});
-        r = gen_mtx(m, n);
-        z = gen_mtx(m, n);
-        p = gen_mtx(m, n);
-        q = gen_mtx(m, n);
-        x_full = gen_mtx(m, n + 3);
-        x = x_full->create_submatrix(gko::span{0, m}, gko::span{0, n});
-        beta = gen_mtx(1, n);
-        prev_rho = gen_mtx(1, n);
-        rho = gen_mtx(1, n);
+        // all vectors need the same stride as b, except x
+        b = gen_mtx(m, n, n + 2);
+        r = gen_mtx(m, n, n + 2);
+        z = gen_mtx(m, n, n + 2);
+        p = gen_mtx(m, n, n + 2);
+        q = gen_mtx(m, n, n + 2);
+        x = gen_mtx(m, n, n + 3);
+        beta = gen_mtx(1, n, n);
+        prev_rho = gen_mtx(1, n, n);
+        rho = gen_mtx(1, n, n);
         // check correct handling for zero values
         beta->at(2) = 0.0;
         prev_rho->at(2) = 0.0;
@@ -142,13 +144,11 @@ protected:
 
     std::ranlux48 rand_engine;
 
-    std::unique_ptr<Mtx> b_full;
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> r;
     std::unique_ptr<Mtx> z;
     std::unique_ptr<Mtx> p;
     std::unique_ptr<Mtx> q;
-    std::unique_ptr<Mtx> x_full;
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> prev_rho;
@@ -223,10 +223,10 @@ TEST_F(Cg, CgStep2IsEquivalentToRef)
 
 TEST_F(Cg, ApplyIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50);
+    auto mtx = gen_mtx(50, 50, 53);
     gko::test::make_hpd(mtx.get());
-    auto x = gen_mtx(50, 3);
-    auto b = gen_mtx(50, 3);
+    auto x = gen_mtx(50, 3, 5);
+    auto b = gen_mtx(50, 3, 4);
     auto d_mtx = Mtx::create(exec);
     d_mtx->copy_from(mtx.get());
     auto d_x = Mtx::create(exec);
