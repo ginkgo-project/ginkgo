@@ -694,6 +694,7 @@ int read_data_and_launch_benchmark(int argc, char *argv[],
         outjson << test_cases << "\n";
         outjson.close();
     }
+    return 0;
 }
 
 #endif
