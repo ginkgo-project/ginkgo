@@ -111,6 +111,36 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void add_scaled(
 }
 
 
+namespace {
+
+template <typename ValueType>
+__device__ __forceinline__ void one_norm2(
+    const gko::batch_dense::BatchEntry<const ValueType> &x, const int rhs_index,
+    const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result,
+    gko::kernels::cuda::group::thread_block_tile<config::warp_size>
+        &subwarp_grp)
+{
+    using real_type = typename gko::remove_complex<ValueType>;
+    real_type val = zero<real_type>();
+
+    for (int r = subwarp_grp.thread_rank(); r < x.num_rows;
+         r += subwarp_grp.size()) {
+        val += squared_norm(x.values[r * x.stride + rhs_index]);
+    }
+
+    // subwarp_grp level reduction
+    for (int j = subwarp_grp.size() / 2; j > 0; j /= 2) {
+        val += subwarp_grp.shfl_down(val, j);
+    }
+
+    if (subwarp_grp.thread_rank() == 0) {
+        result.values[rhs_index] = sqrt(val);
+    }
+}
+
+}  // namespace
+
+
 /**
  * Computes the 2-norms of some column vectors in global or shared memory.
  *
@@ -122,34 +152,15 @@ __device__ __forceinline__ void compute_norm2(
     const gko::batch_dense::BatchEntry<const ValueType> &x,
     const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result)
 {
-    using real_type = typename gko::remove_complex<ValueType>;
     constexpr auto tile_size = config::warp_size;
-
     auto thread_block = group::this_thread_block();
-
     auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-
     const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
-
     const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
 
     for (int rhs_index = subwarp_grp_id; rhs_index < x.num_rhs;
          rhs_index += num_subwarp_grps_per_block) {
-        real_type val = zero<real_type>();
-
-        for (int r = subwarp_grp.thread_rank(); r < x.num_rows;
-             r += subwarp_grp.size()) {
-            val += squared_norm(x.values[r * x.stride + rhs_index]);
-        }
-
-        // subwarp_grp level reduction
-        for (int j = subwarp_grp.size() / 2; j > 0; j /= 2) {
-            val += subwarp_grp.shfl_down(val, j);
-        }
-
-        if (subwarp_grp.thread_rank() == 0) {
-            result.values[rhs_index] = sqrt(val);
-        }
+        one_norm2(x, rhs_index, result, subwarp_grp);
     }
 }
 
@@ -168,40 +179,19 @@ __device__ __forceinline__ void compute_norm2(
     const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result,
     const uint32 &converged)
 {
-    using real_type = typename gko::remove_complex<ValueType>;
     constexpr auto tile_size = config::warp_size;
-
     auto thread_block = group::this_thread_block();
-
     auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-
     const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
-
     const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
 
     for (int rhs_index = subwarp_grp_id; rhs_index < x.num_rhs;
          rhs_index += num_subwarp_grps_per_block) {
         const uint32 conv = converged & (1 << rhs_index);
-
         if (conv) {
             continue;
         }
-
-        real_type val = zero<real_type>();
-
-        for (int r = subwarp_grp.thread_rank(); r < x.num_rows;
-             r += subwarp_grp.size()) {
-            val += squared_norm(x.values[r * x.stride + rhs_index]);
-        }
-
-        // subwarp_grp level reduction
-        for (int j = subwarp_grp.size() / 2; j > 0; j /= 2) {
-            val += subwarp_grp.shfl_down(val, j);
-        }
-
-        if (subwarp_grp.thread_rank() == 0) {
-            result.values[rhs_index] = sqrt(val);
-        }
+        one_norm2(x, rhs_index, result, subwarp_grp);
     }
 }
 
@@ -260,6 +250,35 @@ __device__ __forceinline__ void copy(
 }
 
 
+namespace {
+
+template <typename ValueType>
+__device__ __forceinline__ void one_dot(
+    const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
+    const int rhs_index, const BatchEntry<ValueType> &result,
+    gko::kernels::cuda::group::thread_block_tile<config::warp_size>
+        &subwarp_grp)
+{
+    ValueType val = zero<ValueType>();
+
+    for (int r = subwarp_grp.thread_rank(); r < x.num_rows;
+         r += subwarp_grp.size()) {
+        val += conj(x.values[r * x.stride + rhs_index]) *
+               y.values[r * y.stride + rhs_index];
+    }
+
+    // subwarp_grp level reduction
+    for (int j = subwarp_grp.size() / 2; j > 0; j /= 2) {
+        val += subwarp_grp.shfl_down(val, j);
+    }
+
+    if (subwarp_grp.thread_rank() == 0) {
+        result.values[rhs_index] = val;
+    }
+}
+
+}  // namespace
+
 /**
  * Computes the dot product of some column vectors in global or shared memory.
  *
@@ -270,35 +289,15 @@ __device__ __forceinline__ void compute_dot_product(
     const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
     const BatchEntry<ValueType> &result)
 {
-    using real_type = typename gko::remove_complex<ValueType>;
     constexpr auto tile_size = config::warp_size;
-
     auto thread_block = group::this_thread_block();
-
     auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-
     const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
-
     const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
 
     for (int rhs_index = subwarp_grp_id; rhs_index < x.num_rhs;
          rhs_index += num_subwarp_grps_per_block) {
-        ValueType val = zero<ValueType>();
-
-        for (int r = subwarp_grp.thread_rank(); r < x.num_rows;
-             r += subwarp_grp.size()) {
-            val += conj(x.values[r * x.stride + rhs_index]) *
-                   y.values[r * y.stride + rhs_index];
-        }
-
-        // subwarp_grp level reduction
-        for (int j = subwarp_grp.size() / 2; j > 0; j /= 2) {
-            val += subwarp_grp.shfl_down(val, j);
-        }
-
-        if (subwarp_grp.thread_rank() == 0) {
-            result.values[rhs_index] = val;
-        }
+        one_dot(x, y, rhs_index, result, subwarp_grp);
     }
 }
 
@@ -317,42 +316,19 @@ __device__ __forceinline__ void compute_dot_product(
     const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
     const BatchEntry<ValueType> &result, const uint32 &converged)
 {
-    using real_type = typename gko::remove_complex<ValueType>;
     constexpr auto tile_size = config::warp_size;
-
     auto thread_block = group::this_thread_block();
-
     auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-
     const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
-
     const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
 
     for (int rhs_index = subwarp_grp_id; rhs_index < x.num_rhs;
          rhs_index += num_subwarp_grps_per_block) {
         const uint32 conv = converged & (1 << rhs_index);
-
         if (conv) {
             continue;
         }
-
-
-        ValueType val = zero<ValueType>();
-
-        for (int r = subwarp_grp.thread_rank(); r < x.num_rows;
-             r += subwarp_grp.size()) {
-            val += conj(x.values[r * x.stride + rhs_index]) *
-                   y.values[r * y.stride + rhs_index];
-        }
-
-        // subwarp_grp level reduction
-        for (int j = subwarp_grp.size() / 2; j > 0; j /= 2) {
-            val += subwarp_grp.shfl_down(val, j);
-        }
-
-        if (subwarp_grp.thread_rank() == 0) {
-            result.values[rhs_index] = val;
-        }
+        one_dot(x, y, rhs_index, result, subwarp_grp);
     }
 }
 
