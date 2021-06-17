@@ -320,36 +320,6 @@ __device__ __forceinline__ void arnoldi(
 
 
 template <typename ValueType>
-__device__ __forceinline__ void generate_plane_rotation(
-    const ValueType *const x, const ValueType *const y, const int nrhs,
-    ValueType *const cs, ValueType *const sn, const uint32 &converged)
-{
-    for (int c = threadIdx.x; c < nrhs; c += blockDim.x) {
-        const uint32 conv = converged & (1 << c);
-
-        if (conv) {
-            continue;
-        }
-
-        if (y[c] == zero<ValueType>()) {
-            cs[c] = one<ValueType>();
-            sn[c] = zero<ValueType>();
-        } else if (abs(y[c]) > abs(x[c])) {
-            const ValueType temp = x[c] / y[c];
-            sn[c] = (one<ValueType>() * conj(y[c])) /
-                    (sqrt(one<ValueType>() + temp * temp) * y[c]);
-            cs[c] = (conj(x[c]) / conj(y[c])) * sn[c];
-
-        } else {
-            const ValueType temp = y[c] / x[c];
-            cs[c] = (one<ValueType>() * conj(x[c])) /
-                    (sqrt(one<ValueType>() + temp * temp) * x[c]);
-            sn[c] = (conj(y[c]) / conj(x[c])) * cs[c];
-        }
-    }
-}
-
-template <typename ValueType>
 __device__ __forceinline__ void apply_plane_rotation(
     const ValueType *const cs, const ValueType *const sn, const int nrhs,
     ValueType *const x, ValueType *const y, const uint32 &converged)
@@ -364,6 +334,44 @@ __device__ __forceinline__ void apply_plane_rotation(
         const ValueType temp = cs[c] * x[c] + sn[c] * y[c];
         y[c] = -one<ValueType>() * conj(sn[c]) * x[c] + conj(cs[c]) * y[c];
         x[c] = temp;
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void generate_and_apply_plane_rot_fused(
+    const int nrhs, ValueType *const cs_i, ValueType *const sn_i,
+    ValueType *const H_i_i, ValueType *const H_i_plus_1_i, ValueType *const s_i,
+    ValueType *const s_i_plus_1, const uint32 &converged)
+{
+    for (int c = threadIdx.x; c < nrhs; c += blockDim.x) {
+        const uint32 conv = converged & (1 << c);
+
+        if (conv) {
+            continue;
+        }
+
+        if (H_i_plus_1_i[c] == zero<ValueType>()) {
+            cs_i[c] = one<ValueType>();
+            sn_i[c] = zero<ValueType>();
+        } else if (abs(H_i_plus_1_i[c]) > abs(H_i_i[c])) {
+            const ValueType temp = H_i_i[c] / H_i_plus_1_i[c];
+            sn_i[c] = (one<ValueType>() * conj(H_i_plus_1_i[c])) /
+                      (sqrt(one<ValueType>() + temp * temp) * H_i_plus_1_i[c]);
+            cs_i[c] = (conj(H_i_i[c]) / conj(H_i_plus_1_i[c])) * sn_i[c];
+
+        } else {
+            const ValueType temp = H_i_plus_1_i[c] / H_i_i[c];
+            cs_i[c] = (one<ValueType>() * conj(H_i_i[c])) /
+                      (sqrt(one<ValueType>() + temp * temp) * H_i_i[c]);
+            sn_i[c] = (conj(H_i_plus_1_i[c]) / conj(H_i_i[c])) * cs_i[c];
+        }
+
+        const ValueType temp = cs_i[c] * s_i[c];
+        s_i_plus_1[c] = -one<ValueType>() * conj(sn_i[c]) * s_i[c];
+        s_i[c] = temp;
+        H_i_i[c] = cs_i[c] * H_i_i[c] + sn_i[c] * H_i_plus_1_i[c];
+        H_i_plus_1_i[c] = zero<ValueType>();
     }
 }
 
@@ -672,21 +680,6 @@ __global__ void apply_kernel(
 
 
                 // compute sine and cos
-                generate_plane_rotation(
-                    &H_shared_entry.values[inner_iter * H_shared_entry.stride +
-                                           inner_iter * nrhs],
-                    &H_shared_entry
-                         .values[(inner_iter + 1) * H_shared_entry.stride +
-                                 inner_iter * nrhs],
-                    nrhs,
-                    &cs_shared_entry
-                         .values[inner_iter * cs_shared_entry.stride],
-                    &sn_shared_entry
-                         .values[inner_iter * cs_shared_entry.stride],
-                    converged);
-                __syncthreads();
-
-
                 // temp = cs(inner_iter) * s(inner_iter)
                 // s(inner_iter + 1) = -1 * conj(sn(inner_iter)) * s(inner_iter)
                 // s(inner_iter) = temp
@@ -694,44 +687,26 @@ __global__ void apply_kernel(
                 // Hessenberg(inner_iter , inner_iter) + sn(inner_iter) *
                 // Hessenberg(inner_iter + 1, inner_iter)
                 // Hessenberg(inner_iter + 1, inner_iter) = 0
-                apply_plane_rotation(
-
+                generate_and_apply_plane_rot_fused(
+                    nrhs,
                     &cs_shared_entry
                          .values[inner_iter * cs_shared_entry.stride],
+
                     &sn_shared_entry
                          .values[inner_iter * sn_shared_entry.stride],
-                    nrhs,
-                    &s_shared_entry.values[inner_iter * s_shared_entry.stride],
-                    &s_shared_entry
-                         .values[(inner_iter + 1) * s_shared_entry.stride],
-                    converged);
 
-                apply_plane_rotation(
-
-                    &cs_shared_entry
-                         .values[inner_iter * cs_shared_entry.stride],
-                    &sn_shared_entry
-                         .values[inner_iter * sn_shared_entry.stride],
-                    nrhs,
                     &H_shared_entry.values[inner_iter * H_shared_entry.stride +
                                            inner_iter * nrhs],
                     &H_shared_entry
                          .values[(inner_iter + 1) * H_shared_entry.stride +
                                  inner_iter * nrhs],
+
+                    &s_shared_entry.values[inner_iter * s_shared_entry.stride],
+
+                    &s_shared_entry
+                         .values[(inner_iter + 1) * s_shared_entry.stride],
                     converged);
 
-                __syncthreads();
-
-                for (int c = threadIdx.x; c < nrhs; c += blockDim.x) {
-                    const uint32 conv = converged & (1 << c);
-
-                    if (conv) {
-                        continue;
-                    }
-                    H_shared_entry
-                        .values[(inner_iter + 1) * H_shared_entry.stride +
-                                inner_iter * nrhs + c] = zero<ValueType>();
-                }
                 __syncthreads();
 
 
