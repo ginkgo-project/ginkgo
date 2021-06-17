@@ -83,6 +83,14 @@ namespace kernels {
                      const matrix::BatchDense<_type> *y,          \
                      matrix::BatchDense<_type> *result)
 
+
+#define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_DOT_KERNEL(_type)         \
+    void convergence_compute_dot(std::shared_ptr<const DefaultExecutor> exec, \
+                                 const matrix::BatchDense<_type> *x,          \
+                                 const matrix::BatchDense<_type> *y,          \
+                                 matrix::BatchDense<_type> *result,           \
+                                 const uint32 &converged)
+
 #define GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL(_type)         \
     void compute_norm2(std::shared_ptr<const DefaultExecutor> exec, \
                        const matrix::BatchDense<_type> *x,          \
@@ -138,6 +146,8 @@ namespace kernels {
     GKO_DECLARE_BATCH_DENSE_ADD_SCALED_DIAG_KERNEL(ValueType);                 \
     template <typename ValueType>                                              \
     GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL(ValueType);                     \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_DOT_KERNEL(ValueType);         \
     template <typename ValueType>                                              \
     GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL(ValueType);                   \
     template <typename ValueType, typename IndexType>                          \
