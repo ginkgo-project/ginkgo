@@ -138,15 +138,15 @@ TYPED_TEST(Dense, CanBeConstructedFromExistingData)
 }
 
 
-TYPED_TEST(Dense, CreateWithSameConfigDoesntKeepStride)
+TYPED_TEST(Dense, CreateWithSameConfigKeepsStride)
 {
     auto m =
         gko::matrix::Dense<TypeParam>::create(this->exec, gko::dim<2>{2, 3}, 4);
     auto m2 = gko::matrix::Dense<TypeParam>::create_with_config_of(m.get());
 
     ASSERT_EQ(m2->get_size(), gko::dim<2>(2, 3));
-    EXPECT_EQ(m2->get_stride(), 3);
-    ASSERT_EQ(m2->get_num_stored_elements(), 6);
+    EXPECT_EQ(m2->get_stride(), 4);
+    ASSERT_EQ(m2->get_num_stored_elements(), 8);
 }
 
 
