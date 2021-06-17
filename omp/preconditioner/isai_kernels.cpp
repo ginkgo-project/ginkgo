@@ -424,6 +424,9 @@ void scale_excess_solution(std::shared_ptr<const DefaultExecutor>,
     for (size_type row = e_start; row < e_end; ++row) {
         IndexType block_start = excess_block_ptrs[row] - offset;
         IndexType block_end = excess_block_ptrs[row + 1] - offset;
+        if (block_end == block_start) {
+            continue;
+        }
         const ValueType diag = excess_values[block_end - 1];
         const ValueType scal = one<ValueType>() / sqrt(diag);
         for (size_type i = block_start; i < block_end; i++) {

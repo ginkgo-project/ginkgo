@@ -976,7 +976,7 @@ cudamemcheck:
   stage: QoS_tools
   extends:
     - .deploy_condition
-    - .use_gko-cuda101-gnu8-llvm10-intel2019
+    - .use_gko-cuda110-gnu9-llvm9-intel2020
   before_script: *default_before_script
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=RelWithDebInfo
