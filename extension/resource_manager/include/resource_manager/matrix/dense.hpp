@@ -34,13 +34,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKOEXT_RESOURCE_MANAGER_MATRIX_DENSE_HPP_
 
 
+#include <type_traits>
+#include "resource_manager/base/element_types.hpp"
 #include "resource_manager/base/generic_constructor.hpp"
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
-
-#include <type_traits>
 
 
 namespace gko {
@@ -77,6 +77,8 @@ struct Generic<gko::matrix::Dense<T>> {
     }
 };
 
+ENABLE_SELECTION(dense_select, call, std::shared_ptr<gko::LinOp>, get_the_type);
+constexpr auto dense_list = type_list<double, float>();
 
 template <>
 std::shared_ptr<gko::LinOp>
@@ -86,24 +88,14 @@ create_from_config<RM_LinOp, RM_LinOp::Dense, gko::LinOp>(
 {
     std::cout << "build_dense" << std::endl;
     // go though the type
-    std::string vt{"double"};
+    std::string vt{default_valuetype};
     if (item.HasMember("type")) {
         vt = item["type"].GetString();
     }
-    auto lambda = [=](auto a) {
-        using T = decltype(a);
-        std::cout << "is_double?" << std::is_same<T, double>::value
-                  << std::endl;
-        std::cout << "is_float?" << std::is_same<T, float>::value << std::endl;
-        return nullptr;
-    };
-    if (vt == std::string{"double"}) {
-        using type = double;
-        return call<gko::matrix::Dense<type>>(item, exec, linop, manager);
-    } else {
-        using type = float;
-        return call<gko::matrix::Dense<type>>(item, exec, linop, manager);
-    }
+    auto ptr = dense_select<gko::matrix::Dense>(
+        dense_list, [=](std::string key) { return key == vt; }, item, exec,
+        linop, manager);
+    return ptr;
 }
 
 
