@@ -132,4 +132,4 @@ void test_solve_without_scaling(
 }  // namespace gko
 
 
-#endif  // GKO_CORE_TEST_BATCH_TEST_UTILS_H_
+#endif  // GKO_CORE_TEST_UTILS_BATCH_TEST_UTILS_HPP_
