@@ -32,9 +32,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
 
+
 #include <gtest/gtest.h>
 
+
 #include <ginkgo/core/log/batch_convergence.hpp>
+
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
 #include "core/test/utils.hpp"
