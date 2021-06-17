@@ -75,6 +75,30 @@ GKO_REGISTER_OPERATION(conj_transpose, batch_dense::conj_transpose);
 }  // namespace batch_dense
 
 
+namespace batch_dense {
+
+GKO_REGISTER_OPERATION(convergence_compute_dot,
+                       batch_dense::convergence_compute_dot);
+
+template <typename ValueType>
+void convergence_compute_dot(std::shared_ptr<const Executor> exec,
+                             const BatchLinOp *x, const BatchLinOp *y,
+                             BatchLinOp *result, const uint32 &converged)
+{
+    auto batch_result = as<BatchDense<ValueType>>(result);
+    auto batch_x = as<BatchDense<ValueType>>(x);
+    auto batch_y = as<BatchDense<ValueType>>(y);
+    // check nrhs <= 32
+    GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(batch_x, batch_y);
+    GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(batch_result,
+                                      get_col_sizes(batch_x->get_size()));
+
+    exec->run(batch_dense::make_convergence_compute_dot(
+        batch_x, batch_y, batch_result, converged));
+}
+
+}  // namespace batch_dense
+
 namespace {
 
 
