@@ -48,44 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/test/utils.hpp"
 
 
-using gko::size_type;
-
-
-#include "core/matrix/batch_struct.hpp"
-#include "cuda/matrix/batch_struct.hpp"
-#include "reference/matrix/batch_dense_kernels.hpp"
-#include "reference/matrix/batch_struct.hpp"
-
-
-#include "core/components/prefix_sum.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/cublas_bindings.hpp"
-#include "cuda/base/pointer_mode_guard.hpp"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/reduction.cuh"
-#include "cuda/components/thread_ids.cuh"
-#include "cuda/components/uninitialized_array.hpp"
-#include "cuda/matrix/batch_struct.hpp"
-
-
-namespace {
-constexpr int default_block_size = 128;
-constexpr int sm_multiplier = 4;
-}  // namespace
-
-namespace gko {
-namespace kernels {
-namespace cuda {
-namespace batch_dense {
-
-#include "common/matrix/batch_dense_kernels.hpp.inc"
-
-}
-}  // namespace cuda
-}  // namespace kernels
-}  // namespace gko
-
-
 namespace {
 
 
@@ -259,54 +221,20 @@ TEST_F(BatchDense, CudaComputeDotIsEquivalentToRef)
 }
 
 
-template <typename ValueType>
-__global__ void compute_norm2_1(
-    const gko::batch_dense::UniformBatch<const ValueType> x,
-    const gko::batch_dense::UniformBatch<::gko::remove_complex<ValueType>>
-        result,
-    const gko::uint32 converged)
-{
-    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
-         ibatch += gridDim.x) {
-        const auto x_b = gko::batch::batch_entry(x, ibatch);
-        const auto r_b = gko::batch::batch_entry(result, ibatch);
-        gko::kernels::cuda::batch_dense::compute_norm2(x_b, r_b, converged);
-    }
-}
-
-template <typename ValueType>
-void compute_norm2_2(
-    const gko::batch_dense::UniformBatch<const ValueType> x,
-    const gko::batch_dense::UniformBatch<::gko::remove_complex<ValueType>>
-        result,
-    const gko::uint32 converged)
-{
-    for (size_type batch = 0; batch < x.num_batch; ++batch) {
-        const auto res_b = gko::batch::batch_entry(result, batch);
-        const auto x_b = gko::batch::batch_entry(x, batch);
-        gko::kernels::cuda::batch_dense::compute_norm2(x_b, res_b, converged);
-    }
-}
-
-
 TEST_F(BatchDense, CudaConvergenceComputeDotIsEquivalentToRef)
 {
-    set_up_vector_data(20);
+    const int num_rhs = 19;  // note: number of RHSs must be <= 32
+    set_up_vector_data(num_rhs);
 
     auto dot_size =
         gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
     auto dot_expected = Mtx::create(this->ref, dot_size);
     auto ddot = Mtx::create(this->cuda, dot_size);
 
-    const gko::uint32 converged = 0xbfa00f0c;
+    const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
 
     x->compute_dot(y.get(), dot_expected.get());
     dx->compute_dot(dy.get(), ddot.get());
-
-    // gko::matrix::batch_dense::convergence_compute_dot(this->ref, x.get(),
-    // y.get(), dot_expected.get(), converged);
-    // gko::matrix::batch_dense::convergence_compute_dot(this->cuda, dx.get(),
-    // dy.get(), ddot.get(), converged);
 
     gko::kernels::reference::batch_dense::convergence_compute_dot(
         this->ref, x.get(), y.get(), dot_expected.get(), converged);
@@ -315,29 +243,6 @@ TEST_F(BatchDense, CudaConvergenceComputeDotIsEquivalentToRef)
 
 
     GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 1e-14);
-}
-
-TEST_F(BatchDense, CudaConvergenceComputeNorm2IsEquivalentToRef)
-{
-    set_up_vector_data(20);
-    auto norm_size =
-        ::gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
-    auto norm_expected = NormVector::create(this->ref, norm_size);
-    auto dnorm = NormVector::create(this->cuda, norm_size);
-
-    const gko::uint32 converged = 0xbfa00f0c;
-
-    compute_norm2_1<<<batch_size, default_block_size>>>(
-        gko::batch::to_const(gko::kernels::cuda::get_batch_struct(x.get())),
-        gko::kernels::cuda::get_batch_struct(dnorm.get()), converged);
-
-    compute_norm2_2(
-        gko::batch::to_const(gko::kernels::host::get_batch_struct(x.get())),
-        gko::kernels::host::get_batch_struct(norm_expected.get()), converged);
-
-    GKO_ASSERT_BATCH_MTX_NEAR(norm_expected, dnorm, 1e-14);
-
-    std::cout << "Hi" << std::endl;
 }
 
 
