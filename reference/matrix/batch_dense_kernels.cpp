@@ -181,6 +181,29 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL);
 
 
 template <typename ValueType>
+void convergence_compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
+                             const matrix::BatchDense<ValueType> *x,
+                             const matrix::BatchDense<ValueType> *y,
+                             matrix::BatchDense<ValueType> *result,
+                             const uint32 &converged)
+{
+    const auto x_ub = host::get_batch_struct(x);
+    const auto y_ub = host::get_batch_struct(y);
+    const auto res_ub = host::get_batch_struct(result);
+    for (size_type batch = 0; batch < result->get_num_batch_entries();
+         ++batch) {
+        const auto res_b = gko::batch::batch_entry(res_ub, batch);
+        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+        const auto y_b = gko::batch::batch_entry(y_ub, batch);
+        compute_dot_product(x_b, y_b, res_b, converged);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_DOT_KERNEL);
+
+
+template <typename ValueType>
 void compute_norm2(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::BatchDense<ValueType> *x,
                    matrix::BatchDense<remove_complex<ValueType>> *result)
