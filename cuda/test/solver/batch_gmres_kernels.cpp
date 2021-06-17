@@ -32,12 +32,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/solver/batch_gmres.hpp>
 
+
 #include <gtest/gtest.h>
 
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/batch_convergence.hpp>
+
 
 #include "core/solver/batch_gmres_kernels.hpp"
 #include "core/test/utils.hpp"
