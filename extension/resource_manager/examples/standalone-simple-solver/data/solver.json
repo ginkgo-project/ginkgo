@@ -10,7 +10,8 @@
                 "max_iters": 20,
                 "exec": "inherit"
             }
-        ]
+        ],
+        "exec": "inherit"
     },
     "generate": "given"
 }

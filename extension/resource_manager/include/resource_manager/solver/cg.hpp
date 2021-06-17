@@ -74,6 +74,10 @@ CONNECT_GENERIC_SUB(gko::solver::Cg, double, Factory, build_cg_factory);
 
 SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::solver::Cg, typename T, T);
 
+ENABLE_SELECTION(cgfactory_select, call, std::shared_ptr<gko::LinOpFactory>,
+                 get_the_factory_type);
+ENABLE_SELECTION(cg_select, call, std::shared_ptr<gko::LinOp>, get_the_type);
+constexpr auto cg_list = type_list<double, float>();
 
 template <>
 std::shared_ptr<gko::LinOpFactory> create_from_config<
@@ -87,15 +91,11 @@ std::shared_ptr<gko::LinOpFactory> create_from_config<
     if (item.HasMember("type")) {
         vt = item["type"].GetString();
     }
-    if (vt == std::string{"double"}) {
-        using type = double;
-        return call<typename gko::solver::Cg<type>::Factory>(item, exec, linop,
-                                                             manager);
-    } else {
-        using type = float;
-        return call<typename gko::solver::Cg<type>::Factory>(item, exec, linop,
-                                                             manager);
-    }
+
+    auto ptr = cgfactory_select<gko::solver::Cg>(
+        cg_list, [=](std::string key) { return key == vt; }, item, exec, linop,
+        manager);
+    return ptr;
 }
 
 template <>
@@ -110,13 +110,10 @@ create_from_config<RM_LinOp, RM_LinOp::Cg, gko::LinOp>(
     if (item.HasMember("type")) {
         vt = item["type"].GetString();
     }
-    if (vt == std::string{"double"}) {
-        using type = double;
-        return call<gko::solver::Cg<type>>(item, exec, linop, manager);
-    } else {
-        using type = float;
-        return call<gko::solver::Cg<type>>(item, exec, linop, manager);
-    }
+    auto ptr = cg_select<gko::solver::Cg>(
+        cg_list, [=](std::string key) { return key == vt; }, item, exec, linop,
+        manager);
+    return ptr;
 }
 
 
