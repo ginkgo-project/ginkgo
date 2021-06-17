@@ -146,6 +146,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL);
 
 
 template <typename ValueType>
+void convergence_compute_dot(std::shared_ptr<const CudaExecutor> exec,
+                             const matrix::BatchDense<ValueType> *x,
+                             const matrix::BatchDense<ValueType> *y,
+                             matrix::BatchDense<ValueType> *result,
+                             const uint32 &converged)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto x_ub = get_batch_struct(x);
+    const auto y_ub = get_batch_struct(y);
+    const auto res_ub = get_batch_struct(result);
+    compute_dot_product<<<num_blocks, default_block_size>>>(x_ub, y_ub, res_ub,
+                                                            converged);
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_DOT_KERNEL);
+
+
+template <typename ValueType>
 void compute_norm2(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::BatchDense<ValueType> *const x,
                    matrix::BatchDense<remove_complex<ValueType>> *const result)
