@@ -111,31 +111,6 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void add_scaled(
 }
 
 
-namespace {
-
-template <typename ValueType>
-__device__ __forceinline__ void one_norm2(
-    const BatchEntry<const ValueType> &x, const int col,
-    remove_complex<ValueType> *const result)
-{
-    using real_type = remove_complex<ValueType>;
-    __shared__ UninitializedArray<real_type, default_block_size> work;
-    work[threadIdx.x] = zero<real_type>();
-    // first sum across block-length chunks
-    for (int i = threadIdx.x; i < x.num_rows; i += blockDim.x) {
-        work[i] += squared_norm(x.values[i * x.stride + col]);
-    }
-    __syncthreads();
-    reduce(group::this_thread_block(), static_cast<real_type *>(work),
-           [](const real_type &a, const real_type &b) { return a + b; });
-    if (threadIdx.x == 0) {
-        result[col] = sqrt(work[0]);
-    }
-}
-
-}  // namespace
-
-
 /**
  * Computes the 2-norms of some column vectors in global or shared memory.
  *
@@ -147,10 +122,37 @@ __device__ __forceinline__ void compute_norm2(
     const gko::batch_dense::BatchEntry<const ValueType> &x,
     const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result)
 {
-    for (int col = 0; col < x.num_rhs; col++) {
-        one_norm2(x, col, result.values);
+    using real_type = typename gko::remove_complex<ValueType>;
+    constexpr auto tile_size = config::warp_size;
+
+    auto thread_block = group::this_thread_block();
+
+    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
+
+    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+
+    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
+
+    for (int rhs_index = subwarp_grp_id; rhs_index < x.num_rhs;
+         rhs_index += num_subwarp_grps_per_block) {
+        real_type val = zero<real_type>();
+
+        for (int r = subwarp_grp.thread_rank(); r < x.num_rows;
+             r += subwarp_grp.size()) {
+            val += squared_norm(x.values[r * x.stride + rhs_index]);
+        }
+
+        // subwarp_grp level reduction
+        for (int j = subwarp_grp.size() / 2; j > 0; j /= 2) {
+            val += subwarp_grp.shfl_down(val, j);
+        }
+
+        if (subwarp_grp.thread_rank() == 0) {
+            result.values[rhs_index] = sqrt(val);
+        }
     }
 }
+
 
 /**
  * Computes the 2-norms of some column vectors in global or shared memory.
@@ -166,14 +168,43 @@ __device__ __forceinline__ void compute_norm2(
     const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result,
     const uint32 &converged)
 {
-    for (int c = 0; c < x.num_rhs; c++) {
-        const uint32 conv = converged & (1 << c);
+    using real_type = typename gko::remove_complex<ValueType>;
+    constexpr auto tile_size = config::warp_size;
+
+    auto thread_block = group::this_thread_block();
+
+    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
+
+    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+
+    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
+
+    for (int rhs_index = subwarp_grp_id; rhs_index < x.num_rhs;
+         rhs_index += num_subwarp_grps_per_block) {
+        const uint32 conv = converged & (1 << rhs_index);
+
         if (conv) {
             continue;
         }
-        one_norm2(x, c, result.values);
+
+        real_type val = zero<real_type>();
+
+        for (int r = subwarp_grp.thread_rank(); r < x.num_rows;
+             r += subwarp_grp.size()) {
+            val += squared_norm(x.values[r * x.stride + rhs_index]);
+        }
+
+        // subwarp_grp level reduction
+        for (int j = subwarp_grp.size() / 2; j > 0; j /= 2) {
+            val += subwarp_grp.shfl_down(val, j);
+        }
+
+        if (subwarp_grp.thread_rank() == 0) {
+            result.values[rhs_index] = sqrt(val);
+        }
     }
 }
+
 
 template <typename ValueType>
 __global__
@@ -187,6 +218,139 @@ __global__
         const auto r_b = gko::batch::batch_entry(result, ibatch);
         compute_norm2(x_b, r_b);
     }
+}
+
+
+/**
+ * Computes the 2-norms of some column vectors in global or shared memory.
+ *
+ * @param result  Holds norm value for each vector in x.
+ */
+template <typename ValueType>
+__device__ __forceinline__ void compute_norm2_1(
+    const gko::batch_dense::BatchEntry<const ValueType> &x,
+    const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result)
+{
+    using real_type = gko::remove_complex<ValueType>;
+
+    const int new_rows =
+        static_cast<int>(pow(2, ceil(log2(static_cast<double>(x.num_rows)))));
+
+    //__shared__ real_type array_temp[new_rows * x.stride];
+
+    __shared__ real_type array_temp[5120];
+
+
+    for (int li = threadIdx.x; li < new_rows * x.num_rhs; li += blockDim.x) {
+        int r = li / x.num_rhs;
+        int c = li % x.num_rhs;
+
+        real_type val = zero<real_type>();
+
+        if (r < x.num_rows) {
+            val = squared_norm(x.values[r * x.stride + c]);
+        }
+
+        array_temp[r * x.stride + c] = val;
+    }
+
+    __syncthreads();
+
+    for (int k = new_rows / 2; k > 0; k = k / 2) {
+        __syncthreads();
+        for (int tid = threadIdx.x; tid < k * x.num_rhs; tid += blockDim.x) {
+            int r = tid / x.num_rhs;
+            int c = tid % x.num_rhs;
+
+            //  printf("\n k: %d, tid: %d, r: %d , c:%d , (r + k) : %d , %g +=
+            //  %g",k, tid, r,c, r+k, array_temp[r * x.stride + c],
+            //  array_temp[(r + k) * x.stride + c] );
+            array_temp[r * x.stride + c] += array_temp[(r + k) * x.stride + c];
+        }
+    }
+
+    __syncthreads();
+
+    for (int c = threadIdx.x; c < x.num_rhs; c += blockDim.x) {
+        result.values[c] = sqrt(array_temp[c]);
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void muti_block_reduce(ValueType *array,
+                                                  const int num_rhs)
+{
+    for (int k = blockDim.x / 2; k > 0; k = k / 2) {
+        __syncthreads();
+
+        if (threadIdx.x < k) {
+            for (int c = 0; c < num_rhs; c++) {
+                array[c * default_block_size + threadIdx.x] +=
+                    array[c * default_block_size + threadIdx.x + k];
+            }
+        }
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void compute_norm2_2(
+    const gko::batch_dense::BatchEntry<const ValueType> &x,
+    const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result)
+{
+    using real_type = gko::remove_complex<ValueType>;
+
+    // constexpr int arr_size = batch_config<ValueType>::max_num_rhs *
+    // default_block_size;
+
+    constexpr int arr_size = 20 * default_block_size;
+
+    if (threadIdx.x == 0)
+        printf("\n max_num_rhs: %d, nrhs: %d\n",
+               batch_config<ValueType>::max_num_rhs, x.num_rhs);
+
+    __shared__ real_type array[arr_size];
+
+    if (threadIdx.x == 0) {
+        printf("\n Hello\n");
+    }
+
+    for (int tid = threadIdx.x; tid < arr_size; tid += blockDim.x) {
+        array[tid] = zero<real_type>();
+    }
+
+    __syncthreads();
+
+    if (threadIdx.x == 0) {
+        printf("\n Hello\n");
+    }
+
+    for (int li = threadIdx.x; li < x.num_rows * x.num_rhs; li += blockDim.x) {
+        int r = li / x.num_rhs;
+        int c = li % x.num_rhs;
+
+        array[default_block_size * c + threadIdx.x] +=
+            squared_norm(x.values[r * x.stride + c]);
+    }
+
+    __syncthreads();
+
+    if (threadIdx.x == 0) {
+        printf("\n Hello\n");
+    }
+
+
+    // muti_block_reduce(array, x.num_rhs);
+
+    // __syncthreads();
+
+    // for(int c = threadIdx.x ; c < x.num_rhs ; c+= blockDim.x)
+    // {
+    //      result.values[c] = sqrt(array[c * default_block_size]);
+
+    //      printf("\n for c: %d, ans is: %g\n", c, result.values[c]);
+    // }
 }
 
 
@@ -229,31 +393,6 @@ __device__ __forceinline__ void copy(
 }
 
 
-namespace {
-
-template <typename ValueType>
-__device__ __forceinline__ void one_dot_product(
-    const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
-    const int col, ValueType *const result)
-{
-    __shared__ UninitializedArray<ValueType, default_block_size> work;
-    work[threadIdx.x] = zero<ValueType>();
-    // first sum across block-length chunks
-    for (int i = threadIdx.x; i < x.num_rows; i += blockDim.x) {
-        work[i] +=
-            conj(x.values[i * x.stride + col]) * y.values[i * y.stride + col];
-    }
-    __syncthreads();
-    // next, reduce in the block
-    reduce(group::this_thread_block(), static_cast<ValueType *>(work),
-           [](const ValueType &a, const ValueType &b) { return a + b; });
-    if (threadIdx.x == 0) {
-        result[col] = work[0];
-    }
-}
-
-}  // namespace
-
 /**
  * Computes the dot product of some column vectors in global or shared memory.
  *
@@ -264,10 +403,38 @@ __device__ __forceinline__ void compute_dot_product(
     const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
     const BatchEntry<ValueType> &result)
 {
-    for (int col = 0; col < x.num_rhs; col++) {
-        one_dot_product(x, y, col, result.values);
+    using real_type = typename gko::remove_complex<ValueType>;
+    constexpr auto tile_size = config::warp_size;
+
+    auto thread_block = group::this_thread_block();
+
+    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
+
+    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+
+    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
+
+    for (int rhs_index = subwarp_grp_id; rhs_index < x.num_rhs;
+         rhs_index += num_subwarp_grps_per_block) {
+        ValueType val = zero<ValueType>();
+
+        for (int r = subwarp_grp.thread_rank(); r < x.num_rows;
+             r += subwarp_grp.size()) {
+            val += conj(x.values[r * x.stride + rhs_index]) *
+                   y.values[r * y.stride + rhs_index];
+        }
+
+        // subwarp_grp level reduction
+        for (int j = subwarp_grp.size() / 2; j > 0; j /= 2) {
+            val += subwarp_grp.shfl_down(val, j);
+        }
+
+        if (subwarp_grp.thread_rank() == 0) {
+            result.values[rhs_index] = val;
+        }
     }
 }
+
 
 /**
  * Computes the dot product of respective column vectors from two multivectors.
@@ -283,14 +450,45 @@ __device__ __forceinline__ void compute_dot_product(
     const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
     const BatchEntry<ValueType> &result, const uint32 &converged)
 {
-    for (int c = 0; c < x.num_rhs; c++) {
-        const uint32 conv = converged & (1 << c);
+    using real_type = typename gko::remove_complex<ValueType>;
+    constexpr auto tile_size = config::warp_size;
+
+    auto thread_block = group::this_thread_block();
+
+    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
+
+    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+
+    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
+
+    for (int rhs_index = subwarp_grp_id; rhs_index < x.num_rhs;
+         rhs_index += num_subwarp_grps_per_block) {
+        const uint32 conv = converged & (1 << rhs_index);
+
         if (conv) {
             continue;
         }
-        one_dot_product(x, y, c, result.values);
+
+
+        ValueType val = zero<ValueType>();
+
+        for (int r = subwarp_grp.thread_rank(); r < x.num_rows;
+             r += subwarp_grp.size()) {
+            val += conj(x.values[r * x.stride + rhs_index]) *
+                   y.values[r * y.stride + rhs_index];
+        }
+
+        // subwarp_grp level reduction
+        for (int j = subwarp_grp.size() / 2; j > 0; j /= 2) {
+            val += subwarp_grp.shfl_down(val, j);
+        }
+
+        if (subwarp_grp.thread_rank() == 0) {
+            result.values[rhs_index] = val;
+        }
     }
 }
+
 
 // clang-format off
 template <typename ValueType>
