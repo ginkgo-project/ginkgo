@@ -475,7 +475,7 @@ public:
     using const_ref_type =
         gko::acc::reference_class::reduced_storage<ar_type, const st_type>;
 
-    const rc_ar_type delta{std::numeric_limits<rc_st_type>::epsilon() * 1};
+    const rc_ar_type delta{std::numeric_limits<rc_st_type>::epsilon()};
 
 protected:
     ComplexReducedRowMajorReference() : storage{16.3, -12.19} {}
@@ -561,7 +561,8 @@ TYPED_TEST(ComplexReducedRowMajorReference, SquaredNorm)
     using ar_type = typename TestFixture::ar_type;
     using rc_ar_type = typename TestFixture::rc_ar_type;
     const auto curr_val = this->get_conv_storage();
-    const rc_ar_type expected_res{std::norm(curr_val)};
+    const rc_ar_type expected_res{std::real(
+        this->get_conv_storage() * std::conj(this->get_conv_storage()))};
 
     auto res1 = squared_norm(this->get_ref());
     auto res2 = squared_norm(this->get_ref());
