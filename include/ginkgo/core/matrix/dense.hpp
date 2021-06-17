@@ -834,7 +834,8 @@ protected:
      */
     virtual std::unique_ptr<Dense> create_with_same_config() const
     {
-        return Dense::create(this->get_executor(), this->get_size());
+        return Dense::create(this->get_executor(), this->get_size(),
+                             this->get_stride());
     }
 
     /**

@@ -36,7 +36,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "core/base/simple_kernels.hpp"
+#include "core/base/simple_kernels_solver.hpp"
+
+
+using gko::solver::default_stride;
+using gko::solver::rowvector;
 
 
 namespace gko {
@@ -63,7 +67,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::Dense<ValueType> *rho,
                 Array<stopping_status> *stop_status)
 {
-    run_kernel(
+    run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto r_tld, auto p,
                       auto q, auto u, auto u_hat, auto v_hat, auto t,
@@ -79,10 +83,11 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             u(row, col) = u_hat(row, col) = p(row, col) = q(row, col) =
                 v_hat(row, col) = t(row, col) = zero(u(row, col));
         },
-        b->get_size(), b, compact(r), compact(r_tld), compact(p), compact(q),
-        compact(u), compact(u_hat), compact(v_hat), compact(t), vector(alpha),
-        vector(beta), vector(gamma), vector(prev_rho), vector(rho),
-        *stop_status);
+        b->get_size(), b->get_stride(), default_stride(b), default_stride(r),
+        default_stride(r_tld), default_stride(p), default_stride(q),
+        default_stride(u), default_stride(u_hat), default_stride(v_hat),
+        default_stride(t), rowvector(alpha), rowvector(beta), rowvector(gamma),
+        rowvector(prev_rho), rowvector(rho), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_INITIALIZE_KERNEL);
@@ -96,7 +101,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *prev_rho,
             const Array<stopping_status> *stop_status)
 {
-    run_kernel(
+    run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto r, auto u, auto p, auto q,
                       auto beta, auto rho, auto prev_rho, auto stop) {
@@ -111,8 +116,9 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                     u(row, col) + tmp * (q(row, col) + tmp * p(row, col));
             }
         },
-        r->get_size(), compact(r), compact(u), compact(p), compact(q),
-        vector(beta), vector(rho), vector(prev_rho), *stop_status);
+        r->get_size(), r->get_stride(), default_stride(r), default_stride(u),
+        default_stride(p), default_stride(q), rowvector(beta), rowvector(rho),
+        rowvector(prev_rho), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
@@ -127,7 +133,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType> *gamma,
             const Array<stopping_status> *stop_status)
 {
-    run_kernel(
+    run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto u, auto v_hat, auto q, auto t,
                       auto alpha, auto rho, auto gamma, auto stop) {
@@ -141,8 +147,9 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
                 t(row, col) = u(row, col) + q(row, col);
             }
         },
-        u->get_size(), compact(u), compact(v_hat), compact(q), compact(t),
-        vector(alpha), vector(rho), vector(gamma), *stop_status);
+        u->get_size(), u->get_stride(), default_stride(u),
+        default_stride(v_hat), default_stride(q), default_stride(t),
+        rowvector(alpha), rowvector(rho), rowvector(gamma), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_2_KERNEL);
@@ -154,7 +161,7 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
             matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *alpha,
             const Array<stopping_status> *stop_status)
 {
-    run_kernel(
+    run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto t, auto u_hat, auto r, auto x,
                       auto alpha, auto stop) {
@@ -163,7 +170,8 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
                 r(row, col) -= alpha[col] * t(row, col);
             }
         },
-        t->get_size(), compact(t), compact(u_hat), compact(r), x, vector(alpha),
+        t->get_size(), t->get_stride(), default_stride(t),
+        default_stride(u_hat), default_stride(r), x, rowvector(alpha),
         *stop_status);
 }
 

@@ -74,7 +74,7 @@ protected:
         ref = gko::ReferenceExecutor::create();
         init_executor(ref, exec);
 
-        mtx = gen_mtx(123, 123);
+        mtx = gen_mtx(123, 123, 125);
         gko::test::make_diag_dominant(mtx.get());
         d_mtx = Mtx::create(exec);
         d_mtx->copy_from(mtx.get());
@@ -105,36 +105,37 @@ protected:
     }
 
     std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
-                                 gko::size_type num_cols)
+                                 gko::size_type num_cols, gko::size_type stride)
     {
-        return gko::test::generate_random_matrix<Mtx>(
+        auto tmp_mtx = gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<value_type>(0.0, 1.0), rand_engine, ref);
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
+        auto result = Mtx::create(ref, gko::dim<2>{num_rows, num_cols}, stride);
+        result->copy_from(tmp_mtx.get());
+        return result;
     }
 
     void initialize_data()
     {
         gko::size_type m = 597;
         gko::size_type n = 17;
-        x_full = gen_mtx(m, n + 3);
-        b_full = gen_mtx(m, n + 2);
-        x = x_full->create_submatrix(gko::span{0, m}, gko::span{0, n});
-        b = b_full->create_submatrix(gko::span{0, m}, gko::span{0, n});
-        r = gen_mtx(m, n);
-        z = gen_mtx(m, n);
-        p = gen_mtx(m, n);
-        rr = gen_mtx(m, n);
-        s = gen_mtx(m, n);
-        t = gen_mtx(m, n);
-        y = gen_mtx(m, n);
-        v = gen_mtx(m, n);
-        prev_rho = gen_mtx(1, n);
-        rho = gen_mtx(1, n);
-        alpha = gen_mtx(1, n);
-        beta = gen_mtx(1, n);
-        gamma = gen_mtx(1, n);
-        omega = gen_mtx(1, n);
+        x = gen_mtx(m, n, n + 3);
+        b = gen_mtx(m, n, n + 2);
+        r = gen_mtx(m, n, n + 2);
+        z = gen_mtx(m, n, n + 2);
+        p = gen_mtx(m, n, n + 2);
+        rr = gen_mtx(m, n, n + 2);
+        s = gen_mtx(m, n, n + 2);
+        t = gen_mtx(m, n, n + 2);
+        y = gen_mtx(m, n, n + 2);
+        v = gen_mtx(m, n, n + 2);
+        prev_rho = gen_mtx(1, n, n);
+        rho = gen_mtx(1, n, n);
+        alpha = gen_mtx(1, n, n);
+        beta = gen_mtx(1, n, n);
+        gamma = gen_mtx(1, n, n);
+        omega = gen_mtx(1, n, n);
         // check correct handling for zero values
         prev_rho->at(2) = 0.0;
         prev_rho->at(4) = 0.0;
@@ -198,8 +199,6 @@ protected:
     std::unique_ptr<Solver::Factory> exec_bicgstab_factory;
     std::unique_ptr<Solver::Factory> ref_bicgstab_factory;
 
-    std::unique_ptr<Mtx> x_full;
-    std::unique_ptr<Mtx> b_full;
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> r;
@@ -325,8 +324,8 @@ TEST_F(Bicgstab, BicgstabApplyOneRHSIsEquivalentToRef)
     int n = 1;
     auto ref_solver = ref_bicgstab_factory->generate(mtx);
     auto exec_solver = exec_bicgstab_factory->generate(d_mtx);
-    auto b = gen_mtx(m, n);
-    auto x = gen_mtx(m, n);
+    auto b = gen_mtx(m, n, n + 2);
+    auto x = gen_mtx(m, n, n + 3);
     auto d_b = Mtx::create(exec);
     auto d_x = Mtx::create(exec);
     d_b->copy_from(b.get());
@@ -346,8 +345,8 @@ TEST_F(Bicgstab, BicgstabApplyMultipleRHSIsEquivalentToRef)
     int n = 16;
     auto exec_solver = exec_bicgstab_factory->generate(d_mtx);
     auto ref_solver = ref_bicgstab_factory->generate(mtx);
-    auto b = gen_mtx(m, n);
-    auto x = gen_mtx(m, n);
+    auto b = gen_mtx(m, n, n + 4);
+    auto x = gen_mtx(m, n, n + 3);
     auto d_b = Mtx::create(exec);
     auto d_x = Mtx::create(exec);
     d_b->copy_from(b.get());

@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
+#include "cuda/base/kernel_launch_solver.cuh"
 
 
 namespace {
@@ -60,9 +61,8 @@ protected:
           iota_array(exec->get_master(), 16),
           iota_transp_array(exec->get_master(), 16),
           iota_dense(gko::matrix::Dense<>::create(exec, dim<2>{4, 4})),
-          zero_dense(gko::matrix::Dense<>::create(exec, dim<2>{4, 4})),
-          zero_dense_padded(
-              gko::matrix::Dense<>::create(exec, dim<2>{4, 4}, 5)),
+          zero_dense(gko::matrix::Dense<>::create(exec, dim<2>{4, 4}, 6)),
+          zero_dense2(gko::matrix::Dense<>::create(exec, dim<2>{4, 4}, 5)),
           vec_dense(gko::matrix::Dense<>::create(exec, dim<2>{1, 4}))
     {
         auto ref_iota_dense =
@@ -74,7 +74,7 @@ protected:
             ref_iota_dense->at(i / 4, i % 4) = i;
         }
         zero_dense->fill(0.0);
-        zero_dense_padded->fill(0.0);
+        zero_dense2->fill(0.0);
         iota_dense->copy_from(ref_iota_dense.get());
         zero_array.set_executor(exec);
         iota_array.set_executor(exec);
@@ -87,7 +87,7 @@ protected:
     gko::Array<int> iota_transp_array;
     std::unique_ptr<gko::matrix::Dense<>> iota_dense;
     std::unique_ptr<gko::matrix::Dense<>> zero_dense;
-    std::unique_ptr<gko::matrix::Dense<>> zero_dense_padded;
+    std::unique_ptr<gko::matrix::Dense<>> zero_dense2;
     std::unique_ptr<gko::matrix::Dense<>> vec_dense;
 };
 
@@ -168,9 +168,9 @@ void run1d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<> *m)
 
 TEST_F(KernelLaunch, Runs1DDense)
 {
-    run1d(exec, zero_dense_padded.get());
+    run1d(exec, zero_dense2.get());
 
-    GKO_ASSERT_MTX_NEAR(zero_dense_padded, iota_dense, 0.0);
+    GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);
 }
 
 
@@ -224,7 +224,7 @@ TEST_F(KernelLaunch, Runs2DArray)
 void run2d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<> *m1,
            gko::matrix::Dense<> *m2, gko::matrix::Dense<> *m3)
 {
-    gko::run_kernel(
+    gko::run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d2, auto d_ptr, auto d3,
                       auto d4, auto d2_ptr, auto d3_ptr) {
@@ -241,7 +241,7 @@ void run2d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<> *m1,
             bool pointers_correct = d.data == d_ptr && d2.data == d_ptr &&
                                     d3.data == d2_ptr && d4 == d3_ptr;
             bool strides_correct =
-                d.stride == 5 && d2.stride == 5 && d3.stride == 4;
+                d.stride == 5 && d2.stride == 5 && d3.stride == 6;
             bool accessors_2d_correct =
                 &d(0, 0) == d_ptr && &d(1, 0) == d_ptr + d.stride &&
                 &d2(0, 0) == d_ptr && &d2(1, 0) == d_ptr + d2.stride &&
@@ -255,16 +255,17 @@ void run2d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<> *m1,
                 d(i, j) = 0;
             }
         },
-        dim<2>{4, 4}, m1, static_cast<const gko::matrix::Dense<> *>(m1),
-        m1->get_const_values(), gko::compact(m2), gko::vector(m3),
+        dim<2>{4, 4}, m2->get_stride(), m1,
+        static_cast<const gko::matrix::Dense<> *>(m1), m1->get_const_values(),
+        gko::solver::default_stride(m2), gko::solver::rowvector(m3),
         m2->get_values(), m3->get_values());
 }
 
 TEST_F(KernelLaunch, Runs2DDense)
 {
-    run2d(exec, zero_dense_padded.get(), zero_dense.get(), vec_dense.get());
+    run2d(exec, zero_dense2.get(), zero_dense.get(), vec_dense.get());
 
-    GKO_ASSERT_MTX_NEAR(zero_dense_padded, iota_dense, 0.0);
+    GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);
 }
 
 

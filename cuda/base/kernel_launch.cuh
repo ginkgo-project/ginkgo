@@ -122,32 +122,6 @@ typename to_device_type_impl<T>::type map_to_device(T &&param)
 }
 
 
-template <typename ValueType>
-struct compact_dense_wrapper {
-    ValueType *data;
-};
-
-
-template <typename T>
-struct device_unpack_2d_impl {
-    using type = T;
-    static __device__ __forceinline__ type unpack(T param, size_type)
-    {
-        return param;
-    }
-};
-
-template <typename ValueType>
-struct device_unpack_2d_impl<compact_dense_wrapper<ValueType>> {
-    using type = matrix_accessor<ValueType>;
-    static __device__ __forceinline__ type
-    unpack(compact_dense_wrapper<ValueType> param, size_type num_cols)
-    {
-        return {param.data, num_cols};
-    }
-};
-
-
 template <typename KernelFunction, typename... KernelArgs>
 __global__ __launch_bounds__(default_block_size) void generic_kernel_1d(
     size_type size, KernelFunction fn, KernelArgs... args)
@@ -170,49 +144,12 @@ __global__ __launch_bounds__(default_block_size) void generic_kernel_2d(
     if (row >= rows) {
         return;
     }
-    fn(row, col, device_unpack_2d_impl<KernelArgs>::unpack(args, cols)...);
+    fn(row, col, args...);
 }
 
 
 }  // namespace cuda
 }  // namespace kernels
-
-
-template <typename ValueType>
-kernels::cuda::compact_dense_wrapper<kernels::cuda::cuda_type<ValueType>>
-compact(matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
-    return {kernels::cuda::as_cuda_type(mtx->get_values())};
-}
-
-
-template <typename ValueType>
-kernels::cuda::compact_dense_wrapper<const kernels::cuda::cuda_type<ValueType>>
-compact(const matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_stride() == mtx->get_size()[1]);
-    return {kernels::cuda::as_cuda_type(mtx->get_const_values())};
-}
-
-
-template <typename ValueType>
-kernels::cuda::cuda_type<ValueType> *vector(matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_size()[0] == 1 ||
-               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
-    return kernels::cuda::as_cuda_type(mtx->get_values());
-}
-
-
-template <typename ValueType>
-const kernels::cuda::cuda_type<ValueType> *vector(
-    const matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_size()[0] == 1 ||
-               (mtx->get_size()[1] == 1 && mtx->get_stride() == 1));
-    return kernels::cuda::as_cuda_type(mtx->get_const_values());
-}
 
 
 template <typename KernelFunction, typename... KernelArgs>
