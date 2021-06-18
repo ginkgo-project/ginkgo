@@ -167,7 +167,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                   "semi-colon warnings")
 
 
-#define CONNECT_GENERIC_SUB(base, T, inner_type, func)              \
+#define CONNECT_GENERIC_SUB(base, T, func_T, inner_type, func)      \
     template <>                                                     \
     struct Generic<typename base<T>::inner_type> {                  \
         using type = std::shared_ptr<typename base<T>::inner_type>; \
@@ -176,7 +176,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                           std::shared_ptr<const LinOp> linop,       \
                           ResourceManager *manager)                 \
         {                                                           \
-            return func<T>(item, exec, linop, manager);             \
+            return func<func_T>(item, exec, linop, manager);        \
         }                                                           \
     }
 
