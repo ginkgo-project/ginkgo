@@ -52,8 +52,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/base/utils.hpp"
+#include "core/components/fill_array.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
+#include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/format_conversion.dp.hpp"
 
 
@@ -629,10 +631,64 @@ void transpose_and_transform(std::shared_ptr<const DpcppExecutor> exec,
                              UnaryOperator op) GKO_NOT_IMPLEMENTED;
 
 
+template <bool conjugate, typename ValueType, typename IndexType>
+void generic_transpose(std::shared_ptr<const DpcppExecutor> exec,
+                       const matrix::Csr<ValueType, IndexType> *orig,
+                       matrix::Csr<ValueType, IndexType> *trans)
+{
+    const auto num_rows = orig->get_size()[0];
+    const auto num_cols = orig->get_size()[1];
+    auto queue = exec->get_queue();
+    const auto row_ptrs = orig->get_const_row_ptrs();
+    const auto cols = orig->get_const_col_idxs();
+    const auto vals = orig->get_const_values();
+
+    Array<IndexType> counts{exec, num_cols + 1};
+    auto tmp_counts = counts.get_data();
+    auto out_row_ptrs = trans->get_row_ptrs();
+    auto out_cols = trans->get_col_idxs();
+    auto out_vals = trans->get_values();
+    components::fill_array(exec, tmp_counts, num_cols, IndexType{});
+
+    queue->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto row = static_cast<size_type>(idx[0]);
+            const auto begin = row_ptrs[row];
+            const auto end = row_ptrs[row + 1];
+            for (auto i = begin; i < end; i++) {
+                atomic_fetch_add(tmp_counts + cols[i], IndexType{1});
+            }
+        });
+    });
+
+    components::prefix_sum(exec, tmp_counts, num_cols + 1);
+    exec->copy(num_cols + 1, tmp_counts, out_row_ptrs);
+
+    queue->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto row = static_cast<size_type>(idx[0]);
+            const auto begin = row_ptrs[row];
+            const auto end = row_ptrs[row + 1];
+            for (auto i = begin; i < end; i++) {
+                auto out_nz =
+                    atomic_fetch_add(tmp_counts + cols[i], IndexType{1});
+                out_cols[out_nz] = row;
+                out_vals[out_nz] = conjugate ? conj(vals[i]) : vals[i];
+            }
+        });
+    });
+
+    sort_by_column_index(exec, trans);
+}
+
+
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const DpcppExecutor> exec,
                const matrix::Csr<ValueType, IndexType> *orig,
-               matrix::Csr<ValueType, IndexType> *trans) GKO_NOT_IMPLEMENTED;
+               matrix::Csr<ValueType, IndexType> *trans)
+{
+    generic_transpose<false>(exec, orig, trans);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
@@ -641,7 +697,9 @@ template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *orig,
                     matrix::Csr<ValueType, IndexType> *trans)
-    GKO_NOT_IMPLEMENTED;
+{
+    generic_transpose<true>(exec, orig, trans);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
