@@ -76,7 +76,8 @@ std::string get_string(type_list<K>)
 }
 
 template <typename K, typename... Rest>
-std::string get_string(type_list<K, Rest...>)
+typename std::enable_if<(sizeof...(Rest) > 0), std::string>::type get_string(
+    type_list<K, Rest...>)
 {
     return get_string<K>() + "+" + get_string(type_list<Rest...>());
 }
