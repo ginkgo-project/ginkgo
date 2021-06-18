@@ -55,13 +55,15 @@ struct Generic<gko::stop::Iteration::Factory> {
                       std::shared_ptr<const LinOp> linop,
                       ResourceManager *manager)
     {
-        auto exec_ptr =
-            get_pointer_check<Executor>(manager, item, "exec", exec, linop);
+        std::cout << "Iteration exec:" << exec.get() << std::endl;
         auto ptr = [&]() {
             BUILD_FACTORY(gko::stop::Iteration, manager, item, exec, linop);
+            std::cout << "Iter 1:" << std::endl;
             SET_VALUE(size_type, max_iters);
+            std::cout << "Iter 2:" << std::endl;
             SET_EXECUTOR;
         }();
+        std::cout << "Iter 3:" << std::endl;
         return ptr;
     }
 };

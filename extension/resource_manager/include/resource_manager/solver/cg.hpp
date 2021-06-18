@@ -52,18 +52,16 @@ std::shared_ptr<typename gko::solver::Cg<T>::Factory> build_cg_factory(
     rapidjson::Value &item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
-    auto exec_ptr =
-        get_pointer_check<Executor>(manager, item, "exec", exec, linop);
-    std::cout << "CgFactory " << exec_ptr.get() << std::endl;
     auto ptr = [&]() {
-        BUILD_FACTORY(gko::solver::Cg<T>, manager, item, exec_ptr, linop);
+        BUILD_FACTORY(gko::solver::Cg<T>, manager, item, exec, linop);
         SET_POINTER(LinOp, generated_preconditioner);
         SET_POINTER(LinOpFactory, preconditioner);
         SET_POINTER_ARRAY(CriterionFactory, criteria);
+        std::cout << "456" << std::endl;
         SET_EXECUTOR;
     }();
 
-
+    std::cout << "123" << std::endl;
     return ptr;
 }
 
