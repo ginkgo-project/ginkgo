@@ -65,6 +65,8 @@ protected:
     using Arr = gko::Array<int>;
     using Mtx = gko::matrix::Csr<value_type>;
     using Vec = gko::matrix::Dense<value_type>;
+    using ComplexVec = gko::matrix::Dense<std::complex<value_type>>;
+    using ComplexMtx = gko::matrix::Csr<std::complex<value_type>>;
 
     Csr() : mtx_size(532, 231), rand_engine(42) {}
 
@@ -102,12 +104,17 @@ protected:
     {
         mtx = Mtx::create(ref);
         mtx->copy_from(gen_mtx<Vec>(mtx_size[0], mtx_size[1], 1));
+        complex_mtx = ComplexMtx::create(ref);
+        complex_mtx->copy_from(
+            gen_mtx<ComplexVec>(mtx_size[0], mtx_size[1], 1));
         square_mtx = Mtx::create(ref);
         square_mtx->copy_from(gen_mtx<Vec>(mtx_size[0], mtx_size[0], 1));
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(dpcpp);
         dmtx->copy_from(mtx.get());
+        complex_dmtx = ComplexMtx::create(dpcpp);
+        complex_dmtx->copy_from(complex_mtx.get());
         square_dmtx = Mtx::create(dpcpp);
         square_dmtx->copy_from(square_mtx.get());
         dalpha = Vec::create(dpcpp);
@@ -141,11 +148,13 @@ protected:
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<ComplexMtx> complex_mtx;
     std::unique_ptr<Mtx> square_mtx;
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
     std::unique_ptr<Mtx> dmtx;
+    std::unique_ptr<ComplexMtx> complex_dmtx;
     std::unique_ptr<Mtx> square_dmtx;
     std::unique_ptr<Vec> dalpha;
     std::unique_ptr<Vec> dbeta;
@@ -255,6 +264,30 @@ TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(b, db, r<value_type>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(b, db);
     ASSERT_TRUE(db->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, TransposeIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto trans = gko::as<Mtx>(mtx->transpose());
+    auto d_trans = gko::as<Mtx>(dmtx->transpose());
+
+    GKO_ASSERT_MTX_NEAR(d_trans, trans, 0.0);
+    ASSERT_TRUE(d_trans->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto trans = gko::as<ComplexMtx>(complex_mtx->conj_transpose());
+    auto d_trans = gko::as<ComplexMtx>(complex_dmtx->conj_transpose());
+
+    GKO_ASSERT_MTX_NEAR(d_trans, trans, 0.0);
+    ASSERT_TRUE(d_trans->is_sorted_by_column_index());
 }
 
 
