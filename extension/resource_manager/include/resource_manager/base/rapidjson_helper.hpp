@@ -103,12 +103,12 @@ std::shared_ptr<const T> get_pointer(ResourceManager *rm,
             std::string opt = item.GetString();
             ptr = rm->search_data<T>(opt);
         } else if (item.IsObject()) {
-            ptr = rm->build_item<T>(item);
+            ptr = rm->build_item<T>(item, exec, linop);
         } else {
             assert(false);
         }
     }
-    assert(ptr.get() == nullptr);
+    assert(ptr.get() != nullptr);
     return std::move(ptr);
 }
 
@@ -142,7 +142,7 @@ std::shared_ptr<const Executor> get_pointer<Executor>(
             assert(false);
         }
     }
-    assert(ptr.get() == nullptr);
+    assert(ptr.get() != nullptr);
     return std::move(ptr);
 }
 
@@ -176,7 +176,7 @@ std::shared_ptr<const LinOp> get_pointer<LinOp>(
             assert(false);
         }
     }
-    assert(ptr.get() == nullptr);
+    assert(ptr.get() != nullptr);
     return std::move(ptr);
 }
 
@@ -216,6 +216,7 @@ std::vector<std::shared_ptr<const T>> get_pointer_vector(
     std::vector<std::shared_ptr<const T>> vec;
     if (item.IsArray()) {
         for (auto &v : item.GetArray()) {
+            std::cout << "item " << exec.get() << std::endl;
             auto ptr = get_pointer<T>(rm, v, exec, linop);
             std::cout << "array " << ptr << std::endl;
             vec.emplace_back(ptr);
