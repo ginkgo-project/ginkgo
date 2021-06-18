@@ -62,7 +62,7 @@ struct Generic<gko::CudaExecutor> {
 };
 
 
-IMPLEMENT_BRIDGE(RM_Executor, CudaExecutor, CudaExecutor)
+IMPLEMENT_BRIDGE(RM_Executor, CudaExecutor, CudaExecutor);
 
 template <>
 struct Generic<gko::HipExecutor> {
@@ -78,7 +78,7 @@ struct Generic<gko::HipExecutor> {
     }
 };
 
-IMPLEMENT_BRIDGE(RM_Executor, HipExecutor, HipExecutor)
+IMPLEMENT_BRIDGE(RM_Executor, HipExecutor, HipExecutor);
 
 
 template <>
@@ -91,12 +91,15 @@ struct Generic<gko::DpcppExecutor> {
     {
         std::cout << "Dpcpp" << std::endl;
         auto device_id = get_value_with_default(item, "device_id", 0);
-        return DpcppExecutor::create(device_id, ReferenceExecutor::create());
+        auto device_type =
+            get_value_with_default(item, "device_type", std::string("all"));
+        return DpcppExecutor::create(device_id, ReferenceExecutor::create(),
+                                     device_type);
     }
 };
 
 
-IMPLEMENT_BRIDGE(RM_Executor, DpcppExecutor, DpcppExecutor)
+IMPLEMENT_BRIDGE(RM_Executor, DpcppExecutor, DpcppExecutor);
 
 
 template <>
@@ -113,7 +116,7 @@ struct Generic<gko::ReferenceExecutor> {
 };
 
 
-IMPLEMENT_BRIDGE(RM_Executor, ReferenceExecutor, ReferenceExecutor)
+IMPLEMENT_BRIDGE(RM_Executor, ReferenceExecutor, ReferenceExecutor);
 
 
 template <>
@@ -129,7 +132,7 @@ struct Generic<gko::OmpExecutor> {
     }
 };
 
-IMPLEMENT_BRIDGE(RM_Executor, OmpExecutor, OmpExecutor)
+IMPLEMENT_BRIDGE(RM_Executor, OmpExecutor, OmpExecutor);
 
 
 }  // namespace resource_manager

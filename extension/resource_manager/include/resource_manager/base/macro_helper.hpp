@@ -79,6 +79,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     {                                                                         \
         _list(ENUM_LAMBDA)                                                    \
     }
+
 #define DECLARE_SELECTION(_base_type, _enum_type)                      \
     std::shared_ptr<_base_type> create_from_config_(                   \
         _enum_type, rapidjson::Value &, std::string,                   \
@@ -102,20 +103,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             std::cout << "Found!" << std::endl;                               \
             return it->second(item, exec, linop, manager);                    \
         }                                                                     \
-    }
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
 
 
-#define IMPLEMENT_BRIDGE(_enum_type, _enum_item, _impl_type)           \
-    template <>                                                        \
-    std::shared_ptr<typename gkobase<_enum_type>::type>                \
-    create_from_config<_enum_type, _enum_type::_enum_item,             \
-                       typename gkobase<_enum_type>::type>(            \
-        rapidjson::Value & item, std::shared_ptr<const Executor> exec, \
-        std::shared_ptr<const LinOp> linop, ResourceManager * manager) \
-    {                                                                  \
-        std::cout << "enter bridge" << std::endl;                      \
-        return call<_impl_type>(item, exec, linop, manager);           \
-    }
+#define IMPLEMENT_BRIDGE(_enum_type, _enum_item, _impl_type)                 \
+    template <>                                                              \
+    std::shared_ptr<typename gkobase<_enum_type>::type>                      \
+    create_from_config<_enum_type, _enum_type::_enum_item,                   \
+                       typename gkobase<_enum_type>::type>(                  \
+        rapidjson::Value & item, std::shared_ptr<const Executor> exec,       \
+        std::shared_ptr<const LinOp> linop, ResourceManager * manager)       \
+    {                                                                        \
+        std::cout << "enter bridge" << std::endl;                            \
+        return call<_impl_type>(item, exec, linop, manager);                 \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 #define BUILD_FACTORY(type_, rm_, item_, exec_, linop_) \
@@ -135,20 +142,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     if (item_alias_.HasMember(#_param_name)) {                                 \
         factory_alias_.with_##_param_name(get_pointer<_param_type>(            \
             rm_alias_, item_alias_[#_param_name], exec_alias_, linop_alias_)); \
-    }
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
 
 #define SET_POINTER_ARRAY(_param_type, _param_name)                            \
     if (item_alias_.HasMember(#_param_name)) {                                 \
         factory_alias_.with_##_param_name(get_pointer_vector<_param_type>(     \
             rm_alias_, item_alias_[#_param_name], exec_alias_, linop_alias_)); \
-    }
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
 
-#define SET_VALUE(_param_type, _param_name)             \
-    if (item_alias_.HasMember(#_param_name)) {          \
-        std::string name{#_param_name};                 \
-        factory_alias_.with_##_param_name(              \
-            get_value<_param_type>(item_alias_, name)); \
-    }
+#define SET_VALUE(_param_type, _param_name)                                  \
+    if (item_alias_.HasMember(#_param_name)) {                               \
+        std::string name{#_param_name};                                      \
+        factory_alias_.with_##_param_name(                                   \
+            get_value<_param_type>(item_alias_, name));                      \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 #define CONNECT_GENERIC_SUB(base, T, inner_type, func)              \
@@ -162,18 +178,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         {                                                           \
             return func<T>(item, exec, linop, manager);             \
         }                                                           \
-    };
-
-#define CREATE_DEFAULT_IMPL(_base_type)                                     \
-    template <>                                                             \
-    std::shared_ptr<_base_type> create_from_config<_base_type>(             \
-        rapidjson::Value & item, std::string base,                          \
-        std::shared_ptr<const Executor> exec,                               \
-        std::shared_ptr<const LinOp> linop, ResourceManager * manager)      \
-    {                                                                       \
-        return create_from_config_(RM_##_base_type::_base_type, item, base, \
-                                   exec, linop, manager);                   \
     }
+
+#define CREATE_DEFAULT_IMPL(_base_type)                                      \
+    template <>                                                              \
+    std::shared_ptr<_base_type> create_from_config<_base_type>(              \
+        rapidjson::Value & item, std::string base,                           \
+        std::shared_ptr<const Executor> exec,                                \
+        std::shared_ptr<const LinOp> linop, ResourceManager * manager)       \
+    {                                                                        \
+        return create_from_config_(RM_##_base_type::_base_type, item, base,  \
+                                   exec, linop, manager);                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 #define PACK(...) __VA_ARGS__
 
