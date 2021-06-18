@@ -78,7 +78,7 @@ struct Generic<gko::matrix::Dense<T>> {
 };
 
 ENABLE_SELECTION(dense_select, call, std::shared_ptr<gko::LinOp>, get_the_type);
-constexpr auto dense_list = type_list<double, float>();
+constexpr auto dense_list = tt_list<double, float>();
 
 template <>
 std::shared_ptr<gko::LinOp>

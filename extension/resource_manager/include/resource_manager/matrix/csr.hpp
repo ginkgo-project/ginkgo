@@ -116,8 +116,8 @@ struct Generic<gko::matrix::Csr<V, I>> {
 
 ENABLE_SELECTION(csr_select, call, std::shared_ptr<gko::LinOp>, get_the_type);
 constexpr auto csr_list =
-    type_list<type_list<double, gko::int32>, type_list<double, gko::int64>,
-              type_list<float, gko::int32>, type_list<float, gko::int64>>();
+    typename span_list<tt_list<double, float>,
+                       tt_list<gko::int32, gko::int64>>::type();
 
 template <>
 std::shared_ptr<gko::LinOp>
