@@ -62,7 +62,7 @@ TEST(Cg, CreateStandAlone)
               ],\
               \"exec\": {\"base\": \"ReferenceExecutor\"}\
           }, \
-          \"generate\": {\"base\": \"Dense\"} \
+          \"generate\": {\"base\": \"Dense\", \"exec\": {\"base\": \"ReferenceExecutor\"}} \
          }";
     rapidjson::StringStream s(json);
     rapidjson::Document d;
