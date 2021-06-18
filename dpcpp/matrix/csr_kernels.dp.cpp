@@ -736,7 +736,56 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
                           matrix::Csr<ValueType, IndexType> *to_sort)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto num_rows = to_sort->get_size()[0];
+    const auto row_ptrs = to_sort->get_const_row_ptrs();
+    auto cols = to_sort->get_col_idxs();
+    auto vals = to_sort->get_values();
+    exec->get_queue()->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto row = static_cast<size_type>(idx[0]);
+            const auto begin = row_ptrs[row];
+            auto size = row_ptrs[row + 1] - begin;
+            if (size <= 1) {
+                return;
+            }
+            auto swap = [&](IndexType i, IndexType j) {
+                std::swap(cols[i + begin], cols[j + begin]);
+                std::swap(vals[i + begin], vals[j + begin]);
+            };
+            auto lchild = [](IndexType i) { return 2 * i + 1; };
+            auto rchild = [](IndexType i) { return 2 * i + 2; };
+            auto parent = [](IndexType i) { return (i - 1) / 2; };
+            auto sift_down = [&](IndexType i) {
+                const auto col = cols[i + begin];
+                while (lchild(i) < size) {
+                    const auto lcol = cols[lchild(i) + begin];
+                    // -1 as sentinel, since we are building a max heap
+                    const auto rcol = checked_load(cols + begin, rchild(i),
+                                                   size, IndexType{-1});
+                    if (col >= std::max(lcol, rcol)) {
+                        return;
+                    }
+                    const auto maxchild = lcol > rcol ? lchild(i) : rchild(i);
+                    swap(i, maxchild);
+                    i = maxchild;
+                }
+            };
+            // heapify / sift_down for max-heap
+            for (auto i = (size - 2) / 2; i >= 0; i--) {
+                sift_down(i);
+            }
+            // heapsort: swap maximum to the end, shrink heap
+            swap(0, size - 1);
+            size--;
+            for (; size > 1; size--) {
+                // restore heap property and repeat
+                sift_down(0);
+                swap(0, size - 1);
+            }
+        });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX);

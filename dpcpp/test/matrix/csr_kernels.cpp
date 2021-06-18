@@ -284,4 +284,32 @@ TEST_F(Csr, RecognizeUnsortedMatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, SortSortedMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+    ASSERT_TRUE(mtx->is_sorted_by_column_index());
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef)
+{
+    auto uns_mtx = gen_unsorted_mtx();
+
+    uns_mtx.ref->sort_by_column_index();
+    uns_mtx.dpcpp->sort_by_column_index();
+
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(uns_mtx.ref, uns_mtx.dpcpp, 0);
+    ASSERT_TRUE(uns_mtx.ref->is_sorted_by_column_index());
+    ASSERT_TRUE(uns_mtx.dpcpp->is_sorted_by_column_index());
+}
+
+
 }  // namespace
