@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKOEXT_RESOURCE_MANAGER_BASE_ELEMENT_TYPES_HPP_
 
 #include <ginkgo/ginkgo.hpp>
+#include <type_traits>
 // #include <resource_manager/base/macro_helper.hpp>
 
 
@@ -62,6 +63,21 @@ GET_STRING_PARTIAL(double, "double");
 GET_STRING_PARTIAL(float, "float");
 GET_STRING_PARTIAL(gko::int32, "int");
 GET_STRING_PARTIAL(gko::int64, "int64");
+using isai_lower =
+    std::integral_constant<gko::preconditioner::isai_type,
+                           gko::preconditioner::isai_type::lower>;
+using isai_upper =
+    std::integral_constant<gko::preconditioner::isai_type,
+                           gko::preconditioner::isai_type::upper>;
+using isai_general =
+    std::integral_constant<gko::preconditioner::isai_type,
+                           gko::preconditioner::isai_type::general>;
+using isai_spd = std::integral_constant<gko::preconditioner::isai_type,
+                                        gko::preconditioner::isai_type::spd>;
+GET_STRING_PARTIAL(isai_lower, "isai_lower");
+GET_STRING_PARTIAL(isai_upper, "isai_upper");
+GET_STRING_PARTIAL(isai_general, "isai_general");
+GET_STRING_PARTIAL(isai_spd, "isai_spd");
 
 template <typename T>
 std::string get_string(T)
