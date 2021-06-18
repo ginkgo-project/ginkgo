@@ -159,7 +159,8 @@ void run_preconditioner(const char *precond_name,
                               allocator);
         }
 
-        const auto repetitions = get_repetitions();
+        const auto repetitions =
+            static_cast<unsigned int>(std::stoi(FLAGS_repetitions));
         {
             // fast run, gets total time
             auto x_clone = clone(x);
@@ -255,6 +256,12 @@ int main(int argc, char *argv[])
 
     std::string extra_information =
         "Running with preconditioners: " + FLAGS_preconditioners + "\n";
+    if (FLAGS_repetitions == "auto") {
+        FLAGS_repetitions = "10";
+        extra_information +=
+            "Warning: 'repetitions = auto' is not supported.\n"
+            "          Using the fallback value of 10 repetitions.\n";
+    }
     print_general_information(extra_information);
 
     auto exec = get_executor();

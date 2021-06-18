@@ -437,8 +437,11 @@ void apply_blas(const char *operation_name, std::shared_ptr<gko::Executor> exec,
 
         auto op = operation_map[operation_name](exec, parse_dims(test_case));
 
+        auto timer = get_timer(exec, FLAGS_gpu_timer);
+        IterationControl ic(timer);
+
         // warm run
-        for (unsigned int i = 0; i < FLAGS_warmup; i++) {
+        for (auto _ : ic.warmup_run()) {
             op->prepare();
             exec->synchronize();
             op->run();
@@ -446,18 +449,17 @@ void apply_blas(const char *operation_name, std::shared_ptr<gko::Executor> exec,
         }
 
         // timed run
-        auto timer = get_timer(exec, FLAGS_gpu_timer);
-        const auto repetitions = get_repetitions();
-        for (unsigned int i = 0; i < repetitions; i++) {
-            op->prepare();
+        op->prepare();
+        for (auto _ : ic.run()) {
             exec->synchronize();
             timer->tic();
             op->run();
             timer->toc();
         }
-        auto runtime = timer->compute_average_time();
-        auto flops = static_cast<double>(op->get_flops());
-        auto mem = static_cast<double>(op->get_memory());
+        const auto runtime = timer->compute_average_time();
+        const auto flops = static_cast<double>(op->get_flops());
+        const auto mem = static_cast<double>(op->get_memory());
+        const auto repetitions = timer->get_num_repetitions();
         add_or_set_member(blas_case[operation_name], "time", runtime,
                           allocator);
         add_or_set_member(blas_case[operation_name], "flops", flops / runtime,
