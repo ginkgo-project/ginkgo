@@ -125,17 +125,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                   "semi-colon warnings")
 
 
-#define BUILD_FACTORY(type_, rm_, item_, exec_, linop_) \
-    auto factory_alias_ = type_::build();               \
-    auto &rm_alias_ = rm_;                              \
-    auto &item_alias_ = item_;                          \
-    auto &exec_alias_ = exec_;                          \
-    auto &linop_alias_ = linop_
+#define BUILD_FACTORY(_type, _rm, _item, _exec, _linop) \
+    auto factory_alias_ = _type::build();               \
+    auto &rm_alias_ = _rm;                              \
+    auto &item_alias_ = _item;                          \
+    auto &linop_alias_ = _linop;                        \
+    auto exec_alias_ =                                  \
+        get_pointer_check<Executor>(_rm, _item, "exec", _exec, _linop)
 
-#define SET_EXECUTOR                                                \
-    auto executor = get_pointer_check<Executor>(                    \
-        rm_alias_, item_alias_, "exec", exec_alias_, linop_alias_); \
-    return factory_alias_.on(executor)
+
+#define SET_EXECUTOR return factory_alias_.on(exec_alias_)
 
 
 #define SET_POINTER(_param_type, _param_name)                                  \
@@ -149,6 +148,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define SET_POINTER_ARRAY(_param_type, _param_name)                            \
     if (item_alias_.HasMember(#_param_name)) {                                 \
+        std::cout << exec_alias_.get() << std::endl;                           \
         factory_alias_.with_##_param_name(get_pointer_vector<_param_type>(     \
             rm_alias_, item_alias_[#_param_name], exec_alias_, linop_alias_)); \
     }                                                                          \
