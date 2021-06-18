@@ -490,6 +490,15 @@ void solve_system(const std::string &solver_name,
 
             if (b->get_size()[1] == 1 && i == FLAGS_repetitions - 1 &&
                 !FLAGS_overhead) {
+                // a solver is considered direct if it didn't log any iterations
+                auto is_direct_solver =
+                    solver_json["true_residuals"].GetArray().Size() == 0;
+                if (is_direct_solver) {
+                    auto error = compute_direct_error(lend(solver), lend(b),
+                                                      lend(x_clone));
+                    add_or_set_member(solver_json, "forward_error", error,
+                                      allocator);
+                }
                 auto residual = compute_residual_norm(lend(system_matrix),
                                                       lend(b), lend(x_clone));
                 add_or_set_member(solver_json, "residual_norm", residual,
