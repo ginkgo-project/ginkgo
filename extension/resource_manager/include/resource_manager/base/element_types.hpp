@@ -110,15 +110,31 @@ struct get_the_type<base, type_list<Rest...>> {
 
 template <template <typename...> class base, typename T>
 struct get_the_factory_type {
-    using type = typename base<T>::Factory;
+    using type = typename get_the_type<base, T>::type::Factory;
 };
 
-template <template <typename...> class base, typename... Rest>
-struct get_the_factory_type<base, type_list<Rest...>> {
-    using type = typename base<Rest...>::Factory;
+template <typename T>
+struct actual_type {
+    using type = T;
 };
 
+template <gko::preconditioner::isai_type isai_value, typename... Rest>
+struct actual_type<type_list<
+    std::integral_constant<gko::preconditioner::isai_type, isai_value>,
+    Rest...>> {
+    using type = gko::preconditioner::Isai<isai_value, Rest...>;
+};
 
+template <template <typename...> class base, typename T>
+struct get_actual_type {
+    using type =
+        typename actual_type<typename get_the_type<base, T>::type>::type;
+};
+
+template <template <typename...> class base, typename T>
+struct get_actual_factory_type {
+    using type = typename get_actual_type<base, T>::type::Factory;
+};
 template <typename... Types>
 struct tt_list {};
 
