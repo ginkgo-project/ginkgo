@@ -106,7 +106,7 @@ create_from_config<RM_LinOp, RM_LinOp::Cg, gko::LinOp>(
 {
     std::cout << "build_cg" << std::endl;
     // go though the type
-    std::string vt{"double"};
+    std::string vt{default_valuetype};
     if (item.HasMember("type")) {
         vt = item["type"].GetString();
     }

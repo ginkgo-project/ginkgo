@@ -5,8 +5,7 @@
     },
     {
         "name": "A",
-        "base": "Dense",
-        "type": "double",
+        "base": "Csr",
         "exec": "executor",
         "read": "data/A.mtx"
     },
