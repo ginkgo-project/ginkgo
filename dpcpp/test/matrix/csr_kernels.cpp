@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
+#include "core/test/utils/unsort_matrix.hpp"
 
 
 namespace {
@@ -115,6 +116,24 @@ protected:
         dbeta->copy_from(beta.get());
     }
 
+    struct matrix_pair {
+        std::unique_ptr<Mtx> ref;
+        std::unique_ptr<Mtx> dpcpp;
+    };
+
+    matrix_pair gen_unsorted_mtx()
+    {
+        constexpr int min_nnz_per_row{2};
+        auto local_mtx_ref =
+            gen_mtx<Mtx>(mtx_size[0], mtx_size[1], min_nnz_per_row);
+        gko::test::unsort_matrix(gko::lend(local_mtx_ref), rand_engine);
+
+        auto local_mtx_dpcpp = Mtx::create(dpcpp);
+        local_mtx_dpcpp->copy_from(local_mtx_ref.get());
+
+        return {std::move(local_mtx_ref), std::move(local_mtx_dpcpp)};
+    }
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::DpcppExecutor> dpcpp;
 
@@ -144,7 +163,7 @@ TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, r<value_type>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
-    ASSERT_TRUE(gko::clone(ref, square_dmtx)->is_sorted_by_column_index());
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
 }
 
 
@@ -159,7 +178,7 @@ TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, r<value_type>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
-    ASSERT_TRUE(gko::clone(ref, square_dmtx)->is_sorted_by_column_index());
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
 }
 
 
@@ -176,7 +195,7 @@ TEST_F(Csr, SimpleApplyToSparseCsrMatrixIsEquivalentToRef)
 
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, r<value_type>::value);
-    ASSERT_TRUE(gko::clone(ref, square_dmtx)->is_sorted_by_column_index());
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
 }
 
 
@@ -196,7 +215,7 @@ TEST_F(Csr, SimpleApplySparseToSparseCsrMatrixIsEquivalentToRef)
 
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, r<value_type>::value);
-    ASSERT_TRUE(gko::clone(ref, square_dmtx)->is_sorted_by_column_index());
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
 }
 
 
@@ -213,7 +232,7 @@ TEST_F(Csr, SimpleApplyToEmptyCsrMatrixIsEquivalentToRef)
 
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, r<value_type>::value);
-    ASSERT_TRUE(gko::clone(ref, square_dmtx)->is_sorted_by_column_index());
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
 }
 
 
@@ -235,7 +254,33 @@ TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(b, db, r<value_type>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(b, db);
-    ASSERT_TRUE(gko::clone(ref, db)->is_sorted_by_column_index());
+    ASSERT_TRUE(db->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, RecognizeSortedMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+    bool is_sorted_dpcpp{};
+    bool is_sorted_ref{};
+
+    is_sorted_ref = mtx->is_sorted_by_column_index();
+    is_sorted_dpcpp = dmtx->is_sorted_by_column_index();
+
+    ASSERT_EQ(is_sorted_ref, is_sorted_dpcpp);
+}
+
+
+TEST_F(Csr, RecognizeUnsortedMatrixIsEquivalentToRef)
+{
+    auto uns_mtx = gen_unsorted_mtx();
+    bool is_sorted_dpcpp{};
+    bool is_sorted_ref{};
+
+    is_sorted_ref = uns_mtx.ref->is_sorted_by_column_index();
+    is_sorted_dpcpp = uns_mtx.dpcpp->is_sorted_by_column_index();
+
+    ASSERT_EQ(is_sorted_ref, is_sorted_dpcpp);
 }
 
 
