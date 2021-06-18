@@ -69,9 +69,35 @@ struct Generic<gko::matrix::Csr<V, I>> {
             strategy == std::string("cusparse")) {
             strategy_ptr = std::make_shared<typename Csr::sparselib>();
         } else if (strategy == std::string("automatical")) {
-            strategy_ptr = std::make_shared<typename Csr::automatical>();
+            if (auto explicit_exec =
+                    std::dynamic_pointer_cast<const gko::CudaExecutor>(
+                        exec_ptr)) {
+                strategy_ptr =
+                    std::make_shared<typename Csr::automatical>(explicit_exec);
+            } else if (auto explicit_exec =
+                           std::dynamic_pointer_cast<const gko::HipExecutor>(
+                               exec_ptr)) {
+                strategy_ptr =
+                    std::make_shared<typename Csr::automatical>(explicit_exec);
+            } else {
+                strategy_ptr = std::make_shared<typename Csr::automatical>(256);
+            }
         } else if (strategy == std::string("load_balance")) {
-            strategy_ptr = std::make_shared<typename Csr::load_balance>();
+            if (auto explicit_exec =
+                    std::dynamic_pointer_cast<const gko::CudaExecutor>(
+                        exec_ptr)) {
+                strategy_ptr =
+                    std::make_shared<typename Csr::load_balance>(explicit_exec);
+            } else if (auto explicit_exec =
+                           std::dynamic_pointer_cast<const gko::HipExecutor>(
+                               exec_ptr)) {
+                strategy_ptr =
+                    std::make_shared<typename Csr::load_balance>(explicit_exec);
+            } else {
+                strategy_ptr =
+                    std::make_shared<typename Csr::load_balance>(256);
+            }
+
         } else if (strategy == std::string("merge_path")) {
             strategy_ptr = std::make_shared<typename Csr::merge_path>();
         } else if (strategy == std::string("classical")) {
