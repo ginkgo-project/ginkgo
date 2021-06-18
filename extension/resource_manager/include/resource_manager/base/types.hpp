@@ -121,14 +121,15 @@ struct base_type<T, typename std::enable_if<std::is_convertible<
 ENUM_CLASS(RM_Executor, int, ENUM_EXECUTER);
 
 
-#define ENUM_LINOP(_expand)                                    \
-    _expand(LinOp, 0), _expand(LinOpWithFactory), _expand(Cg), \
+#define ENUM_LINOP(_expand)                                                   \
+    _expand(LinOp, 0), _expand(LinOpWithFactory), _expand(Cg), _expand(Isai), \
         _expand(LinOpWithOutFactory), _expand(Csr), _expand(Dense)
 
 ENUM_CLASS(RM_LinOp, int, ENUM_LINOP);
 
 
-#define ENUM_LINOPFACTORY(_expand) _expand(LinOpFactory, 0), _expand(CgFactory)
+#define ENUM_LINOPFACTORY(_expand) \
+    _expand(LinOpFactory, 0), _expand(CgFactory), _expand(IsaiFactory)
 
 ENUM_CLASS(RM_LinOpFactory, int, ENUM_LINOPFACTORY);
 
