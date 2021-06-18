@@ -745,8 +745,30 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *to_check,
-    bool *is_sorted) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType> *to_check, bool *is_sorted)
+{
+    Array<bool> is_sorted_device_array{exec, {true}};
+    const auto num_rows = to_check->get_size()[0];
+    const auto row_ptrs = to_check->get_const_row_ptrs();
+    const auto cols = to_check->get_const_col_idxs();
+    auto is_sorted_device = is_sorted_device_array.get_data();
+    exec->get_queue()->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto row = static_cast<size_type>(idx[0]);
+            const auto begin = row_ptrs[row];
+            const auto end = row_ptrs[row + 1];
+            if (*is_sorted_device) {
+                for (auto i = begin; i < end - 1; i++) {
+                    if (cols[i] > cols[i + 1]) {
+                        *is_sorted_device = false;
+                        break;
+                    }
+                }
+            }
+        });
+    });
+    exec->get_master()->copy_from(exec.get(), 1, is_sorted_device, is_sorted);
+};
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);
