@@ -45,12 +45,15 @@ namespace resource_manager {
 template <typename... Types>
 using type_list = ::gko::syn::type_list<Types...>;
 
-#define GET_STRING_PARTIAL(_type, _str) \
-    template <>                         \
-    std::string get_string<_type>()     \
-    {                                   \
-        return #_str;                   \
-    }
+#define GET_STRING_PARTIAL(_type, _str)                                      \
+    template <>                                                              \
+    std::string get_string<_type>()                                          \
+    {                                                                        \
+        return #_str;                                                        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 template <typename T>
 std::string get_string();
@@ -121,7 +124,10 @@ struct get_the_factory_type<base, type_list<Rest...>> {
             return _name<Base>(type_list<Rest...>(), is_eligible, item,        \
                                std::forward<InferredArgs>(args)...);           \
         }                                                                      \
-    }
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
 
 const std::string default_valuetype{get_string<gko::default_precision>()};
 const std::string default_indextype{get_string<gko::int32>()};
