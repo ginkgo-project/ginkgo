@@ -66,8 +66,8 @@ std::shared_ptr<typename gko::solver::Cg<T>::Factory> build_cg_factory(
 }
 
 
-CONNECT_GENERIC_SUB(gko::solver::Cg, PACK(float), Factory, build_cg_factory);
-CONNECT_GENERIC_SUB(gko::solver::Cg, double, Factory, build_cg_factory);
+CONNECT_GENERIC_SUB(gko::solver::Cg, float, float, Factory, build_cg_factory);
+CONNECT_GENERIC_SUB(gko::solver::Cg, double, double, Factory, build_cg_factory);
 
 
 SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::solver::Cg, typename T, T);
