@@ -57,6 +57,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/prettywriter.h>
 
+#include "benchmark/utils/timer.hpp"  // perhaps fwd decl + new cpp file?
+
 
 // Global command-line arguments
 DEFINE_string(executor, "reference",
@@ -88,7 +90,23 @@ DEFINE_uint32(seed, 42, "Seed used for the random number generator");
 DEFINE_uint32(warmup, 2, "Warm-up repetitions");
 
 DEFINE_string(repetitions, "10",
-              "Number of runs used to obtain an averaged result.");
+              "The number of runs used to obtain an averaged result, if 'auto' "
+              "is used the number is adaptively chosen."
+              " In that case, the benchmark runs at least 'min_repetitions'"
+              " times until either 'max_repetitions' is reached or the total "
+              "runtime is larger than 'min_runtime'");
+
+DEFINE_double(min_runtime, 0.05,
+              "If 'repetitions = auto' is used, the minimal runtime of"
+              " a single benchmark.");
+
+DEFINE_uint32(min_repetitions, 10,
+              "If 'repetitions = auto' is used, the minimal number of"
+              " repetitions for a single benchmark.");
+
+DEFINE_uint32(max_repetitions, std::numeric_limits<unsigned int>::max(),
+              "If 'repetitions = auto' is used, the maximal number of"
+              " repetitions for a single benchmark.");
 
 
 /**
@@ -134,9 +152,17 @@ void print_general_information(std::string &extra)
     std::clog << gko::version_info::get() << std::endl
               << "Running on " << FLAGS_executor << "(" << FLAGS_device_id
               << ")" << std::endl
-              << "Running with " << FLAGS_warmup << " warm iterations and "
-              << FLAGS_repetitions << " running iterations" << std::endl
-              << "The random seed for right hand sides is " << FLAGS_seed
+              << "Running with " << FLAGS_warmup << " warm iterations and ";
+    if (FLAGS_repetitions == "auto") {
+        std::clog << "adaptively determined repetititions with "
+                  << FLAGS_min_repetitions
+                  << " <= rep <= " << FLAGS_max_repetitions
+                  << " and a minimal runtime of " << FLAGS_min_runtime << "s"
+                  << std::endl;
+    } else {
+        std::clog << FLAGS_repetitions << " running iterations" << std::endl;
+    }
+    std::clog << "The random seed for right hand sides is " << FLAGS_seed
               << std::endl
               << extra;
 }
@@ -434,11 +460,130 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
 }
 
 
-// parses the repetitions flag
-unsigned int get_repetitions()
-{
-    const std::string reps_str = FLAGS_repetitions;
-    return static_cast<unsigned int>(std::stoi(reps_str));
-}
+/**
+ * A class for controlling the number warmup and timed iterations.
+ *
+ * The behavior is determined by the following flags
+ * - 'repetitions' switch between fixed and adaptive number of iterations
+ * - 'warmup' warmup iterations, applies in fixed and adaptive case
+ * - 'min_repetitions' minimal number of repetitions (adaptive case)
+ * - 'max_repetitions' maximal number of repetitions (adaptive case)
+ * - 'min_runtime' minimal total runtime (adaptive case)
+ *
+ * Usage:
+ * `IterationControl` exposes two member functions:
+ * - `warmup_run()`: uses `warmup` flag
+ * - `run()`: uses all other flags
+ * Both methods return an object that is to be used in a range-based for loop:
+ * ```
+ * auto timer = get_timer(...);
+ * IterationControl ic(timer);
+ * for(auto stat: ic.[warmup_run|run]()){
+ *   timer->start();  // has to be the same timer as passed to ic
+ *   // execute benchmark
+ *   timer->stop();
+ * }
+ * ```
+ * At the beginning of both methods, the timer is reset.
+ *
+ */
+class IterationControl {
+    using IndexType = unsigned int;  //!< to be compatible with GFLAGS type
+
+    class run_control;
+
+public:
+    // criteria to stop adaptive benchmark run
+    struct status {
+        std::shared_ptr<Timer> timer = nullptr;
+
+        IndexType min_it = 0;
+        IndexType max_it = 0;
+        double max_runtime = 0.;
+
+        IndexType cur_it = 0;
+
+        // returns true (i.e. run is complete) if:
+        // - the minimum number of iteration is reached
+        // - and either:
+        //   - the maximum number of repetitions is reached
+        //   - the total runtime is above the threshold
+        bool is_finished()
+        {
+            return cur_it >= min_it &&
+                   (cur_it >= max_it || timer->get_total_time() >= max_runtime);
+        }
+        bool is_last_iteration()
+        {
+            return status{timer, min_it, max_it, max_runtime, cur_it + 1}
+                .is_finished();
+        }
+    };
+
+    explicit IterationControl(std::shared_ptr<Timer> timer) : timer_(timer)
+    {
+        status_warmup_ = {timer, FLAGS_warmup, FLAGS_warmup, 0., 0};
+        if (FLAGS_repetitions == "auto") {
+            status_run_ = {timer, FLAGS_min_repetitions, FLAGS_max_repetitions,
+                           FLAGS_min_runtime};
+        } else {
+            const auto reps =
+                static_cast<unsigned int>(std::stoi(FLAGS_repetitions));
+            status_run_ = {timer, reps, reps, 0., 0};
+        }
+    }
+
+    IterationControl() = default;
+    IterationControl(const IterationControl &) = default;
+    IterationControl(IterationControl &&) = default;
+
+    run_control warmup_run()
+    {
+        timer_->clear();
+        status_warmup_.cur_it = 0;
+        return run_control{status_warmup_};
+    }
+
+    run_control run()
+    {
+        timer_->clear();
+        status_run_.cur_it = 0;
+        return run_control{status_run_};
+    }
+
+private:
+    // class to be used in range-based for
+    struct run_control {
+        struct iterator {
+            iterator operator++()
+            {
+                cur_info.cur_it++;
+                return *this;
+            }
+
+            status operator*() const { return cur_info; }
+
+            bool operator!=(const iterator &)
+            {
+                return !cur_info.is_finished();
+            }
+
+            status cur_info;
+        };
+
+        iterator begin() const { return iterator{info}; }
+
+        // not used, could potentially used in c++17 (with different type)
+        iterator end() const { return iterator{}; }
+
+        status info;
+    };
+
+    std::shared_ptr<Timer> timer_;
+
+    status status_warmup_;
+    status status_run_;
+};
+
 
 #endif  // GKO_BENCHMARK_UTILS_GENERAL_HPP_
