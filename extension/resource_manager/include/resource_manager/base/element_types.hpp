@@ -49,7 +49,7 @@ using type_list = ::gko::syn::type_list<Types...>;
     template <>                                                              \
     std::string get_string<_type>()                                          \
     {                                                                        \
-        return #_str;                                                        \
+        return _str;                                                         \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
@@ -58,10 +58,10 @@ using type_list = ::gko::syn::type_list<Types...>;
 template <typename T>
 std::string get_string();
 
-GET_STRING_PARTIAL(double, double);
-GET_STRING_PARTIAL(float, float);
-GET_STRING_PARTIAL(gko::int32, int);
-GET_STRING_PARTIAL(gko::int64, int64);
+GET_STRING_PARTIAL(double, "double");
+GET_STRING_PARTIAL(float, "float");
+GET_STRING_PARTIAL(gko::int32, "int");
+GET_STRING_PARTIAL(gko::int64, "int64");
 
 template <typename T>
 std::string get_string(T)
@@ -102,10 +102,14 @@ struct get_the_factory_type<base, type_list<Rest...>> {
     using type = typename base<Rest...>::Factory;
 };
 
+
+template <typename... Types>
+struct tt_list {};
+
 #define ENABLE_SELECTION(_name, _callable, _return, _get_type)                 \
     template <template <typename...> class Base, typename Predicate,           \
               typename... InferredArgs>                                        \
-    _return _name(type_list<>, Predicate is_eligible, rapidjson::Value &item,  \
+    _return _name(tt_list<>, Predicate is_eligible, rapidjson::Value &item,    \
                   InferredArgs... args)                                        \
     {                                                                          \
         GKO_KERNEL_NOT_FOUND;                                                  \
@@ -114,7 +118,7 @@ struct get_the_factory_type<base, type_list<Rest...>> {
                                                                                \
     template <template <typename...> class Base, typename K, typename... Rest, \
               typename Predicate, typename... InferredArgs>                    \
-    _return _name(type_list<K, Rest...>, Predicate is_eligible,                \
+    _return _name(tt_list<K, Rest...>, Predicate is_eligible,                  \
                   rapidjson::Value &item, InferredArgs... args)                \
     {                                                                          \
         auto key = get_string(K{});                                            \
@@ -122,7 +126,7 @@ struct get_the_factory_type<base, type_list<Rest...>> {
             return _callable<typename _get_type<Base, K>::type>(               \
                 item, std::forward<InferredArgs>(args)...);                    \
         } else {                                                               \
-            return _name<Base>(type_list<Rest...>(), is_eligible, item,        \
+            return _name<Base>(tt_list<Rest...>(), is_eligible, item,          \
                                std::forward<InferredArgs>(args)...);           \
         }                                                                      \
     }                                                                          \
@@ -132,6 +136,100 @@ struct get_the_factory_type<base, type_list<Rest...>> {
 
 const std::string default_valuetype{get_string<gko::default_precision>()};
 const std::string default_indextype{get_string<gko::int32>()};
+
+
+template <typename K, typename T>
+struct concatenate {
+    using type = tt_list<K, T>;
+};
+
+
+template <typename... Types, typename T>
+struct concatenate<tt_list<Types...>, T> {
+    using type = tt_list<Types..., T>;
+};
+
+template <typename T, typename... Types>
+struct concatenate<T, tt_list<Types...>> {
+    using type = tt_list<T, Types...>;
+};
+
+template <typename... Types1, typename... Types2>
+struct concatenate<tt_list<Types1...>, tt_list<Types2...>> {
+    using type = tt_list<Types1..., Types2...>;
+};
+
+template <typename K, typename T>
+struct conc {
+    using type = type_list<K, T>;
+};
+template <typename... Types, typename T>
+struct conc<type_list<Types...>, T> {
+    using type = type_list<Types..., T>;
+};
+
+template <typename T, typename... Types>
+struct conc<T, type_list<Types...>> {
+    using type = type_list<T, Types...>;
+};
+
+template <typename... Types1, typename... Types2>
+struct conc<type_list<Types1...>, type_list<Types2...>> {
+    using type = type_list<Types1..., Types2...>;
+};
+
+template <typename T>
+struct is_tt_list : public std::integral_constant<bool, false> {};
+
+template <typename... T>
+struct is_tt_list<tt_list<T...>> : public std::integral_constant<bool, true> {};
+
+template <typename K, typename T, typename = void>
+struct span {
+    using type = tt_list<typename conc<K, T>::type>;
+};
+
+template <typename K, typename T>
+struct span<K, tt_list<T>,
+            typename std::enable_if<!is_tt_list<K>::value>::type> {
+    using type = tt_list<typename conc<K, T>::type>;
+};
+
+template <typename K, typename T, typename... TT>
+struct span<K, tt_list<T, TT...>,
+            typename std::enable_if<!is_tt_list<K>::value>::type> {
+    using type =
+        typename concatenate<typename span<K, T>::type,
+                             typename span<K, tt_list<TT...>>::type>::type;
+};
+
+template <typename K, typename T>
+struct span<tt_list<K>, T> {
+    using type = typename span<K, T>::type;
+};
+
+template <typename K, typename... K1, typename T>
+struct span<tt_list<K, K1...>, T,
+            typename std::enable_if<(sizeof...(K1) > 0)>::type> {
+    using type =
+        typename concatenate<typename span<K, T>::type,
+                             typename span<tt_list<K1...>, T>::type>::type;
+};
+
+
+template <typename K, typename... T>
+struct span_list {};
+
+template <typename K, typename T>
+struct span_list<K, T> {
+    using type = typename span<K, T>::type;
+};
+
+template <typename K, typename T, typename... S>
+struct span_list<K, T, S...> {
+    using type = typename span_list<typename span<K, T>::type, S...>::type;
+};
+
 
 }  // namespace resource_manager
 }  // namespace extension

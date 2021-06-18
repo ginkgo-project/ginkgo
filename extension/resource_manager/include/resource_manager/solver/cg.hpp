@@ -75,7 +75,7 @@ SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::solver::Cg, typename T, T);
 ENABLE_SELECTION(cgfactory_select, call, std::shared_ptr<gko::LinOpFactory>,
                  get_the_factory_type);
 ENABLE_SELECTION(cg_select, call, std::shared_ptr<gko::LinOp>, get_the_type);
-constexpr auto cg_list = type_list<double, float>();
+constexpr auto cg_list = tt_list<double, float>();
 
 template <>
 std::shared_ptr<gko::LinOpFactory> create_from_config<
