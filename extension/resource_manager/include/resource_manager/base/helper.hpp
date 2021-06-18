@@ -59,7 +59,8 @@ std::shared_ptr<T> call(rapidjson::Value &item,
     if (manager == nullptr) {
         return Generic<T>::build(item, exec, linop, manager);
     } else {
-        return manager->build_item<T>(item);
+        std::cout << exec.get() << std::endl;
+        return manager->build_item<T>(item, exec, linop);
     }
 }
 }  // namespace resource_manager
