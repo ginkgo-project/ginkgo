@@ -266,10 +266,10 @@ protected:
         std::vector<int> iters(2);
         if (std::is_same<real_type, float>::value) {
             iters[0] = 40;
-            iters[1] = 40;
+            iters[1] = 48;
         } else if (std::is_same<real_type, double>::value) {
             iters[0] = 98;
-            iters[1] = 98;
+            iters[1] = 106;
         } else {
             iters[0] = -1;
             iters[1] = -1;
