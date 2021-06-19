@@ -68,7 +68,7 @@ CREATE_DEFAULT_IMPL(LinOp);
 CREATE_DEFAULT_IMPL(LinOpFactory);
 CREATE_DEFAULT_IMPL(CriterionFactory);
 
-template <typename T>
+template <typename T, typename U = T>
 struct Generic {
     using type = std::shared_ptr<T>;
     static type build(rapidjson::Value &item,
@@ -83,6 +83,38 @@ GENERIC_BASE_IMPL(LinOp);
 GENERIC_BASE_IMPL(LinOpFactory);
 GENERIC_BASE_IMPL(CriterionFactory);
 
+template <typename T, typename = void>
+struct GenericHelper {};
+
+template <typename T>
+struct GenericHelper<T, typename std::enable_if<
+                            !std::is_convertible<T *, LinOpFactory *>::value ||
+                            std::is_same<T, LinOpFactory>::value>::type> {
+    using type = std::shared_ptr<T>;
+    static type build(rapidjson::Value &item,
+                      std::shared_ptr<const Executor> exec,
+                      std::shared_ptr<const LinOp> linop,
+                      ResourceManager *manager)
+    {
+        return Generic<T, T>::build(item, exec, linop, manager);
+    }
+};
+
+template <typename T>
+struct GenericHelper<T, typename std::enable_if<
+                            std::is_convertible<T *, LinOpFactory *>::value &&
+                            !std::is_same<T, LinOpFactory>::value>::type> {
+    using type = std::shared_ptr<T>;
+    static type build(rapidjson::Value &item,
+                      std::shared_ptr<const Executor> exec,
+                      std::shared_ptr<const LinOp> linop,
+                      ResourceManager *manager)
+    {
+        return Generic<T, typename T::base_type>::build(item, exec, linop,
+                                                        manager);
+    }
+};
+
 
 template <typename T>
 std::shared_ptr<T> create_from_config(rapidjson::Value &item,
@@ -90,7 +122,7 @@ std::shared_ptr<T> create_from_config(rapidjson::Value &item,
                                       std::shared_ptr<const LinOp> linop,
                                       ResourceManager *manager = nullptr)
 {
-    return Generic<T>::build(item, exec, linop, manager);
+    return GenericHelper<T>::build(item, exec, linop, manager);
 }
 
 
