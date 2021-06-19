@@ -68,6 +68,8 @@ struct Generic<gko::stop::Iteration::Factory> {
     }
 };
 
+// GENERIC_HELPER_FACTORY_IMPL(gko::stop::Iteration);
+
 IMPLEMENT_BRIDGE(RM_CriterionFactory, Iteration, gko::stop::Iteration::Factory);
 
 

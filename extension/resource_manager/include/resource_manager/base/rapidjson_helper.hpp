@@ -94,7 +94,7 @@ std::shared_ptr<const T> get_pointer(ResourceManager *rm,
     std::shared_ptr<const T> ptr;
     if (rm == nullptr) {
         if (item.IsObject()) {
-            ptr = Generic<T>::build(item, exec, linop, rm);
+            ptr = GenericHelper<T>::build(item, exec, linop, rm);
         } else {
             assert(false);
         }
@@ -121,7 +121,7 @@ std::shared_ptr<const Executor> get_pointer<Executor>(
     std::shared_ptr<const Executor> ptr;
     if (rm == nullptr) {
         if (item.IsObject()) {
-            ptr = Generic<Executor>::build(item, exec, linop, rm);
+            ptr = GenericHelper<Executor>::build(item, exec, linop, rm);
         } else if (item.IsString() &&
                    std::string(item.GetString()) == std::string("inherit")) {
             ptr = exec;
@@ -155,7 +155,7 @@ std::shared_ptr<const LinOp> get_pointer<LinOp>(
     std::shared_ptr<const LinOp> ptr;
     if (rm == nullptr) {
         if (item.IsObject()) {
-            ptr = Generic<LinOp>::build(item, exec, linop, rm);
+            ptr = GenericHelper<LinOp>::build(item, exec, linop, rm);
         } else if (item.IsString() &&
                    std::string(item.GetString()) == std::string("given")) {
             ptr = linop;
