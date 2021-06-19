@@ -57,7 +57,7 @@ std::shared_ptr<T> call(rapidjson::Value &item,
                         ResourceManager *manager)
 {
     if (manager == nullptr) {
-        return Generic<T>::build(item, exec, linop, manager);
+        return GenericHelper<T>::build(item, exec, linop, manager);
     } else {
         std::cout << exec.get() << std::endl;
         return manager->build_item<T>(item, exec, linop);

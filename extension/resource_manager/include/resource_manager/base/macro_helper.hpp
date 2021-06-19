@@ -211,6 +211,40 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         }                                                              \
     }
 
+// Actually, those class without template does not need this to forward the
+// information. It is to keep the same signature for factory, i.e.
+// Generic<Factory, Base>.
+#define GENERIC_HELPER_FACTORY_IMPL(_base)                             \
+    template <>                                                        \
+    struct GenericHelper<typename _base::Factory> {                    \
+        using type = std::shared_ptr<typename _base::Factory>;         \
+        static type build(rapidjson::Value &item,                      \
+                          std::shared_ptr<const Executor> exec,        \
+                          std::shared_ptr<const LinOp> linop,          \
+                          ResourceManager *manager)                    \
+        {                                                              \
+            return Generic<typename _base::Factory, _base>::build(     \
+                item, item["base"].GetString(), exec, linop, manager); \
+        }                                                              \
+    }
+
+
+#define GENERIC_HELPER_FACTORY_TEMPLATE_IMPL(_base, _template, _type)     \
+    template <_template>                                                  \
+    struct GenericHelper<typename _base<_type>::Factory> {                \
+        using type = std::shared_ptr<typename _base<_type>::Factory>;     \
+        static type build(rapidjson::Value &item,                         \
+                          std::shared_ptr<const Executor> exec,           \
+                          std::shared_ptr<const LinOp> linop,             \
+                          ResourceManager *manager)                       \
+        {                                                                 \
+            return Generic<typename _base<_type>::Factory,                \
+                           _base<_type>>::build(item,                     \
+                                                item["base"].GetString(), \
+                                                exec, linop, manager);    \
+        }                                                                 \
+    }
+
 #define SIMPLE_LINOP_WITH_FACTORY_IMPL(_base, _template, _type)             \
     template <_template>                                                    \
     struct Generic<_base<_type>> {                                          \
