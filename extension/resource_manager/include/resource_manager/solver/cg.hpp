@@ -48,26 +48,29 @@ namespace resource_manager {
 
 
 template <typename T>
-std::shared_ptr<typename gko::solver::Cg<T>::Factory> build_cg_factory(
-    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
-    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
-{
-    auto ptr = [&]() {
-        BUILD_FACTORY(gko::solver::Cg<T>, manager, item, exec, linop);
-        SET_POINTER(LinOp, generated_preconditioner);
-        SET_POINTER(LinOpFactory, preconditioner);
-        SET_POINTER_ARRAY(CriterionFactory, criteria);
-        std::cout << "456" << std::endl;
-        SET_EXECUTOR;
-    }();
+struct Generic<typename gko::solver::Cg<T>::Factory, gko::solver::Cg<T>> {
+    using type = std::shared_ptr<typename gko::solver::Cg<T>::Factory>;
+    static type build(rapidjson::Value &item,
+                      std::shared_ptr<const Executor> exec,
+                      std::shared_ptr<const LinOp> linop,
+                      ResourceManager *manager)
+    {
+        auto ptr = [&]() {
+            BUILD_FACTORY(gko::solver::Cg<T>, manager, item, exec, linop);
+            SET_POINTER(LinOp, generated_preconditioner);
+            SET_POINTER(LinOpFactory, preconditioner);
+            SET_POINTER_ARRAY(CriterionFactory, criteria);
+            std::cout << "456" << std::endl;
+            SET_EXECUTOR;
+        }();
 
-    std::cout << "123" << std::endl;
-    return ptr;
-}
+        std::cout << "123" << std::endl;
+        return ptr;
+    }
+};
 
-
-CONNECT_GENERIC_SUB(gko::solver::Cg, float, float, Factory, build_cg_factory);
-CONNECT_GENERIC_SUB(gko::solver::Cg, double, double, Factory, build_cg_factory);
+// GENERIC_HELPER_IMPL()
+// GENERIC_HELPER_FACTORY_TEMPLATE_IMPL(gko::solver::Cg, typename T, T);
 
 
 SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::solver::Cg, typename T, T);

@@ -48,107 +48,114 @@ namespace extension {
 namespace resource_manager {
 
 
-template <typename IsaiType, typename ValueType, typename IndexType>
-std::shared_ptr<typename gko::preconditioner::Isai<IsaiType::value, ValueType,
-                                                   IndexType>::Factory>
-build_isai_factory(rapidjson::Value &item, std::shared_ptr<const Executor> exec,
-                   std::shared_ptr<const LinOp> linop, ResourceManager *manager)
-{
-    auto ptr = [&]() {
-        BUILD_FACTORY(PACK(gko::preconditioner::Isai<IsaiType::value, ValueType,
-                                                     IndexType>),
-                      manager, item, exec, linop);
-        SET_VALUE(bool, skip_sorting);
-        SET_VALUE(int, sparsity_power);
-        SET_VALUE(size_type, excess_limit);
-        // SET_POINTER(LinOpFactory, excess_solver_factory);
-        SET_EXECUTOR;
-    }();
+template <gko::preconditioner::isai_type isai_value, typename ValueType,
+          typename IndexType>
+struct Generic<typename gko::preconditioner::Isai<isai_value, ValueType,
+                                                  IndexType>::Factory,
+               gko::preconditioner::Isai<isai_value, ValueType, IndexType>> {
+    using type = std::shared_ptr<typename gko::preconditioner::Isai<
+        isai_value, ValueType, IndexType>::Factory>;
+    static type build(rapidjson::Value &item,
+                      std::shared_ptr<const Executor> exec,
+                      std::shared_ptr<const LinOp> linop,
+                      ResourceManager *manager)
+    {
+        auto ptr = [&]() {
+            BUILD_FACTORY(PACK(gko::preconditioner::Isai<isai_value, ValueType,
+                                                         IndexType>),
+                          manager, item, exec, linop);
+            SET_VALUE(bool, skip_sorting);
+            SET_VALUE(int, sparsity_power);
+            SET_VALUE(size_type, excess_limit);
+            // SET_POINTER(LinOpFactory, excess_solver_factory);
+            SET_EXECUTOR;
+        }();
 
-    std::cout << "123" << std::endl;
-    return ptr;
-}
+        std::cout << "123" << std::endl;
+        return ptr;
+    }
+};
 
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::lower, double,
-                         gko::int32),
-                    PACK(isai_lower, double, gko::int32), Factory,
-                    build_isai_factory);
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::upper, double,
-                         gko::int32),
-                    PACK(isai_upper, double, gko::int32), Factory,
-                    build_isai_factory);
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::general, double,
-                         gko::int32),
-                    PACK(isai_general, double, gko::int32), Factory,
-                    build_isai_factory);
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::spd, double,
-                         gko::int32),
-                    PACK(isai_spd, double, gko::int32), Factory,
-                    build_isai_factory);
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::lower, float,
-                         gko::int32),
-                    PACK(isai_lower, float, gko::int32), Factory,
-                    build_isai_factory);
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::upper, float,
-                         gko::int32),
-                    PACK(isai_upper, float, gko::int32), Factory,
-                    build_isai_factory);
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::general, float,
-                         gko::int32),
-                    PACK(isai_general, float, gko::int32), Factory,
-                    build_isai_factory);
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::spd, float,
-                         gko::int32),
-                    PACK(isai_spd, float, gko::int32), Factory,
-                    build_isai_factory);
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::lower, double,
-                         gko::int64),
-                    PACK(isai_lower, double, gko::int64), Factory,
-                    build_isai_factory);
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::upper, double,
-                         gko::int64),
-                    PACK(isai_upper, double, gko::int64), Factory,
-                    build_isai_factory);
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::general, double,
-                         gko::int64),
-                    PACK(isai_general, double, gko::int64), Factory,
-                    build_isai_factory);
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::spd, double,
-                         gko::int64),
-                    PACK(isai_spd, double, gko::int64), Factory,
-                    build_isai_factory);
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::lower, float,
-                         gko::int64),
-                    PACK(isai_lower, float, gko::int64), Factory,
-                    build_isai_factory);
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::upper, float,
-                         gko::int64),
-                    PACK(isai_upper, float, gko::int64), Factory,
-                    build_isai_factory);
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::general, float,
-                         gko::int64),
-                    PACK(isai_general, float, gko::int64), Factory,
-                    build_isai_factory);
-CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
-                    PACK(gko::preconditioner::isai_type::spd, float,
-                         gko::int64),
-                    PACK(isai_spd, float, gko::int64), Factory,
-                    build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::lower, double,
+//                          gko::int32),
+//                     PACK(isai_lower, double, gko::int32), Factory,
+//                     build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::upper, double,
+//                          gko::int32),
+//                     PACK(isai_upper, double, gko::int32), Factory,
+//                     build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::general, double,
+//                          gko::int32),
+//                     PACK(isai_general, double, gko::int32), Factory,
+//                     build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::spd, double,
+//                          gko::int32),
+//                     PACK(isai_spd, double, gko::int32), Factory,
+//                     build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::lower, float,
+//                          gko::int32),
+//                     PACK(isai_lower, float, gko::int32), Factory,
+//                     build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::upper, float,
+//                          gko::int32),
+//                     PACK(isai_upper, float, gko::int32), Factory,
+//                     build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::general, float,
+//                          gko::int32),
+//                     PACK(isai_general, float, gko::int32), Factory,
+//                     build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::spd, float,
+//                          gko::int32),
+//                     PACK(isai_spd, float, gko::int32), Factory,
+//                     build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::lower, double,
+//                          gko::int64),
+//                     PACK(isai_lower, double, gko::int64), Factory,
+//                     build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::upper, double,
+//                          gko::int64),
+//                     PACK(isai_upper, double, gko::int64), Factory,
+//                     build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::general, double,
+//                          gko::int64),
+//                     PACK(isai_general, double, gko::int64), Factory,
+//                     build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::spd, double,
+//                          gko::int64),
+//                     PACK(isai_spd, double, gko::int64), Factory,
+//                     build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::lower, float,
+//                          gko::int64),
+//                     PACK(isai_lower, float, gko::int64), Factory,
+//                     build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::upper, float,
+//                          gko::int64),
+//                     PACK(isai_upper, float, gko::int64), Factory,
+//                     build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::general, float,
+//                          gko::int64),
+//                     PACK(isai_general, float, gko::int64), Factory,
+//                     build_isai_factory);
+// CONNECT_GENERIC_SUB(gko::preconditioner::Isai,
+//                     PACK(gko::preconditioner::isai_type::spd, float,
+//                          gko::int64),
+//                     PACK(isai_spd, float, gko::int64), Factory,
+//                     build_isai_factory);
 
 
 SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::preconditioner::Isai,
