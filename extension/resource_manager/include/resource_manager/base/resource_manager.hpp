@@ -90,7 +90,7 @@ public:
         std::shared_ptr<const LinOp> linop = nullptr)
     {
         std::cout << "create_from_config" << std::endl;
-        auto ptr = Generic<T>::build(item, exec, linop, this);
+        auto ptr = GenericHelper<T>::build(item, exec, linop, this);
         // if need to store the data, how to do that
         if (item.HasMember("name")) {
             this->insert_data<T>(item["name"].GetString(), ptr);
