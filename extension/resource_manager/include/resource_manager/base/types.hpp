@@ -166,6 +166,25 @@ struct gkobase<RM_CriterionFactory> {
 };
 
 
+template <typename Derived, typename Base, typename U = void>
+struct is_derived : public std::integral_constant<bool, false> {};
+
+template <typename Derived, typename Base>
+struct is_derived<
+    Derived, Base,
+    typename std::enable_if<std::is_convertible<const volatile Derived *,
+                                                const volatile Base *>::value &&
+                            !std::is_same<const volatile Derived,
+                                          const volatile Base>::value>::type>
+    : public std::integral_constant<bool, true> {};
+
+template <typename T>
+using is_on_linopfactory = is_derived<T, LinOpFactory>;
+
+template <typename T>
+using is_on_criterionfactory = is_derived<T, CriterionFactory>;
+
+
 }  // namespace resource_manager
 }  // namespace extension
 }  // namespace gko

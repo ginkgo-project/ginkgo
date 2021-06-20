@@ -180,37 +180,70 @@ TEST(HipExecutor, CreateCorrectExecutorWithDeviceId)
 
 TEST(DpcppExecutor, CreateCorrectExecutor)
 {
-    const char json[] = "{\"base\": \"DpcppExecutor\"}";
-    rapidjson::StringStream s(json);
-    rapidjson::Document d;
-    d.ParseStream(s);
+    if (gko::DpcppExecutor::get_num_devices("all") < 1) {
+        GTEST_SKIP() << "Do not contain availble device for dpcpp.";
+    } else {
+        const char json[] = "{\"base\": \"DpcppExecutor\"}";
+        rapidjson::StringStream s(json);
+        rapidjson::Document d;
+        d.ParseStream(s);
 
-    auto ptr =
-        gko::extension::resource_manager::create_from_config<gko::Executor>(d);
-    auto exec_ptr = std::dynamic_pointer_cast<gko::DpcppExecutor>(ptr);
+        auto ptr =
+            gko::extension::resource_manager::create_from_config<gko::Executor>(
+                d);
+        auto exec_ptr = std::dynamic_pointer_cast<gko::DpcppExecutor>(ptr);
 
-    ASSERT_NE(exec_ptr.get(), nullptr);
-    ASSERT_EQ(exec_ptr->get_device_id(), 0);
-    ASSERT_EQ(exec_ptr->get_device_type(), std::string("all"));
+        ASSERT_NE(exec_ptr.get(), nullptr);
+        ASSERT_EQ(exec_ptr->get_device_id(), 0);
+        ASSERT_EQ(exec_ptr->get_device_type(), std::string("all"));
+    }
+}
+
+
+TEST(DpcppExecutor, CreateCorrectExecutorWithType)
+{
+    if (gko::DpcppExecutor::get_num_devices("cpu") < 1) {
+        GTEST_SKIP() << "Do not contain availble cpu for dpcpp.";
+    } else {
+        const char json[] =
+            "{\"base\": \"DpcppExecutor\", \"device_type\": \"cpu\"}";
+        rapidjson::StringStream s(json);
+        rapidjson::Document d;
+        d.ParseStream(s);
+
+        auto ptr =
+            gko::extension::resource_manager::create_from_config<gko::Executor>(
+                d);
+        auto exec_ptr = std::dynamic_pointer_cast<gko::DpcppExecutor>(ptr);
+
+        ASSERT_NE(exec_ptr.get(), nullptr);
+        ASSERT_EQ(exec_ptr->get_device_id(), 0);
+        ASSERT_EQ(exec_ptr->get_device_type(), std::string("cpu"));
+    }
 }
 
 
 TEST(DpcppExecutor, CreateCorrectExecutorWithDeviceIdAndType)
 {
-    const char json[] =
-        "{\"base\": \"DpcppExecutor\", \"device_id\": 1, \"device_type\": "
-        "\"gpu\"}";
-    rapidjson::StringStream s(json);
-    rapidjson::Document d;
-    d.ParseStream(s);
+    if (gko::DpcppExecutor::get_num_devices("gpu") <= 1) {
+        GTEST_SKIP() << "Do not contain enough gpu for this dpcpp test.";
+    } else {
+        const char json[] =
+            "{\"base\": \"DpcppExecutor\", \"device_id\": 1, \"device_type\": "
+            "\"gpu\"}";
+        rapidjson::StringStream s(json);
+        rapidjson::Document d;
+        d.ParseStream(s);
 
-    auto ptr =
-        gko::extension::resource_manager::create_from_config<gko::Executor>(d);
-    auto exec_ptr = std::dynamic_pointer_cast<gko::DpcppExecutor>(ptr);
+        auto ptr =
+            gko::extension::resource_manager::create_from_config<gko::Executor>(
+                d);
+        auto exec_ptr = std::dynamic_pointer_cast<gko::DpcppExecutor>(ptr);
 
-    ASSERT_NE(exec_ptr.get(), nullptr);
-    ASSERT_EQ(exec_ptr->get_device_id(), 1);
-    ASSERT_EQ(exec_ptr->get_device_type(), std::string("gpu"));
+        ASSERT_NE(exec_ptr.get(), nullptr);
+        ASSERT_EQ(exec_ptr->get_device_id(), 1);
+        ASSERT_EQ(exec_ptr->get_device_type(), std::string("gpu"));
+    }
 }
 
 
