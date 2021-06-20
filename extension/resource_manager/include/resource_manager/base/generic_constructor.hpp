@@ -84,12 +84,7 @@ GENERIC_BASE_IMPL(LinOpFactory);
 GENERIC_BASE_IMPL(CriterionFactory);
 
 template <typename T, typename = void>
-struct GenericHelper {};
-
-template <typename T>
-struct GenericHelper<T, typename std::enable_if<
-                            !std::is_convertible<T *, LinOpFactory *>::value ||
-                            std::is_same<T, LinOpFactory>::value>::type> {
+struct GenericHelper {
     using type = std::shared_ptr<T>;
     static type build(rapidjson::Value &item,
                       std::shared_ptr<const Executor> exec,
@@ -101,9 +96,9 @@ struct GenericHelper<T, typename std::enable_if<
 };
 
 template <typename T>
-struct GenericHelper<T, typename std::enable_if<
-                            std::is_convertible<T *, LinOpFactory *>::value &&
-                            !std::is_same<T, LinOpFactory>::value>::type> {
+struct GenericHelper<
+    T, typename std::enable_if<is_on_linopfactory<T>::value ||
+                               is_on_criterionfactory<T>::value>::type> {
     using type = std::shared_ptr<T>;
     static type build(rapidjson::Value &item,
                       std::shared_ptr<const Executor> exec,

@@ -326,6 +326,9 @@ public:                                                                      \
                   _factory_name, _criterion, _parameters_name##_type>(       \
                   std::move(exec), parameters)                               \
         {}                                                                   \
+                                                                             \
+    public:                                                                  \
+        using base_type = _criterion;                                        \
     };                                                                       \
     friend ::gko::stop::EnableDefaultCriterionFactory<                       \
         _factory_name, _criterion, _parameters_name##_type>;                 \
