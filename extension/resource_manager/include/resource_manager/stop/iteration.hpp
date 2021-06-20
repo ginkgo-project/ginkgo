@@ -48,7 +48,7 @@ namespace resource_manager {
 
 
 template <>
-struct Generic<gko::stop::Iteration::Factory> {
+struct Generic<gko::stop::Iteration::Factory, gko::stop::Iteration> {
     using type = std::shared_ptr<gko::stop::Iteration::Factory>;
     static type build(rapidjson::Value &item,
                       std::shared_ptr<const Executor> exec,
