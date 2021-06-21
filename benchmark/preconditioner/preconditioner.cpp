@@ -159,46 +159,47 @@ void run_preconditioner(const char *precond_name,
                               allocator);
         }
 
-        const auto repetitions =
-            static_cast<unsigned int>(std::stoi(FLAGS_repetitions));
+        auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
+        auto apply_timer = get_timer(exec, FLAGS_gpu_timer);
+
         {
             // fast run, gets total time
             auto x_clone = clone(x);
 
             auto precond = precond_factory.at(precond_name)(exec);
 
-            for (auto i = 0u; i < FLAGS_warmup; ++i) {
+            IterationControl ic_gen{generate_timer};
+            IterationControl ic_apply{apply_timer};
+
+            for (auto _ : ic_apply.warmup_run()) {
                 precond->generate(system_matrix)->apply(lend(b), lend(x_clone));
             }
-            auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
-            auto apply_timer = get_timer(exec, FLAGS_gpu_timer);
 
-            exec->synchronize();
-            generate_timer->tic();
             std::unique_ptr<gko::LinOp> precond_op;
-            for (auto i = 0u; i < repetitions; ++i) {
+            for (auto _ : ic_gen.run()) {
+                exec->synchronize();
+                generate_timer->tic();
                 precond_op = precond->generate(system_matrix);
+                generate_timer->toc();
             }
-            generate_timer->toc();
 
-            // the timer is out of the loops to reduce calling synchronize
-            // overhead, so the timer does not know the number of repetitions.
-            auto generate_time = generate_timer->get_total_time() / repetitions;
             add_or_set_member(this_precond_data["generate"], "time",
-                              generate_time, allocator);
-
-            exec->synchronize();
-            apply_timer->tic();
-            for (auto i = 0u; i < repetitions; ++i) {
-                precond_op->apply(lend(b), lend(x_clone));
-            }
-            apply_timer->toc();
-
-            // the timer is out of the loops to reduce calling synchronize
-            // overhead, so the timer does not know the number of repetitions.
-            auto apply_time = apply_timer->get_total_time() / repetitions;
-            add_or_set_member(this_precond_data["apply"], "time", apply_time,
+                              generate_timer->compute_average_time(),
                               allocator);
+            add_or_set_member(this_precond_data["generate"], "repetitions",
+                              generate_timer->get_num_repetitions(), allocator);
+
+            for (auto _ : ic_apply.run()) {
+                exec->synchronize();
+                apply_timer->tic();
+                precond_op->apply(lend(b), lend(x_clone));
+                apply_timer->toc();
+            }
+
+            add_or_set_member(this_precond_data["apply"], "time",
+                              apply_timer->compute_average_time(), allocator);
+            add_or_set_member(this_precond_data["apply"], "repetitions",
+                              apply_timer->get_num_repetitions(), allocator);
         }
 
         if (FLAGS_detailed) {
@@ -210,24 +211,26 @@ void run_preconditioner(const char *precond_name,
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(gen_logger);
             std::unique_ptr<gko::LinOp> precond_op;
-            for (auto i = 0u; i < repetitions; ++i) {
+            for (auto i = 0u; i < generate_timer->get_num_repetitions(); ++i) {
                 precond_op = precond->generate(system_matrix);
             }
             exec->remove_logger(gko::lend(gen_logger));
 
             gen_logger->write_data(this_precond_data["generate"]["components"],
-                                   allocator, repetitions);
+                                   allocator,
+                                   generate_timer->get_num_repetitions());
 
             auto apply_logger =
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(apply_logger);
-            for (auto i = 0u; i < repetitions; ++i) {
+            for (auto i = 0u; i < apply_timer->get_num_repetitions(); ++i) {
                 precond_op->apply(lend(b), lend(x_clone));
             }
             exec->remove_logger(gko::lend(apply_logger));
 
             apply_logger->write_data(this_precond_data["apply"]["components"],
-                                     allocator, repetitions);
+                                     allocator,
+                                     apply_timer->get_num_repetitions());
         }
 
         add_or_set_member(this_precond_data, "completed", true, allocator);
@@ -256,12 +259,6 @@ int main(int argc, char *argv[])
 
     std::string extra_information =
         "Running with preconditioners: " + FLAGS_preconditioners + "\n";
-    if (FLAGS_repetitions == "auto") {
-        FLAGS_repetitions = "10";
-        extra_information +=
-            "Warning: 'repetitions = auto' is not supported.\n"
-            "          Using the fallback value of 10 repetitions.\n";
-    }
     print_general_information(extra_information);
 
     auto exec = get_executor();
