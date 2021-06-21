@@ -112,6 +112,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
 
 
 template <typename ValueType>
+void convergence_scale(std::shared_ptr<const HipExecutor> exec,
+                       const matrix::BatchDense<ValueType> *alpha,
+                       matrix::BatchDense<ValueType> *x,
+                       const uint32 &converged) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_SCALE_KERNEL);
+
+
+template <typename ValueType>
 void add_scaled(std::shared_ptr<const HipExecutor> exec,
                 const matrix::BatchDense<ValueType> *alpha,
                 const matrix::BatchDense<ValueType> *x,
@@ -128,6 +138,15 @@ void add_scaled(std::shared_ptr<const HipExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL);
 
+template <typename ValueType>
+void convergence_add_scaled(std::shared_ptr<const HipExecutor> exec,
+                            const matrix::BatchDense<ValueType> *alpha,
+                            const matrix::BatchDense<ValueType> *x,
+                            matrix::BatchDense<ValueType> *y,
+                            const uint32 &converged) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_ADD_SCALED_KERNEL);
 
 template <typename ValueType>
 void add_scaled_diag(std::shared_ptr<const HipExecutor> exec,
@@ -182,9 +201,20 @@ void compute_norm2(std::shared_ptr<const HipExecutor> exec,
 //                        dim3(default_block_size), 0, 0, x_ub, res_ub);
 // }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL);
+
+
+template <typename ValueType>
+void convergence_compute_norm2(
+    std::shared_ptr<const HipExecutor> exec,
+    const matrix::BatchDense<ValueType> *x,
+    matrix::BatchDense<remove_complex<ValueType>> *result,
+    const uint32 &converged) GKO_NOT_IMPLEMENTED;
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_NORM2_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
