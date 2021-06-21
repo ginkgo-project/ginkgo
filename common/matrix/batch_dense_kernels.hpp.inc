@@ -148,36 +148,6 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void add_scaled(
 }
 
 
-namespace {
-
-template <typename ValueType>
-__device__ __forceinline__ void one_norm2(
-    const gko::batch_dense::BatchEntry<const ValueType> &x, const int rhs_index,
-    const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result,
-    gko::kernels::cuda::group::thread_block_tile<config::warp_size>
-        &subwarp_grp)
-{
-    using real_type = typename gko::remove_complex<ValueType>;
-    real_type val = zero<real_type>();
-
-    for (int r = subwarp_grp.thread_rank(); r < x.num_rows;
-         r += subwarp_grp.size()) {
-        val += squared_norm(x.values[r * x.stride + rhs_index]);
-    }
-
-    // subwarp_grp level reduction
-    for (int j = subwarp_grp.size() / 2; j > 0; j /= 2) {
-        val += subwarp_grp.shfl_down(val, j);
-    }
-
-    if (subwarp_grp.thread_rank() == 0) {
-        result.values[rhs_index] = sqrt(val);
-    }
-}
-
-}  // namespace
-
-
 template <typename ValueType>
 __device__ __forceinline__ void add_scaled(
     const gko::batch_dense::BatchEntry<const ValueType> &alpha,
@@ -217,6 +187,36 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void add_scaled(
         add_scaled(alpha_b, x_b, y_b, converged);
     }
 }
+
+
+namespace {
+
+template <typename ValueType>
+__device__ __forceinline__ void one_norm2(
+    const gko::batch_dense::BatchEntry<const ValueType> &x, const int rhs_index,
+    const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result,
+    gko::kernels::cuda::group::thread_block_tile<config::warp_size>
+        &subwarp_grp)
+{
+    using real_type = typename gko::remove_complex<ValueType>;
+    real_type val = zero<real_type>();
+
+    for (int r = subwarp_grp.thread_rank(); r < x.num_rows;
+         r += subwarp_grp.size()) {
+        val += squared_norm(x.values[r * x.stride + rhs_index]);
+    }
+
+    // subwarp_grp level reduction
+    for (int j = subwarp_grp.size() / 2; j > 0; j /= 2) {
+        val += subwarp_grp.shfl_down(val, j);
+    }
+
+    if (subwarp_grp.thread_rank() == 0) {
+        result.values[rhs_index] = sqrt(val);
+    }
+}
+
+}  // namespace
 
 /**
  * Computes the 2-norms of some column vectors in global or shared memory.
