@@ -95,12 +95,32 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
 
 
 template <typename ValueType>
+void convergence_scale(std::shared_ptr<const DpcppExecutor> exec,
+                       const matrix::BatchDense<ValueType> *alpha,
+                       matrix::BatchDense<ValueType> *x,
+                       const uint32 &converged) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_SCALE_KERNEL);
+
+template <typename ValueType>
 void add_scaled(std::shared_ptr<const DpcppExecutor> exec,
                 const matrix::BatchDense<ValueType> *alpha,
                 const matrix::BatchDense<ValueType> *x,
                 matrix::BatchDense<ValueType> *y) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL);
+
+
+template <typename ValueType>
+void convergence_add_scaled(std::shared_ptr<const DpcppExecutor> exec,
+                            const matrix::BatchDense<ValueType> *alpha,
+                            const matrix::BatchDense<ValueType> *x,
+                            matrix::BatchDense<ValueType> *y,
+                            const uint32 &converged) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_ADD_SCALED_KERNEL);
 
 
 template <typename ValueType>
@@ -140,6 +160,17 @@ void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL);
+
+
+template <typename ValueType>
+void convergence_compute_norm2(
+    std::shared_ptr<const DpcppExecutor> exec,
+    const matrix::BatchDense<ValueType> *x,
+    matrix::BatchDense<remove_complex<ValueType>> *result,
+    const uint32 &converged) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_NORM2_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
