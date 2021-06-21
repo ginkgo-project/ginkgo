@@ -1,7 +1,7 @@
 {
     "name": "b",
     "base": "Dense",
-    "type": "double",
+    "ValueType": "double",
     "exec": {
         "base": "ReferenceExecutor"
     },
