@@ -127,6 +127,12 @@ public:
         /**
          * Coarse solver factories.
          */
+        std::vector<gko::remove_complex<ValueType>>
+            GKO_FACTORY_PARAMETER_SCALAR(coarse_relaxation_factors, 1.0);
+
+        /**
+         * Coarse solver factories.
+         */
         std::vector<std::shared_ptr<const LinOpFactory>>
             GKO_FACTORY_PARAMETER_SCALAR(coarse_solvers, nullptr);
 
@@ -172,6 +178,10 @@ protected:
     {
         if (parameters_.overlaps.get_num_elems() > 0) {
             this->overlaps_ = parameters_.overlaps;
+        }
+        if (parameters_.generated_coarse_solvers[0]) {
+            this->coarse_solvers_ = std::vector<std::shared_ptr<const LinOp>>(
+                parameters_.generated_coarse_solvers);
         }
         if (parameters_.generated_inner_solvers[0]) {
             this->inner_solvers_ = std::vector<std::shared_ptr<const LinOp>>(

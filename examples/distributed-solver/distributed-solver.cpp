@@ -65,6 +65,7 @@ int main(int argc, char *argv[])
     using ras = gko::preconditioner::Ras<ValueType, LocalIndexType>;
     using solver = gko::solver::Cg<ValueType>;
     using cg = gko::solver::Cg<ValueType>;
+    using ir = gko::solver::Ir<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
     using paric = gko::preconditioner::Ic<
         gko::solver::LowerTrs<ValueType, LocalIndexType>, LocalIndexType>;
@@ -209,14 +210,18 @@ int main(int argc, char *argv[])
 
     gko::remove_complex<ValueType> inner_reduction_factor = 1e-2;
     auto inner_solver = gko::share(bj::build().on(exec));
-    // paric::build().on(exec))
+    // paric::build().on(exec));
+    // ir::build()
+    //     .with_relaxation_factor(0.9)
+    //     .with_criteria(
+    //         gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+    //     .on(exec));
     // cg::build()
     //     .with_preconditioner(bj::build().on(exec))
     //     .with_criteria(gko::stop::Iteration::build()
     //                        .with_max_iters(inner_iter)
-    //                        .on(exec)
-    //                    )
-    // .on(exec));
+    //                        .on(exec))
+    //     .on(exec));
     auto ras_precond = ras::build()
                            .with_inner_solver(inner_solver)
                            .on(exec)

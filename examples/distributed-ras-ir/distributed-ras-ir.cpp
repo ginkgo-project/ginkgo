@@ -92,6 +92,9 @@ int main(int argc, char *argv[])
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto grid_dim = argc >= 3 ? std::atoi(argv[2]) : 100;
     const gko::size_type inner_iter = argc >= 4 ? std::atoi(argv[3]) : 10u;
+    const gko::size_type coarse_iter = argc >= 5 ? std::atoi(argv[4]) : 10u;
+    const gko::remove_complex<ValueType> rel_fac =
+        argc >= 6 ? std::atoi(argv[5]) : 1.0;
     const auto comm = gko::mpi::communicator::create();
     const auto rank = comm->rank();
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -206,21 +209,34 @@ int main(int argc, char *argv[])
 
     auto block_A = block_approx::create(exec, A.get());
 
-    gko::remove_complex<ValueType> inner_reduction_factor = 1e-2;
+    gko::remove_complex<ValueType> inner_reduction_factor = 1e-10;
+    auto coarse_solver = gko::share(
+        cg::build()
+            // .with_preconditioner(bj::build().on(exec))
+            .with_criteria(gko::stop::Iteration::build()
+                               .with_max_iters(coarse_iter)
+                               .on(exec)
+                           // gko::stop::ResidualNorm<ValueType>::build()
+                           //     .with_reduction_factor(inner_reduction_factor)
+                           //     .on(exec)
+                           )
+            .on(exec)
+            ->generate(A));
     auto inner_solver = gko::share(
         // bj::build().on(exec));
         // paric::build().on(exec))
         cg::build()
             .with_preconditioner(bj::build().on(exec))
-            .with_criteria(
-                // gko::stop::Iteration::build()
-                //     .with_max_iters(inner_iter)
-                //     .on(exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(inner_reduction_factor)
-                    .on(exec))
+            .with_criteria(gko::stop::Iteration::build()
+                               .with_max_iters(inner_iter)
+                               .on(exec),
+                           gko::stop::ResidualNorm<ValueType>::build()
+                               .with_reduction_factor(inner_reduction_factor)
+                               .on(exec))
             .on(exec));
     auto ras_precond = ras::build()
+                           .with_coarse_relaxation_factors(rel_fac)
+                           .with_generated_coarse_solvers(coarse_solver)
                            .with_inner_solver(inner_solver)
                            .on(exec)
                            ->generate(gko::share(block_A));
@@ -230,7 +246,7 @@ int main(int argc, char *argv[])
     gko::remove_complex<ValueType> reduction_factor = 1e-10;
     std::shared_ptr<gko::stop::Iteration::Factory> iter_stop =
         gko::stop::Iteration::build()
-            .with_max_iters(static_cast<gko::size_type>(num_rows))
+            .with_max_iters(static_cast<gko::size_type>(10 * num_rows))
             .on(exec);
     std::shared_ptr<gko::stop::ResidualNorm<ValueType>::Factory> tol_stop =
         gko::stop::ResidualNorm<ValueType>::build()
