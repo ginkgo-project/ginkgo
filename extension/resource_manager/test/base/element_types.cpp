@@ -161,6 +161,47 @@ TEST(Concatenate, BothSideMultipleTypes)
 }
 
 
+TEST(Concat, TwoType)
+{
+    using type = typename concat<double, int>::type;
+    using both_side = typename concat<type_list<double>, type_list<int>>::type;
+    using left_side = typename concat<type_list<double>, int>::type;
+    using right_side = typename concat<double, type_list<int>>::type;
+    using ref_type = type_list<double, int>;
+
+    ASSERT_TRUE((std::is_same<type, ref_type>::value));
+    ASSERT_TRUE((std::is_same<both_side, ref_type>::value));
+    ASSERT_TRUE((std::is_same<left_side, ref_type>::value));
+    ASSERT_TRUE((std::is_same<right_side, ref_type>::value));
+}
+
+TEST(Concat, OneSideMultipleTypes)
+{
+    using left_side = typename concat<type_list<double, float>, int>::type;
+    using right_side = typename concat<double, type_list<float, int>>::type;
+    using both_sidel =
+        typename concat<type_list<double, float>, type_list<int>>::type;
+    using both_sider =
+        typename concat<type_list<double>, type_list<float, int>>::type;
+    using ref_type = type_list<double, float, int>;
+
+    ASSERT_TRUE((std::is_same<left_side, ref_type>::value));
+    ASSERT_TRUE((std::is_same<right_side, ref_type>::value));
+    ASSERT_TRUE((std::is_same<both_sidel, ref_type>::value));
+    ASSERT_TRUE((std::is_same<both_sider, ref_type>::value));
+}
+
+
+TEST(Concat, BothSideMultipleTypes)
+{
+    using type = typename concat<type_list<double, float>,
+                                 type_list<int, gko::int64>>::type;
+    using ref_type = type_list<double, float, int, gko::int64>;
+
+    ASSERT_TRUE((std::is_same<type, ref_type>::value));
+}
+
+
 TEST(Span, TwoType)
 {
     using type = typename span<double, int>::type;

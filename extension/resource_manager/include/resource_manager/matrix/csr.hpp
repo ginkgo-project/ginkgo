@@ -59,7 +59,7 @@ struct Generic<gko::matrix::Csr<V, I>> {
         using Csr = gko::matrix::Csr<V, I>;
         using strategy_type = typename Csr::strategy_type;
         auto exec_ptr =
-            get_pointer_check<Executor>(manager, item, "exec", exec, linop);
+            get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
         auto nnz = get_value_with_default(item, "nnz", 0);
         std::shared_ptr<strategy_type> strategy_ptr;
@@ -114,10 +114,12 @@ struct Generic<gko::matrix::Csr<V, I>> {
     }
 };
 
+
 ENABLE_SELECTION(csr_select, call, std::shared_ptr<gko::LinOp>, get_the_type);
 constexpr auto csr_list =
     typename span_list<tt_list<double, float>,
                        tt_list<gko::int32, gko::int64>>::type();
+
 
 template <>
 std::shared_ptr<gko::LinOp>
@@ -127,16 +129,11 @@ create_from_config<RM_LinOp, RM_LinOp::Csr, gko::LinOp>(
 {
     std::cout << "build_csr" << std::endl;
     // go though the type
-    std::string vt{default_valuetype};
-    std::string it{default_indextype};
-    if (item.HasMember("vt")) {
-        vt = item["vt"].GetString();
-    }
-    if (item.HasMember("it")) {
-        it = item["it"].GetString();
-    }
+    auto vt = get_value_with_default(item, "ValueType", default_valuetype);
+    auto it = get_value_with_default(item, "ValueType", default_indextype);
+    auto type_string = vt + "+" + it;
     auto ptr = csr_select<gko::matrix::Csr>(
-        csr_list, [=](std::string key) { return key == (vt + "+" + it); }, item,
+        csr_list, [=](std::string key) { return key == type_string; }, item,
         exec, linop, manager);
     return ptr;
 }

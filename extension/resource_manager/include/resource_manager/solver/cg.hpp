@@ -59,7 +59,7 @@ struct Generic<typename gko::solver::Cg<T>::Factory, gko::solver::Cg<T>> {
             BUILD_FACTORY(gko::solver::Cg<T>, manager, item, exec, linop);
             SET_POINTER(LinOp, generated_preconditioner);
             SET_POINTER(LinOpFactory, preconditioner);
-            SET_POINTER_ARRAY(CriterionFactory, criteria);
+            SET_POINTER_VECTOR(CriterionFactory, criteria);
             std::cout << "456" << std::endl;
             SET_EXECUTOR;
         }();
@@ -69,16 +69,15 @@ struct Generic<typename gko::solver::Cg<T>::Factory, gko::solver::Cg<T>> {
     }
 };
 
-// GENERIC_HELPER_IMPL()
-// GENERIC_HELPER_FACTORY_TEMPLATE_IMPL(gko::solver::Cg, typename T, T);
-
 
 SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::solver::Cg, typename T, T);
+
 
 ENABLE_SELECTION(cgfactory_select, call, std::shared_ptr<gko::LinOpFactory>,
                  get_the_factory_type);
 ENABLE_SELECTION(cg_select, call, std::shared_ptr<gko::LinOp>, get_the_type);
 constexpr auto cg_list = tt_list<double, float>();
+
 
 template <>
 std::shared_ptr<gko::LinOpFactory> create_from_config<
@@ -88,14 +87,11 @@ std::shared_ptr<gko::LinOpFactory> create_from_config<
 {
     std::cout << "build_cg_factory" << std::endl;
     // go though the type
-    std::string vt{"double"};
-    if (item.HasMember("type")) {
-        vt = item["type"].GetString();
-    }
-
+    auto vt = get_value_with_default(item, "ValueType", default_valuetype);
+    auto type_string = vt;
     auto ptr = cgfactory_select<gko::solver::Cg>(
-        cg_list, [=](std::string key) { return key == vt; }, item, exec, linop,
-        manager);
+        cg_list, [=](std::string key) { return key == type_string; }, item,
+        exec, linop, manager);
     return ptr;
 }
 
@@ -107,13 +103,11 @@ create_from_config<RM_LinOp, RM_LinOp::Cg, gko::LinOp>(
 {
     std::cout << "build_cg" << std::endl;
     // go though the type
-    std::string vt{default_valuetype};
-    if (item.HasMember("type")) {
-        vt = item["type"].GetString();
-    }
+    auto vt = get_value_with_default(item, "ValueType", default_valuetype);
+    auto type_string = vt;
     auto ptr = cg_select<gko::solver::Cg>(
-        cg_list, [=](std::string key) { return key == vt; }, item, exec, linop,
-        manager);
+        cg_list, [=](std::string key) { return key == type_string; }, item,
+        exec, linop, manager);
     return ptr;
 }
 
