@@ -14,7 +14,7 @@
     {
         "name": "A",
         "base": "Dense",
-        "type": "float",
+        "ValueType": "float",
         "exec": "executor",
         "dim": [3, 3],
         "stride": 4
@@ -22,7 +22,7 @@
     {
         "name": "B",
         "base": "Dense",
-        "type": "double",
+        "ValueType": "double",
         "exec": {
             "base": "CudaExecutor"
         },

@@ -33,19 +33,35 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKOEXT_RESOURCE_MANAGER_BASE_RAPIDJDON_HELPER_HPP_
 #define GKOEXT_RESOURCE_MANAGER_BASE_RAPIDJDON_HELPER_HPP_
 
+
 #include <rapidjson/document.h>
 #include <ginkgo/ginkgo.hpp>
 #include <resource_manager/base/resource_manager.hpp>
+
 
 namespace gko {
 namespace extension {
 namespace resource_manager {
 
+
+/**
+ * get_value is to get data on the key from the RapidJson
+ *
+ * @tparam T  the type
+ *
+ * @param item  the RapidJson item
+ * @param key  the key of value
+ *
+ * @return the type value
+ */
 template <typename T>
-T get_value(rapidjson::Value &item, std::string &key)
+T get_value(rapidjson::Value &item, std::string &key);
+
+
+template <>
+bool get_value<bool>(rapidjson::Value &item, std::string &key)
 {
-    GKO_NOT_IMPLEMENTED;
-    return T{};
+    return item[key.c_str()].GetBool();
 }
 
 template <>
@@ -57,15 +73,27 @@ int get_value<int>(rapidjson::Value &item, std::string &key)
 template <>
 size_type get_value<size_type>(rapidjson::Value &item, std::string &key)
 {
-    return item[key.c_str()].GetInt64();
+    return item[key.c_str()].GetUint64();
 }
 
 template <>
 dim<2> get_value<dim<2>>(rapidjson::Value &item, std::string &key)
 {
-    auto array = item[key.c_str()].GetArray();
-    assert(array.Size() == 2);
-    return dim<2>(array[0].GetInt64(), array[1].GetInt64());
+    if (item[key.c_str()].IsArray()) {
+        auto array = item[key.c_str()].GetArray();
+        if (array.Size() == 2) {
+            return dim<2>(array[0].GetInt64(), array[1].GetInt64());
+        } else if (array.Size() == 1) {
+            return dim<2>(array[0].GetInt64(), array[0].GetInt64());
+        } else {
+            assert(false);
+        }
+    } else if (item[key.c_str()].IsUint64()) {
+        return dim<2>(item[key.c_str()].GetUint64(),
+                      item[key.c_str()].GetUint64());
+    } else {
+        assert(false);
+    }
 }
 
 template <>
@@ -74,6 +102,19 @@ std::string get_value<std::string>(rapidjson::Value &item, std::string &key)
     return item[key.c_str()].GetString();
 }
 
+
+/**
+ * get_value_with_default gives the value if the key is existed, or the given
+ * default value.
+ *
+ * @tparam T  the type
+ *
+ * @param item  the RapidJson item
+ * @param key  the key of value
+ * @param default_val  the default value of the type if the key is not existed
+ *
+ * @return the type value
+ */
 template <typename T>
 T get_value_with_default(rapidjson::Value &item, std::string key, T default_val)
 {
@@ -85,25 +126,37 @@ T get_value_with_default(rapidjson::Value &item, std::string key, T default_val)
 }
 
 
+/**
+ * get_pointer gives the shared_ptr<const type> from inputs.
+ *
+ * @tparam T  the type
+ *
+ * @param item  the RapidJson::Value
+ * @param exec  the Executor from outside
+ * @param linop  the LinOp from outside
+ * @param manager  the ResourceManager pointer
+ *
+ * @return std::shared_ptr<const T>
+ */
 template <typename T>
-std::shared_ptr<const T> get_pointer(ResourceManager *rm,
-                                     rapidjson::Value &item,
+std::shared_ptr<const T> get_pointer(rapidjson::Value &item,
                                      std::shared_ptr<const gko::Executor> exec,
-                                     std::shared_ptr<const LinOp> linop)
+                                     std::shared_ptr<const LinOp> linop,
+                                     ResourceManager *manager)
 {
     std::shared_ptr<const T> ptr;
-    if (rm == nullptr) {
+    if (manager == nullptr) {
         if (item.IsObject()) {
-            ptr = GenericHelper<T>::build(item, exec, linop, rm);
+            ptr = GenericHelper<T>::build(item, exec, linop, manager);
         } else {
             assert(false);
         }
     } else {
         if (item.IsString()) {
             std::string opt = item.GetString();
-            ptr = rm->search_data<T>(opt);
+            ptr = manager->search_data<T>(opt);
         } else if (item.IsObject()) {
-            ptr = rm->build_item<T>(item, exec, linop);
+            ptr = manager->build_item<T>(item, exec, linop);
         } else {
             assert(false);
         }
@@ -114,14 +167,13 @@ std::shared_ptr<const T> get_pointer(ResourceManager *rm,
 
 template <>
 std::shared_ptr<const Executor> get_pointer<Executor>(
-    ResourceManager *rm, rapidjson::Value &item,
-    std::shared_ptr<const gko::Executor> exec,
-    std::shared_ptr<const LinOp> linop)
+    rapidjson::Value &item, std::shared_ptr<const gko::Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
     std::shared_ptr<const Executor> ptr;
-    if (rm == nullptr) {
+    if (manager == nullptr) {
         if (item.IsObject()) {
-            ptr = GenericHelper<Executor>::build(item, exec, linop, rm);
+            ptr = GenericHelper<Executor>::build(item, exec, linop, manager);
         } else if (item.IsString() &&
                    std::string(item.GetString()) == std::string("inherit")) {
             ptr = exec;
@@ -134,10 +186,10 @@ std::shared_ptr<const Executor> get_pointer<Executor>(
             if (opt == std::string("inherit")) {
                 ptr = exec;
             } else {
-                ptr = rm->search_data<Executor>(opt);
+                ptr = manager->search_data<Executor>(opt);
             }
         } else if (item.IsObject()) {
-            ptr = rm->build_item<Executor>(item);
+            ptr = manager->build_item<Executor>(item);
         } else {
             assert(false);
         }
@@ -148,14 +200,13 @@ std::shared_ptr<const Executor> get_pointer<Executor>(
 
 template <>
 std::shared_ptr<const LinOp> get_pointer<LinOp>(
-    ResourceManager *rm, rapidjson::Value &item,
-    std::shared_ptr<const gko::Executor> exec,
-    std::shared_ptr<const LinOp> linop)
+    rapidjson::Value &item, std::shared_ptr<const gko::Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
     std::shared_ptr<const LinOp> ptr;
-    if (rm == nullptr) {
+    if (manager == nullptr) {
         if (item.IsObject()) {
-            ptr = GenericHelper<LinOp>::build(item, exec, linop, rm);
+            ptr = GenericHelper<LinOp>::build(item, exec, linop, manager);
         } else if (item.IsString() &&
                    std::string(item.GetString()) == std::string("given")) {
             ptr = linop;
@@ -168,10 +219,10 @@ std::shared_ptr<const LinOp> get_pointer<LinOp>(
             if (opt == std::string("given")) {
                 ptr = linop;
             } else {
-                ptr = rm->search_data<LinOp>(opt);
+                ptr = manager->search_data<LinOp>(opt);
             }
         } else if (item.IsObject()) {
-            ptr = rm->build_item<LinOp>(item);
+            ptr = manager->build_item<LinOp>(item);
         } else {
             assert(false);
         }
@@ -180,24 +231,38 @@ std::shared_ptr<const LinOp> get_pointer<LinOp>(
     return std::move(ptr);
 }
 
+
+/**
+ * get_pointer_check considers existence of the key to decide the behavior.
+ *
+ * @tparam T  the type
+ *
+ * @param item  the RapidJson::Value
+ * @param key  the key string
+ * @param exec  the Executor from outside
+ * @param linop  the LinOp from outside
+ * @param manager  the ResourceManager pointer
+ *
+ * @return std::shared_ptr<const T>
+ */
 template <typename T>
 std::shared_ptr<const T> get_pointer_check(
-    ResourceManager *rm, rapidjson::Value &item, std::string key,
+    rapidjson::Value &item, std::string key,
     std::shared_ptr<const gko::Executor> exec,
-    std::shared_ptr<const LinOp> linop)
+    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
     assert(item.HasMember(key.c_str()));
-    return get_pointer<T>(rm, item[key.c_str()], exec, linop);
+    return get_pointer<T>(item[key.c_str()], exec, linop, manager);
 }
 
 template <>
 std::shared_ptr<const Executor> get_pointer_check<Executor>(
-    ResourceManager *rm, rapidjson::Value &item, std::string key,
+    rapidjson::Value &item, std::string key,
     std::shared_ptr<const gko::Executor> exec,
-    std::shared_ptr<const LinOp> linop)
+    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
     if (item.HasMember(key.c_str())) {
-        return get_pointer<Executor>(rm, item[key.c_str()], exec, linop);
+        return get_pointer<Executor>(item[key.c_str()], exec, linop, manager);
     } else if (exec != nullptr) {
         return exec;
     } else {
@@ -206,23 +271,33 @@ std::shared_ptr<const Executor> get_pointer_check<Executor>(
     }
 }
 
-
+/**
+ * get_pointer_vector creates a vector of the shared pointer of const type.
+ *
+ * @tparam T  the type
+ *
+ * @param item  the RapidJson::Value
+ * @param exec  the Executor from outside
+ * @param linop  the LinOp from outside
+ * @param manager  the ResourceManager pointer
+ *
+ * @return std::vector<std::shared_ptr<const T>>
+ */
 template <typename T>
 std::vector<std::shared_ptr<const T>> get_pointer_vector(
-    ResourceManager *rm, rapidjson::Value &item,
-    std::shared_ptr<const gko::Executor> exec = nullptr,
-    std::shared_ptr<const LinOp> linop = nullptr)
+    rapidjson::Value &item, std::shared_ptr<const gko::Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
     std::vector<std::shared_ptr<const T>> vec;
     if (item.IsArray()) {
         for (auto &v : item.GetArray()) {
             std::cout << "item " << exec.get() << std::endl;
-            auto ptr = get_pointer<T>(rm, v, exec, linop);
+            auto ptr = get_pointer<T>(v, exec, linop, manager);
             std::cout << "array " << ptr << std::endl;
             vec.emplace_back(ptr);
         }
     } else {
-        auto ptr = get_pointer<T>(rm, item, exec, linop);
+        auto ptr = get_pointer<T>(item, exec, linop, manager);
         std::cout << "item " << ptr << std::endl;
         vec.emplace_back(ptr);
     }

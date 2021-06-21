@@ -54,6 +54,11 @@ using CriterionFactoryMap =
     std::unordered_map<std::string, std::shared_ptr<CriterionFactory>>;
 
 
+/**
+ * map_type gives the map type according to the base type of given type.
+ *
+ * @tparam T  the type
+ */
 template <typename T, typename = void>
 struct map_type {
     using type = void;
@@ -84,6 +89,11 @@ struct map_type<T, typename std::enable_if<std::is_convertible<
 };
 
 
+/**
+ * base_type gives the base type of given type
+ *
+ * @tparam T  the type
+ */
 template <typename T, typename = void>
 struct base_type {
     using type = void;
@@ -140,6 +150,11 @@ ENUM_CLASS(RM_LinOpFactory, int, ENUM_LINOPFACTORY);
 ENUM_CLASS(RM_CriterionFactory, int, ENUM_CRITERIONFACTORY);
 
 
+/**
+ * gkobase give the base type according to the enum class type
+ *
+ * @tparam T  the enum class type
+ */
 template <typename T>
 struct gkobase {
     using type = void;
@@ -166,6 +181,13 @@ struct gkobase<RM_CriterionFactory> {
 };
 
 
+/**
+ * is_derived returns true is the Derived is derived from Base and is not Base,
+ * or returns false
+ *
+ * @tparam Derived  the derived class
+ * @tparam Base  the base class
+ */
 template <typename Derived, typename Base, typename U = void>
 struct is_derived : public std::integral_constant<bool, false> {};
 
@@ -178,9 +200,22 @@ struct is_derived<
                                           const volatile Base>::value>::type>
     : public std::integral_constant<bool, true> {};
 
+/**
+ * is_on_linopfactory is a shortcut for check whether T is derived from
+ * LinOpFactory but not LinOpFactory
+ *
+ * @tparam T  the type
+ */
 template <typename T>
 using is_on_linopfactory = is_derived<T, LinOpFactory>;
 
+
+/**
+ * is_on_criterionfactory is a shortcut for check whether T is derived from
+ * CriterionFactory but not CriterionFactory
+ *
+ * @tparam T  the type
+ */
 template <typename T>
 using is_on_criterionfactory = is_derived<T, CriterionFactory>;
 

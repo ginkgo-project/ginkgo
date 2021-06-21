@@ -62,7 +62,7 @@ struct Generic<gko::matrix::Dense<T>> {
 
         // std::shared_ptr<Executor> exec_ptr;
         auto exec_ptr =
-            get_pointer_check<Executor>(manager, item, "exec", exec, linop);
+            get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
         auto stride = get_value_with_default(item, "stride", size[1]);
         auto ptr = share(gko::matrix::Dense<T>::create(exec_ptr, size, stride));
@@ -77,8 +77,10 @@ struct Generic<gko::matrix::Dense<T>> {
     }
 };
 
+
 ENABLE_SELECTION(dense_select, call, std::shared_ptr<gko::LinOp>, get_the_type);
 constexpr auto dense_list = tt_list<double, float>();
+
 
 template <>
 std::shared_ptr<gko::LinOp>
@@ -88,13 +90,11 @@ create_from_config<RM_LinOp, RM_LinOp::Dense, gko::LinOp>(
 {
     std::cout << "build_dense" << std::endl;
     // go though the type
-    std::string vt{default_valuetype};
-    if (item.HasMember("type")) {
-        vt = item["type"].GetString();
-    }
+    auto vt = get_value_with_default(item, "ValueType", default_valuetype);
+    auto type_string = vt;
     auto ptr = dense_select<gko::matrix::Dense>(
-        dense_list, [=](std::string key) { return key == vt; }, item, exec,
-        linop, manager);
+        dense_list, [=](std::string key) { return key == type_string; }, item,
+        exec, linop, manager);
     return ptr;
 }
 

@@ -6,7 +6,7 @@
     {
         "name": "A",
         "base": "Dense",
-        "type": "double",
+        "ValueType": "double",
         "exec": "executor"
     }
 ]

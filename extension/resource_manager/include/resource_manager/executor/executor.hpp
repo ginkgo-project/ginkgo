@@ -64,6 +64,7 @@ struct Generic<gko::CudaExecutor> {
 
 IMPLEMENT_BRIDGE(RM_Executor, CudaExecutor, CudaExecutor);
 
+
 template <>
 struct Generic<gko::HipExecutor> {
     using type = std::shared_ptr<gko::HipExecutor>;
@@ -77,6 +78,7 @@ struct Generic<gko::HipExecutor> {
         return HipExecutor::create(device_id, ReferenceExecutor::create());
     }
 };
+
 
 IMPLEMENT_BRIDGE(RM_Executor, HipExecutor, HipExecutor);
 
@@ -131,6 +133,7 @@ struct Generic<gko::OmpExecutor> {
         return OmpExecutor::create();
     }
 };
+
 
 IMPLEMENT_BRIDGE(RM_Executor, OmpExecutor, OmpExecutor);
 
