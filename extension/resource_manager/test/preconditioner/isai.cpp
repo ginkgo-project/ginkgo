@@ -30,51 +30,51 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKOEXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
-#define GKOEXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
+#include <ginkgo/core/base/executor.hpp>
 
 
-#include "resource_manager/base/helper.hpp"
-#include "resource_manager/base/macro_helper.hpp"
-#include "resource_manager/base/rapidjson_helper.hpp"
-#include "resource_manager/base/resource_manager.hpp"
-
+#include <thread>
 #include <type_traits>
 
 
-namespace gko {
-namespace extension {
-namespace resource_manager {
+#if defined(__unix__) || defined(__APPLE__)
+#include <utmpx.h>
+#endif
 
 
-template <>
-struct Generic<gko::stop::Iteration::Factory, gko::stop::Iteration> {
-    using type = std::shared_ptr<gko::stop::Iteration::Factory>;
-    static type build(rapidjson::Value &item,
-                      std::shared_ptr<const Executor> exec,
-                      std::shared_ptr<const LinOp> linop,
-                      ResourceManager *manager)
-    {
-        std::cout << "Iteration exec:" << exec.get() << std::endl;
-        auto ptr = [&]() {
-            BUILD_FACTORY(gko::stop::Iteration, manager, item, exec, linop);
-            std::cout << "Iter 1:" << std::endl;
-            SET_VALUE(size_type, max_iters);
-            std::cout << "Iter 2:" << std::endl;
-            SET_EXECUTOR;
-        }();
-        std::cout << "Iter 3:" << std::endl;
-        return ptr;
-    }
-};
+#include <gtest/gtest.h>
+#include "rapidjson/document.h"
+
+#include <ginkgo/core/base/exception.hpp>
+#include <resource_manager/resource_manager.hpp>
 
 
-IMPLEMENT_BRIDGE(RM_CriterionFactory, Iteration, gko::stop::Iteration::Factory);
+namespace {
 
 
-}  // namespace resource_manager
-}  // namespace extension
-}  // namespace gko
+TEST(IsaiFactory, CreateStandAlone)
+{
+    const char json[] =
+        "{\"base\": \"IsaiFactory\",\
+          \"IsaiType\": \"isai_lower\",\
+          \"exec\": {\"base\": \"ReferenceExecutor\"}\
+         }";
+    rapidjson::StringStream s(json);
+    rapidjson::Document d;
+    d.ParseStream(s);
+
+    auto ptr =
+        gko::extension::resource_manager::create_from_config<gko::LinOpFactory>(
+            d);
+    auto preconfactory_ptr =
+        std::dynamic_pointer_cast<gko::preconditioner::Isai<
+            gko::preconditioner::isai_type::lower, double, int>::Factory>(ptr);
+
+    ASSERT_NE(preconfactory_ptr.get(), nullptr);
+    ASSERT_EQ(preconfactory_ptr->get_parameters().skip_sorting, false);
+    ASSERT_EQ(preconfactory_ptr->get_parameters().sparsity_power, 1);
+    ASSERT_EQ(preconfactory_ptr->get_parameters().excess_limit, 0u);
+}
 
 
-#endif  // GKOEXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
+}  // namespace

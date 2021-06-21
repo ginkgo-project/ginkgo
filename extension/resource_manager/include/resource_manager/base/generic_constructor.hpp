@@ -48,14 +48,32 @@ namespace gko {
 namespace extension {
 namespace resource_manager {
 
+
 class ResourceManager;
 
+/**
+ * Declare the overloading selection and the corresponding implementation must
+ * to be the end of all others implementation. Use overloading function to avoid
+ * the specialization of ... after instantiation.
+ */
 DECLARE_SELECTION(LinOp, RM_LinOp);
 DECLARE_SELECTION(LinOpFactory, RM_LinOpFactory);
 DECLARE_SELECTION(Executor, RM_Executor);
 DECLARE_SELECTION(CriterionFactory, RM_CriterionFactory);
 
 
+/**
+ * create_from_config is a function to use the base string to select the next
+ * function.
+ *
+ * @tparam T  the type
+ *
+ * @param item  the RapidJson::Value
+ * @param base  the string from the base
+ * @param exec  the Executor from outside
+ * @param linop  the LinOp from outside
+ * @param manager  the ResourceManager pointer
+ */
 template <typename T>
 std::shared_ptr<T> create_from_config(rapidjson::Value &item, std::string base,
                                       std::shared_ptr<const Executor> exec,
@@ -68,21 +86,47 @@ CREATE_DEFAULT_IMPL(LinOp);
 CREATE_DEFAULT_IMPL(LinOpFactory);
 CREATE_DEFAULT_IMPL(CriterionFactory);
 
+/**
+ * Generic struct to implement the actual object creation.
+ *
+ * @tparam T  the type
+ * @tparam U  the helper type.
+ *
+ * @note U is T by default, when T is derived from LinOpFactory or
+ *       CriterionFactory (not included the base type), U is the outer type of
+ *       Factory. This can help the template deduction and reduce huge amount of
+ *       manual macro usage for building each template case.
+ */
 template <typename T, typename U = T>
 struct Generic {
     using type = std::shared_ptr<T>;
+
+    /**
+     * build is the implementation to create the object from the input.
+     *
+     * @param item  the RapidJson::Value
+     * @param exec  the Executor from outside
+     * @param linop  the LinOp from outside
+     * @param manager  the ResourceManager pointer
+     */
     static type build(rapidjson::Value &item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
                       ResourceManager *manager);
 };
 
-
 GENERIC_BASE_IMPL(Executor);
 GENERIC_BASE_IMPL(LinOp);
 GENERIC_BASE_IMPL(LinOpFactory);
 GENERIC_BASE_IMPL(CriterionFactory);
 
+
+/**
+ * GenericHelper is the helper to call Generic build with correct template
+ * parameters. The default case uses `Generic<T, T>`
+ *
+ * @tparam T  the type
+ */
 template <typename T, typename = void>
 struct GenericHelper {
     using type = std::shared_ptr<T>;
@@ -95,6 +139,15 @@ struct GenericHelper {
     }
 };
 
+/**
+ * GenericHelper is the helper to call Generic build with correct template
+ * parameters. This is the specialization cases for Factory Type (except for
+ * base type), which uses `Generic<T, T::base_type>` and `T::base_type::Factory`
+ * must be `T`.
+ *
+ * @tparam T  the type is derived from LinOpFactory or CriterionFactory but not
+ *            LinOpFactory or CriterionFactory
+ */
 template <typename T>
 struct GenericHelper<
     T, typename std::enable_if<is_on_linopfactory<T>::value ||
@@ -111,40 +164,32 @@ struct GenericHelper<
 };
 
 
+/**
+ * create_from_config is a free function to build object from input.
+ *
+ * @param item  the RapidJson::Value
+ * @param exec  the Executor from outside
+ * @param linop  the LinOp from outside
+ * @param manager  the ResourceManager pointer
+ */
 template <typename T>
-std::shared_ptr<T> create_from_config(rapidjson::Value &item,
-                                      std::shared_ptr<const Executor> exec,
-                                      std::shared_ptr<const LinOp> linop,
-                                      ResourceManager *manager = nullptr)
+std::shared_ptr<T> create_from_config(
+    rapidjson::Value &item, std::shared_ptr<const Executor> exec = nullptr,
+    std::shared_ptr<const LinOp> linop = nullptr,
+    ResourceManager *manager = nullptr)
 {
     return GenericHelper<T>::build(item, exec, linop, manager);
 }
 
 
-template <typename T>
-std::shared_ptr<T> create_from_config(rapidjson::Value &item,
-                                      std::shared_ptr<const Executor> exec,
-                                      ResourceManager *manager = nullptr)
-{
-    return create_from_config<T>(item, exec, nullptr, manager);
-}
-
-template <typename T>
-std::shared_ptr<T> create_from_config(rapidjson::Value &item,
-                                      std::shared_ptr<const LinOp> linop,
-                                      ResourceManager *manager = nullptr)
-{
-    return create_from_config<T>(item, nullptr, linop, manager);
-}
-
-template <typename T>
-std::shared_ptr<T> create_from_config(rapidjson::Value &item,
-                                      ResourceManager *manager = nullptr)
-{
-    return create_from_config<T>(item, nullptr, nullptr, manager);
-}
-
-
+/**
+ * create_from_config is another overloading to implement the function after
+ * selection on enum map.
+ *
+ * @tparam T  the enum type
+ * @tparam base  the enum item
+ * @tparam U  the corresponding base type of the enum type
+ */
 template <typename T, T base, typename U = typename gkobase<T>::type>
 std::shared_ptr<U> create_from_config(rapidjson::Value &item,
                                       std::shared_ptr<const Executor> exec,

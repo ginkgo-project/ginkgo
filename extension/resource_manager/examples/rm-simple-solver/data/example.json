@@ -12,7 +12,7 @@
     {
         "name": "b",
         "base": "Dense",
-        "type": "double",
+        "ValueType": "double",
         "exec": {
             "base": "ReferenceExecutor"
         },
@@ -21,7 +21,7 @@
     {
         "name": "x",
         "base": "Dense",
-        "type": "double",
+        "ValueType": "double",
         "exec": "executor",
         "read": "data/x0.mtx"
     },

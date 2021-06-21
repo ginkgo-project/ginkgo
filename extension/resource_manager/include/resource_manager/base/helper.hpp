@@ -50,6 +50,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace extension {
 namespace resource_manager {
+
+
+/**
+ * call is a helper function to decide to use the ResourceManager function or
+ * the free function depends on the manager is existed or not.
+ *
+ * @tparam T  the type
+ *
+ * @param item  the RapidJson::Value
+ * @param exec  the Executor from outside
+ * @param linop  the LinOp from outside
+ * @param manager  the ResourceManager pointer
+ *
+ * @note the `build_item` from `ResourceManager` also calls `GenericHelper` free
+ *       function in practice, but `build_item` can store the data if it
+ *       contains name.
+ */
 template <typename T>
 std::shared_ptr<T> call(rapidjson::Value &item,
                         std::shared_ptr<const Executor> exec,
@@ -63,6 +80,8 @@ std::shared_ptr<T> call(rapidjson::Value &item,
         return manager->build_item<T>(item, exec, linop);
     }
 }
+
+
 }  // namespace resource_manager
 }  // namespace extension
 }  // namespace gko

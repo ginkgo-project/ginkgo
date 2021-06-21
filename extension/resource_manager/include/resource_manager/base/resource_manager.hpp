@@ -50,14 +50,36 @@ namespace extension {
 namespace resource_manager {
 
 
+/**
+ * ResourceManager is a class to maintain the database storing the generated
+ * Executor, LinOp, LinOpFactory, and CriterionFacory. It also can
+ * build/insert/search item from the database.
+ */
 class ResourceManager {
 public:
+    /**
+     * insert_data stores the data with the key.
+     *
+     * @tparam T  the type
+     *
+     * @param key  the unique key string
+     * @param data  the shared pointer of the object
+     */
     template <typename T>
     void insert_data(std::string key, std::shared_ptr<T> data)
     {
         this->get_map<T>().emplace(key, data);
     }
 
+    /**
+     * search_data searches the key on the corresponding map.
+     *
+     * @tparam T  the type
+     *
+     * @param key  the key string
+     *
+     * @return the shared pointer of the object
+     */
     template <typename T>
     std::shared_ptr<T> search_data(std::string key)
     {
@@ -65,10 +87,26 @@ public:
         return std::dynamic_pointer_cast<T>(it->second);
     }
 
-    // contain name
+    /**
+     * build_item is to build one object, which should contain name.
+     *
+     * @param item  the RapidJson::Value
+     */
     void build_item(rapidjson::Value &item);
 
-
+    /**
+     * build_item is to build one object. If the object contains a name, add it
+     * into database.
+     *
+     * @tparam T  the type
+     *
+     * @param item  the RapidJson::Value
+     * @param base  the base string
+     * @param exec  the Executor from outside
+     * @param linop  the LinOp from outside
+     *
+     * @return the shared pointer of the type
+     */
     template <typename T>
     std::shared_ptr<T> build_item(
         rapidjson::Value &item, std::string base,
@@ -84,6 +122,18 @@ public:
         return ptr;
     }
 
+    /**
+     * build_item is to build one object. If the object contains a name, add it
+     * into database.
+     *
+     * @tparam T  the type
+     *
+     * @param item  the RapidJson::Value
+     * @param exec  the Executor from outside
+     * @param linop  the LinOp from outside
+     *
+     * @return the shared pointer of the type
+     */
     template <typename T>
     std::shared_ptr<T> build_item(
         rapidjson::Value &item, std::shared_ptr<const Executor> exec = nullptr,
@@ -98,7 +148,12 @@ public:
         return ptr;
     }
 
-
+    /**
+     * read is to build one object or list of objects, which top components
+     * should contain name.
+     *
+     * @param item  the RapidJson::Value
+     */
     void read(rapidjson::Value &dom)
     {
         if (dom.IsArray()) {
@@ -110,6 +165,9 @@ public:
         }
     }
 
+    /**
+     * output_map_info print the pairs of each map to standard output
+     */
     void output_map_info()
     {
         this->output_map_info<ExecutorMap>();
@@ -118,6 +176,11 @@ public:
         this->output_map_info<CriterionFactoryMap>();
     }
 
+    /**
+     * output_map_info print the pairs of certain map to standard output
+     *
+     * @tparam T  the map type
+     */
     template <typename T>
     void output_map_info()
     {
@@ -127,15 +190,28 @@ public:
     }
 
 protected:
+    /**
+     * get_map gets the member map
+     *
+     * @tparam T  the type
+     *
+     * @return the map
+     */
     template <typename T>
     typename map_type<T>::type &get_map()
     {
         return this->get_map_impl<typename map_type<T>::type>();
     }
 
+    /**
+     * get_map_impl is the implementation of get_map
+     *
+     * @tparam T  the map type
+     *
+     * @return the map
+     */
     template <typename T>
     T &get_map_impl();
-
 
 private:
     std::unordered_map<std::string, std::shared_ptr<Executor>> executor_map_;
