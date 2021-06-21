@@ -75,6 +75,43 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void scale(
 
 
 template <typename ValueType>
+__device__ __forceinline__ void scale(const BatchEntry<const ValueType> &alpha,
+                                      const BatchEntry<ValueType> &x,
+                                      const uint32 &converged)
+{
+    const int max_li = x.num_rows * x.num_rhs;
+    for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
+        const int row = li / x.num_rhs;
+        const int col = li % x.num_rhs;
+
+        const uint32 conv = converged & (1 << col);
+        if (conv) {
+            continue;
+        }
+        if (alpha.num_rhs == 1) {
+            x.values[row * x.stride + col] =
+                alpha.values[0] * x.values[row * x.stride + col];
+        } else {
+            x.values[row * x.stride + col] =
+                alpha.values[col] * x.values[row * x.stride + col];
+        }
+    }
+}
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size, sm_multiplier) void scale(
+    const gko::batch_dense::UniformBatch<const ValueType> alpha,
+    const gko::batch_dense::UniformBatch<ValueType> x, const uint32 &converged)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
+         ibatch += gridDim.x) {
+        const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
+        const auto x_b = gko::batch::batch_entry(x, ibatch);
+        scale(alpha_b, x_b, converged);
+    }
+}
+
+template <typename ValueType>
 __device__ __forceinline__ void add_scaled(
     const gko::batch_dense::BatchEntry<const ValueType> &alpha,
     const gko::batch_dense::BatchEntry<const ValueType> &x,
@@ -140,6 +177,46 @@ __device__ __forceinline__ void one_norm2(
 
 }  // namespace
 
+
+template <typename ValueType>
+__device__ __forceinline__ void add_scaled(
+    const gko::batch_dense::BatchEntry<const ValueType> &alpha,
+    const gko::batch_dense::BatchEntry<const ValueType> &x,
+    const gko::batch_dense::BatchEntry<ValueType> &y, const uint32 &converged)
+{
+    const int max_li = x.num_rows * x.num_rhs;
+    for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
+        const int row = li / x.num_rhs;
+        const int col = li % x.num_rhs;
+        const uint32 conv = converged & (1 << col);
+        if (conv) {
+            continue;
+        }
+        if (alpha.num_rhs == 1) {
+            y.values[row * y.stride + col] +=
+                alpha.values[0] * x.values[row * x.stride + col];
+        } else {
+            y.values[row * y.stride + col] +=
+                alpha.values[col] * x.values[row * x.stride + col];
+        }
+    }
+}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size, sm_multiplier) void add_scaled(
+    const gko::batch_dense::UniformBatch<const ValueType> alpha,
+    const gko::batch_dense::UniformBatch<const ValueType> x,
+    const gko::batch_dense::UniformBatch<ValueType> y, const uint32 &converged)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
+         ibatch += gridDim.x) {
+        const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
+        const auto x_b = gko::batch::batch_entry(x, ibatch);
+        const auto y_b = gko::batch::batch_entry(y, ibatch);
+        add_scaled(alpha_b, x_b, y_b, converged);
+    }
+}
 
 /**
  * Computes the 2-norms of some column vectors in global or shared memory.
@@ -207,6 +284,22 @@ __global__
         const auto x_b = gko::batch::batch_entry(x, ibatch);
         const auto r_b = gko::batch::batch_entry(result, ibatch);
         compute_norm2(x_b, r_b);
+    }
+}
+
+
+template <typename ValueType>
+__global__
+    __launch_bounds__(default_block_size, sm_multiplier) void compute_norm2(
+        const gko::batch_dense::UniformBatch<const ValueType> x,
+        const gko::batch_dense::UniformBatch<remove_complex<ValueType>> result,
+        const uint32 &converged)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
+         ibatch += gridDim.x) {
+        const auto x_b = gko::batch::batch_entry(x, ibatch);
+        const auto r_b = gko::batch::batch_entry(result, ibatch);
+        compute_norm2(x_b, r_b, converged);
     }
 }
 
@@ -371,55 +464,6 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier)
     }
 }
 
-
-template <typename ValueType>
-__device__ __forceinline__ void add_scaled(
-    const gko::batch_dense::BatchEntry<const ValueType> &alpha,
-    const gko::batch_dense::BatchEntry<const ValueType> &x,
-    const gko::batch_dense::BatchEntry<ValueType> &y, const uint32 &converged)
-{
-    const int max_li = x.num_rows * x.num_rhs;
-    for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
-        const int row = li / x.num_rhs;
-        const int col = li % x.num_rhs;
-        const uint32 conv = converged & (1 << col);
-        if (conv) {
-            continue;
-        }
-        if (alpha.num_rhs == 1) {
-            y.values[row * y.stride + col] +=
-                alpha.values[0] * x.values[row * x.stride + col];
-        } else {
-            y.values[row * y.stride + col] +=
-                alpha.values[col] * x.values[row * x.stride + col];
-        }
-    }
-}
-
-
-template <typename ValueType>
-__device__ __forceinline__ void scale(const BatchEntry<const ValueType> &alpha,
-                                      const BatchEntry<ValueType> &x,
-                                      const uint32 &converged)
-{
-    const int max_li = x.num_rows * x.num_rhs;
-    for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
-        const int row = li / x.num_rhs;
-        const int col = li % x.num_rhs;
-
-        const uint32 conv = converged & (1 << col);
-        if (conv) {
-            continue;
-        }
-        if (alpha.num_rhs == 1) {
-            x.values[row * x.stride + col] =
-                alpha.values[0] * x.values[row * x.stride + col];
-        } else {
-            x.values[row * x.stride + col] =
-                alpha.values[col] * x.values[row * x.stride + col];
-        }
-    }
-}
 
 template <typename ValueType>
 __device__ __forceinline__ void copy(
