@@ -368,8 +368,6 @@ TEST_F(BatchDense, CudaComputeDotIsEquivalentToRef)
     auto dot_expected = Mtx::create(this->ref, dot_size);
     auto ddot = Mtx::create(this->cuda, dot_size);
 
-    ddot->copy_from(dot_expected.get());
-
     x->compute_dot(y.get(), dot_expected.get());
     dx->compute_dot(dy.get(), ddot.get());
 
@@ -386,6 +384,8 @@ TEST_F(BatchDense, CudaConvergenceComputeDotIsEquivalentToRef)
         gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
     auto dot_expected = Mtx::create(this->ref, dot_size);
     auto ddot = Mtx::create(this->cuda, dot_size);
+
+    ddot->copy_from(dot_expected.get());
 
     const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
 
