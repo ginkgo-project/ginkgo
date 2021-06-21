@@ -457,6 +457,85 @@ TEST_F(MpiBindings, CanAllReduceValuesInPlace)
 }
 
 
+TEST_F(MpiBindings, CanAllGatherValuesInPlace)
+{
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    int data[4];
+    int comp_data[4] = {3, 5, 2, 6};
+    if (my_rank == 0) {
+        data[0] = 3;
+    } else if (my_rank == 1) {
+        data[1] = 5;
+    } else if (my_rank == 2) {
+        data[2] = 2;
+    } else if (my_rank == 3) {
+        data[3] = 6;
+    }
+    gko::mpi::all_gather<int>(data, 1);
+    ASSERT_EQ(data[0], comp_data[0]);
+    ASSERT_EQ(data[1], comp_data[1]);
+    ASSERT_EQ(data[2], comp_data[2]);
+    ASSERT_EQ(data[3], comp_data[3]);
+}
+
+
+TEST_F(MpiBindings, CanAllGatherValuesInPlaceWithOffset)
+{
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    int data[6] = {1, 2, 3, 4, 5, 6};
+    int comp_data[6] = {7, 8, 9, 10, 11, 12};
+    int num_elems[4] = {2, 1, 2, 1};
+    int offset[4] = {0, 2, 3, 5};
+    if (my_rank == 0) {
+        data[0] = 7;
+        data[1] = 8;
+    } else if (my_rank == 1) {
+        data[2] = 9;
+    } else if (my_rank == 2) {
+        data[3] = 10;
+        data[4] = 11;
+    } else if (my_rank == 3) {
+        data[5] = 12;
+    }
+    gko::mpi::all_gather<int>(data, num_elems, offset);
+    EXPECT_EQ(data[0], comp_data[0]);
+    EXPECT_EQ(data[1], comp_data[1]);
+    EXPECT_EQ(data[2], comp_data[2]);
+    EXPECT_EQ(data[3], comp_data[3]);
+    EXPECT_EQ(data[4], comp_data[4]);
+    EXPECT_EQ(data[5], comp_data[5]);
+}
+
+
+TEST_F(MpiBindings, CanAllGatherValues)
+{
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    int send_data;
+    int recv_data[4] = {0, 0, 0, 0};
+    int comp_data[4] = {3, 5, 2, 6};
+    if (my_rank == 0) {
+        send_data = 3;
+    } else if (my_rank == 1) {
+        send_data = 5;
+    } else if (my_rank == 2) {
+        send_data = 2;
+    } else if (my_rank == 3) {
+        send_data = 6;
+    }
+    gko::mpi::all_gather<int>(&send_data, 1, recv_data, 1);
+    EXPECT_EQ(comp_data[0], recv_data[0]);
+    EXPECT_EQ(comp_data[1], recv_data[1]);
+    EXPECT_EQ(comp_data[2], recv_data[2]);
+    EXPECT_EQ(comp_data[3], recv_data[3]);
+}
+
+
 TEST_F(MpiBindings, CanScatterValues)
 {
     auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);

@@ -395,6 +395,51 @@ inline void i_all_reduce(const void* send_buffer, void* recv_buffer, int count,
 }
 
 
+inline void all_gather(const void* send_buffer, const int send_count,
+                       MPI_Datatype& send_type, void* recv_buffer,
+                       const int recv_count, MPI_Datatype& recv_type,
+                       const MPI_Comm& comm)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Allgather(send_buffer, send_count, send_type,
+                                           recv_buffer, recv_count, recv_type,
+                                           comm));
+}
+
+
+inline void i_all_gather(const void* send_buffer, const int send_count,
+                         MPI_Datatype& send_type, void* recv_buffer,
+                         const int recv_count, MPI_Datatype& recv_type,
+                         const MPI_Comm& comm, MPI_Request* requests)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallgather(send_buffer, send_count, send_type,
+                                            recv_buffer, recv_count, recv_type,
+                                            comm, requests));
+}
+
+
+inline void all_gather_v(const void* send_buffer, const int send_count,
+                         MPI_Datatype& send_type, void* recv_buffer,
+                         const int* recv_counts, const int* displacements,
+                         MPI_Datatype& recv_type, const MPI_Comm& comm)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Allgatherv(send_buffer, send_count, send_type,
+                                            recv_buffer, recv_counts,
+                                            displacements, recv_type, comm));
+}
+
+
+inline void i_all_gather_v(const void* send_buffer, const int send_count,
+                           MPI_Datatype& send_type, void* recv_buffer,
+                           const int* recv_counts, const int* displacements,
+                           const MPI_Datatype& recv_type, const MPI_Comm& comm,
+                           MPI_Request* requests)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(
+        MPI_Iallgatherv(send_buffer, send_count, send_type, recv_buffer,
+                        recv_counts, displacements, recv_type, comm, requests));
+}
+
+
 inline void gather(const void* send_buffer, const int send_count,
                    MPI_Datatype& send_type, void* recv_buffer,
                    const int recv_count, MPI_Datatype& recv_type, int root,
@@ -415,17 +460,6 @@ inline void gatherv(const void* send_buffer, const int send_count,
     GKO_ASSERT_NO_MPI_ERRORS(
         MPI_Gatherv(send_buffer, send_count, send_type, recv_buffer,
                     recv_counts, displacements, recv_type, root_rank, comm));
-}
-
-
-inline void all_gather(const void* send_buffer, const int send_count,
-                       MPI_Datatype& send_type, void* recv_buffer,
-                       const int recv_count, MPI_Datatype& recv_type,
-                       const MPI_Comm& comm)
-{
-    GKO_ASSERT_NO_MPI_ERRORS(MPI_Allgather(send_buffer, send_count, send_type,
-                                           recv_buffer, recv_count, recv_type,
-                                           comm));
 }
 
 

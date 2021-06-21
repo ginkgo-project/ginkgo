@@ -492,6 +492,94 @@ void all_reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
 }
 
 
+template <typename GatherType>
+void all_gather(GatherType *recv_buffer, const int recv_count,
+                std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req)
+{
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    if (!req.get()) {
+        bindings::all_gather(
+            bindings::in_place<GatherType>(), 0, recv_type, recv_buffer,
+            recv_count, recv_type,
+            comm ? comm->get() : communicator::get_comm_world());
+    } else {
+        bindings::i_all_gather(
+            bindings::in_place<GatherType>(), 0, recv_type, recv_buffer,
+            recv_count, recv_type,
+            comm ? comm->get() : communicator::get_comm_world(),
+            req->get_requests());
+    }
+}
+
+
+template <typename SendType, typename RecvType>
+void all_gather(const SendType *send_buffer, const int send_count,
+                RecvType *recv_buffer, const int recv_count,
+                std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req)
+{
+    auto send_type = helpers::get_mpi_type(send_buffer[0]);
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    if (!req.get()) {
+        bindings::all_gather(
+            send_buffer, send_count, send_type, recv_buffer, recv_count,
+            recv_type, comm ? comm->get() : communicator::get_comm_world());
+    } else {
+        bindings::i_all_gather(
+            send_buffer, send_count, send_type, recv_buffer, recv_count,
+            recv_type, comm ? comm->get() : communicator::get_comm_world(),
+            req->get_requests());
+    }
+}
+
+
+template <typename GatherType>
+void all_gather(GatherType *recv_buffer, const int *recv_counts,
+                const int *displacements,
+                std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req)
+{
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    if (!req.get()) {
+        bindings::all_gather_v(
+            bindings::in_place<GatherType>(), 0, recv_type, recv_buffer,
+            recv_counts, displacements, recv_type,
+            comm ? comm->get() : communicator::get_comm_world());
+    } else {
+        bindings::i_all_gather_v(
+            bindings::in_place<GatherType>(), 0, recv_type, recv_buffer,
+            recv_counts, displacements, recv_type,
+            comm ? comm->get() : communicator::get_comm_world(),
+            req->get_requests());
+    }
+}
+
+
+template <typename SendType, typename RecvType>
+void all_gather(const SendType *send_buffer, const int send_count,
+                RecvType *recv_buffer, const int *recv_counts,
+                const int *displacements,
+                std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req)
+{
+    auto send_type = helpers::get_mpi_type(send_buffer[0]);
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    if (!req.get()) {
+        bindings::all_gather_v(
+            send_buffer, send_count, send_type, recv_buffer, recv_counts,
+            displacements, recv_type,
+            comm ? comm->get() : communicator::get_comm_world());
+    } else {
+        bindings::i_all_gather_v(
+            send_buffer, send_count, send_type, recv_buffer, recv_counts,
+            displacements, recv_type,
+            comm ? comm->get() : communicator::get_comm_world(),
+            req->get_requests());
+    }
+}
+
+
 template <typename SendType, typename RecvType>
 void gather(const SendType *send_buffer, const int send_count,
             RecvType *recv_buffer, const int recv_count, int root_rank,
@@ -713,6 +801,42 @@ GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ALLREDUCE1);
                     std::shared_ptr<request> req)
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ALLREDUCE2);
+
+
+#define GKO_DECLARE_ALLGATHER(GatherType)                          \
+    void all_gather(GatherType *recv_buffer, const int recv_count, \
+                    std::shared_ptr<const communicator> comm,      \
+                    std::shared_ptr<request> req)
+
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ALLGATHER);
+
+
+#define GKO_DECLARE_ALLGATHER2(SendType, RecvType)                     \
+    void all_gather(const SendType *send_buffer, const int send_count, \
+                    RecvType *recv_buffer, const int recv_count,       \
+                    std::shared_ptr<const communicator> comm,          \
+                    std::shared_ptr<request> req)
+
+GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ALLGATHER2);
+
+
+#define GKO_DECLARE_ALLGATHER3(GatherType)                           \
+    void all_gather(GatherType *recv_buffer, const int *recv_counts, \
+                    const int *displacements,                        \
+                    std::shared_ptr<const communicator> comm,        \
+                    std::shared_ptr<request> req)
+
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ALLGATHER3);
+
+
+#define GKO_DECLARE_ALLGATHER4(SendType, RecvType)                     \
+    void all_gather(const SendType *send_buffer, const int send_count, \
+                    RecvType *recv_buffer, const int *recv_counts,     \
+                    const int *displacements,                          \
+                    std::shared_ptr<const communicator> comm,          \
+                    std::shared_ptr<request> req)
+
+GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ALLGATHER4);
 
 
 #define GKO_DECLARE_GATHER1(SendType, RecvType)                             \

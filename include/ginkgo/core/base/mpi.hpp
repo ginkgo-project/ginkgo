@@ -404,6 +404,34 @@ void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
                 std::shared_ptr<request> req = {});
 
 
+template <typename GatherType>
+void all_gather(GatherType *recv_buffer, const int *recv_count,
+                const int *displacements,
+                std::shared_ptr<const communicator> comm = {},
+                std::shared_ptr<request> req = {});
+
+
+template <typename SendType, typename RecvType>
+void all_gather(const SendType *send_buffer, const int send_count,
+                RecvType *recv_buffer, const int *recv_counts,
+                const int *displacements,
+                std::shared_ptr<const communicator> comm = {},
+                std::shared_ptr<request> req = {});
+
+
+template <typename GatherType>
+void all_gather(GatherType *recv_buffer, const int recv_count,
+                std::shared_ptr<const communicator> comm = {},
+                std::shared_ptr<request> req = {});
+
+
+template <typename SendType, typename RecvType>
+void all_gather(const SendType *send_buffer, const int send_count,
+                RecvType *recv_buffer, const int recv_counts,
+                std::shared_ptr<const communicator> comm = {},
+                std::shared_ptr<request> req = {});
+
+
 template <typename SendType, typename RecvType>
 void gather(const SendType* send_buffer, const int send_count,
             RecvType* recv_buffer, const int recv_count, int root_rank,
