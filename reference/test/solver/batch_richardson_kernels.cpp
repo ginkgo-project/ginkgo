@@ -343,7 +343,7 @@ TYPED_TEST(BatchRich, GeneralScalingDoesNotChangeResult)
     for (size_t i = 0; i < this->nbatch; i++) {
         ASSERT_LE(result.resnorm->get_const_values()[i] /
                       this->bnorm_1->get_const_values()[i],
-                  opts.rel_residual_tol);
+                  2 * opts.rel_residual_tol);
     }
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->xex_1,
                               1e-5 /*r<value_type>::value*/);
