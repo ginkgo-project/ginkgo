@@ -57,12 +57,17 @@ namespace batch_dense {
 GKO_REGISTER_OPERATION(simple_apply, batch_dense::simple_apply);
 GKO_REGISTER_OPERATION(apply, batch_dense::apply);
 GKO_REGISTER_OPERATION(scale, batch_dense::scale);
+GKO_REGISTER_OPERATION(convergence_scale, batch_dense::convergence_scale);
 GKO_REGISTER_OPERATION(add_scaled, batch_dense::add_scaled);
+GKO_REGISTER_OPERATION(convergence_add_scaled,
+                       batch_dense::convergence_add_scaled);
 GKO_REGISTER_OPERATION(add_scaled_diag, batch_dense::add_scaled_diag);
 GKO_REGISTER_OPERATION(compute_dot, batch_dense::compute_dot);
 GKO_REGISTER_OPERATION(convergence_compute_dot,
                        batch_dense::convergence_compute_dot);
 GKO_REGISTER_OPERATION(compute_norm2, batch_dense::compute_norm2);
+GKO_REGISTER_OPERATION(convergence_compute_norm2,
+                       batch_dense::convergence_compute_norm2);
 GKO_REGISTER_OPERATION(convert_to_batch_csr, batch_dense::convert_to_batch_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, batch_dense::count_nonzeros);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
