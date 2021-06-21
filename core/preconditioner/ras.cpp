@@ -88,15 +88,24 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
                                                  VectorType *dense_x) const
 {
     using LocalVector = matrix::Dense<ValueType>;
-    if (this->coarse_solvers_.size() > 0) {
-        for (size_type i = 0; i < this->coarse_solvers_.size(); ++i) {
-            this->coarse_solvers_[i]->apply(dense_b, dense_x);
-        }
-    }
+    auto x_clone = dense_x->clone();
     if (is_distributed()) {
         GKO_ASSERT(this->inner_solvers_.size() > 0);
         this->inner_solvers_[0]->apply(detail::get_local(dense_b),
                                        detail::get_local(dense_x));
+        auto local_x = detail::get_local(dense_x);
+        auto comm = local_x->get_communicator();
+        auto num_elems =
+            gko::Array<int>(this->get_executor()->get_master(), comm->size());
+        num_elems.get_data()[comm->rank()] = local_x->get_size()[0];
+        mpi::all_gather(num_elems.get_data(), 1);
+        auto offset =
+            gko::Array<int>(this->get_executor()->get_master(), comm->size());
+        offset = num_elems;
+        std::partial_sum(offset.get_data(), offset.get_data() + comm->size());
+        mpi::all_gather(dense_x->get_values(), num_elems.get_const_data(),
+                        offset.get_const_data()
+                        /*,dense_x->get_communicator()*/);
     } else {
         using block_t = matrix::BlockApprox<matrix::Csr<ValueType, IndexType>>;
         const auto dense_x_clone = (dense_x->clone());
@@ -139,6 +148,25 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
             offset += loc_size[0];
         }
     }
+    if (this->coarse_solvers_.size() > 0) {
+        for (size_type i = 0; i < this->coarse_solvers_.size(); ++i) {
+            auto rel_fac = parameters_.coarse_relaxation_factors[0];
+            if (parameters_.coarse_relaxation_factors.size() > 1) {
+                rel_fac = parameters_.coarse_relaxation_factors[i];
+            }
+            auto beta = initialize<LocalVector>(
+                {zero<ValueType>()}, this->coarse_solvers_[i]->get_executor());
+            auto alpha = initialize<LocalVector>(
+                {static_cast<ValueType>(rel_fac)},
+                this->coarse_solvers_[i]->get_executor());
+            this->coarse_solvers_[i]->apply(alpha.get(), dense_b, beta.get(),
+                                            x_clone.get());
+        }
+        auto fac1 = initialize<LocalVector>({0.5}, this->get_executor());
+        x_clone->scale(fac1.get());
+        auto fac = initialize<LocalVector>({0.5}, this->get_executor());
+        dense_x->add_scaled(fac.get(), x_clone.get());
+    }
 }
 
 
@@ -146,39 +174,14 @@ template <typename ValueType, typename IndexType>
 void Ras<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                            const LinOp *beta, LinOp *x) const
 {
-    if (!is_distributed()) {
-        using Dense = matrix::Dense<ValueType>;
-        auto dense_b = const_cast<Dense *>(as<Dense>(b));
-        auto dense_x = as<Dense>(x);
-        const auto num_subdomains = this->inner_solvers_.size();
-        size_type offset = 0;
-        for (size_type i = 0; i < num_subdomains; ++i) {
-            auto loc_size = this->inner_solvers_[i]->get_size();
-            const auto loc_b = dense_b->create_submatrix(
-                span{offset, offset + loc_size[0]}, span{0, b->get_size()[1]});
-            auto loc_x = dense_x->create_submatrix(
-                span{offset, offset + loc_size[0]}, span{0, x->get_size()[1]});
-            this->inner_solvers_[i]->apply(alpha, loc_b.get(), beta,
-                                           loc_x.get());
-            offset += loc_size[0];
-        }
-    } else {
-        using Dense = matrix::Dense<ValueType>;
-        auto dense_b = const_cast<Dense *>(as<Dense>(b));
-        auto dense_x = as<Dense>(x);
-        const auto num_subdomains = this->inner_solvers_.size();
-        size_type offset = 0;
-        for (size_type i = 0; i < num_subdomains; ++i) {
-            auto loc_size = this->inner_solvers_[i]->get_size();
-            const auto loc_b = dense_b->create_submatrix(
-                span{offset, offset + loc_size[0]}, span{0, b->get_size()[1]});
-            auto loc_x = dense_x->create_submatrix(
-                span{offset, offset + loc_size[0]}, span{0, x->get_size()[1]});
-            this->inner_solvers_[i]->apply(alpha, loc_b.get(), beta,
-                                           loc_x.get());
-            offset += loc_size[0];
-        }
-    }
+    precision_dispatch_real_complex_distributed<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 
@@ -242,6 +245,13 @@ void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
         for (size_type i = 0; i < num_subdomains; ++i) {
             this->inner_solvers_.emplace_back(
                 parameters_.inner_solver->generate(gko::share(block_mtxs[i])));
+        }
+        if (parameters_.coarse_solvers[0]) {
+            for (size_type i = 0; i < parameters_.coarse_solvers.size(); ++i) {
+                this->coarse_solvers_.emplace_back(
+                    parameters_.coarse_solvers[i]->generate(
+                        this->system_matrix_));
+            }
         }
         this->is_distributed_ = true;
     } else if (dynamic_cast<const dist_block_t *>(system_matrix) != nullptr) {

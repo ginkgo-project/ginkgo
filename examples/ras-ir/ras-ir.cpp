@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
     auto b = gko::matrix::Dense<ValueType>::create(exec);
     b->copy_from(x_host.get());
     for (auto i = 0; i < size; i++) {
-        x_host->at(i, 0) = 0.;
+        x_host->at(i, 0) = 1.;
     }
     x->copy_from(x_host.get());
 
@@ -210,13 +210,24 @@ int main(int argc, char *argv[])
         ras::build()
             .with_block_dimensions(block_sizes)
             .with_overlaps(block_overlaps)
+            .with_coarse_relaxation_factors(1.0)
             .with_coarse_solvers(
                 // ir::build()
                 //     .with_criteria(
-                //         gko::stop::Iteration::build().with_max_iters(1u).on(
+                // gko::stop::Iteration::build().with_max_iters(1u).on(
                 //             exec))
                 //     .on(exec))
-                bj::build().with_max_block_size(32u).on(exec))
+                //     bj::build().with_max_block_size(32u).on(exec))
+                cg::build()
+                    .with_preconditioner(bj::build().on(exec))
+                    .with_criteria(
+                        //
+                        // gko::stop::Iteration::build().with_max_iters(10u).on(
+                        //     exec))
+                        gko::stop::ResidualNorm<ValueType>::build()
+                            .with_reduction_factor(inner_reduction_factor)
+                            .on(exec))
+                    .on(exec))
             .with_inner_solver(
                 // bj::build().on(exec))
                 // paric::build().on(exec)
@@ -224,11 +235,11 @@ int main(int argc, char *argv[])
                     .with_preconditioner(bj::build().on(exec))
                     .with_criteria(
                         //
-                        gko::stop::Iteration::build().with_max_iters(100u).on(
-                            exec))
-                    // gko::stop::ResidualNorm<ValueType>::build()
-                    //     .with_reduction_factor(inner_reduction_factor)
-                    //     .on(exec))
+                        // gko::stop::Iteration::build().with_max_iters(10000u).on(
+                        //     exec))
+                        gko::stop::ResidualNorm<ValueType>::build()
+                            .with_reduction_factor(inner_reduction_factor)
+                            .on(exec))
                     .on(exec))
             .on(exec)
             ->generate(A);
@@ -237,11 +248,11 @@ int main(int argc, char *argv[])
             .with_generated_solver(share(ras_precond))
             // .with_relaxation_factor(relax_fac)
             // .with_solver(
-            //     cg::build()
-            //         .with_criteria(
-            //             gko::stop::ResidualNorm<ValueType>::build()
-            //                 .with_reduction_factor(inner_reduction_factor)
-            //                 .on(exec))
+            // cg::build()
+            //     .with_preconditioner(bj::build().on(exec))
+            // .with_criteria(gko::stop::ResidualNorm<ValueType>::build()
+            //                    .with_reduction_factor(inner_reduction_factor)
+            //                    .on(exec))
             //         .on(exec))
             .with_criteria(combined_stop)
             .on(exec);
