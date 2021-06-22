@@ -514,8 +514,6 @@ TYPED_TEST(BatchDense, ConvergenceAddScaledWithScalar)
         this->exec, alpha.get(), this->mtx_0.get(), this->mtx_1.get(),
         converged);
 
-    // std::cout << "rows: " <<  this->mtx_10->get_size()[0] << "   cols: " <<
-    // this->mtx_11->get_size()[1] << std::endl;
     auto mtx_10_clone = gko::clone(this->mtx_10);
     auto mtx_11_clone = gko::clone(this->mtx_11);
 
@@ -684,6 +682,77 @@ TYPED_TEST(BatchDense, ComputDotFailsOnWrongResultSize)
                  gko::DimensionMismatch);
     ASSERT_THROW(this->mtx_0->compute_dot(this->mtx_1.get(), result2.get()),
                  gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(BatchDense, CopiesData)
+{
+    gko::kernels::reference::batch_dense::copy(this->exec, this->mtx_0.get(),
+                                               this->mtx_1.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_1.get(), this->mtx_0.get(), 0.);
+}
+
+
+TYPED_TEST(BatchDense, ConvergenceCopyData)
+{
+    auto umtx_0 = this->mtx_0->unbatch();
+
+    const int num_rhs = 3;
+    const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
+    gko::kernels::reference::batch_dense::convergence_copy(
+        this->exec, this->mtx_0.get(), this->mtx_1.get(), converged);
+
+    auto mtx_10_clone = gko::clone(this->mtx_10);
+    auto mtx_11_clone = gko::clone(this->mtx_11);
+
+    auto res = this->mtx_1->unbatch();
+
+    EXPECT_EQ(res[0]->at(0, 0), mtx_10_clone->at(0, 0));
+    EXPECT_EQ(res[0]->at(1, 0), mtx_10_clone->at(1, 0));
+    EXPECT_EQ(res[0]->at(0, 1), this->mtx_0->at(0, 0, 1));
+    EXPECT_EQ(res[0]->at(1, 1), this->mtx_0->at(0, 1, 1));
+    EXPECT_EQ(res[0]->at(0, 2), mtx_10_clone->at(0, 2));
+    EXPECT_EQ(res[0]->at(1, 2), mtx_10_clone->at(1, 2));
+
+    EXPECT_EQ(res[1]->at(0, 0), mtx_11_clone->at(0, 0));
+    EXPECT_EQ(res[1]->at(1, 0), mtx_11_clone->at(1, 0));
+    EXPECT_EQ(res[1]->at(0, 1), this->mtx_0->at(1, 0, 1));
+    EXPECT_EQ(res[1]->at(1, 1), this->mtx_0->at(1, 1, 1));
+    EXPECT_EQ(res[1]->at(0, 2), mtx_11_clone->at(0, 2));
+    EXPECT_EQ(res[1]->at(1, 2), mtx_11_clone->at(1, 2));
+}
+
+
+TYPED_TEST(BatchDense, BatchScale)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+
+    auto mtx(gko::batch_initialize<Mtx>(
+        {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
+         {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
+        this->exec));
+
+    auto diag_vec(gko::batch_initialize<Mtx>(
+        {{I<T>{1.0, 2.0, 3.0}}, {I<T>{-1.0, -2.0, -3.0}}}, this->exec));
+
+    gko::kernels::reference::batch_dense::batch_scale(
+        this->exec, diag_vec.get(), mtx.get());
+
+    EXPECT_EQ(mtx->at(0, 0, 0), T{1.0});
+    EXPECT_EQ(mtx->at(0, 1, 0), T{4.0});
+    EXPECT_EQ(mtx->at(0, 2, 0), T{6.0});
+    EXPECT_EQ(mtx->at(0, 0, 1), T{0.0});
+    EXPECT_EQ(mtx->at(0, 1, 1), T{6.0});
+    EXPECT_EQ(mtx->at(0, 2, 1), T{12.0});
+
+    EXPECT_EQ(mtx->at(1, 0, 0), T{4.0});
+    EXPECT_EQ(mtx->at(1, 1, 0), T{6.0});
+    EXPECT_EQ(mtx->at(1, 2, 0), T{0.0});
+    EXPECT_EQ(mtx->at(1, 0, 1), T{-2.0});
+    EXPECT_EQ(mtx->at(1, 1, 1), T{4.0});
+    EXPECT_EQ(mtx->at(1, 2, 1), T{-3.0});
 }
 
 
