@@ -284,22 +284,30 @@ __device__ __forceinline__ void update_x_middle(
 
 
 template <typename StopType, typename PrecType, typename LogType,
-          typename BatchMatrixType, typename ValueType>
+          /*typename BatchMatrixType,*/ typename ValueType>
 __global__ void apply_kernel(
     const int max_iter, const gko::remove_complex<ValueType> tol,
-    LogType logger, PrecType prec_shared, const BatchMatrixType a,
-    const gko::batch_dense::UniformBatch<const ValueType> left,
-    const gko::batch_dense::UniformBatch<const ValueType> right,
-    const gko::batch_dense::UniformBatch<ValueType> b,
-    const gko::batch_dense::UniformBatch<ValueType> x)
+    LogType logger, PrecType prec_shared, const size_type nbatch,
+    const int num_rows, const int num_nnz,
+    ValueType *const __restrict__ avalues,
+    const int *const __restrict__ col_idxs,
+    const int *const __restrict__ row_ptrs, const size_type stride,
+    const int nrhs, const ValueType *const __restrict__ left,
+    const ValueType *const __restrict__ right, ValueType *const __restrict__ b,
+    ValueType *const __restrict__ x)
 {
     using real_type = typename gko::remove_complex<ValueType>;
-    const auto nbatch = a.num_batch;
-    const auto nrows = a.num_rows;
-    const auto nrhs = b.num_rhs;
+    // const auto nbatch = a.num_batch;
+    // const auto nrows = a.num_rows;
+    // const auto nrhs = b.num_rhs;
 
-    assert(batch_config<ValueType>::max_num_rhs >=
-           nrhs);  // required for static allocation in stopping criterion
+    const auto nrows = num_rows;
+
+    // required for static allocation in stopping criterion
+    assert(batch_config<ValueType>::max_num_rhs >= nrhs);
+
+    const gko::batch_csr::UniformBatch<ValueType> a{avalues, col_idxs, row_ptrs,
+                                                    nbatch,  num_rows, num_nnz};
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
         extern __shared__ char local_mem_sh[];
@@ -327,32 +335,33 @@ __global__ void apply_kernel(
         uint32 converged = 0;
 
         const gko::batch_dense::BatchEntry<const ValueType> left_global_entry =
-            gko::batch::batch_entry(left, ibatch);
-
+            gko::batch::batch_entry(static_cast<const ValueType *>(left), 1,
+                                    nrows, 1, ibatch);
         const gko::batch_dense::BatchEntry<const ValueType> right_global_entry =
-            gko::batch::batch_entry(right, ibatch);
+            gko::batch::batch_entry(static_cast<const ValueType *>(right), 1,
+                                    nrows, 1, ibatch);
 
-        if (left_global_entry.values) {
-            const typename BatchMatrixType::entry_type A_global_entry =
+        if (left) {
+            // const typename BatchMatrixType::entry_type A_global_entry =
+            //    gko::batch::batch_entry(a, ibatch);
+            const gko::batch_csr::BatchEntry<ValueType> A_global_entry =
                 gko::batch::batch_entry(a, ibatch);
             const gko::batch_dense::BatchEntry<ValueType> b_global_entry =
-                gko::batch::batch_entry(b, ibatch);
+                gko::batch::batch_entry(b, stride, nrows, nrhs, ibatch);
             batch_scale(left_global_entry, right_global_entry, A_global_entry);
             batch_scale(left_global_entry, b_global_entry);
-
             __syncthreads();
         }
-
 
         const auto A_global_entry =
             gko::batch::batch_entry(gko::batch::to_const(a), ibatch);
 
         const gko::batch_dense::BatchEntry<const ValueType> b_global_entry =
-            gko::batch::batch_entry(gko::batch::to_const(b), ibatch);
+            gko::batch::batch_entry(static_cast<const ValueType *>(b), stride,
+                                    nrows, nrhs, ibatch);
 
         const gko::batch_dense::BatchEntry<ValueType> x_global_entry =
-            gko::batch::batch_entry(x, ibatch);
-
+            gko::batch::batch_entry(x, stride, nrows, nrhs, ibatch);
 
         const gko::batch_dense::BatchEntry<ValueType> x_shared_entry{
             x_sh, static_cast<size_type>(nrhs), nrows, nrhs};
@@ -481,6 +490,8 @@ __global__ void apply_kernel(
             spmv_kernel(A_global_entry,
                         gko::batch::to_const(p_hat_shared_entry),
                         v_shared_entry);
+            // csr_spmv_kernel(nrows, avalues + ibatch*num_nnz, col_idxs,
+            // row_ptrs, 	stride, nrhs, p_hat_sh, v_sh);
 
             __syncthreads();
 
@@ -545,6 +556,8 @@ __global__ void apply_kernel(
             spmv_kernel(A_global_entry,
                         gko::batch::to_const(s_hat_shared_entry),
                         t_shared_entry);
+            // csr_spmv_kernel(nrows, avalues + ibatch*num_nnz, col_idxs,
+            // row_ptrs, 	stride, nrhs, s_hat_sh, t_sh);
             __syncthreads();
 
             // omega = <t,s> / <t,t>
@@ -581,7 +594,7 @@ __global__ void apply_kernel(
             __syncthreads();
         }
 
-        if (left_global_entry.values) {
+        if (left) {
             batch_scale(right_global_entry, x_shared_entry);
         }
 
