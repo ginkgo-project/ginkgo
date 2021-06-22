@@ -489,4 +489,4 @@ GKO_BIND_CUSPARSE_BILU0(std::complex<double>, cusparseZbsrilu02);
 }  // namespace gko
 
 
-#endif  // GKO_CUDA_BASE_CUSPARSE_BINDINGS_HPP_
+#endif  // GKO_CUDA_BASE_CUSPARSE_BLOCK_BINDINGS_HPP_

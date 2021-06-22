@@ -259,5 +259,27 @@ TYPED_TEST(Fbcsr, MaxNnzPerRowIsEquivalentToRefSortedBS3)
     ASSERT_EQ(ref_max_nnz, cuda_max_nnz);
 }
 
+TYPED_TEST(Fbcsr, RecognizeSortedMatrix)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto rand_cuda = Mtx::create(this->cuda);
+    rand_cuda->copy_from(gko::lend(this->rsorted_ref));
+
+    ASSERT_TRUE(rand_cuda->is_sorted_by_column_index());
+}
+
+TYPED_TEST(Fbcsr, RecognizeUnsortedMatrix)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    auto mat = this->rsorted_ref->clone();
+    index_type *const colinds = mat->get_col_idxs();
+    std::swap(colinds[0], colinds[1]);
+    auto unsrt_cuda = Mtx::create(this->cuda);
+    unsrt_cuda->copy_from(gko::lend(mat));
+
+    ASSERT_FALSE(unsrt_cuda->is_sorted_by_column_index());
+}
+
 
 }  // namespace
