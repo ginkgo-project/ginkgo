@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #include "core/test/utils/fb_matrix_generator.hpp"
 
 
@@ -135,7 +134,6 @@ TEST_F(BlockMatrixGenerator, ComplexOutputIsRowDiagonalDominantWhenRequested)
     const int *const col_idxs = cbmtx->get_const_col_idxs();
 
     real_type min_diag_dom{1000.0}, avg_diag_dom{};
-
     for (int irow = 0; irow < nbrows; irow++) {
         std::vector<real_type> row_del_sum(blk_sz, 0.0);
         std::vector<real_type> diag_val(blk_sz, 0.0);
@@ -155,7 +153,6 @@ TEST_F(BlockMatrixGenerator, ComplexOutputIsRowDiagonalDominantWhenRequested)
                         row_del_sum[i] += abs(vals(iz, i, j));
             }
         }
-
         std::vector<real_type> diag_dom(blk_sz);
         for (int i = 0; i < blk_sz; i++) {
             diag_dom[i] = diag_val[i] - row_del_sum[i];
@@ -171,10 +168,9 @@ TEST_F(BlockMatrixGenerator, ComplexOutputIsRowDiagonalDominantWhenRequested)
             ASSERT_GT(diag_val[i], row_del_sum[i]);
         }
     }
-
-    // std::cout << "\t\tMin diag dom = " << min_diag_dom
-    //           << ", avg diag dom = " << avg_diag_dom / (nbrows * blk_sz)
-    //           << std::endl;
+    avg_diag_dom /= (nbrows * blk_sz);
+    ASSERT_GT(min_diag_dom, 0);
+    ASSERT_GT(avg_diag_dom, 0);
 }
 
 

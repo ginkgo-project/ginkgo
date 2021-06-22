@@ -30,9 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
-#ifndef GKO_CORE_TEST_UTILS_FIXED_BLOCK_MATRIX_GENERATOR_HPP_
-#define GKO_CORE_TEST_UTILS_FIXED_BLOCK_MATRIX_GENERATOR_HPP_
+#ifndef GKO_CORE_TEST_UTILS_FB_MATRIX_GENERATOR_HPP_
+#define GKO_CORE_TEST_UTILS_FB_MATRIX_GENERATOR_HPP_
 
 
 #include <numeric>
@@ -55,6 +54,69 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace test {
 
+
+/**
+ * Generates a random matrix, ensuring the existence of diagonal entries.
+ *
+ * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
+ *                     the interface `ConvertibleTo<MatrixType>`)
+ * @tparam NonzeroDistribution  type of nonzero distribution
+ * @tparam ValueDistribution  type of value distribution
+ * @tparam Engine  type of random engine
+ * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
+ *
+ * @param num_rows  number of rows
+ * @param num_cols  number of columns
+ * @param nonzero_dist  distribution of nonzeros per row
+ * @param value_dist  distribution of matrix values
+ * @param engine  a random engine
+ * @param exec  executor where the matrix should be allocated
+ * @param args  additional arguments for the matrix constructor
+ *
+ * @return the unique pointer to generated matrix of type MatrixType
+ */
+template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
+          typename ValueDistribution, typename Engine, typename... MatrixArgs>
+std::unique_ptr<MatrixType> generate_random_matrix_with_diag(
+    size_type num_rows, size_type num_cols, NonzeroDistribution &&nonzero_dist,
+    ValueDistribution &&value_dist, Engine &&engine,
+    std::shared_ptr<const Executor> exec, MatrixArgs &&... args)
+{
+    using value_type = typename MatrixType::value_type;
+    using index_type = typename MatrixType::index_type;
+
+    matrix_data<value_type, index_type> data{gko::dim<2>{num_rows, num_cols},
+                                             {}};
+
+    for (size_type row = 0; row < num_rows; ++row) {
+        std::vector<size_type> col_idx(num_cols);
+        std::iota(col_idx.begin(), col_idx.end(), size_type(0));
+        // randomly generate number of nonzeros in this row
+        auto nnz_in_row = static_cast<size_type>(nonzero_dist(engine));
+        nnz_in_row = std::max(size_type(1), std::min(nnz_in_row, num_cols));
+        // select a subset of `nnz_in_row` column indexes, and fill these
+        // locations with random values
+        std::shuffle(col_idx.begin(), col_idx.end(), engine);
+        // add diagonal if it does not exist
+        auto it = std::find(col_idx.begin(), col_idx.begin() + nnz_in_row, row);
+        if (it == col_idx.begin() + nnz_in_row) {
+            col_idx[nnz_in_row - 1] = row;
+        }
+        std::for_each(
+            begin(col_idx), begin(col_idx) + nnz_in_row, [&](size_type col) {
+                data.nonzeros.emplace_back(
+                    row, col,
+                    detail::get_rand_value<value_type>(value_dist, engine));
+            });
+    }
+
+    data.ensure_row_major_order();
+
+    // convert to the correct matrix type
+    auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
+    result->read(data);
+    return result;
+}
 
 template <typename ValueType>
 inline std::enable_if_t<!gko::is_complex<ValueType>(), std::complex<ValueType>>
@@ -134,9 +196,10 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
 
             for (IndexType ibz = row_ptrs[ibrow]; ibz < row_ptrs[ibrow + 1];
                  ibz++) {
-                for (int i = 0; i < block_size * block_size; i++)
+                for (int i = 0; i < block_size * block_size; i++) {
                     vals[ibz * bs2 + i] =
                         complexify_if_possible(off_diag_dist(rand_engine));
+                }
                 if (col_idxs[ibz] == ibrow) {
                     for (int i = 0; i < block_size; i++)
                         vals[ibz * bs2 + i * block_size + i] =
@@ -183,13 +246,18 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_random_fbcsr(
 {
     using real_type = gko::remove_complex<ValueType>;
     std::unique_ptr<matrix::Csr<ValueType, IndexType>> rand_csr_ref =
-        generate_random_matrix<matrix::Csr<ValueType, IndexType>>(
-            nbrows, nbcols,
-            std::uniform_int_distribution<IndexType>(0, nbcols - 1),
-            std::normal_distribution<real_type>(0.0, 1.0), std::move(engine),
-            ref);
-    gko::kernels::reference::factorization::add_diagonal_elements(
-        ref, gko::lend(rand_csr_ref), false);
+        diag_dominant
+            ? generate_random_matrix_with_diag<
+                  matrix::Csr<ValueType, IndexType>>(
+                  nbrows, nbcols,
+                  std::uniform_int_distribution<IndexType>(0, nbcols - 1),
+                  std::normal_distribution<real_type>(0.0, 1.0),
+                  std::move(engine), ref)
+            : generate_random_matrix<matrix::Csr<ValueType, IndexType>>(
+                  nbrows, nbcols,
+                  std::uniform_int_distribution<IndexType>(0, nbcols - 1),
+                  std::normal_distribution<real_type>(0.0, 1.0),
+                  std::move(engine), ref);
     if (unsort && rand_csr_ref->is_sorted_by_column_index()) {
         unsort_matrix(rand_csr_ref.get(), engine);
     }
@@ -223,4 +291,4 @@ get_some_number()
 }  // namespace test
 }  // namespace gko
 
-#endif
+#endif  // GKO_CORE_TEST_UTILS_FB_MATRIX_GENERATOR_HPP_
