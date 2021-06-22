@@ -572,4 +572,49 @@ TEST_F(BatchDense, CalculateMaxNNZPerRowIsEquivalentToRef)
 }
 
 
+TEST_F(BatchDense, CopyIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    gko::kernels::reference::batch_dense::copy(this->ref, x.get(), y.get());
+    gko::kernels::omp::batch_dense::copy(this->omp, dx.get(), dy.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 1e-14);
+}
+
+
+TEST_F(BatchDense, ConvergenceCopyIsEquivalentToRef)
+{
+    const int num_rhs = 19;  // note: number of RHSs must be <= 32
+    set_up_vector_data(num_rhs);
+
+    const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
+
+    gko::kernels::reference::batch_dense::convergence_copy(this->ref, x.get(),
+                                                           y.get(), converged);
+    gko::kernels::omp::batch_dense::convergence_copy(this->omp, dx.get(),
+                                                     dy.get(), converged);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 1e-14);
+}
+
+
+TEST_F(BatchDense, BatchScaleIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    const int num_rows_in_mat = x->get_size().at(0)[0];
+    const auto diag_vec = gen_mtx<Mtx>(batch_size, 1, num_rows_in_mat);
+    auto ddiag_vec = Mtx::create(this->omp);
+    ddiag_vec->copy_from(diag_vec.get());
+
+    gko::kernels::reference::batch_dense::batch_scale(this->ref, diag_vec.get(),
+                                                      x.get());
+    gko::kernels::omp::batch_dense::batch_scale(this->omp, ddiag_vec.get(),
+                                                dx.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
+
+
 }  // namespace
