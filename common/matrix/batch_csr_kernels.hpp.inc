@@ -67,17 +67,68 @@ __device__ __forceinline__ void spmv_kernel(
         }
 
         // round off row length to the closest power of 2
-        const int gap_rounded_off =
-            1 << static_cast<int>(
-                ceil(log2(static_cast<float>(row_end - row_start))));
-        // subwarp_grp level reduction
-        for (int i = min(gap_rounded_off, static_cast<int>(tile_size)) / 2;
-             i > 0; i /= 2) {
+        // const int gap_rounded_off =
+        //    1 << static_cast<int>(
+        //        ceil(log2(static_cast<float>(row_end - row_start))));
+        //// subwarp_grp level reduction
+        // for (int i = min(gap_rounded_off, static_cast<int>(tile_size)) / 2;
+        //     i > 0; i /= 2) {
+#pragma unroll
+        for (int i = static_cast<int>(tile_size) / 2; i > 0; i /= 2) {
             temp += subwarp_grp.shfl_down(temp, i);
         }
 
         if (subwarp_grp.thread_rank() == 0) {
             c.values[row * c.stride + rhs] = temp;
+        }
+    }
+}
+
+template <typename ValueType>
+__device__ __forceinline__ void csr_spmv_kernel(
+    const int nrows, const ValueType *const __restrict__ avalues,
+    const int *const __restrict__ col_idxs,
+    const int *const __restrict__ row_ptrs, const size_type stride,
+    const int nrhs, const ValueType *const __restrict__ b,
+    ValueType *const __restrict__ c)
+{
+    constexpr auto tile_size = config::warp_size;
+
+    auto thread_block = group::this_thread_block();
+    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
+    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
+
+    for (int row_and_rhs = subwarp_grp_id; row_and_rhs < nrows * nrhs;
+         row_and_rhs += num_subwarp_grps_per_block) {
+        const int row = row_and_rhs / nrhs;
+        const int rhs = row_and_rhs % nrhs;
+
+        const int row_start = row_ptrs[row];
+        const int row_end = row_ptrs[row + 1];
+
+        ValueType temp = zero<ValueType>();
+        for (int i = subwarp_grp.thread_rank() + row_start; i < row_end;
+             i += subwarp_grp.size()) {
+            const int col = col_idxs[i];
+            const ValueType val = avalues[i];
+            temp += val * b[col * stride + rhs];
+        }
+
+        // round off row length to the closest power of 2
+        // const int gap_rounded_off =
+        //    1 << static_cast<int>(
+        //        ceil(log2(static_cast<float>(row_end - row_start))));
+        // subwarp_grp level reduction
+        // for (int i = min(gap_rounded_off, static_cast<int>(tile_size)) / 2;
+        //     i > 0; i /= 2) {
+#pragma unroll
+        for (int i = static_cast<int>(tile_size) / 2; i > 0; i /= 2) {
+            temp += subwarp_grp.shfl_down(temp, i);
+        }
+
+        if (subwarp_grp.thread_rank() == 0) {
+            c[row * stride + rhs] = temp;
         }
     }
 }
@@ -134,12 +185,14 @@ __device__ __forceinline__ void advanced_spmv_kernel(
             temp += alpha * val * b.values[col * b.stride + rhs];
         }
         // round off row length to the closest power of 2
-        const int gap_rounded_off =
-            1 << static_cast<int>(
-                ceil(log2(static_cast<float>(row_end - row_start))));
+        // const int gap_rounded_off =
+        //    1 << static_cast<int>(
+        //        ceil(log2(static_cast<float>(row_end - row_start))));
         // subwarp_grp level reduction
-        for (int i = min(gap_rounded_off, static_cast<int>(tile_size)) / 2;
-             i > 0; i /= 2) {
+        // for (int i = min(gap_rounded_off, static_cast<int>(tile_size)) / 2;
+        //     i > 0; i /= 2) {
+#pragma unroll
+        for (int i = static_cast<int>(tile_size) / 2; i > 0; i /= 2) {
             temp += subwarp_grp.shfl_down(temp, i);
         }
 
@@ -150,6 +203,53 @@ __device__ __forceinline__ void advanced_spmv_kernel(
     }
 }
 
+template <typename ValueType>
+__device__ __forceinline__ void csr_advanced_spmv_kernel(
+    const ValueType alpha, const int nrows,
+    const ValueType *const __restrict__ avalues,
+    const int *const __restrict__ col_idxs,
+    const int *const __restrict__ row_ptrs, const size_type stride,
+    const int nrhs, const ValueType *const __restrict__ b, const ValueType beta,
+    ValueType *const __restrict__ c)
+{
+    constexpr auto tile_size = config::warp_size;
+
+    auto thread_block = group::this_thread_block();
+    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
+    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
+
+    for (int row_and_rhs_combination = subwarp_grp_id;
+         row_and_rhs_combination < nrows * nrhs;
+         row_and_rhs_combination += num_subwarp_grps_per_block) {
+        const int row = row_and_rhs_combination / nrhs;
+        const int rhs = row_and_rhs_combination % nrhs;
+        const int row_start = row_ptrs[row];
+        const int row_end = row_ptrs[row + 1];
+
+        ValueType temp = zero<ValueType>();
+        for (int i = subwarp_grp.thread_rank() + row_start; i < row_end;
+             i += subwarp_grp.size()) {
+            const int col = col_idxs[i];
+            const ValueType val = avalues[i];
+
+            temp += alpha * val * b[col * stride + rhs];
+        }
+        // round off row length to the closest power of 2
+        const int gap_rounded_off =
+            1 << static_cast<int>(
+                ceil(log2(static_cast<float>(row_end - row_start))));
+        // subwarp_grp level reduction
+        for (int i = min(gap_rounded_off, static_cast<int>(tile_size)) / 2;
+             i > 0; i /= 2) {
+            temp += subwarp_grp.shfl_down(temp, i);
+        }
+
+        if (subwarp_grp.thread_rank() == 0) {
+            c[row * stride + rhs] = temp + beta * c[row * stride + rhs];
+        }
+    }
+}
 
 template <typename ValueType>
 __global__
