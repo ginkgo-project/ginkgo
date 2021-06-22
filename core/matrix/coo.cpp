@@ -202,30 +202,30 @@ void Coo<ValueType, IndexType>::convert_to(
     // result->get_executor(), this.size(), num_stored_elements);
     const auto num_blocks = ceildiv(num_stored_elements, block_size);
 
-    array<IndexType> rows_(exec, num_blocks);
-    array<IndexType> offsets_(exec, num_blocks + 1);
+    array<IndexType> rows(exec, num_blocks);
+    array<IndexType> offsets(exec, num_blocks + 1);
 
     size_type mem_size{};
     if (exec == exec->get_master()) {
         exec->run(coo::make_mem_size_bccoo(
             //			mem_size_bccoo(
             this->get_const_row_idxs(), this->get_const_col_idxs(),
-            //				this->get_size()[0], rows_, offsets_,
+            //				this->get_size()[0], rows, offsets,
             // block_size, &mem_size);
-            this->get_size()[0], rows_.get_data(), offsets_.get_data(),
+            this->get_size()[0], rows.get_data(), offsets.get_data(),
             num_stored_elements, num_blocks, block_size, &mem_size));
     } else {
         auto host_coo = clone(exec->get_master(), this);
         exec->run(coo::make_mem_size_bccoo(
             host_coo->get_const_row_idxs(), host_coo->get_const_col_idxs(),
-            host_coo->get_size()[0], rows_.get_data(), offsets_.get_data(),
+            host_coo->get_size()[0], rows.get_data(), offsets.get_data(),
             num_stored_elements, num_blocks, block_size, &mem_size));
     }
 
     array<uint8> data_(exec, mem_size);
 
     auto tmp = Bccoo<ValueType, IndexType>::create(
-        exec, this->get_size(), data_, offsets_, rows_, num_stored_elements,
+        exec, this->get_size(), data_, offsets, rows, num_stored_elements,
         block_size);
 
     exec->run(coo::make_convert_to_bccoo(this, tmp.get()));
