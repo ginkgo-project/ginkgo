@@ -61,6 +61,7 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Mtx = gko::matrix::Bccoo<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
