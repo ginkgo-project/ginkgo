@@ -57,7 +57,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/prettywriter.h>
 
-#include "benchmark/utils/timer.hpp"  // perhaps fwd decl + new cpp file?
+
+
+#include "benchmark/utils/timer.hpp"
 
 
 // Global command-line arguments
@@ -478,14 +480,18 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
  * ```
  * auto timer = get_timer(...);
  * IterationControl ic(timer);
- * for(auto stat: ic.[warmup_run|run]()){
+ * for(auto status: ic.[warmup_run|run]()){
  *   timer->start();  // has to be the same timer as passed to ic
  *   // execute benchmark
  *   timer->stop();
  * }
  * ```
  * At the beginning of both methods, the timer is reset.
- *
+ * The `status` object exposes the member
+ * - `cur_it`, containing the current iteration number,
+ * and the methods
+ * - `is_finished`, checks if the benchmark is finished,
+ * - `is_last_iteration`, checks if the current iteration is the last one.
  */
 class IterationControl {
     using IndexType = unsigned int;  //!< to be compatible with GFLAGS type
@@ -493,33 +499,14 @@ class IterationControl {
     class run_control;
 
 public:
-    // criteria to stop adaptive benchmark run
-    struct status {
-        std::shared_ptr<Timer> timer = nullptr;
-
-        IndexType min_it = 0;
-        IndexType max_it = 0;
-        double max_runtime = 0.;
-
-        IndexType cur_it = 0;
-
-        // returns true (i.e. run is complete) if:
-        // - the minimum number of iteration is reached
-        // - and either:
-        //   - the maximum number of repetitions is reached
-        //   - the total runtime is above the threshold
-        bool is_finished()
-        {
-            return cur_it >= min_it &&
-                   (cur_it >= max_it || timer->get_total_time() >= max_runtime);
-        }
-        bool is_last_iteration()
-        {
-            return status{timer, min_it, max_it, max_runtime, cur_it + 1}
-                .is_finished();
-        }
-    };
-
+    /**
+     * Creates an `IterationControl` object.
+     *
+     * Uses the commandline flags to setup the stopping criteria for the
+     * warmup and timed run.
+     *
+     * @param timer the same timer that is to be used for the timings
+     */
     explicit IterationControl(std::shared_ptr<Timer> timer) : timer_(timer)
     {
         status_warmup_ = {timer, FLAGS_warmup, FLAGS_warmup, 0., 0};
@@ -537,6 +524,11 @@ public:
     IterationControl(const IterationControl &) = default;
     IterationControl(IterationControl &&) = default;
 
+    /**
+     * Creates iterable `run_control` object for the warmup run.
+     *
+     * This run uses always a fixed number of iterations.
+     */
     run_control warmup_run()
     {
         timer_->clear();
@@ -544,6 +536,11 @@ public:
         return run_control{status_warmup_};
     }
 
+    /**
+     * Creates iterable `run_control` object for the timed run.
+     *
+     * This run may be adaptive, depending on the commandline flags.
+     */
     run_control run()
     {
         timer_->clear();
@@ -552,7 +549,54 @@ public:
     }
 
 private:
-    // class to be used in range-based for
+    /**
+     * Stores stopping criteria of the adaptive benchmark run as well as the
+     * current iteration number.
+     */
+    struct status {
+        std::shared_ptr<Timer> timer = nullptr;
+
+        IndexType min_it = 0;
+        IndexType max_it = 0;
+        double max_runtime = 0.;
+
+        IndexType cur_it = 0;
+
+        /**
+         * checks if the adaptive run is complete
+         *
+         * the adaptive run is complete if:
+         * - the minimum number of iteration is reached
+         * - and either:
+         *   - the maximum number of repetitions is reached
+         *   - the total runtime is above the threshold
+         *
+         * @return completeness state of the adaptive run
+         */
+        bool is_finished()
+        {
+            return cur_it >= min_it &&
+                   (cur_it >= max_it || timer->get_total_time() >= max_runtime);
+        }
+
+        /**
+         * checks if the benchmark will stop after the current iteration
+         *
+         * @note Should only be called after the timing of the current iteration
+         * is complete.
+         */
+        bool is_last_iteration()
+        {
+            return status{timer, min_it, max_it, max_runtime, cur_it + 1}
+                .is_finished();
+        }
+    };
+
+    /**
+     * Iterable class managing the benchmark iteration.
+     *
+     * Has to be used in a range-based for loop.
+     */
     struct run_control {
         struct iterator {
             iterator operator++()
@@ -563,6 +607,14 @@ private:
 
             status operator*() const { return cur_info; }
 
+            /**
+             * checks if the benchmar is finished
+             *
+             * uses only the information from the `status` object, i.e.
+             * the right hand side is ignored.
+             *
+             * @return true if benchmark is not finished, else false
+             */
             bool operator!=(const iterator &)
             {
                 return !cur_info.is_finished();
@@ -573,7 +625,7 @@ private:
 
         iterator begin() const { return iterator{info}; }
 
-        // not used, could potentially used in c++17 (with different type)
+        // not used, could potentially used in c++17 as a sentinel
         iterator end() const { return iterator{}; }
 
         status info;
