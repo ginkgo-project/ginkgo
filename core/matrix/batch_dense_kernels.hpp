@@ -117,6 +117,24 @@ namespace kernels {
         const uint32 &converged)
 
 
+#define GKO_DECLARE_BATCH_DENSE_COPY_KERNEL(_type)         \
+    void copy(std::shared_ptr<const DefaultExecutor> exec, \
+              const matrix::BatchDense<_type> *x,          \
+              matrix::BatchDense<_type> *result)
+
+#define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COPY_KERNEL(_type)         \
+    void convergence_copy(std::shared_ptr<const DefaultExecutor> exec, \
+                          const matrix::BatchDense<_type> *x,          \
+                          matrix::BatchDense<_type> *result,           \
+                          const uint32 &converged)
+
+
+#define GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL(_type)         \
+    void batch_scale(std::shared_ptr<const DefaultExecutor> exec, \
+                     const matrix::BatchDense<_type> *diag_vec,   \
+                     matrix::BatchDense<_type> *x)
+
+
 #define GKO_DECLARE_BATCH_DENSE_CONVERT_TO_BATCH_CSR_KERNEL(_type, _prec)  \
     void convert_to_batch_csr(std::shared_ptr<const DefaultExecutor> exec, \
                               const matrix::BatchDense<_type> *source,     \
@@ -179,6 +197,12 @@ namespace kernels {
     GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL(ValueType);                   \
     template <typename ValueType>                                              \
     GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_NORM2_KERNEL(ValueType);       \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_COPY_KERNEL(ValueType);                            \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COPY_KERNEL(ValueType);                \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL(ValueType);                     \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_BATCH_DENSE_CONVERT_TO_BATCH_CSR_KERNEL(ValueType, IndexType); \
     template <typename ValueType>                                              \

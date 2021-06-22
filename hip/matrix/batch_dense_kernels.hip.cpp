@@ -286,6 +286,35 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CONJ_TRANSPOSE_KERNEL);
 
 
+template <typename ValueType>
+void copy(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::BatchDense<ValueType> *x,
+          matrix::BatchDense<ValueType> *result) GKO_NOT_IMPLEMENTED;
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COPY_KERNEL);
+
+
+template <typename ValueType>
+void convergence_copy(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::BatchDense<ValueType> *x,
+                      matrix::BatchDense<ValueType> *result,
+                      const uint32 &converged) GKO_NOT_IMPLEMENTED;
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COPY_KERNEL);
+
+
+template <typename ValueType>
+void batch_scale(std::shared_ptr<const DefaultExecutor> exec,
+                 const matrix::BatchDense<ValueType> *diag_vec,
+                 matrix::BatchDense<ValueType> *x) GKO_NOT_IMPLEMENTED;
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL);
+
+
 }  // namespace batch_dense
 }  // namespace hip
 }  // namespace kernels
