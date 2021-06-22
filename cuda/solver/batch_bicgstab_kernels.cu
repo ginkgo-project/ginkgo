@@ -75,6 +75,13 @@ template <typename T>
 using BatchBicgstabOptions =
     gko::kernels::batch_bicgstab::BatchBicgstabOptions<T>;
 
+#define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)                \
+    apply_kernel<stop::_stoppertype<ValueType>>                              \
+        <<<nbatch, default_block_size, shared_size>>>(                       \
+            opts.max_its, opts.residual_tol, logger, _prectype<ValueType>(), \
+            nbatch, nrows, nnz, avalues, col_idxs, row_ptrs, b.stride,       \
+            b.num_rhs, left.values, right.values, b.values, x.values)
+
 template <typename BatchMatrixType, typename LogType, typename ValueType>
 static void apply_impl(
     std::shared_ptr<const CudaExecutor> exec,
@@ -87,52 +94,46 @@ static void apply_impl(
 {
     using real_type = gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
+    const int nrows = a.num_rows;
+    const int nnz = a.num_nnz;
+    ValueType *const __restrict__ avalues = a.values;
+    const int *const __restrict__ col_idxs = a.col_idxs;
+    const int *const __restrict__ row_ptrs = a.row_ptrs;
+
+    int shared_size =
+#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
+        gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
+            a.num_rows, b.num_rhs) +
+        nnz;
+#else
+        0;
+#endif
 
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-        const int shared_size =
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
-            gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
-                a.num_rows, b.num_rhs) +
+        shared_size +=
             BatchIdentity<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
-                sizeof(ValueType);
-#else
-            0;
+            sizeof(ValueType);
 #endif
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            apply_kernel<stop::AbsResidualMaxIter<ValueType>>
-                <<<nbatch, default_block_size, shared_size>>>(
-                    opts.max_its, opts.residual_tol, logger,
-                    BatchIdentity<ValueType>(), a, left, right, b, x);
+            BATCH_BICGSTAB_KERNEL_LAUNCH(AbsResidualMaxIter, BatchIdentity);
         } else {
-            apply_kernel<stop::RelResidualMaxIter<ValueType>>
-                <<<nbatch, default_block_size, shared_size>>>(
-                    opts.max_its, opts.residual_tol, logger,
-                    BatchIdentity<ValueType>(), a, left, right, b, x);
+            BATCH_BICGSTAB_KERNEL_LAUNCH(RelResidualMaxIter, BatchIdentity);
         }
 
 
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
-        const int shared_size =
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
-            gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
-                a.num_rows, b.num_rhs) +
+        shared_size +=
             BatchJacobi<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
-                sizeof(ValueType);
-#else
-            0;
+            sizeof(ValueType);
 #endif
 
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            apply_kernel<stop::AbsResidualMaxIter<ValueType>>
-                <<<nbatch, default_block_size, shared_size>>>(
-                    opts.max_its, opts.residual_tol, logger,
-                    BatchJacobi<ValueType>(), a, left, right, b, x);
+            BATCH_BICGSTAB_KERNEL_LAUNCH(AbsResidualMaxIter, BatchJacobi);
         } else {
-            apply_kernel<stop::RelResidualMaxIter<ValueType>>
-                <<<nbatch, default_block_size, shared_size>>>(
-                    opts.max_its, opts.residual_tol, logger,
-                    BatchJacobi<ValueType>(), a, left, right, b, x);
+            BATCH_BICGSTAB_KERNEL_LAUNCH(RelResidualMaxIter, BatchJacobi);
         }
 
 
