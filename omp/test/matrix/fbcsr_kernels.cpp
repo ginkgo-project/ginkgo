@@ -68,7 +68,7 @@ protected:
     using ComplexVec = gko::matrix::Dense<std::complex<real_type>>;
     using ComplexMtx = gko::matrix::Fbcsr<std::complex<real_type>>;
 
-    Fbcsr() : num_brows{112}, num_bcols{31}, blk_sz{3}, rand_engine(42) {}
+    Fbcsr() : rand_engine(42) {}
 
     void SetUp()
     {
@@ -142,9 +142,9 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::OmpExecutor> omp;
 
-    const index_type num_brows;
-    const index_type num_bcols;
-    const int blk_sz;
+    const index_type num_brows = 112;
+    const index_type num_bcols = 31;
+    const int blk_sz = 3;
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
@@ -403,6 +403,22 @@ TEST_F(Fbcsr, OutplaceAbsoluteComplexMatrixIsEquivalentToRef)
     auto dabs_mtx = complex_dmtx->compute_absolute();
 
     GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
+}
+
+TEST_F(Fbcsr, MaxNnzPerRowIsEquivalentToRefSortedBS3)
+{
+    auto mtx_ref = gko::test::generate_random_fbcsr<real_type>(
+        ref, rand_engine, num_brows, num_bcols, blk_sz, false, false);
+    auto rand_omp = Mtx::create(omp);
+    rand_omp->copy_from(gko::lend(mtx_ref));
+    gko::size_type ref_max_nnz{}, omp_max_nnz{};
+
+    gko::kernels::omp::fbcsr::calculate_max_nnz_per_row(
+        this->omp, rand_omp.get(), &omp_max_nnz);
+    gko::kernels::reference::fbcsr::calculate_max_nnz_per_row(
+        this->ref, mtx_ref.get(), &ref_max_nnz);
+
+    ASSERT_EQ(ref_max_nnz, omp_max_nnz);
 }
 
 
