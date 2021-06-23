@@ -39,6 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/batch_convergence.hpp>
 
+#include "core/matrix/batch_csr_kernels.hpp"
+#include "core/matrix/batch_dense_kernels.hpp"
 #include "core/solver/batch_bicgstab_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
@@ -190,9 +192,20 @@ protected:
         auto d_left_ptr = left_scale ? d_left.get() : nullptr;
         auto d_right_ptr = right_scale ? d_right.get() : nullptr;
 
+        if (left_scale) {
+            gko::kernels::omp::batch_csr::batch_scale<value_type>(
+                ompexec, d_left_ptr, d_right_ptr, mtx.get());
+            gko::kernels::omp::batch_dense::batch_scale<value_type>(
+                ompexec, d_left_ptr, b.get());
+        }
+
         gko::kernels::omp::batch_bicgstab::apply<value_type>(
-            this->ompexec, opts_1, mtx.get(), d_left_ptr, d_right_ptr, b.get(),
-            x.get(), logdata);
+            ompexec, opts_1, mtx.get(), b.get(), x.get(), logdata);
+
+        if (left_scale) {
+            gko::kernels::omp::batch_dense::batch_scale<value_type>(
+                ompexec, d_right_ptr, x.get());
+        }
 
         res.x->copy_from(gko::lend(x));
         auto rnorms =
@@ -244,8 +257,7 @@ protected:
         x->copy_from(gko::lend(res.x));
 
         gko::kernels::omp::batch_bicgstab::apply<value_type>(
-            this->ompexec, opts_m, mtx.get(), nullptr, nullptr, b.get(),
-            x.get(), logdata);
+            ompexec, opts_m, mtx.get(), b.get(), x.get(), logdata);
 
         res.x->copy_from(gko::lend(x));
         auto rnorms =
