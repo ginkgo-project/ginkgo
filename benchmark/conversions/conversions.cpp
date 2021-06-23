@@ -85,11 +85,7 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
         }
         // timed run
         for (auto _ : ic.run()) {
-            exec->synchronize();
-            timer->tic();
             matrix_to->copy_from(matrix_from);
-            timer->toc();
-            matrix_to->clear();
         }
         add_or_set_member(conversion_case[conversion_name], "time",
                           timer->compute_average_time(), allocator);

@@ -400,11 +400,12 @@ void solve_system(const std::string &solver_name,
         }
 
         auto apply_timer = get_timer(exec, FLAGS_gpu_timer);
-        IterationControl ic{apply_timer};
+        IterationControl ic_gen{get_timer(exec, FLAGS_gpu_timer)};
+        IterationControl ic_apply{apply_timer};
 
         // warm run
         auto it_logger = std::make_shared<IterationLogger>(exec);
-        for (auto _ : ic.warmup_run()) {
+        for (auto _ : ic_apply.warmup_run()) {
             auto x_clone = clone(x);
             auto precond = precond_factory.at(precond_name)(exec);
             auto solver = generate_solver(exec, give(precond), solver_name)
@@ -474,36 +475,34 @@ void solve_system(const std::string &solver_name,
         }
 
         // timed run
-        auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
-        for (auto status : ic.run()) {
-            auto x_clone = clone(x);
-
-            exec->synchronize();
-            generate_timer->tic();
+        for (auto _ : ic_gen.run()) {
             auto precond = precond_factory.at(precond_name)(exec);
             auto solver = generate_solver(exec, give(precond), solver_name)
                               ->generate(system_matrix);
-            generate_timer->toc();
-
-            exec->synchronize();
-            apply_timer->tic();
-            solver->apply(lend(b), lend(x_clone));
-            apply_timer->toc();
-
-            if (b->get_size()[1] == 1 && status.is_last_iteration() &&
-                !FLAGS_overhead) {
-                auto residual = compute_residual_norm(lend(system_matrix),
-                                                      lend(b), lend(x_clone));
-                add_or_set_member(solver_json, "residual_norm", residual,
-                                  allocator);
-            }
         }
         add_or_set_member(solver_json["generate"], "time",
-                          generate_timer->compute_average_time(), allocator);
+                          ic_gen.compute_average_time(), allocator);
+        add_or_set_member(solver_json["generate"], "repetitions",
+                          ic_gen.get_num_repetitions(), allocator);
+
+        auto precond = precond_factory.at(precond_name)(exec);
+        auto solver = generate_solver(exec, give(precond), solver_name)
+                          ->generate(system_matrix);
+        auto x_clone = clone(x);
+        for (auto _ : ic_apply.run()) {
+            x_clone = clone(x);
+            solver->apply(lend(b), lend(x_clone));
+        }
+        if (b->get_size()[1] == 1 && !FLAGS_overhead) {
+            auto residual = compute_residual_norm(lend(system_matrix), lend(b),
+                                                  lend(x_clone));
+            add_or_set_member(solver_json, "residual_norm", residual,
+                              allocator);
+        }
         add_or_set_member(solver_json["apply"], "time",
-                          apply_timer->compute_average_time(), allocator);
-        add_or_set_member(solver_json, "repetitions",
-                          apply_timer->get_num_repetitions(), allocator);
+                          ic_apply.compute_average_time(), allocator);
+        add_or_set_member(solver_json["apply"], "repetitions",
+                          ic_apply.get_num_repetitions(), allocator);
 
         // compute and write benchmark data
         add_or_set_member(solver_json, "completed", true, allocator);

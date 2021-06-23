@@ -58,7 +58,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rapidjson/prettywriter.h>
 
 
-
 #include "benchmark/utils/timer.hpp"
 
 
@@ -481,9 +480,7 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
  * auto timer = get_timer(...);
  * IterationControl ic(timer);
  * for(auto status: ic.[warmup_run|run]()){
- *   timer->start();  // has to be the same timer as passed to ic
  *   // execute benchmark
- *   timer->stop();
  * }
  * ```
  * At the beginning of both methods, the timer is reset.
@@ -491,7 +488,6 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
  * - `cur_it`, containing the current iteration number,
  * and the methods
  * - `is_finished`, checks if the benchmark is finished,
- * - `is_last_iteration`, checks if the current iteration is the last one.
  */
 class IterationControl {
     using IndexType = unsigned int;  //!< to be compatible with GFLAGS type
@@ -533,7 +529,7 @@ public:
     {
         timer_->clear();
         status_warmup_.cur_it = 0;
-        return run_control{status_warmup_};
+        return run_control{&status_warmup_};
     }
 
     /**
@@ -545,8 +541,16 @@ public:
     {
         timer_->clear();
         status_run_.cur_it = 0;
-        return run_control{status_run_};
+        return run_control{&status_run_};
     }
+
+
+    double compute_average_time() const
+    {
+        return status_run_.timer->get_total_time() / get_num_repetitions();
+    }
+
+    IndexType get_num_repetitions() const { return status_run_.cur_it; }
 
 private:
     /**
@@ -578,18 +582,6 @@ private:
             return cur_it >= min_it &&
                    (cur_it >= max_it || timer->get_total_time() >= max_runtime);
         }
-
-        /**
-         * checks if the benchmark will stop after the current iteration
-         *
-         * @note Should only be called after the timing of the current iteration
-         * is complete.
-         */
-        bool is_last_iteration()
-        {
-            return status{timer, min_it, max_it, max_runtime, cur_it + 1}
-                .is_finished();
-        }
     };
 
     /**
@@ -599,28 +591,60 @@ private:
      */
     struct run_control {
         struct iterator {
+            /**
+             * Increases the current iteration count and finishes timing if
+             * necessary.
+             *
+             * As `++it` is the last step of a for-loop, the timer is stopped,
+             * if enough iterations have passed since the last timing.
+             * The interval between two timings is steadily increased to
+             * reduce the timing overhead.
+             */
             iterator operator++()
             {
-                cur_info.cur_it++;
+                cur_info->cur_it++;
+                if (cur_info->cur_it >= next_timing && !stopped) {
+                    cur_info->timer->toc();
+                    stopped = true;
+                    next_timing =
+                        static_cast<IndexType>(std::ceil(next_timing * 1.5));
+                }
                 return *this;
             }
 
-            status operator*() const { return cur_info; }
+            status operator*() const { return *cur_info; }
 
             /**
-             * checks if the benchmar is finished
+             * Checks if the benchmark is finished and handles timing, if
+             * necessary.
              *
-             * uses only the information from the `status` object, i.e.
+             * As `begin != end` is the first step in a for-loop, the timer is
+             * started, if it was previously stopped.
+             * Additionally, if the benchmark is complete and the timer is still
+             * running it is stopped. (This may occur if the maximal number of
+             * repetitions is surpassed)
+             *
+             * Uses only the information from the `status` object, i.e.
              * the right hand side is ignored.
              *
              * @return true if benchmark is not finished, else false
              */
             bool operator!=(const iterator &)
             {
-                return !cur_info.is_finished();
+                const bool is_finished = cur_info->is_finished();
+                if (!is_finished && stopped) {
+                    stopped = false;
+                    cur_info->timer->tic();
+                } else if (is_finished && !stopped) {
+                    cur_info->timer->toc();
+                    stopped = true;
+                }
+                return !is_finished;
             }
 
-            status cur_info;
+            status *cur_info;
+            IndexType next_timing = 1;  //!< next iteration to stop timing
+            bool stopped = true;
         };
 
         iterator begin() const { return iterator{info}; }
@@ -628,7 +652,7 @@ private:
         // not used, could potentially used in c++17 as a sentinel
         iterator end() const { return iterator{}; }
 
-        status info;
+        status *info;
     };
 
     std::shared_ptr<Timer> timer_;
