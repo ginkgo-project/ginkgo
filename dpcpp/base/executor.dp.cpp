@@ -102,6 +102,7 @@ void DpcppExecutor::populate_exec_info(const MachineTopology *mach_topo)
 
 void DpcppExecutor::raw_free(void *ptr) const noexcept
 {
+    queue_->wait_and_throw();
     sycl::free(ptr, queue_->get_context());
 }
 
