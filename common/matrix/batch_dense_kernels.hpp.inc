@@ -323,20 +323,19 @@ __device__ __forceinline__ void batch_scale(
     }
 }
 
-
 template <typename ValueType>
-__global__
-    __launch_bounds__(default_block_size, sm_multiplier) void batch_scale(
-        const gko::batch_dense::UniformBatch<const ValueType> diag_vec,
-        const gko::batch_dense::UniformBatch<ValueType> x)
+__global__ void uniform_batch_scale(
+    const gko::batch_dense::UniformBatch<const ValueType> scale_vec,
+    const gko::batch_dense::UniformBatch<ValueType> a)
 {
-    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
-         ibatch += gridDim.x) {
-        const auto x_b = gko::batch::batch_entry(x, ibatch);
-        const auto diag_vec_b = gko::batch::batch_entry(diag_vec, ibatch);
-        batch_scale(diag_vec_b, x_b);
+    for (size_type batch_id = blockIdx.x; batch_id < a.num_batch;
+         batch_id += gridDim.x) {
+        const auto a_b = gko::batch::batch_entry(a, batch_id);
+        const auto s_b = gko::batch::batch_entry(scale_vec, batch_id);
+        batch_scale(s_b, a_b);
     }
 }
+
 
 /**
  * Copies the values of one multi-vector into another.
