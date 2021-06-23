@@ -433,9 +433,9 @@ TYPED_TEST(BatchDense, AddsScaled)
     this->mtx_10->add_scaled(ualpha[0].get(), this->mtx_00.get());
     this->mtx_11->add_scaled(ualpha[1].get(), this->mtx_01.get());
 
-    auto res = this->mtx_0->unbatch();
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_00.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_01.get(), 0.);
+    auto res = this->mtx_1->unbatch();
+    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
 }
 
 
@@ -492,9 +492,9 @@ TYPED_TEST(BatchDense, AddsScaledWithScalar)
     this->mtx_10->add_scaled(ualpha[0].get(), this->mtx_00.get());
     this->mtx_11->add_scaled(ualpha[1].get(), this->mtx_01.get());
 
-    auto res = this->mtx_0->unbatch();
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_00.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_01.get(), 0.);
+    auto res = this->mtx_1->unbatch();
+    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
 }
 
 
