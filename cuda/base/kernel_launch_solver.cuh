@@ -113,7 +113,7 @@ default_stride(const matrix::Dense<ValueType> *mtx)
 
 
 template <typename ValueType>
-kernels::cuda::cuda_type<ValueType> *rowvector(matrix::Dense<ValueType> *mtx)
+kernels::cuda::cuda_type<ValueType> *row_vector(matrix::Dense<ValueType> *mtx)
 {
     GKO_ASSERT(mtx->get_size()[0] == 1);
     return kernels::cuda::as_cuda_type(mtx->get_values());
@@ -121,7 +121,7 @@ kernels::cuda::cuda_type<ValueType> *rowvector(matrix::Dense<ValueType> *mtx)
 
 
 template <typename ValueType>
-const kernels::cuda::cuda_type<ValueType> *rowvector(
+const kernels::cuda::cuda_type<ValueType> *row_vector(
     const matrix::Dense<ValueType> *mtx)
 {
     GKO_ASSERT(mtx->get_size()[0] == 1);

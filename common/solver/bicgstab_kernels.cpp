@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 using gko::solver::default_stride;
-using gko::solver::rowvector;
+using gko::solver::row_vector;
 
 
 namespace gko {
@@ -84,9 +84,9 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
         b->get_size(), b->get_stride(), default_stride(b), default_stride(r),
         default_stride(rr), default_stride(y), default_stride(s),
         default_stride(t), default_stride(z), default_stride(v),
-        default_stride(p), rowvector(prev_rho), rowvector(rho),
-        rowvector(alpha), rowvector(beta), rowvector(gamma), rowvector(omega),
-        *stop_status);
+        default_stride(p), row_vector(prev_rho), row_vector(rho),
+        row_vector(alpha), row_vector(beta), row_vector(gamma),
+        row_vector(omega), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
@@ -114,8 +114,8 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
             }
         },
         r->get_size(), r->get_stride(), default_stride(r), default_stride(p),
-        default_stride(v), rowvector(rho), rowvector(prev_rho),
-        rowvector(alpha), rowvector(omega), *stop_status);
+        default_stride(v), row_vector(rho), row_vector(prev_rho),
+        row_vector(alpha), row_vector(omega), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
@@ -143,7 +143,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             }
         },
         r->get_size(), r->get_stride(), default_stride(r), default_stride(s),
-        default_stride(v), rowvector(rho), rowvector(alpha), rowvector(beta),
+        default_stride(v), row_vector(rho), row_vector(alpha), row_vector(beta),
         *stop_status);
 }
 
@@ -175,8 +175,8 @@ void step_3(
         },
         x->get_size(), r->get_stride(), x, default_stride(r), default_stride(s),
         default_stride(t), default_stride(y), default_stride(z),
-        rowvector(alpha), rowvector(beta), rowvector(gamma), rowvector(omega),
-        *stop_status);
+        row_vector(alpha), row_vector(beta), row_vector(gamma),
+        row_vector(omega), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
@@ -197,7 +197,7 @@ void finalize(std::shared_ptr<const DefaultExecutor> exec,
                 stop[col].finalize();
             }
         },
-        x->get_size(), y->get_stride(), x, default_stride(y), rowvector(alpha),
+        x->get_size(), y->get_stride(), x, default_stride(y), row_vector(alpha),
         *stop_status);
 }
 

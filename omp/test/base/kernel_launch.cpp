@@ -226,7 +226,7 @@ TEST_F(KernelLaunch, Runs2DDense)
         static_cast<const gko::matrix::Dense<> *>(zero_dense2.get()),
         zero_dense2->get_const_values(),
         gko::solver::default_stride(zero_dense.get()),
-        gko::solver::rowvector(vec_dense.get()), zero_dense->get_values(),
+        gko::solver::row_vector(vec_dense.get()), zero_dense->get_values(),
         vec_dense->get_values());
 
     GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);
