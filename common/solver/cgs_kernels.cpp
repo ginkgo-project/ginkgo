@@ -36,11 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "core/base/simple_kernels_solver.hpp"
-
-
-using gko::solver::default_stride;
-using gko::solver::row_vector;
+#include "common/base/kernel_launch_solver.hpp"
 
 
 namespace gko {

@@ -187,7 +187,7 @@ ginkgo_default_includes(ginkgo_cuda)
 ginkgo_install_library(ginkgo_cuda "${GKO_CUDA_LIBDIR}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_cuda)
+    ginkgo_check_headers(ginkgo_cuda GKO_COMPILING_CUDA)
 endif()
 
 if(GINKGO_BUILD_TESTS)

@@ -30,6 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#define GKO_COMPILING_CUDA
 #include "cuda/base/kernel_launch.cuh"
 
 
@@ -95,7 +96,7 @@ protected:
 // nvcc doesn't like device lambdas declared in complex classes, move it out
 void run1d(std::shared_ptr<gko::CudaExecutor> exec, size_type dim, int *data)
 {
-    gko::run_kernel(
+    gko::kernels::cuda::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
@@ -115,7 +116,7 @@ TEST_F(KernelLaunch, Runs1D)
 
 void run1d(std::shared_ptr<gko::CudaExecutor> exec, gko::Array<int> &data)
 {
-    gko::run_kernel(
+    gko::kernels::cuda::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
@@ -140,7 +141,7 @@ TEST_F(KernelLaunch, Runs1DArray)
 
 void run1d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<> *m)
 {
-    gko::run_kernel(
+    gko::kernels::cuda::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d2, auto d_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
@@ -176,7 +177,7 @@ TEST_F(KernelLaunch, Runs1DDense)
 
 void run2d(std::shared_ptr<gko::CudaExecutor> exec, int *data)
 {
-    gko::run_kernel(
+    gko::kernels::cuda::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
@@ -197,7 +198,7 @@ TEST_F(KernelLaunch, Runs2D)
 
 void run2d(std::shared_ptr<gko::CudaExecutor> exec, gko::Array<int> &data)
 {
-    gko::run_kernel(
+    gko::kernels::cuda::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
@@ -224,7 +225,7 @@ TEST_F(KernelLaunch, Runs2DArray)
 void run2d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<> *m1,
            gko::matrix::Dense<> *m2, gko::matrix::Dense<> *m3)
 {
-    gko::run_kernel_solver(
+    gko::kernels::cuda::run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d2, auto d_ptr, auto d3,
                       auto d4, auto d2_ptr, auto d3_ptr) {
@@ -257,8 +258,8 @@ void run2d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<> *m1,
         },
         dim<2>{4, 4}, m2->get_stride(), m1,
         static_cast<const gko::matrix::Dense<> *>(m1), m1->get_const_values(),
-        gko::solver::default_stride(m2), gko::solver::row_vector(m3),
-        m2->get_values(), m3->get_values());
+        gko::kernels::cuda::default_stride(m2),
+        gko::kernels::cuda::row_vector(m3), m2->get_values(), m3->get_values());
 }
 
 TEST_F(KernelLaunch, Runs2DDense)

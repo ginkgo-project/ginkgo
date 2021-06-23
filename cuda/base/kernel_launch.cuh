@@ -34,20 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_BASE_KERNEL_LAUNCH_CUH_
 
 
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include "common/base/kernel_launch.hpp"
 
 
 #include "cuda/base/device_guard.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/thread_ids.cuh"
-
-
-#ifdef GKO_KERNEL
-#error "Only one kernel_launch.hpp file can be included at a time."
-#else
-#define GKO_KERNEL __device__
-#endif
 
 
 namespace gko {
@@ -56,70 +48,6 @@ namespace cuda {
 
 
 constexpr int default_block_size = 512;
-
-
-template <typename ValueType>
-struct matrix_accessor {
-    ValueType *data;
-    size_type stride;
-
-    __device__ ValueType &operator()(size_type row, size_type col)
-    {
-        return data[row * stride + col];
-    }
-
-    __device__ ValueType &operator[](size_type idx) { return data[idx]; }
-};
-
-
-template <typename T>
-struct to_device_type_impl {
-    using type = std::decay_t<cuda_type<T>>;
-    static type map_to_device(T in) { return as_cuda_type(in); }
-};
-
-template <typename ValueType>
-struct to_device_type_impl<matrix::Dense<ValueType> *&> {
-    using type = matrix_accessor<cuda_type<ValueType>>;
-    static type map_to_device(matrix::Dense<ValueType> *mtx)
-    {
-        return {as_cuda_type(mtx->get_values()), mtx->get_stride()};
-    }
-};
-
-template <typename ValueType>
-struct to_device_type_impl<const matrix::Dense<ValueType> *&> {
-    using type = matrix_accessor<const cuda_type<ValueType>>;
-    static type map_to_device(const matrix::Dense<ValueType> *mtx)
-    {
-        return {as_cuda_type(mtx->get_const_values()), mtx->get_stride()};
-    }
-};
-
-template <typename ValueType>
-struct to_device_type_impl<Array<ValueType> &> {
-    using type = cuda_type<ValueType> *;
-    static type map_to_device(Array<ValueType> &array)
-    {
-        return as_cuda_type(array.get_data());
-    }
-};
-
-template <typename ValueType>
-struct to_device_type_impl<const Array<ValueType> &> {
-    using type = const cuda_type<ValueType> *;
-    static type map_to_device(const Array<ValueType> &array)
-    {
-        return as_cuda_type(array.get_const_data());
-    }
-};
-
-
-template <typename T>
-typename to_device_type_impl<T>::type map_to_device(T &&param)
-{
-    return to_device_type_impl<T>::map_to_device(param);
-}
 
 
 template <typename KernelFunction, typename... KernelArgs>
@@ -148,33 +76,31 @@ __global__ __launch_bounds__(default_block_size) void generic_kernel_2d(
 }
 
 
-}  // namespace cuda
-}  // namespace kernels
-
-
 template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const CudaExecutor> exec, KernelFunction fn,
                 size_type size, KernelArgs &&... args)
 {
-    cuda::device_guard guard{exec->get_device_id()};
-    constexpr auto block_size = kernels::cuda::default_block_size;
+    gko::cuda::device_guard guard{exec->get_device_id()};
+    constexpr auto block_size = default_block_size;
     auto num_blocks = ceildiv(size, block_size);
-    kernels::cuda::generic_kernel_1d<<<num_blocks, block_size>>>(
-        size, fn, kernels::cuda::map_to_device(args)...);
+    generic_kernel_1d<<<num_blocks, block_size>>>(size, fn,
+                                                  map_to_device(args)...);
 }
 
 template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const CudaExecutor> exec, KernelFunction fn,
                 dim<2> size, KernelArgs &&... args)
 {
-    cuda::device_guard guard{exec->get_device_id()};
-    constexpr auto block_size = kernels::cuda::default_block_size;
+    gko::cuda::device_guard guard{exec->get_device_id()};
+    constexpr auto block_size = default_block_size;
     auto num_blocks = ceildiv(size[0] * size[1], block_size);
-    kernels::cuda::generic_kernel_2d<<<num_blocks, block_size>>>(
-        size[0], size[1], fn, kernels::cuda::map_to_device(args)...);
+    generic_kernel_2d<<<num_blocks, block_size>>>(size[0], size[1], fn,
+                                                  map_to_device(args)...);
 }
 
 
+}  // namespace cuda
+}  // namespace kernels
 }  // namespace gko
 
 #endif  // GKO_CUDA_BASE_KERNEL_LAUNCH_CUH_

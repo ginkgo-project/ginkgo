@@ -34,88 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_OMP_BASE_KERNEL_LAUNCH_HPP_
 
 
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-
-
-#ifdef GKO_KERNEL
-#error "Only one kernel_launch.hpp file can be included at a time."
-#else
-#define GKO_KERNEL
-#endif
+#include "common/base/kernel_launch.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace omp {
-
-
-template <typename ValueType>
-struct matrix_accessor {
-    ValueType *data;
-    size_type stride;
-
-    ValueType &operator()(size_type row, size_type col)
-    {
-        return data[row * stride + col];
-    }
-
-    ValueType &operator[](size_type idx) { return data[idx]; }
-};
-
-
-template <typename T>
-struct to_device_type_impl {
-    using type = std::decay_t<T>;
-    static type map_to_device(T in) { return in; }
-};
-
-template <typename ValueType>
-struct to_device_type_impl<matrix::Dense<ValueType> *&> {
-    using type = matrix_accessor<ValueType>;
-    static type map_to_device(matrix::Dense<ValueType> *mtx)
-    {
-        return {mtx->get_values(), mtx->get_stride()};
-    }
-};
-
-template <typename ValueType>
-struct to_device_type_impl<const matrix::Dense<ValueType> *&> {
-    using type = matrix_accessor<const ValueType>;
-    static type map_to_device(const matrix::Dense<ValueType> *mtx)
-    {
-        return {mtx->get_const_values(), mtx->get_stride()};
-    }
-};
-
-template <typename ValueType>
-struct to_device_type_impl<Array<ValueType> &> {
-    using type = ValueType *;
-    static type map_to_device(Array<ValueType> &array)
-    {
-        return array.get_data();
-    }
-};
-
-template <typename ValueType>
-struct to_device_type_impl<const Array<ValueType> &> {
-    using type = const ValueType *;
-    static type map_to_device(const Array<ValueType> &array)
-    {
-        return array.get_const_data();
-    }
-};
-
-
-template <typename T>
-typename to_device_type_impl<T>::type map_to_device(T &&param)
-{
-    return to_device_type_impl<T>::map_to_device(param);
-}
-
-
-}  // namespace omp
-}  // namespace kernels
 
 
 template <typename KernelFunction, typename... KernelArgs>
@@ -124,7 +48,7 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
 {
 #pragma omp parallel for
     for (size_type i = 0; i < size; i++) {
-        [&]() { fn(i, kernels::omp::map_to_device(args)...); }();
+        [&]() { fn(i, map_to_device(args)...); }();
     }
 }
 
@@ -219,10 +143,12 @@ template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
                 dim<2> size, KernelArgs &&... args)
 {
-    run_kernel_impl(exec, fn, size, kernels::omp::map_to_device(args)...);
+    run_kernel_impl(exec, fn, size, map_to_device(args)...);
 }
 
 
+}  // namespace omp
+}  // namespace kernels
 }  // namespace gko
 
 #endif  // GKO_OMP_BASE_KERNEL_LAUNCH_HPP_
