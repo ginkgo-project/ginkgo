@@ -289,19 +289,19 @@ TYPED_TEST(BatchDense, ConvergenceScaleData)
 
     auto res = this->mtx_0->unbatch();
 
-    GKO_ASSERT_NEAR(res[0]->at(0, 0), mtx_00_clone->at(0, 0), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(1, 0), mtx_00_clone->at(1, 0), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(0, 1), this->mtx_00->at(0, 1), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(1, 1), this->mtx_00->at(1, 1), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(0, 2), mtx_00_clone->at(0, 2), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(1, 2), mtx_00_clone->at(1, 2), 0.);
+    EXPECT_EQ(res[0]->at(0, 0), mtx_00_clone->at(0, 0));
+    EXPECT_EQ(res[0]->at(1, 0), mtx_00_clone->at(1, 0));
+    EXPECT_EQ(res[0]->at(0, 1), this->mtx_00->at(0, 1));
+    EXPECT_EQ(res[0]->at(1, 1), this->mtx_00->at(1, 1));
+    EXPECT_EQ(res[0]->at(0, 2), mtx_00_clone->at(0, 2));
+    EXPECT_EQ(res[0]->at(1, 2), mtx_00_clone->at(1, 2));
 
-    GKO_ASSERT_NEAR(res[1]->at(0, 0), mtx_01_clone->at(0, 0), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(1, 0), mtx_01_clone->at(1, 0), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(0, 1), this->mtx_01->at(0, 1), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(1, 1), this->mtx_01->at(1, 1), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(0, 2), mtx_01_clone->at(0, 2), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(1, 2), mtx_01_clone->at(1, 2), 0.);
+    EXPECT_EQ(res[1]->at(0, 0), mtx_01_clone->at(0, 0));
+    EXPECT_EQ(res[1]->at(1, 0), mtx_01_clone->at(1, 0));
+    EXPECT_EQ(res[1]->at(0, 1), this->mtx_01->at(0, 1));
+    EXPECT_EQ(res[1]->at(1, 1), this->mtx_01->at(1, 1));
+    EXPECT_EQ(res[1]->at(0, 2), mtx_01_clone->at(0, 2));
+    EXPECT_EQ(res[1]->at(1, 2), mtx_01_clone->at(1, 2));
 }
 
 
@@ -345,19 +345,19 @@ TYPED_TEST(BatchDense, ConvergenceScaleDataWithScalar)
 
     auto res = this->mtx_1->unbatch();
 
-    GKO_ASSERT_NEAR(res[0]->at(0, 0), mtx_10_clone->at(0, 0), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(1, 0), mtx_10_clone->at(1, 0), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(0, 1), this->mtx_10->at(0, 1), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(1, 1), this->mtx_10->at(1, 1), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(0, 2), mtx_10_clone->at(0, 2), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(1, 2), mtx_10_clone->at(1, 2), 0.);
+    EXPECT_EQ(res[0]->at(0, 0), mtx_10_clone->at(0, 0));
+    EXPECT_EQ(res[0]->at(1, 0), mtx_10_clone->at(1, 0));
+    EXPECT_EQ(res[0]->at(0, 1), this->mtx_10->at(0, 1));
+    EXPECT_EQ(res[0]->at(1, 1), this->mtx_10->at(1, 1));
+    EXPECT_EQ(res[0]->at(0, 2), mtx_10_clone->at(0, 2));
+    EXPECT_EQ(res[0]->at(1, 2), mtx_10_clone->at(1, 2));
 
-    GKO_ASSERT_NEAR(res[1]->at(0, 0), mtx_11_clone->at(0, 0), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(1, 0), mtx_11_clone->at(1, 0), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(0, 1), this->mtx_11->at(0, 1), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(1, 1), this->mtx_11->at(1, 1), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(0, 2), mtx_11_clone->at(0, 2), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(1, 2), mtx_11_clone->at(1, 2), 0.);
+    EXPECT_EQ(res[1]->at(0, 0), mtx_11_clone->at(0, 0));
+    EXPECT_EQ(res[1]->at(1, 0), mtx_11_clone->at(1, 0));
+    EXPECT_EQ(res[1]->at(0, 1), this->mtx_11->at(0, 1));
+    EXPECT_EQ(res[1]->at(1, 1), this->mtx_11->at(1, 1));
+    EXPECT_EQ(res[1]->at(0, 2), mtx_11_clone->at(0, 2));
+    EXPECT_EQ(res[1]->at(1, 2), mtx_11_clone->at(1, 2));
 }
 
 
@@ -404,19 +404,19 @@ TYPED_TEST(BatchDense, ConvergenceScaleDataWithStride)
     auto res = this->mtx_1->unbatch();
 
 
-    GKO_ASSERT_NEAR(res[0]->at(0, 0), mtx_10_clone->at(0, 0), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(1, 0), mtx_10_clone->at(1, 0), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(0, 1), this->mtx_10->at(0, 1), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(1, 1), this->mtx_10->at(1, 1), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(0, 2), mtx_10_clone->at(0, 2), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(1, 2), mtx_10_clone->at(1, 2), 0.);
+    EXPECT_EQ(res[0]->at(0, 0), mtx_10_clone->at(0, 0));
+    EXPECT_EQ(res[0]->at(1, 0), mtx_10_clone->at(1, 0));
+    EXPECT_EQ(res[0]->at(0, 1), this->mtx_10->at(0, 1));
+    EXPECT_EQ(res[0]->at(1, 1), this->mtx_10->at(1, 1));
+    EXPECT_EQ(res[0]->at(0, 2), mtx_10_clone->at(0, 2));
+    EXPECT_EQ(res[0]->at(1, 2), mtx_10_clone->at(1, 2));
 
-    GKO_ASSERT_NEAR(res[1]->at(0, 0), mtx_11_clone->at(0, 0), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(1, 0), mtx_11_clone->at(1, 0), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(0, 1), this->mtx_11->at(0, 1), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(1, 1), this->mtx_11->at(1, 1), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(0, 2), mtx_11_clone->at(0, 2), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(1, 2), mtx_11_clone->at(1, 2), 0.);
+    EXPECT_EQ(res[1]->at(0, 0), mtx_11_clone->at(0, 0));
+    EXPECT_EQ(res[1]->at(1, 0), mtx_11_clone->at(1, 0));
+    EXPECT_EQ(res[1]->at(0, 1), this->mtx_11->at(0, 1));
+    EXPECT_EQ(res[1]->at(1, 1), this->mtx_11->at(1, 1));
+    EXPECT_EQ(res[1]->at(0, 2), mtx_11_clone->at(0, 2));
+    EXPECT_EQ(res[1]->at(1, 2), mtx_11_clone->at(1, 2));
 }
 
 
@@ -464,19 +464,19 @@ TYPED_TEST(BatchDense, ConvergenceAddScaled)
 
     auto res = this->mtx_1->unbatch();
 
-    GKO_ASSERT_NEAR(res[0]->at(0, 0), mtx_10_clone->at(0, 0), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(1, 0), mtx_10_clone->at(1, 0), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(0, 1), this->mtx_10->at(0, 1), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(1, 1), this->mtx_10->at(1, 1), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(0, 2), mtx_10_clone->at(0, 2), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(1, 2), mtx_10_clone->at(1, 2), 0.);
+    EXPECT_EQ(res[0]->at(0, 0), mtx_10_clone->at(0, 0));
+    EXPECT_EQ(res[0]->at(1, 0), mtx_10_clone->at(1, 0));
+    EXPECT_EQ(res[0]->at(0, 1), this->mtx_10->at(0, 1));
+    EXPECT_EQ(res[0]->at(1, 1), this->mtx_10->at(1, 1));
+    EXPECT_EQ(res[0]->at(0, 2), mtx_10_clone->at(0, 2));
+    EXPECT_EQ(res[0]->at(1, 2), mtx_10_clone->at(1, 2));
 
-    GKO_ASSERT_NEAR(res[1]->at(0, 0), mtx_11_clone->at(0, 0), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(1, 0), mtx_11_clone->at(1, 0), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(0, 1), this->mtx_11->at(0, 1), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(1, 1), this->mtx_11->at(1, 1), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(0, 2), mtx_11_clone->at(0, 2), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(1, 2), mtx_11_clone->at(1, 2), 0.);
+    EXPECT_EQ(res[1]->at(0, 0), mtx_11_clone->at(0, 0));
+    EXPECT_EQ(res[1]->at(1, 0), mtx_11_clone->at(1, 0));
+    EXPECT_EQ(res[1]->at(0, 1), this->mtx_11->at(0, 1));
+    EXPECT_EQ(res[1]->at(1, 1), this->mtx_11->at(1, 1));
+    EXPECT_EQ(res[1]->at(0, 2), mtx_11_clone->at(0, 2));
+    EXPECT_EQ(res[1]->at(1, 2), mtx_11_clone->at(1, 2));
 }
 
 
@@ -522,19 +522,19 @@ TYPED_TEST(BatchDense, ConvergenceAddScaledWithScalar)
 
     auto res = this->mtx_1->unbatch();
 
-    GKO_ASSERT_NEAR(res[0]->at(0, 0), mtx_10_clone->at(0, 0), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(1, 0), mtx_10_clone->at(1, 0), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(0, 1), this->mtx_10->at(0, 1), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(1, 1), this->mtx_10->at(1, 1), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(0, 2), mtx_10_clone->at(0, 2), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(1, 2), mtx_10_clone->at(1, 2), 0.);
+    EXPECT_EQ(res[0]->at(0, 0), mtx_10_clone->at(0, 0));
+    EXPECT_EQ(res[0]->at(1, 0), mtx_10_clone->at(1, 0));
+    EXPECT_EQ(res[0]->at(0, 1), this->mtx_10->at(0, 1));
+    EXPECT_EQ(res[0]->at(1, 1), this->mtx_10->at(1, 1));
+    EXPECT_EQ(res[0]->at(0, 2), mtx_10_clone->at(0, 2));
+    EXPECT_EQ(res[0]->at(1, 2), mtx_10_clone->at(1, 2));
 
-    GKO_ASSERT_NEAR(res[1]->at(0, 0), mtx_11_clone->at(0, 0), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(1, 0), mtx_11_clone->at(1, 0), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(0, 1), this->mtx_11->at(0, 1), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(1, 1), this->mtx_11->at(1, 1), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(0, 2), mtx_11_clone->at(0, 2), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(1, 2), mtx_11_clone->at(1, 2), 0.);
+    EXPECT_EQ(res[1]->at(0, 0), mtx_11_clone->at(0, 0));
+    EXPECT_EQ(res[1]->at(1, 0), mtx_11_clone->at(1, 0));
+    EXPECT_EQ(res[1]->at(0, 1), this->mtx_11->at(0, 1));
+    EXPECT_EQ(res[1]->at(1, 1), this->mtx_11->at(1, 1));
+    EXPECT_EQ(res[1]->at(0, 2), mtx_11_clone->at(0, 2));
+    EXPECT_EQ(res[1]->at(1, 2), mtx_11_clone->at(1, 2));
 }
 
 
@@ -575,6 +575,13 @@ TYPED_TEST(BatchDense, ConvergenceComputeDot)
     auto result =
         Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 3}));
 
+    for (int ibatch = 0; ibatch < result->get_size().get_batch_sizes().size();
+         ibatch++) {
+        for (int icol = 0; icol < result->get_size().at()[1]; icol++) {
+            result->at(ibatch, 0, icol) = gko::zero<T>();
+        }
+    }
+
     auto ures = result->unbatch();
 
     const int num_rhs = 3;
@@ -592,13 +599,13 @@ TYPED_TEST(BatchDense, ConvergenceComputeDot)
 
     auto res = result->unbatch();
 
-    GKO_ASSERT_NEAR(res[0]->at(0, 0), ures_00_clone->at(0, 0), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(0, 1), ures[0]->at(0, 1), 0.);
-    GKO_ASSERT_NEAR(res[0]->at(0, 2), ures_00_clone->at(0, 2), 0.);
+    EXPECT_EQ(res[0]->at(0, 0), ures_00_clone->at(0, 0));
+    EXPECT_EQ(res[0]->at(0, 1), ures[0]->at(0, 1));
+    EXPECT_EQ(res[0]->at(0, 2), ures_00_clone->at(0, 2));
 
-    GKO_ASSERT_NEAR(res[1]->at(0, 0), ures_01_clone->at(0, 0), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(0, 1), ures[1]->at(0, 1), 0.);
-    GKO_ASSERT_NEAR(res[1]->at(0, 2), ures_01_clone->at(0, 2), 0.);
+    EXPECT_EQ(res[1]->at(0, 0), ures_01_clone->at(0, 0));
+    EXPECT_EQ(res[1]->at(0, 1), ures[1]->at(0, 1));
+    EXPECT_EQ(res[1]->at(0, 2), ures_01_clone->at(0, 2));
 }
 
 
@@ -640,6 +647,13 @@ TYPED_TEST(BatchDense, ConvergenceComputeNorm2)
         std::vector<gko::dim<2>>{gko::dim<2>{1, 2}, gko::dim<2>{1, 2}});
     auto result =
         NormVector::create(this->exec, batch_size, gko::batch_stride(2, 2));
+
+    for (int ibatch = 0; ibatch < result->get_size().get_batch_sizes().size();
+         ibatch++) {
+        for (int icol = 0; icol < result->get_size().at()[1]; icol++) {
+            result->at(ibatch, 0, icol) = gko::zero<T_nc>();
+        }
+    }
 
     auto result_clone = gko::clone(result);
 
