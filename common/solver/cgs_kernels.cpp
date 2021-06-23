@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 using gko::solver::default_stride;
-using gko::solver::rowvector;
+using gko::solver::row_vector;
 
 
 namespace gko {
@@ -86,8 +86,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
         b->get_size(), b->get_stride(), default_stride(b), default_stride(r),
         default_stride(r_tld), default_stride(p), default_stride(q),
         default_stride(u), default_stride(u_hat), default_stride(v_hat),
-        default_stride(t), rowvector(alpha), rowvector(beta), rowvector(gamma),
-        rowvector(prev_rho), rowvector(rho), *stop_status);
+        default_stride(t), row_vector(alpha), row_vector(beta),
+        row_vector(gamma), row_vector(prev_rho), row_vector(rho), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_INITIALIZE_KERNEL);
@@ -117,8 +117,8 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
             }
         },
         r->get_size(), r->get_stride(), default_stride(r), default_stride(u),
-        default_stride(p), default_stride(q), rowvector(beta), rowvector(rho),
-        rowvector(prev_rho), *stop_status);
+        default_stride(p), default_stride(q), row_vector(beta), row_vector(rho),
+        row_vector(prev_rho), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
@@ -149,7 +149,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
         },
         u->get_size(), u->get_stride(), default_stride(u),
         default_stride(v_hat), default_stride(q), default_stride(t),
-        rowvector(alpha), rowvector(rho), rowvector(gamma), *stop_status);
+        row_vector(alpha), row_vector(rho), row_vector(gamma), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_2_KERNEL);
@@ -171,7 +171,7 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
             }
         },
         t->get_size(), t->get_stride(), default_stride(t),
-        default_stride(u_hat), default_stride(r), x, rowvector(alpha),
+        default_stride(u_hat), default_stride(r), x, row_vector(alpha),
         *stop_status);
 }
 

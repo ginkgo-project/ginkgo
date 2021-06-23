@@ -116,7 +116,7 @@ default_stride(const matrix::Dense<ValueType> *mtx)
 
 
 template <typename ValueType>
-kernels::hip::hip_type<ValueType> *rowvector(matrix::Dense<ValueType> *mtx)
+kernels::hip::hip_type<ValueType> *row_vector(matrix::Dense<ValueType> *mtx)
 {
     GKO_ASSERT(mtx->get_size()[0] == 1);
     return kernels::hip::as_hip_type(mtx->get_values());
@@ -124,7 +124,7 @@ kernels::hip::hip_type<ValueType> *rowvector(matrix::Dense<ValueType> *mtx)
 
 
 template <typename ValueType>
-const kernels::hip::hip_type<ValueType> *rowvector(
+const kernels::hip::hip_type<ValueType> *row_vector(
     const matrix::Dense<ValueType> *mtx)
 {
     GKO_ASSERT(mtx->get_size()[0] == 1);

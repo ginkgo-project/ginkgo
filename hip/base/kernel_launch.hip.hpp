@@ -58,7 +58,7 @@ namespace kernels {
 namespace hip {
 
 
-constexpr auto default_block_size = 512;
+constexpr int default_block_size = 512;
 
 
 template <typename ValueType>

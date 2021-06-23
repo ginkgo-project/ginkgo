@@ -256,7 +256,7 @@ void run2d(std::shared_ptr<gko::HipExecutor> exec, gko::matrix::Dense<> *m1,
         },
         dim<2>{4, 4}, m2->get_stride(), m1,
         static_cast<const gko::matrix::Dense<> *>(m1), m1->get_const_values(),
-        gko::solver::default_stride(m2), gko::solver::rowvector(m3),
+        gko::solver::default_stride(m2), gko::solver::row_vector(m3),
         m2->get_values(), m3->get_values());
 }
 

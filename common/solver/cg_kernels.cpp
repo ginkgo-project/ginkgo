@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 using gko::solver::default_stride;
-using gko::solver::rowvector;
+using gko::solver::row_vector;
 
 
 namespace gko {
@@ -75,8 +75,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             z(row, col) = p(row, col) = q(row, col) = zero(z(row, col));
         },
         b->get_size(), b->get_stride(), b, default_stride(r), default_stride(z),
-        default_stride(p), default_stride(q), rowvector(prev_rho),
-        rowvector(rho), *stop_status);
+        default_stride(p), default_stride(q), row_vector(prev_rho),
+        row_vector(rho), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
@@ -99,7 +99,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
             }
         },
         p->get_size(), p->get_stride(), default_stride(p), default_stride(z),
-        rowvector(rho), rowvector(prev_rho), *stop_status);
+        row_vector(rho), row_vector(prev_rho), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
@@ -125,7 +125,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             }
         },
         x->get_size(), r->get_stride(), x, default_stride(r), default_stride(p),
-        default_stride(q), rowvector(beta), rowvector(rho), *stop_status);
+        default_stride(q), row_vector(beta), row_vector(rho), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
