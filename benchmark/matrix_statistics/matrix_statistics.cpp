@@ -150,6 +150,10 @@ void extract_matrix_statistics(gko::matrix_data<etype, gko::int64> &data,
         ++col_dist[v.column];
     }
 
+    add_or_set_member(problem, "rows", data.size[0], allocator);
+    add_or_set_member(problem, "columns", data.size[1], allocator);
+    add_or_set_member(problem, "nonzeros", data.nonzeros.size(), allocator);
+
     std::sort(begin(row_dist), end(row_dist));
     add_or_set_member(problem, "row_distribution",
                       rapidjson::Value(rapidjson::kObjectType), allocator);
