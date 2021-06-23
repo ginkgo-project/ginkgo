@@ -164,8 +164,7 @@ protected:
            dim<2> local_size, size_type stride);
 
     Vector(std::shared_ptr<const Executor> exec,
-           std::shared_ptr<mpi::communicator> comm =
-               std::make_shared<mpi::communicator>(),
+           std::shared_ptr<mpi::communicator> comm = nullptr,
            dim<2> global_size = {}, dim<2> local_size = {});
 
     void apply_impl(const LinOp *, LinOp *) const override;

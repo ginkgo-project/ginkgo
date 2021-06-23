@@ -88,24 +88,27 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
                                                  VectorType *dense_x) const
 {
     using LocalVector = matrix::Dense<ValueType>;
-    auto x_clone = dense_x->clone();
+    // auto x_clone = dense_x->clone();
     if (is_distributed()) {
         GKO_ASSERT(this->inner_solvers_.size() > 0);
         this->inner_solvers_[0]->apply(detail::get_local(dense_b),
                                        detail::get_local(dense_x));
-        auto local_x = detail::get_local(dense_x);
-        auto comm = local_x->get_communicator();
-        auto num_elems =
-            gko::Array<int>(this->get_executor()->get_master(), comm->size());
-        num_elems.get_data()[comm->rank()] = local_x->get_size()[0];
-        mpi::all_gather(num_elems.get_data(), 1);
-        auto offset =
-            gko::Array<int>(this->get_executor()->get_master(), comm->size());
-        offset = num_elems;
-        std::partial_sum(offset.get_data(), offset.get_data() + comm->size());
-        mpi::all_gather(dense_x->get_values(), num_elems.get_const_data(),
-                        offset.get_const_data()
-                        /*,dense_x->get_communicator()*/);
+        // auto local_x = detail::get_local(dense_x);
+        // auto comm = local_x->get_communicator();
+        // auto num_elems =
+        //     gko::Array<int>(this->get_executor()->get_master(),
+        //     comm->size());
+        // num_elems.get_data()[comm->rank()] = local_x->get_size()[0];
+        // mpi::all_gather(num_elems.get_data(), 1);
+        // auto offset =
+        //     gko::Array<int>(this->get_executor()->get_master(),
+        //     comm->size());
+        // offset = num_elems;
+        // std::partial_sum(offset.get_data(), offset.get_data() +
+        // comm->size()); mpi::all_gather(dense_x->get_values(),
+        // num_elems.get_const_data(),
+        //                 offset.get_const_data()
+        //                 /*,dense_x->get_communicator()*/);
     } else {
         using block_t = matrix::BlockApprox<matrix::Csr<ValueType, IndexType>>;
         const auto dense_x_clone = (dense_x->clone());
@@ -149,6 +152,7 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
         }
     }
     if (this->coarse_solvers_.size() > 0) {
+        auto x_clone = dense_x->clone();
         for (size_type i = 0; i < this->coarse_solvers_.size(); ++i) {
             auto rel_fac = parameters_.coarse_relaxation_factors[0];
             if (parameters_.coarse_relaxation_factors.size() > 1) {
@@ -237,8 +241,11 @@ void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
         this->is_distributed_ = false;
     } else if (dynamic_cast<const dist_mat *>(system_matrix) != nullptr) {
         auto mat = as<const dist_mat>(system_matrix);
-        this->block_system_matrix_ =
-            dist_block_t::create(mat->get_executor(), mat);
+        if (mat->get_executor() != this->get_executor()) {
+            GKO_NOT_IMPLEMENTED;
+        }
+        this->block_system_matrix_ = dist_block_t::create(
+            mat->get_executor(), mat, mat->get_communicator());
         auto block_mtxs =
             as<dist_block_t>(this->block_system_matrix_)->get_block_mtxs();
         const auto num_subdomains = block_mtxs.size();
