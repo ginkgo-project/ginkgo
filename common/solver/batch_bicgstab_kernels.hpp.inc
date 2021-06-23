@@ -285,16 +285,17 @@ __device__ __forceinline__ void update_x_middle(
 
 template <typename StopType, typename PrecType, typename LogType,
           /*typename BatchMatrixType,*/ typename ValueType>
-__global__ void apply_kernel(
-    const int max_iter, const gko::remove_complex<ValueType> tol,
-    LogType logger, PrecType prec_shared, const size_type nbatch,
-    const int num_rows, const int num_nnz,
-    ValueType *const __restrict__ avalues,
-    const int *const __restrict__ col_idxs,
-    const int *const __restrict__ row_ptrs, const size_type stride,
-    const int nrhs, const ValueType *const __restrict__ left,
-    const ValueType *const __restrict__ right, ValueType *const __restrict__ b,
-    ValueType *const __restrict__ x)
+__global__ void apply_kernel(const int max_iter,
+                             const gko::remove_complex<ValueType> tol,
+                             LogType logger, PrecType prec_shared,
+                             const size_type nbatch, const int num_rows,
+                             const int num_nnz,
+                             const ValueType *const __restrict__ avalues,
+                             const int *const __restrict__ col_idxs,
+                             const int *const __restrict__ row_ptrs,
+                             const size_type stride, const int nrhs,
+                             const ValueType *const __restrict__ b,
+                             ValueType *const __restrict__ x)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     // const auto nbatch = a.num_batch;
@@ -306,8 +307,8 @@ __global__ void apply_kernel(
     // required for static allocation in stopping criterion
     assert(batch_config<ValueType>::max_num_rhs >= nrhs);
 
-    const gko::batch_csr::UniformBatch<ValueType> a{avalues, col_idxs, row_ptrs,
-                                                    nbatch,  num_rows, num_nnz};
+    const gko::batch_csr::UniformBatch<const ValueType> a{
+        avalues, col_idxs, row_ptrs, nbatch, num_rows, num_nnz};
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
         extern __shared__ char local_mem_sh[];
@@ -333,25 +334,6 @@ __global__ void apply_kernel(
 
 
         uint32 converged = 0;
-
-        const gko::batch_dense::BatchEntry<const ValueType> left_global_entry =
-            gko::batch::batch_entry(static_cast<const ValueType *>(left), 1,
-                                    nrows, 1, ibatch);
-        const gko::batch_dense::BatchEntry<const ValueType> right_global_entry =
-            gko::batch::batch_entry(static_cast<const ValueType *>(right), 1,
-                                    nrows, 1, ibatch);
-
-        if (left) {
-            // const typename BatchMatrixType::entry_type A_global_entry =
-            //    gko::batch::batch_entry(a, ibatch);
-            const gko::batch_csr::BatchEntry<ValueType> A_global_entry =
-                gko::batch::batch_entry(a, ibatch);
-            const gko::batch_dense::BatchEntry<ValueType> b_global_entry =
-                gko::batch::batch_entry(b, stride, nrows, nrhs, ibatch);
-            batch_scale(left_global_entry, right_global_entry, A_global_entry);
-            batch_scale(left_global_entry, b_global_entry);
-            __syncthreads();
-        }
 
         const auto A_global_entry =
             gko::batch::batch_entry(gko::batch::to_const(a), ibatch);
@@ -593,12 +575,6 @@ __global__ void apply_kernel(
 
             __syncthreads();
         }
-
-        if (left) {
-            batch_scale(right_global_entry, x_shared_entry);
-        }
-
-        __syncthreads();
 
         // copy x back to global memory
         copy(gko::batch::to_const(x_shared_entry), x_global_entry);
