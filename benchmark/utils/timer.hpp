@@ -264,6 +264,7 @@ public:
 protected:
     void tic_impl() override
     {
+        exec_->synchronize();
         gko::cuda::device_guard g{id_};
         // Currently, gko::CudaExecutor always use default stream.
         GKO_ASSERT_NO_CUDA_ERRORS(cudaEventRecord(start_));
@@ -271,6 +272,7 @@ protected:
 
     double toc_impl() override
     {
+        exec_->synchronize();
         gko::cuda::device_guard g{id_};
         // Currently, gko::CudaExecutor always use default stream.
         GKO_ASSERT_NO_CUDA_ERRORS(cudaEventRecord(stop_));
@@ -330,6 +332,7 @@ public:
 protected:
     void tic_impl() override
     {
+        exec_->synchronize();
         gko::hip::device_guard g{id_};
         // Currently, gko::HipExecutor always use default stream.
         GKO_ASSERT_NO_HIP_ERRORS(hipEventRecord(start_));
@@ -337,6 +340,7 @@ protected:
 
     double toc_impl() override
     {
+        exec_->synchronize();
         gko::hip::device_guard g{id_};
         // Currently, gko::HipExecutor always use default stream.
         GKO_ASSERT_NO_HIP_ERRORS(hipEventRecord(stop_));
