@@ -557,17 +557,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void batch_scale(std::shared_ptr<const DefaultExecutor> exec,
-                 const matrix::BatchDense<ValueType> *diag_vec,
-                 matrix::BatchDense<ValueType> *x)
+void batch_scale(std::shared_ptr<const OmpExecutor> exec,
+                 const matrix::BatchDense<ValueType> *const scale_vec,
+                 matrix::BatchDense<ValueType> *const vecs)
 {
-    const auto diag_vec_ub = host::get_batch_struct(diag_vec);
-    const auto x_ub = host::get_batch_struct(x);
+    const auto scale_ub = host::get_batch_struct(scale_vec);
+    const auto v_ub = host::get_batch_struct(vecs);
 #pragma omp parallel for
-    for (size_type batch = 0; batch < x->get_num_batch_entries(); ++batch) {
-        const auto diag_vec_b = gko::batch::batch_entry(diag_vec_ub, batch);
-        const auto x_b = gko::batch::batch_entry(x_ub, batch);
-        gko::kernels::reference::batch_dense::batch_scale(diag_vec_b, x_b);
+    for (size_type batch = 0; batch < vecs->get_num_batch_entries(); ++batch) {
+        const auto sc_b = gko::batch::batch_entry(scale_ub, batch);
+        const auto v_b = gko::batch::batch_entry(v_ub, batch);
+        gko::kernels::reference::batch_dense::batch_scale(sc_b, v_b);
     }
 }
 
