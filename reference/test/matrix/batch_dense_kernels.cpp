@@ -734,8 +734,10 @@ TYPED_TEST(BatchDense, BatchScale)
          {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
         this->exec));
 
-    auto diag_vec(gko::batch_initialize<Mtx>(
-        {{I<T>{1.0, 2.0, 3.0}}, {I<T>{-1.0, -2.0, -3.0}}}, this->exec));
+    auto diag_vec(
+        gko::batch_initialize<Mtx>(I<I<I<T>>>{I<I<T>>{I<T>{1.0, 2.0, 3.0}},
+                                              I<I<T>>{I<T>{-1.0, -2.0, -3.0}}},
+                                   this->exec));
 
     gko::kernels::reference::batch_dense::batch_scale(
         this->exec, diag_vec.get(), mtx.get());
