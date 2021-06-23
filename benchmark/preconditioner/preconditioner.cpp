@@ -159,8 +159,8 @@ void run_preconditioner(const char *precond_name,
                               allocator);
         }
 
-        auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
-        auto apply_timer = get_timer(exec, FLAGS_gpu_timer);
+        IterationControl ic_gen{get_timer(exec, FLAGS_gpu_timer)};
+        IterationControl ic_apply{get_timer(exec, FLAGS_gpu_timer)};
 
         {
             // fast run, gets total time
@@ -168,8 +168,6 @@ void run_preconditioner(const char *precond_name,
 
             auto precond = precond_factory.at(precond_name)(exec);
 
-            IterationControl ic_gen{generate_timer};
-            IterationControl ic_apply{apply_timer};
 
             for (auto _ : ic_apply.warmup_run()) {
                 precond->generate(system_matrix)->apply(lend(b), lend(x_clone));
@@ -177,29 +175,22 @@ void run_preconditioner(const char *precond_name,
 
             std::unique_ptr<gko::LinOp> precond_op;
             for (auto _ : ic_gen.run()) {
-                exec->synchronize();
-                generate_timer->tic();
                 precond_op = precond->generate(system_matrix);
-                generate_timer->toc();
             }
 
             add_or_set_member(this_precond_data["generate"], "time",
-                              generate_timer->compute_average_time(),
-                              allocator);
+                              ic_gen.compute_average_time(), allocator);
             add_or_set_member(this_precond_data["generate"], "repetitions",
-                              generate_timer->get_num_repetitions(), allocator);
+                              ic_gen.get_num_repetitions(), allocator);
 
             for (auto _ : ic_apply.run()) {
-                exec->synchronize();
-                apply_timer->tic();
                 precond_op->apply(lend(b), lend(x_clone));
-                apply_timer->toc();
             }
 
             add_or_set_member(this_precond_data["apply"], "time",
-                              apply_timer->compute_average_time(), allocator);
+                              ic_apply.compute_average_time(), allocator);
             add_or_set_member(this_precond_data["apply"], "repetitions",
-                              apply_timer->get_num_repetitions(), allocator);
+                              ic_apply.get_num_repetitions(), allocator);
         }
 
         if (FLAGS_detailed) {
@@ -211,26 +202,24 @@ void run_preconditioner(const char *precond_name,
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(gen_logger);
             std::unique_ptr<gko::LinOp> precond_op;
-            for (auto i = 0u; i < generate_timer->get_num_repetitions(); ++i) {
+            for (auto i = 0u; i < ic_gen.get_num_repetitions(); ++i) {
                 precond_op = precond->generate(system_matrix);
             }
             exec->remove_logger(gko::lend(gen_logger));
 
             gen_logger->write_data(this_precond_data["generate"]["components"],
-                                   allocator,
-                                   generate_timer->get_num_repetitions());
+                                   allocator, ic_gen.get_num_repetitions());
 
             auto apply_logger =
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(apply_logger);
-            for (auto i = 0u; i < apply_timer->get_num_repetitions(); ++i) {
+            for (auto i = 0u; i < ic_apply.get_num_repetitions(); ++i) {
                 precond_op->apply(lend(b), lend(x_clone));
             }
             exec->remove_logger(gko::lend(apply_logger));
 
             apply_logger->write_data(this_precond_data["apply"]["components"],
-                                     allocator,
-                                     apply_timer->get_num_repetitions());
+                                     allocator, ic_apply.get_num_repetitions());
         }
 
         add_or_set_member(this_precond_data, "completed", true, allocator);

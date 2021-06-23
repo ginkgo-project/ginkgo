@@ -451,15 +451,12 @@ void apply_blas(const char *operation_name, std::shared_ptr<gko::Executor> exec,
         // timed run
         op->prepare();
         for (auto _ : ic.run()) {
-            exec->synchronize();
-            timer->tic();
             op->run();
-            timer->toc();
         }
-        const auto runtime = timer->compute_average_time();
+        const auto runtime = ic.compute_average_time();
         const auto flops = static_cast<double>(op->get_flops());
         const auto mem = static_cast<double>(op->get_memory());
-        const auto repetitions = timer->get_num_repetitions();
+        const auto repetitions = ic.get_num_repetitions();
         add_or_set_member(blas_case[operation_name], "time", runtime,
                           allocator);
         add_or_set_member(blas_case[operation_name], "flops", flops / runtime,
