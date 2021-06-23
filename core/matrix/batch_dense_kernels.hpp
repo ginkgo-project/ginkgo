@@ -171,6 +171,11 @@ namespace kernels {
                         const matrix::BatchDense<_type> *orig,       \
                         matrix::BatchDense<_type> *trans)
 
+#define GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL(ValueType)        \
+    void batch_scale(std::shared_ptr<const DefaultExecutor> exec,    \
+                     const matrix::BatchDense<ValueType> *scale_vec, \
+                     matrix::BatchDense<ValueType> *vec_to_scale)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
     template <typename ValueType>                                              \
@@ -216,7 +221,9 @@ namespace kernels {
     template <typename ValueType>                                              \
     GKO_DECLARE_BATCH_DENSE_TRANSPOSE_KERNEL(ValueType);                       \
     template <typename ValueType>                                              \
-    GKO_DECLARE_BATCH_DENSE_CONJ_TRANSPOSE_KERNEL(ValueType)
+    GKO_DECLARE_BATCH_DENSE_CONJ_TRANSPOSE_KERNEL(ValueType);                  \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL(ValueType)
 
 
 namespace omp {
