@@ -39,6 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/batch_convergence.hpp>
 
 
+#include "core/matrix/batch_csr_kernels.hpp"
+#include "core/matrix/batch_dense_kernels.hpp"
 #include "core/solver/batch_bicgstab_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch_test_utils.hpp"
@@ -116,7 +118,7 @@ protected:
         auto orig_mtx = gko::test::create_poisson1d_batch<value_type>(
             this->exec, nrows, nbatch);
         Result result;
-        // Initialize r = b before b is potentially modified
+        // Initialize r to the original unscaled b
         result.residual = b_1->clone();
         result.x =
             gko::batch_initialize<BDense>(nbatch, {0.0, 0.0, 0.0}, this->exec);
@@ -127,9 +129,22 @@ protected:
         result.logdata.iter_counts.set_executor(this->exec);
         result.logdata.iter_counts.resize_and_reset(nrhs_1 * nbatch);
 
+        auto b_sc = BDense::create(exec);
+        b_sc->copy_from(b_1.get());
+        if (left_scale) {
+            gko::kernels::reference::batch_csr::batch_scale<value_type>(
+                exec, left_scale, right_scale, mtx.get());
+            gko::kernels::reference::batch_dense::batch_scale<value_type>(
+                exec, left_scale, b_sc.get());
+        }
+
         gko::kernels::reference::batch_bicgstab::apply<value_type>(
-            this->exec, opts, mtx.get(), left_scale, right_scale, b_1.get(),
-            result.x.get(), result.logdata);
+            exec, opts, mtx.get(), b_sc.get(), result.x.get(), result.logdata);
+
+        if (left_scale) {
+            gko::kernels::reference::batch_dense::batch_scale<value_type>(
+                exec, right_scale, result.x.get());
+        }
 
         result.resnorm =
             gko::batch_initialize<RBDense>(nbatch, {0.0}, this->exec);
@@ -175,8 +190,7 @@ protected:
         result.logdata.iter_counts.resize_and_reset(nrhs * nbatch);
 
         gko::kernels::reference::batch_bicgstab::apply<value_type>(
-            this->exec, opts_m, mtx.get(), nullptr, nullptr, b_m.get(),
-            result.x.get(), result.logdata);
+            exec, opts_m, mtx.get(), b_m.get(), result.x.get(), result.logdata);
 
         result.residual = b_m->clone();
         result.resnorm =
