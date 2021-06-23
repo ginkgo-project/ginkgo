@@ -34,39 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_DPCPP_BASE_KERNEL_LAUNCH_SOLVER_DP_HPP_
 
 
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-
-
-#include "dpcpp/base/kernel_launch.dp.hpp"
+#include "common/base/kernel_launch_solver.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace dpcpp {
-
-
-template <typename ValueType>
-struct default_stride_dense_wrapper {
-    ValueType *data;
-};
-
-
-template <typename T>
-struct device_unpack_solver_impl {
-    using type = T;
-    static type unpack(T param, size_type) { return param; }
-};
-
-template <typename ValueType>
-struct device_unpack_solver_impl<default_stride_dense_wrapper<ValueType>> {
-    using type = matrix_accessor<ValueType>;
-    static type unpack(default_stride_dense_wrapper<ValueType> param,
-                       size_type default_stride)
-    {
-        return {param.data, default_stride};
-    }
-};
 
 
 template <typename KernelFunction, typename... KernelArgs>
@@ -84,48 +57,6 @@ void generic_kernel_2d_solver(sycl::handler &cgh, size_type rows,
 }
 
 
-}  // namespace dpcpp
-}  // namespace kernels
-
-
-namespace solver {
-
-
-template <typename ValueType>
-kernels::dpcpp::default_stride_dense_wrapper<ValueType> default_stride(
-    matrix::Dense<ValueType> *mtx)
-{
-    return {mtx->get_values()};
-}
-
-
-template <typename ValueType>
-kernels::dpcpp::default_stride_dense_wrapper<const ValueType> default_stride(
-    const matrix::Dense<ValueType> *mtx)
-{
-    return {mtx->get_const_values()};
-}
-
-
-template <typename ValueType>
-ValueType *row_vector(matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_size()[0] == 1);
-    return mtx->get_values();
-}
-
-
-template <typename ValueType>
-const ValueType *row_vector(const matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_size()[0] == 1);
-    return mtx->get_const_values();
-}
-
-
-}  // namespace solver
-
-
 template <typename KernelFunction, typename... KernelArgs>
 void run_kernel_solver(std::shared_ptr<const DpcppExecutor> exec,
                        KernelFunction fn, dim<2> size, size_type default_stride,
@@ -139,6 +70,8 @@ void run_kernel_solver(std::shared_ptr<const DpcppExecutor> exec,
 }
 
 
+}  // namespace dpcpp
+}  // namespace kernels
 }  // namespace gko
 
 #endif  // GKO_HIP_BASE_KERNEL_LAUNCH_SOLVER_HIP_HPP_

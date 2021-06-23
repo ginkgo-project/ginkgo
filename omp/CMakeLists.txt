@@ -78,7 +78,7 @@ ginkgo_default_includes(ginkgo_omp)
 ginkgo_install_library(ginkgo_omp)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_omp)
+    ginkgo_check_headers(ginkgo_omp GKO_COMPILING_OMP)
 endif()
 
 if(GINKGO_BUILD_TESTS)

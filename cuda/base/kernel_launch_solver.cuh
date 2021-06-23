@@ -34,42 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_BASE_KERNEL_LAUNCH_SOLVER_CUH_
 
 
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-
-
-#include "cuda/base/kernel_launch.cuh"
+#include "common/base/kernel_launch_solver.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace cuda {
-
-
-template <typename ValueType>
-struct default_stride_dense_wrapper {
-    ValueType *data;
-};
-
-
-template <typename T>
-struct device_unpack_solver_impl {
-    using type = T;
-    static __device__ __forceinline__ type unpack(T param, size_type)
-    {
-        return param;
-    }
-};
-
-template <typename ValueType>
-struct device_unpack_solver_impl<default_stride_dense_wrapper<ValueType>> {
-    using type = matrix_accessor<ValueType>;
-    static __device__ __forceinline__ type unpack(
-        default_stride_dense_wrapper<ValueType> param, size_type default_stride)
-    {
-        return {param.data, default_stride};
-    }
-};
 
 
 template <typename KernelFunction, typename... KernelArgs>
@@ -88,64 +58,21 @@ __global__ __launch_bounds__(default_block_size) void generic_kernel_2d_solver(
 }
 
 
-}  // namespace cuda
-}  // namespace kernels
-
-
-namespace solver {
-
-
-template <typename ValueType>
-kernels::cuda::default_stride_dense_wrapper<kernels::cuda::cuda_type<ValueType>>
-default_stride(matrix::Dense<ValueType> *mtx)
-{
-    return {kernels::cuda::as_cuda_type(mtx->get_values())};
-}
-
-
-template <typename ValueType>
-kernels::cuda::default_stride_dense_wrapper<
-    const kernels::cuda::cuda_type<ValueType>>
-default_stride(const matrix::Dense<ValueType> *mtx)
-{
-    return {kernels::cuda::as_cuda_type(mtx->get_const_values())};
-}
-
-
-template <typename ValueType>
-kernels::cuda::cuda_type<ValueType> *row_vector(matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_size()[0] == 1);
-    return kernels::cuda::as_cuda_type(mtx->get_values());
-}
-
-
-template <typename ValueType>
-const kernels::cuda::cuda_type<ValueType> *row_vector(
-    const matrix::Dense<ValueType> *mtx)
-{
-    GKO_ASSERT(mtx->get_size()[0] == 1);
-    return kernels::cuda::as_cuda_type(mtx->get_const_values());
-}
-
-
-}  // namespace solver
-
-
 template <typename KernelFunction, typename... KernelArgs>
 void run_kernel_solver(std::shared_ptr<const CudaExecutor> exec,
                        KernelFunction fn, dim<2> size, size_type default_stride,
                        KernelArgs &&... args)
 {
-    cuda::device_guard guard{exec->get_device_id()};
-    constexpr auto block_size = kernels::cuda::default_block_size;
+    gko::cuda::device_guard guard{exec->get_device_id()};
+    constexpr auto block_size = default_block_size;
     auto num_blocks = ceildiv(size[0] * size[1], block_size);
-    kernels::cuda::generic_kernel_2d_solver<<<num_blocks, block_size>>>(
-        size[0], size[1], default_stride, fn,
-        kernels::cuda::map_to_device(args)...);
+    generic_kernel_2d_solver<<<num_blocks, block_size>>>(
+        size[0], size[1], default_stride, fn, map_to_device(args)...);
 }
 
 
+}  // namespace cuda
+}  // namespace kernels
 }  // namespace gko
 
 #endif  // GKO_CUDA_BASE_KERNEL_LAUNCH_SOLVER_CUH_

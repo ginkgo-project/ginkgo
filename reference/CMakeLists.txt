@@ -47,7 +47,7 @@ ginkgo_install_library(ginkgo_reference)
 target_compile_options(ginkgo_reference PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_reference)
+    ginkgo_check_headers(ginkgo_reference "")
 endif()
 
 if(GINKGO_BUILD_TESTS)

@@ -69,7 +69,7 @@ ginkgo_default_includes(ginkgo_dpcpp)
 ginkgo_install_library(ginkgo_dpcpp)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_dpcpp)
+    ginkgo_check_headers(ginkgo_dpcpp GKO_COMPILING_DPCPP)
 endif()
 
 if(GINKGO_BUILD_TESTS)

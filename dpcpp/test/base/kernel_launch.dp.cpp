@@ -30,6 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#define GKO_COMPILING_DPCPP
 #include "dpcpp/base/kernel_launch.dp.hpp"
 
 
@@ -101,7 +102,7 @@ protected:
 
 TEST_F(KernelLaunch, Runs1D)
 {
-    gko::run_kernel(
+    gko::kernels::dpcpp::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
@@ -116,7 +117,7 @@ TEST_F(KernelLaunch, Runs1D)
 
 TEST_F(KernelLaunch, Runs1DArray)
 {
-    gko::run_kernel(
+    gko::kernels::dpcpp::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
@@ -136,7 +137,7 @@ TEST_F(KernelLaunch, Runs1DArray)
 
 TEST_F(KernelLaunch, Runs1DDense)
 {
-    gko::run_kernel(
+    gko::kernels::dpcpp::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d2, auto d_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
@@ -168,7 +169,7 @@ TEST_F(KernelLaunch, Runs1DDense)
 
 TEST_F(KernelLaunch, Runs2D)
 {
-    gko::run_kernel(
+    gko::kernels::dpcpp::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
@@ -184,7 +185,7 @@ TEST_F(KernelLaunch, Runs2D)
 
 TEST_F(KernelLaunch, Runs2DArray)
 {
-    gko::run_kernel(
+    gko::kernels::dpcpp::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
@@ -205,7 +206,7 @@ TEST_F(KernelLaunch, Runs2DArray)
 
 TEST_F(KernelLaunch, Runs2DDense)
 {
-    gko::run_kernel_solver(
+    gko::kernels::dpcpp::run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d2, auto d_ptr, auto d3,
                       auto d4, auto d2_ptr, auto d3_ptr) {
@@ -243,9 +244,9 @@ TEST_F(KernelLaunch, Runs2DDense)
         dim<2>{4, 4}, zero_dense->get_stride(), zero_dense2.get(),
         static_cast<const Mtx *>(zero_dense2.get()),
         zero_dense2->get_const_values(),
-        gko::solver::default_stride(zero_dense.get()),
-        gko::solver::row_vector(vec_dense.get()), zero_dense->get_values(),
-        vec_dense->get_values());
+        gko::kernels::dpcpp::default_stride(zero_dense.get()),
+        gko::kernels::dpcpp::row_vector(vec_dense.get()),
+        zero_dense->get_values(), vec_dense->get_values());
 
     GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);
 }

@@ -83,7 +83,7 @@ ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo "${GKO_RPATH_ADDITIONS}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo)
+    ginkgo_check_headers(ginkgo "")
 endif()
 
 if(GINKGO_BUILD_TESTS)
