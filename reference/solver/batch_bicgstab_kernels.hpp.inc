@@ -244,9 +244,7 @@ inline void batch_entry_bicgstab_impl(
     const gko::kernels::batch_bicgstab::BatchBicgstabOptions<
         remove_complex<ValueType>> &opts,
     LogType logger, PrecType prec, const BatchMatrixType &a,
-    const gko::batch_dense::UniformBatch<const ValueType> &left,
-    const gko::batch_dense::UniformBatch<const ValueType> &right,
-    const gko::batch_dense::UniformBatch<ValueType> &b,
+    const gko::batch_dense::UniformBatch<const ValueType> &b,
     const gko::batch_dense::UniformBatch<ValueType> &x, const size_type ibatch,
     Array<byte> &local_space)
 {
@@ -275,23 +273,6 @@ inline void batch_entry_bicgstab_impl(
     real_type *const norms_res = norms_rhs + nrhs;
 
     uint32 converged = 0;
-
-
-    const gko::batch_dense::BatchEntry<const ValueType> left_entry =
-        gko::batch::batch_entry(left, ibatch);
-
-    const gko::batch_dense::BatchEntry<const ValueType> right_entry =
-        gko::batch::batch_entry(right, ibatch);
-
-    // scale the matrix and rhs
-    if (left_entry.values) {
-        const typename BatchMatrixType::entry_type A_entry =
-            gko::batch::batch_entry(a, ibatch);
-        const gko::batch_dense::BatchEntry<ValueType> b_entry =
-            gko::batch::batch_entry(b, ibatch);
-        batch_scale(left_entry, right_entry, A_entry);
-        batch_dense::batch_scale(left_entry, b_entry);
-    }
 
     // const typename BatchMatrixType::entry_type A_entry =
     const auto A_entry =
@@ -469,9 +450,5 @@ inline void batch_entry_bicgstab_impl(
         // rho_old = rho_new
         batch_dense::copy(gko::batch::to_const(rho_new_entry), rho_old_entry,
                           converged);
-    }
-
-    if (left_entry.values) {
-        batch_dense::batch_scale(right_entry, x_entry);
     }
 }
