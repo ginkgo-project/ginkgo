@@ -479,8 +479,10 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
  * ```
  * auto timer = get_timer(...);
  * IterationControl ic(timer);
- * for(auto status: ic.[warmup_run|run]()){
+ * for(auto status: ic.[warmup_run|run](manage_timings [default is true])){
+ *   if(! manage_timings) timer->tic();
  *   // execute benchmark
+ *   if(! manage_timings) timer->toc();
  * }
  * ```
  * At the beginning of both methods, the timer is reset.
@@ -503,16 +505,17 @@ public:
      *
      * @param timer the same timer that is to be used for the timings
      */
-    explicit IterationControl(std::shared_ptr<Timer> timer) : timer_(timer)
+    explicit IterationControl(const std::shared_ptr<Timer> &timer)
     {
-        status_warmup_ = {timer, FLAGS_warmup, FLAGS_warmup, 0., 0};
+        status_warmup_ = {TimerManager{timer, false}, FLAGS_warmup,
+                          FLAGS_warmup, 0., 0};
         if (FLAGS_repetitions == "auto") {
-            status_run_ = {timer, FLAGS_min_repetitions, FLAGS_max_repetitions,
-                           FLAGS_min_runtime};
+            status_run_ = {TimerManager{timer, true}, FLAGS_min_repetitions,
+                           FLAGS_max_repetitions, FLAGS_min_runtime};
         } else {
             const auto reps =
                 static_cast<unsigned int>(std::stoi(FLAGS_repetitions));
-            status_run_ = {timer, reps, reps, 0., 0};
+            status_run_ = {TimerManager{timer, true}, reps, reps, 0., 0};
         }
     }
 
@@ -527,8 +530,8 @@ public:
      */
     run_control warmup_run()
     {
-        timer_->clear();
         status_warmup_.cur_it = 0;
+        status_warmup_.timer->clear();
         return run_control{&status_warmup_};
     }
 
@@ -536,11 +539,15 @@ public:
      * Creates iterable `run_control` object for the timed run.
      *
      * This run may be adaptive, depending on the commandline flags.
+     *
+     * @param manage_timings If true, the timer calls (`tic/toc`) are handled
+     * by the `run_control` object, otherwise they need to be executed outside
      */
-    run_control run()
+    run_control run(bool manage_timings = true)
     {
-        timer_->clear();
         status_run_.cur_it = 0;
+        status_run_.timer->clear();
+        status_run_.timer->manage_timings = manage_timings;
         return run_control{&status_run_};
     }
 
@@ -553,12 +560,34 @@ public:
     IndexType get_num_repetitions() const { return status_run_.cur_it; }
 
 private:
+    struct TimerManager {
+        std::shared_ptr<Timer> timer;
+        bool manage_timings = false;
+
+        void tic()
+        {
+            if (manage_timings) timer->tic();
+        }
+        void toc()
+        {
+            if (manage_timings) timer->toc();
+        }
+
+        void clear() { timer->clear(); }
+
+        double get_total_time() const { return timer->get_total_time(); }
+
+        // emulate shared_ptr behavior
+        const TimerManager *operator->() const { return this; }
+        TimerManager *operator->() { return this; }
+    };
+
     /**
      * Stores stopping criteria of the adaptive benchmark run as well as the
      * current iteration number.
      */
     struct status {
-        std::shared_ptr<Timer> timer = nullptr;
+        TimerManager timer{};
 
         IndexType min_it = 0;
         IndexType max_it = 0;
@@ -577,7 +606,7 @@ private:
          *
          * @return completeness state of the adaptive run
          */
-        bool is_finished()
+        bool is_finished() const
         {
             return cur_it >= min_it &&
                    (cur_it >= max_it || timer->get_total_time() >= max_runtime);
@@ -654,8 +683,6 @@ private:
 
         status *info;
     };
-
-    std::shared_ptr<Timer> timer_;
 
     status status_warmup_;
     status status_run_;
