@@ -51,8 +51,7 @@ public:
         return comm_;
     }
 
-    explicit DistributedBase(std::shared_ptr<mpi::communicator> comm =
-                                 std::make_shared<mpi::communicator>())
+    explicit DistributedBase(std::shared_ptr<mpi::communicator> comm)
         : comm_{comm}
     {}
 

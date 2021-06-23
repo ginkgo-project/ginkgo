@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
     MPI_Barrier(MPI_COMM_WORLD);
     ValueType t_read_setup_end = MPI_Wtime();
 
-    auto block_A = block_approx::create(exec, A.get());
+    auto block_A = block_approx::create(exec, A.get(), comm);
 
     gko::remove_complex<ValueType> inner_reduction_factor = 1e-10;
     auto coarse_solver = gko::share(

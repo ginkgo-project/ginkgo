@@ -53,6 +53,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace distributed {
 
+
+template <typename ValueType, typename LocalIndexType>
+class Matrix;
+
+
 template <typename ValueType = double, typename LocalIndexType = int32>
 class Matrix : public EnableLinOp<Matrix<ValueType, LocalIndexType>>,
                public EnableCreateMethod<Matrix<ValueType, LocalIndexType>>,
@@ -71,6 +76,25 @@ public:
     using GlobalVec = Vector<value_type, LocalIndexType>;
     using LocalVec = gko::matrix::Dense<value_type>;
     using LocalMtx = gko::matrix::Csr<value_type, local_index_type>;
+
+    void convert_to(Matrix<value_type, local_index_type>* result) const override
+    {
+        bool same_executor = this->get_executor() == result->get_executor();
+        result->diag_mtx_->copy_from(this->diag_mtx_.get());
+        result->offdiag_mtx_->copy_from(this->offdiag_mtx_.get());
+        result->gather_idxs_ = this->gather_idxs_;
+        result->send_offsets_ = this->send_offsets_;
+        result->recv_offsets_ = this->recv_offsets_;
+        result->recv_sizes_ = this->recv_sizes_;
+        result->send_sizes_ = this->send_sizes_;
+        result->set_size(this->get_size());
+    }
+
+    void move_to(Matrix<value_type, local_index_type>* result) override
+    {
+        bool same_executor = this->get_executor() == result->get_executor();
+        EnableLinOp<Matrix>::move_to(result);
+    }
 
     void read_distributed(
         const matrix_data<ValueType, global_index_type>& data,

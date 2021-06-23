@@ -198,15 +198,18 @@ int main(int argc, char* argv[])
     b->copy_from(b_host.get());
     x->copy_from(x_host.get());
 
-    x_host->copy_from(x.get());
+
+    if (A->get_executor() == A->get_executor()->get_master()) {
+        GKO_NOT_IMPLEMENTED;
+    }
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
-    A_host->apply(lend(minus_one), lend(x_host), lend(one), lend(b_host));
+    A->apply(lend(minus_one), lend(x), lend(one), lend(b));
     auto initial_resnorm = gko::initialize<vec>({0.0}, exec->get_master());
-    b_host->compute_norm2(gko::lend(initial_resnorm));
-    b_host->copy_from(b.get());
+    b->compute_norm2(gko::lend(initial_resnorm));
+    b->copy_from(b_host.get());
 
-    auto block_A = block_approx::create(exec, A.get());
+    auto block_A = block_approx::create(exec, A.get(), comm);
 
     gko::remove_complex<ValueType> inner_reduction_factor = 1e-2;
     auto inner_solver = gko::share(bj::build().on(exec));
@@ -239,7 +242,18 @@ int main(int argc, char* argv[])
     std::shared_ptr<gko::stop::Combined::Factory> combined_stop =
         gko::stop::Combined::build()
             .with_criteria(iter_stop, tol_stop)
+            // .with_criteria(iter_stop)
             .on(exec);
+
+    // std::ofstream fstream("stream_out.txt");
+    // std::shared_ptr<gko::log::Stream<ValueType>> stream_logger =
+    //     gko::log::Stream<ValueType>::create(
+    //         exec,
+    //         gko::log::Logger::all_events_mask ^
+    //             gko::log::Logger::linop_factory_events_mask ^
+    //             gko::log::Logger::polymorphic_object_events_mask,
+    //         fstream);
+    // exec->add_logger(stream_logger);
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create(
@@ -254,6 +268,10 @@ int main(int argc, char* argv[])
                     .on(exec)
                     ->generate(A);
     Ainv->add_logger(logger);
+    // std::ofstream filestream("my_file.txt");
+    // Ainv->add_logger(gko::log::Stream<ValueType>::create(
+    //     exec, gko::log::Logger::all_events_mask, filestream));
+    // Ainv->add_logger(stream_logger);
     MPI_Barrier(MPI_COMM_WORLD);
     ValueType t_solver_generate_end = MPI_Wtime();
 
@@ -263,12 +281,11 @@ int main(int argc, char* argv[])
     ValueType t_solver_apply_end = MPI_Wtime();
     // Ainv->remove_logger(logger.get());
 
-    x_host->copy_from(x.get());
     one = gko::initialize<vec>({1.0}, exec);
     minus_one = gko::initialize<vec>({-1.0}, exec);
-    A_host->apply(lend(minus_one), lend(x_host), lend(one), lend(b_host));
+    A->apply(lend(minus_one), lend(x), lend(one), lend(b));
     auto result = gko::initialize<vec>({0.0}, exec->get_master());
-    b_host->compute_norm2(lend(result));
+    b->compute_norm2(lend(result));
 
     MPI_Barrier(MPI_COMM_WORLD);
     ValueType t_end = MPI_Wtime();
@@ -281,7 +298,7 @@ int main(int argc, char* argv[])
         // clang-format off
     std::cout << "\nNum rows in matrix: " << num_rows
               << "\nNum ranks: " << comm->size()
-              << "\nFinal Res norm: " << *initial_resnorm->get_values()
+              << "\nInitial Res norm: " << *initial_resnorm->get_values()
               << "\nFinal Res norm: " << *result->get_values()
               << "\nNum iters: " << logger->get_num_iterations()
               << "\nLogger res norm: " << l_res_norm

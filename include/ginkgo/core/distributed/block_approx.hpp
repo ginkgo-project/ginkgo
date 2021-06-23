@@ -84,21 +84,26 @@ public:
 
 protected:
     BlockApprox(std::shared_ptr<const Executor> exec,
+                std::shared_ptr<mpi::communicator> comm =
+                    std::make_shared<mpi::communicator>(),
                 const Array<size_type> &num_blocks = {},
                 const Overlap<size_type> &block_overlaps = {})
         : EnableLinOp<BlockApprox<value_type, local_index_type>>{exec,
                                                                  dim<2>{}},
+          DistributedBase{comm},
           block_overlaps_{block_overlaps},
           diagonal_blocks_{}
     {}
 
     BlockApprox(std::shared_ptr<const Executor> exec,
                 const Matrix<value_type, local_index_type> *matrix,
+                std::shared_ptr<mpi::communicator> comm,
                 const Array<size_type> &num_blocks = {},
                 const Overlap<size_type> &block_overlaps = {})
         : EnableLinOp<
               BlockApprox<value_type, local_index_type>>{exec,
                                                          matrix->get_size()},
+          DistributedBase{comm},
           block_overlaps_{block_overlaps},
           diagonal_blocks_{}
     {
