@@ -348,6 +348,11 @@ TEST_F(BatchDense, CudaConvergenceComputeNorm2IsEquivalentToRef)
 
     const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
 
+    for (int ibatch = 0; ibatch < batch_size; ibatch++) {
+        for (int icol = 0; icol < norm_expected->get_size().at()[1]; icol++) {
+            norm_expected->at(ibatch, 0, icol) = 0;
+        }
+    }
     dnorm->copy_from(norm_expected.get());
 
     gko::kernels::reference::batch_dense::convergence_compute_norm2(
@@ -385,6 +390,12 @@ TEST_F(BatchDense, CudaConvergenceComputeDotIsEquivalentToRef)
     auto dot_expected = Mtx::create(this->ref, dot_size);
     auto ddot = Mtx::create(this->cuda, dot_size);
 
+    for (int ibatch = 0; ibatch < batch_size; ibatch++) {
+        for (int icol = 0; icol < dot_expected->get_size().at()[1]; icol++) {
+            dot_expected->at(ibatch, 0, icol) = 0;
+        }
+    }
+
     ddot->copy_from(dot_expected.get());
 
     const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
@@ -407,7 +418,7 @@ TEST_F(BatchDense, CudaCopyIsEquivalentToRef)
     gko::kernels::reference::batch_dense::copy(this->ref, x.get(), y.get());
     gko::kernels::cuda::batch_dense::copy(this->cuda, dx.get(), dy.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 0.0);
 }
 
 
@@ -423,7 +434,7 @@ TEST_F(BatchDense, CudaConvergenceCopyIsEquivalentToRef)
     gko::kernels::cuda::batch_dense::convergence_copy(this->cuda, dx.get(),
                                                       dy.get(), converged);
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 0.0);
 }
 
 
