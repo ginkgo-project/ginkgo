@@ -98,8 +98,8 @@ DEFINE_string(repetitions, "10",
               "runtime is larger than 'min_runtime'");
 
 DEFINE_double(min_runtime, 0.05,
-              "If 'repetitions = auto' is used, the minimal runtime of"
-              " a single benchmark.");
+              "If 'repetitions = auto' is used, the minimal runtime (seconds) "
+              "of a single benchmark.");
 
 DEFINE_uint32(min_repetitions, 10,
               "If 'repetitions = auto' is used, the minimal number of"
@@ -108,6 +108,10 @@ DEFINE_uint32(min_repetitions, 10,
 DEFINE_uint32(max_repetitions, std::numeric_limits<unsigned int>::max(),
               "If 'repetitions = auto' is used, the maximal number of"
               " repetitions for a single benchmark.");
+
+DEFINE_double(repetition_growth_factor, 1.5,
+              "If 'repetitions = auto' is used, the factor with which the"
+              " repetitions between two timings increase.");
 
 
 /**
@@ -470,20 +474,32 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
  * - 'min_repetitions' minimal number of repetitions (adaptive case)
  * - 'max_repetitions' maximal number of repetitions (adaptive case)
  * - 'min_runtime' minimal total runtime (adaptive case)
+ * - 'repetition_growth_factor' controls the increase between two successive
+ *   timings
  *
  * Usage:
- * `IterationControl` exposes two member functions:
- * - `warmup_run()`: uses `warmup` flag
- * - `run()`: uses all other flags
- * Both methods return an object that is to be used in a range-based for loop:
+ * `IterationControl` exposes the member functions:
+ * - `warmup_run()`: controls run defined by `warmup` flag
+ * - `run(bool)`: controls run defined by all other flags
+ * - `get_timer()`: access to underlying timer
+ * The first two methods return an object that is to be used in a range-based
+ * for loop:
  * ```
- * auto timer = get_timer(...);
- * IterationControl ic(timer);
- * for(auto status: ic.[warmup_run|run](manage_timings [default is true])){
- *   if(! manage_timings) timer->tic();
+ * IterationControl ic(get_timer(...));
+ *
+ * // warmup run always uses fixed number of iteration and does not issue
+ * // timings
+ * for(auto status: ic.warmup_run()){
  *   // execute benchmark
- *   if(! manage_timings) timer->toc();
  * }
+ * // run may use adaptive number of iterations (depending on cmd line flag)
+ * // and issues timing (unless manage_timings is false)
+ * for(auto status: ic.run(manage_timings [default is true])){
+ *   if(! manage_timings) ic.get_timer->tic();
+ *   // execute benchmark
+ *   if(! manage_timings) ic.get_timer->toc();
+ * }
+ *
  * ```
  * At the beginning of both methods, the timer is reset.
  * The `status` object exposes the member
@@ -503,7 +519,7 @@ public:
      * Uses the commandline flags to setup the stopping criteria for the
      * warmup and timed run.
      *
-     * @param timer the same timer that is to be used for the timings
+     * @param timer  the timer that is to be used for the timings
      */
     explicit IterationControl(const std::shared_ptr<Timer> &timer)
     {
@@ -531,7 +547,7 @@ public:
     run_control warmup_run()
     {
         status_warmup_.cur_it = 0;
-        status_warmup_.timer->clear();
+        status_warmup_.managed_timer.clear();
         return run_control{&status_warmup_};
     }
 
@@ -546,15 +562,20 @@ public:
     run_control run(bool manage_timings = true)
     {
         status_run_.cur_it = 0;
-        status_run_.timer->clear();
-        status_run_.timer->manage_timings = manage_timings;
+        status_run_.managed_timer.clear();
+        status_run_.managed_timer.manage_timings = manage_timings;
         return run_control{&status_run_};
     }
 
+    std::shared_ptr<Timer> get_timer() const
+    {
+        return status_run_.managed_timer.timer;
+    }
 
     double compute_average_time() const
     {
-        return status_run_.timer->get_total_time() / get_num_repetitions();
+        return status_run_.managed_timer.get_total_time() /
+               get_num_repetitions();
     }
 
     IndexType get_num_repetitions() const { return status_run_.cur_it; }
@@ -566,20 +587,20 @@ private:
 
         void tic()
         {
-            if (manage_timings) timer->tic();
+            if (manage_timings) {
+                timer->tic();
+            }
         }
         void toc()
         {
-            if (manage_timings) timer->toc();
+            if (manage_timings) {
+                timer->toc();
+            }
         }
 
         void clear() { timer->clear(); }
 
         double get_total_time() const { return timer->get_total_time(); }
-
-        // emulate shared_ptr behavior
-        const TimerManager *operator->() const { return this; }
-        TimerManager *operator->() { return this; }
     };
 
     /**
@@ -587,7 +608,7 @@ private:
      * current iteration number.
      */
     struct status {
-        TimerManager timer{};
+        TimerManager managed_timer{};
 
         IndexType min_it = 0;
         IndexType max_it = 0;
@@ -609,7 +630,8 @@ private:
         bool is_finished() const
         {
             return cur_it >= min_it &&
-                   (cur_it >= max_it || timer->get_total_time() >= max_runtime);
+                   (cur_it >= max_it ||
+                    managed_timer.get_total_time() >= max_runtime);
         }
     };
 
@@ -624,8 +646,8 @@ private:
              * Increases the current iteration count and finishes timing if
              * necessary.
              *
-             * As `++it` is the last step of a for-loop, the timer is stopped,
-             * if enough iterations have passed since the last timing.
+             * As `++it` is the last step of a for-loop, the managed_timer is
+             * stopped, if enough iterations have passed since the last timing.
              * The interval between two timings is steadily increased to
              * reduce the timing overhead.
              */
@@ -633,10 +655,10 @@ private:
             {
                 cur_info->cur_it++;
                 if (cur_info->cur_it >= next_timing && !stopped) {
-                    cur_info->timer->toc();
+                    cur_info->managed_timer.toc();
                     stopped = true;
-                    next_timing =
-                        static_cast<IndexType>(std::ceil(next_timing * 1.5));
+                    next_timing = static_cast<IndexType>(std::ceil(
+                        next_timing * FLAGS_repetition_growth_factor));
                 }
                 return *this;
             }
@@ -647,11 +669,11 @@ private:
              * Checks if the benchmark is finished and handles timing, if
              * necessary.
              *
-             * As `begin != end` is the first step in a for-loop, the timer is
-             * started, if it was previously stopped.
-             * Additionally, if the benchmark is complete and the timer is still
-             * running it is stopped. (This may occur if the maximal number of
-             * repetitions is surpassed)
+             * As `begin != end` is the first step in a for-loop, the
+             * managed_timer is started, if it was previously stopped.
+             * Additionally, if the benchmark is complete and the managed_timer
+             * is still running it is stopped. (This may occur if the maximal
+             * number of repetitions is surpassed)
              *
              * Uses only the information from the `status` object, i.e.
              * the right hand side is ignored.
@@ -663,9 +685,9 @@ private:
                 const bool is_finished = cur_info->is_finished();
                 if (!is_finished && stopped) {
                     stopped = false;
-                    cur_info->timer->tic();
+                    cur_info->managed_timer.tic();
                 } else if (is_finished && !stopped) {
-                    cur_info->timer->toc();
+                    cur_info->managed_timer.toc();
                     stopped = true;
                 }
                 return !is_finished;
