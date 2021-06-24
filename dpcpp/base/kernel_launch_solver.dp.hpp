@@ -74,4 +74,4 @@ void run_kernel_solver(std::shared_ptr<const DpcppExecutor> exec,
 }  // namespace kernels
 }  // namespace gko
 
-#endif  // GKO_HIP_BASE_KERNEL_LAUNCH_SOLVER_HIP_HPP_
+#endif  // GKO_DPCPP_BASE_KERNEL_LAUNCH_SOLVER_DP_HPP_
