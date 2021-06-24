@@ -42,12 +42,24 @@ namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 
 
+/**
+ * @internal
+ * Wrapper class used by default_stride(matrix::Dense<ValueType>*) to wrap a
+ * dense matrix using the default stride.
+ */
 template <typename ValueType>
 struct default_stride_dense_wrapper {
     ValueType *data;
 };
 
 
+/**
+ * @internal
+ * Helper that creates a device representation of the input object based on the
+ * default stride that was passed to run_kernel_solver.
+ * @see default_stride_dense_wrapper
+ * @see default_stride(matrix::Dense<ValueType>*)
+ */
 template <typename T>
 struct device_unpack_solver_impl {
     using type = T;
@@ -68,6 +80,12 @@ struct device_unpack_solver_impl<default_stride_dense_wrapper<ValueType>> {
 };
 
 
+/**
+ * @internal
+ * Wraps the given matrix in a wrapper signifying that it has the default stride
+ * that was provided to run_kernel_solver. This avoids having individual stride
+ * parameters for all dense matrix parameters.
+ */
 template <typename ValueType>
 default_stride_dense_wrapper<device_type<ValueType>> default_stride(
     matrix::Dense<ValueType> *mtx)
@@ -75,7 +93,10 @@ default_stride_dense_wrapper<device_type<ValueType>> default_stride(
     return {as_device_type(mtx->get_values())};
 }
 
-
+/**
+ * @internal
+ * @copydoc default_stride(matrix::Dense<ValueType>*)
+ */
 template <typename ValueType>
 default_stride_dense_wrapper<const device_type<ValueType>> default_stride(
     const matrix::Dense<ValueType> *mtx)
@@ -84,6 +105,12 @@ default_stride_dense_wrapper<const device_type<ValueType>> default_stride(
 }
 
 
+/**
+ * @internal
+ * Wraps the given matrix in a wrapper signifying that it is a row vector, i.e.
+ * we don't need to pass a stride parameter, but can access it directly as a
+ * pointer.
+ */
 template <typename ValueType>
 device_type<ValueType> *row_vector(matrix::Dense<ValueType> *mtx)
 {
@@ -91,7 +118,10 @@ device_type<ValueType> *row_vector(matrix::Dense<ValueType> *mtx)
     return as_device_type(mtx->get_values());
 }
 
-
+/**
+ * @internal
+ * @copydoc row_vector(matrix::Dense<ValueType>*)
+ */
 template <typename ValueType>
 const device_type<ValueType> *row_vector(const matrix::Dense<ValueType> *mtx)
 {
