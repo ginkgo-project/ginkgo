@@ -1,0 +1,1 @@
+ginkgo_create_common_test(dense_kernels)
