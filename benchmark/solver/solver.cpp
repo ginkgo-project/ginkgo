@@ -399,8 +399,7 @@ void solve_system(const std::string &solver_name,
                               allocator);
         }
 
-        auto apply_timer = get_timer(exec, FLAGS_gpu_timer);
-        IterationControl ic{apply_timer};
+        IterationControl ic{get_timer(exec, FLAGS_gpu_timer)};
 
         // warm run
         auto it_logger = std::make_shared<IterationLogger>(exec);
@@ -475,6 +474,7 @@ void solve_system(const std::string &solver_name,
 
         // timed run
         auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
+        auto apply_timer = ic.get_timer();
         auto x_clone = clone(x);
         for (auto status : ic.run(false)) {
             x_clone = clone(x);
