@@ -156,17 +156,33 @@ namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 
 
+/**
+ * @internal
+ * A simple row-major accessor as a device representation of gko::matrix::Dense
+ * objects.
+ *
+ * @tparam ValueType  the value type of the underlying matrix.
+ */
 template <typename ValueType>
 struct matrix_accessor {
     ValueType *data;
     size_type stride;
 
+    /**
+     * @internal
+     * Returns a reference to the element at position (row, col).
+     */
     GKO_INLINE GKO_ATTRIBUTES ValueType &operator()(size_type row,
                                                     size_type col)
     {
         return data[row * stride + col];
     }
 
+    /**
+     * @internal
+     * Returns a reference to the element at position idx in the underlying
+     * storage.
+     */
     GKO_INLINE GKO_ATTRIBUTES ValueType &operator[](size_type idx)
     {
         return data[idx];
@@ -174,6 +190,24 @@ struct matrix_accessor {
 };
 
 
+/**
+ * @internal
+ * This struct is used to provide mappings from host types like
+ * gko::matrix::Dense to device representations of the same data, like an
+ * accessor storing only data pointer and stride.
+ *
+ * By default, it only maps std::complex to the corresponding device
+ * representation of the complex type. There are specializations for dealing
+ * with gko::Array and gko::matrix::Dense (both const and mutable) that map them
+ * to plain pointers or matrix_accessor objects.
+ *
+ * @tparam T  the type being mapped. It will be used based on a
+ *            forwarding-reference, i.e. preserve references in the input
+ *            parameter, so special care must be taken to only return types that
+ *            can be passed to the device, i.e. (structs containing) device
+ *            pointers or values. This means that T will be either a r-value or
+ *            l-value reference.
+ */
 template <typename T>
 struct to_device_type_impl {
     using type = std::decay_t<device_type<T>>;
@@ -229,6 +263,8 @@ typename to_device_type_impl<T>::type map_to_device(T &&param)
 }  // namespace gko
 
 
+// these files include this file again to make inclusion work from both sides,
+// this does not lead to issues due to the header guards.
 #if defined(GKO_COMPILING_CUDA)
 #include "cuda/base/kernel_launch.cuh"
 #elif defined(GKO_COMPILING_HIP)
