@@ -301,29 +301,25 @@ TEST_F(Fbcsr, CalculatesNonzerosPerRow)
 }
 
 
-TEST_F(Fbcsr, RecognizeSortedMatrixIsEquivalentToRef)
+TEST_F(Fbcsr, RecognizeSortedMatrix)
 {
     set_up_apply_data();
     bool is_sorted_omp{};
-    bool is_sorted_ref{};
 
-    is_sorted_ref = mtx->is_sorted_by_column_index();
     is_sorted_omp = dmtx->is_sorted_by_column_index();
 
-    ASSERT_EQ(is_sorted_ref, is_sorted_omp);
+    ASSERT_TRUE(is_sorted_omp);
 }
 
 
-TEST_F(Fbcsr, RecognizeUnsortedMatrixIsEquivalentToRef)
+TEST_F(Fbcsr, RecognizeUnsortedMatrix)
 {
     auto uns_mtx = gen_unsorted_mtx();
     bool is_sorted_omp{};
-    bool is_sorted_ref{};
 
-    is_sorted_ref = uns_mtx.ref->is_sorted_by_column_index();
     is_sorted_omp = uns_mtx.omp->is_sorted_by_column_index();
 
-    ASSERT_EQ(is_sorted_ref, is_sorted_omp);
+    ASSERT_FALSE(is_sorted_omp);
 }
 
 

@@ -281,5 +281,34 @@ TYPED_TEST(Fbcsr, RecognizeUnsortedMatrix)
     ASSERT_FALSE(unsrt_cuda->is_sorted_by_column_index());
 }
 
+TYPED_TEST(Fbcsr, InplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename Mtx::value_type;
+    auto rand_ref = Mtx::create(this->ref);
+    rand_ref->copy_from(this->rsorted_ref.get());
+    auto rand_cuda = Mtx::create(this->cuda);
+    rand_cuda->copy_from(gko::lend(this->rsorted_ref));
+
+    rand_ref->compute_absolute_inplace();
+    rand_cuda->compute_absolute_inplace();
+
+    const double tol = r<value_type>::value;
+    GKO_ASSERT_MTX_NEAR(rand_ref, rand_cuda, 5 * tol);
+}
+
+TYPED_TEST(Fbcsr, OutplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename Mtx::value_type;
+    auto rand_cuda = Mtx::create(this->cuda);
+    rand_cuda->copy_from(gko::lend(this->rsorted_ref));
+
+    auto abs_mtx = this->rsorted_ref->compute_absolute();
+    auto dabs_mtx = rand_cuda->compute_absolute();
+
+    const double tol = r<value_type>::value;
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 5 * tol);
+}
 
 }  // namespace
