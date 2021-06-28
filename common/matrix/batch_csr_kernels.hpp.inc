@@ -85,6 +85,43 @@ __device__ __forceinline__ void spmv_kernel(
 }
 
 template <typename ValueType>
+__device__ __forceinline__ void single_spmv_kernel(
+    const gko::batch_csr::BatchEntry<const ValueType> &a,
+    const gko::batch_dense::BatchEntry<const ValueType> &b,
+    const gko::batch_dense::BatchEntry<ValueType> &c)
+{
+    constexpr auto tile_size = config::warp_size;
+
+    auto thread_block = group::this_thread_block();
+    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
+    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
+
+    for (int row = subwarp_grp_id; row < a.num_rows;
+         row += num_subwarp_grps_per_block) {
+        const int row_start = a.row_ptrs[row];
+        const int row_end = a.row_ptrs[row + 1];
+
+        ValueType temp = zero<ValueType>();
+        for (int i = subwarp_grp.thread_rank() + row_start; i < row_end;
+             i += subwarp_grp.size()) {
+            const int col = a.col_idxs[i];
+            const ValueType val = a.values[i];
+            temp += val * b.values[col];
+        }
+
+#pragma unroll
+        for (int i = static_cast<int>(tile_size) / 2; i > 0; i /= 2) {
+            temp += subwarp_grp.shfl_down(temp, i);
+        }
+
+        if (subwarp_grp.thread_rank() == 0) {
+            c.values[row] = temp;
+        }
+    }
+}
+
+template <typename ValueType>
 __device__ __forceinline__ void csr_spmv_kernel(
     const int nrows, const ValueType *const __restrict__ avalues,
     const int *const __restrict__ col_idxs,
@@ -199,6 +236,43 @@ __device__ __forceinline__ void advanced_spmv_kernel(
         if (subwarp_grp.thread_rank() == 0) {
             c.values[row * c.stride + rhs] =
                 temp + beta * c.values[row * c.stride + rhs];
+        }
+    }
+}
+
+template <typename ValueType>
+__device__ __forceinline__ void single_advanced_spmv_kernel(
+    const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType> &a,
+    const gko::batch_dense::BatchEntry<const ValueType> &b,
+    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType> &c)
+{
+    constexpr auto tile_size = config::warp_size;
+
+    auto thread_block = group::this_thread_block();
+    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
+    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
+
+    for (int row = subwarp_grp_id; row < a.num_rows;
+         row += num_subwarp_grps_per_block) {
+        const int row_start = a.row_ptrs[row];
+        const int row_end = a.row_ptrs[row + 1];
+
+        ValueType temp = zero<ValueType>();
+        for (int i = subwarp_grp.thread_rank() + row_start; i < row_end;
+             i += subwarp_grp.size()) {
+            const int col = a.col_idxs[i];
+            const ValueType val = a.values[i];
+            temp += alpha * val * b.values[col];
+        }
+
+#pragma unroll
+        for (int i = static_cast<int>(tile_size) / 2; i > 0; i /= 2) {
+            temp += subwarp_grp.shfl_down(temp, i);
+        }
+
+        if (subwarp_grp.thread_rank() == 0) {
+            c.values[row] = temp + beta * c.values[row];
         }
     }
 }
