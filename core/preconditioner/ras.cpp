@@ -88,11 +88,19 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
                                                  VectorType *dense_x) const
 {
     using LocalVector = matrix::Dense<ValueType>;
-    auto x_clone = dense_x->clone();
+    // auto x_clone = dense_x->clone();
+    auto e = dense_x->clone();
+    auto one = initialize<LocalVector>({1.0}, this->get_executor());
+    auto neg_one = initialize<LocalVector>({-1.0}, this->get_executor());
+    std::cout << "###########HERE@@@@@@@@@@@@2" << __LINE__ << std::endl;
+    this->system_matrix_->apply(lend(neg_one), dense_b, lend(one), e.get());
+    std::cout << "###########HERE@@@@@@@@@@@@2" << __LINE__ << std::endl;
     if (is_distributed()) {
         GKO_ASSERT(this->inner_solvers_.size() > 0);
+        std::cout << "###########HERE@@@@@@@@@@@@2" << __LINE__ << std::endl;
         this->inner_solvers_[0]->apply(detail::get_local(dense_b),
-                                       detail::get_local(dense_x));
+                                       detail::get_local(e.get()));
+        std::cout << "###########HERE@@@@@@@@@@@@2" << __LINE__ << std::endl;
         // auto local_x = detail::get_local(dense_x);
         // auto comm = local_x->get_communicator();
         // auto num_elems =
@@ -157,24 +165,26 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
             if (parameters_.coarse_relaxation_factors.size() > 1) {
                 rel_fac = parameters_.coarse_relaxation_factors[i];
             }
-            auto beta = initialize<LocalVector>(
-                {one<ValueType>()}, this->coarse_solvers_[i]->get_executor());
-            auto alpha = initialize<LocalVector>(
-                {static_cast<ValueType>(rel_fac)},
-                this->coarse_solvers_[i]->get_executor());
+            // auto beta = initialize<LocalVector>(
+            //     {one<ValueType>()},
+            //     this->coarse_solvers_[i]->get_executor());
+            // auto alpha = initialize<LocalVector>(
+            //     {static_cast<ValueType>(rel_fac)},
+            //     this->coarse_solvers_[i]->get_executor());
             // this->coarse_solvers_[i]->apply(alpha.get(), dense_b,
             // beta.getdense_x,
             //                                 ());
             // this->coarse_solvers_[i]->apply(dense_b, x_clone.get());
-            this->coarse_solvers_[i]->apply(dense_b, dense_x);
+            this->coarse_solvers_[i]->apply(dense_b, e.get());
             // dense_x->scale(alpha.get());
         }
-        // auto fac1_sc = 0.1;
+        auto fac1_sc = 0.0;
         // auto fac1 = initialize<LocalVector>({fac1_sc}, this->get_executor());
         // x_clone->scale(fac1.get());
-        // auto fac = initialize<LocalVector>({1 - fac1_sc},
-        // this->get_executor()); dense_x->add_scaled(fac.get(), x_clone.get());
+        auto fac = initialize<LocalVector>({1 - fac1_sc}, this->get_executor());
+        dense_x->add_scaled(fac.get(), e.get());
     }
+    std::cout << "###########HERE@@@@@@@@@@@@2" << __LINE__ << std::endl;
 }
 
 
@@ -248,22 +258,39 @@ void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
         if (mat->get_executor() != this->get_executor()) {
             GKO_NOT_IMPLEMENTED;
         }
-        this->block_system_matrix_ = dist_block_t::create(
-            mat->get_executor(), mat, mat->get_communicator());
-        auto block_mtxs =
-            as<dist_block_t>(this->block_system_matrix_)->get_block_mtxs();
-        const auto num_subdomains = block_mtxs.size();
-        for (size_type i = 0; i < num_subdomains; ++i) {
-            this->inner_solvers_.emplace_back(
-                parameters_.inner_solver->generate(gko::share(block_mtxs[i])));
+        std::cout << "###########HERE@@@@@@@@@@@@2" << __LINE__ << std::endl;
+
+        if (parameters_.inner_solver) {
+            std::cout << "###########HERE@@@@@@@@@@@@2" << __LINE__
+                      << std::endl;
+            this->block_system_matrix_ = dist_block_t::create(
+                mat->get_executor(), mat, mat->get_communicator());
+            auto block_mtxs =
+                as<dist_block_t>(this->block_system_matrix_)->get_block_mtxs();
+            const auto num_subdomains = block_mtxs.size();
+            for (size_type i = 0; i < num_subdomains; ++i) {
+                this->inner_solvers_.emplace_back(
+                    parameters_.inner_solver->generate(
+                        gko::share(block_mtxs[i])));
+            }
+            std::cout << "###########HERE@@@@@@@@@@@@2" << __LINE__
+                      << std::endl;
+        }
+        if (this->inner_solvers_.size() < 1) {
+            GKO_NOT_IMPLEMENTED;
         }
         if (parameters_.coarse_solvers[0]) {
+            std::cout << "###########HERE@@@@@@@@@@@@2" << __LINE__
+                      << std::endl;
             for (size_type i = 0; i < parameters_.coarse_solvers.size(); ++i) {
                 this->coarse_solvers_.emplace_back(
                     parameters_.coarse_solvers[i]->generate(
                         this->system_matrix_));
             }
+            std::cout << "###########HERE@@@@@@@@@@@@2" << __LINE__
+                      << std::endl;
         }
+        std::cout << "###########HERE@@@@@@@@@@@@2" << __LINE__ << std::endl;
         this->is_distributed_ = true;
     } else if (dynamic_cast<const dist_block_t *>(system_matrix) != nullptr) {
         auto block_mtxs = as<dist_block_t>(system_matrix)->get_block_mtxs();
