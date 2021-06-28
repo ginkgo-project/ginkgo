@@ -167,6 +167,8 @@ namespace kernels {
     GKO_DECLARE_JACOBI_SIMPLE_SCALAR_APPLY_KERNEL(ValueType);         \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType>                                     \
+    GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL(ValueType);                \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL(ValueType, IndexType);        \
     template <typename ValueType, typename IndexType>                 \

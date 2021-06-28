@@ -582,6 +582,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL);
 
 
+template <typename ValueType>
+void scalar_apply(std::shared_ptr<const OmpExecutor> exec,
+                  const ValueType *diag_values,
+                  const matrix::Dense<ValueType> *b,
+                  matrix::Dense<ValueType> *x)
+{
+#pragma omp parallel for
+    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+        for (size_type j = 0; j < x->get_size()[1]; ++j) {
+            x->at(i, j) = b->at(i, j) / diag_values[i];
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void transpose_jacobi(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
