@@ -154,7 +154,7 @@ inline std::ostream &operator<<(std::ostream &os, const version &ver)
  *     earlier version may have this implemented or fixed in a later version).
  *
  * This structure provides versions of different parts of Ginkgo: the headers,
- * the core and the kernel modules (reference, OpenMP, CUDA, HIP).
+ * the core and the kernel modules (reference, OpenMP, CUDA, HIP, DPCPP).
  * To obtain an instance of version_info filled with information about the
  * current version of Ginkgo, call the version_info::get() static method.
  */
