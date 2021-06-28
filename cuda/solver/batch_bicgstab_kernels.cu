@@ -64,7 +64,7 @@ namespace batch_bicgstab {
 #include "common/components/reduction.hpp.inc"
 #include "common/log/batch_logger.hpp.inc"
 #include "common/matrix/batch_csr_kernels.hpp.inc"
-#include "common/matrix/batch_dense_kernels.hpp.inc"
+#include "common/matrix/batch_vector_kernels.hpp.inc"
 #include "common/preconditioner/batch_identity.hpp.inc"
 #include "common/preconditioner/batch_jacobi.hpp.inc"
 #include "common/solver/batch_bicgstab_kernels.hpp.inc"
@@ -79,8 +79,8 @@ using BatchBicgstabOptions =
     apply_kernel<stop::_stoppertype<ValueType>>                              \
         <<<nbatch, default_block_size, shared_size>>>(                       \
             opts.max_its, opts.residual_tol, logger, _prectype<ValueType>(), \
-            nbatch, nrows, nnz, avalues, col_idxs, row_ptrs, b.stride,       \
-            b.num_rhs, b.values, x.values)
+            nbatch, nrows, shared_gap, nnz, avalues, col_idxs, row_ptrs,     \
+            b.stride, b.num_rhs, b.values, x.values)
 
 template <typename BatchMatrixType, typename LogType, typename ValueType>
 static void apply_impl(
@@ -97,11 +97,12 @@ static void apply_impl(
     const ValueType *const __restrict__ avalues = a.values;
     const int *const __restrict__ col_idxs = a.col_idxs;
     const int *const __restrict__ row_ptrs = a.row_ptrs;
+    const int shared_gap = ((a.num_rows - 1) / 32 + 1) * 32;
 
     int shared_size =
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
-            a.num_rows, b.num_rhs);
+            /*a.num_rows*/ shared_gap, b.num_rhs);
 #else
         0;
 #endif
@@ -123,7 +124,7 @@ static void apply_impl(
                gko::preconditioner::batch::type::jacobi) {
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         shared_size +=
-            BatchJacobi<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
+            BatchJacobi<ValueType>::dynamic_work_size(shared_gap, a.num_nnz) *
             sizeof(ValueType);
 #endif
 
@@ -151,7 +152,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     using cu_value_type = cuda_type<ValueType>;
 
     // For now, FinalLogger is the only one available
-    batch_log::FinalLogger<remove_complex<ValueType>> logger(
+    batch_log::SimpleFinalLogger<remove_complex<ValueType>> logger(
         static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
         logdata.res_norms->get_values(), logdata.iter_counts.get_data());
 
