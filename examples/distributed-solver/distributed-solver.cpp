@@ -198,10 +198,6 @@ int main(int argc, char* argv[])
     b->copy_from(b_host.get());
     x->copy_from(x_host.get());
 
-
-    if (A->get_executor() == A->get_executor()->get_master()) {
-        GKO_NOT_IMPLEMENTED;
-    }
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
     A->apply(lend(minus_one), lend(x), lend(one), lend(b));
@@ -212,8 +208,8 @@ int main(int argc, char* argv[])
     auto block_A = block_approx::create(exec, A.get(), comm);
 
     gko::remove_complex<ValueType> inner_reduction_factor = 1e-2;
-    auto inner_solver = gko::share(bj::build().on(exec));
-    // paric::build().on(exec));
+    auto inner_solver = gko::share(paric::build().on(exec));
+    // bj::build().on(exec));
     // ir::build()
     //     .with_relaxation_factor(0.9)
     //     .with_criteria(
@@ -225,8 +221,24 @@ int main(int argc, char* argv[])
     //                        .with_max_iters(inner_iter)
     //                        .on(exec))
     //     .on(exec));
+    // bj::build().with_max_block_size(1u).on(exec)
+    auto coarse_solver = gko::share(
+        // ir::build()
+        //     .with_relaxation_factor(1.0)
+        //     .with_solver(
+        cg::build()
+            // .with_preconditioner(bj::build().on(exec))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(10u).on(exec))
+            .on(exec)
+            // )
+            // .with_criteria(
+            //     gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            // .on(exec)
+            ->generate(A));
     auto ras_precond = ras::build()
                            .with_inner_solver(inner_solver)
+                           .with_generated_coarse_solvers(coarse_solver)
                            .on(exec)
                            ->generate(gko::share(block_A));
 
