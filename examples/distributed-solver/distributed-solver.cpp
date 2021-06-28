@@ -94,6 +94,7 @@ int main(int argc, char* argv[])
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);
     const auto comm = gko::mpi::communicator::create_world();
     const gko::size_type inner_iter = argc >= 4 ? std::atoi(argv[3]) : 10u;
+    const gko::size_type coarse_iters = argc >= 5 ? std::atoi(argv[4]) : 50u;
     const auto rank = comm->rank();
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -223,18 +224,19 @@ int main(int argc, char* argv[])
     //     .on(exec));
     // bj::build().with_max_block_size(1u).on(exec)
     auto coarse_solver = gko::share(
-        // ir::build()
-        //     .with_relaxation_factor(1.0)
-        //     .with_solver(
-        cg::build()
-            // .with_preconditioner(bj::build().on(exec))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(10u).on(exec))
-            .on(exec)
+        ir::build()
+            .with_relaxation_factor(1.0)
+            .with_solver(bj::build().with_max_block_size(1u).on(exec))
+            // cg::build()
+            //     // .with_preconditioner(bj::build().on(exec))
+            //     .with_criteria(
+            //         gko::stop::Iteration::build().with_max_iters(10u).on(exec))
+            //     .on(exec)
             // )
-            // .with_criteria(
-            //     gko::stop::Iteration::build().with_max_iters(1u).on(exec))
-            // .on(exec)
+            .with_criteria(gko::stop::Iteration::build()
+                               .with_max_iters(coarse_iters)
+                               .on(exec))
+            .on(exec)
             ->generate(A));
     auto ras_precond = ras::build()
                            .with_inner_solver(inner_solver)
