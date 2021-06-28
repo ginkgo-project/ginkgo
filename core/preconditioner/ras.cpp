@@ -165,15 +165,15 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
             // this->coarse_solvers_[i]->apply(alpha.get(), dense_b,
             // beta.getdense_x,
             //                                 ());
-            this->coarse_solvers_[i]->apply(dense_b, x_clone.get());
-            // this->coarse_solvers_[i]->apply(dense_b, dense_x);
+            // this->coarse_solvers_[i]->apply(dense_b, x_clone.get());
+            this->coarse_solvers_[i]->apply(dense_b, dense_x);
             // dense_x->scale(alpha.get());
         }
-        auto fac1_sc = 0.1;
-        auto fac1 = initialize<LocalVector>({fac1_sc}, this->get_executor());
-        x_clone->scale(fac1.get());
-        auto fac = initialize<LocalVector>({1 - fac1_sc}, this->get_executor());
-        dense_x->add_scaled(fac.get(), x_clone.get());
+        // auto fac1_sc = 0.1;
+        // auto fac1 = initialize<LocalVector>({fac1_sc}, this->get_executor());
+        // x_clone->scale(fac1.get());
+        // auto fac = initialize<LocalVector>({1 - fac1_sc},
+        // this->get_executor()); dense_x->add_scaled(fac.get(), x_clone.get());
     }
 }
 
