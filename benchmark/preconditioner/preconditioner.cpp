@@ -159,45 +159,38 @@ void run_preconditioner(const char *precond_name,
                               allocator);
         }
 
+        IterationControl ic_gen{get_timer(exec, FLAGS_gpu_timer)};
+        IterationControl ic_apply{get_timer(exec, FLAGS_gpu_timer)};
+
         {
             // fast run, gets total time
             auto x_clone = clone(x);
 
             auto precond = precond_factory.at(precond_name)(exec);
 
-            for (auto i = 0u; i < FLAGS_warmup; ++i) {
+
+            for (auto _ : ic_apply.warmup_run()) {
                 precond->generate(system_matrix)->apply(lend(b), lend(x_clone));
             }
-            auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
-            auto apply_timer = get_timer(exec, FLAGS_gpu_timer);
 
-            exec->synchronize();
-            generate_timer->tic();
             std::unique_ptr<gko::LinOp> precond_op;
-            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+            for (auto _ : ic_gen.run()) {
                 precond_op = precond->generate(system_matrix);
             }
-            generate_timer->toc();
 
-            // the timer is out of the loops to reduce calling synchronize
-            // overhead, so the timer does not know the number of repetitions.
-            auto generate_time =
-                generate_timer->get_total_time() / FLAGS_repetitions;
             add_or_set_member(this_precond_data["generate"], "time",
-                              generate_time, allocator);
+                              ic_gen.compute_average_time(), allocator);
+            add_or_set_member(this_precond_data["generate"], "repetitions",
+                              ic_gen.get_num_repetitions(), allocator);
 
-            exec->synchronize();
-            apply_timer->tic();
-            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+            for (auto _ : ic_apply.run()) {
                 precond_op->apply(lend(b), lend(x_clone));
             }
-            apply_timer->toc();
 
-            // the timer is out of the loops to reduce calling synchronize
-            // overhead, so the timer does not know the number of repetitions.
-            auto apply_time = apply_timer->get_total_time() / FLAGS_repetitions;
-            add_or_set_member(this_precond_data["apply"], "time", apply_time,
-                              allocator);
+            add_or_set_member(this_precond_data["apply"], "time",
+                              ic_apply.compute_average_time(), allocator);
+            add_or_set_member(this_precond_data["apply"], "repetitions",
+                              ic_apply.get_num_repetitions(), allocator);
         }
 
         if (FLAGS_detailed) {
@@ -209,24 +202,24 @@ void run_preconditioner(const char *precond_name,
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(gen_logger);
             std::unique_ptr<gko::LinOp> precond_op;
-            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+            for (auto i = 0u; i < ic_gen.get_num_repetitions(); ++i) {
                 precond_op = precond->generate(system_matrix);
             }
             exec->remove_logger(gko::lend(gen_logger));
 
             gen_logger->write_data(this_precond_data["generate"]["components"],
-                                   allocator, FLAGS_repetitions);
+                                   allocator, ic_gen.get_num_repetitions());
 
             auto apply_logger =
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(apply_logger);
-            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+            for (auto i = 0u; i < ic_apply.get_num_repetitions(); ++i) {
                 precond_op->apply(lend(b), lend(x_clone));
             }
             exec->remove_logger(gko::lend(apply_logger));
 
             apply_logger->write_data(this_precond_data["apply"]["components"],
-                                     allocator, FLAGS_repetitions);
+                                     allocator, ic_apply.get_num_repetitions());
         }
 
         add_or_set_member(this_precond_data, "completed", true, allocator);

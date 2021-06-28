@@ -91,8 +91,10 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             add_or_set_member(spmv_case[format_name], "max_relative_norm2",
                               max_relative_norm2, allocator);
         }
+
+        IterationControl ic{get_timer(exec, FLAGS_gpu_timer)};
         // warm run
-        for (unsigned int i = 0; i < FLAGS_warmup; i++) {
+        for (auto _ : ic.warmup_run()) {
             auto x_clone = clone(x);
             exec->synchronize();
             system_matrix->apply(lend(b), lend(x_clone));
@@ -123,12 +125,10 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             // variable is used.
             gko::_tuned_value = val;
             auto tuning_timer = get_timer(exec, FLAGS_gpu_timer);
-            for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
-                auto x_clone = clone(x);
-                exec->synchronize();
-                tuning_timer->tic();
+            IterationControl ic_tuning{tuning_timer};
+            auto x_clone = clone(x);
+            for (auto _ : ic_tuning.run()) {
                 system_matrix->apply(lend(b), lend(x_clone));
-                tuning_timer->toc();
             }
             tuning_case["time"].PushBack(tuning_timer->compute_average_time(),
                                          allocator);
@@ -140,16 +140,14 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
 #endif  // GINKGO_BENCHMARK_ENABLE_TUNING
 
         // timed run
-        auto timer = get_timer(exec, FLAGS_gpu_timer);
-        for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
-            auto x_clone = clone(x);
-            exec->synchronize();
-            timer->tic();
+        auto x_clone = clone(x);
+        for (auto _ : ic.run()) {
             system_matrix->apply(lend(b), lend(x_clone));
-            timer->toc();
         }
         add_or_set_member(spmv_case[format_name], "time",
-                          timer->compute_average_time(), allocator);
+                          ic.compute_average_time(), allocator);
+        add_or_set_member(spmv_case[format_name], "repetitions",
+                          ic.get_num_repetitions(), allocator);
 
         // compute and write benchmark data
         add_or_set_member(spmv_case[format_name], "completed", true, allocator);

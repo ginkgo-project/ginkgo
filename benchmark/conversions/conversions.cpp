@@ -72,24 +72,25 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
         gko::matrix_data<etype> data{gko::dim<2>{1, 1}, 1};
         auto matrix_to =
             share(formats::matrix_factory.at(format_to)(exec, data));
+
+        auto timer = get_timer(exec, FLAGS_gpu_timer);
+        IterationControl ic{timer};
+
         // warm run
-        for (unsigned int i = 0; i < FLAGS_warmup; i++) {
+        for (auto _ : ic.warmup_run()) {
             exec->synchronize();
             matrix_to->copy_from(matrix_from);
             exec->synchronize();
             matrix_to->clear();
         }
-        auto timer = get_timer(exec, FLAGS_gpu_timer);
         // timed run
-        for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
-            exec->synchronize();
-            timer->tic();
+        for (auto _ : ic.run()) {
             matrix_to->copy_from(matrix_from);
-            timer->toc();
-            matrix_to->clear();
         }
         add_or_set_member(conversion_case[conversion_name], "time",
                           timer->compute_average_time(), allocator);
+        add_or_set_member(conversion_case[conversion_name], "repetitions",
+                          timer->get_num_repetitions(), allocator);
 
         // compute and write benchmark data
         add_or_set_member(conversion_case[conversion_name], "completed", true,

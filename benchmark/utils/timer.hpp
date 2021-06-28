@@ -30,6 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_BENCHMARK_UTILS_TIMER_HPP_
+#define GKO_BENCHMARK_UTILS_TIMER_HPP_
+
+
 #include <ginkgo/ginkgo.hpp>
 
 
@@ -260,6 +264,7 @@ public:
 protected:
     void tic_impl() override
     {
+        exec_->synchronize();
         gko::cuda::device_guard g{id_};
         // Currently, gko::CudaExecutor always use default stream.
         GKO_ASSERT_NO_CUDA_ERRORS(cudaEventRecord(start_));
@@ -326,6 +331,7 @@ public:
 protected:
     void tic_impl() override
     {
+        exec_->synchronize();
         gko::hip::device_guard g{id_};
         // Currently, gko::HipExecutor always use default stream.
         GKO_ASSERT_NO_HIP_ERRORS(hipEventRecord(start_));
@@ -385,3 +391,5 @@ std::shared_ptr<Timer> get_timer(std::shared_ptr<const gko::Executor> exec,
     // No cuda/hip executor available or no gpu_timer used
     return std::make_shared<CpuTimer>(exec);
 }
+
+#endif  // GKO_BENCHMARK_UTILS_TIMER_HPP_

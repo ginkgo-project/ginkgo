@@ -399,9 +399,11 @@ void solve_system(const std::string &solver_name,
                               allocator);
         }
 
+        IterationControl ic{get_timer(exec, FLAGS_gpu_timer)};
+
         // warm run
         auto it_logger = std::make_shared<IterationLogger>(exec);
-        for (unsigned int i = 0; i < FLAGS_warmup; i++) {
+        for (auto _ : ic.warmup_run()) {
             auto x_clone = clone(x);
             auto precond = precond_factory.at(precond_name)(exec);
             auto solver = generate_solver(exec, give(precond), solver_name)
@@ -472,9 +474,10 @@ void solve_system(const std::string &solver_name,
 
         // timed run
         auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
-        auto apply_timer = get_timer(exec, FLAGS_gpu_timer);
-        for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
-            auto x_clone = clone(x);
+        auto apply_timer = ic.get_timer();
+        auto x_clone = clone(x);
+        for (auto status : ic.run(false)) {
+            x_clone = clone(x);
 
             exec->synchronize();
             generate_timer->tic();
@@ -487,19 +490,19 @@ void solve_system(const std::string &solver_name,
             apply_timer->tic();
             solver->apply(lend(b), lend(x_clone));
             apply_timer->toc();
-
-            if (b->get_size()[1] == 1 && i == FLAGS_repetitions - 1 &&
-                !FLAGS_overhead) {
-                auto residual = compute_residual_norm(lend(system_matrix),
-                                                      lend(b), lend(x_clone));
-                add_or_set_member(solver_json, "residual_norm", residual,
-                                  allocator);
-            }
+        }
+        if (b->get_size()[1] == 1 && !FLAGS_overhead) {
+            auto residual = compute_residual_norm(lend(system_matrix), lend(b),
+                                                  lend(x_clone));
+            add_or_set_member(solver_json, "residual_norm", residual,
+                              allocator);
         }
         add_or_set_member(solver_json["generate"], "time",
                           generate_timer->compute_average_time(), allocator);
         add_or_set_member(solver_json["apply"], "time",
                           apply_timer->compute_average_time(), allocator);
+        add_or_set_member(solver_json, "repetitions",
+                          apply_timer->get_num_repetitions(), allocator);
 
         // compute and write benchmark data
         add_or_set_member(solver_json, "completed", true, allocator);
@@ -515,7 +518,8 @@ void solve_system(const std::string &solver_name,
 int main(int argc, char *argv[])
 {
     // Set the default repetitions = 1.
-    FLAGS_repetitions = 1;
+    FLAGS_repetitions = "1";
+    FLAGS_min_repetitions = 1;
     std::string header =
         "A benchmark for measuring performance of Ginkgo's solvers.\n";
     std::string format =
