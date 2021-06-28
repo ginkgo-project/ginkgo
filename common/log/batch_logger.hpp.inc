@@ -113,5 +113,61 @@ private:
     uint32 init_converged_;
 };
 
+template <typename RealType>
+class SimpleFinalLogger final {
+public:
+    using real_type = RealType;
+
+    /**
+     * Sets pre-allocated storage for logging.
+     *
+     * @param num_rhs  The number of RHS vectors.
+     * @param max_iters  The maximum iterations allowed.
+     * @param batch_residuals  Array of residuals norms of size
+     *                         num_batches x num_rhs. Used as row major.
+     * @param batch_iters  Array of final iteration counts for each
+     *                     linear system and each RHS in the batch.
+     */
+    SimpleFinalLogger(const int num_rhs, const int max_iters,
+                      real_type *const batch_residuals, int *const batch_iters)
+        : nrhs_{num_rhs},
+          max_iters_{max_iters},
+          final_residuals_{batch_residuals},
+          final_iters_{batch_iters}
+    {}
+
+    /**
+     * Logs an iteration of the solver, though does nothing for most iterations.
+     * This MUST be called at the zeroth iteration of the solver for every
+     * batch entry.
+     *
+     * Initially at iteration 0, the stored converged bitset is reset to start
+     * a new solve, and the final iteration counts array is initialized.
+     * Records the residual for all RHSs whenever the convergence bitset
+     * changes state. Further, records the iteration count whenever the
+     * convergence state of a specific RHS changes for the better.
+     * Finally, records residuals for all RHS in the final iteration.
+     *
+     * @param batch_idx  The index of linear system in the batch to log.
+     * @param iter  The current iteration count (0-based).
+     * @param res_norm  Norms of current residuals for each RHS.
+     *                  The jth thread accesses the jth RHS.
+     * @param converged  Bitset representing convergence state for each RHS.
+     */
+    __device__ __forceinline__ void log_iteration(const size_type batch_idx,
+                                                  const int iter,
+                                                  const real_type &res_norm,
+                                                  const int col)
+    {
+        final_iters_[batch_idx * nrhs_ + col] = iter;
+        final_residuals_[batch_idx * nrhs_ + col] = res_norm;
+    }
+
+private:
+    const int nrhs_;
+    const int max_iters_;
+    real_type *const final_residuals_;
+    int *const final_iters_;
+};
 
 }  // namespace batch_log
