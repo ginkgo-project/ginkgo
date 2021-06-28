@@ -207,7 +207,8 @@ __device__ __forceinline__ void one_norm2(
     }
 
     // subwarp_grp level reduction
-    for (int j = subwarp_grp.size() / 2; j > 0; j /= 2) {
+#pragma unroll
+    for (int j = config::warp_size / 2; j > 0; j /= 2) {
         val += subwarp_grp.shfl_down(val, j);
     }
 
@@ -423,7 +424,8 @@ __device__ __forceinline__ void one_dot(
     }
 
     // subwarp_grp level reduction
-    for (int j = subwarp_grp.size() / 2; j > 0; j /= 2) {
+#pragma unroll
+    for (int j = config::warp_size / 2; j > 0; j /= 2) {
         val += subwarp_grp.shfl_down(val, j);
     }
 
