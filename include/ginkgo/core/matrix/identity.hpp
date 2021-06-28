@@ -110,6 +110,9 @@ protected:
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
+    template <typename VectorType>
+    void apply_dense_impl(const VectorType* b, VectorType* x) const;
+
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 };

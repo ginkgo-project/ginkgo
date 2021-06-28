@@ -38,6 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "core/solver/distributed_helpers.hpp"
+
 
 namespace gko {
 namespace matrix {
@@ -46,7 +48,19 @@ namespace matrix {
 template <typename ValueType>
 void Identity<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    x->copy_from(b);
+    precision_dispatch_real_complex_distributed<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x);
+        },
+        b, x);
+}
+
+
+template <typename VectorType>
+void Identity<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                           VectorType* dense_x) const
+{
+    dense_x->copy_from(dense_b);
 }
 
 
@@ -54,7 +68,7 @@ template <typename ValueType>
 void Identity<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                      const LinOp* beta, LinOp* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, dense_b);
