@@ -376,7 +376,7 @@ TYPED_TEST(Ir, DefaultSmootherBuildWithSolver)
     using Solver = typename TestFixture::Solver;
     auto solver = gko::as<Solver>(share(this->solver));
 
-    auto smoother_factory = gko::solver::smoother_build<value_type>(solver);
+    auto smoother_factory = gko::solver::build_smoother<value_type>(solver);
     auto criteria =
         std::dynamic_pointer_cast<const gko::stop::Iteration::Factory>(
             smoother_factory->get_parameters().criteria.at(0));
@@ -396,7 +396,7 @@ TYPED_TEST(Ir, DefaultSmootherBuildWithFactory)
     using Solver = typename TestFixture::Solver;
     auto factory = share(this->ir_factory);
 
-    auto smoother_factory = gko::solver::smoother_build<value_type>(factory);
+    auto smoother_factory = gko::solver::build_smoother<value_type>(factory);
     auto criteria =
         std::dynamic_pointer_cast<const gko::stop::Iteration::Factory>(
             smoother_factory->get_parameters().criteria.at(0));
@@ -416,7 +416,7 @@ TYPED_TEST(Ir, SmootherBuildWithSolver)
     auto solver = gko::as<Solver>(share(this->solver));
 
     auto smoother_factory =
-        gko::solver::smoother_build<value_type>(solver, 3, value_type{0.5});
+        gko::solver::build_smoother<value_type>(solver, 3, value_type{0.5});
     auto criteria =
         std::dynamic_pointer_cast<const gko::stop::Iteration::Factory>(
             smoother_factory->get_parameters().criteria.at(0));
@@ -437,7 +437,7 @@ TYPED_TEST(Ir, SmootherBuildWithFactory)
     auto factory = share(this->ir_factory);
 
     auto smoother_factory =
-        gko::solver::smoother_build<value_type>(factory, 3, value_type{0.5});
+        gko::solver::build_smoother<value_type>(factory, 3, value_type{0.5});
     auto criteria =
         std::dynamic_pointer_cast<const gko::stop::Iteration::Factory>(
             smoother_factory->get_parameters().criteria.at(0));

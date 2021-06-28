@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // grid_nrows is the number of rows handled in the whole grid at the same time.
 // Thus, the threads whose index is larger than grid_nrows * nrhs are not used.
-// Let the thread handle the same col (has same scaler) in whole loop.
+// Let the thread handle the same col (has same scalar) in whole loop.
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void kcycle_step_1_kernel(
     const size_type num_rows, const size_type nrhs, const size_type stride,
@@ -81,13 +81,13 @@ __global__ __launch_bounds__(default_block_size) void kcycle_step_2_kernel(
     }
     const auto total_elems = num_rows * stride;
     const auto grid_stride = grid_nrows * stride;
-    const auto scaler_d =
+    const auto scalar_d =
         zeta[col] / (beta[col] - gamma[col] * gamma[col] / rho[col]);
-    const auto scaler_e = one<ValueType>() - gamma[col] / alpha[col] * scaler_d;
-    if (is_finite(scaler_d) && is_finite(scaler_e)) {
+    const auto scalar_e = one<ValueType>() - gamma[col] / alpha[col] * scalar_d;
+    if (is_finite(scalar_d) && is_finite(scalar_e)) {
         for (auto idx = tidx / nrhs * stride + col; idx < total_elems;
              idx += grid_stride) {
-            e[idx] = scaler_e * e[idx] + scaler_d * d[idx];
+            e[idx] = scalar_e * e[idx] + scalar_d * d[idx];
         }
     }
 }

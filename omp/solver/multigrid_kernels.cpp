@@ -90,14 +90,14 @@ void kcycle_step_2(std::shared_ptr<const DefaultExecutor> exec,
     const auto nrhs = e->get_size()[1];
 #pragma omp parallel for
     for (size_type i = 0; i < nrhs; i++) {
-        auto scaler_d = zeta->at(0, i) /
+        auto scalar_d = zeta->at(0, i) /
                         (beta->at(0, i) -
                          gamma->at(0, i) * gamma->at(0, i) / rho->at(0, i));
-        auto scaler_e =
-            one<ValueType>() - gamma->at(0, i) / alpha->at(0, i) * scaler_d;
-        if (is_finite(scaler_d) && is_finite(scaler_e)) {
+        auto scalar_e =
+            one<ValueType>() - gamma->at(0, i) / alpha->at(0, i) * scalar_d;
+        if (is_finite(scalar_d) && is_finite(scalar_e)) {
             for (size_type j = 0; j < nrows; j++) {
-                e->at(j, i) = scaler_e * e->at(j, i) + scaler_d * d->at(j, i);
+                e->at(j, i) = scalar_e * e->at(j, i) + scalar_d * d->at(j, i);
             }
         }
     }
