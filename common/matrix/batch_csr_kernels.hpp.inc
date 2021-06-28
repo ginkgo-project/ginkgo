@@ -87,8 +87,7 @@ __device__ __forceinline__ void spmv_kernel(
 template <typename ValueType>
 __device__ __forceinline__ void single_spmv_kernel(
     const gko::batch_csr::BatchEntry<const ValueType> &a,
-    const gko::batch_dense::BatchEntry<const ValueType> &b,
-    const gko::batch_dense::BatchEntry<ValueType> &c)
+    const ValueType *const b, ValueType *const c)
 {
     constexpr auto tile_size = config::warp_size;
 
@@ -107,7 +106,7 @@ __device__ __forceinline__ void single_spmv_kernel(
              i += subwarp_grp.size()) {
             const int col = a.col_idxs[i];
             const ValueType val = a.values[i];
-            temp += val * b.values[col];
+            temp += val * b[col];
         }
 
 #pragma unroll
@@ -116,7 +115,7 @@ __device__ __forceinline__ void single_spmv_kernel(
         }
 
         if (subwarp_grp.thread_rank() == 0) {
-            c.values[row] = temp;
+            c[row] = temp;
         }
     }
 }
@@ -243,8 +242,7 @@ __device__ __forceinline__ void advanced_spmv_kernel(
 template <typename ValueType>
 __device__ __forceinline__ void single_advanced_spmv_kernel(
     const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType> &a,
-    const gko::batch_dense::BatchEntry<const ValueType> &b,
-    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType> &c)
+    const ValueType *const b, const ValueType beta, ValueType *const c)
 {
     constexpr auto tile_size = config::warp_size;
 
@@ -263,7 +261,7 @@ __device__ __forceinline__ void single_advanced_spmv_kernel(
              i += subwarp_grp.size()) {
             const int col = a.col_idxs[i];
             const ValueType val = a.values[i];
-            temp += alpha * val * b.values[col];
+            temp += alpha * val * b[col];
         }
 
 #pragma unroll
@@ -272,7 +270,7 @@ __device__ __forceinline__ void single_advanced_spmv_kernel(
         }
 
         if (subwarp_grp.thread_rank() == 0) {
-            c.values[row] = temp + beta * c.values[row];
+            c[row] = temp + beta * c[row];
         }
     }
 }
