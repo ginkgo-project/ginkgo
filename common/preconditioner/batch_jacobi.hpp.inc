@@ -96,6 +96,15 @@ public:
         }
     }
 
+    __device__ __forceinline__ void apply(const int num_rows,
+                                          const ValueType *const r,
+                                          ValueType *const z) const
+    {
+        for (int i = threadIdx.x; i < num_rows; i += blockDim.x) {
+            z[i] = work_[i] * r[i];
+        }
+    }
+
 private:
     ValueType *__restrict__ work_;
 };

@@ -76,10 +76,18 @@ public:
         for (int li = threadIdx.x; li < r.num_rows * r.num_rhs;
              li += blockDim.x) {
             const int row = li / r.num_rhs;
-
             const int col = li % r.num_rhs;
 
             z.values[row * z.stride + col] = r.values[row * r.stride + col];
+        }
+    }
+
+    __device__ __forceinline__ void apply(const int num_rows,
+                                          const ValueType *const r,
+                                          ValueType *const z) const
+    {
+        for (int li = threadIdx.x; li < num_rows; li += blockDim.x) {
+            z[li] = r[li];
         }
     }
 };

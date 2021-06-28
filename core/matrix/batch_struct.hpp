@@ -181,6 +181,14 @@ GKO_ATTRIBUTES GKO_INLINE batch_dense::BatchEntry<ValueType> batch_entry(
             num_rhs};
 }
 
+template <typename ValueType>
+GKO_ATTRIBUTES GKO_INLINE ValueType *batch_entry_ptr(
+    ValueType *const batch_start, const size_type stride, const int num_rows,
+    const size_type batch_idx)
+{
+    return batch_start + batch_idx * stride * num_rows;
+}
+
 
 /**
  * Extract one object (matrix, vector etc.) from a batch of objects
