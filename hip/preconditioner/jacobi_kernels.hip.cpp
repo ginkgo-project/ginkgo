@@ -72,6 +72,8 @@ constexpr int default_num_warps = 32;
 // current GPUs have at most 84 SMs)
 constexpr int default_grid_size = 32 * 32 * 128;
 
+constexpr auto default_block_size = 512;
+
 
 #include "common/cuda_hip/preconditioner/jacobi_kernels.hpp.inc"
 
@@ -254,6 +256,30 @@ void convert_to_dense(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL);
+
+
+template <typename ValueType>
+void scalar_apply(std::shared_ptr<const HipExecutor> exec,
+                  const ValueType *diag_values,
+                  const matrix::Dense<ValueType> *b,
+                  matrix::Dense<ValueType> *x)
+{
+    const auto b_size = b->get_size();
+    const auto num_rows = b_size[0];
+    const auto num_cols = b_size[1];
+    const auto b_stride = b->get_stride();
+    const auto x_stride = x->get_stride();
+    const auto grid_dim = ceildiv(num_rows * num_cols, default_block_size);
+
+    const auto b_values = b->get_const_values();
+    auto x_values = x->get_values();
+
+    kernel::apply<<<grid_dim, default_block_size>>>(
+        num_rows, num_cols, as_cuda_type(diag_values), b_stride,
+        as_cuda_type(b_values), x_stride, as_cuda_type(x_values));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL);
 
 
 }  // namespace jacobi

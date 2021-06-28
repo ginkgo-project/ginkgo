@@ -42,12 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/base/extended_float.hpp"
 #include "core/base/utils.hpp"
+#include "core/preconditioner/distributed_helpers.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 
@@ -81,16 +83,18 @@ GKO_REGISTER_OPERATION(initialize_precisions, jacobi::initialize_precisions);
 template <typename ValueType, typename IndexType>
 void Jacobi<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             if (parameters_.max_block_size == 1) {
                 this->get_executor()->run(jacobi::make_simple_scalar_apply(
-                    this->blocks_, dense_b, dense_x));
+                    this->blocks_, detail::get_local(dense_b),
+                    detail::get_local(dense_x)));
             } else {
                 this->get_executor()->run(jacobi::make_simple_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,
                     parameters_.storage_optimization.block_wise,
-                    parameters_.block_pointers, blocks_, dense_b, dense_x));
+                    parameters_.block_pointers, blocks_,
+                    detail::get_local(dense_b), detail::get_local(dense_x)));
             }
         },
         b, x);
@@ -102,17 +106,20 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp *alpha,
                                               const LinOp *b, const LinOp *beta,
                                               LinOp *x) const
 {
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             if (parameters_.max_block_size == 1) {
                 this->get_executor()->run(jacobi::make_scalar_apply(
-                    this->blocks_, dense_alpha, dense_b, dense_beta, dense_x));
+                    this->blocks_, detail::get_local(dense_alpha),
+                    detail::get_local(dense_b), detail::get_local(dense_beta),
+                    detail::get_local(dense_x)));
             } else {
                 this->get_executor()->run(jacobi::make_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,
                     parameters_.storage_optimization.block_wise,
-                    parameters_.block_pointers, blocks_, dense_alpha, dense_b,
-                    dense_beta, dense_x));
+                    parameters_.block_pointers, blocks_,
+                    detail::get_local(dense_alpha), detail::get_local(dense_b),
+                    detail::get_local(dense_beta), detail::get_local(dense_x)));
             }
         },
         alpha, b, beta, x);
@@ -262,6 +269,8 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
     using csr_type = matrix::Csr<ValueType, IndexType>;
+    using dist_type = distributed::Matrix<ValueType, IndexType>;
+    using dist_base_type = distributed::DistributedBase;
     const auto exec = this->get_executor();
     if (parameters_.max_block_size == 1) {
         auto diag = share(as<DiagonalLinOpExtractable>(system_matrix)
@@ -280,35 +289,45 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
         exec->run(jacobi::make_invert_diagonal(temp, this->blocks_));
         this->num_blocks_ = diag_vt->get_size()[0];
     } else {
-        auto csr_mtx = convert_to_with_sorting<csr_type>(exec, system_matrix,
-                                                         skip_sorting);
+        if (dynamic_cast<const ConvertibleTo<const csr_type> *>(
+                system_matrix)) {
+            auto csr_mtx = convert_to_with_sorting<csr_type>(
+                exec, system_matrix, skip_sorting);
 
-        if (parameters_.block_pointers.get_data() == nullptr) {
-            this->detect_blocks(csr_mtx.get());
-        }
-
-        const auto all_block_opt =
-            parameters_.storage_optimization.of_all_blocks;
-        auto &precisions = parameters_.storage_optimization.block_wise;
-        // if adaptive version is used, make sure that the precision array is of
-        // the correct size by replicating it multiple times if needed
-        if (parameters_.storage_optimization.is_block_wise ||
-            all_block_opt != precision_reduction(0, 0)) {
-            if (!parameters_.storage_optimization.is_block_wise) {
-                precisions =
-                    gko::Array<precision_reduction>(exec, {all_block_opt});
+            if (parameters_.block_pointers.get_data() == nullptr) {
+                this->detect_blocks(csr_mtx.get());
             }
-            Array<precision_reduction> tmp(
-                exec, parameters_.block_pointers.get_num_elems() - 1);
-            exec->run(jacobi::make_initialize_precisions(precisions, tmp));
-            precisions = std::move(tmp);
-            conditioning_.resize_and_reset(num_blocks_);
-        }
 
-        exec->run(jacobi::make_generate(
-            csr_mtx.get(), num_blocks_, parameters_.max_block_size,
-            parameters_.accuracy, storage_scheme_, conditioning_, precisions,
-            parameters_.block_pointers, blocks_));
+            const auto all_block_opt =
+                parameters_.storage_optimization.of_all_blocks;
+            auto &precisions = parameters_.storage_optimization.block_wise;
+            // if adaptive version is used, make sure that the precision array
+            // is of the correct size by replicating it multiple times if needed
+            if (parameters_.storage_optimization.is_block_wise ||
+                all_block_opt != precision_reduction(0, 0)) {
+                if (!parameters_.storage_optimization.is_block_wise) {
+                    precisions =
+                        gko::Array<precision_reduction>(exec, {all_block_opt});
+                }
+                Array<precision_reduction> tmp(
+                    exec, parameters_.block_pointers.get_num_elems() - 1);
+                exec->run(jacobi::make_initialize_precisions(precisions, tmp));
+                precisions = std::move(tmp);
+                conditioning_.resize_and_reset(num_blocks_);
+            }
+
+            exec->run(jacobi::make_generate(
+                csr_mtx.get(), num_blocks_, parameters_.max_block_size,
+                parameters_.accuracy, storage_scheme_, conditioning_,
+                precisions, parameters_.block_pointers, blocks_));
+        } else if (dynamic_cast<const dist_base_type *>(system_matrix)) {
+            if (parameters_.max_block_size > 1) {
+                GKO_NOT_IMPLEMENTED;
+            }
+            auto dist_mat = dynamic_cast<const dist_type *>(system_matrix);
+            diag_ = dist_mat->get_local_matrix()->extract_diagonal();
+            is_distributed_ = true;
+        }
     }
 }
 

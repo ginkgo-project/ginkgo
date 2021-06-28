@@ -213,3 +213,26 @@ __launch_bounds__(warps_per_block *config::warp_size) adaptive_transpose_jacobi(
             });
     }
 }
+
+
+namespace kernel {
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void apply(
+    size_type num_rows, size_type num_cols, const ValueType *__restrict__ diag,
+    size_type source_stride, const ValueType *__restrict__ source_values,
+    size_type result_stride, ValueType *__restrict__ result_values)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    const auto row = tidx / num_cols;
+    const auto col = tidx % num_cols;
+
+    if (row < num_rows) {
+        result_values[row * result_stride + col] =
+            source_values[row * source_stride + col] / diag[row];
+    }
+}
+
+
+}  // namespace kernel

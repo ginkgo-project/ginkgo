@@ -509,7 +509,8 @@ protected:
         : EnableLinOp<Jacobi>(exec),
           num_blocks_{},
           blocks_(exec),
-          conditioning_(exec)
+          conditioning_(exec),
+          diag_(matrix::Diagonal<value_type>::create(exec))
     {
         parameters_.block_pointers.set_executor(exec);
         parameters_.storage_optimization.block_wise.set_executor(exec);
@@ -533,7 +534,8 @@ protected:
           blocks_(factory->get_executor(),
                   storage_scheme_.compute_storage_space(
                       parameters_.block_pointers.get_num_elems() - 1)),
-          conditioning_(factory->get_executor())
+          conditioning_(factory->get_executor()),
+          diag_(matrix::Diagonal<value_type>::create(factory->get_executor()))
     {
         parameters_.block_pointers.set_executor(this->get_executor());
         parameters_.storage_optimization.block_wise.set_executor(
@@ -613,6 +615,8 @@ private:
     size_type num_blocks_;
     Array<value_type> blocks_;
     Array<remove_complex<value_type>> conditioning_;
+    std::shared_ptr<matrix::Diagonal<value_type>> diag_;
+    bool is_distributed_{false};
 };
 
 
