@@ -251,8 +251,18 @@ template <typename ValueType = default_precision>
 using Richardson = Ir<ValueType>;
 
 
+/**
+ * build_smoother gives a shortcut to build a smoother by IR(Richardson) with
+ * limited stop criterion(iterations and relacation_factor).
+ *
+ * @param factory  the shared pointer of factory
+ * @param iteration  the maximum number of iteraion, which default is 1
+ * @param relaxation_factor  the relaxation factor for Richardson
+ *
+ * @return the pointer of Ir(Richardson)
+ */
 template <typename ValueType>
-auto smoother_build(std::shared_ptr<LinOpFactory> factory,
+auto build_smoother(std::shared_ptr<const LinOpFactory> factory,
                     size_type iteration = 1, ValueType relaxation_factor = 0.9)
 {
     auto exec = factory->get_executor();
@@ -264,9 +274,21 @@ auto smoother_build(std::shared_ptr<LinOpFactory> factory,
         .on(exec);
 }
 
+/**
+ * build_smoother gives a shortcut to build a smoother by IR(Richardson) with
+ * limited stop criterion(iterations and relacation_factor).
+ *
+ * @param solver  the shared pointer of solver
+ * @param iteration  the maximum number of iteraion, which default is 1
+ * @param relaxation_factor  the relaxation factor for Richardson
+ *
+ * @return the pointer of Ir(Richardson)
+ *
+ * @note this is the overload function for LinOp.
+ */
 template <typename ValueType>
-auto smoother_build(std::shared_ptr<LinOp> solver, size_type iteration = 1,
-                    ValueType relaxation_factor = 0.9)
+auto build_smoother(std::shared_ptr<const LinOp> solver,
+                    size_type iteration = 1, ValueType relaxation_factor = 0.9)
 {
     auto exec = solver->get_executor();
     return Ir<ValueType>::build()

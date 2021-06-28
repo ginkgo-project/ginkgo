@@ -178,7 +178,7 @@ class UseComposition {
 public:
     using value_type = ValueType;
     /**
-     * Returns the composition opertor.
+     * Returns the composition operators.
      *
      * @return composition
      */

@@ -56,16 +56,43 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace solver {
 
-
+/**
+ * multigrid_cycle defines which kind of multigrid cycle can be used.
+ * It contains V, W, F, and K (KFCG/KGCR) cycle.
+ * V, W cycle uses the algorithm according to Briggs, Henson, and McCormick: A
+ * multigrid tutorial 2nd Edition.
+ * F cycle uses the algorithm according to Trottenberg, Oosterlee, and Schuller:
+ * Multigrid 1st Edition. F cycle first uses the recursive call but second uses
+ * the V-cycle call such that F-cycle is between V and W cycle.
+ * K(KFCG/KGCR) cycle uses the algorithm with up to 2 steps FCG/GCR from Yvan:
+ * An aggregation-based algebraic multigrid method
+ */
 enum class multigrid_cycle { v, f, w, kfcg, kgcr };
 
 
 enum class multigrid_mid_uses { pre, mid, post };
+
+
 /**
- * Multigrid
+ * Multigrid have a hierarcgy of many levels, whose corase level is a subset of
+ * the fine level, of the problem. The coarse level solves the system on the
+ * residual of fine level and fine level will use the result to correct its own
+ * result. Multigrid solves the problem by relatively cheap step in each level
+ * and refining the result when prolongating back.
  *
- * @tparam ValueType  precision of matrix elements
+ * The main step of each level
+ * - Presmooth (solve on the fine level)
+ * - Calculate residual
+ * - Restrict (reduce the problem dimension)
+ * - Solve residual in next level
+ * - Prolongate (return to the fine level size)
+ * - Postsmooth (correct the answer in fine level)
  *
+ * Ginkgo uses the index from 0 for finest level (original problem size) ~ N for
+ * the coarsest level (the coarsest solver), and its level counts is N (N
+ * multigrid level generation).
+ *
+ * @ingroup Multigrid
  * @ingroup solvers
  * @ingroup LinOp
  */
@@ -114,9 +141,9 @@ public:
     }
 
     /**
-     * Gets the list of MultigridLevel operator.
+     * Gets the list of MultigridLevel operators.
      *
-     * @return the list of MultigridLevel opertor
+     * @return the list of MultigridLevel operators
      */
     const std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
     get_mg_level_list() const
@@ -125,9 +152,9 @@ public:
     }
 
     /**
-     * Gets the list of pre-smoother operator.
+     * Gets the list of pre-smoother operators.
      *
-     * @return the list of pre-smoother operator
+     * @return the list of pre-smoother operators
      */
     const std::vector<std::shared_ptr<LinOp>> get_pre_smoother_list() const
     {
@@ -135,9 +162,9 @@ public:
     }
 
     /**
-     * Gets the list of mid-smoother operator.
+     * Gets the list of mid-smoother operators.
      *
-     * @return the list of mid-smoother operator
+     * @return the list of mid-smoother operators
      */
     const std::vector<std::shared_ptr<LinOp>> get_mid_smoother_list() const
     {
@@ -145,9 +172,9 @@ public:
     }
 
     /**
-     * Gets the list of post-smoother operator.
+     * Gets the list of post-smoother operators.
      *
-     * @return the list of post-smoother operator
+     * @return the list of post-smoother operators
      */
     const std::vector<std::shared_ptr<LinOp>> get_post_smoother_list() const
     {
@@ -169,14 +196,14 @@ public:
      *
      * @return the cycle
      */
-    multigrid_cycle get_cycle() const { return cycle_; }
+    multigrid_cycle get_cycle() const { return parameters_.cycle; }
 
     /**
      * Set the cycle of multigrid
      *
      * @param cycle the new cycle
      */
-    void set_cycle(multigrid_cycle cycle) { cycle_ = cycle; }
+    void set_cycle(multigrid_cycle cycle) { parameters_.cycle = cycle; }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -193,9 +220,28 @@ public:
             GKO_FACTORY_PARAMETER_VECTOR(mg_level, nullptr);
 
         /**
-         * Custom selector (level, matrix)
-         * default selector: use the first factory when mg_level size = 1
-         *                   use the level as the index when mg_level size > 1
+         * Custom selector size_type (size_type level, const LinOp* fine_matrix)
+         * Selector function returns the element index in the vector for any
+         * given level index and the matrix of the fine level.
+         * For example,
+         * ```
+         * [](size_type level, const LinOp* fine_matrix) {
+         *     if (level < 3) {
+         *         return size_type{0};
+         *     } else if (matrix->get_size()[0] > 1024) {
+         *         return size_type{1};
+         *     } else {
+         *         return size_type{2};
+         *     }
+         * }
+         * ```
+         * It uses the 0-idx element if level < 3, the 1-idx element if level
+         * >= 3 and the number of rows of fine matrix > 1024, or the 2-idx
+         * elements otherwise.
+         *
+         * default selector:
+         *     use the first factory when mg_level size = 1
+         *     use the level as the index when mg_level size > 1
          */
         std::function<size_type(const size_type, const LinOp *)>
             GKO_FACTORY_PARAMETER_SCALAR(mg_level_index, nullptr);
@@ -216,35 +262,37 @@ public:
         /**
          * Post-smooth Factory list.
          * It is similar to Pre-smooth Factory list. It is ignored if
-         * post_uses_pre = true.
+         * the factory parameter post_uses_pre is set to true.
          */
         std::vector<std::shared_ptr<const LinOpFactory>>
             GKO_FACTORY_PARAMETER_VECTOR(post_smoother, nullptr);
 
         /**
-         * Mid-smooth Factory list. If it contains availble elements, multigrid
-         * always generate the corresponding smoother. However, it only involve
-         * in the procedure when cycle is k or f.
-         * It is similar to Pre-smooth Factory list. It is ignored if
-         * multigrid_mid_uses is not mid.
+         * Mid-smooth Factory list. If it contains available elements, multigrid
+         * always generates the corresponding smoother. However, it is only
+         * involved in the procedure when cycle is F or W. It is similar to
+         * Pre-smooth Factory list. It is ignored if the factory parameter
+         * mid_case is not mid.
          */
         std::vector<std::shared_ptr<const LinOpFactory>>
             GKO_FACTORY_PARAMETER_VECTOR(mid_smoother, nullptr);
 
         /**
-         * Whether Post-related calls use corresponding pre-related calls.
+         * Whether post-related calls use corresponding pre-related calls.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(post_uses_pre, true);
 
         /**
-         * Which Mid-related calls use pre/mid/post-related calls.
-         * Availble options: pre/mid/post.
+         * Whether mid-related calls use pre/mid/post-related calls.
+         * The default is multigrid_mid_uses::pre.
+         *
+         * @see enum multigrid_mid_uses
          */
         multigrid_mid_uses GKO_FACTORY_PARAMETER_SCALAR(
             mid_case, multigrid_mid_uses::pre);
 
         /**
-         * The maximum level can be generated
+         * The maximum number of mg_level that can be used
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(max_levels, 10);
 
@@ -253,7 +301,7 @@ public:
          * If generation gets the matrix which contains less than
          * `min_coarse_rows`, the generation stops.
          */
-        size_type GKO_FACTORY_PARAMETER_SCALAR(min_coarse_rows, 2);
+        size_type GKO_FACTORY_PARAMETER_SCALAR(min_coarse_rows, 64);
 
         /**
          * Coarsest factory list.
@@ -262,15 +310,33 @@ public:
             GKO_FACTORY_PARAMETER_VECTOR(coarsest_solver, nullptr);
 
         /**
-         * Custom solver selector (level, matrix)
+         * Custom coarsest_solver selector
+         * size_type (size_type level, const LinOp *coarsest_matrix)
+         * Selector function returns the correct element index in the
+         * vector for any given level index and the system matrix.
+         * It can be used to choose the sparse iterative solver if the coarsest
+         * matrix is still large but the dense solver if the matrix is small
+         * enough. For example,
+         * ```
+         * [](size_type level, const LinOp* coarsest_matrix) {
+         *     if (coarsest_matrix->get_size()[0] > 1024) {
+         *         return size_type{0};
+         *     } else {
+         *         return size_type{1};
+         *     }
+         * }
+         * Coarsest solver uses the 0-idx element if the number of rows of the
+         * coarsest_matrix > 1024 or 1-idx element for other cases.
+         *
          * default selector: use the first factory
          */
         std::function<size_type(const size_type, const LinOp *)>
             GKO_FACTORY_PARAMETER_SCALAR(solver_index, nullptr);
 
         /**
-         * Multigrid cycle type
-         * Options: v, f, w, kfcg and kgcr
+         * Multigrid cycle type. The default is multigrid_cycle::v.
+         *
+         * @see enum multigrid_cycle
          */
         multigrid_cycle GKO_FACTORY_PARAMETER_SCALAR(cycle, multigrid_cycle::v);
 
@@ -292,13 +358,13 @@ public:
 
         /**
          * smoother_relax is the relaxation factor of auto generated smoother
-         * when the given smoother does not use the initial guess.
+         * when a user-supplied smoother does not use the initial guess.
          */
         std::complex<double> GKO_FACTORY_PARAMETER_SCALAR(smoother_relax, 0.9);
 
         /**
          * smoother_iters is the number of iteration of auto generated smoother
-         * when the given smoother does not use the initial guess.
+         * when a user-supplied smoother does not use the initial guess.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(smoother_iters, 1);
     };
@@ -377,12 +443,21 @@ protected:
             parameters_.mid_case == multigrid_mid_uses::mid,
             parameters_.mid_smoother.size(), mg_level_len);
 
-        cycle_ = parameters_.cycle;
         if (system_matrix_->get_size()[0] != 0) {
             // generate on the existed matrix
             this->generate();
         }
     }
+
+    /**
+     * verify_legal_length is to check whether the given len is legal for
+     * ref_len if checked is activated. Throw GKO_NOT_SUPPORTED if the length is
+     * illegal.
+     *
+     * @param checked  whether check the length
+     * @param len  the length of input
+     * @param ref_len  the length of reference
+     */
     void verify_legal_length(bool checked, size_type len, size_type ref_len)
     {
         if (checked) {
@@ -406,7 +481,6 @@ private:
     std::shared_ptr<LinOp> coarsest_solver_{};
     std::function<size_type(const size_type, const LinOp *)> mg_level_index_;
     std::function<size_type(const size_type, const LinOp *)> solver_index_;
-    multigrid_cycle cycle_;
 };
 
 

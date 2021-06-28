@@ -472,9 +472,9 @@ TYPED_TEST(Multigrid, KCycleStep1)
 {
     using Mtx = typename TestFixture::Mtx;
     // 1st-group: all are finite
-    // 2nd-group: scaler_d, scaler_e are not finite
-    // 3rd-group: temp, scaler_d, scaler_e are not finite -> unchanged
-    // 4th-group: scaler_e is not finite
+    // 2nd-group: scalar_d, scalar_e are not finite
+    // 3rd-group: temp, scalar_d, scalar_e are not finite -> unchanged
+    // 4th-group: scalar_e is not finite
     auto e = gko::initialize<Mtx>(
         {{0.0, 1.0, 2.0, 4.0}, {-1.0, 1.0, 0.0, 2.0}, {2.0, -1.0, 1.0, 0.0}},
         this->exec);
@@ -507,9 +507,9 @@ TYPED_TEST(Multigrid, KCycleStep2)
 {
     using Mtx = typename TestFixture::Mtx;
     // 1st-group: all are finite
-    // 2nd-group: scaler_d, scaler_e are not finite -> unchanged
-    // 3rd-group: temp, scaler_d, scaler_e are not finite -> unchanged
-    // 4th-group: scaler_e is not finite -> unchanged
+    // 2nd-group: scalar_d, scalar_e are not finite -> unchanged
+    // 3rd-group: temp, scalar_d, scalar_e are not finite -> unchanged
+    // 4th-group: scalar_e is not finite -> unchanged
     auto e = gko::initialize<Mtx>(
         {{0.0, 1.0, 2.0, 4.0}, {-1.0, 1.0, 0.0, -2.0}, {2.0, -1.0, 1.0, 0.0}},
         this->exec);
@@ -569,7 +569,6 @@ TYPED_TEST(Multigrid, VCycleIndividual)
                       ->generate(this->mtx);
     auto factory =
         this->get_factory_individual(gko::solver::multigrid_cycle::v);
-    // std::cout << factory->pre_smoother.at(0) << std::endl;
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
@@ -661,25 +660,23 @@ TYPED_TEST(Multigrid, WCycleIndividual)
     // mid: 3, pass
     // post: 5, pass
     // coarset_solver: Identity
-    //  +                       *                       -
-    //    \                   /   \                   /
-    //      +       *       -       +       *       -
-    //        \   /   \   /           \   /   \   /
-    //          v       v               v       v
-    //  +                       7                       15
-    //    0                   6   8                   14
-    //      1       *       -       9       *       -
-    //        2   3   4   5           10  11  12  13
-    //          v       v               v       v
+    //  +                         -
+    //    \                     /
+    //      +       - +       -
+    //        \   /     \   /
+    //          v         v
+    //  +                         8
+    //    0                     7
+    //      1       - 4       -
+    //        2   3     5   6
+    //          v         v
     global_step = 0;
     solver->apply(gko::lend(this->b), gko::lend(this->x));
 
-    this->assert_same_step(mg_level.at(0).get(), {0, 8}, {6, 14});
-    this->assert_same_step(mg_level.at(1).get(), {2, 4, 10, 12},
-                           {3, 5, 11, 13});
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 9});
-    this->assert_same_step(mid_smoother.at(0).get(), {7});
-    this->assert_same_step(post_smoother.at(0).get(), {15});
+    this->assert_same_step(mg_level.at(0).get(), {0}, {7});
+    this->assert_same_step(mg_level.at(1).get(), {2, 5}, {3, 6});
+    this->assert_same_step(pre_smoother.at(1).get(), {1, 4});
+    this->assert_same_step(post_smoother.at(0).get(), {8});
 }
 
 
@@ -700,25 +697,24 @@ TYPED_TEST(Multigrid, WCycleSame)
     // alpha setting
     // pre, mid, post: pass, 2
     // coarset_solver: dummy_operator
-    //  +                       *                       -
-    //    \                   /   \                   /
-    //      +       *       -       +       *       -
-    //        \   /   \   /           \   /   \   /
-    //          v       v               v       v
-    //  +                       *                       -
-    //    0                   10  11                  21
-    //      1       5       9       12      16      20
-    //        2   4   6   8           13  15  17  19
-    //          3       7               14      18
+    //  +                         -
+    //    \                     /
+    //      +       - +       -
+    //        \   /     \   /
+    //          v         v
+    //  +                         -
+    //    0                     11
+    //      1       5 6       10
+    //        2   4     7   9
+    //          3         8
     global_step = 0;
     solver->apply(gko::lend(this->b), gko::lend(this->x));
 
-    this->assert_same_step(mg_level.at(0).get(), {0, 11}, {10, 21});
-    this->assert_same_step(mg_level.at(1).get(), {2, 6, 13, 17},
-                           {4, 8, 15, 19});
+    this->assert_same_step(mg_level.at(0).get(), {0}, {11});
+    this->assert_same_step(mg_level.at(1).get(), {2, 7}, {4, 9});
     // all uses pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 5, 9, 12, 16, 20});
-    this->assert_same_step(coarsest_solver.get(), {3, 7, 14, 18});
+    this->assert_same_step(pre_smoother.at(1).get(), {1, 5, 6, 10});
+    this->assert_same_step(coarsest_solver.get(), {3, 8});
 }
 
 
@@ -742,25 +738,38 @@ TYPED_TEST(Multigrid, FCycleIndividual)
     // mid: 3, pass
     // post: 5, pass
     // coarset_solver: Identity
-    //  +                       *               -
-    //    \                   /   \           /
-    //      +       *       -       +       -
-    //        \   /   \   /           \   /
-    //          v       v               v
-    //  +                       7               13
-    //    0                   6   8           12
-    //      1       *       -       9       -
-    //        2   3   4   5           10  11
-    //          v       v               v
+    //  +                          -
+    //    \                      /
+    //      +       - +        -
+    //        \   /     \   /
+    //          v         v
+    // +                                                   -
+    //   \                                               /
+    //     +                         - +               -
+    //       \                     /     \           /
+    //         +       - +       -         +       -
+    //           \   /     \   /             \   /
+    //             v         v                 v
+    //                                                 -
+    //   \                                           /
+    //                             +               -
+    //       \                   /   \           /
+    //                 +       -       +       -
+    //           \   /   \   /           \   /
+    //             v       v               v
+    //  +                        8
+    //    0                    7
+    //      1       - 4       -
+    //        2   3    5    6
+    //          v        v
     global_step = 0;
     solver->apply(gko::lend(this->b), gko::lend(this->x));
 
-    this->assert_same_step(mg_level.at(0).get(), {0, 8}, {6, 12});
-    this->assert_same_step(mg_level.at(1).get(), {2, 4, 10}, {3, 5, 11});
-    // all uses pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 9});
-    this->assert_same_step(mid_smoother.at(0).get(), {7});
-    this->assert_same_step(post_smoother.at(0).get(), {13});
+    this->assert_same_step(mg_level.at(0).get(), {0}, {7});
+    this->assert_same_step(mg_level.at(1).get(), {2, 5}, {3, 6});
+    this->assert_same_step(pre_smoother.at(1).get(), {1, 4});
+    // this->assert_same_step(mid_smoother.at(0).get(), {7});
+    this->assert_same_step(post_smoother.at(0).get(), {8});
 }
 
 
@@ -782,24 +791,24 @@ TYPED_TEST(Multigrid, FCycleSame)
     // alpha setting
     // pre, mid, post: pass, 2
     // coarset_solver: dummy_operator
-    //  +                       *               -
-    //    \                   /   \           /
-    //      +       *       -       +       -
-    //        \   /   \   /           \   /
-    //          v       v               v
-    //  +                       *               -
-    //    0                   10  11          17
-    //      1       5       9       12      16
-    //        2   4   6   8           13  15
-    //          3       7               14
+    //  +                         -
+    //    \                     /
+    //      +       - +       -
+    //        \   /     \   /
+    //          v         v
+    //  +                         -
+    //    0                     11
+    //      1       5 6       10
+    //        2   4     7   9
+    //          3         8
     global_step = 0;
     solver->apply(gko::lend(this->b), gko::lend(this->x));
 
-    this->assert_same_step(mg_level.at(0).get(), {0, 11}, {10, 17});
-    this->assert_same_step(mg_level.at(1).get(), {2, 6, 13}, {4, 8, 15});
+    this->assert_same_step(mg_level.at(0).get(), {0}, {11});
+    this->assert_same_step(mg_level.at(1).get(), {2, 7}, {4, 9});
     // all uses pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 5, 9, 12, 16});
-    this->assert_same_step(coarsest_solver.get(), {3, 7, 14});
+    this->assert_same_step(pre_smoother.at(1).get(), {1, 5, 6, 10});
+    this->assert_same_step(coarsest_solver.get(), {3, 8});
 }
 
 
@@ -822,24 +831,24 @@ TYPED_TEST(Multigrid, KCycleIndividual2Iteration)
     // alpha setting
     // pre, mid, post: 1
     // coarset_solver: dummy_operator
-    //  +                                         -
-    //    \                                     /
-    //      +             - ~ +             - ~
-    //        \         /       \         /
-    //          v ~ v ~           v ~ v ~
-    //  0                                         21
-    //    1                                     20
-    //      2             9 ~ 11            18~
-    //        3         8       12        17
-    //          4 ~ 6 ~           13~ 15~
+    //  +                             -
+    //    \                         /
+    //      +       - ~ +       - ~
+    //        \   /       \   /
+    //          v           v
+    //  0                             15
+    //    1                         14
+    //      2       6 ~ 8       12~
+    //        3   5       9   11
+    //          4           10
     global_step = 0;
     solver->apply(gko::lend(this->b), gko::lend(this->x));
 
-    this->assert_same_step(mg_level.at(0).get(), {1}, {20});
-    this->assert_same_step(mg_level.at(1).get(), {3, 12}, {8, 17});
-    this->assert_same_step(pre_smoother.at(0).get(), {0, 21});
-    this->assert_same_step(pre_smoother.at(1).get(), {2, 9, 11, 18});
-    this->assert_same_step(coarsest_solver.get(), {4, 6, 13, 15});
+    this->assert_same_step(mg_level.at(0).get(), {1}, {14});
+    this->assert_same_step(mg_level.at(1).get(), {3, 9}, {5, 11});
+    this->assert_same_step(pre_smoother.at(0).get(), {0, 15});
+    this->assert_same_step(pre_smoother.at(1).get(), {2, 6, 8, 12});
+    this->assert_same_step(coarsest_solver.get(), {4, 10});
 }
 
 
@@ -862,23 +871,23 @@ TYPED_TEST(Multigrid, KCycleIndividual1Iteration)
     // alpha setting
     // pre, mid, post: 1
     // coarset_solver: dummy_operator
-    //  +                   -
-    //    \               /
-    //      +         - ~
-    //        \     /
-    //          v ~
-    //  0                   10
-    //    1               9
-    //      2         7 ~
-    //        3     6
-    //          4 ~
+    //  +                 -
+    //    \             /
+    //      +       - ~
+    //        \   /
+    //          v
+    //  0                 9
+    //    1             8
+    //      2       6 ~
+    //        3   5
+    //          4
     global_step = 0;
     solver->apply(gko::lend(this->b), gko::lend(this->x));
 
-    this->assert_same_step(mg_level.at(0).get(), {1}, {9});
-    this->assert_same_step(mg_level.at(1).get(), {3}, {6});
-    this->assert_same_step(pre_smoother.at(0).get(), {0, 10});
-    this->assert_same_step(pre_smoother.at(1).get(), {2, 7});
+    this->assert_same_step(mg_level.at(0).get(), {1}, {8});
+    this->assert_same_step(mg_level.at(1).get(), {3}, {5});
+    this->assert_same_step(pre_smoother.at(0).get(), {0, 9});
+    this->assert_same_step(pre_smoother.at(1).get(), {2, 6});
     this->assert_same_step(coarsest_solver.get(), {4});
 }
 
@@ -946,11 +955,11 @@ TYPED_TEST(Multigrid, CanChangeCycle)
 
     ASSERT_EQ(original, gko::solver::multigrid_cycle::v);
     ASSERT_EQ(solver->get_cycle(), gko::solver::multigrid_cycle::f);
-    this->assert_same_step(mg_level.at(0).get(), {0, 11}, {10, 17});
-    this->assert_same_step(mg_level.at(1).get(), {2, 6, 13}, {4, 8, 15});
+    this->assert_same_step(mg_level.at(0).get(), {0}, {11});
+    this->assert_same_step(mg_level.at(1).get(), {2, 7}, {4, 9});
     // all uses pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {1, 5, 9, 12, 16});
-    this->assert_same_step(coarsest_solver.get(), {3, 7, 14});
+    this->assert_same_step(pre_smoother.at(1).get(), {1, 5, 6, 10});
+    this->assert_same_step(coarsest_solver.get(), {3, 8});
 }
 
 

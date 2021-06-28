@@ -96,7 +96,7 @@ protected:
         old_norm = gen_mtx(1, n);
         new_norm = Mtx::create(ref, gko::dim<2>{1, n});
         this->modify_norm(old_norm, new_norm);
-        this->modify_scaler(alpha, rho, beta, gamma, zeta);
+        this->modify_scalar(alpha, rho, beta, gamma, zeta);
 
         d_v = Mtx::create(omp);
         d_v->copy_from(v.get());
@@ -132,32 +132,32 @@ protected:
         }
     }
 
-    void modify_scaler(std::unique_ptr<Mtx> &alpha, std::unique_ptr<Mtx> &rho,
+    void modify_scalar(std::unique_ptr<Mtx> &alpha, std::unique_ptr<Mtx> &rho,
                        std::unique_ptr<Mtx> &beta, std::unique_ptr<Mtx> &gamma,
                        std::unique_ptr<Mtx> &zeta)
     {
         // modify the first three element such that the isfinite condition can
         // be reached, which are checked in the last three group in reference
         // test.
-        // scaler_d = zeta/(beta - gamma * gamma / rho)
-        // scaler_e = one<ValueType>() - gamma / alpha * scaler_d
+        // scalar_d = zeta/(beta - gamma * gamma / rho)
+        // scalar_e = one<ValueType>() - gamma / alpha * scalar_d
         // temp = alpha/rho
 
-        // scaler_d, scaler_e are not finite
+        // scalar_d, scalar_e are not finite
         alpha->at(0, 0) = 3.0;
         rho->at(0, 0) = 2.0;
         beta->at(0, 0) = 2.0;
         gamma->at(0, 0) = 2.0;
         zeta->at(0, 0) = -1.0;
 
-        // temp, scaler_d, scaler_e are not finite
+        // temp, scalar_d, scalar_e are not finite
         alpha->at(0, 1) = 0.0;
         rho->at(0, 1) = 0.0;
         beta->at(0, 1) = -1.0;
         gamma->at(0, 1) = 0.0;
         zeta->at(0, 1) = 3.0;
 
-        // scaler_e is not finite
+        // scalar_e is not finite
         alpha->at(0, 2) = 0.0;
         rho->at(0, 2) = 1.0;
         beta->at(0, 2) = 2.0;

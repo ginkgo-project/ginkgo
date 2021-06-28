@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 
     // Read data
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
-    // Create RHS and initial guess as 1
+    // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
     auto host_b = vec::create(exec->get_master(), gko::dim<2>(size, 1));
@@ -111,6 +111,8 @@ int main(int argc, char *argv[])
 
     // copy b again
     b->copy_from(host_b.get());
+
+    // Prepare the stopping criteria
     const gko::remove_complex<ValueType> tolerance = 1e-12;
     auto iter_stop =
         gko::stop::Iteration::build().with_max_iters(100u).on(exec);
