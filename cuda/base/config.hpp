@@ -79,7 +79,7 @@ struct batch_config {
     /**
      * Max number of rows per matrix in a batch of (small) sparse matrices.
      */
-    static constexpr int max_num_rows = 150;
+    static constexpr int max_num_rows = 72;
 
 
     /**
@@ -90,7 +90,7 @@ struct batch_config {
      * address issues while using complex datatypes(in reference to the shared
      * memory in solver kernels)
      */
-    static constexpr int max_num_rhs = 6;
+    static constexpr int max_num_rhs = 4;
 };
 
 
