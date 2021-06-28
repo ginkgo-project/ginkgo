@@ -319,7 +319,8 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerIsCorrect)
         this->r_1.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
-
+        std::cout << "Iterations are " << iter_array[i]
+                  << ", logged norm = " << res_log_array[i] << std::endl;
         GKO_ASSERT((iter_array[i] <= ref_iters + 1) &&
                    (iter_array[i] >= ref_iters - 1));
         ASSERT_LE(res_log_array[i] / this->sys_1.bnorm->at(i, 0, 0),
@@ -329,7 +330,7 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerIsCorrect)
     }
 }
 
-
+#if 0
 TYPED_TEST(BatchBicgstab, SolvesStencilMultipleSystem)
 {
     this->r_m = this->solve_poisson_uniform_mult();
@@ -367,7 +368,7 @@ TYPED_TEST(BatchBicgstab, StencilMultipleSystemLoggerIsCorrect)
         }
     }
 }
-
+#endif
 
 TYPED_TEST(BatchBicgstab, CoreSolvesSystemJacobi)
 {
@@ -458,7 +459,7 @@ TEST(BatchBicgstab, CanSolveWithoutScaling)
             .on(exec);
     const int nrows = 29;
     const size_t nbatch = 3;
-    const int nrhs = 5;
+    const int nrhs = 1;
     gko::test::test_solve_without_scaling<Solver>(
         exec, nbatch, nrows, nrhs, tol, maxits, batchbicgstab_factory.get(), 5);
 }
