@@ -102,10 +102,16 @@ int main(int argc, char *argv[])
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
              [] {
-                 const auto comm = gko::mpi::communicator::create();
-                 return gko::CudaExecutor::create(
-                     gko::mpi::get_local_rank(comm->get()),
-                     gko::ReferenceExecutor::create(), true);
+                 if (gko::CudaExecutor::get_num_devices() > 1) {
+                     const auto comm = gko::mpi::communicator::create();
+                     return gko::CudaExecutor::create(
+                         gko::mpi::get_local_rank(comm->get()),
+                         gko::ReferenceExecutor::create(), true);
+                 } else {
+                     const auto comm = gko::mpi::communicator::create();
+                     return gko::CudaExecutor::create(
+                         0, gko::ReferenceExecutor::create(), true);
+                 }
              }},
             {"hip",
              [] {
@@ -236,7 +242,7 @@ int main(int argc, char *argv[])
             .on(exec));
     auto ras_precond = ras::build()
                            .with_coarse_relaxation_factors(rel_fac)
-                           .with_generated_coarse_solvers(coarse_solver)
+                           // .with_generated_coarse_solvers(coarse_solver)
                            .with_inner_solver(inner_solver)
                            .on(exec)
                            ->generate(gko::share(block_A));
