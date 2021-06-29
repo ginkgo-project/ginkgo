@@ -206,13 +206,10 @@ int main(int argc, char *argv[])
     b->compute_norm2(gko::lend(initial_resnorm));
     b->copy_from(b_host.get());
 
-    std::cout << "HERE@@@@@@@@@@@@2" << __LINE__ << std::endl;
     auto block_A = block_approx::create(exec, A.get(), comm);
-    std::cout << "HERE@@@@@@@@@@@@2" << __LINE__ << std::endl;
 
     gko::remove_complex<ValueType> inner_reduction_factor = 1e-2;
     auto inner_solver = gko::share(paric::build().on(exec));
-    std::cout << "HERE@@@@@@@@@@@@2" << __LINE__ << std::endl;
     // bj::build().on(exec));
     // ir::build()
     //     .with_relaxation_factor(0.9)
@@ -226,15 +223,12 @@ int main(int argc, char *argv[])
     //                        .on(exec))
     //     .on(exec));
     // bj::build().with_max_block_size(1u).on(exec)
-    std::cout << "HERE@@@@@@@@@@@@2" << __LINE__ << std::endl;
     auto bA = block_A->get_block_mtxs();
     auto inner_solvers = std::vector<std::shared_ptr<const gko::LinOp>>();
-    for (auto i = 0; i < comm->size(); ++i) {
+    for (auto i = 0; i < bA.size(); ++i) {
         inner_solvers.emplace_back(
             gko::share(inner_solver->generate(gko::share(bA[i]))));
     }
-    std::cout << "HERE@@@@@@@@@@@@2" << __LINE__ << std::endl;
-    std::cout << "Generated inner solvers " << __LINE__ << std::endl;
     auto coarse_solver = gko::share(
         ir::build()
             .with_relaxation_factor(1.0)
@@ -250,16 +244,12 @@ int main(int argc, char *argv[])
                                .on(exec))
             .on(exec)
             ->generate(A));
-    std::cout << "HERE@@@@@@@@@@@@2" << __LINE__ << std::endl;
-    std::cout << "Generated coarse solvers " << __LINE__ << std::endl;
     auto ras_precond = ras::build()
                            .with_generated_inner_solvers(inner_solvers)
-                           .with_generated_coarse_solvers(coarse_solver)
+                           // .with_generated_coarse_solvers(coarse_solver)
                            .on(exec)
-                           ->generate(gko::share(A));
-    std::cout << "Generated ras precond " << __LINE__ << std::endl;
+                           ->generate(A);
 
-    std::cout << "HERE@@@@@@@@@@@@2" << __LINE__ << std::endl;
     gko::remove_complex<ValueType> reduction_factor = 1e-10;
     std::shared_ptr<gko::stop::Iteration::Factory> iter_stop =
         gko::stop::Iteration::build()
@@ -272,7 +262,6 @@ int main(int argc, char *argv[])
     std::shared_ptr<gko::stop::Combined::Factory> combined_stop =
         gko::stop::Combined::build()
             .with_criteria(iter_stop, tol_stop)
-            // .with_criteria(iter_stop)
             .on(exec);
 
     // std::ofstream fstream("stream_out.txt");
