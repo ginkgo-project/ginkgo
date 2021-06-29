@@ -24,6 +24,8 @@
     - FixInclude: "core/preconditioner/jacobi_kernels.hpp"
 - "(cuda|hip|dpcpp|omp)/base/kernel_launch\."
     - FixInclude: "common/base/kernel_launch.hpp"
+- "(cuda|hip|dpcpp|omp)/test/base/kernel_launch\."
+    - FixInclude: "common/base/kernel_launch.hpp"
 - "(cuda|hip|dpcpp|omp)/base/kernel_launch_solver\."
     - FixInclude: "common/base/kernel_launch_solver.hpp"
 - "core/test/base/(extended_float|iterator_factory)"
