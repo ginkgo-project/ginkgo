@@ -74,6 +74,12 @@ namespace kernels {
         const matrix::Dense<ValueType> *b,                                     \
         const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
 
+#define GKO_DECLARE_JACOBI_SIMPLE_SCALAR_APPLY_KERNEL(ValueType)          \
+    void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec, \
+                             const matrix::Diagonal<ValueType> *diag,     \
+                             const matrix::Dense<ValueType> *b,           \
+                             matrix::Dense<ValueType> *x)
+
 #define GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType)       \
     void simple_apply(                                                     \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
@@ -84,6 +90,14 @@ namespace kernels {
         const Array<IndexType> &block_pointers,                            \
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *b, \
         matrix::Dense<ValueType> *x)
+
+#define GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL(ValueType)          \
+    void scalar_apply(std::shared_ptr<const DefaultExecutor> exec, \
+                      const matrix::Diagonal<ValueType> *diag,     \
+                      const matrix::Dense<ValueType> *alpha,       \
+                      const matrix::Dense<ValueType> *b,           \
+                      const matrix::Dense<ValueType> *beta,        \
+                      matrix::Dense<ValueType> *x)
 
 #define GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL(ValueType, IndexType)          \
     void transpose_jacobi(                                                 \
@@ -127,8 +141,12 @@ namespace kernels {
     GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType);      \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_JACOBI_GENERATE_KERNEL(ValueType, IndexType);         \
+    template <typename ValueType>                                     \
+    GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL(ValueType);                \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_JACOBI_APPLY_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType>                                     \
+    GKO_DECLARE_JACOBI_SIMPLE_SCALAR_APPLY_KERNEL(ValueType);         \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType);     \
     template <typename ValueType, typename IndexType>                 \
