@@ -215,7 +215,7 @@ TEST_F(Dense, CopyRespectsStride)
     set_up_vector_data(3);
     auto stride = dx->get_size()[1] + 1;
     auto result = Mtx::create(exec, dx->get_size(), stride);
-    double val = 123456789.0;
+    vtype val = 1234567.0;
     auto original_data = result->get_values();
     auto padding_ptr = original_data + dx->get_size()[1];
     exec->copy_from(ref.get(), 1, &val, padding_ptr);
@@ -244,7 +244,7 @@ TEST_F(Dense, FillIsEquivalentToRef)
 
 TEST_F(Dense, StridedFillIsEquivalentToRef)
 {
-    using T = double;
+    using T = vtype;
     auto x = gko::initialize<gko::matrix::Dense<T>>(
         4, {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, ref);
     auto dx = gko::initialize<gko::matrix::Dense<T>>(
