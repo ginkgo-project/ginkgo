@@ -30,11 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_BASE_KERNEL_LAUNCH_SOLVER_CUH_
-#define GKO_CUDA_BASE_KERNEL_LAUNCH_SOLVER_CUH_
-
-
-#include "common/base/kernel_launch_solver.hpp"
+#ifndef GKO_COMMON_BASE_KERNEL_LAUNCH_SOLVER_HPP_
+#error \
+    "This file can only be used from inside common/base/kernel_launch_solver.hpp"
+#endif
 
 
 namespace gko {
@@ -74,5 +73,3 @@ void run_kernel_solver(std::shared_ptr<const CudaExecutor> exec,
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
-
-#endif  // GKO_CUDA_BASE_KERNEL_LAUNCH_SOLVER_CUH_

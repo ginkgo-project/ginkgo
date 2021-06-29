@@ -30,11 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_BASE_KERNEL_LAUNCH_CUH_
-#define GKO_CUDA_BASE_KERNEL_LAUNCH_CUH_
-
-
-#include "common/base/kernel_launch.hpp"
+#ifndef GKO_COMMON_BASE_KERNEL_LAUNCH_HPP_
+#error "This file can only be used from inside common/base/kernel_launch.hpp"
+#endif
 
 
 #include "cuda/base/device_guard.hpp"
@@ -102,5 +100,3 @@ void run_kernel(std::shared_ptr<const CudaExecutor> exec, KernelFunction fn,
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
-
-#endif  // GKO_CUDA_BASE_KERNEL_LAUNCH_CUH_
