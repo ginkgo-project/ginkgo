@@ -122,7 +122,7 @@ include:
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
     - ctest -V
     - ninja test_install
-    - pushd test/build_install
+    - pushd test/test_install
     - ninja install
     - popd
     - |
