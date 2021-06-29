@@ -35,6 +35,11 @@ if [ ! "${FORMATS}" ]; then
     FORMATS="csr,coo,ell,hybrid,sellp"
 fi
 
+if [ ! "${WARMUP}" ]; then
+    WARMUP=1
+    echo "WARMUP environment variable not set - assuming \"${WARMUP}\"" 1>&2
+fi
+
 if [ ! "${SOLVERS}" ]; then
     SOLVERS="bicgstab,cg,cgs,fcg,gmres,cb_gmres_reduce1,idr"
     echo "SOLVERS    environment variable not set - assuming \"${SOLVERS}\"" 1>&2
@@ -239,6 +244,7 @@ run_solver_benchmarks() {
                     --gpu_timer=${GPU_TIMER} \
                     --jacobi_max_block_size=${SOLVERS_JACOBI_MAX_BS} --device_id="${DEVICE_ID}" \
                     --gmres_restart="${SOLVERS_GMRES_RESTART}" \
+                    --warmup=${WARMUP} \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }

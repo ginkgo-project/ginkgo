@@ -36,6 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+// DEBUG
+#include <iostream>
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -335,6 +339,7 @@ void CbGmres<ValueType>::apply_dense_impl(
 
         while (true) {
             ++total_iter;
+            std::cout << total_iter << ":  " << std::flush;
             this->template log<log::Logger::iteration_complete>(
                 this, total_iter, residual.get(), dense_x, residual_norm.get());
             // In the beginning, only force a fraction of the total iterations

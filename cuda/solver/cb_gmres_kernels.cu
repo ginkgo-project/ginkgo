@@ -212,6 +212,96 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
     GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL);
 
 
+// ValueType is non-complex type
+template <int shared_size, typename Accessor3d, typename ValueType>
+__global__ void compute_dot_norm(size_type num_vectors, Accessor3d krylov_bases,
+                                 ValueType *__restrict__ output)
+{
+    using c_value_type = typename Accessor3d::accessor::arithmetic_type;
+    if (blockIdx.x > 0 || threadIdx.x >= num_vectors) {
+        return;
+    }
+    ValueType result[shared_size];
+    if (threadIdx.x < shared_size) {
+        result[threadIdx.x] = zero<ValueType>();
+    }
+
+    auto tblock = group::this_thread_block();
+    auto warp = group::tiled_partition<config::warp_size>(tblock);
+    const size_type num_warps = (blockDim.x - 1) / config::warp_size + 1;
+    const size_type start_i = num_vectors % num_warps;
+
+    for (size_type k = warp.thread_rank(); k < krylov_bases.length(1);
+         k += config::warp_size) {
+        for (size_type i = start_i; i < num_vectors; i += num_warps) {
+            // const auto v1 = krylov_bases(i, k, 0);
+            const auto v1 = krylov_bases(i, i, 0);
+            for (size_type j = 0; j < num_vectors; ++j) {
+                // const auto local_result =
+                //    squared_norm(v1 * krylov_bases(j, k, 0));
+                const auto local_result = ValueType{};
+                const auto reduced_result =
+                    reduce(warp, local_result,
+                           [](ValueType a, ValueType b) { return a + b; });
+                if (warp.thread_rank() == 0) {
+                    result[j] += reduced_result;
+                }
+            }
+        }
+    }
+    for (int k = shared_size; k >= config::warp_size; k /= 2) {
+        tblock.sync();
+        if (threadIdx.x < k) {
+            result[threadIdx.x] = result[threadIdx.x] + result[threadIdx.x + k];
+        }
+    }
+    if (threadIdx.x < config::warp_size) {
+        const auto final_res =
+            reduce(warp, result[threadIdx.x],
+                   [](ValueType a, ValueType b) { return a + b; });
+        if (threadIdx.x == 0) {
+            *output = final_res;
+        }
+    }
+}
+
+template <typename T, typename Accessor3d>
+T get_orthogonality(std::shared_ptr<const CudaExecutor> &exec,
+                    size_type num_vectors, Accessor3d krylov_bases, T *d_tmp)
+{
+    const dim3 block_dot_norm(1024, 1, 1);
+    compute_dot_norm<128><<<1, block_dot_norm>>>(
+        num_vectors, as_cuda_accessor(krylov_bases->to_const()),
+        as_cuda_type(d_tmp));
+    return sqrt(exec->copy_val_to_host(d_tmp));
+}
+
+
+// TODO: compute ||-V^T * V|| to show loss of orthogonality
+template <bool before, typename ValueType>
+__global__ void print_norms(const size_type krylov_dim,
+                            const ValueType *__restrict__ arnoldi_norm,
+                            const size_type norm_stride)
+{
+    constexpr remove_complex<ValueType> eta_squared = 1.0 / 2.0;
+
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+        ValueType num0;
+        ValueType num11;
+        for (size_type i = 0; i < krylov_dim; ++i) {
+            if (before) {
+                num0 = sqrt(eta_squared * arnoldi_norm[i]);
+                num11 = sqrt(arnoldi_norm[i + norm_stride]);
+            } else {
+                num0 = arnoldi_norm[i];
+                num11 = arnoldi_norm[i + norm_stride];
+            }
+            printf("%f,%f  ", num0, num11);
+        }
+    }
+}
+
+
 template <typename ValueType, typename Accessor3dim>
 void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
                         matrix::Dense<ValueType> *next_krylov_basis,
@@ -308,9 +398,29 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
             stride_hessenberg, iter + 1, as_cuda_accessor(krylov_bases),
             as_cuda_type(stop_status), as_cuda_type(reorth_status),
             as_cuda_type(num_reorth->get_data()));
+
+    // DEBUG ONLY (works exclusively with 1 RHS, otherwise, the result is
+    //            undefined)
+    auto *const d_tmp = arnoldi_norm->get_values() + 2 * stride_arnoldi;
+    size_type num_reorth_performed{};
+    // std::cout << "Pre-orthogonality\n";
+    const auto pre_orthogonality =
+        get_orthogonality(exec, iter + 1, krylov_bases->to_const(), d_tmp);
+    /*
+    print_norms<false><<<1, 1>>>(dim_size[1],
+                                 as_cuda_type(arnoldi_norm->get_const_values()),
+                                 stride_arnoldi);
+    //*/
+    std::cout.precision(15);
+    // std::cout << "Syncing now\n";
+
+    exec->synchronize();
+
     num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
+        // std::cout << "Reorthogonalization " << l << std::endl;
+        ++num_reorth_performed;
         zero_matrix(iter + 1, dim_size[1], stride_buffer,
                     buffer_iter->get_values());
         if (dim_size[1] > 1) {
@@ -384,6 +494,12 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // krylov_bases(:, iter + 1) = next_krylov_basis
     // End of arnoldi
+    // DEBUG ONLY
+    const auto post_orthogonality =
+        get_orthogonality(exec, iter + 1, krylov_bases->to_const(), d_tmp);
+    const char Delim = ';';
+    std::cout << pre_orthogonality << Delim << num_reorth_performed << Delim
+              << post_orthogonality << std::endl;
 }
 
 template <typename ValueType>
