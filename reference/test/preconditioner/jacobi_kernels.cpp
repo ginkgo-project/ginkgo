@@ -75,6 +75,7 @@ protected:
         block_pointers.get_data()[2] = 5;
         block_precisions.get_data()[0] = gko::precision_reduction(0, 1);
         block_precisions.get_data()[1] = gko::precision_reduction(0, 0);
+        scalar_j_factory = Bj::build().with_max_block_size(1u).on(exec);
         bj_factory = Bj::build()
                          .with_max_block_size(3u)
                          .with_block_pointers(block_pointers)
@@ -111,6 +112,7 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<typename Bj::Factory> bj_factory;
+    std::unique_ptr<typename Bj::Factory> scalar_j_factory;
     std::unique_ptr<typename Bj::Factory> adaptive_bj_factory;
     gko::Array<index_type> block_pointers;
     gko::Array<gko::precision_reduction> block_precisions;
@@ -656,6 +658,21 @@ TYPED_TEST(Jacobi, AppliesToVector)
 }
 
 
+TYPED_TEST(Jacobi, ScalarJacobiAppliesToVector)
+{
+    using Vec = typename TestFixture::Vec;
+    using value_type = typename TestFixture::value_type;
+    auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, this->exec);
+    auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, this->exec);
+    auto sj = this->scalar_j_factory->generate(this->mtx);
+
+    sj->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, -0.25, -0.5, 1.0, -0.25}),
+                        r<value_type>::value);
+}
+
+
 TYPED_TEST(Jacobi, AppliesToMixedVector)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
@@ -783,6 +800,32 @@ TYPED_TEST(Jacobi, AppliesToMultipleVectors)
 }
 
 
+TYPED_TEST(Jacobi, ScalarJacobiAppliesToMultipleVectors)
+{
+    using Vec = typename TestFixture::Vec;
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto x =
+        gko::initialize<Vec>(3,
+                             {I<T>{1.0, 0.5}, I<T>{-1.0, -0.5}, I<T>{2.0, 1.0},
+                              I<T>{-2.0, -1.0}, I<T>{3.0, 1.5}},
+                             this->exec);
+    auto b =
+        gko::initialize<Vec>(3,
+                             {I<T>{4.0, -2.0}, I<T>{-1.0, 4.0}, I<T>{-2.0, 0.0},
+                              I<T>{4.0, -2.0}, I<T>{-1.0, 4.0}},
+                             this->exec);
+    auto sj = this->scalar_j_factory->generate(this->mtx);
+
+    sj->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{1.0, -0.5}, {-0.25, 1.0}, {-0.5, 0.0}, {1.0, -0.5}, {-0.25, 1.0}}),
+        r<value_type>::value);
+}
+
+
 TYPED_TEST(Jacobi, AppliesToMultipleVectorsWithAdaptivePrecision)
 {
     using Vec = typename TestFixture::Vec;
@@ -855,6 +898,23 @@ TYPED_TEST(Jacobi, AppliesLinearCombinationToVector)
     bj->apply(alpha.get(), b.get(), beta.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 1.0, -2.0, 4.0, -3.0}),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Jacobi, ScalarJacobiAppliesLinearCombinationToVector)
+{
+    using Vec = typename TestFixture::Vec;
+    using value_type = typename TestFixture::value_type;
+    auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, this->exec);
+    auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, this->exec);
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto sj = this->scalar_j_factory->generate(this->mtx);
+
+    sj->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 0.5, -3.0, 4.0, -3.5}),
                         r<value_type>::value);
 }
 
@@ -969,6 +1029,34 @@ TYPED_TEST(Jacobi, AppliesLinearCombinationToMultipleVectors)
 
     GKO_ASSERT_MTX_NEAR(
         x, l({{1.0, -0.5}, {1.0, 2.5}, {-2.0, -1.0}, {4.0, 1.0}, {-3.0, 0.5}}),
+        r<value_type>::value);
+}
+
+
+TYPED_TEST(Jacobi, ScalarAppliesLinearCombinationToMultipleVectors)
+{
+    using Vec = typename TestFixture::Vec;
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto half_tol = std::sqrt(r<value_type>::value);
+    auto x =
+        gko::initialize<Vec>(3,
+                             {I<T>{1.0, 0.5}, I<T>{-1.0, -0.5}, I<T>{2.0, 1.0},
+                              I<T>{-2.0, -1.0}, I<T>{3.0, 1.5}},
+                             this->exec);
+    auto b =
+        gko::initialize<Vec>(3,
+                             {I<T>{4.0, -2.0}, I<T>{-1.0, 4.0}, I<T>{-2.0, 0.0},
+                              I<T>{4.0, -2.0}, I<T>{-1.0, 4.0}},
+                             this->exec);
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto sj = this->scalar_j_factory->generate(this->mtx);
+
+    sj->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x, l({{1.0, -1.5}, {0.5, 2.5}, {-3.0, -1.0}, {4.0, 0.0}, {-3.5, 0.5}}),
         r<value_type>::value);
 }
 
