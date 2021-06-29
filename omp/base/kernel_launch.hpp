@@ -30,11 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_OMP_BASE_KERNEL_LAUNCH_HPP_
-#define GKO_OMP_BASE_KERNEL_LAUNCH_HPP_
-
-
-#include "common/base/kernel_launch.hpp"
+#ifndef GKO_COMMON_BASE_KERNEL_LAUNCH_HPP_
+#error "This file can only be used from inside common/base/kernel_launch.hpp"
+#endif
 
 
 namespace gko {
@@ -150,5 +148,3 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko
-
-#endif  // GKO_OMP_BASE_KERNEL_LAUNCH_HPP_

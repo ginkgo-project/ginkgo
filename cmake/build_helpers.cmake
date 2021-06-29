@@ -51,8 +51,11 @@ function(ginkgo_check_headers target defines)
     file(GLOB_RECURSE CXX_HEADERS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" CONFIGURE_DEPENDS "*.hpp")
     list(FILTER CXX_HEADERS EXCLUDE REGEX ".*\.hip\.hpp$")
     list(FILTER CXX_HEADERS EXCLUDE REGEX "^test.*")
+    list(FILTER CXX_HEADERS EXCLUDE REGEX "^base/kernel_launch.*")
     list(FILTER CUDA_HEADERS EXCLUDE REGEX "^test.*")
+    list(FILTER CUDA_HEADERS EXCLUDE REGEX "^base/kernel_launch.*")
     list(FILTER HIP_HEADERS EXCLUDE REGEX "^test.*")
+    list(FILTER HIP_HEADERS EXCLUDE REGEX "^base/kernel_launch.*")
 
     set(SOURCES "")
     # if we have any CUDA files in there, compile everything as CUDA
