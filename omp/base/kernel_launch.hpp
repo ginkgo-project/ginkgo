@@ -65,21 +65,23 @@ void run_kernel_fixed_cols_impl(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
-template <size_type remainder_cols, typename KernelFunction,
-          typename... MappedKernelArgs>
+template <size_type remainder_cols, size_type block_size,
+          typename KernelFunction, typename... MappedKernelArgs>
 void run_kernel_blocked_cols_impl(std::shared_ptr<const OmpExecutor> exec,
                                   KernelFunction fn, dim<2> size,
                                   MappedKernelArgs... args)
 {
+    static_assert(remainder_cols < block_size, "remainder too large");
     const auto rows = size[0];
     const auto cols = size[1];
-    const auto rounded_cols = cols / 4 * 4;
+    const auto rounded_cols = cols / block_size * block_size;
     GKO_ASSERT(rounded_cols + remainder_cols == cols);
 #pragma omp parallel for
     for (size_type row = 0; row < rows; row++) {
-        for (size_type base_col = 0; base_col < rounded_cols; base_col += 4) {
+        for (size_type base_col = 0; base_col < rounded_cols;
+             base_col += block_size) {
 #pragma unroll
-            for (size_type i = 0; i < 4; i++) {
+            for (size_type i = 0; i < block_size; i++) {
                 [&]() { fn(row, base_col + i, args...); }();
             }
         }
@@ -96,6 +98,7 @@ void run_kernel_impl(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
 {
     const auto rows = size[0];
     const auto cols = size[1];
+    constexpr size_type block_size = 4;
     if (cols <= 0) {
         return;
     }
@@ -115,21 +118,21 @@ void run_kernel_impl(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
         run_kernel_fixed_cols_impl<4>(exec, fn, size, args...);
         return;
     }
-    const auto rem_cols = cols % 4;
+    const auto rem_cols = cols % block_size;
     if (rem_cols == 0) {
-        run_kernel_blocked_cols_impl<0>(exec, fn, size, args...);
+        run_kernel_blocked_cols_impl<0, block_size>(exec, fn, size, args...);
         return;
     }
     if (rem_cols == 1) {
-        run_kernel_blocked_cols_impl<1>(exec, fn, size, args...);
+        run_kernel_blocked_cols_impl<1, block_size>(exec, fn, size, args...);
         return;
     }
     if (rem_cols == 2) {
-        run_kernel_blocked_cols_impl<2>(exec, fn, size, args...);
+        run_kernel_blocked_cols_impl<2, block_size>(exec, fn, size, args...);
         return;
     }
     if (rem_cols == 3) {
-        run_kernel_blocked_cols_impl<3>(exec, fn, size, args...);
+        run_kernel_blocked_cols_impl<3, block_size>(exec, fn, size, args...);
         return;
     }
     // should be unreachable
