@@ -31,10 +31,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-// template <typename ValueType>
-// using BatchEntry = gko::batch_dense::BatchEntry<ValueType>;
-
-
 /**
  *
  *   Scales the vectors in global or shared memory with a factor of alpha(alpha
@@ -92,37 +88,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //}
 
 
-namespace {
-
-template <typename ValueType>
-__device__ __forceinline__ void one_norm2(
-    const int num_rows, const ValueType *const x,
-    remove_complex<ValueType> &result,
-    gko::kernels::cuda::group::thread_block_tile<config::warp_size>
-        &subwarp_grp)
-{
-    using real_type = typename gko::remove_complex<ValueType>;
-    real_type val = zero<real_type>();
-
-    for (int r = subwarp_grp.thread_rank(); r < num_rows;
-         r += subwarp_grp.size()) {
-        val += squared_norm(x[r]);
-    }
-
-    // subwarp_grp level reduction
-#pragma unroll
-    for (int j = config::warp_size / 2; j > 0; j /= 2) {
-        val += subwarp_grp.shfl_down(val, j);
-    }
-
-    if (subwarp_grp.thread_rank() == 0) {
-        result = sqrt(val);
-    }
-}
-
-}  // namespace
-
-
 /**
  * Computes the 2-norms of some column vectors in global or shared memory.
  *
@@ -130,17 +95,25 @@ __device__ __forceinline__ void one_norm2(
  * @param result  Holds norm value for each vector in x.
  */
 template <typename ValueType>
-__device__ __forceinline__ void compute_norm2(const int num_rows,
-                                              const ValueType *const x,
-                                              remove_complex<ValueType> &result)
+__device__ __forceinline__ void compute_norm2(
+    group::thread_block_tile<config::warp_size> &warp_grp, const int num_rows,
+    const ValueType *const x, remove_complex<ValueType> &result)
 {
-    constexpr auto tile_size = config::warp_size;
-    auto thread_block = group::this_thread_block();
-    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+    using real_type = typename gko::remove_complex<ValueType>;
+    real_type val = zero<real_type>();
 
-    if (subwarp_grp_id == 0) {
-        one_norm2(num_rows, x, result, subwarp_grp);
+    for (int r = warp_grp.thread_rank(); r < num_rows; r += warp_grp.size()) {
+        val += squared_norm(x[r]);
+    }
+
+    // subwarp_grp level reduction
+#pragma unroll
+    for (int j = config::warp_size / 2; j > 0; j /= 2) {
+        val += warp_grp.shfl_down(val, j);
+    }
+
+    if (warp_grp.thread_rank() == 0) {
+        result = sqrt(val);
     }
 }
 
@@ -155,7 +128,11 @@ __global__
          ibatch += gridDim.x) {
         const auto x_b = gko::batch::batch_entry(x, ibatch);
         const auto r_b = gko::batch::batch_entry(result, ibatch);
-        compute_norm2(x_b.num_rows, x_b.values, r_b.values[0]);
+        if (threadIdx.x / config::warp_size == 0) {
+            compute_norm2(group::tiled_partition<config::warp_size>(
+                              group::this_thread_block()),
+                          x_b.num_rows, x_b.values, r_b.values[0]);
+        }
     }
 }
 
@@ -177,53 +154,30 @@ __device__ __forceinline__ void copy(const int num_rows,
 }
 
 
-namespace {
-
-template <typename ValueType>
-__device__ __forceinline__ void one_dot(
-    const int num_rows, const ValueType *const x, const ValueType *const y,
-    ValueType &result,
-    gko::kernels::cuda::group::thread_block_tile<config::warp_size>
-        &subwarp_grp)
-{
-    ValueType val = zero<ValueType>();
-
-    for (int r = subwarp_grp.thread_rank(); r < num_rows;
-         r += subwarp_grp.size()) {
-        val += conj(x[r]) * y[r];
-    }
-
-    // subwarp_grp level reduction
-#pragma unroll
-    for (int j = config::warp_size / 2; j > 0; j /= 2) {
-        val += subwarp_grp.shfl_down(val, j);
-    }
-
-    if (subwarp_grp.thread_rank() == 0) {
-        result = val;
-    }
-}
-
-}  // namespace
-
 /**
  * Computes the dot product of some column vectors in global or shared memory.
  *
  * @param result  Holds dot product value for vector in x and y.
  */
 template <typename ValueType>
-__device__ __forceinline__ void compute_dot_product(const int num_rows,
-                                                    const ValueType *const x,
-                                                    const ValueType *const y,
-                                                    ValueType &result)
+__device__ __forceinline__ void compute_dot_product(
+    group::thread_block_tile<config::warp_size> &warp_grp, const int num_rows,
+    const ValueType *const x, const ValueType *const y, ValueType &result)
 {
-    constexpr auto tile_size = config::warp_size;
-    auto thread_block = group::this_thread_block();
-    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+    ValueType val = zero<ValueType>();
 
-    if (subwarp_grp_id == 0) {
-        one_dot(num_rows, x, y, result, subwarp_grp);
+    for (int r = warp_grp.thread_rank(); r < num_rows; r += warp_grp.size()) {
+        val += conj(x[r]) * y[r];
+    }
+
+    // subwarp_grp level reduction
+#pragma unroll
+    for (int j = config::warp_size / 2; j > 0; j /= 2) {
+        val += warp_grp.shfl_down(val, j);
+    }
+
+    if (warp_grp.thread_rank() == 0) {
+        result = val;
     }
 }
 
