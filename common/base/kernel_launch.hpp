@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_KERNEL_LAUNCH_HPP_
-#define GKO_CORE_BASE_KERNEL_LAUNCH_HPP_
+#ifndef GKO_COMMON_BASE_KERNEL_LAUNCH_HPP_
+#define GKO_COMMON_BASE_KERNEL_LAUNCH_HPP_
 
 
 #include <ginkgo/core/base/executor.hpp>
@@ -276,4 +276,4 @@ typename to_device_type_impl<T>::type map_to_device(T &&param)
 #endif
 
 
-#endif  // GKO_CORE_BASE_KERNEL_LAUNCH_HPP_
+#endif  // GKO_COMMON_BASE_KERNEL_LAUNCH_HPP_
