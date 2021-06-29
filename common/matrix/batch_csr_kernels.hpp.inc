@@ -87,7 +87,7 @@ __device__ __forceinline__ void spmv_kernel(
 template <typename ValueType>
 __device__ __forceinline__ void single_spmv_kernel(
     const gko::batch_csr::BatchEntry<const ValueType> &a,
-    const ValueType *const b, ValueType *const c)
+    const ValueType *const __restrict__ b, ValueType *const __restrict__ c)
 {
     constexpr auto tile_size = config::warp_size;
 
@@ -242,7 +242,8 @@ __device__ __forceinline__ void advanced_spmv_kernel(
 template <typename ValueType>
 __device__ __forceinline__ void single_advanced_spmv_kernel(
     const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType> &a,
-    const ValueType *const b, const ValueType beta, ValueType *const c)
+    const ValueType *const __restrict__ b, const ValueType beta,
+    ValueType *const __restrict__ c)
 {
     constexpr auto tile_size = config::warp_size;
 

@@ -48,7 +48,7 @@ namespace kernels {
 namespace cuda {
 
 #define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 1
-constexpr int default_block_size = 128;
+constexpr int default_block_size = 256;
 constexpr int sm_multiplier = 4;
 
 /**
@@ -75,12 +75,12 @@ template <typename T>
 using BatchBicgstabOptions =
     gko::kernels::batch_bicgstab::BatchBicgstabOptions<T>;
 
-#define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)                \
-    apply_kernel<stop::_stoppertype<ValueType>>                              \
-        <<<nbatch, default_block_size, shared_size>>>(                       \
-            opts.max_its, opts.residual_tol, logger, _prectype<ValueType>(), \
-            nbatch, nrows, shared_gap, nnz, avalues, col_idxs, row_ptrs,     \
-            b.stride, b.num_rhs, b.values, x.values)
+#define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)         \
+    apply_kernel<stop::_stoppertype<ValueType>>                       \
+        <<<nbatch, default_block_size, shared_size>>>(                \
+            shared_gap, opts.max_its, opts.residual_tol, logger,      \
+            _prectype<ValueType>(), a, b.stride, b.num_rhs, b.values, \
+            x.values)
 
 template <typename BatchMatrixType, typename LogType, typename ValueType>
 static void apply_impl(
@@ -92,11 +92,6 @@ static void apply_impl(
 {
     using real_type = gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
-    const int nrows = a.num_rows;
-    const int nnz = a.num_nnz;
-    const ValueType *const __restrict__ avalues = a.values;
-    const int *const __restrict__ col_idxs = a.col_idxs;
-    const int *const __restrict__ row_ptrs = a.row_ptrs;
     const int shared_gap = ((a.num_rows - 1) / 32 + 1) * 32;
 
     int shared_size =
@@ -114,9 +109,9 @@ static void apply_impl(
             sizeof(ValueType);
 #endif
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            BATCH_BICGSTAB_KERNEL_LAUNCH(AbsResidualMaxIter, BatchIdentity);
+            BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleAbsResidual, BatchIdentity);
         } else {
-            BATCH_BICGSTAB_KERNEL_LAUNCH(RelResidualMaxIter, BatchIdentity);
+            BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleRelResidual, BatchIdentity);
         }
 
 
@@ -129,9 +124,9 @@ static void apply_impl(
 #endif
 
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            BATCH_BICGSTAB_KERNEL_LAUNCH(AbsResidualMaxIter, BatchJacobi);
+            BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleAbsResidual, BatchJacobi);
         } else {
-            BATCH_BICGSTAB_KERNEL_LAUNCH(RelResidualMaxIter, BatchJacobi);
+            BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleRelResidual, BatchJacobi);
         }
 
 
@@ -153,7 +148,6 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
 
     // For now, FinalLogger is the only one available
     batch_log::SimpleFinalLogger<remove_complex<ValueType>> logger(
-        static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
         logdata.res_norms->get_values(), logdata.iter_counts.get_data());
 
     const gko::batch_dense::UniformBatch<cu_value_type> x_b =
