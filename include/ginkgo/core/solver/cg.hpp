@@ -165,7 +165,7 @@ protected:
         : EnableLinOp<Cg>(factory->get_executor(),
                           gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
-          system_matrix_{(system_matrix)}
+          system_matrix_{std::move(system_matrix)}
     {
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
         if (parameters_.generated_preconditioner) {

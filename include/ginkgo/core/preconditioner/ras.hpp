@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/distributed/block_approx.hpp>
+#include <ginkgo/core/matrix/block_approx.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -173,9 +175,13 @@ protected:
                  std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Ras>(factory->get_executor(),
                            gko::transpose(system_matrix->get_size())),
-          system_matrix_{system_matrix},
+          system_matrix_{std::move(system_matrix)},
           parameters_{factory->get_parameters()}
     {
+        using base_mat = matrix::Csr<ValueType, IndexType>;
+        using dist_mat = distributed::Matrix<ValueType, IndexType>;
+        using block_t = matrix::BlockApprox<base_mat>;
+        using dist_block_t = distributed::BlockApprox<ValueType, IndexType>;
         if (parameters_.overlaps.get_num_elems() > 0) {
             this->overlaps_ = parameters_.overlaps;
         }
@@ -187,7 +193,19 @@ protected:
             this->inner_solvers_ = std::vector<std::shared_ptr<const LinOp>>(
                 parameters_.generated_inner_solvers);
         } else {
-            this->generate(lend(system_matrix));
+            this->generate(lend(this->system_matrix_));
+        }
+
+        if (dynamic_cast<const base_mat *>(system_matrix_.get()) != nullptr ||
+            dynamic_cast<const block_t *>(system_matrix_.get()) != nullptr) {
+            this->is_distributed_ = false;
+        } else if (dynamic_cast<const dist_block_t *>(system_matrix_.get()) !=
+                       nullptr ||
+                   dynamic_cast<const dist_mat *>(system_matrix_.get()) !=
+                       nullptr) {
+            this->is_distributed_ = true;
+        } else {
+            GKO_NOT_SUPPORTED(system_matrix_.get());
         }
     }
 
