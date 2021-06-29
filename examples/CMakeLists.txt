@@ -59,7 +59,7 @@ if(GINKGO_RUN_EXAMPLES)
             COMMAND chmod +x ${example_path}/target-wrapper.sh && ${example_path}/target-wrapper.sh > ${example_path}/${example}.out
             WORKING_DIRECTORY ${example_path})
         file(WRITE ${example_path}/diff-command "#!/bin/bash
-diff <(sed -n '7,$p' ${example_path}/${example}.out | sed -E 's/([^a-z,\":\\s\\)\\(\\{\\}_]+)//g') <(sed -n '6,$p' ${CMAKE_SOURCE_DIR}/examples/${example}/doc/results.dox | head -n -4 | sed -E 's/([^a-z,\":\\s\\)\\(\\{\\}_]+)//g')")
+diff <(sed -n '8,$p' ${example_path}/${example}.out | sed -E 's/([^a-z,\":\\s\\)\\(\\{\\}_]+)//g') <(sed -n '6,$p' ${CMAKE_SOURCE_DIR}/examples/${example}/doc/results.dox | head -n -4 | sed -E 's/([^a-z,\":\\s\\)\\(\\{\\}_]+)//g')")
         add_custom_target("validate-${example}"
             COMMAND chmod +x ${example_path}/diff-command && ${example_path}/diff-command
             WORKING_DIRECTORY ${example_path})
