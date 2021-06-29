@@ -149,7 +149,8 @@ public:
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
     /**
-     * Creates a Dense matrix with the configuration of another Dense matrix.
+     * Creates a Dense matrix with the same size and stride as another Dense
+     * matrix.
      *
      * @param other  The other matrix whose configuration needs to copied.
      */
@@ -827,9 +828,10 @@ protected:
     }
 
     /**
-     * Creates a Dense matrix with the same size as the callers matrix.
+     * Creates a Dense matrix with the same size and stride as the callers
+     * matrix.
      *
-     * @returns a Dense matrix with the same size as the caller.
+     * @returns a Dense matrix with the same size and stride as the caller.
      */
     virtual std::unique_ptr<Dense> create_with_same_config() const
     {
