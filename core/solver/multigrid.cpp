@@ -196,17 +196,7 @@ struct MultigridState {
         one_list.reserve(list_size);
         neg_one_list.reserve(list_size);
         if (cycle == multigrid_cycle::kfcg || cycle == multigrid_cycle::kgcr) {
-            auto k_num = mg_level_list.size() / k_base;
-            alpha_list.reserve(k_num);
-            beta_list.reserve(k_num);
-            gamma_list.reserve(k_num);
-            rho_list.reserve(k_num);
-            zeta_list.reserve(k_num);
-            v_list.reserve(k_num);
-            w_list.reserve(k_num);
-            d_list.reserve(k_num);
-            old_norm_list.reserve(k_num);
-            new_norm_list.reserve(k_num);
+            kcycle_state.reserve_space(this);
         }
         // Allocate memory first such that repeating allocation in each iter.
         for (int i = 0; i < mg_level_list.size(); i++) {
@@ -246,21 +236,8 @@ struct MultigridState {
         if ((cycle == multigrid_cycle::kfcg ||
              cycle == multigrid_cycle::kgcr) &&
             level % k_base == 0) {
-            auto scalar_size = dim<2>{1, nrhs};
-            auto vector_size = dim<2>{next_nrows, nrhs};
-            // 1 x nrhs
-            alpha_list.emplace_back(vec::create(exec, scalar_size));
-            beta_list.emplace_back(vec::create(exec, scalar_size));
-            gamma_list.emplace_back(vec::create(exec, scalar_size));
-            rho_list.emplace_back(vec::create(exec, scalar_size));
-            zeta_list.emplace_back(vec::create(exec, scalar_size));
-            // next level's nrows x nrhs
-            v_list.emplace_back(vec::create(exec, vector_size));
-            w_list.emplace_back(vec::create(exec, vector_size));
-            d_list.emplace_back(vec::create(exec, vector_size));
-            // 1 x nrhs norm_vec
-            old_norm_list.emplace_back(norm_vec::create(exec, scalar_size));
-            new_norm_list.emplace_back(norm_vec::create(exec, scalar_size));
+            kcycle_state.allocate_memory<VT>(level, cycle, current_nrows,
+                                             next_nrows);
         }
     }
 
@@ -339,72 +316,7 @@ struct MultigridState {
             } else if ((cycle == multigrid_cycle::kfcg ||
                         cycle == multigrid_cycle::kgcr) &&
                        level % k_base == 0) {
-                // otherwise, use v_cycle
-                // do some work in coarse level - do not need prolong
-                bool is_fcg = cycle == multigrid_cycle::kfcg;
-                auto k_idx = level / k_base;
-                auto alpha = as_vec(alpha_list.at(k_idx));
-                auto beta = as_vec(beta_list.at(k_idx));
-                auto gamma = as_vec(gamma_list.at(k_idx));
-                auto rho = as_vec(rho_list.at(k_idx));
-                auto zeta = as_vec(zeta_list.at(k_idx));
-                auto v = as_vec(v_list.at(k_idx));
-                auto w = as_vec(w_list.at(k_idx));
-                auto d = as_vec(d_list.at(k_idx));
-                auto old_norm = as_real_vec(old_norm_list.at(k_idx));
-                auto new_norm = as_real_vec(new_norm_list.at(k_idx));
-                auto matrix = mg_level->get_coarse_op();
-                auto rel_tol_val = static_cast<remove_complex<VT>>(rel_tol);
-
-                // first iteration
-                matrix->apply(e.get(), v.get());
-                std::shared_ptr<const matrix::Dense<VT>> t = is_fcg ? e : v;
-                t->compute_dot(v.get(), rho.get());
-                t->compute_dot(g.get(), alpha.get());
-
-                if (!std::isnan(rel_tol_val) && rel_tol_val >= 0) {
-                    // calculate the r norm
-                    g->compute_norm2(old_norm.get());
-                }
-                // kcycle_step_1 update g, d
-                // temp = alpha/rho
-                // g = g - temp * v
-                // d = e = temp * e
-                exec->run(multigrid::make_kcycle_step_1(alpha.get(), rho.get(),
-                                                        v.get(), g.get(),
-                                                        d.get(), e.get()));
-                // check ||new_r|| <= t * ||old_r|| only when t > 0 && t != inf
-                bool is_stop = true;
-
-                if (!std::isnan(rel_tol_val) && rel_tol_val >= 0) {
-                    // calculate the updated r norm
-                    g->compute_norm2(new_norm.get());
-                    // is_stop = true when all new_norm <= t * old_norm.
-                    exec->run(multigrid::make_kcycle_check_stop(
-                        old_norm.get(), new_norm.get(), rel_tol_val, is_stop));
-                }
-                // rel_tol < 0: run two iteraion
-                // rel_tol is nan: run one iteraions
-                // others: new_norm <= rel_tol * old_norm -> run second
-                // iteraion.
-                if (rel_tol_val < 0 || (rel_tol_val >= 0 && !is_stop)) {
-                    // second iteration
-                    // Apply on d for keeping the answer on e
-                    run_cycle(cycle, level + 1, mg_level->get_coarse_op(),
-                              g.get(), d.get());
-                    matrix->apply(d.get(), w.get());
-                    t = is_fcg ? d : w;
-                    t->compute_dot(v.get(), gamma.get());
-                    t->compute_dot(w.get(), beta.get());
-                    t->compute_dot(g.get(), zeta.get());
-                    // kcycle_step_2 update e
-                    // scalar_d = zeta/(beta - gamma^2/rho)
-                    // scalar_e = 1 - gamma/alpha*scalar_d
-                    // e = scalar_e * e + scalar_d * d
-                    exec->run(multigrid::make_kcycle_step_2(
-                        alpha.get(), rho.get(), gamma.get(), beta.get(),
-                        zeta.get(), d.get(), e.get()));
-                }
+                kcycle_state.kstep<VT>(cycle, level, e, g);
             }
         }
         // prolong
@@ -416,30 +328,156 @@ struct MultigridState {
         }
     }
 
+    struct KCycleMultiGridState {
+        void reserve_space(MultigridState *mg_state_in)
+        {
+            mg_state = mg_state_in;
+            auto k_num = mg_state->multigrid->get_mg_level_list().size() /
+                         mg_state->multigrid->get_parameters().kcycle_base;
+            alpha_list.reserve(k_num);
+            beta_list.reserve(k_num);
+            gamma_list.reserve(k_num);
+            rho_list.reserve(k_num);
+            zeta_list.reserve(k_num);
+            v_list.reserve(k_num);
+            w_list.reserve(k_num);
+            d_list.reserve(k_num);
+            old_norm_list.reserve(k_num);
+            new_norm_list.reserve(k_num);
+        }
+
+        template <typename VT>
+        void allocate_memory(int level, multigrid_cycle cycle,
+                             size_type current_nrows, size_type next_nrows)
+        {
+            using vec = matrix::Dense<VT>;
+            using norm_vec = matrix::Dense<remove_complex<VT>>;
+            auto scalar_size = dim<2>{1, mg_state->nrhs};
+            auto vector_size = dim<2>{next_nrows, mg_state->nrhs};
+            auto exec = mg_state->exec;
+            // 1 x nrhs
+            alpha_list.emplace_back(vec::create(exec, scalar_size));
+            beta_list.emplace_back(vec::create(exec, scalar_size));
+            gamma_list.emplace_back(vec::create(exec, scalar_size));
+            rho_list.emplace_back(vec::create(exec, scalar_size));
+            zeta_list.emplace_back(vec::create(exec, scalar_size));
+            // next level's nrows x nrhs
+            v_list.emplace_back(vec::create(exec, vector_size));
+            w_list.emplace_back(vec::create(exec, vector_size));
+            d_list.emplace_back(vec::create(exec, vector_size));
+            // 1 x nrhs norm_vec
+            old_norm_list.emplace_back(norm_vec::create(exec, scalar_size));
+            new_norm_list.emplace_back(norm_vec::create(exec, scalar_size));
+        }
+
+        template <typename VT>
+        void kstep(multigrid_cycle cycle, size_type level,
+                   const std::shared_ptr<matrix::Dense<VT>> &e,
+                   const std::shared_ptr<matrix::Dense<VT>> &g)
+        {
+            auto mg_level = mg_state->multigrid->get_mg_level_list().at(level);
+            auto exec = mg_state->exec;
+            auto as_vec = [](auto x) {
+                return std::static_pointer_cast<matrix::Dense<VT>>(x);
+            };
+            auto as_real_vec = [](auto x) {
+                return std::static_pointer_cast<
+                    matrix::Dense<remove_complex<VT>>>(x);
+            };
+            // otherwise, use v_cycle
+            // do some work in coarse level - do not need prolong
+            bool is_fcg = cycle == multigrid_cycle::kfcg;
+            auto k_idx = level / mg_state->k_base;
+            auto alpha = as_vec(alpha_list.at(k_idx));
+            auto beta = as_vec(beta_list.at(k_idx));
+            auto gamma = as_vec(gamma_list.at(k_idx));
+            auto rho = as_vec(rho_list.at(k_idx));
+            auto zeta = as_vec(zeta_list.at(k_idx));
+            auto v = as_vec(v_list.at(k_idx));
+            auto w = as_vec(w_list.at(k_idx));
+            auto d = as_vec(d_list.at(k_idx));
+            auto old_norm = as_real_vec(old_norm_list.at(k_idx));
+            auto new_norm = as_real_vec(new_norm_list.at(k_idx));
+            auto coarse = mg_level->get_coarse_op();
+            auto rel_tol_val =
+                static_cast<remove_complex<VT>>(mg_state->rel_tol);
+
+            // first iteration
+            coarse->apply(e.get(), v.get());
+            std::shared_ptr<const matrix::Dense<VT>> t = is_fcg ? e : v;
+            t->compute_dot(v.get(), rho.get());
+            t->compute_dot(g.get(), alpha.get());
+
+            if (!std::isnan(rel_tol_val) && rel_tol_val >= 0) {
+                // calculate the r norm
+                g->compute_norm2(old_norm.get());
+            }
+            // kcycle_step_1 update g, d
+            // temp = alpha/rho
+            // g = g - temp * v
+            // d = e = temp * e
+            exec->run(multigrid::make_kcycle_step_1(
+                alpha.get(), rho.get(), v.get(), g.get(), d.get(), e.get()));
+            // check ||new_r|| <= t * ||old_r|| only when t > 0 && t != inf
+            bool is_stop = true;
+
+            if (!std::isnan(rel_tol_val) && rel_tol_val >= 0) {
+                // calculate the updated r norm
+                g->compute_norm2(new_norm.get());
+                // is_stop = true when all new_norm <= t * old_norm.
+                exec->run(multigrid::make_kcycle_check_stop(
+                    old_norm.get(), new_norm.get(), rel_tol_val, is_stop));
+            }
+            // rel_tol < 0: run two iteraion
+            // rel_tol is nan: run one iteraions
+            // others: new_norm <= rel_tol * old_norm -> run second
+            // iteraion.
+            if (rel_tol_val < 0 || (rel_tol_val >= 0 && !is_stop)) {
+                // second iteration
+                // Apply on d for keeping the answer on e
+                mg_state->run_cycle(cycle, level + 1, mg_level->get_coarse_op(),
+                                    g.get(), d.get());
+                coarse->apply(d.get(), w.get());
+                t = is_fcg ? d : w;
+                t->compute_dot(v.get(), gamma.get());
+                t->compute_dot(w.get(), beta.get());
+                t->compute_dot(g.get(), zeta.get());
+                // kcycle_step_2 update e
+                // scalar_d = zeta/(beta - gamma^2/rho)
+                // scalar_e = 1 - gamma/alpha*scalar_d
+                // e = scalar_e * e + scalar_d * d
+                exec->run(multigrid::make_kcycle_step_2(
+                    alpha.get(), rho.get(), gamma.get(), beta.get(), zeta.get(),
+                    d.get(), e.get()));
+            }
+        }
+        MultigridState *mg_state;
+        // 1 x nrhs
+        std::vector<std::shared_ptr<LinOp>> alpha_list;
+        std::vector<std::shared_ptr<LinOp>> beta_list;
+        std::vector<std::shared_ptr<LinOp>> gamma_list;
+        std::vector<std::shared_ptr<LinOp>> rho_list;
+        std::vector<std::shared_ptr<LinOp>> zeta_list;
+        std::vector<std::shared_ptr<LinOp>> old_norm_list;
+        std::vector<std::shared_ptr<LinOp>> new_norm_list;
+        // next level's nrows x nrhs
+        std::vector<std::shared_ptr<LinOp>> v_list;
+        std::vector<std::shared_ptr<LinOp>> w_list;
+        std::vector<std::shared_ptr<LinOp>> d_list;
+    };
+
     // current level's nrows x nrhs
     std::vector<std::shared_ptr<LinOp>> r_list;
     // next level's nrows x nrhs
     std::vector<std::shared_ptr<LinOp>> g_list;
     std::vector<std::shared_ptr<LinOp>> e_list;
-    // Kcycle usage
-    // 1 x nrhs
-    std::vector<std::shared_ptr<LinOp>> alpha_list;
-    std::vector<std::shared_ptr<LinOp>> beta_list;
-    std::vector<std::shared_ptr<LinOp>> gamma_list;
-    std::vector<std::shared_ptr<LinOp>> rho_list;
-    std::vector<std::shared_ptr<LinOp>> zeta_list;
-    std::vector<std::shared_ptr<LinOp>> old_norm_list;
-    std::vector<std::shared_ptr<LinOp>> new_norm_list;
-    // next level's nrows x nrhs
-    std::vector<std::shared_ptr<LinOp>> v_list;
-    std::vector<std::shared_ptr<LinOp>> w_list;
-    std::vector<std::shared_ptr<LinOp>> d_list;
     // constant 1 x 1
     std::vector<std::shared_ptr<const LinOp>> one_list;
     std::vector<std::shared_ptr<const LinOp>> neg_one_list;
     std::shared_ptr<const Executor> exec;
     const LinOp *system_matrix;
     const Multigrid *multigrid;
+    KCycleMultiGridState kcycle_state;
     size_type nrhs;
     size_type k_base;
     double rel_tol;
