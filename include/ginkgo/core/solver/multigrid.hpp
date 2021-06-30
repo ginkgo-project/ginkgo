@@ -59,18 +59,30 @@ namespace solver {
 /**
  * multigrid_cycle defines which kind of multigrid cycle can be used.
  * It contains V, W, F, and K (KFCG/KGCR) cycle.
- * V, W cycle uses the algorithm according to Briggs, Henson, and McCormick: A
- * multigrid tutorial 2nd Edition.
- * F cycle uses the algorithm according to Trottenberg, Oosterlee, and Schuller:
- * Multigrid 1st Edition. F cycle first uses the recursive call but second uses
- * the V-cycle call such that F-cycle is between V and W cycle.
- * K(KFCG/KGCR) cycle uses the algorithm with up to 2 steps FCG/GCR from Yvan:
- * An aggregation-based algebraic multigrid method
+ * - V, W cycle uses the algorithm according to Briggs, Henson, and McCormick: A
+ *   multigrid tutorial 2nd Edition.
+ * - F cycle uses the algorithm according to Trottenberg, Oosterlee, and
+ *   Schuller: Multigrid 1st Edition. F cycle first uses the recursive call but
+ *   second uses the V-cycle call such that F-cycle is between V and W cycle.
+ * - K(KFCG/KGCR) cycle uses the algorithm with up to 2 steps FCG/GCR from Yvan:
+ *   An aggregation-based algebraic multigrid method
  */
 enum class multigrid_cycle { v, f, w, kfcg, kgcr };
 
 
-enum class multigrid_mid_uses { pre, mid, post };
+/**
+ * mutligrid_mid_smooth_type gives the options to handle the middle smoother
+ * behavior between the two cycles in the same level. It only affects the
+ * behavior when there's no operation between the post smoother of previous
+ * cycle and the pre smoother of next cycle. Thus, it only affects W cycle and F
+ * cycle.
+ * - origin: gives the same behavior as the original algorithm, which use posts
+ *   smoother from previous cycle and pre smoother from next cycle.
+ * - previous: only uses the post smoother of previous cycle in the mid smoother
+ * - next: only uses the pre smoother of next cycle in the mid smoother
+ * - standalone: uses the defined smoother in the mid smoother
+ */
+enum class multigrid_mid_smooth_type { origin, previous, next, standalone };
 
 
 /**
@@ -145,7 +157,7 @@ public:
      *
      * @return the list of MultigridLevel operators
      */
-    const std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
+    std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
     get_mg_level_list() const
     {
         return mg_level_list_;
@@ -156,7 +168,7 @@ public:
      *
      * @return the list of pre-smoother operators
      */
-    const std::vector<std::shared_ptr<LinOp>> get_pre_smoother_list() const
+    std::vector<std::shared_ptr<const LinOp>> get_pre_smoother_list() const
     {
         return pre_smoother_list_;
     }
@@ -166,7 +178,7 @@ public:
      *
      * @return the list of mid-smoother operators
      */
-    const std::vector<std::shared_ptr<LinOp>> get_mid_smoother_list() const
+    std::vector<std::shared_ptr<const LinOp>> get_mid_smoother_list() const
     {
         return mid_smoother_list_;
     }
@@ -176,7 +188,7 @@ public:
      *
      * @return the list of post-smoother operators
      */
-    const std::vector<std::shared_ptr<LinOp>> get_post_smoother_list() const
+    std::vector<std::shared_ptr<const LinOp>> get_post_smoother_list() const
     {
         return post_smoother_list_;
     }
@@ -283,13 +295,14 @@ public:
         bool GKO_FACTORY_PARAMETER_SCALAR(post_uses_pre, true);
 
         /**
-         * Whether mid-related calls use pre/mid/post-related calls.
-         * The default is multigrid_mid_uses::pre.
+         * Choose the behavior of mid smoother between two cycles close to each
+         * other in the same level. The default is
+         * multigrid_mid_smooth_type::origin.
          *
-         * @see enum multigrid_mid_uses
+         * @see enum multigrid_mid_smooth_type
          */
-        multigrid_mid_uses GKO_FACTORY_PARAMETER_SCALAR(
-            mid_case, multigrid_mid_uses::pre);
+        multigrid_mid_smooth_type GKO_FACTORY_PARAMETER_SCALAR(
+            mid_case, multigrid_mid_smooth_type::origin);
 
         /**
          * The maximum number of mg_level that can be used
@@ -343,7 +356,10 @@ public:
         /**
          * kcycle_base is a factor to choose how often enable FCG/GCR step.
          * This parameter is ignored on v, w, f cycle.
-         * Enable the FCG/GCR step when level % kcycle_base == 0
+         * Enable the FCG/GCR step when level % kcycle_base == 0 and the next
+         * level is not coarsest level.
+         *
+         * @note the FCG/GCR step works on the vectors of next level.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(kcycle_base, 1);
 
@@ -351,7 +367,7 @@ public:
          * kcycle_rel_tol decides whether run the second iteration of FCG/GCR
          * step.
          * kcycle_rel_tol <= 0: always run one iterations.
-         * kcycle_rel_tol == inf: always run two iterations.
+         * kcycle_rel_tol == nan: always run two iterations.
          * ||updated_r|| <= kcycle_rel_tol ||r||: run second iteration.
          */
         double GKO_FACTORY_PARAMETER_SCALAR(kcycle_rel_tol, 0.25);
@@ -420,14 +436,28 @@ protected:
         } else {
             solver_index_ = parameters_.solver_index;
         }
+
+        this->validate();
+
+        if (system_matrix_->get_size()[0] != 0) {
+            // generate on the existed matrix
+            this->generate();
+        }
+    }
+
+    /**
+     * validate checks the given parameters are valid or not.
+     */
+    void validate()
+    {
         const auto mg_level_len = parameters_.mg_level.size();
         if (mg_level_len == 0) {
-            GKO_NOT_SUPPORTED(this);
+            GKO_NOT_SUPPORTED(mg_level_len);
         } else {
             // each mg_level can not be nullptr
             for (size_type i = 0; i < mg_level_len; i++) {
                 if (parameters_.mg_level.at(i) == nullptr) {
-                    GKO_NOT_SUPPORTED(this);
+                    GKO_NOT_SUPPORTED(parameters_.mg_level.at(i));
                 }
             }
         }
@@ -438,15 +468,10 @@ protected:
         this->verify_legal_length(!parameters_.post_uses_pre,
                                   parameters_.post_smoother.size(),
                                   mg_level_len);
-        // verify mid-related parameters when mid does not use pre/post.
+        // verify mid-related parameters when mid is standalone smoother.
         this->verify_legal_length(
-            parameters_.mid_case == multigrid_mid_uses::mid,
+            parameters_.mid_case == multigrid_mid_smooth_type::standalone,
             parameters_.mid_smoother.size(), mg_level_len);
-
-        if (system_matrix_->get_size()[0] != 0) {
-            // generate on the existed matrix
-            this->generate();
-        }
     }
 
     /**
@@ -475,10 +500,10 @@ private:
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
         mg_level_list_{};
-    std::vector<std::shared_ptr<LinOp>> pre_smoother_list_{};
-    std::vector<std::shared_ptr<LinOp>> mid_smoother_list_{};
-    std::vector<std::shared_ptr<LinOp>> post_smoother_list_{};
-    std::shared_ptr<LinOp> coarsest_solver_{};
+    std::vector<std::shared_ptr<const LinOp>> pre_smoother_list_{};
+    std::vector<std::shared_ptr<const LinOp>> mid_smoother_list_{};
+    std::vector<std::shared_ptr<const LinOp>> post_smoother_list_{};
+    std::shared_ptr<const LinOp> coarsest_solver_{};
     std::function<size_type(const size_type, const LinOp *)> mg_level_index_;
     std::function<size_type(const size_type, const LinOp *)> solver_index_;
 };
