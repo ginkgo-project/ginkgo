@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/matrix/dense_kernels.hpp"
 #include "omp/components/atomic.hpp"
 #include "omp/components/format_conversion.hpp"
 
@@ -67,12 +68,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Coo<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-#pragma omp parallel for collapse(2)
-    for (size_type i = 0; i < c->get_size()[0]; i++) {
-        for (size_type j = 0; j < c->get_size()[1]; j++) {
-            c->at(i, j) = zero<ValueType>();
-        }
-    }
+    dense::fill(exec, c, zero<ValueType>());
     spmv2(exec, a, b, c);
 }
 
@@ -87,14 +83,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
-    auto beta_val = beta->at(0, 0);
-#pragma omp parallel for collapse(2)
-    for (size_type i = 0; i < c->get_size()[0]; i++) {
-        for (size_type j = 0; j < c->get_size()[1]; j++) {
-            c->at(i, j) *= beta_val;
-        }
-    }
-
+    dense::scale(exec, beta, c);
     advanced_spmv2(exec, alpha, a, b, c);
 }
 
