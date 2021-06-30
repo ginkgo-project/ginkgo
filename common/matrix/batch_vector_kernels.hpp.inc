@@ -106,7 +106,7 @@ __device__ __forceinline__ void compute_norm2(
         val += squared_norm(x[r]);
     }
 
-    // subwarp_grp level reduction
+    // warp level reduction
 #pragma unroll
     for (int j = config::warp_size / 2; j > 0; j /= 2) {
         val += warp_grp.shfl_down(val, j);
@@ -170,7 +170,7 @@ __device__ __forceinline__ void compute_dot_product(
         val += conj(x[r]) * y[r];
     }
 
-    // subwarp_grp level reduction
+    // warp level reduction
 #pragma unroll
     for (int j = config::warp_size / 2; j > 0; j /= 2) {
         val += warp_grp.shfl_down(val, j);
