@@ -60,7 +60,7 @@ namespace cuda {
 namespace batch_dense {
 
 
-constexpr auto default_block_size = 512;
+constexpr auto default_block_size = 256;
 constexpr int sm_multiplier = 4;
 
 
@@ -334,12 +334,16 @@ void batch_scale(std::shared_ptr<const CudaExecutor> exec,
 {
     if (!scale_vec->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
 
-    const auto m_ub = get_batch_struct(vec_to_scale);
-    const auto scale_ub = get_batch_struct(scale_vec);
+    const auto stride = vec_to_scale->get_stride().at();
+    const auto nrows = vec_to_scale->get_size().at()[0];
+    const auto nrhs = vec_to_scale->get_size().at()[1];
+    const auto nbatch = vec_to_scale->get_num_batch_entries();
 
-    // const int num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
     const int num_blocks = vec_to_scale->get_num_batch_entries();
-    uniform_batch_scale<<<num_blocks, default_block_size>>>(scale_ub, m_ub);
+    uniform_batch_scale<<<num_blocks, default_block_size>>>(
+        nrows, stride, nrhs, nbatch,
+        as_cuda_type(scale_vec->get_const_values()),
+        as_cuda_type(vec_to_scale->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL);
