@@ -65,6 +65,7 @@ constexpr int sm_multiplier = 4;
 
 
 #include "common/matrix/batch_dense_kernels.hpp.inc"
+#include "common/matrix/batch_vector_kernels.hpp.inc"
 
 
 template <typename ValueType>
@@ -168,11 +169,21 @@ void compute_dot(std::shared_ptr<const CudaExecutor> exec,
                  const matrix::BatchDense<ValueType> *y,
                  matrix::BatchDense<ValueType> *result)
 {
-    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto num_blocks = x->get_num_batch_entries();
+    const auto num_rows = x->get_size().at()[0];
+    const auto num_rhs = x->get_size().at()[1];
     const auto x_ub = get_batch_struct(x);
     const auto y_ub = get_batch_struct(y);
     const auto res_ub = get_batch_struct(result);
-    compute_dot_product<<<num_blocks, default_block_size>>>(x_ub, y_ub, res_ub);
+    if (num_rhs == 1) {
+        single_compute_dot_product<<<num_blocks, default_block_size>>>(
+            num_blocks, num_rows, as_cuda_type(x->get_const_values()),
+            as_cuda_type(y->get_const_values()),
+            as_cuda_type(result->get_values()));
+    } else {
+        compute_dot_product<<<num_blocks, default_block_size>>>(x_ub, y_ub,
+                                                                res_ub);
+    }
 }
 
 
@@ -204,10 +215,18 @@ void compute_norm2(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::BatchDense<ValueType> *const x,
                    matrix::BatchDense<remove_complex<ValueType>> *const result)
 {
-    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto num_blocks = x->get_num_batch_entries();
+    const auto num_rows = x->get_size().at()[0];
+    const auto num_rhs = x->get_size().at()[1];
     const auto x_ub = get_batch_struct(x);
     const auto res_ub = get_batch_struct(result);
-    compute_norm2<<<num_blocks, default_block_size>>>(x_ub, res_ub);
+    if (num_rhs == 1) {
+        single_compute_norm2<<<num_blocks, default_block_size>>>(
+            num_blocks, num_rows, as_cuda_type(x->get_const_values()),
+            as_cuda_type(result->get_values()));
+    } else {
+        compute_norm2<<<num_blocks, default_block_size>>>(x_ub, res_ub);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
