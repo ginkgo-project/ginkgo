@@ -373,6 +373,26 @@ __device__ __forceinline__ void batch_scale(
     }
 }
 
+template <typename ValueType>
+__device__ __forceinline__ void batch_scale(
+    const ValueType *const left_scale, const ValueType *const right_scale,
+    const gko::batch_csr::BatchEntry<ValueType> &a)
+{
+    constexpr auto warp_size = config::warp_size;
+    const auto tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const int tile_rank = threadIdx.x / warp_size;
+    const int num_tiles = (blockDim.x - 1) / warp_size + 1;
+
+    for (int i_row = tile_rank; i_row < a.num_rows; i_row += num_tiles) {
+        const ValueType rowscale = left_scale[i_row];
+        for (int iz = a.row_ptrs[i_row] + tile.thread_rank();
+             iz < a.row_ptrs[i_row + 1]; iz += warp_size) {
+            a.values[iz] *= rowscale * right_scale[a.col_idxs[iz]];
+        }
+    }
+}
+
 
 /**
  * Scales an entire batch of uniform CSR matrices with common dense
@@ -382,15 +402,17 @@ __device__ __forceinline__ void batch_scale(
  */
 template <typename ValueType>
 __global__ void uniform_batch_scale(
-    const batch_dense::UniformBatch<const ValueType> left,
-    const batch_dense::UniformBatch<const ValueType> right,
-    const gko::batch_csr::UniformBatch<ValueType> a)
+    const ValueType *const __restrict__ left,
+    const ValueType *const __restrict__ right,
+    const gko::batch_csr::UniformBatch<ValueType> a, const int num_cols)
 {
     for (size_type batch_id = blockIdx.x; batch_id < a.num_batch;
          batch_id += gridDim.x) {
         const auto a_b = gko::batch::batch_entry(a, batch_id);
-        const auto left_b = gko::batch::batch_entry(left, batch_id);
-        const auto right_b = gko::batch::batch_entry(right, batch_id);
+        const auto left_b =
+            gko::batch::batch_entry_ptr(left, 1, a.num_rows, batch_id);
+        const auto right_b =
+            gko::batch::batch_entry_ptr(right, 1, num_cols, batch_id);
         batch_scale(left_b, right_b, a_b);
     }
 }
