@@ -325,15 +325,33 @@ __device__ __forceinline__ void batch_scale(
 }
 
 template <typename ValueType>
-__global__ void uniform_batch_scale(
-    const gko::batch_dense::UniformBatch<const ValueType> scale_vec,
-    const gko::batch_dense::UniformBatch<ValueType> a)
+__device__ __forceinline__ void batch_scale(const int num_rows,
+                                            const size_type stride,
+                                            const int num_rhs,
+                                            const ValueType *const scale_vec,
+                                            ValueType *const a)
 {
-    for (size_type batch_id = blockIdx.x; batch_id < a.num_batch;
+    for (int iz = threadIdx.x; iz < num_rows * num_rhs; iz += blockDim.x) {
+        const int row = iz / num_rhs;
+        const int col = iz % num_rhs;
+        a[row * stride + col] *= scale_vec[row];
+    }
+}
+
+template <typename ValueType>
+__global__ void uniform_batch_scale(
+    const int nrows, const size_type stride, const int nrhs,
+    const size_type num_batch, const ValueType *const __restrict__ scale_vec,
+    ValueType *const __restrict__ a)
+{
+    for (size_type batch_id = blockIdx.x; batch_id < num_batch;
          batch_id += gridDim.x) {
-        const auto a_b = gko::batch::batch_entry(a, batch_id);
-        const auto s_b = gko::batch::batch_entry(scale_vec, batch_id);
-        batch_scale(s_b, a_b);
+        // const auto a_b = gko::batch::batch_entry(a, batch_id);
+        const auto a_ptr =
+            gko::batch::batch_entry_ptr(a, stride, nrows, batch_id);
+        const auto s_ptr =
+            gko::batch::batch_entry_ptr(scale_vec, 1, nrows, batch_id);
+        batch_scale(nrows, stride, nrhs, s_ptr, a_ptr);
     }
 }
 
