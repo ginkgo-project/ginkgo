@@ -64,6 +64,8 @@ namespace batch_bicgstab {
 #include "common/components/reduction.hpp.inc"
 #include "common/log/batch_logger.hpp.inc"
 #include "common/matrix/batch_csr_kernels.hpp.inc"
+// TODO: remove batch dense include
+#include "common/matrix/batch_dense_kernels.hpp.inc"
 #include "common/matrix/batch_vector_kernels.hpp.inc"
 #include "common/preconditioner/batch_identity.hpp.inc"
 #include "common/preconditioner/batch_jacobi.hpp.inc"
