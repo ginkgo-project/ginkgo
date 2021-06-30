@@ -168,7 +168,7 @@ TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 
 TEST_F(Sellp, SimpleApplyMultipleRHSIsEquivalentToRef)
 {
-    set_up_apply_matrix(64);
+    set_up_apply_matrix(3);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -179,7 +179,7 @@ TEST_F(Sellp, SimpleApplyMultipleRHSIsEquivalentToRef)
 
 TEST_F(Sellp, AdvancedApplyMultipleRHSIsEquivalentToRef)
 {
-    set_up_apply_matrix(64);
+    set_up_apply_matrix(4);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -191,7 +191,7 @@ TEST_F(Sellp, AdvancedApplyMultipleRHSIsEquivalentToRef)
 TEST_F(Sellp,
        SimpleApplyMultipleRHSWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
-    set_up_apply_matrix(32, 2);
+    set_up_apply_matrix(5, 2);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -203,7 +203,7 @@ TEST_F(Sellp,
 TEST_F(Sellp,
        AdvancedApplyMultipleRHSWithSliceSizeAndStrideFActorIsEquivalentToRef)
 {
-    set_up_apply_matrix(32, 2);
+    set_up_apply_matrix(6, 2);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
