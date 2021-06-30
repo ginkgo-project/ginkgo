@@ -63,8 +63,10 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
           const matrix::Coo<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
-        c->at(i) = zero<ValueType>();
+    for (size_type i = 0; i < c->get_size()[0]; i++) {
+        for (size_type j = 0; j < c->get_size()[1]; j++) {
+            c->at(i, j) = zero<ValueType>();
+        }
     }
     spmv2(exec, a, b, c);
 }
@@ -81,8 +83,10 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
                    matrix::Dense<ValueType> *c)
 {
     auto beta_val = beta->at(0, 0);
-    for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
-        c->at(i) *= beta_val;
+    for (size_type i = 0; i < c->get_size()[0]; i++) {
+        for (size_type j = 0; j < c->get_size()[1]; j++) {
+            c->at(i, j) *= beta_val;
+        }
     }
     advanced_spmv2(exec, alpha, a, b, c);
 }

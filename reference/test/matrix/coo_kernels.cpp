@@ -350,6 +350,21 @@ TYPED_TEST(Coo, AppliesToDenseVector)
 }
 
 
+TYPED_TEST(Coo, ApplyToStridedVectorKeepsPadding)
+{
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{2, 1}, 2);
+    y->get_values()[1] = 1234;
+
+    this->mtx->apply(x.get(), y.get());
+
+    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
+    ASSERT_EQ(y->get_values()[1], T{1234});
+}
+
+
 TYPED_TEST(Coo, AppliesToMixedDenseVector)
 {
     using MixedVec = typename TestFixture::MixedVec;
@@ -429,6 +444,25 @@ TYPED_TEST(Coo, AppliesLinearCombinationToDenseVector)
     this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
 
     GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
+}
+
+
+TYPED_TEST(Coo, ApplyLinearCombinationToStridedVectorKeepsPadding)
+{
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{2, 1}, 2);
+    y->get_values()[1] = 1234;
+    y->at(0, 0) = 1.0;
+    y->at(1, 0) = 2.0;
+
+    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
+    ASSERT_EQ(y->get_values()[1], T{1234});
 }
 
 
