@@ -66,10 +66,10 @@ __device__ __forceinline__ void initialize(
     __syncthreads();
 
     if (threadIdx.x / config::warp_size == 0) {
-        compute_norm2<ValueType>(warp_grp, num_rows, r_shared_entry, res_norm);
+        single_compute_norm2(warp_grp, num_rows, r_shared_entry, res_norm);
     } else if (threadIdx.x / config::warp_size == 1) {
         // Compute norms of rhs
-        compute_norm2<ValueType>(warp_grp, num_rows, b_global_entry, rhs_norm);
+        single_compute_norm2(warp_grp, num_rows, b_global_entry, rhs_norm);
     }
 
     for (int iz = threadIdx.x; iz < num_rows; iz += blockDim.x) {
@@ -102,8 +102,8 @@ __device__ __forceinline__ void compute_alpha(
     const ValueType *const v_shared_entry, ValueType &alpha)
 {
     if (threadIdx.x / config::warp_size == 0) {
-        compute_dot_product<ValueType>(warp_grp, num_rows, r_hat_shared_entry,
-                                       v_shared_entry, alpha);
+        single_compute_dot_product(warp_grp, num_rows, r_hat_shared_entry,
+                                   v_shared_entry, alpha);
     }
     __syncthreads();
     if (threadIdx.x == 0) {
@@ -132,11 +132,11 @@ __device__ __forceinline__ void compute_omega(
     const ValueType *const s_shared_entry, ValueType &temp, ValueType &omega)
 {
     if (threadIdx.x / config::warp_size == 0) {
-        compute_dot_product<ValueType>(warp_grp, num_rows, t_shared_entry,
-                                       s_shared_entry, omega);
+        single_compute_dot_product(warp_grp, num_rows, t_shared_entry,
+                                   s_shared_entry, omega);
     } else if (threadIdx.x / config::warp_size == 1) {
-        compute_dot_product<ValueType>(warp_grp, num_rows, t_shared_entry,
-                                       t_shared_entry, temp);
+        single_compute_dot_product(warp_grp, num_rows, t_shared_entry,
+                                   t_shared_entry, temp);
     }
 
     __syncthreads();
@@ -267,8 +267,8 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
 
             // rho_new =  < r_hat , r > = (r_hat)' * (r)
             if (threadIdx.x / config::warp_size == 0) {
-                compute_dot_product<ValueType>(warp_grp, nrows, r_hat_sh, r_sh,
-                                               rho_new_sh[0]);
+                single_compute_dot_product(warp_grp, nrows, r_hat_sh, r_sh,
+                                           rho_new_sh[0]);
             }
 
             __syncthreads();
@@ -302,8 +302,7 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
 
             // an estimate of residual norms
             if (threadIdx.x / config::warp_size == 0) {
-                compute_norm2<ValueType>(warp_grp, nrows, s_sh,
-                                         norms_res_sh[0]);
+                single_compute_norm2(warp_grp, nrows, s_sh, norms_res_sh[0]);
             }
 
             __syncthreads();
@@ -339,8 +338,7 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
             __syncthreads();
 
             if (threadIdx.x / config::warp_size == 0) {
-                compute_norm2<ValueType>(warp_grp, nrows, r_sh,
-                                         norms_res_sh[0]);
+                single_compute_norm2(warp_grp, nrows, r_sh, norms_res_sh[0]);
             }
 
             //__syncthreads();
