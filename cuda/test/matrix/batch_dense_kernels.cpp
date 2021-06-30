@@ -157,7 +157,7 @@ protected:
 };
 
 
-TEST_F(BatchDense, SingleVectorCudaAddScaledIsEquivalentToRef)
+TEST_F(BatchDense, SingleVectorAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -168,7 +168,7 @@ TEST_F(BatchDense, SingleVectorCudaAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, SingleVectorCudaConvergenceAddScaledIsEquivalentToRef)
+TEST_F(BatchDense, SingleVectorConvergenceAddScaledIsEquivalentToRef)
 {
     const int num_rhs = 1;
     set_up_vector_data(num_rhs);
@@ -184,7 +184,7 @@ TEST_F(BatchDense, SingleVectorCudaConvergenceAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, MultipleVectorCudaAddScaledIsEquivalentToRef)
+TEST_F(BatchDense, MultipleVectorAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -195,7 +195,7 @@ TEST_F(BatchDense, MultipleVectorCudaAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, MultipleVectorCudaConvergenceAddScaledIsEquivalentToRef)
+TEST_F(BatchDense, MultipleVectorConvergenceAddScaledIsEquivalentToRef)
 {
     const int num_rhs = 19;
     set_up_vector_data(num_rhs);
@@ -211,8 +211,7 @@ TEST_F(BatchDense, MultipleVectorCudaConvergenceAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense,
-       MultipleVectorCudaAddScaledWithDifferentAlphaIsEquivalentToRef)
+TEST_F(BatchDense, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -225,7 +224,7 @@ TEST_F(BatchDense,
 
 TEST_F(
     BatchDense,
-    MultipleVectorCudaConvergenceAddScaledWithDifferentAlphaIsEquivalentToRef)
+    MultipleVectorConvergenceAddScaledWithDifferentAlphaIsEquivalentToRef)
 {
     const int num_rhs = 19;
     set_up_vector_data(num_rhs, true);
@@ -241,7 +240,7 @@ TEST_F(
 }
 
 
-TEST_F(BatchDense, SingleVectorCudaScaleIsEquivalentToRef)
+TEST_F(BatchDense, SingleVectorScaleIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -252,7 +251,7 @@ TEST_F(BatchDense, SingleVectorCudaScaleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, SingleVectorCudaConvergenceScaleIsEquivalentToRef)
+TEST_F(BatchDense, SingleVectorConvergenceScaleIsEquivalentToRef)
 {
     const int num_rhs = 1;
     set_up_vector_data(num_rhs);
@@ -268,7 +267,7 @@ TEST_F(BatchDense, SingleVectorCudaConvergenceScaleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, MultipleVectorCudaScaleIsEquivalentToRef)
+TEST_F(BatchDense, MultipleVectorScaleIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -279,7 +278,7 @@ TEST_F(BatchDense, MultipleVectorCudaScaleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, MultipleVectorCudaConvergenceScaleIsEquivalentToRef)
+TEST_F(BatchDense, MultipleVectorConvergenceScaleIsEquivalentToRef)
 {
     const int num_rhs = 19;
     set_up_vector_data(num_rhs);
@@ -295,7 +294,7 @@ TEST_F(BatchDense, MultipleVectorCudaConvergenceScaleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, MultipleVectorCudaScaleWithDifferentAlphaIsEquivalentToRef)
+TEST_F(BatchDense, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -307,7 +306,7 @@ TEST_F(BatchDense, MultipleVectorCudaScaleWithDifferentAlphaIsEquivalentToRef)
 
 
 TEST_F(BatchDense,
-       MultipleVectorCudaConvergenceScaleWithDifferentAlphaIsEquivalentToRef)
+       MultipleVectorConvergenceScaleWithDifferentAlphaIsEquivalentToRef)
 {
     const int num_rhs = 19;
     set_up_vector_data(num_rhs, true);
@@ -322,7 +321,23 @@ TEST_F(BatchDense,
     GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
 }
 
-TEST_F(BatchDense, CudaComputeNorm2IsEquivalentToRef)
+
+TEST_F(BatchDense, ComputeNorm2SingleIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+    auto norm_size =
+        gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
+    auto norm_expected = NormVector::create(this->ref, norm_size);
+    auto dnorm = NormVector::create(this->cuda, norm_size);
+
+    x->compute_norm2(norm_expected.get());
+    dx->compute_norm2(dnorm.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(norm_expected, dnorm, 1e-14);
+}
+
+
+TEST_F(BatchDense, ComputeNorm2IsEquivalentToRef)
 {
     set_up_vector_data(20);
     auto norm_size =
@@ -337,7 +352,7 @@ TEST_F(BatchDense, CudaComputeNorm2IsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, CudaConvergenceComputeNorm2IsEquivalentToRef)
+TEST_F(BatchDense, ConvergenceComputeNorm2IsEquivalentToRef)
 {
     const int num_rhs = 19;  // note: number of RHSs must be <= 32
     set_up_vector_data(num_rhs);
@@ -365,9 +380,24 @@ TEST_F(BatchDense, CudaConvergenceComputeNorm2IsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, CudaComputeDotIsEquivalentToRef)
+TEST_F(BatchDense, ComputeDotIsEquivalentToRef)
 {
     set_up_vector_data(20);
+    auto dot_size =
+        gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
+    auto dot_expected = Mtx::create(this->ref, dot_size);
+    auto ddot = Mtx::create(this->cuda, dot_size);
+
+    x->compute_dot(y.get(), dot_expected.get());
+    dx->compute_dot(dy.get(), ddot.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 1e-14);
+}
+
+
+TEST_F(BatchDense, ComputeDotSingleIsEquivalentToRef)
+{
+    set_up_vector_data(1);
     auto dot_size =
         gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
     auto dot_expected = Mtx::create(this->ref, dot_size);
@@ -406,12 +436,11 @@ TEST_F(BatchDense, CudaConvergenceComputeDotIsEquivalentToRef)
     gko::kernels::cuda::batch_dense::convergence_compute_dot(
         this->cuda, dx.get(), dy.get(), ddot.get(), converged);
 
-
     GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 1e-14);
 }
 
 
-TEST_F(BatchDense, CudaCopyIsEquivalentToRef)
+TEST_F(BatchDense, CopyIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -422,7 +451,7 @@ TEST_F(BatchDense, CudaCopyIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, CudaConvergenceCopyIsEquivalentToRef)
+TEST_F(BatchDense, ConvergenceCopyIsEquivalentToRef)
 {
     const int num_rhs = 19;  // note: number of RHSs must be <= 32
     set_up_vector_data(num_rhs);
@@ -438,7 +467,7 @@ TEST_F(BatchDense, CudaConvergenceCopyIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, CudaBatchScaleIsEquivalentToRef)
+TEST_F(BatchDense, BatchScaleIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -454,5 +483,6 @@ TEST_F(BatchDense, CudaBatchScaleIsEquivalentToRef)
 
     GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
 }
+
 
 }  // namespace
