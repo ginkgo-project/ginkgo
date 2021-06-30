@@ -134,15 +134,15 @@ protected:
 
     std::ranlux48 rand_engine;
 
-    template <typename MtxType>
-    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
-    {
-        return gko::test::generate_random_matrix<MtxType>(
-            num_rows, num_cols,
-            std::uniform_int_distribution<gko::size_type>(num_cols, num_cols),
-            std::normal_distribution<gko::remove_complex<value_type>>(0.0, 1.0),
-            rand_engine, exec);
-    }
+    // template <typename MtxType>
+    // std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
+    //{
+    //    return gko::test::generate_random_matrix<MtxType>(
+    //        num_rows, num_cols,
+    //        std::uniform_int_distribution<gko::size_type>(num_cols, num_cols),
+    //        std::normal_distribution<gko::remove_complex<value_type>>(0.0, 1.0),
+    //        rand_engine, exec);
+    //}
 };
 
 
