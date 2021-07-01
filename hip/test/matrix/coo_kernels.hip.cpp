@@ -142,6 +142,24 @@ TEST_F(Coo, SimpleApplyIsEquivalentToRef)
 }
 
 
+TEST_F(Coo, SimpleApplyDoesntOverwritePadding)
+{
+    set_up_apply_data();
+    auto dresult_padded =
+        Vec::create(hip, dresult->get_size(), dresult->get_stride() + 1);
+    dresult_padded->copy_from(dresult.get());
+    double padding_val{1234.0};
+    hip->copy_from(hip->get_master().get(), 1, &padding_val,
+                   dresult_padded->get_values() + 1);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult_padded.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult_padded, expected, 1e-14);
+    ASSERT_EQ(hip->copy_val_to_host(dresult_padded->get_values() + 1), 1234.0);
+}
+
+
 TEST_F(Coo, SimpleApplyIsEquivalentToRefUnsorted)
 {
     set_up_apply_data();
@@ -162,6 +180,24 @@ TEST_F(Coo, AdvancedApplyIsEquivalentToRef)
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Coo, AdvancedApplyDoesntOverwritePadding)
+{
+    set_up_apply_data();
+    auto dresult_padded =
+        Vec::create(hip, dresult->get_size(), dresult->get_stride() + 1);
+    dresult_padded->copy_from(dresult.get());
+    double padding_val{1234.0};
+    hip->copy_from(hip->get_master().get(), 1, &padding_val,
+                   dresult_padded->get_values() + 1);
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult_padded.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult_padded, expected, 1e-14);
+    ASSERT_EQ(hip->copy_val_to_host(dresult_padded->get_values() + 1), 1234.0);
 }
 
 

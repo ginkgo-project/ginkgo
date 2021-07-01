@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/components/fill_array.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
@@ -85,9 +84,7 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
           const matrix::Coo<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    components::fill_array(exec, c->get_values(), c->get_num_stored_elements(),
-                           zero<ValueType>());
-
+    dense::fill(exec, c, zero<ValueType>());
     spmv2(exec, a, b, c);
 }
 
