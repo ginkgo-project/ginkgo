@@ -127,6 +127,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
 
 
 template <typename ValueType>
+void convergence_scale(std::shared_ptr<const OmpExecutor> exec,
+                       const matrix::BatchDense<ValueType> *const alpha,
+                       matrix::BatchDense<ValueType> *const x,
+                       const uint32 &converged)
+{
+    const auto x_ub = host::get_batch_struct(x);
+    const auto alpha_ub = host::get_batch_struct(alpha);
+#pragma omp parallel for
+    for (size_type batch = 0; batch < x->get_num_batch_entries(); ++batch) {
+        const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
+        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+        gko::kernels::reference::batch_dense::scale(alpha_b, x_b, converged);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_SCALE_KERNEL);
+
+
+template <typename ValueType>
 void add_scaled(std::shared_ptr<const OmpExecutor> exec,
                 const matrix::BatchDense<ValueType> *const alpha,
                 const matrix::BatchDense<ValueType> *const x,
@@ -145,6 +165,30 @@ void add_scaled(std::shared_ptr<const OmpExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL);
+
+
+template <typename ValueType>
+void convergence_add_scaled(std::shared_ptr<const OmpExecutor> exec,
+                            const matrix::BatchDense<ValueType> *const alpha,
+                            const matrix::BatchDense<ValueType> *const x,
+                            matrix::BatchDense<ValueType> *const y,
+                            const uint32 &converged)
+{
+    const auto x_ub = host::get_batch_struct(x);
+    const auto y_ub = host::get_batch_struct(y);
+    const auto alpha_ub = host::get_batch_struct(alpha);
+#pragma omp parallel for
+    for (size_type batch = 0; batch < y->get_num_batch_entries(); ++batch) {
+        const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
+        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+        const auto y_b = gko::batch::batch_entry(y_ub, batch);
+        gko::kernels::reference::batch_dense::add_scaled(alpha_b, x_b, y_b,
+                                                         converged);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_ADD_SCALED_KERNEL);
 
 
 template <typename ValueType>
@@ -181,6 +225,31 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL);
 
 
 template <typename ValueType>
+void convergence_compute_dot(std::shared_ptr<const OmpExecutor> exec,
+                             const matrix::BatchDense<ValueType> *const x,
+                             const matrix::BatchDense<ValueType> *const y,
+                             matrix::BatchDense<ValueType> *const result,
+                             const uint32 &converged)
+{
+    const auto x_ub = host::get_batch_struct(x);
+    const auto y_ub = host::get_batch_struct(y);
+    const auto res_ub = host::get_batch_struct(result);
+#pragma omp parallel for
+    for (size_type batch = 0; batch < result->get_num_batch_entries();
+         ++batch) {
+        const auto res_b = gko::batch::batch_entry(res_ub, batch);
+        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+        const auto y_b = gko::batch::batch_entry(y_ub, batch);
+        gko::kernels::reference::batch_dense::compute_dot_product(
+            x_b, y_b, res_b, converged);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_DOT_KERNEL);
+
+
+template <typename ValueType>
 void compute_norm2(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::BatchDense<ValueType> *const x,
                    matrix::BatchDense<remove_complex<ValueType>> *const result)
@@ -198,6 +267,29 @@ void compute_norm2(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL);
+
+
+template <typename ValueType>
+void convergence_compute_norm2(
+    std::shared_ptr<const OmpExecutor> exec,
+    const matrix::BatchDense<ValueType> *const x,
+    matrix::BatchDense<remove_complex<ValueType>> *const result,
+    const uint32 &converged)
+{
+    const auto x_ub = host::get_batch_struct(x);
+    const auto res_ub = host::get_batch_struct(result);
+#pragma omp parallel for
+    for (size_type batch = 0; batch < result->get_num_batch_entries();
+         ++batch) {
+        const auto res_b = gko::batch::batch_entry(res_ub, batch);
+        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+        gko::kernels::reference::batch_dense::compute_norm2(x_b, res_b,
+                                                            converged);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_NORM2_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -424,6 +516,62 @@ void conj_transpose(std::shared_ptr<const OmpExecutor>,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType>
+void copy(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::BatchDense<ValueType> *x,
+          matrix::BatchDense<ValueType> *result)
+{
+    const auto x_ub = host::get_batch_struct(x);
+    const auto result_ub = host::get_batch_struct(result);
+#pragma omp parallel for
+    for (size_type batch = 0; batch < x->get_num_batch_entries(); ++batch) {
+        const auto result_b = gko::batch::batch_entry(result_ub, batch);
+        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+        gko::kernels::reference::batch_dense::copy(x_b, result_b);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COPY_KERNEL);
+
+
+template <typename ValueType>
+void convergence_copy(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::BatchDense<ValueType> *x,
+                      matrix::BatchDense<ValueType> *result,
+                      const uint32 &converged)
+{
+    const auto x_ub = host::get_batch_struct(x);
+    const auto result_ub = host::get_batch_struct(result);
+#pragma omp parallel for
+    for (size_type batch = 0; batch < x->get_num_batch_entries(); ++batch) {
+        const auto result_b = gko::batch::batch_entry(result_ub, batch);
+        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+        gko::kernels::reference::batch_dense::copy(x_b, result_b, converged);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COPY_KERNEL);
+
+
+template <typename ValueType>
+void batch_scale(std::shared_ptr<const DefaultExecutor> exec,
+                 const matrix::BatchDense<ValueType> *diag_vec,
+                 matrix::BatchDense<ValueType> *x)
+{
+    const auto diag_vec_ub = host::get_batch_struct(diag_vec);
+    const auto x_ub = host::get_batch_struct(x);
+#pragma omp parallel for
+    for (size_type batch = 0; batch < x->get_num_batch_entries(); ++batch) {
+        const auto diag_vec_b = gko::batch::batch_entry(diag_vec_ub, batch);
+        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+        gko::kernels::reference::batch_dense::batch_scale(diag_vec_b, x_b);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL);
 
 
 }  // namespace batch_dense

@@ -103,6 +103,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
 
 
 template <typename ValueType>
+void convergence_scale(std::shared_ptr<const CudaExecutor> exec,
+                       const matrix::BatchDense<ValueType> *const alpha,
+                       matrix::BatchDense<ValueType> *const x,
+                       const uint32 &converged)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto x_ub = get_batch_struct(x);
+    scale<<<num_blocks, default_block_size>>>(alpha_ub, x_ub, converged);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_SCALE_KERNEL);
+
+template <typename ValueType>
 void add_scaled(std::shared_ptr<const CudaExecutor> exec,
                 const matrix::BatchDense<ValueType> *const alpha,
                 const matrix::BatchDense<ValueType> *const x,
@@ -116,6 +131,25 @@ void add_scaled(std::shared_ptr<const CudaExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL);
+
+
+template <typename ValueType>
+void convergence_add_scaled(std::shared_ptr<const CudaExecutor> exec,
+                            const matrix::BatchDense<ValueType> *const alpha,
+                            const matrix::BatchDense<ValueType> *const x,
+                            matrix::BatchDense<ValueType> *const y,
+                            const uint32 &converged)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto x_ub = get_batch_struct(x);
+    const auto y_ub = get_batch_struct(y);
+    add_scaled<<<num_blocks, default_block_size>>>(alpha_ub, x_ub, y_ub,
+                                                   converged);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_ADD_SCALED_KERNEL);
 
 
 template <typename ValueType>
@@ -146,6 +180,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL);
 
 
 template <typename ValueType>
+void convergence_compute_dot(std::shared_ptr<const CudaExecutor> exec,
+                             const matrix::BatchDense<ValueType> *x,
+                             const matrix::BatchDense<ValueType> *y,
+                             matrix::BatchDense<ValueType> *result,
+                             const uint32 &converged)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto x_ub = get_batch_struct(x);
+    const auto y_ub = get_batch_struct(y);
+    const auto res_ub = get_batch_struct(result);
+    compute_dot_product<<<num_blocks, default_block_size>>>(x_ub, y_ub, res_ub,
+                                                            converged);
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_DOT_KERNEL);
+
+
+template <typename ValueType>
 void compute_norm2(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::BatchDense<ValueType> *const x,
                    matrix::BatchDense<remove_complex<ValueType>> *const result)
@@ -158,6 +212,25 @@ void compute_norm2(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL);
+
+
+template <typename ValueType>
+void convergence_compute_norm2(
+    std::shared_ptr<const CudaExecutor> exec,
+    const matrix::BatchDense<ValueType> *const x,
+    matrix::BatchDense<remove_complex<ValueType>> *const result,
+    const uint32 &converged)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto x_ub = get_batch_struct(x);
+
+    const auto res_ub = get_batch_struct(result);
+
+    compute_norm2<<<num_blocks, default_block_size>>>(x_ub, res_ub, converged);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_NORM2_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -223,6 +296,49 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CONJ_TRANSPOSE_KERNEL);
 
+
+template <typename ValueType>
+void copy(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::BatchDense<ValueType> *x,
+          matrix::BatchDense<ValueType> *result)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto result_ub = get_batch_struct(result);
+    const auto x_ub = get_batch_struct(x);
+    copy<<<num_blocks, default_block_size>>>(x_ub, result_ub);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_COPY_KERNEL);
+
+
+template <typename ValueType>
+void convergence_copy(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::BatchDense<ValueType> *x,
+                      matrix::BatchDense<ValueType> *result,
+                      const uint32 &converged)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto result_ub = get_batch_struct(result);
+    const auto x_ub = get_batch_struct(x);
+    copy<<<num_blocks, default_block_size>>>(x_ub, result_ub, converged);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COPY_KERNEL);
+
+
+template <typename ValueType>
+void batch_scale(std::shared_ptr<const DefaultExecutor> exec,
+                 const matrix::BatchDense<ValueType> *diag_vec,
+                 matrix::BatchDense<ValueType> *x)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto diag_vec_ub = get_batch_struct(diag_vec);
+    const auto x_ub = get_batch_struct(x);
+    batch_scale<<<num_blocks, default_block_size>>>(diag_vec_ub, x_ub);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL);
 
 }  // namespace batch_dense
 }  // namespace cuda

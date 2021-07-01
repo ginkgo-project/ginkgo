@@ -115,7 +115,7 @@ protected:
               exec))
     {}
 
-    std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<Mtx> mtx_0;
     std::unique_ptr<DenseMtx> mtx_00;
     std::unique_ptr<DenseMtx> mtx_01;
@@ -265,6 +265,46 @@ TYPED_TEST(BatchDense, ScalesData)
 }
 
 
+TYPED_TEST(BatchDense, ConvergenceScaleData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::batch_initialize<Mtx>(
+        std::vector<gko::size_type>{3, 3},
+        {{{2.0, -2.0, 1.5}}, {{3.0, -1.0, 0.25}}}, this->exec);
+
+    auto ualpha = alpha->unbatch();
+
+    const int num_rhs = 3;
+    const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
+    gko::kernels::reference::batch_dense::convergence_scale(
+        this->exec, alpha.get(), this->mtx_0.get(), converged);
+
+
+    auto mtx_00_clone = gko::clone(this->mtx_00);
+    auto mtx_01_clone = gko::clone(this->mtx_01);
+
+    this->mtx_00->scale(ualpha[0].get());
+    this->mtx_01->scale(ualpha[1].get());
+
+    auto res = this->mtx_0->unbatch();
+
+    EXPECT_EQ(res[0]->at(0, 0), mtx_00_clone->at(0, 0));
+    EXPECT_EQ(res[0]->at(1, 0), mtx_00_clone->at(1, 0));
+    EXPECT_EQ(res[0]->at(0, 1), this->mtx_00->at(0, 1));
+    EXPECT_EQ(res[0]->at(1, 1), this->mtx_00->at(1, 1));
+    EXPECT_EQ(res[0]->at(0, 2), mtx_00_clone->at(0, 2));
+    EXPECT_EQ(res[0]->at(1, 2), mtx_00_clone->at(1, 2));
+
+    EXPECT_EQ(res[1]->at(0, 0), mtx_01_clone->at(0, 0));
+    EXPECT_EQ(res[1]->at(1, 0), mtx_01_clone->at(1, 0));
+    EXPECT_EQ(res[1]->at(0, 1), this->mtx_01->at(0, 1));
+    EXPECT_EQ(res[1]->at(1, 1), this->mtx_01->at(1, 1));
+    EXPECT_EQ(res[1]->at(0, 2), mtx_01_clone->at(0, 2));
+    EXPECT_EQ(res[1]->at(1, 2), mtx_01_clone->at(1, 2));
+}
+
+
 TYPED_TEST(BatchDense, ScalesDataWithScalar)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -280,6 +320,44 @@ TYPED_TEST(BatchDense, ScalesDataWithScalar)
     auto res = this->mtx_1->unbatch();
     GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
     GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
+}
+
+
+TYPED_TEST(BatchDense, ConvergenceScaleDataWithScalar)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
+
+    auto ualpha = alpha->unbatch();
+
+    const int num_rhs = 3;
+    const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
+    gko::kernels::reference::batch_dense::convergence_scale(
+        this->exec, alpha.get(), this->mtx_1.get(), converged);
+
+
+    auto mtx_10_clone = gko::clone(this->mtx_10);
+    auto mtx_11_clone = gko::clone(this->mtx_11);
+
+    this->mtx_10->scale(ualpha[0].get());
+    this->mtx_11->scale(ualpha[1].get());
+
+    auto res = this->mtx_1->unbatch();
+
+    EXPECT_EQ(res[0]->at(0, 0), mtx_10_clone->at(0, 0));
+    EXPECT_EQ(res[0]->at(1, 0), mtx_10_clone->at(1, 0));
+    EXPECT_EQ(res[0]->at(0, 1), this->mtx_10->at(0, 1));
+    EXPECT_EQ(res[0]->at(1, 1), this->mtx_10->at(1, 1));
+    EXPECT_EQ(res[0]->at(0, 2), mtx_10_clone->at(0, 2));
+    EXPECT_EQ(res[0]->at(1, 2), mtx_10_clone->at(1, 2));
+
+    EXPECT_EQ(res[1]->at(0, 0), mtx_11_clone->at(0, 0));
+    EXPECT_EQ(res[1]->at(1, 0), mtx_11_clone->at(1, 0));
+    EXPECT_EQ(res[1]->at(0, 1), this->mtx_11->at(0, 1));
+    EXPECT_EQ(res[1]->at(1, 1), this->mtx_11->at(1, 1));
+    EXPECT_EQ(res[1]->at(0, 2), mtx_11_clone->at(0, 2));
+    EXPECT_EQ(res[1]->at(1, 2), mtx_11_clone->at(1, 2));
 }
 
 
@@ -302,6 +380,46 @@ TYPED_TEST(BatchDense, ScalesDataWithStride)
 }
 
 
+TYPED_TEST(BatchDense, ConvergenceScaleDataWithStride)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::batch_initialize<Mtx>(
+        {{{2.0, -2.0, -1.5}}, {{2.0, -2.0, 3.0}}}, this->exec);
+
+    auto ualpha = alpha->unbatch();
+
+    const int num_rhs = 3;
+    const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
+    gko::kernels::reference::batch_dense::convergence_scale(
+        this->exec, alpha.get(), this->mtx_1.get(), converged);
+
+
+    auto mtx_10_clone = gko::clone(this->mtx_10);
+    auto mtx_11_clone = gko::clone(this->mtx_11);
+
+    this->mtx_10->scale(ualpha[0].get());
+    this->mtx_11->scale(ualpha[1].get());
+
+    auto res = this->mtx_1->unbatch();
+
+
+    EXPECT_EQ(res[0]->at(0, 0), mtx_10_clone->at(0, 0));
+    EXPECT_EQ(res[0]->at(1, 0), mtx_10_clone->at(1, 0));
+    EXPECT_EQ(res[0]->at(0, 1), this->mtx_10->at(0, 1));
+    EXPECT_EQ(res[0]->at(1, 1), this->mtx_10->at(1, 1));
+    EXPECT_EQ(res[0]->at(0, 2), mtx_10_clone->at(0, 2));
+    EXPECT_EQ(res[0]->at(1, 2), mtx_10_clone->at(1, 2));
+
+    EXPECT_EQ(res[1]->at(0, 0), mtx_11_clone->at(0, 0));
+    EXPECT_EQ(res[1]->at(1, 0), mtx_11_clone->at(1, 0));
+    EXPECT_EQ(res[1]->at(0, 1), this->mtx_11->at(0, 1));
+    EXPECT_EQ(res[1]->at(1, 1), this->mtx_11->at(1, 1));
+    EXPECT_EQ(res[1]->at(0, 2), mtx_11_clone->at(0, 2));
+    EXPECT_EQ(res[1]->at(1, 2), mtx_11_clone->at(1, 2));
+}
+
+
 TYPED_TEST(BatchDense, AddsScaled)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -315,9 +433,50 @@ TYPED_TEST(BatchDense, AddsScaled)
     this->mtx_10->add_scaled(ualpha[0].get(), this->mtx_00.get());
     this->mtx_11->add_scaled(ualpha[1].get(), this->mtx_01.get());
 
-    auto res = this->mtx_0->unbatch();
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_00.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_01.get(), 0.);
+    auto res = this->mtx_1->unbatch();
+    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
+}
+
+
+TYPED_TEST(BatchDense, ConvergenceAddScaled)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::batch_initialize<Mtx>(
+        {{{2.0, -2.0, 1.5}}, {{2.0, -2.0, 3.0}}}, this->exec);
+
+    auto ualpha = alpha->unbatch();
+
+
+    const int num_rhs = 3;
+    const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
+
+    gko::kernels::reference::batch_dense::convergence_add_scaled(
+        this->exec, alpha.get(), this->mtx_0.get(), this->mtx_1.get(),
+        converged);
+
+    auto mtx_10_clone = gko::clone(this->mtx_10);
+    auto mtx_11_clone = gko::clone(this->mtx_11);
+
+    this->mtx_10->add_scaled(ualpha[0].get(), this->mtx_00.get());
+    this->mtx_11->add_scaled(ualpha[1].get(), this->mtx_01.get());
+
+    auto res = this->mtx_1->unbatch();
+
+    EXPECT_EQ(res[0]->at(0, 0), mtx_10_clone->at(0, 0));
+    EXPECT_EQ(res[0]->at(1, 0), mtx_10_clone->at(1, 0));
+    EXPECT_EQ(res[0]->at(0, 1), this->mtx_10->at(0, 1));
+    EXPECT_EQ(res[0]->at(1, 1), this->mtx_10->at(1, 1));
+    EXPECT_EQ(res[0]->at(0, 2), mtx_10_clone->at(0, 2));
+    EXPECT_EQ(res[0]->at(1, 2), mtx_10_clone->at(1, 2));
+
+    EXPECT_EQ(res[1]->at(0, 0), mtx_11_clone->at(0, 0));
+    EXPECT_EQ(res[1]->at(1, 0), mtx_11_clone->at(1, 0));
+    EXPECT_EQ(res[1]->at(0, 1), this->mtx_11->at(0, 1));
+    EXPECT_EQ(res[1]->at(1, 1), this->mtx_11->at(1, 1));
+    EXPECT_EQ(res[1]->at(0, 2), mtx_11_clone->at(0, 2));
+    EXPECT_EQ(res[1]->at(1, 2), mtx_11_clone->at(1, 2));
 }
 
 
@@ -333,9 +492,49 @@ TYPED_TEST(BatchDense, AddsScaledWithScalar)
     this->mtx_10->add_scaled(ualpha[0].get(), this->mtx_00.get());
     this->mtx_11->add_scaled(ualpha[1].get(), this->mtx_01.get());
 
-    auto res = this->mtx_0->unbatch();
-    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_00.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_01.get(), 0.);
+    auto res = this->mtx_1->unbatch();
+    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
+}
+
+
+TYPED_TEST(BatchDense, ConvergenceAddScaledWithScalar)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
+
+    auto ualpha = alpha->unbatch();
+
+
+    const int num_rhs = 3;
+    const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
+
+    gko::kernels::reference::batch_dense::convergence_add_scaled(
+        this->exec, alpha.get(), this->mtx_0.get(), this->mtx_1.get(),
+        converged);
+
+    auto mtx_10_clone = gko::clone(this->mtx_10);
+    auto mtx_11_clone = gko::clone(this->mtx_11);
+
+    this->mtx_10->add_scaled(ualpha[0].get(), this->mtx_00.get());
+    this->mtx_11->add_scaled(ualpha[1].get(), this->mtx_01.get());
+
+    auto res = this->mtx_1->unbatch();
+
+    EXPECT_EQ(res[0]->at(0, 0), mtx_10_clone->at(0, 0));
+    EXPECT_EQ(res[0]->at(1, 0), mtx_10_clone->at(1, 0));
+    EXPECT_EQ(res[0]->at(0, 1), this->mtx_10->at(0, 1));
+    EXPECT_EQ(res[0]->at(1, 1), this->mtx_10->at(1, 1));
+    EXPECT_EQ(res[0]->at(0, 2), mtx_10_clone->at(0, 2));
+    EXPECT_EQ(res[0]->at(1, 2), mtx_10_clone->at(1, 2));
+
+    EXPECT_EQ(res[1]->at(0, 0), mtx_11_clone->at(0, 0));
+    EXPECT_EQ(res[1]->at(1, 0), mtx_11_clone->at(1, 0));
+    EXPECT_EQ(res[1]->at(0, 1), this->mtx_11->at(0, 1));
+    EXPECT_EQ(res[1]->at(1, 1), this->mtx_11->at(1, 1));
+    EXPECT_EQ(res[1]->at(0, 2), mtx_11_clone->at(0, 2));
+    EXPECT_EQ(res[1]->at(1, 2), mtx_11_clone->at(1, 2));
 }
 
 
@@ -369,6 +568,47 @@ TYPED_TEST(BatchDense, ComputesDot)
 }
 
 
+TYPED_TEST(BatchDense, ConvergenceComputeDot)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto result =
+        Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>{1, 3}));
+
+    for (int ibatch = 0; ibatch < result->get_size().get_batch_sizes().size();
+         ibatch++) {
+        for (int icol = 0; icol < result->get_size().at()[1]; icol++) {
+            result->at(ibatch, 0, icol) = gko::zero<T>();
+        }
+    }
+
+    auto ures = result->unbatch();
+
+    const int num_rhs = 3;
+    const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
+
+    gko::kernels::reference::batch_dense::convergence_compute_dot(
+        this->exec, this->mtx_0.get(), this->mtx_1.get(), result.get(),
+        converged);
+
+    auto ures_00_clone = gko::clone(ures[0]);
+    auto ures_01_clone = gko::clone(ures[1]);
+
+    this->mtx_00->compute_dot(this->mtx_10.get(), ures[0].get());
+    this->mtx_01->compute_dot(this->mtx_11.get(), ures[1].get());
+
+    auto res = result->unbatch();
+
+    EXPECT_EQ(res[0]->at(0, 0), ures_00_clone->at(0, 0));
+    EXPECT_EQ(res[0]->at(0, 1), ures[0]->at(0, 1));
+    EXPECT_EQ(res[0]->at(0, 2), ures_00_clone->at(0, 2));
+
+    EXPECT_EQ(res[1]->at(0, 0), ures_01_clone->at(0, 0));
+    EXPECT_EQ(res[1]->at(0, 1), ures[1]->at(0, 1));
+    EXPECT_EQ(res[1]->at(0, 2), ures_01_clone->at(0, 2));
+}
+
+
 TYPED_TEST(BatchDense, ComputesNorm2)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -389,6 +629,44 @@ TYPED_TEST(BatchDense, ComputesNorm2)
     EXPECT_EQ(result->at(0, 0, 0), T_nc{3.0});
     EXPECT_EQ(result->at(0, 0, 1), T_nc{5.0});
     EXPECT_EQ(result->at(1, 0, 0), T_nc{5.0});
+    EXPECT_EQ(result->at(1, 0, 1), T_nc{3.0});
+}
+
+
+TYPED_TEST(BatchDense, ConvergenceComputeNorm2)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using T_nc = gko::remove_complex<T>;
+    using NormVector = gko::matrix::BatchDense<T_nc>;
+    auto mtx(gko::batch_initialize<Mtx>(
+        {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
+         {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
+        this->exec));
+    auto batch_size = gko::batch_dim<2>(
+        std::vector<gko::dim<2>>{gko::dim<2>{1, 2}, gko::dim<2>{1, 2}});
+    auto result =
+        NormVector::create(this->exec, batch_size, gko::batch_stride(2, 2));
+
+    for (int ibatch = 0; ibatch < result->get_size().get_batch_sizes().size();
+         ibatch++) {
+        for (int icol = 0; icol < result->get_size().at()[1]; icol++) {
+            result->at(ibatch, 0, icol) = gko::zero<T_nc>();
+        }
+    }
+
+    auto result_clone = gko::clone(result);
+
+    const int num_rhs = 2;
+    const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
+
+    gko::kernels::reference::batch_dense::convergence_compute_norm2(
+        this->exec, mtx.get(), result.get(), converged);
+
+    EXPECT_EQ(result->at(0, 0, 0), result_clone->at(0, 0, 0));
+    EXPECT_EQ(result->at(0, 0, 1), T_nc{5.0});
+
+    EXPECT_EQ(result->at(1, 0, 0), result_clone->at(1, 0, 0));
     EXPECT_EQ(result->at(1, 0, 1), T_nc{3.0});
 }
 
@@ -418,6 +696,79 @@ TYPED_TEST(BatchDense, ComputDotFailsOnWrongResultSize)
                  gko::DimensionMismatch);
     ASSERT_THROW(this->mtx_0->compute_dot(this->mtx_1.get(), result2.get()),
                  gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(BatchDense, CopiesData)
+{
+    gko::kernels::reference::batch_dense::copy(this->exec, this->mtx_0.get(),
+                                               this->mtx_1.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_1.get(), this->mtx_0.get(), 0.);
+}
+
+
+TYPED_TEST(BatchDense, ConvergenceCopyData)
+{
+    auto umtx_0 = this->mtx_0->unbatch();
+
+    const int num_rhs = 3;
+    const gko::uint32 converged = 0xfffffffd | (0 - (1 << num_rhs));
+    gko::kernels::reference::batch_dense::convergence_copy(
+        this->exec, this->mtx_0.get(), this->mtx_1.get(), converged);
+
+    auto mtx_10_clone = gko::clone(this->mtx_10);
+    auto mtx_11_clone = gko::clone(this->mtx_11);
+
+    auto res = this->mtx_1->unbatch();
+
+    EXPECT_EQ(res[0]->at(0, 0), mtx_10_clone->at(0, 0));
+    EXPECT_EQ(res[0]->at(1, 0), mtx_10_clone->at(1, 0));
+    EXPECT_EQ(res[0]->at(0, 1), this->mtx_0->at(0, 0, 1));
+    EXPECT_EQ(res[0]->at(1, 1), this->mtx_0->at(0, 1, 1));
+    EXPECT_EQ(res[0]->at(0, 2), mtx_10_clone->at(0, 2));
+    EXPECT_EQ(res[0]->at(1, 2), mtx_10_clone->at(1, 2));
+
+    EXPECT_EQ(res[1]->at(0, 0), mtx_11_clone->at(0, 0));
+    EXPECT_EQ(res[1]->at(1, 0), mtx_11_clone->at(1, 0));
+    EXPECT_EQ(res[1]->at(0, 1), this->mtx_0->at(1, 0, 1));
+    EXPECT_EQ(res[1]->at(1, 1), this->mtx_0->at(1, 1, 1));
+    EXPECT_EQ(res[1]->at(0, 2), mtx_11_clone->at(0, 2));
+    EXPECT_EQ(res[1]->at(1, 2), mtx_11_clone->at(1, 2));
+}
+
+
+TYPED_TEST(BatchDense, BatchScale)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+
+    auto mtx(gko::batch_initialize<Mtx>(
+        {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
+         {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
+        this->exec));
+
+    auto diag_vec(
+        gko::batch_initialize<Mtx>(I<I<I<T>>>{I<I<T>>{I<T>{1.0, 2.0, 3.0}},
+                                              I<I<T>>{I<T>{-1.0, -2.0, -3.0}}},
+                                   this->exec));
+
+    gko::kernels::reference::batch_dense::batch_scale(
+        this->exec, diag_vec.get(), mtx.get());
+
+    EXPECT_EQ(mtx->at(0, 0, 0), T{1.0});
+    EXPECT_EQ(mtx->at(0, 1, 0), T{4.0});
+    EXPECT_EQ(mtx->at(0, 2, 0), T{6.0});
+    EXPECT_EQ(mtx->at(0, 0, 1), T{0.0});
+    EXPECT_EQ(mtx->at(0, 1, 1), T{6.0});
+    EXPECT_EQ(mtx->at(0, 2, 1), T{12.0});
+
+    EXPECT_EQ(mtx->at(1, 0, 0), T{4.0});
+    EXPECT_EQ(mtx->at(1, 1, 0), T{6.0});
+    EXPECT_EQ(mtx->at(1, 2, 0), T{0.0});
+    EXPECT_EQ(mtx->at(1, 0, 1), T{-2.0});
+    EXPECT_EQ(mtx->at(1, 1, 1), T{4.0});
+    EXPECT_EQ(mtx->at(1, 2, 1), T{-3.0});
 }
 
 

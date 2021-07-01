@@ -65,11 +65,24 @@ namespace kernels {
                const matrix::BatchDense<_type> *alpha,      \
                matrix::BatchDense<_type> *x)
 
+#define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_SCALE_KERNEL(_type)         \
+    void convergence_scale(std::shared_ptr<const DefaultExecutor> exec, \
+                           const matrix::BatchDense<_type> *alpha,      \
+                           matrix::BatchDense<_type> *x,                \
+                           const uint32 &converged)
+
 #define GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL(_type)         \
     void add_scaled(std::shared_ptr<const DefaultExecutor> exec, \
                     const matrix::BatchDense<_type> *alpha,      \
                     const matrix::BatchDense<_type> *x,          \
                     matrix::BatchDense<_type> *y)
+
+#define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_ADD_SCALED_KERNEL(_type)         \
+    void convergence_add_scaled(std::shared_ptr<const DefaultExecutor> exec, \
+                                const matrix::BatchDense<_type> *alpha,      \
+                                const matrix::BatchDense<_type> *x,          \
+                                matrix::BatchDense<_type> *y,                \
+                                const uint32 &converged)
 
 #define GKO_DECLARE_BATCH_DENSE_ADD_SCALED_DIAG_KERNEL(_type)         \
     void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec, \
@@ -83,10 +96,44 @@ namespace kernels {
                      const matrix::BatchDense<_type> *y,          \
                      matrix::BatchDense<_type> *result)
 
+
+#define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_DOT_KERNEL(_type)         \
+    void convergence_compute_dot(std::shared_ptr<const DefaultExecutor> exec, \
+                                 const matrix::BatchDense<_type> *x,          \
+                                 const matrix::BatchDense<_type> *y,          \
+                                 matrix::BatchDense<_type> *result,           \
+                                 const uint32 &converged)
+
 #define GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL(_type)         \
     void compute_norm2(std::shared_ptr<const DefaultExecutor> exec, \
                        const matrix::BatchDense<_type> *x,          \
                        matrix::BatchDense<remove_complex<_type>> *result)
+
+#define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_NORM2_KERNEL(_type) \
+    void convergence_compute_norm2(                                     \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::BatchDense<_type> *x,                             \
+        matrix::BatchDense<remove_complex<_type>> *result,              \
+        const uint32 &converged)
+
+
+#define GKO_DECLARE_BATCH_DENSE_COPY_KERNEL(_type)         \
+    void copy(std::shared_ptr<const DefaultExecutor> exec, \
+              const matrix::BatchDense<_type> *x,          \
+              matrix::BatchDense<_type> *result)
+
+#define GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COPY_KERNEL(_type)         \
+    void convergence_copy(std::shared_ptr<const DefaultExecutor> exec, \
+                          const matrix::BatchDense<_type> *x,          \
+                          matrix::BatchDense<_type> *result,           \
+                          const uint32 &converged)
+
+
+#define GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL(_type)         \
+    void batch_scale(std::shared_ptr<const DefaultExecutor> exec, \
+                     const matrix::BatchDense<_type> *diag_vec,   \
+                     matrix::BatchDense<_type> *x)
+
 
 #define GKO_DECLARE_BATCH_DENSE_CONVERT_TO_BATCH_CSR_KERNEL(_type, _prec)  \
     void convert_to_batch_csr(std::shared_ptr<const DefaultExecutor> exec, \
@@ -133,13 +180,29 @@ namespace kernels {
     template <typename ValueType>                                              \
     GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL(ValueType);                           \
     template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_SCALE_KERNEL(ValueType);               \
+    template <typename ValueType>                                              \
     GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL(ValueType);                      \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_ADD_SCALED_KERNEL(ValueType);          \
     template <typename ValueType>                                              \
     GKO_DECLARE_BATCH_DENSE_ADD_SCALED_DIAG_KERNEL(ValueType);                 \
     template <typename ValueType>                                              \
     GKO_DECLARE_BATCH_DENSE_COMPUTE_DOT_KERNEL(ValueType);                     \
     template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_DOT_KERNEL(ValueType);         \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_DOT_KERNEL(ValueType);         \
+    template <typename ValueType>                                              \
     GKO_DECLARE_BATCH_DENSE_COMPUTE_NORM2_KERNEL(ValueType);                   \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COMPUTE_NORM2_KERNEL(ValueType);       \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_COPY_KERNEL(ValueType);                            \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_COPY_KERNEL(ValueType);                \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL(ValueType);                     \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_BATCH_DENSE_CONVERT_TO_BATCH_CSR_KERNEL(ValueType, IndexType); \
     template <typename ValueType>                                              \

@@ -168,12 +168,44 @@ TEST_F(BatchDense, SingleVectorCudaAddScaledIsEquivalentToRef)
 }
 
 
+TEST_F(BatchDense, SingleVectorCudaConvergenceAddScaledIsEquivalentToRef)
+{
+    const int num_rhs = 1;
+    set_up_vector_data(num_rhs);
+
+    const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
+
+    gko::kernels::reference::batch_dense::convergence_add_scaled(
+        this->ref, alpha.get(), x.get(), y.get(), converged);
+    gko::kernels::cuda::batch_dense::convergence_add_scaled(
+        this->cuda, dalpha.get(), dx.get(), dy.get(), converged);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
+
+
 TEST_F(BatchDense, MultipleVectorCudaAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(BatchDense, MultipleVectorCudaConvergenceAddScaledIsEquivalentToRef)
+{
+    const int num_rhs = 19;
+    set_up_vector_data(num_rhs);
+
+    const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
+
+    gko::kernels::reference::batch_dense::convergence_add_scaled(
+        this->ref, alpha.get(), x.get(), y.get(), converged);
+    gko::kernels::cuda::batch_dense::convergence_add_scaled(
+        this->cuda, dalpha.get(), dx.get(), dy.get(), converged);
 
     GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
 }
@@ -191,6 +223,105 @@ TEST_F(BatchDense,
 }
 
 
+TEST_F(
+    BatchDense,
+    MultipleVectorCudaConvergenceAddScaledWithDifferentAlphaIsEquivalentToRef)
+{
+    const int num_rhs = 19;
+    set_up_vector_data(num_rhs, true);
+
+    const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
+
+    gko::kernels::reference::batch_dense::convergence_add_scaled(
+        this->ref, alpha.get(), x.get(), y.get(), converged);
+    gko::kernels::cuda::batch_dense::convergence_add_scaled(
+        this->cuda, dalpha.get(), dx.get(), dy.get(), converged);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(BatchDense, SingleVectorCudaScaleIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    x->scale(alpha.get());
+    dx->scale(dalpha.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(BatchDense, SingleVectorCudaConvergenceScaleIsEquivalentToRef)
+{
+    const int num_rhs = 1;
+    set_up_vector_data(num_rhs);
+
+    const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
+
+    gko::kernels::reference::batch_dense::convergence_scale(
+        this->ref, alpha.get(), x.get(), converged);
+    gko::kernels::cuda::batch_dense::convergence_scale(this->cuda, dalpha.get(),
+                                                       dx.get(), converged);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(BatchDense, MultipleVectorCudaScaleIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    x->scale(alpha.get());
+    dx->scale(dalpha.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(BatchDense, MultipleVectorCudaConvergenceScaleIsEquivalentToRef)
+{
+    const int num_rhs = 19;
+    set_up_vector_data(num_rhs);
+
+    const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
+
+    gko::kernels::reference::batch_dense::convergence_scale(
+        this->ref, alpha.get(), x.get(), converged);
+    gko::kernels::cuda::batch_dense::convergence_scale(this->cuda, dalpha.get(),
+                                                       dx.get(), converged);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(BatchDense, MultipleVectorCudaScaleWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20, true);
+
+    x->scale(alpha.get());
+    dx->scale(dalpha.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(BatchDense,
+       MultipleVectorCudaConvergenceScaleWithDifferentAlphaIsEquivalentToRef)
+{
+    const int num_rhs = 19;
+    set_up_vector_data(num_rhs, true);
+
+    const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
+
+    gko::kernels::reference::batch_dense::convergence_scale(
+        this->ref, alpha.get(), x.get(), converged);
+    gko::kernels::cuda::batch_dense::convergence_scale(this->cuda, dalpha.get(),
+                                                       dx.get(), converged);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
+
 TEST_F(BatchDense, CudaComputeNorm2IsEquivalentToRef)
 {
     set_up_vector_data(20);
@@ -201,6 +332,34 @@ TEST_F(BatchDense, CudaComputeNorm2IsEquivalentToRef)
 
     x->compute_norm2(norm_expected.get());
     dx->compute_norm2(dnorm.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(norm_expected, dnorm, 1e-14);
+}
+
+
+TEST_F(BatchDense, CudaConvergenceComputeNorm2IsEquivalentToRef)
+{
+    const int num_rhs = 19;  // note: number of RHSs must be <= 32
+    set_up_vector_data(num_rhs);
+    auto norm_size =
+        gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
+    auto norm_expected = NormVector::create(this->ref, norm_size);
+    auto dnorm = NormVector::create(this->cuda, norm_size);
+
+    const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
+
+    for (int ibatch = 0; ibatch < batch_size; ibatch++) {
+        for (int icol = 0; icol < norm_expected->get_size().at()[1]; icol++) {
+            norm_expected->at(ibatch, 0, icol) = 0;
+        }
+    }
+    dnorm->copy_from(norm_expected.get());
+
+    gko::kernels::reference::batch_dense::convergence_compute_norm2(
+        this->ref, x.get(), norm_expected.get(), converged);
+    gko::kernels::cuda::batch_dense::convergence_compute_norm2(
+        this->cuda, dx.get(), dnorm.get(), converged);
+
 
     GKO_ASSERT_BATCH_MTX_NEAR(norm_expected, dnorm, 1e-14);
 }
@@ -220,5 +379,80 @@ TEST_F(BatchDense, CudaComputeDotIsEquivalentToRef)
     GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 1e-14);
 }
 
+
+TEST_F(BatchDense, CudaConvergenceComputeDotIsEquivalentToRef)
+{
+    const int num_rhs = 19;  // note: number of RHSs must be <= 32
+    set_up_vector_data(num_rhs);
+
+    auto dot_size =
+        gko::batch_dim<>(batch_size, gko::dim<2>{1, x->get_size().at()[1]});
+    auto dot_expected = Mtx::create(this->ref, dot_size);
+    auto ddot = Mtx::create(this->cuda, dot_size);
+
+    for (int ibatch = 0; ibatch < batch_size; ibatch++) {
+        for (int icol = 0; icol < dot_expected->get_size().at()[1]; icol++) {
+            dot_expected->at(ibatch, 0, icol) = 0;
+        }
+    }
+
+    ddot->copy_from(dot_expected.get());
+
+    const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
+
+
+    gko::kernels::reference::batch_dense::convergence_compute_dot(
+        this->ref, x.get(), y.get(), dot_expected.get(), converged);
+    gko::kernels::cuda::batch_dense::convergence_compute_dot(
+        this->cuda, dx.get(), dy.get(), ddot.get(), converged);
+
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 1e-14);
+}
+
+
+TEST_F(BatchDense, CudaCopyIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    gko::kernels::reference::batch_dense::copy(this->ref, x.get(), y.get());
+    gko::kernels::cuda::batch_dense::copy(this->cuda, dx.get(), dy.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 0.0);
+}
+
+
+TEST_F(BatchDense, CudaConvergenceCopyIsEquivalentToRef)
+{
+    const int num_rhs = 19;  // note: number of RHSs must be <= 32
+    set_up_vector_data(num_rhs);
+
+    const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
+
+    gko::kernels::reference::batch_dense::convergence_copy(this->ref, x.get(),
+                                                           y.get(), converged);
+    gko::kernels::cuda::batch_dense::convergence_copy(this->cuda, dx.get(),
+                                                      dy.get(), converged);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 0.0);
+}
+
+
+TEST_F(BatchDense, CudaBatchScaleIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    const int num_rows_in_mat = x->get_size().at(0)[0];
+    const auto diag_vec = gen_mtx<Mtx>(batch_size, 1, num_rows_in_mat);
+    auto ddiag_vec = Mtx::create(this->cuda);
+    ddiag_vec->copy_from(diag_vec.get());
+
+    gko::kernels::reference::batch_dense::batch_scale(this->ref, diag_vec.get(),
+                                                      x.get());
+    gko::kernels::cuda::batch_dense::batch_scale(this->cuda, ddiag_vec.get(),
+                                                 dx.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
 
 }  // namespace
