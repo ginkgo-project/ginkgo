@@ -473,10 +473,12 @@ TEST_F(Jacobi, CudaScalarLinearCombinationApplyEquivalentToRef)
     smtx->copy_from(dense_smtx.get());
     auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
         dim, 3, std::uniform_int_distribution<>(1, 1),
-        std::normal_distribution<>(0.0, 1.0), engine, ref));
+        std::normal_distribution<>(0.0, 1.0), engine, ref, gko::dim<2>(dim, 3),
+        4));
     auto sx = gko::share(gko::test::generate_random_matrix<Vec>(
         dim, 3, std::uniform_int_distribution<>(1, 1),
-        std::normal_distribution<>(0.0, 1.0), engine, ref));
+        std::normal_distribution<>(0.0, 1.0), engine, ref, gko::dim<2>(dim, 3),
+        4));
 
     auto d_smtx = gko::share(Mtx::create(cuda));
     auto d_sb = gko::share(Vec::create(cuda));

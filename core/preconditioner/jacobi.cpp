@@ -78,7 +78,7 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         [this](auto dense_b, auto dense_x) {
             if (parameters_.max_block_size == 1) {
                 this->get_executor()->run(jacobi::make_simple_scalar_apply(
-                    this->diag_.get(), dense_b, dense_x));
+                    this->blocks_, dense_b, dense_x));
             } else {
                 this->get_executor()->run(jacobi::make_simple_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,
@@ -98,9 +98,8 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp *alpha,
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             if (parameters_.max_block_size == 1) {
-                this->get_executor()->run(
-                    jacobi::make_scalar_apply(this->diag_.get(), dense_alpha,
-                                              dense_b, dense_beta, dense_x));
+                this->get_executor()->run(jacobi::make_scalar_apply(
+                    this->blocks_, dense_alpha, dense_b, dense_beta, dense_x));
             } else {
                 this->get_executor()->run(jacobi::make_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,
@@ -232,8 +231,11 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
     using csr_type = matrix::Csr<ValueType, IndexType>;
     const auto exec = this->get_executor();
     if (parameters_.max_block_size == 1) {
-        this->diag_ = as<DiagonalExtractable<ValueType>>(system_matrix)
-                          ->extract_diagonal();
+        auto diag = as<DiagonalExtractable<ValueType>>(system_matrix)
+                        ->extract_diagonal();
+        auto temp = gko::Array<ValueType>::view(
+            exec, system_matrix->get_size()[0], diag->get_values());
+        this->blocks_ = temp;
     } else {
         auto csr_mtx = convert_to_with_sorting<csr_type>(exec, system_matrix,
                                                          skip_sorting);

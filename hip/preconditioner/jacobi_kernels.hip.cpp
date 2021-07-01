@@ -259,7 +259,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType>
 void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const matrix::Diagonal<ValueType> *diag,
+                  const Array<ValueType> &diag,
                   const matrix::Dense<ValueType> *alpha,
                   const matrix::Dense<ValueType> *b,
                   const matrix::Dense<ValueType> *beta,
@@ -273,7 +273,7 @@ void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
     const auto grid_dim = ceildiv(num_rows * num_cols, default_block_size);
 
     const auto b_values = b->get_const_values();
-    const auto diag_values = diag->get_const_values();
+    const auto diag_values = diag.get_const_data();
     auto x_values = x->get_values();
 
     hipLaunchKernelGGL(
@@ -288,7 +288,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL);
 
 template <typename ValueType>
 void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Diagonal<ValueType> *diag,
+                         const Array<ValueType> &diag,
                          const matrix::Dense<ValueType> *b,
                          matrix::Dense<ValueType> *x)
 {
@@ -300,7 +300,7 @@ void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
     const auto grid_dim = ceildiv(num_rows * num_cols, default_block_size);
 
     const auto b_values = b->get_const_values();
-    const auto diag_values = diag->get_const_values();
+    const auto diag_values = diag.get_const_data();
     auto x_values = x->get_values();
 
     hipLaunchKernelGGL(kernel::simple_scalar_apply, dim3(grid_dim),
