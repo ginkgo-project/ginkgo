@@ -64,7 +64,7 @@ find_library(CUSPARSE cusparse
 find_library(CURAND curand
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
-add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> $<TARGET_OBJECTS:ginkgo_device_mutex> "")
+add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 set(GKO_CUDA_COMMON_SOURCES
     ../common/components/precision_conversion.cpp
     ../common/matrix/dense_kernels.cpp

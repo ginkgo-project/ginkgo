@@ -51,8 +51,13 @@ class CudaExecutor;
 class HipExecutor;
 
 
+/**
+ * NvidiaDevice handles the number of executor on Nvidia devices and have the
+ * corresponding recursive_mutex.
+ */
 class NvidiaDevice {
     friend class CudaExecutor;
+// If Hip is compiled for NVCC, give NvidiaDevice's permission to HipExecutor
 #if GINKGO_HIP_PLATFORM_NVCC
     friend class HipExecutor;
 #endif
@@ -64,8 +69,13 @@ private:
 };
 
 
+/**
+ * AmdDevice handles the number of executor on Amd devices and have the
+ * corresponding recursive_mutex.
+ */
 class AmdDevice {
 // to avoid both GINKGO_HIP_PLATFORM_* zero
+// If Hip isn't compiled for NVCC, give AmdDevice's permission to HipExecutor
 #if !GINKGO_HIP_PLATFORM_NVCC
     friend class HipExecutor;
 #endif
