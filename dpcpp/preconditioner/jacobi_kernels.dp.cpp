@@ -282,7 +282,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType>
 void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const matrix::Diagonal<ValueType> *diag,
+                  const Array<ValueType> &diag,
                   const matrix::Dense<ValueType> *alpha,
                   const matrix::Dense<ValueType> *b,
                   const matrix::Dense<ValueType> *beta,
@@ -293,7 +293,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL);
 
 template <typename ValueType>
 void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Diagonal<ValueType> *diag,
+                         const Array<ValueType> &diag,
                          const matrix::Dense<ValueType> *b,
                          matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
 
