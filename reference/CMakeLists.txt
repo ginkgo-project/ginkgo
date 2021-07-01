@@ -1,4 +1,4 @@
-add_library(ginkgo_reference $<TARGET_OBJECTS:ginkgo_reference_device> $<TARGET_OBJECTS:ginkgo_device_mutex> "")
+add_library(ginkgo_reference $<TARGET_OBJECTS:ginkgo_reference_device> "")
 target_sources(ginkgo_reference
     PRIVATE
     base/version.cpp
