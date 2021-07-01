@@ -63,9 +63,33 @@ class NvidiaDevice {
 #endif
 
 private:
+    /**
+     * get_mutex gets the static mutex reference at i.
+     *
+     * @param i  index of mutex
+     *
+     * @return recursive_mutex reference
+     */
+    static std::recursive_mutex &get_mutex(int i)
+    {
+        static std::recursive_mutex mutex[max_devices];
+        return mutex[i];
+    }
+
+    /**
+     * get_num_execs gets the static num_execs reference at i.
+     *
+     * @param i  index of num_execs
+     *
+     * @return int reference
+     */
+    static int &get_num_execs(int i)
+    {
+        static int num_execs[max_devices];
+        return num_execs[i];
+    }
+
     static constexpr int max_devices = 64;
-    static std::recursive_mutex mutex[max_devices];
-    static int num_execs[max_devices];
 };
 
 
@@ -81,9 +105,33 @@ class AmdDevice {
 #endif
 
 private:
+    /**
+     * get_mutex gets the static mutex reference at i.
+     *
+     * @param i  index of mutex
+     *
+     * @return recursive_mutex reference
+     */
+    static std::recursive_mutex &get_mutex(int i)
+    {
+        static std::recursive_mutex mutex[max_devices];
+        return mutex[i];
+    }
+
+    /**
+     * get_num_execs gets the static num_execs reference at i.
+     *
+     * @param i  index of num_execs
+     *
+     * @return int reference
+     */
+    static int &get_num_execs(int i)
+    {
+        static int num_execs[max_devices];
+        return num_execs[i];
+    }
+
     static constexpr int max_devices = 64;
-    static std::recursive_mutex mutex[max_devices];
-    static int num_execs[max_devices];
 };
 
 

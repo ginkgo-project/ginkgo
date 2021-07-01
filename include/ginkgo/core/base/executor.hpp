@@ -1454,22 +1454,22 @@ protected:
     static void increase_num_execs(unsigned device_id)
     {
         std::lock_guard<std::recursive_mutex> guard(
-            device_type::mutex[device_id]);
-        device_type::num_execs[device_id]++;
+            device_type::get_mutex(device_id));
+        device_type::get_num_execs(device_id)++;
     }
 
     static void decrease_num_execs(unsigned device_id)
     {
         std::lock_guard<std::recursive_mutex> guard(
-            device_type::mutex[device_id]);
-        device_type::num_execs[device_id]--;
+            device_type::get_mutex(device_id));
+        device_type::get_num_execs(device_id)--;
     }
 
     static unsigned get_num_execs(unsigned device_id)
     {
         std::lock_guard<std::recursive_mutex> guard(
-            device_type::mutex[device_id]);
-        return device_type::num_execs[device_id];
+            device_type::get_mutex(device_id));
+        return device_type::get_num_execs(device_id);
     }
 
     void populate_exec_info(const MachineTopology *mach_topo) override;
@@ -1677,22 +1677,22 @@ protected:
     static void increase_num_execs(int device_id)
     {
         std::lock_guard<std::recursive_mutex> guard(
-            device_type::mutex[device_id]);
-        device_type::num_execs[device_id]++;
+            device_type::get_mutex(device_id));
+        device_type::get_num_execs(device_id)++;
     }
 
     static void decrease_num_execs(int device_id)
     {
         std::lock_guard<std::recursive_mutex> guard(
-            device_type::mutex[device_id]);
-        device_type::num_execs[device_id]--;
+            device_type::get_mutex(device_id));
+        device_type::get_num_execs(device_id)--;
     }
 
     static int get_num_execs(int device_id)
     {
         std::lock_guard<std::recursive_mutex> guard(
-            device_type::mutex[device_id]);
-        return device_type::num_execs[device_id];
+            device_type::get_mutex(device_id));
+        return device_type::get_num_execs(device_id);
     }
 
     void populate_exec_info(const MachineTopology *mach_topo) override;
