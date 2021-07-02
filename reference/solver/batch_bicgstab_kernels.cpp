@@ -91,8 +91,8 @@ static void apply_impl(
     Array<byte> local_space(exec, local_size_bytes);
     for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
         batch_entry_bicgstab_impl<StopType, PrecType, LogType, BatchMatrixType,
-                                  ValueType, byte>(opts, logger, prec, a, b, x,
-                                                   ibatch, local_space);
+                                  ValueType>(opts, logger, prec, a, b, x,
+                                             ibatch, local_space);
     }
 }
 
