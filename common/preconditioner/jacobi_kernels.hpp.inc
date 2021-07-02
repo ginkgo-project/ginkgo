@@ -213,3 +213,50 @@ __launch_bounds__(warps_per_block *config::warp_size) adaptive_transpose_jacobi(
             });
     }
 }
+
+
+namespace kernel {
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void scalar_apply(
+    size_type num_rows, size_type num_cols, const ValueType *__restrict__ diag,
+    const ValueType *__restrict__ alpha, size_type source_stride,
+    const ValueType *__restrict__ source_values,
+    const ValueType *__restrict__ beta, size_type result_stride,
+    ValueType *__restrict__ result_values)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    const auto row = tidx / num_cols;
+    const auto col = tidx % num_cols;
+
+    if (row < num_rows) {
+        auto diag_val =
+            diag[row] == zero<ValueType>() ? one<ValueType>() : diag[row];
+        result_values[row * result_stride + col] =
+            result_values[row * result_stride + col] * beta[0] +
+            alpha[0] * source_values[row * source_stride + col] / diag_val;
+    }
+}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void simple_scalar_apply(
+    size_type num_rows, size_type num_cols, const ValueType *__restrict__ diag,
+    size_type source_stride, const ValueType *__restrict__ source_values,
+    size_type result_stride, ValueType *__restrict__ result_values)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    const auto row = tidx / num_cols;
+    const auto col = tidx % num_cols;
+
+    if (row < num_rows) {
+        auto diag_val =
+            diag[row] == zero<ValueType>() ? one<ValueType>() : diag[row];
+        result_values[row * result_stride + col] =
+            source_values[row * source_stride + col] / diag_val;
+    }
+}
+
+
+}  // namespace kernel

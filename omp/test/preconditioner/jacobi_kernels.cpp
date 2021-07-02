@@ -397,6 +397,37 @@ TEST_F(Jacobi, OmpApplyEquivalentToRefWithDifferentBlockSize)
 }
 
 
+TEST_F(Jacobi, OmpScalarApplyEquivalentToRef)
+{
+    gko::size_type dim = 313;
+    std::ranlux48 engine(42);
+    auto dense_smtx = gko::share(gko::test::generate_random_matrix<Vec>(
+        dim, dim, std::uniform_int_distribution<>(1, dim),
+        std::normal_distribution<>(1.0, 2.0), engine, ref));
+    gko::test::make_diag_dominant(dense_smtx.get());
+    auto smtx = gko::share(Mtx::create(ref));
+    smtx->copy_from(dense_smtx.get());
+    auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
+        dim, 3, std::uniform_int_distribution<>(1, 1),
+        std::normal_distribution<>(0.0, 1.0), engine, ref));
+    auto sx = Vec::create(ref, sb->get_size());
+
+    auto d_smtx = gko::share(Mtx::create(omp));
+    auto d_sb = gko::share(Vec::create(omp));
+    auto d_sx = gko::share(Vec::create(omp, sb->get_size()));
+    d_smtx->copy_from(smtx.get());
+    d_sb->copy_from(sb.get());
+
+    auto sj = Bj::build().with_max_block_size(1u).on(ref)->generate(smtx);
+    auto d_sj = Bj::build().with_max_block_size(1u).on(omp)->generate(d_smtx);
+
+    sj->apply(sb.get(), sx.get());
+    d_sj->apply(d_sb.get(), d_sx.get());
+
+    GKO_ASSERT_MTX_NEAR(sx.get(), d_sx.get(), 1e-12);
+}
+
+
 TEST_F(Jacobi, OmpApplyEquivalentToRef)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
@@ -426,6 +457,46 @@ TEST_F(Jacobi, OmpLinearCombinationApplyEquivalentToRef)
     d_bj->apply(d_alpha.get(), d_b.get(), d_beta.get(), d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
+}
+
+
+TEST_F(Jacobi, OmpScalarLinearCombinationApplyEquivalentToRef)
+{
+    gko::size_type dim = 5;
+    std::ranlux48 engine(42);
+    auto dense_smtx = gko::share(gko::test::generate_random_matrix<Vec>(
+        dim, dim, std::uniform_int_distribution<>(1, dim),
+        std::normal_distribution<>(1.0, 2.0), engine, ref));
+    gko::test::make_diag_dominant(dense_smtx.get());
+    auto smtx = gko::share(Mtx::create(ref));
+    smtx->copy_from(dense_smtx.get());
+    auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
+        dim, 3, std::uniform_int_distribution<>(1, 1),
+        std::normal_distribution<>(0.0, 1.0), engine, ref, gko::dim<2>(dim, 3),
+        4));
+    auto sx = gko::share(gko::test::generate_random_matrix<Vec>(
+        dim, 3, std::uniform_int_distribution<>(1, 1),
+        std::normal_distribution<>(0.0, 1.0), engine, ref, gko::dim<2>(dim, 3),
+        4));
+
+    auto d_smtx = gko::share(Mtx::create(omp));
+    auto d_sb = gko::share(Vec::create(omp));
+    auto d_sx = gko::share(Vec::create(omp));
+    d_smtx->copy_from(smtx.get());
+    d_sb->copy_from(sb.get());
+    d_sx->copy_from(sx.get());
+    auto alpha = gko::initialize<Vec>({2.0}, ref);
+    auto d_alpha = gko::initialize<Vec>({2.0}, omp);
+    auto beta = gko::initialize<Vec>({-1.0}, ref);
+    auto d_beta = gko::initialize<Vec>({-1.0}, omp);
+
+    auto sj = Bj::build().with_max_block_size(1u).on(ref)->generate(smtx);
+    auto d_sj = Bj::build().with_max_block_size(1u).on(omp)->generate(d_smtx);
+
+    sj->apply(alpha.get(), sb.get(), beta.get(), sx.get());
+    d_sj->apply(d_alpha.get(), d_sb.get(), d_beta.get(), d_sx.get());
+
+    GKO_ASSERT_MTX_NEAR(sx.get(), d_sx.get(), 1e-12);
 }
 
 
