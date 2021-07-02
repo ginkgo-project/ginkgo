@@ -156,8 +156,7 @@ int main(int argc, char *argv[])
             try {
                 auto matrix_from =
                     share(formats::matrix_factory.at(format_from)(exec, data));
-                for (const auto &format : formats::matrix_factory) {
-                    const auto format_to = std::get<0>(format);
+                for (const auto &format_to : formats) {
                     if (format_from == format_to) {
                         continue;
                     }
