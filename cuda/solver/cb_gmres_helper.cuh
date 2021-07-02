@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "accessor/scaled_reduced_row_major.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
+#include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
@@ -184,10 +185,10 @@ __global__ void compute_dot_norm(size_type num_vectors, Accessor3d krylov_bases,
                                  ValueType *__restrict__ output)
 {
     using c_value_type = typename Accessor3d::accessor::arithmetic_type;
-    if (blockIdx.x > 0 || threadIdx.x >= num_vectors) {
+    if (blockIdx.x > 0) {
         return;
     }
-    ValueType result[shared_size];
+    __shared__ ValueType result[shared_size];
     if (threadIdx.x < shared_size) {
         result[threadIdx.x] = zero<ValueType>();
     }
@@ -195,15 +196,20 @@ __global__ void compute_dot_norm(size_type num_vectors, Accessor3d krylov_bases,
     auto tblock = group::this_thread_block();
     auto warp = group::tiled_partition<config::warp_size>(tblock);
     const size_type num_warps = (blockDim.x - 1) / config::warp_size + 1;
-    const size_type start_i = num_vectors % num_warps;
+    const size_type start_i = threadIdx.x / config::warp_size;
 
-    for (size_type k = warp.thread_rank(); k < krylov_bases.length(1);
-         k += config::warp_size) {
+    const size_type k_end = krylov_bases.length(1) + config::warp_size -
+                            krylov_bases.length(1) % config::warp_size;
+
+    if (threadIdx.x == 0) printf("%lluS ", num_vectors);
+    for (size_type k = warp.thread_rank(); k <= k_end; k += config::warp_size) {
         for (size_type i = start_i; i < num_vectors; i += num_warps) {
-            const auto v1 = krylov_bases(i, k, 0);
+            const auto v1 =
+                k < num_vectors ? krylov_bases(i, k, 0) : ValueType{};
             for (size_type j = 0; j < num_vectors; ++j) {
-                const auto local_result =
-                    squared_norm(v1 * krylov_bases(j, k, 0));
+                const auto v2 =
+                    k < num_vectors ? krylov_bases(j, k, 0) : ValueType{};
+                const auto local_result = squared_norm(v1 * v2);
                 const auto reduced_result =
                     reduce(warp, local_result,
                            [](ValueType a, ValueType b) { return a + b; });
@@ -213,6 +219,7 @@ __global__ void compute_dot_norm(size_type num_vectors, Accessor3d krylov_bases,
             }
         }
     }
+    if (threadIdx.x == 0) printf("%lluM ", num_vectors);
     for (int k = shared_size / 2; k >= config::warp_size; k /= 2) {
         tblock.sync();
         if (threadIdx.x + k < shared_size) {
@@ -227,28 +234,67 @@ __global__ void compute_dot_norm(size_type num_vectors, Accessor3d krylov_bases,
             *output = final_res;
         }
     }
+    if (threadIdx.x == 0) printf("%lluE ", num_vectors);
 }
 
 // ValueType is non-complex type
 template <int block_size, typename Accessor3d, typename ValueType>
-__global__ void compute_dot_matrix(size_type num_vectors,
-                                   Accessor3d krylov_bases,
-                                   ValueType *__restrict__ output)
+__global__ void compute_dot_matrix_atomic(size_type num_vectors,
+                                          Accessor3d krylov_bases,
+                                          ValueType *__restrict__ output)
 {
+    GKO_ASSERT(block_size == blockDim.x);
     using c_value_type = typename Accessor3d::accessor::arithmetic_type;
-    if (blockIdx.x > 0 || threadIdx.x >= num_vectors) {
-        return;
-    }
-    ValueType input_cache[block_size * block_size];
-    ValueType result[block_size * block_size];
+    auto tblock = group::this_thread_block();
+    __shared__ ValueType result[block_size];
+
     // if (threadIdx.x < shared_size) {
     //    result[threadIdx.x] = zero<ValueType>();
     //}
+    const size_type chunk_size = num_vectors / gridDim.x;
+    size_type slice_start = blockIdx.x * chunk_size;
+    size_type slice_end = (blockIdx.x + 1) * chunk_size;
+    for (size_type i = 0; i < num_vectors; ++i) {
+        for (size_type j = i; j < num_vectors; ++j) {
+            ValueType local_res{};
+            for (size_type k = slice_start + threadIdx.x; k < slice_end;
+                 k += block_size) {
+                c_value_type d = krylov_bases(i, k, 0) * krylov_bases(j, k, 0);
+                local_res += squared_norm(d);
+            }
+            result[threadIdx.x] = local_res;
+            tblock.sync();
+            reduce(tblock, result,
+                   [](ValueType a, ValueType b) { return a + b; });
+            if (threadIdx.x == 0) {
+                atomic_add(output + i * num_vectors + j, result[0]);
+            }
+        }
+    }
+}
 
+template <int block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void compute_matrix_norm(
+    size_type N, const ValueType *__restrict__ mtx,
+    ValueType *__restrict__ norm)
+{
+    GKO_ASSERT(block_size == blockDim.x);
     auto tblock = group::this_thread_block();
-    auto warp = group::tiled_partition<config::warp_size>(tblock);
-    const size_type num_warps = (blockDim.x - 1) / config::warp_size + 1;
-    const size_type start_i = num_vectors % num_warps;
+
+    __shared__ ValueType result[block_size];
+    ValueType local_res{};
+    for (size_type i = blockIdx.x; i < N; i += gridDim.x) {
+        for (size_type j = i + threadIdx.x; j < N; j += block_size) {
+            const auto mtx_val = mtx[i * N + j];
+            local_res += (i == j) ? ValueType{} : mtx_val;
+        }
+    }
+    result[threadIdx.x] = local_res;
+    tblock.sync();
+    reduce(tblock, result, [](ValueType a, ValueType b) { return a + b; });
+    if (threadIdx.x == 0) {
+        atomic_add(norm, result[0]);
+    }
 }
 
 
@@ -256,13 +302,27 @@ template <typename T, typename Accessor3d>
 T get_orthogonality(std::shared_ptr<const CudaExecutor> &exec,
                     size_type num_vectors, Accessor3d krylov_bases, T *d_tmp)
 {
+    constexpr int block_size{256};
+
+    auto d_norm = d_tmp + num_vectors * num_vectors;
+    components::fill_array(exec, d_tmp, num_vectors * num_vectors + 1,
+                           zero<T>());
+    const int sms = exec->get_num_multiprocessor();
+    const int grid_x = std::min<int>(sms * 4, num_vectors);
+    compute_dot_matrix_atomic<block_size><<<grid_x, block_size>>>(
+        num_vectors, cb_gmres::as_cuda_accessor(krylov_bases->to_const()),
+        d_tmp);
+    compute_matrix_norm<block_size>
+        <<<grid_x, block_size>>>(num_vectors, d_tmp, d_norm);
+    return sqrt(exec->copy_val_to_host(d_norm));
+    /*
     constexpr int shared_size{128};
-    constexpr int block_size{1024};
     const dim3 block_dot_norm(block_size, 1, 1);
     compute_dot_norm<shared_size><<<1, block_dot_norm>>>(
         num_vectors, cb_gmres::as_cuda_accessor(krylov_bases->to_const()),
         as_cuda_type(d_tmp));
     return sqrt(exec->copy_val_to_host(d_tmp));
+    */
 }
 
 /*
