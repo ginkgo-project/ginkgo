@@ -108,8 +108,8 @@ static void apply_impl(
 #pragma omp parallel for firstprivate(logger) firstprivate(local_space)
     for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
         batch_entry_bicgstab_impl<StopType, PrecType, LogType, BatchMatrixType,
-                                  ValueType, byte>(opts, logger, prec, a, b, x,
-                                                   ibatch, local_space);
+                                  ValueType>(opts, logger, prec, a, b, x,
+                                             ibatch, local_space);
     }
 }
 
