@@ -35,7 +35,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/log/batch_convergence.hpp>
-#include <ginkgo/core/solver/batch_richardson.hpp>
+//#include <ginkgo/core/solver/batch_richardson.hpp>
+#include <ginkgo/core/matrix/batch_csr.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -44,6 +46,168 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace test {
+
+
+template <typename ValueType>
+std::unique_ptr<matrix::BatchDense<remove_complex<ValueType>>>
+compute_residual_norm(const matrix::BatchCsr<ValueType, int> *const rmtx,
+                      const matrix::BatchDense<ValueType> *const x,
+                      const matrix::BatchDense<ValueType> *const b)
+{
+    using BDense = matrix::BatchDense<ValueType>;
+    using RBDense = matrix::BatchDense<remove_complex<ValueType>>;
+    auto exec = rmtx->get_executor();
+    const size_t nbatches = x->get_num_batch_entries();
+    const int xnrhs = x->get_size().at(0)[1];
+    const gko::batch_stride stride(nbatches, xnrhs);
+    const gko::batch_dim<> normdim(nbatches, gko::dim<2>(1, xnrhs));
+
+    std::unique_ptr<BDense> res = b->clone();
+    auto normsr = RBDense::create(exec, normdim);
+    auto alpha = gko::batch_initialize<BDense>(nbatches, {-1.0}, exec);
+    auto beta = gko::batch_initialize<BDense>(nbatches, {1.0}, exec);
+    rmtx->apply(alpha.get(), x, beta.get(), res.get());
+    res->compute_norm2(normsr.get());
+    return normsr;
+}
+
+
+template <typename ValueType>
+struct LinSys {
+    using Mtx = matrix::BatchCsr<ValueType, int>;
+    using BDense = matrix::BatchDense<ValueType>;
+    using RBDense = matrix::BatchDense<remove_complex<ValueType>>;
+
+    std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<BDense> b;
+    std::unique_ptr<RBDense> bnorm;
+    std::unique_ptr<BDense> xex;
+};
+
+template <typename ValueType>
+struct Result {
+    using BDense = matrix::BatchDense<ValueType>;
+    using RBDense = matrix::BatchDense<remove_complex<ValueType>>;
+
+    std::shared_ptr<BDense> x;
+    std::shared_ptr<RBDense> resnorm;
+    gko::log::BatchLogData<ValueType> logdata;
+};
+
+template <typename ValueType>
+LinSys<ValueType> get_poisson_problem(
+    std::shared_ptr<const gko::ReferenceExecutor> exec, const int nrhs,
+    const size_t nbatches)
+{
+    using BDense = matrix::BatchDense<ValueType>;
+    using RBDense = matrix::BatchDense<remove_complex<ValueType>>;
+    LinSys<ValueType> sys;
+    const int nrows = 3;
+    sys.mtx =
+        gko::test::create_poisson1d_batch<ValueType>(exec, nrows, nbatches);
+    if (nrhs == 1) {
+        sys.b = gko::batch_initialize<BDense>(nbatches, {-1.0, 3.0, 1.0}, exec);
+        sys.xex =
+            gko::batch_initialize<BDense>(nbatches, {1.0, 3.0, 2.0}, exec);
+    } else if (nrhs == 2) {
+        sys.b = gko::batch_initialize<BDense>(
+            nbatches,
+            std::initializer_list<std::initializer_list<ValueType>>{
+                {-1.0, 2.0}, {3.0, -1.0}, {1.0, 0.0}},
+            exec);
+        sys.xex = gko::batch_initialize<BDense>(
+            nbatches,
+            std::initializer_list<std::initializer_list<ValueType>>{
+                {1.0, 1.0}, {3.0, 0.0}, {2.0, 0.0}},
+            exec);
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+    const gko::batch_dim<> normdim(nbatches, gko::dim<2>(1, nrhs));
+    sys.bnorm = RBDense::create(exec, normdim);
+    sys.b->compute_norm2(sys.bnorm.get());
+    return sys;
+}
+
+
+template <typename ValueType, typename SolveFunction, typename MatScaleFunction,
+          typename VecScaleFunction, typename Options>
+Result<ValueType> solve_poisson_uniform(
+    std::shared_ptr<const Executor> d_exec, SolveFunction solve_function,
+    MatScaleFunction msf, VecScaleFunction vsf, const Options opts,
+    const LinSys<ValueType> &sys, const int nrhs,
+    const matrix::BatchDense<ValueType> *const left_scale = nullptr,
+    const matrix::BatchDense<ValueType> *const right_scale = nullptr)
+{
+    using real_type = remove_complex<ValueType>;
+    using BDense = typename Result<ValueType>::BDense;
+    using RBDense = typename Result<ValueType>::RBDense;
+    using Mtx = matrix::BatchCsr<ValueType, int>;
+
+    const size_t nbatch = sys.mtx->get_num_batch_entries();
+    const int nrows = sys.mtx->get_size().at()[0];
+    const gko::batch_dim<> sizes(nbatch, gko::dim<2>(nrows, nrhs));
+    const gko::batch_dim<> normsizes(nbatch, gko::dim<2>(1, nrhs));
+
+    auto exec = d_exec->get_master();
+    auto orig_mtx = Mtx::create(exec);
+    orig_mtx->copy_from(sys.mtx.get());
+    Result<ValueType> result;
+    // Initialize r to the original unscaled b
+    result.x = BDense::create(exec, sizes);
+    ValueType *const xvalsinit = result.x->get_values();
+    for (size_t i = 0; i < nbatch * nrows * nrhs; i++) {
+        xvalsinit[i] = gko::zero<ValueType>();
+    }
+
+    gko::log::BatchLogData<ValueType> logdata;
+    logdata.res_norms =
+        gko::matrix::BatchDense<real_type>::create(d_exec, normsizes);
+    logdata.iter_counts.set_executor(d_exec);
+    logdata.iter_counts.resize_and_reset(nrhs * nbatch);
+
+    auto mtx = Mtx::create(d_exec);
+    auto b = BDense::create(d_exec);
+    auto x = BDense::create(d_exec);
+    mtx->copy_from(gko::lend(sys.mtx));
+    b->copy_from(gko::lend(sys.b));
+    x->copy_from(gko::lend(result.x));
+    auto d_left = BDense::create(d_exec);
+    auto d_right = BDense::create(d_exec);
+    if (left_scale) {
+        d_left->copy_from(left_scale);
+    }
+    if (right_scale) {
+        d_right->copy_from(right_scale);
+    }
+    auto d_left_ptr = left_scale ? d_left.get() : nullptr;
+    auto d_right_ptr = right_scale ? d_right.get() : nullptr;
+
+    auto b_sc = BDense::create(d_exec);
+    b_sc->copy_from(b.get());
+    if (left_scale) {
+        msf(d_left_ptr, d_right_ptr, mtx.get());
+        vsf(d_left_ptr, b_sc.get());
+    }
+
+    solve_function(opts, mtx.get(), b_sc.get(), x.get(), logdata);
+
+    if (left_scale) {
+        vsf(d_right_ptr, x.get());
+    }
+
+    result.x->copy_from(gko::lend(x));
+    auto rnorms =
+        compute_residual_norm(sys.mtx.get(), result.x.get(), sys.b.get());
+
+    result.logdata.res_norms = gko::matrix::BatchDense<real_type>::create(exec);
+    result.logdata.iter_counts.set_executor(exec);
+    result.logdata.res_norms->copy_from(logdata.res_norms.get());
+    result.logdata.iter_counts = logdata.iter_counts;
+
+    result.resnorm = std::move(rnorms);
+    return std::move(result);
+}
 
 
 template <typename SolverType>
