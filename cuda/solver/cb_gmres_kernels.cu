@@ -290,22 +290,31 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
 
     // DEBUG ONLY (works exclusively with 1 RHS, otherwise, the result is
     //            undefined)
-    // auto *const d_tmp = arnoldi_norm->get_values() + 2 * stride_arnoldi;
-    auto *const d_tmp =
-        OrthStorage::get_data<non_complex>(exec, (iter + 2) * (iter + 2));
     size_type num_reorth_performed{};
-    const auto pre_orthogonality =
-        get_orthogonality(exec, iter + 1, krylov_bases->to_const(), d_tmp);
-    /*
-    print_norms<false><<<1, 1>>>(dim_size[1],
-                                 as_cuda_type(arnoldi_norm->get_const_values()),
-                                 stride_arnoldi);
-    //*/
+    non_complex pre_orthogonality{};
+    // must contain norm_matrix + reduction_norm variables, therefore,
+    // (iter + 1)^2 + 1
+    auto *const d_tmp_storage =
+        OrthStorage::get_data<non_complex>(exec, (iter + 1) * (iter + 1) + 1);
+    {
+        copy_next_krylov_kernel<default_block_size>
+            <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+               default_block_size>>>(
+                iter, dim_size[0], dim_size[1],
+                as_cuda_type(next_krylov_basis->get_values()),
+                stride_next_krylov, as_cuda_accessor(krylov_bases),
+                as_cuda_type(hessenberg_iter->get_const_values()),
+                stride_hessenberg, as_cuda_type(stop_status));
+        pre_orthogonality = get_orthogonality(
+            exec, iter + 1, krylov_bases->to_const(), d_tmp_storage);
+    }
 
     num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
+        // DEBUG ONLY
         ++num_reorth_performed;
+
         zero_matrix(iter + 1, dim_size[1], stride_buffer,
                     buffer_iter->get_values());
         if (dim_size[1] > 1) {
@@ -379,22 +388,25 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // krylov_bases(:, iter + 1) = next_krylov_basis
     // End of arnoldi
+
     // DEBUG ONLY
-    const auto post_orthogonality =
-        get_orthogonality(exec, iter + 1, krylov_bases->to_const(), d_tmp);
-    const char Delim = ';';
-    // save the old state of flags / settings of cout
-    std::ios old_state(nullptr);
-    old_state.copyfmt(std::cout);
-    std::ios::fmtflags flags(std::cout.flags());
+    {
+        const auto post_orthogonality = get_orthogonality(
+            exec, iter + 1, krylov_bases->to_const(), d_tmp_storage);
+        const char Delim = ';';
+        // save the old state of flags / settings of cout
+        std::ios old_state(nullptr);
+        old_state.copyfmt(std::cout);
+        std::ios::fmtflags flags(std::cout.flags());
 
-    std::cout.precision(16);
-    std::cout << std::scientific;
-    std::cout << pre_orthogonality << Delim << num_reorth_performed << Delim
-              << post_orthogonality << std::endl;
+        std::cout.precision(16);
+        std::cout << std::scientific;
+        std::cout << pre_orthogonality << Delim << num_reorth_performed << Delim
+                  << post_orthogonality << std::endl;
 
-    std::cout.copyfmt(old_state);
-    std::cout.flags(flags);
+        std::cout.copyfmt(old_state);
+        std::cout.flags(flags);
+    }
 }
 
 template <typename ValueType>

@@ -1,3 +1,35 @@
+/*******************************<GINKGO LICENSE>******************************
+Copyright (c) 2017-2021, the Ginkgo authors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
 #include <memory>
 
 
@@ -19,7 +51,13 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 
+/* TODO
+ * copy the next_krylov_vector to krylov_bases before computing the
+   orthogonality
+ * Optimize orthogonalization process
+ * Measure orthogonality only up until the restart (100 iterations)
 
+*/
 namespace cb_gmres {
 
 
@@ -112,6 +150,34 @@ private:
 std::unique_ptr<OrthStorage> OrthStorage::singleton_{};
 
 
+// Must be called with at least `num_rows * stride_next_krylov` threads in
+// total.
+template <int block_size, typename ValueType, typename Accessor3d>
+__global__ __launch_bounds__(block_size) void copy_next_krylov_kernel(
+    size_type iter, size_type num_rows, size_type num_cols,
+    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
+    Accessor3d krylov_bases, const ValueType *__restrict__ hessenberg_iter,
+    size_type stride_hessenberg,
+    const stopping_status *__restrict__ stop_status)
+{
+    const auto global_id = thread::get_thread_id_flat();
+    const auto row_idx = global_id / stride_next_krylov;
+    const auto col_idx = global_id % stride_next_krylov;
+    const auto hessenberg =
+        hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx];
+
+    if (row_idx < num_rows && col_idx < num_cols &&
+        !stop_status[col_idx].has_stopped()) {
+        const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
+
+        const auto next_krylov_value =
+            next_krylov_basis[next_krylov_idx] / hessenberg;
+
+        // next_krylov_basis[next_krylov_idx] = next_krylov_value;
+        krylov_bases(iter + 1, row_idx, col_idx) = next_krylov_value;
+    }
+}
+
 // ValueType is non-complex type
 template <int shared_size, typename Accessor3d, typename ValueType>
 __global__ void compute_dot_norm(size_type num_vectors, Accessor3d krylov_bases,
@@ -163,12 +229,35 @@ __global__ void compute_dot_norm(size_type num_vectors, Accessor3d krylov_bases,
     }
 }
 
+// ValueType is non-complex type
+template <int block_size, typename Accessor3d, typename ValueType>
+__global__ void compute_dot_matrix(size_type num_vectors,
+                                   Accessor3d krylov_bases,
+                                   ValueType *__restrict__ output)
+{
+    using c_value_type = typename Accessor3d::accessor::arithmetic_type;
+    if (blockIdx.x > 0 || threadIdx.x >= num_vectors) {
+        return;
+    }
+    ValueType input_cache[block_size * block_size];
+    ValueType result[block_size * block_size];
+    // if (threadIdx.x < shared_size) {
+    //    result[threadIdx.x] = zero<ValueType>();
+    //}
+
+    auto tblock = group::this_thread_block();
+    auto warp = group::tiled_partition<config::warp_size>(tblock);
+    const size_type num_warps = (blockDim.x - 1) / config::warp_size + 1;
+    const size_type start_i = num_vectors % num_warps;
+}
+
+
 template <typename T, typename Accessor3d>
 T get_orthogonality(std::shared_ptr<const CudaExecutor> &exec,
                     size_type num_vectors, Accessor3d krylov_bases, T *d_tmp)
 {
     constexpr int shared_size{128};
-    constexpr int block_size{shared_size};
+    constexpr int block_size{1024};
     const dim3 block_dot_norm(block_size, 1, 1);
     compute_dot_norm<shared_size><<<1, block_dot_norm>>>(
         num_vectors, cb_gmres::as_cuda_accessor(krylov_bases->to_const()),
@@ -176,7 +265,7 @@ T get_orthogonality(std::shared_ptr<const CudaExecutor> &exec,
     return sqrt(exec->copy_val_to_host(d_tmp));
 }
 
-
+/*
 // TODO: compute ||-V^T * V|| to show loss of orthogonality
 template <bool before, typename ValueType>
 __global__ void print_norms(const size_type krylov_dim,
@@ -200,6 +289,7 @@ __global__ void print_norms(const size_type krylov_dim,
         }
     }
 }
+*/
 
 
 }  // namespace cuda

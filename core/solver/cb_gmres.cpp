@@ -336,10 +336,23 @@ void CbGmres<ValueType>::apply_dense_impl(
         // Counter for the forced iterations. Start at max in order to properly
         // test convergence at the beginning
         decltype(krylov_dim_) forced_iterations{forced_limit};
+        std::cout << "Precision: " << '<'
+                  << (std::is_same<ValueType, double>::value
+                          ? "fp64"
+                          : std::is_same<ValueType, float>::value ? "fp32"
+                                                                  : "unknown")
+                  << ','
+                  << (std::is_same<storage_type, double>::value
+                          ? "fp64"
+                          : std::is_same<storage_type, float>::value
+                                ? "fp32"
+                                : "unknown")
+                  << '>' << '\n';
+        std::cout << "Iteration;pre-orthogonality;orthogonality "
+                     "steps;post-orthogonality\n";
 
         while (true) {
             ++total_iter;
-            std::cout << total_iter << ":  " << std::flush;
             this->template log<log::Logger::iteration_complete>(
                 this, total_iter, residual.get(), dense_x, residual_norm.get());
             // In the beginning, only force a fraction of the total iterations
@@ -395,6 +408,7 @@ void CbGmres<ValueType>::apply_dense_impl(
                     }
                 }
             }
+            std::cout << total_iter << ';' << std::flush;
 
             if (perform_reset || restart_iter == krylov_dim_) {
                 perform_reset = false;
