@@ -197,7 +197,7 @@ compute_matrix_statistics() {
 
 
 remove_ell_worstcase() {
-    local IMBALANCE=$(jq '.[0].problem.row_distribution | .max / (.median + 1) | floor' $1)
+    local IMBALANCE=$(jq '.[0].problem.row_distribution | .max / (.mean + 1) | floor' $1)
     # if the imbalance is too large, remove ELL formats from the list.
     if [[ "${IMBALANCE}" -gt "${ELL_IMBALANCE_LIMIT}" ]]; then
         echo -n $FORMATS | tr ',' '\n' | grep -vE '^ell' | tr '\n' ',' | sed 's/,$//'
