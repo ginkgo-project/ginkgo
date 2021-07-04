@@ -356,8 +356,8 @@ TEST(BatchIdr, CanSolveWithoutScaling)
     const int nrows = 40;
     const size_t nbatch = 3;
     const int nrhs = 5;
-    gko::test::test_solve_without_scaling<Solver>(
-        exec, nbatch, nrows, nrhs, tol, maxits, batchidr_factory.get(), 1.001);
+    gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
+                                  batchidr_factory.get(), 1.001);
 }
 
 
