@@ -293,6 +293,30 @@ TYPED_TEST(BatchBicgstab, GeneralScalingDoesNotChangeResult)
 }
 
 
+TEST(BatchBicgstab, GoodScalingImprovesConvergence)
+{
+    using value_type = double;
+    using real_type = gko::remove_complex<value_type>;
+    using Solver = gko::solver::BatchBicgstab<value_type>;
+    const auto eps = r<value_type>::value;
+    std::shared_ptr<const gko::OmpExecutor> ompexec =
+        gko::OmpExecutor::create();
+    const size_t nbatch = 3;
+    const int nrows = 100;
+    const int nrhs = 1;
+    auto factory =
+        Solver::build()
+            .with_max_iterations(10)
+            .with_rel_residual_tol(10 * eps)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(gko::preconditioner::batch::type::none)
+            .on(ompexec);
+
+    gko::test::test_solve_iterations_with_scaling<Solver>(
+        ompexec, nbatch, nrows, nrhs, factory.get());
+}
+
+
 TEST(BatchBicgstab, CanSolveWithoutScaling)
 {
     using T = std::complex<float>;
@@ -314,9 +338,8 @@ TEST(BatchBicgstab, CanSolveWithoutScaling)
     const size_t nbatch = 3;
     const int nrhs = 5;
 
-    gko::test::test_solve_without_scaling<Solver>(
-        exec, nbatch, nrows, nrhs, tol, maxits, batchbicgstab_factory.get(),
-        10);
+    gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
+                                  batchbicgstab_factory.get(), 10);
 }
 
 }  // namespace
