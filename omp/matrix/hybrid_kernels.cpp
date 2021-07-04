@@ -114,8 +114,7 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
     const auto num_rows = source->get_size()[0];
     auto coo_row_ptrs = Array<IndexType>(exec, num_rows + 1);
     auto coo_row_ptrs_val = coo_row_ptrs.get_data();
-    convert_sorted_idxs_to_ptrs(coo_row, coo_nnz, coo_row_ptrs_val,
-                                num_rows + 1);
+    convert_sorted_idxs_to_ptrs(coo_row, coo_nnz, coo_row_ptrs_val, num_rows);
 
     // Compute the row offset of Coo without zeros
     auto coo_offset = Array<IndexType>(exec, num_rows);
