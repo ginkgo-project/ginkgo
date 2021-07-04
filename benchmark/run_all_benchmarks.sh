@@ -16,6 +16,11 @@ if [ ! "${EXECUTOR}" ]; then
     echo "EXECUTOR    environment variable not set - assuming \"${EXECUTOR}\"" 1>&2
 fi
 
+if [ ! "${REPETITIONS}" ]; then
+    REPETITIONS=10
+    echo "REPETITIONS    environment variable not set - assuming ${REPETITIONS}" 1>&2
+fi
+
 if [ ! "${SEGMENTS}" ]; then
     echo "SEGMENTS    environment variable not set - running entire suite" 1>&2
     SEGMENTS=1
@@ -219,6 +224,7 @@ run_conversion_benchmarks() {
     ./conversions/conversions${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --formats="${LOCAL_FORMATS}" \
                 --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
+                --repetitions="${REPETITIONS}" \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -236,6 +242,7 @@ run_spmv_benchmarks() {
     ./spmv/spmv${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --formats="${LOCAL_FORMATS}" \
                 --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
+                --repetitions="${REPETITIONS}" \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -257,6 +264,7 @@ run_solver_benchmarks() {
                     --gpu_timer=${GPU_TIMER} \
                     --jacobi_max_block_size=${SOLVERS_JACOBI_MAX_BS} --device_id="${DEVICE_ID}" \
                     --gmres_restart="${SOLVERS_GMRES_RESTART}" \
+                    --repetitions="${REPETITIONS}" \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -283,6 +291,7 @@ run_preconditioner_benchmarks() {
                 --jacobi_max_block_size="${bsize}" \
                 --jacobi_storage="${prec}" \
                 --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
+                --repetitions="${REPETITIONS}" \
                 <"$1.imd" 2>&1 >"$1"
             keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
         done
