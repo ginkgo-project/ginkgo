@@ -112,57 +112,30 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
     const auto coo_row = source->get_const_coo_row_idxs();
     const auto coo_nnz = source->get_coo_num_stored_elements();
     const auto num_rows = source->get_size()[0];
-    auto coo_row_ptrs = Array<IndexType>(exec, num_rows + 1);
-    auto coo_row_ptrs_val = coo_row_ptrs.get_data();
-    convert_sorted_idxs_to_ptrs(coo_row, coo_nnz, coo_row_ptrs_val, num_rows);
+    auto coo_row_ptrs_array = Array<IndexType>(exec, num_rows + 1);
+    auto coo_row_ptrs = coo_row_ptrs_array.get_data();
+    convert_sorted_idxs_to_ptrs(coo_row, coo_nnz, coo_row_ptrs, num_rows);
 
-    // Compute the row offset of Coo without zeros
-    auto coo_offset = Array<IndexType>(exec, num_rows);
-    auto coo_offset_val = coo_offset.get_data();
-    for (size_type i = 0; i < num_rows; i++) {
-        IndexType nonzeros = 0;
-#pragma omp parallel for reduction(+ : nonzeros)
-        for (size_type j = coo_row_ptrs_val[i]; j < coo_row_ptrs_val[i + 1];
-             j++) {
+    // Compute the row sizes of Coo without zeros
+#pragma omp parallel for
+    for (size_type row = 0; row < num_rows; row++) {
+        IndexType nonzeros{};
+        for (auto j = coo_row_ptrs[row]; j < coo_row_ptrs[row + 1]; j++) {
             nonzeros += coo_val[j] != zero<ValueType>();
         }
-        coo_offset_val[i] = nonzeros;
-    }
-
-    // Compute row pointer of Csr
-    csr_row_ptrs[0] = 0;
-#pragma omp parallel for
-    for (size_type i = 0; i < num_rows; i++) {
-        csr_row_ptrs[i + 1] = coo_offset_val[i];
-    }
-
-    for (size_type col = 0; col < max_nnz_per_row; col++) {
-#pragma omp parallel for
-        for (size_type row = 0; row < num_rows; row++) {
-            csr_row_ptrs[row + 1] +=
-                (ell->val_at(row, col) != zero<ValueType>());
+        for (size_type col = 0; col < max_nnz_per_row; col++) {
+            nonzeros += (ell->val_at(row, col) != zero<ValueType>());
         }
+        csr_row_ptrs[row] = nonzeros;
     }
 
-    auto workspace = Array<IndexType>(exec, num_rows + 1);
-    auto workspace_val = workspace.get_data();
-    for (size_type i = 1; i < num_rows + 1; i <<= 1) {
-#pragma omp parallel for
-        for (size_type j = i; j < num_rows + 1; j++) {
-            workspace_val[j] = csr_row_ptrs[j] + csr_row_ptrs[j - i];
-        }
-#pragma omp parallel for
-        for (size_type j = i; j < num_rows + 1; j++) {
-            csr_row_ptrs[j] = workspace_val[j];
-        }
-    }
+    components::prefix_sum(exec, csr_row_ptrs, num_rows + 1);
 
-// Fill in Csr
+    // Fill in Csr
 #pragma omp parallel for
     for (IndexType row = 0; row < num_rows; row++) {
         // Ell part
-        size_type csr_idx = csr_row_ptrs[row];
-        size_type coo_idx = coo_offset_val[row];
+        auto csr_idx = csr_row_ptrs[row];
         for (IndexType col = 0; col < max_nnz_per_row; col++) {
             const auto val = ell->val_at(row, col);
             if (val != zero<ValueType>()) {
@@ -172,11 +145,10 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
             }
         }
         // Coo part
-        for (auto coo_idx = coo_row_ptrs_val[row];
-             coo_idx < coo_row_ptrs_val[row + 1]; coo_idx++) {
-            if (coo_val[coo_idx] != zero<ValueType>()) {
-                csr_val[csr_idx] = coo_val[coo_idx];
-                csr_col_idxs[csr_idx] = coo_col[coo_idx];
+        for (auto j = coo_row_ptrs[row]; j < coo_row_ptrs[row + 1]; j++) {
+            if (coo_val[j] != zero<ValueType>()) {
+                csr_val[csr_idx] = coo_val[j];
+                csr_col_idxs[csr_idx] = coo_col[j];
                 csr_idx++;
             }
         }
