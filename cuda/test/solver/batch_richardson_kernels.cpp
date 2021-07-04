@@ -487,8 +487,8 @@ TEST(BatchRich, CanSolveWithoutScaling)
                                  .with_rel_residual_tol(tol)
                                  .with_relaxation_factor(RT{0.95})
                                  .on(exec);
-    gko::test::test_solve_without_scaling<Solver>(
-        exec, nbatch, nrows, nrhs, tol, maxits, batchrich_factory.get(), 2);
+    gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
+                                  batchrich_factory.get(), 2);
 }
 
 }  // namespace
