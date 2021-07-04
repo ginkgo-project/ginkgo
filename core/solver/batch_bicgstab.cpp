@@ -105,7 +105,6 @@ void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp *b,
     auto b_scaled_smart = Vector::create(exec);
     const Mtx *a_scaled{};
     const Vector *b_scaled{};
-
     const bool to_scale =
         this->get_left_scaling_vector() && this->get_right_scaling_vector();
     if (to_scale) {
