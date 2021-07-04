@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/components/prefix_sum.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
@@ -94,13 +97,14 @@ inline void convert_sorted_idxs_to_ptrs(const IndexType *idxs,
             ptrs[row + 1] = 0;
         }
     } else {
+        // add virtual sentinel values 0 and num_rows to handle empty first and
+        // last rows
 #pragma omp parallel for
-        for (size_type i = 0; i < num_nonzeros; i++) {
-            const auto end_row = i < num_nonzeros - 1
-                                     ? idxs[i + 1]
-                                     : static_cast<IndexType>(num_rows);
-            for (size_type row = idxs[i]; row < end_row; row++) {
-                ptrs[row + 1] = i + 1;
+        for (size_type i = 0; i <= num_nonzeros; i++) {
+            auto begin_row = i == 0 ? size_type{} : idxs[i - 1];
+            auto end_row = i == num_nonzeros ? num_rows : idxs[i];
+            for (auto row = begin_row; row < end_row; row++) {
+                ptrs[row + 1] = i;
             }
         }
     }
