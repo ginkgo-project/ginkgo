@@ -211,11 +211,14 @@ int main(int argc, char *argv[])
     gko::remove_complex<ValueType> inner_reduction_factor = 1e-2;
     auto inner_solver = gko::share(paric::build().on(exec));
     // bj::build().on(exec));
-    // ir::build()
-    //     .with_relaxation_factor(0.9)
-    //     .with_criteria(
-    //         gko::stop::Iteration::build().with_max_iters(1u).on(exec))
-    //     .on(exec));
+    // gko::share(
+    //     ir::build()
+    //         .with_relaxation_factor(0.9)
+    //         .with_solver(bj::build().with_max_block_size(1u).on(exec))
+    //         .with_criteria(gko::stop::Iteration::build()
+    //                            .with_max_iters(inner_iter)
+    //                            .on(exec))
+    //         .on(exec));
     // cg::build()
     //     .with_preconditioner(bj::build().on(exec))
     //     .with_criteria(gko::stop::Iteration::build()
@@ -246,7 +249,7 @@ int main(int argc, char *argv[])
             ->generate(A));
     auto ras_precond = ras::build()
                            .with_generated_inner_solvers(inner_solvers)
-                           // .with_generated_coarse_solvers(coarse_solver)
+                           .with_generated_coarse_solvers(coarse_solver)
                            .on(exec)
                            ->generate(A);
 
