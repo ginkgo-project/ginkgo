@@ -82,10 +82,18 @@ template <typename ValueType>
 void BatchRichardson<ValueType>::apply_impl(const BatchLinOp *const b,
                                             BatchLinOp *const x) const
 {
+    using Mtx = matrix::BatchCsr<ValueType>;
     using Vector = matrix::BatchDense<ValueType>;
+    using real_type = remove_complex<ValueType>;
+
     auto exec = this->get_executor();
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
+    const auto acsr = dynamic_cast<const Mtx *>(system_matrix_.get());
+    if (!acsr) {
+        GKO_NOT_SUPPORTED(system_matrix_);
+    }
+
     const kernels::batch_rich::BatchRichardsonOptions<real_type> opts{
         parameters_.preconditioner, parameters_.max_iterations,
         parameters_.rel_residual_tol, parameters_.relaxation_factor};
