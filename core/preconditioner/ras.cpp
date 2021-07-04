@@ -89,16 +89,10 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
                                                  VectorType *dense_x) const
 {
     using LocalVector = matrix::Dense<ValueType>;
-    auto corr = dense_x->clone();
-    corr->fill(zero<ValueType>());
-    auto res = dense_b->clone();
-    auto one = initialize<LocalVector>({1.0}, this->get_executor());
-    auto neg_one = initialize<LocalVector>({-1.0}, this->get_executor());
-    this->system_matrix_->apply(lend(neg_one), dense_x, lend(one), res.get());
     if (is_distributed()) {
         GKO_ASSERT(this->inner_solvers_.size() > 0);
-        this->inner_solvers_[0]->apply(detail::get_local(res.get()),
-                                       detail::get_local(corr.get()));
+        this->inner_solvers_[0]->apply(detail::get_local(dense_b),
+                                       detail::get_local(dense_x));
     } else {
         using block_t = matrix::BlockApprox<matrix::Csr<ValueType, IndexType>>;
         const auto dense_x_clone = (dense_x->clone());
@@ -142,6 +136,12 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
         }
     }
     if (this->coarse_solvers_.size() > 0) {
+        auto corr = dense_x->clone();
+        auto res = dense_b->clone();
+        auto one = initialize<LocalVector>({1.0}, this->get_executor());
+        auto neg_one = initialize<LocalVector>({-1.0}, this->get_executor());
+        this->system_matrix_->apply(lend(neg_one), dense_x, lend(one),
+                                    res.get());
         for (size_type i = 0; i < this->coarse_solvers_.size(); ++i) {
             auto rel_fac = parameters_.coarse_relaxation_factors[0];
             if (parameters_.coarse_relaxation_factors.size() > 1) {
@@ -149,9 +149,9 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
             }
             this->coarse_solvers_[i]->apply(res.get(), corr.get());
         }
+        auto fac = initialize<LocalVector>({1.0}, this->get_executor());
+        dense_x->add_scaled(fac.get(), corr.get());
     }
-    auto fac = initialize<LocalVector>({1.0}, this->get_executor());
-    dense_x->add_scaled(fac.get(), corr.get());
 }
 
 
