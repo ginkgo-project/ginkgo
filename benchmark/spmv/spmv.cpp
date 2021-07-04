@@ -130,7 +130,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             for (auto _ : ic_tuning.run()) {
                 system_matrix->apply(lend(b), lend(x_clone));
             }
-            tuning_case["time"].PushBack(tuning_timer->compute_average_time(),
+            tuning_case["time"].PushBack(ic_tuning.compute_average_time(),
                                          allocator);
             tuning_case["values"].PushBack(val, allocator);
         }
