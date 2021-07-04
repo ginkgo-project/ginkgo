@@ -272,7 +272,30 @@ TYPED_TEST(BatchBicgstab, GeneralScalingDoesNotChangeResult)
 }
 
 
-TEST(BatchBicgstab, CanSolveWithoutScaling)
+TEST(BatchBicgstab, GoodScalingImprovesConvergence)
+{
+    using value_type = double;
+    using real_type = gko::remove_complex<value_type>;
+    using Solver = gko::solver::BatchBicgstab<value_type>;
+    const auto eps = r<value_type>::value;
+    auto exec = gko::ReferenceExecutor::create();
+    const size_t nbatch = 3;
+    const int nrows = 100;
+    const int nrhs = 1;
+    auto factory =
+        Solver::build()
+            .with_max_iterations(10)
+            .with_rel_residual_tol(10 * eps)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(gko::preconditioner::batch::type::none)
+            .on(exec);
+
+    gko::test::test_solve_iterations_with_scaling<Solver>(exec, nbatch, nrows,
+                                                          nrhs, factory.get());
+}
+
+
+TEST(BatchBicgstab, CoreCanSolveWithoutScaling)
 {
     using T = std::complex<float>;
     using RT = typename gko::remove_complex<T>;
@@ -292,9 +315,33 @@ TEST(BatchBicgstab, CanSolveWithoutScaling)
     const size_t nbatch = 3;
     const int nrhs = 5;
 
-    gko::test::test_solve_without_scaling<Solver>(
-        exec, nbatch, nrows, nrhs, tol, maxits, batchbicgstab_factory.get(),
-        10);
+    gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
+                                  batchbicgstab_factory.get(), 10);
+}
+
+
+TEST(BatchBicgstab, CoreCanSolveWithScaling)
+{
+    using T = double;
+    using RT = typename gko::remove_complex<T>;
+    using Solver = gko::solver::BatchBicgstab<T>;
+    const RT tol = 1e-10;
+    const int maxits = 1000;
+    std::shared_ptr<gko::ReferenceExecutor> exec =
+        gko::ReferenceExecutor::create();
+    auto batchbicgstab_factory =
+        Solver::build()
+            .with_max_iterations(maxits)
+            .with_rel_residual_tol(tol)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
+            .on(exec);
+    const int nrows = 40;
+    const size_t nbatch = 3;
+    const int nrhs = 5;
+
+    gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
+                                  batchbicgstab_factory.get(), 10, true);
 }
 
 
