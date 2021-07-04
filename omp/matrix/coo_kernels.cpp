@@ -204,9 +204,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(std::shared_ptr<const OmpExecutor> exec,
                               const IndexType *idxs, size_type num_nonzeros,
-                              IndexType *ptrs, size_type length)
+                              IndexType *ptrs, size_type num_rows)
 {
-    convert_sorted_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
+    convert_sorted_idxs_to_ptrs(idxs, num_nonzeros, ptrs, num_rows);
 }
 
 
@@ -222,8 +222,7 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
 
     const auto source_row_idxs = source->get_const_row_idxs();
 
-    convert_row_idxs_to_ptrs(exec, source_row_idxs, nnz, row_ptrs,
-                             num_rows + 1);
+    convert_row_idxs_to_ptrs(exec, source_row_idxs, nnz, row_ptrs, num_rows);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
