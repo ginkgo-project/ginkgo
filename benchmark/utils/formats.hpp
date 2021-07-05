@@ -181,6 +181,27 @@ std::unique_ptr<MatrixType> read_matrix_from_data(
     return mat;
 }
 
+
+/**
+ * Creates a CSR strategy of the given type for the given executor if possible,
+ * falls back to csr::classical for executors without support for this strategy.
+ *
+ * @tparam Strategy  one of csr::automatical or csr::load_balance
+ */
+template <typename Strategy>
+std::shared_ptr<csr::strategy_type> create_gpu_strategy(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    if (auto cuda = dynamic_cast<const gko::CudaExecutor *>(exec.get())) {
+        return std::make_shared<Strategy>(cuda->shared_from_this());
+    } else if (auto hip = dynamic_cast<const gko::HipExecutor *>(exec.get())) {
+        return std::make_shared<Strategy>(hip->shared_from_this());
+    } else {
+        return std::make_shared<csr::classical>();
+    }
+}
+
+
 /**
  * Creates a Ginkgo matrix from the intermediate data representation format
  * gko::matrix_data with support for variable arguments.
@@ -201,8 +222,22 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
                                 const gko::matrix_data<etype> &)>>
     matrix_factory{
-        {"csr", READ_MATRIX(csr, std::make_shared<csr::automatical>())},
-        {"csri", READ_MATRIX(csr, std::make_shared<csr::load_balance>())},
+        {"csr",
+         [](std::shared_ptr<const gko::Executor> exec,
+            const gko::matrix_data<etype> &data) -> std::unique_ptr<csr> {
+            auto mat =
+                csr::create(exec, create_gpu_strategy<csr::automatical>(exec));
+            mat->read(data);
+            return mat;
+         }},
+        {"csri",
+         [](std::shared_ptr<const gko::Executor> exec,
+            const gko::matrix_data<etype> &data) -> std::unique_ptr<csr> {
+             auto mat = csr::create(
+                 exec, create_gpu_strategy<csr::load_balance>(exec));
+             mat->read(data);
+             return mat;
+         }},
         {"csrm", READ_MATRIX(csr, std::make_shared<csr::merge_path>())},
         {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
         {"coo", read_matrix_from_data<gko::matrix::Coo<etype>>},
@@ -220,7 +255,8 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                  it->value = el.value;
                  ++it;
              }
-             auto mat = gko::matrix::Ell<gko::next_precision<etype>>::create(std::move(exec));
+             auto mat = gko::matrix::Ell<gko::next_precision<etype>>::create(
+                 std::move(exec));
              mat->read(conv_data);
              return mat;
          }},
