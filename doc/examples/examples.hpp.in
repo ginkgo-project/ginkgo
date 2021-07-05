@@ -323,5 +323,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     <td> @ref ginkgo_ranges
  *     </td>
  *   </tr>
+ *
+ *   <tr valign="top">
+ *     <td> Mixed precision.
+ *     </td>
+ *     <td>@ref mixed_spmv,
+ *         @ref mixed_precision_ir,
+ *         @ref adaptiveprecision_blockjacobi
+ *     </td>
+ *   </tr>
  * </table>
  */
