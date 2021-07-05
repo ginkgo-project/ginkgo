@@ -827,6 +827,66 @@ protected:
     GKO_ENABLE_SELF(ConcreteLinOp);
 };
 
+/**
+ * The EnableValueTypeLinOp mixin adds several overloads to the EnableLinOp
+ * mixin. The added overloads allow using scalar arguments for the
+ * LinOp::apply() with four parameters. For more details see @ref EnableLinOp
+ */
+template <typename ConcreteLinOp, typename ValueType,
+          typename PolymorphicBase = LinOp>
+class EnableValueTypedLinOp
+    : public EnableLinOp<ConcreteLinOp, PolymorphicBase> {
+public:
+    using value_type = ValueType;
+
+    using EnableLinOp<ConcreteLinOp, PolymorphicBase>::EnableLinOp;
+    using EnableLinOp<ConcreteLinOp, PolymorphicBase>::apply;
+
+    const ConcreteLinOp *apply(const ValueType alpha, const LinOp *b,
+                               const ValueType beta, LinOp *x) const
+    {
+        auto dense_alpha = scalar_to_dense(alpha, this->get_executor());
+        auto dense_beta = scalar_to_dense(beta, this->get_executor());
+        return this->apply(dense_alpha.get(), b, dense_beta.get(), x);
+    }
+
+    const ConcreteLinOp *apply(const ValueType alpha, const LinOp *b,
+                               const LinOp *beta, LinOp *x) const
+    {
+        auto dense_alpha = scalar_to_dense(alpha, this->get_executor());
+        return this->apply(dense_alpha.get(), b, beta, x);
+    }
+
+    const ConcreteLinOp *apply(const LinOp *alpha, const LinOp *b,
+                               const ValueType beta, LinOp *x) const
+    {
+        auto dense_beta = scalar_to_dense(beta, this->get_executor());
+        return this->apply(alpha, b, dense_beta.get(), x);
+    }
+
+    const ConcreteLinOp *apply(const ValueType alpha, const LinOp *b,
+                               const ValueType beta, LinOp *x)
+    {
+        auto dense_alpha = scalar_to_dense(alpha, this->get_executor());
+        auto dense_beta = scalar_to_dense(beta, this->get_executor());
+        return this->apply(dense_alpha.get(), b, dense_beta.get(), x);
+    }
+
+    const ConcreteLinOp *apply(const ValueType alpha, const LinOp *b,
+                               const LinOp *beta, LinOp *x)
+    {
+        auto dense_alpha = scalar_to_dense(alpha, this->get_executor());
+        return this->apply(dense_alpha.get(), b, beta, x);
+    }
+
+    const ConcreteLinOp *apply(const LinOp *alpha, const LinOp *b,
+                               const ValueType beta, LinOp *x)
+    {
+        auto dense_beta = scalar_to_dense(beta, this->get_executor());
+        return this->apply(alpha, b, dense_beta.get(), x);
+    }
+};
+
 
 /**
  * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
