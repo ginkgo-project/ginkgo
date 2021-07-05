@@ -197,8 +197,8 @@ __global__ void apply_kernel(
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
 
-    assert(batch_config<ValueType>::max_num_rhs >=
-           nrhs);  // required for static allocation in stopping criterion
+    // required for static allocation in stopping criterion
+    assert(batch_config<ValueType>::max_num_rhs >= nrhs);
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
         extern __shared__ char local_mem_sh[];

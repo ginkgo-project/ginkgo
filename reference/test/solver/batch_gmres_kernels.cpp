@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_gmres_kernels.hpp"
 #include "core/test/utils.hpp"
-#include "core/test/utils/batch.hpp"
+#include "core/test/utils/batch_test_utils.hpp"
 
 namespace {
 
@@ -320,6 +320,30 @@ TYPED_TEST(BatchGmres, GeneralScalingDoesNotChangeResult)
         this->opts_1, left_scale.get(), right_scale.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->xex_1, 1e2 * this->eps);
+}
+
+
+TEST(BatchGmres, GoodScalingImprovesConvergence)
+{
+    using value_type = double;
+    using real_type = gko::remove_complex<value_type>;
+    using Solver = gko::solver::BatchGmres<value_type>;
+    const auto eps = r<value_type>::value;
+    auto exec = gko::ReferenceExecutor::create();
+    const size_t nbatch = 3;
+    const int nrows = 100;
+    const int nrhs = 1;
+    auto factory =
+        Solver::build()
+            .with_restart(15)
+            .with_max_iterations(30)
+            .with_rel_residual_tol(10 * eps)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(gko::preconditioner::batch::type::none)
+            .on(exec);
+
+    gko::test::test_solve_iterations_with_scaling<Solver>(exec, nbatch, nrows,
+                                                          nrhs, factory.get());
 }
 
 
