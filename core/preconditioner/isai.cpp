@@ -117,8 +117,9 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor> &exec,
 }
 
 
-template <isai_type IsaiType, typename ValueType, typename IndexType>
-void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
+template <isai_type IsaiType, typename ValueType, typename IndexType,
+          typename StorageType>
+void Isai<IsaiType, ValueType, IndexType, StorageType>::generate_inverse(
     std::shared_ptr<const LinOp> input, bool skip_sorting, int power,
     IndexType excess_limit)
 {
@@ -265,58 +266,80 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
 }
 
 
-template <isai_type IsaiType, typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::transpose() const
+template <isai_type IsaiType, typename ValueType, typename IndexType,
+          typename StorageType>
+std::unique_ptr<LinOp>
+Isai<IsaiType, ValueType, IndexType, StorageType>::transpose() const
 {
-    auto is_spd = IsaiType == isai_type::spd;
-    if (is_spd) {
+    if (IsaiType == isai_type::spd) {
         return this->clone();
     }
 
     std::unique_ptr<transposed_type> transp{
         new transposed_type{this->get_executor()}};
     transp->set_size(gko::transpose(this->get_size()));
+
     transp->approximate_inverse_ =
-        share(as<Csr>(this->get_approximate_inverse())->transpose());
+        convert_csr_to_ell(this->get_approximate_inverse()->transpose().get());
 
     return std::move(transp);
 }
 
 
-template <isai_type IsaiType, typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::conj_transpose()
-    const
+template <isai_type IsaiType, typename ValueType, typename IndexType,
+          typename StorageType>
+std::unique_ptr<LinOp>
+Isai<IsaiType, ValueType, IndexType, StorageType>::conj_transpose() const
 {
-    auto is_spd = IsaiType == isai_type::spd;
-    if (is_spd) {
+    if (IsaiType == isai_type::spd) {
         return this->clone();
     }
 
     std::unique_ptr<transposed_type> transp{
         new transposed_type{this->get_executor()}};
     transp->set_size(gko::transpose(this->get_size()));
-    transp->approximate_inverse_ =
-        share(as<Csr>(this->get_approximate_inverse())->conj_transpose());
+
+    transp->approximate_inverse_ = convert_csr_to_ell(
+        this->get_approximate_inverse()->conj_transpose().get());
 
     return std::move(transp);
 }
 
 
-#define GKO_DECLARE_LOWER_ISAI(ValueType, IndexType) \
-    class Isai<isai_type::lower, ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_ISAI);
+#define GKO_DECLARE_LOWER_ISAI1(ValueType, IndexType) \
+    class Isai<isai_type::lower, ValueType, IndexType, ValueType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_ISAI1);
 
-#define GKO_DECLARE_UPPER_ISAI(ValueType, IndexType) \
-    class Isai<isai_type::upper, ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_ISAI);
+#define GKO_DECLARE_UPPER_ISAI1(ValueType, IndexType) \
+    class Isai<isai_type::upper, ValueType, IndexType, ValueType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_ISAI1);
 
-#define GKO_DECLARE_GENERAL_ISAI(ValueType, IndexType) \
-    class Isai<isai_type::general, ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GENERAL_ISAI);
+#define GKO_DECLARE_GENERAL_ISAI1(ValueType, IndexType) \
+    class Isai<isai_type::general, ValueType, IndexType, ValueType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GENERAL_ISAI1);
 
-#define GKO_DECLARE_SPD_ISAI(ValueType, IndexType) \
-    class Isai<isai_type::spd, ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPD_ISAI);
+#define GKO_DECLARE_SPD_ISAI1(ValueType, IndexType) \
+    class Isai<isai_type::spd, ValueType, IndexType, ValueType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPD_ISAI1);
+
+#define GKO_DECLARE_LOWER_ISAI2(ValueType, IndexType)  \
+    class Isai<isai_type::lower, ValueType, IndexType, \
+               next_precision<ValueType>>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_ISAI2);
+
+#define GKO_DECLARE_UPPER_ISAI2(ValueType, IndexType)  \
+    class Isai<isai_type::upper, ValueType, IndexType, \
+               next_precision<ValueType>>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_ISAI2);
+
+#define GKO_DECLARE_GENERAL_ISAI2(ValueType, IndexType)  \
+    class Isai<isai_type::general, ValueType, IndexType, \
+               next_precision<ValueType>>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GENERAL_ISAI2);
+
+#define GKO_DECLARE_SPD_ISAI2(ValueType, IndexType) \
+    class Isai<isai_type::spd, ValueType, IndexType, next_precision<ValueType>>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPD_ISAI2);
 
 
 }  // namespace preconditioner
