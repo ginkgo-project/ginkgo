@@ -187,6 +187,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *            factorization.
  *       </td></tr>
  *
+ *   <tr valign="top">
+ *       <td>@ref mixed_spmv</td>
+ *       <td> Shows the Ginkgo mixed precision spmv functionality.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>@ref mixed_precision_ir</td>
+ *       <td> Manual implementation of a Mixed Precision Iterative Refinement
+ *            (MPIR) solver.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>@ref adaptiveprecision_blockjacobi</td>
+ *       <td> Shows how to use the adaptive precision block-Jacobi
+ *            reconditioner.
+ *       </td></tr>
+ *
  * </table>
  *
  * <a name="topic"></a>
