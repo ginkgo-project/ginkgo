@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_cg_kernels.hpp"
 #include "core/test/utils.hpp"
-#include "core/test/utils/batch.hpp"
+#include "core/test/utils/batch_test_utils.hpp"
 
 namespace {
 
@@ -417,6 +417,30 @@ TYPED_TEST(BatchCg, GeneralScalingDoesNotChangeResult)
         this->solve_poisson_uniform_1(left_scale.get(), right_scale.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, 1e3 * this->eps);
+}
+
+
+TEST(BatchCg, GoodScalingImprovesConvergence)
+{
+    using value_type = double;
+    using real_type = gko::remove_complex<value_type>;
+    using Solver = gko::solver::BatchCg<value_type>;
+    const auto eps = r<value_type>::value;
+    std::shared_ptr<const gko::OmpExecutor> ompexec =
+        gko::OmpExecutor::create();
+    const size_t nbatch = 3;
+    const int nrows = 100;
+    const int nrhs = 1;
+    auto factory =
+        Solver::build()
+            .with_max_iterations(20)
+            .with_rel_residual_tol(10 * eps)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(gko::preconditioner::batch::type::none)
+            .on(ompexec);
+
+    gko::test::test_solve_iterations_with_scaling<Solver>(
+        ompexec, nbatch, nrows, nrhs, factory.get());
 }
 
 
