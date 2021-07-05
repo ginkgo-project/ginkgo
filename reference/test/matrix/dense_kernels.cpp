@@ -1809,7 +1809,7 @@ TYPED_TEST(Dense, CanComputeBlockApprox)
     auto b_sizes =
         gko::Array<gko::size_type>(this->mtx9->get_executor(), {2, 1, 2});
     auto perm = gko::Array<gko::size_type>{};
-    auto block_mtxs = this->mtx9->get_block_approx(b_sizes, perm);
+    auto block_mtxs = std::get<0>(this->mtx9->get_block_approx(b_sizes));
 
     auto mtx91 =
         gko::initialize<Mtx>({I<T>({1.0, 2.0}), I<T>({0.0, 3.0})}, exec);
@@ -1832,7 +1832,8 @@ TYPED_TEST(Dense, CanComputeBlockApproxWithOverlapBidir)
         gko::Array<gko::size_type>(this->mtx9->get_executor(), {2, 1, 2});
     auto overlap =
         gko::Overlap<gko::size_type>(this->mtx9->get_executor(), 3, 1);
-    auto block_mtxs = this->mtx9->get_block_approx(b_sizes, overlap);
+    auto block_mtxs =
+        std::get<0>(this->mtx9->get_block_approx(b_sizes, overlap));
 
     auto mtx91 = gko::initialize<Mtx>(
         {I<T>({1.0, 2.0, 2.0}), I<T>({0.0, 3.0, 1.5}), I<T>({0.0, 3.0, 2.5})},
@@ -1860,7 +1861,8 @@ TYPED_TEST(Dense, CanComputeBlockApproxWithUnidirOverlapAtEnd)
     auto overlap = gko::Overlap<gko::size_type>(
         this->mtx9->get_executor(), gko::size_type{3}, gko::size_type{1},
         bool{true}, bool{false});
-    auto block_mtxs = this->mtx9->get_block_approx(b_sizes, overlap);
+    auto block_mtxs =
+        std::get<0>(this->mtx9->get_block_approx(b_sizes, overlap));
 
     auto mtx91 = gko::initialize<Mtx>(
         {I<T>({1.0, 2.0, 2.0}), I<T>({0.0, 3.0, 1.5}), I<T>({0.0, 3.0, 2.5})},
@@ -1887,7 +1889,8 @@ TYPED_TEST(Dense, CanComputeBlockApproxWithUnidirOverlapAtStart)
     auto overlap = gko::Overlap<gko::size_type>(this->mtx9->get_executor(),
                                                 gko::size_type{3},
                                                 gko::size_type{1}, bool{true});
-    auto block_mtxs = this->mtx9->get_block_approx(b_sizes, overlap);
+    auto block_mtxs =
+        std::get<0>(this->mtx9->get_block_approx(b_sizes, overlap));
 
     auto mtx91 = gko::initialize<Mtx>(
         {I<T>({1.0, 2.0, 2.0}), I<T>({0.0, 3.0, 1.5}), I<T>({0.0, 3.0, 2.5})},

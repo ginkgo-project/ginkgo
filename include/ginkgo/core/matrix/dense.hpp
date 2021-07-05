@@ -365,10 +365,11 @@ public:
     std::unique_ptr<LinOp> row_permute(
         const Array<int64> *permutation_indices) const override;
 
-    std::vector<std::unique_ptr<Dense>> get_block_approx(
-        const Array<size_type> &block_sizes,
-        const Overlap<size_type> &block_overlaps = {},
-        const Array<size_type> &permutation = {}) const override;
+    std::tuple<std::vector<std::unique_ptr<Dense>>,
+               std::vector<std::unique_ptr<Dense>>>
+    get_block_approx(const Array<size_type> &block_sizes,
+                     const Overlap<size_type> &block_overlaps = {},
+                     const Array<size_type> &permutation = {}) const override;
 
     /**
      * Writes the row-permuted matrix into the given output matrix.

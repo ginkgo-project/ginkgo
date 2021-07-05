@@ -594,7 +594,7 @@ TYPED_TEST(Csr, CanComputeBlockApprox)
                                      {0.0, 1.0, 2.0, 1.5, 3.0}},
                                     exec);
     auto b_sizes = gko::Array<gko::size_type>(exec, {3, 2});
-    auto block_mtxs = mat->get_block_approx(b_sizes);
+    auto block_mtxs = std::get<0>(mat->get_block_approx(b_sizes));
 
     auto mat1 = gko::initialize<Mtx>(
         {{1.0, 2.0, 0.0}, {0.0, 3.0, 0.0}, {0.0, 3.0, 2.5}}, exec);
@@ -621,7 +621,7 @@ TYPED_TEST(Csr, CanComputeBlockApprox2)
                                      {0.0, 1.0, 2.0, 1.5, 3.0}},
                                     exec);
     auto b_sizes = gko::Array<gko::size_type>(exec, {1, 3, 1});
-    auto block_mtxs = mat->get_block_approx(b_sizes);
+    auto block_mtxs = std::get<0>(mat->get_block_approx(b_sizes));
 
     auto mat1 = gko::initialize<Mtx>({1.0}, exec);
     auto mat2 = gko::initialize<Mtx>(
@@ -650,7 +650,7 @@ TYPED_TEST(Csr, CanComputeBlockApproxWithOverlap)
                                     exec);
     auto b_sizes = gko::Array<gko::size_type>(exec, {3, 2});
     auto overlap = gko::Overlap<gko::size_type>(mat->get_executor(), 2, 1);
-    auto block_mtxs = mat->get_block_approx(b_sizes, overlap);
+    auto block_mtxs = std::get<0>(mat->get_block_approx(b_sizes, overlap));
 
     auto mat1 = gko::initialize<Mtx>({{1.0, 2.0, 0.0, 0.0},
                                       {0.0, 3.0, 0.0, 0.0},
@@ -681,7 +681,7 @@ TYPED_TEST(Csr, CanComputeBlockApproxWithOverlapBidir)
                                     exec);
     auto b_sizes = gko::Array<gko::size_type>(exec, {1, 3, 1});
     auto overlap = gko::Overlap<gko::size_type>(mat->get_executor(), 3, 1);
-    auto block_mtxs = mat->get_block_approx(b_sizes, overlap);
+    auto block_mtxs = std::get<0>(mat->get_block_approx(b_sizes, overlap));
 
     auto mat1 =
         gko::initialize<Mtx>({I<T>({1.0, 2.0}), I<T>({0.0, 3.0})}, exec);
@@ -716,7 +716,7 @@ TYPED_TEST(Csr, CanComputeBlockApproxWithOverlapBidir2)
                                     exec);
     auto b_sizes = gko::Array<gko::size_type>(exec, {1, 2, 1, 1});
     auto overlap = gko::Overlap<gko::size_type>(mat->get_executor(), 4, 1);
-    auto block_mtxs = mat->get_block_approx(b_sizes, overlap);
+    auto block_mtxs = std::get<0>(mat->get_block_approx(b_sizes, overlap));
 
     auto mat1 =
         gko::initialize<Mtx>({I<T>({1.0, 2.0}), I<T>({0.0, 3.0})}, exec);
@@ -755,7 +755,7 @@ TYPED_TEST(Csr, CanComputeBlockApproxWithUnidirOverlapAtStart)
     auto b_sizes = gko::Array<gko::size_type>(exec, {1, 2, 1, 1});
     auto overlap = gko::Overlap<gko::size_type>(
         mat->get_executor(), gko::size_type{4}, gko::size_type{1}, bool{true});
-    auto block_mtxs = mat->get_block_approx(b_sizes, overlap);
+    auto block_mtxs = std::get<0>(mat->get_block_approx(b_sizes, overlap));
 
     auto mat1 =
         gko::initialize<Mtx>({I<T>({1.0, 2.0}), I<T>({0.0, 3.0})}, exec);
@@ -791,7 +791,7 @@ TYPED_TEST(Csr, CanComputeBlockApproxWithUnidirOverlapAtEnd)
     auto overlap = gko::Overlap<gko::size_type>(
         mat->get_executor(), gko::size_type{4}, gko::size_type{1}, bool{true},
         bool{false});
-    auto block_mtxs = mat->get_block_approx(b_sizes, overlap);
+    auto block_mtxs = std::get<0>(mat->get_block_approx(b_sizes, overlap));
 
     auto mat1 =
         gko::initialize<Mtx>({I<T>({1.0, 2.0}), I<T>({0.0, 3.0})}, exec);

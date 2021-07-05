@@ -780,10 +780,11 @@ public:
 
     void compute_absolute_inplace() override;
 
-    std::vector<std::unique_ptr<Csr>> get_block_approx(
-        const Array<size_type> &num_blocks,
-        const Overlap<size_type> &block_overlaps = {},
-        const Array<size_type> &permutation = {}) const override;
+    std::tuple<std::vector<std::unique_ptr<Csr>>,
+               std::vector<std::unique_ptr<Csr>>>
+    get_block_approx(const Array<size_type> &num_blocks,
+                     const Overlap<size_type> &block_overlaps = {},
+                     const Array<size_type> &permutation = {}) const override;
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index

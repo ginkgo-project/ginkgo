@@ -507,8 +507,8 @@ TEST_F(Csr, BlockApproxIsEquivalentToRef)
     auto d_b_sizes = gko::Array<gko::size_type>(cuda);
     d_b_sizes = b_sizes;
 
-    auto block_mtxs = mat->get_block_approx(b_sizes);
-    auto d_block_mtxs = d_mat->get_block_approx(d_b_sizes);
+    auto block_mtxs = std::get<0>(mat->get_block_approx(b_sizes));
+    auto d_block_mtxs = std::get<0>(d_mat->get_block_approx(d_b_sizes));
     ASSERT_EQ(block_mtxs.size(), 7);
     ASSERT_EQ(block_mtxs.size(), d_block_mtxs.size());
     for (auto i = 0; i < block_mtxs.size(); ++i) {
