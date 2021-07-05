@@ -154,6 +154,12 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
     } catch (const std::exception &e) {
         add_or_set_member(test_case["spmv"][format_name], "completed", false,
                           allocator);
+        if (FLAGS_keep_errors) {
+            rapidjson::Value msg_value;
+            msg_value.SetString(e.what(), allocator);
+            add_or_set_member(test_case["spmv"][format_name], "error",
+                              msg_value, allocator);
+        }
         std::cerr << "Error when processing test case " << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
