@@ -324,6 +324,29 @@ TYPED_TEST(BatchCg, GeneralScalingDoesNotChangeResult)
 }
 
 
+TEST(BatchCg, GoodScalingImprovesConvergence)
+{
+    using value_type = double;
+    using real_type = gko::remove_complex<value_type>;
+    using Solver = gko::solver::BatchCg<value_type>;
+    const auto eps = r<value_type>::value;
+    auto exec = gko::ReferenceExecutor::create();
+    const size_t nbatch = 3;
+    const int nrows = 100;
+    const int nrhs = 1;
+    auto factory =
+        Solver::build()
+            .with_max_iterations(20)
+            .with_rel_residual_tol(10 * eps)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(gko::preconditioner::batch::type::none)
+            .on(exec);
+
+    gko::test::test_solve_iterations_with_scaling<Solver>(exec, nbatch, nrows,
+                                                          nrhs, factory.get());
+}
+
+
 TEST(BatchCg, CanSolveWithoutScaling)
 {
     using T = std::complex<double>;
