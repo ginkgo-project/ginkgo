@@ -153,7 +153,8 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType, typename IndexType>
-std::vector<std::unique_ptr<Csr<ValueType, IndexType>>>
+std::tuple<std::vector<std::unique_ptr<Csr<ValueType, IndexType>>>,
+           std::vector<std::unique_ptr<Csr<ValueType, IndexType>>>>
 Csr<ValueType, IndexType>::get_block_approx(
     const Array<size_type> &block_sizes_in,
     const Overlap<size_type> &block_overlaps_in,
@@ -168,6 +169,7 @@ Csr<ValueType, IndexType>::get_block_approx(
     block_overlaps.set_executor(exec->get_master());
     size_type num_blocks = block_sizes.get_num_elems();
     std::vector<std::unique_ptr<Csr<ValueType, IndexType>>> block_mtxs;
+    std::vector<std::unique_ptr<Csr<ValueType, IndexType>>> overlap_mtxs;
     if (permutation.get_const_data() == nullptr) {
         if (block_overlaps.get_overlaps() == nullptr) {
             size_type block_offset = 0;
@@ -193,7 +195,10 @@ Csr<ValueType, IndexType>::get_block_approx(
                                                  block_offset));
                 block_mtxs.emplace_back(std::move(mtx));
                 block_offset += block_sizes.get_data()[i];
+                auto omtx = Csr<ValueType, IndexType>::create(exec);
+                overlap_mtxs.emplace_back(std::move(omtx));
             }
+
         } else {
             GKO_ASSERT(block_overlaps.get_num_elems() ==
                        block_sizes.get_num_elems());
@@ -262,7 +267,10 @@ Csr<ValueType, IndexType>::get_block_approx(
         GKO_NOT_IMPLEMENTED;
     }
     block_sizes.set_executor(this->get_executor());
-    return block_mtxs;
+    return std::make_tuple<
+        std::vector<std::unique_ptr<Csr<ValueType, IndexType>>>,
+        std::vector<std::unique_ptr<Csr<ValueType, IndexType>>>>(
+        std::move(block_mtxs), std::move(overlap_mtxs));
 }
 
 

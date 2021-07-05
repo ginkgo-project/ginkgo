@@ -65,13 +65,16 @@ void BlockApprox<MatrixType>::generate(const Array<size_type> &block_sizes,
                                        const MatrixType *matrix)
 {
     auto num_blocks = block_sizes.get_num_elems();
-    auto block_mtxs = matrix->get_block_approx(block_sizes, block_overlaps);
+    auto block_tuple = matrix->get_block_approx(block_sizes, block_overlaps);
+    auto block_mtxs = std::move(std::get<0>(block_tuple));
+    auto overlap_mtxs = std::move(std::get<1>(block_tuple));
 
     this->get_executor()->run(block_approx::make_compute_block_ptrs(
         num_blocks, block_sizes.get_const_data(), block_ptrs_.get_data()));
 
     for (size_type j = 0; j < block_mtxs.size(); ++j) {
         block_mtxs_.emplace_back(std::move(block_mtxs[j]));
+        overlap_mtxs_.emplace_back(std::move(overlap_mtxs[j]));
         block_dims_.emplace_back(block_mtxs_.back()->get_size());
         block_nnzs_.emplace_back(block_mtxs_.back()->get_num_stored_elements());
     }

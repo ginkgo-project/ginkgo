@@ -725,10 +725,11 @@ public:
 template <typename ConcreteType>
 class BlockApproximatable {
 public:
-    virtual std::vector<std::unique_ptr<ConcreteType>> get_block_approx(
-        const Array<size_type> &block_sizes,
-        const gko::Overlap<size_type> &block_overlaps = {},
-        const Array<size_type> &permutation = {}) const = 0;
+    virtual std::tuple<std::vector<std::unique_ptr<ConcreteType>>,
+                       std::vector<std::unique_ptr<ConcreteType>>>
+    get_block_approx(const Array<size_type> &block_sizes,
+                     const gko::Overlap<size_type> &block_overlaps = {},
+                     const Array<size_type> &permutation = {}) const = 0;
 };
 
 

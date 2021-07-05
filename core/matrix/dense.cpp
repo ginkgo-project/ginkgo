@@ -239,7 +239,8 @@ inline gko::dim<2> compute_block_size(size_type size_in, size_type overlap,
 
 
 template <typename ValueType>
-std::vector<std::unique_ptr<Dense<ValueType>>>
+std::tuple<std::vector<std::unique_ptr<Dense<ValueType>>>,
+           std::vector<std::unique_ptr<Dense<ValueType>>>>
 Dense<ValueType>::get_block_approx(const Array<size_type> &block_sizes_in,
                                    const Overlap<size_type> &block_overlaps_in,
                                    const Array<size_type> &permutation) const
@@ -251,6 +252,7 @@ Dense<ValueType>::get_block_approx(const Array<size_type> &block_sizes_in,
     block_overlaps = block_overlaps_in;
     size_type num_blocks = block_sizes.get_num_elems();
     std::vector<std::unique_ptr<Dense>> block_mtxs;
+    std::vector<std::unique_ptr<Dense>> overlap_mtxs;
     // TODO Maybe move to separate optimized kernels
     if (permutation.get_const_data() == nullptr) {
         if (block_overlaps.get_overlaps() == nullptr) {
@@ -310,7 +312,9 @@ Dense<ValueType>::get_block_approx(const Array<size_type> &block_sizes_in,
         GKO_NOT_IMPLEMENTED;
     }
     block_sizes.set_executor(this->get_executor());
-    return block_mtxs;
+    return std::make_tuple<std::vector<std::unique_ptr<Dense<ValueType>>>,
+                           std::vector<std::unique_ptr<Dense<ValueType>>>>(
+        std::move(block_mtxs), std::move(overlap_mtxs));
 }
 
 
