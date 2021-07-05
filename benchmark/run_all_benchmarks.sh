@@ -201,17 +201,6 @@ compute_matrix_statistics() {
 }
 
 
-remove_ell_worstcase() {
-    local IMBALANCE=$(jq '.[0].problem.row_distribution | .max / (.mean + 1) | floor' $1)
-    # if the imbalance is too large, remove ELL formats from the list.
-    if [[ "${IMBALANCE}" -gt "${ELL_IMBALANCE_LIMIT}" ]]; then
-        echo -n $FORMATS | tr ',' '\n' | grep -vE '^ell' | tr '\n' ',' | sed 's/,$//'
-    else
-        echo -n $FORMATS
-    fi
-}
-
-
 # Runs the conversion benchmarks for all matrix formats by using file $1 as the
 # input, and updating it with the results. Backups are created after each
 # benchmark run, to prevent data loss in case of a crash. Once the benchmarking
@@ -220,11 +209,11 @@ remove_ell_worstcase() {
 run_conversion_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
-    local LOCAL_FORMATS=$(remove_ell_worstcase "$1")
     ./conversions/conversions${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                --executor="${EXECUTOR}" --formats="${LOCAL_FORMATS}" \
+                --executor="${EXECUTOR}" --formats="${FORMATS}" \
                 --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
                 --repetitions="${REPETITIONS}" \
+                --ell_imbalance_limit="${ELL_IMBALANCE_LIMIT}" \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -237,12 +226,12 @@ run_conversion_benchmarks() {
 # taken as the final result.
 run_spmv_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
-    local LOCAL_FORMATS=$(remove_ell_worstcase "$1")
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./spmv/spmv${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                --executor="${EXECUTOR}" --formats="${LOCAL_FORMATS}" \
+                --executor="${EXECUTOR}" --formats="${FORMATS}" \
                 --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
                 --repetitions="${REPETITIONS}" \
+                --ell_imbalance_limit="${ELL_IMBALANCE_LIMIT}" \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }

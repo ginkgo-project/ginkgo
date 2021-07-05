@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 
 
+#include <algorithm>
 #include <map>
 #include <string>
 
@@ -152,6 +153,10 @@ std::string format_command =
 // the formats command-line argument
 DEFINE_string(formats, "coo", formats::format_command.c_str());
 
+DEFINE_uint64(
+    ell_imbalance_limit, 100,
+    "Maximal storage overhead above which ELL benchmarks will be skipped");
+
 
 namespace formats {
 
@@ -203,6 +208,30 @@ std::shared_ptr<csr::strategy_type> create_gpu_strategy(
 
 
 /**
+ * Checks whether the given matrix data exceeds the ELL imbalance limit set by
+ * the --ell_imbalance_limit flag
+ * @throws gko::Error if the imbalance limit is exceeded
+ */
+void check_ell_admissibility(const gko::matrix_data<etype> &data)
+{
+    if (data.size[0] == 0) {
+        return;
+    }
+    std::vector<gko::size_type> row_lengths(data.size[0]);
+    for (auto nz : data.nonzeros) {
+        row_lengths[nz.row]++;
+    }
+    auto max_len = *std::max_element(row_lengths.begin(), row_lengths.end());
+    auto avg_len =
+        std::max<gko::size_type>(data.nonzeros.size() / data.size[0], 1);
+    if (max_len / avg_len > FLAGS_ell_imbalance_limit) {
+        throw gko::Error(__FILE__, __LINE__,
+                         "Matrix exceeds ELL imbalance limit");
+    }
+}
+
+
+/**
  * Creates a Ginkgo matrix from the intermediate data representation format
  * gko::matrix_data with support for variable arguments.
  *
@@ -241,10 +270,17 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"csrm", READ_MATRIX(csr, std::make_shared<csr::merge_path>())},
         {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
         {"coo", read_matrix_from_data<gko::matrix::Coo<etype>>},
-        {"ell", read_matrix_from_data<gko::matrix::Ell<etype>>},
+        {"ell", [](std::shared_ptr<const gko::Executor> exec,
+            const gko::matrix_data<etype> &data) {
+             check_ell_admissibility(data);
+             auto mat = gko::matrix::Ell<etype>::create(exec);
+             mat->read(data);
+             return mat;
+         }},
         {"ell-mixed",
          [](std::shared_ptr<const gko::Executor> exec,
             const gko::matrix_data<etype> &data) {
+             check_ell_admissibility(data);
              gko::matrix_data<gko::next_precision<etype>> conv_data;
              conv_data.size = data.size;
              conv_data.nonzeros.resize(data.nonzeros.size());
