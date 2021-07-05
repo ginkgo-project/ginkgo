@@ -509,6 +509,12 @@ void solve_system(const std::string &solver_name,
     } catch (const std::exception &e) {
         add_or_set_member(test_case["solver"][precond_solver_name], "completed",
                           false, allocator);
+        if (FLAGS_keep_errors) {
+            rapidjson::Value msg_value;
+            msg_value.SetString(e.what(), allocator);
+            add_or_set_member(test_case["solver"][precond_solver_name], "error",
+                              msg_value, allocator);
+        }
         std::cerr << "Error when processing test case " << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }

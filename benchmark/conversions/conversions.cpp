@@ -98,6 +98,12 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
     } catch (const std::exception &e) {
         add_or_set_member(test_case["conversions"][conversion_name],
                           "completed", false, allocator);
+        if (FLAGS_keep_errors) {
+            rapidjson::Value msg_value;
+            msg_value.SetString(e.what(), allocator);
+            add_or_set_member(test_case["conversions"][conversion_name],
+                              "error", msg_value, allocator);
+        }
         std::cerr << "Error when processing test case " << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
