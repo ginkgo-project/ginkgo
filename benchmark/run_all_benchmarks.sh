@@ -16,6 +16,16 @@ if [ ! "${EXECUTOR}" ]; then
     echo "EXECUTOR    environment variable not set - assuming \"${EXECUTOR}\"" 1>&2
 fi
 
+if [ ! "${REPETITIONS}" ]; then
+    REPETITIONS=10
+    echo "REPETITIONS    environment variable not set - assuming ${REPETITIONS}" 1>&2
+fi
+
+if [ ! "${SOLVER_REPETITIONS}" ]; then
+    SOLVER_REPETITIONS=1
+    echo "SOLVER_REPETITIONS    environment variable not set - assuming ${SOLVER_REPETITIONS}" 1>&2
+fi
+
 if [ ! "${SEGMENTS}" ]; then
     echo "SEGMENTS    environment variable not set - running entire suite" 1>&2
     SEGMENTS=1
@@ -33,6 +43,11 @@ fi
 if [ ! "${FORMATS}" ]; then
     echo "FORMATS    environment variable not set - assuming \"csr,coo,ell,hybrid,sellp\"" 1>&2
     FORMATS="csr,coo,ell,hybrid,sellp"
+fi
+
+if [ ! "${ELL_IMBALANCE_LIMIT}" ]; then
+    echo "ELL_IMBALANCE_LIMIT    environment variable not set - assuming 100" 1>&2
+    ELL_IMBALANCE_LIMIT=100
 fi
 
 if [ ! "${SOLVERS}" ]; then
@@ -67,7 +82,7 @@ fi
 
 if [ ! "${SOLVERS_JACOBI_MAX_BS}" ]; then
     SOLVERS_JACOBI_MAX_BS="32"
-    "SOLVERS_JACOBI_MAX_BS environment variable not set - assuming \"${SOLVERS_JACOBI_MAX_BS}\"" 1>&2
+    echo "SOLVERS_JACOBI_MAX_BS environment variable not set - assuming \"${SOLVERS_JACOBI_MAX_BS}\"" 1>&2
 fi
 
 if [ ! "${BENCHMARK_PRECISION}" ]; then
@@ -202,6 +217,8 @@ run_conversion_benchmarks() {
     ./conversions/conversions${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --formats="${FORMATS}" \
                 --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
+                --repetitions="${REPETITIONS}" \
+                --ell_imbalance_limit="${ELL_IMBALANCE_LIMIT}" \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -218,6 +235,8 @@ run_spmv_benchmarks() {
     ./spmv/spmv${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --formats="${FORMATS}" \
                 --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
+                --repetitions="${REPETITIONS}" \
+                --ell_imbalance_limit="${ELL_IMBALANCE_LIMIT}" \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -239,6 +258,7 @@ run_solver_benchmarks() {
                     --gpu_timer=${GPU_TIMER} \
                     --jacobi_max_block_size=${SOLVERS_JACOBI_MAX_BS} --device_id="${DEVICE_ID}" \
                     --gmres_restart="${SOLVERS_GMRES_RESTART}" \
+                    --repetitions="${SOLVER_REPETITIONS}" \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -265,6 +285,7 @@ run_preconditioner_benchmarks() {
                 --jacobi_max_block_size="${bsize}" \
                 --jacobi_storage="${prec}" \
                 --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
+                --repetitions="${REPETITIONS}" \
                 <"$1.imd" 2>&1 >"$1"
             keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
         done

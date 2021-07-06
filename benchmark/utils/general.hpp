@@ -84,6 +84,10 @@ DEFINE_string(double_buffer, "",
 DEFINE_bool(detailed, true,
             "If set, performs several runs to obtain more detailed results");
 
+DEFINE_bool(keep_errors, false,
+            "If set, writes exception messages during the execution into the "
+            "JSON output");
+
 DEFINE_bool(nested_names, false, "If set, separately logs nested operations");
 
 DEFINE_uint32(seed, 42, "Seed used for the random number generator");

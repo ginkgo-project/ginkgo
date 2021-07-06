@@ -88,9 +88,9 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
             matrix_to->copy_from(matrix_from);
         }
         add_or_set_member(conversion_case[conversion_name], "time",
-                          timer->compute_average_time(), allocator);
+                          ic.compute_average_time(), allocator);
         add_or_set_member(conversion_case[conversion_name], "repetitions",
-                          timer->get_num_repetitions(), allocator);
+                          ic.get_num_repetitions(), allocator);
 
         // compute and write benchmark data
         add_or_set_member(conversion_case[conversion_name], "completed", true,
@@ -98,6 +98,12 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
     } catch (const std::exception &e) {
         add_or_set_member(test_case["conversions"][conversion_name],
                           "completed", false, allocator);
+        if (FLAGS_keep_errors) {
+            rapidjson::Value msg_value;
+            msg_value.SetString(e.what(), allocator);
+            add_or_set_member(test_case["conversions"][conversion_name],
+                              "error", msg_value, allocator);
+        }
         std::cerr << "Error when processing test case " << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
@@ -156,8 +162,7 @@ int main(int argc, char *argv[])
             try {
                 auto matrix_from =
                     share(formats::matrix_factory.at(format_from)(exec, data));
-                for (const auto &format : formats::matrix_factory) {
-                    const auto format_to = std::get<0>(format);
+                for (const auto &format_to : formats) {
                     if (format_from == format_to) {
                         continue;
                     }
