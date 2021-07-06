@@ -60,6 +60,13 @@ TEST(Span, CreatesPoint)
 }
 
 
+TEST(Span, KnowsItsLength)
+{
+    gko::span s{3, 5};
+    ASSERT_EQ(2, s.length());
+}
+
+
 TEST(Span, LessThanEvaluatesToTrue)
 {
     ASSERT_TRUE(gko::span(2, 3) < gko::span(4, 7));
@@ -645,7 +652,7 @@ TEST(Range, DividesScalarAndRange)
 }
 
 
-TEST(Range, AddsRangeAndSclar)
+TEST(Range, AddsRangeAndScalar)
 {
     dummy_range r{5u, 1, 2};
 
@@ -656,7 +663,7 @@ TEST(Range, AddsRangeAndSclar)
 }
 
 
-TEST(Range, SubtractsRangeAndSclar)
+TEST(Range, SubtractsRangeAndScalar)
 {
     dummy_range r{5u, 1, 2};
 
@@ -667,7 +674,7 @@ TEST(Range, SubtractsRangeAndSclar)
 }
 
 
-TEST(Range, MultipliesRangeAndSclar)
+TEST(Range, MultipliesRangeAndScalar)
 {
     dummy_range r{5u, 1, 2};
 
@@ -678,7 +685,7 @@ TEST(Range, MultipliesRangeAndSclar)
 }
 
 
-TEST(Range, DividesRangeAndSclar)
+TEST(Range, DividesRangeAndScalar)
 {
     dummy_range r{5u, 1, 2};
 
