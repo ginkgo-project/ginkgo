@@ -152,6 +152,20 @@ struct dim {
         return dim(x.first_ * y.first_, x.rest_ * y.rest_);
     }
 
+    /**
+     * A stream operator overload for dim
+     *
+     * @param os  stream object
+     * @param x  dim object
+     *
+     * @return a stream object appended with the dim output
+     */
+    friend GKO_ATTRIBUTES std::ostream &operator<<(std::ostream &os,
+                                                   const dim &x)
+    {
+        return os << "(" << x.first_ << " , " << x.rest_ << ")";
+    }
+
 private:
     constexpr GKO_ATTRIBUTES dim(const dimension_type first,
                                  dim<dimensionality - 1> rest)
@@ -198,6 +212,12 @@ struct dim<1u, DimensionType> {
     friend constexpr GKO_ATTRIBUTES dim operator*(const dim &x, const dim &y)
     {
         return dim(x.first_ * y.first_);
+    }
+
+    friend GKO_ATTRIBUTES std::ostream &operator<<(std::ostream &os,
+                                                   const dim &x)
+    {
+        return os << x.first_;
     }
 
 private:
