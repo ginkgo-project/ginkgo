@@ -187,9 +187,7 @@ template <typename StopType, typename PrecType, typename LogType,
 __global__ void apply_kernel(
     const int max_iter, const gko::remove_complex<ValueType> tol,
     LogType logger, PrecType prec_shared, const BatchMatrixType a,
-    const gko::batch_dense::UniformBatch<const ValueType> left,
-    const gko::batch_dense::UniformBatch<const ValueType> right,
-    const gko::batch_dense::UniformBatch<ValueType> b,
+    const gko::batch_dense::UniformBatch<const ValueType> b,
     const gko::batch_dense::UniformBatch<ValueType> x)
 {
     using real_type = typename gko::remove_complex<ValueType>;
@@ -219,74 +217,37 @@ __global__ void apply_kernel(
 
         uint32 converged = 0;
 
-        const gko::batch_dense::BatchEntry<const ValueType> left_global_entry =
-            gko::batch::batch_entry(left, ibatch);
-
-        const gko::batch_dense::BatchEntry<const ValueType> right_global_entry =
-            gko::batch::batch_entry(right, ibatch);
-
-
-        if (left_global_entry.values) {
-            const typename BatchMatrixType::entry_type A_global_entry =
-                gko::batch::batch_entry(a, ibatch);
-            const gko::batch_dense::BatchEntry<ValueType> b_global_entry =
-                gko::batch::batch_entry(b, ibatch);
-            batch_scale(left_global_entry, right_global_entry, A_global_entry);
-            batch_scale(left_global_entry, b_global_entry);
-
-            __syncthreads();
-        }
-
-
-        const auto A_global_entry =
-            gko::batch::batch_entry(gko::batch::to_const(a), ibatch);
-
+        const auto A_global_entry = gko::batch::batch_entry(a, ibatch);
         const gko::batch_dense::BatchEntry<const ValueType> b_global_entry =
-            gko::batch::batch_entry(gko::batch::to_const(b), ibatch);
-
+            gko::batch::batch_entry(b, ibatch);
         const gko::batch_dense::BatchEntry<ValueType> x_global_entry =
             gko::batch::batch_entry(x, ibatch);
 
 
         const gko::batch_dense::BatchEntry<ValueType> x_shared_entry{
             x_sh, static_cast<size_type>(nrhs), nrows, nrhs};
-
         const gko::batch_dense::BatchEntry<ValueType> r_shared_entry{
             r_sh, static_cast<size_type>(nrhs), nrows, nrhs};
-
         const gko::batch_dense::BatchEntry<ValueType> z_shared_entry{
             z_sh, static_cast<size_type>(nrhs), nrows, nrhs};
-
         const gko::batch_dense::BatchEntry<ValueType> p_shared_entry{
             p_sh, static_cast<size_type>(nrhs), nrows, nrhs};
-
         const gko::batch_dense::BatchEntry<ValueType> Ap_shared_entry{
             Ap_sh, static_cast<size_type>(nrhs), nrows, nrhs};
 
-
         const gko::batch_dense::BatchEntry<ValueType> rho_old_shared_entry{
             rho_old_sh, static_cast<size_type>(nrhs), 1, nrhs};
-
-
         const gko::batch_dense::BatchEntry<ValueType> rho_new_shared_entry{
             rho_new_sh, static_cast<size_type>(nrhs), 1, nrhs};
-
-
         const gko::batch_dense::BatchEntry<ValueType> alpha_shared_entry{
             alpha_sh, static_cast<size_type>(nrhs), 1, nrhs};
-
-
         const gko::batch_dense::BatchEntry<real_type> rhs_norms_shared_entry{
             norms_rhs_sh, static_cast<size_type>(nrhs), 1, nrhs};
-
-
         const gko::batch_dense::BatchEntry<real_type> res_norms_shared_entry{
             norms_res_sh, static_cast<size_type>(nrhs), 1, nrhs};
 
-
         // generate preconditioner
         prec_shared.generate(A_global_entry, prec_work_sh);
-
 
         // initialization
         // compute b norms
@@ -299,10 +260,7 @@ __global__ void apply_kernel(
                    r_shared_entry, prec_shared, z_shared_entry,
                    rho_old_shared_entry, p_shared_entry,
                    rhs_norms_shared_entry);
-
-
         __syncthreads();
-
 
         // stopping criterion object
         StopType stop(nrhs, max_iter, tol, rhs_norms_shared_entry.values,
@@ -310,20 +268,17 @@ __global__ void apply_kernel(
 
         int iter = -1;
 
-
         while (1) {
             ++iter;
 
             use_implicit_norms(gko::batch::to_const(rho_old_shared_entry),
                                res_norms_shared_entry,
                                converged);  // use implicit residual norms
-
             __syncthreads();
 
             bool all_converged =
                 stop.check_converged(iter, res_norms_shared_entry.values,
                                      {NULL, 0, 0, 0}, converged);
-
 
             logger.log_iteration(ibatch, iter, res_norms_shared_entry.values,
                                  converged);
@@ -334,7 +289,6 @@ __global__ void apply_kernel(
             // Ap = A * p
             spmv_kernel(A_global_entry, gko::batch::to_const(p_shared_entry),
                         Ap_shared_entry);
-
             __syncthreads();
 
             // alpha = rho_old / (p' * Ap)
@@ -345,23 +299,18 @@ __global__ void apply_kernel(
                            gko::batch::to_const(Ap_shared_entry),
                            alpha_shared_entry, x_shared_entry, r_shared_entry,
                            converged);
-
             __syncthreads();
-
 
             // z = precond * r
             prec_shared.apply(gko::batch::to_const(r_shared_entry),
                               z_shared_entry);
-
             __syncthreads();
 
             // rho_new =  (r)' * (z)
             compute_dot_product<ValueType>(gko::batch::to_const(r_shared_entry),
                                            gko::batch::to_const(z_shared_entry),
                                            rho_new_shared_entry, converged);
-
             __syncthreads();
-
 
             // beta = rho_new / rho_old
             // p = z + beta * p
@@ -369,26 +318,16 @@ __global__ void apply_kernel(
                      gko::batch::to_const(rho_old_shared_entry),
                      gko::batch::to_const(z_shared_entry), p_shared_entry,
                      converged);
-
             __syncthreads();
 
             // rho_old = rho_new
             copy(gko::batch::to_const(rho_new_shared_entry),
                  rho_old_shared_entry, converged);
-
             __syncthreads();
         }
 
-        if (left_global_entry.values) {
-            batch_scale(right_global_entry, x_shared_entry);
-        }
-
-        __syncthreads();
-
         // copy x back to global memory
         copy(gko::batch::to_const(x_shared_entry), x_global_entry);
-
-
         __syncthreads();
     }
 }
