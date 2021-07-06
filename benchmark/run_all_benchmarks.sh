@@ -21,6 +21,11 @@ if [ ! "${REPETITIONS}" ]; then
     echo "REPETITIONS    environment variable not set - assuming ${REPETITIONS}" 1>&2
 fi
 
+if [ ! "${SOLVER_REPETITIONS}" ]; then
+    SOLVER_REPETITIONS=1
+    echo "SOLVER_REPETITIONS    environment variable not set - assuming ${SOLVER_REPETITIONS}" 1>&2
+fi
+
 if [ ! "${SEGMENTS}" ]; then
     echo "SEGMENTS    environment variable not set - running entire suite" 1>&2
     SEGMENTS=1
@@ -253,7 +258,7 @@ run_solver_benchmarks() {
                     --gpu_timer=${GPU_TIMER} \
                     --jacobi_max_block_size=${SOLVERS_JACOBI_MAX_BS} --device_id="${DEVICE_ID}" \
                     --gmres_restart="${SOLVERS_GMRES_RESTART}" \
-                    --repetitions="${REPETITIONS}" \
+                    --repetitions="${SOLVER_REPETITIONS}" \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
