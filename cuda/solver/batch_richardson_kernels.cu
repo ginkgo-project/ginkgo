@@ -69,6 +69,7 @@ namespace batch_rich {
 #include "common/log/batch_logger.hpp.inc"
 #include "common/matrix/batch_csr_kernels.hpp.inc"
 #include "common/matrix/batch_dense_kernels.hpp.inc"
+#include "common/matrix/batch_vector_kernels.hpp.inc"
 #include "common/preconditioner/batch_identity.hpp.inc"
 #include "common/preconditioner/batch_jacobi.hpp.inc"
 #include "common/solver/batch_richardson_kernels.hpp.inc"
@@ -83,7 +84,7 @@ using BatchRichardsonOptions =
     apply_kernel<stop::_stoppertype<ValueType>>                         \
         <<<nbatch, default_block_size, shared_size>>>(                  \
             opts.max_its, opts.residual_tol, opts.relax_factor, logger, \
-            _prectype<ValueType>(), a, b, x)
+            _prectype<ValueType>(), a, bptr, xptr)
 
 template <typename BatchMatrixType, typename LogType, typename ValueType>
 static void apply_impl(
@@ -95,6 +96,11 @@ static void apply_impl(
 {
     using real_type = gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
+    if (b.num_rhs > 1) {
+        GKO_NOT_IMPLEMENTED;
+    }
+    const ValueType *const bptr = b.values;
+    ValueType *const xptr = x.values;
 
     gko::kernels::cuda::configure_shared_memory<ValueType>();
 
@@ -113,9 +119,9 @@ static void apply_impl(
             sizeof(ValueType);
 #endif
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            BATCH_RICHARDSON_KERNEL_LAUNCH(AbsResidualMaxIter, BatchIdentity);
+            BATCH_RICHARDSON_KERNEL_LAUNCH(SimpleAbsResidual, BatchIdentity);
         } else {
-            BATCH_RICHARDSON_KERNEL_LAUNCH(RelResidualMaxIter, BatchIdentity);
+            BATCH_RICHARDSON_KERNEL_LAUNCH(SimpleRelResidual, BatchIdentity);
         }
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
@@ -125,9 +131,9 @@ static void apply_impl(
             sizeof(ValueType);
 #endif
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            BATCH_RICHARDSON_KERNEL_LAUNCH(AbsResidualMaxIter, BatchJacobi);
+            BATCH_RICHARDSON_KERNEL_LAUNCH(SimpleAbsResidual, BatchJacobi);
         } else {
-            BATCH_RICHARDSON_KERNEL_LAUNCH(RelResidualMaxIter, BatchJacobi);
+            BATCH_RICHARDSON_KERNEL_LAUNCH(SimpleRelResidual, BatchJacobi);
         }
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -145,8 +151,10 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
 {
     using cu_value_type = cuda_type<ValueType>;
 
-    batch_log::FinalLogger<remove_complex<ValueType>> logger(
-        static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
+    // batch_log::FinalLogger<remove_complex<ValueType>> logger(
+    //     static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
+    //     logdata.res_norms->get_values(), logdata.iter_counts.get_data());
+    batch_log::SimpleFinalLogger<remove_complex<ValueType>> logger(
         logdata.res_norms->get_values(), logdata.iter_counts.get_data());
 
     const gko::batch_dense::UniformBatch<cu_value_type> x_b =
