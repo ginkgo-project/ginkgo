@@ -846,9 +846,7 @@ __global__ void apply_kernel(
     const int subspace_dim, const gko::remove_complex<ValueType> kappa,
     const bool smoothing, const bool deterministic, LogType logger,
     PrecType prec_shared, const BatchMatrixType a,
-    const gko::batch_dense::UniformBatch<const ValueType> left,
-    const gko::batch_dense::UniformBatch<const ValueType> right,
-    const gko::batch_dense::UniformBatch<ValueType> b,
+    const gko::batch_dense::UniformBatch<const ValueType> b,
     const gko::batch_dense::UniformBatch<ValueType> x,
     const gko::batch_dense::BatchEntry<const ValueType>
         Subspace_vectors_global_entry)
@@ -858,8 +856,7 @@ __global__ void apply_kernel(
     const int nrows = a.num_rows;
     const int nrhs = b.num_rhs;
 
-    assert(batch_config<ValueType>::max_num_rhs >=
-           nrhs);  // required for static allocation in stopping criterion
+    assert(batch_config<ValueType>::max_num_rhs >= nrhs);
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
         extern __shared__ char local_mem_sh[];
@@ -890,83 +887,50 @@ __global__ void apply_kernel(
         real_type *const norms_res_sh = norms_rhs_sh + nrhs;
         real_type *const norms_tmp_sh = norms_res_sh + nrhs;
 
-
         uint32 converged = 0;
 
-        const gko::batch_dense::BatchEntry<const ValueType> left_global_entry =
-            gko::batch::batch_entry(left, ibatch);
-
-        const gko::batch_dense::BatchEntry<const ValueType> right_global_entry =
-            gko::batch::batch_entry(right, ibatch);
-
-
-        if (left_global_entry.values) {
-            const typename BatchMatrixType::entry_type A_global_entry =
-                gko::batch::batch_entry(a, ibatch);
-            const gko::batch_dense::BatchEntry<ValueType> b_global_entry =
-                gko::batch::batch_entry(b, ibatch);
-            batch_scale(left_global_entry, right_global_entry, A_global_entry);
-            batch_scale(left_global_entry, b_global_entry);
-
-            __syncthreads();
-        }
-
-
-        const auto A_global_entry =
-            gko::batch::batch_entry(gko::batch::to_const(a), ibatch);
-
+        const auto A_global_entry = gko::batch::batch_entry(a, ibatch);
         const gko::batch_dense::BatchEntry<const ValueType> b_global_entry =
-            gko::batch::batch_entry(gko::batch::to_const(b), ibatch);
-
+            gko::batch::batch_entry(b, ibatch);
         const gko::batch_dense::BatchEntry<ValueType> x_global_entry =
             gko::batch::batch_entry(x, ibatch);
-
 
         const gko::batch_dense::BatchEntry<ValueType> x_shared_entry{
             x_sh, static_cast<size_type>(nrhs), nrows,
             nrhs};  // storage:row-major , residual vector corresponding to each
                     // rhs is stored as a col. of the matrix
-
         const gko::batch_dense::BatchEntry<ValueType> r_shared_entry{
             r_sh, static_cast<size_type>(nrhs), nrows,
             nrhs};  // storage:row-major , residual vector corresponding to each
                     // rhs is stored as a col. of the matrix
-
         const gko::batch_dense::BatchEntry<ValueType> t_shared_entry{
             t_sh, static_cast<size_type>(nrhs), nrows,
             nrhs};  // storage:row-major , residual vector corresponding to each
                     // rhs is stored as a col. of the matrix
-
         const gko::batch_dense::BatchEntry<ValueType> v_shared_entry{
             v_sh, static_cast<size_type>(nrhs), nrows,
             nrhs};  // storage:row-major , residual vector corresponding to each
                     // rhs is stored as a col. of the matrix
-
         const gko::batch_dense::BatchEntry<ValueType> xs_shared_entry{
             xs_sh, static_cast<size_type>(nrhs), nrows,
             nrhs};  // storage:row-major , residual vector corresponding to each
                     // rhs is stored as a col. of the matrix
-
         const gko::batch_dense::BatchEntry<ValueType> rs_shared_entry{
             rs_sh, static_cast<size_type>(nrhs), nrows,
             nrhs};  // storage:row-major , residual vector corresponding to each
                     // rhs is stored as a col. of the matrix
-
         const gko::batch_dense::BatchEntry<ValueType> helper_shared_entry{
             helper_sh, static_cast<size_type>(nrhs), nrows,
             nrhs};  // storage:row-major , residual vector corresponding to each
                     // rhs is stored as a col. of the matrix
-
         const gko::batch_dense::BatchEntry<ValueType> f_shared_entry{
             f_sh, static_cast<size_type>(nrhs), subspace_dim,
             nrhs};  // storage:row-major , residual vector corresponding to each
                     // rhs is stored as a col. of the matrix
-
         const gko::batch_dense::BatchEntry<ValueType> c_shared_entry{
             c_sh, static_cast<size_type>(nrhs), subspace_dim,
             nrhs};  // storage:row-major , residual vector corresponding to each
                     // rhs is stored as a col. of the matrix
-
 
         // P = [ p_0 , p_1 , ... , p_(subspace_dim - 1) ] , subspace S is the
         // left null space of matrix P to store subspace defining vectors: p_i ,
@@ -983,7 +947,6 @@ __global__ void apply_kernel(
         // are stored contiguously in memory one after the other as
         // Subspace_vectors_entry.stride = 1
 
-
         // to store vectors: g_i , i = 0, ..., subspace_dim -1, we use matrix G
         const gko::batch_dense::BatchEntry<ValueType> G_shared_entry{
             G_sh, static_cast<size_type>(nrhs), nrows * subspace_dim, nrhs};
@@ -993,7 +956,6 @@ __global__ void apply_kernel(
         // ith  vector for each rhs: g_i_entry{  &G[i* G_entry.stride * nrows],
         // G_entry.stride , nrows, nrhs}; So if nrhs=1, effectively the cols.
         // are stored contiguously in memory one after the other.
-
 
         // to store vectors: u_i , i = 0, ..., subspace_dim -1 , we use matrix U
         const gko::batch_dense::BatchEntry<ValueType> U_shared_entry{
@@ -1005,7 +967,6 @@ __global__ void apply_kernel(
         // U_entry.stride , nrows, nrhs}; So if nrhs=1, effectively the cols.
         // are stored contiguously in memory one after the other.
 
-
         const gko::batch_dense::BatchEntry<ValueType> M_shared_entry{
             M_sh, static_cast<size_type>(nrhs * subspace_dim), subspace_dim,
             nrhs * subspace_dim};
@@ -1015,46 +976,29 @@ __global__ void apply_kernel(
         // storage order is row-major) to get entry (i,j) for rhs: rhs_k ,
         // scalar_M_i_j_for_rhs_k =  M[M_entry.stride*i + j*nrhs  + rhs_k ]
 
-
         const gko::batch_dense::BatchEntry<ValueType>
             temp_for_single_rhs_shared_entry{
                 temp_for_single_rhs_sh, static_cast<size_type>(1), nrows, 1};
-
         const gko::batch_dense::BatchEntry<ValueType> omega_shared_entry{
             omega_sh, static_cast<size_type>(nrhs), 1, nrhs};
-
-
         const gko::batch_dense::BatchEntry<ValueType> temp1_shared_entry{
             temp1_sh, static_cast<size_type>(nrhs), 1, nrhs};
-
-
         const gko::batch_dense::BatchEntry<ValueType> temp2_shared_entry{
             temp2_sh, static_cast<size_type>(nrhs), 1, nrhs};
-
-
         const gko::batch_dense::BatchEntry<real_type> t_norms_shared_entry{
             norms_t_sh, static_cast<size_type>(nrhs), 1, nrhs};
-
         const gko::batch_dense::BatchEntry<real_type> r_norms_shared_entry{
             norms_r_sh, static_cast<size_type>(nrhs), 1, nrhs};
-
-
         const gko::batch_dense::BatchEntry<real_type> rhs_norms_shared_entry{
             norms_rhs_sh, static_cast<size_type>(nrhs), 1, nrhs};
-
-
         const gko::batch_dense::BatchEntry<real_type> res_norms_shared_entry{
             norms_res_sh, static_cast<size_type>(nrhs), 1, nrhs};
-
-
         const gko::batch_dense::BatchEntry<real_type> tmp_norms_shared_entry{
             norms_tmp_sh, static_cast<size_type>(subspace_dim), 1,
             static_cast<int>(subspace_dim)};
 
-
         // generate preconditioner
         prec_shared.generate(A_global_entry, prec_work_sh);
-
 
         // initialization
         // compute b norms
@@ -1073,8 +1017,6 @@ __global__ void apply_kernel(
             deterministic, xs_shared_entry, rs_shared_entry, smoothing,
             omega_shared_entry, rhs_norms_shared_entry, res_norms_shared_entry,
             temp_for_single_rhs_shared_entry, tmp_norms_shared_entry);
-
-
         __syncthreads();
 
         // stopping criterion object
@@ -1087,20 +1029,13 @@ __global__ void apply_kernel(
         while (1) {
             outer_iter++;
 
-
             __syncthreads();
-
             bool all_converged =
                 stop.check_converged(outer_iter, res_norms_shared_entry.values,
                                      {NULL, 0, 0, 0}, converged);
-
-
             logger.log_iteration(ibatch, outer_iter,
                                  res_norms_shared_entry.values, converged);
-
-
             __syncthreads();
-
             if (all_converged) {
                 break;
             }
@@ -1109,25 +1044,20 @@ __global__ void apply_kernel(
             update_f(gko::batch::to_const(Subspace_vectors_shared_entry),
                      gko::batch::to_const(r_shared_entry), subspace_dim,
                      f_shared_entry, converged);
-
             __syncthreads();
-
 
             for (int k = 0; k < subspace_dim; k++) {
                 const gko::batch_dense::BatchEntry<ValueType> u_k_shared_entry{
                     &U_shared_entry.values[k * nrows * U_shared_entry.stride],
                     U_shared_entry.stride, nrows, U_shared_entry.num_rhs};
-
                 const gko::batch_dense::BatchEntry<ValueType> g_k_shared_entry{
                     &G_shared_entry.values[k * nrows * G_shared_entry.stride],
                     G_shared_entry.stride, nrows, G_shared_entry.num_rhs};
-
 
                 // solve c from Mc = f (Lower Triangular solve)
                 update_c(gko::batch::to_const(M_shared_entry),
                          gko::batch::to_const(f_shared_entry), c_shared_entry,
                          converged);
-
                 __syncthreads();
 
                 // v = r - ( c(k) * g_k  +  c(k+1) * g_(k+1)  + ...  +
@@ -1136,19 +1066,16 @@ __global__ void apply_kernel(
                          gko::batch::to_const(c_shared_entry),
                          gko::batch::to_const(r_shared_entry), v_shared_entry,
                          k, converged);
-
                 __syncthreads();
 
                 // helper = v
                 copy(gko::batch::to_const(v_shared_entry), helper_shared_entry,
                      converged);
-
                 __syncthreads();
 
                 // v = precond * helper
                 prec_shared.apply(gko::batch::to_const(helper_shared_entry),
                                   v_shared_entry);
-
                 __syncthreads();
 
                 // u_k = omega * v + (c(k) * u_k  +  c(k+1) * u_(k+1) + ...  +
@@ -1158,17 +1085,13 @@ __global__ void apply_kernel(
                            gko::batch::to_const(v_shared_entry),
                            gko::batch::to_const(U_shared_entry), k,
                            helper_shared_entry, u_k_shared_entry, converged);
-
                 __syncthreads();
-
 
                 // g_k = A * u_k
                 spmv_kernel(A_global_entry,
                             gko::batch::to_const(u_k_shared_entry),
                             g_k_shared_entry);
-
                 __syncthreads();
-
 
                 // for i = 0 to k-1
                 //     alpha = (p_i * g_k)/M(i,i)
@@ -1183,14 +1106,12 @@ __global__ void apply_kernel(
                     gko::batch::to_const(Subspace_vectors_shared_entry),
                     gko::batch::to_const(M_shared_entry), alpha_shared_entry,
                     g_k_shared_entry, u_k_shared_entry, converged);
-
                 __syncthreads();
 
                 // M(i,k) = p_i * g_k where i = k , k + 1, ... , subspace_dim -1
                 update_M(gko::batch::to_const(g_k_shared_entry),
                          gko::batch::to_const(Subspace_vectors_shared_entry),
                          M_shared_entry, k, converged);
-
                 __syncthreads();
 
                 // beta = f(k)/M(k,k)
@@ -1198,19 +1119,15 @@ __global__ void apply_kernel(
                     &beta_shared_entry = temp1_shared_entry;
                 for (int rhs = threadIdx.x; rhs < nrhs; rhs += blockDim.x) {
                     const uint32 conv = converged & (1 << rhs);
-
                     if (conv) {
                         continue;
                     }
-
                     beta_shared_entry.values[rhs] =
                         f_shared_entry.values[k * f_shared_entry.stride + rhs] /
                         M_shared_entry
                             .values[k * M_shared_entry.stride + k * nrhs + rhs];
                 }
-
                 __syncthreads();
-
 
                 // r = r - beta * g_k
                 // x = x + beta * u_k
@@ -1219,10 +1136,7 @@ __global__ void apply_kernel(
                     gko::batch::to_const(u_k_shared_entry),
                     gko::batch::to_const(beta_shared_entry), r_shared_entry,
                     x_shared_entry, converged);
-
-
                 __syncthreads();
-
 
                 if (smoothing == true) {
                     const gko::batch_dense::BatchEntry<ValueType>
@@ -1233,7 +1147,6 @@ __global__ void apply_kernel(
                                         xs_shared_entry, rs_shared_entry,
                                         t_norms_shared_entry, converged);
                 }
-
 
                 // if k + 1 <= subspace_dim - 1
                 //     f(i) = 0 , where i = 0,...,k
@@ -1246,7 +1159,6 @@ __global__ void apply_kernel(
                          li += blockDim.x) {
                         int row = li / f_shared_entry.num_rhs;
                         int rhs = li % f_shared_entry.num_rhs;
-
                         if (row <= k) {
                             f_shared_entry
                                 .values[row * f_shared_entry.stride + rhs] =
@@ -1261,23 +1173,18 @@ __global__ void apply_kernel(
                         }
                     }
                 }
-
                 __syncthreads();
             }
-
-
             __syncthreads();
 
             // v = precond * r
             prec_shared.apply(gko::batch::to_const(r_shared_entry),
                               v_shared_entry);
-
             __syncthreads();
 
             // t = A *v
             spmv_kernel(A_global_entry, gko::batch::to_const(v_shared_entry),
                         t_shared_entry);
-
             __syncthreads();
 
             // omega = ( t * r )/ (t * t)
@@ -1294,9 +1201,7 @@ __global__ void apply_kernel(
                           rho_shared_entry, t_r_dot_shared_entry,
                           t_norms_shared_entry, r_norms_shared_entry,
                           omega_shared_entry, kappa, converged);
-
             __syncthreads();
-
 
             // r = r - omega * t
             // x = x + omega * v
@@ -1305,9 +1210,7 @@ __global__ void apply_kernel(
                                       gko::batch::to_const(omega_shared_entry),
                                       r_shared_entry, x_shared_entry,
                                       converged);
-
             __syncthreads();
-
 
             if (smoothing == true) {
                 const gko::batch_dense::BatchEntry<ValueType>
@@ -1329,7 +1232,6 @@ __global__ void apply_kernel(
                 compute_norm2<ValueType>(gko::batch::to_const(r_shared_entry),
                                          res_norms_shared_entry, converged);
             }
-
             __syncthreads();
         }
 
@@ -1337,13 +1239,6 @@ __global__ void apply_kernel(
             copy(gko::batch::to_const(xs_shared_entry), x_shared_entry);
             copy(gko::batch::to_const(rs_shared_entry), r_shared_entry);
         }
-
-        __syncthreads();
-
-        if (left_global_entry.values) {
-            batch_scale(right_global_entry, x_shared_entry);
-        }
-
         __syncthreads();
 
         // copy x back to global memory
