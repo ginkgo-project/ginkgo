@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
 
+#include "core/matrix/batch_csr_kernels.hpp"
+#include "core/matrix/batch_dense_kernels.hpp"
 #include "core/solver/batch_richardson_kernels.hpp"
 
 
@@ -44,6 +46,8 @@ namespace solver {
 namespace batch_rich {
 
 
+GKO_REGISTER_OPERATION(mat_scale, batch_csr::batch_scale);
+GKO_REGISTER_OPERATION(vec_scale, batch_dense::batch_scale);
 GKO_REGISTER_OPERATION(apply, batch_rich::apply);
 
 
@@ -56,7 +60,8 @@ std::unique_ptr<BatchLinOp> BatchRichardson<ValueType>::transpose() const
     return build()
         .with_preconditioner(parameters_.preconditioner)
         .with_max_iterations(parameters_.max_iterations)
-        .with_rel_residual_tol(parameters_.rel_residual_tol)
+        .with_residual_tol(parameters_.residual_tol)
+        .with_tolerance_type(parameters_.tolerance_type)
         .with_relaxation_factor(parameters_.relaxation_factor)
         .on(this->get_executor())
         ->generate(share(
@@ -70,7 +75,8 @@ std::unique_ptr<BatchLinOp> BatchRichardson<ValueType>::conj_transpose() const
     return build()
         .with_preconditioner(parameters_.preconditioner)
         .with_max_iterations(parameters_.max_iterations)
-        .with_rel_residual_tol(parameters_.rel_residual_tol)
+        .with_residual_tol(parameters_.residual_tol)
+        .with_tolerance_type(parameters_.tolerance_type)
         .with_relaxation_factor(conj(parameters_.relaxation_factor))
         .on(this->get_executor())
         ->generate(share(as<BatchTransposable>(this->get_system_matrix())
@@ -94,9 +100,32 @@ void BatchRichardson<ValueType>::apply_impl(const BatchLinOp *const b,
         GKO_NOT_SUPPORTED(system_matrix_);
     }
 
+    // copies to scale
+    auto a_scaled_smart = Mtx::create(exec);
+    auto b_scaled_smart = Vector::create(exec);
+    const Mtx *a_scaled{};
+    const Vector *b_scaled{};
+    const bool to_scale =
+        this->get_left_scaling_vector() && this->get_right_scaling_vector();
+    if (to_scale) {
+        a_scaled_smart->copy_from(acsr);
+        b_scaled_smart->copy_from(dense_b);
+        exec->run(batch_rich::make_mat_scale(this->get_left_scaling_vector(),
+                                             this->get_right_scaling_vector(),
+                                             a_scaled_smart.get()));
+        exec->run(batch_rich::make_vec_scale(this->get_left_scaling_vector(),
+                                             b_scaled_smart.get()));
+        a_scaled = a_scaled_smart.get();
+        b_scaled = b_scaled_smart.get();
+    } else {
+        a_scaled = acsr;
+        b_scaled = dense_b;
+    }
+
     const kernels::batch_rich::BatchRichardsonOptions<real_type> opts{
         parameters_.preconditioner, parameters_.max_iterations,
-        parameters_.rel_residual_tol, parameters_.relaxation_factor};
+        parameters_.residual_tol, parameters_.tolerance_type,
+        parameters_.relaxation_factor};
 
     log::BatchLogData<ValueType> logdata;
     // allocate logging arrays assuming uniform size batch
@@ -108,12 +137,16 @@ void BatchRichardson<ValueType>::apply_impl(const BatchLinOp *const b,
     logdata.iter_counts.set_executor(this->get_executor());
     logdata.iter_counts.resize_and_reset(num_rhs * num_batches);
 
-    exec->run(batch_rich::make_apply(
-        opts, system_matrix_.get(), this->get_left_scaling_vector(),
-        this->get_right_scaling_vector(), dense_b, dense_x, logdata));
+    exec->run(
+        batch_rich::make_apply(opts, a_scaled, b_scaled, dense_x, logdata));
 
     this->template log<log::Logger::batch_solver_completed>(
         logdata.iter_counts, logdata.res_norms.get());
+
+    if (to_scale) {
+        exec->run(batch_rich::make_vec_scale(this->get_right_scaling_vector(),
+                                             dense_x));
+    }
 }
 
 
