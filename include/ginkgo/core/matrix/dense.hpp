@@ -90,7 +90,7 @@ class SparsityCsr;
  */
 template <typename ValueType = default_precision>
 class Dense
-    : public EnableLinOp<Dense<ValueType>>,
+    : public EnableValueTypedLinOp<Dense<ValueType>, ValueType>,
       public EnableCreateMethod<Dense<ValueType>>,
       public ConvertibleTo<Dense<next_precision<ValueType>>>,
       public ConvertibleTo<Coo<ValueType, int32>>,
@@ -793,7 +793,7 @@ protected:
      */
     Dense(std::shared_ptr<const Executor> exec, const dim<2> &size,
           size_type stride)
-        : EnableLinOp<Dense>(exec, size),
+        : EnableValueTypedLinOp<Dense, ValueType>(exec, size),
           values_(exec, size[0] * stride),
           stride_(stride)
     {}
@@ -817,7 +817,7 @@ protected:
     template <typename ValuesArray>
     Dense(std::shared_ptr<const Executor> exec, const dim<2> &size,
           ValuesArray &&values, size_type stride)
-        : EnableLinOp<Dense>(exec, size),
+        : EnableValueTypedLinOp<Dense, ValueType>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
           stride_{stride}
     {

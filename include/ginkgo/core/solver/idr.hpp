@@ -79,7 +79,7 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Idr : public EnableLinOp<Idr<ValueType>>,
+class Idr : public EnableValueTypedLinOp<Idr<ValueType>, ValueType>,
             public Preconditionable,
             public Transposable {
     friend class EnableLinOp<Idr>;
@@ -255,13 +255,14 @@ protected:
                  matrix::Dense<SubspaceType> *dense_x) const;
 
     explicit Idr(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Idr>(std::move(exec))
+        : EnableValueTypedLinOp<Idr, ValueType>(std::move(exec))
     {}
 
     explicit Idr(const Factory *factory,
                  std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Idr>(factory->get_executor(),
-                           gko::transpose(system_matrix->get_size())),
+        : EnableValueTypedLinOp<Idr, ValueType>(
+              factory->get_executor(),
+              gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {

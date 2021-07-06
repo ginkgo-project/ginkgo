@@ -112,8 +112,9 @@ namespace preconditioner {
 template <typename LSolverType = solver::LowerTrs<>,
           typename USolverType = solver::UpperTrs<>, bool ReverseApply = false,
           typename IndexType = int32>
-class Ilu : public EnableLinOp<
-                Ilu<LSolverType, USolverType, ReverseApply, IndexType>>,
+class Ilu : public EnableValueTypedLinOp<
+                Ilu<LSolverType, USolverType, ReverseApply, IndexType>,
+                typename LSolverType::value_type>,
             public Transposable {
     friend class EnableLinOp<Ilu>;
     friend class EnablePolymorphicObject<Ilu, LinOp>;
@@ -250,11 +251,12 @@ protected:
     }
 
     explicit Ilu(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Ilu>(std::move(exec))
+        : EnableValueTypedLinOp<Ilu, value_type>(std::move(exec))
     {}
 
     explicit Ilu(const Factory *factory, std::shared_ptr<const LinOp> lin_op)
-        : EnableLinOp<Ilu>(factory->get_executor(), lin_op->get_size()),
+        : EnableValueTypedLinOp<Ilu, value_type>(factory->get_executor(),
+                                                 lin_op->get_size()),
           parameters_{factory->get_parameters()}
     {
         auto comp =

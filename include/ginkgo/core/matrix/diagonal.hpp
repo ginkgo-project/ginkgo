@@ -66,7 +66,7 @@ class Dense;
  */
 template <typename ValueType = default_precision>
 class Diagonal
-    : public EnableLinOp<Diagonal<ValueType>>,
+    : public EnableValueTypedLinOp<Diagonal<ValueType>, ValueType>,
       public EnableCreateMethod<Diagonal<ValueType>>,
       public ConvertibleTo<Csr<ValueType, int32>>,
       public ConvertibleTo<Csr<ValueType, int64>>,
@@ -169,7 +169,8 @@ protected:
      * @param size  size of the matrix
      */
     Diagonal(std::shared_ptr<const Executor> exec, size_type size)
-        : EnableLinOp<Diagonal>(exec, dim<2>{size}), values_(exec, size)
+        : EnableValueTypedLinOp<Diagonal, ValueType>(exec, dim<2>{size}),
+          values_(exec, size)
     {}
 
     /**
@@ -189,7 +190,7 @@ protected:
     template <typename ValuesArray>
     Diagonal(std::shared_ptr<const Executor> exec, const size_type size,
              ValuesArray &&values)
-        : EnableLinOp<Diagonal>(exec, dim<2>(size)),
+        : EnableValueTypedLinOp<Diagonal, ValueType>(exec, dim<2>(size)),
           values_{exec, std::forward<ValuesArray>(values)}
     {
         GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_num_elems());

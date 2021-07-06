@@ -65,16 +65,17 @@ class Csr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
-              public EnableCreateMethod<Sellp<ValueType, IndexType>>,
-              public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
-              public ConvertibleTo<Dense<ValueType>>,
-              public ConvertibleTo<Csr<ValueType, IndexType>>,
-              public DiagonalExtractable<ValueType>,
-              public ReadableFromMatrixData<ValueType, IndexType>,
-              public WritableToMatrixData<ValueType, IndexType>,
-              public EnableAbsoluteComputation<
-                  remove_complex<Sellp<ValueType, IndexType>>> {
+class Sellp
+    : public EnableValueTypedLinOp<Sellp<ValueType, IndexType>, ValueType>,
+      public EnableCreateMethod<Sellp<ValueType, IndexType>>,
+      public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
+      public ConvertibleTo<Dense<ValueType>>,
+      public ConvertibleTo<Csr<ValueType, IndexType>>,
+      public DiagonalExtractable<ValueType>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType>,
+      public EnableAbsoluteComputation<
+          remove_complex<Sellp<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Sellp>;
     friend class EnablePolymorphicObject<Sellp, LinOp>;
     friend class Dense<ValueType>;
@@ -322,7 +323,7 @@ protected:
      */
     Sellp(std::shared_ptr<const Executor> exec, const dim<2> &size,
           size_type slice_size, size_type stride_factor, size_type total_cols)
-        : EnableLinOp<Sellp>(exec, size),
+        : EnableValueTypedLinOp<Sellp, ValueType>(exec, size),
           values_(exec, slice_size * total_cols),
           col_idxs_(exec, slice_size * total_cols),
           slice_lengths_(exec, ceildiv(size[0], slice_size)),

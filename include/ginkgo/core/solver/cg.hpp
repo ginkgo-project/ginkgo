@@ -70,7 +70,7 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Cg : public EnableLinOp<Cg<ValueType>>,
+class Cg : public EnableValueTypedLinOp<Cg<ValueType>, ValueType>,
            public Preconditionable,
            public Transposable {
     friend class EnableLinOp<Cg>;
@@ -157,13 +157,14 @@ protected:
                     LinOp *x) const override;
 
     explicit Cg(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Cg>(std::move(exec))
+        : EnableValueTypedLinOp<Cg, ValueType>(std::move(exec))
     {}
 
     explicit Cg(const Factory *factory,
                 std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Cg>(factory->get_executor(),
-                          gko::transpose(system_matrix->get_size())),
+        : EnableValueTypedLinOp<Cg, ValueType>(
+              factory->get_executor(),
+              gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {

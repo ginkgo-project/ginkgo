@@ -119,7 +119,7 @@ enum class storage_precision {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class CbGmres : public EnableLinOp<CbGmres<ValueType>>,
+class CbGmres : public EnableValueTypedLinOp<CbGmres<ValueType>, ValueType>,
                 public Preconditionable {
     friend class EnableLinOp<CbGmres>;
     friend class EnablePolymorphicObject<CbGmres, LinOp>;
@@ -206,13 +206,13 @@ protected:
                     LinOp *x) const override;
 
     explicit CbGmres(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<CbGmres>(std::move(exec))
+        : EnableValueTypedLinOp<CbGmres, ValueType>(std::move(exec))
     {}
 
     explicit CbGmres(const Factory *factory,
                      std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<CbGmres>(factory->get_executor(),
-                               transpose(system_matrix->get_size())),
+        : EnableValueTypedLinOp<CbGmres, ValueType>(
+              factory->get_executor(), transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
