@@ -117,7 +117,7 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType> *result);
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
+class Csr : public EnableValueTypedLinOp<Csr<ValueType, IndexType>, ValueType>,
             public EnableCreateMethod<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
@@ -871,7 +871,7 @@ protected:
     Csr(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
         size_type num_nonzeros = {},
         std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
-        : EnableLinOp<Csr>(exec, size),
+        : EnableValueTypedLinOp<Csr, ValueType>(exec, size),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
           row_ptrs_(exec, size[0] + 1),
@@ -904,7 +904,7 @@ protected:
     Csr(std::shared_ptr<const Executor> exec, const dim<2> &size,
         ValuesArray &&values, ColIdxsArray &&col_idxs, RowPtrsArray &&row_ptrs,
         std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
-        : EnableLinOp<Csr>(exec, size),
+        : EnableValueTypedLinOp<Csr, ValueType>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)},

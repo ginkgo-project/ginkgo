@@ -69,7 +69,7 @@ class Csr;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Hybrid
-    : public EnableLinOp<Hybrid<ValueType, IndexType>>,
+    : public EnableValueTypedLinOp<Hybrid<ValueType, IndexType>, ValueType>,
       public EnableCreateMethod<Hybrid<ValueType, IndexType>>,
       public ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>,
       public ConvertibleTo<Dense<ValueType>>,
@@ -726,7 +726,7 @@ protected:
         size_type num_stored_elements_per_row, size_type stride,
         size_type num_nonzeros = {},
         std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : EnableLinOp<Hybrid>(exec, size),
+        : EnableValueTypedLinOp<Hybrid, ValueType>(exec, size),
           ell_(std::move(ell_type::create(
               exec, size, num_stored_elements_per_row, stride))),
           coo_(std::move(coo_type::create(exec, size, num_nonzeros))),

@@ -70,7 +70,7 @@ constexpr size_type default_krylov_dim = 100u;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Gmres : public EnableLinOp<Gmres<ValueType>>,
+class Gmres : public EnableValueTypedLinOp<Gmres<ValueType>, ValueType>,
               public Preconditionable,
               public Transposable {
     friend class EnableLinOp<Gmres>;
@@ -176,13 +176,14 @@ protected:
                     LinOp *x) const override;
 
     explicit Gmres(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Gmres>(std::move(exec))
+        : EnableValueTypedLinOp<Gmres, ValueType>(std::move(exec))
     {}
 
     explicit Gmres(const Factory *factory,
                    std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Gmres>(factory->get_executor(),
-                             gko::transpose(system_matrix->get_size())),
+        : EnableValueTypedLinOp<Gmres, ValueType>(
+              factory->get_executor(),
+              gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {

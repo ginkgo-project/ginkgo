@@ -103,7 +103,8 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Ir : public EnableLinOp<Ir<ValueType>>, public Transposable {
+class Ir : public EnableValueTypedLinOp<Ir<ValueType>, ValueType>,
+           public Transposable {
     friend class EnableLinOp<Ir>;
     friend class EnablePolymorphicObject<Ir, LinOp>;
 
@@ -212,13 +213,14 @@ protected:
                     LinOp *x) const override;
 
     explicit Ir(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Ir>(std::move(exec))
+        : EnableValueTypedLinOp<Ir, ValueType>(std::move(exec))
     {}
 
     explicit Ir(const Factory *factory,
                 std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Ir>(factory->get_executor(),
-                          gko::transpose(system_matrix->get_size())),
+        : EnableValueTypedLinOp<Ir, ValueType>(
+              factory->get_executor(),
+              gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {

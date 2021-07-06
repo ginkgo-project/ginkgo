@@ -60,7 +60,7 @@ namespace matrix {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Identity : public EnableLinOp<Identity<ValueType>>,
+class Identity : public EnableValueTypedLinOp<Identity<ValueType>, ValueType>,
                  public EnableCreateMethod<Identity<ValueType>>,
                  public Transposable {
     friend class EnablePolymorphicObject<Identity, LinOp>;
@@ -85,7 +85,7 @@ protected:
      * @param exec  Executor associated to the matrix
      */
     explicit Identity(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Identity>(exec)
+        : EnableValueTypedLinOp<Identity, ValueType>(exec)
     {}
 
     /**
@@ -94,7 +94,7 @@ protected:
      * @param size  size of the matrix (must be square)
      */
     Identity(std::shared_ptr<const Executor> exec, dim<2> size)
-        : EnableLinOp<Identity>(exec, size)
+        : EnableValueTypedLinOp<Identity, ValueType>(exec, size)
     {
         GKO_ASSERT_IS_SQUARE_MATRIX(this);
     }
@@ -105,7 +105,7 @@ protected:
      * @param size  size of the matrix
      */
     Identity(std::shared_ptr<const Executor> exec, size_type size)
-        : EnableLinOp<Identity>(exec, dim<2>{size})
+        : EnableValueTypedLinOp<Identity, ValueType>(exec, dim<2>{size})
     {}
 
     void apply_impl(const LinOp *b, LinOp *x) const override;

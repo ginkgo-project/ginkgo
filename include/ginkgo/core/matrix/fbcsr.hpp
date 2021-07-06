@@ -124,18 +124,19 @@ inline IndexType get_num_blocks(const int block_size, const IndexType size)
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Fbcsr : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
-              public EnableCreateMethod<Fbcsr<ValueType, IndexType>>,
-              public ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>,
-              public ConvertibleTo<Dense<ValueType>>,
-              public ConvertibleTo<Csr<ValueType, IndexType>>,
-              public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
-              public DiagonalExtractable<ValueType>,
-              public ReadableFromMatrixData<ValueType, IndexType>,
-              public WritableToMatrixData<ValueType, IndexType>,
-              public Transposable,
-              public EnableAbsoluteComputation<
-                  remove_complex<Fbcsr<ValueType, IndexType>>> {
+class Fbcsr
+    : public EnableValueTypedLinOp<Fbcsr<ValueType, IndexType>, ValueType>,
+      public EnableCreateMethod<Fbcsr<ValueType, IndexType>>,
+      public ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>,
+      public ConvertibleTo<Dense<ValueType>>,
+      public ConvertibleTo<Csr<ValueType, IndexType>>,
+      public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
+      public DiagonalExtractable<ValueType>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType>,
+      public Transposable,
+      public EnableAbsoluteComputation<
+          remove_complex<Fbcsr<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Fbcsr>;
     friend class EnablePolymorphicObject<Fbcsr, LinOp>;
     friend class Dense<ValueType>;
@@ -342,7 +343,7 @@ protected:
      */
     Fbcsr(std::shared_ptr<const Executor> exec, const dim<2> &size,
           size_type num_nonzeros, int block_size)
-        : EnableLinOp<Fbcsr>(exec, size),
+        : EnableValueTypedLinOp<Fbcsr, ValueType>(exec, size),
           bs_{block_size},
           nbcols_{static_cast<index_type>(
               detail::get_num_blocks(block_size, size[1]))},
@@ -378,7 +379,7 @@ protected:
     Fbcsr(std::shared_ptr<const Executor> exec, const dim<2> &size,
           int block_size, ValuesArray &&values, ColIdxsArray &&col_idxs,
           RowPtrsArray &&row_ptrs)
-        : EnableLinOp<Fbcsr>(exec, size),
+        : EnableValueTypedLinOp<Fbcsr, ValueType>(exec, size),
           bs_{block_size},
           nbcols_{static_cast<index_type>(
               detail::get_num_blocks(block_size, size[1]))},

@@ -80,8 +80,9 @@ class LowerTrs;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class UpperTrs : public EnableLinOp<UpperTrs<ValueType, IndexType>>,
-                 public Transposable {
+class UpperTrs
+    : public EnableValueTypedLinOp<UpperTrs<ValueType, IndexType>, ValueType>,
+      public Transposable {
     friend class EnableLinOp<UpperTrs>;
     friend class EnablePolymorphicObject<UpperTrs, LinOp>;
     friend class LowerTrs<ValueType, IndexType>;
@@ -137,13 +138,14 @@ protected:
     void generate();
 
     explicit UpperTrs(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<UpperTrs>(std::move(exec))
+        : EnableValueTypedLinOp<UpperTrs, ValueType>(std::move(exec))
     {}
 
     explicit UpperTrs(const Factory *factory,
                       std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<UpperTrs>(factory->get_executor(),
-                                gko::transpose(system_matrix->get_size())),
+        : EnableValueTypedLinOp<UpperTrs, ValueType>(
+              factory->get_executor(),
+              gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{}
     {

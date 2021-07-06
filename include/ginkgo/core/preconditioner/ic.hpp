@@ -105,7 +105,9 @@ namespace preconditioner {
  * @ingroup LinOp
  */
 template <typename LSolverType = solver::LowerTrs<>, typename IndexType = int32>
-class Ic : public EnableLinOp<Ic<LSolverType, IndexType>>, public Transposable {
+class Ic : public EnableValueTypedLinOp<Ic<LSolverType, IndexType>,
+                                        typename LSolverType::value_type>,
+           public Transposable {
     friend class EnableLinOp<Ic>;
     friend class EnablePolymorphicObject<Ic, LinOp>;
 
@@ -218,11 +220,12 @@ protected:
     }
 
     explicit Ic(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Ic>(std::move(exec))
+        : EnableValueTypedLinOp<Ic, value_type>(std::move(exec))
     {}
 
     explicit Ic(const Factory *factory, std::shared_ptr<const LinOp> lin_op)
-        : EnableLinOp<Ic>(factory->get_executor(), lin_op->get_size()),
+        : EnableValueTypedLinOp<Ic, value_type>(factory->get_executor(),
+                                                lin_op->get_size()),
           parameters_{factory->get_parameters()}
     {
         auto comp =
