@@ -32,6 +32,35 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /**
+ * Copies the values of one multi-vector into another.
+ *
+ * Note that the output multi-vector should already have memory allocated
+ * and stride set.
+ */
+template <typename ValueType>
+__device__ __forceinline__ void copy(const int num_rows,
+                                     const ValueType *const in,
+                                     ValueType *const out)
+{
+    for (int iz = threadIdx.x; iz < num_rows; iz += blockDim.x) {
+        out[iz] = in[iz];
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void single_add_scaled(const int num_rows,
+                                                  const ValueType alpha,
+                                                  const ValueType *const x,
+                                                  ValueType *const y)
+{
+    for (int li = threadIdx.x; li < num_rows; li += blockDim.x) {
+        y[li] += alpha * x[li];
+    }
+}
+
+
+/**
  * Computes the 2-norms of some column vectors in global or shared memory.
  *
  * @param x  A row-major multivector with nrhs columns.
@@ -80,23 +109,6 @@ __global__ __launch_bounds__(
         if (threadIdx.x / config::warp_size == 0) {
             single_compute_norm2(warp_grp, num_rows, x_b, r_b[0]);
         }
-    }
-}
-
-
-/**
- * Copies the values of one multi-vector into another.
- *
- * Note that the output multi-vector should already have memory allocated
- * and stride set.
- */
-template <typename ValueType>
-__device__ __forceinline__ void copy(const int num_rows,
-                                     const ValueType *const in,
-                                     ValueType *const out)
-{
-    for (int iz = threadIdx.x; iz < num_rows; iz += blockDim.x) {
-        out[iz] = in[iz];
     }
 }
 
