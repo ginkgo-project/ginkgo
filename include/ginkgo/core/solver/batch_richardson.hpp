@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
+#include <ginkgo/core/stop/batch_stop_enum.hpp>
 
 
 namespace gko {
@@ -126,7 +127,13 @@ public:
         /**
          * Relative residual tolerance.
          */
-        real_type GKO_FACTORY_PARAMETER_SCALAR(rel_residual_tol, 1e-6);
+        real_type GKO_FACTORY_PARAMETER_SCALAR(residual_tol, 1e-6);
+
+        /**
+         * Tolerance type.
+         */
+        gko::stop::batch::ToleranceType GKO_FACTORY_PARAMETER_SCALAR(
+            tolerance_type, gko::stop::batch::ToleranceType::relative);
 
         /**
          * Relaxation factor for Richardson iteration.
