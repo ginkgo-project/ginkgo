@@ -101,8 +101,6 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs,
                const gko::kernels::batch_gmres::BatchGmresOptions< \
                    remove_complex<_type>> &options,                \
                const BatchLinOp *const a,                          \
-               const matrix::BatchDense<_type> *const left_scale,  \
-               const matrix::BatchDense<_type> *const right_scale, \
                const matrix::BatchDense<_type> *const b,           \
                matrix::BatchDense<_type> *const x,                 \
                gko::log::BatchLogData<_type> &logdata)
