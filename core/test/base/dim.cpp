@@ -117,6 +117,26 @@ TEST(Dim, ConvertsToBool)
 }
 
 
+TEST(Dim, CanAppendToStream1)
+{
+    gko::dim<2> d2{2, 3};
+
+    std::ostringstream os;
+    os << d2;
+    ASSERT_EQ(os.str(), "(2 , 3)");
+}
+
+
+TEST(Dim, CanAppendToStream2)
+{
+    gko::dim<3> d2{2, 3, 4};
+
+    std::ostringstream os;
+    os << d2;
+    ASSERT_EQ(os.str(), "(2 , (3 , 4))");
+}
+
+
 TEST(Dim, EqualityReturnsTrueWhenEqual)
 {
     ASSERT_TRUE(gko::dim<2>(2, 3) == gko::dim<2>(2, 3));
