@@ -1,6 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
-All rights reserved.
+Copyright (c) 2017-2021, the Ginkgo authors All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -132,6 +131,21 @@ public:
         enabled_permute_ = permute_mask;
     }
 
+    // TODO add has_unique_idxs test
+    void validate_impl() const
+    {
+        std::map<std::string, std::function<bool()>> constraints_map{
+            {"is_finite", [this] {
+                 return ::gko::validate::is_finite<ValueType>(
+                     values_.get_const_data(), values_.get_num_elems());
+             }}};
+
+        for (auto const &x : constraints_map) {
+            if (!x.second()) {
+                throw gko::Invalid(__FILE__, __LINE__, "Permutation", x.first);
+            };
+        }
+    }
 
 protected:
     /**
