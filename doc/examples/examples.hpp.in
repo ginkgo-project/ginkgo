@@ -249,14 +249,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * <table align="center" width="90%">
  *
  *   <tr valign="top">
- *     <td> Solving a simple linear system with choice of executors.
+ *     <td> Solving a simple linear system with choice of executors
  *     </td>
  *     <td>@ref simple_solver
  *     </td>
  *   </tr>
  *
  *   <tr valign="top">
- *     <td> Debug the performance of a solver using loggers.
+ *     <td> Debug the performance of a solver using loggers
  *     </td>
  *     <td>@ref performance_debugging
  *     </td>
@@ -278,6 +278,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   </tr>
  *
  *   <tr valign="top">
+ *     <td> Iterative refinement
+ *     </td>
+ *     <td>@ref iterative_refinement,
+ *         @ref ir_ilu_preconditioned_solver
+ *     </td>
+ *   </tr>
+ *
+ *   <tr valign="top">
  *     <td width="400px"> Solving a physically relevant problem
  *     </td>
  *     <td>@ref poisson_solver,
@@ -288,7 +296,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   </tr>
  *
  *   <tr valign="top">
- *     <td width="400px"> Reading in a matrix and right hand side from a file.
+ *     <td width="400px"> Reading in a matrix and right hand side from a file
  *     </td>
  *     <td>@ref simple_solver,
  *         @ref minimal_cuda_solver,
@@ -308,7 +316,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * <table align="center" width="90%">
  *
  *   <tr valign="top">
- *     <td> Using Ginkgo with external libraries.
+ *     <td> Using Ginkgo with external libraries
  *     </td>
  *     <td>@ref external_lib_interfacing
  *     </td>
@@ -331,14 +339,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   </tr>
  *
  *   <tr valign="top">
- *     <td> Using Ginkgo to construct more complex linear algebra routines.
+ *     <td> Using Ginkgo to construct more complex linear algebra routines
  *     </td>
  *     <td> @ref inverse_iteration
  *     </td>
  *   </tr>
  *
  *   <tr valign="top">
- *     <td> Logging within Ginkgo.
+ *     <td> Logging within Ginkgo
  *     </td>
  *     <td> @ref simple_solver_logging,
  *          @ref papi_logging,
@@ -347,21 +355,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   </tr>
  *
  *   <tr valign="top">
- *     <td> Constructing your own stopping criterion.
+ *     <td> Constructing your own stopping criterion
  *     </td>
  *     <td> @ref custom_stopping_criterion
  *     </td>
  *   </tr>
  *
  *   <tr valign="top">
- *     <td> Using ranges in Ginkgo.
+ *     <td> Using ranges in Ginkgo
  *     </td>
  *     <td> @ref ginkgo_ranges
  *     </td>
  *   </tr>
  *
  *   <tr valign="top">
- *     <td> Mixed precision.
+ *     <td> Mixed precision
  *     </td>
  *     <td>@ref mixed_spmv,
  *         @ref mixed_precision_ir,
