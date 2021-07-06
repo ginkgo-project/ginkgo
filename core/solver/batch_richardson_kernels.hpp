@@ -68,15 +68,15 @@ struct BatchRichardsonOptions {
  * The calculation includes multivectors for
  * - the residual
  * - the update (delta_x)
- * and small arrays for
+ * but small arrays for
  * - the current residual norm
- * - the initial residual norm.
+ * - the initial residual norm
+ * are allocated in static shared memory.
  */
 template <typename ValueType>
 inline int local_memory_requirement(const int num_rows, const int num_rhs)
 {
-    return (2 * num_rows * num_rhs) * sizeof(ValueType) +
-           2 * num_rhs * sizeof(typename gko::remove_complex<ValueType>);
+    return (2 * num_rows * num_rhs) * sizeof(ValueType);
 }
 
 
