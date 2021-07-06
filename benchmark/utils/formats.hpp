@@ -153,9 +153,9 @@ std::string format_command =
 // the formats command-line argument
 DEFINE_string(formats, "coo", formats::format_command.c_str());
 
-DEFINE_uint64(
-    ell_imbalance_limit, 100,
-    "Maximal storage overhead above which ELL benchmarks will be skipped");
+DEFINE_int64(ell_imbalance_limit, 100,
+             "Maximal storage overhead above which ELL benchmarks will be "
+             "skipped. Negative values mean no limit.");
 
 
 namespace formats {
@@ -210,11 +210,12 @@ std::shared_ptr<csr::strategy_type> create_gpu_strategy(
 /**
  * Checks whether the given matrix data exceeds the ELL imbalance limit set by
  * the --ell_imbalance_limit flag
+ *
  * @throws gko::Error if the imbalance limit is exceeded
  */
 void check_ell_admissibility(const gko::matrix_data<etype> &data)
 {
-    if (data.size[0] == 0) {
+    if (data.size[0] == 0 || FLAGS_ell_imbalance_limit < 0) {
         return;
     }
     std::vector<gko::size_type> row_lengths(data.size[0]);
@@ -222,8 +223,7 @@ void check_ell_admissibility(const gko::matrix_data<etype> &data)
         row_lengths[nz.row]++;
     }
     auto max_len = *std::max_element(row_lengths.begin(), row_lengths.end());
-    auto avg_len =
-        std::max<gko::size_type>(data.nonzeros.size() / data.size[0], 1);
+    auto avg_len = data.nonzeros.size() / std::max<double>(data.size[0], 1);
     if (max_len / avg_len > FLAGS_ell_imbalance_limit) {
         throw gko::Error(__FILE__, __LINE__,
                          "Matrix exceeds ELL imbalance limit");
