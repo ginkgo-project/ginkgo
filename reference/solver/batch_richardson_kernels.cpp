@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reference/matrix/batch_csr_kernels.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
 //#include "reference/matrix/batch_struct.hpp"
+#include "reference/preconditioner/batch_identity.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
 #include "reference/stop/batch_criteria.hpp"
 
@@ -67,9 +68,7 @@ static void apply_impl(
     std::shared_ptr<const ReferenceExecutor> exec,
     const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
     LogType logger, PrecType prec, const BatchMatrixType &a,
-    const gko::batch_dense::UniformBatch<const ValueType> &left_scale,
-    const gko::batch_dense::UniformBatch<const ValueType> &right_scale,
-    const gko::batch_dense::UniformBatch<ValueType> &b,
+    const gko::batch_dense::UniformBatch<const ValueType> &b,
     const gko::batch_dense::UniformBatch<ValueType> &x)
 {
     using real_type = typename gko::remove_complex<ValueType>;
@@ -97,16 +96,6 @@ static void apply_impl(
 
         uint32 converged = 0;
 
-        const auto left_b = gko::batch::batch_entry(left_scale, ibatch);
-        const auto right_b = gko::batch::batch_entry(right_scale, ibatch);
-
-        if (left_scale.values) {
-            const auto a_b = gko::batch::batch_entry(a, ibatch);
-            const auto b_b = gko::batch::batch_entry(b, ibatch);
-            batch_scale(left_b, right_b, a_b);
-            batch_dense::batch_scale(left_b, b_b);
-        }
-
         const auto a_b =
             gko::batch::batch_entry(gko::batch::to_const(a), ibatch);
         const auto b_b =
@@ -132,14 +121,14 @@ static void apply_impl(
                                               norms_b);
         batch_dense::copy(gko::batch::to_const(norms_b), init_res_norm_b);
 
-        StopType stop(nrhs, opts.max_its, opts.rel_residual_tol,
+        StopType stop(nrhs, opts.max_its, opts.residual_tol,
                       init_res_norm_b.values, converged);
 
         int iter = 0;
         while (true) {
             // r <- r - Adx  This causes instability!
             // adv_spmv_ker(static_cast<ValueType>(-1.0), a_b,
-            // 					  gko::batch::to_const(dx_b),
+            //              gko::batch::to_const(dx_b),
             // static_cast<ValueType>(1.0), r_b);
 
             // r <- b - Ax
@@ -173,10 +162,6 @@ static void apply_impl(
             batch_dense::add_scaled(relax_b, gko::batch::to_const(dx_b), x_b);
             iter++;
         }
-
-        if (left_scale.values) {
-            batch_dense::batch_scale(right_b, x_b);
-        }
     }
 }
 
@@ -185,15 +170,28 @@ void apply_select_prec(
     std::shared_ptr<const ReferenceExecutor> exec,
     const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
     const LoggerType logger, const BatchType &a,
-    const gko::batch_dense::UniformBatch<const ValueType> &left,
-    const gko::batch_dense::UniformBatch<const ValueType> &right,
-    const gko::batch_dense::UniformBatch<ValueType> &b,
+    const gko::batch_dense::UniformBatch<const ValueType> &b,
     const gko::batch_dense::UniformBatch<ValueType> &x)
 {
-    if (opts.preconditioner == gko::preconditioner::batch::type::jacobi) {
+    if (opts.preconditioner == gko::preconditioner::batch::type::none) {
+        BatchIdentity<ValueType> prec;
+        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
+            apply_impl<stop::AbsResidualMaxIter<ValueType>>(exec, opts, logger,
+                                                            prec, a, b, x);
+        } else {
+            apply_impl<stop::RelResidualMaxIter<ValueType>>(exec, opts, logger,
+                                                            prec, a, b, x);
+        }
+    } else if (opts.preconditioner ==
+               gko::preconditioner::batch::type::jacobi) {
         BatchJacobi<ValueType> prec;
-        apply_impl<stop::RelResidualMaxIter<ValueType>>(
-            exec, opts, logger, prec, a, left, right, b, x);
+        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
+            apply_impl<stop::AbsResidualMaxIter<ValueType>>(exec, opts, logger,
+                                                            prec, a, b, x);
+        } else {
+            apply_impl<stop::RelResidualMaxIter<ValueType>>(exec, opts, logger,
+                                                            prec, a, b, x);
+        }
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -203,8 +201,6 @@ template <typename ValueType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec,
            const BatchRichardsonOptions<remove_complex<ValueType>> &opts,
            const BatchLinOp *const a,
-           const matrix::BatchDense<ValueType> *const left_scale,
-           const matrix::BatchDense<ValueType> *const right_scale,
            const matrix::BatchDense<ValueType> *const b,
            matrix::BatchDense<ValueType> *const x,
            gko::log::BatchLogData<ValueType> &logdata)
@@ -213,24 +209,12 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
         static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
         logdata.res_norms->get_values(), logdata.iter_counts.get_data());
 
-    const auto left_sb = host::maybe_null_batch_struct(left_scale);
-    const auto right_sb = host::maybe_null_batch_struct(right_scale);
-    const auto to_scale = left_sb.values || right_sb.values;
-    if (to_scale && !(left_sb.values && right_sb.values)) {
-        // one-sided scaling not implemented
-        GKO_NOT_IMPLEMENTED;
-    }
     const gko::batch_dense::UniformBatch<ValueType> x_b =
         host::get_batch_struct(x);
-
     if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
-        // We pinky-promise not to change the matrix and RHS if no scaling was
-        // requested
-        const auto a_b = host::get_batch_struct(
-            const_cast<matrix::BatchCsr<ValueType> *>(a_mat));
-        const auto b_b = host::get_batch_struct(
-            const_cast<matrix::BatchDense<ValueType> *>(b));
-        apply_select_prec(exec, opts, logger, a_b, left_sb, right_sb, b_b, x_b);
+        const auto a_b = host::get_batch_struct(a_mat);
+        const auto b_b = host::get_batch_struct(b);
+        apply_select_prec(exec, opts, logger, a_b, b_b, x_b);
     } else {
         GKO_NOT_IMPLEMENTED;
     }

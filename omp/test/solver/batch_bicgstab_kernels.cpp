@@ -228,7 +228,6 @@ TYPED_TEST(BatchBicgstab, CoreSolvesSystemJacobi)
     using Mtx = typename TestFixture::Mtx;
     using BDense = typename TestFixture::BDense;
     using Solver = gko::solver::BatchBicgstab<value_type>;
-    using LinSys = gko::test::LinSys<value_type>;
     auto useexec = this->ompexec;
     std::unique_ptr<typename Solver::Factory> batchbicgstab_factory =
         Solver::build()
@@ -239,7 +238,7 @@ TYPED_TEST(BatchBicgstab, CoreSolvesSystemJacobi)
             .on(useexec);
     const int nrhs_1 = 1;
     const size_t nbatch = 3;
-    const LinSys sys =
+    const auto sys =
         gko::test::get_poisson_problem<value_type>(this->exec, nrhs_1, nbatch);
     auto rx =
         gko::batch_initialize<BDense>(nbatch, {0.0, 0.0, 0.0}, this->exec);
@@ -253,8 +252,8 @@ TYPED_TEST(BatchBicgstab, CoreSolvesSystemJacobi)
     std::unique_ptr<Solver> solver =
         batchbicgstab_factory->generate(gko::give(mtx));
     solver->apply(b.get(), x.get());
-
     rx->copy_from(gko::lend(x));
+
     GKO_ASSERT_BATCH_MTX_NEAR(rx, sys.xex, 1e-5);
 }
 
