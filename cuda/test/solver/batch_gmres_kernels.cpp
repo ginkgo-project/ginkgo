@@ -154,7 +154,7 @@ TYPED_TEST(BatchGmres, SolvesStencilSystem)
         this->cuexec, this->solve_fn, this->scale_mat, this->scale_vecs,
         this->opts_1, this->sys_1, 1);
 
-    GKO_ASSERT_BATCH_MTX_NEAR(r_1.x, this->sys_1.xex, 1e2 * this->eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(r_1.x, this->sys_1.xex, 50 * this->eps);
 }
 
 
