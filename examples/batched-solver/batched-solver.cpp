@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
     // Create the batch solver factory
     auto solver_gen = rich::build()
                           .with_max_iterations(500)
-                          .with_rel_residual_tol(reduction_factor)
+                          .with_residual_tol(reduction_factor)
                           .with_relaxation_factor(relax_factor)
                           .on(exec);
 
