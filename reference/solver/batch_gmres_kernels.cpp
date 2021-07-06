@@ -69,22 +69,19 @@ using BatchGmresOptions = gko::kernels::batch_gmres::BatchGmresOptions<T>;
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
-static void apply_impl(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    const BatchGmresOptions<remove_complex<ValueType>> &opts, LogType logger,
-    PrecType prec, const BatchMatrixType &a,
-    const gko::batch_dense::UniformBatch<const ValueType> &left,
-    const gko::batch_dense::UniformBatch<const ValueType> &right,
-    const gko::batch_dense::UniformBatch<ValueType> &b,
-    const gko::batch_dense::UniformBatch<ValueType> &x)
+static void apply_impl(std::shared_ptr<const ReferenceExecutor> exec,
+                       const BatchGmresOptions<remove_complex<ValueType>> &opts,
+                       LogType logger, PrecType prec, const BatchMatrixType &a,
+                       const gko::batch_dense::UniformBatch<const ValueType> &b,
+                       const gko::batch_dense::UniformBatch<ValueType> &x)
 {
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
     const auto restart = opts.restart_num;
 
-    GKO_ASSERT(batch_config<ValueType>::max_num_rhs >=
-               nrhs);  // required for static allocation in stopping criterion
+    // required for static allocation in stopping criterion
+    GKO_ASSERT(batch_config<ValueType>::max_num_rhs >= nrhs);
 
     const int local_size_bytes =
         gko::kernels::batch_gmres::local_memory_requirement<ValueType>(
@@ -93,49 +90,38 @@ static void apply_impl(
     using byte = unsigned char;
     Array<byte> local_space(exec, local_size_bytes);
 
-
     for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
         batch_entry_gmres_impl<StopType, PrecType, LogType, BatchMatrixType,
-                               ValueType, byte>(
-            opts, logger, prec, a, left, right, b, x, ibatch, local_space);
+                               ValueType, byte>(opts, logger, prec, a, b, x,
+                                                ibatch, local_space);
     }
 }
 
 
 template <typename BatchType, typename LoggerType, typename ValueType>
-void apply_select_prec(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    const BatchGmresOptions<remove_complex<ValueType>> &opts,
-    const LoggerType logger, const BatchType &a,
-    const gko::batch_dense::UniformBatch<const ValueType> &left,
-    const gko::batch_dense::UniformBatch<const ValueType> &right,
-    const gko::batch_dense::UniformBatch<ValueType> &b,
-    const gko::batch_dense::UniformBatch<ValueType> &x)
+void apply_select_prec(std::shared_ptr<const ReferenceExecutor> exec,
+                       const BatchGmresOptions<remove_complex<ValueType>> &opts,
+                       const LoggerType logger, const BatchType &a,
+                       const gko::batch_dense::UniformBatch<const ValueType> &b,
+                       const gko::batch_dense::UniformBatch<ValueType> &x)
 {
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-        BatchIdentity<ValueType> prec;
-
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             apply_impl<stop::AbsResidualMaxIter<ValueType>>(
-                exec, opts, logger, prec, a, left, right, b, x);
+                exec, opts, logger, BatchIdentity<ValueType>(), a, b, x);
         } else {
             apply_impl<stop::RelResidualMaxIter<ValueType>>(
-                exec, opts, logger, prec, a, left, right, b, x);
+                exec, opts, logger, BatchIdentity<ValueType>(), a, b, x);
         }
-
-
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
-        BatchJacobi<ValueType> prec;
-
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             apply_impl<stop::AbsResidualMaxIter<ValueType>>(
-                exec, opts, logger, prec, a, left, right, b, x);
+                exec, opts, logger, BatchJacobi<ValueType>(), a, b, x);
         } else {
             apply_impl<stop::RelResidualMaxIter<ValueType>>(
-                exec, opts, logger, prec, a, left, right, b, x);
+                exec, opts, logger, BatchJacobi<ValueType>(), a, b, x);
         }
-
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -146,8 +132,6 @@ template <typename ValueType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec,
            const BatchGmresOptions<remove_complex<ValueType>> &opts,
            const BatchLinOp *const a,
-           const matrix::BatchDense<ValueType> *const left_scale,
-           const matrix::BatchDense<ValueType> *const right_scale,
            const matrix::BatchDense<ValueType> *const b,
            matrix::BatchDense<ValueType> *const x,
            gko::log::BatchLogData<ValueType> &logdata)
@@ -158,38 +142,12 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
 
     const gko::batch_dense::UniformBatch<const ValueType> b_b =
         host::get_batch_struct(b);
-
-    const gko::batch_dense::UniformBatch<const ValueType> left_sb =
-        host::maybe_null_batch_struct(left_scale);
-    const gko::batch_dense::UniformBatch<const ValueType> right_sb =
-        host::maybe_null_batch_struct(right_scale);
-    const auto to_scale = left_sb.values || right_sb.values;
-    if (to_scale) {
-        if (!left_sb.values || !right_sb.values) {
-            // one-sided scaling not implemented
-            GKO_NOT_IMPLEMENTED;
-        }
-    }
-
     const gko::batch_dense::UniformBatch<ValueType> x_b =
         host::get_batch_struct(x);
     if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
-        // if(to_scale) {
-        // We pinky-promise not to change the matrix and RHS if no scaling was
-        // requested
-        const gko::batch_csr::UniformBatch<ValueType> a_b =
-            host::get_batch_struct(
-                const_cast<matrix::BatchCsr<ValueType> *>(a_mat));
-        const gko::batch_dense::UniformBatch<ValueType> b_b =
-            host::get_batch_struct(
-                const_cast<matrix::BatchDense<ValueType> *>(b));
-        apply_select_prec(exec, opts, logger, a_b, left_sb, right_sb, b_b, x_b);
-        // } else {
-        // 	const gko::batch_csr::UniformBatch<const ValueType> a_b =
-        // host::get_batch_struct(a_mat); 	apply_select_prec(exec, opts,
-        // logger, a_b, left_sb, right_sb, &b_b, b_b, x_b);
-        // }
-
+        const auto a_b = host::get_batch_struct(a_mat);
+        const auto b_b = host::get_batch_struct(b);
+        apply_select_prec(exec, opts, logger, a_b, b_b, x_b);
     } else {
         GKO_NOT_IMPLEMENTED;
     }

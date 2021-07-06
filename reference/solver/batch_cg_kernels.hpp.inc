@@ -158,9 +158,7 @@ inline void batch_entry_cg_impl(
     const gko::kernels::batch_cg::BatchCgOptions<remove_complex<ValueType>>
         &opts,
     LogType logger, PrecType prec, const BatchMatrixType &a,
-    const gko::batch_dense::UniformBatch<const ValueType> &left,
-    const gko::batch_dense::UniformBatch<const ValueType> &right,
-    const gko::batch_dense::UniformBatch<ValueType> &b,
+    const gko::batch_dense::UniformBatch<const ValueType> &b,
     const gko::batch_dense::UniformBatch<ValueType> &x, const size_type ibatch,
     Array<byte> &local_space)
 {
@@ -184,66 +182,32 @@ inline void batch_entry_cg_impl(
 
     uint32 converged = 0;
 
-
-    const gko::batch_dense::BatchEntry<const ValueType> left_entry =
-        gko::batch::batch_entry(left, ibatch);
-
-    const gko::batch_dense::BatchEntry<const ValueType> right_entry =
-        gko::batch::batch_entry(right, ibatch);
-
-    // scale the matrix and rhs
-    if (left_entry.values) {
-        const typename BatchMatrixType::entry_type A_entry =
-            gko::batch::batch_entry(a, ibatch);
-        const gko::batch_dense::BatchEntry<ValueType> b_entry =
-            gko::batch::batch_entry(b, ibatch);
-        batch_scale(left_entry, right_entry, A_entry);
-        batch_dense::batch_scale(left_entry, b_entry);
-    }
-
     // const typename BatchMatrixType::entry_type A_entry =
-    const auto A_entry =
-        gko::batch::batch_entry(gko::batch::to_const(a), ibatch);
-
+    const auto A_entry = gko::batch::batch_entry(a, ibatch);
     const gko::batch_dense::BatchEntry<const ValueType> b_entry =
-        gko::batch::batch_entry(gko::batch::to_const(b), ibatch);
-
+        gko::batch::batch_entry(b, ibatch);
     const gko::batch_dense::BatchEntry<ValueType> x_entry =
         gko::batch::batch_entry(x, ibatch);
 
-
     const gko::batch_dense::BatchEntry<ValueType> r_entry{
         r, static_cast<size_type>(nrhs), nrows, nrhs};
-
     const gko::batch_dense::BatchEntry<ValueType> z_entry{
         z, static_cast<size_type>(nrhs), nrows, nrhs};
-
     const gko::batch_dense::BatchEntry<ValueType> p_entry{
         p, static_cast<size_type>(nrhs), nrows, nrhs};
-
     const gko::batch_dense::BatchEntry<ValueType> Ap_entry{
         Ap, static_cast<size_type>(nrhs), nrows, nrhs};
 
-
     const gko::batch_dense::BatchEntry<ValueType> rho_old_entry{
         rho_old, static_cast<size_type>(nrhs), 1, nrhs};
-
-
     const gko::batch_dense::BatchEntry<ValueType> rho_new_entry{
         rho_new, static_cast<size_type>(nrhs), 1, nrhs};
-
-
     const gko::batch_dense::BatchEntry<ValueType> alpha_entry{
         alpha, static_cast<size_type>(nrhs), 1, nrhs};
-
-
     const gko::batch_dense::BatchEntry<real_type> rhs_norms_entry{
         norms_rhs, static_cast<size_type>(nrhs), 1, nrhs};
-
-
     const gko::batch_dense::BatchEntry<real_type> res_norms_entry{
         norms_res, static_cast<size_type>(nrhs), 1, nrhs};
-
 
     // generate preconditioner
     prec.generate(A_entry, prec_work);
@@ -271,9 +235,7 @@ inline void batch_entry_cg_impl(
 
         bool all_converged = stop.check_converged(iter, res_norms_entry.values,
                                                   {NULL, 0, 0, 0}, converged);
-
         logger.log_iteration(ibatch, iter, res_norms_entry.values, converged);
-
         if (all_converged) {
             break;
         }
@@ -289,7 +251,6 @@ inline void batch_entry_cg_impl(
                        gko::batch::to_const(Ap_entry), alpha_entry, x_entry,
                        r_entry, converged);
 
-
         // z = precond * r
         prec.apply(gko::batch::to_const(r_entry), z_entry);
 
@@ -298,20 +259,14 @@ inline void batch_entry_cg_impl(
             gko::batch::to_const(r_entry), gko::batch::to_const(z_entry),
             rho_new_entry, converged);
 
-
         // beta = rho_new / rho_old
         // p = z + beta * p
         update_p(gko::batch::to_const(rho_new_entry),
                  gko::batch::to_const(rho_old_entry),
                  gko::batch::to_const(z_entry), p_entry, converged);
 
-
         // rho_old = rho_new
         batch_dense::copy(gko::batch::to_const(rho_new_entry), rho_old_entry,
                           converged);
-    }
-
-    if (left_entry.values) {
-        batch_dense::batch_scale(right_entry, x_entry);
     }
 }

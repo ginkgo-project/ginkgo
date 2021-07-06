@@ -265,6 +265,7 @@ void validate_option_object(const rapidjson::Value &value)
 }
 
 
+// For now, we only use relative residual tolerance
 std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
     const std::shared_ptr<const gko::Executor> &exec,
     const std::string &description)
@@ -273,7 +274,7 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
         using Solver = gko::solver::BatchRichardson<etype>;
         return Solver::build()
             .with_max_iterations(static_cast<int>(FLAGS_max_iters))
-            .with_rel_residual_tol(
+            .with_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .with_relaxation_factor(static_cast<gko::remove_complex<etype>>(
