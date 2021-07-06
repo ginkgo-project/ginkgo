@@ -253,7 +253,6 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
         initialize(warp_grp, nrows, a_global_entry, b_entry_ptr, x_gl_entry_ptr,
                    rho_old_sh[0], omega_sh[0], alpha_sh[0], x_sh, r_sh,
                    r_hat_sh, p_sh, v_sh, norms_rhs_sh[0], norms_res_sh[0]);
-
         __syncthreads();
 
         // stopping criterion object
@@ -270,7 +269,6 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
                 single_compute_dot_product(warp_grp, nrows, r_hat_sh, r_sh,
                                            rho_new_sh[0]);
             }
-
             __syncthreads();
 
             // beta = (rho_new / rho_old)*(alpha / omega)
@@ -280,31 +278,25 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
 
             // p_hat = precond * p
             prec_shared.apply(nrows, p_sh, p_hat_sh);
-
-
             __syncthreads();
 
             // v = A * p_hat
             single_spmv_kernel(a_global_entry, p_hat_sh, v_sh);
-
             __syncthreads();
 
             // alpha = rho_new / < r_hat , v>
             compute_alpha(warp_grp, nrows, rho_new_sh[0], r_hat_sh, v_sh,
                           alpha_sh[0] /*, converged*/);
-
             __syncthreads();
 
             // s = r - alpha*v
             update_s(nrows, r_sh, alpha_sh[0], v_sh, s_sh /*, converged*/);
-
             __syncthreads();
 
             // an estimate of residual norms
             if (threadIdx.x / config::warp_size == 0) {
                 single_compute_norm2(warp_grp, nrows, s_sh, norms_res_sh[0]);
             }
-
             __syncthreads();
 
             // if (norms_res_sh[0] / norms_rhs_sh[0] < tol) {
@@ -315,9 +307,7 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
 
             // s_hat = precond * s
             prec_shared.apply(nrows, s_sh, s_hat_sh);
-
             __syncthreads();
-
 
             // t = A * s_hat
             single_spmv_kernel(a_global_entry, s_hat_sh, t_sh);
@@ -326,27 +316,22 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
             // omega = <t,s> / <t,t>
             compute_omega(warp_grp, nrows, t_sh, s_sh, temp_sh[0],
                           omega_sh[0] /*, converged*/);
-
             __syncthreads();
-
 
             // x = x + alpha*p_hat + omega *s_hat
             // r = s - omega * t
             update_x_and_r(nrows, p_hat_sh, s_hat_sh, alpha_sh[0], omega_sh[0],
                            s_sh, t_sh, x_sh, r_sh /*, converged*/);
-
             __syncthreads();
 
             if (threadIdx.x / config::warp_size == 0) {
                 single_compute_norm2(warp_grp, nrows, r_sh, norms_res_sh[0]);
             }
-
             //__syncthreads();
 
             if (threadIdx.x == blockDim.x - 1) {
                 rho_old_sh[0] = rho_new_sh[0];
             }
-
             __syncthreads();
         }
 
@@ -354,7 +339,6 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
 
         // copy x back to global memory
         copy(nrows, x_sh, x_gl_entry_ptr);
-
         __syncthreads();
     }
 }
