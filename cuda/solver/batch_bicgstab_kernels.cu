@@ -99,7 +99,7 @@ static void apply_impl(
     int shared_size =
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
-            /*a.num_rows*/ shared_gap, b.num_rhs);
+            shared_gap, b.num_rhs);
 #else
         0;
 #endif
@@ -115,8 +115,6 @@ static void apply_impl(
         } else {
             BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleRelResidual, BatchIdentity);
         }
-
-
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
@@ -130,8 +128,6 @@ static void apply_impl(
         } else {
             BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleRelResidual, BatchJacobi);
         }
-
-
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -148,7 +144,6 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
 {
     using cu_value_type = cuda_type<ValueType>;
 
-    // For now, FinalLogger is the only one available
     batch_log::SimpleFinalLogger<remove_complex<ValueType>> logger(
         logdata.res_norms->get_values(), logdata.iter_counts.get_data());
 

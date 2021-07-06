@@ -36,13 +36,11 @@ __global__ void apply_kernel(
     const int max_iter, const gko::remove_complex<ValueType> rel_tol,
     const gko::remove_complex<ValueType> relax_factor, LogType logger,
     PrecType prec, const MatrixType mat,
-    const gko::batch_dense::UniformBatch<const ValueType> left_scale,
-    const gko::batch_dense::UniformBatch<const ValueType> right_scale,
-    const gko::batch_dense::UniformBatch<ValueType> b,
+    const gko::batch_dense::UniformBatch<const ValueType> b,
     const gko::batch_dense::UniformBatch<ValueType> x)
 {
     static_assert(
-        std::is_same<typename MatrixType::value_type, ValueType>::value,
+        std::is_same<typename MatrixType::value_type, const ValueType>::value,
         "Inconsistent value type of matrix type!");
     static_assert(std::is_same<typename PrecType::value_type, ValueType>::value,
                   "Inconsistent value type of preconditioner!");
@@ -77,16 +75,6 @@ __global__ void apply_kernel(
 #endif
 
         uint32 converged = 0;
-
-        const auto left_b = gko::batch::batch_entry(left_scale, ibatch);
-        const auto right_b = gko::batch::batch_entry(right_scale, ibatch);
-
-        if (left_scale.values) {
-            const auto a_b = gko::batch::batch_entry(mat, ibatch);
-            const auto b_b = gko::batch::batch_entry(b, ibatch);
-            batch_scale(left_b, right_b, a_b);
-            batch_scale(left_b, b_b);
-        }
 
         const auto a_b =
             gko::batch::batch_entry(gko::batch::to_const(mat), ibatch);
@@ -161,10 +149,6 @@ __global__ void apply_kernel(
             add_scaled(relax_b, gko::batch::to_const(dx_b), x_b);
             __syncthreads();
             iter++;
-        }
-
-        if (left_scale.values) {
-            batch_scale(right_b, x_b);
         }
     }
 }
