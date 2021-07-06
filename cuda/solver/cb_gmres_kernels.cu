@@ -290,12 +290,12 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
 
     // DEBUG ONLY (works exclusively with 1 RHS, otherwise, the result is
     //            undefined)
-    size_type num_reorth_performed{};
-    non_complex pre_orthogonality{};
+    [[maybe_unused]] size_type num_reorth_performed{};
+    [[maybe_unused]] non_complex pre_orthogonality{};
     // must contain norm_matrix + reduction_norm variables, therefore,
     // (iter + 1)^2 + 1
     auto *const d_tmp_storage =
-        OrthStorage::get_data<non_complex>(exec, (iter + 1) * (iter + 1) + 1);
+        OrthStorage::get_data<ValueType>(exec, (iter + 1) * (iter + 1) + 1);
     {
         copy_next_krylov_kernel<default_block_size>
             <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
@@ -391,21 +391,15 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
 
     // DEBUG ONLY
     {
+        stream_guard guard{std::cout};
         const auto post_orthogonality = get_orthogonality(
             exec, iter + 1, krylov_bases->to_const(), d_tmp_storage);
         const char Delim = ';';
-        // save the old state of flags / settings of cout
-        std::ios old_state(nullptr);
-        old_state.copyfmt(std::cout);
-        std::ios::fmtflags flags(std::cout.flags());
-
+        // std::cout << '\n';
         std::cout.precision(16);
         std::cout << std::scientific;
         std::cout << pre_orthogonality << Delim << num_reorth_performed << Delim
                   << post_orthogonality << std::endl;
-
-        std::cout.copyfmt(old_state);
-        std::cout.flags(flags);
     }
 }
 
