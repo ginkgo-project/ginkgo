@@ -78,6 +78,12 @@ TEST(Span, CanCheckIfInSpan)
 }
 
 
+TEST(Span, AddsSpan)
+{
+    ASSERT_EQ(gko::span(6, 10), gko::span(2, 3) + gko::span(4, 7));
+}
+
+
 TEST(Span, LessThanEvaluatesToTrue)
 {
     ASSERT_TRUE(gko::span(2, 3) < gko::span(4, 7));
