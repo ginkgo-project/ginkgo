@@ -41,6 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/batch_convergence.hpp>
 
 
+#include "core/matrix/batch_csr_kernels.hpp"
+#include "core/matrix/batch_dense_kernels.hpp"
 #include "core/solver/batch_gmres_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch_test_utils.hpp"
@@ -57,13 +59,30 @@ protected:
     using BDense = gko::matrix::BatchDense<value_type>;
     using RBDense = gko::matrix::BatchDense<real_type>;
     using Options = gko::kernels::batch_gmres::BatchGmresOptions<real_type>;
+    using LogData = gko::log::BatchLogData<value_type>;
 
     BatchGmres()
         : exec(gko::ReferenceExecutor::create()),
           cuexec(gko::CudaExecutor::create(0, exec)),
-          sys_1(get_poisson_problem(1, nbatch)),
-          sys_m(get_poisson_problem(nrhs, nbatch))
-    {}
+          sys_1(gko::test::get_poisson_problem<T>(exec, 1, nbatch)),
+          sys_m(gko::test::get_poisson_problem<T>(exec, nrhs, nbatch))
+    {
+        auto execp = cuexec;
+        solve_fn = [execp](const Options opts, const Mtx *mtx, const BDense *b,
+                           BDense *x, LogData &logdata) {
+            gko::kernels::cuda::batch_gmres::apply<value_type>(execp, opts, mtx,
+                                                               b, x, logdata);
+        };
+        scale_mat = [execp](const BDense *const left, const BDense *const right,
+                            Mtx *const mat) {
+            gko::kernels::cuda::batch_csr::batch_scale<value_type>(execp, left,
+                                                                   right, mat);
+        };
+        scale_vecs = [execp](const BDense *const scale, BDense *const mat) {
+            gko::kernels::cuda::batch_dense::batch_scale<value_type>(
+                execp, scale, mat);
+        };
+    }
 
     void TearDown()
     {
@@ -89,127 +108,14 @@ protected:
     const Options opts_m{gko::preconditioner::batch::type::none, 500, eps, 2,
                          gko::stop::batch::ToleranceType::absolute};
 
+    gko::test::LinSys<T> sys_1;
+    gko::test::LinSys<T> sys_m;
 
-    struct LinSys {
-        std::unique_ptr<Mtx> mtx;
-        std::unique_ptr<BDense> b;
-        std::unique_ptr<RBDense> bnorm;
-        std::unique_ptr<BDense> xex;
-    };
-    LinSys sys_1;
-    LinSys sys_m;
-    struct Result {
-        std::shared_ptr<BDense> x;
-        std::shared_ptr<BDense> residual;
-        std::shared_ptr<RBDense> resnorm;
-        gko::log::BatchLogData<value_type> logdata;
-    };
-    Result r_1;
-    Result r_m;
-
-    LinSys get_poisson_problem(const int nrhs, const size_t nbatches)
-    {
-        LinSys sys;
-        sys.mtx = gko::test::create_poisson1d_batch<value_type>(exec, nrows,
-                                                                nbatches);
-        if (nrhs == 1) {
-            sys.b =
-                gko::batch_initialize<BDense>(nbatches, {-1.0, 3.0, 1.0}, exec);
-            sys.xex =
-                gko::batch_initialize<BDense>(nbatches, {1.0, 3.0, 2.0}, exec);
-        } else if (nrhs == 2) {
-            sys.b = gko::batch_initialize<BDense>(
-                nbatches,
-                std::initializer_list<std::initializer_list<value_type>>{
-                    {-1.0, 2.0}, {3.0, -1.0}, {1.0, 0.0}},
-                exec);
-            sys.xex = gko::batch_initialize<BDense>(
-                nbatches,
-                std::initializer_list<std::initializer_list<value_type>>{
-                    {1.0, 1.0}, {3.0, 0.0}, {2.0, 0.0}},
-                exec);
-        } else {
-            GKO_NOT_IMPLEMENTED;
-        }
-        const gko::batch_dim<> normdim(nbatches, gko::dim<2>(1, nrhs));
-        sys.bnorm = RBDense::create(exec, normdim);
-        sys.b->compute_norm2(sys.bnorm.get());
-        return sys;
-    }
-
-    std::unique_ptr<RBDense> compute_residual_norm(const Mtx *const rmtx,
-                                                   const BDense *const x,
-                                                   const BDense *const b)
-    {
-        std::unique_ptr<BDense> res = b->clone();
-        const size_t nbatches = x->get_num_batch_entries();
-        const int xnrhs = x->get_size().at(0)[1];
-        const gko::batch_stride stride(nbatches, xnrhs);
-        const gko::batch_dim<> normdim(nbatches, gko::dim<2>(1, xnrhs));
-        auto normsr = RBDense::create(exec, normdim);
-        auto alpha =
-            gko::batch_initialize<BDense>(nbatches, {-1.0}, this->exec);
-        auto beta = gko::batch_initialize<BDense>(nbatches, {1.0}, this->exec);
-        rmtx->apply(alpha.get(), x, beta.get(), res.get());
-        res->compute_norm2(normsr.get());
-        return normsr;
-    }
-
-    // Uses sys_1
-    Result solve_poisson_uniform_1(const BDense *const left_scale = nullptr,
-                                   const BDense *const right_scale = nullptr)
-    {
-        const int nrhs_1 = 1;
-        Result res;
-        std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>(nrows, nrhs_1));
-        res.x = BDense::create(exec, sizes);
-        value_type *const xvalsinit = res.x->get_values();
-        for (size_t i = 0; i < nbatch * nrows * nrhs_1; i++) {
-            xvalsinit[i] = gko::zero<value_type>();
-        }
-
-        std::vector<gko::dim<2>> normsizes(nbatch, gko::dim<2>(1, nrhs_1));
-        gko::log::BatchLogData<value_type> logdata;
-        logdata.res_norms =
-            gko::matrix::BatchDense<real_type>::create(this->cuexec, normsizes);
-        logdata.iter_counts.set_executor(this->cuexec);
-        logdata.iter_counts.resize_and_reset(nrhs_1 * nbatch);
-
-        auto mtx = Mtx::create(this->cuexec);
-        auto b = BDense::create(this->cuexec);
-        auto x = BDense::create(this->cuexec);
-        mtx->copy_from(gko::lend(sys_1.mtx));
-        b->copy_from(gko::lend(sys_1.b));
-        x->copy_from(gko::lend(res.x));
-        auto d_left = BDense::create(cuexec);
-        auto d_right = BDense::create(cuexec);
-        if (left_scale) {
-            d_left->copy_from(left_scale);
-        }
-        if (right_scale) {
-            d_right->copy_from(right_scale);
-        }
-        auto d_left_ptr = left_scale ? d_left.get() : nullptr;
-        auto d_right_ptr = right_scale ? d_right.get() : nullptr;
-
-        gko::kernels::cuda::batch_gmres::apply<value_type>(
-            this->cuexec, opts_1, mtx.get(), d_left_ptr, d_right_ptr, b.get(),
-            x.get(), logdata);
-
-        res.x->copy_from(gko::lend(x));
-        auto rnorms =
-            compute_residual_norm(sys_1.mtx.get(), res.x.get(), sys_1.b.get());
-
-        res.logdata.res_norms =
-            gko::matrix::BatchDense<real_type>::create(this->exec, sizes);
-        res.logdata.iter_counts.set_executor(this->exec);
-        res.logdata.res_norms->copy_from(logdata.res_norms.get());
-        res.logdata.iter_counts = logdata.iter_counts;
-
-        res.resnorm = std::move(rnorms);
-        return std::move(res);
-    }
-
+    std::function<void(Options, const Mtx *, const BDense *, BDense *,
+                       LogData &)>
+        solve_fn;
+    std::function<void(const BDense *, const BDense *, Mtx *)> scale_mat;
+    std::function<void(const BDense *, BDense *)> scale_vecs;
 
     int single_iters_regression()
     {
@@ -222,53 +128,9 @@ protected:
         }
     }
 
-    Result solve_poisson_uniform_mult()
-    {
-        Result res;
-        res.x = gko::batch_initialize<BDense>(
-            nbatch,
-            std::initializer_list<std::initializer_list<value_type>>{
-                {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}},
-            this->exec);
-
-        std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>(1, nrhs));
-        gko::log::BatchLogData<value_type> logdata;
-        logdata.res_norms =
-            gko::matrix::BatchDense<real_type>::create(this->cuexec, sizes);
-        logdata.iter_counts.set_executor(this->cuexec);
-        logdata.iter_counts.resize_and_reset(nrhs * nbatch);
-
-        auto mtx = Mtx::create(this->cuexec);
-        auto b = BDense::create(this->cuexec);
-        auto x = BDense::create(this->cuexec);
-        mtx->copy_from(gko::lend(sys_m.mtx));
-        b->copy_from(gko::lend(sys_m.b));
-        x->copy_from(gko::lend(res.x));
-
-        gko::kernels::cuda::batch_gmres::apply<value_type>(
-            this->cuexec, opts_m, mtx.get(), nullptr, nullptr, b.get(), x.get(),
-            logdata);
-
-        res.x->copy_from(gko::lend(x));
-        auto rnorms =
-            compute_residual_norm(sys_m.mtx.get(), res.x.get(), sys_m.b.get());
-
-        res.logdata.res_norms =
-            gko::matrix::BatchDense<real_type>::create(this->exec, sizes);
-        res.logdata.iter_counts.set_executor(this->exec);
-        res.logdata.res_norms->copy_from(logdata.res_norms.get());
-        res.logdata.iter_counts = logdata.iter_counts;
-
-        res.resnorm = std::move(rnorms);
-        return res;
-    }
-
-
     std::vector<int> multiple_iters_regression()
     {
         std::vector<int> iters(2);
-
-
         if (std::is_same<real_type, float>::value) {
             iters[0] = 35;
             iters[1] = 17;
@@ -288,8 +150,11 @@ TYPED_TEST_SUITE(BatchGmres, gko::test::ValueTypes);
 
 TYPED_TEST(BatchGmres, SolvesStencilSystem)
 {
-    this->r_1 = this->solve_poisson_uniform_1();
-    GKO_ASSERT_BATCH_MTX_NEAR(this->r_1.x, this->sys_1.xex, 1e2 * this->eps);
+    auto r_1 = gko::test::solve_poisson_uniform(
+        this->cuexec, this->solve_fn, this->scale_mat, this->scale_vecs,
+        this->opts_1, this->sys_1, 1);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(r_1.x, this->sys_1.xex, 1e2 * this->eps);
 }
 
 
@@ -298,23 +163,20 @@ TYPED_TEST(BatchGmres, StencilSystemLoggerIsCorrect)
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
 
-    this->r_1 = this->solve_poisson_uniform_1();
+    auto r_1 = gko::test::solve_poisson_uniform(
+        this->cuexec, this->solve_fn, this->scale_mat, this->scale_vecs,
+        this->opts_1, this->sys_1, 1);
 
     const int ref_iters = this->single_iters_regression();
-
-    const int *const iter_array =
-        this->r_1.logdata.iter_counts.get_const_data();
+    const int *const iter_array = r_1.logdata.iter_counts.get_const_data();
     const real_type *const res_log_array =
-        this->r_1.logdata.res_norms->get_const_values();
+        r_1.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
-        // test logger
-
         GKO_ASSERT((iter_array[i] <= ref_iters + 1) &&
                    (iter_array[i] >= ref_iters - 1));
-
         ASSERT_LE(res_log_array[i] / this->sys_1.bnorm->at(0, 0, i),
                   this->opts_1.residual_tol);
-        ASSERT_NEAR(res_log_array[i], this->r_1.resnorm->get_const_values()[i],
+        ASSERT_NEAR(res_log_array[i], r_1.resnorm->get_const_values()[i],
                     10 * this->eps);
     }
 }
@@ -322,8 +184,11 @@ TYPED_TEST(BatchGmres, StencilSystemLoggerIsCorrect)
 
 TYPED_TEST(BatchGmres, SolvesStencilMultipleSystem)
 {
-    this->r_m = this->solve_poisson_uniform_mult();
-    GKO_ASSERT_BATCH_MTX_NEAR(this->r_m.x, this->sys_m.xex, this->eps);
+    auto r_m = gko::test::solve_poisson_uniform(
+        this->cuexec, this->solve_fn, this->scale_mat, this->scale_vecs,
+        this->opts_m, this->sys_m, this->nrhs);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(r_m.x, this->sys_m.xex, this->eps);
 }
 
 
@@ -332,27 +197,23 @@ TYPED_TEST(BatchGmres, StencilMultipleSystemLoggerIsCorrect)
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
 
-    this->r_m = this->solve_poisson_uniform_mult();
+    auto r_m = gko::test::solve_poisson_uniform(
+        this->cuexec, this->solve_fn, this->scale_mat, this->scale_vecs,
+        this->opts_m, this->sys_m, this->nrhs);
 
     const std::vector<int> ref_iters = this->multiple_iters_regression();
-
-    const int *const iter_array =
-        this->r_m.logdata.iter_counts.get_const_data();
+    const int *const iter_array = r_m.logdata.iter_counts.get_const_data();
     const real_type *const res_log_array =
-        this->r_m.logdata.res_norms->get_const_values();
+        r_m.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
-        // test logger
         for (size_t j = 0; j < this->nrhs; j++) {
             GKO_ASSERT((iter_array[i * this->nrhs + j] <= ref_iters[j] + 1) &&
                        (iter_array[i * this->nrhs + j] >= ref_iters[j] - 1));
-
             ASSERT_LE(res_log_array[i * this->nrhs + j],
                       this->opts_m.residual_tol);
-
-            ASSERT_NEAR(
-                res_log_array[i * this->nrhs + j],
-                this->r_m.resnorm->get_const_values()[i * this->nrhs + j],
-                10 * this->eps);
+            ASSERT_NEAR(res_log_array[i * this->nrhs + j],
+                        r_m.resnorm->get_const_values()[i * this->nrhs + j],
+                        10 * this->eps);
         }
     }
 }
@@ -364,7 +225,6 @@ TYPED_TEST(BatchGmres, CoreSolvesSystemJacobi)
     using Mtx = typename TestFixture::Mtx;
     using BDense = typename TestFixture::BDense;
     using Solver = gko::solver::BatchGmres<value_type>;
-    using LinSys = typename TestFixture::LinSys;
     auto useexec = this->cuexec;
     std::unique_ptr<typename Solver::Factory> batchgmres_factory =
         Solver::build()
@@ -376,7 +236,8 @@ TYPED_TEST(BatchGmres, CoreSolvesSystemJacobi)
             .on(useexec);
     const int nrhs_1 = 1;
     const size_t nbatch = 3;
-    const LinSys sys = this->get_poisson_problem(nrhs_1, nbatch);
+    const auto sys =
+        gko::test::get_poisson_problem<value_type>(this->exec, nrhs_1, nbatch);
     auto rx =
         gko::batch_initialize<BDense>(nbatch, {0.0, 0.0, 0.0}, this->exec);
     std::unique_ptr<Mtx> mtx = Mtx::create(useexec);
@@ -389,7 +250,6 @@ TYPED_TEST(BatchGmres, CoreSolvesSystemJacobi)
     std::unique_ptr<Solver> solver =
         batchgmres_factory->generate(gko::give(mtx));
     solver->apply(b.get(), x.get());
-
     rx->copy_from(gko::lend(x));
 
     GKO_ASSERT_BATCH_MTX_NEAR(rx, sys.xex, 1e-5);
@@ -398,15 +258,15 @@ TYPED_TEST(BatchGmres, CoreSolvesSystemJacobi)
 
 TYPED_TEST(BatchGmres, UnitScalingDoesNotChangeResult)
 {
-    using Result = typename TestFixture::Result;
     using BDense = typename TestFixture::BDense;
     auto left_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.0, 1.0}, this->exec);
     auto right_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.0, 1.0}, this->exec);
 
-    Result result =
-        this->solve_poisson_uniform_1(left_scale.get(), right_scale.get());
+    auto result = gko::test::solve_poisson_uniform(
+        this->cuexec, this->solve_fn, this->scale_mat, this->scale_vecs,
+        this->opts_1, this->sys_1, 1, left_scale.get(), right_scale.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, 1e2 * this->eps);
 }
@@ -414,15 +274,15 @@ TYPED_TEST(BatchGmres, UnitScalingDoesNotChangeResult)
 
 TYPED_TEST(BatchGmres, GeneralScalingDoesNotChangeResult)
 {
-    using Result = typename TestFixture::Result;
     using BDense = typename TestFixture::BDense;
     auto left_scale = gko::batch_initialize<BDense>(
         this->nbatch, {0.8, 0.9, 0.95}, this->exec);
     auto right_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.5, 1.05}, this->exec);
 
-    Result result =
-        this->solve_poisson_uniform_1(left_scale.get(), right_scale.get());
+    auto result = gko::test::solve_poisson_uniform(
+        this->cuexec, this->solve_fn, this->scale_mat, this->scale_vecs,
+        this->opts_1, this->sys_1, 1, left_scale.get(), right_scale.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, 1e2 * this->eps);
 }

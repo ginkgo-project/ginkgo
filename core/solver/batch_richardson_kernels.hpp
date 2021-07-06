@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
+#include <ginkgo/core/stop/batch_stop_enum.hpp>
 
 
 #include "core/log/batch_logging.hpp"
@@ -55,7 +56,8 @@ template <typename RealType>
 struct BatchRichardsonOptions {
     preconditioner::batch::type preconditioner;
     int max_its;
-    RealType rel_residual_tol;
+    RealType residual_tol;
+    gko::stop::batch::ToleranceType tol_type;
     RealType relax_factor;
 };
 
@@ -78,15 +80,13 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs)
 }
 
 
-#define GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL(_type)                  \
-    void apply(                                                           \
-        std::shared_ptr<const DefaultExecutor> exec,                      \
-        const gko::kernels::batch_rich::BatchRichardsonOptions<           \
-            remove_complex<_type>> &options,                              \
-        const BatchLinOp *a, const matrix::BatchDense<_type> *left_scale, \
-        const matrix::BatchDense<_type> *right_scale,                     \
-        const matrix::BatchDense<_type> *b, matrix::BatchDense<_type> *x, \
-        gko::log::BatchLogData<_type> &logdata)
+#define GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL(_type)                \
+    void apply(std::shared_ptr<const DefaultExecutor> exec,             \
+               const gko::kernels::batch_rich::BatchRichardsonOptions<  \
+                   remove_complex<_type>> &options,                     \
+               const BatchLinOp *a, const matrix::BatchDense<_type> *b, \
+               matrix::BatchDense<_type> *x,                            \
+               gko::log::BatchLogData<_type> &logdata)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \
