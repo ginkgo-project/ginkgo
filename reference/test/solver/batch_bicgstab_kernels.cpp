@@ -61,32 +61,11 @@ protected:
         gko::kernels::batch_bicgstab::BatchBicgstabOptions<real_type>;
     using LogData = gko::log::BatchLogData<value_type>;
 
-    BatchBicgstab() : exec(gko::ReferenceExecutor::create())
+    BatchBicgstab()
+        : exec(gko::ReferenceExecutor::create()),
+          sys_1(gko::test::get_poisson_problem<T>(exec, 1, nbatch)),
+          sys_m(gko::test::get_poisson_problem<T>(exec, nrhs, nbatch))
     {
-        sys_1.xex =
-            gko::batch_initialize<BDense>(nbatch, {1.0, 3.0, 2.0}, exec);
-        sys_1.b = gko::batch_initialize<BDense>(nbatch, {-1.0, 3.0, 1.0}, exec);
-        sys_1.mtx =
-            gko::test::create_poisson1d_batch<value_type>(exec, nrows, nbatch);
-        sys_1.bnorm = gko::batch_initialize<RBDense>(nbatch, {0.0}, exec);
-        sys_1.b->compute_norm2(sys_1.bnorm.get());
-
-        sys_m.xex = gko::batch_initialize<BDense>(
-            nbatch,
-            std::initializer_list<std::initializer_list<value_type>>{
-                {1.0, 1.0}, {3.0, 0.0}, {2.0, 0.0}},
-            exec);
-        sys_m.b = gko::batch_initialize<BDense>(
-            nbatch,
-            std::initializer_list<std::initializer_list<value_type>>{
-                {-1.0, 2.0}, {3.0, -1.0}, {1.0, 0.0}},
-            exec);
-        sys_m.mtx =
-            gko::test::create_poisson1d_batch<value_type>(exec, nrows, nbatch);
-        sys_m.bnorm =
-            gko::batch_initialize<RBDense>(nbatch, {{0.0, 0.0}}, exec);
-        sys_m.b->compute_norm2(sys_m.bnorm.get());
-
         auto execp = this->exec;
         solve_fn = [execp](const Options opts, const Mtx *mtx, const BDense *b,
                            BDense *x, LogData &logdata) {
@@ -113,7 +92,6 @@ protected:
     const Options opts_1{gko::preconditioner::batch::type::none, 500,
                          static_cast<real_type>(1e3) * eps,
                          gko::stop::batch::ToleranceType::relative};
-
     const int nrhs = 2;
     const Options opts_m{gko::preconditioner::batch::type::none, 500, eps,
                          gko::stop::batch::ToleranceType::absolute};
@@ -225,7 +203,6 @@ TYPED_TEST(BatchBicgstab, StencilMultipleSystemLoggerIsCorrect)
     const real_type *const res_log_array =
         r_m.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
-        // test logger
         for (size_t j = 0; j < this->nrhs; j++) {
             GKO_ASSERT((iter_array[i * this->nrhs + j] <= ref_iters[j] + 1) &&
                        (iter_array[i * this->nrhs + j] >= ref_iters[j] - 1));
@@ -258,7 +235,6 @@ TYPED_TEST(BatchBicgstab, UnitScalingDoesNotChangeResult)
 TYPED_TEST(BatchBicgstab, GeneralScalingDoesNotChangeResult)
 {
     using BDense = typename TestFixture::BDense;
-    using Options = typename TestFixture::Options;
     auto left_scale = gko::batch_initialize<BDense>(
         this->nbatch, {0.8, 0.9, 0.95}, this->exec);
     auto right_scale = gko::batch_initialize<BDense>(
