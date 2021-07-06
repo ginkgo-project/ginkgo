@@ -123,6 +123,17 @@ struct span {
     }
 
     /**
+     * Returns the length of a span.
+     *
+     * @return `this->end - this->begin`
+     */
+    constexpr size_type length() const
+    {
+        GKO_ASSERT(is_valid());
+        return end - begin;
+    }
+
+    /**
      * Beginning of the span.
      */
     const size_type begin;
@@ -173,6 +184,13 @@ GKO_ATTRIBUTES GKO_INLINE constexpr bool operator!=(const span& first,
                                                     const span& second)
 {
     return !(first == second);
+}
+
+
+GKO_ATTRIBUTES GKO_INLINE constexpr span operator+(const span &first,
+                                                   const span &second)
+{
+    return gko::span{first.begin + second.begin, first.end + second.end};
 }
 
 
