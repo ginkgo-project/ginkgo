@@ -116,104 +116,6 @@ protected:
     std::function<void(const BDense *, const BDense *, Mtx *)> scale_mat;
     std::function<void(const BDense *, BDense *)> scale_vecs;
 
-#if 0
-    Result solve_poisson_uniform_1(const Options opts,
-                                   const BDense *const left_scale = nullptr,
-                                   const BDense *const right_scale = nullptr)
-    {
-        const int nrhs_1 = 1;
-        Result res;
-        std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>(nrows, nrhs_1));
-        res.x = BDense::create(exec, sizes);
-        value_type *const xvalsinit = res.x->get_values();
-        for (size_t i = 0; i < nbatch * nrows * nrhs_1; i++) {
-            xvalsinit[i] = gko::zero<value_type>();
-        }
-
-        std::vector<gko::dim<2>> normsizes(nbatch, gko::dim<2>(1, nrhs_1));
-        gko::log::BatchLogData<value_type> logdata;
-        logdata.res_norms =
-            gko::matrix::BatchDense<real_type>::create(this->cuexec, normsizes);
-        logdata.iter_counts.set_executor(this->cuexec);
-        logdata.iter_counts.resize_and_reset(nrhs_1 * nbatch);
-
-        auto mtx = Mtx::create(this->cuexec);
-        auto b = BDense::create(this->cuexec);
-        auto x = BDense::create(this->cuexec);
-        mtx->copy_from(gko::lend(sys_1.mtx));
-        b->copy_from(gko::lend(sys_1.b));
-        x->copy_from(gko::lend(res.x));
-        auto d_left = BDense::create(cuexec);
-        auto d_right = BDense::create(cuexec);
-        if (left_scale) {
-            d_left->copy_from(left_scale);
-        }
-        if (right_scale) {
-            d_right->copy_from(right_scale);
-        }
-        auto d_left_ptr = left_scale ? d_left.get() : nullptr;
-        auto d_right_ptr = right_scale ? d_right.get() : nullptr;
-
-        gko::kernels::cuda::batch_rich::apply<value_type>(
-            this->cuexec, opts, mtx.get(), d_left_ptr, d_right_ptr, b.get(),
-            x.get(), logdata);
-
-        res.x->copy_from(gko::lend(x));
-        auto rnorms =
-            compute_residual_norm(sys_1.mtx.get(), res.x.get(), sys_1.b.get());
-
-        res.logdata.res_norms =
-            gko::matrix::BatchDense<real_type>::create(this->exec, sizes);
-        res.logdata.iter_counts.set_executor(this->exec);
-        res.logdata.res_norms->copy_from(logdata.res_norms.get());
-        res.logdata.iter_counts = logdata.iter_counts;
-
-        res.resnorm = std::move(rnorms);
-        return std::move(res);
-    }
-
-    Result solve_poisson_uniform_mult()
-    {
-        Result res;
-        res.x = gko::batch_initialize<BDense>(
-            nbatch,
-            std::initializer_list<std::initializer_list<value_type>>{
-                {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}},
-            this->exec);
-
-        std::vector<gko::dim<2>> sizes(nbatch, gko::dim<2>(1, nrhs));
-        gko::log::BatchLogData<value_type> logdata;
-        logdata.res_norms =
-            gko::matrix::BatchDense<real_type>::create(this->cuexec, sizes);
-        logdata.iter_counts.set_executor(this->cuexec);
-        logdata.iter_counts.resize_and_reset(nrhs * nbatch);
-
-        auto mtx = Mtx::create(this->cuexec);
-        auto b = BDense::create(this->cuexec);
-        auto x = BDense::create(this->cuexec);
-        mtx->copy_from(gko::lend(sys_m.mtx));
-        b->copy_from(gko::lend(sys_m.b));
-        x->copy_from(gko::lend(res.x));
-
-        gko::kernels::cuda::batch_rich::apply<value_type>(
-            this->cuexec, opts_m, mtx.get(), nullptr, nullptr, b.get(), x.get(),
-            logdata);
-
-        res.x->copy_from(gko::lend(x));
-        auto rnorms =
-            compute_residual_norm(sys_m.mtx.get(), res.x.get(), sys_m.b.get());
-
-        res.logdata.res_norms =
-            gko::matrix::BatchDense<real_type>::create(this->exec, sizes);
-        res.logdata.iter_counts.set_executor(this->exec);
-        res.logdata.res_norms->copy_from(logdata.res_norms.get());
-        res.logdata.iter_counts = logdata.iter_counts;
-
-        res.resnorm = std::move(rnorms);
-        return res;
-    }
-#endif
-
     int single_iters_regression()
     {
         if (std::is_same<real_type, float>::value) {
@@ -285,6 +187,7 @@ TYPED_TEST(BatchRich, StencilSystemJacobiLoggerIsCorrect)
 }
 
 
+#if 0
 TYPED_TEST(BatchRich, SolvesStencilMultipleSystemJacobi)
 {
     auto r_m = gko::test::solve_poisson_uniform(
@@ -333,6 +236,7 @@ TYPED_TEST(BatchRich, StencilMultipleSystemJacobiLoggerIsCorrect)
         }
     }
 }
+#endif
 
 
 TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
@@ -464,10 +368,10 @@ TEST(BatchRich, CanSolveWithoutScaling)
         gko::ReferenceExecutor::create();
     std::shared_ptr<const gko::CudaExecutor> exec =
         gko::CudaExecutor::create(0, refexec);
-    const int maxits = 1000;
+    const int maxits = 2000;
     const int nrows = 21;
     const size_t nbatch = 3;
-    const int nrhs = 3;
+    const int nrhs = 1;
     auto batchrich_factory =
         Solver::build()
             .with_max_iterations(maxits)
