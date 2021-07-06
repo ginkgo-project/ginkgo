@@ -318,6 +318,8 @@ protected:
         GKO_ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
     }
 
+    // TODO copy data to host
+    // TODO check if in debug mode
     void validate() const
     {
         if (true) validate_impl();
