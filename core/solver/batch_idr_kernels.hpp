@@ -36,11 +36,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
+
+
 #include "core/log/batch_logging.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -114,10 +116,7 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs,
         std::shared_ptr<const DefaultExecutor> exec,                          \
         const gko::kernels::batch_idr::BatchIdrOptions<remove_complex<_type>> \
             &options,                                                         \
-        const BatchLinOp *const a,                                            \
-        const matrix::BatchDense<_type> *const left_scale,                    \
-        const matrix::BatchDense<_type> *const right_scale,                   \
-        const matrix::BatchDense<_type> *const b,                             \
+        const BatchLinOp *const a, const matrix::BatchDense<_type> *const b,  \
         matrix::BatchDense<_type> *const x,                                   \
         gko::log::BatchLogData<_type> &logdata)
 
