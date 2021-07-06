@@ -350,8 +350,6 @@ TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
     auto result2 = gko::test::solve_poisson_uniform(
         this->cuexec, this->solve_fn, this->scale_mat, this->scale_vecs,
         opts_slower, this->sys_1, 1);
-    // Result result1 = this->solve_poisson_uniform_1(opts);
-    // Result result2 = this->solve_poisson_uniform_1(opts_slower);
 
     const int *const iter_arr1 = result1.logdata.iter_counts.get_const_data();
     const int *const iter_arr2 = result2.logdata.iter_counts.get_const_data();
