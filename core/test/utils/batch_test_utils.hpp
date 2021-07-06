@@ -272,8 +272,6 @@ void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
     x->copy_from(ref_x.get());
     auto b = Dense::create(exec);
     b->copy_from(ref_b.get());
-    auto alpha = gko::batch_initialize<Dense>(nbatch, {-1.0}, exec);
-    auto beta = gko::batch_initialize<Dense>(nbatch, {1.0}, exec);
     if (exec != nullptr) {
         ASSERT_NO_THROW(exec->synchronize());
     }

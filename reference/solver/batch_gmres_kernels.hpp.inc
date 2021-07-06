@@ -364,9 +364,7 @@ inline void batch_entry_gmres_impl(
     const gko::kernels::batch_gmres::BatchGmresOptions<
         remove_complex<ValueType>> &opts,
     LogType logger, PrecType prec, const BatchMatrixType &a,
-    const gko::batch_dense::UniformBatch<const ValueType> &left,
-    const gko::batch_dense::UniformBatch<const ValueType> &right,
-    const gko::batch_dense::UniformBatch<ValueType> &b,
+    const gko::batch_dense::UniformBatch<const ValueType> &b,
     const gko::batch_dense::UniformBatch<ValueType> &x, const size_type ibatch,
     Array<byte> &local_space)
 {
@@ -397,30 +395,9 @@ inline void batch_entry_gmres_impl(
 
     uint32 converged = 0;
 
-
-    const gko::batch_dense::BatchEntry<const ValueType> left_entry =
-        gko::batch::batch_entry(left, ibatch);
-
-    const gko::batch_dense::BatchEntry<const ValueType> right_entry =
-        gko::batch::batch_entry(right, ibatch);
-
-    // scale the matrix and rhs
-    if (left_entry.values) {
-        const typename BatchMatrixType::entry_type A_entry =
-            gko::batch::batch_entry(a, ibatch);
-        const gko::batch_dense::BatchEntry<ValueType> b_entry =
-            gko::batch::batch_entry(b, ibatch);
-        batch_scale(left_entry, right_entry, A_entry);
-        batch_dense::batch_scale(left_entry, b_entry);
-    }
-
-    // const typename BatchMatrixType::entry_type A_entry =
-    const auto A_entry =
-        gko::batch::batch_entry(gko::batch::to_const(a), ibatch);
-
+    const auto A_entry = gko::batch::batch_entry(a, ibatch);
     const gko::batch_dense::BatchEntry<const ValueType> b_entry =
-        gko::batch::batch_entry(gko::batch::to_const(b), ibatch);
-
+        gko::batch::batch_entry(b, ibatch);
     const gko::batch_dense::BatchEntry<ValueType> x_entry =
         gko::batch::batch_entry(x, ibatch);
 
@@ -429,43 +406,34 @@ inline void batch_entry_gmres_impl(
         // storage:row-major , residual vector corresponding to each rhs is
         // stored as a col. of the matrix
         r, static_cast<size_type>(nrhs), nrows, nrhs};
-
     const gko::batch_dense::BatchEntry<ValueType> z_entry{
         // storage:row-major ,vector corresponding to each rhs is stored as
         // a col. of the matrix
         z, static_cast<size_type>(nrhs), nrows, nrhs};
-
     const gko::batch_dense::BatchEntry<ValueType> w_entry{
         // storage:row-major ,vector corresponding to each rhs is stored as
         // a col. of the matrix
         w, static_cast<size_type>(nrhs), nrows, nrhs};
-
     const gko::batch_dense::BatchEntry<ValueType> helper_entry{
         // storage:row-major ,vector corresponding to each rhs is stored as
         // a col. of the matrix
         helper, static_cast<size_type>(nrhs), nrows, nrhs};
-
     const gko::batch_dense::BatchEntry<ValueType> cs_entry{
         // storage:row-major ,vector corresponding to each rhs is stored as
         // a col. of the matrix
         cs, static_cast<size_type>(nrhs), restart, nrhs};
-
     const gko::batch_dense::BatchEntry<ValueType> sn_entry{
         // storage:row-major ,vector corresponding to each rhs is stored as
         // a col. of the matrix
         sn, static_cast<size_type>(nrhs), restart, nrhs};
-
     const gko::batch_dense::BatchEntry<ValueType> y_entry{
         // storage:row-major ,vector corresponding to each rhs is stored as
         // a col. of the matrix
         y, static_cast<size_type>(nrhs), restart, nrhs};
-
-
     const gko::batch_dense::BatchEntry<ValueType> s_entry{
         // storage:row-major ,vector corresponding to each rhs is stored as
         // a col. of the matrix
         s, static_cast<size_type>(nrhs), restart + 1, nrhs};
-
 
     const gko::batch_dense::BatchEntry<ValueType> H_entry{
         H, static_cast<size_type>(nrhs * restart), restart + 1, restart * nrhs};
@@ -483,18 +451,12 @@ inline void batch_entry_gmres_impl(
     // effectively the cols. are stored contiguously in memory one after the
     // other.
 
-
     const gko::batch_dense::BatchEntry<real_type> rhs_norms_entry{
         norms_rhs, static_cast<size_type>(nrhs), 1, nrhs};
-
-
     const gko::batch_dense::BatchEntry<real_type> res_norms_entry{
         norms_res, static_cast<size_type>(nrhs), 1, nrhs};
-
-
     const gko::batch_dense::BatchEntry<real_type> tmp_norms_entry{
         norms_tmp, static_cast<size_type>(nrhs), 1, nrhs};
-
 
     // generate preconditioner
     prec.generate(A_entry, prec_work);
@@ -524,14 +486,11 @@ inline void batch_entry_gmres_impl(
         bool all_converged = stop.check_converged(outer_iter * (restart + 1),
                                                   res_norms_entry.values,
                                                   {NULL, 0, 0, 0}, converged);
-
         logger.log_iteration(ibatch, outer_iter * (restart + 1),
                              res_norms_entry.values, converged);
-
         if (all_converged) {
             break;
         }
-
 
         // KrylovBasis_0 = z/norm(z)
         // s -> fill with zeroes
@@ -579,28 +538,21 @@ inline void batch_entry_gmres_impl(
             // + 1, inner_iter) = 0
             generate_and_apply_plane_rot_fused(
                 nrhs, &cs_entry.values[inner_iter * cs_entry.stride],
-
                 &sn_entry.values[inner_iter * sn_entry.stride],
-
                 &H_entry
                      .values[inner_iter * H_entry.stride + inner_iter * nrhs],
                 &H_entry.values[(inner_iter + 1) * H_entry.stride +
                                 inner_iter * nrhs],
-
                 &s_entry.values[inner_iter * s_entry.stride],
-
                 &s_entry.values[(inner_iter + 1) * s_entry.stride], converged);
-
 
             // estimate of residual norms
             // residual = abs(s(inner_iter + 1))
             for (int c = 0; c < res_norms_entry.num_rhs; c++) {
                 const uint32 conv = converged & (1 << c);
-
                 if (conv) {
                     continue;
                 }
-
                 res_norms_entry.values[c] =
                     abs(s_entry.values[(inner_iter + 1) * s_entry.stride + c]);
             }
@@ -640,7 +592,6 @@ inline void batch_entry_gmres_impl(
                  gko::batch::to_const(s_entry), gko::batch::to_const(V_entry),
                  x_entry, y_entry, converged);
 
-
         // r = b
         batch_dense::copy(b_entry, r_entry, converged);
 
@@ -651,13 +602,7 @@ inline void batch_entry_gmres_impl(
         batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
                                               res_norms_entry, converged);
 
-
         // z = precond * r
         prec.apply(gko::batch::to_const(r_entry), z_entry);
-    }
-
-
-    if (left_entry.values) {
-        batch_dense::batch_scale(right_entry, x_entry);
     }
 }

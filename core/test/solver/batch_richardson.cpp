@@ -73,16 +73,17 @@ protected:
     const int def_max_iters = 10;
     const real_type def_rel_res_tol = 1e-4;
     const real_type def_relax = 1.2;
+    const gko::stop::batch::ToleranceType def_tol_type =
+        gko::stop::batch::ToleranceType::relative;
 
     std::unique_ptr<Solver> generate_solver()
     {
-        auto batchrich_factory =
-            Solver::build()
-                .with_max_iterations(this->def_max_iters)
-                .with_rel_residual_tol(this->def_rel_res_tol)
-                .with_preconditioner(gpb::type::jacobi)
-                .with_relaxation_factor(this->def_relax)
-                .on(this->exec);
+        auto batchrich_factory = Solver::build()
+                                     .with_max_iterations(this->def_max_iters)
+                                     .with_residual_tol(this->def_rel_res_tol)
+                                     .with_preconditioner(gpb::type::jacobi)
+                                     .with_relaxation_factor(this->def_relax)
+                                     .on(this->exec);
         auto solver = batchrich_factory->generate(this->mtx);
         return std::unique_ptr<Solver>(static_cast<Solver *>(solver.release()));
     }
@@ -100,7 +101,8 @@ protected:
         ASSERT_EQ(a->get_parameters().max_iterations, def_max_iters);
         ASSERT_EQ(a->get_parameters().preconditioner, gpb::type::jacobi);
         ASSERT_EQ(a->get_parameters().relaxation_factor, def_relax);
-        ASSERT_EQ(a->get_parameters().rel_residual_tol, def_rel_res_tol);
+        ASSERT_EQ(a->get_parameters().residual_tol, def_rel_res_tol);
+        ASSERT_EQ(a->get_parameters().tolerance_type, def_tol_type);
     }
 
     // Checks equality of the matrix and parameters with defaults
@@ -211,7 +213,7 @@ TYPED_TEST(BatchRich, CanSetCriteria)
 
     auto batchrich_factory = Solver::build()
                                  .with_max_iterations(22)
-                                 .with_rel_residual_tol(static_cast<RT>(0.25))
+                                 .with_residual_tol(static_cast<RT>(0.25))
                                  .with_relaxation_factor(static_cast<RT>(0.28))
                                  .on(this->exec);
     auto solver = batchrich_factory->generate(this->mtx);
@@ -220,7 +222,7 @@ TYPED_TEST(BatchRich, CanSetCriteria)
     ASSERT_EQ(solver->get_parameters().relaxation_factor,
               static_cast<RT>(0.28));
     const RT tol = std::numeric_limits<RT>::epsilon();
-    ASSERT_NEAR(solver->get_parameters().rel_residual_tol, 0.25, tol);
+    ASSERT_NEAR(solver->get_parameters().residual_tol, 0.25, tol);
 }
 
 
@@ -277,7 +279,7 @@ TYPED_TEST(BatchRich, CanSetScalingVectors)
 //     using Solver = typename TestFixture::Solver;
 
 //     auto batchrich_factory =
-//         Solver::build().with_max_iterations(3).with_rel_residual_tol(0.25f)
+//         Solver::build().with_max_iterations(3).with_residual_tol(0.25f)
 // 		.with_relaxation_factor(2.0f).with_preconditioner(gpb::none).on(this->exec);
 //     auto solver = batchrich_factory->generate(this->mtx);
 // 	auto solver_trans = gko::as<Solver>(solver->transpose());
@@ -285,7 +287,7 @@ TYPED_TEST(BatchRich, CanSetScalingVectors)
 
 // 	ASSERT_EQ(params.preconditioner, gpb::none);
 // 	ASSERT_EQ(params.max_iterations, 3);
-// 	ASSERT_EQ(params.rel_residual_tol, 0.25);
+// 	ASSERT_EQ(params.residual_tol, 0.25);
 // 	ASSERT_EQ(params.relaxation_factor, 2.0);
 // }
 
