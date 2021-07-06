@@ -225,7 +225,6 @@ TYPED_TEST(BatchGmres, UnitScalingDoesNotChangeResult)
 TYPED_TEST(BatchGmres, GeneralScalingDoesNotChangeResult)
 {
     using BDense = typename TestFixture::BDense;
-    using Options = typename TestFixture::Options;
     auto left_scale = gko::batch_initialize<BDense>(
         this->nbatch, {0.8, 0.9, 0.95}, this->exec);
     auto right_scale = gko::batch_initialize<BDense>(
