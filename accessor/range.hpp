@@ -100,9 +100,11 @@ public:
         return accessor_(std::forward<DimensionTypes>(dimensions)...);
     }
 
-    range(const range &other) = default;
+    range(const range &) = default;
 
-    range(range &other) = default;
+#ifndef _WIN32
+    range(range &) = default;
+#endif
 
     /**
      * Returns the length of the specified dimension of the range.
