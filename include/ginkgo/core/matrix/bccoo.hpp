@@ -123,7 +123,7 @@ class Bccoo : public EnableLinOp<Bccoo<ValueType, IndexType>>,
     // friend class Coo<ValueType, IndexType>; // JIAE & TG
     // friend class Csr<ValueType, IndexType>; // JIAE & TG
     // friend class Dense<ValueType>;          // JIAE & TG
-    //    friend class BccooBuilder<ValueType, IndexType>; // JIAE
+    // friend class BccooBuilder<ValueType, IndexType>; // JIAE
     friend class Bccoo<to_complex<ValueType>, IndexType>;
 
 public:
@@ -208,7 +208,7 @@ public:
      *
      * @return the vector where column indexes and values are stored.
      */
-    uint8* get_data() noexcept { return data_.get_data(); }
+    uint8* get_chunk() noexcept { return chunk_.get_data(); }
 
     /**
      * @copydoc Bccoo::get_data()
@@ -217,9 +217,9 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const uint8* get_const_data() const noexcept
+    const uint8* get_const_chunk() const noexcept
     {
-        return data_.get_const_data();
+        return chunk_.get_const_data();
     }
 
     /**
@@ -234,7 +234,7 @@ public:
      *
      * @return the block size used in the definition of the matrix.
      */
-    size_type get_block_size() const noexcept { return rows_.get_num_elems(); }
+    size_type get_block_size() const noexcept { return block_size_; }
 
     /**
      * Returns the number of blocks used in the definition of the matrix.
@@ -248,7 +248,7 @@ public:
      *
      * @return the number of blocks used in the definition of the matrix.
      */
-    size_type get_num_bytes() const noexcept { return data_.get_num_elems(); }
+    size_type get_num_bytes() const noexcept { return chunk_.get_num_elems(); }
 
     /**
      * Applies Bccoo matrix axpy to a vector (or a sequence of vectors).
@@ -317,6 +317,21 @@ public:
 
 protected:
     /**
+     * Creates an empty BCCOO matrix
+     *
+     * @param exec  Executor associated to the matrix
+     */
+    /**/
+    Bccoo(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<Bccoo>(exec, dim<2>{}),
+          rows_(exec, 0),
+          offsets_(exec, 0),
+          chunk_(exec, 0),
+          num_nonzeros_{0},
+          block_size_{0}
+    {}
+
+    /**
      * Creates an uninitialized BCCOO matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
@@ -325,31 +340,57 @@ protected:
      * @param block_size    number of nonzeros in each block
      * @param num_bytes     number of bytes
      */
-    Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
-          size_type num_nonzeros = {}, size_type block_size = {},
-          size_type num_bytes = {})
+    Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
+          size_type num_nonzeros, size_type block_size, size_type num_bytes)
         : EnableLinOp<Bccoo>(exec, size),
-          rows_(exec, (num_nonzeros - 1) / block_size + 1),
-          offsets_(exec, (num_nonzeros - 1) / block_size + 2),
-          data_(exec, num_bytes),
+          rows_(exec,
+                (block_size <= 0) ? 0 : ceildiv(num_nonzeros, block_size)),
+          offsets_(exec, (block_size <= 0)
+                             ? 0
+                             : ceildiv(num_nonzeros, block_size) + 1),
+          chunk_(exec, num_bytes),
           num_nonzeros_{num_nonzeros},
           block_size_{block_size}
-    {}
+    {
+        //				std::cout << "BCCOO from sizes" <<
+        // std::endl;
+        GKO_ASSERT(block_size_ >= 0);
+    }
 
+    /*
+        Bccoo(std::shared_ptr<const Executor> exec, const dim<2> &size =
+    dim<2>{}, size_type num_nonzeros = {}, size_type block_size = {}, size_type
+    num_bytes = {})
+    //          size_type num_nonzeros = {}, size_type block_size = {1},
+            : EnableLinOp<Bccoo>(exec, size),
+    //          rows_(exec, (num_nonzeros - 1) / block_size + 1),
+    //          rows_(exec, ceildiv(num_nonzeros, block_size)),
+              rows_(exec, (block_size <= 0)? 0 : ceildiv(num_nonzeros,
+    block_size)),
+    //          offsets_(exec, (num_nonzeros - 1) / block_size + 2),
+    //          offsets_(exec, ceildiv(num_nonzeros, block_size) + 1),
+              offsets_(exec, (block_size <= 0)? 0 : ceildiv(num_nonzeros,
+    block_size) + 1), chunk_(exec, num_bytes), num_nonzeros_{num_nonzeros},
+              block_size_{block_size}
+        {
+    //				std::cout << "BCCOO from sizes" << std::endl;
+            GKO_ASSERT(block_size_ >= 0);
+                    }
+    */
     /**
      * Creates a BCCOO matrix from already allocated (and initialized) rows
-     * offsets and data arrays.
+     * offsets and chunk arrays.
      *
-     * @tparam DataArray  type of `data` array
+     * @tparam ChunkArray  type of `chunk` array
      * @tparam OffIdxsArray  type of `offsets` array
      * @tparam RowIdxArray  type of `rows` array
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
-     * @param data  array of matrix indexes and matrix values
+     * @param chunk  array of matrix indexes and matrix values
      * @param offsets  array of positions of the first entry of each block in
-     * data array
-     * @param rows  array of row index of the first entry of each block in data
+     * chunk array
+     * @param rows  array of row index of the first entry of each block in chunk
      * array
      * @param num_nonzeros  number of nonzeros
      * @param block_size    number of nonzeros in each block
@@ -357,20 +398,30 @@ protected:
      * @note If one of `row_idxs`, `col_idxs` or `values` is not an rvalue, not
      *       an array of IndexType, IndexType and ValueType, respectively, or
      *       is on the wrong executor, an internal copy of that array will be
-     *       created, and the original array data will not be used in the
+     *       created, and the original array chunk will not be used in the
      *       matrix.
      */
-    template <typename DataArray, typename OffIdxsArray, typename RowIdxsArray>
+    //    template <typename ChunkArray, typename OffIdxsArray, typename
+    //    RowIdxsArray> template <typename OffIdxsArray, typename RowIdxsArray>
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          DataArray&& data, OffIdxsArray&& offsets, RowIdxsArray&& rows,
-          size_type num_nonzeros = {}, size_type block_size = {})
+          //          ChunkArray &&chunk, OffIdxsArray &&offsets, RowIdxsArray
+          //          &&rows, array<uint8> &&chunk, OffIdxsArray &&offsets,
+          //          RowIdxsArray &&rows,
+          array<uint8>&& chunk, array<IndexType>&& offsets,
+          array<IndexType>&& rows, size_type num_nonzeros, size_type block_size)
+        //          size_type num_nonzeros = {}, size_type block_size = {})
         : EnableLinOp<Bccoo>(exec, size),
-          data_{exec, std::forward<DataArray>(data)},
-          offsets_{exec, std::forward<OffIdxsArray>(offsets)},
-          rows_{exec, std::forward<RowIdxsArray>(rows)},
+          //          chunk_{exec, std::forward<ChunkArray>(chunk)},
+          chunk_{exec, std::move(chunk)},
+          //          offsets_{exec, std::forward<OffIdxsArray>(offsets)},
+          offsets_{exec, std::move(offsets)},
+          //          rows_{exec, std::forward<RowIdxsArray>(rows)},
+          rows_{exec, std::move(rows)},
           num_nonzeros_{num_nonzeros},
           block_size_{block_size}
     {
+        //				std::cout << "BCCOO from vectors" <<
+        // std::endl;
         GKO_ASSERT_EQ(rows_.get_num_elems() + 1, offsets_.get_num_elems());
     }
     void apply_impl(const LinOp* b, LinOp* x) const override;
@@ -389,7 +440,7 @@ private:
 
     array<index_type> rows_;
     array<index_type> offsets_;  // To fix to int64 should be a better option
-    array<uint8> data_;
+    array<uint8> chunk_;
     size_type block_size_;
     size_type num_nonzeros_;
     // size_type num_blocks_;
