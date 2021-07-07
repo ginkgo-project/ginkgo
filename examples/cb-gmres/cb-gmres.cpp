@@ -138,8 +138,8 @@ int main(int argc, char *argv[])
         b_host->at(i, 0) =
             ValueType{1} / std::sqrt(static_cast<ValueType>(A_size[0]));
     }
-    auto b_norm = gko::initialize<real_vec>({0.0}, exec);
-    b_host->compute_norm2(lend(b_norm));
+    auto b_norm = 0.0;
+    b_host->compute_norm2(&b_norm);
     auto b = clone(exec, lend(b_host));
 
     // As an initial guess, use the right-hand side
@@ -194,27 +194,22 @@ int main(int argc, char *argv[])
 
     // To measure if your solution has actually converged, the error of the
     // solution is measured.
-    // one, neg_one are objects that represent the numbers which allow for a
-    // uniform interface when computing on any device. To compute the residual,
-    // the (advanced) apply method is used.
-    auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize<vec>({-1.0}, exec);
-
-    auto res_norm_keep = gko::initialize<real_vec>({0.0}, exec);
-    auto res_norm_reduce = gko::initialize<real_vec>({0.0}, exec);
+    // To compute the residual, the (advanced) apply method is used.
+    auto res_norm_keep = 0.0;
+    auto res_norm_reduce = 0.0;
     auto tmp = gko::clone(gko::lend(b));
 
     // tmp = Ax - tmp
-    A->apply(lend(one), lend(x_keep), lend(neg_one), lend(tmp));
-    tmp->compute_norm2(lend(res_norm_keep));
+    A->apply(1.0, lend(x_keep), -1.0, lend(tmp));
+    tmp->compute_norm2(&res_norm_keep);
 
     std::cout << "\nResidual norm without compression:\n";
-    write(std::cout, lend(res_norm_keep));
+    gko::write(std::cout, res_norm_keep);
 
     tmp->copy_from(lend(b));
-    A->apply(lend(one), lend(x_reduce), lend(neg_one), lend(tmp));
-    tmp->compute_norm2(lend(res_norm_reduce));
+    A->apply(1.0, lend(x_reduce), -1.0, lend(tmp));
+    tmp->compute_norm2(&res_norm_reduce);
 
     std::cout << "\nResidual norm with compression:\n";
-    write(std::cout, lend(res_norm_reduce));
+    gko::write(std::cout, res_norm_reduce);
 }

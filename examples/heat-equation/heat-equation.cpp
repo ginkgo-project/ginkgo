@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
     // create output vector with initial guess for
     auto out_vector = in_vector->clone();
     // create scalar for source update
-    auto tau_source_scalar = gko::initialize<vec>({source_scale * tau}, exec);
+    auto tau_source_scalar = source_scale * tau;
     // create stencil matrix as shared_ptr for solver
     auto stencil_matrix = gko::share(mtx::create(exec));
     // assemble matrix
@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
                     ->get_const_values());
         }
         // add heat source contribution
-        in_vector->add_scaled(gko::lend(tau_source_scalar), gko::lend(source));
+        in_vector->add_scaled(tau_source_scalar, gko::lend(source));
         // execute Euler step
         solver->apply(gko::lend(in_vector), gko::lend(out_vector));
         // swap input and output
