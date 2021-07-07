@@ -201,7 +201,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   <tr valign="top">
  *       <td>@ref adaptiveprecision_blockjacobi</td>
  *       <td> Shows how to use the adaptive precision block-Jacobi
- *            reconditioner.
+ *            preconditioner.
  *       </td></tr>
  *
  *   <tr valign="top">
@@ -212,17 +212,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   <tr valign="top">
  *       <td>@ref heat_equation</td>
  *       <td> Solving a 2D heat equation and showing matrix assembly, vector
- *            initalization and solver setup in a more complex setting.
+ *            initalization and solver setup in a more complex setting with
+ *            output visualization.
  *       </td></tr>
  *
  *   <tr valign="top">
  *       <td>@ref iterative_refinement</td>
- *       <td> Using an inaccurate CG solver as inner solver to an iterative
+ *       <td> Using a low accuracy CG solver as an inner solver to an iterative
  *            refinement (IR) method which solves a linear system.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref  ir_ilu_preconditioned_solver</td>
+ *       <td>@ref ir_ilu_preconditioned_solver</td>
  *       <td> Combining iterative refinement with the adaptive precision
  *            block-Jacobi preconditioner to approximate triangular systems
  *            occurring in ILU preconditioning.
@@ -256,9 +257,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   </tr>
  *
  *   <tr valign="top">
- *     <td> Debug the performance of a solver using loggers
+ *     <td> Debug the performance of a solver or preconditioner
  *     </td>
  *     <td>@ref performance_debugging
+ *         @ref preconditioner_export
  *     </td>
  *   </tr>
  *
@@ -273,7 +275,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     <td width="400px"> Using preconditioners
  *     </td>
  *     <td>@ref preconditioned_solver,
- *         @ref ilu_preconditioned_solver
+ *         @ref ilu_preconditioned_solver,
+ *         @ref ir_ilu_preconditioned_solver,
+ *         @ref adaptiveprecision_blockjacobi,
+ *         @ref par_ilu_convergence,
+ *         @ref preconditioner_export
  *     </td>
  *   </tr>
  *
@@ -281,6 +287,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     <td> Iterative refinement
  *     </td>
  *     <td>@ref iterative_refinement,
+ *         @ref mixed_precision_ir,
  *         @ref ir_ilu_preconditioned_solver
  *     </td>
  *   </tr>
@@ -350,6 +357,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     </td>
  *     <td> @ref simple_solver_logging,
  *          @ref papi_logging,
+ *          @ref performance_debugging
  *          @ref custom_logger
  *     </td>
  *   </tr>
