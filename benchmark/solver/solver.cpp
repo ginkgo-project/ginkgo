@@ -609,7 +609,7 @@ int main(int argc, char *argv[])
                     {std::numeric_limits<rc_etype>::quiet_NaN()}, exec);
                 x = gko::initialize<Vec>({0.0}, exec);
             } else {
-                auto data = gko::read_raw<etype>(mtx_fd);
+                auto data = gko::read_raw<etype, itype>(mtx_fd);
                 system_matrix = share(formats::matrix_factory.at(
                     test_case["optimal"]["spmv"].GetString())(exec, data));
                 if (test_case.HasMember("rhs")) {

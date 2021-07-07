@@ -96,13 +96,13 @@ void validate_option_object(const rapidjson::Value &value)
 }
 
 
-using generator_function =
-    std::function<gko::matrix_data<etype>(rapidjson::Value &, std::ranlux24 &)>;
+using generator_function = std::function<gko::matrix_data<etype, itype>(
+    rapidjson::Value &, std::ranlux24 &)>;
 
 
 // matrix generators
-gko::matrix_data<etype> generate_block_diagonal(rapidjson::Value &config,
-                                                std::ranlux24 &engine)
+gko::matrix_data<etype, itype> generate_block_diagonal(rapidjson::Value &config,
+                                                       std::ranlux24 &engine)
 {
     if (!config.HasMember("num_blocks") || !config["num_blocks"].IsUint() ||
         !config.HasMember("block_size") || !config["block_size"].IsUint()) {
@@ -110,10 +110,10 @@ gko::matrix_data<etype> generate_block_diagonal(rapidjson::Value &config,
     }
     auto num_blocks = config["num_blocks"].GetUint();
     auto block_size = config["block_size"].GetUint();
-    auto block = gko::matrix_data<etype>(
+    auto block = gko::matrix_data<etype, itype>(
         gko::dim<2>(block_size),
         std::uniform_real_distribution<rc_etype>(-1.0, 1.0), engine);
-    return gko::matrix_data<etype>::diag(num_blocks, block);
+    return gko::matrix_data<etype, itype>::diag(num_blocks, block);
 }
 
 

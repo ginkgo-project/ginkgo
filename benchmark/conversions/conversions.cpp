@@ -69,7 +69,7 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
         add_or_set_member(conversion_case, conversion_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
-        gko::matrix_data<etype> data{gko::dim<2>{1, 1}, 1};
+        gko::matrix_data<etype, itype> data{gko::dim<2>{1, 1}, 1};
         auto matrix_to =
             share(formats::matrix_factory.at(format_to)(exec, data));
 
@@ -148,9 +148,9 @@ int main(int argc, char *argv[])
 
         std::clog << "Running test case: " << test_case << std::endl;
         std::ifstream mtx_fd(test_case["filename"].GetString());
-        gko::matrix_data<etype> data;
+        gko::matrix_data<etype, itype> data;
         try {
-            data = gko::read_raw<etype>(mtx_fd);
+            data = gko::read_raw<etype, itype>(mtx_fd);
         } catch (std::exception &e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
