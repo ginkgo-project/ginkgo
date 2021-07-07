@@ -685,11 +685,11 @@ private:
 
 
 // Some shortcuts
-using cusp_csrex = detail::CuspCsrEx<etype>;
+using cusp_csrex = detail::CuspCsrEx<etype, itype>;
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-using cusp_csr = detail::CuspCsr<etype>;
-using cusp_csrmp = detail::CuspCsrmp<etype>;
-using cusp_csrmm = detail::CuspCsrmm<etype>;
+using cusp_csr = detail::CuspCsr<etype, itype>;
+using cusp_csrmp = detail::CuspCsrmp<etype, itype>;
+using cusp_csrmm = detail::CuspCsrmm<etype, itype>;
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
@@ -698,10 +698,9 @@ using cusp_csrmm = detail::CuspCsrmm<etype>;
      ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
-using cusp_gcsr = detail::CuspGenericCsr<etype>;
-using cusp_gcsr2 =
-    detail::CuspGenericCsr<etype, gko::int32, CUSPARSE_CSRMV_ALG2>;
-using cusp_gcoo = detail::CuspGenericCoo<etype>;
+using cusp_gcsr = detail::CuspGenericCsr<etype, itype>;
+using cusp_gcsr2 = detail::CuspGenericCsr<etype, itype, CUSPARSE_CSRMV_ALG2>;
+using cusp_gcoo = detail::CuspGenericCoo<etype, itype>;
 
 
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
@@ -710,10 +709,10 @@ using cusp_gcoo = detail::CuspGenericCoo<etype>;
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 using cusp_coo =
-    detail::CuspHybrid<etype, gko::int32, CUSPARSE_HYB_PARTITION_USER, 0>;
+    detail::CuspHybrid<etype, itype, CUSPARSE_HYB_PARTITION_USER, 0>;
 using cusp_ell =
-    detail::CuspHybrid<etype, gko::int32, CUSPARSE_HYB_PARTITION_MAX, 0>;
-using cusp_hybrid = detail::CuspHybrid<etype>;
+    detail::CuspHybrid<etype, itype, CUSPARSE_HYB_PARTITION_MAX, 0>;
+using cusp_hybrid = detail::CuspHybrid<etype, itype>;
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 

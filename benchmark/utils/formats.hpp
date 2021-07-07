@@ -162,8 +162,8 @@ namespace formats {
 
 
 // some shortcuts
-using hybrid = gko::matrix::Hybrid<etype>;
-using csr = gko::matrix::Csr<etype>;
+using hybrid = gko::matrix::Hybrid<etype, itype>;
+using csr = gko::matrix::Csr<etype, itype>;
 
 /**
  * Creates a Ginkgo matrix from the intermediate data representation format
@@ -179,7 +179,7 @@ using csr = gko::matrix::Csr<etype>;
 template <typename MatrixType>
 std::unique_ptr<MatrixType> read_matrix_from_data(
     std::shared_ptr<const gko::Executor> exec,
-    const gko::matrix_data<etype> &data)
+    const gko::matrix_data<etype, itype> &data)
 {
     auto mat = MatrixType::create(std::move(exec));
     mat->read(data);
@@ -213,7 +213,7 @@ std::shared_ptr<csr::strategy_type> create_gpu_strategy(
  *
  * @throws gko::Error if the imbalance limit is exceeded
  */
-void check_ell_admissibility(const gko::matrix_data<etype> &data)
+void check_ell_admissibility(const gko::matrix_data<etype, itype> &data)
 {
     if (data.size[0] == 0 || FLAGS_ell_imbalance_limit < 0) {
         return;
@@ -237,23 +237,24 @@ void check_ell_admissibility(const gko::matrix_data<etype> &data)
  *
  * @param MATRIX_TYPE  the Ginkgo matrix type (such as `gko::matrix::Csr<>`)
  */
-#define READ_MATRIX(MATRIX_TYPE, ...)                                         \
-    [](std::shared_ptr<const gko::Executor> exec,                             \
-       const gko::matrix_data<etype> &data) -> std::unique_ptr<MATRIX_TYPE> { \
-        auto mat = MATRIX_TYPE::create(std::move(exec), __VA_ARGS__);         \
-        mat->read(data);                                                      \
-        return mat;                                                           \
+#define READ_MATRIX(MATRIX_TYPE, ...)                                 \
+    [](std::shared_ptr<const gko::Executor> exec,                     \
+       const gko::matrix_data<etype, itype> &data)                    \
+        -> std::unique_ptr<MATRIX_TYPE> {                             \
+        auto mat = MATRIX_TYPE::create(std::move(exec), __VA_ARGS__); \
+        mat->read(data);                                              \
+        return mat;                                                   \
     }
 
 
 // clang-format off
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
-                                const gko::matrix_data<etype> &)>>
+                                const gko::matrix_data<etype, itype> &)>>
     matrix_factory{
         {"csr",
          [](std::shared_ptr<const gko::Executor> exec,
-            const gko::matrix_data<etype> &data) -> std::unique_ptr<csr> {
+            const gko::matrix_data<etype, itype> &data) -> std::unique_ptr<csr> {
             auto mat =
                 csr::create(exec, create_gpu_strategy<csr::automatical>(exec));
             mat->read(data);
@@ -261,7 +262,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
          }},
         {"csri",
          [](std::shared_ptr<const gko::Executor> exec,
-            const gko::matrix_data<etype> &data) -> std::unique_ptr<csr> {
+            const gko::matrix_data<etype, itype> &data) -> std::unique_ptr<csr> {
              auto mat = csr::create(
                  exec, create_gpu_strategy<csr::load_balance>(exec));
              mat->read(data);
@@ -269,19 +270,19 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
          }},
         {"csrm", READ_MATRIX(csr, std::make_shared<csr::merge_path>())},
         {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
-        {"coo", read_matrix_from_data<gko::matrix::Coo<etype>>},
+        {"coo", read_matrix_from_data<gko::matrix::Coo<etype, itype>>},
         {"ell", [](std::shared_ptr<const gko::Executor> exec,
-            const gko::matrix_data<etype> &data) {
+            const gko::matrix_data<etype, itype> &data) {
              check_ell_admissibility(data);
-             auto mat = gko::matrix::Ell<etype>::create(exec);
+             auto mat = gko::matrix::Ell<etype, itype>::create(exec);
              mat->read(data);
              return mat;
          }},
         {"ell-mixed",
          [](std::shared_ptr<const gko::Executor> exec,
-            const gko::matrix_data<etype> &data) {
+            const gko::matrix_data<etype, itype> &data) {
              check_ell_admissibility(data);
-             gko::matrix_data<gko::next_precision<etype>> conv_data;
+             gko::matrix_data<gko::next_precision<etype>, itype> conv_data;
              conv_data.size = data.size;
              conv_data.nonzeros.resize(data.nonzeros.size());
              auto it = conv_data.nonzeros.begin();
@@ -291,7 +292,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                  it->value = el.value;
                  ++it;
              }
-             auto mat = gko::matrix::Ell<gko::next_precision<etype>>::create(
+             auto mat = gko::matrix::Ell<gko::next_precision<etype>, itype>::create(
                  std::move(exec));
              mat->read(conv_data);
              return mat;
@@ -352,7 +353,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"hybridminstorage",
          READ_MATRIX(hybrid,
                      std::make_shared<hybrid::minimal_storage_limit>())},
-        {"sellp", read_matrix_from_data<gko::matrix::Sellp<etype>>}
+        {"sellp", read_matrix_from_data<gko::matrix::Sellp<etype, itype>>}
 };
 // clang-format on
 

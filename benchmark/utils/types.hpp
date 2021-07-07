@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
+using itype = gko::int32;
+
+
 #if defined(GKO_BENCHMARK_USE_DOUBLE_PRECISION)
 using etype = double;
 #elif defined(GKO_BENCHMARK_USE_SINGLE_PRECISION)

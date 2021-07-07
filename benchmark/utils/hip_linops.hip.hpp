@@ -322,14 +322,14 @@ private:
 
 
 // Some shortcuts
-using hipsp_csr = detail::HipspCsr<etype>;
-using hipsp_csrmm = detail::HipspCsrmm<etype>;
+using hipsp_csr = detail::HipspCsr<etype, itype>;
+using hipsp_csrmm = detail::HipspCsrmm<etype, itype>;
 
 
 using hipsp_coo =
-    detail::HipspHybrid<etype, gko::int32, HIPSPARSE_HYB_PARTITION_USER, 0>;
+    detail::HipspHybrid<etype, itype, HIPSPARSE_HYB_PARTITION_USER, 0>;
 using hipsp_ell =
-    detail::HipspHybrid<etype, gko::int32, HIPSPARSE_HYB_PARTITION_MAX, 0>;
-using hipsp_hybrid = detail::HipspHybrid<etype>;
+    detail::HipspHybrid<etype, itype, HIPSPARSE_HYB_PARTITION_MAX, 0>;
+using hipsp_hybrid = detail::HipspHybrid<etype, itype>;
 
 #endif  // GKO_BENCHMARK_UTILS_HIP_LINOPS_HIP_HPP_
