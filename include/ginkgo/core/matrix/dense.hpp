@@ -633,6 +633,15 @@ public:
     }
 
     /**
+     * Overload for scalar alpha, see @ref scale
+     */
+    void scale(const ValueType alpha)
+    {
+        auto dense_alpha = scalar_to_dense(alpha, this->get_executor());
+        this->scale(dense_alpha.get());
+    }
+
+    /**
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
      *
      * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
@@ -650,6 +659,15 @@ public:
     }
 
     /**
+     * Overload for scalar alpha, see @ref add_scaled
+     */
+    void add_scaled(const ValueType alpha, const LinOp *b)
+    {
+        auto dense_alpha = scalar_to_dense(alpha, this->get_executor());
+        this->add_scaled(dense_alpha.get(), b);
+    }
+
+    /**
      * Computes the column-wise dot product of this matrix and `b`.
      *
      * @param b  a Dense matrix of same dimension as this
@@ -662,6 +680,20 @@ public:
         auto exec = this->get_executor();
         this->compute_dot_impl(make_temporary_clone(exec, b).get(),
                                make_temporary_output_clone(exec, result).get());
+    }
+
+    /**
+     * Overload for scalar result, see @ref compute_dot
+     * Assumes that the result is placed in host memory
+     */
+    void compute_dot(const LinOp *b, ValueType *result) const
+    {
+        GKO_ASSERT_EQUAL_COLS(b, dim<2>(1, 1));
+        auto exec = this->get_executor();
+        auto dense_result = Dense::create(
+            exec->get_master(), dim<2>{1, 1},
+            Array<ValueType>::view(exec->get_master(), 1, result), 1);
+        this->compute_dot(b, dense_result.get());
     }
 
     /**
@@ -681,6 +713,21 @@ public:
     }
 
     /**
+     * Overload for scalar result, see @ref compute_conj_dot
+     * Assumes that the result is placed in host memory
+     */
+    void compute_conj_dot(const LinOp *b, ValueType *result) const
+    {
+        GKO_ASSERT_EQUAL_COLS(b, dim<2>(1, 1));
+        auto exec = this->get_executor();
+        auto dense_result = Dense::create(
+            exec->get_master(), dim<2>{1, 1},
+            Array<ValueType>::view(exec->get_master(), 1, result), 1);
+        this->compute_conj_dot(b, dense_result.get());
+    }
+
+
+    /**
      * Computes the column-wise Euclidian (L^2) norm of this matrix.
      *
      * @param result  a Dense row vector, used to store the norm
@@ -692,6 +739,20 @@ public:
         auto exec = this->get_executor();
         this->compute_norm2_impl(
             make_temporary_output_clone(exec, result).get());
+    }
+
+    /**
+     * Overload for scalar result, see @ref compute_norm2
+     * Assumes that the result is placed in host memory
+     */
+    void compute_norm2(ValueType *result) const
+    {
+        GKO_ASSERT_EQUAL_COLS(this, dim<2>(1, 1));
+        auto exec = this->get_executor();
+        auto dense_result = Dense::create(
+            exec->get_master(), dim<2>{1, 1},
+            Array<ValueType>::view(exec->get_master(), 1, result), 1);
+        this->compute_norm2(dense_result.get());
     }
 
     /**
