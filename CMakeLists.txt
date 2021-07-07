@@ -59,6 +59,9 @@ option(GINKGO_CONFIG_LOG_DETAILED
 option(GINKGO_BENCHMARK_ENABLE_TUNING
     "Enable tuning variables in the benchmarks. For specific use cases, manual code changes could be required."
     OFF)
+option(GINKGO_BUILD_MICRO_BENCHMARKS
+    "Build Ginkgo's micro-benchmarks. This benchmarks the smaller functionalities to ensure their performance."
+    OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
     "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
 if(MSVC)
@@ -223,6 +226,9 @@ endif()
 if(GINKGO_BUILD_BENCHMARKS)
     find_package(gflags 2.2.2 QUIET)
     find_package(RapidJSON 1.1.0 QUIET)
+endif()
+if(GINKGO_BUILD_MICRO_BENCHMARKS)
+    find_package(gbench QUIET)
 endif()
 if(GINKGO_BUILD_HWLOC)
     find_package(HWLOC 2.1) # No need for QUIET as we ship FindHWLOC

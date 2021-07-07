@@ -117,9 +117,9 @@ add_custom_command(
             ${CMAKE_CURRENT_SOURCE_DIR}/run_all_benchmarks.sh
             ${CMAKE_CURRENT_BINARY_DIR}/run_all_benchmarks.sh)
 
-add_custom_target(benchmark)
+add_custom_target(gko-benchmark)
 add_custom_command(
-    TARGET benchmark POST_BUILD
+    TARGET gko-benchmark POST_BUILD
     COMMAND bash run_all_benchmarks.sh >/dev/null
     DEPENDS make_run_all_benchmarks
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})

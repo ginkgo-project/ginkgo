@@ -1,0 +1,2 @@
+ginkgo_create_cuda_mbench(array)
+ginkgo_create_cuda_mbench(executor)
