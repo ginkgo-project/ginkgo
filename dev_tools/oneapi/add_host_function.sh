@@ -1,4 +1,6 @@
 #!/bin/bash
+SCRIPT_DIR="$( dirname "${BASH_SOURCE[0]}" )"
+source "${SCRIPT_DIR}/shared.sh"
 
 extract_varname() {
     local str="$1"
@@ -34,114 +36,6 @@ extract_varname() {
     echo "$parameter"
 }
 
-check_closed() {
-    local str="$1"
-    str="${str//->}"
-    str_start="${str//[^(<\[]}"
-    str_end="${str//[^>)\]]}"
-    if [[ "${#str_start}" -eq "${#str_end}" ]]; then
-        echo "true"
-    else
-        echo "false"
-    fi
-}
-CONFIG_SELECTION_SUFFIX="_CONFIG"
-generate_config_selection() {
-    local template="$1"
-    local name="$2"
-    local variable="$3"
-    local var_input="$4"
-    template=$(echo ${template} | sed -E 's/^ *template *<(.*)> *$/\1/g')
-    local temp=""
-    IFS=',' read -ra par <<< "$template"
-
-    local id_list=("bool" "int" "size_type" "typename")
-    # Bash 4+ required
-    declare -A rev_id_list
-    local rev_id_list=(["bool"]=0 ["int"]=1 ["size_type"]=2 ["typename"]=3 ["Config"]=4)
-    declare -A list_list
-    list_list=(["bool"]="bool" ["int"]="int" ["size_type"]="size_type" ["typename"]="")
-    local max_num=0;
-    local param_regex="([^ =\*]*) *([^ =\*]*) *(= *.*)* *$"
-    local template_rm_config=""
-    local default_config=""
-    for var in "${par[@]}"; do
-        # echo "varaible - ${var}"
-        if [ -n "${temp}" ]; then
-            temp="${temp},"
-        fi
-        temp="${temp}${var}"
-        is_closed=$(check_closed "$temp")
-        if [[ "${is_closed}" = "false" ]]; then
-            continue
-        fi
-        # echo "temp - ${temp}"
-        # If the string contains typename, do not extract it.
-        # It should automatically be decided from argument
-        local config_regex="Config *([a-zA-Z0-9_]*) *= *([a-zA-Z][a-zA-Z_:,\(\) ]*)"
-        if [[ "${temp}" =~ ${config_regex} ]]; then
-            max_num=${rev_id_list[Config]}
-            default_config="${BASH_REMATCH[2]}"
-            temp=""
-            continue
-        fi
-        if [ -n "${template_rm_config}" ]; then
-                template_rm_config="${template_rm_config}, "
-        fi
-        template_rm_config="${template_rm_config}${temp}"
-        if [[  "${temp}" =~ $param_regex ]]; then
-            identification=${BASH_REMATCH[1]}
-            parameter_name=${BASH_REMATCH[2]}
-            # echo "${identification} ${parameter_name}"
-            if [ "${max_num}" -eq "${rev_id_list[Config]}" ]; then
-                if [ "${identification}" != "typename" ]; then
-                    echo "static_assert(false, \"Only inferred type are allowed after Config\");"
-                fi
-            else
-                if [ "${rev_id_list[${identification}]}" -ge "${max_num}" ]; then
-                    max_num=${rev_id_list[${identification}]}
-                    if [ -n "${list_list[${identification}]}" ]; then
-                        parameter_name=", ${parameter_name}"
-                    fi
-                    list_list[${identification}]="${list_list[${identification}]}${parameter_name}"
-                else
-                    echo "static_assert(false, \"Need to follow bool, int, size_type, type ordering\");"
-                fi
-            fi
-        fi
-        temp=""
-    done
-    # for item in "${!list_list[@]}"; do
-    #     echo "//$item - ${list_list[$item]}"
-    # done
-    config_generation=""
-    if [[ "${default_config}" = *"config_set"* ]]; then
-        # When the config is set in template, use it directly.
-        config_generation="::gko::syn::value_list<Config, ${default_config}>();"
-    else
-        # When config use the constexpr variable, use the variable name. The constexpr variable will be changed to Config_list afterwards.
-        config_generation="${default_config}_list"
-    fi
-    echo "template <${template_rm_config}>
-        void ${name}${CONFIG_SELECTION_SUFFIX}
-        (dim3 grid, dim3 block, size_t dynamic_shared_memory, cudaStream_t stream, std::shared_ptr<const CudaExecutor> exec, ${variable}) {
-        auto config_list = ${config_generation};
-        auto exec_config = exec->get_config();
-        ${name}${CONFIG_SELECTION_SUFFIX}(
-            config_list,
-            [&exec_config] (Config config) {
-                return (get_warp_size(exec_config) == get_warp_size(config)) &&
-                        (get_block_size(exec_config) >= get_block_size(config));
-                },
-            ::gko::syn::value_list<${list_list[bool]}>(),
-            ::gko::syn::value_list<${list_list[int]}>(),
-            ::gko::syn::value_list<${list_list[size_type]}>(),
-            ::gko::syn::type_list<${list_list[typename]}>(),
-            grid, block, dynamic_shared_memory, stream, ${var_input});
-    }
-    "
-}
-
 
 GLOBAL_KEYWORD="__global__"
 TEMPLATE_REGEX="^ *template <*"
@@ -159,12 +53,10 @@ IN_BLOCK=0
 IN_FUNC=0
 STORE_LINE=""
 STORE_REGEX="__ *$"
-HOST_SUFFIX="_AUTOHOSTFUNC"
 EXTRACT_KERNEL="false"
-GINKGO_LICENSE_BEACON="******************************<GINKGO LICENSE>******************************"
 DURING_LICENSE="false"
 SKIP="false"
-MAP_FILE="map_list"
+
 rm "${MAP_FILE}"
 while IFS='' read -r line || [ -n "$line" ]; do
     if [ "${EXTRACT_KERNEL}" = "false" ] && ([ "${line}" = "/*${GINKGO_LICENSE_BEACON}" ] ||  [ "${DURING_LICENSE}" = "true" ]); then
@@ -180,6 +72,7 @@ while IFS='' read -r line || [ -n "$line" ]; do
         continue
     fi
     SKIP="false"
+    # It prints the original text into new file.
     if [[ "$line" =~ ${STORE_REGEX} ]]; then
         STORE_LINE="${STORE_LINE} ${line}"
     elif [[ -n "${STORE_LINE}" ]]; then
@@ -258,27 +151,7 @@ while IFS='' read -r line || [ -n "$line" ]; do
                     echo "${TEMPLATE} void ${NAME}${HOST_SUFFIX} (dim3 grid, dim3 block, size_t dynamic_shared_memory, cudaStream_t stream, ${VARIABLE}) {
                         /*KEEP*/${NAME}${TEMPLATE_INPUT}<<<grid, block, dynamic_shared_memory, stream>>>(${VAR_INPUT});
                         }"
-                    if [[ "${FUNCTION_HANDLE}" = *"Config"* ]]; then
-                        # echo "/** DPCPP ONLY // RM_TAG"
-                        echo ""
-                        echo "GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(${NAME}${HOST_SUFFIX}${CONFIG_SELECTION_SUFFIX}, ${NAME}${HOST_SUFFIX})"
-                        echo ""
-                        echo ""
-                        config_function=$(generate_config_selection "${TEMPLATE}" "${NAME}${HOST_SUFFIX}" "${VARIABLE}" "${VAR_INPUT}")
-                        echo "${config_function}"
-                        # echo "**/ // RM_TAG"
-                        echo ""
-                        echo ""
-                        # echo "${TEMPLATE} void ${NAME}${HOST_SUFFIX}${CONFIG_SELECTION_SUFFIX} // RM_TAG
-                        #     (dim3 grid, dim3 block, size_t dynamic_shared_memory, cudaStream_t stream, std::shared_ptr<const CudaExecutor> exec, ${VARIABLE}) { // RM_TAG
-                        #     ${NAME}${TEMPLATE_INPUT}<<<grid, block, dynamic_shared_memory, stream>>>(${VAR_INPUT}); // RM_TAG
-                        #     } // RM_TAG"
-                        # write the map to the file ${NAME} -> ${NAME}${HOST_SUFFIX}${CONFIG_SELECTION_SUFFIX}
-                        echo "${NAME} -> ${NAME}${HOST_SUFFIX}${CONFIG_SELECTION_SUFFIX}" >> ${MAP_FILE}
-                    else
-                        # else, write the map to the file ${NAME} -> ${NAME}${HOST_SUFFIX}
-                        echo "${NAME} -> ${NAME}${HOST_SUFFIX}" >> ${MAP_FILE}
-                    fi
+                    echo "${NAME} -> ${NAME}${HOST_SUFFIX}" >> ${MAP_FILE}
                 fi
                 # echo ""
                 # check the property
