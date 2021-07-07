@@ -77,7 +77,6 @@ public:
     {
         value = 5;
     }
-
     int &value;
 };
 

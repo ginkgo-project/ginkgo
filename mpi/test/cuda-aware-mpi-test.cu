@@ -30,70 +30,53 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_INCLUDE_CONFIG_H
-#define GKO_INCLUDE_CONFIG_H
 
-// clang-format off
-#define GKO_VERSION_MAJOR @Ginkgo_VERSION_MAJOR@
-#define GKO_VERSION_MINOR @Ginkgo_VERSION_MINOR@
-#define GKO_VERSION_PATCH @Ginkgo_VERSION_PATCH@
-#define GKO_VERSION_TAG "@Ginkgo_VERSION_TAG@"
-#define GKO_VERSION_STR @Ginkgo_VERSION_MAJOR@, @Ginkgo_VERSION_MINOR@, @Ginkgo_VERSION_PATCH@
-// clang-format on
+#include <cuda.h>
+#include <mpi.h>
 
-/*
- * Controls the amount of messages output by Ginkgo.
- * 0 disables all output (except for test, benchmarks and examples).
- * 1 activates important messages.
- */
-// clang-format off
-#define GKO_VERBOSE_LEVEL @GINKGO_VERBOSE_LEVEL@
-// clang-format on
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 
-/* Is Itanium ABI available? */
-#cmakedefine GKO_HAVE_CXXABI_H
-
-
-/* Should we use all optimizations for Jacobi? */
-#cmakedefine GINKGO_JACOBI_FULL_OPTIMIZATIONS
-
-
-/* Should we compile Ginkgo specifically to tune values? */
-#cmakedefine GINKGO_BENCHMARK_ENABLE_TUNING
-
-
-/* Should we compile mixed-precision kernels for Ginkgo? */
-#cmakedefine GINKGO_MIXED_PRECISION
-
-
-/* What is HIP compiled for, hcc or nvcc? */
-// clang-format off
-#define GINKGO_HIP_PLATFORM_HCC @GINKGO_HIP_PLATFORM_HCC@
-
-
-#define GINKGO_HIP_PLATFORM_NVCC @GINKGO_HIP_PLATFORM_NVCC@
-// clang-format on
-
-
-// clang-format off
-#define GKO_HAVE_MPI @GINKGO_HAVE_MPI@
-
-
-#define GKO_HAVE_CUDA_AWARE_MPI @GINKGO_HAVE_CUDA_AWARE_MPI@
-// clang-format on
-
-
-/* Is PAPI SDE available for Logging? */
-// clang-format off
-#define GKO_HAVE_PAPI_SDE @GINKGO_HAVE_PAPI_SDE@
-// clang-format on
-
-
-/* Is HWLOC available ? */
-// clang-format off
-#define GKO_HAVE_HWLOC @GINKGO_HAVE_HWLOC@
-// clang-format on
-
-
-#endif  // GKO_INCLUDE_CONFIG_H
+int main(int argc, char *argv[])
+{
+    int num_cuda_devices = 0;
+    cudaGetDeviceCount(&num_cuda_devices);
+    if (num_cuda_devices < 1) std::exit(-1);
+    MPI_Init(&argc, &argv);
+    int rank = 0;
+    int size = 0;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    assert(size > 1);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    cudaSetDevice(rank);
+    int *d_buf;
+    int *buf;
+    unsigned long len = 10;
+    buf = (int *)malloc(sizeof(int) * len);
+    for (int i = 0; i < len; ++i) {
+        buf[i] = (i + 1) * (rank + 1);
+    }
+    cudaMalloc(&d_buf, sizeof(int) * len);
+    cudaMemcpy(d_buf, buf, sizeof(int) * len, cudaMemcpyHostToDevice);
+    if (rank == 0) {
+        MPI_Send(d_buf, len, MPI_INT, 1, 12, MPI_COMM_WORLD);
+    } else {
+        MPI_Status status;
+        MPI_Recv(d_buf, len, MPI_INT, 0, 12, MPI_COMM_WORLD, &status);
+        for (int i = 0; i < len; ++i) {
+            bool flag = (buf[i] == (i + 1) * 2);
+            if (!flag) std::exit(-1);
+        }
+        cudaMemcpy(buf, d_buf, sizeof(int) * len, cudaMemcpyDeviceToHost);
+        for (int i = 0; i < len; ++i) {
+            bool flag = (buf[i] == (i + 1));
+            if (!flag) std::exit(-1);
+        }
+    }
+    cudaFree(d_buf);
+    free(buf);
+    MPI_Finalize();
+    return 0;
+}

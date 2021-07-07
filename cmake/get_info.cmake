@@ -127,7 +127,7 @@ foreach(log_type ${log_types})
     ginkgo_print_module_footer(${${log_type}} "User configuration:")
     ginkgo_print_module_footer(${${log_type}} "  Enabled modules:")
     ginkgo_print_foreach_variable(${${log_type}}
-        "GINKGO_BUILD_OMP;GINKGO_BUILD_REFERENCE;GINKGO_BUILD_CUDA;GINKGO_BUILD_HIP;GINKGO_BUILD_DPCPP")
+        "GINKGO_BUILD_OMP;GINKGO_BUILD_REFERENCE;GINKGO_BUILD_CUDA;GINKGO_BUILD_HIP;GINKGO_BUILD_DPCPP;GINKGO_BUILD_MPI")
     ginkgo_print_module_footer(${${log_type}} "  Enabled features:")
     ginkgo_print_foreach_variable(${${log_type}}
         "GINKGO_MIXED_PRECISION")
@@ -183,6 +183,10 @@ ginkgo_print_module_footer(${detailed_log} "  PATH of other tools:")
 ginkgo_print_variable(${detailed_log} "GINKGO_CLANG_TIDY_PATH")
 ginkgo_print_variable(${detailed_log} "GINKGO_IWYU_PATH")
 ginkgo_print_module_footer(${detailed_log} "")
+
+IF(GINKGO_BUILD_MPI)
+    include(mpi/get_info.cmake)
+ENDIF()
 
 ginkgo_print_generic_header(${minimal_log} "  Components:")
 ginkgo_print_generic_header(${detailed_log} "  Components:")

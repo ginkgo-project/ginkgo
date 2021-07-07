@@ -44,6 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
+#include <ginkgo/config.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/machine_topology.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
@@ -240,7 +243,7 @@ class ExecutorBase;
  *         [&]() { os << "HIP("    // HIP closure
  *                    << static_cast<gko::HipExecutor&>(exec)
  *                         .get_device_id()
- *                    << ")"; });
+ *                    << ")"; }),
  *         [&]() { os << "DPC++("    // DPC++ closure
  *                    << static_cast<gko::DpcppExecutor&>(exec)
  *                         .get_device_id()
