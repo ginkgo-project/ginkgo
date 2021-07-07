@@ -169,7 +169,6 @@ bool is_upper_triangular(const LinOp *matrix)
                                            is_triangular_impl, matrix, true)
     return false;
 }
-#undef GKO_CALL_AND_RETURN_IF_CASTABLE
 
 
 template <typename IndexType>
@@ -227,6 +226,28 @@ bool is_finite(const ValueType *values, const size_type num_entries)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IS_FINITE);
 
+template <class ValueType, class IndexType>
+bool is_finite_impl(const LinOp *matrix)
+{
+    matrix_data<ValueType, IndexType> data{};
+    dynamic_cast<const WritableToMatrixData<ValueType, IndexType> *>(matrix)
+        ->write(data);
+
+    size_type num_elems = data.nonzeros.size();
+
+    return all_of(num_elems, [&data, num_elems](const size_type i) {
+        return std::isfinite(std::abs(data.nonzeros[i].value));
+    });
+}
+
+bool is_finite(const LinOp *matrix)
+{
+    GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_CALL_AND_RETURN_IF_CASTABLE,
+                                           is_finite_impl, matrix)
+    return false;
+}
+
+#undef GKO_CALL_AND_RETURN_IF_CASTABLE
 
 template <typename IndexType>
 bool is_consecutive(const IndexType *idxs, const size_type num_entries,

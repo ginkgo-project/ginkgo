@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/allocator.hpp"
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
+#include "core/components/validation_helpers.hpp"
 #include "core/matrix/sellp_kernels.hpp"
 
 
@@ -301,7 +302,9 @@ void Sellp<ValueType, IndexType>::write(mat_data& data) const
     }
 }
 
-void validate_impl() const
+// TODO check if strided/padded
+template <typename ValueType, typename IndexType>
+void Sellp<ValueType, IndexType>::validate_impl() const
 {
     std::map<std::string, std::function<bool()>> constraints_map{
         {"is_finite", [this] {

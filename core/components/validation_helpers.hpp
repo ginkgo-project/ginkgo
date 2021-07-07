@@ -109,6 +109,8 @@ template <typename ValueType>
 bool is_finite(const ValueType *values, const size_type num_entries);
 
 
+bool is_finite(const LinOp *matrix);
+
 /**
  * Tests whether the difference between adjacent elements is below a threshold
  *
