@@ -123,7 +123,7 @@ TEST(Dim, CanAppendToStream1)
 
     std::ostringstream os;
     os << d2;
-    ASSERT_EQ(os.str(), "(2 , 3)");
+    ASSERT_EQ(os.str(), "(2, 3)");
 }
 
 
@@ -133,7 +133,7 @@ TEST(Dim, CanAppendToStream2)
 
     std::ostringstream os;
     os << d2;
-    ASSERT_EQ(os.str(), "(2 , (3 , 4))");
+    ASSERT_EQ(os.str(), "(2, 3, 4)");
 }
 
 
