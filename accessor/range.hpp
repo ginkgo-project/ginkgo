@@ -69,7 +69,8 @@ public:
      *
      * @param params  parameters forwarded to Accessor constructor.
      */
-    template <typename... AccessorParams>
+    template <typename... AccessorParams,
+              std::enable_if_t<(sizeof...(AccessorParams) > 1), bool> = true>
     GKO_ACC_ATTRIBUTES constexpr explicit range(AccessorParams &&... params)
         : accessor_{std::forward<AccessorParams>(params)...}
     {}
@@ -99,12 +100,6 @@ public:
                       "Too many dimensions in range call");
         return accessor_(std::forward<DimensionTypes>(dimensions)...);
     }
-
-    range(const range &) = default;
-
-#ifndef _WIN32
-    range(range &) = default;
-#endif
 
     /**
      * Returns the length of the specified dimension of the range.
