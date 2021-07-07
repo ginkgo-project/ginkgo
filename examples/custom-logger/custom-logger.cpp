@@ -71,13 +71,11 @@ gko::remove_complex<ValueType> compute_norm(
     // Get the executor of the vector
     auto exec = b->get_executor();
     // Initialize a result scalar containing the value 0.0.
-    auto b_norm =
-        gko::initialize<gko::matrix::Dense<gko::remove_complex<ValueType>>>(
-            {0.0}, exec);
+    auto b_norm = gko::remove_complex<ValueType>{0.0};
     // Use the dense `compute_norm2` function to compute the norm.
-    b->compute_norm2(gko::lend(b_norm));
+    b->compute_norm2(&b_norm);
     // Use the other utility function to return the norm contained in `b_norm`
-    return get_first_element(gko::lend(b_norm));
+    return b_norm;
 }
 
 // Custom logger class which intercepts the residual norm scalar and solution
@@ -343,18 +341,14 @@ int main(int argc, char *argv[])
     logger->write();
 
     // To measure if your solution has actually converged, you can measure
-    // the error of the solution. one, neg_one are objects that represent
-    // the numbers which allow for a uniform interface when computing on any
-    // device. To compute the residual, all you need to do is call the apply
-    // method, which in this case is an spmv and equivalent to the LAPACK
-    // z_spmv routine. Finally, you compute the euclidean 2-norm with the
-    // compute_norm2 function.
-    auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
-    b->compute_norm2(gko::lend(res));
+    // the error of the solution. To compute the residual, all you need to do is
+    // call the apply method, which in this case is an spmv and equivalent to
+    // the LAPACK z_spmv routine. Finally, you compute the euclidean 2-norm with
+    // the compute_norm2 function.
+    auto res = 0.0;
+    A->apply(1.0, gko::lend(x), -1.0, gko::lend(b));
+    b->compute_norm2(&res);
 
     std::cout << "Residual norm sqrt(r^T r):\n";
-    write(std::cout, gko::lend(res));
+    gko::write(std::cout, res);
 }

@@ -185,16 +185,14 @@ int main(int argc, char *argv[])
     write(std::cout, gko::lend(x));
 
     // Calculate residual
-    auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
-    b->compute_norm2(gko::lend(res));
+    auto res = 0.0;
+    A->apply(1.0, gko::lend(x), -1.0, gko::lend(b));
+    b->compute_norm2(&res);
 
     std::cout << "GMRES iteration count:     " << logger->get_num_iterations()
               << "\n";
     std::cout << "GMRES execution time [ms]: "
               << static_cast<double>(time.count()) / 100000000.0 << "\n";
     std::cout << "Residual norm sqrt(r^T r):\n";
-    write(std::cout, gko::lend(res));
+    gko::write(std::cout, res);
 }
