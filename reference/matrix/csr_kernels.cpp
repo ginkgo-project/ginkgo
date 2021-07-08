@@ -426,16 +426,17 @@ void compute_sub_matrix(std::shared_ptr<const DefaultExecutor> exec,
 {
     auto row_offset = row_span.begin;
     auto col_offset = col_span.begin;
-    auto block_size = result->get_size()[0];
-    for (size_type row = 0; row < block_size; ++row) {
+    auto num_rows = result->get_size()[0];
+    auto num_cols = result->get_size()[1];
+    for (size_type row = 0; row < num_rows; ++row) {
         result->get_row_ptrs()[row] = row_nnz->get_const_data()[row];
     }
-    components::prefix_sum(exec, result->get_row_ptrs(), block_size + 1);
+    components::prefix_sum(exec, result->get_row_ptrs(), num_rows + 1);
     size_type res_nnz = 0;
     for (size_type nnz = 0; nnz < source->get_num_stored_elements(); ++nnz) {
         if (nnz >= source->get_const_row_ptrs()[row_offset] &&
-            nnz < source->get_const_row_ptrs()[row_offset + block_size] &&
-            (source->get_const_col_idxs()[nnz] < (col_offset + block_size) &&
+            nnz < source->get_const_row_ptrs()[row_offset + num_rows] &&
+            (source->get_const_col_idxs()[nnz] < (col_offset + num_cols) &&
              source->get_const_col_idxs()[nnz] >= col_offset)) {
             result->get_col_idxs()[res_nnz] =
                 source->get_const_col_idxs()[nnz] - col_offset;
