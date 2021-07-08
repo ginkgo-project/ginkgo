@@ -182,6 +182,7 @@ TYPED_TEST(BatchGmres, StencilSystemLoggerIsCorrect)
 }
 
 
+#if 0
 TYPED_TEST(BatchGmres, SolvesStencilMultipleSystem)
 {
     auto r_m = gko::test::solve_poisson_uniform(
@@ -217,7 +218,7 @@ TYPED_TEST(BatchGmres, StencilMultipleSystemLoggerIsCorrect)
         }
     }
 }
-
+#endif
 
 TYPED_TEST(BatchGmres, CoreSolvesSystemJacobi)
 {
@@ -334,7 +335,7 @@ TEST(BatchGmres, CanSolveWithoutScaling)
             .on(exec);
     const int nrows = 23;
     const size_t nbatch = 3;
-    const int nrhs = 3;
+    const int nrhs = 1;
     gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
                                   batchgmres_factory.get(), 10);
 }
