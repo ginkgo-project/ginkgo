@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include <thread>
+
+
 #include <gtest/gtest.h>
 
 
@@ -58,6 +61,36 @@ TEST(DeviceReset, CudaHip)
         auto ref = gko::ReferenceExecutor::create();
         auto cuda = gko::CudaExecutor::create(0, ref, true);
         auto hip = gko::HipExecutor::create(0, ref, true);
+    });
+}
+
+
+template <typename Executor>
+void func()
+{
+    auto ref = gko::ReferenceExecutor::create();
+    auto exec = Executor::create(0, ref, true);
+}
+
+
+TEST(DeviceReset, CudaCuda)
+{
+    GTEST_ASSERT_NO_EXIT({
+        std::thread t1(func<gko::CudaExecutor>);
+        std::thread t2(func<gko::CudaExecutor>);
+        t1.join();
+        t2.join();
+    });
+}
+
+
+TEST(DeviceReset, HipHip)
+{
+    GTEST_ASSERT_NO_EXIT({
+        std::thread t1(func<gko::CudaExecutor>);
+        std::thread t2(func<gko::CudaExecutor>);
+        t1.join();
+        t2.join();
     });
 }
 
