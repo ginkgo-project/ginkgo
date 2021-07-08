@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_FACTORIZATION_IC_HPP_
 
 
+#include <map>
 #include <memory>
 
 
@@ -42,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "core/components/validation_helpers.hpp"
 
 namespace gko {
 /**
@@ -93,10 +95,29 @@ public:
         }
     }
 
+    void validate_impl() const
+    {
+        std::map<std::string, std::function<bool()>> constraints_map{
+            {"is_finite",
+             [this] {
+                 return ::gko::validate::is_finite(get_l_factor().get());
+             }},
+            {"has_non_zero_diagonal", [this] {
+                 return ::gko::validate::has_non_zero_diagonal(
+                     get_l_factor().get());
+             }}};
+
+        for (auto const &x : constraints_map) {
+            if (!x.second()) {
+                throw gko::Invalid(__FILE__, __LINE__, "Sellp", x.first);
+            };
+        }
+    };
+
     // Remove the possibility of calling `create`, which was enabled by
     // `Composition`
     template <typename... Args>
-    static std::unique_ptr<Composition<ValueType>> create(Args &&... args) =
+    static std::unique_ptr<Composition<ValueType>> create(Args &&...args) =
         delete;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -114,16 +135,16 @@ public:
          * to work. If it is known that the matrix will be sorted, this
          * parameter can be set to `true` to skip the sorting (therefore,
          * shortening the runtime).
-         * However, if it is unknown or if the matrix is known to be not sorted,
-         * it must remain `false`, otherwise, this factorization might be
-         * incorrect.
+         * However, if it is unknown or if the matrix is known to be not
+         * sorted, it must remain `false`, otherwise, this factorization
+         * might be incorrect.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
 
         /**
-         * `true` will generate both L and L^H, `false` will only generate the L
-         * factor, resulting in a Composition of only a single LinOp. This can
-         * be used to avoid the transposition operation.
+         * `true` will generate both L and L^H, `false` will only generate
+         * the L factor, resulting in a Composition of only a single LinOp.
+         * This can be used to avoid the transposition operation.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(both_factors, true);
     };
