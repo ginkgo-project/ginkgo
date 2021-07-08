@@ -55,9 +55,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace solver {
+/**
+ * @brief The solver multigrid namespace.
+ *
+ * @ingroup solver
+ */
+namespace multigrid {
+
 
 /**
- * multigrid_cycle defines which kind of multigrid cycle can be used.
+ * cycle defines which kind of multigrid cycle can be used.
  * It contains V, W, F, and K (KFCG/KGCR) cycle.
  * - V, W cycle uses the algorithm according to Briggs, Henson, and McCormick: A
  *   multigrid tutorial 2nd Edition.
@@ -67,30 +74,34 @@ namespace solver {
  * - K(KFCG/KGCR) cycle uses the algorithm with up to 2 steps FCG/GCR from Yvan:
  *   An aggregation-based algebraic multigrid method
  */
-enum class multigrid_cycle { v, f, w, kfcg, kgcr };
+enum class cycle { v, f, w, kfcg, kgcr };
 
 
 /**
- * mutligrid_mid_smooth_type gives the options to handle the middle smoother
+ * mid_smooth_type gives the options to handle the middle smoother
  * behavior between the two cycles in the same level. It only affects the
  * behavior when there's no operation between the post smoother of previous
  * cycle and the pre smoother of next cycle. Thus, it only affects W cycle and F
  * cycle.
- * - origin: gives the same behavior as the original algorithm, which use posts
+ * - both: gives the same behavior as the original algorithm, which use posts
  *   smoother from previous cycle and pre smoother from next cycle.
- * - previous: only uses the post smoother of previous cycle in the mid smoother
- * - next: only uses the pre smoother of next cycle in the mid smoother
+ * - post_smoother: only uses the post smoother of previous cycle in the mid
+ *   smoother
+ * - pre_smoother: only uses the pre smoother of next cycle in the mid smoother
  * - standalone: uses the defined smoother in the mid smoother
  */
-enum class multigrid_mid_smooth_type { origin, previous, next, standalone };
+enum class mid_smooth_type { both, post_smoother, pre_smoother, standalone };
+
+
+}  // namespace multigrid
 
 
 /**
- * Multigrid have a hierarcgy of many levels, whose corase level is a subset of
- * the fine level, of the problem. The coarse level solves the system on the
- * residual of fine level and fine level will use the result to correct its own
- * result. Multigrid solves the problem by relatively cheap step in each level
- * and refining the result when prolongating back.
+ * Multigrid methods have a hierarchy of many levels, whose corase level is a
+ * subset of the fine level, of the problem. The coarse level solves the system
+ * on the residual of fine level and fine level will use the coarse solution to
+ * correct its own result. Multigrid solves the problem by relatively cheap step
+ * in each level and refining the result when prolongating back.
  *
  * The main step of each level
  * - Presmooth (solve on the fine level)
@@ -206,16 +217,16 @@ public:
     /**
      * Get the cycle of multigrid
      *
-     * @return the cycle
+     * @return the multigrid::cycle
      */
-    multigrid_cycle get_cycle() const { return parameters_.cycle; }
+    multigrid::cycle get_cycle() const { return parameters_.cycle; }
 
     /**
      * Set the cycle of multigrid
      *
-     * @param cycle the new cycle
+     * @param multigrid::cycle the new cycle
      */
-    void set_cycle(multigrid_cycle cycle) { parameters_.cycle = cycle; }
+    void set_cycle(multigrid::cycle cycle) { parameters_.cycle = cycle; }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -235,6 +246,8 @@ public:
          * Custom selector size_type (size_type level, const LinOp* fine_matrix)
          * Selector function returns the element index in the vector for any
          * given level index and the matrix of the fine level.
+         * For each level, this function is used to select the smoothers
+         * and multigrid level generation from the respective lists.
          * For example,
          * ```
          * [](size_type level, const LinOp* fine_matrix) {
@@ -256,7 +269,7 @@ public:
          *     use the level as the index when mg_level size > 1
          */
         std::function<size_type(const size_type, const LinOp *)>
-            GKO_FACTORY_PARAMETER_SCALAR(mg_level_index, nullptr);
+            GKO_FACTORY_PARAMETER_SCALAR(level_selector, nullptr);
 
         /**
          * Pre-smooth Factory list.
@@ -290,27 +303,32 @@ public:
             GKO_FACTORY_PARAMETER_VECTOR(mid_smoother, nullptr);
 
         /**
-         * Whether post-related calls use corresponding pre-related calls.
+         * Whether post-smoothing-related calls use corresponding
+         * pre-smoothing-related calls.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(post_uses_pre, true);
 
         /**
          * Choose the behavior of mid smoother between two cycles close to each
          * other in the same level. The default is
-         * multigrid_mid_smooth_type::origin.
+         * multigrid::mid_smooth_type::both.
          *
-         * @see enum multigrid_mid_smooth_type
+         * @see enum multigrid::mid_smooth_type
          */
-        multigrid_mid_smooth_type GKO_FACTORY_PARAMETER_SCALAR(
-            mid_case, multigrid_mid_smooth_type::origin);
+        multigrid::mid_smooth_type GKO_FACTORY_PARAMETER_SCALAR(
+            mid_case, multigrid::mid_smooth_type::both);
 
         /**
-         * The maximum number of mg_level that can be used
+         * The maximum number of mg_level (without coarsest solver level) that
+         * can be used.
+         *
+         * If the multigrid hit the max_levels limit, including the coarsest
+         * solver level contains max_levels + 1 levels.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(max_levels, 10);
 
         /**
-         * The minimal coarse rows.
+         * The minimal number of coarse rows.
          * If generation gets the matrix which contains less than
          * `min_coarse_rows`, the generation stops.
          */
@@ -338,20 +356,22 @@ public:
          *         return size_type{1};
          *     }
          * }
+         * ```
          * Coarsest solver uses the 0-idx element if the number of rows of the
          * coarsest_matrix > 1024 or 1-idx element for other cases.
          *
          * default selector: use the first factory
          */
         std::function<size_type(const size_type, const LinOp *)>
-            GKO_FACTORY_PARAMETER_SCALAR(solver_index, nullptr);
+            GKO_FACTORY_PARAMETER_SCALAR(solver_selector, nullptr);
 
         /**
-         * Multigrid cycle type. The default is multigrid_cycle::v.
+         * Multigrid cycle type. The default is multigrid::cycle::v.
          *
-         * @see enum multigrid_cycle
+         * @see enum multigrid::cycle
          */
-        multigrid_cycle GKO_FACTORY_PARAMETER_SCALAR(cycle, multigrid_cycle::v);
+        multigrid::cycle GKO_FACTORY_PARAMETER_SCALAR(cycle,
+                                                      multigrid::cycle::v);
 
         /**
          * kcycle_base is a factor to choose how often enable FCG/GCR step.
@@ -414,27 +434,27 @@ protected:
 
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
-        if (!parameters_.mg_level_index) {
+        if (!parameters_.level_selector) {
             if (parameters_.mg_level.size() == 1) {
-                mg_level_index_ = [](const size_type, const LinOp *) {
+                level_selector_ = [](const size_type, const LinOp *) {
                     return size_type{0};
                 };
             } else if (parameters_.mg_level.size() > 1) {
-                mg_level_index_ = [](const size_type level, const LinOp *) {
+                level_selector_ = [](const size_type level, const LinOp *) {
                     return level;
                 };
             }
         } else {
-            mg_level_index_ = parameters_.mg_level_index;
+            level_selector_ = parameters_.level_selector;
         }
-        if (!parameters_.solver_index) {
+        if (!parameters_.solver_selector) {
             if (parameters_.coarsest_solver.size() >= 1) {
-                solver_index_ = [](const size_type, const LinOp *) {
+                solver_selector_ = [](const size_type, const LinOp *) {
                     return size_type{0};
                 };
             }
         } else {
-            solver_index_ = parameters_.solver_index;
+            solver_selector_ = parameters_.solver_selector;
         }
 
         this->validate();
@@ -470,7 +490,7 @@ protected:
                                   mg_level_len);
         // verify mid-related parameters when mid is standalone smoother.
         this->verify_legal_length(
-            parameters_.mid_case == multigrid_mid_smooth_type::standalone,
+            parameters_.mid_case == multigrid::mid_smooth_type::standalone,
             parameters_.mid_smoother.size(), mg_level_len);
     }
 
@@ -504,8 +524,8 @@ private:
     std::vector<std::shared_ptr<const LinOp>> mid_smoother_list_{};
     std::vector<std::shared_ptr<const LinOp>> post_smoother_list_{};
     std::shared_ptr<const LinOp> coarsest_solver_{};
-    std::function<size_type(const size_type, const LinOp *)> mg_level_index_;
-    std::function<size_type(const size_type, const LinOp *)> solver_index_;
+    std::function<size_type(const size_type, const LinOp *)> level_selector_;
+    std::function<size_type(const size_type, const LinOp *)> solver_selector_;
 };
 
 

@@ -160,7 +160,7 @@ protected:
                 .with_post_smoother(lo_factory)
                 .with_post_uses_pre(false)
                 .with_mid_case(
-                    gko::solver::multigrid_mid_smooth_type::standalone)
+                    gko::solver::multigrid::mid_smooth_type::standalone)
                 .with_mg_level(rp_factory)
                 .with_min_coarse_rows(2u)
                 .on(exec);
@@ -290,10 +290,10 @@ TYPED_TEST(Multigrid, CanChangeCycle)
     auto solver = static_cast<Solver *>(this->solver.get());
     auto original = solver->get_cycle();
 
-    solver->set_cycle(gko::solver::multigrid_cycle::w);
+    solver->set_cycle(gko::solver::multigrid::cycle::w);
 
-    ASSERT_EQ(original, gko::solver::multigrid_cycle::v);
-    ASSERT_EQ(solver->get_cycle(), gko::solver::multigrid_cycle::w);
+    ASSERT_EQ(original, gko::solver::multigrid::cycle::v);
+    ASSERT_EQ(solver->get_cycle(), gko::solver::multigrid::cycle::w);
 }
 
 
@@ -537,7 +537,7 @@ TYPED_TEST(Multigrid, ThrowWhenInconsistentSizeOfMidSmoother)
             .with_min_coarse_rows(2u)
             .with_criteria(this->criterion)
             .with_mg_level(this->rp_factory, this->rp_factory, this->rp_factory)
-            .with_mid_case(gko::solver::multigrid_mid_smooth_type::standalone)
+            .with_mid_case(gko::solver::multigrid::mid_smooth_type::standalone)
             .with_mid_smoother(this->lo_factory, this->lo_factory)
             .on(this->exec);
 
@@ -579,7 +579,7 @@ TYPED_TEST(Multigrid, TwoMgLevel)
             .with_mid_smoother(this->lo_factory, this->lo_factory2)
             .with_post_smoother(this->lo_factory2, this->lo_factory)
             .with_post_uses_pre(false)
-            .with_mid_case(gko::solver::multigrid_mid_smooth_type::standalone)
+            .with_mid_case(gko::solver::multigrid::mid_smooth_type::standalone)
             .with_criteria(this->criterion)
             .on(this->exec)
             ->generate(this->mtx);
@@ -621,7 +621,7 @@ TYPED_TEST(Multigrid, TwoMgLevelWithOneSmootherRelaxation)
             .with_mid_smoother(this->lo_factory)
             .with_post_smoother(this->lo_factory2)
             .with_post_uses_pre(false)
-            .with_mid_case(gko::solver::multigrid_mid_smooth_type::standalone)
+            .with_mid_case(gko::solver::multigrid::mid_smooth_type::standalone)
             .with_criteria(this->criterion)
             .on(this->exec)
             ->generate(this->mtx);
@@ -664,8 +664,8 @@ TYPED_TEST(Multigrid, CustomSelectorWithSameSize)
             .with_mid_smoother(this->lo_factory2, this->lo_factory)
             .with_post_smoother(this->lo_factory, this->lo_factory2)
             .with_post_uses_pre(false)
-            .with_mid_case(gko::solver::multigrid_mid_smooth_type::standalone)
-            .with_mg_level_index(selector)
+            .with_mid_case(gko::solver::multigrid::mid_smooth_type::standalone)
+            .with_level_selector(selector)
             .with_criteria(this->criterion)
             .on(this->exec)
             ->generate(this->mtx);
@@ -709,8 +709,8 @@ TYPED_TEST(Multigrid, CustomSelectorWithOneSmootherRelaxation)
             .with_mid_smoother(this->lo_factory)
             .with_post_smoother(this->lo_factory2)
             .with_post_uses_pre(false)
-            .with_mid_case(gko::solver::multigrid_mid_smooth_type::standalone)
-            .with_mg_level_index(selector)
+            .with_mid_case(gko::solver::multigrid::mid_smooth_type::standalone)
+            .with_level_selector(selector)
             .with_criteria(this->criterion)
             .on(this->exec)
             ->generate(this->mtx);
@@ -753,8 +753,8 @@ TYPED_TEST(Multigrid, CustomSelectorWithMix)
             .with_pre_smoother(this->lo_factory)
             .with_post_smoother(this->lo_factory2, this->lo_factory)
             .with_post_uses_pre(false)
-            .with_mid_case(gko::solver::multigrid_mid_smooth_type::standalone)
-            .with_mg_level_index(selector)
+            .with_mid_case(gko::solver::multigrid::mid_smooth_type::standalone)
+            .with_level_selector(selector)
             .with_criteria(this->criterion)
             .on(this->exec)
             ->generate(this->mtx);
@@ -809,23 +809,23 @@ TYPED_TEST(Multigrid, PostUsesPre)
 }
 
 
-TYPED_TEST(Multigrid, MidUsesNext)
+TYPED_TEST(Multigrid, MidUsesPre)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
     using value_type = typename TestFixture::value_type;
     // post setting should be ignored
-    auto solver =
-        Solver::build()
-            .with_max_levels(2u)
-            .with_min_coarse_rows(2u)
-            .with_mg_level(this->rp_factory, this->rp_factory2)
-            .with_pre_smoother(this->lo_factory, this->lo_factory2)
-            .with_mid_smoother(this->lo_factory2, this->lo_factory)
-            .with_mid_case(gko::solver::multigrid_mid_smooth_type::next)
-            .with_criteria(this->criterion)
-            .on(this->exec)
-            ->generate(this->mtx);
+    auto solver = Solver::build()
+                      .with_max_levels(2u)
+                      .with_min_coarse_rows(2u)
+                      .with_mg_level(this->rp_factory, this->rp_factory2)
+                      .with_pre_smoother(this->lo_factory, this->lo_factory2)
+                      .with_mid_smoother(this->lo_factory2, this->lo_factory)
+                      .with_mid_case(
+                          gko::solver::multigrid::mid_smooth_type::pre_smoother)
+                      .with_criteria(this->criterion)
+                      .on(this->exec)
+                      ->generate(this->mtx);
     auto pre_smoother = solver->get_pre_smoother_list();
     auto mid_smoother = solver->get_mid_smoother_list();
 
@@ -833,12 +833,12 @@ TYPED_TEST(Multigrid, MidUsesNext)
     ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 2);
     // mid is handled by the pre smoother of next level, so the mid_smoother is
     // empty mid_smoother ignores the manual setting because
-    // multigrid_mid_smooth_type::next
+    // multigrid::mid_smooth_type::pre_smoother
     ASSERT_EQ(mid_smoother.size(), 0);
 }
 
 
-TYPED_TEST(Multigrid, MidUsesPrevious)
+TYPED_TEST(Multigrid, MidUsesPost)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
@@ -852,7 +852,8 @@ TYPED_TEST(Multigrid, MidUsesPrevious)
             .with_post_smoother(this->lo_factory, this->lo_factory2)
             .with_mid_smoother(this->lo_factory2, this->lo_factory)
             .with_post_uses_pre(false)
-            .with_mid_case(gko::solver::multigrid_mid_smooth_type::previous)
+            .with_mid_case(
+                gko::solver::multigrid::mid_smooth_type::post_smoother)
             .with_criteria(this->criterion)
             .on(this->exec)
             ->generate(this->mtx);
@@ -863,29 +864,29 @@ TYPED_TEST(Multigrid, MidUsesPrevious)
     ASSERT_EQ(this->get_value(post_smoother.at(1).get()), 2);
     // mid is handled by the post smoother of previous level, so the
     // mid_smoother is empty mid_smoother ignores the manual setting because
-    // multigrid_mid_smooth_type::previous
+    // multigrid::mid_smooth_type::post_smoother
     ASSERT_EQ(mid_smoother.size(), 0);
 }
 
 
-TYPED_TEST(Multigrid, PostUsesPreAndMidUsesNext)
+TYPED_TEST(Multigrid, PostUsesPreAndMidUsesPre)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
     using value_type = typename TestFixture::value_type;
     // post setting should be ignored
-    auto solver =
-        Solver::build()
-            .with_max_levels(2u)
-            .with_min_coarse_rows(2u)
-            .with_mg_level(this->rp_factory, this->rp_factory2)
-            .with_pre_smoother(this->lo_factory, this->lo_factory2)
-            .with_mid_smoother(this->lo_factory2, this->lo_factory)
-            .with_post_smoother(this->lo_factory2, this->lo_factory)
-            .with_mid_case(gko::solver::multigrid_mid_smooth_type::next)
-            .with_criteria(this->criterion)
-            .on(this->exec)
-            ->generate(this->mtx);
+    auto solver = Solver::build()
+                      .with_max_levels(2u)
+                      .with_min_coarse_rows(2u)
+                      .with_mg_level(this->rp_factory, this->rp_factory2)
+                      .with_pre_smoother(this->lo_factory, this->lo_factory2)
+                      .with_mid_smoother(this->lo_factory2, this->lo_factory)
+                      .with_post_smoother(this->lo_factory2, this->lo_factory)
+                      .with_mid_case(
+                          gko::solver::multigrid::mid_smooth_type::pre_smoother)
+                      .with_criteria(this->criterion)
+                      .on(this->exec)
+                      ->generate(this->mtx);
     auto pre_smoother = solver->get_pre_smoother_list();
     auto mid_smoother = solver->get_mid_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
@@ -903,7 +904,7 @@ TYPED_TEST(Multigrid, PostUsesPreAndMidUsesNext)
 }
 
 
-TYPED_TEST(Multigrid, PostUsesPreAndMidUsesPrevious)
+TYPED_TEST(Multigrid, PostUsesPreAndMidUsesPost)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
@@ -917,7 +918,8 @@ TYPED_TEST(Multigrid, PostUsesPreAndMidUsesPrevious)
             .with_pre_smoother(this->lo_factory, this->lo_factory2)
             .with_mid_smoother(this->lo_factory2, this->lo_factory)
             .with_post_smoother(this->lo_factory2, this->lo_factory)
-            .with_mid_case(gko::solver::multigrid_mid_smooth_type::previous)
+            .with_mid_case(
+                gko::solver::multigrid::mid_smooth_type::post_smoother)
             .with_criteria(this->criterion)
             .on(this->exec)
             ->generate(this->mtx);
@@ -973,7 +975,7 @@ TYPED_TEST(Multigrid, CustomCoarsestSolverSelector)
                       .with_pre_smoother(this->lo_factory)
                       .with_criteria(this->criterion)
                       .with_coarsest_solver(this->lo_factory, this->lo_factory2)
-                      .with_solver_index(selector)
+                      .with_solver_selector(selector)
                       .on(this->exec)
                       ->generate(this->mtx);
     auto coarsest_solver = solver->get_coarsest_solver();
