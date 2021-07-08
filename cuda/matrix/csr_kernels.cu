@@ -884,6 +884,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_BLOCK_APPROX_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void compute_sub_matrix(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, IndexType> *source,
+                        const Array<size_type> *row_nnz, gko::span row_span,
+                        gko::span col_span,
+                        matrix::Csr<ValueType, IndexType> *result)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL);
+
+
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const CudaExecutor> exec,
                               const IndexType *ptrs, size_type num_rows,

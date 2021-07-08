@@ -138,6 +138,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Sellp<ValueType, IndexType>>,
             public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
             public BlockApproximatable<Csr<ValueType, IndexType>>,
+            public SubMatrixExtractable<Csr<ValueType, IndexType>>,
             public DiagonalExtractable<ValueType>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
@@ -785,6 +786,9 @@ public:
     get_block_approx(const Array<size_type> &num_blocks,
                      const Overlap<size_type> &block_overlaps = {},
                      const Array<size_type> &permutation = {}) const override;
+
+    std::unique_ptr<Csr<ValueType, IndexType>> get_submatrix(
+        const gko::span &row_span, const gko::span &column_span) const override;
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index

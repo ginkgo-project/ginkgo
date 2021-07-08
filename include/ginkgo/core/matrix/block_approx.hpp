@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/sub_matrix.hpp>
 
 
 namespace gko {
@@ -46,18 +47,14 @@ namespace matrix {
 
 
 template <class MatrixType>
-class BlockApprox
-    : public EnableLinOp<BlockApprox<MatrixType>>,
-      public EnableCreateMethod<BlockApprox<MatrixType>>,
-      public ReadableFromMatrixData<typename MatrixType::value_type,
-                                    typename MatrixType::index_type> {
+class BlockApprox : public EnableLinOp<BlockApprox<MatrixType>>,
+                    public EnableCreateMethod<BlockApprox<MatrixType>> {
     friend class EnableCreateMethod<BlockApprox>;
     friend class EnablePolymorphicObject<BlockApprox, LinOp>;
 
 public:
     using value_type = typename MatrixType::value_type;
     using index_type = typename MatrixType::index_type;
-    void read(const matrix_data<value_type, index_type> &data) override {}
 
     size_type get_num_blocks() const { return block_mtxs_.size(); }
 
