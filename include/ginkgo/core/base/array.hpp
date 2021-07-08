@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <iterator>
 #include <memory>
+#include <numeric>
 #include <type_traits>
 #include <utility>
 
@@ -611,7 +612,14 @@ public:
      *
      * @param value the value to be filled
      */
-    void fill(const ValueType value);
+    void fill(const value_type value);
+
+    /**
+     * Reduce the values in the array
+     *
+     * @param the reduced value
+     */
+    void reduce(value_type *value) const;
 
     /**
      * Returns the number of elements in the Array.
