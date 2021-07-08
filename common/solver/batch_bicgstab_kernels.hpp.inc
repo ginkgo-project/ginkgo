@@ -56,7 +56,6 @@ __device__ __forceinline__ void initialize(
         x_shared_entry[iz] = x_global_entry[iz];
         r_shared_entry[iz] = b_global_entry[iz];
     }
-
     __syncthreads();
 
     // r = b - A*x
