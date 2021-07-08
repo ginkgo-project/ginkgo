@@ -109,6 +109,11 @@ template <typename ValueType>
 bool is_finite(const ValueType *values, const size_type num_entries);
 
 
+/**
+ * Tests whether all elements of the LinOp are finite
+ *
+ * @param LinOp the LinOp which values are to be tested
+ */
 bool is_finite(const LinOp *matrix);
 
 /**
