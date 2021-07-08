@@ -109,8 +109,14 @@ public:
                             : l_factor_is_finite;
              }},
             {"has_non_zero_diagonal", [this] {
-                 return ::gko::validate::has_non_zero_diagonal(
-                     get_l_factor().get());
+                 bool l_factor_has_non_zero_diagonal =
+                     ::gko::validate::has_non_zero_diagonal(
+                         get_l_factor().get());
+                 return this->parameters_.both_factors
+                            ? ::gko::validate::has_non_zero_diagonal(
+                                  get_lt_factor().get()) &&
+                                  l_factor_has_non_zero_diagonal
+                            : l_factor_has_non_zero_diagonal;
              }}};
 
         for (auto const &x : constraints_map) {
