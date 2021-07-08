@@ -90,9 +90,8 @@ static void apply_impl(
         const auto residual = reinterpret_cast<ValueType *>(shared_space);
         ValueType *const delta_x = residual + nrows * nrhs;
         ValueType *const prec_work = delta_x + nrows * nrhs;
-        const auto norms = reinterpret_cast<real_type *>(
-            prec_work + PrecType::dynamic_work_size(nrows, a.num_nnz));
-        real_type *const init_res_norm = norms + nrhs;
+        real_type norms[batch_config<ValueType>::max_num_rhs];
+        real_type init_res_norm[batch_config<ValueType>::max_num_rhs];
 
         uint32 converged = 0;
 
