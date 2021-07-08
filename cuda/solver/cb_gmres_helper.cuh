@@ -306,6 +306,9 @@ __global__ void compute_dot_matrix_atomic(size_type num_vectors,
                    [](value_type a, value_type b) { return a + b; });
             if (threadIdx.x == 0) {
                 atomic_add(&output[i * num_vectors + j], result[0]);
+                if (i != j) {
+                    atomic_add(&output[j * num_vectors + i], result[0]);
+                }
             }
         }
     }
@@ -315,7 +318,7 @@ __global__ void compute_dot_matrix_atomic(size_type num_vectors,
 }
 
 template <int block_size, typename ValueType, typename NcValueType>
-__global__ __launch_bounds__(block_size) void compute_matrix_norm(
+__global__ __launch_bounds__(block_size) void compute_matrix_norm_wrong(
     size_type N, const ValueType *__restrict__ mtx,
     NcValueType *__restrict__ norm)
 {
@@ -338,6 +341,35 @@ __global__ __launch_bounds__(block_size) void compute_matrix_norm(
     }
 }
 
+template <int block_size, typename ValueType, typename NcValueType>
+__global__ __launch_bounds__(block_size) void compute_matrix_inf_norm(
+    size_type N, const ValueType *__restrict__ mtx,
+    NcValueType *__restrict__ norm)
+{
+    GKO_ASSERT(block_size == blockDim.x);
+    auto tblock = group::this_thread_block();
+
+    __shared__ NcValueType result[block_size];
+    NcValueType reduced_res{};
+
+    for (size_type i = blockIdx.x; i < N; i += gridDim.x) {
+        NcValueType local_res{};
+        for (size_type j = threadIdx.x; j < N; j += block_size) {
+            const auto mtx_val = mtx[i * N + j];
+            local_res += (i == j) ? NcValueType{} : abs(mtx_val);
+        }
+        result[threadIdx.x] = local_res;
+        tblock.sync();
+        reduce(tblock, result,
+               [](NcValueType a, NcValueType b) { return a + b; });
+        tblock.sync();
+        reduced_res = max(reduced_res, result[0]);
+    }
+    if (threadIdx.x == 0) {
+        atomic_max(norm, reduced_res);
+    }
+}
+
 
 template <typename T, typename Accessor3d>
 remove_complex<T> get_orthogonality(std::shared_ptr<const CudaExecutor> &exec,
@@ -347,7 +379,8 @@ remove_complex<T> get_orthogonality(std::shared_ptr<const CudaExecutor> &exec,
     using value_type = T;
     using nc_value_type = remove_complex<T>;
     // constexpr int block_size{32};  // 256};
-    constexpr int block_size{256};
+    constexpr int block_size_dot{256};
+    constexpr int block_size_norm{128};
 
     const size_type num_vec_elems = krylov_bases.length(1);
 
@@ -358,80 +391,82 @@ remove_complex<T> get_orthogonality(std::shared_ptr<const CudaExecutor> &exec,
     const int sms = exec->get_num_multiprocessor();
     const int grid_dot = std::min<int>(4 * sms, num_vec_elems);
     const int grid_norm = std::min<int>(4 * sms, num_vectors);
-    compute_dot_matrix_atomic<block_size><<<grid_dot, block_size>>>(
+
+    compute_dot_matrix_atomic<block_size_dot><<<grid_dot, block_size_dot>>>(
         num_vectors, cb_gmres::as_cuda_accessor(krylov_bases->to_const()),
         as_cuda_type(d_tmp));
-    compute_matrix_norm<block_size>
-        <<<grid_norm, block_size>>>(num_vectors, as_cuda_type(d_tmp), d_norm);
-    const auto norm_result = sqrt(exec->copy_val_to_host(d_norm));
+    compute_matrix_inf_norm<block_size_norm><<<grid_norm, block_size_norm>>>(
+        num_vectors, as_cuda_type(d_tmp), d_norm);
+    const auto norm_result = exec->copy_val_to_host(d_norm);
 
     // Reference:
 #if false
-    //*
-    stream_guard guard{std::cout};
-    std::cout.precision(17);
-    std::cout << std::scientific;
+    if (num_vectors == 50) {
+        //*
+        stream_guard guard{std::cout};
+        std::cout.precision(17);
+        std::cout << std::scientific;
 
-    size_type num_elems = num_vectors * num_vec_elems;
-    using ar_type = value_type;
-    // std::remove_const_t<typename Accessor3d::accessor::arithmetic_type>;
-    using st_type =
-        std::remove_const_t<typename Accessor3d::accessor::storage_type>;
-    std::vector<st_type> krylov_vectors(num_elems);
-    std::vector<value_type> mm_res(num_vectors * num_vectors);
+        size_type num_elems = num_vectors * num_vec_elems;
+        using ar_type = value_type;
+        // std::remove_const_t<typename Accessor3d::accessor::arithmetic_type>;
+        using st_type =
+            std::remove_const_t<typename Accessor3d::accessor::storage_type>;
+        std::vector<st_type> krylov_vectors(num_elems);
+        std::vector<value_type> mm_res(num_vectors * num_vectors);
 
-    nc_value_type ref_norm{};
-    exec->synchronize();
+        nc_value_type ref_norm{};
+        exec->synchronize();
 
-    exec->get_master()->copy_from(exec.get(), num_elems,
-                                  krylov_bases->get_const_storage(),
-                                  krylov_vectors.data());
-    exec->get_master()->copy_from(exec.get(), num_vectors * num_vectors, d_tmp,
-                                  mm_res.data());
+        exec->get_master()->copy_from(exec.get(), num_elems,
+                                      krylov_bases->get_const_storage(),
+                                      krylov_vectors.data());
+        exec->get_master()->copy_from(exec.get(), num_vectors * num_vectors,
+                                      d_tmp, mm_res.data());
 
-   // std::cout << "Iteration GPU: " << num_vectors << '\n';
-   // for (size_type i = 0; i < num_vectors; ++i) {
-   //     for (size_type j = 0; j < num_vectors; ++j) {
-   //         const ar_type v1 = mm_res[i * num_vectors + j];
-   //         std::cout << v1 << '\t';
-   //     }
-   //     std::cout << '\n';
-   // }
-    //std::cout << "Iteration CPU: " << num_vectors << '\n';
-    for (size_type i = 0; i < num_vectors; ++i) {
-        for (size_type abc = 0; abc < i; ++abc) {
-        //    std::cout << 0.0 << '\t';
-        }
-        for (size_type j = i; j < num_vectors; ++j) {
-            auto local_res = zero<value_type>();
-            for (size_type k = 0; k < num_vec_elems; ++k) {
-                const ar_type v1 = krylov_vectors[i * num_vec_elems + k];
-                const ar_type v2 = krylov_vectors[j * num_vec_elems + k];
-                local_res += v1 * v2;
-            }
-         //   std::cout << local_res << '\t';
-            if (i != j) {
-                ref_norm += squared_norm(local_res);
-            }
-        }
-        //std::cout << '\n';
-    }
-    /*
-    std::cout << "Iteration: " << num_vectors << '\n';
-    for (size_type k = 0; k < num_vec_elems; ++k) {
+        // std::cout << "Iteration GPU: " << num_vectors << '\n';
+        // for (size_type i = 0; i < num_vectors; ++i) {
+        //     for (size_type j = 0; j < num_vectors; ++j) {
+        //         const ar_type v1 = mm_res[i * num_vectors + j];
+        //         std::cout << v1 << '\t';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "Iteration CPU: " << num_vectors << '\n';
         for (size_type i = 0; i < num_vectors; ++i) {
-            const ar_type v1 = krylov_vectors[i * num_vec_elems + k];
-            std::cout << v1 << '\t';
+            for (size_type j = 0; j < num_vectors; ++j) {
+                if (j == i) {
+                    continue;
+                }
+                auto local_res = zero<value_type>();
+                for (size_type k = 0; k < num_vec_elems; ++k) {
+                    const ar_type v1 = krylov_vectors[i * num_vec_elems + k];
+                    const ar_type v2 = krylov_vectors[j * num_vec_elems + k];
+                    local_res += v1 * v2;
+                }
+                //   std::cout << local_res << '\t';
+                if (i != j) {
+                ref_norm = max(ref_norm, abs(local_res));
+                }
+            }
+            // std::cout << '\n';
         }
-        std::cout << '\n';
+        /*
+        std::cout << "Iteration: " << num_vectors << '\n';
+        for (size_type k = 0; k < num_vec_elems; ++k) {
+            for (size_type i = 0; i < num_vectors; ++i) {
+                const ar_type v1 = krylov_vectors[i * num_vec_elems + k];
+                std::cout << v1 << '\t';
+            }
+            std::cout << '\n';
+        }
+        //*/
+        const auto max = std::max(ref_norm, norm_result);
+        const T diff = (max == 0) ? T{0} : abs(ref_norm - norm_result) / max;
+        std::cout << '{' << norm_result << "<->" << ref_norm << '_' << diff
+                  << "}";
+        // return ref_norm;
     }
-    //*/
-    ref_norm = sqrt(ref_norm);
-    const auto max = std::max(ref_norm, norm_result);
-    const T diff = (max == 0) ? T{0} : (ref_norm - norm_result) / max;
-    //std::cout << '{' << norm_result << "<->" << ref_norm << '_' << diff
-    //          << "}";
-    return ref_norm;
 #endif
     return norm_result;
     /*

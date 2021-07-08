@@ -335,19 +335,19 @@ void CbGmres<ValueType>::apply_dense_impl(
                                                  forced_iteration_fraction};
         // Counter for the forced iterations. Start at max in order to properly
         // test convergence at the beginning
+        auto get_precision_str = [](auto x) {
+            using v_type = decltype(x);
+            return std::is_same<v_type, double>::value
+                       ? "fp64"
+                       : std::is_same<v_type, float>::value
+                             ? "fp32"
+                             : std::is_same<v_type, gko::half>::value
+                                   ? "fp16"
+                                   : "unknown";
+        };
         decltype(krylov_dim_) forced_iterations{forced_limit};
-        std::cout << "Precision: " << '<'
-                  << (std::is_same<ValueType, double>::value
-                          ? "fp64"
-                          : std::is_same<ValueType, float>::value ? "fp32"
-                                                                  : "unknown")
-                  << ','
-                  << (std::is_same<storage_type, double>::value
-                          ? "fp64"
-                          : std::is_same<storage_type, float>::value
-                                ? "fp32"
-                                : "unknown")
-                  << '>' << '\n';
+        std::cout << "Precision: " << '<' << get_precision_str(ValueType{})
+                  << ',' << get_precision_str(storage_type{}) << '>' << '\n';
         std::cout << "Iteration;pre-orthogonality;orthogonality "
                      "steps;post-orthogonality\n";
 
