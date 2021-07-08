@@ -53,7 +53,7 @@ struct config {
     /**
      * The number of threads within a CUDA warp.
      */
-    static constexpr uint32 warp_size = 32;
+    static constexpr uint32 warp_size = 16;
 
     /**
      * The bitmask of the entire warp.
