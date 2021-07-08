@@ -109,7 +109,7 @@ public:
 
         for (auto const &x : constraints_map) {
             if (!x.second()) {
-                throw gko::Invalid(__FILE__, __LINE__, "Sellp", x.first);
+                throw gko::Invalid(__FILE__, __LINE__, "Ic", x.first);
             };
         }
     };
