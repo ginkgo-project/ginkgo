@@ -100,7 +100,13 @@ public:
         std::map<std::string, std::function<bool()>> constraints_map{
             {"is_finite",
              [this] {
-                 return ::gko::validate::is_finite(get_l_factor().get());
+                 bool l_factor_is_finite =
+                     ::gko::validate::is_finite(get_l_factor().get());
+                 return this->parameters_.both_factors
+                            ? ::gko::validate::is_finite(
+                                  get_lt_factor().get()) &&
+                                  l_factor_is_finite
+                            : l_factor_is_finite;
              }},
             {"has_non_zero_diagonal", [this] {
                  return ::gko::validate::has_non_zero_diagonal(
