@@ -1,5 +1,0 @@
-add_executable(spgemm spgemm.cpp)
-add_executable(spgemm64 spgemm.cpp)
-target_link_libraries(spgemm ginkgo gflags rapidjson)
-target_link_libraries(spgemm64 ginkgo gflags rapidjson)
-target_compile_definitions(spgemm64 PRIVATE GKO_SPGEMM_LONG)
