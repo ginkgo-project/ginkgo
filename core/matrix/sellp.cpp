@@ -307,10 +307,7 @@ template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::validate_impl() const
 {
     std::map<std::string, std::function<bool()>> constraints_map{
-        {"is_finite", [this] {
-             return ::gko::validate::is_finite<ValueType>(
-                 values_.get_const_data(), values_.get_num_elems());
-         }}};
+        {"is_finite", [this] { return ::gko::validate::is_finite(this); }}};
 
     for (auto const &x : constraints_map) {
         if (!x.second()) {
