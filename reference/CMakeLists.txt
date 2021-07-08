@@ -5,6 +5,7 @@ target_sources(ginkgo_reference
     components/absolute_array.cpp
     components/accumulate_array.cpp
     components/fill_array.cpp
+    components/reduce_array.cpp
     components/precision_conversion.cpp
     components/prefix_sum.cpp
     distributed/matrix_kernels.cpp

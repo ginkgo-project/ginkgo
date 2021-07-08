@@ -7,6 +7,7 @@ target_sources(ginkgo_omp
     components/absolute_array.cpp
     components/accumulate_array.cpp
     components/fill_array.cpp
+    components/reduce_array.cpp
     components/prefix_sum.cpp
     distributed/matrix_kernels.cpp
     distributed/partition_kernels.cpp

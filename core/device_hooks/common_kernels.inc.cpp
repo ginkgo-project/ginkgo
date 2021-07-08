@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fill_array.hpp"
 #include "core/components/precision_conversion.hpp"
 #include "core/components/prefix_sum.hpp"
+#include "core/components/reduce_array.hpp"
 #include "core/distributed/matrix_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
 #include "core/distributed/vector_kernels.hpp"
@@ -116,6 +117,11 @@ template <typename IndexType>
 GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL(IndexType)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
+
+template <typename IndexType>
+GKO_DECLARE_REDUCE_ARRAY_KERNEL(IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ARRAY_KERNEL);
 
 template <typename ValueType>
 GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL(ValueType)

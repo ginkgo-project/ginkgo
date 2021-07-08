@@ -19,6 +19,7 @@ target_sources(ginkgo_dpcpp
     components/absolute_array.dp.cpp
     components/accumulate_array.dp.cpp
     components/fill_array.dp.cpp
+    components/reduce_array.dp.cpp
     components/prefix_sum.dp.cpp
     distributed/matrix_kernels.dp.cpp
     distributed/partition_kernels.dp.cpp
