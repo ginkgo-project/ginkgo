@@ -164,8 +164,7 @@ struct dim {
      *
      * @return a stream object appended with the dim output
      */
-    friend GKO_ATTRIBUTES std::ostream &operator<<(std::ostream &os,
-                                                   const dim &x)
+    friend std::ostream &operator<<(std::ostream &os, const dim &x)
     {
         os << "(";
         x.print_to(os);
@@ -229,8 +228,7 @@ struct dim<1u, DimensionType> {
         return dim(x.first_ * y.first_);
     }
 
-    friend GKO_ATTRIBUTES std::ostream &operator<<(std::ostream &os,
-                                                   const dim &x)
+    friend std::ostream &operator<<(std::ostream &os, const dim &x)
     {
         os << "(";
         x.print_to(os);
