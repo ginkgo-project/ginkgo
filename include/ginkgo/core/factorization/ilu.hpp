@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_FACTORIZATION_ILU_HPP_
 
 
+#include <map>
 #include <memory>
 
 
@@ -42,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "core/components/validation_helpers.hpp"
 
 namespace gko {
 /**
@@ -88,10 +90,33 @@ public:
             this->get_operators()[1]);
     }
 
+    void validate_impl() const
+    {
+        std::map<std::string, std::function<bool()>> constraints_map{
+            {"l_factor_is_finite",
+             [this] {
+                 return ::gko::validate::is_finite(get_l_factor().get());
+             }},
+            {"u_factor_is_finite",
+             [this] {
+                 return ::gko::validate::is_finite(get_u_factor().get());
+             }},
+            {"has_non_zero_diagonal", [this] {
+                 return ::gko::validate::has_non_zero_diagonal(
+                     get_l_factor().get());
+             }}};
+
+        for (auto const &x : constraints_map) {
+            if (!x.second()) {
+                throw gko::Invalid(__FILE__, __LINE__, "Ilu", x.first);
+            };
+        }
+    };
+
     // Remove the possibility of calling `create`, which was enabled by
     // `Composition`
     template <typename... Args>
-    static std::unique_ptr<Composition<ValueType>> create(Args &&... args) =
+    static std::unique_ptr<Composition<ValueType>> create(Args &&...args) =
         delete;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
