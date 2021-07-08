@@ -70,7 +70,6 @@ constexpr auto kcfg_1d_list =
                     KCFG_1D::encode(256, 8)>();
 constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
 
-// #include "common/components/reduction.hpp.inc"
 /**
  * @internal
  *
@@ -217,7 +216,7 @@ void reduce_add_array(
     }
 }
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 32), typename ValueType>
+template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void reduce_add_array(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                       sycl::queue *stream, size_type size,
                       const ValueType *source, ValueType *result)

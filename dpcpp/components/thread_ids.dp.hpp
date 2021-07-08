@@ -52,7 +52,6 @@ namespace dpcpp {
 namespace thread {
 
 
-// #include "common/components/thread_ids.hpp.inc"
 /**
  * @internal
  *

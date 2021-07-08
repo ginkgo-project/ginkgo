@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/helper.hpp"
+#include "dpcpp/base/onemkl_bindings.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
@@ -79,8 +80,24 @@ constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
 constexpr auto default_block_size = 256;
 
 
-// #include "common/matrix/dense_kernels.hpp.inc"
 namespace kernel {
+
+
+template <typename InValueType, typename OutValueType>
+void strided_copy(size_type num_rows, size_type num_cols, size_type in_stride,
+                  size_type out_stride, const InValueType *__restrict__ input,
+                  OutValueType *__restrict__ output, sycl::nd_item<3> item_ct1)
+{
+    const auto global_id = thread::get_thread_id_flat(item_ct1);
+    const auto row_id = global_id / num_cols;
+    const auto col_id = global_id % num_cols;
+    if (row_id < num_rows) {
+        output[row_id * out_stride + col_id] =
+            static_cast<OutValueType>(input[row_id * in_stride + col_id]);
+    }
+}
+
+GKO_ENABLE_DEFAULT_HOST(strided_copy, strided_copy)
 
 
 template <typename ValueType>
@@ -157,7 +174,7 @@ void add_scaled_diag(size_type size, const ValueType *__restrict__ alpha,
 GKO_ENABLE_DEFAULT_HOST(add_scaled_diag, add_scaled_diag)
 
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 32), typename OutType,
+template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename OutType,
           typename CallableGetValue, typename CallableReduce>
 void compute_partial_reduce(
     size_type num_rows, OutType *__restrict__ work, CallableGetValue get_value,
@@ -191,7 +208,7 @@ void compute_partial_reduce(
 }
 
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 32), typename ValueType,
+template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType,
           typename CallableReduce, typename CallableFinalize>
 void finalize_reduce_computation(
     size_type size, const ValueType *work, ValueType *result,
@@ -220,7 +237,7 @@ void finalize_reduce_computation(
 }
 
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 32), typename ValueType>
+template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void compute_partial_dot(
     size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
     const ValueType *__restrict__ y, size_type stride_y,
@@ -236,7 +253,7 @@ void compute_partial_dot(
         tmp_work);
 }
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 32), typename ValueType>
+template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void compute_partial_dot(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                          sycl::queue *stream, size_type num_rows,
                          const ValueType *x, size_type stride_x,
@@ -266,7 +283,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(compute_partial_dot_call, compute_partial_dot,
                                kcfg_1d_list)
 
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 32), typename ValueType>
+template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void compute_partial_conj_dot(
     size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
     const ValueType *__restrict__ y, size_type stride_y,
@@ -282,7 +299,7 @@ void compute_partial_conj_dot(
         tmp_work);
 }
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 32), typename ValueType>
+template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void compute_partial_conj_dot(dim3 grid, dim3 block,
                               size_t dynamic_shared_memory, sycl::queue *stream,
                               size_type num_rows, const ValueType *x,
@@ -312,7 +329,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(compute_partial_conj_dot_call,
                                compute_partial_conj_dot, kcfg_1d_list)
 
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 32), typename ValueType>
+template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void finalize_sum_reduce_computation(
     size_type size, const ValueType *work, ValueType *result,
     sycl::nd_item<3> item_ct1,
@@ -324,7 +341,7 @@ void finalize_sum_reduce_computation(
         [](const ValueType &x) { return x; }, item_ct1, tmp_work);
 }
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 32), typename ValueType>
+template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void finalize_sum_reduce_computation(dim3 grid, dim3 block,
                                      size_t dynamic_shared_memory,
                                      sycl::queue *stream, size_type size,
@@ -353,7 +370,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(finalize_sum_reduce_computation_call,
                                finalize_sum_reduce_computation, kcfg_1d_list)
 
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 32), typename ValueType>
+template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void compute_partial_norm2(
     size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
     remove_complex<ValueType> *__restrict__ work, sycl::nd_item<3> item_ct1,
@@ -368,7 +385,7 @@ void compute_partial_norm2(
         tmp_work);
 }
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 32), typename ValueType>
+template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void compute_partial_norm2(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                            sycl::queue *stream, size_type num_rows,
                            const ValueType *x, size_type stride_x,
@@ -397,7 +414,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(compute_partial_norm2_call,
                                compute_partial_norm2, kcfg_1d_list)
 
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 32), typename ValueType>
+template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void finalize_sqrt_reduce_computation(
     size_type size, const ValueType *work, ValueType *result,
     sycl::nd_item<3> item_ct1,
@@ -409,7 +426,7 @@ void finalize_sqrt_reduce_computation(
         [](const ValueType &x) { return std::sqrt(x); }, item_ct1, tmp_work);
 }
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 32), typename ValueType>
+template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void finalize_sqrt_reduce_computation(dim3 grid, dim3 block,
                                       size_t dynamic_shared_memory,
                                       sycl::queue *stream, size_type size,
@@ -653,7 +670,7 @@ void reduce_max_nnz(size_type size, const size_type *__restrict__ nnz_per_row,
     }
 }
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 32)>
+template <std::uint32_t cfg = KCFG_1D::encode(256, 16)>
 void reduce_max_nnz(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                     sycl::queue *stream, size_type size,
                     const size_type *nnz_per_row, size_type *result)
@@ -733,7 +750,7 @@ void reduce_total_cols(size_type num_slices,
     }
 }
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 32)>
+template <std::uint32_t cfg = KCFG_1D::encode(256, 16)>
 void reduce_total_cols(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                        sycl::queue *stream, size_type num_slices,
                        const size_type *max_nnz_per_slice, size_type *result)
@@ -1048,10 +1065,10 @@ void compute_dot(std::shared_ptr<const DpcppExecutor> exec,
     if (0) {
         // TODO: write a custom kernel which does this more efficiently
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
-            dot(*exec->get_queue(), x->get_size()[0],
-                x->get_const_values() + col, x->get_stride(),
-                y->get_const_values() + col, y->get_stride(),
-                result->get_values() + col);
+            onemkl::dot(*exec->get_queue(), x->get_size()[0],
+                        x->get_const_values() + col, x->get_stride(),
+                        y->get_const_values() + col, y->get_stride(),
+                        result->get_values() + col);
         }
     } else {
         // TODO: these are tuning parameters obtained experimentally, once
@@ -1096,10 +1113,10 @@ void compute_conj_dot(std::shared_ptr<const DpcppExecutor> exec,
     if (0) {
         // TODO: write a custom kernel which does this more efficiently
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
-            conj_dot(*exec->get_queue(), x->get_size()[0],
-                     x->get_const_values() + col, x->get_stride(),
-                     y->get_const_values() + col, y->get_stride(),
-                     result->get_values() + col);
+            onemkl::conj_dot(*exec->get_queue(), x->get_size()[0],
+                             x->get_const_values() + col, x->get_stride(),
+                             y->get_const_values() + col, y->get_stride(),
+                             result->get_values() + col);
         }
     } else {
         // TODO: these are tuning parameters obtained experimentally, once
