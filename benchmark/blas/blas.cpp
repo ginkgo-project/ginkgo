@@ -271,7 +271,7 @@ public:
                sizeof(etype);
     }
 
-    void run() override { B_->apply(lend(A_), lend(C_)); }
+    void run() override { A_->apply(lend(B_), lend(C_)); }
 
 private:
     std::unique_ptr<gko::matrix::Dense<etype>> A_;
@@ -317,7 +317,7 @@ public:
 
     void run() override
     {
-        B_->apply(lend(alpha_), lend(A_), lend(beta_), lend(C_));
+        A_->apply(lend(alpha_), lend(B_), lend(beta_), lend(C_));
     }
 
 private:
