@@ -410,6 +410,22 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
 
         GKO_EXPECT_MTX_NEAR(sub_mat3.get(), ref3.get(), 0.0);
     }
+    {
+        auto sub_mat4 = mat->get_submatrix(gko::span(1, 6), gko::span(2, 4));
+        /*
+           4.5, 7.5
+           4.5, 0.0
+           2.5, 0.0
+           1.0, 3.5
+           0.0, 0.0
+        */
+        auto ref4 = gko::initialize<Mtx>(
+            {I<T>{4.5, 7.5}, I<T>{4.5, 0.0}, I<T>{2.5, 0.0}, I<T>{-1.0, 3.5},
+             I<T>{0.0, 0.0}},
+            this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat4.get(), ref4.get(), 0.0);
+    }
 }
 
 
