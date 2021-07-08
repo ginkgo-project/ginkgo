@@ -611,6 +611,44 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_BLOCK_APPROX_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void compute_sub_matrix(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, IndexType> *source,
+                        const Array<size_type> *row_nnz, gko::span row_span,
+                        gko::span col_span,
+                        matrix::Csr<ValueType, IndexType> *result)
+{
+    auto row_offset = row_span.begin;
+    auto col_offset = col_span.begin;
+    auto block_size = result->get_size()[0];
+    const auto row_ptrs = source->get_const_row_ptrs();
+    const auto col_idxs = source->get_const_col_idxs();
+    const auto values = source->get_const_values();
+    auto res_row_ptrs = result->get_row_ptrs();
+#pragma omp parallel for
+    for (size_type row = 0; row < block_size; ++row) {
+        res_row_ptrs[row] = row_nnz->get_const_data()[row];
+    }
+    components::prefix_sum(exec, res_row_ptrs, block_size + 1);
+#pragma omp parallel for
+    for (size_type row = 0; row < block_size; ++row) {
+        size_type res_nnz = res_row_ptrs[row];
+        for (size_type nnz = row_ptrs[row_offset + row];
+             nnz < row_ptrs[row_offset + row + 1]; ++nnz) {
+            if ((col_idxs[nnz] < (col_offset + block_size) &&
+                 col_idxs[nnz] >= col_offset)) {
+                result->get_col_idxs()[res_nnz] = col_idxs[nnz] - col_offset;
+                result->get_values()[res_nnz] = values[nnz];
+                res_nnz++;
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL);
+
+
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const OmpExecutor> exec,
                               const IndexType* ptrs, size_type num_rows,

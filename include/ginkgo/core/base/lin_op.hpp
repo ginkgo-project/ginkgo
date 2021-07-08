@@ -740,6 +740,21 @@ public:
  *
  * @ingroup LinOp
  */
+template <typename ConcreteType>
+class SubMatrixExtractable {
+public:
+    virtual std::unique_ptr<ConcreteType> get_submatrix(
+        const gko::span &row_span, const gko::span &column_span) const = 0;
+};
+
+
+/**
+ * The diagonal of a LinOp implementing this interface can be extracted.
+ * extract_diagonal extracts the elements whose col and row index are the
+ * same and stores the result in a min(nrows, ncols) x 1 dense matrix.
+ *
+ * @ingroup LinOp
+ */
 template <typename ValueType>
 class DiagonalExtractable : public DiagonalLinOpExtractable {
 public:

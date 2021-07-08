@@ -100,6 +100,13 @@ namespace kernels {
                       matrix::Csr<ValueType, IndexType> *result,       \
                       Array<size_type> *row_nnz, size_type block_offset)
 
+#define GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL(ValueType, IndexType)      \
+    void compute_sub_matrix(std::shared_ptr<const DefaultExecutor> exec,     \
+                            const matrix::Csr<ValueType, IndexType> *source, \
+                            const Array<size_type> *row_nnz,                 \
+                            gko::span row_span, gko::span col_span,          \
+                            matrix::Csr<ValueType, IndexType> *result)
+
 #define GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
     void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,     \
                           const matrix::Csr<ValueType, IndexType>* source, \
@@ -212,6 +219,8 @@ namespace kernels {
     GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL(ValueType, IndexType);   \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_BLOCK_APPROX_KERNEL(ValueType, IndexType);               \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL(ValueType, IndexType);         \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);           \
     template <typename ValueType, typename IndexType>                        \

@@ -418,6 +418,38 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void compute_sub_matrix(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, IndexType> *source,
+                        const Array<size_type> *row_nnz, gko::span row_span,
+                        gko::span col_span,
+                        matrix::Csr<ValueType, IndexType> *result)
+{
+    auto row_offset = row_span.begin;
+    auto col_offset = col_span.begin;
+    auto block_size = result->get_size()[0];
+    for (size_type row = 0; row < block_size; ++row) {
+        result->get_row_ptrs()[row] = row_nnz->get_const_data()[row];
+    }
+    components::prefix_sum(exec, result->get_row_ptrs(), block_size + 1);
+    size_type res_nnz = 0;
+    for (size_type nnz = 0; nnz < source->get_num_stored_elements(); ++nnz) {
+        if (nnz >= source->get_const_row_ptrs()[row_offset] &&
+            nnz < source->get_const_row_ptrs()[row_offset + block_size] &&
+            (source->get_const_col_idxs()[nnz] < (col_offset + block_size) &&
+             source->get_const_col_idxs()[nnz] >= col_offset)) {
+            result->get_col_idxs()[res_nnz] =
+                source->get_const_col_idxs()[nnz] - col_offset;
+            result->get_values()[res_nnz] = source->get_const_values()[nnz];
+            res_nnz++;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* source,
                     matrix::Coo<ValueType, IndexType>* result)

@@ -192,10 +192,7 @@ struct dim {
      */
     friend std::ostream& operator<<(std::ostream& os, const dim& x)
     {
-        os << "(";
-        x.print_to(os);
-        os << ")";
-        return os;
+        return os << "(" << x.first_ << " , " << x.rest_ << ")";
     }
 
 private:

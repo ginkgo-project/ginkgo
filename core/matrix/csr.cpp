@@ -70,6 +70,7 @@ GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row_in_span,
                        csr::calculate_nonzeros_per_row_in_span);
 GKO_REGISTER_OPERATION(block_approx, csr::block_approx);
+GKO_REGISTER_OPERATION(compute_sub_matrix, csr::compute_sub_matrix);
 GKO_REGISTER_OPERATION(calculate_total_cols, csr::calculate_total_cols);
 GKO_REGISTER_OPERATION(convert_to_ell, csr::convert_to_ell);
 GKO_REGISTER_OPERATION(convert_to_hybrid, csr::convert_to_hybrid);
@@ -271,6 +272,30 @@ Csr<ValueType, IndexType>::get_block_approx(
         std::vector<std::unique_ptr<Csr<ValueType, IndexType>>>,
         std::vector<std::unique_ptr<Csr<ValueType, IndexType>>>>(
         std::move(block_mtxs), std::move(overlap_mtxs));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>>
+Csr<ValueType, IndexType>::get_submatrix(const gko::span &row_span,
+                                         const gko::span &column_span) const
+{
+    using Mat = Csr<ValueType, IndexType>;
+    auto exec = this->get_executor();
+    auto sub_mat_size = gko::dim<2>(row_span.length(), column_span.length());
+    Array<size_type> row_nnz(exec, row_span.length());
+    row_nnz.fill(size_type(0));
+    exec->run(csr::make_calculate_nonzeros_per_row_in_span(
+        this, row_span, column_span, &row_nnz));
+    Array<size_type> row_nnz_host(exec->get_master(), row_nnz.get_num_elems());
+    row_nnz_host = row_nnz;
+    size_type sub_mat_nnz = std::accumulate(
+        row_nnz_host.get_data(), row_nnz_host.get_data() + sub_mat_size[0], 0);
+    auto sub_mat =
+        Mat::create(exec, sub_mat_size, sub_mat_nnz, this->get_strategy());
+    exec->run(csr::make_compute_sub_matrix(this, &row_nnz, row_span,
+                                           column_span, sub_mat.get()));
+    return sub_mat;
 }
 
 
