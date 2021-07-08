@@ -212,7 +212,8 @@ struct MultigridState {
         e_list.reserve(list_size);
         one_list.reserve(list_size);
         neg_one_list.reserve(list_size);
-        if (cycle == multigrid_cycle::kfcg || cycle == multigrid_cycle::kgcr) {
+        if (cycle == multigrid::cycle::kfcg ||
+            cycle == multigrid::cycle::kgcr) {
             kcycle_state.reserve_space(this);
         }
         // Allocate memory first such that repeating allocation in each iter.
@@ -238,7 +239,7 @@ struct MultigridState {
     }
 
     template <typename VT>
-    void allocate_memory(int level, multigrid_cycle cycle,
+    void allocate_memory(int level, multigrid::cycle cycle,
                          size_type current_nrows, size_type next_nrows)
     {
         using vec = matrix::Dense<VT>;
@@ -251,15 +252,15 @@ struct MultigridState {
         e_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
         one_list.emplace_back(initialize<vec>({gko::one<VT>()}, exec));
         neg_one_list.emplace_back(initialize<vec>({-gko::one<VT>()}, exec));
-        if ((cycle == multigrid_cycle::kfcg ||
-             cycle == multigrid_cycle::kgcr) &&
+        if ((cycle == multigrid::cycle::kfcg ||
+             cycle == multigrid::cycle::kgcr) &&
             level % multigrid->get_parameters().kcycle_base == 0) {
             kcycle_state.allocate_memory<VT>(level, cycle, current_nrows,
                                              next_nrows);
         }
     }
 
-    void run_cycle(multigrid_cycle cycle, size_type level,
+    void run_cycle(multigrid::cycle cycle, size_type level,
                    const std::shared_ptr<const LinOp> &matrix, const LinOp *b,
                    LinOp *x, bool is_first = true, bool is_end = true)
     {
@@ -279,7 +280,7 @@ struct MultigridState {
     }
 
     template <typename VT>
-    void run_cycle(multigrid_cycle cycle, size_type level,
+    void run_cycle(multigrid::cycle cycle, size_type level,
                    const std::shared_ptr<const LinOp> &matrix, const LinOp *b,
                    LinOp *x, bool is_first, bool is_end)
     {
@@ -295,7 +296,7 @@ struct MultigridState {
         // get the mid_smoother
         std::shared_ptr<const LinOp> mid_smoother{nullptr};
         auto mid_case = multigrid->get_parameters().mid_case;
-        if (mid_case == multigrid_mid_smooth_type::standalone) {
+        if (mid_case == multigrid::mid_smooth_type::standalone) {
             mid_smoother = multigrid->get_mid_smoother_list().at(level);
         }
         // get the post_smoother
@@ -304,8 +305,8 @@ struct MultigridState {
         auto neg_one = neg_one_list.at(level).get();
         // origin or next or first
         bool use_pre = is_first ||
-                       mid_case == multigrid_mid_smooth_type::origin ||
-                       mid_case == multigrid_mid_smooth_type::next;
+                       mid_case == multigrid::mid_smooth_type::both ||
+                       mid_case == multigrid::mid_smooth_type::pre_smoother;
         if (use_pre && pre_smoother) {
             pre_smoother->apply(b, x);
             // compute residual
@@ -322,20 +323,20 @@ struct MultigridState {
         // next level
         e->fill(zero<VT>());
         this->run_cycle(cycle, level + 1, mg_level->get_coarse_op(), g.get(),
-                        e.get(), true, cycle == multigrid_cycle::v);
+                        e.get(), true, cycle == multigrid::cycle::v);
         if (level < multigrid->get_mg_level_list().size() - 1) {
             // additional work for non-v_cycle
             // next level
-            if (cycle == multigrid_cycle::f) {
+            if (cycle == multigrid::cycle::f) {
                 // f_cycle call v_cycle in the second cycle
-                this->run_cycle(multigrid_cycle::v, level + 1,
+                this->run_cycle(multigrid::cycle::v, level + 1,
                                 mg_level->get_coarse_op(), g.get(), e.get(),
                                 false, true);
-            } else if (cycle == multigrid_cycle::w) {
+            } else if (cycle == multigrid::cycle::w) {
                 this->run_cycle(cycle, level + 1, mg_level->get_coarse_op(),
                                 g.get(), e.get(), false, true);
-            } else if ((cycle == multigrid_cycle::kfcg ||
-                        cycle == multigrid_cycle::kgcr) &&
+            } else if ((cycle == multigrid::cycle::kfcg ||
+                        cycle == multigrid::cycle::kgcr) &&
                        level % multigrid->get_parameters().kcycle_base == 0) {
                 kcycle_state.kstep<VT>(cycle, level, g, e);
             }
@@ -345,8 +346,8 @@ struct MultigridState {
 
         // end or origin previous
         bool use_post = is_end ||
-                        mid_case == multigrid_mid_smooth_type::origin ||
-                        mid_case == multigrid_mid_smooth_type::previous;
+                        mid_case == multigrid::mid_smooth_type::both ||
+                        mid_case == multigrid::mid_smooth_type::post_smoother;
         // post-smooth
         if (use_post && post_smoother) {
             post_smoother->apply(b, x);
@@ -355,8 +356,8 @@ struct MultigridState {
         // put the mid smoother into the end of previous cycle
         // only W/F cycle
         bool use_mid =
-            (cycle == multigrid_cycle::w || cycle == multigrid_cycle::f) &&
-            !is_end && mid_case == multigrid_mid_smooth_type::standalone;
+            (cycle == multigrid::cycle::w || cycle == multigrid::cycle::f) &&
+            !is_end && mid_case == multigrid::mid_smooth_type::standalone;
         if (use_mid && mid_smoother) {
             mid_smoother->apply(b, x);
         }
@@ -381,7 +382,7 @@ struct MultigridState {
         }
 
         template <typename VT>
-        void allocate_memory(int level, multigrid_cycle cycle,
+        void allocate_memory(int level, multigrid::cycle cycle,
                              size_type current_nrows, size_type next_nrows)
         {
             using vec = matrix::Dense<VT>;
@@ -407,7 +408,7 @@ struct MultigridState {
         }
 
         template <typename VT>
-        void kstep(multigrid_cycle cycle, size_type level,
+        void kstep(multigrid::cycle cycle, size_type level,
                    const std::shared_ptr<matrix::Dense<VT>> &g,
                    const std::shared_ptr<matrix::Dense<VT>> &e)
         {
@@ -415,7 +416,7 @@ struct MultigridState {
             auto exec = as<LinOp>(mg_level)->get_executor();
             // otherwise, use v_cycle
             // do some work in coarse level - do not need prolong
-            bool is_fcg = cycle == multigrid_cycle::kfcg;
+            bool is_fcg = cycle == multigrid::cycle::kfcg;
             auto k_idx =
                 level / mg_state->multigrid->get_parameters().kcycle_base;
             auto alpha = as_vec<VT>(alpha_list.at(k_idx));
@@ -524,7 +525,7 @@ void Multigrid::generate()
     // Always generate smoother with size = level.
     while (level < parameters_.max_levels &&
            num_rows > parameters_.min_coarse_rows) {
-        auto index = mg_level_index_(level, lend(matrix));
+        auto index = level_selector_(level, lend(matrix));
         GKO_ENSURE_IN_BOUNDS(index, parameters_.mg_level.size());
         auto mg_level_factory = parameters_.mg_level.at(index);
         // coarse generate
@@ -545,7 +546,7 @@ void Multigrid::generate()
                     index, matrix, parameters_.pre_smoother, pre_smoother_list_,
                     parameters_.smoother_iters, parameters_.smoother_relax);
                 if (parameters_.mid_case ==
-                    multigrid_mid_smooth_type::standalone) {
+                    multigrid::mid_smooth_type::standalone) {
                     handle_list<value_type>(
                         index, matrix, parameters_.mid_smoother,
                         mid_smoother_list_, parameters_.smoother_iters,
@@ -584,7 +585,7 @@ void Multigrid::generate()
                 coarsest_solver_ = matrix::Identity<value_type>::create(
                     exec, matrix->get_size()[0]);
             } else {
-                auto temp_index = solver_index_(level, lend(matrix));
+                auto temp_index = solver_selector_(level, lend(matrix));
                 GKO_ENSURE_IN_BOUNDS(temp_index,
                                      parameters_.coarsest_solver.size());
                 auto solver = parameters_.coarsest_solver.at(temp_index);

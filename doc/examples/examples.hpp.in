@@ -241,6 +241,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *            matrices.
  *       </td></tr>
  *
+ *   <tr valign="top">
+ *       <td>@ref multigrid_preconditioned_solver</td>
+ *       <td> Use multigrid as preconditioner to a solver.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>@ref mixed_multigrid_solver</td>
+ *       <td> Use multigrid with different precision multigrid_level as a
+ *            solver.
+ *       </td></tr>
+ *
  * </table>
  *
  * <a name="topic"></a>
@@ -280,6 +291,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *         @ref adaptiveprecision_blockjacobi,
  *         @ref par_ilu_convergence,
  *         @ref preconditioner_export
+ *         @ref multigrid_preconditioned_solver
  *     </td>
  *   </tr>
  *
@@ -382,6 +394,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     <td>@ref mixed_spmv,
  *         @ref mixed_precision_ir,
  *         @ref adaptiveprecision_blockjacobi
+ *         @ref mixed_multigrid_solver
+ *     </td>
+ *   </tr>
+ *
+ *   <tr valign="top">
+ *     <td> Multigrid
+ *     </td>
+ *     <td>@ref multigrid_preconditioned_solver
+ *         @ref mixed_multigrid_solver
  *     </td>
  *   </tr>
  * </table>

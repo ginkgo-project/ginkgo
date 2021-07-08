@@ -341,7 +341,7 @@ protected:
     }
 
     std::unique_ptr<typename Solver::Factory> get_multigrid_factory(
-        gko::solver::multigrid_cycle cycle)
+        gko::solver::multigrid::cycle cycle)
     {
         return std::move(
             Solver::build()
@@ -350,7 +350,7 @@ protected:
                 .with_coarsest_solver(coarsest_factory)
                 .with_max_levels(2u)
                 .with_post_uses_pre(true)
-                .with_mid_case(gko::solver::multigrid_mid_smooth_type::next)
+                .with_mid_case(gko::solver::multigrid::mid_smooth_type::both)
                 .with_mg_level(coarse_factory)
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(4u).on(exec),
@@ -366,7 +366,7 @@ protected:
     }
 
     std::unique_ptr<typename Solver::Factory> get_mixed_multigrid_factory(
-        gko::solver::multigrid_cycle cycle)
+        gko::solver::multigrid::cycle cycle)
     {
         return std::move(
             Solver::build()
@@ -375,7 +375,7 @@ protected:
                 .with_coarsest_solver(coarsest_factory)
                 .with_max_levels(2u)
                 .with_post_uses_pre(true)
-                .with_mid_case(gko::solver::multigrid_mid_smooth_type::next)
+                .with_mid_case(gko::solver::multigrid::mid_smooth_type::both)
                 .with_mg_level(coarse_factory, coarsenext_factory)
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(100u).on(exec),
@@ -392,9 +392,9 @@ protected:
 
 
     std::unique_ptr<typename Solver::Factory> get_factory_individual(
-        gko::solver::multigrid_cycle cycle, gko::size_type max_levels = 2u,
-        gko::solver::multigrid_mid_smooth_type mid_case =
-            gko::solver::multigrid_mid_smooth_type::origin)
+        gko::solver::multigrid::cycle cycle, gko::size_type max_levels = 2u,
+        gko::solver::multigrid::mid_smooth_type mid_case =
+            gko::solver::multigrid::mid_smooth_type::both)
     {
         return std::move(
             Solver::build()
@@ -415,9 +415,9 @@ protected:
     }
 
     std::unique_ptr<typename Solver::Factory> get_factory_same(
-        gko::solver::multigrid_cycle cycle, gko::size_type max_levels = 2u,
-        gko::solver::multigrid_mid_smooth_type mid_case =
-            gko::solver::multigrid_mid_smooth_type::origin)
+        gko::solver::multigrid::cycle cycle, gko::size_type max_levels = 2u,
+        gko::solver::multigrid::mid_smooth_type mid_case =
+            gko::solver::multigrid::mid_smooth_type::both)
     {
         return std::move(
             Solver::build()
@@ -440,8 +440,8 @@ protected:
         rmc_value_type kcycle_rel_tol, gko::size_type kcycle_base = 1,
         bool is_kfcg = true, gko::size_type max_levels = 2u)
     {
-        auto cycle = is_kfcg ? gko::solver::multigrid_cycle::kfcg
-                             : gko::solver::multigrid_cycle::kgcr;
+        auto cycle = is_kfcg ? gko::solver::multigrid::cycle::kfcg
+                             : gko::solver::multigrid::cycle::kgcr;
         return std::move(
             Solver::build()
                 .with_max_levels(max_levels)
@@ -572,10 +572,10 @@ TYPED_TEST(Multigrid, VCycleIndividual)
     using DummyFactory = typename TestFixture::DummyFactory;
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
-    auto solver = this->get_factory_individual(gko::solver::multigrid_cycle::v)
+    auto solver = this->get_factory_individual(gko::solver::multigrid::cycle::v)
                       ->generate(this->mtx);
     auto factory =
-        this->get_factory_individual(gko::solver::multigrid_cycle::v);
+        this->get_factory_individual(gko::solver::multigrid::cycle::v);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
@@ -614,7 +614,7 @@ TYPED_TEST(Multigrid, VCycleSame)
     using DummyFactory = typename TestFixture::DummyFactory;
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
-    auto solver = this->get_factory_same(gko::solver::multigrid_cycle::v)
+    auto solver = this->get_factory_same(gko::solver::multigrid::cycle::v)
                       ->generate(this->mtx);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
@@ -654,7 +654,7 @@ TYPED_TEST(Multigrid, WCycleIndividual)
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
     auto solver =
-        this->get_factory_individual(gko::solver::multigrid_cycle::w, 3u)
+        this->get_factory_individual(gko::solver::multigrid::cycle::w, 3u)
             ->generate(this->mtx2);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
@@ -696,17 +696,18 @@ TYPED_TEST(Multigrid, WCycleIndividual)
 }
 
 
-TYPED_TEST(Multigrid, WCycleIndividualMidUsePrevious)
+TYPED_TEST(Multigrid, WCycleIndividualMidUsePost)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
     using DummyFactory = typename TestFixture::DummyFactory;
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
-    auto solver = this->get_factory_individual(
-                          gko::solver::multigrid_cycle::w, 3u,
-                          gko::solver::multigrid_mid_smooth_type::previous)
-                      ->generate(this->mtx2);
+    auto solver =
+        this->get_factory_individual(
+                gko::solver::multigrid::cycle::w, 3u,
+                gko::solver::multigrid::mid_smooth_type::post_smoother)
+            ->generate(this->mtx2);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
     auto mid_smoother = solver->get_mid_smoother_list();
@@ -747,7 +748,7 @@ TYPED_TEST(Multigrid, WCycleIndividualMidUsePrevious)
 }
 
 
-TYPED_TEST(Multigrid, WCycleIndividualMidUseNext)
+TYPED_TEST(Multigrid, WCycleIndividualMidUsePre)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
@@ -755,8 +756,8 @@ TYPED_TEST(Multigrid, WCycleIndividualMidUseNext)
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
     auto solver = this->get_factory_individual(
-                          gko::solver::multigrid_cycle::w, 3u,
-                          gko::solver::multigrid_mid_smooth_type::next)
+                          gko::solver::multigrid::cycle::w, 3u,
+                          gko::solver::multigrid::mid_smooth_type::pre_smoother)
                       ->generate(this->mtx2);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
@@ -806,8 +807,8 @@ TYPED_TEST(Multigrid, WCycleIndividualMidUseStandalone)
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
     auto solver = this->get_factory_individual(
-                          gko::solver::multigrid_cycle::w, 3u,
-                          gko::solver::multigrid_mid_smooth_type::standalone)
+                          gko::solver::multigrid::cycle::w, 3u,
+                          gko::solver::multigrid::mid_smooth_type::standalone)
                       ->generate(this->mtx2);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
@@ -857,7 +858,7 @@ TYPED_TEST(Multigrid, WCycleSame)
     using DummyFactory = typename TestFixture::DummyFactory;
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
-    auto solver = this->get_factory_same(gko::solver::multigrid_cycle::w, 3u)
+    auto solver = this->get_factory_same(gko::solver::multigrid::cycle::w, 3u)
                       ->generate(this->mtx2);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
@@ -896,7 +897,7 @@ TYPED_TEST(Multigrid, WCycleSame)
 }
 
 
-TYPED_TEST(Multigrid, WCycleSameMidUsePrevious)
+TYPED_TEST(Multigrid, WCycleSameMidUsePost)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
@@ -904,8 +905,9 @@ TYPED_TEST(Multigrid, WCycleSameMidUsePrevious)
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
     auto solver =
-        this->get_factory_same(gko::solver::multigrid_cycle::w, 3u,
-                               gko::solver::multigrid_mid_smooth_type::previous)
+        this->get_factory_same(
+                gko::solver::multigrid::cycle::w, 3u,
+                gko::solver::multigrid::mid_smooth_type::post_smoother)
             ->generate(this->mtx2);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
@@ -943,17 +945,17 @@ TYPED_TEST(Multigrid, WCycleSameMidUsePrevious)
 }
 
 
-TYPED_TEST(Multigrid, WCycleSameMidUseNext)
+TYPED_TEST(Multigrid, WCycleSameMidUsePre)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
     using DummyFactory = typename TestFixture::DummyFactory;
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
-    auto solver =
-        this->get_factory_same(gko::solver::multigrid_cycle::w, 3u,
-                               gko::solver::multigrid_mid_smooth_type::next)
-            ->generate(this->mtx2);
+    auto solver = this->get_factory_same(
+                          gko::solver::multigrid::cycle::w, 3u,
+                          gko::solver::multigrid::mid_smooth_type::pre_smoother)
+                      ->generate(this->mtx2);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
     auto coarsest_solver = solver->get_coarsest_solver();
@@ -998,7 +1000,7 @@ TYPED_TEST(Multigrid, FCycleIndividual)
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
     auto solver =
-        this->get_factory_individual(gko::solver::multigrid_cycle::f, 3u)
+        this->get_factory_individual(gko::solver::multigrid::cycle::f, 3u)
             ->generate(this->mtx2);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
@@ -1039,17 +1041,18 @@ TYPED_TEST(Multigrid, FCycleIndividual)
 }
 
 
-TYPED_TEST(Multigrid, FCycleIndividualMidUsePrevious)
+TYPED_TEST(Multigrid, FCycleIndividualMidUsePost)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
     using DummyFactory = typename TestFixture::DummyFactory;
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
-    auto solver = this->get_factory_individual(
-                          gko::solver::multigrid_cycle::f, 3u,
-                          gko::solver::multigrid_mid_smooth_type::previous)
-                      ->generate(this->mtx2);
+    auto solver =
+        this->get_factory_individual(
+                gko::solver::multigrid::cycle::f, 3u,
+                gko::solver::multigrid::mid_smooth_type::post_smoother)
+            ->generate(this->mtx2);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
     auto mid_smoother = solver->get_mid_smoother_list();
@@ -1089,7 +1092,7 @@ TYPED_TEST(Multigrid, FCycleIndividualMidUsePrevious)
 }
 
 
-TYPED_TEST(Multigrid, FCycleIndividualMidUseNext)
+TYPED_TEST(Multigrid, FCycleIndividualMidUsePre)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
@@ -1097,8 +1100,8 @@ TYPED_TEST(Multigrid, FCycleIndividualMidUseNext)
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
     auto solver = this->get_factory_individual(
-                          gko::solver::multigrid_cycle::f, 3u,
-                          gko::solver::multigrid_mid_smooth_type::next)
+                          gko::solver::multigrid::cycle::f, 3u,
+                          gko::solver::multigrid::mid_smooth_type::pre_smoother)
                       ->generate(this->mtx2);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
@@ -1147,8 +1150,8 @@ TYPED_TEST(Multigrid, FCycleIndividualMidUseStandalone)
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
     auto solver = this->get_factory_individual(
-                          gko::solver::multigrid_cycle::f, 3u,
-                          gko::solver::multigrid_mid_smooth_type::standalone)
+                          gko::solver::multigrid::cycle::f, 3u,
+                          gko::solver::multigrid::mid_smooth_type::standalone)
                       ->generate(this->mtx2);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
@@ -1197,7 +1200,7 @@ TYPED_TEST(Multigrid, FCycleSame)
     using DummyFactory = typename TestFixture::DummyFactory;
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
-    auto solver = this->get_factory_same(gko::solver::multigrid_cycle::f, 3u)
+    auto solver = this->get_factory_same(gko::solver::multigrid::cycle::f, 3u)
                       ->generate(this->mtx2);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
@@ -1234,7 +1237,7 @@ TYPED_TEST(Multigrid, FCycleSame)
 }
 
 
-TYPED_TEST(Multigrid, FCycleSameMidUsePrevious)
+TYPED_TEST(Multigrid, FCycleSameMidUsePost)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
@@ -1242,8 +1245,9 @@ TYPED_TEST(Multigrid, FCycleSameMidUsePrevious)
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
     auto solver =
-        this->get_factory_same(gko::solver::multigrid_cycle::f, 3u,
-                               gko::solver::multigrid_mid_smooth_type::previous)
+        this->get_factory_same(
+                gko::solver::multigrid::cycle::f, 3u,
+                gko::solver::multigrid::mid_smooth_type::post_smoother)
             ->generate(this->mtx2);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
@@ -1280,17 +1284,17 @@ TYPED_TEST(Multigrid, FCycleSameMidUsePrevious)
 }
 
 
-TYPED_TEST(Multigrid, FCycleSameMidUseNext)
+TYPED_TEST(Multigrid, FCycleSameMidUsePre)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
     using DummyFactory = typename TestFixture::DummyFactory;
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
-    auto solver =
-        this->get_factory_same(gko::solver::multigrid_cycle::f, 3u,
-                               gko::solver::multigrid_mid_smooth_type::previous)
-            ->generate(this->mtx2);
+    auto solver = this->get_factory_same(
+                          gko::solver::multigrid::cycle::f, 3u,
+                          gko::solver::multigrid::mid_smooth_type::pre_smoother)
+                      ->generate(this->mtx2);
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
     auto coarsest_solver = solver->get_coarsest_solver();
@@ -1460,7 +1464,7 @@ TYPED_TEST(Multigrid, CanChangeCycle)
     using DummyFactory = typename TestFixture::DummyFactory;
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
-    auto solver = this->get_factory_same(gko::solver::multigrid_cycle::v)
+    auto solver = this->get_factory_same(gko::solver::multigrid::cycle::v)
                       ->generate(this->mtx);
     auto original = solver->get_cycle();
     auto mg_level = solver->get_mg_level_list();
@@ -1470,11 +1474,11 @@ TYPED_TEST(Multigrid, CanChangeCycle)
 
     // change v cycle to f cycle
     global_step = 0;
-    solver->set_cycle(gko::solver::multigrid_cycle::f);
+    solver->set_cycle(gko::solver::multigrid::cycle::f);
     solver->apply(gko::lend(this->b), gko::lend(this->x));
 
-    ASSERT_EQ(original, gko::solver::multigrid_cycle::v);
-    ASSERT_EQ(solver->get_cycle(), gko::solver::multigrid_cycle::f);
+    ASSERT_EQ(original, gko::solver::multigrid::cycle::v);
+    ASSERT_EQ(solver->get_cycle(), gko::solver::multigrid::cycle::f);
     this->assert_same_step(mg_level.at(0).get(), {0}, {11});
     this->assert_same_step(mg_level.at(1).get(), {2, 7}, {4, 9});
     // all uses pre_smoother
@@ -1489,7 +1493,7 @@ TYPED_TEST(Multigrid, SolvesStencilSystemByVCycle)
     using value_type = typename TestFixture::value_type;
 
     auto multigrid_factory =
-        this->get_multigrid_factory(gko::solver::multigrid_cycle::v);
+        this->get_multigrid_factory(gko::solver::multigrid::cycle::v);
     auto solver = multigrid_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -1506,7 +1510,7 @@ TYPED_TEST(Multigrid, SolvesStencilSystemByWCycle)
     using value_type = typename TestFixture::value_type;
 
     auto multigrid_factory =
-        this->get_multigrid_factory(gko::solver::multigrid_cycle::w);
+        this->get_multigrid_factory(gko::solver::multigrid::cycle::w);
     auto solver = multigrid_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -1523,7 +1527,7 @@ TYPED_TEST(Multigrid, SolvesStencilSystemByFCycle)
     using value_type = typename TestFixture::value_type;
 
     auto multigrid_factory =
-        this->get_multigrid_factory(gko::solver::multigrid_cycle::f);
+        this->get_multigrid_factory(gko::solver::multigrid::cycle::f);
     auto solver = multigrid_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -1540,7 +1544,7 @@ TYPED_TEST(Multigrid, SolvesStencilSystemByKfcgCycle)
     using value_type = typename TestFixture::value_type;
 
     auto multigrid_factory =
-        this->get_multigrid_factory(gko::solver::multigrid_cycle::kfcg);
+        this->get_multigrid_factory(gko::solver::multigrid::cycle::kfcg);
     auto solver = multigrid_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -1556,7 +1560,7 @@ TYPED_TEST(Multigrid, SolvesStencilSystemByKgcrCycle)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     auto multigrid_factory =
-        this->get_multigrid_factory(gko::solver::multigrid_cycle::kgcr);
+        this->get_multigrid_factory(gko::solver::multigrid::cycle::kgcr);
     auto solver = multigrid_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -1571,7 +1575,7 @@ TYPED_TEST(Multigrid, SolvesStencilSystem2ByVCycle)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     auto multigrid_factory =
-        this->get_mixed_multigrid_factory(gko::solver::multigrid_cycle::v);
+        this->get_mixed_multigrid_factory(gko::solver::multigrid::cycle::v);
     auto solver = multigrid_factory->generate(this->mtx2);
     auto mg_level_list = solver->get_mg_level_list();
 
@@ -1593,7 +1597,7 @@ TYPED_TEST(Multigrid, SolvesStencilSystem2ByWCycle)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     auto multigrid_factory =
-        this->get_mixed_multigrid_factory(gko::solver::multigrid_cycle::w);
+        this->get_mixed_multigrid_factory(gko::solver::multigrid::cycle::w);
     auto solver = multigrid_factory->generate(this->mtx2);
     auto mg_level_list = solver->get_mg_level_list();
 
@@ -1615,7 +1619,7 @@ TYPED_TEST(Multigrid, SolvesStencilSystem2ByFCycle)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     auto multigrid_factory =
-        this->get_mixed_multigrid_factory(gko::solver::multigrid_cycle::f);
+        this->get_mixed_multigrid_factory(gko::solver::multigrid::cycle::f);
     auto solver = multigrid_factory->generate(this->mtx2);
     auto mg_level_list = solver->get_mg_level_list();
 
@@ -1637,7 +1641,7 @@ TYPED_TEST(Multigrid, SolvesStencilSystem2ByKfcgCycle)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     auto multigrid_factory =
-        this->get_mixed_multigrid_factory(gko::solver::multigrid_cycle::kfcg);
+        this->get_mixed_multigrid_factory(gko::solver::multigrid::cycle::kfcg);
     auto solver = multigrid_factory->generate(this->mtx2);
     auto mg_level_list = solver->get_mg_level_list();
 
@@ -1659,7 +1663,7 @@ TYPED_TEST(Multigrid, SolvesStencilSystem2ByKgcrCycle)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     auto multigrid_factory =
-        this->get_mixed_multigrid_factory(gko::solver::multigrid_cycle::kgcr);
+        this->get_mixed_multigrid_factory(gko::solver::multigrid::cycle::kgcr);
     auto solver = multigrid_factory->generate(this->mtx2);
     auto mg_level_list = solver->get_mg_level_list();
 
