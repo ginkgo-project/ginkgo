@@ -30,67 +30,19 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/array.hpp>
+
+namespace kernel {
 
 
-#include <algorithm>
-
-
-#include <gtest/gtest.h>
-
-
-#include <ginkgo/core/base/executor.hpp>
-
-
-#include "core/test/utils.hpp"
-
-
-namespace {
-
-
-template <typename T>
-class Array : public ::testing::Test {
-protected:
-    Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
-    {
-        x.get_data()[0] = 5;
-        x.get_data()[1] = 2;
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void reduce_array(
+    size_type n, ValueType *__restrict__ array, ValueType val)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    if (tidx < n) {
+        array[tidx] = val;
     }
-
-    std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> x;
-};
-
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes);
-
-
-TYPED_TEST(Array, CanBeFilledWithValue)
-{
-    this->x.fill(TypeParam{42});
-
-    ASSERT_EQ(this->x.get_num_elems(), 2);
-    ASSERT_EQ(this->x.get_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_data()[1], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[1], TypeParam{42});
 }
 
 
-TYPED_TEST(Array, CanAccumulateValues)
-{
-    auto sum = this->x.accumulate(TypeParam{42});
-
-    ASSERT_EQ(sum, TypeParam{49});
-}
-
-
-TYPED_TEST(Array, CanBeReduced)
-{
-    TypeParam out = 0.0;
-    this->x.reduce(&out);
-
-    ASSERT_EQ(out, TypeParam{7});
-}
-
-
-}  // namespace
+}  // namespace kernel

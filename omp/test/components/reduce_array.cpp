@@ -30,16 +30,18 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/array.hpp>
+#include "core/components/reduce_array.hpp"
 
 
-#include <algorithm>
+#include <memory>
+#include <random>
+#include <vector>
 
 
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/array.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -49,47 +51,41 @@ namespace {
 
 
 template <typename T>
-class Array : public ::testing::Test {
+class ReduceArray : public ::testing::Test {
 protected:
-    Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
+    using value_type = T;
+    ReduceArray()
+        : ref(gko::ReferenceExecutor::create()),
+          exec(gko::OmpExecutor::create()),
+          total_size(635),
+          vals(ref, total_size),
+          dvals(exec, total_size)
     {
-        x.get_data()[0] = 5;
-        x.get_data()[1] = 2;
+        std::iota(vals.get_data(), vals.get_data() + total_size, 0);
+        std::iota(dvals.get_data(), dvals.get_data() + total_size, 0);
+        out = std::accumulate(vals.get_data(), vals.get_data() + total_size,
+                              T(2));
     }
 
-    std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> x;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::OmpExecutor> exec;
+    gko::size_type total_size;
+    value_type out;
+    gko::Array<value_type> vals;
+    gko::Array<value_type> dvals;
 };
 
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes);
+TYPED_TEST_SUITE(ReduceArray, gko::test::ValueAndIndexTypes);
 
 
-TYPED_TEST(Array, CanBeFilledWithValue)
+TYPED_TEST(ReduceArray, EqualsReference)
 {
-    this->x.fill(TypeParam{42});
+    using T = typename TestFixture::value_type;
+    auto val = T(2);
+    gko::kernels::omp::components::reduce_array(
+        this->exec, this->dvals.get_data(), this->total_size, &val);
 
-    ASSERT_EQ(this->x.get_num_elems(), 2);
-    ASSERT_EQ(this->x.get_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_data()[1], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[1], TypeParam{42});
-}
-
-
-TYPED_TEST(Array, CanAccumulateValues)
-{
-    auto sum = this->x.accumulate(TypeParam{42});
-
-    ASSERT_EQ(sum, TypeParam{49});
-}
-
-
-TYPED_TEST(Array, CanBeReduced)
-{
-    TypeParam out = 0.0;
-    this->x.reduce(&out);
-
-    ASSERT_EQ(out, TypeParam{7});
+    ASSERT_EQ(this->out, val);
 }
 
 
