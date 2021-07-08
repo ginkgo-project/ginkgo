@@ -6,6 +6,7 @@ target_sources(ginkgo_omp
     base/version.cpp
     components/absolute_array.cpp
     components/fill_array.cpp
+    components/reduce_array.cpp
     components/prefix_sum.cpp
     factorization/factorization_kernels.cpp
     factorization/ic_kernels.cpp
