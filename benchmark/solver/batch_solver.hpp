@@ -81,8 +81,8 @@ DEFINE_uint32(
     nrhs, 1,
     "The number of right hand sides. Record the residual only when nrhs == 1.");
 
-DEFINE_uint32(gmres_restart, 100,
-              "What maximum dimension of the Krylov space to use in GMRES");
+DEFINE_int32(gmres_restart, 10,
+             "What maximum dimension of the Krylov space to use in GMRES");
 
 DEFINE_double(relaxation_factor, 0.95, "The relaxation factor for Richardson");
 
@@ -297,6 +297,7 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_restart(FLAGS_gmres_restart)
             .on(exec);
     }
     throw std::range_error(std::string("The provided string <") + description +
