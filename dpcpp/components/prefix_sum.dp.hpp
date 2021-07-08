@@ -53,7 +53,6 @@ namespace kernels {
 namespace dpcpp {
 
 
-// #include "common/components/prefix_sum.hpp.inc"
 /**
  * @internal
  * Computes the prefix sum and total sum of `element` over a subwarp.

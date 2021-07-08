@@ -45,7 +45,6 @@ namespace kernels {
 namespace dpcpp {
 
 
-// #include "common/components/uninitialized_array.hpp.inc"
 /**
  * Stores an array with uninitialized contents.
  *
@@ -105,7 +104,8 @@ public:
     }
 
 private:
-    // unsigned char data_[sizeof(ValueType) / sizeof(unsigned char) * size];
+    // if dpcpp uses char to represent data in char, compiling gives error.
+    // Thanksfully, dpcpp support complex data allocation directly.
     ValueType data_[size];
 };
 
