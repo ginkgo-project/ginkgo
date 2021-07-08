@@ -95,6 +95,7 @@ static void apply_impl(
     using real_type = gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
     const int shared_gap = ((a.num_rows - 1) / 32 + 1) * 32;
+    static_assert(default_block_size >= 2 * config::warp_size);
 
     int shared_size =
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
