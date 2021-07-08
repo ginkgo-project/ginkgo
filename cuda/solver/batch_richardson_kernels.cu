@@ -51,7 +51,7 @@ namespace cuda {
 
 
 #define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 1
-constexpr int default_block_size = 128;
+constexpr int default_block_size = 256;
 constexpr int sm_multiplier = 4;
 
 
