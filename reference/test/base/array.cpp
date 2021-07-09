@@ -85,4 +85,12 @@ TYPED_TEST(Array, CanBeReduced)
 }
 
 
+TYPED_TEST(Array, CanBeReduced2)
+{
+    auto out = this->x.reduce();
+
+    ASSERT_EQ(out, TypeParam{7});
+}
+
+
 }  // namespace
