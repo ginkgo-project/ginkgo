@@ -3,7 +3,7 @@ include(FetchContent)
 FetchContent_Declare(
     git_cmake_format
     GIT_REPOSITORY https://github.com/ginkgo-project/git-cmake-format.git
-    GIT_TAG        be9554a5d71030dcc23f1eb355c41ab9d876e776
+    GIT_TAG        069338e8afd47e6a27e661940cd36e940253f81c
 )
 FetchContent_GetProperties(git_cmake_format)
 if(NOT git_cmake_format_POPULATED)
