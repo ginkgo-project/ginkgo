@@ -36,7 +36,7 @@ namespace kernel {
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void reduce_array(
-    size_type n, ValueType *__restrict__ array, ValueType val)
+    size_type n, const ValueType *__restrict__ array, ValueType *val)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < n) {

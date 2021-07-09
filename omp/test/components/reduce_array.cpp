@@ -57,12 +57,12 @@ protected:
     ReduceArray()
         : ref(gko::ReferenceExecutor::create()),
           exec(gko::OmpExecutor::create()),
-          total_size(635),
+          total_size(6355),
           vals(ref, total_size),
           dvals(exec, total_size)
     {
-        std::iota(vals.get_data(), vals.get_data() + total_size, 0);
-        std::iota(dvals.get_data(), dvals.get_data() + total_size, 0);
+        std::fill_n(vals.get_data(), total_size, 3);
+        dvals = vals;
         out = std::accumulate(vals.get_data(), vals.get_data() + total_size,
                               T(2));
     }
@@ -85,7 +85,7 @@ TYPED_TEST(ReduceArray, EqualsReference)
     gko::kernels::omp::components::reduce_array(
         this->exec, this->dvals.get_data(), this->total_size, &val);
 
-    ASSERT_EQ(this->out, val);
+    ASSERT_EQ(T(this->out), T(val));
 }
 
 
