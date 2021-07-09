@@ -348,8 +348,9 @@ void CbGmres<ValueType>::apply_dense_impl(
         decltype(krylov_dim_) forced_iterations{forced_limit};
         std::cout << "Precision: " << '<' << get_precision_str(ValueType{})
                   << ',' << get_precision_str(storage_type{}) << '>' << '\n';
-        std::cout << "Iteration;pre-orthogonality;orthogonality "
-                     "steps;post-orthogonality\n";
+        std::cout
+            << "Iteration;#Krylov vectors;pre-orthogonality;orthogonality "
+               "steps;post-orthogonality\n";
 
         while (true) {
             ++total_iter;

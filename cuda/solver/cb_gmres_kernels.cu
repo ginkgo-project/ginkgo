@@ -62,6 +62,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include <iostream>
 #include "cb_gmres_helper.cuh"
+#define GKO_PRINT_ORTHOGONALITY
+#define GKO_RE_ORTHOGONALIZE
 
 
 namespace gko {
@@ -294,9 +296,11 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
     [[maybe_unused]] non_complex pre_orthogonality{};
     // must contain norm_matrix + reduction_norm variables, therefore,
     // (iter + 1)^2 + 1
-    auto *const d_tmp_storage =
-        OrthStorage::get_data<ValueType>(exec, (iter + 1) * (iter + 1) + 1);
+    const size_type num_krylov_bases{iter + 2};
+    auto *const d_tmp_storage = OrthStorage::get_data<ValueType>(
+        exec, num_krylov_bases * num_krylov_bases + 1);
     //*
+#if defined(GKO_PRINT_ORTHOGONALITY) && defined(GKO_RE_ORTHOGONALIZE)
     {
         copy_next_krylov_kernel<default_block_size>
             <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
@@ -307,9 +311,11 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(hessenberg_iter->get_const_values()),
                 stride_hessenberg, as_cuda_type(stop_status));
         pre_orthogonality = get_orthogonality(
-            exec, iter + 1, krylov_bases->to_const(), d_tmp_storage);
+            exec, num_krylov_bases, krylov_bases->to_const(), d_tmp_storage);
     }
+#endif
 
+#if defined(GKO_RE_ORTHOGONALIZE)
     num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
@@ -377,7 +383,8 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(num_reorth->get_data()));
         num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
     }
-    //*/
+#endif
+
     update_krylov_next_krylov_kernel<default_block_size>
         <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
            default_block_size>>>(
@@ -391,17 +398,21 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
     // End of arnoldi
 
     // DEBUG ONLY
+#if defined(GKO_PRINT_ORTHOGONALITY)
     {
         stream_guard guard{std::cout};
+        exec->synchronize();
         const auto post_orthogonality = get_orthogonality(
-            exec, iter + 1, krylov_bases->to_const(), d_tmp_storage);
+            exec, num_krylov_bases, krylov_bases->to_const(), d_tmp_storage);
         const char Delim = ';';
         // std::cout << '\n';
         std::cout.precision(16);
         std::cout << std::scientific;
-        std::cout << pre_orthogonality << Delim << num_reorth_performed << Delim
-                  << post_orthogonality << std::endl;
+        std::cout << num_krylov_bases << Delim << pre_orthogonality << Delim
+                  << num_reorth_performed << Delim << post_orthogonality
+                  << std::endl;
     }
+#endif
 }
 
 template <typename ValueType>

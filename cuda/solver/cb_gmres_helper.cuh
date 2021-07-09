@@ -53,14 +53,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
-
-/* TODO
- * copy the next_krylov_vector to krylov_bases before computing the
-   orthogonality
- * Optimize orthogonalization process
- * Measure orthogonality only up until the restart (100 iterations)
-
-*/
 namespace cb_gmres {
 
 
@@ -188,9 +180,9 @@ private:
 template <int block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void copy_next_krylov_kernel(
     size_type iter, size_type num_rows, size_type num_cols,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-    Accessor3d krylov_bases, const ValueType *__restrict__ hessenberg_iter,
-    size_type stride_hessenberg,
+    const ValueType *__restrict__ next_krylov_basis,
+    size_type stride_next_krylov, Accessor3d krylov_bases,
+    const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
@@ -212,64 +204,6 @@ __global__ __launch_bounds__(block_size) void copy_next_krylov_kernel(
 }
 
 // ValueType is non-complex type
-template <int shared_size, typename Accessor3d, typename ValueType>
-__global__ void compute_dot_norm(size_type num_vectors, Accessor3d krylov_bases,
-                                 ValueType *__restrict__ output)
-{
-    using c_value_type = typename Accessor3d::accessor::arithmetic_type;
-    if (blockIdx.x > 0) {
-        return;
-    }
-    __shared__ ValueType result[shared_size];
-    if (threadIdx.x < shared_size) {
-        result[threadIdx.x] = zero<ValueType>();
-    }
-
-    auto tblock = group::this_thread_block();
-    auto warp = group::tiled_partition<config::warp_size>(tblock);
-    const size_type num_warps = (blockDim.x - 1) / config::warp_size + 1;
-    const size_type start_i = threadIdx.x / config::warp_size;
-
-    const size_type k_end = krylov_bases.length(1) + config::warp_size -
-                            krylov_bases.length(1) % config::warp_size;
-
-    if (threadIdx.x == 0) printf("%lluS ", num_vectors);
-    for (size_type k = warp.thread_rank(); k <= k_end; k += config::warp_size) {
-        for (size_type i = start_i; i < num_vectors; i += num_warps) {
-            const auto v1 =
-                k < num_vectors ? krylov_bases(i, k, 0) : ValueType{};
-            for (size_type j = 0; j < num_vectors; ++j) {
-                const auto v2 =
-                    k < num_vectors ? krylov_bases(j, k, 0) : ValueType{};
-                const auto local_result = squared_norm(v1 * v2);
-                const auto reduced_result =
-                    reduce(warp, local_result,
-                           [](ValueType a, ValueType b) { return a + b; });
-                if (warp.thread_rank() == 0) {
-                    result[j] += reduced_result;
-                }
-            }
-        }
-    }
-    if (threadIdx.x == 0) printf("%lluM ", num_vectors);
-    for (int k = shared_size / 2; k >= config::warp_size; k /= 2) {
-        tblock.sync();
-        if (threadIdx.x + k < shared_size) {
-            result[threadIdx.x] = result[threadIdx.x] + result[threadIdx.x + k];
-        }
-    }
-    if (threadIdx.x < config::warp_size) {
-        const auto final_res =
-            reduce(warp, result[threadIdx.x],
-                   [](ValueType a, ValueType b) { return a + b; });
-        if (threadIdx.x == 0) {
-            *output = final_res;
-        }
-    }
-    if (threadIdx.x == 0) printf("%lluE ", num_vectors);
-}
-
-// ValueType is non-complex type
 template <int block_size, typename Accessor3d, typename ValueType>
 __global__ void compute_dot_matrix_atomic(size_type num_vectors,
                                           Accessor3d krylov_bases,
@@ -287,11 +221,10 @@ __global__ void compute_dot_matrix_atomic(size_type num_vectors,
 
     const size_type vector_length{krylov_bases.length(1)};
 
-    const size_type chunk_size = vector_length / gridDim.x + 1;
+    const size_type chunk_size = (vector_length / gridDim.x) + 1;
     const size_type slice_start = blockIdx.x * chunk_size;
     const size_type slice_end_tmp = (blockIdx.x + 1) * chunk_size;
-    const size_type slice_end =
-        vector_length < slice_end_tmp ? vector_length : slice_end_tmp;
+    const size_type slice_end = min(vector_length, slice_end_tmp);
     for (size_type i = 0; i < num_vectors; ++i) {
         for (size_type j = i; j < num_vectors; ++j) {
             value_type local_res = 0;
@@ -306,17 +239,20 @@ __global__ void compute_dot_matrix_atomic(size_type num_vectors,
                    [](value_type a, value_type b) { return a + b; });
             if (threadIdx.x == 0) {
                 atomic_add(&output[i * num_vectors + j], result[0]);
+                //*
                 if (i != j) {
                     atomic_add(&output[j * num_vectors + i], result[0]);
                 }
+                //*/
             }
         }
     }
-    if (threadIdx.x == 0 && blockIdx.x == 0) {
-        // printf("<%llu, %llu // %u>", slice_start, slice_end, gridDim.x);
-    }
+    // if (threadIdx.x == 0 && blockIdx.x == 0) {
+    // printf("<%llu, %llu // %u>", slice_start, slice_end, gridDim.x);
+    //}
 }
 
+//*
 template <int block_size, typename ValueType, typename NcValueType>
 __global__ __launch_bounds__(block_size) void compute_matrix_norm_wrong(
     size_type N, const ValueType *__restrict__ mtx,
@@ -340,6 +276,7 @@ __global__ __launch_bounds__(block_size) void compute_matrix_norm_wrong(
         atomic_add(norm, result[0]);
     }
 }
+//*/
 
 template <int block_size, typename ValueType, typename NcValueType>
 __global__ __launch_bounds__(block_size) void compute_matrix_inf_norm(
@@ -365,7 +302,7 @@ __global__ __launch_bounds__(block_size) void compute_matrix_inf_norm(
         tblock.sync();
         reduced_res = max(reduced_res, result[0]);
     }
-    if (threadIdx.x == 0) {
+    if (threadIdx.x == 0 && reduced_res != NcValueType{}) {
         atomic_max(norm, reduced_res);
     }
 }
@@ -401,7 +338,8 @@ remove_complex<T> get_orthogonality(std::shared_ptr<const CudaExecutor> &exec,
 
     // Reference:
 #if false
-    if (num_vectors == 50) {
+    //if (num_vectors == 50)
+    {
         //*
         stream_guard guard{std::cout};
         std::cout.precision(17);
@@ -463,9 +401,10 @@ remove_complex<T> get_orthogonality(std::shared_ptr<const CudaExecutor> &exec,
         //*/
         const auto max = std::max(ref_norm, norm_result);
         const T diff = (max == 0) ? T{0} : abs(ref_norm - norm_result) / max;
-        std::cout << '{' << norm_result << "<->" << ref_norm << '_' << diff
-                  << "}";
-        // return ref_norm;
+        //
+        //std::cout << '{' << norm_result << "<->" << ref_norm << '_' << diff
+        //          << "}";
+        return ref_norm;
     }
 #endif
     return norm_result;
