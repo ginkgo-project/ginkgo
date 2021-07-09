@@ -30,67 +30,65 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "core/components/reduce_array.hpp"
+
+
+#include <type_traits>
+
+
 #include <ginkgo/core/base/array.hpp>
-
-
-#include <algorithm>
-
-
-#include <gtest/gtest.h>
-
-
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include "core/test/utils.hpp"
+#include "cuda/base/config.hpp"
+#include "cuda/base/types.hpp"
+#include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/thread_ids.cuh"
+#include "cuda/components/uninitialized_array.hpp"
 
 
-namespace {
+namespace gko {
+namespace kernels {
+namespace cuda {
+namespace components {
 
 
-template <typename T>
-class Array : public ::testing::Test {
-protected:
-    Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
-    {
-        x.get_data()[0] = 5;
-        x.get_data()[1] = 2;
+constexpr int default_block_size = 512;
+
+
+#include "common/components/reduction.hpp.inc"
+
+
+template <typename ValueType>
+void reduce_array(std::shared_ptr<const DefaultExecutor> exec,
+                  const ValueType *array, size_type size, ValueType *val)
+{
+    auto block_results_val = array;
+    size_type grid_dim = size;
+    auto block_results = Array<ValueType>(exec);
+    if (size > default_block_size) {
+        const auto n = ceildiv(size, default_block_size);
+        grid_dim = (n <= default_block_size) ? n : default_block_size;
+
+        block_results.resize_and_reset(grid_dim);
+
+        reduce_add_array<<<grid_dim, default_block_size>>>(
+            size, as_cuda_type(array), as_cuda_type(block_results.get_data()));
+
+        block_results_val = block_results.get_const_data();
     }
 
-    std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> x;
-};
+    auto d_result = Array<ValueType>::view(exec, 1, val);
 
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes);
-
-
-TYPED_TEST(Array, CanBeFilledWithValue)
-{
-    this->x.fill(TypeParam{42});
-
-    ASSERT_EQ(this->x.get_num_elems(), 2);
-    ASSERT_EQ(this->x.get_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_data()[1], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[1], TypeParam{42});
+    reduce_add_array_with_existing_value<<<1, default_block_size>>>(
+        grid_dim, as_cuda_type(block_results_val),
+        as_cuda_type(d_result.get_data()));
 }
 
-
-TYPED_TEST(Array, CanBeReduced)
-{
-    TypeParam out = 0.0;
-    this->x.reduce(&out);
-
-    ASSERT_EQ(out, TypeParam{7});
-}
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ARRAY_KERNEL);
 
 
-TYPED_TEST(Array, CanBeReduced2)
-{
-    auto out = this->x.reduce();
-
-    ASSERT_EQ(out, TypeParam{7});
-}
-
-
-}  // namespace
+}  // namespace components
+}  // namespace cuda
+}  // namespace kernels
+}  // namespace gko

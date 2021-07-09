@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/fill_array.hpp"
 #include "core/components/precision_conversion.hpp"
+#include "core/components/reduce_array.hpp"
 
 
 namespace gko {
@@ -54,6 +55,7 @@ namespace array {
 
 
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(reduce_array, components::reduce_array);
 
 
 }  // namespace array
@@ -88,9 +90,39 @@ void Array<ValueType>::fill(const ValueType value)
 }
 
 
+template <typename ValueType>
+void Array<ValueType>::reduce(ValueType *value) const
+{
+    this->get_executor()->run(array::make_reduce_array(
+        this->get_const_data(), this->get_num_elems(), value));
+}
+
+
+template <typename ValueType>
+ValueType Array<ValueType>::reduce(ValueType init_value) const
+{
+    auto value = Array<ValueType>(this->get_executor(), {init_value});
+    this->get_executor()->run(array::make_reduce_array(
+        this->get_const_data(), this->get_num_elems(), value.get_data()));
+    return this->get_executor()->copy_val_to_host(value.get_data());
+}
+
+
 #define GKO_DECLARE_ARRAY_FILL(_type) void Array<_type>::fill(const _type value)
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_FILL);
+
+
+#define GKO_DECLARE_ARRAY_REDUCE(_type) \
+    void Array<_type>::reduce(_type *value) const
+
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_REDUCE);
+
+
+#define GKO_DECLARE_ARRAY_REDUCE2(_type) \
+    _type Array<_type>::reduce(_type val) const
+
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_REDUCE2);
 
 
 }  // namespace gko

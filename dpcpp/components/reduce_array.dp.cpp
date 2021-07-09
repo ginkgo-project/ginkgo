@@ -30,67 +30,34 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/array.hpp>
+#include "core/components/reduce_array.hpp"
 
 
-#include <algorithm>
+#include <CL/sycl.hpp>
 
 
-#include <gtest/gtest.h>
+namespace gko {
+namespace kernels {
+namespace dpcpp {
+namespace components {
 
 
-#include <ginkgo/core/base/executor.hpp>
-
-
-#include "core/test/utils.hpp"
-
-
-namespace {
-
-
-template <typename T>
-class Array : public ::testing::Test {
-protected:
-    Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
-    {
-        x.get_data()[0] = 5;
-        x.get_data()[1] = 2;
-    }
-
-    std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> x;
-};
-
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes);
-
-
-TYPED_TEST(Array, CanBeFilledWithValue)
+template <typename ValueType>
+void reduce_array(std::shared_ptr<const DefaultExecutor> exec,
+                  const ValueType *array, size_type n, ValueType *val)
 {
-    this->x.fill(TypeParam{42});
-
-    ASSERT_EQ(this->x.get_num_elems(), 2);
-    ASSERT_EQ(this->x.get_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_data()[1], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[1], TypeParam{42});
+    // exec->get_queue()->submit([&](sycl::handler &cgh) {
+    //     cgh.parallel_for(sycl::range<1>{n}, [=](sycl::id<1> idx_id) {
+    //         const auto idx = idx_id[0];
+    //         array[idx] = val;
+    //     });
+    // });
 }
 
-
-TYPED_TEST(Array, CanBeReduced)
-{
-    TypeParam out = 0.0;
-    this->x.reduce(&out);
-
-    ASSERT_EQ(out, TypeParam{7});
-}
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ARRAY_KERNEL);
 
 
-TYPED_TEST(Array, CanBeReduced2)
-{
-    auto out = this->x.reduce();
-
-    ASSERT_EQ(out, TypeParam{7});
-}
-
-
-}  // namespace
+}  // namespace components
+}  // namespace dpcpp
+}  // namespace kernels
+}  // namespace gko

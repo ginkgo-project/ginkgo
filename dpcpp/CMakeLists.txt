@@ -13,6 +13,7 @@ target_sources(ginkgo_dpcpp
     base/executor.dp.cpp
     components/absolute_array.dp.cpp
     components/fill_array.dp.cpp
+    components/reduce_array.dp.cpp
     components/precision_conversion.dp.cpp
     components/prefix_sum.dp.cpp
     factorization/ic_kernels.dp.cpp

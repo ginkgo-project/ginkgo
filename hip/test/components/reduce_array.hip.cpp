@@ -30,66 +30,66 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/array.hpp>
+#include "core/components/reduce_array.hpp"
 
 
-#include <algorithm>
+#include <memory>
+#include <random>
+#include <vector>
 
 
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/array.hpp>
 
 
-#include "core/test/utils.hpp"
+#include "core/test/utils/assertions.hpp"
+#include "hip/test/utils.hip.hpp"
 
 
 namespace {
 
 
 template <typename T>
-class Array : public ::testing::Test {
+class ReduceArray : public ::testing::Test {
 protected:
-    Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
+    using value_type = T;
+    ReduceArray()
+        : ref(gko::ReferenceExecutor::create()),
+          exec(gko::HipExecutor::create(0, ref)),
+          total_size(6344),
+          vals(ref, total_size),
+          dvals(exec, total_size)
     {
-        x.get_data()[0] = 5;
-        x.get_data()[1] = 2;
+        std::fill_n(vals.get_data(), total_size, 3);
+        dvals = vals;
+        out = T(2);
+        gko::kernels::reference::components::reduce_array(
+            ref, vals.get_const_data(), total_size, &out);
     }
 
-    std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> x;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::HipExecutor> exec;
+    gko::size_type total_size;
+    value_type out;
+    gko::Array<value_type> vals;
+    gko::Array<value_type> dvals;
 };
 
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes);
+TYPED_TEST_SUITE(ReduceArray, gko::test::ValueAndIndexTypes);
 
 
-TYPED_TEST(Array, CanBeFilledWithValue)
+TYPED_TEST(ReduceArray, EqualsReference)
 {
-    this->x.fill(TypeParam{42});
+    using T = typename TestFixture::value_type;
+    auto dval = gko::Array<T>(this->exec, I<T>{2});
+    auto val = gko::Array<T>(this->ref, 1);
+    gko::kernels::hip::components::reduce_array(
+        this->exec, this->dvals.get_data(), this->total_size, dval.get_data());
+    val = dval;
 
-    ASSERT_EQ(this->x.get_num_elems(), 2);
-    ASSERT_EQ(this->x.get_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_data()[1], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[1], TypeParam{42});
-}
-
-
-TYPED_TEST(Array, CanBeReduced)
-{
-    TypeParam out = 0.0;
-    this->x.reduce(&out);
-
-    ASSERT_EQ(out, TypeParam{7});
-}
-
-
-TYPED_TEST(Array, CanBeReduced2)
-{
-    auto out = this->x.reduce();
-
-    ASSERT_EQ(out, TypeParam{7});
+    ASSERT_EQ(T(this->out), T(val.get_data()[0]));
 }
 
 

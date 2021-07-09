@@ -72,6 +72,7 @@ target_sources(ginkgo_cuda
     base/version.cpp
     components/absolute_array.cu
     components/fill_array.cu
+    components/reduce_array.cu
     components/precision_conversion.cu
     components/prefix_sum.cu
     factorization/factorization_kernels.cu
