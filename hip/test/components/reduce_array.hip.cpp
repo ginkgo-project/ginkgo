@@ -33,66 +33,64 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/reduce_array.hpp"
 
 
-#include <type_traits>
+#include <memory>
+#include <random>
+#include <vector>
 
 
-#include <hip/hip_runtime.h>
+#include <gtest/gtest.h>
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/math.hpp>
 
 
-#include "hip/base/types.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
-#include "hip/components/uninitialized_array.hip.hpp"
+#include "core/test/utils/assertions.hpp"
+#include "hip/test/utils.hip.hpp"
 
 
-namespace gko {
-namespace kernels {
-namespace hip {
-namespace components {
-
-constexpr int default_block_size = 512;
+namespace {
 
 
-#include "common/components/reduction.hpp.inc"
-
-
-template <typename ValueType>
-void reduce_array(std::shared_ptr<const DefaultExecutor> exec,
-                  const ValueType *array, size_type size, ValueType *val)
-{
-    auto block_results_val = array;
-    size_type grid_dim = size;
-    auto block_results = Array<ValueType>(exec);
-    if (size > default_block_size) {
-        const auto n = ceildiv(size, default_block_size);
-        grid_dim = (n <= default_block_size) ? n : default_block_size;
-
-        block_results.resize_and_reset(grid_dim);
-
-        hipLaunchKernelGGL(
-            reduce_add_array, dim3(grid_dim), dim3(default_block_size), 0, 0,
-            size, as_hip_type(array), as_hip_type(block_results.get_data()));
-
-        block_results_val = block_results.get_const_data();
+template <typename T>
+class ReduceArray : public ::testing::Test {
+protected:
+    using value_type = T;
+    ReduceArray()
+        : ref(gko::ReferenceExecutor::create()),
+          exec(gko::HipExecutor::create(0, ref)),
+          total_size(6344),
+          vals(ref, total_size),
+          dvals(exec, total_size)
+    {
+        std::fill_n(vals.get_data(), total_size, 3);
+        dvals = vals;
+        out = T(2);
+        gko::kernels::reference::components::reduce_array(
+            ref, vals.get_const_data(), total_size, &out);
     }
 
-    auto d_result = Array<ValueType>::view(exec, 1, val);
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::HipExecutor> exec;
+    gko::size_type total_size;
+    value_type out;
+    gko::Array<value_type> vals;
+    gko::Array<value_type> dvals;
+};
 
-    hipLaunchKernelGGL(reduce_add_array_with_existing_value, dim3(1),
-                       dim3(default_block_size), 0, 0, grid_dim,
-                       as_hip_type(block_results_val),
-                       as_hip_type(d_result.get_data()));
+TYPED_TEST_SUITE(ReduceArray, gko::test::ValueAndIndexTypes);
+
+
+TYPED_TEST(ReduceArray, EqualsReference)
+{
+    using T = typename TestFixture::value_type;
+    auto dval = gko::Array<T>(this->exec, I<T>{2});
+    auto val = gko::Array<T>(this->ref, 1);
+    gko::kernels::hip::components::reduce_array(
+        this->exec, this->dvals.get_data(), this->total_size, dval.get_data());
+    val = dval;
+
+    ASSERT_EQ(T(this->out), T(val.get_data()[0]));
 }
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ARRAY_KERNEL);
 
-
-}  // namespace components
-}  // namespace hip
-}  // namespace kernels
-}  // namespace gko
+}  // namespace
