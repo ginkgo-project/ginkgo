@@ -50,7 +50,6 @@ void reduce_array(std::shared_ptr<const DefaultExecutor> exec,
     for (size_type i = 0; i < n; ++i) {
         out += array[i];
     }
-
     *val = out;
 }
 
