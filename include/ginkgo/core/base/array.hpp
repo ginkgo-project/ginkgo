@@ -617,6 +617,13 @@ public:
     /**
      * Reduce the values in the array
      *
+     * @return the reduced value
+     */
+    value_type reduce(value_type init_val = 0) const;
+
+    /**
+     * Reduce the values in the array
+     *
      * @param the reduced value
      */
     void reduce(value_type *value) const;

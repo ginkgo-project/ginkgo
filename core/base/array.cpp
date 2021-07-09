@@ -102,6 +102,16 @@ void Array<ValueType>::reduce(ValueType *value) const
 }
 
 
+template <typename ValueType>
+ValueType Array<ValueType>::reduce(ValueType init_value) const
+{
+    auto value = Array<ValueType>(this->get_executor(), {init_value});
+    this->get_executor()->run(array::make_reduce_array(
+        this->get_const_data(), this->get_num_elems(), value.get_data()));
+    return this->get_executor()->copy_val_to_host(value.get_data());
+}
+
+
 #define GKO_DECLARE_ARRAY_FILL(_type) void Array<_type>::fill(const _type value)
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_FILL);
@@ -111,6 +121,12 @@ GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_FILL);
     void Array<_type>::reduce(_type *value) const
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_REDUCE);
+
+
+#define GKO_DECLARE_ARRAY_REDUCE2(_type) \
+    _type Array<_type>::reduce(_type val) const
+
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_REDUCE2);
 
 
 }  // namespace gko
