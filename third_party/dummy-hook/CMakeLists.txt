@@ -1,6 +1,11 @@
-if(EXISTS "${Ginkgo_SOURCE_DIR}/.git")
+execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --absolute-git-dir
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE Ginkgo_GIT_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+if(EXISTS "${Ginkgo_GIT_DIR}")
     set(ADD_HOOK FALSE)
-    set(HOOK_LOCATION "${Ginkgo_SOURCE_DIR}/.git/hooks/pre-commit")
+    set(HOOK_LOCATION "${Ginkgo_SOURCE_DIR}/hooks/pre-commit")
     if(NOT EXISTS "${HOOK_LOCATION}")
         set(ADD_HOOK TRUE)
     else()
