@@ -234,6 +234,9 @@ TEST_F(Fcg, FcgStep2IsEquivalentToRef)
 
 TEST_F(Fcg, ApplyIsEquivalentToRef)
 {
+    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
+        GTEST_SKIP();
+    }
     auto mtx = gen_mtx(50, 50, 53);
     gko::test::make_hpd(mtx.get());
     auto x = gen_mtx(50, 3, 4);
