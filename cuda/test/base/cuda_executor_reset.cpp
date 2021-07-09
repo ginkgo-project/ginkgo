@@ -45,6 +45,7 @@ namespace {
 #define GTEST_ASSERT_NO_EXIT(statement) \
     ASSERT_EXIT({ {statement} exit(0); }, ::testing::ExitedWithCode(0), "")
 
+
 TEST(DeviceReset, HipCuda)
 {
     GTEST_ASSERT_NO_EXIT({
@@ -65,30 +66,18 @@ TEST(DeviceReset, CudaHip)
 }
 
 
-template <typename Executor>
 void func()
 {
     auto ref = gko::ReferenceExecutor::create();
-    auto exec = Executor::create(0, ref, true);
+    auto exec = gko::CudaExecutor::create(0, ref, true);
 }
 
 
 TEST(DeviceReset, CudaCuda)
 {
     GTEST_ASSERT_NO_EXIT({
-        std::thread t1(func<gko::CudaExecutor>);
-        std::thread t2(func<gko::CudaExecutor>);
-        t1.join();
-        t2.join();
-    });
-}
-
-
-TEST(DeviceReset, HipHip)
-{
-    GTEST_ASSERT_NO_EXIT({
-        std::thread t1(func<gko::CudaExecutor>);
-        std::thread t2(func<gko::CudaExecutor>);
+        std::thread t1(func);
+        std::thread t2(func);
         t1.join();
         t2.join();
     });
