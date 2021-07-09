@@ -100,6 +100,7 @@ include:
       fi
     - if [ -n "${SYCL_DEVICE_TYPE}" ]; then export SYCL_DEVICE_TYPE; fi
     - if [ -n "${SYCL_DEVICE_FILTER}" ]; then export SYCL_DEVICE_FILTER; fi
+    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then export SYCL_DEVICE_TYPE; fi
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
@@ -148,6 +149,7 @@ include:
       fi
     - if [ -n "${SYCL_DEVICE_TYPE}" ]; then unset SYCL_DEVICE_TYPE; fi
     - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
+    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then unset SYCL_DEVICE_TYPE; fi
     - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
   dependencies: []
   except:
@@ -750,7 +752,7 @@ build/dpcpp/dgpu/debug/shared:
     BUILD_DPCPP: "ON"
     BUILD_TYPE: "Debug"
     DPCPP_SINGLE_MODE: "ON"
-    SYCL_DEVICE_FILTER: "Level_Zero:GPU"
+    SYCL_DEVICE_TYPE: "GPU"
 
 
 # Job with important warnings as error
