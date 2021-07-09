@@ -157,6 +157,10 @@ TYPED_TEST(BatchBicgstab, SolvesStencilSystem)
         this->opts_1, this->sys_1, 1);
 
     GKO_ASSERT_BATCH_MTX_NEAR(r_1.x, this->sys_1.xex, this->eps);
+    for (size_t ib = 0; ib < this->nbatch; ib++) {
+        ASSERT_LE(r_1.resnorm->at(ib, 0, 0) / this->sys_1.bnorm->at(ib, 0, 0),
+                  this->opts_1.residual_tol);
+    }
 }
 
 
