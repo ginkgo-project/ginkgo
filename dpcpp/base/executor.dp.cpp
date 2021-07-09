@@ -144,7 +144,13 @@ void DpcppExecutor::raw_copy_to(const DpcppExecutor *dest, size_type num_bytes,
                                 const void *src_ptr, void *dest_ptr) const
 {
     if (num_bytes > 0) {
-        dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+        if (this->get_queue()->get_device() !=
+            dest->get_queue()->get_device()) {
+            // the memcpy only support host<->device or itself memcpy
+            GKO_NOT_SUPPORTED(dest);
+        } else {
+            dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+        }
     }
 }
 
@@ -176,15 +182,11 @@ bool DpcppExecutor::verify_memory_to(const OmpExecutor *dest_exec) const
 
 bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
 {
-    auto device = detail::get_devices(
-        get_exec_info().device_type)[get_exec_info().device_id];
-    auto other_device = detail::get_devices(
-        dest_exec->get_device_type())[dest_exec->get_device_id()];
+    auto device = this->get_queue()->get_device();
+    auto dest_device = dest_exec->get_queue()->get_device();
     return ((device.is_host() || device.is_cpu()) &&
-            (other_device.is_host() || other_device.is_cpu())) ||
-           (device.get_info<cl::sycl::info::device::device_type>() ==
-                other_device.get_info<cl::sycl::info::device::device_type>() &&
-            device.get() == other_device.get());
+            (dest_device.is_host() || dest_device.is_cpu())) ||
+           (device == dest_device);
 }
 
 
