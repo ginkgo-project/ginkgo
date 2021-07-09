@@ -1424,9 +1424,13 @@ protected:
             MachineTopology::get_instance()->bind_to_pus(
                 this->get_closest_pus());
         }
+        // it only gets attribute from device, so it should not be affected by
+        // DeviceReset.
         this->set_gpu_property();
-        this->init_handles();
+        // increase the number of executor before any operations may be affected
+        // by DeviceReset.
         increase_num_execs(this->get_exec_info().device_id);
+        this->init_handles();
     }
 
     void *raw_alloc(size_type size) const override;
@@ -1647,9 +1651,13 @@ protected:
             MachineTopology::get_instance()->bind_to_pus(
                 this->get_closest_pus());
         }
+        // it only gets attribute from device, so it should not be affected by
+        // DeviceReset.
         this->set_gpu_property();
-        this->init_handles();
+        // increase the number of executor before any operations may be affected
+        // by DeviceReset.
         increase_num_execs(this->get_exec_info().device_id);
+        this->init_handles();
     }
 
     void *raw_alloc(size_type size) const override;
