@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/factorization/par_ict.hpp>
 
 
+#include <map>
 #include <memory>
 
 
@@ -45,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/utils.hpp"
+#include "core/components/validation_helpers.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
@@ -56,6 +58,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace factorization {
+
+template <typename ValueType, typename IndexType>
+void ParIct<ValueType, IndexType>::validate_impl() const
+{
+    std::map<std::string, std::function<bool()>> constraints_map{
+        {"is_finite",
+         [this] {
+             return ::gko::validate::is_finite(get_l_factor().get()) &&
+                    ::gko::validate::is_finite(get_lt_factor().get());
+         }},
+        {"has_non_zero_diagonal", [this] {
+             return ::gko::validate::has_non_zero_diagonal(
+                        get_l_factor().get()) &&
+                    ::gko::validate::has_non_zero_diagonal(
+                        get_lt_factor().get());
+         }}};
+
+    for (auto const &x : constraints_map) {
+        if (!x.second()) {
+            throw gko::Invalid(__FILE__, __LINE__, "ParIc", x.first);
+        };
+    }
+}
+
 namespace par_ict_factorization {
 
 
