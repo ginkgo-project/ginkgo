@@ -223,3 +223,28 @@ __global__ __launch_bounds__(default_block_size) void reduce_add_array(
         result[blockIdx.x] = block_sum[0];
     }
 }
+
+
+/**
+ * @internal
+ *
+ * Computes a reduction using the add operation (+) on an array
+ * `source` of any size. Has to be called a second time on `result` to reduce
+ * an array larger than `default_block_size`.
+ *
+ * @note uses existing value in result
+ */
+template <typename ValueType>
+__global__
+    __launch_bounds__(default_block_size) void reduce_add_array_with_existing_value(
+        size_type size, const ValueType *__restrict__ source,
+        ValueType *__restrict__ result)
+{
+    __shared__ UninitializedArray<ValueType, default_block_size> block_sum;
+    reduce_array(size, source, static_cast<ValueType *>(block_sum),
+                 [](const ValueType &x, const ValueType &y) { return x + y; });
+
+    if (threadIdx.x == 0) {
+        result[blockIdx.x] += block_sum[0];
+    }
+}
