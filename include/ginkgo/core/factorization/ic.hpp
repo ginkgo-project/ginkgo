@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_FACTORIZATION_IC_HPP_
 
 
-#include <map>
 #include <memory>
 
 
@@ -43,7 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
-#include "core/components/validation_helpers.hpp"
 
 namespace gko {
 /**
@@ -95,41 +93,12 @@ public:
         }
     }
 
-    void validate_impl() const
-    {
-        std::map<std::string, std::function<bool()>> constraints_map{
-            {"is_finite",
-             [this] {
-                 bool l_factor_is_finite =
-                     ::gko::validate::is_finite(get_l_factor().get());
-                 return this->parameters_.both_factors
-                            ? ::gko::validate::is_finite(
-                                  get_lt_factor().get()) &&
-                                  l_factor_is_finite
-                            : l_factor_is_finite;
-             }},
-            {"has_non_zero_diagonal", [this] {
-                 bool l_factor_has_non_zero_diagonal =
-                     ::gko::validate::has_non_zero_diagonal(
-                         get_l_factor().get());
-                 return this->parameters_.both_factors
-                            ? ::gko::validate::has_non_zero_diagonal(
-                                  get_lt_factor().get()) &&
-                                  l_factor_has_non_zero_diagonal
-                            : l_factor_has_non_zero_diagonal;
-             }}};
-
-        for (auto const &x : constraints_map) {
-            if (!x.second()) {
-                throw gko::Invalid(__FILE__, __LINE__, "Ic", x.first);
-            };
-        }
-    };
+    void validate_impl() const override;
 
     // Remove the possibility of calling `create`, which was enabled by
     // `Composition`
     template <typename... Args>
-    static std::unique_ptr<Composition<ValueType>> create(Args &&...args) =
+    static std::unique_ptr<Composition<ValueType>> create(Args &&... args) =
         delete;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)

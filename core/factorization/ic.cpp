@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/factorization/ic.hpp>
 
 
+#include <map>
 #include <memory>
 
 
@@ -41,12 +42,44 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "core/components/validation_helpers.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
 
 
 namespace gko {
 namespace factorization {
+
+template <typename ValueType, typename IndexType>
+void Ic<ValueType, IndexType>::validate_impl() const
+{
+    std::map<std::string, std::function<bool()>> constraints_map{
+        {"is_finite",
+         [this] {
+             bool l_factor_is_finite =
+                 ::gko::validate::is_finite(get_l_factor().get());
+             return this->parameters_.both_factors
+                        ? ::gko::validate::is_finite(get_lt_factor().get()) &&
+                              l_factor_is_finite
+                        : l_factor_is_finite;
+         }},
+        {"has_non_zero_diagonal", [this] {
+             bool l_factor_has_non_zero_diagonal =
+                 ::gko::validate::has_non_zero_diagonal(get_l_factor().get());
+             return this->parameters_.both_factors
+                        ? ::gko::validate::has_non_zero_diagonal(
+                              get_lt_factor().get()) &&
+                              l_factor_has_non_zero_diagonal
+                        : l_factor_has_non_zero_diagonal;
+         }}};
+
+    for (auto const &x : constraints_map) {
+        if (!x.second()) {
+            throw gko::Invalid(__FILE__, __LINE__, "Ic", x.first);
+        };
+    }
+};
+
 namespace ic_factorization {
 
 
