@@ -6,7 +6,6 @@ target_sources(ginkgo_omp
     base/version.cpp
     components/absolute_array.cpp
     components/fill_array.cpp
-    components/precision_conversion.cpp
     components/prefix_sum.cpp
     factorization/factorization_kernels.cpp
     factorization/ic_kernels.cpp
@@ -28,21 +27,25 @@ target_sources(ginkgo_omp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     reorder/rcm_kernels.cpp
-    solver/bicg_kernels.cpp
-    solver/bicgstab_kernels.cpp
-    solver/cg_kernels.cpp
-    solver/cgs_kernels.cpp
-    solver/fcg_kernels.cpp
     solver/gmres_kernels.cpp
     solver/cb_gmres_kernels.cpp
     solver/idr_kernels.cpp
-    solver/ir_kernels.cpp
     solver/lower_trs_kernels.cpp
     solver/upper_trs_kernels.cpp
     stop/criterion_kernels.cpp
-    stop/residual_norm_kernels.cpp)
+    stop/residual_norm_kernels.cpp
+    ../common/components/precision_conversion.cpp
+    ../common/matrix/dense_kernels.cpp
+    ../common/solver/bicg_kernels.cpp
+    ../common/solver/bicgstab_kernels.cpp
+    ../common/solver/cg_kernels.cpp
+    ../common/solver/cgs_kernels.cpp
+    ../common/solver/fcg_kernels.cpp
+    ../common/solver/ir_kernels.cpp
+    )
 
 ginkgo_compile_features(ginkgo_omp)
+target_compile_definitions(ginkgo_omp PRIVATE GKO_COMPILING_OMP)
 
 # The dependency to OpenMP's potential pthread dependency needs to be public
 # because well, it's a long story:
@@ -75,7 +78,7 @@ ginkgo_default_includes(ginkgo_omp)
 ginkgo_install_library(ginkgo_omp)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_omp)
+    ginkgo_check_headers(ginkgo_omp GKO_COMPILING_OMP)
 endif()
 
 if(GINKGO_BUILD_TESTS)

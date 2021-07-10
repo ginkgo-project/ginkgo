@@ -1,0 +1,6 @@
+ginkgo_create_common_test(bicg_kernels)
+ginkgo_create_common_test(bicgstab_kernels)
+ginkgo_create_common_test(cg_kernels)
+ginkgo_create_common_test(cgs_kernels)
+ginkgo_create_common_test(fcg_kernels)
+ginkgo_create_common_test(ir_kernels)

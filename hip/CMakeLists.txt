@@ -149,7 +149,6 @@ set(GINKGO_HIP_SOURCES
     base/version.hip.cpp
     components/absolute_array.hip.cpp
     components/fill_array.hip.cpp
-    components/precision_conversion.hip.cpp
     components/prefix_sum.hip.cpp
     factorization/factorization_kernels.hip.cpp
     factorization/ic_kernels.hip.cpp
@@ -179,19 +178,22 @@ set(GINKGO_HIP_SOURCES
     preconditioner/jacobi_kernels.hip.cpp
     preconditioner/jacobi_simple_apply_kernel.hip.cpp
     reorder/rcm_kernels.hip.cpp
-    solver/bicg_kernels.hip.cpp
-    solver/bicgstab_kernels.hip.cpp
-    solver/cg_kernels.hip.cpp
-    solver/cgs_kernels.hip.cpp
-    solver/fcg_kernels.hip.cpp
     solver/gmres_kernels.hip.cpp
     solver/cb_gmres_kernels.hip.cpp
     solver/idr_kernels.hip.cpp
-    solver/ir_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
     solver/upper_trs_kernels.hip.cpp
     stop/criterion_kernels.hip.cpp
-    stop/residual_norm_kernels.hip.cpp)
+    stop/residual_norm_kernels.hip.cpp
+    ../common/components/precision_conversion.cpp
+    ../common/matrix/dense_kernels.cpp
+    ../common/solver/bicg_kernels.cpp
+    ../common/solver/bicgstab_kernels.cpp
+    ../common/solver/cg_kernels.cpp
+    ../common/solver/cgs_kernels.cpp
+    ../common/solver/fcg_kernels.cpp
+    ../common/solver/ir_kernels.cpp
+    )
 
 set(GINKGO_HIP_NVCC_ARCH "")
 if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
@@ -205,7 +207,7 @@ if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
     endif()
 
     # Remove false positive CUDA warnings when calling one<T>() and zero<T>()
-    list(APPEND GINKGO_HIP_NVCC_ADDITIONAL_FLAGS "--expt-relaxed-constexpr")
+    list(APPEND GINKGO_HIP_NVCC_ADDITIONAL_FLAGS --expt-relaxed-constexpr --expt-extended-lambda)
 
     if (GINKGO_HIP_PLATFROM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}"
             AND CMAKE_CUDA_COMPILER_VERSION MATCHES "9.2"
@@ -232,7 +234,7 @@ if(GINKGO_HIP_AMDGPU)
     endforeach()
 endif()
 
-set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS} "-std=c++14")
+set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS} "-std=c++14 -DGKO_COMPILING_HIP")
 set(GINKGO_HIP_NVCC_OPTIONS ${GINKGO_HIP_NVCC_COMPILER_FLAGS} ${GINKGO_HIP_NVCC_ARCH} ${GINKGO_HIP_NVCC_ADDITIONAL_FLAGS})
 set(GINKGO_HIP_CLANG_OPTIONS ${GINKGO_HIP_CLANG_COMPILER_FLAGS} ${GINKGO_AMD_ARCH_FLAGS})
 
@@ -294,7 +296,7 @@ ginkgo_default_includes(ginkgo_hip)
 ginkgo_install_library(ginkgo_hip "${GKO_HIP_RPATH}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_hip)
+    ginkgo_check_headers(ginkgo_hip GKO_COMPILING_HIP)
 endif()
 
 if(GINKGO_BUILD_TESTS)

@@ -65,6 +65,16 @@ find_library(CURAND curand
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
+set(GKO_CUDA_COMMON_SOURCES    
+    ../common/components/precision_conversion.cpp
+    ../common/matrix/dense_kernels.cpp
+    ../common/solver/bicg_kernels.cpp
+    ../common/solver/bicgstab_kernels.cpp
+    ../common/solver/cg_kernels.cpp
+    ../common/solver/cgs_kernels.cpp
+    ../common/solver/fcg_kernels.cpp
+    ../common/solver/ir_kernels.cpp
+    )
 target_sources(ginkgo_cuda
     PRIVATE
     base/exception.cpp
@@ -72,7 +82,6 @@ target_sources(ginkgo_cuda
     base/version.cpp
     components/absolute_array.cu
     components/fill_array.cu
-    components/precision_conversion.cu
     components/prefix_sum.cu
     factorization/factorization_kernels.cu
     factorization/ic_kernels.cu
@@ -102,19 +111,19 @@ target_sources(ginkgo_cuda
     preconditioner/jacobi_kernels.cu
     preconditioner/jacobi_simple_apply_kernel.cu
     reorder/rcm_kernels.cu
-    solver/bicg_kernels.cu
-    solver/bicgstab_kernels.cu
-    solver/cg_kernels.cu
-    solver/cgs_kernels.cu
-    solver/fcg_kernels.cu
     solver/gmres_kernels.cu
     solver/cb_gmres_kernels.cu
     solver/idr_kernels.cu
-    solver/ir_kernels.cu
     solver/lower_trs_kernels.cu
     solver/upper_trs_kernels.cu
     stop/criterion_kernels.cu
-    stop/residual_norm_kernels.cu)
+    stop/residual_norm_kernels.cu
+    ${GKO_CUDA_COMMON_SOURCES}
+    )
+# override the default language mapping for the common files, set them to CUDA
+foreach(source_file IN LISTS GKO_CUDA_COMMON_SOURCES)
+    set_source_files_properties(${source_file} PROPERTIES LANGUAGE CUDA)
+endforeach(source_file)
 
 if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
     # remove false positive CUDA warnings when calling one<T>() and zero<T>()
@@ -122,6 +131,15 @@ if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
     target_compile_options(ginkgo_cuda
         PRIVATE
             $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+    if(MSVC)
+        target_compile_options(ginkgo_cuda
+            PRIVATE
+                $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda>)
+    else()
+        target_compile_options(ginkgo_cuda
+            PRIVATE
+                $<$<COMPILE_LANGUAGE:CUDA>:--expt-extended-lambda>)
+    endif()
 endif()
 
 if (NOT CMAKE_CUDA_HOST_COMPILER AND NOT GINKGO_CUDA_DEFAULT_HOST_COMPILER)
@@ -151,6 +169,7 @@ endif()
 target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_COMPILER_FLAGS}>)
 target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 ginkgo_compile_features(ginkgo_cuda)
+target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA)
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND})
@@ -168,7 +187,7 @@ ginkgo_default_includes(ginkgo_cuda)
 ginkgo_install_library(ginkgo_cuda "${GKO_CUDA_LIBDIR}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_cuda)
+    ginkgo_check_headers(ginkgo_cuda GKO_COMPILING_CUDA)
 endif()
 
 if(GINKGO_BUILD_TESTS)

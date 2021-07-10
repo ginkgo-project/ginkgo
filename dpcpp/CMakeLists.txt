@@ -13,7 +13,6 @@ target_sources(ginkgo_dpcpp
     base/executor.dp.cpp
     components/absolute_array.dp.cpp
     components/fill_array.dp.cpp
-    components/precision_conversion.dp.cpp
     components/prefix_sum.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
@@ -35,21 +34,25 @@ target_sources(ginkgo_dpcpp
     preconditioner/isai_kernels.dp.cpp
     preconditioner/jacobi_kernels.dp.cpp
     reorder/rcm_kernels.dp.cpp
-    solver/bicg_kernels.dp.cpp
-    solver/bicgstab_kernels.dp.cpp
-    solver/cg_kernels.dp.cpp
-    solver/cgs_kernels.dp.cpp
-    solver/fcg_kernels.dp.cpp
     solver/gmres_kernels.dp.cpp
     solver/cb_gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
-    solver/ir_kernels.dp.cpp
     solver/lower_trs_kernels.dp.cpp
     solver/upper_trs_kernels.dp.cpp
     stop/criterion_kernels.dp.cpp
-    stop/residual_norm_kernels.dp.cpp)
+    stop/residual_norm_kernels.dp.cpp
+    ../common/components/precision_conversion.cpp
+    ../common/matrix/dense_kernels.cpp
+    ../common/solver/bicg_kernels.cpp
+    ../common/solver/bicgstab_kernels.cpp
+    ../common/solver/cg_kernels.cpp
+    ../common/solver/cgs_kernels.cpp
+    ../common/solver/fcg_kernels.cpp
+    ../common/solver/ir_kernels.cpp
+    )
 
 ginkgo_compile_features(ginkgo_dpcpp)
+target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP)
 
 set(GINKGO_DPCPP_FLAGS ${GINKGO_COMPILER_FLAGS} -fsycl)
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
@@ -66,7 +69,7 @@ ginkgo_default_includes(ginkgo_dpcpp)
 ginkgo_install_library(ginkgo_dpcpp)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_dpcpp)
+    ginkgo_check_headers(ginkgo_dpcpp GKO_COMPILING_DPCPP)
 endif()
 
 if(GINKGO_BUILD_TESTS)

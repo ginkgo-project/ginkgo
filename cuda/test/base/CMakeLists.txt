@@ -5,5 +5,8 @@ if(GINKGO_HAVE_HWLOC)
     ginkgo_create_cuda_test(cuda_executor_topology NUMA::NUMA)
 endif()
 ginkgo_create_cuda_test(exception_helpers)
+ginkgo_create_cuda_test(kernel_launch)
+# set correct flags for kernel_launch.hpp
+target_compile_definitions(cuda_test_base_kernel_launch PRIVATE GKO_COMPILING_CUDA)
 ginkgo_create_cuda_test(lin_op)
 ginkgo_create_cuda_test(math)
