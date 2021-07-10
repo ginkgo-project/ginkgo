@@ -891,7 +891,27 @@ void compute_sub_matrix(std::shared_ptr<const DefaultExecutor> exec,
                         gko::span col_span,
                         matrix::Csr<ValueType, IndexType> *result)
 {
-    GKO_NOT_IMPLEMENTED;
+    auto row_offset = row_span.begin;
+    auto col_offset = col_span.begin;
+    auto num_rows = result->get_size()[0];
+    auto num_cols = result->get_size()[1];
+    auto row_ptrs = source->get_const_row_ptrs();
+    auto grid_dim = ceildiv(num_rows, default_block_size);
+    kernel::get_row_nnz_data<<<grid_dim, default_block_size>>>(
+        num_rows, as_cuda_type(row_nnz->get_const_data()),
+        as_cuda_type(result->get_row_ptrs()));
+    components::prefix_sum(exec, result->get_row_ptrs(), num_rows + 1);
+
+    auto num_nnz = source->get_num_stored_elements();
+    grid_dim = ceildiv(num_nnz, default_block_size);
+    kernel::compute_submatrix_idxs_and_vals<<<grid_dim, default_block_size>>>(
+        num_rows, num_cols, num_nnz, row_offset, col_offset,
+        as_cuda_type(source->get_const_row_ptrs()),
+        as_cuda_type(source->get_const_col_idxs()),
+        as_cuda_type(source->get_const_values()),
+        as_cuda_type(result->get_const_row_ptrs()),
+        as_cuda_type(result->get_col_idxs()),
+        as_cuda_type(result->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

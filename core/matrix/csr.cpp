@@ -287,10 +287,7 @@ Csr<ValueType, IndexType>::get_submatrix(const gko::span &row_span,
     row_nnz.fill(size_type(0));
     exec->run(csr::make_calculate_nonzeros_per_row_in_span(
         this, row_span, column_span, &row_nnz));
-    Array<size_type> row_nnz_host(exec->get_master(), row_nnz.get_num_elems());
-    row_nnz_host = row_nnz;
-    size_type sub_mat_nnz = std::accumulate(
-        row_nnz_host.get_data(), row_nnz_host.get_data() + sub_mat_size[0], 0);
+    auto sub_mat_nnz = row_nnz.reduce();
     auto sub_mat =
         Mat::create(exec, sub_mat_size, sub_mat_nnz, this->get_strategy());
     exec->run(csr::make_compute_sub_matrix(this, &row_nnz, row_span,
