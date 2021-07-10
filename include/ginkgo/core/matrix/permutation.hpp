@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <map>
 #include <memory>
 #include <numeric>
 #include <vector>
@@ -48,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
+#include "core/components/validation_helpers.hpp"
 
 namespace gko {
 namespace matrix {
@@ -132,6 +134,18 @@ public:
         enabled_permute_ = permute_mask;
     }
 
+    // TODO add has_unique_idxs test
+    void validate_impl() const
+    {
+        std::map<std::string, std::function<bool()>> constraints_map{
+            {"is_finite", [this] { return ::gko::validate::is_finite(this); }}};
+
+        for (auto const &x : constraints_map) {
+            if (!x.second()) {
+                throw gko::Invalid(__FILE__, __LINE__, "Permutation", x.first);
+            };
+        }
+    }
 
 protected:
     /**

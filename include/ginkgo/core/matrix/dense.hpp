@@ -264,6 +264,8 @@ public:
 
     void write(mat_data32 &data) const override;
 
+    void validate_impl() const override;
+
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
@@ -1016,7 +1018,7 @@ struct temporary_clone_helper<matrix::Dense<ValueType>> {
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
     size_type stride, std::initializer_list<typename Matrix::value_type> vals,
-    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+    std::shared_ptr<const Executor> exec, TArgs &&...create_args)
 {
     using dense = matrix::Dense<typename Matrix::value_type>;
     size_type num_rows = vals.size();
@@ -1055,7 +1057,7 @@ std::unique_ptr<Matrix> initialize(
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
     std::initializer_list<typename Matrix::value_type> vals,
-    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+    std::shared_ptr<const Executor> exec, TArgs &&...create_args)
 {
     return initialize<Matrix>(1, vals, std::move(exec),
                               std::forward<TArgs>(create_args)...);
@@ -1088,7 +1090,7 @@ std::unique_ptr<Matrix> initialize(
     size_type stride,
     std::initializer_list<std::initializer_list<typename Matrix::value_type>>
         vals,
-    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+    std::shared_ptr<const Executor> exec, TArgs &&...create_args)
 {
     using dense = matrix::Dense<typename Matrix::value_type>;
     size_type num_rows = vals.size();
@@ -1136,7 +1138,7 @@ template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
     std::initializer_list<std::initializer_list<typename Matrix::value_type>>
         vals,
-    std::shared_ptr<const Executor> exec, TArgs &&... create_args)
+    std::shared_ptr<const Executor> exec, TArgs &&...create_args)
 {
     return initialize<Matrix>(vals.size() > 0 ? begin(vals)->size() : 0, vals,
                               std::move(exec),

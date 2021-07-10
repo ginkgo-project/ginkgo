@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <map>
 #include <numeric>
 
 
@@ -48,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
+#include "core/components/validation_helpers.hpp"
 #include "core/matrix/coo_kernels.hpp"
 
 
@@ -234,6 +236,38 @@ void Coo<ValueType, IndexType>::write(mat_data &data) const
     }
 }
 
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::validate_impl() const
+{
+    std::map<std::string, std::function<bool()>> constraints_map{
+        {"values is_finite",
+         [this] {
+             return ::gko::validate::is_finite<ValueType>(
+                 values_.get_const_data(), values_.get_num_elems());
+         }},
+        {"column index is_within_bounds",
+         [this] {
+             return ::gko::validate::is_within_bounds<IndexType>(
+                 col_idxs_.get_const_data(), col_idxs_.get_num_elems(), 0,
+                 this->get_size()[1]);
+         }},
+        {"row pointer is_within_bounds",
+         [this] {
+             return ::gko::validate::is_within_bounds<IndexType>(
+                 row_idxs_.get_const_data(), row_idxs_.get_num_elems(), 0,
+                 this->get_size()[0]);
+         }},
+        {"row pointer is_row_ordered", [this] {
+             return ::gko::validate::is_row_ordered<IndexType>(
+                 row_idxs_.get_const_data(), row_idxs_.get_num_elems());
+         }}};
+
+    for (auto const &x : constraints_map) {
+        if (x.second()) {
+            throw gko::Invalid(__FILE__, __LINE__, "Coo", x.first);
+        };
+    }
+}
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Diagonal<ValueType>>

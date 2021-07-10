@@ -88,6 +88,8 @@ public:
             this->get_operators()[1]);
     }
 
+    void validate_impl() const override;
+
     // Remove the possibility of calling `create`, which was enabled by
     // `Composition`
     template <typename... Args>

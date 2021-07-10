@@ -151,6 +151,7 @@ public:
 
     void write(mat_data32 &data) const override;
 
+    void validate_impl() const override;
 
 protected:
     /**

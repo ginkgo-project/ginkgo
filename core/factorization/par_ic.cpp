@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/factorization/par_ic.hpp>
 
 
+#include <map>
 #include <memory>
 
 
@@ -45,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/components/validation_helpers.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ic_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -52,6 +54,38 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace factorization {
+
+
+template <typename ValueType, typename IndexType>
+void ParIc<ValueType, IndexType>::validate_impl() const
+{
+    std::map<std::string, std::function<bool()>> constraints_map{
+        {"is_finite",
+         [this] {
+             bool l_factor_is_finite =
+                 ::gko::validate::is_finite(get_l_factor().get());
+             return this->parameters_.both_factors
+                        ? ::gko::validate::is_finite(get_lt_factor().get()) &&
+                              l_factor_is_finite
+                        : l_factor_is_finite;
+         }},
+        {"has_non_zero_diagonal", [this] {
+             bool l_factor_has_non_zero_diagonal =
+                 ::gko::validate::has_non_zero_diagonal(get_l_factor().get());
+             return this->parameters_.both_factors
+                        ? ::gko::validate::has_non_zero_diagonal(
+                              get_lt_factor().get()) &&
+                              l_factor_has_non_zero_diagonal
+                        : l_factor_has_non_zero_diagonal;
+         }}};
+
+    for (auto const &x : constraints_map) {
+        if (!x.second()) {
+            throw gko::Invalid(__FILE__, __LINE__, "ParIc", x.first);
+        };
+    }
+}
+
 namespace par_ic_factorization {
 
 

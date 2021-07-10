@@ -93,6 +93,8 @@ public:
         }
     }
 
+    void validate_impl() const override;
+
     // Remove the possibility of calling `create`, which was enabled by
     // `Composition`
     template <typename... Args>
@@ -114,16 +116,16 @@ public:
          * to work. If it is known that the matrix will be sorted, this
          * parameter can be set to `true` to skip the sorting (therefore,
          * shortening the runtime).
-         * However, if it is unknown or if the matrix is known to be not sorted,
-         * it must remain `false`, otherwise, this factorization might be
-         * incorrect.
+         * However, if it is unknown or if the matrix is known to be not
+         * sorted, it must remain `false`, otherwise, this factorization
+         * might be incorrect.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
 
         /**
-         * `true` will generate both L and L^H, `false` will only generate the L
-         * factor, resulting in a Composition of only a single LinOp. This can
-         * be used to avoid the transposition operation.
+         * `true` will generate both L and L^H, `false` will only generate
+         * the L factor, resulting in a Composition of only a single LinOp.
+         * This can be used to avoid the transposition operation.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(both_factors, true);
     };

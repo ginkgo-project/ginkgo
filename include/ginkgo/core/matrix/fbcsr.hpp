@@ -204,6 +204,8 @@ public:
 
     void write(mat_data &data) const override;
 
+    void validate_impl() const override;
+
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
