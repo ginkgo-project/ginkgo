@@ -43,20 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/matrix/sub_matrix_kernels.hpp"
-
-
 namespace gko {
 namespace matrix {
-namespace sub_matrix {
-
-
-GKO_REGISTER_OPERATION(spmv, sub_matrix::spmv);
-GKO_REGISTER_OPERATION(advanced_spmv, sub_matrix::advanced_spmv);
-GKO_REGISTER_OPERATION(compute_block_ptrs, sub_matrix::compute_block_ptrs);
-
-
-}  // namespace sub_matrix
 
 
 template <typename MatrixType>
@@ -65,14 +53,12 @@ void SubMatrix<MatrixType>::generate(
     const gko::span &col_span, const std::vector<gko::span> &overlap_row_span,
     const std::vector<gko::span> &overlap_col_span)
 {
-    this->get_executor()->run(sub_matrix::make_compute_block_ptrs(
-        num_blocks, block_sizes.get_const_data(), block_ptrs_.get_data()));
+    this->sub_mtx_ =
+        gko::share(std::move(matrix->get_submatrix(row_span, col_span)));
 
-    for (size_type j = 0; j < block_mtxs.size(); ++j) {
-        block_mtxs_.emplace_back(std::move(block_mtxs[j]));
-        overlap_mtxs_.emplace_back(std::move(overlap_mtxs[j]));
-        block_dims_.emplace_back(block_mtxs_.back()->get_size());
-        block_nnzs_.emplace_back(block_mtxs_.back()->get_num_stored_elements());
+    for (size_type j = 0; j < overlap_row_span.size(); ++j) {
+        overlap_mtxs_.emplace_back(std::move(
+            matrix->get_submatrix(overlap_row_span[j], overlap_col_span[j])));
     }
 }
 
@@ -86,7 +72,7 @@ void SubMatrix<MatrixType>::apply_impl(const LinOp *b, LinOp *x) const
 
     auto dense_b = as<Dense>(b);
     auto dense_x = as<Dense>(x);
-    this->get_executor()->run(sub_matrix::make_spmv(this, dense_b, dense_x));
+    // this->get_executor()->run(sub_matrix::make_spmv(this, dense_b, dense_x));
 }
 
 
@@ -100,15 +86,15 @@ void SubMatrix<MatrixType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
     auto dense_b = as<Dense>(b);
     auto dense_x = as<Dense>(x);
-    this->get_executor()->run(sub_matrix::make_advanced_spmv(
-        as<Dense>(alpha), this, dense_b, as<Dense>(beta), dense_x));
+    // this->get_executor()->run(sub_matrix::make_advanced_spmv(
+    //     as<Dense>(alpha), this, dense_b, as<Dense>(beta), dense_x));
 }
 
 
-#define GKO_DECLARE_SUB_MATRIX_CSR_GENERATE(ValueType, IndexType) \
-    void SubMatrix<Csr<ValueType, IndexType>>::generate(          \
-        const Array<size_type> &, const Overlap<size_type> &,     \
-        const Csr<ValueType, IndexType> *x)
+#define GKO_DECLARE_SUB_MATRIX_CSR_GENERATE(ValueType, IndexType)         \
+    void SubMatrix<Csr<ValueType, IndexType>>::generate(                  \
+        const Csr<ValueType, IndexType> *mat, const span &, const span &, \
+        const std::vector<span> &, const std::vector<span> &)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SUB_MATRIX_CSR_GENERATE);

@@ -55,7 +55,12 @@ public:
     using value_type = typename MatrixType::value_type;
     using index_type = typename MatrixType::index_type;
 
-    std::shared_ptr<MatrixType> get_submatrix() const { return sub_mtxs_; }
+    std::shared_ptr<MatrixType> get_submatrix() const { return sub_mtx_; }
+
+    std::vector<std::shared_ptr<MatrixType>> get_overlap_mtxs() const
+    {
+        return overlap_mtxs_;
+    }
 
 private:
     inline dim<2> compute_size(const MatrixType *matrix,
@@ -68,27 +73,24 @@ private:
         size_type num_ov_rows = 0;
         size_type num_ov_cols = 0;
         if (overlap_row_span.size() > 0) {
-            num_ov_rows = std::accumulate(
-                std::next(overlap_row_span.begin()), overlap_row_span.end(),
-                overlap_row_span[0].length(),
-                [](size_type sum, gko::span in) { return sum + in.length(); });
+            for (const auto &i : overlap_row_span) {
+                num_ov_rows += i.length();
+            }
         }
         if (overlap_col_span.size() > 0) {
-            num_ov_cols = std::accumulate(
-                std::next(overlap_row_span.begin()), overlap_col_span.end(),
-                overlap_col_span[0].length(),
-                [](size_type sum, gko::span in) { return sum + in.length(); });
+            for (const auto &i : overlap_col_span) {
+                num_ov_cols += i.length();
+            }
         }
-        auto upd_size =
-            gko::dim<2>(mat_size[0] + row_span.length() + num_ov_rows,
-                        mat_size[1] + col_span.length() + num_ov_cols);
+        auto upd_size = gko::dim<2>(row_span.length() + num_ov_rows,
+                                    col_span.length() + num_ov_cols);
         return upd_size;
     }
 
 protected:
     SubMatrix(std::shared_ptr<const Executor> exec)
         : EnableLinOp<SubMatrix<MatrixType>>{exec, dim<2>{}},
-          sub_mtxs_{},
+          sub_mtx_{MatrixType::create(exec)},
           overlap_mtxs_{}
     {}
 
@@ -101,9 +103,10 @@ protected:
                                                           col_span,
                                                           overlap_row_span,
                                                           overlap_col_span)},
-          sub_mtxs_{},
+          sub_mtx_{MatrixType::create(exec)},
           overlap_mtxs_{}
     {
+        GKO_ASSERT(overlap_row_span.size() == overlap_col_span.size());
         this->generate(matrix, row_span, col_span, overlap_row_span,
                        overlap_col_span);
     }
@@ -119,7 +122,7 @@ protected:
                   const std::vector<gko::span> &overlap_col_span);
 
 private:
-    std::shared_ptr<MatrixType> sub_mtxs_;
+    std::shared_ptr<MatrixType> sub_mtx_;
     std::vector<std::shared_ptr<MatrixType>> overlap_mtxs_;
 };
 
