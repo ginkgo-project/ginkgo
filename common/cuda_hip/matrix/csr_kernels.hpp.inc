@@ -680,6 +680,35 @@ __global__
 }
 
 
+template <typename ValueType, typename IndexType>
+__global__
+    __launch_bounds__(default_block_size) void compute_submatrix_idxs_and_vals(
+        const size_type num_rows, const size_type num_cols,
+        const size_type num_nnz, const size_type row_offset,
+        const size_type col_offset,
+        const IndexType *__restrict__ source_row_ptrs,
+        const IndexType *__restrict__ source_col_idxs,
+        const ValueType *__restrict__ source_values,
+        const IndexType *__restrict__ result_row_ptrs,
+        IndexType *__restrict__ result_col_idxs,
+        ValueType *__restrict__ result_values)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    if (tidx < num_rows) {
+        size_type res_nnz = result_row_ptrs[tidx];
+        for (size_type nnz = source_row_ptrs[row_offset + tidx];
+             nnz < source_row_ptrs[row_offset + tidx + 1]; ++nnz) {
+            if ((source_col_idxs[nnz] < (col_offset + num_cols) &&
+                 source_col_idxs[nnz] >= col_offset)) {
+                result_col_idxs[res_nnz] = source_col_idxs[nnz] - col_offset;
+                result_values[res_nnz] = source_values[nnz];
+                res_nnz++;
+            }
+        }
+    }
+}
+
+
 template <typename IndexType>
 __global__
     __launch_bounds__(default_block_size) void calculate_nnz_per_row_in_span(

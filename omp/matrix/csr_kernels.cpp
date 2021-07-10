@@ -620,22 +620,23 @@ void compute_sub_matrix(std::shared_ptr<const DefaultExecutor> exec,
 {
     auto row_offset = row_span.begin;
     auto col_offset = col_span.begin;
-    auto block_size = result->get_size()[0];
+    auto num_rows = result->get_size()[0];
+    auto num_cols = result->get_size()[1];
     const auto row_ptrs = source->get_const_row_ptrs();
     const auto col_idxs = source->get_const_col_idxs();
     const auto values = source->get_const_values();
     auto res_row_ptrs = result->get_row_ptrs();
 #pragma omp parallel for
-    for (size_type row = 0; row < block_size; ++row) {
+    for (size_type row = 0; row < num_rows; ++row) {
         res_row_ptrs[row] = row_nnz->get_const_data()[row];
     }
-    components::prefix_sum(exec, res_row_ptrs, block_size + 1);
+    components::prefix_sum(exec, res_row_ptrs, num_rows + 1);
 #pragma omp parallel for
-    for (size_type row = 0; row < block_size; ++row) {
+    for (size_type row = 0; row < num_rows; ++row) {
         size_type res_nnz = res_row_ptrs[row];
         for (size_type nnz = row_ptrs[row_offset + row];
              nnz < row_ptrs[row_offset + row + 1]; ++nnz) {
-            if ((col_idxs[nnz] < (col_offset + block_size) &&
+            if ((col_idxs[nnz] < (col_offset + num_cols) &&
                  col_idxs[nnz] >= col_offset)) {
                 result->get_col_idxs()[res_nnz] = col_idxs[nnz] - col_offset;
                 result->get_values()[res_nnz] = values[nnz];
