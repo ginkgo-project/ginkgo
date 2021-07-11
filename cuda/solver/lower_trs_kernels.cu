@@ -109,7 +109,7 @@ template <typename ValueType, typename IndexType>
 __global__ void sptrsv_naive_caching_kernel(
     const IndexType *const rowptrs, const IndexType *const colidxs,
     const ValueType *const vals, const ValueType *const b, ValueType *const x,
-    volatile uint32 *const ready, const size_type n)
+    const size_type n, bool *nan_produced)
 {
     const auto gid = thread::get_thread_id_flat<IndexType>();
     const auto row = gid;
@@ -121,11 +121,9 @@ __global__ void sptrsv_naive_caching_kernel(
     const auto self_shmem_id = gid / default_block_size;
     const auto self_shid = gid % default_block_size;
 
-    volatile __shared__ uint32 ready_s[default_block_size];
     __shared__ UninitializedArray<ValueType, default_block_size> x_s_array;
     ValueType *x_s = x_s_array;
-    ready_s[self_shid] = 0;
-    x_s[self_shid] = zero<ValueType>();
+    x_s[self_shid] = nan<ValueType>();
 
     __syncthreads();
 
@@ -135,34 +133,34 @@ __global__ void sptrsv_naive_caching_kernel(
     ValueType sum = 0.0;
     for (IndexType i = row_start; i < row_end; ++i) {
         const auto dependency = colidxs[i];
-        volatile auto is_ready = &ready[dependency];
         auto x_p = &x[dependency];
 
         const bool shmem_possible =
             dependency / default_block_size == self_shmem_id;
         if (shmem_possible) {
             const auto dependency_shid = dependency % default_block_size;
-            is_ready = &ready_s[dependency_shid];
             x_p = &x_s[dependency_shid];
         }
 
-        uint32 is_ready_v = false;
-        while (!is_ready_v) {
-            is_ready_v = *is_ready;
+        ValueType x = *x_p;
+        while (is_nan(x)) {
+            x = load(x_p, 0);
         }
 
-        sum += load(x_p, 0) * vals[i];
+        sum += x * vals[i];
     }
 
     const auto r = (b[row] - sum) / vals[row_end];
 
     store(x_s, self_shid, r);
-    __threadfence_block();
-    ready_s[self_shid] = 1;
-
     x[row] = r;
-    __threadfence();
-    ready[row] = 1;
+
+    // This check to ensure no infinte loops happen.
+    if (is_nan(r)) {
+        store(x_s, self_shid, zero<ValueType>());
+        x[row] = zero<ValueType>();
+        *nan_produced = true;
+    }
 }
 
 
@@ -170,7 +168,7 @@ template <typename ValueType, typename IndexType>
 __global__ void sptrsv_naive_legacy_kernel(
     const IndexType *const rowptrs, const IndexType *const colidxs,
     const ValueType *const vals, const ValueType *const b, ValueType *const x,
-    volatile uint32 *const ready, const size_type n)
+    const size_type n, bool *nan_produced)
 {
     const auto gid = thread::get_thread_id_flat<IndexType>();
     const auto row = gid;
@@ -185,16 +183,19 @@ __global__ void sptrsv_naive_legacy_kernel(
     auto j = rowptrs[row];
     while (j <= row_end) {
         auto col = colidxs[j];
-        while (ready[col]) {
+        while (!is_nan(load(x, col))) {
             sum += vals[j] * load(x, col);
             ++j;
             col = colidxs[j];
         }
         if (row == col) {
-            store(x, row, (b[row] - sum) / vals[row_end]);
+            const auto r = (b[row] - sum) / vals[row_end];
+            store(x, row, r);
             ++j;
-            __threadfence();
-            ready[row] = 1;
+            if (is_nan(r)) {
+                store(x, row, zero<ValueType>());
+                *nan_produced = true;
+            }
         }
     }
 }
@@ -210,8 +211,12 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
     const auto is_fallback_required = exec->get_major_version() < 7;
 
     const IndexType n = matrix->get_size()[0];
-    Array<uint32> ready(exec, n);
-    cudaMemset(ready.get_data(), 0, n * sizeof(uint32));
+
+    // Initialize x to all NaNs.
+    cudaMemset(x->get_values(), 0xFF, n * sizeof(ValueType));
+
+    Array<bool> nan_produced(exec, 1);
+    cudaMemset(nan_produced.get_data(), false, sizeof(bool));
 
     const dim3 block_size(is_fallback_required ? 32 : default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
@@ -221,13 +226,24 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
             matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
             as_cuda_type(matrix->get_const_values()),
             as_cuda_type(b->get_const_values()), as_cuda_type(x->get_values()),
-            ready.get_data(), n);
+            n, nan_produced.get_data());
     } else {
         sptrsv_naive_caching_kernel<<<grid_size, block_size>>>(
             matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
             as_cuda_type(matrix->get_const_values()),
             as_cuda_type(b->get_const_values()), as_cuda_type(x->get_values()),
-            ready.get_data(), n);
+            n, nan_produced.get_data());
+    }
+
+    nan_produced.set_executor(exec->get_master());
+    if (nan_produced.get_const_data()[0]) {
+#if GKO_VERBOSE_LEVEL >= 1
+        std::cerr
+            << "Error: triangular solve produced NaN, either not all diagonal "
+               "elements are nonzero, or the system is very ill-conditioned. "
+               "The NaN will be replaced with a zero."
+            << std::endl;
+#endif  // GKO_VERBOSE_LEVEL >= 1
     }
 }
 
