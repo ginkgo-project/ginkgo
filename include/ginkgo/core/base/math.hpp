@@ -1096,6 +1096,70 @@ GKO_INLINE GKO_ATTRIBUTES T safe_divide(T a, T b)
 }
 
 
+/**
+ * Checks if a floating point number is NaN.
+ *
+ * @tparam T  type of the value to check
+ *
+ * @param value  value to check
+ *
+ * @return `true` if the value is NaN.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
+is_nan(const T &value)
+{
+    return std::isnan(value);
+}
+
+
+/**
+ * Checks if any component of a complex value is NaN.
+ *
+ * @tparam T  complex type of the value to check
+ *
+ * @param value  complex value to check
+ *
+ * @return `true` if any component of the given value is NaN.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<is_complex_s<T>::value, bool> is_nan(
+    const T &value)
+{
+    return std::isnan(value.real()) || std::isnan(value.imag());
+}
+
+
+/**
+ * Returns NaN of the given type.
+ *
+ * @tparam T  the type of the object
+ *
+ * @return NaN.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+nan()
+{
+    return std::numeric_limits<T>::quiet_NaN();
+}
+
+
+/**
+ * Returns a complex with both components NaN.
+ *
+ * @tparam T  the type of the object
+ *
+ * @return complex{NaN, NaN}.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<is_complex_s<T>::value, T>
+nan()
+{
+    return T{nan<remove_complex<T>>(), nan<remove_complex<T>>()};
+}
+
+
 }  // namespace gko
 
 
