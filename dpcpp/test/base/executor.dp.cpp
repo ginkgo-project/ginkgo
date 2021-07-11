@@ -55,20 +55,20 @@ namespace {
 class DpcppExecutor : public ::testing::Test {
 protected:
     DpcppExecutor()
-        : omp(gko::OmpExecutor::create()), dpcpp(nullptr), dpcpp2(nullptr)
+        : ref(gko::ReferenceExecutor::create()), dpcpp(nullptr), dpcpp2(nullptr)
     {}
 
     void SetUp()
     {
         if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
-            dpcpp = gko::DpcppExecutor::create(0, omp, "gpu");
+            dpcpp = gko::DpcppExecutor::create(0, ref, "gpu");
             if (gko::DpcppExecutor::get_num_devices("gpu") > 1) {
-                dpcpp2 = gko::DpcppExecutor::create(1, omp, "gpu");
+                dpcpp2 = gko::DpcppExecutor::create(1, ref, "gpu");
             }
         } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
-            dpcpp = gko::DpcppExecutor::create(0, omp, "cpu");
+            dpcpp = gko::DpcppExecutor::create(0, ref, "cpu");
             if (gko::DpcppExecutor::get_num_devices("cpu") > 1) {
-                dpcpp2 = gko::DpcppExecutor::create(1, omp, "cpu");
+                dpcpp2 = gko::DpcppExecutor::create(1, ref, "cpu");
             }
         } else {
             GKO_NOT_IMPLEMENTED;
@@ -84,7 +84,7 @@ protected:
         }
     }
 
-    std::shared_ptr<gko::Executor> omp{};
+    std::shared_ptr<gko::Executor> ref{};
     std::shared_ptr<const gko::DpcppExecutor> dpcpp{};
     std::shared_ptr<const gko::DpcppExecutor> dpcpp2{};
 };
@@ -92,9 +92,9 @@ protected:
 
 TEST_F(DpcppExecutor, CanInstantiateTwoExecutorsOnOneDevice)
 {
-    auto dpcpp = gko::DpcppExecutor::create(0, omp);
+    auto dpcpp = gko::DpcppExecutor::create(0, ref);
     if (dpcpp2 != nullptr) {
-        auto dpcpp2 = gko::DpcppExecutor::create(0, omp);
+        auto dpcpp2 = gko::DpcppExecutor::create(0, ref);
     }
 
     // We want automatic deinitialization to not create any error
@@ -103,7 +103,7 @@ TEST_F(DpcppExecutor, CanInstantiateTwoExecutorsOnOneDevice)
 
 TEST_F(DpcppExecutor, CanGetExecInfo)
 {
-    dpcpp = gko::DpcppExecutor::create(0, omp);
+    dpcpp = gko::DpcppExecutor::create(0, ref);
 
     ASSERT_TRUE(dpcpp->get_num_computing_units() > 0);
     ASSERT_TRUE(dpcpp->get_subgroup_sizes().size() > 0);
@@ -191,9 +191,9 @@ TEST_F(DpcppExecutor, CopiesDataToCPU)
 {
     int orig[] = {3, 8};
     auto *copy = dpcpp->alloc<int>(2);
-    gko::Array<bool> is_set(omp, 1);
+    gko::Array<bool> is_set(ref, 1);
 
-    dpcpp->copy_from(omp.get(), 2, orig, copy);
+    dpcpp->copy_from(ref.get(), 2, orig, copy);
 
     is_set.set_executor(dpcpp);
     ASSERT_NO_THROW(dpcpp->synchronize());
@@ -201,7 +201,7 @@ TEST_F(DpcppExecutor, CopiesDataToCPU)
         auto *is_set_ptr = is_set.get_data();
         cgh.single_task([=]() { check_data(copy, is_set_ptr); });
     }));
-    is_set.set_executor(omp);
+    is_set.set_executor(ref);
     ASSERT_EQ(*is_set.get_data(), true);
     ASSERT_NO_THROW(dpcpp->synchronize());
     dpcpp->free(copy);
@@ -221,7 +221,7 @@ TEST_F(DpcppExecutor, CopiesDataFromCPU)
         cgh.single_task([=]() { init_data(orig); });
     });
 
-    omp->copy_from(dpcpp.get(), 2, orig, copy);
+    ref->copy_from(dpcpp.get(), 2, orig, copy);
 
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
@@ -236,7 +236,7 @@ TEST_F(DpcppExecutor, CopiesDataFromDpcppToDpcpp)
     }
 
     int copy[2];
-    gko::Array<bool> is_set(omp, 1);
+    gko::Array<bool> is_set(ref, 1);
     auto orig = dpcpp->alloc<int>(2);
     dpcpp->get_queue()->submit([&](sycl::handler &cgh) {
         cgh.single_task([=]() { init_data(orig); });
@@ -250,11 +250,11 @@ TEST_F(DpcppExecutor, CopiesDataFromDpcppToDpcpp)
         auto *is_set_ptr = is_set.get_data();
         cgh.single_task([=]() { check_data(copy_dpcpp2, is_set_ptr); });
     }));
-    is_set.set_executor(omp);
+    is_set.set_executor(ref);
     ASSERT_EQ(*is_set.get_data(), true);
 
     // Put the results on OpenMP and run CPU side assertions
-    omp->copy_from(dpcpp2.get(), 2, copy_dpcpp2, copy);
+    ref->copy_from(dpcpp2.get(), 2, copy_dpcpp2, copy);
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
     dpcpp2->free(copy_dpcpp2);
@@ -266,6 +266,33 @@ TEST_F(DpcppExecutor, Synchronizes)
 {
     // Todo design a proper unit test once we support streams
     ASSERT_NO_THROW(dpcpp->synchronize());
+}
+
+
+#define GTEST_ASSERT_NO_EXIT(statement) \
+    ASSERT_EXIT({ {statement} exit(0); }, ::testing::ExitedWithCode(0), "")
+
+
+TEST_F(DpcppExecutor, FreeAfterKernel)
+{
+    testing::FLAGS_gtest_death_test_style = "threadsafe";
+    GTEST_ASSERT_NO_EXIT({
+        size_t length = 10000;
+        auto dpcpp =
+            gko::DpcppExecutor::create(0, gko::ReferenceExecutor::create());
+        {
+            gko::Array<float> x(dpcpp, length);
+            gko::Array<float> y(dpcpp, length);
+            auto x_val = x.get_data();
+            auto y_val = y.get_data();
+            dpcpp->get_queue()->submit([&](sycl::handler &cgh) {
+                cgh.parallel_for(sycl::range<1>{length},
+                                 [=](sycl::id<1> i) { y_val[i] += x_val[i]; });
+            });
+        }
+        // to ensure everything on queue is finished.
+        dpcpp->synchronize();
+    });
 }
 
 
