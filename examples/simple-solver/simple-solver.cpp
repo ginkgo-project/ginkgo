@@ -157,17 +157,14 @@ int main(int argc, char *argv[])
 
     // To measure if your solution has actually converged, you can measure the
     // error of the solution.
-    // one, neg_one are objects that represent the numbers which allow for a
-    // uniform interface when computing on any device. To compute the residual,
-    // all you need to do is call the apply method, which in this case is an
-    // spmv and equivalent to the LAPACK z_spmv routine. Finally, you compute
-    // the euclidean 2-norm with the compute_norm2 function.
-    auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(res));
+    // To compute the residual, all you need to do is call the apply method,
+    // which in this case is an spmv and equivalent to the LAPACK z_spmv
+    // routine. Finally, you compute the euclidean 2-norm with the compute_norm2
+    // function.
+    auto res = 0.0;
+    A->apply(1.0, lend(x), -1.0, lend(b));
+    b->compute_norm2(&res);
 
     std::cout << "Residual norm sqrt(r^T r):\n";
-    write(std::cout, lend(res));
+    gko::write(std::cout, res);
 }

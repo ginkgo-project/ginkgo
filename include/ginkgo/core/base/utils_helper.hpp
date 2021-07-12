@@ -432,6 +432,15 @@ public:
 };
 
 
+namespace matrix {
+template <typename ValueType>
+class Dense;
+}
+
+template <typename ValueType>
+std::unique_ptr<matrix::Dense<ValueType>> scalar_to_dense(
+    ValueType val, std::shared_ptr<const Executor> exec);
+
 }  // namespace gko
 
 

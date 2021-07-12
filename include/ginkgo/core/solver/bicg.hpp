@@ -76,7 +76,7 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Bicg : public EnableLinOp<Bicg<ValueType>>,
+class Bicg : public EnableValueTypedLinOp<Bicg<ValueType>, ValueType>,
              public Preconditionable,
              public Transposable {
     friend class EnableLinOp<Bicg>;
@@ -163,13 +163,14 @@ protected:
                     LinOp *x) const override;
 
     explicit Bicg(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Bicg>(std::move(exec))
+        : EnableValueTypedLinOp<Bicg, ValueType>(std::move(exec))
     {}
 
     explicit Bicg(const Factory *factory,
                   std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Bicg>(factory->get_executor(),
-                            gko::transpose(system_matrix->get_size())),
+        : EnableValueTypedLinOp<Bicg, ValueType>(
+              factory->get_executor(),
+              gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {

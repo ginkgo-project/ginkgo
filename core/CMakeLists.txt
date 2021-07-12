@@ -9,7 +9,8 @@ target_sources(ginkgo
     base/executor.cpp
     base/mtx_io.cpp
     base/perturbation.cpp
-    base/version.cpp
+        base/utils.cpp
+        base/version.cpp
     factorization/ic.cpp
     factorization/ilu.cpp
     factorization/par_ic.cpp

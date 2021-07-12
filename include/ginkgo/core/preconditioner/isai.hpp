@@ -103,7 +103,8 @@ enum struct isai_type { lower, upper, general, spd };
  * @ingroup LinOp
  */
 template <isai_type IsaiType, typename ValueType, typename IndexType>
-class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>>,
+class Isai : public EnableValueTypedLinOp<Isai<IsaiType, ValueType, IndexType>,
+                                          ValueType>,
              public Transposable {
     friend class EnableLinOp<Isai>;
     friend class EnablePolymorphicObject<Isai, LinOp>;
@@ -197,7 +198,7 @@ public:
 
 protected:
     explicit Isai(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Isai>(std::move(exec))
+        : EnableValueTypedLinOp<Isai, ValueType>(std::move(exec))
     {}
 
     /**
@@ -208,7 +209,8 @@ protected:
      */
     explicit Isai(const Factory *factory,
                   std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Isai>(factory->get_executor(), system_matrix->get_size()),
+        : EnableValueTypedLinOp<Isai, ValueType>(factory->get_executor(),
+                                                 system_matrix->get_size()),
           parameters_{factory->get_parameters()}
     {
         const auto skip_sorting = parameters_.skip_sorting;

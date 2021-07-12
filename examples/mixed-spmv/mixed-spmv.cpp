@@ -240,48 +240,45 @@ int main(int argc, char *argv[])
 
 
     // To measure error of result.
-    // neg_one is an object that represent the number -1.0 which allows for a
-    // uniform interface when computing on any device. To compute the residual,
-    // all you need to do is call the add_scaled method, which in this case is
-    // an axpy and equivalent to the LAPACK axpy routine. Finally, you compute
-    // the euclidean 2-norm with the compute_norm2 function.
-    auto neg_one = gko::initialize<hp_vec>({-1.0}, exec);
-    auto hp_x_norm = gko::initialize<real_vec>({0.0}, exec->get_master());
-    auto lp_diff_norm = gko::initialize<real_vec>({0.0}, exec->get_master());
-    auto hplp_diff_norm = gko::initialize<real_vec>({0.0}, exec->get_master());
-    auto lplp_diff_norm = gko::initialize<real_vec>({0.0}, exec->get_master());
-    auto lphp_diff_norm = gko::initialize<real_vec>({0.0}, exec->get_master());
+    // To compute the residual, all you need to do is call the add_scaled
+    // method, which in this case is an axpy and equivalent to the LAPACK axpy
+    // routine. Finally, you compute the euclidean 2-norm with the compute_norm2
+    // function.
+    auto hp_x_norm = 0.0;
+    auto lp_diff_norm = 0.0;
+    auto hplp_diff_norm = 0.0;
+    auto lplp_diff_norm = 0.0;
+    auto lphp_diff_norm = 0.0;
     auto lp_diff = hp_x->clone();
     auto hplp_diff = hp_x->clone();
     auto lplp_diff = hp_x->clone();
     auto lphp_diff = hp_x->clone();
 
-    hp_x->compute_norm2(lend(hp_x_norm));
-    lp_diff->add_scaled(lend(neg_one), lend(lp_x));
-    lp_diff->compute_norm2(lend(lp_diff_norm));
-    hplp_diff->add_scaled(lend(neg_one), lend(hplp_x));
-    hplp_diff->compute_norm2(lend(hplp_diff_norm));
-    lplp_diff->add_scaled(lend(neg_one), lend(lplp_x));
-    lplp_diff->compute_norm2(lend(lplp_diff_norm));
-    lphp_diff->add_scaled(lend(neg_one), lend(lphp_x));
-    lphp_diff->compute_norm2(lend(lphp_diff_norm));
+    hp_x->compute_norm2(&hp_x_norm);
+    lp_diff->add_scaled(-1.0, lend(lp_x));
+    lp_diff->compute_norm2(&lp_diff_norm);
+    hplp_diff->add_scaled(-1.0, lend(hplp_x));
+    hplp_diff->compute_norm2(&hplp_diff_norm);
+    lplp_diff->add_scaled(-1.0, lend(lplp_x));
+    lplp_diff->compute_norm2(&lplp_diff_norm);
+    lphp_diff->add_scaled(-1.0, lend(lphp_x));
+    lphp_diff->compute_norm2(&lphp_diff_norm);
     exec->synchronize();
 
     std::cout.precision(10);
     std::cout << std::scientific;
     std::cout << "High Precision time(s): " << hp_sec << std::endl;
-    std::cout << "High Precision result norm: " << hp_x_norm->at(0)
-              << std::endl;
+    std::cout << "High Precision result norm: " << hp_x_norm << std::endl;
     std::cout << "Low Precision time(s): " << lp_sec << std::endl;
-    std::cout << "Low Precision relative error: "
-              << lp_diff_norm->at(0) / hp_x_norm->at(0) << "\n";
+    std::cout << "Low Precision relative error: " << lp_diff_norm / hp_x_norm
+              << "\n";
     std::cout << "Hp * Lp -> Hp time(s): " << hplp_sec << std::endl;
-    std::cout << "Hp * Lp -> Hp relative error: "
-              << hplp_diff_norm->at(0) / hp_x_norm->at(0) << "\n";
+    std::cout << "Hp * Lp -> Hp relative error: " << hplp_diff_norm / hp_x_norm
+              << "\n";
     std::cout << "Lp * Lp -> Hp time(s): " << lplp_sec << std::endl;
-    std::cout << "Lp * Lp -> Hp relative error: "
-              << lplp_diff_norm->at(0) / hp_x_norm->at(0) << "\n";
+    std::cout << "Lp * Lp -> Hp relative error: " << lplp_diff_norm / hp_x_norm
+              << "\n";
     std::cout << "Lp * Hp -> Hp time(s): " << lplp_sec << std::endl;
-    std::cout << "Lp * Hp -> Hp relative error: "
-              << lphp_diff_norm->at(0) / hp_x_norm->at(0) << "\n";
+    std::cout << "Lp * Hp -> Hp relative error: " << lphp_diff_norm / hp_x_norm
+              << "\n";
 }

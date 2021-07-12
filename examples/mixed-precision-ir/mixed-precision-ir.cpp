@@ -108,11 +108,9 @@ int main(int argc, char *argv[])
     b->copy_from(host_x.get());
 
     // Calculate initial residual by overwriting b
-    auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto initres_vec = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(initres_vec));
+    auto initres = 0.0;
+    A->apply(1.0, lend(x), -1.0, lend(b));
+    b->compute_norm2(&initres);
 
     // Build lower-precision system matrix and residual
     auto solver_A = solver_mtx::create(exec);
@@ -139,8 +137,7 @@ int main(int argc, char *argv[])
     // Solve system
     exec->synchronize();
     std::chrono::nanoseconds time(0);
-    auto res_vec = gko::initialize<real_vec>({0.0}, exec);
-    auto initres = exec->copy_val_to_host(initres_vec->get_const_values());
+    auto res = 0.0;
     auto inner_solution = solver_vec::create(exec);
     auto outer_delta = vec::create(exec);
     auto tic = std::chrono::steady_clock::now();
@@ -150,8 +147,7 @@ int main(int argc, char *argv[])
 
         // convert residual to inner precision
         outer_residual->convert_to(lend(inner_residual));
-        outer_residual->compute_norm2(lend(res_vec));
-        auto res = exec->copy_val_to_host(res_vec->get_const_values());
+        outer_residual->compute_norm2(&res);
 
         // break if we exceed the number of iterations or have converged
         if (iter > max_outer_iters || res / initres < outer_reduction_factor) {
@@ -168,24 +164,24 @@ int main(int argc, char *argv[])
         inner_solution->convert_to(lend(outer_delta));
 
         // x = x + inner_solution
-        x->add_scaled(lend(one), lend(outer_delta));
+        x->add_scaled(1.0, lend(outer_delta));
 
         // residual = b - A * x
         outer_residual->copy_from(lend(b));
-        A->apply(lend(neg_one), lend(x), lend(one), lend(outer_residual));
+        A->apply(-1.0, lend(x), 1.0, lend(outer_residual));
     }
 
     auto toc = std::chrono::steady_clock::now();
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
     // Calculate residual
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(res_vec));
+    A->apply(1.0, lend(x), -1.0, lend(b));
+    b->compute_norm2(&res);
 
     std::cout << "Initial residual norm sqrt(r^T r):\n";
-    write(std::cout, lend(initres_vec));
+    gko::write(std::cout, initres);
     std::cout << "Final residual norm sqrt(r^T r):\n";
-    write(std::cout, lend(res_vec));
+    gko::write(std::cout, res);
 
     // Print solver statistics
     std::cout << "MPIR iteration count:     " << iter << std::endl;

@@ -72,8 +72,9 @@ namespace multigrid {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class AmgxPgm : public EnableLinOp<AmgxPgm<ValueType, IndexType>>,
-                public EnableMultigridLevel<ValueType> {
+class AmgxPgm
+    : public EnableValueTypedLinOp<AmgxPgm<ValueType, IndexType>, ValueType>,
+      public EnableMultigridLevel<ValueType> {
     friend class EnableLinOp<AmgxPgm>;
     friend class EnablePolymorphicObject<AmgxPgm, LinOp>;
 
@@ -156,13 +157,13 @@ protected:
     }
 
     explicit AmgxPgm(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<AmgxPgm>(std::move(exec))
+        : EnableValueTypedLinOp<AmgxPgm, ValueType>(std::move(exec))
     {}
 
     explicit AmgxPgm(const Factory *factory,
                      std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<AmgxPgm>(factory->get_executor(),
-                               system_matrix->get_size()),
+        : EnableValueTypedLinOp<AmgxPgm, ValueType>(factory->get_executor(),
+                                                    system_matrix->get_size()),
           EnableMultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix},
