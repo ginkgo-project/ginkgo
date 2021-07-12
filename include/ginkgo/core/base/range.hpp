@@ -99,7 +99,18 @@ struct span {
      *
      * @return true if and only if `this->begin < this->end`
      */
-    constexpr bool is_valid() const { return begin < end; }
+    GKO_ATTRIBUTES constexpr bool is_valid() const { return begin < end; }
+
+    /**
+     * Returns the length of a span.
+     *
+     * @return `this->end - this->begin`
+     */
+    GKO_ATTRIBUTES constexpr size_type length() const
+    {
+        GKO_ASSERT(is_valid());
+        return end - begin;
+    }
 
     /**
      * Beginning of the span.
