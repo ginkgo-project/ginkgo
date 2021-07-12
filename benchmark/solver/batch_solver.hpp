@@ -265,10 +265,24 @@ void validate_option_object(const rapidjson::Value &value)
 }
 
 
+gko::preconditioner::batch::type get_preconditioner(const std::string &prec)
+{
+    if (prec == "none") {
+        return gko::preconditioner::batch::type::none;
+    } else if (prec == "jacobi") {
+        return gko::preconditioner::batch::type::jacobi;
+    } else {
+        throw std::invalid_argument(std::string("Preconditioner ") + prec +
+                                    " is not available!");
+    }
+}
+
+
 // For now, we only use relative residual tolerance
 std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
     const std::shared_ptr<const gko::Executor> &exec,
-    const std::string &description)
+    const std::string &description,
+    const gko::preconditioner::batch::type prec_type)
 {
     if (description == "richardson") {
         using Solver = gko::solver::BatchRichardson<etype>;
@@ -276,7 +290,7 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
             .with_max_iterations(static_cast<int>(FLAGS_max_iters))
             .with_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
-            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
+            .with_preconditioner(prec_type)
             .with_relaxation_factor(static_cast<gko::remove_complex<etype>>(
                 FLAGS_relaxation_factor))
             .on(exec);
@@ -286,7 +300,7 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
             .with_max_iterations(static_cast<int>(FLAGS_max_iters))
             .with_rel_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
-            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
+            .with_preconditioner(prec_type)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(exec);
     } else if (description == "gmres") {
@@ -295,7 +309,7 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
             .with_max_iterations(static_cast<int>(FLAGS_max_iters))
             .with_rel_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
-            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
+            .with_preconditioner(prec_type)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_restart(FLAGS_gmres_restart)
             .on(exec);
@@ -305,7 +319,7 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
 }
 
 
-void solve_system(const std::string &sol_name,
+void solve_system(const std::string &sol_name, const std::string &prec_name,
                   std::shared_ptr<gko::Executor> exec,
                   std::shared_ptr<const gko::BatchLinOp> system_matrix,
                   const batch_vec<etype> *b,
@@ -320,13 +334,15 @@ void solve_system(const std::string &sol_name,
             return;
         }
 
+        const auto prec_type = get_preconditioner(prec_name);
+
         add_or_set_member(solver_case, solver_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
         auto &solver_json = solver_case[solver_name];
         add_or_set_member(solver_json, "scaling",
                           rapidjson::StringRef(FLAGS_batch_scaling.c_str()),
                           allocator);
-        size_type nbatch = system_matrix->get_num_batch_entries();
+        const size_type nbatch = system_matrix->get_num_batch_entries();
         if (FLAGS_detailed && b->get_size().at(0)[1] == 1 && !FLAGS_overhead) {
             add_or_set_member(solver_json, "rhs_norm",
                               rapidjson::Value(rapidjson::kObjectType),
@@ -358,7 +374,8 @@ void solve_system(const std::string &sol_name,
             std::shared_ptr<const gko::BatchLinOp> mat_clone =
                 clone(system_matrix);
             std::shared_ptr<const gko::BatchLinOp> b_clone = clone(b);
-            auto solver = generate_solver(exec, sol_name)->generate(mat_clone);
+            auto solver =
+                generate_solver(exec, sol_name, prec_type)->generate(mat_clone);
 
             if (FLAGS_batch_scaling == "explicit") {
                 dynamic_cast<gko::EnableBatchScaledSolver<etype> *>(
@@ -366,7 +383,7 @@ void solve_system(const std::string &sol_name,
                     ->batch_scale(lend(scaling_vec), lend(scaling_vec));
             }
             solver->add_logger(logger);
-            solver->apply(lend(b_clone), lend(x));
+            solver->apply(lend(b_clone), lend(x_clone));
             solver->remove_logger(gko::lend(logger));
             exec->synchronize();
         }
@@ -400,7 +417,8 @@ void solve_system(const std::string &sol_name,
             auto gen_logger =
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(gen_logger);
-            auto solver = generate_solver(exec, sol_name)->generate(mat_clone);
+            auto solver =
+                generate_solver(exec, sol_name, prec_type)->generate(mat_clone);
 
             if (FLAGS_batch_scaling == "explicit") {
                 dynamic_cast<gko::EnableBatchScaledSolver<etype> *>(
@@ -428,8 +446,8 @@ void solve_system(const std::string &sol_name,
                 std::shared_ptr<const gko::BatchLinOp> mat_clone2 =
                     clone(system_matrix);
                 std::shared_ptr<const gko::BatchLinOp> b_clone2 = clone(b);
-                auto solver2 =
-                    generate_solver(exec, sol_name)->generate(mat_clone2);
+                auto solver2 = generate_solver(exec, sol_name, prec_type)
+                                   ->generate(mat_clone2);
                 solver2->add_logger(logger);
                 solver2->apply(lend(b_clone2), lend(x_clone));
                 solver2->remove_logger(gko::lend(logger));
@@ -467,7 +485,8 @@ void solve_system(const std::string &sol_name,
 
             exec->synchronize();
             generate_timer->tic();
-            auto solver = generate_solver(exec, sol_name)->generate(mat_clone);
+            auto solver =
+                generate_solver(exec, sol_name, prec_type)->generate(mat_clone);
             if (FLAGS_batch_scaling == "explicit") {
                 dynamic_cast<gko::EnableBatchScaledSolver<etype> *>(
                     solver.get())
@@ -542,6 +561,12 @@ int read_data_and_launch_benchmark(int argc, char *argv[],
 
     auto exec = get_executor();
     auto solvers = split(FLAGS_batch_solvers, ',');
+    auto preconditioners = split(FLAGS_preconditioners, ',');
+    if (preconditioners.size() > 1) {
+        std::cout << "Only the first preconditioner in the list will be used: ";
+        std::cout << preconditioners[0] << std::endl;
+    }
+    const auto preconditioner = preconditioners[0];
 
     rapidjson::Document test_cases;
     if (io_from_std) {
@@ -679,8 +704,9 @@ int read_data_and_launch_benchmark(int argc, char *argv[],
             auto sol_name = begin(solvers);
             for (const auto &solver_name : solvers) {
                 std::clog << "\tRunning solver: " << *sol_name << std::endl;
-                solve_system(solver_name, exec, system_matrix, lend(b),
-                             lend(scaling_vec), lend(x), test_case, allocator);
+                solve_system(solver_name, preconditioner, exec, system_matrix,
+                             lend(b), lend(scaling_vec), lend(x), test_case,
+                             allocator);
                 backup_results(test_cases);
             }
         } catch (const std::exception &e) {
