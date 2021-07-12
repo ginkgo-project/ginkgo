@@ -46,10 +46,10 @@ namespace hip {
 
 template <typename KernelFunction, typename... KernelArgs>
 __global__ __launch_bounds__(default_block_size) void generic_kernel_2d_solver(
-    size_type rows, size_type cols, size_type default_stride, KernelFunction fn,
+    int64 rows, int64 cols, int64 default_stride, KernelFunction fn,
     KernelArgs... args)
 {
-    auto tidx = thread::get_thread_id_flat();
+    auto tidx = thread::get_thread_id_flat<int64>();
     auto col = tidx % cols;
     auto row = tidx / cols;
     if (row >= rows) {
@@ -69,7 +69,9 @@ void run_kernel_solver(std::shared_ptr<const HipExecutor> exec,
     constexpr auto block_size = kernels::hip::default_block_size;
     auto num_blocks = ceildiv(size[0] * size[1], block_size);
     hipLaunchKernelGGL(kernels::hip::generic_kernel_2d_solver, num_blocks,
-                       block_size, 0, 0, size[0], size[1], default_stride, fn,
+                       block_size, 0, 0, static_cast<int64>(size[0]),
+                       static_cast<int64>(size[1]),
+                       static_cast<int64>(default_stride), fn,
                        kernels::hip::map_to_device(args)...);
 }
 

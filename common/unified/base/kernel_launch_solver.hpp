@@ -63,7 +63,7 @@ struct default_stride_dense_wrapper {
 template <typename T>
 struct device_unpack_solver_impl {
     using type = T;
-    static GKO_INLINE GKO_ATTRIBUTES type unpack(T param, size_type)
+    static GKO_INLINE GKO_ATTRIBUTES type unpack(T param, int64)
     {
         return param;
     }
@@ -72,8 +72,8 @@ struct device_unpack_solver_impl {
 template <typename ValueType>
 struct device_unpack_solver_impl<default_stride_dense_wrapper<ValueType>> {
     using type = matrix_accessor<ValueType>;
-    static GKO_INLINE GKO_ATTRIBUTES type unpack(
-        default_stride_dense_wrapper<ValueType> param, size_type default_stride)
+    static GKO_INLINE GKO_ATTRIBUTES type
+    unpack(default_stride_dense_wrapper<ValueType> param, int64 default_stride)
     {
         return {param.data, default_stride};
     }
