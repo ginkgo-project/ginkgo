@@ -42,13 +42,13 @@ namespace dpcpp {
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void generic_kernel_2d_solver(sycl::handler &cgh, size_type rows,
-                              size_type cols, size_type default_stride,
-                              KernelFunction fn, KernelArgs... args)
+void generic_kernel_2d_solver(sycl::handler &cgh, int64 rows, int64 cols,
+                              int64 default_stride, KernelFunction fn,
+                              KernelArgs... args)
 {
     cgh.parallel_for(sycl::range<2>{rows, cols}, [=](sycl::id<2> idx) {
-        auto row = static_cast<size_type>(idx[0]);
-        auto col = static_cast<size_type>(idx[1]);
+        auto row = static_cast<int64>(idx[0]);
+        auto col = static_cast<int64>(idx[1]);
         fn(row, col,
            device_unpack_solver_impl<KernelArgs>::unpack(args,
                                                          default_stride)...);
@@ -63,7 +63,8 @@ void run_kernel_solver(std::shared_ptr<const DpcppExecutor> exec,
 {
     exec->get_queue()->submit([&](sycl::handler &cgh) {
         kernels::dpcpp::generic_kernel_2d_solver(
-            cgh, size[0], size[1], default_stride, fn,
+            cgh, static_cast<int64>(size[0]), static_cast<int64>(size[1]),
+            static_cast<int64>(default_stride), fn,
             kernels::dpcpp::map_to_device(args)...);
     });
 }

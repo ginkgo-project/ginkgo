@@ -45,48 +45,49 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
                 size_type size, KernelArgs &&... args)
 {
 #pragma omp parallel for
-    for (size_type i = 0; i < size; i++) {
+    for (int64 i = 0; i < static_cast<int64>(size); i++) {
         [&]() { fn(i, map_to_device(args)...); }();
     }
 }
 
-template <size_type cols, typename KernelFunction, typename... MappedKernelArgs>
+
+template <int64 cols, typename KernelFunction, typename... MappedKernelArgs>
 void run_kernel_fixed_cols_impl(std::shared_ptr<const OmpExecutor> exec,
                                 KernelFunction fn, dim<2> size,
                                 MappedKernelArgs... args)
 {
-    const auto rows = size[0];
+    const auto rows = static_cast<int64>(size[0]);
 #pragma omp parallel for
-    for (size_type row = 0; row < rows; row++) {
+    for (int64 row = 0; row < rows; row++) {
 #pragma unroll
-        for (size_type col = 0; col < cols; col++) {
+        for (int64 col = 0; col < cols; col++) {
             [&]() { fn(row, col, args...); }();
         }
     }
 }
 
-template <size_type remainder_cols, size_type block_size,
-          typename KernelFunction, typename... MappedKernelArgs>
+template <int64 remainder_cols, int64 block_size, typename KernelFunction,
+          typename... MappedKernelArgs>
 void run_kernel_blocked_cols_impl(std::shared_ptr<const OmpExecutor> exec,
                                   KernelFunction fn, dim<2> size,
                                   MappedKernelArgs... args)
 {
     static_assert(remainder_cols < block_size, "remainder too large");
-    const auto rows = size[0];
-    const auto cols = size[1];
+    const auto rows = static_cast<int64>(size[0]);
+    const auto cols = static_cast<int64>(size[1]);
     const auto rounded_cols = cols / block_size * block_size;
     GKO_ASSERT(rounded_cols + remainder_cols == cols);
 #pragma omp parallel for
-    for (size_type row = 0; row < rows; row++) {
-        for (size_type base_col = 0; base_col < rounded_cols;
+    for (int64 row = 0; row < rows; row++) {
+        for (int64 base_col = 0; base_col < rounded_cols;
              base_col += block_size) {
 #pragma unroll
-            for (size_type i = 0; i < block_size; i++) {
+            for (int64 i = 0; i < block_size; i++) {
                 [&]() { fn(row, base_col + i, args...); }();
             }
         }
 #pragma unroll
-        for (size_type i = 0; i < remainder_cols; i++) {
+        for (int64 i = 0; i < remainder_cols; i++) {
             [&]() { fn(row, rounded_cols + i, args...); }();
         }
     }
@@ -98,7 +99,7 @@ void run_kernel_impl(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
 {
     const auto rows = size[0];
     const auto cols = size[1];
-    constexpr size_type block_size = 4;
+    constexpr int64 block_size = 4;
     if (cols <= 0) {
         return;
     }

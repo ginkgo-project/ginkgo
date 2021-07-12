@@ -170,14 +170,13 @@ namespace GKO_DEVICE_NAMESPACE {
 template <typename ValueType>
 struct matrix_accessor {
     ValueType *data;
-    size_type stride;
+    int64 stride;
 
     /**
      * @internal
      * Returns a reference to the element at position (row, col).
      */
-    GKO_INLINE GKO_ATTRIBUTES ValueType &operator()(size_type row,
-                                                    size_type col)
+    GKO_INLINE GKO_ATTRIBUTES ValueType &operator()(int64 row, int64 col)
     {
         return data[row * stride + col];
     }
@@ -187,7 +186,7 @@ struct matrix_accessor {
      * Returns a reference to the element at position idx in the underlying
      * storage.
      */
-    GKO_INLINE GKO_ATTRIBUTES ValueType &operator[](size_type idx)
+    GKO_INLINE GKO_ATTRIBUTES ValueType &operator[](int64 idx)
     {
         return data[idx];
     }
@@ -223,7 +222,8 @@ struct to_device_type_impl<matrix::Dense<ValueType> *&> {
     using type = matrix_accessor<device_type<ValueType>>;
     static type map_to_device(matrix::Dense<ValueType> *mtx)
     {
-        return {as_device_type(mtx->get_values()), mtx->get_stride()};
+        return {as_device_type(mtx->get_values()),
+                static_cast<int64>(mtx->get_stride())};
     }
 };
 
@@ -232,7 +232,8 @@ struct to_device_type_impl<const matrix::Dense<ValueType> *&> {
     using type = matrix_accessor<const device_type<ValueType>>;
     static type map_to_device(const matrix::Dense<ValueType> *mtx)
     {
-        return {as_device_type(mtx->get_const_values()), mtx->get_stride()};
+        return {as_device_type(mtx->get_const_values()),
+                static_cast<int64>(mtx->get_stride())};
     }
 };
 

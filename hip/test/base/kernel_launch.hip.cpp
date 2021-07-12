@@ -54,6 +54,7 @@ namespace {
 
 
 using gko::dim;
+using gko::int64;
 using gko::size_type;
 using std::is_same;
 
@@ -103,7 +104,7 @@ void run1d(std::shared_ptr<gko::HipExecutor> exec, size_type dim, int *data)
     gko::kernels::hip::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d) {
-            static_assert(is_same<decltype(i), size_type>::value, "index");
+            static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(d), int *>::value, "type");
             d[i] = i;
         },
@@ -123,7 +124,7 @@ void run1d(std::shared_ptr<gko::HipExecutor> exec, gko::Array<int> &data)
     gko::kernels::hip::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d_ptr) {
-            static_assert(is_same<decltype(i), size_type>::value, "index");
+            static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(d), int *>::value, "type");
             static_assert(is_same<decltype(d_ptr), const int *>::value, "type");
             if (d == d_ptr) {
@@ -148,7 +149,7 @@ void run1d(std::shared_ptr<gko::HipExecutor> exec, gko::matrix::Dense<> *m)
     gko::kernels::hip::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d2, auto d_ptr) {
-            static_assert(is_same<decltype(i), size_type>::value, "index");
+            static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(d(0, 0)), double &>::value, "type");
             static_assert(is_same<decltype(d2(0, 0)), const double &>::value,
                           "type");
@@ -184,8 +185,8 @@ void run2d(std::shared_ptr<gko::HipExecutor> exec, int *data)
     gko::kernels::hip::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d) {
-            static_assert(is_same<decltype(i), size_type>::value, "index");
-            static_assert(is_same<decltype(j), size_type>::value, "index");
+            static_assert(is_same<decltype(i), int64>::value, "index");
+            static_assert(is_same<decltype(j), int64>::value, "index");
             static_assert(is_same<decltype(d), int *>::value, "type");
             d[i + 4 * j] = 4 * i + j;
         },
@@ -205,8 +206,8 @@ void run2d(std::shared_ptr<gko::HipExecutor> exec, gko::Array<int> &data)
     gko::kernels::hip::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d_ptr) {
-            static_assert(is_same<decltype(i), size_type>::value, "index");
-            static_assert(is_same<decltype(j), size_type>::value, "index");
+            static_assert(is_same<decltype(i), int64>::value, "index");
+            static_assert(is_same<decltype(j), int64>::value, "index");
             static_assert(is_same<decltype(d), int *>::value, "type");
             static_assert(is_same<decltype(d_ptr), const int *>::value, "type");
             if (d == d_ptr) {
@@ -233,7 +234,7 @@ void run2d(std::shared_ptr<gko::HipExecutor> exec, gko::matrix::Dense<> *m1,
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d2, auto d_ptr, auto d3,
                       auto d4, auto d2_ptr, auto d3_ptr) {
-            static_assert(is_same<decltype(i), size_type>::value, "index");
+            static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(d(0, 0)), double &>::value, "type");
             static_assert(is_same<decltype(d2(0, 0)), const double &>::value,
                           "type");
