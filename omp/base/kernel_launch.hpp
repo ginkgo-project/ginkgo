@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
+#include "core/synthesizer/implementation_selection.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
@@ -52,94 +55,80 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
 }
 
 
-template <int64 cols, typename KernelFunction, typename... MappedKernelArgs>
-void run_kernel_fixed_cols_impl(std::shared_ptr<const OmpExecutor> exec,
-                                KernelFunction fn, dim<2> size,
-                                MappedKernelArgs... args)
+namespace {
+
+
+template <int block_size, int remainder_cols, typename KernelFunction,
+          typename... MappedKernelArgs>
+void run_kernel_sized_impl(syn::value_list<int, remainder_cols>,
+                           std::shared_ptr<const OmpExecutor> exec,
+                           KernelFunction fn, dim<2> size,
+                           MappedKernelArgs... args)
 {
     const auto rows = static_cast<int64>(size[0]);
+    const auto cols = static_cast<int64>(size[1]);
+    static_assert(remainder_cols < block_size, "remainder too large");
+    const auto rounded_cols = cols / block_size * block_size;
+    GKO_ASSERT(rounded_cols + remainder_cols == cols);
+    if (rounded_cols == 0) {
 #pragma omp parallel for
-    for (int64 row = 0; row < rows; row++) {
+        for (int64 row = 0; row < rows; row++) {
 #pragma unroll
-        for (int64 col = 0; col < cols; col++) {
-            [&]() { fn(row, col, args...); }();
+            for (int64 col = 0; col < remainder_cols; col++) {
+                [&]() { fn(row, col, args...); }();
+            }
+        }
+    } else if (cols == block_size) {
+#pragma omp parallel for
+        for (int64 row = 0; row < rows; row++) {
+#pragma unroll
+            for (int64 col = 0; col < block_size; col++) {
+                [&]() { fn(row, col, args...); }();
+            }
+        }
+    } else {
+#pragma omp parallel for
+        for (int64 row = 0; row < rows; row++) {
+            for (int64 base_col = 0; base_col < rounded_cols;
+                 base_col += block_size) {
+#pragma unroll
+                for (int64 i = 0; i < block_size; i++) {
+                    [&]() { fn(row, base_col + i, args...); }();
+                }
+            }
+#pragma unroll
+            for (int64 i = 0; i < remainder_cols; i++) {
+                [&]() { fn(row, rounded_cols + i, args...); }();
+            }
         }
     }
 }
 
-template <int64 remainder_cols, int64 block_size, typename KernelFunction,
-          typename... MappedKernelArgs>
-void run_kernel_blocked_cols_impl(std::shared_ptr<const OmpExecutor> exec,
-                                  KernelFunction fn, dim<2> size,
-                                  MappedKernelArgs... args)
-{
-    static_assert(remainder_cols < block_size, "remainder too large");
-    const auto rows = static_cast<int64>(size[0]);
-    const auto cols = static_cast<int64>(size[1]);
-    const auto rounded_cols = cols / block_size * block_size;
-    GKO_ASSERT(rounded_cols + remainder_cols == cols);
-#pragma omp parallel for
-    for (int64 row = 0; row < rows; row++) {
-        for (int64 base_col = 0; base_col < rounded_cols;
-             base_col += block_size) {
-#pragma unroll
-            for (int64 i = 0; i < block_size; i++) {
-                [&]() { fn(row, base_col + i, args...); }();
-            }
-        }
-#pragma unroll
-        for (int64 i = 0; i < remainder_cols; i++) {
-            [&]() { fn(row, rounded_cols + i, args...); }();
-        }
-    }
-}
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_kernel_sized,
+                                    run_kernel_sized_impl)
+
 
 template <typename KernelFunction, typename... MappedKernelArgs>
 void run_kernel_impl(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
                      dim<2> size, MappedKernelArgs... args)
 {
-    const auto rows = size[0];
-    const auto cols = size[1];
-    constexpr int64 block_size = 4;
+    const auto cols = static_cast<int64>(size[1]);
+    constexpr int block_size = 8;
+    using remainders = syn::as_list<syn::range<0, block_size, 1>>;
+
     if (cols <= 0) {
         return;
     }
-    if (cols == 1) {
-        run_kernel_fixed_cols_impl<1>(exec, fn, size, args...);
-        return;
-    }
-    if (cols == 2) {
-        run_kernel_fixed_cols_impl<2>(exec, fn, size, args...);
-        return;
-    }
-    if (cols == 3) {
-        run_kernel_fixed_cols_impl<3>(exec, fn, size, args...);
-        return;
-    }
-    if (cols == 4) {
-        run_kernel_fixed_cols_impl<4>(exec, fn, size, args...);
-        return;
-    }
-    const auto rem_cols = cols % block_size;
-    if (rem_cols == 0) {
-        run_kernel_blocked_cols_impl<0, block_size>(exec, fn, size, args...);
-        return;
-    }
-    if (rem_cols == 1) {
-        run_kernel_blocked_cols_impl<1, block_size>(exec, fn, size, args...);
-        return;
-    }
-    if (rem_cols == 2) {
-        run_kernel_blocked_cols_impl<2, block_size>(exec, fn, size, args...);
-        return;
-    }
-    if (rem_cols == 3) {
-        run_kernel_blocked_cols_impl<3, block_size>(exec, fn, size, args...);
-        return;
-    }
-    // should be unreachable
-    GKO_ASSERT(false);
+    select_run_kernel_sized(
+        remainders(),
+        [&](int remainder) { return remainder == cols % block_size; },
+        syn::value_list<int, block_size>(), syn::type_list<>(), exec, fn, size,
+        args...);
 }
+
+
+}  // namespace
 
 
 template <typename KernelFunction, typename... KernelArgs>
