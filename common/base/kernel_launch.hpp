@@ -268,8 +268,6 @@ typename to_device_type_impl<T>::type map_to_device(T &&param)
 }  // namespace gko
 
 
-// these files include this file again to make inclusion work from both sides,
-// this does not lead to issues due to the header guards.
 #if defined(GKO_COMPILING_CUDA)
 #include "cuda/base/kernel_launch.cuh"
 #elif defined(GKO_COMPILING_HIP)
