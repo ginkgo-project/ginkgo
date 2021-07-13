@@ -541,14 +541,20 @@ TEST(Executor, CanVerifyMemory)
     std::shared_ptr<gko::DpcppExecutor> host_dpcpp;
     std::shared_ptr<gko::DpcppExecutor> cpu_dpcpp;
     std::shared_ptr<gko::DpcppExecutor> gpu_dpcpp;
+    std::shared_ptr<gko::DpcppExecutor> host_dpcpp_dup;
+    std::shared_ptr<gko::DpcppExecutor> cpu_dpcpp_dup;
+    std::shared_ptr<gko::DpcppExecutor> gpu_dpcpp_dup;
     if (gko::DpcppExecutor::get_num_devices("host")) {
         host_dpcpp = gko::DpcppExecutor::create(0, omp, "host");
+        host_dpcpp_dup = gko::DpcppExecutor::create(0, omp, "host");
     }
     if (gko::DpcppExecutor::get_num_devices("cpu")) {
         cpu_dpcpp = gko::DpcppExecutor::create(0, omp, "cpu");
+        cpu_dpcpp_dup = gko::DpcppExecutor::create(0, omp, "cpu");
     }
     if (gko::DpcppExecutor::get_num_devices("gpu")) {
         gpu_dpcpp = gko::DpcppExecutor::create(0, omp, "gpu");
+        gpu_dpcpp_dup = gko::DpcppExecutor::create(0, omp, "gpu");
     }
 
     ASSERT_EQ(false, ref->memory_accessible(omp));
@@ -566,18 +572,24 @@ TEST(Executor, CanVerifyMemory)
         ASSERT_EQ(false, ref->memory_accessible(host_dpcpp));
         ASSERT_EQ(true, host_dpcpp->memory_accessible(omp));
         ASSERT_EQ(true, omp->memory_accessible(host_dpcpp));
+        ASSERT_EQ(true, host_dpcpp->memory_accessible(host_dpcpp_dup));
+        ASSERT_EQ(true, host_dpcpp_dup->memory_accessible(host_dpcpp));
     }
     if (gko::DpcppExecutor::get_num_devices("cpu")) {
         ASSERT_EQ(false, ref->memory_accessible(cpu_dpcpp));
         ASSERT_EQ(false, cpu_dpcpp->memory_accessible(ref));
         ASSERT_EQ(true, cpu_dpcpp->memory_accessible(omp));
         ASSERT_EQ(true, omp->memory_accessible(cpu_dpcpp));
+        ASSERT_EQ(true, cpu_dpcpp->memory_accessible(cpu_dpcpp_dup));
+        ASSERT_EQ(true, cpu_dpcpp_dup->memory_accessible(cpu_dpcpp));
     }
     if (gko::DpcppExecutor::get_num_devices("gpu")) {
         ASSERT_EQ(false, gpu_dpcpp->memory_accessible(ref));
         ASSERT_EQ(false, ref->memory_accessible(gpu_dpcpp));
         ASSERT_EQ(false, gpu_dpcpp->memory_accessible(omp));
         ASSERT_EQ(false, omp->memory_accessible(gpu_dpcpp));
+        ASSERT_EQ(false, gpu_dpcpp->memory_accessible(gpu_dpcpp_dup));
+        ASSERT_EQ(false, gpu_dpcpp_dup->memory_accessible(gpu_dpcpp));
     }
 #if GINKGO_HIP_PLATFORM_NVCC
     ASSERT_EQ(true, hip->memory_accessible(cuda));
