@@ -83,97 +83,6 @@ constexpr auto default_block_size = 256;
 namespace kernel {
 
 
-template <typename InValueType, typename OutValueType>
-void strided_copy(size_type num_rows, size_type num_cols, size_type in_stride,
-                  size_type out_stride, const InValueType *__restrict__ input,
-                  OutValueType *__restrict__ output, sycl::nd_item<3> item_ct1)
-{
-    const auto global_id = thread::get_thread_id_flat(item_ct1);
-    const auto row_id = global_id / num_cols;
-    const auto col_id = global_id % num_cols;
-    if (row_id < num_rows) {
-        output[row_id * out_stride + col_id] =
-            static_cast<OutValueType>(input[row_id * in_stride + col_id]);
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(strided_copy, strided_copy)
-
-
-template <typename ValueType>
-void strided_fill(size_type num_rows, size_type num_cols, size_type stride,
-                  ValueType *__restrict__ mat, ValueType value,
-                  sycl::nd_item<3> item_ct1)
-{
-    const auto global_id = thread::get_thread_id_flat(item_ct1);
-    const auto row_id = global_id / num_cols;
-    const auto col_id = global_id % num_cols;
-    if (row_id < num_rows) {
-        mat[row_id * stride + col_id] = value;
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(strided_fill, strided_fill)
-
-
-template <typename ValueType>
-void scale(size_type num_rows, size_type num_cols, size_type num_alpha_cols,
-           const ValueType *__restrict__ alpha, ValueType *__restrict__ x,
-           size_type stride_x, sycl::nd_item<3> item_ct1)
-{
-    const auto global_id = thread::get_thread_id_flat(item_ct1);
-    const auto row_id = global_id / num_cols;
-    const auto col_id = global_id % num_cols;
-    const auto alpha_id = num_alpha_cols == 1 ? 0 : col_id;
-    if (row_id < num_rows) {
-        x[row_id * stride_x + col_id] =
-            alpha[alpha_id] == zero<ValueType>()
-                ? zero<ValueType>()
-                : x[row_id * stride_x + col_id] * alpha[alpha_id];
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(scale, scale)
-
-
-template <typename ValueType>
-void add_scaled(size_type num_rows, size_type num_cols,
-                size_type num_alpha_cols, const ValueType *__restrict__ alpha,
-                const ValueType *__restrict__ x, size_type stride_x,
-                ValueType *__restrict__ y, size_type stride_y,
-                sycl::nd_item<3> item_ct1)
-{
-    const auto global_id = thread::get_thread_id_flat(item_ct1);
-    const auto row_id = global_id / num_cols;
-    const auto col_id = global_id % num_cols;
-    const auto alpha_id = num_alpha_cols == 1 ? 0 : col_id;
-    if (row_id < num_rows && alpha[alpha_id] != zero<ValueType>()) {
-        y[row_id * stride_y + col_id] +=
-            x[row_id * stride_x + col_id] * alpha[alpha_id];
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(add_scaled, add_scaled)
-
-
-template <typename ValueType>
-void add_scaled_diag(size_type size, const ValueType *__restrict__ alpha,
-                     const ValueType *__restrict__ diag,
-                     ValueType *__restrict__ y, size_type stride_y,
-                     sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-
-    if (tidx >= size) {
-        return;
-    }
-
-    y[tidx * stride_y + tidx] += alpha[0] * diag[tidx];
-}
-
-GKO_ENABLE_DEFAULT_HOST(add_scaled_diag, add_scaled_diag)
-
-
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename OutType,
           typename CallableGetValue, typename CallableReduce>
 void compute_partial_reduce(
@@ -456,7 +365,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(finalize_sqrt_reduce_computation_call,
                                finalize_sqrt_reduce_computation, kcfg_1d_list)
 
 
-template <std::uint32_t cfg, typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType>
 void fill_in_coo(size_type num_rows, size_type num_cols, size_type stride,
                  const size_type *__restrict__ row_ptrs,
                  const ValueType *__restrict__ source,
@@ -479,9 +388,7 @@ void fill_in_coo(size_type num_rows, size_type num_cols, size_type stride,
     }
 }
 
-GKO_ENABLE_DEFAULT_HOST_CONFIG(fill_in_coo, fill_in_coo)
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(fill_in_coo, fill_in_coo)
-GKO_ENABLE_DEFAULT_CONFIG_CALL(fill_in_coo_call, fill_in_coo, kcfg_1d_list)
+GKO_ENABLE_DEFAULT_HOST(fill_in_coo, fill_in_coo)
 
 
 template <std::uint32_t cfg, typename ValueType, typename IndexType>
@@ -514,7 +421,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(count_nnz_per_row_call, count_nnz_per_row,
                                kcfg_1d_list)
 
 
-template <std::uint32_t cfg, typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType>
 void fill_in_csr(size_type num_rows, size_type num_cols, size_type stride,
                  const ValueType *__restrict__ source,
                  IndexType *__restrict__ row_ptrs,
@@ -535,12 +442,10 @@ void fill_in_csr(size_type num_rows, size_type num_cols, size_type stride,
     }
 }
 
-GKO_ENABLE_DEFAULT_HOST_CONFIG(fill_in_csr, fill_in_csr)
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(fill_in_csr, fill_in_csr)
-GKO_ENABLE_DEFAULT_CONFIG_CALL(fill_in_csr_call, fill_in_csr, kcfg_1d_list)
+GKO_ENABLE_DEFAULT_HOST(fill_in_csr, fill_in_csr)
 
 
-template <std::uint32_t cfg, typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType>
 void fill_in_ell(size_type num_rows, size_type num_cols,
                  size_type source_stride, const ValueType *__restrict__ source,
                  size_type max_nnz_per_row, size_type result_stride,
@@ -570,9 +475,7 @@ void fill_in_ell(size_type num_rows, size_type num_cols,
     }
 }
 
-GKO_ENABLE_DEFAULT_HOST_CONFIG(fill_in_ell, fill_in_ell)
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(fill_in_ell, fill_in_ell)
-GKO_ENABLE_DEFAULT_CONFIG_CALL(fill_in_ell_call, fill_in_ell, kcfg_1d_list)
+GKO_ENABLE_DEFAULT_HOST(fill_in_ell, fill_in_ell)
 
 
 template <std::uint32_t cfg>
@@ -615,7 +518,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(calculate_slice_lengths_call,
                                calculate_slice_lengths, subgroup_list)
 
 
-template <std::uint32_t cfg, typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType>
 void fill_in_sellp(size_type num_rows, size_type num_cols, size_type slice_size,
                    size_type stride, const ValueType *__restrict__ source,
                    size_type *__restrict__ slice_lengths,
@@ -648,9 +551,7 @@ void fill_in_sellp(size_type num_rows, size_type num_cols, size_type slice_size,
     }
 }
 
-GKO_ENABLE_DEFAULT_HOST_CONFIG(fill_in_sellp, fill_in_sellp)
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(fill_in_sellp, fill_in_sellp)
-GKO_ENABLE_DEFAULT_CONFIG_CALL(fill_in_sellp_call, fill_in_sellp, kcfg_1d_list)
+GKO_ENABLE_DEFAULT_HOST(fill_in_sellp, fill_in_sellp)
 
 
 template <std::uint32_t cfg>
@@ -775,220 +676,6 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_total_cols_call, reduce_total_cols,
                                kcfg_1d_list)
 
 
-template <typename IndexType, typename ValueType>
-void symm_permute(size_type num_rows, size_type num_cols,
-                  const IndexType *__restrict__ perm_idxs,
-                  const ValueType *__restrict__ orig, size_type stride_orig,
-                  ValueType *__restrict__ result, size_type stride_result,
-                  sycl::nd_item<3> item_ct1)
-{
-    const auto global_id = thread::get_thread_id_flat(item_ct1);
-    const auto row_id = global_id / num_cols;
-    const auto col_id = global_id % num_cols;
-    if (row_id < num_rows) {
-        result[row_id * stride_result + col_id] =
-            orig[perm_idxs[row_id] * stride_orig + perm_idxs[col_id]];
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(symm_permute, symm_permute)
-
-
-template <typename IndexType, typename ValueType>
-void inv_symm_permute(size_type num_rows, size_type num_cols,
-                      const IndexType *__restrict__ perm_idxs,
-                      const ValueType *__restrict__ orig, size_type stride_orig,
-                      ValueType *__restrict__ result, size_type stride_result,
-                      sycl::nd_item<3> item_ct1)
-{
-    const auto global_id = thread::get_thread_id_flat(item_ct1);
-    const auto row_id = global_id / num_cols;
-    const auto col_id = global_id % num_cols;
-    if (row_id < num_rows) {
-        result[perm_idxs[row_id] * stride_result + perm_idxs[col_id]] =
-            orig[row_id * stride_orig + col_id];
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(inv_symm_permute, inv_symm_permute)
-
-
-template <typename IndexType, typename ValueType>
-void row_gather(size_type num_rows, size_type num_cols,
-                const IndexType *__restrict__ perm_idxs,
-                const ValueType *__restrict__ orig, size_type stride_orig,
-                ValueType *__restrict__ result, size_type stride_result,
-                sycl::nd_item<3> item_ct1)
-{
-    const auto global_id = thread::get_thread_id_flat(item_ct1);
-    const auto row_id = global_id / num_cols;
-    const auto col_id = global_id % num_cols;
-    if (row_id < num_rows) {
-        result[row_id * stride_result + col_id] =
-            orig[perm_idxs[row_id] * stride_orig + col_id];
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(row_gather, row_gather)
-
-
-template <typename IndexType, typename ValueType>
-void column_permute(size_type num_rows, size_type num_cols,
-                    const IndexType *__restrict__ perm_idxs,
-                    const ValueType *__restrict__ orig, size_type stride_orig,
-                    ValueType *__restrict__ result, size_type stride_result,
-                    sycl::nd_item<3> item_ct1)
-{
-    const auto global_id = thread::get_thread_id_flat(item_ct1);
-    const auto row_id = global_id / num_cols;
-    const auto col_id = global_id % num_cols;
-    if (row_id < num_rows) {
-        result[row_id * stride_result + col_id] =
-            orig[row_id * stride_orig + perm_idxs[col_id]];
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(column_permute, column_permute)
-
-
-template <typename IndexType, typename ValueType>
-void inverse_row_permute(size_type num_rows, size_type num_cols,
-                         const IndexType *__restrict__ perm_idxs,
-                         const ValueType *__restrict__ orig,
-                         size_type stride_orig, ValueType *__restrict__ result,
-                         size_type stride_result, sycl::nd_item<3> item_ct1)
-{
-    const auto global_id = thread::get_thread_id_flat(item_ct1);
-    const auto row_id = global_id / num_cols;
-    const auto col_id = global_id % num_cols;
-    if (row_id < num_rows) {
-        result[perm_idxs[row_id] * stride_result + col_id] =
-            orig[row_id * stride_orig + col_id];
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(inverse_row_permute, inverse_row_permute)
-
-
-template <typename IndexType, typename ValueType>
-void inverse_column_permute(size_type num_rows, size_type num_cols,
-                            const IndexType *__restrict__ perm_idxs,
-                            const ValueType *__restrict__ orig,
-                            size_type stride_orig,
-                            ValueType *__restrict__ result,
-                            size_type stride_result, sycl::nd_item<3> item_ct1)
-{
-    const auto global_id = thread::get_thread_id_flat(item_ct1);
-    const auto row_id = global_id / num_cols;
-    const auto col_id = global_id % num_cols;
-    if (row_id < num_rows) {
-        result[row_id * stride_result + perm_idxs[col_id]] =
-            orig[row_id * stride_orig + col_id];
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(inverse_column_permute, inverse_column_permute)
-
-
-template <typename ValueType>
-void extract_diagonal(size_type problem_size,
-                      const ValueType *__restrict__ orig, size_type stride_orig,
-                      ValueType *__restrict__ diag, sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat<int>(item_ct1);
-    if (tidx < problem_size) {
-        diag[tidx] = orig[tidx * stride_orig + tidx];
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(extract_diagonal, extract_diagonal)
-
-
-template <typename ValueType>
-void inplace_absolute_dense(size_type num_rows, size_type num_cols,
-                            ValueType *__restrict__ data, size_type stride,
-                            sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    auto row = tidx / num_cols;
-    auto col = tidx % num_cols;
-    if (row < num_rows) {
-        data[row * stride + col] = std::abs(data[row * stride + col]);
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(inplace_absolute_dense, inplace_absolute_dense)
-
-
-template <typename ValueType>
-void outplace_absolute_dense(size_type num_rows, size_type num_cols,
-                             const ValueType *__restrict__ in,
-                             size_type stride_in,
-                             remove_complex<ValueType> *__restrict__ out,
-                             size_type stride_out, sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    auto row = tidx / num_cols;
-    auto col = tidx % num_cols;
-    if (row < num_rows) {
-        out[row * stride_out + col] = std::abs(in[row * stride_in + col]);
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(outplace_absolute_dense, outplace_absolute_dense)
-
-
-template <typename ValueType, typename ComplexType>
-void make_complex(size_type num_rows, size_type num_cols,
-                  const ValueType *__restrict__ in, size_type stride_in,
-                  ComplexType *__restrict__ out, size_type stride_out,
-                  sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    auto row = tidx / num_cols;
-    auto col = tidx % num_cols;
-    if (row < num_rows) {
-        out[row * stride_out + col] = in[row * stride_in + col];
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(make_complex, make_complex)
-
-
-template <typename ValueType>
-void get_real(size_type num_rows, size_type num_cols,
-              const ValueType *__restrict__ in, size_type stride_in,
-              remove_complex<ValueType> *__restrict__ out, size_type stride_out,
-              sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    auto row = tidx / num_cols;
-    auto col = tidx % num_cols;
-    if (row < num_rows) {
-        out[row * stride_out + col] = real(in[row * stride_in + col]);
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(get_real, get_real)
-
-
-template <typename ValueType>
-void get_imag(size_type num_rows, size_type num_cols,
-              const ValueType *__restrict__ in, size_type stride_in,
-              remove_complex<ValueType> *__restrict__ out, size_type stride_out,
-              sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    auto row = tidx / num_cols;
-    auto col = tidx % num_cols;
-    if (row < num_rows) {
-        out[row * stride_out + col] = imag(in[row * stride_in + col]);
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(get_imag, get_imag)
-
-
 }  // namespace kernel
 
 
@@ -1026,34 +713,6 @@ void apply(std::shared_ptr<const DpcppExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
-
-
-namespace {
-
-
-#define GKO_BIND_DOT(ValueType, Name, Func)                                  \
-    void Name(::cl::sycl::queue &exec_queue, std::int64_t n,                 \
-              const ValueType *x, std::int64_t incx, const ValueType *y,     \
-              std::int64_t incy, ValueType *result)                          \
-    {                                                                        \
-        Func(exec_queue, n, x, incx, y, incy, result);                       \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-GKO_BIND_DOT(float, dot, oneapi::mkl::blas::row_major::dot);
-GKO_BIND_DOT(double, dot, oneapi::mkl::blas::row_major::dot);
-GKO_BIND_DOT(std::complex<float>, dot, oneapi::mkl::blas::row_major::dotu);
-GKO_BIND_DOT(std::complex<double>, dot, oneapi::mkl::blas::row_major::dotu);
-GKO_BIND_DOT(float, conj_dot, oneapi::mkl::blas::row_major::dot);
-GKO_BIND_DOT(double, conj_dot, oneapi::mkl::blas::row_major::dot);
-GKO_BIND_DOT(std::complex<float>, conj_dot, oneapi::mkl::blas::row_major::dotc);
-GKO_BIND_DOT(std::complex<double>, conj_dot,
-             oneapi::mkl::blas::row_major::dotc);
-
-
-}  // namespace
 
 
 template <typename ValueType>
@@ -1231,10 +890,9 @@ void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
     const auto sg_size = KCFG_1D::decode<1>(cfg);
     size_type grid_dim = ceildiv(num_rows, wg_size);
 
-    kernel::fill_in_coo_call(
-        cfg, grid_dim, wg_size, 0, exec->get_queue(), num_rows, num_cols,
-        stride, nnz_prefix_sum.get_const_data(), source->get_const_values(),
-        row_idxs, col_idxs, values);
+    kernel::fill_in_coo(grid_dim, wg_size, 0, exec->get_queue(), num_rows,
+                        num_cols, stride, nnz_prefix_sum.get_const_data(),
+                        source->get_const_values(), row_idxs, col_idxs, values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1276,10 +934,9 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
 
     size_type grid_dim = ceildiv(num_rows, wg_size);
 
-    kernel::fill_in_csr_call(cfg, grid_dim, default_block_size, 0,
-                             exec->get_queue(), num_rows, num_cols, stride,
-                             source->get_const_values(), row_ptrs, col_idxs,
-                             values);
+    kernel::fill_in_csr(grid_dim, default_block_size, 0, exec->get_queue(),
+                        num_rows, num_cols, stride, source->get_const_values(),
+                        row_ptrs, col_idxs, values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1311,10 +968,9 @@ void convert_to_ell(std::shared_ptr<const DpcppExecutor> exec,
     const auto wg_size = KCFG_1D::decode<0>(cfg);
     const auto sg_size = KCFG_1D::decode<1>(cfg);
     auto grid_dim = ceildiv(result_stride, wg_size);
-    kernel::fill_in_ell_call(cfg, grid_dim, wg_size, 0, exec->get_queue(),
-                             num_rows, num_cols, source_stride,
-                             source->get_const_values(), max_nnz_per_row,
-                             result_stride, col_ptrs, values);
+    kernel::fill_in_ell(grid_dim, wg_size, 0, exec->get_queue(), num_rows,
+                        num_cols, source_stride, source->get_const_values(),
+                        max_nnz_per_row, result_stride, col_ptrs, values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1379,10 +1035,10 @@ void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
 
     grid_dim = ceildiv(num_rows, wg_size);
     if (grid_dim > 0) {
-        kernel::fill_in_sellp_call(cfg, grid_dim, wg_size, 0, exec->get_queue(),
-                                   num_rows, num_cols, slice_size, stride,
-                                   source->get_const_values(), slice_lengths,
-                                   slice_sets, col_idxs, vals);
+        kernel::fill_in_sellp(grid_dim, wg_size, 0, exec->get_queue(), num_rows,
+                              num_cols, slice_size, stride,
+                              source->get_const_values(), slice_lengths,
+                              slice_sets, col_idxs, vals);
     }
 }
 

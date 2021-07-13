@@ -6,6 +6,8 @@ endif()
 ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION)
 set(GINKGO_DPCPP_VERSION ${GINKGO_DPCPP_VERSION} PARENT_SCOPE)
 
+find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}")
+
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
     PRIVATE
@@ -55,14 +57,16 @@ target_sources(ginkgo_dpcpp
 ginkgo_compile_features(ginkgo_dpcpp)
 target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP)
 
-set(GINKGO_DPCPP_FLAGS ${GINKGO_COMPILER_FLAGS} -DMKL_ILP64)
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
+# Note. add MKL via PRIVATE not PUBLIC (MKL example shows) to avoid find_package(MKL) everywhere when link ginkgo
+target_compile_options(ginkgo_dpcpp PRIVATE $<TARGET_PROPERTY:MKL::MKL_DPCPP,INTERFACE_COMPILE_OPTIONS>)
 target_compile_features(ginkgo_dpcpp PRIVATE cxx_std_17)
+target_include_directories(ginkgo_dpcpp PRIVATE $<TARGET_PROPERTY:MKL::MKL_DPCPP,INTERFACE_INCLUDE_DIRECTORIES>)
 target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-lib=all)
 target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-code-split=per_kernel)
-target_link_libraries(ginkgo_dpcpp PRIVATE "mkl_sycl;mkl_intel_ilp64;mkl_tbb_thread;mkl_core;sycl;OpenCL;pthread;m;dl")
 target_link_libraries(ginkgo_dpcpp PUBLIC ginkgo_device)
+target_link_libraries(ginkgo_dpcpp PRIVATE $<LINK_ONLY:MKL::MKL_DPCPP>)
 if (GINKGO_DPCPP_SINGLE_MODE)
     target_compile_definitions(ginkgo_dpcpp PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
 endif()
