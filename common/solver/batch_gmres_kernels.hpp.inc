@@ -335,17 +335,12 @@ __global__ void apply_kernel(const int max_iter,
         // stopping criterion object
         StopType stop(tol, norms_rhs_sh);
 
-        int outer_iter = -1;
-        int inner_iter = 0;
-        bool inner_loop_break_flag = false;
+        int total_iter = 0;
 
         // Note: restart - inner iterations and the outer iteration:  are
         // counted as (restart + 1) number of iterations instead of one.
         while (1) {
-            ++outer_iter;
-
-            if (stop.check_converged(norms_res_sh) ||
-                outer_iter * (restart + 1) >= max_iter) {
+            if (stop.check_converged(norms_res_sh) || total_iter >= max_iter) {
                 break;
             }
 
@@ -355,12 +350,9 @@ __global__ void apply_kernel(const int max_iter,
             update_v_naught_and_s(warp_grp, nrows, restart, z_sh, V_sh, s_sh);
             __syncthreads();
 
-            for (inner_iter = 0; inner_iter < restart; inner_iter++) {
-                // if(threadIdx.x == 0) {
-                //     printf("In iter = %i\n", outer_iter *(restart+1) +
-                //     inner_iter+1);
-                // }
-                // __syncthreads();
+            bool inner_loop_break_flag = false;
+
+            for (int inner_iter = 0; inner_iter < restart; inner_iter++) {
                 // w_temp = A * v_i
                 // w = precond * w_temp
                 // i = inner_iter
@@ -407,10 +399,10 @@ __global__ void apply_kernel(const int max_iter,
                 }
                 __syncthreads();
 
-                const int overall_iter =
-                    outer_iter * (restart + 1) + inner_iter + 1;
+                total_iter++;
+
                 if (stop.check_converged(norms_res_sh) ||
-                    overall_iter >= max_iter) {
+                    total_iter >= max_iter) {
                     update_x(warp_grp, nrows, inner_iter, restart, H_sh,
                              h_stride, s_sh, V_sh, x_sh, y_sh);
                     inner_loop_break_flag = true;
@@ -447,8 +439,6 @@ __global__ void apply_kernel(const int max_iter,
         // copy x back to global memory
         copy(nrows, x_sh, x_gl_entry_ptr);
 
-        logger.log_iteration(ibatch,
-                             outer_iter * (restart + 1) + inner_iter + 1,
-                             norms_res_sh[0]);
+        logger.log_iteration(ibatch, total_iter, norms_res_sh[0]);
     }
 }
