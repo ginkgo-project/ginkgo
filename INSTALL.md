@@ -17,7 +17,9 @@ Ginkgo adds the following additional switches to control what is being built:
 
 *   `-DGINKGO_DEVEL_TOOLS={ON, OFF}` sets up the build system for development
     (requires clang-format, will also download git-cmake-format),
-    default is `OFF`.
+    default is `OFF`. If it is set to `ON`, a pre-commit hook for formatting
+    will be installed. This hook may overwrite a user defined pre-commit hook
+    when Ginkgo is used as a submodule.
 *   `-DGINKGO_MIXED_PRECISION={ON, OFF}` compiles true mixed-precision kernels
     instead of converting data on the fly, default is `OFF`.
     Enabling this flag increases the library size, but improves performance of
