@@ -70,23 +70,19 @@ void run_kernel_sized_impl(syn::value_list<int, remainder_cols>,
     static_assert(remainder_cols < block_size, "remainder too large");
     const auto rounded_cols = cols / block_size * block_size;
     GKO_ASSERT(rounded_cols + remainder_cols == cols);
-    if (rounded_cols == 0) {
+    if (rounded_cols == 0 || cols == block_size) {
+        // we group all sizes <= block_size here and unroll explicitly
+        constexpr auto local_cols =
+            remainder_cols == 0 ? block_size : remainder_cols;
 #pragma omp parallel for
         for (int64 row = 0; row < rows; row++) {
 #pragma unroll
-            for (int64 col = 0; col < remainder_cols; col++) {
-                [&]() { fn(row, col, args...); }();
-            }
-        }
-    } else if (cols == block_size) {
-#pragma omp parallel for
-        for (int64 row = 0; row < rows; row++) {
-#pragma unroll
-            for (int64 col = 0; col < block_size; col++) {
+            for (int64 col = 0; col < local_cols; col++) {
                 [&]() { fn(row, col, args...); }();
             }
         }
     } else {
+        // we operate in block_size blocks plus an explicitly unrolled remainder
 #pragma omp parallel for
         for (int64 row = 0; row < rows; row++) {
             for (int64 base_col = 0; base_col < rounded_cols;
@@ -103,7 +99,6 @@ void run_kernel_sized_impl(syn::value_list<int, remainder_cols>,
         }
     }
 }
-
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_kernel_sized,
                                     run_kernel_sized_impl)
