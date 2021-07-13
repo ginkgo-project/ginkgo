@@ -57,6 +57,46 @@ namespace gko {
 
 
 /**
+ * Throws a validation error.
+ */
+#define GKO_VALIDATION_ERROR(_message)                                       \
+    {                                                                        \
+        throw ::gko::ValidationError(                                        \
+            __FILE__, __LINE__,                                              \
+            ::gko::name_demangling::get_type_name(                           \
+                ::gko::detail::get_dynamic_type(this)),                      \
+            _message);                                                       \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+/**
+ * Throws a validation error.
+ */
+#define GKO_VALIDATION_CHECK(...)                                            \
+    if (!(__VA_ARGS__)) {                                                    \
+        GKO_VALIDATION_ERROR(GKO_QUOTE(__VA_ARGS__));                        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+/**
+ * Throws a validation error.
+ */
+#define GKO_VALIDATION_CHECK_NAMED(_message, ...)                            \
+    if (!(__VA_ARGS__)) {                                                    \
+        GKO_VALIDATION_ERROR(_message);                                      \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+/**
  * Marks a function as not yet implemented.
  *
  * Attempts to call this function will result in a runtime error of type
@@ -412,6 +452,15 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
+ * Instantiates a MpiError.
+ *
+ * @param errcode  The error code returned from the MPI routine.
+ */
+#define GKO_MPI_ERROR(_errcode) \
+    ::gko::MpiError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
  * Asserts that a HIP library call completed without errors.
  *
  * @param _hip_call  a library call expression
@@ -464,6 +513,20 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
         if (_errcode != HIPSPARSE_STATUS_SUCCESS) {     \
             throw GKO_HIPSPARSE_ERROR(_errcode);        \
         }                                               \
+    } while (false)
+
+
+/**
+ * Asserts that a MPI library call completed without errors.
+ *
+ * @param _mpi_call  a library call expression
+ */
+#define GKO_ASSERT_NO_MPI_ERRORS(_mpi_call) \
+    do {                                    \
+        auto _errcode = _mpi_call;          \
+        if (_errcode != MPI_SUCCESS) {      \
+            throw GKO_MPI_ERROR(_errcode);  \
+        }                                   \
     } while (false)
 
 

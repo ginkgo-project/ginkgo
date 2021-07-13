@@ -83,6 +83,9 @@ target_sources(ginkgo_cuda
     components/absolute_array.cu
     components/fill_array.cu
     components/prefix_sum.cu
+    distributed/matrix_kernels.cu
+    distributed/partition_kernels.cu
+    distributed/vector_kernels.cu
     factorization/factorization_kernels.cu
     factorization/ic_kernels.cu
     factorization/ilu_kernels.cu

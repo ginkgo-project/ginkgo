@@ -108,6 +108,27 @@ private:
 
 
 /**
+ * ValidationError is thrown when the validation in
+ * PolymorphicObject->validate_data() encounters a violated invariant.
+ */
+class ValidationError : public Error {
+public:
+    /**
+     * Initializes a ValidationError error.
+     *
+     * @param file  The name of the source file containing the validation.
+     * @param line  The line number containing the failing validation.
+     * @param message  The message describing the validation failure.
+     */
+    ValidationError(const std::string &file, int line,
+                    const std::string &dynamic_type, const std::string &message)
+        : Error{file, line,
+                "Validation failure in " + dynamic_type + ":" + message}
+    {}
+};
+
+
+/**
  * NotImplemented is thrown in case an operation has not yet
  * been implemented (but will be implemented in the future).
  */
@@ -355,6 +376,29 @@ public:
 
 private:
     static std::string get_error(int64 error_code);
+};
+
+
+/**
+ * MpiError is thrown when a MPI routine throws a non-zero error code.
+ */
+class MpiError : public Error {
+public:
+    /**
+     * Initializes a MPI error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the MPI routine that failed
+     * @param error_code  The resulting MPI error code
+     */
+    MpiError(const std::string &file, int line, const std::string &func,
+             int error_code)
+        : Error(file, line, func + ": " + get_error(error_code))
+    {}
+
+private:
+    static std::string get_error(int error_code);
 };
 
 

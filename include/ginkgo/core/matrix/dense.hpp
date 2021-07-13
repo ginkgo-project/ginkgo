@@ -48,6 +48,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace distributed {
+
+
+template <typename ValueType>
+class Vector;
+
+template <typename ValueType, typename LocalIndexType>
+class Matrix;
+
+
+}  // namespace distributed
+
+
 namespace matrix {
 
 
@@ -130,6 +143,9 @@ class Dense
     friend class SparsityCsr<ValueType, int32>;
     friend class SparsityCsr<ValueType, int64>;
     friend class Dense<to_complex<ValueType>>;
+    friend class distributed::Vector<ValueType>;
+    friend class distributed::Matrix<ValueType, int32>;
+    friend class distributed::Matrix<ValueType, int64>;
 
 public:
     using EnableLinOp<Dense>::convert_to;
@@ -770,6 +786,14 @@ public:
                         this->get_const_values()))),
             stride);
     }
+
+    /*
+     * Create a submatrix from the original matrix.
+     *
+     * @param rows     row span
+     * @param columns  column span
+     */
+    std::unique_ptr<const Dense> create_local_view() const;
 
 protected:
     /**

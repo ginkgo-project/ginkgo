@@ -40,6 +40,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace distributed {
+
+
+template <typename ValueType, typename LocalIndexType>
+class Matrix;
+
+
+}
+
+
 namespace matrix {
 
 
@@ -143,6 +153,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class SparsityCsr<ValueType, IndexType>;
     friend class CsrBuilder<ValueType, IndexType>;
     friend class Csr<to_complex<ValueType>, IndexType>;
+    friend class distributed::Matrix<ValueType, IndexType>;
 
 public:
     using ReadableFromMatrixData<ValueType, IndexType>::read;

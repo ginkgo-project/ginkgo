@@ -207,6 +207,13 @@ public:
         return exec_;
     }
 
+    virtual void validate_data() const
+    {
+        if (!exec_) {
+            GKO_VALIDATION_ERROR("Executor is nullptr");
+        }
+    }
+
 protected:
     // This method is defined as protected since a polymorphic object should not
     // be created using their constructor directly, but by creating an

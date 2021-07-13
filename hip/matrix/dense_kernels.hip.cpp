@@ -258,6 +258,57 @@ void compute_norm2(std::shared_ptr<const HipExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 
 
+template <typename ValueType>
+void compute_norm2_sqr(std::shared_ptr<const HipExecutor> exec,
+                       const matrix::Dense<ValueType> *x,
+                       matrix::Dense<remove_complex<ValueType>> *result)
+{
+    using norm_type = remove_complex<ValueType>;
+    // TODO: these are tuning parameters obtained experimentally, once
+    // we decide how to handle this uniformly, they should be modified
+    // appropriately
+    constexpr auto work_per_thread = 32;
+    constexpr auto block_size = 1024;
+
+    constexpr auto work_per_block = work_per_thread * block_size;
+    const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
+    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
+    Array<norm_type> work(exec, grid_dim.x);
+    // TODO: write a kernel which does this more efficiently
+    for (size_type col = 0; col < x->get_size()[1]; ++col) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::compute_partial_norm2<block_size>),
+            dim3(grid_dim), dim3(block_dim), 0, 0, x->get_size()[0],
+            as_hip_type(x->get_const_values() + col), x->get_stride(),
+            as_hip_type(work.get_data()));
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(
+                kernel::finalize_sum_reduce_computation<block_size>),
+            dim3(1), dim3(block_dim), 0, 0, grid_dim.x,
+            as_hip_type(work.get_const_data()),
+            as_hip_type(result->get_values() + col));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_SQR_KERNEL);
+
+
+template <typename ValueType>
+void compute_sqrt(std::shared_ptr<const HipExecutor> exec,
+                  matrix::Dense<ValueType> *data)
+{
+    auto size = data->get_size()[0] * data->get_size()[1];
+    auto num_blocks = ceildiv(size, default_block_size);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::compute_sqrt), num_blocks,
+                       default_block_size, 0, 0 data->get_size()[0],
+                       data->get_size()[1], data->get_stride(),
+                       as_hip_type(data->get_values()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
                     const matrix::Dense<ValueType> *source,

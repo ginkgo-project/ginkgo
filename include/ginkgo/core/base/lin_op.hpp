@@ -240,6 +240,14 @@ public:
      */
     virtual bool apply_uses_initial_guess() const { return false; }
 
+    void validate_data() const override
+    {
+        PolymorphicObject::validate_data();
+        if (get_size()[0] < 0 || get_size()[1] < 0) {
+            GKO_VALIDATION_ERROR("Negative LinOp dimensions");
+        }
+    }
+
 protected:
     /**
      * Creates a linear operator.
@@ -582,6 +590,34 @@ public:
      * @param data  the matrix_data structure
      */
     virtual void read(const matrix_data<ValueType, IndexType> &data) = 0;
+
+
+    /**
+     * Reads a matrix from a matrix_data structure stored in an Array.
+     * This function may provide better performance by avoiding memory movement.
+     *
+     * @param data  the matrix_data array
+     */
+    virtual void read(
+        const Array<typename matrix_data<ValueType, IndexType>::nonzero_type>
+            &data,
+        gko::dim<2> size)
+    {
+        matrix_data<ValueType, IndexType> stored_data;
+        stored_data.size = size;
+        stored_data.nonzeros.resize(data.get_num_elems());
+        if (data.get_executor()->get_master() == data.get_executor()) {
+            std::copy_n(data.get_const_data(), data.get_num_elems(),
+                        stored_data.nonzeros.data());
+        } else {
+            Array<typename matrix_data<ValueType, IndexType>::nonzero_type>
+                host_data{data.get_executor()->get_master()};
+            host_data = data;
+            std::copy_n(host_data.get_const_data(), data.get_num_elems(),
+                        stored_data.nonzeros.data());
+        }
+        this->read(stored_data);
+    }
 
     /**
      * Reads a matrix from a matrix_assembly_data structure.

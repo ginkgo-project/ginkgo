@@ -529,6 +529,11 @@ private:
 };
 
 
+template <typename ValueType, typename IndexType>
+using matrix_data_entry =
+    typename matrix_data<ValueType, IndexType>::nonzero_type;
+
+
 }  // namespace gko
 
 

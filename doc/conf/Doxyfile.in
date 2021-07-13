@@ -28,7 +28,7 @@ FILTER_PATTERNS        = *.cpp=@DIR_SCRIPT@/filter *.hpp=@DIR_SCRIPT@/filter *.c
 FILTER_SOURCE_FILES    = YES
 
 # Parsing options
-PREDEFINED             = GKO_HAVE_PAPI_SDE=1
+PREDEFINED             = GKO_HAVE_PAPI_SDE=1 GKO_HAVE_MPI=1
 JAVADOC_AUTOBRIEF      = Yes
 TAB_SIZE               = 4
 MARKDOWN_SUPPORT       = YES
