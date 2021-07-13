@@ -37,8 +37,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <CL/sycl.hpp>
 
 
-#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 #include "dpcpp/base/dim3.dp.hpp"
