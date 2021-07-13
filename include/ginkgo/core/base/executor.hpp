@@ -141,6 +141,31 @@ class ExecutorBase;
 
 
 /**
+ * Stores a work estimate for a Operation.
+ */
+struct work_estimate {
+    /**
+     * An estimate for the amount of floating point operations executed by the
+     * operation.
+     */
+    size_type flops{};
+
+    /**
+     * An estimate for the amount of memory accessed by the operation. It is
+     * measured in bytes.
+     */
+    size_type memory_volume{};
+
+    friend work_estimate operator+(work_estimate a, work_estimate b)
+    {
+        return {a.flops + b.flops, a.memory_volume + b.memory_volume};
+    }
+
+    work_estimate &operator+=(work_estimate b) { return *this = *this + b; }
+};
+
+
+/**
  * Operations can be used to define functionalities whose implementations differ
  * among devices.
  *
@@ -272,6 +297,14 @@ public:
      * @return the operation's name
      */
     virtual const char *get_name() const noexcept;
+
+    /**
+     * Returns a work estimate for this operation.
+     *
+     * @return a work estimate for this operation. If no such estimate is
+     *         available, it will contain zero values.
+     */
+    virtual work_estimate get_work_estimate() const noexcept { return {}; }
 };
 
 #define GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(_type, _namespace, _kernel)    \
@@ -307,6 +340,25 @@ private:                                                                     \
     {                                                                        \
         ::gko::kernels::_namespace::_kernel(                                 \
             exec, std::forward<Args>(std::get<Ns>(data))...);                \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+#define GKO_DETAIL_DEFINE_PERF_ESTIMATE_OVERLOADS(_kernel)                   \
+public:                                                                      \
+    work_estimate get_work_estimate() const noexcept override                \
+    {                                                                        \
+        return this->call_work_estimate(counts{});                           \
+    }                                                                        \
+                                                                             \
+private:                                                                     \
+    template <int... Ns>                                                     \
+    work_estimate call_work_estimate(::gko::syn::value_list<int, Ns...>)     \
+        const noexcept                                                       \
+    {                                                                        \
+        return ::gko::kernels::estimate::_kernel(                            \
+            std::forward<Args>(std::get<Ns>(data))...);                      \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
@@ -411,6 +463,48 @@ private:                                                                     \
         GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(DpcppExecutor, dpcpp, _kernel); \
         GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference,   \
                                               _kernel);                       \
+                                                                              \
+    private:                                                                  \
+        mutable std::tuple<Args &&...> data;                                  \
+    };                                                                        \
+                                                                              \
+    template <typename... Args>                                               \
+    static _name##_operation<Args...> make_##_name(Args &&... args)           \
+    {                                                                         \
+        return _name##_operation<Args...>(std::forward<Args>(args)...);       \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
+
+#define GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(_name, _kernel)             \
+    template <typename... Args>                                               \
+    class _name##_operation : public Operation {                              \
+        using counts =                                                        \
+            ::gko::syn::as_list<::gko::syn::range<0, sizeof...(Args)>>;       \
+                                                                              \
+    public:                                                                   \
+        explicit _name##_operation(Args &&... args)                           \
+            : data(std::forward<Args>(args)...)                               \
+        {}                                                                    \
+                                                                              \
+        const char *get_name() const noexcept override                        \
+        {                                                                     \
+            static auto name = [this] {                                       \
+                std::ostringstream oss;                                       \
+                oss << #_kernel << '#' << sizeof...(Args);                    \
+                return oss.str();                                             \
+            }();                                                              \
+            return name.c_str();                                              \
+        }                                                                     \
+                                                                              \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(OmpExecutor, omp, _kernel);     \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(CudaExecutor, cuda, _kernel);   \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(HipExecutor, hip, _kernel);     \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(DpcppExecutor, dpcpp, _kernel); \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference,   \
+                                              _kernel);                       \
+        GKO_DETAIL_DEFINE_PERF_ESTIMATE_OVERLOADS(_kernel);                   \
                                                                               \
     private:                                                                  \
         mutable std::tuple<Args &&...> data;                                  \

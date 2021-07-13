@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/general.hpp"
 
 
-// A logger that accumulates the time of all operations
+// A logger that accumulates the time and work estimates of all operations
 struct OperationLogger : gko::log::Logger {
     void on_allocation_started(const gko::Executor *exec,
                                const gko::size_type &) const override
@@ -84,10 +84,10 @@ struct OperationLogger : gko::log::Logger {
 
     void on_copy_completed(const gko::Executor *from, const gko::Executor *to,
                            const gko::uintptr &, const gko::uintptr &,
-                           const gko::size_type &) const override
+                           const gko::size_type &num_bytes) const override
     {
         from->synchronize();
-        this->end_operation(to, "copy");
+        this->end_operation(to, "copy", {0, num_bytes});
     }
 
     void on_operation_launched(const gko::Executor *exec,
@@ -99,7 +99,7 @@ struct OperationLogger : gko::log::Logger {
     void on_operation_completed(const gko::Executor *exec,
                                 const gko::Operation *op) const override
     {
-        this->end_operation(exec, op->get_name());
+        this->end_operation(exec, op->get_name(), op->get_work_estimate());
     }
 
     void write_data(rapidjson::Value &object,
@@ -114,11 +114,30 @@ struct OperationLogger : gko::log::Logger {
                     repetitions,
                 alloc);
         }
+        add_or_set_member(object, "work",
+                          rapidjson::Value(rapidjson::kObjectType), alloc);
+        auto &work_object = object["work"];
+        for (const auto &entry : work) {
+            add_or_set_member(work_object, entry.first.c_str(),
+                              rapidjson::Value(rapidjson::kObjectType), alloc);
+            add_or_set_member(work_object[entry.first.c_str()], "flops",
+                              entry.second.flops / repetitions, alloc);
+            add_or_set_member(work_object[entry.first.c_str()], "memory",
+                              entry.second.memory_volume / repetitions, alloc);
+        }
+        add_or_set_member(work_object, "total",
+                          rapidjson::Value(rapidjson::kObjectType), alloc);
+        add_or_set_member(work_object["total"], "flops",
+                          total_work.flops / repetitions, alloc);
+        add_or_set_member(work_object["total"], "memory",
+                          total_work.memory_volume / repetitions, alloc);
     }
 
     OperationLogger(std::shared_ptr<const gko::Executor> exec, bool nested_name)
         : gko::log::Logger(exec), use_nested_name{nested_name}
     {}
+
+    gko::work_estimate get_total_work() const { return total_work; }
 
 private:
     void start_operation(const gko::Executor *exec,
@@ -133,7 +152,8 @@ private:
         start[nested_name] = std::chrono::steady_clock::now();
     }
 
-    void end_operation(const gko::Executor *exec, const std::string &name) const
+    void end_operation(const gko::Executor *exec, const std::string &name,
+                       gko::work_estimate operation_work = {}) const
     {
         exec->synchronize();
         const std::lock_guard<std::mutex> lock(mutex);
@@ -143,6 +163,8 @@ private:
         const auto diff = end - start[nested_name];
         // make sure timings for nested operations are not counted twice
         total[nested_name] += diff - nested.back().second;
+        work[nested_name] += operation_work;
+        total_work += operation_work;
         nested.pop_back();
         if (!nested.empty()) {
             nested.back().second += diff;
@@ -153,6 +175,8 @@ private:
     mutable std::mutex mutex;
     mutable std::map<std::string, std::chrono::steady_clock::time_point> start;
     mutable std::map<std::string, std::chrono::steady_clock::duration> total;
+    mutable std::map<std::string, gko::work_estimate> work;
+    mutable gko::work_estimate total_work;
     // the position i of this vector holds the total time spend on child
     // operations on nesting level i
     mutable std::vector<

@@ -61,16 +61,18 @@ namespace matrix {
 namespace dense {
 
 
-GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply);
-GKO_REGISTER_OPERATION(apply, dense::apply);
-GKO_REGISTER_OPERATION(copy, dense::copy);
-GKO_REGISTER_OPERATION(fill, dense::fill);
-GKO_REGISTER_OPERATION(scale, dense::scale);
-GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
-GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
-GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot);
-GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot);
-GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(simple_apply, dense::simple_apply);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(apply, dense::apply);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(copy, dense::copy);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(fill, dense::fill);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(scale, dense::scale);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(add_scaled, dense::add_scaled);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(add_scaled_diag,
+                                          dense::add_scaled_diag);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_dot, dense::compute_dot);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_conj_dot,
+                                          dense::compute_conj_dot);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_norm2, dense::compute_norm2);
 GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        dense::calculate_max_nnz_per_row);
@@ -91,12 +93,15 @@ GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell);
 GKO_REGISTER_OPERATION(convert_to_hybrid, dense::convert_to_hybrid);
 GKO_REGISTER_OPERATION(convert_to_sellp, dense::convert_to_sellp);
 GKO_REGISTER_OPERATION(convert_to_sparsity_csr, dense::convert_to_sparsity_csr);
-GKO_REGISTER_OPERATION(extract_diagonal, dense::extract_diagonal);
-GKO_REGISTER_OPERATION(inplace_absolute_dense, dense::inplace_absolute_dense);
-GKO_REGISTER_OPERATION(outplace_absolute_dense, dense::outplace_absolute_dense);
-GKO_REGISTER_OPERATION(make_complex, dense::make_complex);
-GKO_REGISTER_OPERATION(get_real, dense::get_real);
-GKO_REGISTER_OPERATION(get_imag, dense::get_imag);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(extract_diagonal,
+                                          dense::extract_diagonal);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(inplace_absolute_dense,
+                                          dense::inplace_absolute_dense);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(outplace_absolute_dense,
+                                          dense::outplace_absolute_dense);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(make_complex, dense::make_complex);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(get_real, dense::get_real);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(get_imag, dense::get_imag);
 
 
 }  // namespace dense

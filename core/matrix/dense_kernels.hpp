@@ -347,6 +347,262 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
+namespace estimate {
+namespace dense {
+
+
+template <typename ValueType>
+work_estimate simple_apply(const matrix::Dense<ValueType> *a,
+                           const matrix::Dense<ValueType> *b,
+                           matrix::Dense<ValueType> *c) noexcept
+{
+    const auto a_rows = a->get_size()[0];
+    const auto a_cols = a->get_size()[1];
+    const auto b_cols = b->get_size()[1];
+    return {2 * a_rows * a_cols * b_cols,
+            (a_rows * a_cols + a_cols * b_cols + a_rows * b_cols) *
+                sizeof(ValueType)};
+}
+
+
+template <typename ValueType>
+work_estimate apply(const matrix::Dense<ValueType> *alpha,
+                    const matrix::Dense<ValueType> *a,
+                    const matrix::Dense<ValueType> *b,
+                    const matrix::Dense<ValueType> *beta,
+                    matrix::Dense<ValueType> *c) noexcept
+{
+    const auto a_rows = a->get_size()[0];
+    const auto a_cols = a->get_size()[1];
+    const auto b_cols = b->get_size()[1];
+    return {2 * a_rows * a_cols * b_cols + 3 * a_rows * b_cols,
+            (a_rows * a_cols + a_cols * b_cols + 2 * a_rows * b_cols) *
+                sizeof(ValueType)};
+}
+
+
+template <typename InValueType, typename OutValueType>
+work_estimate copy(const matrix::Dense<InValueType> *input,
+                   matrix::Dense<OutValueType> *output) noexcept
+{
+    return {0, input->get_size()[0] * input->get_size()[1] *
+                   (sizeof(InValueType) + sizeof(OutValueType))};
+}
+
+
+template <typename ValueType>
+work_estimate fill(matrix::Dense<ValueType> *mat, ValueType value) noexcept
+{
+    return {0, mat->get_size()[0] * mat->get_size()[1] * sizeof(ValueType)};
+}
+
+
+template <typename ValueType>
+work_estimate scale(const matrix::Dense<ValueType> *alpha,
+                    matrix::Dense<ValueType> *x) noexcept
+{
+    const auto num_elements = x->get_size()[0] * x->get_size()[1];
+    return {num_elements, 2 * num_elements * sizeof(ValueType)};
+}
+
+
+template <typename ValueType>
+work_estimate add_scaled(const matrix::Dense<ValueType> *alpha,
+                         const matrix::Dense<ValueType> *x,
+                         matrix::Dense<ValueType> *y) noexcept
+{
+    const auto num_elements = x->get_size()[0] * x->get_size()[1];
+    return {2 * num_elements, 3 * num_elements * sizeof(ValueType)};
+}
+
+
+template <typename ValueType>
+work_estimate add_scaled_diag(const matrix::Dense<ValueType> *alpha,
+                              const matrix::Diagonal<ValueType> *x,
+                              matrix::Dense<ValueType> *y) noexcept
+{
+    const auto num_elements = x->get_size()[0] * x->get_size()[1];
+    return {2 * num_elements, 3 * num_elements * sizeof(ValueType)};
+}
+
+
+template <typename ValueType>
+work_estimate compute_dot(const matrix::Dense<ValueType> *x,
+                          const matrix::Dense<ValueType> *y,
+                          matrix::Dense<ValueType> *result) noexcept
+{
+    const auto num_elements = x->get_size()[0] * x->get_size()[1];
+    return {2 * num_elements, 2 * num_elements * sizeof(ValueType)};
+}
+
+
+template <typename ValueType>
+work_estimate compute_conj_dot(const matrix::Dense<ValueType> *x,
+                               const matrix::Dense<ValueType> *y,
+                               matrix::Dense<ValueType> *result) noexcept
+{
+    const auto num_elements = x->get_size()[0] * x->get_size()[1];
+    return {2 * num_elements, 2 * num_elements * sizeof(ValueType)};
+}
+
+
+template <typename ValueType>
+work_estimate compute_norm2(
+    const matrix::Dense<ValueType> *x,
+    matrix::Dense<remove_complex<ValueType>> *result) noexcept
+{
+    const auto num_elements = x->get_size()[0] * x->get_size()[1];
+    return {2 * num_elements, num_elements * sizeof(ValueType)};
+}
+
+
+template <typename ValueType>
+work_estimate transpose(const matrix::Dense<ValueType> *orig,
+                        matrix::Dense<ValueType> *trans) noexcept
+{
+    return {0,
+            2 * orig->get_size()[0] * orig->get_size()[1] * sizeof(ValueType)};
+}
+
+
+template <typename ValueType>
+work_estimate conj_transpose(const matrix::Dense<ValueType> *orig,
+                             matrix::Dense<ValueType> *trans) noexcept
+{
+    return {0,
+            2 * orig->get_size()[0] * orig->get_size()[1] * sizeof(ValueType)};
+}
+
+
+template <typename ValueType, typename IndexType>
+work_estimate symm_permute(const Array<IndexType> *permutation_indices,
+                           const matrix::Dense<ValueType> *orig,
+                           matrix::Dense<ValueType> *permuted) noexcept
+{
+    return {0,
+            2 * orig->get_size()[0] * orig->get_size()[1] * sizeof(ValueType) +
+                permutation_indices->get_num_elems() * sizeof(IndexType)};
+}
+
+
+template <typename ValueType, typename IndexType>
+work_estimate inv_symm_permute(const Array<IndexType> *permutation_indices,
+                               const matrix::Dense<ValueType> *orig,
+                               matrix::Dense<ValueType> *permuted) noexcept
+{
+    return {0,
+            2 * orig->get_size()[0] * orig->get_size()[1] * sizeof(ValueType) +
+                permutation_indices->get_num_elems() * sizeof(IndexType)};
+}
+
+
+template <typename ValueType, typename IndexType>
+work_estimate row_gather(const Array<IndexType> *gather_indices,
+                         const matrix::Dense<ValueType> *orig,
+                         matrix::Dense<ValueType> *row_gathered) noexcept
+{
+    return {0, 2 * gather_indices->get_num_elems() * orig->get_size()[1] *
+                       sizeof(ValueType) +
+                   gather_indices->get_num_elems() * sizeof(IndexType)};
+}
+
+
+template <typename ValueType, typename IndexType>
+work_estimate column_permute(const Array<IndexType> *permutation_indices,
+                             const matrix::Dense<ValueType> *orig,
+                             matrix::Dense<ValueType> *column_permuted) noexcept
+{
+    return {0,
+            2 * orig->get_size()[0] * orig->get_size()[1] * sizeof(ValueType) +
+                permutation_indices->get_num_elems() * sizeof(IndexType)};
+}
+
+
+template <typename ValueType, typename IndexType>
+work_estimate inverse_row_permute(
+    const Array<IndexType> *permutation_indices,
+    const matrix::Dense<ValueType> *orig,
+    matrix::Dense<ValueType> *row_permuted) noexcept
+{
+    return {0,
+            2 * orig->get_size()[0] * orig->get_size()[1] * sizeof(ValueType) +
+                permutation_indices->get_num_elems() * sizeof(IndexType)};
+}
+
+
+template <typename ValueType, typename IndexType>
+work_estimate inverse_column_permute(
+    const Array<IndexType> *permutation_indices,
+    const matrix::Dense<ValueType> *orig,
+    matrix::Dense<ValueType> *column_permuted) noexcept
+{
+    return {0,
+            2 * orig->get_size()[0] * orig->get_size()[1] * sizeof(ValueType) +
+                permutation_indices->get_num_elems() * sizeof(IndexType)};
+}
+
+
+template <typename ValueType>
+work_estimate extract_diagonal(const matrix::Dense<ValueType> *orig,
+                               matrix::Diagonal<ValueType> *diag) noexcept
+{
+    return {0, 2 * std::min(orig->get_size()[0], orig->get_size()[1]) *
+                   sizeof(ValueType)};
+}
+
+
+template <typename ValueType>
+work_estimate inplace_absolute_dense(matrix::Dense<ValueType> *source) noexcept
+{
+    const auto num_elements = source->get_size()[0] * source->get_size()[1];
+    return {num_elements, 2 * num_elements * sizeof(ValueType)};
+}
+
+
+template <typename ValueType>
+work_estimate outplace_absolute_dense(
+    const matrix::Dense<ValueType> *source,
+    matrix::Dense<remove_complex<ValueType>> *result) noexcept
+{
+    const auto num_elements = source->get_size()[0] * source->get_size()[1];
+    return {num_elements,
+            source->get_size()[0] * source->get_size()[1] *
+                (sizeof(ValueType) + sizeof(remove_complex<ValueType>))};
+}
+
+
+template <typename ValueType>
+work_estimate make_complex(
+    const matrix::Dense<ValueType> *source,
+    matrix::Dense<to_complex<ValueType>> *result) noexcept
+{
+    return {0, source->get_size()[0] * source->get_size()[1] *
+                   (sizeof(ValueType) + sizeof(to_complex<ValueType>))};
+}
+
+
+template <typename ValueType>
+work_estimate get_real(
+    const matrix::Dense<ValueType> *source,
+    matrix::Dense<remove_complex<ValueType>> *result) noexcept
+{
+    return {0, 2 * source->get_size()[0] * source->get_size()[1] *
+                   sizeof(ValueType)};
+}
+
+
+template <typename ValueType>
+work_estimate get_imag(
+    const matrix::Dense<ValueType> *source,
+    matrix::Dense<remove_complex<ValueType>> *result) noexcept
+{
+    return {0, 2 * source->get_size()[0] * source->get_size()[1] *
+                   sizeof(ValueType)};
+}
+
+
+}  // namespace dense
+}  // namespace estimate
 }  // namespace kernels
 }  // namespace gko
 
