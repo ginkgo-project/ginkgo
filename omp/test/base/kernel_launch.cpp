@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "common/unified/base/kernel_launch_reduction.hpp"
 #include "common/unified/base/kernel_launch_solver.hpp"
 #include "core/test/utils.hpp"
 
@@ -237,6 +238,84 @@ TEST_F(KernelLaunch, Runs2DDense)
         zero_dense->get_values(), vec_dense->get_values());
 
     GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);
+}
+
+TEST_F(KernelLaunch, Reduction1D)
+{
+    gko::Array<int64> output{exec, 1};
+    gko::kernels::omp::run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i) {
+            static_assert(is_same<decltype(i), int64>::value, "index");
+            return i + 1;
+        },
+        [] GKO_KERNEL(auto i, auto j) { return i + j; },
+        [] GKO_KERNEL(auto j) { return j * 2; }, int64{}, output.get_data(),
+        size_type{100000});
+    ASSERT_EQ(*output.get_const_data(), 10000100000ll);
+
+    gko::kernels::omp::run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i) {
+            static_assert(is_same<decltype(i), int64>::value, "index");
+            return i + 1;
+        },
+        [] GKO_KERNEL(auto i, auto j) { return i + j; },
+        [] GKO_KERNEL(auto j) { return j * 2; }, int64{}, output.get_data(),
+        size_type{10});
+    ASSERT_EQ(*output.get_const_data(), 110ll);
+}
+
+
+TEST_F(KernelLaunch, Reduction2DSmallRows)
+{
+    gko::Array<int64> output{exec, 1};
+    for (int cols = 0; cols < 17; cols++) {
+        gko::kernels::omp::run_kernel_reduction(
+            exec,
+            [] GKO_KERNEL(auto i, auto j) {
+                static_assert(is_same<decltype(i), int64>::value, "index");
+                return (i + 1) * (j + 1);
+            },
+            [] GKO_KERNEL(auto i, auto j) { return i + j; },
+            [] GKO_KERNEL(auto j) { return j * 4; }, int64{}, output.get_data(),
+            gko::dim<2>{10, cols});
+        ASSERT_EQ(*output.get_const_data(), 110ll * cols * (cols + 1));
+    }
+}
+
+
+TEST_F(KernelLaunch, Reduction2DLargeRows)
+{
+    gko::Array<int64> output{exec, 1};
+    for (int cols = 0; cols < 17; cols++) {
+        gko::kernels::omp::run_kernel_reduction(
+            exec,
+            [] GKO_KERNEL(auto i, auto j) {
+                static_assert(is_same<decltype(i), int64>::value, "index");
+                return (i + 1) * (j + 1);
+            },
+            [] GKO_KERNEL(auto i, auto j) { return i + j; },
+            [] GKO_KERNEL(auto j) { return j * 4; }, int64{}, output.get_data(),
+            gko::dim<2>{1000, cols});
+        ASSERT_EQ(*output.get_const_data(), 1001000ll * cols * (cols + 1));
+    }
+}
+
+
+TEST_F(KernelLaunch, Reduction2D)
+{
+    gko::Array<int64> output{exec, 1};
+    gko::kernels::omp::run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto j) {
+            static_assert(is_same<decltype(i), int64>::value, "index");
+            return (i + 1) * (j + 1);
+        },
+        [] GKO_KERNEL(auto i, auto j) { return i + j; },
+        [] GKO_KERNEL(auto j) { return j * 4; }, int64{}, output.get_data(),
+        gko::dim<2>{1000, 100});
+    ASSERT_EQ(*output.get_const_data(), 10110100000ll);
 }
 
 

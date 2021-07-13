@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "common/unified/base/kernel_launch_reduction.hpp"
 #include "common/unified/base/kernel_launch_solver.hpp"
 #include "core/test/utils.hpp"
 
@@ -273,6 +274,64 @@ TEST_F(KernelLaunch, Runs2DDense)
 
     GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);
 }
+
+
+void run1d_reduction(std::shared_ptr<gko::HipExecutor> exec)
+{
+    gko::Array<int64> output{exec, 1};
+    gko::kernels::hip::run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i) {
+            static_assert(is_same<decltype(i), int64>::value, "index");
+            return i + 1;
+        },
+        [] GKO_KERNEL(auto i, auto j) { return i + j; },
+        [] GKO_KERNEL(auto j) { return j * 2; }, int64{}, output.get_data(),
+        size_type{100000});
+    ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), 10000100000ll);
+
+    gko::kernels::hip::run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i) {
+            static_assert(is_same<decltype(i), int64>::value, "index");
+            return i + 1;
+        },
+        [] GKO_KERNEL(auto i, auto j) { return i + j; },
+        [] GKO_KERNEL(auto j) { return j * 2; }, int64{}, output.get_data(),
+        size_type{100});
+    ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), 10100ll);
+}
+
+TEST_F(KernelLaunch, Reduction1D) { run1d_reduction(exec); }
+
+
+void run2d_reduction(std::shared_ptr<gko::HipExecutor> exec)
+{
+    gko::Array<int64> output{exec, 1};
+    gko::kernels::hip::run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto j) {
+            static_assert(is_same<decltype(i), int64>::value, "index");
+            return (i + 1) * (j + 1);
+        },
+        [] GKO_KERNEL(auto i, auto j) { return i + j; },
+        [] GKO_KERNEL(auto j) { return j * 4; }, int64{}, output.get_data(),
+        gko::dim<2>{1000, 100});
+    ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), 10110100000ll);
+
+    gko::kernels::hip::run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto j) {
+            static_assert(is_same<decltype(i), int64>::value, "index");
+            return (i + 1) * (j + 1);
+        },
+        [] GKO_KERNEL(auto i, auto j) { return i + j; },
+        [] GKO_KERNEL(auto j) { return j * 4; }, int64{}, output.get_data(),
+        gko::dim<2>{10, 10});
+    ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), 12100ll);
+}
+
+TEST_F(KernelLaunch, Reduction2D) { run2d_reduction(exec); }
 
 
 }  // namespace
