@@ -59,6 +59,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/utils/timer.hpp"
+#include "benchmark/utils/types.hpp"
 
 
 // Global command-line arguments
@@ -366,7 +367,7 @@ std::unique_ptr<vec<ValueType>> create_matrix(
     ValueType value)
 {
     auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType>(size, value));
+    res->read(gko::matrix_data<ValueType, itype>(size, value));
     return res;
 }
 
@@ -378,7 +379,7 @@ std::unique_ptr<vec<ValueType>> create_matrix(
     RandomEngine &engine)
 {
     auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType>(
+    res->read(gko::matrix_data<ValueType, itype>(
         size,
         std::uniform_real_distribution<gko::remove_complex<ValueType>>(-1.0,
                                                                        1.0),
@@ -393,7 +394,7 @@ std::unique_ptr<vec<ValueType>> create_vector(
     std::shared_ptr<const gko::Executor> exec, gko::size_type size)
 {
     auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType>(gko::dim<2>{size, 1}));
+    res->read(gko::matrix_data<ValueType, itype>(gko::dim<2>{size, 1}));
     return res;
 }
 

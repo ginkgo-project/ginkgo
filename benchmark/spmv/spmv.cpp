@@ -63,7 +63,7 @@ DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 // This function supposes that management of `FLAGS_overwrite` is done before
 // calling it
 void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
-                const gko::matrix_data<etype> &data, const vec<etype> *b,
+                const gko::matrix_data<etype, itype> &data, const vec<etype> *b,
                 const vec<etype> *x, const vec<etype> *answer,
                 rapidjson::Value &test_case,
                 rapidjson::MemoryPoolAllocator<> &allocator)
@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
             }
             std::clog << "Running test case: " << test_case << std::endl;
             std::ifstream mtx_fd(test_case["filename"].GetString());
-            auto data = gko::read_raw<etype>(mtx_fd);
+            auto data = gko::read_raw<etype, itype>(mtx_fd);
 
             auto nrhs = FLAGS_nrhs;
             auto b = create_matrix<etype>(exec, gko::dim<2>{data.size[1], nrhs},
