@@ -1,0 +1,4 @@
+{
+    "base": "Dense",
+    "read": "data/A.mtx"
+}

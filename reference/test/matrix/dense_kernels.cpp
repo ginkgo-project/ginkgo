@@ -630,6 +630,7 @@ TYPED_TEST(Dense, ConvertsToCoo32)
     auto coo_mtx = Coo::create(this->mtx4->get_executor());
 
     this->mtx4->convert_to(coo_mtx.get());
+    // gko::as<gko::LinOp>(coo_mtx.get())->copy_from(gko::as<gko::LinOp>(share(this->mtx4).get()));
     auto v = coo_mtx->get_const_values();
     auto c = coo_mtx->get_const_col_idxs();
     auto r = coo_mtx->get_const_row_idxs();

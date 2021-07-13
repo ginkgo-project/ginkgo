@@ -1,0 +1,2 @@
+gkoext_manager_create_test(csr)
+gkoext_manager_create_test(dense)
