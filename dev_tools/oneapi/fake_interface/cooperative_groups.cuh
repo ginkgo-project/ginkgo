@@ -30,52 +30,28 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_BASE_CONFIG_HPP_
-#define GKO_DPCPP_BASE_CONFIG_HPP_
+#ifndef GKO_FAKE_INTERFACE_COOPERATIVE_GROUPS_CUH_
+#define GKO_FAKE_INTERFACE_COOPERATIVE_GROUPS_CUH_
 
-
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
-
+#include <cuda/components/cooperative_groups.cuh>
 
 namespace gko {
-namespace kernels {
-namespace dpcpp {
+    namespace kernels{
+        namespace cuda{
+            namespace group{
+__device__ __forceinline__ grid_group this_grid_i() { return this_grid(); }
 
+__device__ auto this_thread_block_i() { return this_thread_block(); }
 
-struct config {
-    /**
-     * The type containing a bitmask over all lanes of a warp.
-     */
-    using lane_mask_type = uint64;
+template <unsigned Size, typename Group>
+__device__ __forceinline__ auto tiled_partition_i(const Group &g)
+{
+    return ::gko::kernels::cuda::group::tiled_partition<Size>(g);
+}
 
+            }
+        }
+    }
+}
 
-    /**
-     * The number of threads within a CUDA warp.
-     */
-    static constexpr uint32 warp_size = 16;
-
-    /**
-     * The bitmask of the entire warp.
-     */
-    static constexpr auto full_lane_mask = ~zero<lane_mask_type>();
-
-    /**
-     * The minimal amount of warps that need to be scheduled for each block
-     * to maximize GPU occupancy.
-     */
-    static constexpr uint32 min_warps_per_block = 4;
-
-    /**
-     * The maximal number of threads allowed in a CUDA warp.
-     */
-    static constexpr uint32 max_block_size = 256;
-};
-
-
-}  // namespace dpcpp
-}  // namespace kernels
-}  // namespace gko
-
-
-#endif  // GKO_DPCPP_BASE_CONFIG_HPP_
+#endif // GKO_FAKE_INTERFACE_COOPERATIVE_GROUPS_CUH_
