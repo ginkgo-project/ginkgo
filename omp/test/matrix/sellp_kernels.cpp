@@ -183,7 +183,7 @@ TEST_F(Sellp, SimpleApplyToDenseMatrixIsEquivalentToRef)
 TEST_F(Sellp, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 {
     set_up_apply_data(gko::matrix::default_slice_size,
-                      gko::matrix::default_stride_factor, 0, 3);
+                      gko::matrix::default_stride_factor, 0, 4);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -195,7 +195,7 @@ TEST_F(Sellp, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 TEST_F(Sellp,
        SimpleApplyWithSliceSizeAndStrideFactorToDenseMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(32, 4, 0, 3);
+    set_up_apply_data(32, 4, 0, 5);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -207,7 +207,7 @@ TEST_F(Sellp,
 TEST_F(Sellp,
        AdvancedApplyWithSliceSizeAndStrideFactorToDenseMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(32, 4, 0, 3);
+    set_up_apply_data(32, 4, 0, 6);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
