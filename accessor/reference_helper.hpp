@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_ACCESSOR_ACCESSOR_REFERENCES_HPP_
-#define GKO_ACCESSOR_ACCESSOR_REFERENCES_HPP_
+#ifndef GKO_ACCESSOR_REFERENCE_HELPER_HPP_
+#define GKO_ACCESSOR_REFERENCE_HELPER_HPP_
 
 
 #include <type_traits>
@@ -201,6 +201,13 @@ struct enable_reference_operators {
     {
         return -to_value_type<arithmetic_type>(ref);
     }
+
+    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE GKO_ACC_ATTRIBUTES
+        arithmetic_type
+        operator+(const Reference &ref)
+    {
+        return +to_value_type<arithmetic_type>(ref);
+    }
 };
 
 // There is no more need for this macro in this file
@@ -208,260 +215,8 @@ struct enable_reference_operators {
 
 
 }  // namespace detail
-
-
-/**
- * This namespace contains reference classes used inside accessors.
- *
- * @warning These classes should only be used by accessors.
- */
-namespace reference_class {
-
-
-/**
- * Reference class for a different storage than arithmetic type. The
- * conversion between both formats is done with a simple static_cast.
- *
- * Copying this reference is disabled, but move construction is possible to
- * allow for an additional layer (like gko::acc::range).
- * The assignment operator only works for an rvalue reference (&&) to
- * prevent accidentally copying the reference and working on a reference.
- *
- * @tparam ArithmeticType  Type used for arithmetic operations, therefore,
- *                         the type which is used for input and output of this
- *                         class.
- *
- * @tparam StorageType  Type actually used as a storage, which is converted
- *                      to ArithmeticType before usage
- */
-template <typename ArithmeticType, typename StorageType>
-class reduced_storage
-    : public detail::enable_reference_operators<
-          reduced_storage<ArithmeticType, StorageType>, ArithmeticType> {
-public:
-    using arithmetic_type = std::remove_cv_t<ArithmeticType>;
-    using storage_type = StorageType;
-
-    // Allow move construction, so perfect forwarding is possible (required
-    // for `range` support)
-    reduced_storage(reduced_storage &&) = default;
-
-    reduced_storage() = delete;
-
-    ~reduced_storage() = default;
-
-    // Forbid copy construction
-    reduced_storage(const reduced_storage &) = delete;
-
-    constexpr explicit GKO_ACC_ATTRIBUTES reduced_storage(
-        storage_type *const GKO_ACC_RESTRICT ptr)
-        : ptr_{ptr}
-    {}
-
-    constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
-    {
-        const storage_type *const GKO_ACC_RESTRICT r_ptr = ptr_;
-        return static_cast<arithmetic_type>(*r_ptr);
-    }
-
-    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
-    operator=(arithmetic_type val) &&noexcept
-    {
-        storage_type *const GKO_ACC_RESTRICT r_ptr = ptr_;
-        *r_ptr = static_cast<storage_type>(val);
-        return val;
-    }
-
-    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
-    operator=(const reduced_storage &ref) &&
-    {
-        std::move(*this) = static_cast<arithmetic_type>(ref);
-        return static_cast<arithmetic_type>(*this);
-    }
-
-    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
-    operator=(reduced_storage &&ref) &&noexcept
-    {
-        std::move(*this) = static_cast<arithmetic_type>(ref);
-        return static_cast<arithmetic_type>(*this);
-    }
-
-private:
-    storage_type *const GKO_ACC_RESTRICT ptr_;
-};
-
-// Specialization for const storage_type to prevent `operator=`
-template <typename ArithmeticType, typename StorageType>
-class reduced_storage<ArithmeticType, const StorageType>
-    : public detail::enable_reference_operators<
-          reduced_storage<ArithmeticType, const StorageType>, ArithmeticType> {
-public:
-    using arithmetic_type = std::remove_cv_t<ArithmeticType>;
-    using storage_type = const StorageType;
-
-    // Allow move construction, so perfect forwarding is possible
-    reduced_storage(reduced_storage &&) = default;
-
-    reduced_storage() = delete;
-
-    ~reduced_storage() = default;
-
-    // Forbid copy construction and move assignment
-    reduced_storage(const reduced_storage &) = delete;
-
-    reduced_storage &operator=(reduced_storage &&) = delete;
-
-    constexpr explicit GKO_ACC_ATTRIBUTES reduced_storage(
-        storage_type *const GKO_ACC_RESTRICT ptr)
-        : ptr_{ptr}
-    {}
-
-    constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
-    {
-        const storage_type *const GKO_ACC_RESTRICT r_ptr = ptr_;
-        return static_cast<arithmetic_type>(*r_ptr);
-    }
-
-private:
-    storage_type *const GKO_ACC_RESTRICT ptr_;
-};
-
-
-template <typename ArithmeticType, typename StorageType>
-constexpr remove_complex_t<ArithmeticType> abs(
-    const reduced_storage<ArithmeticType, StorageType> &ref)
-{
-    using std::abs;
-    return abs(static_cast<ArithmeticType>(ref));
-}
-
-
-/**
- * Reference class for a different storage than arithmetic type with the
- * addition of a scaling factor. The conversion between both formats is done
- * with a static_cast to the ArithmeticType, followed by a multiplication
- * of the scalar (when reading; for writing, the new value is divided by the
- * scalar before casting to the StorageType).
- *
- * Copying this reference is disabled, but move construction is possible to
- * allow for an additional layer (like gko::acc::range).
- * The assignment operator only works for an rvalue reference (&&) to
- * prevent accidentally copying and working on the reference.
- *
- * @tparam ArithmeticType  Type used for arithmetic operations, therefore,
- *                         the type which is used for input and output of this
- *                         class.
- *
- * @tparam StorageType  Type actually used as a storage, which is converted
- *                      to ArithmeticType before usage
- */
-template <typename ArithmeticType, typename StorageType>
-class scaled_reduced_storage
-    : public detail::enable_reference_operators<
-          scaled_reduced_storage<ArithmeticType, StorageType>, ArithmeticType> {
-public:
-    using arithmetic_type = std::remove_cv_t<ArithmeticType>;
-    using storage_type = StorageType;
-
-    // Allow move construction, so perfect forwarding is possible
-    scaled_reduced_storage(scaled_reduced_storage &&) = default;
-
-    scaled_reduced_storage() = delete;
-
-    ~scaled_reduced_storage() = default;
-
-    // Forbid copy construction
-    scaled_reduced_storage(const scaled_reduced_storage &) = delete;
-
-    constexpr explicit GKO_ACC_ATTRIBUTES scaled_reduced_storage(
-        storage_type *const GKO_ACC_RESTRICT ptr, arithmetic_type scalar)
-        : ptr_{ptr}, scalar_{scalar}
-    {}
-
-    constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
-    {
-        const storage_type *const GKO_ACC_RESTRICT r_ptr = ptr_;
-        return static_cast<arithmetic_type>(*r_ptr) * scalar_;
-    }
-
-    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
-    operator=(arithmetic_type val) &&noexcept
-    {
-        storage_type *const GKO_ACC_RESTRICT r_ptr = ptr_;
-        *r_ptr = static_cast<storage_type>(val / scalar_);
-        return val;
-    }
-
-    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
-    operator=(const scaled_reduced_storage &ref) &&
-    {
-        std::move(*this) = static_cast<arithmetic_type>(ref);
-        return static_cast<arithmetic_type>(*this);
-    }
-
-    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
-    operator=(scaled_reduced_storage &&ref) &&noexcept
-    {
-        std::move(*this) = static_cast<arithmetic_type>(ref);
-        return static_cast<arithmetic_type>(*this);
-    }
-
-private:
-    storage_type *const GKO_ACC_RESTRICT ptr_;
-    const arithmetic_type scalar_;
-};
-
-// Specialization for constant storage_type (no `operator=`)
-template <typename ArithmeticType, typename StorageType>
-class scaled_reduced_storage<ArithmeticType, const StorageType>
-    : public detail::enable_reference_operators<
-          scaled_reduced_storage<ArithmeticType, const StorageType>,
-          ArithmeticType> {
-public:
-    using arithmetic_type = std::remove_cv_t<ArithmeticType>;
-    using storage_type = const StorageType;
-
-    // Allow move construction, so perfect forwarding is possible
-    scaled_reduced_storage(scaled_reduced_storage &&) = default;
-
-    scaled_reduced_storage() = delete;
-
-    ~scaled_reduced_storage() = default;
-
-    // Forbid copy construction and move assignment
-    scaled_reduced_storage(const scaled_reduced_storage &) = delete;
-
-    scaled_reduced_storage &operator=(scaled_reduced_storage &&) = delete;
-
-    constexpr explicit GKO_ACC_ATTRIBUTES scaled_reduced_storage(
-        storage_type *const GKO_ACC_RESTRICT ptr, arithmetic_type scalar)
-        : ptr_{ptr}, scalar_{scalar}
-    {}
-
-    constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
-    {
-        const storage_type *const GKO_ACC_RESTRICT r_ptr = ptr_;
-        return static_cast<arithmetic_type>(*r_ptr) * scalar_;
-    }
-
-private:
-    storage_type *const GKO_ACC_RESTRICT ptr_;
-    const arithmetic_type scalar_;
-};
-
-
-template <typename ArithmeticType, typename StorageType>
-constexpr remove_complex_t<ArithmeticType> abs(
-    const scaled_reduced_storage<ArithmeticType, StorageType> &ref)
-{
-    using std::abs;
-    return abs(static_cast<ArithmeticType>(ref));
-}
-
-
-}  // namespace reference_class
 }  // namespace acc
 }  // namespace gko
 
 
-#endif  // GKO_ACCESSOR_ACCESSOR_REFERENCES_HPP_
+#endif  // GKO_ACCESSOR_REFERENCE_HELPER_HPP_

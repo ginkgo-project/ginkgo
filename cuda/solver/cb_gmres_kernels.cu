@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "accessor/cuda_helper.hpp"
 #include "accessor/range.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/scaled_reduced_row_major.hpp"
@@ -75,33 +76,6 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
 #include "common/solver/cb_gmres_kernels.hpp.inc"
-
-
-// Specialization, so the Accessor can use the same function as regular pointers
-template <int dim, typename Type1, typename Type2>
-GKO_INLINE auto as_cuda_accessor(
-    const acc::range<acc::reduced_row_major<dim, Type1, Type2>> &acc)
-{
-    return acc::range<
-        acc::reduced_row_major<dim, cuda_type<Type1>, cuda_type<Type2>>>(
-        acc.get_accessor().get_size(),
-        as_cuda_type(acc.get_accessor().get_stored_data()),
-        acc.get_accessor().get_stride());
-}
-
-template <int dim, typename Type1, typename Type2, size_type mask>
-GKO_INLINE auto as_cuda_accessor(
-    const acc::range<acc::scaled_reduced_row_major<dim, Type1, Type2, mask>>
-        &acc)
-{
-    return acc::range<acc::scaled_reduced_row_major<dim, cuda_type<Type1>,
-                                                    cuda_type<Type2>, mask>>(
-        acc.get_accessor().get_size(),
-        as_cuda_type(acc.get_accessor().get_stored_data()),
-        acc.get_accessor().get_storage_stride(),
-        as_cuda_type(acc.get_accessor().get_scalar()),
-        acc.get_accessor().get_scalar_stride());
-}
 
 
 template <typename ValueType>
@@ -165,7 +139,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
 
     initialize_2_1_kernel<block_size><<<grid_dim_1, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1], krylov_dim,
-        as_cuda_accessor(krylov_bases),
+        acc::as_cuda_range(krylov_bases),
         as_cuda_type(residual_norm_collection->get_values()),
         residual_norm_collection->get_stride());
     kernels::cuda::dense::compute_norm2(exec, residual, residual_norm);
@@ -192,7 +166,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                 residual_norm->get_stride(),
                 as_cuda_type(arnoldi_norm->get_const_values() +
                              2 * stride_arnoldi),
-                stride_arnoldi, as_cuda_accessor(krylov_bases));
+                stride_arnoldi, acc::as_cuda_range(krylov_bases));
     }
 
     const dim3 grid_dim_2(
@@ -202,7 +176,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(residual->get_const_values()), residual->get_stride(),
         as_cuda_type(residual_norm->get_const_values()),
         as_cuda_type(residual_norm_collection->get_values()),
-        as_cuda_accessor(krylov_bases),
+        acc::as_cuda_range(krylov_bases),
         as_cuda_type(next_krylov_basis->get_values()),
         next_krylov_basis->get_stride(),
         as_cuda_type(final_iter_nums->get_data()));
@@ -259,7 +233,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
         multidot_kernel<default_dot_dim><<<grid_size_num_iters, block_size>>>(
             dim_size[0], dim_size[1],
             as_cuda_type(next_krylov_basis->get_const_values()),
-            stride_next_krylov, as_cuda_accessor(krylov_bases),
+            stride_next_krylov, acc::as_cuda_range(krylov_bases),
             as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
             as_cuda_type(stop_status));
     } else {
@@ -267,7 +241,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
             <<<grid_size_iters_single, block_size_iters_single>>>(
                 dim_size[0],
                 as_cuda_type(next_krylov_basis->get_const_values()),
-                stride_next_krylov, as_cuda_accessor(krylov_bases),
+                stride_next_krylov, acc::as_cuda_range(krylov_bases),
                 as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
                 as_cuda_type(stop_status));
     }
@@ -279,7 +253,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
            default_block_size>>>(
             iter + 1, dim_size[0], dim_size[1],
             as_cuda_type(next_krylov_basis->get_values()), stride_next_krylov,
-            as_cuda_accessor(krylov_bases),
+            acc::as_cuda_range(krylov_bases),
             as_cuda_type(hessenberg_iter->get_const_values()),
             stride_hessenberg, as_cuda_type(stop_status));
 
@@ -305,7 +279,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
         <<<ceildiv(dim_size[1], default_block_size), default_block_size>>>(
             dim_size[1], as_cuda_type(arnoldi_norm->get_values()),
             stride_arnoldi, as_cuda_type(hessenberg_iter->get_values()),
-            stride_hessenberg, iter + 1, as_cuda_accessor(krylov_bases),
+            stride_hessenberg, iter + 1, acc::as_cuda_range(krylov_bases),
             as_cuda_type(stop_status), as_cuda_type(reorth_status),
             as_cuda_type(num_reorth->get_data()));
     num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
@@ -318,7 +292,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
                 <<<grid_size_num_iters, block_size>>>(
                     dim_size[0], dim_size[1],
                     as_cuda_type(next_krylov_basis->get_const_values()),
-                    stride_next_krylov, as_cuda_accessor(krylov_bases),
+                    stride_next_krylov, acc::as_cuda_range(krylov_bases),
                     as_cuda_type(buffer_iter->get_values()), stride_buffer,
                     as_cuda_type(stop_status));
         } else {
@@ -326,7 +300,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
                 <<<grid_size_iters_single, block_size_iters_single>>>(
                     dim_size[0],
                     as_cuda_type(next_krylov_basis->get_const_values()),
-                    stride_next_krylov, as_cuda_accessor(krylov_bases),
+                    stride_next_krylov, acc::as_cuda_range(krylov_bases),
                     as_cuda_type(buffer_iter->get_values()), stride_buffer,
                     as_cuda_type(stop_status));
         }
@@ -338,7 +312,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
                default_block_size>>>(
                 iter + 1, dim_size[0], dim_size[1],
                 as_cuda_type(next_krylov_basis->get_values()),
-                stride_next_krylov, as_cuda_accessor(krylov_bases),
+                stride_next_krylov, acc::as_cuda_range(krylov_bases),
                 as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
                 as_cuda_type(buffer_iter->get_const_values()), stride_buffer,
                 as_cuda_type(stop_status), as_cuda_type(reorth_status));
@@ -367,7 +341,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
             <<<ceildiv(dim_size[1], default_block_size), default_block_size>>>(
                 dim_size[1], as_cuda_type(arnoldi_norm->get_values()),
                 stride_arnoldi, as_cuda_type(hessenberg_iter->get_values()),
-                stride_hessenberg, iter + 1, as_cuda_accessor(krylov_bases),
+                stride_hessenberg, iter + 1, acc::as_cuda_range(krylov_bases),
                 as_cuda_type(stop_status), as_cuda_type(reorth_status),
                 as_cuda_type(num_reorth->get_data()));
         num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
@@ -378,7 +352,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
            default_block_size>>>(
             iter, dim_size[0], dim_size[1],
             as_cuda_type(next_krylov_basis->get_values()), stride_next_krylov,
-            as_cuda_accessor(krylov_bases),
+            acc::as_cuda_range(krylov_bases),
             as_cuda_type(hessenberg_iter->get_const_values()),
             stride_hessenberg, as_cuda_type(stop_status));
     // next_krylov_basis /= hessenberg(iter, iter + 1)
@@ -488,7 +462,7 @@ void calculate_qy(ConstAccessor3d krylov_bases, size_type num_krylov_bases,
 
 
     calculate_Qy_kernel<block_size><<<grid_dim, block_dim>>>(
-        num_rows, num_cols, as_cuda_accessor(krylov_bases),
+        num_rows, num_cols, acc::as_cuda_range(krylov_bases),
         as_cuda_type(y->get_const_values()), y->get_stride(),
         as_cuda_type(before_preconditioner->get_values()),
         stride_before_preconditioner,

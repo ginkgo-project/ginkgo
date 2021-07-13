@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "accessor/hip_helper.hpp"
 #include "accessor/range.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/scaled_reduced_row_major.hpp"
@@ -77,33 +78,6 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
 #include "common/solver/cb_gmres_kernels.hpp.inc"
-
-
-// Specialization, so the Accessor can use the same function as regular pointers
-template <int dim, typename Type1, typename Type2>
-GKO_INLINE auto as_hip_accessor(
-    const acc::range<acc::reduced_row_major<dim, Type1, Type2>> &acc)
-{
-    return acc::range<
-        acc::reduced_row_major<dim, hip_type<Type1>, hip_type<Type2>>>(
-        acc.get_accessor().get_size(),
-        as_hip_type(acc.get_accessor().get_stored_data()),
-        acc.get_accessor().get_stride());
-}
-
-template <int dim, typename Type1, typename Type2, size_type mask>
-GKO_INLINE auto as_hip_accessor(
-    const acc::range<acc::scaled_reduced_row_major<dim, Type1, Type2, mask>>
-        &acc)
-{
-    return acc::range<acc::scaled_reduced_row_major<dim, hip_type<Type1>,
-                                                    hip_type<Type2>, mask>>(
-        acc.get_accessor().get_size(),
-        as_hip_type(acc.get_accessor().get_stored_data()),
-        acc.get_accessor().get_storage_stride(),
-        as_hip_type(acc.get_accessor().get_scalar()),
-        acc.get_accessor().get_scalar_stride());
-}
 
 
 template <typename ValueType>
@@ -168,7 +142,7 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
 
     hipLaunchKernelGGL(initialize_2_1_kernel<block_size>, grid_dim_1, block_dim,
                        0, 0, residual->get_size()[0], residual->get_size()[1],
-                       krylov_dim, as_hip_accessor(krylov_bases),
+                       krylov_dim, acc::as_hip_range(krylov_bases),
                        as_hip_type(residual_norm_collection->get_values()),
                        residual_norm_collection->get_stride());
     kernels::hip::dense::compute_norm2(exec, residual, residual_norm);
@@ -195,7 +169,7 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
             as_hip_type(residual_norm->get_const_values()),
             residual_norm->get_stride(),
             as_hip_type(arnoldi_norm->get_const_values() + 2 * stride_arnoldi),
-            stride_arnoldi, as_hip_accessor(krylov_bases));
+            stride_arnoldi, acc::as_hip_range(krylov_bases));
     }
 
     const dim3 grid_dim_2(
@@ -206,7 +180,7 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
                        residual->get_stride(),
                        as_hip_type(residual_norm->get_const_values()),
                        as_hip_type(residual_norm_collection->get_values()),
-                       as_hip_accessor(krylov_bases),
+                       acc::as_hip_range(krylov_bases),
                        as_hip_type(next_krylov_basis->get_values()),
                        next_krylov_basis->get_stride(),
                        as_hip_type(final_iter_nums->get_data()));
@@ -266,7 +240,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
                            grid_size_num_iters, block_size, 0, 0, dim_size[0],
                            dim_size[1],
                            as_hip_type(next_krylov_basis->get_const_values()),
-                           stride_next_krylov, as_hip_accessor(krylov_bases),
+                           stride_next_krylov, acc::as_hip_range(krylov_bases),
                            as_hip_type(hessenberg_iter->get_values()),
                            stride_hessenberg, as_hip_type(stop_status));
     } else {
@@ -274,7 +248,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
                            grid_size_iters_single, block_size_iters_single, 0,
                            0, dim_size[0],
                            as_hip_type(next_krylov_basis->get_const_values()),
-                           stride_next_krylov, as_hip_accessor(krylov_bases),
+                           stride_next_krylov, acc::as_hip_range(krylov_bases),
                            as_hip_type(hessenberg_iter->get_values()),
                            stride_hessenberg, as_hip_type(stop_status));
     }
@@ -286,7 +260,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
         dim3(ceildiv(dim_size[0] * stride_next_krylov, default_block_size)),
         dim3(default_block_size), 0, 0, iter + 1, dim_size[0], dim_size[1],
         as_hip_type(next_krylov_basis->get_values()), stride_next_krylov,
-        as_hip_accessor(krylov_bases),
+        acc::as_hip_range(krylov_bases),
         as_hip_type(hessenberg_iter->get_const_values()), stride_hessenberg,
         as_hip_type(stop_status));
 
@@ -315,7 +289,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
         dim3(default_block_size), 0, 0, dim_size[1],
         as_hip_type(arnoldi_norm->get_values()), stride_arnoldi,
         as_hip_type(hessenberg_iter->get_values()), stride_hessenberg, iter + 1,
-        as_hip_accessor(krylov_bases), as_hip_type(stop_status),
+        acc::as_hip_range(krylov_bases), as_hip_type(stop_status),
         as_hip_type(reorth_status), as_hip_type(num_reorth->get_data()));
     num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
@@ -327,7 +301,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
                 multidot_kernel<default_dot_dim>, grid_size_num_iters,
                 block_size, 0, 0, dim_size[0], dim_size[1],
                 as_hip_type(next_krylov_basis->get_const_values()),
-                stride_next_krylov, as_hip_accessor(krylov_bases),
+                stride_next_krylov, acc::as_hip_range(krylov_bases),
                 as_hip_type(buffer_iter->get_values()), stride_buffer,
                 as_hip_type(stop_status));
         } else {
@@ -335,7 +309,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
                 singledot_kernel<singledot_block_size>, grid_size_iters_single,
                 block_size_iters_single, 0, 0, dim_size[0],
                 as_hip_type(next_krylov_basis->get_const_values()),
-                stride_next_krylov, as_hip_accessor(krylov_bases),
+                stride_next_krylov, acc::as_hip_range(krylov_bases),
                 as_hip_type(buffer_iter->get_values()), stride_buffer,
                 as_hip_type(stop_status));
         }
@@ -347,7 +321,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
             dim3(ceildiv(dim_size[0] * stride_next_krylov, default_block_size)),
             dim3(default_block_size), 0, 0, iter + 1, dim_size[0], dim_size[1],
             as_hip_type(next_krylov_basis->get_values()), stride_next_krylov,
-            as_hip_accessor(krylov_bases),
+            acc::as_hip_range(krylov_bases),
             as_hip_type(hessenberg_iter->get_values()), stride_hessenberg,
             as_hip_type(buffer_iter->get_const_values()), stride_buffer,
             as_hip_type(stop_status), as_hip_type(reorth_status));
@@ -379,7 +353,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
             dim3(default_block_size), 0, 0, dim_size[1],
             as_hip_type(arnoldi_norm->get_values()), stride_arnoldi,
             as_hip_type(hessenberg_iter->get_values()), stride_hessenberg,
-            iter + 1, as_hip_accessor(krylov_bases), as_hip_type(stop_status),
+            iter + 1, acc::as_hip_range(krylov_bases), as_hip_type(stop_status),
             as_hip_type(reorth_status), as_hip_type(num_reorth->get_data()));
         num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
         // num_reorth_host := number of next_krylov vector to be
@@ -391,7 +365,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
         dim3(ceildiv(dim_size[0] * stride_next_krylov, default_block_size)),
         dim3(default_block_size), 0, 0, iter, dim_size[0], dim_size[1],
         as_hip_type(next_krylov_basis->get_values()), stride_next_krylov,
-        as_hip_accessor(krylov_bases),
+        acc::as_hip_range(krylov_bases),
         as_hip_type(hessenberg_iter->get_const_values()), stride_hessenberg,
         as_hip_type(stop_status));
     // next_krylov_basis /= hessenberg(iter, iter + 1)
@@ -505,7 +479,7 @@ void calculate_qy(ConstAccessor3d krylov_bases, size_type num_krylov_bases,
 
 
     hipLaunchKernelGGL(calculate_Qy_kernel<block_size>, grid_dim, block_dim, 0,
-                       0, num_rows, num_cols, as_hip_accessor(krylov_bases),
+                       0, num_rows, num_cols, acc::as_hip_range(krylov_bases),
                        as_hip_type(y->get_const_values()), y->get_stride(),
                        as_hip_type(before_preconditioner->get_values()),
                        stride_before_preconditioner,
