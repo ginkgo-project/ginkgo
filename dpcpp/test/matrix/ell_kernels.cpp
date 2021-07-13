@@ -166,7 +166,7 @@ TEST_F(Ell, SimpleApplyIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -216,7 +216,7 @@ TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -266,7 +266,7 @@ TEST_F(Ell, SimpleApplyWithStrideIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -315,7 +315,7 @@ TEST_F(Ell, AdvancedApplyWithStrideIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -365,7 +365,7 @@ TEST_F(Ell, SimpleApplyWithStrideToDenseMatrixIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -415,7 +415,7 @@ TEST_F(Ell, AdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -465,7 +465,7 @@ TEST_F(Ell, SimpleApplyByAtomicIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -476,7 +476,7 @@ TEST_F(Ell, AdvancedByAtomicApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -487,7 +487,7 @@ TEST_F(Ell, SimpleApplyByAtomicToDenseMatrixIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -498,7 +498,7 @@ TEST_F(Ell, AdvancedByAtomicToDenseMatrixApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -509,7 +509,7 @@ TEST_F(Ell, SimpleApplyOnSmallMatrixIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -520,7 +520,7 @@ TEST_F(Ell, AdvancedApplyOnSmallMatrixToDenseMatrixIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -531,7 +531,7 @@ TEST_F(Ell, SimpleApplyOnSmallMatrixToDenseMatrixIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -542,7 +542,7 @@ TEST_F(Ell, AdvancedApplyOnSmallMatrixIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -559,7 +559,7 @@ TEST_F(Ell, ApplyToComplexIsEquivalentToRef)
     mtx->apply(complex_b.get(), complex_x.get());
     dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
 
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<vtype>::value);
 }
 
 
@@ -576,7 +576,7 @@ TEST_F(Ell, AdvancedApplyToComplexIsEquivalentToRef)
     mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
     dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
 
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<vtype>::value);
 }
 
 
@@ -590,7 +590,7 @@ TEST_F(Ell, ConvertToDenseIsEquivalentToRef)
     mtx->convert_to(dense_mtx.get());
     dmtx->convert_to(ddense_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), r<vtype>::value);
 }
 
 
@@ -604,7 +604,7 @@ TEST_F(Ell, ConvertToCsrIsEquivalentToRef)
     mtx->convert_to(csr_mtx.get());
     dmtx->convert_to(dcsr_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), r<vtype>::value);
 }
 
 
@@ -664,7 +664,7 @@ TEST_F(Ell, InplaceAbsoluteMatrixIsEquivalentToRef)
     mtx->compute_absolute_inplace();
     dmtx->compute_absolute_inplace();
 
-    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<vtype>::value);
 }
 
 
@@ -675,7 +675,7 @@ TEST_F(Ell, OutplaceAbsoluteMatrixIsEquivalentToRef)
     auto abs_mtx = mtx->compute_absolute();
     auto dabs_mtx = dmtx->compute_absolute();
 
-    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, r<vtype>::value);
 }
 
 
