@@ -337,7 +337,7 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
         logger.log_iteration(ibatch, iter, norms_res_sh[0]);
 
         // copy x back to global memory
-        copy(nrows, x_sh, x_gl_entry_ptr);
+        single_copy(nrows, x_sh, x_gl_entry_ptr);
         __syncthreads();
     }
 }
