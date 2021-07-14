@@ -100,21 +100,47 @@ protected:
         : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
           device_storage_{exec, 2},
           reduction_factor_{reduction_factor},
-          baseline_{baseline}
+          baseline_{baseline},
+          system_matrix_{args.system_matrix},
+          b_{args.b}
     {
         switch (baseline_) {
         case mode::initial_resnorm: {
             if (args.initial_residual == nullptr) {
-                GKO_NOT_SUPPORTED(nullptr);
-            }
-            this->starting_tau_ = NormVector::create(
-                exec, dim<2>{1, args.initial_residual->get_size()[1]});
-            if (dynamic_cast<const ComplexVector *>(args.initial_residual)) {
-                auto dense_r = as<ComplexVector>(args.initial_residual);
-                dense_r->compute_norm2(this->starting_tau_.get());
+                if (args.system_matrix == nullptr || args.b == nullptr ||
+                    args.x == nullptr) {
+                    GKO_NOT_SUPPORTED(nullptr);
+                } else {
+                    this->starting_tau_ = NormVector::create(
+                        exec, dim<2>{1, args.b->get_size()[1]});
+                    auto neg_one = share(initialize<Vector>({-1}, exec));
+                    auto one = share(initialize<Vector>({1}, exec));
+                    auto b_clone = share(args.b->clone());
+                    args.system_matrix->apply(neg_one.get(), args.x, one.get(),
+                                              b_clone.get());
+                    if (auto vec =
+                            std::dynamic_pointer_cast<const ComplexVector>(
+                                b_clone)) {
+                        vec->compute_norm2(this->starting_tau_.get());
+                    } else if (auto vec =
+                                   std::dynamic_pointer_cast<const Vector>(
+                                       b_clone)) {
+                        vec->compute_norm2(this->starting_tau_.get());
+                    } else {
+                        GKO_NOT_SUPPORTED(nullptr);
+                    }
+                }
             } else {
-                auto dense_r = as<Vector>(args.initial_residual);
-                dense_r->compute_norm2(this->starting_tau_.get());
+                this->starting_tau_ = NormVector::create(
+                    exec, dim<2>{1, args.initial_residual->get_size()[1]});
+                if (dynamic_cast<const ComplexVector *>(
+                        args.initial_residual)) {
+                    auto dense_r = as<ComplexVector>(args.initial_residual);
+                    dense_r->compute_norm2(this->starting_tau_.get());
+                } else {
+                    auto dense_r = as<Vector>(args.initial_residual);
+                    dense_r->compute_norm2(this->starting_tau_.get());
+                }
             }
             break;
         }
@@ -152,6 +178,8 @@ protected:
     remove_complex<ValueType> reduction_factor_{};
     std::unique_ptr<NormVector> starting_tau_{};
     std::unique_ptr<NormVector> u_dense_tau_{};
+    std::shared_ptr<const LinOp> system_matrix_{};
+    std::shared_ptr<const LinOp> b_{};
     /* Contains device side: all_converged and one_changed booleans */
     Array<bool> device_storage_;
 
