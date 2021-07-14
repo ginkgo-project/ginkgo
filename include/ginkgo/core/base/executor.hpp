@@ -226,7 +226,7 @@ class ExecutorBase;
  * One might feel that this code is too complicated for such a simple task.
  * Luckily, there is an overload of the Executor::run() method, which is
  * designed to facilitate writing simple operations like this one. The method
- * takes three closures as input: one which is run for OMP, one for CUDA
+ * takes four closures as input: one which is run for OMP, one for CUDA
  * executors, one for HIP executors, and the last one for DPC++ executors. Using
  * this method, there is no need to implement an Operation subclass:
  *
@@ -489,7 +489,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
  * The first step in using the Ginkgo library consists of creating an
  * executor. Executors are used to specify the location for the data of linear
  * algebra objects, and to determine where the operations will be executed.
- * Ginkgo currently supports three different executor types:
+ * Ginkgo currently supports five different executor types:
  *
  * +    OmpExecutor specifies that the data should be stored and the associated
  *      operations executed on an OpenMP-supporting device (e.g. host CPU);
@@ -601,11 +601,13 @@ public:
      * @tparam ClosureOmp  type of op_omp
      * @tparam ClosureCuda  type of op_cuda
      * @tparam ClosureHip  type of op_hip
+     * @tparam ClosureDpcpp  type of op_dpcpp
      *
      * @param op_omp  functor to run in case of a OmpExecutor or
      *                ReferenceExecutor
      * @param op_cuda  functor to run in case of a CudaExecutor
      * @param op_hip  functor to run in case of a HipExecutor
+     * @param op_dpcpp  functor to run in case of a DpcppExecutor
      */
     template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
               typename ClosureDpcpp>
@@ -982,7 +984,8 @@ private:
      * Operation.
      *
      * The first object is called by the OmpExecutor, the second one by the
-     * CudaExecutor and the last one by the HipExecutor. When run on the
+     * CudaExecutor, the third one by the HipExecutor and the last one by
+     * the DpcppExecutor. When run on the
      * ReferenceExecutor, the implementation will launch the OpenMP version.
      *
      * @tparam ClosureOmp  the type of the first functor
