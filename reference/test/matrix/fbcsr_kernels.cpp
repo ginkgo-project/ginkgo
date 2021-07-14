@@ -209,6 +209,34 @@ TYPED_TEST(Fbcsr, AppliesToDenseMatrix)
 }
 
 
+TYPED_TEST(Fbcsr, AppliesToDenseComplexMatrix)
+{
+    using T = typename TestFixture::value_type;
+    using CT = typename gko::to_complex<T>;
+    using CVec = gko::matrix::Dense<CT>;
+    using index_type = typename TestFixture::index_type;
+    const gko::size_type nrows = this->mtx2->get_size()[0];
+    const gko::size_type ncols = this->mtx2->get_size()[1];
+    const gko::size_type nvecs = 3;
+    auto x = CVec::create(this->exec, gko::dim<2>{ncols, nvecs});
+    for (index_type i = 0; i < ncols; i++) {
+        for (index_type j = 0; j < nvecs; j++) {
+            x->at(i, j) = (static_cast<CT>(3.0 * i) + get_some_number<CT>()) /
+                          CT{j + 1.0f, 2.0f * j};
+        }
+    }
+    auto y = CVec::create(this->exec, gko::dim<2>{nrows, nvecs});
+    auto yref = CVec::create(this->exec, gko::dim<2>{nrows, nvecs});
+
+    this->mtx2->apply(x.get(), y.get());
+    this->ref2csrmtx->apply(x.get(), yref.get());
+
+    const double tolerance =
+        std::numeric_limits<gko::remove_complex<T>>::epsilon();
+    GKO_ASSERT_MTX_NEAR(y, yref, tolerance);
+}
+
+
 TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseVector)
 {
     using Vec = typename TestFixture::Vec;

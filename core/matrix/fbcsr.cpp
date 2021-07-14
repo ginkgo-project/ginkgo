@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -153,14 +154,19 @@ template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const b,
                                              LinOp *const x) const
 {
+    using ComplexDense = Dense<to_complex<ValueType>>;
     using Dense = Dense<ValueType>;
     if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType> *>(b)) {
         // if b is a FBCSR matrix, we need an SpGeMM
         GKO_NOT_SUPPORTED(b_fbcsr);
     } else {
         // otherwise we assume that b is dense and compute a SpMV/SpMM
-        this->get_executor()->run(
-            fbcsr::make_spmv(this, as<Dense>(b), as<Dense>(x)));
+        precision_dispatch_real_complex<ValueType>(
+            [this](auto dense_b, auto dense_x) {
+                this->get_executor()->run(
+                    fbcsr::make_spmv(this, dense_b, dense_x));
+            },
+            b, x);
     }
 }
 
@@ -171,6 +177,7 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const alpha,
                                              const LinOp *const beta,
                                              LinOp *const x) const
 {
+    using ComplexDense = Dense<to_complex<ValueType>>;
     using Dense = Dense<ValueType>;
     if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType> *>(b)) {
         // if b is a FBCSR matrix, we need an SpGeMM
@@ -180,9 +187,13 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const alpha,
         GKO_NOT_SUPPORTED(b_ident);
     } else {
         // otherwise we assume that b is dense and compute a SpMV/SpMM
-        this->get_executor()->run(
-            fbcsr::make_advanced_spmv(as<Dense>(alpha), this, as<Dense>(b),
-                                      as<Dense>(beta), as<Dense>(x)));
+        precision_dispatch_real_complex<ValueType>(
+            [this](auto dense_alpha, auto dense_b, auto dense_beta,
+                   auto dense_x) {
+                this->get_executor()->run(fbcsr::make_advanced_spmv(
+                    dense_alpha, this, dense_b, dense_beta, dense_x));
+            },
+            alpha, b, beta, x);
     }
 }
 
