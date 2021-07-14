@@ -47,7 +47,18 @@ namespace components {
 
 template <typename IndexType>
 void prefix_sum(std::shared_ptr<const DefaultExecutor> exec, IndexType *counts,
-                size_type num_entries) GKO_NOT_IMPLEMENTED;
+                size_type num_entries)
+{
+    // TODO actually implement parallel prefix sum
+    exec->get_queue()->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{1}, [=](sycl::id<1> idx) {
+            IndexType sum{};
+            for (size_type i = 0; i < num_entries; i++) {
+                sum += std::exchange(counts[i], sum);
+            }
+        });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
 // instantiate for size_type as well, as this is used in the Sellp format
