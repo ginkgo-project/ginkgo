@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <limits>
 #include <numeric>
 #include <utility>
 
@@ -874,7 +875,7 @@ void is_sorted_by_column_index(
             }
         });
     });
-    exec->get_master()->copy_from(exec.get(), 1, is_sorted_device, is_sorted);
+    *is_sorted = exec->copy_val_to_host(is_sorted_device);
 };
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
