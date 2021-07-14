@@ -222,9 +222,8 @@ TEST_F(BatchDense, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 }
 
 
-TEST_F(
-    BatchDense,
-    MultipleVectorConvergenceAddScaledWithDifferentAlphaIsEquivalentToRef)
+TEST_F(BatchDense,
+       MultipleVectorConvergenceAddScaledWithDifferentAlphaIsEquivalentToRef)
 {
     const int num_rhs = 19;
     set_up_vector_data(num_rhs, true);
@@ -437,6 +436,17 @@ TEST_F(BatchDense, CudaConvergenceComputeDotIsEquivalentToRef)
         this->cuda, dx.get(), dy.get(), ddot.get(), converged);
 
     GKO_ASSERT_BATCH_MTX_NEAR(dot_expected, ddot, 1e-14);
+}
+
+
+TEST_F(BatchDense, CopySingleIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    gko::kernels::reference::batch_dense::copy(this->ref, x.get(), y.get());
+    gko::kernels::cuda::batch_dense::copy(this->cuda, dx.get(), dy.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 0.0);
 }
 
 
