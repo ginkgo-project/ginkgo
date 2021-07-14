@@ -231,11 +231,23 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
     using csr_type = matrix::Csr<ValueType, IndexType>;
     const auto exec = this->get_executor();
     if (parameters_.max_block_size == 1) {
-        auto diag = as<DiagonalExtractable<ValueType>>(system_matrix)
-                        ->extract_diagonal();
-        auto temp = gko::Array<ValueType>::view(
-            exec, system_matrix->get_size()[0], diag->get_values());
-        this->blocks_ = temp;
+        auto diag = share(as<DiagonalLinOpExtractable>(system_matrix)
+                              ->extract_diagonal_linop());
+        using next_type = next_precision<ValueType>;
+        if (auto diag_dense =
+                std::dynamic_pointer_cast<matrix::Diagonal<ValueType>>(diag)) {
+            auto temp = gko::Array<ValueType>::view(
+                exec, system_matrix->get_size()[0], diag_dense->get_values());
+            this->blocks_ = temp;
+        } else if (auto diag_dense =
+                       std::dynamic_pointer_cast<matrix::Diagonal<next_type>>(
+                           diag)) {
+            auto temp = gko::Array<next_type>::view(
+                exec, system_matrix->get_size()[0], diag_dense->get_values());
+            this->blocks_ = temp;
+        } else {
+            GKO_NOT_SUPPORTED(system_matrix);
+        }
     } else {
         auto csr_mtx = convert_to_with_sorting<csr_type>(exec, system_matrix,
                                                          skip_sorting);
