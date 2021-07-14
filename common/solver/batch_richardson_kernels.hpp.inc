@@ -102,7 +102,7 @@ __global__ void apply_kernel(const int max_iter,
             //     static_cast<ValueType>(1.0), r_b);
 
             // r <- b - Ax
-            copy(num_rows, b_b, residual);
+            single_copy(num_rows, b_b, residual);
             __syncthreads();
             single_advanced_spmv_kernel(static_cast<ValueType>(-1.0), a_b, x_b,
                                         static_cast<ValueType>(1.0), residual);

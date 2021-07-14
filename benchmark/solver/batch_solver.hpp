@@ -30,8 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_BENCHMARK_BATCH_SOLVER_HPP_
-#define GKO_BENCHMARK_BATCH_SOLVER_HPP_
+#ifndef GKO_BENCHMARK_SOLVER_BATCH_SOLVER_HPP_
+#define GKO_BENCHMARK_SOLVER_BATCH_SOLVER_HPP_
+
 
 #include <ginkgo/ginkgo.hpp>
 
@@ -725,4 +726,4 @@ int read_data_and_launch_benchmark(int argc, char *argv[],
     return 0;
 }
 
-#endif
+#endif  // GKO_BENCHMARK_SOLVER_BATCH_SOLVER_HPP_
