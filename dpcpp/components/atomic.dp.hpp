@@ -42,16 +42,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "dpcpp/base/dpct.hpp"
 
-// #include "dpct/atomic.hpp"
 
 namespace gko {
 namespace kernels {
 namespace dpcpp {
 namespace atomic {
-constexpr cl::sycl::access::address_space local_space =
-    cl::sycl::access::address_space::local_space;
-constexpr cl::sycl::access::address_space global_space =
-    cl::sycl::access::address_space::global_space;
+
+
+constexpr auto local_space = cl::sycl::access::address_space::local_space;
+constexpr auto global_space = cl::sycl::access::address_space::global_space;
+
+
 }  // namespace atomic
 
 namespace {
@@ -93,11 +94,6 @@ inline T atomic_fetch_add(
     return cl::sycl::atomic_fetch_add(obj, operand, memoryOrder);
 }
 
-template <typename T>
-struct fake_complex {
-    T x;
-    T y;
-};
 
 }  // namespace
 
@@ -160,7 +156,7 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
 
 #undef GKO_BIND_ATOMIC_HELPER_STRUCTURE
 
-#define GKO_BIND_ATOMIC_HELPER_ValueType(ValueType)                         \
+#define GKO_BIND_ATOMIC_HELPER_VALUETYPE(ValueType)                         \
     template <cl::sycl::access::address_space addressSpace>                 \
     struct atomic_helper<addressSpace, ValueType, std::enable_if_t<true>> { \
         __dpct_inline__ static ValueType atomic_add(                        \
@@ -170,9 +166,11 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
         }                                                                   \
     };
 
-GKO_BIND_ATOMIC_HELPER_ValueType(int);
-GKO_BIND_ATOMIC_HELPER_ValueType(unsigned int);
-GKO_BIND_ATOMIC_HELPER_ValueType(unsigned long long int);
+GKO_BIND_ATOMIC_HELPER_VALUETYPE(int);
+GKO_BIND_ATOMIC_HELPER_VALUETYPE(unsigned int);
+GKO_BIND_ATOMIC_HELPER_VALUETYPE(unsigned long long int);
+
+#undef GKO_BIND_ATOMIC_HELPER_VALUETYPE
 
 
 template <cl::sycl::access::address_space addressSpace, typename ValueType>
@@ -183,13 +181,12 @@ struct atomic_helper<
                                                 ValueType val)
     {
         using real_type = remove_complex<ValueType>;
-        fake_complex<real_type> *fake_addr =
-            reinterpret_cast<fake_complex<real_type> *>(addr);
+        real_type *real_addr = reinterpret_cast<real_type *>(addr);
         // Separate to real part and imag part
         auto real = atomic_helper<addressSpace, real_type>::atomic_add(
-            &(fake_addr->x), val.real());
+            &real_addr[0], val.real());
         auto imag = atomic_helper<addressSpace, real_type>::atomic_add(
-            &(fake_addr->y), val.imag());
+            &real_addr[1], val.imag());
         return {real, imag};
     }
 };
