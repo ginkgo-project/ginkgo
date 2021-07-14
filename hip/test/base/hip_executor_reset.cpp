@@ -33,32 +33,55 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
-namespace gko {
+#include <thread>
 
 
-std::shared_ptr<Executor> HipExecutor::get_master() noexcept { return master_; }
+#include <gtest/gtest.h>
 
 
-std::shared_ptr<const Executor> HipExecutor::get_master() const noexcept
+namespace {
+
+
+#define GTEST_ASSERT_NO_EXIT(statement) \
+    ASSERT_EXIT({ {statement} exit(0); }, ::testing::ExitedWithCode(0), "")
+
+
+TEST(DeviceReset, HipCuda)
 {
-    return master_;
+    GTEST_ASSERT_NO_EXIT({
+        auto ref = gko::ReferenceExecutor::create();
+        auto hip = gko::HipExecutor::create(0, ref, true);
+        auto cuda = gko::CudaExecutor::create(0, ref, true);
+    });
 }
 
 
-bool HipExecutor::verify_memory_to(const HipExecutor *dest_exec) const
+TEST(DeviceReset, CudaHip)
 {
-    return this->get_device_id() == dest_exec->get_device_id();
+    GTEST_ASSERT_NO_EXIT({
+        auto ref = gko::ReferenceExecutor::create();
+        auto cuda = gko::CudaExecutor::create(0, ref, true);
+        auto hip = gko::HipExecutor::create(0, ref, true);
+    });
 }
 
 
-bool HipExecutor::verify_memory_to(const CudaExecutor *dest_exec) const
+void func()
 {
-#if GINKGO_HIP_PLATFORM_NVCC
-    return this->get_device_id() == dest_exec->get_device_id();
-#else
-    return false;
-#endif
+    auto ref = gko::ReferenceExecutor::create();
+    auto exec = gko::HipExecutor::create(0, ref, true);
 }
 
 
-}  // namespace gko
+TEST(DeviceReset, HipHip)
+{
+    GTEST_ASSERT_NO_EXIT({
+        std::thread t1(func);
+        std::thread t2(func);
+        t1.join();
+        t2.join();
+    });
+}
+
+
+}  // namespace

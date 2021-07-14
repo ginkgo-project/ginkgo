@@ -315,9 +315,9 @@ build/cuda91/clang/all/release/shared:
 
 # cuda 9.2 and friends
 build/cuda92/gcc/all/release/shared:
-  <<: *default_build
+  <<: *default_build_with_test
   extends:
-    - .full_test_condition
+    - .quick_test_condition
     - .use_gko-cuda92-gnu7-llvm50-intel2017
   variables:
     <<: *default_variables
@@ -325,7 +325,7 @@ build/cuda92/gcc/all/release/shared:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
-    CUDA_ARCH: 35
+    CUDA_ARCH: 61
 
 # cuda 10.0 and friends
 # Make sure that our jobs run when using self-installed

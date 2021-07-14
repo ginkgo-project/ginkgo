@@ -30,8 +30,7 @@
   image: ginkgohub/cuda:92-gnu7-llvm50-intel2017
   tags:
     - private_ci
-    - controller
-    - cpu
+    - nvidia-gpu
 
 .use_gko-cuda100-gnu7-llvm60-intel2018:
   image: ginkgohub/cuda:100-gnu7-llvm60-intel2018
