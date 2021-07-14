@@ -103,6 +103,7 @@ add_subdirectory(matrix_generator)
 add_subdirectory(matrix_statistics)
 add_subdirectory(preconditioner)
 add_subdirectory(solver)
+add_subdirectory(sparse_blas)
 add_subdirectory(spmv)
 
 add_custom_target(make_run_all_benchmarks ALL)

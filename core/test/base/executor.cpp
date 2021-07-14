@@ -82,6 +82,24 @@ public:
 };
 
 
+class OperationNameLogger : public gko::log::Logger {
+public:
+    OperationNameLogger(std::shared_ptr<const gko::Executor> exec,
+                        std::string &output)
+        : gko::log::Logger(exec, gko::log::Logger::operation_launched_mask),
+          output_{output}
+    {}
+
+    void on_operation_launched(const gko::Executor *exec,
+                               const gko::Operation *op) const override
+    {
+        output_ = op->get_name();
+    }
+
+    std::string &output_;
+};
+
+
 TEST(OmpExecutor, RunsCorrectOperation)
 {
     int value = 0;
@@ -105,6 +123,24 @@ TEST(OmpExecutor, RunsCorrectLambdaOperation)
     omp->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
 
     ASSERT_EQ(1, value);
+}
+
+
+TEST(OmpExecutor, RunsCorrectNamedLambdaOperation)
+{
+    int value = 0;
+    auto omp_lambda = [&value]() { value = 1; };
+    auto cuda_lambda = [&value]() { value = 2; };
+    auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
+    exec_ptr omp = gko::OmpExecutor::create();
+    std::string name;
+    omp->add_logger(std::make_shared<OperationNameLogger>(omp, name));
+
+    omp->run_named("name", omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
+    ASSERT_EQ(1, value);
+    ASSERT_EQ("name", name);
 }
 
 
@@ -232,6 +268,24 @@ TEST(ReferenceExecutor, RunsCorrectLambdaOperation)
     ref->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
 
     ASSERT_EQ(1, value);
+}
+
+
+TEST(ReferenceExecutor, RunsCorrectNamedLambdaOperation)
+{
+    int value = 0;
+    auto omp_lambda = [&value]() { value = 1; };
+    auto cuda_lambda = [&value]() { value = 2; };
+    auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
+    exec_ptr ref = gko::ReferenceExecutor::create();
+    std::string name;
+    ref->add_logger(std::make_shared<OperationNameLogger>(ref, name));
+
+    ref->run_named("name", omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
+    ASSERT_EQ(1, value);
+    ASSERT_EQ("name", name);
 }
 
 
@@ -363,6 +417,25 @@ TEST(CudaExecutor, RunsCorrectLambdaOperation)
 }
 
 
+TEST(CudaExecutor, RunsCorrectNamedLambdaOperation)
+{
+    int value = 0;
+    auto omp_lambda = [&value]() { value = 1; };
+    auto cuda_lambda = [&value]() { value = 2; };
+    auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
+    exec_ptr cuda =
+        gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
+    std::string name;
+    cuda->add_logger(std::make_shared<OperationNameLogger>(cuda, name));
+
+    cuda->run_named("name", omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
+    ASSERT_EQ(2, value);
+    ASSERT_EQ("name", name);
+}
+
+
 TEST(CudaExecutor, KnowsItsMaster)
 {
     auto omp = gko::OmpExecutor::create();
@@ -436,6 +509,25 @@ TEST(HipExecutor, RunsCorrectLambdaOperation)
 }
 
 
+TEST(HipExecutor, RunsCorrectNamedLambdaOperation)
+{
+    int value = 0;
+    auto omp_lambda = [&value]() { value = 1; };
+    auto cuda_lambda = [&value]() { value = 2; };
+    auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
+    exec_ptr hip =
+        gko::HipExecutor::create(0, gko::OmpExecutor::create(), true);
+    std::string name;
+    hip->add_logger(std::make_shared<OperationNameLogger>(hip, name));
+
+    hip->run_named("name", omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
+    ASSERT_EQ(3, value);
+    ASSERT_EQ("name", name);
+}
+
+
 TEST(HipExecutor, KnowsItsMaster)
 {
     auto omp = gko::OmpExecutor::create();
@@ -506,6 +598,24 @@ TEST(DpcppExecutor, RunsCorrectLambdaOperation)
     dpcpp->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
 
     ASSERT_EQ(4, value);
+}
+
+
+TEST(DpcppExecutor, RunsCorrectNamedLambdaOperation)
+{
+    int value = 0;
+    auto omp_lambda = [&value]() { value = 1; };
+    auto cuda_lambda = [&value]() { value = 2; };
+    auto hip_lambda = [&value]() { value = 3; };
+    auto dpcpp_lambda = [&value]() { value = 4; };
+    exec_ptr dpcpp = gko::DpcppExecutor::create(0, gko::OmpExecutor::create());
+    std::string name;
+    dpcpp->add_logger(std::make_shared<OperationNameLogger>(dpcpp, name));
+
+    dpcpp->run_named("name", omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+
+    ASSERT_EQ(4, value);
+    ASSERT_EQ("name", name);
 }
 
 
