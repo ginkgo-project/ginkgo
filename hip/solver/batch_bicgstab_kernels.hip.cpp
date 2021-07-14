@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
 
+
 #include <hip/hip_runtime.h>
 
 
