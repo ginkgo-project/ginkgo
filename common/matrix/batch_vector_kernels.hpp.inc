@@ -32,22 +32,45 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /**
- * Copies the values of one multi-vector into another.
+ * Copies the values of vector into another.
  *
- * Note that the output multi-vector should already have memory allocated
- * and stride set.
+ * @param num_rows  Length of vector.
+ * @param in  Vector to copy from.
+ * @param out  Vector to copy into.
  */
 template <typename ValueType>
-__device__ __forceinline__ void copy(const int num_rows,
-                                     const ValueType *const in,
-                                     ValueType *const out)
+__device__ __forceinline__ void single_copy(const int num_rows,
+                                            const ValueType *const in,
+                                            ValueType *const out)
 {
     for (int iz = threadIdx.x; iz < num_rows; iz += blockDim.x) {
         out[iz] = in[iz];
     }
 }
 
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void single_copy(
+    const size_type num_batch, const int num_rows,
+    const ValueType *const __restrict__ in, ValueType *const __restrict__ out)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < num_batch;
+         ibatch += gridDim.x) {
+        const auto in_b = gko::batch::batch_entry_ptr(in, 1, num_rows, ibatch);
+        const auto out_b =
+            gko::batch::batch_entry_ptr(out, 1, num_rows, ibatch);
+        single_copy(num_rows, in_b, out_b);
+    }
+}
 
+
+/**
+ * Adds a scaled vector to another.
+ *
+ * @param num_rows  Common length of both vectors.
+ * @param alpha  Scaling factor.
+ * @param[in] x  Vector to scale and add.
+ * @param[in,out] y  Vector to add to.
+ */
 template <typename ValueType>
 __device__ __forceinline__ void single_add_scaled(const int num_rows,
                                                   const ValueType alpha,
@@ -59,12 +82,26 @@ __device__ __forceinline__ void single_add_scaled(const int num_rows,
     }
 }
 
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void single_add_scaled(
+    const size_type num_batch, const int num_rows,
+    const ValueType *const __restrict__ alpha,
+    const ValueType *const __restrict__ x, ValueType *const __restrict__ y)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < num_batch;
+         ibatch += gridDim.x) {
+        const auto x_b = gko::batch::batch_entry_ptr(x, 1, num_rows, ibatch);
+        const auto y_b = gko::batch::batch_entry_ptr(y, 1, num_rows, ibatch);
+        single_add_scaled(num_rows, alpha[0], x_b, y_b);
+    }
+}
+
 
 /**
- * Computes the 2-norms of some column vectors in global or shared memory.
+ * Computes the 2-norm of a vector in global or shared memory.
  *
- * @param x  A row-major multivector with nrhs columns.
- * @param result  Holds norm value for each vector in x.
+ * @param x  A row-major vector (only 1 column).
+ * @param result  Norm value.
  */
 template <typename ValueType>
 __device__ __forceinline__ void single_compute_norm2(
@@ -91,14 +128,10 @@ __device__ __forceinline__ void single_compute_norm2(
 
 
 template <typename ValueType>
-__global__ __launch_bounds__(
-    default_block_size,
-    sm_multiplier) void single_compute_norm2(const size_type num_batch,
-                                             const int num_rows,
-                                             const ValueType
-                                                 *const __restrict__ x,
-                                             remove_complex<ValueType>
-                                                 *const __restrict__ result)
+__global__ __launch_bounds__(default_block_size) void single_compute_norm2(
+    const size_type num_batch, const int num_rows,
+    const ValueType *const __restrict__ x,
+    remove_complex<ValueType> *const __restrict__ result)
 {
     auto warp_grp =
         group::tiled_partition<config::warp_size>(group::this_thread_block());
@@ -144,12 +177,12 @@ __device__ __forceinline__ void single_compute_dot_product(
 // clang-format off
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size)
-    // clang-format on
-    void single_compute_dot_product(const size_type num_batch,
-                                    const int num_rows,
-                                    const ValueType *const __restrict__ x,
-                                    const ValueType *const __restrict__ y,
-                                    ValueType *const __restrict__ result)
+void single_compute_dot_product(const size_type num_batch,
+                                const int num_rows,
+                                const ValueType *const __restrict__ x,
+                                const ValueType *const __restrict__ y,
+                                ValueType *const __restrict__ result)
+// clang-format on
 {
     auto warp_grp =
         group::tiled_partition<config::warp_size>(group::this_thread_block());

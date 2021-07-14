@@ -420,7 +420,7 @@ __global__ void apply_kernel(const int max_iter,
                      s_sh, V_sh, x_sh, y_sh);
 
             // r = b
-            copy(nrows, b_entry_ptr, r_sh);
+            single_copy(nrows, b_entry_ptr, r_sh);
             __syncthreads();
             // r = r - A*x
             single_advanced_spmv_kernel(static_cast<ValueType>(-1.0),
@@ -437,7 +437,7 @@ __global__ void apply_kernel(const int max_iter,
         }
 
         // copy x back to global memory
-        copy(nrows, x_sh, x_gl_entry_ptr);
+        single_copy(nrows, x_sh, x_gl_entry_ptr);
 
         logger.log_iteration(ibatch, total_iter, norms_res_sh[0]);
     }

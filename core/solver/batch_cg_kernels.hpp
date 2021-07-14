@@ -36,9 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-
 #include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
+
+
 #include "core/log/batch_logging.hpp"
 
 namespace gko {
@@ -152,4 +153,4 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace gko
 
 
-#endif
+#endif  // GKO_CORE_SOLVER_BATCH_CG_KERNELS_HPP_
