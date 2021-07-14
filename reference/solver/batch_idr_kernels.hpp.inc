@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 template <typename ValueType, typename Distribution, typename Generator>
 typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
 get_rand_value(Distribution &&dist, Generator &&gen)
