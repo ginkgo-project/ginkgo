@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 template <typename BatchMatrixType_entry, typename PrecType, typename ValueType>
 inline void initialize(
     const BatchMatrixType_entry &A_entry,
