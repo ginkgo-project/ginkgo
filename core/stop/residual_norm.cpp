@@ -78,18 +78,17 @@ bool ResidualNormBase<ValueType>::check_impl(
     } else if (updater.solution_ != nullptr && system_matrix_ != nullptr &&
                b_ != nullptr) {
         auto exec = this->get_executor();
-        if (auto vec_b = std::dynamic_pointer_cast<const ComplexVector>(b_)) {
+        // when LinOp is real but rhs is complex, we use real view on complex,
+        // so it still uses the same type of scalar in apply.
+        if (auto vec_b = std::dynamic_pointer_cast<const Vector>(b_)) {
             auto dense_r = vec_b->clone();
-            auto neg_one = gko::initialize<ComplexVector>({-1}, exec);
-            auto one = gko::initialize<ComplexVector>({1}, exec);
-            system_matrix_->apply(neg_one.get(), updater.solution_, one.get(),
+            system_matrix_->apply(neg_one_.get(), updater.solution_, one_.get(),
                                   dense_r.get());
             dense_r->compute_norm2(u_dense_tau_.get());
-        } else if (auto vec_b = std::dynamic_pointer_cast<const Vector>(b_)) {
+        } else if (auto vec_b =
+                       std::dynamic_pointer_cast<const ComplexVector>(b_)) {
             auto dense_r = vec_b->clone();
-            auto neg_one = gko::initialize<Vector>({-1}, exec);
-            auto one = gko::initialize<Vector>({1}, exec);
-            system_matrix_->apply(neg_one.get(), updater.solution_, one.get(),
+            system_matrix_->apply(neg_one_.get(), updater.solution_, one_.get(),
                                   dense_r.get());
             dense_r->compute_norm2(u_dense_tau_.get());
         } else {

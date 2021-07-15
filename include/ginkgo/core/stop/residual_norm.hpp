@@ -102,7 +102,9 @@ protected:
           reduction_factor_{reduction_factor},
           baseline_{baseline},
           system_matrix_{args.system_matrix},
-          b_{args.b}
+          b_{args.b},
+          one_{gko::initialize<Vector>({1}, exec)},
+          neg_one_{gko::initialize<Vector>({-1}, exec)}
     {
         switch (baseline_) {
         case mode::initial_resnorm: {
@@ -113,11 +115,9 @@ protected:
                 } else {
                     this->starting_tau_ = NormVector::create(
                         exec, dim<2>{1, args.b->get_size()[1]});
-                    auto neg_one = share(initialize<Vector>({-1}, exec));
-                    auto one = share(initialize<Vector>({1}, exec));
                     auto b_clone = share(args.b->clone());
-                    args.system_matrix->apply(neg_one.get(), args.x, one.get(),
-                                              b_clone.get());
+                    args.system_matrix->apply(neg_one_.get(), args.x,
+                                              one_.get(), b_clone.get());
                     if (auto vec =
                             std::dynamic_pointer_cast<const ComplexVector>(
                                 b_clone)) {
@@ -178,13 +178,16 @@ protected:
     remove_complex<ValueType> reduction_factor_{};
     std::unique_ptr<NormVector> starting_tau_{};
     std::unique_ptr<NormVector> u_dense_tau_{};
-    std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const LinOp> b_{};
     /* Contains device side: all_converged and one_changed booleans */
     Array<bool> device_storage_;
 
 private:
     mode baseline_{mode::rhs_norm};
+    std::shared_ptr<const LinOp> system_matrix_{};
+    std::shared_ptr<const LinOp> b_{};
+    /* one/neg_one for residual computation */
+    std::shared_ptr<const Vector> one_{};
+    std::shared_ptr<const Vector> neg_one_{};
 };
 
 
