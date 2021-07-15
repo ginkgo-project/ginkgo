@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "common/unified/base/kernel_launch.hpp"
+#include "common/unified/base/kernel_launch_reduction.hpp"
 
 
 namespace gko {
@@ -218,6 +219,60 @@ void sub_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SUB_SCALED_DIAG_KERNEL);
+
+
+template <typename ValueType>
+void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
+                 const matrix::Dense<ValueType>* x,
+                 const matrix::Dense<ValueType>* y,
+                 matrix::Dense<ValueType>* result)
+{
+    run_kernel_col_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
+            return x(i, j) * y(i, j);
+        },
+        [] GKO_KERNEL(auto a, auto b) { return a + b; },
+        [] GKO_KERNEL(auto a) { return a; }, ValueType{}, result->get_values(),
+        x->get_size(), x, y);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
+
+
+template <typename ValueType>
+void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Dense<ValueType>* x,
+                      const matrix::Dense<ValueType>* y,
+                      matrix::Dense<ValueType>* result)
+{
+    run_kernel_col_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
+            return conj(x(i, j)) * y(i, j);
+        },
+        [] GKO_KERNEL(auto a, auto b) { return a + b; },
+        [] GKO_KERNEL(auto a) { return a; }, ValueType{}, result->get_values(),
+        x->get_size(), x, y);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL);
+
+
+template <typename ValueType>
+void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
+                   const matrix::Dense<ValueType>* x,
+                   matrix::Dense<remove_complex<ValueType>>* result)
+{
+    run_kernel_col_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
+        [] GKO_KERNEL(auto a, auto b) { return a + b; },
+        [] GKO_KERNEL(auto a) { return sqrt(a); }, remove_complex<ValueType>{},
+        result->get_values(), x->get_size(), x);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
