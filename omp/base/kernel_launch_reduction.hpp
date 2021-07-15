@@ -47,6 +47,10 @@ namespace kernels {
 namespace omp {
 
 
+// how many more reduction tasks we launch relative to the number of threads
+constexpr int reduction_kernel_oversubscription = 4;
+
+
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
 void run_kernel_reduction(std::shared_ptr<const OmpExecutor> exec,
@@ -170,6 +174,195 @@ void run_kernel_reduction(std::shared_ptr<const OmpExecutor> exec,
         return;
     }
     select_run_kernel_reduction_sized(
+        remainders(),
+        [&](int remainder) { return remainder == cols % block_size; },
+        syn::value_list<int, block_size>(), syn::type_list<>(), exec, fn, op,
+        finalize, init, result, size, args...);
+}
+
+
+template <typename ValueType, typename KernelFunction, typename ReductionOp,
+          typename FinalizeOp, typename... KernelArgs>
+void run_kernel_row_reduction(std::shared_ptr<const OmpExecutor> exec,
+                              KernelFunction fn, ReductionOp op,
+                              FinalizeOp finalize, ValueType init,
+                              ValueType *result, size_type result_stride,
+                              dim<2> size, KernelArgs &&... args)
+{
+    constexpr int block_size = 8;
+    const auto rows = static_cast<int64>(size[0]);
+    const auto cols = static_cast<int64>(size[1]);
+    const auto num_threads = static_cast<int64>(omp_get_max_threads());
+    if (rows <= 0) {
+        return;
+    }
+    // enough work to keep all threads busy or only very small reduction sizes
+    if (rows >= reduction_kernel_oversubscription * num_threads ||
+        cols < rows) {
+#pragma omp parallel for
+        for (int64 row = 0; row < rows; row++) {
+            auto partial = init;
+            for (int64 col = 0; col < cols; col++) {
+                partial =
+                    op(partial, [&]() { return fn(row, col, args...); }());
+            }
+            result[result_stride * row] = finalize(partial);
+        }
+    } else {
+        // small number of rows and large reduction sizes: do partial sum first
+        const auto work_per_thread = ceildiv(cols, num_threads);
+        Array<ValueType> partial{exec,
+                                 static_cast<size_type>(rows * num_threads)};
+#pragma omp parallel num_threads(num_threads)
+        {
+            const auto thread_id = static_cast<int64>(omp_get_thread_num());
+            const auto begin = thread_id * work_per_thread;
+            const auto end = std::min(begin + work_per_thread, cols);
+            for (int64 row = 0; row < rows; row++) {
+                auto local_partial = init;
+                for (int64 col = begin; col < end; col++) {
+                    local_partial = op(local_partial, [&]() {
+                        return fn(row, col, args...);
+                    }());
+                }
+                partial.get_data()[row * num_threads + thread_id] =
+                    local_partial;
+            }
+        }
+        // then accumulate the partial sums and write to result
+#pragma omp parallel for
+        for (int64 row = 0; row < rows; row++) {
+            auto local_partial = init;
+            for (int64 thread_id = 0; thread_id < num_threads; thread_id++) {
+                local_partial =
+                    op(local_partial,
+                       partial.get_const_data()[row * num_threads + thread_id]);
+            }
+            result[row * result_stride] = finalize(local_partial);
+        }
+    }
+}
+
+
+namespace {
+
+
+template <int local_cols, typename ValueType, typename KernelFunction,
+          typename ReductionOp, typename FinalizeOp,
+          typename... MappedKernelArgs>
+void run_kernel_col_reduction_sized_block_impl(
+    KernelFunction fn, ReductionOp op, FinalizeOp finalize, ValueType init,
+    ValueType *result, int64 row_begin, int64 row_end, int64 base_col,
+    MappedKernelArgs... args)
+{
+    std::array<ValueType, local_cols> partial;
+    partial.fill(init);
+    for (auto row = row_begin; row < row_end; row++) {
+#pragma unroll
+        for (int64 rel_col = 0; rel_col < local_cols; rel_col++) {
+            partial[rel_col] = op(partial[rel_col], [&]() {
+                return fn(row, base_col + rel_col, args...);
+            }());
+        }
+    }
+#pragma unroll
+    for (int64 rel_col = 0; rel_col < local_cols; rel_col++) {
+        result[base_col + rel_col] = finalize(partial[rel_col]);
+    }
+}
+
+
+template <int block_size, int remainder_cols, typename ValueType,
+          typename KernelFunction, typename ReductionOp, typename FinalizeOp,
+          typename... MappedKernelArgs>
+void run_kernel_col_reduction_sized_impl(
+    syn::value_list<int, remainder_cols>,
+    std::shared_ptr<const OmpExecutor> exec, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType init, ValueType *result, dim<2> size,
+    MappedKernelArgs... args)
+{
+    const auto rows = static_cast<int64>(size[0]);
+    const auto cols = static_cast<int64>(size[1]);
+    const auto num_threads = static_cast<int64>(omp_get_max_threads());
+    static_assert(remainder_cols < block_size, "remainder too large");
+    GKO_ASSERT(cols % block_size == remainder_cols);
+    const auto num_col_blocks = ceildiv(cols, block_size);
+    // enough work to keep all threads busy or only very small reduction sizes
+    if (cols >= reduction_kernel_oversubscription * num_threads ||
+        rows < cols) {
+#pragma omp parallel for
+        for (int64 col_block = 0; col_block < num_col_blocks; col_block++) {
+            const auto base_col = col_block * block_size;
+            if (base_col + block_size <= cols) {
+                run_kernel_col_reduction_sized_block_impl<block_size>(
+                    fn, op, finalize, init, result, 0, rows, base_col);
+            } else {
+                run_kernel_col_reduction_sized_block_impl<remainder_cols>(
+                    fn, op, finalize, init, result, 0, rows, base_col);
+            }
+        }
+    } else {
+        // number of blocks that need to be reduced afterwards
+        const auto reduction_size =
+            ceildiv(reduction_kernel_oversubscription * num_threads, cols);
+        const auto rows_per_thread = ceildiv(rows, reduction_size);
+        Array<ValueType> partial{exec,
+                                 static_cast<size_type>(reduction_size * cols)};
+#pragma omp parallel for
+        for (int64 i = 0; i < reduction_size * num_col_blocks; i++) {
+            const auto col_block = i % num_col_blocks;
+            const auto row_block = i / num_col_blocks;
+            const auto begin = row_block * rows_per_thread;
+            const auto end = std::min(begin + rows_per_thread, rows);
+            const auto base_col = col_block * block_size;
+            const auto identity = [](auto i) { return i; };
+            if (base_col + block_size <= cols) {
+                run_kernel_col_reduction_sized_block_impl<block_size>(
+                    fn, op, identity, init,
+                    partial.get_data() + cols * row_block, begin, end,
+                    base_col);
+            } else {
+                run_kernel_col_reduction_sized_block_impl<remainder_cols>(
+                    fn, op, identity, init,
+                    partial.get_data() + cols * row_block, begin, end,
+                    base_col);
+            }
+        }
+#pragma omp parallel for
+        for (int64 col = 0; col < cols; col++) {
+            auto total = init;
+            for (int64 row_block = 0; row_block < reduction_size; row_block++) {
+                total =
+                    op(total, partial.get_const_data()[col + cols * row_block]);
+            }
+            result[col] = finalize(total);
+        }
+    }
+}
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_kernel_col_reduction_sized,
+                                    run_kernel_col_reduction_sized_impl)
+
+
+}  // namespace
+
+
+template <typename ValueType, typename KernelFunction, typename ReductionOp,
+          typename FinalizeOp, typename... KernelArgs>
+void run_kernel_col_reduction(std::shared_ptr<const OmpExecutor> exec,
+                              KernelFunction fn, ReductionOp op,
+                              FinalizeOp finalize, ValueType init,
+                              ValueType *result, dim<2> size,
+                              KernelArgs &&... args)
+{
+    constexpr auto block_size = 8;
+    using remainders = syn::as_list<syn::range<0, block_size, 1>>;
+    const auto rows = static_cast<int64>(size[0]);
+    const auto cols = static_cast<int64>(size[1]);
+    if (cols <= 0) {
+        return;
+    }
+    select_run_kernel_col_reduction_sized(
         remainders(),
         [&](int remainder) { return remainder == cols % block_size; },
         syn::value_list<int, block_size>(), syn::type_list<>(), exec, fn, op,
