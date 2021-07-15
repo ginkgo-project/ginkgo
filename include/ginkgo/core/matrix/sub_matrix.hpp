@@ -62,6 +62,32 @@ public:
         return overlap_mtxs_;
     }
 
+    void convert_to(SubMatrix<MatrixType> *result) const override
+    {
+        this->sub_mtx_->convert_to(result->sub_mtx_.get());
+        result->set_size(this->get_size());
+        if (this->overlap_mtxs_.size() > 0) {
+            for (int i = 0; i < this->overlap_mtxs_.size(); ++i) {
+                auto tmp_mat = MatrixType::create(result->get_executor());
+                this->overlap_mtxs_[i]->convert_to(tmp_mat.get());
+                result->overlap_mtxs_.emplace_back(std::move(tmp_mat));
+            }
+        }
+    }
+
+    void move_to(SubMatrix<MatrixType> *result) override
+    {
+        this->sub_mtx_->move_to(result->sub_mtx_.get());
+        result->set_size(this->get_size());
+        if (this->overlap_mtxs_.size() > 0) {
+            for (int i = 0; i < this->overlap_mtxs_.size(); ++i) {
+                auto tmp_mat = MatrixType::create(result->get_executor());
+                this->overlap_mtxs_[i]->move_to(tmp_mat.get());
+                result->overlap_mtxs_.emplace_back(std::move(tmp_mat));
+            }
+        }
+    }
+
 private:
     inline dim<2> compute_size(const MatrixType *matrix,
                                const gko::span &row_span,
