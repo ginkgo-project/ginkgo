@@ -75,8 +75,9 @@ constexpr auto kcfg_1d_list =
                     KCFG_1D::encode(512, 32), KCFG_1D::encode(512, 16),
                     KCFG_1D::encode(256, 32), KCFG_1D::encode(256, 16),
                     KCFG_1D::encode(256, 8)>();
-constexpr auto subgroup_list = syn::value_list<std::uint32_t, 64, 32, 16, 8>();
-constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
+constexpr auto subgroup_list =
+    syn::value_list<std::uint32_t, 64, 32, 16, 8, 4>();
+constexpr auto kcfg_1d_array = syn::as_array(kcfg_1d_list);
 constexpr auto default_block_size = 256;
 
 
@@ -675,6 +676,104 @@ GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(reduce_total_cols,
 GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_total_cols_call, reduce_total_cols,
                                kcfg_1d_list)
 
+template <std::uint32_t sg_size, typename ValueType, typename Closure>
+void transpose(const size_type nrows, const size_type ncols,
+               const ValueType *__restrict__ in, const size_type in_stride,
+               ValueType *__restrict__ out, const size_type out_stride,
+               Closure op, sycl::nd_item<3> item_ct1,
+               UninitializedArray<ValueType, sg_size *(sg_size + 1)> *space)
+{
+    auto local_x = item_ct1.get_local_id(2) % sg_size;
+    auto local_y = item_ct1.get_local_id(2) / sg_size;
+    auto x = item_ct1.get_group(2) * sg_size + local_x;
+    auto y = item_ct1.get_group(1) * sg_size + local_y;
+    if (y < nrows && x < ncols) {
+        (*space)[local_y * (sg_size + 1) + local_x] = op(in[y * in_stride + x]);
+    }
+    /*
+    DPCT1065:0: Consider replacing sycl::nd_item::barrier() with
+    sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better
+    performance, if there is no access to global memory.
+    */
+    item_ct1.barrier();
+    x = item_ct1.get_group(1) * sg_size + local_x;
+    y = item_ct1.get_group(2) * sg_size + local_y;
+    if (y < nrows && x < ncols) {
+        out[y * out_stride + x] = (*space)[local_x * sg_size + local_y];
+    }
+}
+
+template <std::uint32_t sg_size, typename ValueType>
+void transpose(const size_type nrows, const size_type ncols,
+               const ValueType *__restrict__ in, const size_type in_stride,
+               ValueType *__restrict__ out, const size_type out_stride,
+               sycl::nd_item<3> item_ct1,
+               UninitializedArray<ValueType, sg_size *(sg_size + 1)> *space)
+{
+    transpose<sg_size>(
+        nrows, ncols, in, in_stride, out, out_stride,
+        [](ValueType val) { return val; }, item_ct1, space);
+}
+
+template <std::uint32_t sg_size = 32, typename ValueType>
+void transpose(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+               sycl::queue *stream, const size_type nrows,
+               const size_type ncols, const ValueType *in,
+               const size_type in_stride, ValueType *out,
+               const size_type out_stride)
+{
+    stream->submit([&](sycl::handler &cgh) {
+        sycl::accessor<UninitializedArray<ValueType, sg_size *(sg_size + 1)>, 0,
+                       sycl::access_mode::read_write,
+                       sycl::access::target::local>
+            space_acc_ct1(cgh);
+
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                transpose<sg_size>(
+                    nrows, ncols, in, in_stride, out, out_stride, item_ct1,
+                    (UninitializedArray<ValueType, sg_size *(sg_size + 1)> *)
+                        space_acc_ct1.get_pointer());
+            });
+    });
+}
+
+template <std::uint32_t sg_size, typename ValueType>
+void conj_transpose(
+    const size_type nrows, const size_type ncols,
+    const ValueType *__restrict__ in, const size_type in_stride,
+    ValueType *__restrict__ out, const size_type out_stride,
+    sycl::nd_item<3> item_ct1,
+    UninitializedArray<ValueType, sg_size *(sg_size + 1)> *space)
+{
+    transpose<sg_size>(
+        nrows, ncols, in, in_stride, out, out_stride,
+        [](ValueType val) { return conj(val); }, item_ct1, space);
+}
+
+template <std::uint32_t sg_size = 32, typename ValueType>
+void conj_transpose(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+                    sycl::queue *stream, const size_type nrows,
+                    const size_type ncols, const ValueType *in,
+                    const size_type in_stride, ValueType *out,
+                    const size_type out_stride)
+{
+    stream->submit([&](sycl::handler &cgh) {
+        sycl::accessor<UninitializedArray<ValueType, sg_size *(sg_size + 1)>, 0,
+                       sycl::access_mode::read_write,
+                       sycl::access::target::local>
+            space_acc_ct1(cgh);
+
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                conj_transpose<sg_size>(
+                    nrows, ncols, in, in_stride, out, out_stride, item_ct1,
+                    (UninitializedArray<ValueType, sg_size *(sg_size + 1)> *)
+                        space_acc_ct1.get_pointer());
+            });
+    });
+}
+
 
 }  // namespace kernel
 
@@ -1202,7 +1301,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void transpose(std::shared_ptr<const DpcppExecutor> exec,
                const matrix::Dense<ValueType> *orig,
-               matrix::Dense<ValueType> *trans) GKO_NOT_IMPLEMENTED;
+               matrix::Dense<ValueType> *trans)
+{
+    auto size = orig->get_size();
+    auto sg_array = syn::as_array(subgroup_list);
+    const std::uint32_t cfg = 8;
+    dim3 grid(ceildiv(size[1], cfg), ceildiv(size[0], cfg));
+    dim3 block(cfg, cfg);
+    kernel::transpose<cfg>(grid, block, 0, exec->get_queue(), size[0], size[1],
+                           orig->get_const_values(), orig->get_stride(),
+                           trans->get_values(), trans->get_stride());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_TRANSPOSE_KERNEL);
 

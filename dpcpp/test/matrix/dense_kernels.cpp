@@ -550,16 +550,16 @@ TEST_F(Dense, ComputeConjDotComplexIsEquivalentToRef)
 }
 
 
-// TEST_F(Dense, IsTransposable)
-// {
-//     set_up_apply_data();
+TEST_F(Dense, IsTransposable)
+{
+    set_up_apply_data();
 
-//     auto trans = x->transpose();
-//     auto dtrans = dx->transpose();
+    auto trans = x->transpose();
+    auto dtrans = dx->transpose();
 
-//     GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
-//                         static_cast<Mtx *>(trans.get()), 0);
-// }
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
+                        static_cast<Mtx *>(trans.get()), 0);
+}
 
 
 // TEST_F(Dense, IsConjugateTransposable)
