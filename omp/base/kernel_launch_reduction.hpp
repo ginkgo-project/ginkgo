@@ -51,13 +51,16 @@ namespace omp {
 constexpr int reduction_kernel_oversubscription = 4;
 
 
+namespace {
+
+
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
-          typename FinalizeOp, typename... KernelArgs>
-void run_kernel_reduction(std::shared_ptr<const OmpExecutor> exec,
-                          KernelFunction fn, ReductionOp op,
-                          FinalizeOp finalize, ValueType init,
-                          ValueType *result, size_type size,
-                          KernelArgs &&... args)
+          typename FinalizeOp, typename... MappedKernelArgs>
+void run_kernel_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
+                               KernelFunction fn, ReductionOp op,
+                               FinalizeOp finalize, ValueType init,
+                               ValueType *result, size_type size,
+                               MappedKernelArgs... args)
 {
     const auto num_threads = static_cast<int64>(omp_get_max_threads());
     const auto ssize = static_cast<int64>(size);
@@ -81,9 +84,6 @@ void run_kernel_reduction(std::shared_ptr<const OmpExecutor> exec,
                                        partial.get_const_data() + num_threads,
                                        init, op));
 }
-
-
-namespace {
 
 
 template <int block_size, int remainder_cols, typename ValueType,
@@ -163,6 +163,19 @@ template <typename ValueType, typename KernelFunction, typename ReductionOp,
 void run_kernel_reduction(std::shared_ptr<const OmpExecutor> exec,
                           KernelFunction fn, ReductionOp op,
                           FinalizeOp finalize, ValueType init,
+                          ValueType *result, size_type size,
+                          KernelArgs &&... args)
+{
+    run_kernel_reduction_impl(exec, fn, op, finalize, init, result, size,
+                              map_to_device(args)...);
+}
+
+
+template <typename ValueType, typename KernelFunction, typename ReductionOp,
+          typename FinalizeOp, typename... KernelArgs>
+void run_kernel_reduction(std::shared_ptr<const OmpExecutor> exec,
+                          KernelFunction fn, ReductionOp op,
+                          FinalizeOp finalize, ValueType init,
                           ValueType *result, dim<2> size, KernelArgs &&... args)
 {
     const auto cols = static_cast<int64>(size[1]);
@@ -177,17 +190,20 @@ void run_kernel_reduction(std::shared_ptr<const OmpExecutor> exec,
         remainders(),
         [&](int remainder) { return remainder == cols % block_size; },
         syn::value_list<int, block_size>(), syn::type_list<>(), exec, fn, op,
-        finalize, init, result, size, args...);
+        finalize, init, result, size, map_to_device(args)...);
 }
 
 
+namespace {
+
+
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
-          typename FinalizeOp, typename... KernelArgs>
-void run_kernel_row_reduction(std::shared_ptr<const OmpExecutor> exec,
-                              KernelFunction fn, ReductionOp op,
-                              FinalizeOp finalize, ValueType init,
-                              ValueType *result, size_type result_stride,
-                              dim<2> size, KernelArgs &&... args)
+          typename FinalizeOp, typename... MappedKernelArgs>
+void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
+                                   KernelFunction fn, ReductionOp op,
+                                   FinalizeOp finalize, ValueType init,
+                                   ValueType *result, size_type result_stride,
+                                   dim<2> size, MappedKernelArgs... args)
 {
     constexpr int block_size = 8;
     const auto rows = static_cast<int64>(size[0]);
@@ -244,9 +260,6 @@ void run_kernel_row_reduction(std::shared_ptr<const OmpExecutor> exec,
 }
 
 
-namespace {
-
-
 template <int local_cols, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
@@ -295,10 +308,10 @@ void run_kernel_col_reduction_sized_impl(
             const auto base_col = col_block * block_size;
             if (base_col + block_size <= cols) {
                 run_kernel_col_reduction_sized_block_impl<block_size>(
-                    fn, op, finalize, init, result, 0, rows, base_col);
+                    fn, op, finalize, init, result, 0, rows, base_col, args...);
             } else {
                 run_kernel_col_reduction_sized_block_impl<remainder_cols>(
-                    fn, op, finalize, init, result, 0, rows, base_col);
+                    fn, op, finalize, init, result, 0, rows, base_col, args...);
             }
         }
     } else {
@@ -319,13 +332,13 @@ void run_kernel_col_reduction_sized_impl(
             if (base_col + block_size <= cols) {
                 run_kernel_col_reduction_sized_block_impl<block_size>(
                     fn, op, identity, init,
-                    partial.get_data() + cols * row_block, begin, end,
-                    base_col);
+                    partial.get_data() + cols * row_block, begin, end, base_col,
+                    args...);
             } else {
                 run_kernel_col_reduction_sized_block_impl<remainder_cols>(
                     fn, op, identity, init,
-                    partial.get_data() + cols * row_block, begin, end,
-                    base_col);
+                    partial.get_data() + cols * row_block, begin, end, base_col,
+                    args...);
             }
         }
 #pragma omp parallel for
@@ -348,6 +361,19 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_kernel_col_reduction_sized,
 
 
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
+          typename FinalizeOp, typename... MappedKernelArgs>
+void run_kernel_row_reduction(std::shared_ptr<const OmpExecutor> exec,
+                              KernelFunction fn, ReductionOp op,
+                              FinalizeOp finalize, ValueType init,
+                              ValueType *result, size_type result_stride,
+                              dim<2> size, MappedKernelArgs... args)
+{
+    run_kernel_row_reduction_impl(exec, fn, op, finalize, init, result,
+                                  result_stride, size, map_to_device(args)...);
+}
+
+
+template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
 void run_kernel_col_reduction(std::shared_ptr<const OmpExecutor> exec,
                               KernelFunction fn, ReductionOp op,
@@ -366,7 +392,7 @@ void run_kernel_col_reduction(std::shared_ptr<const OmpExecutor> exec,
         remainders(),
         [&](int remainder) { return remainder == cols % block_size; },
         syn::value_list<int, block_size>(), syn::type_list<>(), exec, fn, op,
-        finalize, init, result, size, args...);
+        finalize, init, result, size, map_to_device(args)...);
 }
 
 

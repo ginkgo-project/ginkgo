@@ -43,18 +43,18 @@ namespace kernels {
 namespace omp {
 
 
-template <typename KernelFunction, typename... KernelArgs>
-void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
-                size_type size, KernelArgs &&... args)
+namespace {
+
+
+template <typename KernelFunction, typename... MappedKernelArgs>
+void run_kernel_impl(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
+                     size_type size, MappedKernelArgs... args)
 {
 #pragma omp parallel for
     for (int64 i = 0; i < static_cast<int64>(size); i++) {
-        [&]() { fn(i, map_to_device(args)...); }();
+        [&]() { fn(i, args...); }();
     }
 }
-
-
-namespace {
 
 
 template <int block_size, int remainder_cols, typename KernelFunction,
@@ -123,6 +123,14 @@ void run_kernel_impl(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
 
 
 }  // namespace
+
+
+template <typename KernelFunction, typename... KernelArgs>
+void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
+                size_type size, KernelArgs &&... args)
+{
+    run_kernel_impl(exec, fn, size, map_to_device(args)...);
+}
 
 
 template <typename KernelFunction, typename... KernelArgs>

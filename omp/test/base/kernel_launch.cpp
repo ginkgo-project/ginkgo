@@ -243,26 +243,31 @@ TEST_F(KernelLaunch, Runs2DDense)
 TEST_F(KernelLaunch, Reduction1D)
 {
     gko::Array<int64> output{exec, 1};
+
     gko::kernels::omp::run_kernel_reduction(
         exec,
-        [] GKO_KERNEL(auto i) {
+        [] GKO_KERNEL(auto i, auto a) {
             static_assert(is_same<decltype(i), int64>::value, "index");
+            static_assert(is_same<decltype(a), int64 *>::value, "value");
             return i + 1;
         },
         [] GKO_KERNEL(auto i, auto j) { return i + j; },
         [] GKO_KERNEL(auto j) { return j * 2; }, int64{}, output.get_data(),
-        size_type{100000});
+        size_type{100000}, output);
+
     ASSERT_EQ(*output.get_const_data(), 10000100000ll);
 
     gko::kernels::omp::run_kernel_reduction(
         exec,
-        [] GKO_KERNEL(auto i) {
+        [] GKO_KERNEL(auto i, auto a) {
             static_assert(is_same<decltype(i), int64>::value, "index");
+            static_assert(is_same<decltype(a), int64 *>::value, "value");
             return i + 1;
         },
         [] GKO_KERNEL(auto i, auto j) { return i + j; },
         [] GKO_KERNEL(auto j) { return j * 2; }, int64{}, output.get_data(),
-        size_type{10});
+        size_type{10}, output);
+
     ASSERT_EQ(*output.get_const_data(), 110ll);
 }
 
@@ -270,16 +275,19 @@ TEST_F(KernelLaunch, Reduction1D)
 TEST_F(KernelLaunch, Reduction2DSmallRows)
 {
     gko::Array<int64> output{exec, 1};
+
     for (int cols = 0; cols < 17; cols++) {
         gko::kernels::omp::run_kernel_reduction(
             exec,
-            [] GKO_KERNEL(auto i, auto j) {
+            [] GKO_KERNEL(auto i, auto j, auto a) {
                 static_assert(is_same<decltype(i), int64>::value, "index");
+                static_assert(is_same<decltype(a), int64 *>::value, "value");
                 return (i + 1) * (j + 1);
             },
             [] GKO_KERNEL(auto i, auto j) { return i + j; },
             [] GKO_KERNEL(auto j) { return j * 4; }, int64{}, output.get_data(),
-            gko::dim<2>{10, cols});
+            gko::dim<2>{10, cols}, output);
+
         ASSERT_EQ(*output.get_const_data(), 110ll * cols * (cols + 1));
     }
 }
@@ -288,16 +296,19 @@ TEST_F(KernelLaunch, Reduction2DSmallRows)
 TEST_F(KernelLaunch, Reduction2DLargeRows)
 {
     gko::Array<int64> output{exec, 1};
+
     for (int cols = 0; cols < 17; cols++) {
         gko::kernels::omp::run_kernel_reduction(
             exec,
-            [] GKO_KERNEL(auto i, auto j) {
+            [] GKO_KERNEL(auto i, auto j, auto a) {
                 static_assert(is_same<decltype(i), int64>::value, "index");
+                static_assert(is_same<decltype(a), int64 *>::value, "value");
                 return (i + 1) * (j + 1);
             },
             [] GKO_KERNEL(auto i, auto j) { return i + j; },
             [] GKO_KERNEL(auto j) { return j * 4; }, int64{}, output.get_data(),
-            gko::dim<2>{1000, cols});
+            gko::dim<2>{1000, cols}, output);
+
         ASSERT_EQ(*output.get_const_data(), 1001000ll * cols * (cols + 1));
     }
 }
@@ -306,15 +317,18 @@ TEST_F(KernelLaunch, Reduction2DLargeRows)
 TEST_F(KernelLaunch, Reduction2D)
 {
     gko::Array<int64> output{exec, 1};
+
     gko::kernels::omp::run_kernel_reduction(
         exec,
-        [] GKO_KERNEL(auto i, auto j) {
+        [] GKO_KERNEL(auto i, auto j, auto a) {
             static_assert(is_same<decltype(i), int64>::value, "index");
+            static_assert(is_same<decltype(a), int64 *>::value, "value");
             return (i + 1) * (j + 1);
         },
         [] GKO_KERNEL(auto i, auto j) { return i + j; },
         [] GKO_KERNEL(auto j) { return j * 4; }, int64{}, output.get_data(),
-        gko::dim<2>{1000, 100});
+        gko::dim<2>{1000, 100}, output);
+
     ASSERT_EQ(*output.get_const_data(), 10110100000ll);
 }
 
@@ -335,14 +349,16 @@ TEST_F(KernelLaunch, ReductionRow2DSmall)
 
     gko::kernels::omp::run_kernel_row_reduction(
         exec,
-        [] GKO_KERNEL(auto i, auto j) {
+        [] GKO_KERNEL(auto i, auto j, auto a) {
             static_assert(is_same<decltype(i), int64>::value, "index");
+            static_assert(is_same<decltype(a), int64 *>::value, "value");
             return (i + 1) * (j + 1);
         },
         [] GKO_KERNEL(auto i, auto j) { return i + j; },
         [] GKO_KERNEL(auto j) { return j * 2; }, int64{}, output.get_data(), 2,
         gko::dim<2>{static_cast<size_type>(num_rows),
-                    static_cast<size_type>(num_cols)});
+                    static_cast<size_type>(num_cols)},
+        output);
 
     GKO_ASSERT_ARRAY_EQ(host_ref, output);
 }
@@ -362,14 +378,16 @@ TEST_F(KernelLaunch, ReductionRow2D)
 
     gko::kernels::omp::run_kernel_row_reduction(
         exec,
-        [] GKO_KERNEL(auto i, auto j) {
+        [] GKO_KERNEL(auto i, auto j, auto a) {
             static_assert(is_same<decltype(i), int64>::value, "index");
+            static_assert(is_same<decltype(a), int64 *>::value, "value");
             return (i + 1) * (j + 1);
         },
         [] GKO_KERNEL(auto i, auto j) { return i + j; },
         [] GKO_KERNEL(auto j) { return j * 2; }, int64{}, output.get_data(), 2,
         gko::dim<2>{static_cast<size_type>(num_rows),
-                    static_cast<size_type>(num_cols)});
+                    static_cast<size_type>(num_cols)},
+        output);
 
     GKO_ASSERT_ARRAY_EQ(host_ref, output);
 }
@@ -389,15 +407,18 @@ TEST_F(KernelLaunch, ReductionCol2D)
 
             gko::kernels::omp::run_kernel_col_reduction(
                 exec,
-                [] GKO_KERNEL(auto i, auto j) {
+                [] GKO_KERNEL(auto i, auto j, auto a) {
                     static_assert(is_same<decltype(i), int64>::value, "index");
+                    static_assert(is_same<decltype(a), int64 *>::value,
+                                  "value");
                     return (i + 1) * (j + 1);
                 },
                 [] GKO_KERNEL(auto i, auto j) { return i + j; },
                 [] GKO_KERNEL(auto j) { return j * 2; }, int64{},
                 output.get_data(),
                 gko::dim<2>{static_cast<size_type>(num_rows),
-                            static_cast<size_type>(num_cols)});
+                            static_cast<size_type>(num_cols)},
+                output);
 
             GKO_ASSERT_ARRAY_EQ(host_ref, output);
         }
