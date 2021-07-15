@@ -270,6 +270,53 @@ inline cublasHandle_t init(cudaStream_t stream)
 }
 
 
+#define GKO_BIND_CUBLAS_BATCH_GETRF(ValueType, CublasName)                     \
+    inline void batch_getrf(cublasHandle_t handle, int n,                      \
+                            ValueType* const Aarray[], int lda,                \
+                            int* pivot_array, int* info_array, int batch_size) \
+    {                                                                          \
+        GKO_ASSERT_NO_CUBLAS_ERRORS(                                           \
+            CublasName(handle, n, as_culibs_type(Aarray), lda, pivot_array,    \
+                       info_array, batch_size));                               \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+GKO_BIND_CUBLAS_BATCH_GETRF(float, cublasSgetrfBatched);
+GKO_BIND_CUBLAS_BATCH_GETRF(double, cublasDgetrfBatched);
+GKO_BIND_CUBLAS_BATCH_GETRF(std::complex<float>, cublasCgetrfBatched);
+GKO_BIND_CUBLAS_BATCH_GETRF(std::complex<double>, cublasZgetrfBatched);
+template <typename ValueType>
+GKO_BIND_CUBLAS_BATCH_GETRF(ValueType, detail::not_implemented);
+
+#undef GKO_BIND_CUBLAS_BATCH_GETRF
+
+
+#define GKO_BIND_CUBLAS_BATCH_GETRS(ValueType, CublasName)                   \
+    inline void batch_getrs(                                                 \
+        cublasHandle_t handle, cublasOperation_t trans, int n, int nrhs,     \
+        const ValueType* const Aarray[], int lda, const int* devIpiv,        \
+        ValueType* const Barray[], int ldb, int* info, int batchSize)        \
+    {                                                                        \
+        GKO_ASSERT_NO_CUBLAS_ERRORS(CublasName(                              \
+            handle, trans, n, nrhs, as_culibs_type(Aarray), lda, devIpiv,    \
+            as_culibs_type(Barray), ldb, info, batchSize));                  \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_CUBLAS_BATCH_GETRS(float, cublasSgetrsBatched);
+GKO_BIND_CUBLAS_BATCH_GETRS(double, cublasDgetrsBatched);
+GKO_BIND_CUBLAS_BATCH_GETRS(std::complex<float>, cublasCgetrsBatched);
+GKO_BIND_CUBLAS_BATCH_GETRS(std::complex<double>, cublasZgetrsBatched);
+template <typename ValueType>
+GKO_BIND_CUBLAS_BATCH_GETRS(ValueType, detail::not_implemented);
+
+#undef GKO_BIND_CUBLAS_BATCH_GETRS
+
+
 inline void destroy(cublasHandle_t handle)
 {
     GKO_ASSERT_NO_CUBLAS_ERRORS(cublasDestroy(handle));
