@@ -121,7 +121,7 @@ public:
          * NVIDIA AMGX Reference Manual (October 2017, API Version 2,
          * https://github.com/NVIDIA/AMGX/blob/main/doc/AMGX_Reference.pdf).
          */
-        unsigned GKO_FACTORY_PARAMETER(max_iterations, 15u);
+        unsigned GKO_FACTORY_PARAMETER_SCALAR(max_iterations, 15u);
 
         /**
          * The maximum ratio of unassigned number, which is valid in the
@@ -129,7 +129,7 @@ public:
          * Reference Manual (October 2017, API Version 2,
          * https://github.com/NVIDIA/AMGX/blob/main/doc/AMGX_Reference.pdf).
          */
-        double GKO_FACTORY_PARAMETER(max_unassigned_ratio, 0.05);
+        double GKO_FACTORY_PARAMETER_SCALAR(max_unassigned_ratio, 0.05);
 
         /**
          * Use the deterministic assign_to_exist_agg method or not.
@@ -138,7 +138,7 @@ public:
          * from the same matrix. Otherwise, the aggregated group might be
          * different depending on the execution ordering.
          */
-        bool GKO_FACTORY_PARAMETER(deterministic, false);
+        bool GKO_FACTORY_PARAMETER_SCALAR(deterministic, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(AmgxPgm, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

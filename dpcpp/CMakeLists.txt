@@ -38,6 +38,7 @@ target_sources(ginkgo_dpcpp
     solver/cb_gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
     solver/lower_trs_kernels.dp.cpp
+    solver/multigrid_kernels.dp.cpp
     solver/upper_trs_kernels.dp.cpp
     stop/criterion_kernels.dp.cpp
     stop/residual_norm_kernels.dp.cpp

@@ -115,6 +115,7 @@ target_sources(ginkgo_cuda
     solver/cb_gmres_kernels.cu
     solver/idr_kernels.cu
     solver/lower_trs_kernels.cu
+    solver/multigrid_kernels.cu
     solver/upper_trs_kernels.cu
     stop/criterion_kernels.cu
     stop/residual_norm_kernels.cu

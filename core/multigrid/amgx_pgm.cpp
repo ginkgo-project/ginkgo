@@ -129,8 +129,10 @@ void AmgxPgm<ValueType, IndexType>::generate()
         intermediate_agg = agg_;
     }
     // Assign all left points
-    exec->run(amgx_pgm::make_assign_to_exist_agg(weight_mtx.get(), diag.get(),
-                                                 agg_, intermediate_agg));
+    if (num_unagg != 0) {
+        exec->run(amgx_pgm::make_assign_to_exist_agg(
+            weight_mtx.get(), diag.get(), agg_, intermediate_agg));
+    }
     IndexType num_agg = 0;
     // Renumber the index
     exec->run(amgx_pgm::make_renumber(agg_, &num_agg));
