@@ -54,6 +54,7 @@ namespace {
 
 
 using gko::dim;
+using gko::int64;
 using gko::size_type;
 using std::is_same;
 
@@ -110,7 +111,7 @@ TEST_F(KernelLaunch, Runs1D)
     gko::kernels::dpcpp::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d) {
-            static_assert(is_same<decltype(i), size_type>::value, "index");
+            static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(d), int *>::value, "type");
             d[i] = i;
         },
@@ -125,7 +126,7 @@ TEST_F(KernelLaunch, Runs1DArray)
     gko::kernels::dpcpp::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d_ptr) {
-            static_assert(is_same<decltype(i), size_type>::value, "index");
+            static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(d), int *>::value, "type");
             static_assert(is_same<decltype(d_ptr), const int *>::value, "type");
             if (d == d_ptr) {
@@ -145,7 +146,7 @@ TEST_F(KernelLaunch, Runs1DDense)
     gko::kernels::dpcpp::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d2, auto d_ptr) {
-            static_assert(is_same<decltype(i), size_type>::value, "index");
+            static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(d(0, 0)), value_type &>::value,
                           "type");
             static_assert(
@@ -177,8 +178,8 @@ TEST_F(KernelLaunch, Runs2D)
     gko::kernels::dpcpp::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d) {
-            static_assert(is_same<decltype(i), size_type>::value, "index");
-            static_assert(is_same<decltype(j), size_type>::value, "index");
+            static_assert(is_same<decltype(i), int64>::value, "index");
+            static_assert(is_same<decltype(j), int64>::value, "index");
             static_assert(is_same<decltype(d), int *>::value, "type");
             d[i + 4 * j] = 4 * i + j;
         },
@@ -193,8 +194,8 @@ TEST_F(KernelLaunch, Runs2DArray)
     gko::kernels::dpcpp::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d_ptr) {
-            static_assert(is_same<decltype(i), size_type>::value, "index");
-            static_assert(is_same<decltype(j), size_type>::value, "index");
+            static_assert(is_same<decltype(i), int64>::value, "index");
+            static_assert(is_same<decltype(j), int64>::value, "index");
             static_assert(is_same<decltype(d), int *>::value, "type");
             static_assert(is_same<decltype(d_ptr), const int *>::value, "type");
             if (d == d_ptr) {
@@ -215,7 +216,7 @@ TEST_F(KernelLaunch, Runs2DDense)
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d2, auto d_ptr, auto d3,
                       auto d4, auto d2_ptr, auto d3_ptr) {
-            static_assert(is_same<decltype(i), size_type>::value, "index");
+            static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(d(0, 0)), value_type &>::value,
                           "type");
             static_assert(

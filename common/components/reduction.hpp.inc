@@ -208,14 +208,15 @@ __device__ void reduce_array(size_type size,
  *
  * Computes a reduction using the add operation (+) on an array
  * `source` of any size. Has to be called a second time on `result` to reduce
- * an array larger than `default_block_size`.
+ * an array larger than `default_reduce_block_size`.
  */
 template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void reduce_add_array(
+__global__ __launch_bounds__(default_reduce_block_size) void reduce_add_array(
     size_type size, const ValueType *__restrict__ source,
     ValueType *__restrict__ result)
 {
-    __shared__ UninitializedArray<ValueType, default_block_size> block_sum;
+    __shared__ UninitializedArray<ValueType, default_reduce_block_size>
+        block_sum;
     reduce_array(size, source, static_cast<ValueType *>(block_sum),
                  [](const ValueType &x, const ValueType &y) { return x + y; });
 
