@@ -722,6 +722,7 @@ build/dpcpp/cpu/release/static:
     BUILD_SHARED_LIBS: "ON"
     SYCL_DEVICE_TYPE: "CPU"
 
+# It gives two available backends of GPU on tests
 build/dpcpp/igpu/release/shared:
   <<: *default_build_with_test
   extends:
@@ -768,6 +769,7 @@ build/dpcpp/level_zero_igpu/debug/static:
     DPCPP_SINGLE_MODE: "ON"
     SYCL_DEVICE_FILTER: "Level_Zero:GPU"
 
+# It gives two available backends of GPU on tests
 build/dpcpp/dgpu/release/static:
   <<: *default_build_with_test
   extends:

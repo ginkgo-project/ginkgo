@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -621,7 +622,12 @@ public:
             this->raw_copy_from(src_exec, num_elems * sizeof(T), src_ptr,
                                 dest_ptr);
         } catch (NotSupported &) {
+#if (GKO_VERBOSE_LEVEL >= 1) && !defined(NDEBUG)
             // Unoptimized copy. Try to go through the masters.
+            // output to log when verbose >= 1 and debug build
+            std::clog << "Not direct copy. Try to copy data from the masters."
+                      << std::endl;
+#endif
             auto src_master = src_exec->get_master().get();
             if (num_elems > 0 && src_master != src_exec) {
                 auto *master_ptr = src_exec->get_master()->alloc<T>(num_elems);
