@@ -55,7 +55,7 @@ public:
     using value_type = typename MatrixType::value_type;
     using index_type = typename MatrixType::index_type;
 
-    std::shared_ptr<MatrixType> get_submatrix() const { return sub_mtx_; }
+    std::shared_ptr<MatrixType> get_sub_matrix() const { return sub_mtx_; }
 
     std::vector<std::shared_ptr<MatrixType>> get_overlap_mtxs() const
     {
@@ -108,8 +108,8 @@ private:
                 num_ov_cols += i.length();
             }
         }
-        auto upd_size = gko::dim<2>(row_span.length() + num_ov_rows,
-                                    col_span.length() + num_ov_cols);
+        auto upd_size =
+            gko::dim<2>(row_span.length(), col_span.length() + num_ov_cols);
         return upd_size;
     }
 

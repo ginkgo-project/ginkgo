@@ -1,4 +1,5 @@
 ginkgo_create_test(block_approx_kernels)
+ginkgo_create_test(sub_matrix_kernels)
 ginkgo_create_test(coo_kernels)
 ginkgo_create_test(csr_kernels)
 ginkgo_create_test(csr_kernels2)
