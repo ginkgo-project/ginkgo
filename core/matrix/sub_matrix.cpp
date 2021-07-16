@@ -43,8 +43,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/matrix/sub_matrix_kernels.hpp"
+
+
 namespace gko {
 namespace matrix {
+namespace sub_matrix {
+
+
+GKO_REGISTER_OPERATION(spmv, sub_matrix::spmv);
+GKO_REGISTER_OPERATION(advanced_spmv, sub_matrix::advanced_spmv);
+
+
+}  // namespace sub_matrix
 
 
 template <typename MatrixType>
@@ -72,7 +83,7 @@ void SubMatrix<MatrixType>::apply_impl(const LinOp *b, LinOp *x) const
 
     auto dense_b = as<Dense>(b);
     auto dense_x = as<Dense>(x);
-    // this->get_executor()->run(sub_matrix::make_spmv(this, dense_b, dense_x));
+    this->get_executor()->run(sub_matrix::make_spmv(this, dense_b, dense_x));
 }
 
 
@@ -86,8 +97,8 @@ void SubMatrix<MatrixType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
     auto dense_b = as<Dense>(b);
     auto dense_x = as<Dense>(x);
-    // this->get_executor()->run(sub_matrix::make_advanced_spmv(
-    //     as<Dense>(alpha), this, dense_b, as<Dense>(beta), dense_x));
+    this->get_executor()->run(sub_matrix::make_advanced_spmv(
+        as<Dense>(alpha), this, dense_b, as<Dense>(beta), dense_x));
 }
 
 
