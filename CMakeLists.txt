@@ -278,7 +278,10 @@ if(GINKGO_DEVEL_TOOLS)
     add_custom_target(add_license
         COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/add_license.sh
         WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
-    add_dependencies(format add_license)
+    # if git-cmake-format can not build format target, do not add the dependencies
+    if(TARGET format)
+        add_dependencies(format add_license)
+    endif()
 endif()
 
 # MacOS needs to install bash, gnu-sed, findutils and coreutils

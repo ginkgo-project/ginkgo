@@ -65,6 +65,7 @@ protected:
     Jacobi()
         : exec(gko::ReferenceExecutor::create()),
           bj_factory(Bj::build().with_max_block_size(3u).on(exec)),
+          scalar_j_factory(Bj::build().with_max_block_size(1u).on(exec)),
           block_pointers(exec, 3),
           block_precisions(exec, 2),
           mtx(Mtx::create(exec, gko::dim<2>{5}, 13))
@@ -168,6 +169,7 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<typename Bj::Factory> bj_factory;
+    std::unique_ptr<typename Bj::Factory> scalar_j_factory;
     std::unique_ptr<typename Bj::Factory> adaptive_bj_factory;
     gko::Array<index_type> block_pointers;
     gko::Array<gko::precision_reduction> block_precisions;
@@ -375,6 +377,19 @@ TYPED_TEST(Jacobi, GeneratesCorrectMatrixDataWithAdaptivePrecision)
     GKO_EXPECT_NONZERO_NEAR(data.nonzeros[10], tpl(4, 2, 1.0 / 48), tol);
     GKO_EXPECT_NONZERO_NEAR(data.nonzeros[11], tpl(4, 3, 4.0 / 48), tol);
     GKO_EXPECT_NONZERO_NEAR(data.nonzeros[12], tpl(4, 4, 14.0 / 48), tol);
+}
+
+
+TYPED_TEST(Jacobi, ScalarJacobiGeneratesOnDifferentPrecision)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using next_type = gko::next_precision<value_type>;
+    auto csr =
+        gko::share(gko::matrix::Csr<next_type, index_type>::create(this->exec));
+    csr->copy_from(gko::lend(this->mtx));
+
+    ASSERT_NO_THROW(this->scalar_j_factory->generate(csr));
 }
 
 

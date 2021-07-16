@@ -655,6 +655,28 @@ private:
 
 
 /**
+ * The diagonal of a LinOp can be extracted. It will be implemented by
+ * DiagonalExtractable<ValueType>, so the class does not need to implement it.
+ * extract_diagonal_linop returns a linop which extracts the elements whose col
+ * and row index are the same and stores the result in a min(nrows, ncols) x 1
+ * dense matrix.
+ *
+ * @ingroup LinOp
+ */
+class DiagonalLinOpExtractable {
+public:
+    virtual ~DiagonalLinOpExtractable() = default;
+
+    /**
+     * Extracts the diagonal entries of the matrix into a vector.
+     *
+     * @return linop  the linop of diagonal format
+     */
+    virtual std::unique_ptr<LinOp> extract_diagonal_linop() const = 0;
+};
+
+
+/**
  * The diagonal of a LinOp implementing this interface can be extracted.
  * extract_diagonal extracts the elements whose col and row index are the
  * same and stores the result in a min(nrows, ncols) x 1 dense matrix.
@@ -662,11 +684,13 @@ private:
  * @ingroup LinOp
  */
 template <typename ValueType>
-class DiagonalExtractable {
+class DiagonalExtractable : public DiagonalLinOpExtractable {
 public:
     using value_type = ValueType;
 
     virtual ~DiagonalExtractable() = default;
+
+    std::unique_ptr<LinOp> extract_diagonal_linop() const override;
 
     /**
      * Extracts the diagonal entries of the matrix into a vector.
