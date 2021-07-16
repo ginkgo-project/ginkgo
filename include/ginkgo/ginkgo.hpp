@@ -136,6 +136,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
 #include <ginkgo/core/solver/batch_cg.hpp>
+#include <ginkgo/core/solver/batch_direct.hpp>
 #include <ginkgo/core/solver/batch_gmres.hpp>
 #include <ginkgo/core/solver/batch_idr.hpp>
 #include <ginkgo/core/solver/batch_richardson.hpp>
