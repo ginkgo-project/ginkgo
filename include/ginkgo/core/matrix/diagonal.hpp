@@ -209,19 +209,6 @@ private:
 
 
 }  // namespace matrix
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> DiagonalExtractable<ValueType>::extract_diagonal_linop()
-    const
-{
-    auto diag = this->extract_diagonal();
-    auto p = dynamic_cast<LinOp *>(diag.get());
-    diag.release();
-    return std::unique_ptr<LinOp>{p};
-}
-
-
 }  // namespace gko
 
 
