@@ -310,8 +310,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void transpose(std::shared_ptr<const CudaExecutor> exec,
-               const matrix::BatchDense<ValueType> *orig,
-               matrix::BatchDense<ValueType> *trans) GKO_NOT_IMPLEMENTED;
+               const matrix::BatchDense<ValueType> *const orig,
+               matrix::BatchDense<ValueType> *const trans)
+{
+    using cu_val_type = cuda_type<ValueType>;
+    const size_type nbatch = orig->get_num_batch_entries();
+    const size_type orig_stride = orig->get_stride().at();
+    const size_type trans_stride = trans->get_stride().at();
+    const int nrows = orig->get_size().at()[0];
+    const int ncols = orig->get_size().at()[1];
+    transpose<<<nbatch, default_block_size>>>(
+        nrows, ncols, orig_stride, as_cuda_type(orig->get_const_values()),
+        trans_stride, as_cuda_type(trans->get_values()),
+        [] __device__(cu_val_type x) { return x; });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_TRANSPOSE_KERNEL);
 
@@ -319,7 +331,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_TRANSPOSE_KERNEL);
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::BatchDense<ValueType> *orig,
-                    matrix::BatchDense<ValueType> *trans) GKO_NOT_IMPLEMENTED;
+                    matrix::BatchDense<ValueType> *trans)
+{
+    using cu_val_type = cuda_type<ValueType>;
+    const size_type nbatch = orig->get_num_batch_entries();
+    const size_type orig_stride = orig->get_stride().at();
+    const size_type trans_stride = trans->get_stride().at();
+    const int nrows = orig->get_size().at()[0];
+    const int ncols = orig->get_size().at()[1];
+    transpose<<<nbatch, default_block_size>>>(
+        nrows, ncols, orig_stride, as_cuda_type(orig->get_const_values()),
+        trans_stride, as_cuda_type(trans->get_values()),
+        [] __device__(cu_val_type x) { return conj(x); });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CONJ_TRANSPOSE_KERNEL);

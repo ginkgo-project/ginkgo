@@ -495,4 +495,40 @@ TEST_F(BatchDense, BatchScaleIsEquivalentToRef)
 }
 
 
+TEST_F(BatchDense, TransposeIsEquivalentToRef)
+{
+    const int nrows = 11;
+    const int ncols = 6;
+    const size_t nbatch = 5;
+    const auto orig = gen_mtx<Mtx>(nbatch, nrows, ncols);
+    auto corig = Mtx::create(cuda);
+    corig->copy_from(orig.get());
+
+    auto trans = orig->transpose();
+    auto ctrans = corig->transpose();
+
+    auto dtrans = static_cast<const Mtx *>(trans.get());
+    auto dctrans = static_cast<const Mtx *>(ctrans.get());
+    GKO_ASSERT_BATCH_MTX_NEAR(dtrans, dctrans, 0.0);
+}
+
+
+TEST_F(BatchDense, ConjugateTransposeIsEquivalentToRef)
+{
+    const int nrows = 11;
+    const int ncols = 6;
+    const size_t nbatch = 5;
+    const auto orig = gen_mtx<Mtx>(nbatch, nrows, ncols);
+    auto corig = Mtx::create(cuda);
+    corig->copy_from(orig.get());
+
+    auto trans = orig->conj_transpose();
+    auto ctrans = corig->conj_transpose();
+
+    auto dtrans = static_cast<const Mtx *>(trans.get());
+    auto dctrans = static_cast<const Mtx *>(ctrans.get());
+    GKO_ASSERT_BATCH_MTX_NEAR(dtrans, dctrans, 0.0);
+}
+
+
 }  // namespace
