@@ -125,15 +125,15 @@ TYPED_TEST(SubMatrix, CanBeCreatedFromCsr)
     auto cspan4 = gko::span(3, 4);
     auto mtx4 = Mtx::create(this->exec, this->csr_mtx.get(), rspan4, cspan4);
 
-    GKO_EXPECT_MTX_NEAR(mtx->get_submatrix(), this->csr_mtx0,
+    GKO_EXPECT_MTX_NEAR(mtx->get_sub_matrix(), this->csr_mtx0,
                         r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(mtx1->get_submatrix(), this->csr_mtx1,
+    GKO_EXPECT_MTX_NEAR(mtx1->get_sub_matrix(), this->csr_mtx1,
                         r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(mtx2->get_submatrix(), this->csr_mtx2,
+    GKO_EXPECT_MTX_NEAR(mtx2->get_sub_matrix(), this->csr_mtx2,
                         r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(mtx3->get_submatrix(), this->csr_mtx01,
+    GKO_EXPECT_MTX_NEAR(mtx3->get_sub_matrix(), this->csr_mtx01,
                         r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(mtx4->get_submatrix(), this->csr_mtx12,
+    GKO_EXPECT_MTX_NEAR(mtx4->get_sub_matrix(), this->csr_mtx12,
                         r<value_type>::value);
 }
 
@@ -151,7 +151,7 @@ TYPED_TEST(SubMatrix, CanBeCreatedFromCsrWithOverlaps)
     auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), rspan, cspan,
                            ov_rspan, ov_cspan);
 
-    GKO_EXPECT_MTX_NEAR(mtx->get_submatrix(), this->csr_mtx11,
+    GKO_EXPECT_MTX_NEAR(mtx->get_sub_matrix(), this->csr_mtx11,
                         r<value_type>::value);
     GKO_EXPECT_MTX_NEAR(mtx->get_overlap_mtxs()[0], this->csr_mtx01,
                         r<value_type>::value);
@@ -175,10 +175,10 @@ TYPED_TEST(SubMatrix, CanBeCopied)
 
     copy->copy_from(mtx.get());
 
-    EXPECT_NE(copy->get_submatrix(), mtx->get_submatrix());
+    EXPECT_NE(copy->get_sub_matrix(), mtx->get_sub_matrix());
     EXPECT_NE(copy->get_overlap_mtxs()[0], mtx->get_overlap_mtxs()[0]);
     EXPECT_NE(copy->get_overlap_mtxs()[1], mtx->get_overlap_mtxs()[1]);
-    GKO_EXPECT_MTX_NEAR(copy->get_submatrix(), this->csr_mtx11,
+    GKO_EXPECT_MTX_NEAR(copy->get_sub_matrix(), this->csr_mtx11,
                         r<value_type>::value);
     GKO_EXPECT_MTX_NEAR(copy->get_overlap_mtxs()[0], this->csr_mtx01,
                         r<value_type>::value);
@@ -202,10 +202,10 @@ TYPED_TEST(SubMatrix, CanBeMoved)
 
     copy->copy_from(std::move(mtx.get()));
 
-    EXPECT_NE(copy->get_submatrix(), mtx->get_submatrix());
+    EXPECT_NE(copy->get_sub_matrix(), mtx->get_sub_matrix());
     EXPECT_NE(copy->get_overlap_mtxs()[0], mtx->get_overlap_mtxs()[0]);
     EXPECT_NE(copy->get_overlap_mtxs()[1], mtx->get_overlap_mtxs()[1]);
-    GKO_EXPECT_MTX_NEAR(copy->get_submatrix(), this->csr_mtx11,
+    GKO_EXPECT_MTX_NEAR(copy->get_sub_matrix(), this->csr_mtx11,
                         r<value_type>::value);
     GKO_EXPECT_MTX_NEAR(copy->get_overlap_mtxs()[0], this->csr_mtx01,
                         r<value_type>::value);
@@ -229,10 +229,10 @@ TYPED_TEST(SubMatrix, CanBeCloned)
 
     auto clone = mtx->clone();
 
-    EXPECT_NE(clone->get_submatrix(), mtx->get_submatrix());
+    EXPECT_NE(clone->get_sub_matrix(), mtx->get_sub_matrix());
     EXPECT_NE(clone->get_overlap_mtxs()[0], mtx->get_overlap_mtxs()[0]);
     EXPECT_NE(clone->get_overlap_mtxs()[1], mtx->get_overlap_mtxs()[1]);
-    GKO_EXPECT_MTX_NEAR(clone->get_submatrix(), this->csr_mtx11,
+    GKO_EXPECT_MTX_NEAR(clone->get_sub_matrix(), this->csr_mtx11,
                         r<value_type>::value);
     GKO_EXPECT_MTX_NEAR(clone->get_overlap_mtxs()[0], this->csr_mtx01,
                         r<value_type>::value);
