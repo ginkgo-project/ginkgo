@@ -416,3 +416,41 @@ __global__ void uniform_batch_scale(
         batch_scale(left_b, right_b, a_b);
     }
 }
+
+
+template <typename ValueType>
+__device__ __forceinline__ void convert_to_batch_dense(
+    const int nrows, const int ncols, const int *const row_ptrs,
+    const int *const col_idxs, const ValueType *const values,
+    const size_type dense_stride, ValueType *const dense)
+{
+    constexpr auto warp_size = config::warp_size;
+    const auto tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const int tile_rank = threadIdx.x / warp_size;
+    const int num_tiles = (blockDim.x - 1) / warp_size + 1;
+
+    for (int i_row = tile_rank; i_row < nrows; i_row += num_tiles) {
+        for (int j = tile.thread_rank(); j < ncols; j += warp_size) {
+            dense[i_row * dense_stride + j] = zero<ValueType>();
+        }
+        for (int iz = row_ptrs[i_row] + tile.thread_rank();
+             iz < row_ptrs[i_row + 1]; iz += warp_size) {
+            dense[i_row * dense_stride + col_idxs[iz]] = values[iz];
+        }
+    }
+}
+
+template <typename ValueType>
+__global__ void uniform_convert_to_batch_dense(
+    const size_type nbatch, const int nrows, const int ncols, const int nnz,
+    const int *const __restrict__ row_ptrs,
+    const int *const __restrict__ col_idxs,
+    const ValueType *const __restrict__ values, const size_type dense_stride,
+    ValueType *const __restrict__ dense)
+{
+    const ValueType *const bvalues = values + blockIdx.x * nnz;
+    ValueType *const bdense = dense + blockIdx.x * dense_stride * nrows;
+    convert_to_batch_dense(nrows, ncols, row_ptrs, col_idxs, bvalues,
+                           dense_stride, bdense);
+}

@@ -260,6 +260,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_SCALE);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_batch_dense(
+    std::shared_ptr<const HipExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType> *const src,
+    matrix::BatchDense<ValueType> *const dest) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_CSR_CONVERT_TO_BATCH_DENSE);
+
+
 }  // namespace batch_csr
 }  // namespace hip
 }  // namespace kernels
