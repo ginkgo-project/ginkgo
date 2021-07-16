@@ -64,7 +64,13 @@ target_compile_options(ginkgo_dpcpp PRIVATE $<TARGET_PROPERTY:MKL::MKL_DPCPP,INT
 target_compile_features(ginkgo_dpcpp PRIVATE cxx_std_17)
 target_include_directories(ginkgo_dpcpp PRIVATE $<TARGET_PROPERTY:MKL::MKL_DPCPP,INTERFACE_INCLUDE_DIRECTORIES>)
 target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-lib=all)
-target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-code-split=per_kernel)
+# When building ginkgo as a static library, we need to use dpcpp and per_kernel
+# link option when the program uses dpcpp related function.
+if (BUILD_SHARED_LIBS)
+    target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-code-split=per_kernel)
+else ()
+    target_link_options(ginkgo_dpcpp PUBLIC -fsycl-device-code-split=per_kernel)
+endif()
 target_link_libraries(ginkgo_dpcpp PUBLIC ginkgo_device)
 target_link_libraries(ginkgo_dpcpp PRIVATE $<LINK_ONLY:MKL::MKL_DPCPP>)
 if (GINKGO_DPCPP_SINGLE_MODE)
