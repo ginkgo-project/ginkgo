@@ -30,12 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_BASE_CONFIG_HPP_
-#define GKO_DPCPP_BASE_CONFIG_HPP_
+#include <CL/sycl.hpp>
 
 
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
+#include "dpcpp/base/helper.hpp"
 
 
 namespace gko {
@@ -43,34 +41,24 @@ namespace kernels {
 namespace dpcpp {
 
 
-struct config {
-    /**
-     * The type containing a bitmask over all lanes of a warp.
-     */
-    using lane_mask_type = uint64;
-
-
-    /**
-     * The number of threads within a CUDA warp.
-     */
-    static constexpr uint32 warp_size = 16;
-
-    /**
-     * The bitmask of the entire warp.
-     */
-    static constexpr auto full_lane_mask = ~zero<lane_mask_type>();
-
-    /**
-     * The minimal amount of warps that need to be scheduled for each block
-     * to maximize GPU occupancy.
-     */
-    static constexpr uint32 min_warps_per_block = 4;
-};
+bool validate(sycl::queue *queue, unsigned int workgroup_size,
+              unsigned int subgroup_size)
+{
+    {
+        auto device = queue->get_device();
+        auto subgroup_size_list =
+            device.get_info<cl::sycl::info::device::sub_group_sizes>();
+        auto max_workgroup_size =
+            device.get_info<sycl::info::device::max_work_group_size>();
+        bool allowed = false;
+        for (auto &i : subgroup_size_list) {
+            allowed |= (i == subgroup_size);
+        }
+        return allowed && (workgroup_size <= max_workgroup_size);
+    }
+}
 
 
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_DPCPP_BASE_CONFIG_HPP_

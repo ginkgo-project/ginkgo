@@ -121,7 +121,6 @@ GINKGO_LICENSE_BEACON="******************************<GINKGO LICENSE>***********
 
 CONTENT="content.cpp" # Store the residual part (start from namespace)
 BEFORE="before.cpp" # Store the main header and the #ifdef/#define of header file
-BEGIN="begin.cpp" # Store the header before license
 HAS_HIP_RUNTIME="false"
 DURING_LICENSE="false"
 INCLUDE_REGEX="^#include.*"

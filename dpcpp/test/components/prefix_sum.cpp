@@ -30,47 +30,67 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_BASE_CONFIG_HPP_
-#define GKO_DPCPP_BASE_CONFIG_HPP_
+#include "core/components/prefix_sum.hpp"
 
 
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
+#include <memory>
+#include <random>
+#include <vector>
 
 
-namespace gko {
-namespace kernels {
-namespace dpcpp {
+#include <gtest/gtest.h>
 
 
-struct config {
-    /**
-     * The type containing a bitmask over all lanes of a warp.
-     */
-    using lane_mask_type = uint64;
+#include <ginkgo/core/base/array.hpp>
 
 
-    /**
-     * The number of threads within a CUDA warp.
-     */
-    static constexpr uint32 warp_size = 16;
+#include "core/test/utils.hpp"
 
-    /**
-     * The bitmask of the entire warp.
-     */
-    static constexpr auto full_lane_mask = ~zero<lane_mask_type>();
 
-    /**
-     * The minimal amount of warps that need to be scheduled for each block
-     * to maximize GPU occupancy.
-     */
-    static constexpr uint32 min_warps_per_block = 4;
+namespace {
+
+
+class PrefixSum : public ::testing::Test {
+protected:
+    using index_type = gko::int32;
+    PrefixSum()
+        : ref(gko::ReferenceExecutor::create()),
+          exec(gko::DpcppExecutor::create(0, ref)),
+          rand(293),
+          total_size(42793),
+          vals(ref, total_size),
+          dvals(exec)
+    {
+        std::uniform_int_distribution<index_type> dist(0, 1000);
+        for (gko::size_type i = 0; i < total_size; ++i) {
+            vals.get_data()[i] = dist(rand);
+        }
+        dvals = vals;
+    }
+
+    void test(gko::size_type size)
+    {
+        gko::kernels::reference::components::prefix_sum(ref, vals.get_data(),
+                                                        size);
+        gko::kernels::dpcpp::components::prefix_sum(exec, dvals.get_data(),
+                                                    size);
+
+        GKO_ASSERT_ARRAY_EQ(vals, dvals);
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::DpcppExecutor> exec;
+    std::default_random_engine rand;
+    gko::size_type total_size;
+    gko::Array<index_type> vals;
+    gko::Array<index_type> dvals;
 };
 
 
-}  // namespace dpcpp
-}  // namespace kernels
-}  // namespace gko
+TEST_F(PrefixSum, SmallEqualsReference) { test(100); }
 
 
-#endif  // GKO_DPCPP_BASE_CONFIG_HPP_
+TEST_F(PrefixSum, BigEqualsReference) { test(total_size); }
+
+
+}  // namespace

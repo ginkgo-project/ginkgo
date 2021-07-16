@@ -40,10 +40,34 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <CL/sycl.hpp>
 
 
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/types.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+
+
+/**
+ * GKO_ENABLE_DEFAULT_HOST gives a default host implementation for those
+ * kernels which require encoded config but do not need explicit template
+ * parameter and share memory
+ *
+ * @param name_  the name of the host function with config
+ * @param kernel_  the kernel name
+ */
+#define GKO_ENABLE_DEFAULT_HOST(name_, kernel_)                     \
+    template <typename... InferredArgs>                             \
+    void name_(dim3 grid, dim3 block, size_t dynamic_shared_memory, \
+               sycl::queue *queue, InferredArgs... args)            \
+    {                                                               \
+        queue->submit([&](sycl::handler &cgh) {                     \
+            cgh.parallel_for(sycl_nd_range(grid, block),            \
+                             [=](sycl::nd_item<3> item_ct1) {       \
+                                 kernel_(args..., item_ct1);        \
+                             });                                    \
+        });                                                         \
+    }
 
 
 /**
@@ -115,18 +139,19 @@ namespace dpcpp {
 
 
 bool validate(sycl::queue *queue, unsigned workgroup_size,
-              unsigned subgroup_size)
+              unsigned subgroup_size);
+
+
+template <typename IterArr, typename Validate>
+std::uint32_t get_first_cfg(IterArr &arr, Validate verify)
 {
-    auto device = queue->get_device();
-    auto subgroup_size_list =
-        device.get_info<cl::sycl::info::device::sub_group_sizes>();
-    auto max_workgroup_size =
-        device.get_info<sycl::info::device::max_work_group_size>();
-    bool allowed = false;
-    for (auto &i : subgroup_size_list) {
-        allowed |= (i == subgroup_size);
+    for (auto &cfg : arr) {
+        if (verify(cfg)) {
+            return cfg;
+        }
     }
-    return allowed && (workgroup_size <= max_workgroup_size);
+    GKO_NOT_SUPPORTED(arr);
+    return 0;
 }
 
 
