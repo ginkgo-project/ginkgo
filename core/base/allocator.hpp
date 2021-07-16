@@ -73,8 +73,89 @@ public:
      * @tparam ExecType  the static type of the executor
      */
     template <typename ExecType>
-    ExecutorAllocator(std::shared_ptr<ExecType> exec) : exec_{std::move(exec)}
+    ExecutorAllocator(std::shared_ptr<ExecType> exec) noexcept
+        : exec_{std::move(exec)}
     {}
+
+    /**
+     * Copy-constructs an allocator.
+     *
+     * @param other  the other allocator
+     */
+    ExecutorAllocator(const ExecutorAllocator &other) noexcept
+        : exec_{other.get_executor()}
+    {}
+
+    /**
+     * Move-constructs an allocator.
+     *
+     * This is required to not modify the original allocator!
+     *
+     * @param other  the other allocator
+     */
+    ExecutorAllocator(ExecutorAllocator &&other) noexcept
+        : exec_{other.get_executor()}
+    {}
+
+    /**
+     * Move-assigns an allocator.
+     *
+     * This is required to not modify the original allocator!
+     *
+     * @param other  the other allocator
+     * @tparam U  the element type of the allocator to be assigned.
+     */
+    ExecutorAllocator &operator=(ExecutorAllocator &&other) noexcept
+    {
+        exec_ = other.get_executor();
+        return *this;
+    }
+
+    /**
+     * Copy-assigns an allocator.
+     *
+     * @param other  the other allocator
+     * @tparam U  the element type of the allocator to be assigned.
+     */
+    ExecutorAllocator &operator=(const ExecutorAllocator &other) noexcept
+    {
+        exec_ = other.get_executor();
+        return *this;
+    }
+
+    /**
+     * Move-assigns an allocator.
+     *
+     * This is related to `std::allocator_traits::template rebind<U>` and its
+     * use in more advanced data structures.
+     *
+     * This is required to not modify the original allocator!
+     *
+     * @param other  the other allocator
+     * @tparam U  the element type of the allocator to be assigned.
+     */
+    template <typename U>
+    ExecutorAllocator &operator=(ExecutorAllocator<U> &&other) noexcept
+    {
+        exec_ = other.get_executor();
+        return *this;
+    }
+
+    /**
+     * Copy-assigns an allocator.
+     *
+     * This is related to `std::allocator_traits::template rebind<U>` and its
+     * use in more advanced data structures.
+     *
+     * @param other  the other allocator
+     * @tparam U  the element type of the allocator to be assigned.
+     */
+    template <typename U>
+    ExecutorAllocator &operator=(const ExecutorAllocator<U> &other) noexcept
+    {
+        exec_ = other.get_executor();
+        return *this;
+    }
 
     /**
      * Constructs an allocator for another element type from a given executor.
@@ -82,16 +163,36 @@ public:
      * This is related to `std::allocator_traits::template rebind<U>` and its
      * use in more advanced data structures.
      *
-     * @param other  the other executor
+     * @param other  the other allocator
      * @tparam U  the element type of the allocator to be constructed.
      */
     template <typename U>
-    ExecutorAllocator(const ExecutorAllocator<U> &other)
+    ExecutorAllocator(const ExecutorAllocator<U> &other) noexcept
+        : exec_{other.get_executor()}
+    {}
+
+    /**
+     * Move-constructs an allocator for another element type from a given
+     * executor.
+     *
+     * This is related to `std::allocator_traits::template rebind<U>` and its
+     * use in more advanced data structures.
+     *
+     * This is required to not modify the original allocator!
+     *
+     * @param other  the other allocator
+     * @tparam U  the element type of the allocator to be constructed.
+     */
+    template <typename U>
+    ExecutorAllocator(ExecutorAllocator<U> &&other) noexcept
         : exec_{other.get_executor()}
     {}
 
     /** Returns the executor used by this allocator.  */
-    std::shared_ptr<const Executor> get_executor() const { return exec_; }
+    std::shared_ptr<const Executor> get_executor() const noexcept
+    {
+        return exec_;
+    }
 
     /**
      * Allocates a memory area of the given size.
@@ -119,7 +220,7 @@ public:
      */
     template <typename T2>
     friend bool operator==(const ExecutorAllocator<T> &l,
-                           const ExecutorAllocator<T2> &r)
+                           const ExecutorAllocator<T2> &r) noexcept
     {
         return l.get_executor() == r.get_executor();
     }
@@ -133,7 +234,7 @@ public:
      */
     template <typename T2>
     friend bool operator!=(const ExecutorAllocator<T> &l,
-                           const ExecutorAllocator<T2> &r)
+                           const ExecutorAllocator<T2> &r) noexcept
     {
         return !(l == r);
     }

@@ -132,6 +132,14 @@ TEST(CudaError, ReturnsCusparseError)
 }
 
 
+void throws_cufft_error() { throw GKO_CUFFT_ERROR(0); }
+
+TEST(CudaError, ReturnsCufftError)
+{
+    ASSERT_THROW(throws_cufft_error(), gko::CufftError);
+}
+
+
 void throws_hip_error() { throw GKO_HIP_ERROR(0); }
 
 TEST(HipError, ReturnsHipError)
@@ -161,6 +169,14 @@ void throws_hipsparse_error() { throw GKO_HIPSPARSE_ERROR(0); }
 TEST(HipError, ReturnsHipsparseError)
 {
     ASSERT_THROW(throws_hipsparse_error(), gko::HipsparseError);
+}
+
+
+void throws_hipfft_error() { throw GKO_HIPFFT_ERROR(0); }
+
+TEST(HipError, ReturnsHipfftError)
+{
+    ASSERT_THROW(throws_hipfft_error(), gko::HipfftError);
 }
 
 

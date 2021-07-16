@@ -932,6 +932,35 @@ abs(const T &x)
 
 
 /**
+ * Returns the value of pi.
+ *
+ * @tparam T  the value type to return
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr T pi()
+{
+    return static_cast<T>(3.1415926535897932384626433);
+}
+
+
+/**
+ * Returns the value of exp(2 * pi * i * k / n), i.e. an nth root of unity.
+ *
+ * @param n  the denominator of the argument
+ * @param i  the numerator of the argument. Defaults to 1.
+ *
+ * @tparam T  the corresponding real value type.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr std::complex<remove_complex<T>> unit_root(
+    int64 n, int64 k = 1)
+{
+    return std::polar(one<remove_complex<T>>(),
+                      remove_complex<T>{2} * pi<remove_complex<T>>() * k / n);
+}
+
+
+/**
  * Returns the position of the most significant bit of the number.
  *
  * This is the same as the rounded down base-2 logarithm of the number.

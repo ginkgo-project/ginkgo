@@ -19,6 +19,7 @@ target_sources(ginkgo_reference
     matrix/diagonal_kernels.cpp
     matrix/ell_kernels.cpp
     matrix/fbcsr_kernels.cpp
+    matrix/fft_kernels.cpp
     matrix/hybrid_kernels.cpp
     matrix/sellp_kernels.cpp
     matrix/sparsity_csr_kernels.cpp

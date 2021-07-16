@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <cufft.h>
 #include <curand.h>
 #include <cusparse.h>
 
@@ -90,6 +91,18 @@ TEST(AssertNoCusparseErrors, ThrowsOnError)
 TEST(AssertNoCusparseErrors, DoesNotThrowOnSuccess)
 {
     ASSERT_NO_THROW(GKO_ASSERT_NO_CUSPARSE_ERRORS(CUSPARSE_STATUS_SUCCESS));
+}
+
+
+TEST(AssertNoCufftErrors, ThrowsOnError)
+{
+    ASSERT_THROW(GKO_ASSERT_NO_CUFFT_ERRORS(1), gko::CufftError);
+}
+
+
+TEST(AssertNoCufftErrors, DoesNotThrowOnSuccess)
+{
+    ASSERT_NO_THROW(GKO_ASSERT_NO_CUFFT_ERRORS(CUFFT_SUCCESS));
 }
 
 

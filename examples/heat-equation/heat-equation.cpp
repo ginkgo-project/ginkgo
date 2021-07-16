@@ -151,8 +151,8 @@ int main(int argc, char *argv[])
     // create a CUDA executor with an associated OpenMP host executor
     auto exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
     // load heat source and initial state vectors
-    std::ifstream source_stream("data/source.mtx");
-    std::ifstream initial_stream("data/initial.mtx");
+    std::ifstream initial_stream("data/gko_logo_2d.mtx");
+    std::ifstream source_stream("data/gko_text_2d.mtx");
     auto source = gko::read<vec>(source_stream, exec);
     auto in_vector = gko::read<vec>(initial_stream, exec);
     // create output vector with initial guess for

@@ -136,6 +136,12 @@ std::string HipsparseError::get_error(int64)
 }
 
 
+std::string HipfftError::get_error(int64)
+{
+    return "ginkgo HIP module is not compiled";
+}
+
+
 int HipExecutor::get_num_devices() { return 0; }
 
 
