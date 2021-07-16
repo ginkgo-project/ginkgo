@@ -72,8 +72,11 @@ if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
             solver/batch_gmres_kernels.cu
             solver/batch_idr_kernels.cu
             solver/batch_richardson_kernels.cu
-			PROPERTIES COMPILE_FLAGS "-maxrregcount ${GINKGO_CUDA_BATCH_SOLVERS_MAXREGCOUNT}")
+            PROPERTIES COMPILE_FLAGS "-maxrregcount ${GINKGO_CUDA_BATCH_SOLVERS_MAXREGCOUNT}")
     endif()
+    set_source_files_properties(
+        matrix/batch_dense_kernels.cu
+        PROPERTIES COMPILE_FLAGS "--expt-extended-lambda")
 endif()
 
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
