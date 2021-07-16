@@ -246,4 +246,23 @@ TEST_F(BatchCsr, BatchScaleIsEquivalentToReference)
 }
 
 
+TEST_F(BatchCsr, ConvertToBatchDenseIsEquivalentToReference)
+{
+    using Dense = gko::matrix::BatchDense<value_type>;
+    const size_t batch_size = mtx_size.get_num_batch_entries();
+    const int nrows = mtx_size.at()[0];
+    const int ncols = mtx_size.at()[1];
+    auto mtx = gen_mtx<Mtx>(batch_size, nrows, ncols, nrows / 10);
+    auto cmtx = Mtx::create(cuda);
+    cmtx->copy_from(mtx.get());
+    auto dense = Dense::create(ref, mtx_size);
+    auto cdense = Dense::create(cuda, mtx_size);
+
+    mtx->convert_to(dense.get());
+    cmtx->convert_to(cdense.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dense, cdense, 0.0);
+}
+
+
 }  // namespace
