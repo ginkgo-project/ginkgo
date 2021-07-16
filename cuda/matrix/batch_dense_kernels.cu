@@ -60,11 +60,12 @@ namespace cuda {
 namespace batch_dense {
 
 
-constexpr auto default_block_size = 512;
+constexpr auto default_block_size = 256;
 constexpr int sm_multiplier = 4;
 
 
 #include "common/matrix/batch_dense_kernels.hpp.inc"
+#include "common/matrix/batch_vector_kernels.hpp.inc"
 
 
 template <typename ValueType>
@@ -124,10 +125,19 @@ void add_scaled(std::shared_ptr<const CudaExecutor> exec,
                 matrix::BatchDense<ValueType> *const y)
 {
     const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
-    const auto alpha_ub = get_batch_struct(alpha);
-    const auto x_ub = get_batch_struct(x);
-    const auto y_ub = get_batch_struct(y);
-    add_scaled<<<num_blocks, default_block_size>>>(alpha_ub, x_ub, y_ub);
+    const size_type nrhs = x->get_size().at(0)[1];
+    if (nrhs == 1) {
+        const auto num_batch = x->get_num_batch_entries();
+        const auto num_rows = x->get_size().at(0)[0];
+        single_add_scaled<<<num_blocks, default_block_size>>>(
+            num_batch, num_rows, as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(x->get_const_values()), as_cuda_type(y->get_values()));
+    } else {
+        const auto alpha_ub = get_batch_struct(alpha);
+        const auto x_ub = get_batch_struct(x);
+        const auto y_ub = get_batch_struct(y);
+        add_scaled<<<num_blocks, default_block_size>>>(alpha_ub, x_ub, y_ub);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL);
@@ -168,11 +178,21 @@ void compute_dot(std::shared_ptr<const CudaExecutor> exec,
                  const matrix::BatchDense<ValueType> *y,
                  matrix::BatchDense<ValueType> *result)
 {
-    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
-    const auto x_ub = get_batch_struct(x);
-    const auto y_ub = get_batch_struct(y);
-    const auto res_ub = get_batch_struct(result);
-    compute_dot_product<<<num_blocks, default_block_size>>>(x_ub, y_ub, res_ub);
+    const auto num_blocks = x->get_num_batch_entries();
+    const auto num_rhs = x->get_size().at()[1];
+    if (num_rhs == 1) {
+        const auto num_rows = x->get_size().at()[0];
+        single_compute_dot_product<<<num_blocks, default_block_size>>>(
+            num_blocks, num_rows, as_cuda_type(x->get_const_values()),
+            as_cuda_type(y->get_const_values()),
+            as_cuda_type(result->get_values()));
+    } else {
+        const auto x_ub = get_batch_struct(x);
+        const auto y_ub = get_batch_struct(y);
+        const auto res_ub = get_batch_struct(result);
+        compute_dot_product<<<num_blocks, default_block_size>>>(x_ub, y_ub,
+                                                                res_ub);
+    }
 }
 
 
@@ -204,10 +224,18 @@ void compute_norm2(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::BatchDense<ValueType> *const x,
                    matrix::BatchDense<remove_complex<ValueType>> *const result)
 {
-    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
-    const auto x_ub = get_batch_struct(x);
-    const auto res_ub = get_batch_struct(result);
-    compute_norm2<<<num_blocks, default_block_size>>>(x_ub, res_ub);
+    const auto num_blocks = x->get_num_batch_entries();
+    const auto num_rhs = x->get_size().at()[1];
+    if (num_rhs == 1) {
+        const auto num_rows = x->get_size().at()[0];
+        single_compute_norm2<<<num_blocks, default_block_size>>>(
+            num_blocks, num_rows, as_cuda_type(x->get_const_values()),
+            as_cuda_type(result->get_values()));
+    } else {
+        const auto x_ub = get_batch_struct(x);
+        const auto res_ub = get_batch_struct(result);
+        compute_norm2<<<num_blocks, default_block_size>>>(x_ub, res_ub);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -328,17 +356,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void batch_scale(std::shared_ptr<const DefaultExecutor> exec,
-                 const matrix::BatchDense<ValueType> *diag_vec,
-                 matrix::BatchDense<ValueType> *x)
+void batch_scale(std::shared_ptr<const CudaExecutor> exec,
+                 const matrix::BatchDense<ValueType> *const scale_vec,
+                 matrix::BatchDense<ValueType> *const vec_to_scale)
 {
-    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
-    const auto diag_vec_ub = get_batch_struct(diag_vec);
-    const auto x_ub = get_batch_struct(x);
-    batch_scale<<<num_blocks, default_block_size>>>(diag_vec_ub, x_ub);
+    if (!scale_vec->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+
+    const auto stride = vec_to_scale->get_stride().at();
+    const auto nrows = vec_to_scale->get_size().at()[0];
+    const auto nrhs = vec_to_scale->get_size().at()[1];
+    const auto nbatch = vec_to_scale->get_num_batch_entries();
+
+    const int num_blocks = vec_to_scale->get_num_batch_entries();
+    uniform_batch_scale<<<num_blocks, default_block_size>>>(
+        nrows, stride, nrhs, nbatch,
+        as_cuda_type(scale_vec->get_const_values()),
+        as_cuda_type(vec_to_scale->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL);
+
 
 }  // namespace batch_dense
 }  // namespace cuda

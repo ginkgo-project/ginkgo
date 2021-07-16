@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 template <typename BatchMatrixType_entry, typename ValueType>
 inline void initialize(
     const BatchMatrixType_entry &A_entry,
@@ -239,23 +238,22 @@ inline void update_x_middle(
 
 
 template <typename StopType, typename PrecType, typename LogType,
-          typename BatchMatrixType, typename ValueType, typename byte>
+          typename BatchMatrixType, typename ValueType>
 inline void batch_entry_bicgstab_impl(
     const gko::kernels::batch_bicgstab::BatchBicgstabOptions<
         remove_complex<ValueType>> &opts,
     LogType logger, PrecType prec, const BatchMatrixType &a,
-    const gko::batch_dense::UniformBatch<const ValueType> &left,
-    const gko::batch_dense::UniformBatch<const ValueType> &right,
-    const gko::batch_dense::UniformBatch<ValueType> &b,
+    const gko::batch_dense::UniformBatch<const ValueType> &b,
     const gko::batch_dense::UniformBatch<ValueType> &x, const size_type ibatch,
-    Array<byte> &local_space)
+    Array<unsigned char> &local_space)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
+    GKO_ASSERT((nrhs <= batch_config<ValueType>::max_num_rhs));
 
-    byte *const shared_space = local_space.get_data();
+    unsigned char *const shared_space = local_space.get_data();
     ValueType *const r = reinterpret_cast<ValueType *>(shared_space);
     ValueType *const r_hat = r + nrows * nrhs;
     ValueType *const p = r_hat + nrows * nrhs;
@@ -265,33 +263,15 @@ inline void batch_entry_bicgstab_impl(
     ValueType *const s_hat = s + nrows * nrhs;
     ValueType *const t = s_hat + nrows * nrhs;
     ValueType *const prec_work = t + nrows * nrhs;
-    ValueType *const rho_old =
-        prec_work + PrecType::dynamic_work_size(nrows, a.num_nnz);
-    ValueType *const rho_new = rho_old + nrhs;
-    ValueType *const omega = rho_new + nrhs;
-    ValueType *const alpha = omega + nrhs;
-    ValueType *const temp = alpha + nrhs;
-    real_type *const norms_rhs = reinterpret_cast<real_type *>(temp + nrhs);
-    real_type *const norms_res = norms_rhs + nrhs;
+    ValueType rho_old[batch_config<ValueType>::max_num_rhs];
+    ValueType rho_new[batch_config<ValueType>::max_num_rhs];
+    ValueType omega[batch_config<ValueType>::max_num_rhs];
+    ValueType alpha[batch_config<ValueType>::max_num_rhs];
+    ValueType temp[batch_config<ValueType>::max_num_rhs];
+    real_type norms_rhs[batch_config<ValueType>::max_num_rhs];
+    real_type norms_res[batch_config<ValueType>::max_num_rhs];
 
     uint32 converged = 0;
-
-
-    const gko::batch_dense::BatchEntry<const ValueType> left_entry =
-        gko::batch::batch_entry(left, ibatch);
-
-    const gko::batch_dense::BatchEntry<const ValueType> right_entry =
-        gko::batch::batch_entry(right, ibatch);
-
-    // scale the matrix and rhs
-    if (left_entry.values) {
-        const typename BatchMatrixType::entry_type A_entry =
-            gko::batch::batch_entry(a, ibatch);
-        const gko::batch_dense::BatchEntry<ValueType> b_entry =
-            gko::batch::batch_entry(b, ibatch);
-        batch_scale(left_entry, right_entry, A_entry);
-        batch_dense::batch_scale(left_entry, b_entry);
-    }
 
     // const typename BatchMatrixType::entry_type A_entry =
     const auto A_entry =
@@ -469,9 +449,5 @@ inline void batch_entry_bicgstab_impl(
         // rho_old = rho_new
         batch_dense::copy(gko::batch::to_const(rho_new_entry), rho_old_entry,
                           converged);
-    }
-
-    if (left_entry.values) {
-        batch_dense::batch_scale(right_entry, x_entry);
     }
 }

@@ -36,9 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-
 #include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
+
+
 #include "core/log/batch_logging.hpp"
 
 namespace gko {
@@ -71,7 +72,7 @@ struct BatchBicgstabOptions {
  * - s_hat
  * - t
  * - x
- * and small arrays for
+ * Note: small arrays for
  * - rho_old
  * - rho_new
  * - omega
@@ -79,12 +80,13 @@ struct BatchBicgstabOptions {
  * - temp
  * - rhs_norms
  * - res_norms
+ * are currently not accounted for as they are in static shared memory.
  */
 template <typename ValueType>
 inline int local_memory_requirement(const int num_rows, const int num_rhs)
 {
-    return (9 * num_rows * num_rhs + 5 * num_rhs) * sizeof(ValueType) +
-           2 * num_rhs * sizeof(typename gko::remove_complex<ValueType>);
+    return (9 * num_rows * num_rhs) * sizeof(ValueType);
+    //+ 2 * num_rhs * sizeof(typename gko::remove_complex<ValueType>);
 }
 
 
@@ -93,8 +95,6 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs)
                const gko::kernels::batch_bicgstab::BatchBicgstabOptions< \
                    remove_complex<_type>> &options,                      \
                const BatchLinOp *const a,                                \
-               const matrix::BatchDense<_type> *const left_scale,        \
-               const matrix::BatchDense<_type> *const right_scale,       \
                const matrix::BatchDense<_type> *const b,                 \
                matrix::BatchDense<_type> *const x,                       \
                gko::log::BatchLogData<_type> &logdata)
@@ -160,4 +160,4 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace gko
 
 
-#endif
+#endif  // GKO_CORE_SOLVER_BATCH_BICGSTAB_KERNELS_HPP_

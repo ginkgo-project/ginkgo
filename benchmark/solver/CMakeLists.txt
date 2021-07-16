@@ -1,2 +1,3 @@
 ginkgo_add_typed_benchmark_executables(solver "YES" solver.cpp)
 ginkgo_add_typed_benchmark_executables(batch_solver "YES" batch_solver.cpp)
+ginkgo_add_single_benchmark_executable(batch_solver_profile "NO" GKO_BENCHMARK_USE_DOUBLE_PRECISION batch_solver_profile.cpp)

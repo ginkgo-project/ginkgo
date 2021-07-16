@@ -54,8 +54,6 @@ template <typename ValueType>
 void apply(std::shared_ptr<const OmpExecutor>,
            const BatchRichardsonOptions<remove_complex<ValueType>> &,
            const BatchLinOp *, const matrix::BatchDense<ValueType> *,
-           const matrix::BatchDense<ValueType> *,
-           const matrix::BatchDense<ValueType> *,
            matrix::BatchDense<ValueType> *,
            log::BatchLogData<ValueType> &) GKO_NOT_IMPLEMENTED;
 
