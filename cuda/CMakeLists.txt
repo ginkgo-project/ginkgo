@@ -116,6 +116,9 @@ if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
             solver/batch_richardson_kernels.cu
 			PROPERTIES COMPILE_FLAGS "-maxrregcount ${GINKGO_CUDA_BATCH_SOLVERS_MAXREGCOUNT}")
     endif()
+    set_source_files_properties(
+        matrix/batch_dense_kernels.cu
+        PROPERTIES COMPILE_FLAGS "--expt-extended-lambda")
 endif()
 
 target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_COMPILER_FLAGS}>)
