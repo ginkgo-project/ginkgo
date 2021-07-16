@@ -102,8 +102,29 @@ void DpcppExecutor::populate_exec_info(const MachineTopology *mach_topo)
 
 void DpcppExecutor::raw_free(void *ptr) const noexcept
 {
-    queue_->wait_and_throw();
-    sycl::free(ptr, queue_->get_context());
+    // the free function may syncronize excution or not, which depends on
+    // implementation or backend, so it is not guaranteed.
+    // TODO: maybe a light wait implementation?
+    try {
+        queue_->wait_and_throw();
+        sycl::free(ptr, queue_->get_context());
+    } catch (cl::sycl::exception &err) {
+#if GKO_VERBOSE_LEVEL >= 1
+        // Unfortunately, if memory free fails, there's not much we can do
+        std::cerr << "Unrecoverable Dpcpp error on device "
+                  << this->get_device_id() << " in " << __func__ << ": "
+                  << err.what() << std::endl
+                  << "Exiting program" << std::endl;
+#endif  // GKO_VERBOSE_LEVEL >= 1
+        // OpenCL error code use 0 for CL_SUCCESS and negative number for others
+        // error. if the error is not from OpenCL, it will return CL_SUCCESS.
+        int err_code = err.get_cl_code();
+        // if return CL_SUCCESS, exit 1 as DPCPP error.
+        if (err_code == 0) {
+            err_code = 1;
+        }
+        std::exit(err_code);
+    }
 }
 
 
@@ -144,7 +165,21 @@ void DpcppExecutor::raw_copy_to(const DpcppExecutor *dest, size_type num_bytes,
                                 const void *src_ptr, void *dest_ptr) const
 {
     if (num_bytes > 0) {
-        dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+        // If the queue is different and is not cpu/host, the queue can not
+        // transfer the data to another queue (on the same device)
+        // Note. it could be changed when we ensure the behavior is expected.
+        auto queue = this->get_queue();
+        auto dest_queue = dest->get_queue();
+        auto device = queue->get_device();
+        auto dest_device = dest_queue->get_device();
+        if (((device.is_host() || device.is_cpu()) &&
+             (dest_device.is_host() || dest_device.is_cpu())) ||
+            (queue == dest_queue)) {
+            dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+        } else {
+            // the memcpy only support host<->device or itself memcpy
+            GKO_NOT_SUPPORTED(dest);
+        }
     }
 }
 
@@ -176,15 +211,16 @@ bool DpcppExecutor::verify_memory_to(const OmpExecutor *dest_exec) const
 
 bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
 {
-    auto device = detail::get_devices(
-        get_exec_info().device_type)[get_exec_info().device_id];
-    auto other_device = detail::get_devices(
-        dest_exec->get_device_type())[dest_exec->get_device_id()];
+    // If the queue is different and is not cpu/host, the queue can not access
+    // the data from another queue (on the same device)
+    // Note. it could be changed when we ensure the behavior is expected.
+    auto queue = this->get_queue();
+    auto dest_queue = dest_exec->get_queue();
+    auto device = queue->get_device();
+    auto dest_device = dest_queue->get_device();
     return ((device.is_host() || device.is_cpu()) &&
-            (other_device.is_host() || other_device.is_cpu())) ||
-           (device.get_info<cl::sycl::info::device::device_type>() ==
-                other_device.get_info<cl::sycl::info::device::device_type>() &&
-            device.get() == other_device.get());
+            (dest_device.is_host() || dest_device.is_cpu())) ||
+           (queue == dest_queue);
 }
 
 
