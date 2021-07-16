@@ -120,14 +120,15 @@ protected:
     int single_iters_regression()
     {
         if (std::is_same<real_type, float>::value) {
-            return 26;
+            return 18;
         } else if (std::is_same<real_type, double>::value) {
-            return 74;
+            return 50;
         } else {
             return -1;
         }
     }
 
+#if 0
     std::vector<int> multiple_iters_regression()
     {
         std::vector<int> iters(2);
@@ -143,6 +144,7 @@ protected:
         }
         return iters;
     }
+#endif
 };
 
 TYPED_TEST_SUITE(BatchGmres, gko::test::ValueTypes);
