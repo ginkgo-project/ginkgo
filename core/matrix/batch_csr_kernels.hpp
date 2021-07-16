@@ -112,6 +112,12 @@ namespace kernels {
                      const matrix::BatchDense<ValueType> *right_scale, \
                      matrix::BatchCsr<ValueType, IndexType> *mat)
 
+#define GKO_DECLARE_BATCH_CSR_CONVERT_TO_BATCH_DENSE(ValueType, IndexType) \
+    void convert_to_batch_dense(                                           \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        const matrix::BatchCsr<ValueType, IndexType> *csr,                 \
+        matrix::BatchDense<ValueType> *dense)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_BATCH_CSR_SPMV_KERNEL(ValueType, IndexType);                 \
@@ -136,7 +142,9 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_BATCH_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType);   \
     template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_CSR_SCALE(ValueType, IndexType)
+    GKO_DECLARE_BATCH_CSR_SCALE(ValueType, IndexType);                       \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_BATCH_CSR_CONVERT_TO_BATCH_DENSE(ValueType, IndexType)
 
 
 namespace omp {

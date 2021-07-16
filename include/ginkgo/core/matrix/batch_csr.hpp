@@ -71,6 +71,7 @@ class BatchCsr
     : public EnableBatchLinOp<BatchCsr<ValueType, IndexType>>,
       public EnableCreateMethod<BatchCsr<ValueType, IndexType>>,
       public ConvertibleTo<BatchCsr<next_precision<ValueType>, IndexType>>,
+      public ConvertibleTo<BatchDense<ValueType>>,
       public BatchReadableFromMatrixData<ValueType, IndexType>,
       public BatchWritableToMatrixData<ValueType, IndexType>,
       public BatchTransposable,
@@ -110,6 +111,10 @@ public:
 
     void move_to(
         BatchCsr<next_precision<ValueType>, IndexType> *result) override;
+
+    void convert_to(BatchDense<ValueType> *result) const override;
+
+    void move_to(BatchDense<ValueType> *result) override;
 
     void read(const std::vector<mat_data> &data) override;
 

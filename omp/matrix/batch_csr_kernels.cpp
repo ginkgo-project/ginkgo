@@ -239,6 +239,30 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_batch_dense(
+    std::shared_ptr<const OmpExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType> *const src,
+    matrix::BatchDense<ValueType> *const dest)
+{
+    const size_type nbatches = src->get_num_batch_entries();
+    const int nrows = src->get_size().at()[0];
+    const int ncols = src->get_size().at()[1];
+    const int nnz = src->get_const_row_ptrs()[nrows];
+    const size_type dstride = dest->get_stride().at();
+#pragma omp parallel for
+    for (size_type ibatch = 0; ibatch < nbatches; ibatch++) {
+        gko::kernels::reference::convert_csr_to_dense(
+            nrows, ncols, src->get_const_row_ptrs(), src->get_const_col_idxs(),
+            src->get_const_values() + ibatch * nnz, dstride,
+            dest->get_values() + ibatch * dstride * nrows);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_CSR_CONVERT_TO_BATCH_DENSE);
+
+
 }  // namespace batch_csr
 }  // namespace omp
 }  // namespace kernels
