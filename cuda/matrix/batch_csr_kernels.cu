@@ -226,6 +226,27 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_SCALE);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_batch_dense(
+    std::shared_ptr<const CudaExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType> *const src,
+    matrix::BatchDense<ValueType> *const dest)
+{
+    const size_type nbatches = src->get_num_batch_entries();
+    const int nrows = src->get_size().at()[0];
+    const int ncols = src->get_size().at()[1];
+    const int nnz = static_cast<int>(src->get_num_stored_elements() / nbatches);
+    const size_type dstride = dest->get_stride().at();
+    uniform_convert_to_batch_dense<<<nbatches, default_block_size>>>(
+        nbatches, nrows, ncols, nnz, src->get_const_row_ptrs(),
+        src->get_const_col_idxs(), as_cuda_type(src->get_const_values()),
+        dstride, as_cuda_type(dest->get_values()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_CSR_CONVERT_TO_BATCH_DENSE);
+
+
 }  // namespace batch_csr
 }  // namespace cuda
 }  // namespace kernels

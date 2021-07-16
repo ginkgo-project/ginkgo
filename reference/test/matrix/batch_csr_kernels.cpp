@@ -353,38 +353,6 @@ TYPED_TEST(BatchCsr, AppliesLinearCombinationToDenseMatrix)
 }
 
 
-// TYPED_TEST(BatchCsr, AppliesLinearCombinationToIdentityMatrix)
-//{
-//    using T = typename TestFixture::value_type;
-//    using Vec = typename TestFixture::Vec;
-//    using Mtx = typename TestFixture::Mtx;
-//    auto alpha = gko::initialize<Vec>({-3.0}, this->exec);
-//    auto beta = gko::initialize<Vec>({2.0}, this->exec);
-//    auto a = gko::initialize<Mtx>(
-//        {I<T>{2.0, 0.0, 3.0}, I<T>{0.0, 1.0, -1.5}, I<T>{0.0, -2.0, 0.0},
-//         I<T>{5.0, 0.0, 0.0}, I<T>{1.0, 0.0, 4.0}, I<T>{2.0, -2.0, 0.0},
-//         I<T>{0.0, 0.0, 0.0}},
-//        this->exec);
-//    auto b = gko::initialize<Mtx>(
-//        {I<T>{2.0, -2.0, 0.0}, I<T>{1.0, 0.0, 4.0}, I<T>{2.0, 0.0, 3.0},
-//         I<T>{0.0, 1.0, -1.5}, I<T>{1.0, 0.0, 0.0}, I<T>{0.0, 0.0, 0.0},
-//         I<T>{0.0, 0.0, 0.0}},
-//        this->exec);
-//    auto expect = gko::initialize<Mtx>(
-//        {I<T>{-2.0, -4.0, -9.0}, I<T>{2.0, -3.0, 12.5}, I<T>{4.0, 6.0, 6.0},
-//         I<T>{-15.0, 2.0, -3.0}, I<T>{-1.0, 0.0, -12.0}, I<T>{-6.0, 6.0, 0.0},
-//         I<T>{0.0, 0.0, 0.0}},
-//        this->exec);
-//    auto id = gko::matrix::Identity<T>::create(this->exec, a->get_size()[1]);
-//
-//    a->apply(gko::lend(alpha), gko::lend(id), gko::lend(beta), gko::lend(b));
-//
-//    GKO_ASSERT_MTX_NEAR(b, expect, r<T>::value);
-//    GKO_ASSERT_MTX_EQ_SPARSITY(b, expect);
-//    ASSERT_TRUE(b->is_sorted_by_column_index());
-//}
-
-
 TYPED_TEST(BatchCsr, ApplyFailsOnWrongInnerDimension)
 {
     using Vec = typename TestFixture::Vec;
@@ -503,6 +471,42 @@ TYPED_TEST(BatchCsr, CanBeBatchScaled)
     to_scale_mtx->batch_scale(left.get(), right.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(ref_scaled_mtx, to_scale_mtx, 0.0);
+}
+
+
+TYPED_TEST(BatchCsr, ConvertibleToBatchDense)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    using Dense = gko::matrix::BatchDense<value_type>;
+    const size_t nbatch = 2;
+    const int nrows = 3;
+    const int nnz = 7;
+    auto mtx = gko::test::create_poisson1d_batch<value_type, index_type>(
+        this->exec, nrows, nbatch);
+    auto ans = Dense::create(
+        this->exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows)));
+    for (size_t ib = 0; ib < nbatch; ib++) {
+        for (int i = 0; i < nrows; i++) {
+            for (int j = 0; j < nrows; j++) {
+                ans->at(ib, i, j) = gko::zero<value_type>();
+            }
+            ans->at(ib, i, i) = 2.0;
+        }
+        ans->at(ib, 0, 1) = -1;
+        ans->at(ib, 1, 0) = -1;
+        ans->at(ib, 1, 2) = -1;
+        ans->at(ib, 2, 1) = -1;
+    }
+    ans->at(1, 0, 1) = -0.5;
+    mtx->get_values()[nnz + 1] = -0.5;
+    auto test = Dense::create(
+        this->exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows)));
+
+    mtx->convert_to(test.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(test, ans, 0.0);
 }
 
 
