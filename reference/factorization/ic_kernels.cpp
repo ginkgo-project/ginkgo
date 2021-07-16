@@ -81,7 +81,7 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
                 }
                 // ignore l(col, col)
                 if (l_col == lh_row && l_col < col) {
-                    sum += values[l_idx] * values[lh_idx];
+                    sum += values[l_idx] * conj(values[lh_idx]);
                 }
                 l_idx += l_col <= lh_row ? 1 : 0;
                 lh_idx += lh_row <= l_col ? 1 : 0;
