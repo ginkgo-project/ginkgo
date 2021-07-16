@@ -75,8 +75,9 @@ constexpr auto kcfg_1d_list =
                     KCFG_1D::encode(512, 32), KCFG_1D::encode(512, 16),
                     KCFG_1D::encode(256, 32), KCFG_1D::encode(256, 16),
                     KCFG_1D::encode(256, 8)>();
-constexpr auto subgroup_list = syn::value_list<std::uint32_t, 64, 32, 16, 8>();
-constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
+constexpr auto subgroup_list =
+    syn::value_list<std::uint32_t, 64, 32, 16, 8, 4>();
+constexpr auto kcfg_1d_array = syn::as_array(kcfg_1d_list);
 constexpr auto default_block_size = 256;
 
 
