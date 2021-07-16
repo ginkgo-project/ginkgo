@@ -302,4 +302,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_MATRIX);
 
 
 }  // namespace matrix
+
+
+// Implement DiagonalExtractable for LinOp when Diagonal is complete class
+template <typename ValueType>
+std::unique_ptr<LinOp> DiagonalExtractable<ValueType>::extract_diagonal_linop()
+    const
+{
+    auto diag = this->extract_diagonal();
+    auto p = dynamic_cast<LinOp *>(diag.get());
+    diag.release();
+    return std::unique_ptr<LinOp>{p};
+}
+
+
+#define GKO_DECLARE_DIAGONAL_EXTRACTABLE(value_type) \
+    std::unique_ptr<LinOp>                           \
+    DiagonalExtractable<value_type>::extract_diagonal_linop() const
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_EXTRACTABLE);
+
+
 }  // namespace gko
