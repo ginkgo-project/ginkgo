@@ -51,8 +51,6 @@ template <typename ValueType>
 void apply(std::shared_ptr<const DpcppExecutor> exec,
            const BatchCgOptions<remove_complex<ValueType>> &opts,
            const BatchLinOp *const a,
-           const matrix::BatchDense<ValueType> *const left_scale,
-           const matrix::BatchDense<ValueType> *const right_scale,
            const matrix::BatchDense<ValueType> *const b,
            matrix::BatchDense<ValueType> *const x,
            gko::log::BatchLogData<ValueType> &logdata) GKO_NOT_IMPLEMENTED;
