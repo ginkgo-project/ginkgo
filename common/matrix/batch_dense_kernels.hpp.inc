@@ -545,3 +545,38 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier)
         compute_dot_product(x_b, y_b, r_b, converged);
     }
 }
+
+
+template <typename Op, typename ValueType>
+__device__ __forceinline__ void transpose_entry(const int src_nrows,
+                                                const int src_ncols,
+                                                const size_type src_stride,
+                                                const ValueType *const src,
+                                                const size_type dest_stride,
+                                                ValueType *const dest, Op op)
+{
+    constexpr auto tile_size = config::warp_size;
+    auto thread_block = group::this_thread_block();
+    auto warp_grp = group::tiled_partition<tile_size>(thread_block);
+    const auto warp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+    const int num_tiles = ceildiv(blockDim.x, tile_size);
+
+    for (int i_row = warp_grp_id; i_row < src_nrows; i_row += num_tiles) {
+        for (int j = warp_grp.thread_rank(); j < src_ncols; j += tile_size) {
+            dest[j * dest_stride + i_row] = op(src[i_row * src_stride + j]);
+        }
+    }
+}
+
+template <typename Op, typename ValueType>
+__global__ void transpose(const int src_nrows, const int src_ncols,
+                          const size_type src_stride,
+                          const ValueType *const src,
+                          const size_type dest_stride, ValueType *const dest,
+                          Op op)
+{
+    const ValueType *const bsrc = src + blockIdx.x * src_stride * src_nrows;
+    ValueType *const bdest = dest + blockIdx.x * dest_stride * src_ncols;
+    transpose_entry(src_nrows, src_ncols, src_stride, bsrc, dest_stride, bdest,
+                    op);
+}
