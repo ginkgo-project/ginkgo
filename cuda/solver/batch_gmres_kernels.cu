@@ -93,7 +93,8 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
     const ValueType *const bptr = b.values;
     ValueType *const xptr = x.values;
 
-    static_assert(default_block_size >= 2 * config::warp_size);
+    static_assert(default_block_size >= 2 * config::warp_size,
+                  "Need at least two warps per block!");
 
     int shared_size =
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
