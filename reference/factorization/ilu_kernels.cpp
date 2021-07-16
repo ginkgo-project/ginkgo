@@ -33,6 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/ilu_kernels.hpp"
 
 
+#include <algorithm>
+
+
+#include <ginkgo/core/base/math.hpp>
+
+
 #include "core/base/allocator.hpp"
 
 
@@ -67,10 +73,10 @@ void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
             auto value = values[nz];
             const auto l_begin = begin;
             const auto l_end = end;
-            for (auto l_nz = begin; l_nz < end; l_nz++) {
+            for (auto l_nz = l_begin; l_nz < l_end; l_nz++) {
                 // for each lower triangular entry l_ik
                 const auto l_col = col_idxs[l_nz];
-                if (l_col >= std::min(row, col)) {
+                if (l_col >= min(row, col)) {
                     continue;
                 }
                 // find corresponding entry u_kj
