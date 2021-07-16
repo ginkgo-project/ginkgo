@@ -449,8 +449,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void transpose(std::shared_ptr<const ReferenceExecutor> exec,
-               const matrix::BatchDense<ValueType> *orig,
-               matrix::BatchDense<ValueType> *trans)
+               const matrix::BatchDense<ValueType> *const orig,
+               matrix::BatchDense<ValueType> *const trans)
 {
     for (size_type batch = 0; batch < orig->get_num_batch_entries(); ++batch) {
         for (size_type i = 0; i < orig->get_size().at(batch)[0]; ++i) {
