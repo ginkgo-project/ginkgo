@@ -66,6 +66,8 @@ GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
 GKO_REGISTER_OPERATION(sort_by_column_index, batch_csr::sort_by_column_index);
 GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        batch_csr::is_sorted_by_column_index);
+GKO_REGISTER_OPERATION(convert_to_batch_dense,
+                       batch_csr::convert_to_batch_dense);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
@@ -107,6 +109,26 @@ void BatchCsr<ValueType, IndexType>::convert_to(
 template <typename ValueType, typename IndexType>
 void BatchCsr<ValueType, IndexType>::move_to(
     BatchCsr<next_precision<ValueType>, IndexType> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void BatchCsr<ValueType, IndexType>::convert_to(
+    BatchDense<ValueType> *const result) const
+{
+    auto temp =
+        BatchDense<ValueType>::create(this->get_executor(), this->get_size());
+    this->get_executor()->run(
+        batch_csr::make_convert_to_batch_dense(this, temp.get()));
+    temp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void BatchCsr<ValueType, IndexType>::move_to(
+    BatchDense<ValueType> *const result)
 {
     this->convert_to(result);
 }
