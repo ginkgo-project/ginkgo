@@ -117,6 +117,27 @@ inline void batch_scale(
     }
 }
 
+
+template <typename ValueType>
+inline void convert_csr_to_dense(const int num_rows, const int num_cols,
+                                 const int *const row_ptrs,
+                                 const int *const col_idxs,
+                                 const ValueType *const values,
+                                 const size_type dense_stride,
+                                 ValueType *const dense_vals)
+{
+    for (int i_row = 0; i_row < num_rows; i_row++) {
+        for (int j = 0; j < num_cols; j++) {
+            dense_vals[i_row * dense_stride + j] = zero<ValueType>();
+        }
+        for (int iz = row_ptrs[i_row]; iz < row_ptrs[i_row + 1]; iz++) {
+            const int colidx = col_idxs[iz];
+            dense_vals[i_row * dense_stride + colidx] = values[iz];
+        }
+    }
+}
+
+
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko

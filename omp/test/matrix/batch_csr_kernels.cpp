@@ -59,7 +59,6 @@ class BatchCsr : public ::testing::Test {
 protected:
     using value_type = float;
     using real_type = gko::remove_complex<value_type>;
-    // using Arr = gko::Array<int>;
     using Vec = gko::matrix::BatchDense<value_type>;
     using Mtx = gko::matrix::BatchCsr<value_type>;
     using ComplexVec = gko::matrix::BatchDense<std::complex<value_type>>;
@@ -245,6 +244,25 @@ TEST_F(BatchCsr, BatchScaleIsEquivalentToReference)
     dmtx->batch_scale(d_left_scale.get(), d_right_scale.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(mtx, dmtx, 0.0);
+}
+
+
+TEST_F(BatchCsr, ConvertToBatchDenseIsEquivalentToReference)
+{
+    using Dense = gko::matrix::BatchDense<value_type>;
+    const size_t batch_size = mtx_size.get_num_batch_entries();
+    const int nrows = mtx_size.at()[0];
+    const int ncols = mtx_size.at()[1];
+    auto mtx = gen_mtx<Mtx>(batch_size, nrows, ncols, nrows / 10);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(mtx.get());
+    auto dense = Dense::create(ref, mtx_size);
+    auto odense = Dense::create(omp, mtx_size);
+
+    mtx->convert_to(dense.get());
+    omtx->convert_to(odense.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dense, odense, 0.0);
 }
 
 
