@@ -7,6 +7,7 @@ ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION)
 set(GINKGO_DPCPP_VERSION ${GINKGO_DPCPP_VERSION} PARENT_SCOPE)
 
 find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}")
+set(GINKGO_MKL_ROOT "${MKL_ROOT}" PARENT_SCOPE)
 
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
