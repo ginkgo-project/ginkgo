@@ -64,13 +64,21 @@ void SubMatrix<MatrixType>::generate(
     const gko::span &col_span, const std::vector<gko::span> &overlap_row_span,
     const std::vector<gko::span> &overlap_col_span)
 {
+    auto exec = this->get_executor();
     this->sub_mtx_ =
         gko::share(std::move(matrix->get_submatrix(row_span, col_span)));
 
+    overlap_sizes_.set_executor(exec->get_master());
     for (size_type j = 0; j < overlap_row_span.size(); ++j) {
+        if (overlap_col_span[j] <= col_span) {
+            left_overlap_size_ += overlap_col_span[j].length();
+            left_overlap_bound_ = j;
+        }
+        overlap_sizes_.get_data()[j] = overlap_col_span[j].length();
         overlap_mtxs_.emplace_back(std::move(
             matrix->get_submatrix(overlap_row_span[j], overlap_col_span[j])));
     }
+    overlap_sizes_.set_executor(exec);
 }
 
 

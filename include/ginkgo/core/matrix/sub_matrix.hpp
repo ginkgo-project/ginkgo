@@ -57,6 +57,12 @@ public:
 
     std::shared_ptr<MatrixType> get_sub_matrix() const { return sub_mtx_; }
 
+    size_type get_left_overlap_bound() const { return left_overlap_bound_; }
+
+    size_type get_left_overlap_size() const { return left_overlap_size_; }
+
+    Array<size_type> get_overlap_sizes() const { return overlap_sizes_; }
+
     std::vector<std::shared_ptr<MatrixType>> get_overlap_mtxs() const
     {
         return overlap_mtxs_;
@@ -117,7 +123,8 @@ protected:
     SubMatrix(std::shared_ptr<const Executor> exec)
         : EnableLinOp<SubMatrix<MatrixType>>{exec, dim<2>{}},
           sub_mtx_{MatrixType::create(exec)},
-          overlap_mtxs_{}
+          overlap_mtxs_{},
+          left_overlap_size_{0}
     {}
 
     SubMatrix(std::shared_ptr<const Executor> exec, const MatrixType *matrix,
@@ -130,7 +137,9 @@ protected:
                                                           overlap_row_span,
                                                           overlap_col_span)},
           sub_mtx_{MatrixType::create(exec)},
-          overlap_mtxs_{}
+          overlap_mtxs_{},
+          left_overlap_size_{0},
+          overlap_sizes_{exec, overlap_col_span.size()}
     {
         GKO_ASSERT(overlap_row_span.size() == overlap_col_span.size());
         this->generate(matrix, row_span, col_span, overlap_row_span,
@@ -150,6 +159,9 @@ protected:
 private:
     std::shared_ptr<MatrixType> sub_mtx_;
     std::vector<std::shared_ptr<MatrixType>> overlap_mtxs_;
+    size_type left_overlap_size_;
+    size_type left_overlap_bound_{0};
+    Array<size_type> overlap_sizes_;
 };
 
 

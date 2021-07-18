@@ -79,9 +79,25 @@ protected:
                                               {0.0, 1.0, 2.0, 1.5, 3.0}},
                                              exec)),
           csr_mtx2(gko::initialize<CsrMtx>(
-              {I<T>({0.0, 0.0, 0.0}), I<T>({2.5, 1.5, 0.0})}, exec)),
-          csr_mtx3(gko::initialize<CsrMtx>({I<T>({1.0, 0.0}), I<T>({0.0, 1.0})},
-                                           exec)),
+              {I<T>({3.0, 0.0}), I<T>({3.0, 2.5}), I<T>({0.0, 1.0})}, exec)),
+          csr_mtx20(gko::initialize<CsrMtx>(
+              {I<T>({0.0}), I<T>({0.0}), I<T>({1.0})}, exec)),
+          csr_mtx21(gko::initialize<CsrMtx>(
+              {I<T>({0.0}), I<T>({1.5}), I<T>({2.0})}, exec)),
+          csr_mtx22(gko::initialize<CsrMtx>(
+              {I<T>({0.0}), I<T>({0.0}), I<T>({4.0})}, exec)),
+          csr_mtx222(gko::initialize<CsrMtx>({{0.0, 3.0, 0.0, 0.0, 0.0},
+                                              {0.0, 3.0, 2.5, 1.5, 0.0},
+                                              {1.0, 0.0, 1.0, 2.0, 4.0}},
+                                             exec)),
+          csr_mtx3(gko::initialize<CsrMtx>(
+              {I<T>({0.0, 0.0}), I<T>({2.5, 1.5}), I<T>({1.0, 2.0})}, exec)),
+          csr_mtx30(gko::initialize<CsrMtx>(
+              {I<T>({0.0}), I<T>({0.0}), I<T>({1.0})}, exec)),
+          csr_mtx31(gko::initialize<CsrMtx>(
+              {I<T>({3.0}), I<T>({3.0}), I<T>({0.0})}, exec)),
+          csr_mtx32(gko::initialize<CsrMtx>(
+              {I<T>({0.0}), I<T>({0.0}), I<T>({4.0})}, exec)),
           b(gko::initialize<Dense>({2.0, 1.0, -1.0, 3.0, 0.0}, exec)),
           b0(gko::initialize<Dense>({2.0, 1.0}, exec)),
           b1(gko::initialize<Dense>({-1.0, 3.0, 0.0}, exec)),
@@ -99,7 +115,14 @@ protected:
     std::unique_ptr<CsrMtx> csr_mtx111;
     std::unique_ptr<CsrMtx> csr_mtx1;
     std::unique_ptr<CsrMtx> csr_mtx2;
+    std::unique_ptr<CsrMtx> csr_mtx20;
+    std::unique_ptr<CsrMtx> csr_mtx21;
+    std::unique_ptr<CsrMtx> csr_mtx22;
+    std::unique_ptr<CsrMtx> csr_mtx222;
     std::unique_ptr<CsrMtx> csr_mtx3;
+    std::unique_ptr<CsrMtx> csr_mtx30;
+    std::unique_ptr<CsrMtx> csr_mtx31;
+    std::unique_ptr<CsrMtx> csr_mtx32;
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Dense> b;
     std::unique_ptr<Dense> b0;
@@ -158,6 +181,72 @@ TYPED_TEST(SubMatrix, CanApplyToDenseWithOverlap)
     GKO_EXPECT_MTX_NEAR(mtx->get_overlap_mtxs()[0], this->csr_mtx10,
                         r<value_type>::value);
     GKO_EXPECT_MTX_NEAR(mtx->get_overlap_mtxs()[1], this->csr_mtx11,
+                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(this->x, s_x, r<value_type>::value);
+}
+
+
+TYPED_TEST(SubMatrix, CanApplyToDenseWithNonUnitOverlap)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+
+    auto rspan = gko::span(1, 4);
+    auto cspan = gko::span(1, 3);
+    auto ov_rspan = std::vector<gko::span>{gko::span(1, 4), gko::span(1, 4),
+                                           gko::span(1, 4)};
+    auto ov_cspan = std::vector<gko::span>{gko::span(0, 1), gko::span(3, 4),
+                                           gko::span(4, 5)};
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), rspan, cspan,
+                           ov_rspan, ov_cspan);
+    auto s_x = Dense::create(this->exec);
+    s_x->copy_from(this->x.get());
+
+    mtx->apply(this->b.get(), s_x.get());
+    this->csr_mtx222->apply(this->b.get(), this->x.get());
+
+    GKO_EXPECT_MTX_NEAR(mtx->get_sub_matrix(), this->csr_mtx2,
+                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(mtx->get_overlap_mtxs()[0], this->csr_mtx20,
+                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(mtx->get_overlap_mtxs()[1], this->csr_mtx21,
+                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(mtx->get_overlap_mtxs()[2], this->csr_mtx22,
+                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(this->x, s_x, r<value_type>::value);
+}
+
+
+TYPED_TEST(SubMatrix, CanApplyToDenseWithNonUnitLeftOverlap)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+
+    auto rspan = gko::span(1, 4);
+    auto cspan = gko::span(2, 4);
+    auto ov_rspan = std::vector<gko::span>{gko::span(1, 4), gko::span(1, 4),
+                                           gko::span(1, 4)};
+    auto ov_cspan = std::vector<gko::span>{gko::span(0, 1), gko::span(1, 2),
+                                           gko::span(4, 5)};
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), rspan, cspan,
+                           ov_rspan, ov_cspan);
+    auto s_x = Dense::create(this->exec);
+    s_x->copy_from(this->x.get());
+
+    mtx->apply(this->b.get(), s_x.get());
+    this->csr_mtx222->apply(this->b.get(), this->x.get());
+
+    GKO_EXPECT_MTX_NEAR(mtx->get_sub_matrix(), this->csr_mtx3,
+                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(mtx->get_overlap_mtxs()[0], this->csr_mtx30,
+                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(mtx->get_overlap_mtxs()[1], this->csr_mtx31,
+                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(mtx->get_overlap_mtxs()[2], this->csr_mtx32,
                         r<value_type>::value);
     GKO_EXPECT_MTX_NEAR(this->x, s_x, r<value_type>::value);
 }
