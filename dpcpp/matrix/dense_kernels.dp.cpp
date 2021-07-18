@@ -722,14 +722,11 @@ void compute_dot(std::shared_ptr<const DpcppExecutor> exec,
                  const matrix::Dense<ValueType> *y,
                  matrix::Dense<ValueType> *result)
 {
-    if (0) {
+    if (x->get_size()[1] == 1) {
         // TODO: write a custom kernel which does this more efficiently
-        for (size_type col = 0; col < x->get_size()[1]; ++col) {
-            onemkl::dot(*exec->get_queue(), x->get_size()[0],
-                        x->get_const_values() + col, x->get_stride(),
-                        y->get_const_values() + col, y->get_stride(),
-                        result->get_values() + col);
-        }
+        onemkl::dot(*exec->get_queue(), x->get_size()[0], x->get_const_values(),
+                    x->get_stride(), y->get_const_values(), y->get_stride(),
+                    result->get_values());
     } else {
         // TODO: these are tuning parameters obtained experimentally, once
         // we decide how to handle this uniformly, they should be modified
@@ -770,14 +767,13 @@ void compute_conj_dot(std::shared_ptr<const DpcppExecutor> exec,
                       const matrix::Dense<ValueType> *y,
                       matrix::Dense<ValueType> *result)
 {
-    if (0) {
+    if (x->get_size()[1] == 1) {
         // TODO: write a custom kernel which does this more efficiently
-        for (size_type col = 0; col < x->get_size()[1]; ++col) {
-            onemkl::conj_dot(*exec->get_queue(), x->get_size()[0],
-                             x->get_const_values() + col, x->get_stride(),
-                             y->get_const_values() + col, y->get_stride(),
-                             result->get_values() + col);
-        }
+        onemkl::conj_dot(*exec->get_queue(), x->get_size()[0],
+                         x->get_const_values(), x->get_stride(),
+                         y->get_const_values(), y->get_stride(),
+                         result->get_values());
+
     } else {
         // TODO: these are tuning parameters obtained experimentally, once
         // we decide how to handle this uniformly, they should be modified
@@ -818,13 +814,10 @@ void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::Dense<ValueType> *x,
                    matrix::Dense<remove_complex<ValueType>> *result)
 {
-    if (0) {
-        for (size_type col = 0; col < x->get_size()[1]; ++col) {
-            oneapi::mkl::blas::row_major::nrm2(
-                *exec->get_queue(), x->get_size()[0],
-                x->get_const_values() + col, x->get_stride(),
-                result->get_values() + col);
-        }
+    if (x->get_size()[1] == 1) {
+        oneapi::mkl::blas::row_major::nrm2(
+            *exec->get_queue(), x->get_size()[0], x->get_const_values(),
+            x->get_stride(), result->get_values());
     } else {
         using norm_type = remove_complex<ValueType>;
         // TODO: these are tuning parameters obtained experimentally, once
