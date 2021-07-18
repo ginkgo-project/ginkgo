@@ -252,39 +252,41 @@ TYPED_TEST(SubMatrix, CanApplyToDenseWithNonUnitLeftOverlap)
 }
 
 
-// TYPED_TEST(SubMatrix, CanAdvancedApplyToDense)
-// {
-//     using Mtx = typename TestFixture::Mtx;
-//     using Dense = typename TestFixture::Dense;
-//     using value_type = typename TestFixture::value_type;
-//     using index_type = typename TestFixture::index_type;
+TYPED_TEST(SubMatrix, CanAdvancedApplyToDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
 
-//     auto block_sizes = gko::Array<gko::size_type>(this->exec, {2, 3});
-//     auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes);
-//     auto alpha = gko::initialize<Dense>({2.0}, this->exec);
-//     auto beta = gko::initialize<Dense>({-1.0}, this->exec);
+    auto rspan = gko::span(1, 4);
+    auto cspan = gko::span(2, 4);
+    auto ov_rspan = std::vector<gko::span>{gko::span(1, 4), gko::span(1, 4),
+                                           gko::span(1, 4)};
+    auto ov_cspan = std::vector<gko::span>{gko::span(0, 1), gko::span(1, 2),
+                                           gko::span(4, 5)};
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), rspan, cspan,
+                           ov_rspan, ov_cspan);
+    auto s_x = Dense::create(this->exec);
+    auto alpha = gko::initialize<Dense>({2.0}, this->exec);
+    auto beta = gko::initialize<Dense>({-1.0}, this->exec);
+    s_x->copy_from(this->x.get());
 
-//     mtx->apply(alpha.get(), this->b.get(), beta.get(), this->x.get());
-//     this->csr_mtx0->apply(alpha.get(), this->b0.get(), beta.get(),
-//                           this->x0.get());
-//     this->csr_mtx1->apply(alpha.get(), this->b1.get(), beta.get(),
-//                           this->x1.get());
+    mtx->apply(alpha.get(), this->b.get(), beta.get(), s_x.get());
 
-//     ASSERT_EQ(mtx->get_num_blocks(), 2);
-//     ASSERT_EQ(mtx->get_block_dimensions()[0], gko::dim<2>(2));
-//     ASSERT_EQ(mtx->get_block_dimensions()[1], gko::dim<2>(3));
-//     ASSERT_EQ(mtx->get_block_nonzeros()[0], 3);
-//     ASSERT_EQ(mtx->get_block_nonzeros()[1], 8);
-//     GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[0], this->csr_mtx0,
-//                         r<value_type>::value);
-//     GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[1], this->csr_mtx1,
-//                         r<value_type>::value);
-//     ASSERT_EQ(this->x->get_values()[0], this->x0->get_values()[0]);
-//     ASSERT_EQ(this->x->get_values()[1], this->x0->get_values()[1]);
-//     ASSERT_EQ(this->x->get_values()[2], this->x1->get_values()[0]);
-//     ASSERT_EQ(this->x->get_values()[3], this->x1->get_values()[1]);
-//     ASSERT_EQ(this->x->get_values()[4], this->x1->get_values()[2]);
-// }
+    this->csr_mtx222->apply(alpha.get(), this->b.get(), beta.get(),
+                            this->x.get());
+
+    GKO_EXPECT_MTX_NEAR(mtx->get_sub_matrix(), this->csr_mtx3,
+                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(mtx->get_overlap_mtxs()[0], this->csr_mtx30,
+                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(mtx->get_overlap_mtxs()[1], this->csr_mtx31,
+                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(mtx->get_overlap_mtxs()[2], this->csr_mtx32,
+                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(this->x, s_x, r<value_type>::value);
+}
 
 
 }  // namespace

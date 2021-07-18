@@ -68,17 +68,30 @@ void SubMatrix<MatrixType>::generate(
     this->sub_mtx_ =
         gko::share(std::move(matrix->get_submatrix(row_span, col_span)));
 
-    overlap_sizes_.set_executor(exec->get_master());
-    for (size_type j = 0; j < overlap_row_span.size(); ++j) {
+    auto num_overlaps = overlap_row_span.size();
+    auto overlap_sizes = std::vector<int>(num_overlaps + 1, 0);
+    for (size_type j = 0; j < num_overlaps; ++j) {
         if (overlap_col_span[j] <= col_span) {
-            left_overlap_size_ += overlap_col_span[j].length();
-            left_overlap_bound_ = j;
+            this->left_overlap_size_ += overlap_col_span[j].length();
+            this->left_overlap_bound_ = j;
         }
-        overlap_sizes_.get_data()[j] = overlap_col_span[j].length();
-        overlap_mtxs_.emplace_back(std::move(
+        overlap_sizes[j + 1] = overlap_col_span[j].length();
+        this->overlap_mtxs_.emplace_back(std::move(
             matrix->get_submatrix(overlap_row_span[j], overlap_col_span[j])));
     }
-    overlap_sizes_.set_executor(exec);
+    bool flag = true;
+    for (size_type i = 1; i < num_overlaps + 1; ++i) {
+        overlap_sizes[i] =
+            overlap_sizes[i - 1] + this->overlap_mtxs_[i - 1]->get_size()[1];
+        if (i > left_overlap_bound_ && flag) {
+            overlap_sizes[i] += this->sub_mtx_->get_size()[1];
+            flag = false;
+        }
+    }
+    overlap_sizes[0] = 0;
+    overlap_sizes_ =
+        gko::Array<size_type>(exec->get_master(), overlap_sizes.data(),
+                              overlap_sizes.data() + num_overlaps + 1);
 }
 
 
