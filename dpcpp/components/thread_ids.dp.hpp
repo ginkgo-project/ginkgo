@@ -59,7 +59,7 @@ namespace thread {
  *
  * @return the ID of the block group this thread belongs to
  *
- * @note Assumes that grid dimensions are in standard format:
+ * @note Assumes that grid dimensions are in cuda standard format:
  *       `(block_group_size, first_grid_dimension, second grid_dimension)`
  */
 __dpct_inline__ size_type get_block_group_id(sycl::nd_item<3> item_ct1)
@@ -76,7 +76,7 @@ __dpct_inline__ size_type get_block_group_id(sycl::nd_item<3> item_ct1)
  *
  * @return the ID of the block this thread belongs to
  *
- * @note Assumes that grid dimensions are in standard format:
+ * @note Assumes that grid dimensions are in cuda standard format:
  *       `(block_group_size, first_grid_dimension, second grid_dimension)`
  */
 __dpct_inline__ size_type get_block_id(sycl::nd_item<3> item_ct1)
@@ -95,7 +95,7 @@ __dpct_inline__ size_type get_block_id(sycl::nd_item<3> item_ct1)
  * @return the local ID of the warp (relative to the block) this thread belongs
  *         to
  *
- * @note Assumes that block dimensions are in standard format:
+ * @note Assumes that block dimensions are in cuda standard format:
  *       `(subwarp_size, config::warp_size / subwarp_size, block_size /
  *         config::warp_size)`
  */
@@ -116,7 +116,7 @@ __dpct_inline__ size_type get_local_warp_id(sycl::nd_item<3> item_ct1)
  * @return the local ID of the sub-warp (relative to the block) this thread
  *         belongs to
  *
- * @note Assumes that block dimensions are in standard format:
+ * @note Assumes that block dimensions are in cuda standard format:
  *       `(subwarp_size, config::warp_size / subwarp_size, block_size /
  *         config::warp_size)`
  */
@@ -140,7 +140,7 @@ __dpct_inline__ size_type get_local_subwarp_id(sycl::nd_item<3> item_ct1)
  *
  * @return the local ID of the thread (relative to the block)
  *
- * @note Assumes that block dimensions are in standard format:
+ * @note Assumes that block dimensions are in cuda standard format:
  *       `(subwarp_size, config::warp_size / subwarp_size, block_size /
  *         config::warp_size)`
  */
@@ -161,7 +161,7 @@ __dpct_inline__ size_type get_local_thread_id(sycl::nd_item<3> item_ct1)
  *
  * @return the global ID of the warp this thread belongs to.
  *
- * @note Assumes that block dimensions and grid dimensions are in standard
+ * @note Assumes that block dimensions and grid dimensions are in cuda standard
  *       format:
  *       `(subwarp_size, config::warp_size / subwarp_size, block_size /
  *         config::warp_size)` and
@@ -185,7 +185,7 @@ __dpct_inline__ size_type get_warp_id(sycl::nd_item<3> item_ct1)
  *
  * @return the global ID of the sub-warp this thread belongs to.
  *
- * @note Assumes that block dimensions and grid dimensions are in standard
+ * @note Assumes that block dimensions and grid dimensions are in cuda standard
  *       format:
  *       `(subwarp_size, config::warp_size / subwarp_size, block_size /
  *         config::warp_size)` and
@@ -211,7 +211,7 @@ __dpct_inline__ size_type get_subwarp_id(sycl::nd_item<3> item_ct1)
  *
  * @tparam subwarp_size  size of the subwarp
  *
- * @note Assumes that block dimensions and grid dimensions are in standard
+ * @note Assumes that block dimensions and grid dimensions are in cuda standard
  *       format:
  *       `(subwarp_size, config::warp_size / subwarp_size, block_size /
  *         config::warp_size)` and
@@ -231,7 +231,8 @@ __dpct_inline__ size_type get_thread_id(sycl::nd_item<3> item_ct1)
  * @internal
  *
  * Returns the global ID of the thread in the given index type.
- * This function assumes one-dimensional thread and block indexing.
+ * This function assumes one-dimensional thread and block indexing in cuda
+ * sense. It uses the third position infomation to get the information.
  *
  * @return the global ID of the thread in the given index type.
  *
@@ -250,7 +251,8 @@ __dpct_inline__ IndexType get_thread_id_flat(sycl::nd_item<3> item_ct1)
  * @internal
  *
  * Returns the total number of threads in the given index type.
- * This function assumes one-dimensional thread and block indexing.
+ * This function assumes one-dimensional thread and block indexing in cuda
+ * sense. It uses the third position infomation to get the information.
  *
  * @return the total number of threads in the given index type.
  *
@@ -268,7 +270,7 @@ __dpct_inline__ IndexType get_thread_num_flat(sycl::nd_item<3> item_ct1)
  * @internal
  *
  * Returns the global ID of the subwarp in the given index type.
- * This function assumes one-dimensional thread and block indexing
+ * This function assumes one-dimensional thread and block indexing in cuda sense
  * with a power of two block size of at least subwarp_size.
  *
  * @return the global ID of the subwarp in the given index type.
@@ -292,7 +294,7 @@ __dpct_inline__ IndexType get_subwarp_id_flat(sycl::nd_item<3> item_ct1)
  * @internal
  *
  * Returns the total number of subwarps in the given index type.
- * This function assumes one-dimensional thread and block indexing
+ * This function assumes one-dimensional thread and block indexing in cuda sense
  * with a power of two block size of at least subwarp_size.
  *
  * @return the total number of subwarps in the given index type.
