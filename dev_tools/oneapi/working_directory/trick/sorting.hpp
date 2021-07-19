@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
-#include <cuda/components/sorting.cuh>
+#include "cuda/components/sorting.cuh"
 
 
 namespace gko {
@@ -46,8 +46,7 @@ namespace cuda {
 
 
 template <int num_elements, int num_local, typename ValueType>
-__forceinline__ __device__ void bitonic_sort_t(ValueType *local_elements,
-                                             ValueType *shared_elements)
+__forceinline__ __device__ void bitonic_sort_t(ValueType *local_elements, ValueType *shared_elements)
 {
     auto tidx = threadIdx.x;
     bitonic_sort<num_elements, num_local>(local_elements, shared_elements);

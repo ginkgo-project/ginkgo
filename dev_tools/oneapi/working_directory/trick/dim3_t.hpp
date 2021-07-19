@@ -37,12 +37,10 @@ struct dim3_t {
     unsigned int x;
     unsigned int y;
     unsigned int z;
-    dim3_t(unsigned int xval, unsigned int yval = 1, unsigned int zval = 1)
-        : x(xval), y(yval), z(zval)
-    {}
-    operator dim3() {
-        return dim3{x, y, z};
-    }
+
+    dim3_t(unsigned int xval, unsigned int yval = 1, unsigned int zval = 1) : x(xval), y(yval), z(zval) {}
+
+    operator dim3() { return dim3{x, y, z}; }
 };
 
-#endif // TRICK_DIM3_T_HPP_
+#endif  // TRICK_DIM3_T_HPP_

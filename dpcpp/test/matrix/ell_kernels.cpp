@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/ell_kernels.hpp"
 #include "core/test/utils.hpp"
+#include "dpcpp/test/utils.hpp"
 
 
 namespace {
@@ -170,11 +171,9 @@ TEST_F(Ell, SimpleApplyIsEquivalentToRef)
 }
 
 
-#if !GINKGO_DPCPP_SINGLE_MODE
-
-
 TEST_F(Ell, MixedSimpleApplyIsEquivalentToRef1)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data();
 
     mtx->apply(y2.get(), expected2.get());
@@ -186,6 +185,7 @@ TEST_F(Ell, MixedSimpleApplyIsEquivalentToRef1)
 
 TEST_F(Ell, MixedSimpleApplyIsEquivalentToRef2)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data();
 
     mtx->apply(y2.get(), expected.get());
@@ -197,6 +197,7 @@ TEST_F(Ell, MixedSimpleApplyIsEquivalentToRef2)
 
 TEST_F(Ell, MixedSimpleApplyIsEquivalentToRef3)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data();
 
     mtx->apply(y.get(), expected2.get());
@@ -204,9 +205,6 @@ TEST_F(Ell, MixedSimpleApplyIsEquivalentToRef3)
 
     GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-6);
 }
-
-
-#endif  // !GINKGO_DPCPP_SINGLE_MODE
 
 
 TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
@@ -220,11 +218,9 @@ TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
 }
 
 
-#if !GINKGO_DPCPP_SINGLE_MODE
-
-
 TEST_F(Ell, MixedAdvancedApplyIsEquivalentToRef1)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data();
 
     mtx->apply(alpha2.get(), y2.get(), beta2.get(), expected2.get());
@@ -236,6 +232,7 @@ TEST_F(Ell, MixedAdvancedApplyIsEquivalentToRef1)
 
 TEST_F(Ell, MixedAdvancedApplyIsEquivalentToRef2)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data();
 
     mtx->apply(alpha2.get(), y2.get(), beta.get(), expected.get());
@@ -247,6 +244,7 @@ TEST_F(Ell, MixedAdvancedApplyIsEquivalentToRef2)
 
 TEST_F(Ell, MixedAdvancedApplyIsEquivalentToRef3)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data();
 
     mtx->apply(alpha.get(), y.get(), beta2.get(), expected2.get());
@@ -254,9 +252,6 @@ TEST_F(Ell, MixedAdvancedApplyIsEquivalentToRef3)
 
     GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-6);
 }
-
-
-#endif  // !GINKGO_DPCPP_SINGLE_MODE
 
 
 TEST_F(Ell, SimpleApplyWithStrideIsEquivalentToRef)
@@ -270,11 +265,9 @@ TEST_F(Ell, SimpleApplyWithStrideIsEquivalentToRef)
 }
 
 
-#if !GINKGO_DPCPP_SINGLE_MODE
-
-
 TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef1)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(y2.get(), expected2.get());
@@ -286,6 +279,7 @@ TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef1)
 
 TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef2)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(y2.get(), expected.get());
@@ -297,6 +291,7 @@ TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef2)
 
 TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef3)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(y.get(), expected2.get());
@@ -304,9 +299,6 @@ TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef3)
 
     GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-6);
 }
-
-
-#endif  // !GINKGO_DPCPP_SINGLE_MODE
 
 
 TEST_F(Ell, AdvancedApplyWithStrideIsEquivalentToRef)
@@ -319,11 +311,9 @@ TEST_F(Ell, AdvancedApplyWithStrideIsEquivalentToRef)
 }
 
 
-#if !GINKGO_DPCPP_SINGLE_MODE
-
-
 TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef1)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha2.get(), y2.get(), beta2.get(), expected2.get());
@@ -335,6 +325,7 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef1)
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef2)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha2.get(), y2.get(), beta.get(), expected.get());
@@ -346,6 +337,7 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef2)
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef3)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha.get(), y.get(), beta2.get(), expected2.get());
@@ -353,9 +345,6 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef3)
 
     GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-6);
 }
-
-
-#endif  // !GINKGO_DPCPP_SINGLE_MODE
 
 
 TEST_F(Ell, SimpleApplyWithStrideToDenseMatrixIsEquivalentToRef)
@@ -369,11 +358,9 @@ TEST_F(Ell, SimpleApplyWithStrideToDenseMatrixIsEquivalentToRef)
 }
 
 
-#if !GINKGO_DPCPP_SINGLE_MODE
-
-
 TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef1)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
     mtx->apply(y2.get(), expected2.get());
@@ -385,6 +372,7 @@ TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef1)
 
 TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef2)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
     mtx->apply(y2.get(), expected.get());
@@ -396,6 +384,7 @@ TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef2)
 
 TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef3)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
     mtx->apply(y.get(), expected2.get());
@@ -403,9 +392,6 @@ TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef3)
 
     GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-6);
 }
-
-
-#endif  // !GINKGO_DPCPP_SINGLE_MODE
 
 
 TEST_F(Ell, AdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef)
@@ -419,11 +405,9 @@ TEST_F(Ell, AdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef)
 }
 
 
-#if !GINKGO_DPCPP_SINGLE_MODE
-
-
 TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef1)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha2.get(), y2.get(), beta2.get(), expected2.get());
@@ -435,6 +419,7 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef1)
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef2)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha2.get(), y2.get(), beta.get(), expected.get());
@@ -446,6 +431,7 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef2)
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef3)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha.get(), y.get(), beta2.get(), expected2.get());
@@ -453,9 +439,6 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef3)
 
     GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-6);
 }
-
-
-#endif  // !GINKGO_DPCPP_SINGLE_MODE
 
 
 TEST_F(Ell, SimpleApplyByAtomicIsEquivalentToRef)
