@@ -50,6 +50,11 @@ struct config {
     using lane_mask_type = uint64;
 
     /**
+     * The number of threads within a Dpcpp subgroup.
+     */
+    static constexpr uint32 warp_size = 16;
+
+    /**
      * The bitmask of the entire warp.
      */
     static constexpr auto full_lane_mask = ~zero<lane_mask_type>();
@@ -61,7 +66,7 @@ struct config {
     static constexpr uint32 min_warps_per_block = 4;
 
     /**
-     * The maximal number of threads allowed in a CUDA warp.
+     * The default maximal number of threads allowed in DPCPP group
      */
     static constexpr uint32 max_block_size = 256;
 };

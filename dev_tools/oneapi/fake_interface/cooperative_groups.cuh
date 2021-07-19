@@ -30,15 +30,19 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_FAKE_INTERFACE_COOPERATIVE_GROUPS_CUH_
-#define GKO_FAKE_INTERFACE_COOPERATIVE_GROUPS_CUH_
+#ifndef FAKE_INTERFACE_COOPERATIVE_GROUPS_CUH_
+#define FAKE_INTERFACE_COOPERATIVE_GROUPS_CUH_
+
 
 #include <cuda/components/cooperative_groups.cuh>
 
+
 namespace gko {
-    namespace kernels{
-        namespace cuda{
-            namespace group{
+namespace kernels {
+namespace cuda {
+namespace group {
+
+
 __device__ __forceinline__ grid_group this_grid_i() { return this_grid(); }
 
 __device__ auto this_thread_block_i() { return this_thread_block(); }
@@ -49,9 +53,10 @@ __device__ __forceinline__ auto tiled_partition_i(const Group &g)
     return ::gko::kernels::cuda::group::tiled_partition<Size>(g);
 }
 
-            }
-        }
-    }
-}
 
-#endif // GKO_FAKE_INTERFACE_COOPERATIVE_GROUPS_CUH_
+}  // namespace group
+}  // namespace cuda
+}  // namespace kernels
+}  // namespace gko
+
+#endif  // FAKE_INTERFACE_COOPERATIVE_GROUPS_CUH_

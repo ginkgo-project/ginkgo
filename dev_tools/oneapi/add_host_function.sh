@@ -1,4 +1,25 @@
 #!/bin/bash
+
+# add_host_function adds a host function to wrap the cuda kernel call with template and parameter configuration.
+#
+# For example
+# ````
+# template <int config = 1, int info, typename ValueType>
+# __global__ kernel(ValueType a) {...}
+# ```
+# add_host_function will add another host function with the same template and calling the cuda call
+# ```
+# template <int config = 1, int info, typename ValueType>
+# void kernel_AUTOHOSTFUNC(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory, cudaStream_t stream, ValueType a) {
+#     /*KEEP*/kernel<config, info><<<grid, block, dynamic_shared_memory, stream>>>(a);
+# }
+# ```
+# _AUTOHOSTFUNC and /*KEEP*/ is internal step and they are removed in the end.
+# It will use the same template as original cuda call and pust the kernel args into input args.
+# Note. This script does not translate original cuda kernel call to corresponding call.
+#       convert_source.sh will handle it later.
+
+
 SCRIPT_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 source "${SCRIPT_DIR}/shared.sh"
 
@@ -81,7 +102,8 @@ while IFS='' read -r line || [ -n "$line" ]; do
     else
         echo "${line}"
     fi
-    # echo "Handle___ ${line}"
+
+    # handle comments
     if [[ "$line" =~ ${START_BLOCK_REX} ]] || [[ "${IN_BLOCK}" -gt 0 ]]; then
         if [[ "$line" =~ ${START_BLOCK_REX} ]]; then
             IN_BLOCK=$((IN_BLOCK+1))
@@ -89,20 +111,14 @@ while IFS='' read -r line || [ -n "$line" ]; do
         if [[ "$line" =~ ${END_BLOCK_REX} ]]; then
             IN_BLOCK=$((IN_BLOCK-1))
         fi
-        # echo ""
-        # echo "IN BLOCK ${IN_BLOCK}"
         # output to new file
         continue
     fi
-    # echo "Handle ${line}"
-    # handle comments
+    # handle functions
     if [[ "${line}" =~ $FUNCTION_START ]] || [[ $DURING_FUNCNAME = "true" ]]; then
-        # echo "line ${line}"
-        # echo "${FUNCTION_NAME_END}"
         DURING_FUNCNAME="true"
         FUNCTION_HANDLE="${FUNCTION_HANDLE} $line"
         if [[ "${line}" =~ ${FUNCTION_NAME_END} ]]; then
-            # echo "end"
             DURING_FUNCNAME="false"
         fi
         if [[ "${line}" =~ ${SCOPE_START} ]]; then
@@ -114,7 +130,7 @@ while IFS='' read -r line || [ -n "$line" ]; do
         # output to new file
         continue
     fi
-    # echo "Handle ${line}"
+
     if [ -n "${FUNCTION_HANDLE}" ] && [[ ${DURING_FUNCNAME} = "false" ]]; then
         if [[ "${line}" =~ ${SCOPE_START} ]]; then
             IN_FUNC=$((IN_FUNC+1))
@@ -122,20 +138,14 @@ while IFS='' read -r line || [ -n "$line" ]; do
         if [[ "${line}" =~ ${SCOPE_END} ]]; then
             IN_FUNC=$((IN_FUNC-1))
         fi
-        # echo "IN FUNC ${IN_FUNC}"
 
         # make sure the function is end
         if [[ "${IN_FUNC}" -eq 0 ]]; then
-            # echo "check ${FUNCTION_HANDLE}"
 
             if [[ "${FUNCTION_HANDLE}" =~ $CHECK_GLOBAL_KEYWORD ]]; then
                 echo ""
-                # echo "${FUNCTION_HANDLE}"
                 # remove additional space
                 FUNCTION_HANDLE=$(echo "${FUNCTION_HANDLE}" | sed -E 's/ +/ /g;')
-                # echo "->"
-                # echo "${FUNCTION_HANDLE}"
-                # echo "->"
 
                 if [[ "${FUNCTION_HANDLE}" =~ $ANAYSIS_FUNC ]]; then
                     TEMPLATE="${BASH_REMATCH[1]}"
@@ -148,23 +158,11 @@ while IFS='' read -r line || [ -n "$line" ]; do
                     if [ -n "${TEMPLATE_INPUT}" ]; then
                         TEMPLATE_INPUT="<${TEMPLATE_INPUT}>"
                     fi
-                    echo "${TEMPLATE} void ${NAME}${HOST_SUFFIX} (dim3 grid, dim3 block, size_t dynamic_shared_memory, cudaStream_t stream, ${VARIABLE}) {
+                    echo "${TEMPLATE} void ${NAME}${HOST_SUFFIX} (dim3 grid, dim3 block, gko::size_type dynamic_shared_memory, cudaStream_t stream, ${VARIABLE}) {
                         /*KEEP*/${NAME}${TEMPLATE_INPUT}<<<grid, block, dynamic_shared_memory, stream>>>(${VAR_INPUT});
                         }"
                     echo "${NAME} -> ${NAME}${HOST_SUFFIX}" >> ${MAP_FILE}
                 fi
-                # echo ""
-                # check the property
-                # extract template
-                # maybe remove any [[ ]]
-                # extract function name
-                # extract function variables
-
-                # check Config
-                # extract bool, int, size_type, typename before Config
-                # add one function like original one
-                # add selection_config macro
-                # need to keep the map
             fi
             FUNCTION_HANDLE=""
         fi

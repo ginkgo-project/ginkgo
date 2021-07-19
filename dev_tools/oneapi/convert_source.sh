@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# convert_source.sh converts cuda (and c++ code) to dpcpp code with ginkgo design.
+
 # Usage:
 # EnvironementSet ./dev_tools/oneapi/convert_source.sh <the_file_in_cuda>
 # <the_file_in_cuda> can be .hpp/.cpp/.cu/.cuh
@@ -65,7 +67,6 @@ convert_cuda_kernel_call() {
     local syntax_regex="([^<>]*)(<[^<>]*>)?<<<(.*)>>>(.*)"
     local str="$1"
     str=$(echo "${str}" | sed -E 's/ +/ /g')
-    # echo "str ${str}"
     local temp=""
     local num=0
     local var=""

@@ -106,7 +106,6 @@ constexpr int max_thread_per_worker = 32;
 using compiled_kernels = syn::value_list<int, 0, 8, 16, 32>;
 
 
-// #include "common/matrix/ell_kernels.hpp.inc"
 namespace kernel {
 namespace {
 
@@ -174,12 +173,8 @@ void spmv_kernel(
             atomic_add<atomic::local_space>(
                 &(*storage)[item_ct1.get_local_id(2)], temp);
         }
-        /*
-        DPCT1065:1: Consider replacing sycl::nd_item::barrier() with
-        sycl::nd_item::barrier(sycl::access::fence_space::local_space) for
-        better performance, if there is no access to global memory.
-        */
-        item_ct1.barrier();
+
+        item_ct1.barrier(sycl::access::fence_space::local_space);
         if (runnable && idx_in_worker == 0) {
             const auto c_ind = x * c_stride + column_id;
             if (atomic) {
@@ -255,11 +250,12 @@ void spmv(
 {
     const OutputValueType alpha_val = alpha(0);
     const OutputValueType beta_val = beta[0];
-    // Because the atomic operation changes the values of c during computation,
-    // it can not do the right alpha * a * b + beta * c operation.
-    // Thus, the dpcpp kernel only computes alpha * a * b when it uses atomic
-    // operation.
     if (atomic) {
+        // Because the atomic operation changes the values of c during
+        // computation, it can not directly do alpha * a * b + beta * c
+        // operation. The beta * c needs to be done before calling this kernel.
+        // Then, this kernel only adds alpha * a * b when it uses atomic
+        // operation.
         spmv_kernel<num_thread_per_worker, atomic>(
             num_rows, num_worker_per_row, val, col, stride,
             num_stored_elements_per_row, b, c, c_stride,
@@ -585,7 +581,7 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
 
     const auto nrows = a->get_size()[0];
     const auto ell_ncols = a->get_num_stored_elements_per_row();
-    // TODO: num_threads_per_core should be tuned for AMD gpu
+    // TODO: num_threads_per_core should be tuned for Dpcpp
     const auto nwarps = 16 * num_threads_per_core;
 
     // Use multithreads to perform the reduction on each row when the matrix is

@@ -58,10 +58,7 @@ namespace thread_t {
  * @note Assumes that grid dimensions are in standard format:
  *       `(block_group_size, first_grid_dimension, second grid_dimension)`
  */
-__device__ __forceinline__ size_type get_block_group_id()
-{
-    return static_cast<size_type>(blockIdx.z) * gridDim.y + blockIdx.y;
-}
+__device__ __forceinline__ size_type get_block_group_id() { return static_cast<size_type>(blockIdx.z) * gridDim.y + blockIdx.y; }
 
 /**
  * @internal
@@ -73,10 +70,7 @@ __device__ __forceinline__ size_type get_block_group_id()
  * @note Assumes that grid dimensions are in standard format:
  *       `(block_group_size, first_grid_dimension, second grid_dimension)`
  */
-__device__ __forceinline__ size_type get_block_id()
-{
-    return get_block_group_id() * gridDim.x + blockIdx.x;
-}
+__device__ __forceinline__ size_type get_block_id() { return get_block_group_id() * gridDim.x + blockIdx.x; }
 
 
 /**
@@ -92,10 +86,7 @@ __device__ __forceinline__ size_type get_block_id()
  *       `(subwarp_size, config::warp_size / subwarp_size, block_size /
  *         config::warp_size)`
  */
-__device__ __forceinline__ size_type get_local_warp_id()
-{
-    return static_cast<size_type>(threadIdx.z);
-}
+__device__ __forceinline__ size_type get_local_warp_id() { return static_cast<size_type>(threadIdx.z); }
 
 
 /**
@@ -208,8 +199,7 @@ __device__ __forceinline__ size_type get_subwarp_id()
 template <int subwarp_size, int warps_per_block>
 __device__ __forceinline__ size_type get_thread_id()
 {
-    return get_subwarp_id<subwarp_size, warps_per_block>() * subwarp_size +
-           threadIdx.x;
+    return get_subwarp_id<subwarp_size, warps_per_block>() * subwarp_size + threadIdx.x;
 }
 
 
@@ -262,10 +252,8 @@ __device__ __forceinline__ IndexType get_thread_num_flat()
 template <int subwarp_size, typename IndexType = size_type>
 __device__ __forceinline__ IndexType get_subwarp_id_flat()
 {
-    static_assert(!(subwarp_size & (subwarp_size - 1)),
-                  "subwarp_size must be a power of two");
-    return threadIdx.x / subwarp_size +
-           static_cast<IndexType>(blockDim.x / subwarp_size) * blockIdx.x;
+    static_assert(!(subwarp_size & (subwarp_size - 1)), "subwarp_size must be a power of two");
+    return threadIdx.x / subwarp_size + static_cast<IndexType>(blockDim.x / subwarp_size) * blockIdx.x;
 }
 
 
@@ -284,13 +272,12 @@ __device__ __forceinline__ IndexType get_subwarp_id_flat()
 template <int subwarp_size, typename IndexType = size_type>
 __device__ __forceinline__ IndexType get_subwarp_num_flat()
 {
-    static_assert(!(subwarp_size & (subwarp_size - 1)),
-                  "subwarp_size must be a power of two");
+    static_assert(!(subwarp_size & (subwarp_size - 1)), "subwarp_size must be a power of two");
     return blockDim.x / subwarp_size * static_cast<IndexType>(gridDim.x);
 }
 
 
-}  // namespace thread
+}  // namespace thread_t
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
