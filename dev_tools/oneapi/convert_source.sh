@@ -26,7 +26,7 @@ ROOT_DIR="${ROOT_DIR:="${CURRENT_DIR}"}"
 BUILD_DIR="${BUILD_DIR:="build"}"
 ROOT_BUILD_DIR="${ROOT_BUILD_DIR:="${ROOT_DIR}/${BUILD_DIR}"}"
 CUDA_HEADER_DIR="${CUDA_HEADER_DIR}"
-GTEST_HEADER_DIR="${GTEST_HEADER_DIR:="${ROOT_BUILD_DIR}/third_party/gtest/src/googletest/include"}"
+GTEST_HEADER_DIR="${GTEST_HEADER_DIR:="${ROOT_BUILD_DIR}/_deps/googletest-src/googletest/include"}"
 CLANG_FORMAT=${CLANG_FORMAT:="clang-format"}
 if [[ "${VERBOSE}" == 1 ]]; then
     echo "#####################"
