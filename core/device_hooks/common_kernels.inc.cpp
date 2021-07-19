@@ -75,6 +75,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/reorder/rcm_kernels.hpp"
 #include "core/solver/batch_bicgstab_kernels.hpp"
 #include "core/solver/batch_cg_kernels.hpp"
+#include "core/solver/batch_direct_kernels.hpp"
 #include "core/solver/batch_gmres_kernels.hpp"
 #include "core/solver/batch_idr_kernels.hpp"
 #include "core/solver/batch_richardson_kernels.hpp"
@@ -650,6 +651,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDR_APPLY_KERNEL);
 
 
 }  // namespace batch_idr
+
+
+namespace batch_direct {
+
+
+template <typename ValueType>
+GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_BATCH_DIRECT_SCALE_AND_COPY(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_SCALE_AND_COPY);
+
+
+}  // namespace batch_direct
 
 
 namespace sparsity_csr {
