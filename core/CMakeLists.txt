@@ -40,6 +40,7 @@ target_sources(ginkgo
     reorder/rcm.cpp
     solver/batch_bicgstab.cpp
     solver/batch_cg.cpp
+    solver/batch_direct.cpp
     solver/batch_gmres.cpp
     solver/batch_idr.cpp
     solver/batch_richardson.cpp
