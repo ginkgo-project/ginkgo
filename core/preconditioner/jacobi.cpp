@@ -237,13 +237,15 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
         if (auto diag_dense =
                 std::dynamic_pointer_cast<matrix::Diagonal<ValueType>>(diag)) {
             auto temp = gko::Array<ValueType>::view(
-                exec, system_matrix->get_size()[0], diag_dense->get_values());
+                diag_dense->get_executor(), system_matrix->get_size()[0],
+                diag_dense->get_values());
             this->blocks_ = temp;
         } else if (auto diag_dense =
                        std::dynamic_pointer_cast<matrix::Diagonal<next_type>>(
                            diag)) {
             auto temp = gko::Array<next_type>::view(
-                exec, system_matrix->get_size()[0], diag_dense->get_values());
+                diag_dense->get_executor(), system_matrix->get_size()[0],
+                diag_dense->get_values());
             this->blocks_ = temp;
         } else {
             GKO_NOT_SUPPORTED(system_matrix);
