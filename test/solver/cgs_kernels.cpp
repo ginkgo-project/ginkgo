@@ -309,9 +309,6 @@ TEST_F(Cgs, CgsStep3IsEquivalentToRef)
 
 TEST_F(Cgs, CgsApplyOneRHSIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     int m = 123;
     int n = 1;
     auto ref_solver = ref_cgs_factory->generate(mtx);
@@ -333,9 +330,6 @@ TEST_F(Cgs, CgsApplyOneRHSIsEquivalentToRef)
 
 TEST_F(Cgs, CgsApplyMultipleRHSIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     int m = 123;
     int n = 16;
     auto exec_solver = exec_cgs_factory->generate(d_mtx);

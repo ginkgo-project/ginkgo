@@ -320,9 +320,6 @@ TEST_F(Bicgstab, BicgstabStep3IsEquivalentToRef)
 
 TEST_F(Bicgstab, BicgstabApplyOneRHSIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     int m = 123;
     int n = 1;
     auto ref_solver = ref_bicgstab_factory->generate(mtx);
@@ -344,9 +341,6 @@ TEST_F(Bicgstab, BicgstabApplyOneRHSIsEquivalentToRef)
 
 TEST_F(Bicgstab, BicgstabApplyMultipleRHSIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     int m = 123;
     int n = 16;
     auto exec_solver = exec_bicgstab_factory->generate(d_mtx);
