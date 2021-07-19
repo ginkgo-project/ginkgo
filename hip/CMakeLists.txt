@@ -49,6 +49,7 @@ set(GINKGO_HIP_SOURCES
     reorder/rcm_kernels.hip.cpp
     solver/batch_bicgstab_kernels.hip.cpp
     solver/batch_cg_kernels.hip.cpp
+    solver/batch_direct_kernels.hip.cpp
     solver/batch_gmres_kernels.hip.cpp
     solver/batch_idr_kernels.hip.cpp
     solver/batch_richardson_kernels.hip.cpp

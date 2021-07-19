@@ -52,6 +52,7 @@ target_sources(ginkgo_cuda
     reorder/rcm_kernels.cu
     solver/batch_bicgstab_kernels.cu
     solver/batch_cg_kernels.cu
+    solver/batch_direct_kernels.cu
     solver/batch_gmres_kernels.cu
     solver/batch_idr_kernels.cu
     solver/batch_richardson_kernels.cu
