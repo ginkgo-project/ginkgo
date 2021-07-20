@@ -217,7 +217,7 @@ void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
                 const int maxits,
                 const typename SolverType::Factory *const factory,
                 const double true_res_norm_slack_factor = 1.0,
-                const bool use_scaling = false)
+                const bool use_scaling = false, const bool test_logger = true)
 {
     using T = typename SolverType::value_type;
     using RT = typename gko::remove_complex<T>;
@@ -287,16 +287,22 @@ void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
     auto r_logged_res = logger->get_residual_norm();
     for (size_t ib = 0; ib < nbatch; ib++) {
         for (int j = 0; j < nrhs; j++) {
-            ASSERT_GT(r_iter_array.get_const_data()[ib * nrhs + j], 0);
-            ASSERT_LE(r_iter_array.get_const_data()[ib * nrhs + j], maxits - 1);
-            ASSERT_LE(r_logged_res->at(ib, 0, j) / ref_bnorm->at(ib, 0, j),
-                      res_tol);
+            if (test_logger) {
+                ASSERT_GT(r_iter_array.get_const_data()[ib * nrhs + j], 0);
+                ASSERT_LE(r_iter_array.get_const_data()[ib * nrhs + j],
+                          maxits - 1);
+                ASSERT_LE(r_logged_res->at(ib, 0, j) / ref_bnorm->at(ib, 0, j),
+                          res_tol);
+            }
             ASSERT_LE(ref_rnorm->at(ib, 0, j) / ref_bnorm->at(ib, 0, j),
                       true_res_norm_slack_factor * res_tol);
-            ASSERT_LE(
-                abs(r_logged_res->at(ib, 0, j) - ref_rnorm->at(ib, 0, j)),
-                res_tol * ref_bnorm->at(ib, 0, j) *
-                    (abs(true_res_norm_slack_factor - 1) + 10 * r<T>::value));
+            if (test_logger) {
+                ASSERT_LE(
+                    abs(r_logged_res->at(ib, 0, j) - ref_rnorm->at(ib, 0, j)),
+                    res_tol * ref_bnorm->at(ib, 0, j) *
+                        (abs(true_res_norm_slack_factor - 1) +
+                         10 * r<T>::value));
+            }
         }
     }
 }
