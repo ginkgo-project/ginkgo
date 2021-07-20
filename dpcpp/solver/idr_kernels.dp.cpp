@@ -34,12 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ctime>
-#include <dpcpp/base/curand_bindings.hpp>
-#include <dpcpp/base/math.hpp>
 #include <random>
 
 
 #include <CL/sycl.hpp>
+#include <oneapi/dpl/random>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -67,8 +66,8 @@ namespace dpcpp {
 namespace idr {
 
 
-constexpr int default_block_size = 512;
-constexpr int default_dot_dim = 32;
+constexpr int default_block_size = 256;
+constexpr int default_dot_dim = 16;
 constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
@@ -140,7 +139,7 @@ void orthonormalize_subspace_vectors_kernel(
             better performance, if there is no access to global memory.
             */
             item_ct1.barrier();
-            reduce(
+            ::gko::kernels::dpcpp::reduce(
                 group::this_thread_block(item_ct1), reduction_helper,
                 [](const ValueType &a, const ValueType &b) { return a + b; });
             /*
@@ -169,9 +168,10 @@ void orthonormalize_subspace_vectors_kernel(
         better performance, if there is no access to global memory.
         */
         item_ct1.barrier();
-        reduce(group::this_thread_block(item_ct1), reduction_helper_real,
-               [](const remove_complex<ValueType> &a,
-                  const remove_complex<ValueType> &b) { return a + b; });
+        ::gko::kernels::dpcpp::reduce(
+            group::this_thread_block(item_ct1), reduction_helper_real,
+            [](const remove_complex<ValueType> &a,
+               const remove_complex<ValueType> &b) { return a + b; });
         /*
         DPCT1065:2: Consider replacing sycl::nd_item::barrier() with
         sycl::nd_item::barrier(sycl::access::fence_space::local_space) for
@@ -179,7 +179,7 @@ void orthonormalize_subspace_vectors_kernel(
         */
         item_ct1.barrier();
 
-        norm = sycl::sqrt((float)(reduction_helper_real[0]));
+        norm = std::sqrt(reduction_helper_real[0]);
         for (size_type j = tidx; j < num_cols; j += block_size) {
             values[row * stride + j] /= norm;
         }
@@ -397,9 +397,9 @@ void multidot_kernel(
     local_res = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
     const auto tile_block = group::tiled_partition<default_dot_dim>(
         group::this_thread_block(item_ct1));
-    const auto sum =
-        reduce(tile_block, local_res,
-               [](const ValueType &a, const ValueType &b) { return a + b; });
+    const auto sum = ::gko::kernels::dpcpp::reduce(
+        tile_block, local_res,
+        [](const ValueType &a, const ValueType &b) { return a + b; });
     const auto new_rhs = item_ct1.get_group(2) * default_dot_dim + tidy;
     if (tidx == 0 && new_rhs < nrhs && !stop_status[new_rhs].has_stopped()) {
         atomic_add(alpha + new_rhs, sum);
@@ -595,9 +595,8 @@ void compute_omega_kernel(
     if (!stop_status[global_id].has_stopped()) {
         auto thr = omega[global_id];
         omega[global_id] /= tht[global_id];
-        auto absrho =
-            std::abs(thr / (sycl::sqrt((float)(real(tht[global_id]))) *
-                            residual_norm[global_id]));
+        auto absrho = std::abs(thr / (std::sqrt((float)(real(tht[global_id]))) *
+                                      residual_norm[global_id]));
 
         if (absrho < kappa) {
             omega[global_id] *= kappa / absrho;
@@ -627,7 +626,8 @@ namespace {
 
 
 template <typename ValueType>
-void initialize_m(const size_type nrhs, matrix::Dense<ValueType> *m,
+void initialize_m(std::shared_ptr<const DpcppExecutor> exec,
+                  const size_type nrhs, matrix::Dense<ValueType> *m,
                   Array<stopping_status> *stop_status)
 {
     const auto subspace_dim = m->get_size()[0];
@@ -641,27 +641,47 @@ void initialize_m(const size_type nrhs, matrix::Dense<ValueType> *m,
 
 
 template <typename ValueType>
-void initialize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors,
+void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
+                                 matrix::Dense<ValueType> *subspace_vectors,
                                  bool deterministic)
 {
     if (deterministic) {
         auto subspace_vectors_data = matrix_data<ValueType>(
-            subspace_vectors->get_size(), std::normal_distribution<>(0.0, 1.0),
+            subspace_vectors->get_size(),
+            std::normal_distribution<remove_complex<ValueType>>(0.0, 1.0),
             std::ranlux48(15));
         subspace_vectors->read(subspace_vectors_data);
     } else {
-        auto gen =
-            curand::rand_generator(time(NULL), CURAND_RNG_PSEUDO_DEFAULT);
-        curand::rand_vector(
-            gen,
-            subspace_vectors->get_size()[0] * subspace_vectors->get_stride(),
-            0.0, 1.0, subspace_vectors->get_values());
+        auto size = subspace_vectors->get_size();
+        auto stride = subspace_vectors->get_stride();
+        auto values = subspace_vectors->get_values();
+        exec->get_queue()->submit([&](sycl::handler &cgh) {
+            cgh.parallel_for(
+                sycl::range<1>(size[0] * size[1]), [=](sycl::item<1> idx) {
+                    std::uint64_t offset = idx.get_linear_id();
+
+                    // Create minstd_rand engine
+                    oneapi::dpl::minstd_rand engine(132, offset);
+
+                    // Create uniform_real_distribution distribution
+                    oneapi::dpl::uniform_real_distribution<
+                        remove_complex<ValueType>>
+                        distr;
+
+                    // Generate random number
+                    auto res = distr(engine);
+
+                    // Store results to x_acc
+                    values[idx / size[1] * stride + idx % size[1]] = res;
+                });
+        });
     }
 }
 
 
 template <typename ValueType>
-void orthonormalize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors)
+void orthonormalize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
+                                     matrix::Dense<ValueType> *subspace_vectors)
 {
     orthonormalize_subspace_vectors_kernel<default_block_size>(
         1, default_block_size, 0, exec->get_queue(),
@@ -671,7 +691,8 @@ void orthonormalize_subspace_vectors(matrix::Dense<ValueType> *subspace_vectors)
 
 
 template <typename ValueType>
-void solve_lower_triangular(const size_type nrhs,
+void solve_lower_triangular(std::shared_ptr<const DpcppExecutor> exec,
+                            const size_type nrhs,
                             const matrix::Dense<ValueType> *m,
                             const matrix::Dense<ValueType> *f,
                             matrix::Dense<ValueType> *c,
@@ -702,7 +723,7 @@ void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
     const auto p_stride = p->get_stride();
 
     const dim3 grid_dim(ceildiv(nrhs, default_dot_dim),
-                        exec->get_num_multiprocessor() * 2);
+                        exec->get_num_computing_units() * 2);
     const dim3 block_dim(default_dot_dim, default_dot_dim);
 
     for (size_type i = 0; i < k; i++) {
@@ -714,9 +735,8 @@ void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
                             nrhs, p_i, g_k->get_values(), g_k->get_stride(),
                             alpha->get_values(), stop_status->get_const_data());
         } else {
-            cublas::dot(exec->get_cublas_handle(), size, p_i, 1,
-                        g_k->get_values(), g_k->get_stride(),
-                        alpha->get_values());
+            onemkl::dot(*exec->get_queue(), size, p_i, 1, g_k->get_values(),
+                        g_k->get_stride(), alpha->get_values());
         }
         update_g_k_and_u_kernel<default_block_size>(
             ceildiv(size * g_k->get_stride(), default_block_size),
@@ -746,7 +766,7 @@ void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
     const auto m_stride = m->get_stride();
 
     const dim3 grid_dim(ceildiv(nrhs, default_dot_dim),
-                        exec->get_num_multiprocessor() * 2);
+                        exec->get_num_computing_units() * 2);
     const dim3 block_dim(default_dot_dim, default_dot_dim);
 
     for (size_type i = k; i < subspace_dim; i++) {
@@ -759,7 +779,7 @@ void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
                             g_k->get_stride(), m_i,
                             stop_status->get_const_data());
         } else {
-            cublas::dot(exec->get_cublas_handle(), size, p_i, 1,
+            onemkl::dot(*exec->get_queue(), size, p_i, 1,
                         g_k->get_const_values(), g_k->get_stride(), m_i);
         }
     }
@@ -801,9 +821,9 @@ void initialize(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
                 matrix::Dense<ValueType> *subspace_vectors, bool deterministic,
                 Array<stopping_status> *stop_status)
 {
-    initialize_m(nrhs, m, stop_status);
-    initialize_subspace_vectors(subspace_vectors, deterministic);
-    orthonormalize_subspace_vectors(subspace_vectors);
+    initialize_m(exec, nrhs, m, stop_status);
+    initialize_subspace_vectors(exec, subspace_vectors, deterministic);
+    orthonormalize_subspace_vectors(exec, subspace_vectors);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
@@ -818,7 +838,7 @@ void step_1(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
             matrix::Dense<ValueType> *v,
             const Array<stopping_status> *stop_status)
 {
-    solve_lower_triangular(nrhs, m, f, c, stop_status);
+    solve_lower_triangular(exec, nrhs, m, f, c, stop_status);
 
     const auto num_rows = v->get_size()[0];
     const auto subspace_dim = m->get_size()[0];

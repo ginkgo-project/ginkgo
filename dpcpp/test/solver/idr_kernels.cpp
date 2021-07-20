@@ -55,10 +55,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+// use another alias to avoid conflict name in the Idr
+template <typename Precision, typename OutputType = Precision>
+using rr = typename gko::test::reduction_factor<Precision, OutputType>;
+
 class Idr : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
-    using Solver = gko::solver::Idr<>;
+#if GINKGO_DPCPP_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
+    using Mtx = gko::matrix::Dense<value_type>;
+    using Solver = gko::solver::Idr<value_type>;
 
     Idr() : rand_engine(30) {}
 
@@ -97,7 +106,8 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
+            std::normal_distribution<gko::remove_complex<value_type>>(0.0, 1.0),
+            rand_engine, ref);
     }
 
     void initialize_data()
@@ -215,8 +225,8 @@ TEST_F(Idr, IdrInitializeIsEquivalentToRef)
     gko::kernels::dpcpp::idr::initialize(dpcpp, nrhs, d_m.get(), d_p.get(),
                                          true, d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(m, d_m, 1e-14);
-    GKO_ASSERT_MTX_NEAR(p, d_p, 1e-14);
+    GKO_ASSERT_MTX_NEAR(m, d_m, rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(p, d_p, rr<value_type>::value);
 }
 
 
@@ -232,8 +242,8 @@ TEST_F(Idr, IdrStep1IsEquivalentToRef)
                                      d_r.get(), d_g.get(), d_c.get(), d_v.get(),
                                      d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(c, d_c, 1e-14);
-    GKO_ASSERT_MTX_NEAR(v, d_v, 1e-14);
+    GKO_ASSERT_MTX_NEAR(c, d_c, rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(v, d_v, rr<value_type>::value);
 }
 
 
@@ -247,7 +257,7 @@ TEST_F(Idr, IdrStep2IsEquivalentToRef)
     gko::kernels::dpcpp::idr::step_2(dpcpp, nrhs, k, d_omega.get(), d_v.get(),
                                      d_c.get(), d_u.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(u, d_u, 1e-14);
+    GKO_ASSERT_MTX_NEAR(u, d_u, rr<value_type>::value);
 }
 
 
@@ -263,13 +273,13 @@ TEST_F(Idr, IdrStep3IsEquivalentToRef)
         dpcpp, nrhs, k, d_p.get(), d_g.get(), d_v.get(), d_u.get(), d_m.get(),
         d_f.get(), d_alpha.get(), d_r.get(), d_x.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(g, d_g, 1e-14);
-    GKO_ASSERT_MTX_NEAR(v, d_v, 1e-14);
-    GKO_ASSERT_MTX_NEAR(u, d_u, 1e-14);
-    GKO_ASSERT_MTX_NEAR(m, d_m, 1e-14);
-    GKO_ASSERT_MTX_NEAR(f, d_f, 1e-14);
-    GKO_ASSERT_MTX_NEAR(r, d_r, 1e-14);
-    GKO_ASSERT_MTX_NEAR(x, d_x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(g, d_g, rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(v, d_v, rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(u, d_u, rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(m, d_m, rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(f, d_f, rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(r, d_r, rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(x, d_x, rr<value_type>::value);
 }
 
 
@@ -285,7 +295,7 @@ TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
                                             d_residual_norm.get(),
                                             d_omega.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(omega, d_omega, 1e-14);
+    GKO_ASSERT_MTX_NEAR(omega, d_omega, rr<value_type>::value);
 }
 
 
@@ -305,8 +315,8 @@ TEST_F(Idr, IdrIterationOneRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     dpcpp_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 10);
+    GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 10);
 }
 
 
@@ -340,8 +350,8 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     dpcpp_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 10);
+    GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 10);
 }
 
 
@@ -396,8 +406,8 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     dpcpp_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 10);
+    GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 10);
 }
 
 
