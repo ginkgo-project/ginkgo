@@ -229,10 +229,8 @@ void reduce_add_array(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                reduce_add_array<cfg>(
-                    size, source, result, item_ct1,
-                    (UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> *)
-                        block_sum_acc_ct1.get_pointer());
+                reduce_add_array<cfg>(size, source, result, item_ct1,
+                                      block_sum_acc_ct1.get_pointer().get());
             });
     });
 }

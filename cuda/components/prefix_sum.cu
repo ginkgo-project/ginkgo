@@ -49,7 +49,7 @@ template <typename IndexType>
 void prefix_sum(std::shared_ptr<const CudaExecutor> exec, IndexType *counts,
                 size_type num_entries)
 {
-    // prefix_sum should be on the valid array
+    // prefix_sum should only be performed on a valid array
     if (num_entries > 0) {
         auto num_blocks = ceildiv(num_entries, prefix_sum_block_size);
         Array<IndexType> block_sum_array(exec, num_blocks - 1);
@@ -57,8 +57,8 @@ void prefix_sum(std::shared_ptr<const CudaExecutor> exec, IndexType *counts,
         start_prefix_sum<prefix_sum_block_size>
             <<<num_blocks, prefix_sum_block_size>>>(num_entries, counts,
                                                     block_sums);
-        // add the total sum of the previous block only when the number of block
-        // is larger than 1.
+        // add the total sum of the previous block only when the number of
+        // blocks is larger than 1.
         if (num_blocks > 1) {
             finalize_prefix_sum<prefix_sum_block_size>
                 <<<num_blocks, prefix_sum_block_size>>>(num_entries, counts,

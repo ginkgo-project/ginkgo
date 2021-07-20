@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * Stores an array with uninitialized contents.
  *
- * This class needed for datatypes that do have a non-empty constructor when`
+ * This class is needed for datatypes that do have a non-empty constructor when
  * using them as shared memory, for example `thrust::complex<float>`.
  *
  * @tparam ValueType the type of values
@@ -49,7 +49,7 @@ public:
      *
      * @return the constexpr pointer to the first entry of the array.
      */
-    constexpr GKO_ATTRIBUTES operator ValueType *() const noexcept
+    constexpr GKO_ATTRIBUTES operator const ValueType *() const noexcept
     {
         return &(*this)[0];
     }
@@ -70,7 +70,8 @@ public:
      *
      * @return a reference to the array entry at the given index.
      */
-    constexpr GKO_ATTRIBUTES ValueType &operator[](size_type pos) const noexcept
+    constexpr GKO_ATTRIBUTES const ValueType &operator[](size_type pos) const
+        noexcept
     {
         return reinterpret_cast<const ValueType *>(data_)[pos];
     }

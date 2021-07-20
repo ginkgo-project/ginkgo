@@ -55,7 +55,7 @@ __device__ void abstract_filter_impl(const IndexType *row_ptrs,
     auto end = row_ptrs[row + 1];
     begin_cb(row);
     auto num_steps = ceildiv(end - begin, subwarp_size);
-    for (auto step = 0; step < num_steps; ++step) {
+    for (IndexType step = 0; step < num_steps; ++step) {
         auto idx = begin + lane + step * subwarp_size;
         auto keep = idx < end && pred(idx, begin, end);
         auto mask = subwarp.ballot(keep);

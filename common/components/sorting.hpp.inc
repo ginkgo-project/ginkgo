@@ -70,7 +70,7 @@ struct bitonic_local {
                                                           bool reverse)
     {
         auto els_mid = els + (num_elements / 2);
-        for (auto i = 0; i < num_elements / 2; ++i) {
+        for (int i = 0; i < num_elements / 2; ++i) {
             bitonic_cas(els[i], els_mid[i], reverse);
         }
         half::merge(els, reverse);
@@ -131,7 +131,7 @@ struct bitonic_warp {
         auto tile =
             group::tiled_partition<num_threads>(group::this_thread_block());
         auto new_reverse = reverse != upper_half();
-        for (auto i = 0; i < num_local; ++i) {
+        for (int i = 0; i < num_local; ++i) {
             auto other = tile.shfl_xor(els[i], num_threads / 2);
             bitonic_cas(els[i], other, new_reverse);
         }
@@ -206,7 +206,7 @@ struct bitonic_global {
         auto upper_shared_els = shared_els + (num_groups * num_threads / 2);
         // only the lower group executes the CAS
         if (!upper_half()) {
-            for (auto i = 0; i < num_local; ++i) {
+            for (int i = 0; i < num_local; ++i) {
                 auto j = shared_idx(i);
                 bitonic_cas(shared_els[j], upper_shared_els[j], reverse);
             }
@@ -241,11 +241,11 @@ struct bitonic_global<ValueType, num_local, num_threads, 1, num_total_threads> {
                                                  bool reverse)
     {
         group::this_thread_block().sync();
-        for (auto i = 0; i < num_local; ++i) {
+        for (int i = 0; i < num_local; ++i) {
             local_els[i] = shared_els[shared_idx(i)];
         }
         warp::merge(local_els, reverse);
-        for (auto i = 0; i < num_local; ++i) {
+        for (int i = 0; i < num_local; ++i) {
             shared_els[shared_idx(i)] = local_els[i];
         }
     }
@@ -258,7 +258,7 @@ struct bitonic_global<ValueType, num_local, num_threads, 1, num_total_threads> {
         // This is the first step, so we don't need to load from shared memory
         warp::sort(local_els, reverse);
         // store the sorted elements in shared memory
-        for (auto i = 0; i < num_local; ++i) {
+        for (int i = 0; i < num_local; ++i) {
             shared_els[shared_idx(i)] = local_els[i];
         }
     }

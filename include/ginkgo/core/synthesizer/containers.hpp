@@ -51,7 +51,7 @@ namespace syn {
  * value_list records several values with the same type in template.
  *
  * @tparam T  the value type of the list
- * @tparam T...  the values in the list
+ * @tparam Values  the values in the list
  */
 template <typename T, T... Values>
 struct value_list {};
@@ -60,7 +60,7 @@ struct value_list {};
 /**
  * type_list records several types in template
  *
- * @tparam ...Types  the types in the list
+ * @tparam Types  the types in the list
  */
 template <typename... Types>
 struct type_list {};
@@ -69,9 +69,9 @@ struct type_list {};
 /**
  * range records start, end, step in template
  *
- * @tparam int  start of range
- * @tparam int  end of range
- * @tparam int  step of range. default is 1
+ * @tparam Start  start of range
+ * @tparam End  end of range
+ * @tparam Step  step of range. default is 1
  */
 template <int Start, int End, int Step = 1>
 struct range {};
@@ -93,8 +93,8 @@ struct concatenate_impl;
  * concatenate_impl specializes for two value_list with the same value type.
  *
  * @tparam T  the value type of two value_list
- * @tparam T...  the values of the first list
- * @tparam T...  the values of the second list
+ * @tparam Values  the values of the first list
+ * @tparam Values  the values of the second list
  */
 template <typename T, T... Values1, T... Values2>
 struct concatenate_impl<value_list<T, Values1...>, value_list<T, Values2...>> {
@@ -130,7 +130,7 @@ struct as_list_impl;
  * as_list_impl specializes for the value_list
  *
  * @tparam T  the value_list type
- * @tparam T...  the values of value_list
+ * @tparam Values  the values of value_list
  */
 template <typename T, T... Values>
 struct as_list_impl<value_list<T, Values...>> {
@@ -193,7 +193,7 @@ using as_list = typename detail::as_list_impl<T>::type;
  * for in runtime on the array.
  *
  * @tparam T  the type of value_list
- * @tparam T...  the values of value_list
+ * @tparam Value  the values of value_list
  *
  * @param value_list  the input value_list
  *

@@ -179,10 +179,9 @@ void compute_partial_dot(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                compute_partial_dot<cfg>(
-                    num_rows, x, stride_x, y, stride_y, work, item_ct1,
-                    (UninitializedArray<ValueType, wg_size> *)
-                        tmp_work_acc_ct1.get_pointer());
+                compute_partial_dot<cfg>(num_rows, x, stride_x, y, stride_y,
+                                         work, item_ct1,
+                                         tmp_work_acc_ct1.get_pointer().get());
             });
     });
 }
@@ -227,8 +226,7 @@ void compute_partial_conj_dot(dim3 grid, dim3 block,
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 compute_partial_conj_dot<cfg>(
                     num_rows, x, stride_x, y, stride_y, work, item_ct1,
-                    (UninitializedArray<ValueType, wg_size> *)
-                        tmp_work_acc_ct1.get_pointer());
+                    tmp_work_acc_ct1.get_pointer().get());
             });
     });
 }
@@ -268,8 +266,7 @@ void finalize_sum_reduce_computation(dim3 grid, dim3 block,
                          [=](sycl::nd_item<3> item_ct1) {
                              finalize_sum_reduce_computation<cfg>(
                                  size, work, result, item_ct1,
-                                 (UninitializedArray<ValueType, wg_size> *)
-                                     tmp_work_acc_ct1.get_pointer());
+                                 tmp_work_acc_ct1.get_pointer().get());
                          });
     });
 }
@@ -308,13 +305,12 @@ void compute_partial_norm2(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                        sycl::access::target::local>
             tmp_work_acc_ct1(cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                compute_partial_norm2<cfg>(
-                    num_rows, x, stride_x, work, item_ct1,
-                    (UninitializedArray<remove_complex<ValueType>, wg_size> *)
-                        tmp_work_acc_ct1.get_pointer());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             compute_partial_norm2<cfg>(
+                                 num_rows, x, stride_x, work, item_ct1,
+                                 tmp_work_acc_ct1.get_pointer().get());
+                         });
     });
 }
 
@@ -354,8 +350,7 @@ void finalize_sqrt_reduce_computation(dim3 grid, dim3 block,
                          [=](sycl::nd_item<3> item_ct1) {
                              finalize_sqrt_reduce_computation<cfg>(
                                  size, work, result, item_ct1,
-                                 (UninitializedArray<ValueType, wg_size> *)
-                                     tmp_work_acc_ct1.get_pointer());
+                                 tmp_work_acc_ct1.get_pointer().get());
                          });
     });
 }
@@ -433,7 +428,7 @@ void fill_in_csr(size_type num_rows, size_type num_cols, size_type stride,
 
     if (tidx < num_rows) {
         auto write_to = row_ptrs[tidx];
-        for (auto i = 0; i < num_cols; i++) {
+        for (size_type i = 0; i < num_cols; i++) {
             if (source[stride * tidx + i] != zero<ValueType>()) {
                 values[write_to] = source[stride * tidx + i];
                 col_idxs[write_to] = i;
@@ -586,7 +581,7 @@ void reduce_max_nnz(dim3 grid, dim3 block, size_t dynamic_shared_memory,
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 reduce_max_nnz<cfg>(size, nnz_per_row, result, item_ct1,
-                                    dpct_local_acc_ct1.get_pointer());
+                                    dpct_local_acc_ct1.get_pointer().get());
             });
     });
 }
@@ -666,7 +661,7 @@ void reduce_total_cols(dim3 grid, dim3 block, size_t dynamic_shared_memory,
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 reduce_total_cols<cfg>(num_slices, max_nnz_per_slice, result,
                                        item_ct1,
-                                       dpct_local_acc_ct1.get_pointer());
+                                       dpct_local_acc_ct1.get_pointer().get());
             });
     });
 }

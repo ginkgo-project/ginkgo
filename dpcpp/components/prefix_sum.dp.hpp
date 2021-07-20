@@ -78,7 +78,7 @@ __dpct_inline__ void subwarp_prefix_sum(ValueType element,
     total_sum = element;
 #pragma unroll
     // hypercube prefix sum
-    for (auto step = 1; step < subwarp.size(); step *= 2) {
+    for (int step = 1; step < subwarp.size(); step *= 2) {
         auto neighbor = subwarp.shfl_xor(total_sum, step);
         total_sum += neighbor;
         prefix_sum += bool(subwarp.thread_rank() & step) ? neighbor : 0;
@@ -193,8 +193,7 @@ void start_prefix_sum(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                          [=](sycl::nd_item<3> item_ct1) {
                              start_prefix_sum<block_size>(
                                  num_elements, elements, block_sum, item_ct1,
-                                 (UninitializedArray<ValueType, block_size> *)
-                                     prefix_helper_acc_ct1.get_pointer());
+                                 prefix_helper_acc_ct1.get_pointer().get());
                          });
     });
 }
