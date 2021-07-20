@@ -32,14 +32,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 template <typename ValueType>
-__global__ void setup_matrices_pointers(
-    const size_type nbatch, const int nrows, const size_type stride,
-    ValueType *const __restrict__ entire_batch,
-    ValueType **const __restrict__ batches)
+__global__ void setup_batch_pointers(
+    const size_type nbatch, const int nrows, const size_type mat_stride,
+    ValueType *const __restrict__ entire_batch_mats,
+    ValueType **const __restrict__ mat_batches, const size_type vec_stride,
+    ValueType *const __restrict__ entire_batch_vecs,
+    ValueType **const __restrict__ vec_batches)
 {
     for (size_type ib = thread::get_thread_id_flat(); ib < nbatch;
          ib += thread::get_thread_num_flat()) {
-        batches[ib] =
-            gko::batch::batch_entry_ptr(entire_batch, stride, nrows, ib);
+        mat_batches[ib] = gko::batch::batch_entry_ptr(entire_batch_mats,
+                                                      mat_stride, nrows, ib);
+        vec_batches[ib] = gko::batch::batch_entry_ptr(entire_batch_vecs,
+                                                      vec_stride, nrows, ib);
     }
 }
