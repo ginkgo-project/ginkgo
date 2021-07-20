@@ -49,6 +49,32 @@ constexpr int default_block_size = 512;
 #include "common/solver/batch_direct_kernels.hpp.inc"
 
 
+namespace {
+
+void check_batch(std::shared_ptr<const CudaExecutor> exec, const int nbatch,
+                 const int *const info, const bool factorization)
+{
+    auto host_exec = exec->get_master();
+    int *const h_info = host_exec->alloc<int>(nbatch);
+    host_exec->copy_from(exec.get(), nbatch, info, h_info);
+    for (int i = 0; i < nbatch; i++) {
+        if (info[i] < 0 && factorization) {
+            std::cerr << "Cublas batch factorization was given an invalid "
+                      << "argument at the " << -1 * info[i] << "th position.\n";
+        } else if (info[i] < 0 && !factorization) {
+            std::cerr << "Cublas batch triangular solve was given an invalid "
+                      << "argument at the " << -1 * info[i] << "th position.\n";
+        } else if (info[i] > 0 && factorization) {
+            std::cerr << "Cublas batch factorization: The " << info[i]
+                      << "th matrix was singular.\n";
+        }
+    }
+    host_exec->free(h_info);
+}
+
+}  // namespace
+
+
 template <typename ValueType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
            matrix::BatchDense<ValueType> *const a,
@@ -60,19 +86,35 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     const int n = a->get_size().at()[0];
     const size_type stride = a->get_stride().at();
     const int lda = static_cast<int>(stride);
+    const size_type b_stride = b->get_stride().at();
+    const int nrhs = static_cast<int>(b->get_size().at()[1]);
+    const int ldb = static_cast<int>(b_stride);
+
     int *const pivot_array = exec->alloc<int>(nbatch * n);
     int *const info_array = exec->alloc<int>(nbatch);
-    ValueType **matrices = exec->alloc<ValueType *>(nbatch);
+    ValueType **const matrices = exec->alloc<ValueType *>(nbatch);
+    ValueType **const vectors = exec->alloc<ValueType *>(nbatch);
     const int nblk_1 = (nbatch - 1) / default_block_size + 1;
-    setup_matrices_pointers<<<nblk_1, default_block_size>>>(
+    setup_batch_pointers<<<nblk_1, default_block_size>>>(
         num_batches, n, stride, as_cuda_type(a->get_values()),
-        as_cuda_type(matrices));
+        as_cuda_type(matrices), b_stride, as_cuda_type(b->get_values()),
+        as_cuda_type(vectors));
+
     auto handle = cublas::init();
     cublas::batch_getrf(handle, n, matrices, lda, pivot_array, info_array,
                         nbatch);
-    GKO_NOT_IMPLEMENTED;
+#ifdef DEBUG
+    check_batch(exec, nbatch, info_array, true);
+#endif
+    cublas::batch_getrs(handle, CUBLAS_OP_N, n, nrhs, matrices, lda,
+                        pivot_array, vectors, ldb, info_array, nbatch);
+#ifdef DEBUG
+    check_batch(exec, nbatch, info_array, false);
+#endif
     cublas::destroy(handle);
+
     exec->free(matrices);
+    exec->free(vectors);
     exec->free(pivot_array);
     exec->free(info_array);
 }
