@@ -90,7 +90,7 @@ struct is_supported<std::complex<float>> : std::true_type {};
 template <>
 struct is_supported<std::complex<double>> : std::true_type {};
 
-
+namespace {
 #define GKO_BIND_DOT(ValueType, Name, Func)                                  \
     void Name(::cl::sycl::queue &exec_queue, std::int64_t n,                 \
               const ValueType *x, std::int64_t incx, const ValueType *y,     \
@@ -121,7 +121,7 @@ GKO_BIND_DOT(ValueType, conj_dot, detail::not_implemented);
 
 #undef GKO_BIND_DOT
 
-
+}  // namespace
 }  // namespace onemkl
 }  // namespace dpcpp
 }  // namespace kernels

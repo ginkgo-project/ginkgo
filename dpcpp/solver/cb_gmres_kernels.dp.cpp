@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-#include <dpcpp/base/math.hpp>
 
 
 #include <CL/sycl.hpp>
@@ -72,8 +71,8 @@ namespace dpcpp {
 namespace cb_gmres {
 
 
-constexpr int default_block_size = 512;
-constexpr int default_dot_dim = 32;
+constexpr int default_block_size = 256;
+constexpr int default_dot_dim = 16;
 constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
@@ -150,18 +149,10 @@ void calculate_sin_and_cos_kernel(size_type col_idx, size_type num_cols,
         const auto scale = std::abs(this_hess) + std::abs(next_hess);
         const auto hypotenuse =
             scale *
-            sycl::sqrt(
+            std::sqrt(
                 std::abs(this_hess / scale) * std::abs(this_hess / scale) +
                 std::abs(next_hess / scale) * std::abs(next_hess / scale));
-        /*
-        DPCT1007:1: Migration of this CUDA API is not supported by the Intel(R)
-        DPC++ Compatibility Tool.
-        */
         register_cos = conj(this_hess) / hypotenuse;
-        /*
-        DPCT1007:2: Migration of this CUDA API is not supported by the Intel(R)
-        DPC++ Compatibility Tool.
-        */
         register_sin = conj(next_hess) / hypotenuse;
     }
     givens_cos[iter * stride_cos + col_idx] = register_cos;
@@ -181,10 +172,6 @@ void calculate_residual_norm_kernel(size_type col_idx, size_type num_cols,
     const auto this_rnc =
         residual_norm_collection[iter * stride_residual_norm_collection +
                                  col_idx];
-    /*
-    DPCT1007:3: Migration of this CUDA API is not supported by the Intel(R)
-    DPC++ Compatibility Tool.
-    */
     const auto next_rnc = -conj(register_sin) * this_rnc;
     residual_norm_collection[iter * stride_residual_norm_collection + col_idx] =
         register_cos * this_rnc;
@@ -219,10 +206,6 @@ void givens_rotation_kernel(
         const auto sin = givens_sin[i * stride_sin + col_idx];
         hessenberg_iter[i * stride_hessenberg + col_idx] =
             cos * this_hess + sin * next_hess;
-        /*
-        DPCT1007:4: Migration of this CUDA API is not supported by the Intel(R)
-        DPC++ Compatibility Tool.
-        */
         this_hess = conj(cos) * next_hess - conj(sin) * this_hess;
         next_hess = hessenberg_iter[(i + 2) * stride_hessenberg + col_idx];
     }
@@ -497,7 +480,8 @@ void multinorm2_kernel(
     const ValueType *__restrict__ next_krylov_basis,
     size_type stride_next_krylov, remove_complex<ValueType> *__restrict__ norms,
     const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<rc_vtype, default_dot_dim *(default_dot_dim + 1)>
+    UninitializedArray<remove_complex<ValueType>,
+                       default_dot_dim *(default_dot_dim + 1)>
         *reduction_helper_array)
 {
     using rc_vtype = remove_complex<ValueType>;
@@ -526,9 +510,9 @@ void multinorm2_kernel(
     local_res = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
     const auto tile_block = group::tiled_partition<default_dot_dim>(
         group::this_thread_block(item_ct1));
-    const auto sum =
-        reduce(tile_block, local_res,
-               [](const rc_vtype &a, const rc_vtype &b) { return a + b; });
+    const auto sum = ::gko::kernels::dpcpp::reduce(
+        tile_block, local_res,
+        [](const rc_vtype &a, const rc_vtype &b) { return a + b; });
     const auto new_col_idx = item_ct1.get_group(2) * default_dot_dim + tidy;
     if (tidx == 0 && new_col_idx < num_cols &&
         !stop_status[new_col_idx].has_stopped()) {
@@ -547,10 +531,10 @@ void multinorm2_kernel(dim3 grid, dim3 block,
                        const stopping_status *stop_status)
 {
     stream->submit([&](sycl::handler &cgh) {
-        sycl::accessor<UninitializedArray<rc_vtype, default_dot_dim *(
-                                                        default_dot_dim + 1)>,
-                       0, sycl::access_mode::read_write,
-                       sycl::access::target::local>
+        sycl::accessor<
+            UninitializedArray<remove_complex<ValueType>,
+                               default_dot_dim *(default_dot_dim + 1)>,
+            0, sycl::access_mode::read_write, sycl::access::target::local>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
@@ -570,7 +554,8 @@ void multinorminf_without_stop_kernel(
     const ValueType *__restrict__ next_krylov_basis,
     size_type stride_next_krylov, remove_complex<ValueType> *__restrict__ norms,
     size_type stride_norms, sycl::nd_item<3> item_ct1,
-    UninitializedArray<rc_vtype, default_dot_dim *(default_dot_dim + 1)>
+    UninitializedArray<remove_complex<ValueType>,
+                       default_dot_dim *(default_dot_dim + 1)>
         *reduction_helper_array)
 {
     using rc_vtype = remove_complex<ValueType>;
@@ -602,8 +587,8 @@ void multinorminf_without_stop_kernel(
     local_max = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
     const auto tile_block = group::tiled_partition<default_dot_dim>(
         group::this_thread_block(item_ct1));
-    const auto value =
-        reduce(tile_block, local_max, [](const rc_vtype &a, const rc_vtype &b) {
+    const auto value = ::gko::kernels::dpcpp::reduce(
+        tile_block, local_max, [](const rc_vtype &a, const rc_vtype &b) {
             return ((a >= b) ? a : b);
         });
     const auto new_col_idx = item_ct1.get_group(2) * default_dot_dim + tidy;
@@ -621,10 +606,10 @@ void multinorminf_without_stop_kernel(
     remove_complex<ValueType> *norms, size_type stride_norms)
 {
     stream->submit([&](sycl::handler &cgh) {
-        sycl::accessor<UninitializedArray<rc_vtype, default_dot_dim *(
-                                                        default_dot_dim + 1)>,
-                       0, sycl::access_mode::read_write,
-                       sycl::access::target::local>
+        sycl::accessor<
+            UninitializedArray<remove_complex<ValueType>,
+                               default_dot_dim *(default_dot_dim + 1)>,
+            0, sycl::access_mode::read_write, sycl::access::target::local>
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
@@ -647,8 +632,9 @@ void multinorm2_inf_kernel(
     remove_complex<ValueType> *__restrict__ norms1,
     remove_complex<ValueType> *__restrict__ norms2,
     const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<rc_vtype, (1 + compute_inf) *
-                                     default_dot_dim *(default_dot_dim + 1)>
+    UninitializedArray<remove_complex<ValueType>,
+                       (1 + compute_inf) *
+                           default_dot_dim *(default_dot_dim + 1)>
         *reduction_helper_array)
 {
     using rc_vtype = remove_complex<ValueType>;
@@ -690,16 +676,16 @@ void multinorm2_inf_kernel(
     local_res = reduction_helper_add[tidy * (default_dot_dim + 1) + tidx];
     const auto tile_block = group::tiled_partition<default_dot_dim>(
         group::this_thread_block(item_ct1));
-    const auto sum =
-        reduce(tile_block, local_res,
-               [](const rc_vtype &a, const rc_vtype &b) { return a + b; });
+    const auto sum = ::gko::kernels::dpcpp::reduce(
+        tile_block, local_res,
+        [](const rc_vtype &a, const rc_vtype &b) { return a + b; });
     rc_vtype reduced_max{};
     if (compute_inf) {
         local_max = reduction_helper_max[tidy * (default_dot_dim + 1) + tidx];
-        reduced_max = reduce(tile_block, local_max,
-                             [](const rc_vtype &a, const rc_vtype &b) {
-                                 return ((a >= b) ? a : b);
-                             });
+        reduced_max = ::gko::kernels::dpcpp::reduce(
+            tile_block, local_max, [](const rc_vtype &a, const rc_vtype &b) {
+                return ((a >= b) ? a : b);
+            });
     }
     const auto new_col_idx = item_ct1.get_group(2) * default_dot_dim + tidy;
     if (tidx == 0 && new_col_idx < num_cols &&
@@ -722,7 +708,7 @@ void multinorm2_inf_kernel(
 {
     stream->submit([&](sycl::handler &cgh) {
         sycl::accessor<
-            UninitializedArray<rc_vtype,
+            UninitializedArray<remove_complex<ValueType>,
                                (1 + compute_inf) *
                                    default_dot_dim *(default_dot_dim + 1)>,
             0, sycl::access_mode::read_write, sycl::access::target::local>
@@ -782,10 +768,6 @@ void multidot_kernel(
              i += item_ct1.get_local_range().get(1)) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             ValueType other_basis = krylov_bases(k, i, col_idx);
-            /*
-            DPCT1007:14: Migration of this CUDA API is not supported by the
-            Intel(R) DPC++ Compatibility Tool.
-            */
             local_res += next_krylov_basis[next_krylov_idx] * conj(other_basis);
         }
     }
@@ -798,9 +780,9 @@ void multidot_kernel(
     const auto new_col_idx =
         item_ct1.get_group(2) * item_ct1.get_local_range().get(2) + tidy;
     const auto tile_block = group::tiled_partition<dot_dim>(thread_block);
-    const auto sum =
-        reduce(tile_block, local_res,
-               [](const ValueType &a, const ValueType &b) { return a + b; });
+    const auto sum = ::gko::kernels::dpcpp::reduce(
+        tile_block, local_res,
+        [](const ValueType &a, const ValueType &b) { return a + b; });
     if (tidx == 0 && new_col_idx < num_cols &&
         !stop_status[new_col_idx].has_stopped()) {
         const auto hessenberg_idx = k * stride_hessenberg + new_col_idx;
@@ -873,10 +855,6 @@ void singledot_kernel(
         for (size_type i = start_row; i < end_row; i += block_size) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             ValueType other_basis = krylov_bases(k, i, col_idx);
-            /*
-            DPCT1007:16: Migration of this CUDA API is not supported by the
-            Intel(R) DPC++ Compatibility Tool.
-            */
             local_res += next_krylov_basis[next_krylov_idx] * conj(other_basis);
         }
     }
@@ -885,8 +863,9 @@ void singledot_kernel(
     reduction_helper[tidx] = local_res;
     auto thread_block = group::this_thread_block(item_ct1);
     thread_block.sync();
-    reduce(thread_block, reduction_helper,
-           [](const ValueType &a, const ValueType &b) { return a + b; });
+    ::gko::kernels::dpcpp::reduce(
+        thread_block, reduction_helper,
+        [](const ValueType &a, const ValueType &b) { return a + b; });
     if (tidx == 0 && !stop_status[col_idx].has_stopped()) {
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
         atomic_add(hessenberg_iter + hessenberg_idx, reduction_helper[0]);
@@ -1043,9 +1022,8 @@ void check_arnoldi_norms(
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
 
     if (col_idx < num_rhs && !stop_status[col_idx].has_stopped()) {
-        const auto num0 = (sycl::sqrt(eta_squared * arnoldi_norm[col_idx]));
-        const auto num11 =
-            sycl::sqrt((double)(arnoldi_norm[col_idx + stride_norm]));
+        const auto num0 = (std::sqrt(eta_squared * arnoldi_norm[col_idx]));
+        const auto num11 = std::sqrt(arnoldi_norm[col_idx + stride_norm]);
         const auto num2 = has_scalar ? (arnoldi_norm[col_idx + 2 * stride_norm])
                                      : remove_complex<ValueType>{};
         if (num11 < num0) {
@@ -1235,8 +1213,7 @@ template <int dim, typename Type1, typename Type2>
 GKO_INLINE auto as_dpcpp_accessor(
     const acc::range<acc::reduced_row_major<dim, Type1, Type2>> &acc)
 {
-    return acc::range<
-        acc::reduced_row_major<dim, dpcpp_type<Type1>, dpcpp_type<Type2>>>(
+    return acc::range<acc::reduced_row_major<dim, Type1, Type2>>(
         acc.get_accessor().get_size(), acc.get_accessor().get_stored_data(),
         acc.get_accessor().get_stride());
 }
@@ -1246,8 +1223,7 @@ GKO_INLINE auto as_dpcpp_accessor(
     const acc::range<acc::scaled_reduced_row_major<dim, Type1, Type2, mask>>
         &acc)
 {
-    return acc::range<acc::scaled_reduced_row_major<dim, dpcpp_type<Type1>,
-                                                    dpcpp_type<Type2>, mask>>(
+    return acc::range<acc::scaled_reduced_row_major<dim, Type1, Type2, mask>>(
         acc.get_accessor().get_size(), acc.get_accessor().get_stored_data(),
         acc.get_accessor().get_storage_stride(),
         acc.get_accessor().get_scalar(),
@@ -1256,7 +1232,8 @@ GKO_INLINE auto as_dpcpp_accessor(
 
 
 template <typename ValueType>
-void zero_matrix(size_type m, size_type n, size_type stride, ValueType *array)
+void zero_matrix(std::shared_ptr<const DpcppExecutor> exec, size_type m,
+                 size_type n, size_type stride, ValueType *array)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
@@ -1326,7 +1303,7 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
                                arnoldi_norm->get_values() + 2 * stride_arnoldi,
                                num_rhs, zero<remove_complex<ValueType>>());
         const dim3 grid_size_nrm(ceildiv(num_rhs, default_dot_dim),
-                                 exec->get_num_multiprocessor() * 2);
+                                 exec->get_num_computing_units() * 2);
         const dim3 block_size_nrm(default_dot_dim, default_dot_dim);
         multinorminf_without_stop_kernel(
             grid_size_nrm, block_size_nrm, 0, exec->get_queue(), num_rows,
@@ -1380,15 +1357,15 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
     const auto stride_arnoldi = arnoldi_norm->get_stride();
     const auto dim_size = next_krylov_basis->get_size();
     const dim3 grid_size(ceildiv(dim_size[1], default_dot_dim),
-                         exec->get_num_multiprocessor() * 2);
+                         exec->get_num_computing_units() * 2);
     const dim3 grid_size_num_iters(ceildiv(dim_size[1], default_dot_dim),
-                                   exec->get_num_multiprocessor() * 2,
+                                   exec->get_num_computing_units() * 2,
                                    iter + 1);
     const dim3 block_size(default_dot_dim, default_dot_dim);
     // Note: having iter first (instead of row_idx information) is likely
     //       beneficial for avoiding atomic_add conflicts, but that needs
     //       further investigation.
-    const dim3 grid_size_iters_single(exec->get_num_multiprocessor() * 2,
+    const dim3 grid_size_iters_single(exec->get_num_computing_units() * 2,
                                       iter + 1);
     const dim3 block_size_iters_single(singledot_block_size);
     size_type num_reorth_host;
@@ -1399,7 +1376,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
                       dim_size[1], next_krylov_basis->get_const_values(),
                       stride_next_krylov, arnoldi_norm->get_values(),
                       stop_status);
-    zero_matrix(iter + 1, dim_size[1], stride_hessenberg,
+    zero_matrix(exec, iter + 1, dim_size[1], stride_hessenberg,
                 hessenberg_iter->get_values());
     if (dim_size[1] > 1) {
         multidot_kernel<default_dot_dim>(
@@ -1451,7 +1428,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
     num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
-        zero_matrix(iter + 1, dim_size[1], stride_buffer,
+        zero_matrix(exec, iter + 1, dim_size[1], stride_buffer,
                     buffer_iter->get_values());
         if (dim_size[1] > 1) {
             multidot_kernel<default_dot_dim>(
@@ -1575,6 +1552,7 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);
 
 template <typename ValueType>
 void solve_upper_triangular(
+    std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Dense<ValueType> *residual_norm_collection,
     const matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
     const Array<size_type> *final_iter_nums)
@@ -1596,7 +1574,8 @@ void solve_upper_triangular(
 
 
 template <typename ValueType, typename ConstAccessor3d>
-void calculate_qy(ConstAccessor3d krylov_bases, size_type num_krylov_bases,
+void calculate_qy(std::shared_ptr<const DpcppExecutor> exec,
+                  ConstAccessor3d krylov_bases, size_type num_krylov_bases,
                   const matrix::Dense<ValueType> *y,
                   matrix::Dense<ValueType> *before_preconditioner,
                   const Array<size_type> *final_iter_nums)
@@ -1638,9 +1617,9 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec,
     const auto iters =
         hessenberg->get_size()[1] / before_preconditioner->get_size()[1];
     const auto num_krylov_bases = iters + 1;
-    solve_upper_triangular(residual_norm_collection, hessenberg, y,
+    solve_upper_triangular(exec, residual_norm_collection, hessenberg, y,
                            final_iter_nums);
-    calculate_qy(krylov_bases, num_krylov_bases, y, before_preconditioner,
+    calculate_qy(exec, krylov_bases, num_krylov_bases, y, before_preconditioner,
                  final_iter_nums);
 }
 

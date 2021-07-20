@@ -68,10 +68,10 @@ namespace dpcpp {
 namespace gmres {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 256;
 // default_dot_dim can not be 64 in hip because 64 * 64 exceeds their max block
 // size limit.
-constexpr int default_dot_dim = 32;
+constexpr int default_dot_dim = 16;
 constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
@@ -148,7 +148,7 @@ void calculate_sin_and_cos_kernel(size_type col_idx, size_type num_cols,
         const auto scale = std::abs(this_hess) + std::abs(next_hess);
         const auto hypotenuse =
             scale *
-            sycl::sqrt(
+            std::sqrt(
                 std::abs(this_hess / scale) * std::abs(this_hess / scale) +
                 std::abs(next_hess / scale) * std::abs(next_hess / scale));
         /*
@@ -432,27 +432,18 @@ void multidot_kernel(
         for (size_type i = start_row + tidy; i < end_row;
              i += default_dot_dim) {
             const auto krylov_idx = i * stride_krylov + col_idx;
-            /*
-            DPCT1007:10: Migration of this CUDA API is not supported by the
-            Intel(R) DPC++ Compatibility Tool.
-            */
             local_res +=
                 conj(krylov_bases[krylov_idx]) * next_krylov_basis[krylov_idx];
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
-    /*
-    DPCT1065:9: Consider replacing sycl::nd_item::barrier() with
-    sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better
-    performance, if there is no access to global memory.
-    */
-    item_ct1.barrier();
+    item_ct1.barrier(sycl::access::fence_space::local_space);
     local_res = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
     const auto tile_block = group::tiled_partition<default_dot_dim>(
         group::this_thread_block(item_ct1));
-    const auto sum =
-        reduce(tile_block, local_res,
-               [](const ValueType &a, const ValueType &b) { return a + b; });
+    const auto sum = ::gko::kernels::dpcpp::reduce(
+        tile_block, local_res,
+        [](const ValueType &a, const ValueType &b) { return a + b; });
     const auto new_col_idx = item_ct1.get_group(2) * default_dot_dim + tidy;
     if (tidx == 0 && new_col_idx < num_cols &&
         !stop_status[new_col_idx].has_stopped()) {
@@ -573,7 +564,7 @@ void update_hessenberg_2_kernel(
 
         if (tidx == 0) {
             hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] =
-                sycl::sqrt(reduction_helper[0]);
+                std::sqrt(reduction_helper[0]);
         }
     }
 }
@@ -764,10 +755,10 @@ void finish_arnoldi(std::shared_ptr<const DpcppExecutor> exec,
 {
     const auto stride_krylov = krylov_bases->get_stride();
     const auto stride_hessenberg = hessenberg_iter->get_stride();
-    auto cublas_handle = exec->get_cublas_handle();
+    // auto cublas_handle = exec->get_cublas_handle();
     const dim3 grid_size(
         ceildiv(hessenberg_iter->get_size()[1], default_dot_dim),
-        exec->get_num_multiprocessor() * 2);
+        exec->get_num_computing_units() * 2);
     const dim3 block_size(default_dot_dim, default_dot_dim);
     auto next_krylov_basis =
         krylov_bases->get_values() +
@@ -789,7 +780,7 @@ void finish_arnoldi(std::shared_ptr<const DpcppExecutor> exec,
                             hessenberg_iter->get_values(), stride_hessenberg,
                             stop_status);
         } else {
-            cublas::dot(exec->get_cublas_handle(), num_rows, k_krylov_bases,
+            onemkl::dot(*exec->get_queue(), num_rows, k_krylov_bases,
                         stride_krylov, next_krylov_basis, stride_krylov,
                         hessenberg_iter->get_values() + k * stride_hessenberg);
         }
@@ -876,6 +867,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
 
 template <typename ValueType>
 void solve_upper_triangular(
+    std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Dense<ValueType> *residual_norm_collection,
     const matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
     const Array<size_type> *final_iter_nums)
@@ -897,7 +889,8 @@ void solve_upper_triangular(
 
 
 template <typename ValueType>
-void calculate_qy(const matrix::Dense<ValueType> *krylov_bases,
+void calculate_qy(std::shared_ptr<const DpcppExecutor> exec,
+                  const matrix::Dense<ValueType> *krylov_bases,
                   const matrix::Dense<ValueType> *y,
                   matrix::Dense<ValueType> *before_preconditioner,
                   const Array<size_type> *final_iter_nums)
@@ -936,9 +929,9 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec,
             matrix::Dense<ValueType> *before_preconditioner,
             const Array<size_type> *final_iter_nums)
 {
-    solve_upper_triangular(residual_norm_collection, hessenberg, y,
+    solve_upper_triangular(exec, residual_norm_collection, hessenberg, y,
                            final_iter_nums);
-    calculate_qy(krylov_bases, y, before_preconditioner, final_iter_nums);
+    calculate_qy(exec, krylov_bases, y, before_preconditioner, final_iter_nums);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);

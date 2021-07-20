@@ -111,9 +111,6 @@ TEST_F(Ir, InitializeIsEquivalentToRef)
 
 TEST_F(Ir, ApplyIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     auto mtx = gen_mtx(50, 50, 52);
     auto x = gen_mtx(50, 3, 8);
     auto b = gen_mtx(50, 3, 5);
@@ -145,9 +142,6 @@ TEST_F(Ir, ApplyIsEquivalentToRef)
 
 TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     auto mtx = gen_mtx(50, 50, 54);
     auto x = gen_mtx(50, 3, 6);
     auto b = gen_mtx(50, 3, 10);
@@ -192,9 +186,6 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
 
 TEST_F(Ir, RichardsonApplyIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     auto mtx = gen_mtx(50, 50, 54);
     auto x = gen_mtx(50, 3, 4);
     auto b = gen_mtx(50, 3, 3);
@@ -228,9 +219,6 @@ TEST_F(Ir, RichardsonApplyIsEquivalentToRef)
 
 TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     auto mtx = gen_mtx(50, 50, 52);
     auto x = gen_mtx(50, 3, 4);
     auto b = gen_mtx(50, 3, 7);

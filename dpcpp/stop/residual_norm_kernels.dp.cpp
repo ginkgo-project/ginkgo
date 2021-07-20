@@ -173,7 +173,7 @@ void implicit_residual_norm_kernel(
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     if (tidx < num_cols) {
-        if (sycl::sqrt(std::abs(tau[tidx])) <
+        if (std::sqrt(std::abs(tau[tidx])) <
             rel_residual_goal * orig_tau[tidx]) {
             stop_status[tidx].converge(stoppingId, setFinalized);
             device_storage[1] = true;
