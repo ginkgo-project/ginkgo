@@ -57,7 +57,11 @@ namespace {
 
 class Gmres : public ::testing::Test {
 protected:
-    using value_type = gko::default_precision;
+#if GINKGO_DPCPP_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
     using index_type = gko::int32;
     using Mtx = gko::matrix::Dense<value_type>;
     using norm_type = gko::remove_complex<value_type>;
@@ -69,7 +73,7 @@ protected:
 
     void SetUp()
     {
-        ASSERT_GT(gko::DpcppExecutor::get_num_devices(), 0);
+        ASSERT_GT(gko::DpcppExecutor::get_num_devices("all"), 0);
         ref = gko::ReferenceExecutor::create();
         dpcpp = gko::DpcppExecutor::create(0, ref);
     }
@@ -202,9 +206,9 @@ TEST_F(Gmres, DpcppGmresInitialize1IsEquivalentToRef)
         d_givens_cos.get(), d_stop_status.get(),
         gko::solver::default_krylov_dim);
 
-    GKO_ASSERT_MTX_NEAR(d_residual, residual, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_residual, residual, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(*d_stop_status, *stop_status);
 }
 
@@ -222,10 +226,10 @@ TEST_F(Gmres, DpcppGmresInitialize2IsEquivalentToRef)
         d_residual_norm_collection.get(), d_krylov_bases.get(),
         d_final_iter_nums.get(), gko::solver::default_krylov_dim);
 
-    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
-                        1e-14);
-    GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
 }
 
@@ -245,13 +249,14 @@ TEST_F(Gmres, DpcppGmresStep1IsEquivalentToRef)
         d_krylov_bases.get(), d_hessenberg_iter.get(), iter,
         d_final_iter_nums.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
-                        1e-14);
-    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter,
+                        2 * r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
 }
 
@@ -271,13 +276,14 @@ TEST_F(Gmres, DpcppGmresStep1OnSingleRHSIsEquivalentToRef)
         d_krylov_bases.get(), d_hessenberg_iter.get(), iter,
         d_final_iter_nums.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
-                        1e-14);
-    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter,
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
 }
 
@@ -295,8 +301,8 @@ TEST_F(Gmres, DpcppGmresStep2IsEquivalentToRef)
                                        d_y.get(), d_before_preconditioner.get(),
                                        d_final_iter_nums.get());
 
-    GKO_ASSERT_MTX_NEAR(d_y, y, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_y, y, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value);
 }
 
 

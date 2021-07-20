@@ -95,6 +95,18 @@ inline T atomic_fetch_add(
 }
 
 
+template <cl::sycl::access::address_space addressSpace = atomic::global_space,
+          typename T>
+inline T atomic_fetch_max(
+    T *addr, T operand,
+    cl::sycl::memory_order memoryOrder = cl::sycl::memory_order::relaxed)
+{
+    cl::sycl::atomic<T, addressSpace> obj(
+        (cl::sycl::multi_ptr<T, addressSpace>(addr)));
+    return cl::sycl::atomic_fetch_max(obj, operand, memoryOrder);
+}
+
+
 }  // namespace
 
 
@@ -110,6 +122,19 @@ struct atomic_helper {
                       "This default function is not implemented, only the "
                       "specializations are.");
         // TODO: add proper implementation of generic atomic add
+    }
+};
+
+
+template <cl::sycl::access::address_space addressSpace, typename ValueType,
+          typename = void>
+struct atomic_max_helper {
+    __dpct_inline__ static ValueType atomic_max(ValueType *, ValueType)
+    {
+        static_assert(sizeof(ValueType) == 0,
+                      "This default function is not implemented, only the "
+                      "specializations are.");
+        // TODO: add proper implementation of generic atomic max
     }
 };
 
@@ -192,6 +217,57 @@ struct atomic_helper<
 };
 
 
+#define GKO_BIND_ATOMIC_MAX_STRUCTURE(CONVERTER_TYPE)                      \
+    template <cl::sycl::access::address_space addressSpace,                \
+              typename ValueType>                                          \
+    struct atomic_max_helper<                                              \
+        addressSpace, ValueType,                                           \
+        std::enable_if_t<(sizeof(ValueType) == sizeof(CONVERTER_TYPE))>> { \
+        __dpct_inline__ static ValueType atomic_max(                       \
+            ValueType *__restrict__ addr, ValueType val)                   \
+        {                                                                  \
+            CONVERTER_TYPE *address_as_converter =                         \
+                reinterpret_cast<CONVERTER_TYPE *>(addr);                  \
+            CONVERTER_TYPE old = *address_as_converter;                    \
+            CONVERTER_TYPE assumed;                                        \
+            do {                                                           \
+                assumed = old;                                             \
+                if (reinterpret<ValueType>(assumed) < val) {               \
+                    old = atomic_compare_exchange_strong<addressSpace>(    \
+                        address_as_converter, assumed,                     \
+                        reinterpret<CONVERTER_TYPE>(val));                 \
+                }                                                          \
+            } while (assumed != old);                                      \
+            return reinterpret<ValueType>(old);                            \
+        }                                                                  \
+    };
+
+// Support 64-bit ATOMIC_ADD
+GKO_BIND_ATOMIC_MAX_STRUCTURE(unsigned long long int);
+// Support 32-bit ATOMIC_ADD
+GKO_BIND_ATOMIC_MAX_STRUCTURE(unsigned int);
+
+
+#undef GKO_BIND_ATOMIC_MAX_STRUCTURE
+
+#define GKO_BIND_ATOMIC_MAX_VALUETYPE(ValueType)              \
+    template <cl::sycl::access::address_space addressSpace>   \
+    struct atomic_max_helper<addressSpace, ValueType,         \
+                             std::enable_if_t<true>> {        \
+        __dpct_inline__ static ValueType atomic_max(          \
+            ValueType *__restrict__ addr, ValueType val)      \
+        {                                                     \
+            return atomic_fetch_max<addressSpace>(addr, val); \
+        }                                                     \
+    };
+
+GKO_BIND_ATOMIC_MAX_VALUETYPE(int);
+GKO_BIND_ATOMIC_MAX_VALUETYPE(unsigned int);
+GKO_BIND_ATOMIC_MAX_VALUETYPE(unsigned long long int);
+
+#undef GKO_BIND_ATOMIC_MAX_VALUETYPE
+
+
 }  // namespace detail
 
 
@@ -200,6 +276,14 @@ template <cl::sycl::access::address_space addressSpace = atomic::global_space,
 __dpct_inline__ T atomic_add(T *__restrict__ addr, T val)
 {
     return detail::atomic_helper<addressSpace, T>::atomic_add(addr, val);
+}
+
+
+template <cl::sycl::access::address_space addressSpace = atomic::global_space,
+          typename T>
+__dpct_inline__ T atomic_max(T *__restrict__ addr, T val)
+{
+    return detail::atomic_max_helper<addressSpace, T>::atomic_max(addr, val);
 }
 
 
