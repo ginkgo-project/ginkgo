@@ -90,7 +90,6 @@ void BatchRichardson<ValueType>::apply_impl(const BatchLinOp *const b,
 {
     using Mtx = matrix::BatchCsr<ValueType>;
     using Vector = matrix::BatchDense<ValueType>;
-    using real_type = remove_complex<ValueType>;
 
     auto exec = this->get_executor();
     auto dense_b = as<const Vector>(b);
