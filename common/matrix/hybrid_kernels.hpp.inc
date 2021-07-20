@@ -108,7 +108,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
 
     if (tidx < num_rows) {
         auto write_to = result_row_ptrs[tidx];
-        for (auto i = 0; i < max_nnz_per_row; i++) {
+        for (size_type i = 0; i < max_nnz_per_row; i++) {
             const auto source_idx = tidx + stride * i;
             if (ell_val[source_idx] != zero<ValueType>()) {
                 result_values[write_to] = ell_val[source_idx];

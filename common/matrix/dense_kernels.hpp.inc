@@ -211,7 +211,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
 
     if (tidx < num_rows) {
         auto write_to = row_ptrs[tidx];
-        for (auto i = 0; i < num_cols; i++) {
+        for (size_type i = 0; i < num_cols; i++) {
             if (source[stride * tidx + i] != zero<ValueType>()) {
                 values[write_to] = source[stride * tidx + i];
                 col_idxs[write_to] = i;

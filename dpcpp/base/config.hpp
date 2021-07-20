@@ -49,12 +49,6 @@ struct config {
      */
     using lane_mask_type = uint64;
 
-
-    /**
-     * The number of threads within a CUDA warp.
-     */
-    static constexpr uint32 warp_size = 16;
-
     /**
      * The bitmask of the entire warp.
      */

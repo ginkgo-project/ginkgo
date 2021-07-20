@@ -60,13 +60,15 @@ target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP)
 
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
-# Note. add MKL via PRIVATE not PUBLIC (MKL example shows) to avoid find_package(MKL) everywhere when link ginkgo
+# Note: add MKL as PRIVATE not PUBLIC (MKL example shows) to avoid propagating
+# find_package(MKL) everywhere when linking ginkgo (see the MKL example
+# https://software.intel.com/content/www/us/en/develop/documentation/onemkl-windows-developer-guide/top/getting-started/cmake-config-for-onemkl.html)
 target_compile_options(ginkgo_dpcpp PRIVATE $<TARGET_PROPERTY:MKL::MKL_DPCPP,INTERFACE_COMPILE_OPTIONS>)
 target_compile_features(ginkgo_dpcpp PRIVATE cxx_std_17)
 target_include_directories(ginkgo_dpcpp PRIVATE $<TARGET_PROPERTY:MKL::MKL_DPCPP,INTERFACE_INCLUDE_DIRECTORIES>)
 target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-lib=all)
 # When building ginkgo as a static library, we need to use dpcpp and per_kernel
-# link option when the program uses dpcpp related function.
+# link option when the program uses a dpcpp related function.
 if (BUILD_SHARED_LIBS)
     target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-code-split=per_kernel)
 else ()

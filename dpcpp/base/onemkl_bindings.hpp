@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_DPCPP_BASE_ONEMKL_BINDINGS_HPP_
 
 
+#include <type_traits>
+
+
 #include <CL/sycl.hpp>
 #include <oneapi/mkl.hpp>
 

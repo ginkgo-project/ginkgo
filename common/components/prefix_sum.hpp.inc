@@ -57,7 +57,7 @@ __forceinline__ __device__ void subwarp_prefix_sum(ValueType element,
     total_sum = element;
 #pragma unroll
     // hypercube prefix sum
-    for (auto step = 1; step < subwarp.size(); step *= 2) {
+    for (int step = 1; step < subwarp.size(); step *= 2) {
         auto neighbor = subwarp.shfl_xor(total_sum, step);
         total_sum += neighbor;
         prefix_sum += bool(subwarp.thread_rank() & step) ? neighbor : 0;

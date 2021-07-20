@@ -550,7 +550,7 @@ TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
                                                           &dnnz_per_row);
 
     auto tmp = gko::Array<gko::size_type>(ref, dnnz_per_row);
-    for (auto i = 0; i < nnz_per_row.get_num_elems(); i++) {
+    for (gko::size_type i = 0; i < nnz_per_row.get_num_elems(); i++) {
         ASSERT_EQ(nnz_per_row.get_const_data()[i], tmp.get_const_data()[i]);
     }
 }

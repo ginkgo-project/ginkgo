@@ -48,7 +48,7 @@ namespace dpcpp {
 /**
  * Stores an array with uninitialized contents.
  *
- * This class needed for datatypes that do have a non-empty constructor when`
+ * This class is needed for datatypes that do have a non-empty constructor when
  * using them as shared memory, for example `thrust::complex<float>`.
  *
  * @tparam ValueType the type of values
@@ -63,7 +63,7 @@ public:
      *
      * @return the constexpr pointer to the first entry of the array.
      */
-    constexpr __dpct_inline__ operator ValueType *() const noexcept
+    constexpr __dpct_inline__ operator const ValueType *() const noexcept
     {
         return &(*this)[0];
     }
@@ -84,7 +84,7 @@ public:
      *
      * @return a reference to the array entry at the given index.
      */
-    constexpr __dpct_inline__ ValueType &operator[](size_type pos) const
+    constexpr __dpct_inline__ const ValueType &operator[](size_type pos) const
         noexcept
     {
         return data_[pos];

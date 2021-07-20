@@ -70,7 +70,7 @@ template <typename IndexType>
 void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType *counts,
                 size_type num_entries)
 {
-    // prefix_sum should be on the valid array
+    // prefix_sum should only be performed on a valid array
     if (num_entries > 0) {
         auto queue = exec->get_queue();
         constexpr auto block_cfg_array = as_array(block_cfg_list);
@@ -84,8 +84,8 @@ void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType *counts,
         auto block_sums = block_sum_array.get_data();
         start_prefix_sum_call(cfg, num_blocks, wg_size, 0, exec->get_queue(),
                               num_entries, counts, block_sums);
-        // add the total sum of the previous block only when the number of block
-        // is larger than 1.
+        // add the total sum of the previous block only when the number of
+        // blocks is larger than 1.
         if (num_blocks > 1) {
             finalize_prefix_sum_call(cfg, num_blocks, wg_size, 0,
                                      exec->get_queue(), num_entries, counts,
