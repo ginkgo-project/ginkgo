@@ -45,6 +45,9 @@ namespace kernels {
 namespace dpcpp {
 
 
+// TODO: porting - consider directly use the array as shared memory
+
+
 /**
  * Stores an array with uninitialized contents.
  *

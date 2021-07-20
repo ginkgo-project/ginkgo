@@ -52,6 +52,12 @@ namespace dpcpp {
 namespace thread {
 
 
+// TODO: porting - need to refine functions and their name in this file
+// the grid/block description uses the cuda dim3 to represent. i.e. using dim3
+// to launch dpcpp kernel, the kernel will reverse the ordering to keep the same
+// linear memory usage as cuda.
+
+
 /**
  * @internal
  *
