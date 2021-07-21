@@ -594,7 +594,7 @@ public:
     void remove_logger(const Logger *logger) override
     {
         auto idx = find_if(begin(loggers_), end(loggers_),
-                           [&logger](std::shared_ptr<const Logger> l) {
+                           [&logger](std::shared_ptr<const Logger> &l) {
                                return lend(l) == logger;
                            });
         if (idx != end(loggers_)) {
