@@ -51,18 +51,18 @@ namespace batch_direct {
                matrix::BatchDense<_type> *const b,          \
                gko::log::BatchLogData<_type> &logdata)
 
-#define GKO_DECLARE_BATCH_DIRECT_SCALE_AND_COPY(_type)                \
-    void scale_and_copy(std::shared_ptr<const DefaultExecutor> exec,  \
-                        const matrix::BatchDense<_type> *scaling_vec, \
-                        const matrix::BatchDense<_type> *orig,        \
-                        matrix::BatchDense<_type> *scaled)
+#define GKO_DECLARE_BATCH_DIRECT_TRANSPOSE_SCALE_COPY(_type)                \
+    void transpose_scale_copy(std::shared_ptr<const DefaultExecutor> exec,  \
+                              const matrix::BatchDense<_type> *scaling_vec, \
+                              const matrix::BatchDense<_type> *orig,        \
+                              matrix::BatchDense<_type> *scaled)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                  \
     template <typename ValueType>                     \
     GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL(ValueType); \
     template <typename ValueType>                     \
-    GKO_DECLARE_BATCH_DIRECT_SCALE_AND_COPY(ValueType)
+    GKO_DECLARE_BATCH_DIRECT_TRANSPOSE_SCALE_COPY(ValueType)
 
 
 }  // namespace batch_direct

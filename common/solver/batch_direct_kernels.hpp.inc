@@ -35,8 +35,8 @@ template <typename ValueType>
 __global__ void setup_batch_pointers(
     const size_type nbatch, const int nrows, const size_type mat_stride,
     ValueType *const __restrict__ entire_batch_mats,
-    ValueType **const __restrict__ mat_batches, const size_type vec_stride,
-    ValueType *const __restrict__ entire_batch_vecs,
+    ValueType **const __restrict__ mat_batches, const int nrhs,
+    const size_type vec_stride, ValueType *const __restrict__ entire_batch_vecs,
     ValueType **const __restrict__ vec_batches)
 {
     for (size_type ib = thread::get_thread_id_flat(); ib < nbatch;
@@ -44,6 +44,27 @@ __global__ void setup_batch_pointers(
         mat_batches[ib] = gko::batch::batch_entry_ptr(entire_batch_mats,
                                                       mat_stride, nrows, ib);
         vec_batches[ib] = gko::batch::batch_entry_ptr(entire_batch_vecs,
-                                                      vec_stride, nrows, ib);
+                                                      vec_stride, nrhs, ib);
+    }
+}
+
+
+template <typename ValueType>
+__global__ void transpose_scale_copy(
+    const size_type nbatch, const int nrows, const int nrhs,
+    const size_type in_stride, const size_type out_stride,
+    const ValueType *const __restrict__ scaling,
+    const ValueType *const __restrict__ in, ValueType *const __restrict__ out)
+{
+    for (size_type ib = blockIdx.x; ib < nbatch; ib += gridDim.x) {
+        auto outb = gko::batch::batch_entry_ptr(out, out_stride, nrows, ib);
+        auto inb = gko::batch::batch_entry_ptr(in, in_stride, nrhs, ib);
+        auto scaleb = gko::batch::batch_entry_ptr(scaling, 1, nrows, ib);
+        for (int iz = threadIdx.x; iz < nrows * nrhs; iz += blockDim.x) {
+            const int irow = iz / nrhs;
+            const int jcol = iz % nrhs;
+            outb[irow * out_stride + jcol] =
+                inb[jcol * in_stride + irow] * scaleb[irow];
+        }
     }
 }
