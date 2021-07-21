@@ -30,10 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/fbcsr_kernels.hpp"
-
-
-#include <CL/sycl.hpp>
+#include <algorithm>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -41,6 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "dpcpp/base/config.hpp"
 
 
 namespace gko {
@@ -98,22 +98,6 @@ void convert_to_csr(const std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL);
-
-
-template <typename ValueType, typename IndexType, typename UnaryOperator>
-inline void convert_fbcsr_to_csc(size_type num_rows, const IndexType *row_ptrs,
-                                 const IndexType *col_idxs,
-                                 const ValueType *fbcsr_vals,
-                                 IndexType *row_idxs, IndexType *col_ptrs,
-                                 ValueType *csc_vals,
-                                 UnaryOperator op) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType, typename UnaryOperator>
-void transpose_and_transform(std::shared_ptr<const DpcppExecutor> exec,
-                             matrix::Fbcsr<ValueType, IndexType> *trans,
-                             const matrix::Fbcsr<ValueType, IndexType> *orig,
-                             UnaryOperator op) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>

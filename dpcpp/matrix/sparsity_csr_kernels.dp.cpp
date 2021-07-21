@@ -30,31 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/sparsity_csr_kernels.hpp"
-
-
-#include <algorithm>
-#include <numeric>
-#include <utility>
-
-
-#include <CL/sycl.hpp>
-
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-
-
-#include "core/base/iterator_factory.hpp"
-#include "dpcpp/components/format_conversion.dp.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace dpcpp {
 /**
- * @brief The SparsityCsr pattern format namespace.
+ * @brief The Compressed sparse row matrix format namespace.
  *
  * @ingroup sparsity
  */
@@ -101,21 +84,6 @@ void remove_diagonal_elements(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
-
-
-template <typename IndexType>
-inline void convert_sparsity_to_csc(size_type num_rows,
-                                    const IndexType *row_ptrs,
-                                    const IndexType *col_idxs,
-                                    IndexType *row_idxs,
-                                    IndexType *col_ptrs) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void transpose_and_transform(
-    std::shared_ptr<const DpcppExecutor> exec,
-    matrix::SparsityCsr<ValueType, IndexType> *trans,
-    const matrix::SparsityCsr<ValueType, IndexType> *orig) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>
