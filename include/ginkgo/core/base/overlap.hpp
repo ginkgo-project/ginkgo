@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
@@ -63,6 +64,16 @@ public:
     const bool *get_overlap_at_start_array() const
     {
         return overlap_at_start_.get_const_data();
+    }
+
+    const span *get_row_spans_array() const
+    {
+        return row_spans_.get_const_data();
+    }
+
+    const span *get_col_spans_array() const
+    {
+        return col_spans_.get_const_data();
     }
 
     size_type get_num_elems() const { return overlaps_.get_num_elems(); }
@@ -138,6 +149,15 @@ public:
                    overlaps_.get_num_elems());
     }
 
+    template <typename RowSpanArray, typename ColSpanArray>
+    Overlap(std::shared_ptr<const Executor> exec, RowSpanArray &&row_spans,
+            ColSpanArray &&col_spans)
+        : row_spans_{exec, std::forward<RowSpanArray>(row_spans)},
+          col_spans_{exec, std::forward<ColSpanArray>(col_spans)}
+    {
+        GKO_ASSERT(row_spans_.get_num_elems() == col_spans_.get_num_elems());
+    }
+
     Overlap(std::shared_ptr<const Executor> exec, const Overlap &other)
         : Overlap(exec)
     {
@@ -171,6 +191,8 @@ public:
         this->is_unidirectional_ = other.is_unidirectional_;
         this->overlaps_ = other.overlaps_;
         this->overlap_at_start_ = other.overlap_at_start_;
+        this->col_spans_ = other.col_spans_;
+        this->row_spans_ = other.row_spans_;
         return *this;
     }
 
@@ -188,11 +210,15 @@ public:
             this->is_unidirectional_ = std::move(other.is_unidirectional_);
             this->overlaps_ = std::move(other.overlaps_);
             this->overlap_at_start_ = std::move(other.overlap_at_start_);
+            this->col_spans_ = std::move(other.col_spans_);
+            this->row_spans_ = std::move(other.row_spans_);
         } else {
             // different device, copy the data
             this->is_unidirectional_ = other.is_unidirectional_;
             this->overlaps_ = other.overlaps_;
             this->overlap_at_start_ = other.overlap_at_start_;
+            this->col_spans_ = other.col_spans_;
+            this->row_spans_ = other.row_spans_;
             *this = other;
         }
         return *this;
@@ -203,12 +229,16 @@ public:
         this->is_unidirectional_.clear();
         this->overlaps_.clear();
         this->overlap_at_start_.clear();
+        this->row_spans_.clear();
+        this->col_spans_.clear();
     }
 
 private:
     Array<bool> is_unidirectional_;
     Array<ValueType> overlaps_;
     Array<bool> overlap_at_start_;
+    Array<span> row_spans_;
+    Array<span> col_spans_;
 };
 
 
