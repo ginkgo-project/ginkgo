@@ -99,7 +99,7 @@ protected:
     {
         // we want some duplicate elements
         std::uniform_int_distribution<gko::int32> dist(0, num_elements / 2);
-        for (auto i = 0; i < num_elements; ++i) {
+        for (int i = 0; i < num_elements; ++i) {
             ref_shared.get_data()[i] = dist(rng);
         }
         ddata = gko::Array<gko::int32>{cuda, ref_shared};

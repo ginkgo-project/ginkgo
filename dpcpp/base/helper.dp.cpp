@@ -30,52 +30,33 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/prefix_sum.hpp"
+#include <CL/sycl.hpp>
 
 
-#include "hip/components/prefix_sum.hip.hpp"
+#include "dpcpp/base/helper.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
-namespace components {
+namespace dpcpp {
 
 
-constexpr int prefix_sum_block_size = 512;
-
-
-template <typename IndexType>
-void prefix_sum(std::shared_ptr<const HipExecutor> exec, IndexType *counts,
-                size_type num_entries)
+bool validate(sycl::queue *queue, unsigned int workgroup_size,
+              unsigned int subgroup_size)
 {
-    // prefix_sum should only be performed on a valid array
-    if (num_entries > 0) {
-        auto num_blocks = ceildiv(num_entries, prefix_sum_block_size);
-        Array<IndexType> block_sum_array(exec, num_blocks - 1);
-        auto block_sums = block_sum_array.get_data();
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(start_prefix_sum<prefix_sum_block_size>),
-            dim3(num_blocks), dim3(prefix_sum_block_size), 0, 0, num_entries,
-            counts, block_sums);
-        // add the total sum of the previous block only when the number of
-        // blocks is larger than 1.
-        if (num_blocks > 1) {
-            hipLaunchKernelGGL(
-                HIP_KERNEL_NAME(finalize_prefix_sum<prefix_sum_block_size>),
-                dim3(num_blocks), dim3(prefix_sum_block_size), 0, 0,
-                num_entries, counts, block_sums);
-        }
+    auto device = queue->get_device();
+    auto subgroup_size_list =
+        device.get_info<cl::sycl::info::device::sub_group_sizes>();
+    auto max_workgroup_size =
+        device.get_info<sycl::info::device::max_work_group_size>();
+    bool allowed = false;
+    for (auto &i : subgroup_size_list) {
+        allowed |= (i == subgroup_size);
     }
+    return allowed && (workgroup_size <= max_workgroup_size);
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
 
-// instantiate for size_type as well, as this is used in the Sellp format
-template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
-
-
-}  // namespace components
-}  // namespace hip
+}  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko

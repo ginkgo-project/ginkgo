@@ -1,1 +1,2 @@
 ginkgo_create_test(csr_kernels)
+ginkgo_create_test(dense_kernels)

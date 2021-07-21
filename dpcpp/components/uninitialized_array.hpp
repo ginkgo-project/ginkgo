@@ -30,6 +30,23 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_DPCPP_COMPONENTS_UNINITIALIZED_ARRAY_HPP_
+#define GKO_DPCPP_COMPONENTS_UNINITIALIZED_ARRAY_HPP_
+
+
+#include <ginkgo/core/base/types.hpp>
+
+
+#include "dpcpp/base/dpct.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace dpcpp {
+
+
+// TODO: porting - consider directly use the array as shared memory
+
 
 /**
  * Stores an array with uninitialized contents.
@@ -49,7 +66,7 @@ public:
      *
      * @return the constexpr pointer to the first entry of the array.
      */
-    constexpr GKO_ATTRIBUTES operator const ValueType *() const noexcept
+    constexpr __dpct_inline__ operator const ValueType *() const noexcept
     {
         return &(*this)[0];
     }
@@ -60,7 +77,7 @@ public:
      *
      * @return the non-const pointer to the first entry of the array.
      */
-    GKO_ATTRIBUTES operator ValueType *() noexcept { return &(*this)[0]; }
+    __dpct_inline__ operator ValueType *() noexcept { return &(*this)[0]; }
 
     /**
      * constexpr array access operator.
@@ -70,10 +87,10 @@ public:
      *
      * @return a reference to the array entry at the given index.
      */
-    constexpr GKO_ATTRIBUTES const ValueType &operator[](size_type pos) const
+    constexpr __dpct_inline__ const ValueType &operator[](size_type pos) const
         noexcept
     {
-        return reinterpret_cast<const ValueType *>(data_)[pos];
+        return data_[pos];
     }
 
     /**
@@ -84,11 +101,21 @@ public:
      *
      * @return a reference to the array entry at the given index.
      */
-    GKO_ATTRIBUTES ValueType &operator[](size_type pos) noexcept
+    __dpct_inline__ ValueType &operator[](size_type pos) noexcept
     {
-        return reinterpret_cast<ValueType *>(data_)[pos];
+        return data_[pos];
     }
 
 private:
-    unsigned char data_[sizeof(ValueType) / sizeof(unsigned char) * size];
+    // if dpcpp uses char to represent data in char, compiling gives error.
+    // Thanksfully, dpcpp support complex data allocation directly.
+    ValueType data_[size];
 };
+
+
+}  // namespace dpcpp
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif  // GKO_DPCPP_COMPONENTS_UNINITIALIZED_ARRAY_HPP_

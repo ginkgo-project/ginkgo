@@ -179,7 +179,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_rows) {
-        for (auto col = 0; col < nnz; col++) {
+        for (size_type col = 0; col < nnz; col++) {
             result[tidx * result_stride +
                    col_idxs[tidx + col * source_stride]] +=
                 values[tidx + col * source_stride];
@@ -226,7 +226,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
 
     if (tidx < num_rows) {
         auto write_to = result_row_ptrs[tidx];
-        for (auto i = 0; i < max_nnz_per_row; i++) {
+        for (size_type i = 0; i < max_nnz_per_row; i++) {
             const auto source_idx = tidx + stride * i;
             if (source_values[source_idx] != zero<ValueType>()) {
                 result_values[write_to] = source_values[source_idx];

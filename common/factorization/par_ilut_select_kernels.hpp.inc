@@ -62,7 +62,7 @@ __global__ __launch_bounds__(searchtree_width) void build_searchtree(
     // assuming rounding towards zero
     auto stride = double(size) / sample_size;
 #pragma unroll
-    for (auto i = 0; i < sampleselect_oversampling; ++i) {
+    for (int i = 0; i < sampleselect_oversampling; ++i) {
         auto lidx = idx * sampleselect_oversampling + i;
         auto val = input[static_cast<IndexType>(lidx * stride)];
         samples[i] = abs(val);
@@ -119,7 +119,7 @@ __global__ __launch_bounds__(default_block_size) void count_buckets(
         auto el = abs(input[i]);
         IndexType tree_idx{};
 #pragma unroll
-        for (auto level = 0; level < sampleselect_searchtree_height; ++level) {
+        for (int level = 0; level < sampleselect_searchtree_height; ++level) {
             auto cmp = !(el < sh_tree[tree_idx]);
             tree_idx = 2 * tree_idx + 1 + cmp;
         }
@@ -168,7 +168,7 @@ __global__ __launch_bounds__(default_block_size) void block_prefix_sum(
     // compute prefix sum over warp-sized blocks
     IndexType total{};
     auto base_idx = warp_idx * work_per_warp * warp.size();
-    for (auto step = 0; step < work_per_warp; ++step) {
+    for (IndexType step = 0; step < work_per_warp; ++step) {
         auto idx = warp_lane + step * warp.size() + base_idx;
         auto val = idx < num_blocks ? local_counters[idx] : zero<IndexType>();
         IndexType warp_total{};
@@ -207,7 +207,7 @@ __global__ __launch_bounds__(default_block_size) void block_prefix_sum(
     // add block prefix sum to each warp's block of data
     block.sync();
     auto warp_prefixsum = warp_sums[warp_idx];
-    for (auto step = 0; step < work_per_warp; ++step) {
+    for (IndexType step = 0; step < work_per_warp; ++step) {
         auto idx = warp_lane + step * warp.size() + base_idx;
         auto val = idx < num_blocks ? local_counters[idx] : zero<IndexType>();
         if (idx < num_blocks) {

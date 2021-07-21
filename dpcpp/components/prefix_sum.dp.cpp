@@ -36,7 +36,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <CL/sycl.hpp>
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/types.hpp>
+
+
+#include "core/base/types.hpp"
+#include "dpcpp/base/helper.hpp"
+#include "dpcpp/components/prefix_sum.dp.hpp"
 
 
 namespace gko {
@@ -45,22 +50,52 @@ namespace dpcpp {
 namespace components {
 
 
+using BlockCfg = ConfigSet<11>;
+
+constexpr auto block_cfg_list =
+    ::gko::syn::value_list<std::uint32_t, BlockCfg::encode(512),
+                           BlockCfg::encode(256), BlockCfg::encode(128)>();
+
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(start_prefix_sum, start_prefix_sum)
+GKO_ENABLE_DEFAULT_CONFIG_CALL(start_prefix_sum_call, start_prefix_sum,
+                               block_cfg_list)
+
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(finalize_prefix_sum,
+                                           finalize_prefix_sum)
+GKO_ENABLE_DEFAULT_CONFIG_CALL(finalize_prefix_sum_call, finalize_prefix_sum,
+                               block_cfg_list)
+
+
 template <typename IndexType>
-void prefix_sum(std::shared_ptr<const DefaultExecutor> exec, IndexType *counts,
+void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType *counts,
                 size_type num_entries)
 {
-    // TODO actually implement parallel prefix sum
-    exec->get_queue()->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl::range<1>{1}, [=](sycl::id<1> idx) {
-            IndexType sum{};
-            for (size_type i = 0; i < num_entries; i++) {
-                sum += std::exchange(counts[i], sum);
-            }
-        });
-    });
+    // prefix_sum should only be performed on a valid array
+    if (num_entries > 0) {
+        auto queue = exec->get_queue();
+        constexpr auto block_cfg_array = as_array(block_cfg_list);
+        const std::uint32_t cfg =
+            get_first_cfg(block_cfg_array, [&queue](std::uint32_t cfg) {
+                return validate(queue, BlockCfg::decode<0>(cfg), 16);
+            });
+        const auto wg_size = BlockCfg::decode<0>(cfg);
+        auto num_blocks = ceildiv(num_entries, wg_size);
+        Array<IndexType> block_sum_array(exec, num_blocks - 1);
+        auto block_sums = block_sum_array.get_data();
+        start_prefix_sum_call(cfg, num_blocks, wg_size, 0, exec->get_queue(),
+                              num_entries, counts, block_sums);
+        // add the total sum of the previous block only when the number of
+        // blocks is larger than 1.
+        if (num_blocks > 1) {
+            finalize_prefix_sum_call(cfg, num_blocks, wg_size, 0,
+                                     exec->get_queue(), num_entries, counts,
+                                     block_sums);
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
+
 // instantiate for size_type as well, as this is used in the Sellp format
 template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
 

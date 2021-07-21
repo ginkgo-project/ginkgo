@@ -30,52 +30,27 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/prefix_sum.hpp"
+#ifndef GKO_DPCPP_TEST_UTILS_HPP_
+#define GKO_DPCPP_TEST_UTILS_HPP_
 
 
-#include "hip/components/prefix_sum.hip.hpp"
+#include <gtest/gtest.h>
 
 
-namespace gko {
-namespace kernels {
-namespace hip {
-namespace components {
+namespace {
 
 
-constexpr int prefix_sum_block_size = 512;
+#if GINKGO_DPCPP_SINGLE_MODE
+#define SKIP_IF_SINGLE_MODE GTEST_SKIP() << "Skip due to single mode"
+#else
+#define SKIP_IF_SINGLE_MODE                                                  \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+#endif
 
 
-template <typename IndexType>
-void prefix_sum(std::shared_ptr<const HipExecutor> exec, IndexType *counts,
-                size_type num_entries)
-{
-    // prefix_sum should only be performed on a valid array
-    if (num_entries > 0) {
-        auto num_blocks = ceildiv(num_entries, prefix_sum_block_size);
-        Array<IndexType> block_sum_array(exec, num_blocks - 1);
-        auto block_sums = block_sum_array.get_data();
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(start_prefix_sum<prefix_sum_block_size>),
-            dim3(num_blocks), dim3(prefix_sum_block_size), 0, 0, num_entries,
-            counts, block_sums);
-        // add the total sum of the previous block only when the number of
-        // blocks is larger than 1.
-        if (num_blocks > 1) {
-            hipLaunchKernelGGL(
-                HIP_KERNEL_NAME(finalize_prefix_sum<prefix_sum_block_size>),
-                dim3(num_blocks), dim3(prefix_sum_block_size), 0, 0,
-                num_entries, counts, block_sums);
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
-
-// instantiate for size_type as well, as this is used in the Sellp format
-template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
+}  // namespace
 
 
-}  // namespace components
-}  // namespace hip
-}  // namespace kernels
-}  // namespace gko
+#endif  // GKO_DPCPP_TEST_UTILS_HPP_
