@@ -138,7 +138,7 @@ TYPED_TEST(Overlap, CanBeMoveConstructedToADifferentExecutor)
 TYPED_TEST(Overlap, CanBeCopied)
 {
     auto omp = gko::OmpExecutor::create();
-    gko::Overlap<TypeParam> a(omp, 3, 2);
+    gko::Overlap<TypeParam> a(omp, gko::size_type(3), TypeParam{2});
 
     a = this->x;
 
@@ -171,7 +171,7 @@ TYPED_TEST(Overlap, CanBeCopiedFromExecutorlessOverlap)
 TYPED_TEST(Overlap, CanBeMoved)
 {
     auto omp = gko::OmpExecutor::create();
-    gko::Overlap<TypeParam> a(omp, 3, 2);
+    gko::Overlap<TypeParam> a(omp, gko::size_type(3), TypeParam{2});
 
     a = std::move(this->x);
 
