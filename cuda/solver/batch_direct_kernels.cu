@@ -45,7 +45,7 @@ namespace cuda {
 namespace batch_direct {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 256;
 #include "common/solver/batch_direct_kernels.hpp.inc"
 
 
@@ -77,17 +77,17 @@ void check_batch(std::shared_ptr<const CudaExecutor> exec, const int nbatch,
 
 template <typename ValueType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
-           matrix::BatchDense<ValueType> *const a,
-           matrix::BatchDense<ValueType> *const b,
+           matrix::BatchDense<ValueType> *const a_t,
+           matrix::BatchDense<ValueType> *const b_t,
            gko::log::BatchLogData<ValueType> &logdata)
 {
-    const size_type num_batches = a->get_num_batch_entries();
+    const size_type num_batches = a_t->get_num_batch_entries();
     const int nbatch = static_cast<int>(num_batches);
-    const int n = a->get_size().at()[0];
-    const size_type stride = a->get_stride().at();
+    const int n = a_t->get_size().at()[0];
+    const size_type stride = a_t->get_stride().at();
     const int lda = static_cast<int>(stride);
-    const size_type b_stride = b->get_stride().at();
-    const int nrhs = static_cast<int>(b->get_size().at()[1]);
+    const size_type b_stride = b_t->get_stride().at();
+    const int nrhs = static_cast<int>(b_t->get_size().at()[0]);
     const int ldb = static_cast<int>(b_stride);
 
     int *const pivot_array = exec->alloc<int>(nbatch * n);
@@ -96,19 +96,20 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     ValueType **const vectors = exec->alloc<ValueType *>(nbatch);
     const int nblk_1 = (nbatch - 1) / default_block_size + 1;
     setup_batch_pointers<<<nblk_1, default_block_size>>>(
-        num_batches, n, stride, as_cuda_type(a->get_values()),
-        as_cuda_type(matrices), b_stride, as_cuda_type(b->get_values()),
+        num_batches, n, stride, as_cuda_type(a_t->get_values()),
+        as_cuda_type(matrices), nrhs, b_stride, as_cuda_type(b_t->get_values()),
         as_cuda_type(vectors));
 
     auto handle = cublas::init();
     cublas::batch_getrf(handle, n, matrices, lda, pivot_array, info_array,
                         nbatch);
-#ifdef DEBUG
+#ifndef NDEBUG
+    std::cout << "Checking batch factorization...\n";
     check_batch(exec, nbatch, info_array, true);
 #endif
     cublas::batch_getrs(handle, CUBLAS_OP_N, n, nrhs, matrices, lda,
                         pivot_array, vectors, ldb, info_array, nbatch);
-#ifdef DEBUG
+#ifndef NDEBUG
     check_batch(exec, nbatch, info_array, false);
 #endif
     cublas::destroy(handle);
@@ -123,15 +124,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void scale_and_copy(std::shared_ptr<const CudaExecutor> exec,
-                    const matrix::BatchDense<ValueType> *const scaling_vec,
-                    const matrix::BatchDense<ValueType> *const orig,
-                    matrix::BatchDense<ValueType> *const scaled)
+void transpose_scale_copy(
+    std::shared_ptr<const CudaExecutor> exec,
+    const matrix::BatchDense<ValueType> *const scaling_vec,
+    const matrix::BatchDense<ValueType> *const orig,
+    matrix::BatchDense<ValueType> *const scaled)
 {
-    GKO_NOT_IMPLEMENTED;
+    const size_type nbatch = orig->get_num_batch_entries();
+    const int nrows = static_cast<int>(scaled->get_size().at()[0]);
+    const int nrhs = static_cast<int>(scaled->get_size().at()[1]);
+    const size_type orig_stride = orig->get_stride().at();
+    const size_type scaled_stride = scaled->get_stride().at();
+    transpose_scale_copy<<<nbatch, default_block_size>>>(
+        nbatch, nrows, nrhs, orig_stride, scaled_stride,
+        as_cuda_type(scaling_vec->get_const_values()),
+        as_cuda_type(orig->get_const_values()),
+        as_cuda_type(scaled->get_values()));
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_SCALE_AND_COPY);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DIRECT_TRANSPOSE_SCALE_COPY);
 
 
 }  // namespace batch_direct

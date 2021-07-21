@@ -50,13 +50,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void scale_and_copy(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::BatchDense<ValueType> *const scaling_vec,
-                    const matrix::BatchDense<ValueType> *const orig,
-                    matrix::BatchDense<ValueType> *const scaled)
-    GKO_NOT_IMPLEMENTED;
+void transpose_scale_copy(
+    std::shared_ptr<const HipExecutor> exec,
+    const matrix::BatchDense<ValueType> *const scaling_vec,
+    const matrix::BatchDense<ValueType> *const orig,
+    matrix::BatchDense<ValueType> *const scaled) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_SCALE_AND_COPY);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DIRECT_TRANSPOSE_SCALE_COPY);
 
 
 }  // namespace batch_direct
