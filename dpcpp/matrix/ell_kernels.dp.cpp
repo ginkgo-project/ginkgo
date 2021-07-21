@@ -151,12 +151,8 @@ void spmv_kernel(
         if (runnable && idx_in_worker == 0) {
             (*storage)[item_ct1.get_local_id(2)] = 0;
         }
-        /*
-        DPCT1065:0: Consider replacing sycl::nd_item::barrier() with
-        sycl::nd_item::barrier(sycl::access::fence_space::local_space) for
-        better performance, if there is no access to global memory.
-        */
-        item_ct1.barrier();
+
+        item_ct1.barrier(sycl::access::fence_space::local_space);
         auto temp = zero<OutputValueType>();
         if (runnable) {
             for (size_type idx =
@@ -208,7 +204,7 @@ void spmv(
 
 template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
           typename a_accessor, typename OutputValueType, typename IndexType>
-void spmv(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+void spmv(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
           sycl::queue *stream, const size_type num_rows,
           const int num_worker_per_row, acc::range<a_accessor> val,
           const IndexType *col, const size_type stride,
@@ -219,19 +215,16 @@ void spmv(dim3 grid, dim3 block, size_t dynamic_shared_memory,
         sycl::accessor<
             UninitializedArray<OutputValueType,
                                default_block_size / num_thread_per_worker>,
-            0, sycl::access::mode::read_write, sycl::access::target::local>
+            0, sycl::access_mode::read_write, sycl::access::target::local>
             storage_acc_ct1(cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                spmv<num_thread_per_worker, atomic>(
-                    num_rows, num_worker_per_row, val, col, stride,
-                    num_stored_elements_per_row, b, c, c_stride, item_ct1,
-                    (UninitializedArray<OutputValueType,
-                                        default_block_size /
-                                            num_thread_per_worker> *)
-                        storage_acc_ct1.get_pointer());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             spmv<num_thread_per_worker, atomic>(
+                                 num_rows, num_worker_per_row, val, col, stride,
+                                 num_stored_elements_per_row, b, c, c_stride,
+                                 item_ct1, storage_acc_ct1.get_pointer().get());
+                         });
     });
 }
 
@@ -277,7 +270,7 @@ void spmv(
 
 template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
           typename a_accessor, typename OutputValueType, typename IndexType>
-void spmv(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+void spmv(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
           sycl::queue *stream, const size_type num_rows,
           const int num_worker_per_row, acc::range<a_accessor> alpha,
           acc::range<a_accessor> val, const IndexType *col,
@@ -289,7 +282,7 @@ void spmv(dim3 grid, dim3 block, size_t dynamic_shared_memory,
         sycl::accessor<
             UninitializedArray<OutputValueType,
                                default_block_size / num_thread_per_worker>,
-            0, sycl::access::mode::read_write, sycl::access::target::local>
+            0, sycl::access_mode::read_write, sycl::access::target::local>
             storage_acc_ct1(cgh);
 
         cgh.parallel_for(
@@ -297,10 +290,7 @@ void spmv(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                 spmv<num_thread_per_worker, atomic>(
                     num_rows, num_worker_per_row, alpha, val, col, stride,
                     num_stored_elements_per_row, b, beta, c, c_stride, item_ct1,
-                    (UninitializedArray<OutputValueType,
-                                        default_block_size /
-                                            num_thread_per_worker> *)
-                        storage_acc_ct1.get_pointer());
+                    storage_acc_ct1.get_pointer().get());
             });
     });
 }
@@ -326,7 +316,8 @@ void initialize_zero_dense(size_type num_rows, size_type num_cols,
 }
 
 template <typename ValueType>
-void initialize_zero_dense(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+void initialize_zero_dense(dim3 grid, dim3 block,
+                           gko::size_type dynamic_shared_memory,
                            sycl::queue *stream, size_type num_rows,
                            size_type num_cols, size_type stride,
                            ValueType *result)
@@ -350,7 +341,7 @@ void fill_in_dense(size_type num_rows, size_type nnz, size_type source_stride,
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     if (tidx < num_rows) {
-        for (auto col = 0; col < nnz; col++) {
+        for (size_type col = 0; col < nnz; col++) {
             result[tidx * result_stride +
                    col_idxs[tidx + col * source_stride]] +=
                 values[tidx + col * source_stride];
@@ -359,7 +350,7 @@ void fill_in_dense(size_type num_rows, size_type nnz, size_type source_stride,
 }
 
 template <typename ValueType, typename IndexType>
-void fill_in_dense(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+void fill_in_dense(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
                    sycl::queue *stream, size_type num_rows, size_type nnz,
                    size_type source_stride, const IndexType *col_idxs,
                    const ValueType *values, size_type result_stride,
@@ -401,7 +392,8 @@ void count_nnz_per_row(size_type num_rows, size_type max_nnz_per_row,
 }
 
 template <typename ValueType, typename IndexType>
-void count_nnz_per_row(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+void count_nnz_per_row(dim3 grid, dim3 block,
+                       gko::size_type dynamic_shared_memory,
                        sycl::queue *stream, size_type num_rows,
                        size_type max_nnz_per_row, size_type stride,
                        const ValueType *values, IndexType *result)
@@ -429,7 +421,7 @@ void fill_in_csr(size_type num_rows, size_type max_nnz_per_row,
 
     if (tidx < num_rows) {
         auto write_to = result_row_ptrs[tidx];
-        for (auto i = 0; i < max_nnz_per_row; i++) {
+        for (size_type i = 0; i < max_nnz_per_row; i++) {
             const auto source_idx = tidx + stride * i;
             if (source_values[source_idx] != zero<ValueType>()) {
                 result_values[write_to] = source_values[source_idx];
@@ -441,7 +433,7 @@ void fill_in_csr(size_type num_rows, size_type max_nnz_per_row,
 }
 
 template <typename ValueType, typename IndexType>
-void fill_in_csr(dim3 grid, dim3 block, size_t dynamic_shared_memory,
+void fill_in_csr(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
                  sycl::queue *stream, size_type num_rows,
                  size_type max_nnz_per_row, size_type stride,
                  const ValueType *source_values,
@@ -480,10 +472,10 @@ void extract_diagonal(size_type diag_size, size_type max_nnz_per_row,
 }
 
 template <typename ValueType, typename IndexType>
-void extract_diagonal(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                      sycl::queue *stream, size_type diag_size,
-                      size_type max_nnz_per_row, size_type orig_stride,
-                      const ValueType *orig_values,
+void extract_diagonal(dim3 grid, dim3 block,
+                      gko::size_type dynamic_shared_memory, sycl::queue *stream,
+                      size_type diag_size, size_type max_nnz_per_row,
+                      size_type orig_stride, const ValueType *orig_values,
                       const IndexType *orig_col_idxs, ValueType *diag)
 {
     stream->submit([&](sycl::handler &cgh) {
