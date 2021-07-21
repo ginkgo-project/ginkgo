@@ -12,6 +12,17 @@ compile_commands.json
 CTestTestfile.cmake
 build
 
+###IDE
+# clion
+.idea
+
+# eclipse
+.cproject
+.project
+
+# visual studio code
+.vscode
+
 ### Generated header file
 include/config.hpp
 
