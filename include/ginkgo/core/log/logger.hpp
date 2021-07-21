@@ -584,7 +584,7 @@ public:
  *                          class.
  */
 template <typename ConcreteLoggable, typename PolymorphicBase = Loggable>
-class EnableLogging : public Loggable {
+class EnableLogging : public PolymorphicBase {
 public:
     void add_logger(std::shared_ptr<const Logger> logger) override
     {
