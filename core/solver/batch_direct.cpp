@@ -48,6 +48,8 @@ namespace batch_direct {
 
 GKO_REGISTER_OPERATION(mat_scale, batch_csr::batch_scale);
 GKO_REGISTER_OPERATION(vec_scale, batch_dense::batch_scale);
+GKO_REGISTER_OPERATION(transpose_scale_copy,
+                       batch_direct::transpose_scale_copy);
 GKO_REGISTER_OPERATION(apply, batch_direct::apply);
 
 
@@ -111,13 +113,14 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp *b,
     }
 
     std::shared_ptr<BDense> adense{};
-    auto b_scaled = Vector::create(exec);
-    b_scaled->copy_from(dense_b);
+    std::shared_ptr<BDense> bt{};
     const bool to_scale =
         this->get_left_scaling_vector() && this->get_right_scaling_vector();
 
     // delete the scaled CSR copy at the end
     {
+        auto b_scaled = Vector::create(exec);
+        b_scaled->copy_from(dense_b);
         auto a_scaled_smart = Mtx::create(exec);
         const Mtx *a_scaled{};
         if (to_scale) {
@@ -133,6 +136,8 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp *b,
         }
 
         adense = convert_and_transpose(exec, a_scaled);
+        bt = std::dynamic_pointer_cast<BDense>(
+            gko::share(b_scaled->transpose()));
     }
 
     log::BatchLogData<ValueType> logdata;  //< Useless
@@ -146,16 +151,18 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp *b,
     // logdata.iter_counts.set_executor(this->get_executor());
     // logdata.iter_counts.resize_and_reset(num_rhs * num_batches);
 
-    exec->run(batch_direct::make_apply(adense.get(), b_scaled.get(), logdata));
+    exec->run(batch_direct::make_apply(adense.get(), bt.get(), logdata));
 
     this->template log<log::Logger::batch_solver_completed>(
         logdata.iter_counts, logdata.res_norms.get());
 
     if (to_scale) {
-        exec->run(batch_direct::make_vec_scale(this->get_right_scaling_vector(),
-                                               dense_x));
+        exec->run(batch_direct::make_transpose_scale_copy(
+            this->get_right_scaling_vector(), bt.get(), dense_x));
     } else {
-        dense_x->copy_from(b_scaled.get());
+        auto btt =
+            std::dynamic_pointer_cast<BDense>(gko::share(bt->transpose()));
+        dense_x->copy_from(btt.get());
     }
 }
 
