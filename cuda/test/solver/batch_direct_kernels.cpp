@@ -142,13 +142,6 @@ TYPED_TEST(BatchDirect, TransposeScaleCopyWorks)
     ref_scaling_vec->at(1, 2, 0) = -4.0;
     auto scaling_vec = BDense::create(this->cuexec);
     scaling_vec->copy_from(ref_scaling_vec.get());
-    // auto ref_orig = gko::test::generate_uniform_batch_random_matrix<BDense>(
-    //	this->nbatch,, this->nrhs, this->nrows,
-    //	std::uniform_int_distribution<>(this->nrows/2, this->nrows),
-    //	std::normal_distribution<>(-1.0, 1.0), std::ranlux48(33), false,
-    //	this->exec);
-    // auto ref_orig = BDense::create(this->cuexec,
-    //	gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrhs, this->nrows)));
     auto ref_orig = gko::batch_initialize<BDense>(
         {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})},
          {{1.0, -2.0, -0.5}, {1.0, -2.5, 4.0}}},
@@ -272,7 +265,7 @@ TEST(BatchDirect, CanSolveWithoutScaling)
     const int nrhs = 5;
 
     gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
-                                  batchdirect_factory.get(), 0.0, true, false);
+                                  batchdirect_factory.get(), 1.0, false, false);
 }
 
 }  // namespace
