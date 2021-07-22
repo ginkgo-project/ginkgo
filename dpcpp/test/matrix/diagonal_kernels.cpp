@@ -52,8 +52,13 @@ namespace {
 
 class Diagonal : public ::testing::Test {
 protected:
-    using ValueType = double;
-    using ComplexValueType = std::complex<double>;
+#if GINKGO_DPCPP_SINGLE_MODE
+    using vtype = float;
+#else
+    using vtype = double;
+#endif  // GINKGO_DPCPP_SINGLE_MODE
+    using ValueType = vtype;
+    using ComplexValueType = std::complex<vtype>;
     using Csr = gko::matrix::Csr<ValueType>;
     using Diag = gko::matrix::Diagonal<ValueType>;
     using Dense = gko::matrix::Dense<ValueType>;
@@ -70,7 +75,7 @@ protected:
 
     void SetUp()
     {
-        ASSERT_GT(gko::DpcppExecutor::get_num_devices(), 0);
+        ASSERT_GT(gko::DpcppExecutor::get_num_devices("all"), 0);
         ref = gko::ReferenceExecutor::create();
         dpcpp = gko::DpcppExecutor::create(0, ref);
     }
@@ -89,14 +94,14 @@ protected:
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
-            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
+            std::normal_distribution<vtype>(0.0, 1.0), rand_engine, ref);
     }
 
     std::unique_ptr<Diag> gen_diag(int size)
     {
         auto diag = Diag::create(ref, size);
         auto vals = diag->get_values();
-        auto value_dist = std::normal_distribution<>(0.0, 1.0);
+        auto value_dist = std::normal_distribution<vtype>(0.0, 1.0);
         for (int i = 0; i < size; i++) {
             vals[i] = gko::test::detail::get_rand_value<ValueType>(value_dist,
                                                                    rand_engine);
@@ -108,7 +113,7 @@ protected:
     {
         auto cdiag = ComplexDiag::create(ref, size);
         auto vals = cdiag->get_values();
-        auto value_dist = std::normal_distribution<>(0.0, 1.0);
+        auto value_dist = std::normal_distribution<vtype>(0.0, 1.0);
         for (int i = 0; i < size; i++) {
             vals[i] = ComplexValueType{
                 gko::test::detail::get_rand_value<ComplexValueType>(
@@ -192,7 +197,7 @@ TEST_F(Diagonal, ApplyToDenseIsEquivalentToRef)
     diag->apply(dense1.get(), denseexpected1.get());
     ddiag->apply(ddense1.get(), denseresult1.get());
 
-    GKO_ASSERT_MTX_NEAR(denseexpected1, denseresult1, 1e-14);
+    GKO_ASSERT_MTX_NEAR(denseexpected1, denseresult1, r<vtype>::value);
 }
 
 
@@ -203,7 +208,7 @@ TEST_F(Diagonal, RightApplyToDenseIsEquivalentToRef)
     diag->rapply(dense2.get(), denseexpected2.get());
     ddiag->rapply(ddense2.get(), denseresult2.get());
 
-    GKO_ASSERT_MTX_NEAR(denseexpected2, denseresult2, 1e-14);
+    GKO_ASSERT_MTX_NEAR(denseexpected2, denseresult2, r<vtype>::value);
 }
 
 
@@ -214,7 +219,7 @@ TEST_F(Diagonal, ApplyToCsrIsEquivalentToRef)
     diag->apply(csr1.get(), csrexpected1.get());
     ddiag->apply(dcsr1.get(), csrresult1.get());
 
-    GKO_ASSERT_MTX_NEAR(csrexpected1, csrresult1, 1e-14);
+    GKO_ASSERT_MTX_NEAR(csrexpected1, csrresult1, r<vtype>::value);
 }
 
 
@@ -225,7 +230,7 @@ TEST_F(Diagonal, RightApplyToCsrIsEquivalentToRef)
     diag->rapply(csr2.get(), csrexpected2.get());
     ddiag->rapply(dcsr2.get(), csrresult2.get());
 
-    GKO_ASSERT_MTX_NEAR(csrexpected2, csrresult2, 1e-14);
+    GKO_ASSERT_MTX_NEAR(csrexpected2, csrresult2, r<vtype>::value);
 }
 
 
@@ -260,7 +265,7 @@ TEST_F(Diagonal, InplaceAbsoluteMatrixIsEquivalentToRef)
     diag->compute_absolute_inplace();
     ddiag->compute_absolute_inplace();
 
-    GKO_ASSERT_MTX_NEAR(diag, ddiag, 1e-14);
+    GKO_ASSERT_MTX_NEAR(diag, ddiag, r<vtype>::value);
 }
 
 
@@ -271,7 +276,7 @@ TEST_F(Diagonal, OutplaceAbsoluteMatrixIsEquivalentToRef)
     auto abs_diag = diag->compute_absolute();
     auto dabs_diag = ddiag->compute_absolute();
 
-    GKO_ASSERT_MTX_NEAR(abs_diag, dabs_diag, 1e-14);
+    GKO_ASSERT_MTX_NEAR(abs_diag, dabs_diag, r<vtype>::value);
 }
 
 

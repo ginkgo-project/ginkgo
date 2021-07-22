@@ -52,15 +52,20 @@ namespace {
 
 class Hybrid : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Hybrid<>;
-    using Vec = gko::matrix::Dense<>;
-    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
+#if GINKGO_DPCPP_SINGLE_MODE
+    using vtype = float;
+#else
+    using vtype = double;
+#endif  // GINKGO_DPCPP_SINGLE_MODE
+    using Mtx = gko::matrix::Hybrid<vtype>;
+    using Vec = gko::matrix::Dense<vtype>;
+    using ComplexVec = gko::matrix::Dense<std::complex<vtype>>;
 
     Hybrid() : rand_engine(42) {}
 
     void SetUp()
     {
-        ASSERT_GT(gko::DpcppExecutor::get_num_devices(), 0);
+        ASSERT_GT(gko::DpcppExecutor::get_num_devices("all"), 0);
         ref = gko::ReferenceExecutor::create();
         dpcpp = gko::DpcppExecutor::create(0, ref);
     }
@@ -79,7 +84,7 @@ protected:
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            std::normal_distribution<vtype>(-1.0, 1.0), rand_engine, ref);
     }
 
     void set_up_apply_data(int num_vectors = 1,
@@ -144,7 +149,7 @@ TEST_F(Hybrid, SimpleApplyIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -155,7 +160,7 @@ TEST_F(Hybrid, AdvancedApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -166,7 +171,7 @@ TEST_F(Hybrid, SimpleApplyToDenseMatrixIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -177,7 +182,7 @@ TEST_F(Hybrid, AdvancedApplyToDenseMatrixIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -194,7 +199,7 @@ TEST_F(Hybrid, ApplyToComplexIsEquivalentToRef)
     mtx->apply(complex_b.get(), complex_x.get());
     dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
 
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<vtype>::value);
 }
 
 
@@ -211,7 +216,7 @@ TEST_F(Hybrid, AdvancedApplyToComplexIsEquivalentToRef)
     mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
     dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
 
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<vtype>::value);
 }
 
 
@@ -231,26 +236,26 @@ TEST_F(Hybrid, CountNonzerosIsEquivalentToRef)
 TEST_F(Hybrid, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data(1, std::make_shared<Mtx::column_limit>(2));
-    auto csr_mtx = gko::matrix::Csr<>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<>::create(dpcpp);
+    auto csr_mtx = gko::matrix::Csr<vtype>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<vtype>::create(dpcpp);
 
     mtx->convert_to(csr_mtx.get());
     dmtx->convert_to(dcsr_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), r<vtype>::value);
 }
 
 
 TEST_F(Hybrid, MoveToCsrIsEquivalentToRef)
 {
     set_up_apply_data(1, std::make_shared<Mtx::column_limit>(2));
-    auto csr_mtx = gko::matrix::Csr<>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<>::create(dpcpp);
+    auto csr_mtx = gko::matrix::Csr<vtype>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<vtype>::create(dpcpp);
 
     mtx->move_to(csr_mtx.get());
     dmtx->move_to(dcsr_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), r<vtype>::value);
 }
 
 
@@ -272,7 +277,7 @@ TEST_F(Hybrid, InplaceAbsoluteMatrixIsEquivalentToRef)
     mtx->compute_absolute_inplace();
     dmtx->compute_absolute_inplace();
 
-    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<vtype>::value);
 }
 
 
@@ -287,7 +292,7 @@ TEST_F(Hybrid, OutplaceAbsoluteMatrixIsEquivalentToRef)
     auto dabs_strategy =
         gko::as<AbsMtx::column_limit>(dabs_mtx->get_strategy());
 
-    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, r<vtype>::value);
     GKO_ASSERT_EQ(abs_strategy->get_num_columns(),
                   dabs_strategy->get_num_columns());
     GKO_ASSERT_EQ(abs_strategy->get_num_columns(), 2);

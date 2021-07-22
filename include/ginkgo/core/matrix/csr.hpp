@@ -366,6 +366,15 @@ public:
         {}
 
         /**
+         * Creates a load_balance strategy with DPCPP executor.
+         *
+         * @param exec the HIP executor
+         */
+        load_balance(std::shared_ptr<const DpcppExecutor> exec)
+            : load_balance(exec->get_num_computing_units() * 7, 16, false)
+        {}
+
+        /**
          * Creates a load_balance strategy with specified parameters
          *
          * @param nwarps the number of warps in the executor
@@ -448,7 +457,14 @@ public:
                 } else if (nnz >= static_cast<int64_t>(2e5)) {
                     multiple = 32;
                 }
-
+                if (!cuda_strategy_) {
+                    multiple = 8;
+                    if (nnz >= static_cast<int64_t>(2e8)) {
+                        multiple = 256;
+                    } else if (nnz >= static_cast<int64_t>(2e7)) {
+                        multiple = 32;
+                    }
+                }
 #if GINKGO_HIP_PLATFORM_HCC
                 if (!cuda_strategy_) {
                     multiple = 8;
@@ -493,6 +509,12 @@ public:
         /* Use imbalance strategy when the matrix has more more than 1e8 on AMD
          * hardware */
         const index_type amd_nnz_limit{static_cast<index_type>(1e8)};
+        /* Use imbalance strategy when the maximum number of nonzero per row is
+         * more than 25600 on Intel hardware. */
+        const index_type intel_row_len_limit = 25600;
+        /* Use imbalance strategy when the matrix has more more than 3e8 on
+         * Intel hardware */
+        const index_type intel_nnz_limit{static_cast<index_type>(3e8)};
 
         /**
          * Creates an automatical strategy.
@@ -518,6 +540,15 @@ public:
          */
         automatical(std::shared_ptr<const HipExecutor> exec)
             : automatical(exec->get_num_warps(), exec->get_warp_size(), false)
+        {}
+
+        /**
+         * Creates an automatical strategy with Dpcpp executor.
+         *
+         * @param exec the Dpcpp executor
+         */
+        automatical(std::shared_ptr<const DpcppExecutor> exec)
+            : automatical(exec->get_num_computing_units() * 7, 32, false)
         {}
 
         /**
@@ -554,6 +585,10 @@ public:
                 row_len_limit = amd_row_len_limit;
             }
 #endif  // GINKGO_HIP_PLATFORM_HCC
+            if (!cuda_strategy_) {
+                nnz_limit = intel_nnz_limit;
+                row_len_limit = intel_row_len_limit;
+            }
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
             const bool is_mtx_on_host{host_mtx_exec ==
                                       mtx_row_ptrs.get_executor()};
@@ -940,6 +975,8 @@ protected:
             auto cuda_exec =
                 std::dynamic_pointer_cast<const CudaExecutor>(rexec);
             auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(rexec);
+            auto dpcpp_exec =
+                std::dynamic_pointer_cast<const DpcppExecutor>(rexec);
             auto lb = dynamic_cast<load_balance *>(strat);
             if (cuda_exec) {
                 if (lb) {
@@ -959,6 +996,15 @@ protected:
                     new_strat = std::make_shared<typename CsrType::automatical>(
                         hip_exec);
                 }
+            } else if (dpcpp_exec) {
+                if (lb) {
+                    new_strat =
+                        std::make_shared<typename CsrType::load_balance>(
+                            dpcpp_exec);
+                } else {
+                    new_strat = std::make_shared<typename CsrType::automatical>(
+                        dpcpp_exec);
+                }
             } else {
                 // Try to preserve this executor's configuration
                 auto this_cuda_exec =
@@ -966,6 +1012,9 @@ protected:
                         this->get_executor());
                 auto this_hip_exec =
                     std::dynamic_pointer_cast<const HipExecutor>(
+                        this->get_executor());
+                auto this_dpcpp_exec =
+                    std::dynamic_pointer_cast<const DpcppExecutor>(
                         this->get_executor());
                 if (this_cuda_exec) {
                     if (lb) {
@@ -986,6 +1035,16 @@ protected:
                         new_strat =
                             std::make_shared<typename CsrType::automatical>(
                                 this_hip_exec);
+                    }
+                } else if (this_dpcpp_exec) {
+                    if (lb) {
+                        new_strat =
+                            std::make_shared<typename CsrType::load_balance>(
+                                this_dpcpp_exec);
+                    } else {
+                        new_strat =
+                            std::make_shared<typename CsrType::automatical>(
+                                this_dpcpp_exec);
                     }
                 } else {
                     // We had a load balance or automatical strategy from a non
@@ -1020,6 +1079,7 @@ private:
     Array<index_type> row_ptrs_;
     Array<index_type> srow_;
     std::shared_ptr<strategy_type> strategy_;
+    // oneapi::mkl::sparse::matrix_handle_t mat_handle_;
 };
 
 

@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/base/utils.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
@@ -58,11 +59,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
-#include "dpcpp/base/onemkl_bindings.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
-#include "dpcpp/components/intrinsics.dp.hpp"
-#include "dpcpp/components/merging.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/segment_scan.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
@@ -94,8 +92,6 @@ constexpr int classical_overweight = 32;
 using compiled_kernels = syn::value_list<int, 6>;
 
 using classical_kernels = syn::value_list<int, config::warp_size, 16, 8, 1>;
-
-using spgeam_kernels = syn::value_list<int, 8, 16>;
 
 
 namespace kernel {
@@ -540,7 +536,8 @@ void abstract_merge_path_spmv(dim3 grid, dim3 block,
                 abstract_merge_path_spmv<items_per_thread>(
                     num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c,
                     c_stride, row_out, val_out, item_ct1,
-                    shared_row_ptrs_acc_ct1.get_pointer().get());
+                    static_cast<IndexType *>(
+                        shared_row_ptrs_acc_ct1.get_pointer()));
             });
     });
 }
@@ -586,7 +583,8 @@ void abstract_merge_path_spmv(
                 abstract_merge_path_spmv<items_per_thread>(
                     num_rows, alpha, val, col_idxs, row_ptrs, srow, b, b_stride,
                     beta, c, c_stride, row_out, val_out, item_ct1,
-                    (IndexType *)shared_row_ptrs_acc_ct1.get_pointer());
+                    static_cast<IndexType *>(
+                        shared_row_ptrs_acc_ct1.get_pointer()));
             });
     });
 }
@@ -781,145 +779,6 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
                                  num_rows, alpha, val, col_idxs, row_ptrs, b,
                                  b_stride, beta, c, c_stride, item_ct1);
                          });
-    });
-}
-
-
-template <int subwarp_size, typename IndexType>
-void spgeam_nnz(const IndexType *__restrict__ a_row_ptrs,
-                const IndexType *__restrict__ a_col_idxs,
-                const IndexType *__restrict__ b_row_ptrs,
-                const IndexType *__restrict__ b_col_idxs, IndexType num_rows,
-                IndexType *__restrict__ nnz, sycl::nd_item<3> item_ct1)
-{
-    const auto row =
-        thread::get_subwarp_id_flat<subwarp_size, IndexType>(item_ct1);
-    auto subwarp = group::tiled_partition<subwarp_size>(
-        group::this_thread_block(item_ct1));
-    if (row >= num_rows) {
-        return;
-    }
-
-    const auto a_begin = a_row_ptrs[row];
-    const auto b_begin = b_row_ptrs[row];
-    const auto a_size = a_row_ptrs[row + 1] - a_begin;
-    const auto b_size = b_row_ptrs[row + 1] - b_begin;
-    IndexType count{};
-    group_merge<subwarp_size>(
-        a_col_idxs + a_begin, a_size, b_col_idxs + b_begin, b_size, subwarp,
-        [&](IndexType, IndexType a_col, IndexType, IndexType b_col, IndexType,
-            bool valid) {
-            count += popcnt(subwarp.ballot(a_col != b_col && valid));
-            return true;
-        });
-
-    if (subwarp.thread_rank() == 0) {
-        nnz[row] = count;
-    }
-}
-
-template <int subwarp_size, typename IndexType>
-void spgeam_nnz(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                sycl::queue *stream, const IndexType *a_row_ptrs,
-                const IndexType *a_col_idxs, const IndexType *b_row_ptrs,
-                const IndexType *b_col_idxs, IndexType num_rows, IndexType *nnz)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                spgeam_nnz<subwarp_size>(a_row_ptrs, a_col_idxs, b_row_ptrs,
-                                         b_col_idxs, num_rows, nnz, item_ct1);
-            });
-    });
-}
-
-
-template <int subwarp_size, typename ValueType, typename IndexType>
-void spgeam(const ValueType *__restrict__ palpha,
-            const IndexType *__restrict__ a_row_ptrs,
-            const IndexType *__restrict__ a_col_idxs,
-            const ValueType *__restrict__ a_vals,
-            const ValueType *__restrict__ pbeta,
-            const IndexType *__restrict__ b_row_ptrs,
-            const IndexType *__restrict__ b_col_idxs,
-            const ValueType *__restrict__ b_vals, IndexType num_rows,
-            const IndexType *__restrict__ c_row_ptrs,
-            IndexType *__restrict__ c_col_idxs, ValueType *__restrict__ c_vals,
-            sycl::nd_item<3> item_ct1)
-{
-    const auto row =
-        thread::get_subwarp_id_flat<subwarp_size, IndexType>(item_ct1);
-    auto subwarp = group::tiled_partition<subwarp_size>(
-        group::this_thread_block(item_ct1));
-    if (row >= num_rows) {
-        return;
-    }
-
-    const auto alpha = palpha[0];
-    const auto beta = pbeta[0];
-    const auto lane = static_cast<IndexType>(subwarp.thread_rank());
-    constexpr auto lanemask_full =
-        ~config::lane_mask_type{} >> (config::warp_size - subwarp_size);
-    const auto lanemask_eq = config::lane_mask_type{1} << lane;
-    const auto lanemask_lt = lanemask_eq - 1;
-
-    const auto a_begin = a_row_ptrs[row];
-    const auto b_begin = b_row_ptrs[row];
-    const auto a_size = a_row_ptrs[row + 1] - a_begin;
-    const auto b_size = b_row_ptrs[row + 1] - b_begin;
-    auto c_begin = c_row_ptrs[row];
-    bool skip_first{};
-    group_merge<subwarp_size>(
-        a_col_idxs + a_begin, a_size, b_col_idxs + b_begin, b_size, subwarp,
-        [&](IndexType a_nz, IndexType a_col, IndexType b_nz, IndexType b_col,
-            IndexType, bool valid) {
-            auto c_col = min(a_col, b_col);
-            auto equal_mask = subwarp.ballot(a_col == b_col && valid);
-            // check if the elements in the previous merge step are
-            // equal
-            auto prev_equal_mask = equal_mask << 1 | skip_first;
-            // store the highest bit for the next group_merge_step
-            skip_first = bool(equal_mask >> (subwarp_size - 1));
-            auto prev_equal = bool(prev_equal_mask & lanemask_eq);
-            // only output an entry if the previous cols weren't equal.
-            // if they were equal, they were both handled in the
-            // previous step
-            if (valid && !prev_equal) {
-                auto c_ofs = popcnt(~prev_equal_mask & lanemask_lt);
-                c_col_idxs[c_begin + c_ofs] = c_col;
-                auto a_val =
-                    a_col <= b_col ? a_vals[a_nz + a_begin] : zero<ValueType>();
-                auto b_val =
-                    b_col <= a_col ? b_vals[b_nz + b_begin] : zero<ValueType>();
-                c_vals[c_begin + c_ofs] = alpha * a_val + beta * b_val;
-            }
-            // advance by the number of merged elements
-            // in theory, we would need to mask by `valid`, but this
-            // would only be false somwhere in the last iteration, where
-            // we don't need the value of c_begin afterwards, anyways.
-            c_begin += popcnt(~prev_equal_mask & lanemask_full);
-            return true;
-        });
-}
-
-template <int subwarp_size, typename ValueType, typename IndexType>
-void spgeam(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-            sycl::queue *stream, const ValueType *palpha,
-            const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
-            const ValueType *a_vals, const ValueType *pbeta,
-            const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
-            const ValueType *b_vals, IndexType num_rows,
-            const IndexType *c_row_ptrs, IndexType *c_col_idxs,
-            ValueType *c_vals)
-{
-    stream->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                spgeam<subwarp_size>(palpha, a_row_ptrs, a_col_idxs, a_vals,
-                                     pbeta, b_row_ptrs, b_col_idxs, b_vals,
-                                     num_rows, c_row_ptrs, c_col_idxs, c_vals,
-                                     item_ct1);
-            });
     });
 }
 
@@ -2136,58 +1995,265 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 
+namespace {
+
+
+/**
+ * @internal
+ *
+ * Entry in a heap storing a column index and associated non-zero index
+ * (and row end) from a matrix.
+ *
+ * @tparam ValueType  The value type for matrices.
+ * @tparam IndexType  The index type for matrices.
+ */
+template <typename ValueType, typename IndexType>
+struct col_heap_element {
+    using value_type = ValueType;
+    using index_type = IndexType;
+
+    IndexType idx;
+    IndexType end;
+    IndexType col;
+
+    ValueType val() const { return zero<ValueType>(); }
+
+    col_heap_element(IndexType idx, IndexType end, IndexType col, ValueType)
+        : idx{idx}, end{end}, col{col}
+    {}
+};
+
+
+/**
+ * @internal
+ *
+ * Entry in a heap storing an entry (value and column index) and associated
+ * non-zero index (and row end) from a matrix.
+ *
+ * @tparam ValueType  The value type for matrices.
+ * @tparam IndexType  The index type for matrices.
+ */
+template <typename ValueType, typename IndexType>
+struct val_heap_element {
+    using value_type = ValueType;
+    using index_type = IndexType;
+
+    IndexType idx;
+    IndexType end;
+    IndexType col;
+    ValueType val_;
+
+    ValueType val() const { return val_; }
+
+    val_heap_element(IndexType idx, IndexType end, IndexType col, ValueType val)
+        : idx{idx}, end{end}, col{col}, val_{val}
+    {}
+};
+
+
+/**
+ * @internal
+ *
+ * Restores the binary heap condition downwards from a given index.
+ *
+ * The heap condition is: col(child) >= col(parent)
+ *
+ * @param heap  a pointer to the array containing the heap elements.
+ * @param idx  the index of the starting heap node that potentially
+ *             violates the heap condition.
+ * @param size  the number of elements in the heap.
+ * @tparam HeapElement  the element type in the heap. See col_heap_element and
+ *                      val_heap_element
+ */
+template <typename HeapElement>
+void sift_down(HeapElement *heap, typename HeapElement::index_type idx,
+               typename HeapElement::index_type size)
+{
+    auto curcol = heap[idx].col;
+    while (idx * 2 + 1 < size) {
+        auto lchild = idx * 2 + 1;
+        auto rchild = min(lchild + 1, size - 1);
+        auto lcol = heap[lchild].col;
+        auto rcol = heap[rchild].col;
+        auto mincol = min(lcol, rcol);
+        if (mincol >= curcol) {
+            break;
+        }
+        auto minchild = lcol == mincol ? lchild : rchild;
+        std::swap(heap[minchild], heap[idx]);
+        idx = minchild;
+    }
+}
+
+
+/**
+ * @internal
+ *
+ * Generic SpGEMM implementation for a single output row of A * B using binary
+ * heap-based multiway merging.
+ *
+ * @param row  The row for which to compute the SpGEMM
+ * @param a  The input matrix A
+ * @param b  The input matrix B (its column indices must be sorted within each
+ *           row!)
+ * @param heap  The heap to use for this implementation. It must have as many
+ *              entries as the input row has non-zeros.
+ * @param init_cb  function to initialize the state for a single row. Its return
+ *                 value will be updated by subsequent calls of other callbacks,
+ *                 and then returned by this function. Its signature must be
+ *                 compatible with `return_type state = init_cb(row)`.
+ * @param step_cb  function that will be called for each accumulation from an
+ *                 entry of B into the output state. Its signature must be
+ *                 compatible with `step_cb(value, column, state)`.
+ * @param col_cb  function that will be called once for each output column after
+ *                all accumulations into it are completed. Its signature must be
+ *                compatible with `col_cb(column, state)`.
+ * @return the value initialized by init_cb and updated by step_cb and col_cb
+ * @note If the columns of B are not sorted, the output may have duplicate
+ *       column entries.
+ *
+ * @tparam HeapElement  the heap element type. See col_heap_element and
+ *                      val_heap_element
+ * @tparam InitCallback  functor type for init_cb
+ * @tparam StepCallback  functor type for step_cb
+ * @tparam ColCallback  functor type for col_cb
+ */
+template <typename HeapElement, typename InitCallback, typename StepCallback,
+          typename ColCallback>
+auto spgemm_multiway_merge(size_type row,
+                           const typename HeapElement::index_type *a_row_ptrs,
+                           const typename HeapElement::index_type *a_cols,
+                           const typename HeapElement::value_type *a_vals,
+                           const typename HeapElement::index_type *b_row_ptrs,
+                           const typename HeapElement::index_type *b_cols,
+                           const typename HeapElement::value_type *b_vals,
+                           HeapElement *heap, InitCallback init_cb,
+                           StepCallback step_cb, ColCallback col_cb)
+    -> decltype(init_cb(0))
+{
+    auto a_begin = a_row_ptrs[row];
+    auto a_end = a_row_ptrs[row + 1];
+
+    using index_type = typename HeapElement::index_type;
+    constexpr auto sentinel = std::numeric_limits<index_type>::max();
+
+    auto state = init_cb(row);
+
+    // initialize the heap
+    for (auto a_nz = a_begin; a_nz < a_end; ++a_nz) {
+        auto b_row = a_cols[a_nz];
+        auto b_begin = b_row_ptrs[b_row];
+        auto b_end = b_row_ptrs[b_row + 1];
+        heap[a_nz] = {b_begin, b_end,
+                      checked_load(b_cols, b_begin, b_end, sentinel),
+                      a_vals[a_nz]};
+    }
+
+    if (a_begin != a_end) {
+        // make heap:
+        auto a_size = a_end - a_begin;
+        for (auto i = (a_size - 2) / 2; i >= 0; --i) {
+            sift_down(heap + a_begin, i, a_size);
+        }
+        auto &top = heap[a_begin];
+        auto &bot = heap[a_end - 1];
+        auto col = top.col;
+
+        while (top.col != sentinel) {
+            step_cb(b_vals[top.idx] * top.val(), top.col, state);
+            // move to the next element
+            top.idx++;
+            top.col = checked_load(b_cols, top.idx, top.end, sentinel);
+            // restore heap property
+            // pop_heap swaps top and bot, we need to prevent that
+            // so that we do a simple sift_down instead
+            sift_down(heap + a_begin, index_type{}, a_size);
+            if (top.col != col) {
+                col_cb(col, state);
+            }
+            col = top.col;
+        }
+    }
+
+    return state;
+}
+
+
+}  // namespace
+
+
 template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const DpcppExecutor> exec,
             const matrix::Csr<ValueType, IndexType> *a,
             const matrix::Csr<ValueType, IndexType> *b,
             matrix::Csr<ValueType, IndexType> *c)
 {
-    GKO_NOT_IMPLEMENTED;
+    auto num_rows = a->get_size()[0];
+    const auto a_row_ptrs = a->get_const_row_ptrs();
+    const auto a_cols = a->get_const_col_idxs();
+    const auto a_vals = a->get_const_values();
+    const auto b_row_ptrs = b->get_const_row_ptrs();
+    const auto b_cols = b->get_const_col_idxs();
+    const auto b_vals = b->get_const_values();
+    auto c_row_ptrs = c->get_row_ptrs();
+    auto queue = exec->get_queue();
+
+    Array<val_heap_element<ValueType, IndexType>> heap_array(
+        exec, a->get_num_stored_elements());
+
+    auto heap = heap_array.get_data();
+    auto col_heap =
+        reinterpret_cast<col_heap_element<ValueType, IndexType> *>(heap);
+
+    // first sweep: count nnz for each row
+    queue->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto a_row = static_cast<size_type>(idx[0]);
+            c_row_ptrs[a_row] = spgemm_multiway_merge(
+                a_row, a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols, b_vals,
+                col_heap, [](size_type) { return IndexType{}; },
+                [](ValueType, IndexType, IndexType &) {},
+                [](IndexType, IndexType &nnz) { nnz++; });
+        });
+    });
+
+    // build row pointers
+    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+
+    // second sweep: accumulate non-zeros
+    const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
+    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+    auto &c_col_idxs_array = c_builder.get_col_idx_array();
+    auto &c_vals_array = c_builder.get_value_array();
+    c_col_idxs_array.resize_and_reset(new_nnz);
+    c_vals_array.resize_and_reset(new_nnz);
+    auto c_col_idxs = c_col_idxs_array.get_data();
+    auto c_vals = c_vals_array.get_data();
+
+    queue->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto a_row = static_cast<size_type>(idx[0]);
+            spgemm_multiway_merge(
+                a_row, a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols, b_vals,
+                heap,
+                [&](size_type row) {
+                    return std::make_pair(zero<ValueType>(), c_row_ptrs[row]);
+                },
+                [](ValueType val, IndexType,
+                   std::pair<ValueType, IndexType> &state) {
+                    state.first += val;
+                },
+                [&](IndexType col, std::pair<ValueType, IndexType> &state) {
+                    c_col_idxs[state.second] = col;
+                    c_vals[state.second] = state.first;
+                    state.first = zero<ValueType>();
+                    state.second++;
+                });
+        });
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
-
-
-namespace {
-
-
-template <int subwarp_size, typename ValueType, typename IndexType>
-void spgeam(syn::value_list<int, subwarp_size>,
-            std::shared_ptr<const DefaultExecutor> exec, const ValueType *alpha,
-            const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
-            const ValueType *a_vals, const ValueType *beta,
-            const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
-            const ValueType *b_vals, matrix::Csr<ValueType, IndexType> *c)
-{
-    auto m = static_cast<IndexType>(c->get_size()[0]);
-    auto c_row_ptrs = c->get_row_ptrs();
-    // count nnz for alpha * A + beta * B
-    auto subwarps_per_block = default_block_size / subwarp_size;
-    auto num_blocks = ceildiv(m, subwarps_per_block);
-    kernel::spgeam_nnz<subwarp_size>(num_blocks, default_block_size, 0,
-                                     exec->get_queue(), a_row_ptrs, a_col_idxs,
-                                     b_row_ptrs, b_col_idxs, m, c_row_ptrs);
-
-    // build row pointers
-    components::prefix_sum(exec, c_row_ptrs, m + 1);
-
-    // accumulate non-zeros for alpha * A + beta * B
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto c_nnz = exec->copy_val_to_host(c_row_ptrs + m);
-    c_builder.get_col_idx_array().resize_and_reset(c_nnz);
-    c_builder.get_value_array().resize_and_reset(c_nnz);
-    auto c_col_idxs = c->get_col_idxs();
-    auto c_vals = c->get_values();
-    kernel::spgeam<subwarp_size>(
-        num_blocks, default_block_size, 0, exec->get_queue(), alpha, a_row_ptrs,
-        a_col_idxs, a_vals, beta, b_row_ptrs, b_col_idxs, b_vals, m, c_row_ptrs,
-        c_col_idxs, c_vals);
-}
-
-GKO_ENABLE_IMPLEMENTATION_SELECTION(select_spgeam, spgeam);
-
-
-}  // namespace
 
 
 template <typename ValueType, typename IndexType>
@@ -2199,7 +2265,125 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
                      const matrix::Csr<ValueType, IndexType> *d,
                      matrix::Csr<ValueType, IndexType> *c)
 {
-    GKO_NOT_IMPLEMENTED;
+    auto num_rows = a->get_size()[0];
+    const auto a_row_ptrs = a->get_const_row_ptrs();
+    const auto a_cols = a->get_const_col_idxs();
+    const auto a_vals = a->get_const_values();
+    const auto b_row_ptrs = b->get_const_row_ptrs();
+    const auto b_cols = b->get_const_col_idxs();
+    const auto b_vals = b->get_const_values();
+    const auto d_row_ptrs = d->get_const_row_ptrs();
+    const auto d_cols = d->get_const_col_idxs();
+    const auto d_vals = d->get_const_values();
+    auto c_row_ptrs = c->get_row_ptrs();
+    const auto alpha_vals = alpha->get_const_values();
+    const auto beta_vals = beta->get_const_values();
+    constexpr auto sentinel = std::numeric_limits<IndexType>::max();
+    auto queue = exec->get_queue();
+
+    // first sweep: count nnz for each row
+
+    Array<val_heap_element<ValueType, IndexType>> heap_array(
+        exec, a->get_num_stored_elements());
+
+    auto heap = heap_array.get_data();
+    auto col_heap =
+        reinterpret_cast<col_heap_element<ValueType, IndexType> *>(heap);
+
+    // first sweep: count nnz for each row
+    queue->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto a_row = static_cast<size_type>(idx[0]);
+            auto d_nz = d_row_ptrs[a_row];
+            const auto d_end = d_row_ptrs[a_row + 1];
+            auto d_col = checked_load(d_cols, d_nz, d_end, sentinel);
+            c_row_ptrs[a_row] = spgemm_multiway_merge(
+                a_row, a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols, b_vals,
+                col_heap, [](size_type row) { return IndexType{}; },
+                [](ValueType, IndexType, IndexType &) {},
+                [&](IndexType col, IndexType &nnz) {
+                    // skip smaller elements from d
+                    while (d_col <= col) {
+                        d_nz++;
+                        nnz += d_col != col;
+                        d_col = checked_load(d_cols, d_nz, d_end, sentinel);
+                    }
+                    nnz++;
+                });
+            // handle the remaining columns from d
+            c_row_ptrs[a_row] += d_end - d_nz;
+        });
+    });
+
+    // build row pointers
+    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+
+    // second sweep: accumulate non-zeros
+    const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
+    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+    auto &c_col_idxs_array = c_builder.get_col_idx_array();
+    auto &c_vals_array = c_builder.get_value_array();
+    c_col_idxs_array.resize_and_reset(new_nnz);
+    c_vals_array.resize_and_reset(new_nnz);
+
+    auto c_col_idxs = c_col_idxs_array.get_data();
+    auto c_vals = c_vals_array.get_data();
+
+    queue->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto a_row = static_cast<size_type>(idx[0]);
+            auto d_nz = d_row_ptrs[a_row];
+            const auto d_end = d_row_ptrs[a_row + 1];
+            auto d_col = checked_load(d_cols, d_nz, d_end, sentinel);
+            auto d_val = checked_load(d_vals, d_nz, d_end, zero<ValueType>());
+            const auto valpha = alpha_vals[0];
+            const auto vbeta = beta_vals[0];
+            auto c_nz =
+                spgemm_multiway_merge(
+                    a_row, a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols,
+                    b_vals, heap,
+                    [&](size_type row) {
+                        return std::make_pair(zero<ValueType>(),
+                                              c_row_ptrs[row]);
+                    },
+                    [](ValueType val, IndexType,
+                       std::pair<ValueType, IndexType> &state) {
+                        state.first += val;
+                    },
+                    [&](IndexType col, std::pair<ValueType, IndexType> &state) {
+                        // handle smaller elements from d
+                        ValueType part_d_val{};
+                        while (d_col <= col) {
+                            if (d_col == col) {
+                                part_d_val = d_val;
+                            } else {
+                                c_col_idxs[state.second] = d_col;
+                                c_vals[state.second] = vbeta * d_val;
+                                state.second++;
+                            }
+                            d_nz++;
+                            d_col = checked_load(d_cols, d_nz, d_end, sentinel);
+                            d_val = checked_load(d_vals, d_nz, d_end,
+                                                 zero<ValueType>());
+                        }
+                        c_col_idxs[state.second] = col;
+                        c_vals[state.second] =
+                            vbeta * part_d_val + valpha * state.first;
+                        state.first = zero<ValueType>();
+                        state.second++;
+                    })
+                    .second;
+            // handle remaining elements from d
+            while (d_col < sentinel) {
+                c_col_idxs[c_nz] = d_col;
+                c_vals[c_nz] = vbeta * d_val;
+                c_nz++;
+                d_nz++;
+                d_col = checked_load(d_cols, d_nz, d_end, sentinel);
+                d_val = checked_load(d_vals, d_nz, d_end, zero<ValueType>());
+            }
+        });
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2207,27 +2391,85 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void spgeam(std::shared_ptr<const DefaultExecutor> exec,
+void spgeam(std::shared_ptr<const DpcppExecutor> exec,
             const matrix::Dense<ValueType> *alpha,
             const matrix::Csr<ValueType, IndexType> *a,
             const matrix::Dense<ValueType> *beta,
             const matrix::Csr<ValueType, IndexType> *b,
             matrix::Csr<ValueType, IndexType> *c)
 {
-    auto total_nnz =
-        a->get_num_stored_elements() + b->get_num_stored_elements();
-    auto nnz_per_row = total_nnz / a->get_size()[0];
-    select_spgeam(
-        spgeam_kernels(),
-        [&](int compiled_subwarp_size) {
-            return compiled_subwarp_size >= nnz_per_row ||
-                   compiled_subwarp_size == config::warp_size;
-        },
-        syn::value_list<int>(), syn::type_list<>(), exec,
-        alpha->get_const_values(), a->get_const_row_ptrs(),
-        a->get_const_col_idxs(), a->get_const_values(),
-        beta->get_const_values(), b->get_const_row_ptrs(),
-        b->get_const_col_idxs(), b->get_const_values(), c);
+    constexpr auto sentinel = std::numeric_limits<IndexType>::max();
+    const auto num_rows = a->get_size()[0];
+    const auto a_row_ptrs = a->get_const_row_ptrs();
+    const auto a_cols = a->get_const_col_idxs();
+    const auto b_row_ptrs = b->get_const_row_ptrs();
+    const auto b_cols = b->get_const_col_idxs();
+    auto c_row_ptrs = c->get_row_ptrs();
+    auto queue = exec->get_queue();
+
+    // count number of non-zeros per row
+    queue->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto row = static_cast<size_type>(idx[0]);
+            auto a_idx = a_row_ptrs[row];
+            const auto a_end = a_row_ptrs[row + 1];
+            auto b_idx = b_row_ptrs[row];
+            const auto b_end = b_row_ptrs[row + 1];
+            IndexType row_nnz{};
+            while (a_idx < a_end || b_idx < b_end) {
+                const auto a_col = checked_load(a_cols, a_idx, a_end, sentinel);
+                const auto b_col = checked_load(b_cols, b_idx, b_end, sentinel);
+                row_nnz++;
+                a_idx += (a_col <= b_col) ? 1 : 0;
+                b_idx += (b_col <= a_col) ? 1 : 0;
+            }
+            c_row_ptrs[row] = row_nnz;
+        });
+    });
+
+    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+
+    // second sweep: accumulate non-zeros
+    const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
+    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+    auto &c_col_idxs_array = c_builder.get_col_idx_array();
+    auto &c_vals_array = c_builder.get_value_array();
+    c_col_idxs_array.resize_and_reset(new_nnz);
+    c_vals_array.resize_and_reset(new_nnz);
+    auto c_cols = c_col_idxs_array.get_data();
+    auto c_vals = c_vals_array.get_data();
+
+    const auto a_vals = a->get_const_values();
+    const auto b_vals = b->get_const_values();
+    const auto alpha_vals = alpha->get_const_values();
+    const auto beta_vals = beta->get_const_values();
+
+    // count number of non-zeros per row
+    queue->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto row = static_cast<size_type>(idx[0]);
+            auto a_idx = a_row_ptrs[row];
+            const auto a_end = a_row_ptrs[row + 1];
+            auto b_idx = b_row_ptrs[row];
+            const auto b_end = b_row_ptrs[row + 1];
+            const auto alpha = alpha_vals[0];
+            const auto beta = beta_vals[0];
+            auto c_nz = c_row_ptrs[row];
+            while (a_idx < a_end || b_idx < b_end) {
+                const auto a_col = checked_load(a_cols, a_idx, a_end, sentinel);
+                const auto b_col = checked_load(b_cols, b_idx, b_end, sentinel);
+                const bool use_a = a_col <= b_col;
+                const bool use_b = b_col <= a_col;
+                const auto a_val = use_a ? a_vals[a_idx] : zero<ValueType>();
+                const auto b_val = use_b ? b_vals[b_idx] : zero<ValueType>();
+                c_cols[c_nz] = std::min(a_col, b_col);
+                c_vals[c_nz] = alpha * a_val + beta * b_val;
+                c_nz++;
+                a_idx += use_a ? 1 : 0;
+                b_idx += use_b ? 1 : 0;
+            }
+        });
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
@@ -2436,12 +2678,63 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL);
 
 
+template <bool conjugate, typename ValueType, typename IndexType>
+void generic_transpose(std::shared_ptr<const DpcppExecutor> exec,
+                       const matrix::Csr<ValueType, IndexType> *orig,
+                       matrix::Csr<ValueType, IndexType> *trans)
+{
+    const auto num_rows = orig->get_size()[0];
+    const auto num_cols = orig->get_size()[1];
+    auto queue = exec->get_queue();
+    const auto row_ptrs = orig->get_const_row_ptrs();
+    const auto cols = orig->get_const_col_idxs();
+    const auto vals = orig->get_const_values();
+
+    Array<IndexType> counts{exec, num_cols + 1};
+    auto tmp_counts = counts.get_data();
+    auto out_row_ptrs = trans->get_row_ptrs();
+    auto out_cols = trans->get_col_idxs();
+    auto out_vals = trans->get_values();
+    components::fill_array(exec, tmp_counts, num_cols, IndexType{});
+
+    queue->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto row = static_cast<size_type>(idx[0]);
+            const auto begin = row_ptrs[row];
+            const auto end = row_ptrs[row + 1];
+            for (auto i = begin; i < end; i++) {
+                atomic_fetch_add(tmp_counts + cols[i], IndexType{1});
+            }
+        });
+    });
+
+    components::prefix_sum(exec, tmp_counts, num_cols + 1);
+    exec->copy(num_cols + 1, tmp_counts, out_row_ptrs);
+
+    queue->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto row = static_cast<size_type>(idx[0]);
+            const auto begin = row_ptrs[row];
+            const auto end = row_ptrs[row + 1];
+            for (auto i = begin; i < end; i++) {
+                auto out_nz =
+                    atomic_fetch_add(tmp_counts + cols[i], IndexType{1});
+                out_cols[out_nz] = row;
+                out_vals[out_nz] = conjugate ? conj(vals[i]) : vals[i];
+            }
+        });
+    });
+
+    sort_by_column_index(exec, trans);
+}
+
+
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const DpcppExecutor> exec,
                const matrix::Csr<ValueType, IndexType> *orig,
                matrix::Csr<ValueType, IndexType> *trans)
 {
-    GKO_NOT_IMPLEMENTED;
+    generic_transpose<false>(exec, orig, trans);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
@@ -2452,12 +2745,11 @@ void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *orig,
                     matrix::Csr<ValueType, IndexType> *trans)
 {
-    GKO_NOT_IMPLEMENTED;
+    generic_transpose<true>(exec, orig, trans);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
-
 
 template <typename IndexType>
 void invert_permutation(std::shared_ptr<const DefaultExecutor> exec,
@@ -2663,7 +2955,54 @@ template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
                           matrix::Csr<ValueType, IndexType> *to_sort)
 {
-    GKO_NOT_IMPLEMENTED;
+    const auto num_rows = to_sort->get_size()[0];
+    const auto row_ptrs = to_sort->get_const_row_ptrs();
+    auto cols = to_sort->get_col_idxs();
+    auto vals = to_sort->get_values();
+    exec->get_queue()->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto row = static_cast<size_type>(idx[0]);
+            const auto begin = row_ptrs[row];
+            auto size = row_ptrs[row + 1] - begin;
+            if (size <= 1) {
+                return;
+            }
+            auto swap = [&](IndexType i, IndexType j) {
+                std::swap(cols[i + begin], cols[j + begin]);
+                std::swap(vals[i + begin], vals[j + begin]);
+            };
+            auto lchild = [](IndexType i) { return 2 * i + 1; };
+            auto rchild = [](IndexType i) { return 2 * i + 2; };
+            auto parent = [](IndexType i) { return (i - 1) / 2; };
+            auto sift_down = [&](IndexType i) {
+                const auto col = cols[i + begin];
+                while (lchild(i) < size) {
+                    const auto lcol = cols[lchild(i) + begin];
+                    // -1 as sentinel, since we are building a max heap
+                    const auto rcol = checked_load(cols + begin, rchild(i),
+                                                   size, IndexType{-1});
+                    if (col >= std::max(lcol, rcol)) {
+                        return;
+                    }
+                    const auto maxchild = lcol > rcol ? lchild(i) : rchild(i);
+                    swap(i, maxchild);
+                    i = maxchild;
+                }
+            };
+            // heapify / sift_down for max-heap
+            for (auto i = (size - 2) / 2; i >= 0; i--) {
+                sift_down(i);
+            }
+            // heapsort: swap maximum to the end, shrink heap
+            swap(0, size - 1);
+            size--;
+            for (; size > 1; size--) {
+                // restore heap property and repeat
+                sift_down(0);
+                swap(0, size - 1);
+            }
+        });
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2675,18 +3014,28 @@ void is_sorted_by_column_index(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Csr<ValueType, IndexType> *to_check, bool *is_sorted)
 {
-    *is_sorted = true;
-    auto cpu_array = Array<bool>::view(exec->get_master(), 1, is_sorted);
-    auto gpu_array = Array<bool>{exec, cpu_array};
-    auto block_size = default_block_size;
-    auto num_rows = static_cast<IndexType>(to_check->get_size()[0]);
-    auto num_blocks = ceildiv(num_rows, block_size);
-    kernel::check_unsorted(num_blocks, block_size, 0, exec->get_queue(),
-                           to_check->get_const_row_ptrs(),
-                           to_check->get_const_col_idxs(), num_rows,
-                           gpu_array.get_data());
-    cpu_array = gpu_array;
-}
+    Array<bool> is_sorted_device_array{exec, {true}};
+    const auto num_rows = to_check->get_size()[0];
+    const auto row_ptrs = to_check->get_const_row_ptrs();
+    const auto cols = to_check->get_const_col_idxs();
+    auto is_sorted_device = is_sorted_device_array.get_data();
+    exec->get_queue()->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto row = static_cast<size_type>(idx[0]);
+            const auto begin = row_ptrs[row];
+            const auto end = row_ptrs[row + 1];
+            if (*is_sorted_device) {
+                for (auto i = begin; i < end - 1; i++) {
+                    if (cols[i] > cols[i + 1]) {
+                        *is_sorted_device = false;
+                        break;
+                    }
+                }
+            }
+        });
+    });
+    *is_sorted = exec->copy_val_to_host(is_sorted_device);
+};
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);

@@ -46,7 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/onemkl_bindings.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/format_conversion.dp.hpp"
@@ -375,6 +374,7 @@ void convert_row_idxs_to_ptrs(const IndexType *__restrict__ idxs,
     }
 }
 
+template <typename IndexType>
 void convert_row_idxs_to_ptrs(dim3 grid, dim3 block,
                               gko::size_type dynamic_shared_memory,
                               sycl::queue *stream, const IndexType *idxs,

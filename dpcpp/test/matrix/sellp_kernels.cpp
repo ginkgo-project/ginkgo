@@ -53,15 +53,20 @@ namespace {
 
 class Sellp : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Sellp<>;
-    using Vec = gko::matrix::Dense<>;
-    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
+#if GINKGO_DPCPP_SINGLE_MODE
+    using vtype = float;
+#else
+    using vtype = double;
+#endif  // GINKGO_DPCPP_SINGLE_MODE
+    using Mtx = gko::matrix::Sellp<vtype>;
+    using Vec = gko::matrix::Dense<vtype>;
+    using ComplexVec = gko::matrix::Dense<std::complex<vtype>>;
 
     Sellp() : rand_engine(42) {}
 
     void SetUp()
     {
-        ASSERT_GT(gko::DpcppExecutor::get_num_devices(), 0);
+        ASSERT_GT(gko::DpcppExecutor::get_num_devices("all"), 0);
         ref = gko::ReferenceExecutor::create();
         dpcpp = gko::DpcppExecutor::create(0, ref);
     }
@@ -78,7 +83,7 @@ protected:
     {
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols, std::uniform_int_distribution<>(1, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            std::normal_distribution<vtype>(-1.0, 1.0), rand_engine, ref);
     }
 
     void set_up_apply_vector(
@@ -159,7 +164,7 @@ TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
 }
 
 
@@ -172,7 +177,7 @@ TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
 }
 
 
@@ -185,7 +190,7 @@ TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
 }
 
 
@@ -198,7 +203,7 @@ TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFActorIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
 }
 
 
@@ -211,7 +216,7 @@ TEST_F(Sellp, SimpleApplyMultipleRHSIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
 }
 
 
@@ -224,7 +229,7 @@ TEST_F(Sellp, AdvancedApplyMultipleRHSIsEquivalentToRef)
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
 }
 
 
@@ -238,7 +243,7 @@ TEST_F(Sellp,
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
 }
 
 
@@ -252,7 +257,7 @@ TEST_F(Sellp,
 
     auto result = Vec::create(ref);
     result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
 }
 
 
@@ -269,7 +274,7 @@ TEST_F(Sellp, ApplyToComplexIsEquivalentToRef)
     mtx->apply(complex_b.get(), complex_x.get());
     dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
 
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<vtype>::value);
 }
 
 
@@ -286,7 +291,7 @@ TEST_F(Sellp, AdvancedApplyToComplexIsEquivalentToRef)
     mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
     dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
 
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<vtype>::value);
 }
 
 
@@ -294,13 +299,13 @@ TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_matrix();
 
-    auto dense_mtx = gko::matrix::Dense<>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<>::create(dpcpp);
+    auto dense_mtx = gko::matrix::Dense<vtype>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<vtype>::create(dpcpp);
 
     mtx->convert_to(dense_mtx.get());
     dmtx->convert_to(ddense_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), r<vtype>::value);
 }
 
 
@@ -308,13 +313,13 @@ TEST_F(Sellp, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_matrix();
 
-    auto csr_mtx = gko::matrix::Csr<>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<>::create(dpcpp);
+    auto csr_mtx = gko::matrix::Csr<vtype>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<vtype>::create(dpcpp);
 
     mtx->convert_to(csr_mtx.get());
     dmtx->convert_to(dcsr_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), r<vtype>::value);
 }
 
 
@@ -322,8 +327,8 @@ TEST_F(Sellp, ConvertEmptyToDenseIsEquivalentToRef)
 {
     set_up_apply_matrix();
 
-    auto dense_mtx = gko::matrix::Dense<>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<>::create(dpcpp);
+    auto dense_mtx = gko::matrix::Dense<vtype>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<vtype>::create(dpcpp);
 
     empty->convert_to(dense_mtx.get());
     dempty->convert_to(ddense_mtx.get());
@@ -336,8 +341,8 @@ TEST_F(Sellp, ConvertEmptyToCsrIsEquivalentToRef)
 {
     set_up_apply_matrix();
 
-    auto csr_mtx = gko::matrix::Csr<>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<>::create(dpcpp);
+    auto csr_mtx = gko::matrix::Csr<vtype>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<vtype>::create(dpcpp);
 
     empty->convert_to(csr_mtx.get());
     dempty->convert_to(dcsr_mtx.get());
@@ -389,7 +394,7 @@ TEST_F(Sellp, InplaceAbsoluteMatrixIsEquivalentToRef)
     mtx->compute_absolute_inplace();
     dmtx->compute_absolute_inplace();
 
-    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<vtype>::value);
 }
 
 
@@ -400,7 +405,7 @@ TEST_F(Sellp, OutplaceAbsoluteMatrixIsEquivalentToRef)
     auto abs_mtx = mtx->compute_absolute();
     auto dabs_mtx = dmtx->compute_absolute();
 
-    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, r<vtype>::value);
 }
 
 
