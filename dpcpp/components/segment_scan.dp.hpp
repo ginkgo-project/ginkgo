@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <CL/sycl.hpp>
 
 
+#include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 
@@ -56,21 +57,21 @@ namespace dpcpp {
 template <unsigned subwarp_size, typename ValueType, typename IndexType>
 __dpct_inline__ bool segment_scan(
     const group::thread_block_tile<subwarp_size> &group, const IndexType ind,
-    ValueType *__restrict__ val, sycl::nd_item<3> item_ct1)
+    ValueType *__restrict__ val)
 {
     bool head = true;
 #pragma unroll
     for (int i = 1; i < subwarp_size; i <<= 1) {
         const IndexType add_ind = group.shfl_up(ind, i);
         ValueType add_val = zero<ValueType>();
-        if (add_ind == ind && item_ct1.get_local_id(2) >= i) {
+        if (add_ind == ind && group.thread_rank() >= i) {
             add_val = *val;
             if (i == 1) {
                 head = false;
             }
         }
         add_val = group.shfl_down(add_val, i);
-        if (item_ct1.get_local_id(2) < subwarp_size - i) {
+        if (group.thread_rank() < subwarp_size - i) {
             *val += add_val;
         }
     }
