@@ -35,11 +35,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/log/batch_convergence.hpp>
-//#include <ginkgo/core/solver/batch_richardson.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
 
+#include "core/log/batch_logging.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
 
