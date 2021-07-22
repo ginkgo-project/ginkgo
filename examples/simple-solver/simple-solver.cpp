@@ -161,10 +161,10 @@ int main(int argc, char *argv[])
     // which in this case is an spmv and equivalent to the LAPACK z_spmv
     // routine. Finally, you compute the euclidean 2-norm with the compute_norm2
     // function.
-    auto res = 0.0;
+    auto res = gko::initialize<real_vec>({0.0}, exec->get_master());
     A->apply(1.0, lend(x), -1.0, lend(b));
-    b->compute_norm2(&res);
+    b->compute_norm2(lend(res));
 
     std::cout << "Residual norm sqrt(r^T r):\n";
-    gko::write(std::cout, res);
+    write(std::cout, lend(res));
 }

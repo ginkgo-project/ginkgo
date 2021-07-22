@@ -101,9 +101,9 @@ int main(int argc, char *argv[])
     b->copy_from(host_x.get());
 
     // Calculate initial residual by overwriting b
-    auto initres = 0.0;
+    auto initres = gko::initialize<real_vec>({0.0}, exec->get_master());
     A->apply(1.0, lend(x), -1.0, lend(b));
-    b->compute_norm2(&initres);
+    b->compute_norm2(lend(initres));
 
     // copy b again
     b->copy_from(host_x.get());
@@ -146,14 +146,14 @@ int main(int argc, char *argv[])
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
     // Calculate residual
-    auto res = 0.0;
+    auto res = gko::initialize<real_vec>({0.0}, exec->get_master());
     A->apply(1.0, lend(x), -1.0, lend(b));
-    b->compute_norm2(&res);
+    b->compute_norm2(lend(res));
 
     std::cout << "Initial residual norm sqrt(r^T r):\n";
-    gko::write(std::cout, initres);
+    write(std::cout, lend(initres));
     std::cout << "Final residual norm sqrt(r^T r):\n";
-    gko::write(std::cout, res);
+    write(std::cout, lend(res));
 
     // Print solver statistics
     std::cout << "IR iteration count:     " << logger->get_num_iterations()

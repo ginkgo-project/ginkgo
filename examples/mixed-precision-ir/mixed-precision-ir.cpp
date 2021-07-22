@@ -108,9 +108,9 @@ int main(int argc, char *argv[])
     b->copy_from(host_x.get());
 
     // Calculate initial residual by overwriting b
-    auto initres = 0.0;
+    auto initres = gko::initialize<real_vec>({0.0}, exec->get_master());
     A->apply(1.0, lend(x), -1.0, lend(b));
-    b->compute_norm2(&initres);
+    b->compute_norm2(lend(initres));
 
     // Build lower-precision system matrix and residual
     auto solver_A = solver_mtx::create(exec);
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
     // Solve system
     exec->synchronize();
     std::chrono::nanoseconds time(0);
-    auto res = 0.0;
+    auto res = gko::initialize<real_vec>({0.0}, exec->get_master());
     auto inner_solution = solver_vec::create(exec);
     auto outer_delta = vec::create(exec);
     auto tic = std::chrono::steady_clock::now();
@@ -147,10 +147,11 @@ int main(int argc, char *argv[])
 
         // convert residual to inner precision
         outer_residual->convert_to(lend(inner_residual));
-        outer_residual->compute_norm2(&res);
+        outer_residual->compute_norm2(lend(res));
 
         // break if we exceed the number of iterations or have converged
-        if (iter > max_outer_iters || res / initres < outer_reduction_factor) {
+        if (iter > max_outer_iters ||
+            res->at(0) / initres->at(0) < outer_reduction_factor) {
             break;
         }
 
@@ -176,12 +177,12 @@ int main(int argc, char *argv[])
 
     // Calculate residual
     A->apply(1.0, lend(x), -1.0, lend(b));
-    b->compute_norm2(&res);
+    b->compute_norm2(lend(res));
 
     std::cout << "Initial residual norm sqrt(r^T r):\n";
-    gko::write(std::cout, initres);
+    write(std::cout, lend(initres));
     std::cout << "Final residual norm sqrt(r^T r):\n";
-    gko::write(std::cout, res);
+    write(std::cout, lend(res));
 
     // Print solver statistics
     std::cout << "MPIR iteration count:     " << iter << std::endl;

@@ -134,10 +134,10 @@ int main(int argc, char *argv[])
     write(std::cout, gko::lend(x));
 
     // Calculate residual
-    auto res = 0.0;
+    auto res = gko::initialize<real_vec>({0.0}, exec->get_master());
     A->apply(1.0, gko::lend(x), -1.0, gko::lend(b));
-    b->compute_norm2(&res);
+    b->compute_norm2(lend(res));
 
     std::cout << "Residual norm sqrt(r^T r):\n";
-    gko::write(std::cout, res);
+    write(std::cout, lend(res));
 }

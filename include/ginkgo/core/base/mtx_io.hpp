@@ -141,26 +141,6 @@ inline void write(StreamType &&os, MatrixType *matrix,
     write_raw(os, data, layout);
 }
 
-/**
- * Helper to write a single value in the same format as @ref write
- *
- * @note Cannot use ADL to find this overload.
- *
- * @tparam ValueType  a scalar type.
- * @tparam StreamType  type of stream used to write the data to
- *
- * @param os  output stream where the data is to be written
- * @param val  the value to write
- * @param layout  the layout used in the output
- */
-template <typename ValueType, typename StreamType>
-inline void write(StreamType &&os, ValueType val,
-                  layout_type layout = layout_type::array)
-{
-    matrix_data<ValueType, int32> data{{val}};
-    write_raw(os, data, layout);
-}
-
 
 }  // namespace gko
 
