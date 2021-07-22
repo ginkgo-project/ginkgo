@@ -1,6 +1,6 @@
 # Created by https://www.gitignore.io/api/
 
-###CMake
+### CMake
 CMakeCache.txt
 CMakeFiles
 CMakeScripts
@@ -12,21 +12,21 @@ compile_commands.json
 CTestTestfile.cmake
 build
 
-###IDE
-# clion
+### IDE
+# Clion
 .idea
 
-# eclipse
+# Eclipse
 .cproject
 .project
 
-# visual studio code
+# Visual studio code
 .vscode
 
 ### Generated header file
 include/config.hpp
 
-###C++
+### C++
 # Prerequisites
 *.d
 
@@ -60,10 +60,25 @@ include/config.hpp
 *.out
 *.app
 
-#other
+# Others
 diff.patch
 GRTAGS
 GSYMS
 GTAGS
 GPATH
 .gitignore
+
+### OS
+# temporary and backup files
+*~
+*#
+*.swp
+
+# MacOS self-generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
