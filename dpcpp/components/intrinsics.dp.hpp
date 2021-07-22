@@ -63,19 +63,13 @@ __dpct_inline__ int popcnt(uint64 mask) { return sycl::popcount(mask); }
  * Returns the (1-based!) index of the first set bit in the given mask,
  * starting from the least significant bit.
  */
-/*
-DPCT1004:0: Compatible DPC++ code could not be generated.
-*/
-__dpct_inline__ int ffs(uint32 mask) { return __ffs(mask); }
+__dpct_inline__ int ffs(uint32 mask) { return __builtin_ffs(mask); }
 
 /** @copydoc ffs */
 __dpct_inline__ int ffs(uint64 mask)
 {
     // the cast is necessary, as the overloads defined by HIP are ambiguous
-    /*
-    DPCT1004:1: Compatible DPC++ code could not be generated.
-    */
-    return __ffsll(static_cast<unsigned long long int>(mask));
+    return __builtin_ffsll(static_cast<unsigned long long int>(mask));
 }
 
 
@@ -84,10 +78,10 @@ __dpct_inline__ int ffs(uint64 mask)
  * Returns the number of zero bits before the first set bit in the given mask,
  * starting from the most significant bit.
  */
-__dpct_inline__ int clz(uint32 mask) { return sycl::clz((int)mask); }
+__dpct_inline__ int clz(uint32 mask) { return __builtin_clz(mask); }
 
 /** @copydoc clz */
-__dpct_inline__ int clz(uint64 mask) { return sycl::clz((long long)mask); }
+__dpct_inline__ int clz(uint64 mask) { return __builtin_clzll(mask); }
 
 
 }  // namespace dpcpp
