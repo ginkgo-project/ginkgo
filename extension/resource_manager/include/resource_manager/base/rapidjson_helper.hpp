@@ -102,6 +102,34 @@ std::string get_value<std::string>(rapidjson::Value &item, std::string &key)
     return item[key.c_str()].GetString();
 }
 
+template <>
+float get_value<float>(rapidjson::Value &item, std::string &key)
+{
+    return (float)item[key.c_str()].GetDouble();
+}
+
+template <>
+double get_value<double>(rapidjson::Value &item, std::string &key)
+{
+    return item[key.c_str()].GetDouble();
+}
+
+template <>
+gko::stop::mode get_value<gko::stop::mode>(rapidjson::Value &item,
+                                           std::string &key)
+{
+    auto mode = get_value<std::string>(item, key);
+    if (mode == "absolute") {
+        return gko::stop::mode::absolute;
+    } else if (mode == "initial_resnorm") {
+        return gko::stop::mode::initial_resnorm;
+    } else if (mode == "rhs_norm") {
+        return gko::stop::mode::rhs_norm;
+    } else {
+        assert(false);
+    }
+}
+
 
 /**
  * get_value_with_default gives the value if the key is existed, or the given
