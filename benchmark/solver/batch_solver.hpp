@@ -314,6 +314,9 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_restart(FLAGS_gmres_restart)
             .on(exec);
+    } else if (description == "direct") {
+        using Solver = gko::solver::BatchDirect<etype>;
+        return Solver::build().on(exec);
     }
     throw std::range_error(std::string("The provided string <") + description +
                            "> does not match any solver!");
@@ -394,15 +397,22 @@ void solve_system(const std::string &sol_name, const std::string &prec_name,
             add_or_set_member(solver_json, "num_iters",
                               rapidjson::Value(rapidjson::kObjectType),
                               allocator);
+            const bool have_logiters =
+                (logger->get_num_iterations().get_num_elems() >= nbatch * nrhs);
             for (size_type i = 0; i < nbatch; ++i) {
                 add_or_set_member(
                     solver_json["num_iters"], std::to_string(i).c_str(),
                     rapidjson::Value(rapidjson::kArrayType), allocator);
                 for (size_type j = 0; j < nrhs; ++j) {
-                    solver_json["num_iters"][std::to_string(i).c_str()]
-                        .PushBack(logger->get_num_iterations()
-                                      .get_const_data()[i * nrhs + j],
-                                  allocator);
+                    if (have_logiters) {
+                        solver_json["num_iters"][std::to_string(i).c_str()]
+                            .PushBack(logger->get_num_iterations()
+                                          .get_const_data()[i * nrhs + j],
+                                      allocator);
+                    } else {
+                        solver_json["num_iters"][std::to_string(i).c_str()]
+                            .PushBack(1, allocator);
+                    }
                 }
             }
         }
@@ -456,19 +466,27 @@ void solve_system(const std::string &sol_name, const std::string &prec_name,
                 add_or_set_member(solver_json["apply"], "implicit_resnorms",
                                   rapidjson::Value(rapidjson::kObjectType),
                                   allocator);
+                const bool has_logres =
+                    (logger->get_residual_norm()->get_num_batch_entries() >=
+                     nbatch);
                 for (size_type i = 0; i < nbatch; ++i) {
                     add_or_set_member(solver_json["apply"]["implicit_resnorms"],
                                       std::to_string(i).c_str(),
                                       rapidjson::Value(rapidjson::kArrayType),
                                       allocator);
                     for (size_type j = 0; j < nrhs; ++j) {
-                        solver_json["apply"]["implicit_resnorms"]
-                                   [std::to_string(i).c_str()]
-                                       .PushBack(
-                                           logger->get_residual_norm()
-                                               ->get_const_values()[i * nrhs +
-                                                                    j],
-                                           allocator);
+                        if (has_logres) {
+                            solver_json["apply"]["implicit_resnorms"]
+                                       [std::to_string(i).c_str()]
+                                           .PushBack(logger->get_residual_norm()
+                                                         ->get_const_values()
+                                                             [i * nrhs + j],
+                                                     allocator);
+                        } else {
+                            solver_json["apply"]["implicit_resnorms"]
+                                       [std::to_string(i).c_str()]
+                                           .PushBack(0.0, allocator);
+                        }
                     }
                 }
             }
