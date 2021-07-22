@@ -30,51 +30,32 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_BASE_CONFIG_HPP_
-#define GKO_DPCPP_BASE_CONFIG_HPP_
+#ifndef TRICK_SORTING_HPP_
+#define TRICK_SORTING_HPP_
 
 
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
+#include <type_traits>
+
+
+#include "cuda/components/sorting.cuh"
 
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace cuda {
 
 
-struct config {
-    /**
-     * The type containing a bitmask over all lanes of a warp.
-     */
-    using lane_mask_type = uint64;
-
-    /**
-     * The number of threads within a Dpcpp subgroup.
-     */
-    static constexpr uint32 warp_size = 16;
-
-    /**
-     * The bitmask of the entire warp.
-     */
-    static constexpr auto full_lane_mask = ~zero<lane_mask_type>();
-
-    /**
-     * The minimal amount of warps that need to be scheduled for each block
-     * to maximize GPU occupancy.
-     */
-    static constexpr uint32 min_warps_per_block = 4;
-
-    /**
-     * The default maximal number of threads allowed in DPCPP group
-     */
-    static constexpr uint32 max_block_size = 256;
-};
+template <int num_elements, int num_local, typename ValueType>
+__forceinline__ __device__ void bitonic_sort_t(ValueType *local_elements, ValueType *shared_elements)
+{
+    auto tidx = threadIdx.x;
+    bitonic_sort<num_elements, num_local>(local_elements, shared_elements);
+}
 
 
-}  // namespace dpcpp
+}  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_DPCPP_BASE_CONFIG_HPP_
+#endif  // TRICK_SORTING_HPP_

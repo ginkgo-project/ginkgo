@@ -30,51 +30,17 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_BASE_CONFIG_HPP_
-#define GKO_DPCPP_BASE_CONFIG_HPP_
+#ifndef TRICK_DIM3_T_HPP_
+#define TRICK_DIM3_T_HPP_
 
+struct dim3_t {
+    unsigned int x;
+    unsigned int y;
+    unsigned int z;
 
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
+    dim3_t(unsigned int xval, unsigned int yval = 1, unsigned int zval = 1) : x(xval), y(yval), z(zval) {}
 
-
-namespace gko {
-namespace kernels {
-namespace dpcpp {
-
-
-struct config {
-    /**
-     * The type containing a bitmask over all lanes of a warp.
-     */
-    using lane_mask_type = uint64;
-
-    /**
-     * The number of threads within a Dpcpp subgroup.
-     */
-    static constexpr uint32 warp_size = 16;
-
-    /**
-     * The bitmask of the entire warp.
-     */
-    static constexpr auto full_lane_mask = ~zero<lane_mask_type>();
-
-    /**
-     * The minimal amount of warps that need to be scheduled for each block
-     * to maximize GPU occupancy.
-     */
-    static constexpr uint32 min_warps_per_block = 4;
-
-    /**
-     * The default maximal number of threads allowed in DPCPP group
-     */
-    static constexpr uint32 max_block_size = 256;
+    operator dim3() { return dim3{x, y, z}; }
 };
 
-
-}  // namespace dpcpp
-}  // namespace kernels
-}  // namespace gko
-
-
-#endif  // GKO_DPCPP_BASE_CONFIG_HPP_
+#endif  // TRICK_DIM3_T_HPP_

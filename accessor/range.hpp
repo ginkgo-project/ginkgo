@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_ACCESSOR_RANGE_HPP_
 #define GKO_ACCESSOR_RANGE_HPP_
 
+
 #include <utility>
 
 
@@ -45,6 +46,25 @@ namespace acc {
 
 template <typename Accessor>
 class range {
+private:
+    /**
+     * the default check_if_same gives false.
+     *
+     * @tparam Ref  the reference type
+     * @tparam Args  the input type
+     */
+    template <typename Ref, typename... Args>
+    struct check_if_same : public std::false_type {};
+
+    /**
+     * check_if_same gives true if the decay type of input is the same type as
+     * Ref.
+     *
+     * @tparam Ref  the reference type
+     */
+    template <typename Ref>
+    struct check_if_same<Ref, Ref> : public std::true_type {};
+
 public:
     /**
      * The type of the underlying accessor.
@@ -65,13 +85,20 @@ public:
      * Creates a new range.
      *
      * @tparam AccessorParam  types of parameters forwarded to the accessor
-     *                        constructor
+     *                        constructor.
      *
      * @param params  parameters forwarded to Accessor constructor.
+     *
+     * @note We use SFINAE to allow for a default copy and move constructor to
+     *       be generated, so a `range` is trivially copyable if the `Accessor`
+     *       is trivially copyable.
      */
-    template <typename... AccessorParams>
-    GKO_ACC_ATTRIBUTES constexpr explicit range(AccessorParams &&... params)
-        : accessor_{std::forward<AccessorParams>(params)...}
+    template <typename... AccessorParams,
+              std::enable_if_t<
+                  !check_if_same<range, std::decay_t<AccessorParams>...>::value,
+                  int> = 0>
+    GKO_ACC_ATTRIBUTES constexpr explicit range(AccessorParams &&... args)
+        : accessor_{std::forward<AccessorParams>(args)...}
     {}
 
     /**
@@ -99,8 +126,6 @@ public:
                       "Too many dimensions in range call");
         return accessor_(std::forward<DimensionTypes>(dimensions)...);
     }
-
-    range(const range &other) = default;
 
     /**
      * Returns the length of the specified dimension of the range.

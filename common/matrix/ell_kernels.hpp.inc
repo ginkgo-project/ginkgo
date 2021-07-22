@@ -131,11 +131,12 @@ __global__ __launch_bounds__(default_block_size) void spmv(
 {
     const OutputValueType alpha_val = alpha(0);
     const OutputValueType beta_val = beta[0];
-    // Because the atomic operation changes the values of c during computation,
-    // it can not do the right alpha * a * b + beta * c operation.
-    // Thus, the cuda kernel only computes alpha * a * b when it uses atomic
-    // operation.
     if (atomic) {
+        // Because the atomic operation changes the values of c during
+        // computation, it can not directly do alpha * a * b + beta * c
+        // operation. The beta * c needs to be done before calling this kernel.
+        // Then, this kernel only adds alpha * a * b when it uses atomic
+        // operation.
         spmv_kernel<num_thread_per_worker, atomic>(
             num_rows, num_worker_per_row, val, col, stride,
             num_stored_elements_per_row, b, c, c_stride,
