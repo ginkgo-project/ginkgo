@@ -46,13 +46,14 @@ void generic_kernel_2d_solver(sycl::handler& cgh, int64 rows, int64 cols,
                               int64 default_stride, KernelFunction fn,
                               KernelArgs... args)
 {
-    cgh.parallel_for(sycl::range<2>{rows, cols}, [=](sycl::id<2> idx) {
-        auto row = static_cast<int64>(idx[0]);
-        auto col = static_cast<int64>(idx[1]);
-        fn(row, col,
-           device_unpack_solver_impl<KernelArgs>::unpack(args,
-                                                         default_stride)...);
-    });
+    cgh.parallel_for(sycl::range<1>{static_cast<std::size_t>(rows * cols)},
+                     [=](sycl::id<1> idx) {
+                         auto row = static_cast<int64>(idx[0] / cols);
+                         auto col = static_cast<int64>(idx[0] % cols);
+                         fn(row, col,
+                            device_unpack_solver_impl<KernelArgs>::unpack(
+                                args, default_stride)...);
+                     });
 }
 
 
