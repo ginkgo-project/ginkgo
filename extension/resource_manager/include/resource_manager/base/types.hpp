@@ -145,7 +145,7 @@ ENUM_CLASS(RM_LinOpFactory, int, ENUM_LINOPFACTORY);
 
 
 #define ENUM_CRITERIONFACTORY(_expand) \
-    _expand(CriterionFactory, 0), _expand(Iteration)
+    _expand(CriterionFactory, 0), _expand(Iteration), _expand(ResidualNorm)
 
 ENUM_CLASS(RM_CriterionFactory, int, ENUM_CRITERIONFACTORY);
 

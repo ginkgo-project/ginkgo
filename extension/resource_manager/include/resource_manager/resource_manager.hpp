@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_manager/preconditioner/isai.hpp"
 #include "resource_manager/solver/cg.hpp"
 #include "resource_manager/stop/iteration.hpp"
+#include "resource_manager/stop/residual_norm.hpp"
 
 namespace gko {
 namespace extension {
