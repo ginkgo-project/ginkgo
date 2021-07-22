@@ -30,9 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <dpcpp/components/segment_scan.dp.hpp>
-
-
 #include <CL/sycl.hpp>
 
 
@@ -50,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/format_conversion.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
+#include "dpcpp/components/segment_scan.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 
 

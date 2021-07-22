@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <dpcpp/base/math.hpp>
 #include <dpcpp/base/pointer_mode_guard.hpp>
-#include <dpcpp/components/intrinsics.dp.hpp>
-#include <dpcpp/components/merging.dp.hpp>
-#include <dpcpp/components/segment_scan.dp.hpp>
 
 
 #include <CL/sycl.hpp>
@@ -62,7 +59,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/base/onemkl_bindings.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
+#include "dpcpp/components/intrinsics.dp.hpp"
+#include "dpcpp/components/merging.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
+#include "dpcpp/components/segment_scan.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 #include "dpcpp/components/uninitialized_array.hpp"
 
