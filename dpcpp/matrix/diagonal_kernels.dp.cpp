@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "core/matrix/diagonal_kernels.hpp"
+
+
 #include <CL/sycl.hpp>
 
 
@@ -54,7 +57,7 @@ namespace dpcpp {
 namespace diagonal {
 
 
-constexpr auto default_block_size = 512;
+constexpr auto default_block_size = 256;
 
 
 namespace kernel {
@@ -254,10 +257,6 @@ void conj_transpose(size_type size, const ValueType *__restrict__ orig_values,
         return;
     }
 
-    /*
-    DPCT1007:5: Migration of this CUDA API is not supported by the Intel(R)
-    DPC++ Compatibility Tool.
-    */
     trans_values[tidx] = conj(orig_values[tidx]);
 }
 

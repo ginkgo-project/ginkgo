@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "core/matrix/hybrid_kernels.hpp"
+
+
 #include <CL/sycl.hpp>
 
 
@@ -62,7 +65,7 @@ namespace dpcpp {
 namespace hybrid {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 256;
 constexpr int warps_in_block = 4;
 
 

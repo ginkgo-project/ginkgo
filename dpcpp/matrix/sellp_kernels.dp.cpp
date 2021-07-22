@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "core/matrix/sellp_kernels.hpp"
+
+
 #include <CL/sycl.hpp>
 
 
@@ -43,7 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/onemkl_bindings.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
@@ -60,7 +62,7 @@ namespace dpcpp {
 namespace sellp {
 
 
-constexpr auto default_block_size = 512;
+constexpr auto default_block_size = 256;
 
 
 namespace {
@@ -275,7 +277,7 @@ void count_nnz_per_row(size_type num_rows, size_type slice_size,
                 part_result += 1;
             }
         }
-        result[row_idx] = reduce(
+        result[row_idx] = ::gko::kernels::dpcpp::reduce(
             warp_tile, part_result,
             [](const size_type &a, const size_type &b) { return a + b; });
     }

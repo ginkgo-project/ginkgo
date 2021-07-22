@@ -30,12 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "core/matrix/csr_kernels.hpp"
+
+
 #include <algorithm>
-#include <dpcpp/base/math.hpp>
-#include <dpcpp/base/pointer_mode_guard.hpp>
 
 
 #include <CL/sycl.hpp>
+#include <oneapi/mkl.hpp>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -78,7 +80,7 @@ namespace dpcpp {
 namespace csr {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 256;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 constexpr int wsize = config::warp_size;
@@ -89,13 +91,11 @@ constexpr int classical_overweight = 32;
  * A compile-time list of the number items per threads for which spmv kernel
  * should be compiled.
  */
-using compiled_kernels = syn::value_list<int, 3, 4, 6, 7, 8, 12, 14>;
+using compiled_kernels = syn::value_list<int, 6>;
 
-using classical_kernels =
-    syn::value_list<int, config::warp_size, 32, 16, 8, 4, 2, 1>;
+using classical_kernels = syn::value_list<int, config::warp_size, 16, 8, 1>;
 
-using spgeam_kernels =
-    syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+using spgeam_kernels = syn::value_list<int, 8, 16>;
 
 
 namespace kernel {
@@ -532,14 +532,15 @@ void abstract_merge_path_spmv(dim3 grid, dim3 block,
     stream->submit([&](sycl::handler &cgh) {
         sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            shared_row_ptrs_acc_ct1(sycl::range<1>(block_items), cgh);
+            shared_row_ptrs_acc_ct1(
+                sycl::range<1>(spmv_block_size * items_per_thread), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 abstract_merge_path_spmv<items_per_thread>(
                     num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c,
                     c_stride, row_out, val_out, item_ct1,
-                    (IndexType *)shared_row_ptrs_acc_ct1.get_pointer());
+                    shared_row_ptrs_acc_ct1.get_pointer().get());
             });
     });
 }
@@ -577,7 +578,8 @@ void abstract_merge_path_spmv(
     stream->submit([&](sycl::handler &cgh) {
         sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            shared_row_ptrs_acc_ct1(sycl::range<1>(block_items), cgh);
+            shared_row_ptrs_acc_ct1(
+                sycl::range<1>(spmv_block_size * items_per_thread), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
@@ -624,7 +626,8 @@ void abstract_reduce(dim3 grid, dim3 block,
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 abstract_reduce(nwarps, last_val, last_row, c, c_stride,
-                                item_ct1, tmp_val_acc_ct1.get_pointer().get());
+                                item_ct1, tmp_ind_acc_ct1.get_pointer().get(),
+                                tmp_val_acc_ct1.get_pointer().get());
             });
     });
 }
@@ -667,7 +670,8 @@ void abstract_reduce(dim3 grid, dim3 block,
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 abstract_reduce(nwarps, last_val, last_row, alpha, c, c_stride,
-                                item_ct1, tmp_val_acc_ct1.get_pointer().get());
+                                item_ct1, tmp_ind_acc_ct1.get_pointer().get(),
+                                tmp_val_acc_ct1.get_pointer().get());
             });
     });
 }
@@ -697,7 +701,7 @@ void device_classical_spmv(const size_type num_rows,
              ind += subwarp_size) {
             temp_val += val[ind] * b[col_idxs[ind] * b_stride + column_id];
         }
-        auto subwarp_result = reduce(
+        auto subwarp_result = ::gko::kernels::dpcpp::reduce(
             subwarp_tile, temp_val,
             [](const ValueType &a, const ValueType &b) { return a + b; });
         if (subid == 0) {
@@ -1062,7 +1066,7 @@ void calculate_slice_lengths(size_type num_rows, size_type slice_size,
 
         auto warp_tile = group::tiled_partition<warp_size>(
             group::this_thread_block(item_ct1));
-        auto warp_result = reduce(
+        auto warp_result = ::gko::kernels::dpcpp::reduce(
             warp_tile, thread_result,
             [](const size_type &a, const size_type &b) { return max(a, b); });
 
@@ -1243,7 +1247,7 @@ void reduce_max_nnz_per_slice(size_type num_rows, size_type slice_size,
                 max(thread_result, nnz_per_row[warpid * slice_size + i]);
         }
     }
-    auto warp_result = reduce(
+    auto warp_result = ::gko::kernels::dpcpp::reduce(
         warp_tile, thread_result,
         [](const size_type &a, const size_type &b) { return max(a, b); });
 
@@ -1273,7 +1277,7 @@ void reduce_total_cols(size_type num_slices,
                        size_type *__restrict__ result,
                        sycl::nd_item<3> item_ct1, size_type *block_result)
 {
-    reduce_array(num_slices, max_nnz_per_slice, block_result,
+    reduce_array(num_slices, max_nnz_per_slice, block_result, item_ct1,
                  [](const size_type &x, const size_type &y) { return x + y; });
 
     if (item_ct1.get_local_id(2) == 0) {
@@ -1306,7 +1310,7 @@ void reduce_max_nnz(size_type size, const size_type *__restrict__ nnz_per_row,
                     size_type *block_max)
 {
     reduce_array(
-        size, nnz_per_row, block_max,
+        size, nnz_per_row, block_max, item_ct1,
         [](const size_type &x, const size_type &y) { return max(x, y); });
 
     if (item_ct1.get_local_id(2) == 0) {
@@ -1531,10 +1535,6 @@ void conjugate_kernel(size_type num_nonzeros, ValueType *__restrict__ val,
     const auto tidx = thread::get_thread_id_flat(item_ct1);
 
     if (tidx < num_nonzeros) {
-        /*
-        DPCT1007:26: Migration of this CUDA API is not supported by the Intel(R)
-        DPC++ Compatibility Tool.
-        */
         val[tidx] = conj(val[tidx]);
     }
 }
@@ -1898,32 +1898,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_merge_path_spmv, merge_path_spmv);
 template <typename ValueType, typename IndexType>
 int compute_items_per_thread(std::shared_ptr<const DpcppExecutor> exec)
 {
-    const int version =
-        (exec->get_major_version() << 4) + exec->get_minor_version();
-    // The num_item is decided to make the occupancy 100%
-    // TODO: Extend this list when new GPU is released
-    //       Tune this parameter
-    // 128 threads/block the number of items per threads
-    // 3.0 3.5: 6
-    // 3.7: 14
-    // 5.0, 5.3, 6.0, 6.2: 8
-    // 5.2, 6.1, 7.0: 12
     int num_item = 6;
-    switch (version) {
-    case 0x50:
-    case 0x53:
-    case 0x60:
-    case 0x62:
-        num_item = 8;
-        break;
-    case 0x52:
-    case 0x61:
-    case 0x70:
-        num_item = 12;
-        break;
-    case 0x37:
-        num_item = 14;
-    }
     // Ensure that the following is satisfied:
     // sizeof(IndexType) + sizeof(ValueType)
     // <= items_per_thread * sizeof(IndexType)
@@ -1943,8 +1918,9 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
                     const matrix::Dense<ValueType> *alpha = nullptr,
                     const matrix::Dense<ValueType> *beta = nullptr)
 {
-    const auto nwarps = exec->get_num_warps_per_sm() *
-                        exec->get_num_multiprocessor() * classical_overweight;
+    const auto threads_per_cu = 7;
+    const auto nwarps =
+        exec->get_num_computing_units() * threads_per_cu * classical_overweight;
     const auto gridx =
         std::min(ceildiv(a->get_size()[0], spmv_block_size / subwarp_size),
                  int64(nwarps / warps_in_block));
@@ -2028,59 +2004,30 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
-        if (cusparse::is_supported<ValueType, IndexType>::value) {
-            // TODO: add implementation for int64 and multiple RHS
-            auto handle = exec->get_cusparse_handle();
-            {
-                cusparse::pointer_mode_guard pm_guard(handle);
-                const auto alpha = one<ValueType>();
-                const auto beta = zero<ValueType>();
-                // TODO: add implementation for int64 and multiple RHS
-                if (b->get_stride() != 1 || c->get_stride() != 1)
-                    GKO_NOT_IMPLEMENTED;
-
-#if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
-                auto descr = cusparse::create_mat_descr();
-                auto row_ptrs = a->get_const_row_ptrs();
-                auto col_idxs = a->get_const_col_idxs();
-                cusparse::spmv(handle, oneapi::mkl::transpose::nontrans,
-                               a->get_size()[0], a->get_size()[1],
-                               a->get_num_stored_elements(), &alpha, descr,
-                               a->get_const_values(), row_ptrs, col_idxs,
-                               b->get_const_values(), &beta, c->get_values());
-
-                cusparse::destroy(descr);
-#else  // DPCPP_VERSION >= 11000
-                cusparseOperation_t trans = CUSPARSE_OPERATION_NON_TRANSPOSE;
-                cusparseSpMVAlg_t alg = CUSPARSE_CSRMV_ALG1;
-                auto row_ptrs =
-                    const_cast<IndexType *>(a->get_const_row_ptrs());
-                auto col_idxs =
-                    const_cast<IndexType *>(a->get_const_col_idxs());
-                auto values = const_cast<ValueType *>(a->get_const_values());
-                auto mat = cusparse::create_csr(
-                    a->get_size()[0], a->get_size()[1],
-                    a->get_num_stored_elements(), row_ptrs, col_idxs, values);
-                auto b_val = const_cast<ValueType *>(b->get_const_values());
-                auto c_val = c->get_values();
-                auto vecb =
-                    cusparse::create_dnvec(b->get_num_stored_elements(), b_val);
-                auto vecc =
-                    cusparse::create_dnvec(c->get_num_stored_elements(), c_val);
-                size_type buffer_size = 0;
-                cusparse::spmv_buffersize<ValueType>(handle, trans, &alpha, mat,
-                                                     vecb, &beta, vecc, alg,
-                                                     &buffer_size);
-
-                gko::Array<char> buffer_array(exec, buffer_size);
-                auto buffer = buffer_array.get_data();
-                cusparse::spmv<ValueType>(handle, trans, &alpha, mat, vecb,
-                                          &beta, vecc, alg, buffer);
-                cusparse::destroy(vecb);
-                cusparse::destroy(vecc);
-                cusparse::destroy(mat);
-#endif
+        if (!is_complex<ValueType>()) {
+            oneapi::mkl::sparse::matrix_handle_t mat_handle;
+            oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
+            oneapi::mkl::sparse::set_csr_data(
+                mat_handle, IndexType(a->get_size()[0]),
+                IndexType(a->get_size()[1]), oneapi::mkl::index_base::zero,
+                const_cast<IndexType *>(a->get_const_row_ptrs()),
+                const_cast<IndexType *>(a->get_const_col_idxs()),
+                const_cast<ValueType *>(a->get_const_values()));
+            if (b->get_size()[1] == 1 && b->get_stride() == 1) {
+                oneapi::mkl::sparse::gemv(
+                    *exec->get_queue(), oneapi::mkl::transpose::nontrans,
+                    one<ValueType>(), mat_handle,
+                    const_cast<ValueType *>(b->get_const_values()),
+                    zero<ValueType>(), c->get_values());
+            } else {
+                oneapi::mkl::sparse::gemm(
+                    *exec->get_queue(), oneapi::mkl::transpose::nontrans,
+                    one<ValueType>(), mat_handle,
+                    const_cast<ValueType *>(b->get_const_values()),
+                    b->get_size()[1], b->get_stride(), zero<ValueType>(),
+                    c->get_values(), c->get_stride());
             }
+            oneapi::mkl::sparse::release_matrix_handle(&mat_handle);
         } else {
             GKO_NOT_IMPLEMENTED;
         }
@@ -2121,52 +2068,32 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         }
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
-        if (cusparse::is_supported<ValueType, IndexType>::value) {
-            // TODO: add implementation for int64 and multiple RHS
-            if (b->get_stride() != 1 || c->get_stride() != 1)
-                GKO_NOT_IMPLEMENTED;
-
-#if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
-            auto descr = cusparse::create_mat_descr();
-            auto row_ptrs = a->get_const_row_ptrs();
-            auto col_idxs = a->get_const_col_idxs();
-            cusparse::spmv(exec->get_cusparse_handle(),
-                           oneapi::mkl::transpose::nontrans, a->get_size()[0],
-                           a->get_size()[1], a->get_num_stored_elements(),
-                           alpha->get_const_values(), descr,
-                           a->get_const_values(), row_ptrs, col_idxs,
-                           b->get_const_values(), beta->get_const_values(),
-                           c->get_values());
-
-            cusparse::destroy(descr);
-#else  // DPCPP_VERSION >= 11000
-            cusparseOperation_t trans = CUSPARSE_OPERATION_NON_TRANSPOSE;
-            cusparseSpMVAlg_t alg = CUSPARSE_CSRMV_ALG1;
-            auto row_ptrs = const_cast<IndexType *>(a->get_const_row_ptrs());
-            auto col_idxs = const_cast<IndexType *>(a->get_const_col_idxs());
-            auto values = const_cast<ValueType *>(a->get_const_values());
-            auto mat = cusparse::create_csr(a->get_size()[0], a->get_size()[1],
-                                            a->get_num_stored_elements(),
-                                            row_ptrs, col_idxs, values);
-            auto b_val = const_cast<ValueType *>(b->get_const_values());
-            auto c_val = c->get_values();
-            auto vecb =
-                cusparse::create_dnvec(b->get_num_stored_elements(), b_val);
-            auto vecc =
-                cusparse::create_dnvec(c->get_num_stored_elements(), c_val);
-            size_type buffer_size = 0;
-            cusparse::spmv_buffersize<ValueType>(
-                exec->get_cusparse_handle(), trans, alpha->get_const_values(),
-                mat, vecb, beta->get_const_values(), vecc, alg, &buffer_size);
-            gko::Array<char> buffer_array(exec, buffer_size);
-            auto buffer = buffer_array.get_data();
-            cusparse::spmv<ValueType>(
-                exec->get_cusparse_handle(), trans, alpha->get_const_values(),
-                mat, vecb, beta->get_const_values(), vecc, alg, buffer);
-            cusparse::destroy(vecb);
-            cusparse::destroy(vecc);
-            cusparse::destroy(mat);
-#endif
+        if (!is_complex<ValueType>()) {
+            oneapi::mkl::sparse::matrix_handle_t mat_handle;
+            oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
+            oneapi::mkl::sparse::set_csr_data(
+                mat_handle, IndexType(a->get_size()[0]),
+                IndexType(a->get_size()[1]), oneapi::mkl::index_base::zero,
+                const_cast<IndexType *>(a->get_const_row_ptrs()),
+                const_cast<IndexType *>(a->get_const_col_idxs()),
+                const_cast<ValueType *>(a->get_const_values()));
+            if (b->get_size()[1] == 1 && b->get_stride() == 1) {
+                oneapi::mkl::sparse::gemv(
+                    *exec->get_queue(), oneapi::mkl::transpose::nontrans,
+                    exec->copy_val_to_host(alpha->get_const_values()),
+                    mat_handle, const_cast<ValueType *>(b->get_const_values()),
+                    exec->copy_val_to_host(beta->get_const_values()),
+                    c->get_values());
+            } else {
+                oneapi::mkl::sparse::gemm(
+                    *exec->get_queue(), oneapi::mkl::transpose::nontrans,
+                    exec->copy_val_to_host(alpha->get_const_values()),
+                    mat_handle, const_cast<ValueType *>(b->get_const_values()),
+                    b->get_size()[1], b->get_stride(),
+                    exec->copy_val_to_host(beta->get_const_values()),
+                    c->get_values(), c->get_stride());
+            }
+            oneapi::mkl::sparse::release_matrix_handle(&mat_handle);
         } else {
             GKO_NOT_IMPLEMENTED;
         }
@@ -2215,124 +2142,7 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
             const matrix::Csr<ValueType, IndexType> *b,
             matrix::Csr<ValueType, IndexType> *c)
 {
-    auto a_nnz = IndexType(a->get_num_stored_elements());
-    auto a_vals = a->get_const_values();
-    auto a_row_ptrs = a->get_const_row_ptrs();
-    auto a_col_idxs = a->get_const_col_idxs();
-    auto b_vals = b->get_const_values();
-    auto b_row_ptrs = b->get_const_row_ptrs();
-    auto b_col_idxs = b->get_const_col_idxs();
-    auto c_row_ptrs = c->get_row_ptrs();
-
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_cusparse_handle();
-        cusparse::pointer_mode_guard pm_guard(handle);
-
-        auto alpha = one<ValueType>();
-        auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
-        auto b_nnz = static_cast<IndexType>(b->get_num_stored_elements());
-        auto null_value = static_cast<ValueType *>(nullptr);
-        auto null_index = static_cast<IndexType *>(nullptr);
-        auto zero_nnz = IndexType{};
-        auto m = IndexType(a->get_size()[0]);
-        auto n = IndexType(b->get_size()[1]);
-        auto k = IndexType(a->get_size()[1]);
-        matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-        auto &c_col_idxs_array = c_builder.get_col_idx_array();
-        auto &c_vals_array = c_builder.get_value_array();
-
-#if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
-        auto a_descr = cusparse::create_mat_descr();
-        auto b_descr = cusparse::create_mat_descr();
-        auto c_descr = cusparse::create_mat_descr();
-        auto d_descr = cusparse::create_mat_descr();
-        auto info = cusparse::create_spgemm_info();
-        // allocate buffer
-        size_type buffer_size{};
-        cusparse::spgemm_buffer_size(
-            handle, m, n, k, &alpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
-            b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr,
-            zero_nnz, null_index, null_index, info, buffer_size);
-        Array<char> buffer_array(exec, buffer_size);
-        auto buffer = buffer_array.get_data();
-
-        // count nnz
-        IndexType c_nnz{};
-        cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
-                             a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
-                             d_descr, zero_nnz, null_index, null_index, c_descr,
-                             c_row_ptrs, &c_nnz, info, buffer);
-
-        // accumulate non-zeros
-        c_col_idxs_array.resize_and_reset(c_nnz);
-        c_vals_array.resize_and_reset(c_nnz);
-        auto c_col_idxs = c_col_idxs_array.get_data();
-        auto c_vals = c_vals_array.get_data();
-        cusparse::spgemm(handle, m, n, k, &alpha, a_descr, a_nnz, a_vals,
-                         a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
-                         b_row_ptrs, b_col_idxs, null_value, d_descr, zero_nnz,
-                         null_value, null_index, null_index, c_descr, c_vals,
-                         c_row_ptrs, c_col_idxs, info, buffer);
-
-        cusparse::destroy(info);
-        cusparse::destroy(d_descr);
-        cusparse::destroy(c_descr);
-        cusparse::destroy(b_descr);
-        cusparse::destroy(a_descr);
-
-#else   // DPCPP_VERSION >= 11000
-        const auto beta = zero<ValueType>();
-        auto spgemm_descr = cusparse::create_spgemm_descr();
-        auto a_descr = cusparse::create_csr(m, k, a_nnz,
-                                            const_cast<IndexType *>(a_row_ptrs),
-                                            const_cast<IndexType *>(a_col_idxs),
-                                            const_cast<ValueType *>(a_vals));
-        auto b_descr = cusparse::create_csr(k, n, b_nnz,
-                                            const_cast<IndexType *>(b_row_ptrs),
-                                            const_cast<IndexType *>(b_col_idxs),
-                                            const_cast<ValueType *>(b_vals));
-        auto c_descr = cusparse::create_csr(m, n, zero_nnz, null_index,
-                                            null_index, null_value);
-
-        // estimate work
-        size_type buffer1_size{};
-        cusparse::spgemm_work_estimation(handle, &alpha, a_descr, b_descr,
-                                         &beta, c_descr, spgemm_descr,
-                                         buffer1_size, nullptr);
-        Array<char> buffer1{exec, buffer1_size};
-        cusparse::spgemm_work_estimation(handle, &alpha, a_descr, b_descr,
-                                         &beta, c_descr, spgemm_descr,
-                                         buffer1_size, buffer1.get_data());
-
-        // compute spgemm
-        size_type buffer2_size{};
-        cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta,
-                                 c_descr, spgemm_descr, buffer1.get_data(),
-                                 buffer2_size, nullptr);
-        Array<char> buffer2{exec, buffer2_size};
-        cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta,
-                                 c_descr, spgemm_descr, buffer1.get_data(),
-                                 buffer2_size, buffer2.get_data());
-
-        // copy data to result
-        auto c_nnz = cusparse::sparse_matrix_nnz(c_descr);
-        c_col_idxs_array.resize_and_reset(c_nnz);
-        c_vals_array.resize_and_reset(c_nnz);
-        cusparse::csr_set_pointers(c_descr, c_row_ptrs,
-                                   c_col_idxs_array.get_data(),
-                                   c_vals_array.get_data());
-
-        cusparse::spgemm_copy(handle, &alpha, a_descr, b_descr, &beta, c_descr,
-                              spgemm_descr);
-
-        cusparse::destroy(c_descr);
-        cusparse::destroy(b_descr);
-        cusparse::destroy(a_descr);
-        cusparse::destroy(spgemm_descr);
-#endif  // DPCPP_VERSION >= 11000
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
@@ -2389,142 +2199,7 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
                      const matrix::Csr<ValueType, IndexType> *d,
                      matrix::Csr<ValueType, IndexType> *c)
 {
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_cusparse_handle();
-        cusparse::pointer_mode_guard pm_guard(handle);
-
-        auto valpha = exec->copy_val_to_host(alpha->get_const_values());
-        auto a_nnz = IndexType(a->get_num_stored_elements());
-        auto a_vals = a->get_const_values();
-        auto a_row_ptrs = a->get_const_row_ptrs();
-        auto a_col_idxs = a->get_const_col_idxs();
-        auto b_nnz = IndexType(b->get_num_stored_elements());
-        auto b_vals = b->get_const_values();
-        auto b_row_ptrs = b->get_const_row_ptrs();
-        auto b_col_idxs = b->get_const_col_idxs();
-        auto vbeta = exec->copy_val_to_host(beta->get_const_values());
-        auto d_nnz = IndexType(d->get_num_stored_elements());
-        auto d_vals = d->get_const_values();
-        auto d_row_ptrs = d->get_const_row_ptrs();
-        auto d_col_idxs = d->get_const_col_idxs();
-        auto m = IndexType(a->get_size()[0]);
-        auto n = IndexType(b->get_size()[1]);
-        auto k = IndexType(a->get_size()[1]);
-        auto c_row_ptrs = c->get_row_ptrs();
-
-#if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
-        matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-        auto &c_col_idxs_array = c_builder.get_col_idx_array();
-        auto &c_vals_array = c_builder.get_value_array();
-        auto a_descr = cusparse::create_mat_descr();
-        auto b_descr = cusparse::create_mat_descr();
-        auto c_descr = cusparse::create_mat_descr();
-        auto d_descr = cusparse::create_mat_descr();
-        auto info = cusparse::create_spgemm_info();
-        // allocate buffer
-        size_type buffer_size{};
-        cusparse::spgemm_buffer_size(
-            handle, m, n, k, &valpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
-            b_descr, b_nnz, b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz,
-            d_row_ptrs, d_col_idxs, info, buffer_size);
-        Array<char> buffer_array(exec, buffer_size);
-        auto buffer = buffer_array.get_data();
-
-        // count nnz
-        IndexType c_nnz{};
-        cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
-                             a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
-                             d_descr, d_nnz, d_row_ptrs, d_col_idxs, c_descr,
-                             c_row_ptrs, &c_nnz, info, buffer);
-
-        // accumulate non-zeros
-        c_col_idxs_array.resize_and_reset(c_nnz);
-        c_vals_array.resize_and_reset(c_nnz);
-        auto c_col_idxs = c_col_idxs_array.get_data();
-        auto c_vals = c_vals_array.get_data();
-        cusparse::spgemm(handle, m, n, k, &valpha, a_descr, a_nnz, a_vals,
-                         a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
-                         b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz, d_vals,
-                         d_row_ptrs, d_col_idxs, c_descr, c_vals, c_row_ptrs,
-                         c_col_idxs, info, buffer);
-
-        cusparse::destroy(info);
-        cusparse::destroy(d_descr);
-        cusparse::destroy(c_descr);
-        cusparse::destroy(b_descr);
-        cusparse::destroy(a_descr);
-#else   // DPCPP_VERSION >= 11000
-        auto null_value = static_cast<ValueType *>(nullptr);
-        auto null_index = static_cast<IndexType *>(nullptr);
-        auto one_val = one<ValueType>();
-        auto zero_val = zero<ValueType>();
-        auto zero_nnz = IndexType{};
-        auto spgemm_descr = cusparse::create_spgemm_descr();
-        auto a_descr = cusparse::create_csr(m, k, a_nnz,
-                                            const_cast<IndexType *>(a_row_ptrs),
-                                            const_cast<IndexType *>(a_col_idxs),
-                                            const_cast<ValueType *>(a_vals));
-        auto b_descr = cusparse::create_csr(k, n, b_nnz,
-                                            const_cast<IndexType *>(b_row_ptrs),
-                                            const_cast<IndexType *>(b_col_idxs),
-                                            const_cast<ValueType *>(b_vals));
-        auto c_descr = cusparse::create_csr(m, n, zero_nnz, null_index,
-                                            null_index, null_value);
-
-        // estimate work
-        size_type buffer1_size{};
-        cusparse::spgemm_work_estimation(handle, &one_val, a_descr, b_descr,
-                                         &zero_val, c_descr, spgemm_descr,
-                                         buffer1_size, nullptr);
-        Array<char> buffer1{exec, buffer1_size};
-        cusparse::spgemm_work_estimation(handle, &one_val, a_descr, b_descr,
-                                         &zero_val, c_descr, spgemm_descr,
-                                         buffer1_size, buffer1.get_data());
-
-        // compute spgemm
-        size_type buffer2_size{};
-        cusparse::spgemm_compute(handle, &one_val, a_descr, b_descr, &zero_val,
-                                 c_descr, spgemm_descr, buffer1.get_data(),
-                                 buffer2_size, nullptr);
-        Array<char> buffer2{exec, buffer2_size};
-        cusparse::spgemm_compute(handle, &one_val, a_descr, b_descr, &zero_val,
-                                 c_descr, spgemm_descr, buffer1.get_data(),
-                                 buffer2_size, buffer2.get_data());
-
-        // write result to temporary storage
-        auto c_tmp_nnz = cusparse::sparse_matrix_nnz(c_descr);
-        Array<IndexType> c_tmp_row_ptrs_array(exec, m + 1);
-        Array<IndexType> c_tmp_col_idxs_array(exec, c_tmp_nnz);
-        Array<ValueType> c_tmp_vals_array(exec, c_tmp_nnz);
-        cusparse::csr_set_pointers(c_descr, c_tmp_row_ptrs_array.get_data(),
-                                   c_tmp_col_idxs_array.get_data(),
-                                   c_tmp_vals_array.get_data());
-
-        cusparse::spgemm_copy(handle, &one_val, a_descr, b_descr, &zero_val,
-                              c_descr, spgemm_descr);
-
-        cusparse::destroy(c_descr);
-        cusparse::destroy(b_descr);
-        cusparse::destroy(a_descr);
-        cusparse::destroy(spgemm_descr);
-
-        auto spgeam_total_nnz = c_tmp_nnz + d->get_num_stored_elements();
-        auto nnz_per_row = spgeam_total_nnz / m;
-        select_spgeam(
-            spgeam_kernels(),
-            [&](int compiled_subwarp_size) {
-                return compiled_subwarp_size >= nnz_per_row ||
-                       compiled_subwarp_size == config::warp_size;
-            },
-            syn::value_list<int>(), syn::type_list<>(), exec,
-            alpha->get_const_values(), c_tmp_row_ptrs_array.get_const_data(),
-            c_tmp_col_idxs_array.get_const_data(),
-            c_tmp_vals_array.get_const_data(), beta->get_const_values(),
-            d_row_ptrs, d_col_idxs, d_vals, c);
-#endif  // DPCPP_VERSION >= 11000
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2766,44 +2441,7 @@ void transpose(std::shared_ptr<const DpcppExecutor> exec,
                const matrix::Csr<ValueType, IndexType> *orig,
                matrix::Csr<ValueType, IndexType> *trans)
 {
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-#if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
-        cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
-        oneapi::mkl::index_base idxBase = oneapi::mkl::index_base::zero;
-
-        cusparse::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
-            orig->get_size()[1], orig->get_num_stored_elements(),
-            orig->get_const_values(), orig->get_const_row_ptrs(),
-            orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_row_ptrs(), trans->get_col_idxs(), copyValues, idxBase);
-#else  // DPCPP_VERSION >= 11000
-        dpcppDataType_t cu_value =
-            gko::kernels::dpcpp::dpcpp_data_type<ValueType>();
-        cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
-        cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
-        cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG1;
-        size_type buffer_size = 0;
-        cusparse::transpose_buffersize(
-            exec->get_cusparse_handle(), orig->get_size()[0],
-            orig->get_size()[1], orig->get_num_stored_elements(),
-            orig->get_const_values(), orig->get_const_row_ptrs(),
-            orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
-            idxBase, alg, &buffer_size);
-        Array<char> buffer_array(exec, buffer_size);
-        auto buffer = buffer_array.get_data();
-        cusparse::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
-            orig->get_size()[1], orig->get_num_stored_elements(),
-            orig->get_const_values(), orig->get_const_row_ptrs(),
-            orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
-            idxBase, alg, buffer);
-#endif
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
@@ -2814,51 +2452,7 @@ void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *orig,
                     matrix::Csr<ValueType, IndexType> *trans)
 {
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-        const dim3 block_size(default_block_size, 1, 1);
-        const dim3 grid_size(
-            ceildiv(trans->get_num_stored_elements(), block_size.x), 1, 1);
-
-#if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
-        cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
-        oneapi::mkl::index_base idxBase = oneapi::mkl::index_base::zero;
-
-        cusparse::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
-            orig->get_size()[1], orig->get_num_stored_elements(),
-            orig->get_const_values(), orig->get_const_row_ptrs(),
-            orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_row_ptrs(), trans->get_col_idxs(), copyValues, idxBase);
-#else  // DPCPP_VERSION >= 11000
-        dpcppDataType_t cu_value =
-            gko::kernels::dpcpp::dpcpp_data_type<ValueType>();
-        cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
-        cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
-        cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG1;
-        size_type buffer_size = 0;
-        cusparse::transpose_buffersize(
-            exec->get_cusparse_handle(), orig->get_size()[0],
-            orig->get_size()[1], orig->get_num_stored_elements(),
-            orig->get_const_values(), orig->get_const_row_ptrs(),
-            orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
-            idxBase, alg, &buffer_size);
-        Array<char> buffer_array(exec, buffer_size);
-        auto buffer = buffer_array.get_data();
-        cusparse::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
-            orig->get_size()[1], orig->get_num_stored_elements(),
-            orig->get_const_values(), orig->get_const_row_ptrs(),
-            orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
-            idxBase, alg, buffer);
-#endif
-
-        conjugate_kernel(grid_size, block_size, 0, exec->get_queue(),
-                         trans->get_num_stored_elements(), trans->get_values());
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -3069,51 +2663,7 @@ template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
                           matrix::Csr<ValueType, IndexType> *to_sort)
 {
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_cusparse_handle();
-        auto descr = cusparse::create_mat_descr();
-        auto m = IndexType(to_sort->get_size()[0]);
-        auto n = IndexType(to_sort->get_size()[1]);
-        auto nnz = IndexType(to_sort->get_num_stored_elements());
-        auto row_ptrs = to_sort->get_const_row_ptrs();
-        auto col_idxs = to_sort->get_col_idxs();
-        auto vals = to_sort->get_values();
-
-        // copy values
-        Array<ValueType> tmp_vals_array(exec, nnz);
-        exec->copy(nnz, vals, tmp_vals_array.get_data());
-        auto tmp_vals = tmp_vals_array.get_const_data();
-
-        // init identity permutation
-        Array<IndexType> permutation_array(exec, nnz);
-        auto permutation = permutation_array.get_data();
-        cusparse::create_identity_permutation(handle, nnz, permutation);
-
-        // allocate buffer
-        size_type buffer_size{};
-        cusparse::csrsort_buffer_size(handle, m, n, nnz, row_ptrs, col_idxs,
-                                      buffer_size);
-        Array<char> buffer_array{exec, buffer_size};
-        auto buffer = buffer_array.get_data();
-
-        // sort column indices
-        cusparse::csrsort(handle, m, n, nnz, descr, row_ptrs, col_idxs,
-                          permutation, buffer);
-
-        // sort values
-#if defined(DPCPP_VERSION) && (DPCPP_VERSION < 11000)
-        cusparse::gather(handle, nnz, tmp_vals, vals, permutation);
-#else  // DPCPP_VERSION >= 11000
-        auto val_vec = cusparse::create_spvec(nnz, nnz, permutation, vals);
-        auto tmp_vec =
-            cusparse::create_dnvec(nnz, const_cast<ValueType *>(tmp_vals));
-        cusparse::gather(handle, tmp_vec, val_vec);
-#endif
-
-        cusparse::destroy(descr);
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

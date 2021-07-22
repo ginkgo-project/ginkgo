@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/coo_kernels.hpp"
 
 
-#include <dpcpp/base/math.hpp>
-
-
 #include <CL/sycl.hpp>
 
 
@@ -73,7 +70,7 @@ namespace dpcpp {
 namespace coo {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 256;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 
@@ -378,7 +375,6 @@ void convert_row_idxs_to_ptrs(const IndexType *__restrict__ idxs,
     }
 }
 
-template <typename IndexType>
 void convert_row_idxs_to_ptrs(dim3 grid, dim3 block,
                               gko::size_type dynamic_shared_memory,
                               sycl::queue *stream, const IndexType *idxs,
@@ -394,6 +390,12 @@ void convert_row_idxs_to_ptrs(dim3 grid, dim3 block,
     });
 }
 
+template void convert_row_idxs_to_ptrs(dim3, dim3, size_t, sycl::queue *,
+                                       const int32 *idxs, size_type, int32 *,
+                                       size_type);
+template void convert_row_idxs_to_ptrs(dim3, dim3, size_t, sycl::queue *,
+                                       const int64 *idxs, size_type, int64 *,
+                                       size_type);
 
 template <typename ValueType>
 void initialize_zero_dense(size_type num_rows, size_type num_cols,
