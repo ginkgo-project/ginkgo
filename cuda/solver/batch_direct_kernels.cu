@@ -106,17 +106,20 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
 #ifndef NDEBUG
     check_batch(exec, nbatch, info_array, true);
 #endif
+    exec->free(info_array);
+
+    int trsm_info{};
     cublas::batch_getrs(handle, CUBLAS_OP_N, n, nrhs, matrices, lda,
-                        pivot_array, vectors, ldb, info_array, nbatch);
-#ifndef NDEBUG
-    check_batch(exec, nbatch, info_array, false);
-#endif
+                        pivot_array, vectors, ldb, &trsm_info, nbatch);
+    if (trsm_info != 0) {
+        std::cerr << "Cublas batch trsm got an illegal param in position "
+                  << trsm_info << std::endl;
+    }
     cublas::destroy(handle);
 
     exec->free(matrices);
     exec->free(vectors);
     exec->free(pivot_array);
-    exec->free(info_array);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL);
