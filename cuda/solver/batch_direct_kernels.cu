@@ -104,7 +104,6 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     cublas::batch_getrf(handle, n, matrices, lda, pivot_array, info_array,
                         nbatch);
 #ifndef NDEBUG
-    std::cout << "Checking batch factorization...\n";
     check_batch(exec, nbatch, info_array, true);
 #endif
     cublas::batch_getrs(handle, CUBLAS_OP_N, n, nrhs, matrices, lda,
