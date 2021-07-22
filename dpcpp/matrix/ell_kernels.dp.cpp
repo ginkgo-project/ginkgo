@@ -406,6 +406,15 @@ void count_nnz_per_row(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 }
 
 
+#define GKO_ELL_COUNT_NNZ_PER_ROW(ValueType, IndexType)                        \
+    void count_nnz_per_row(dim3, dim3, gko::size_type, sycl::queue *,          \
+                           size_type, size_type, size_type, const ValueType *, \
+                           IndexType *)
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_ELL_COUNT_NNZ_PER_ROW);
+
+#undef GKO_ELL_COUNT_NNZ_PER_ROW
+
 template <typename ValueType, typename IndexType>
 void fill_in_csr(size_type num_rows, size_type max_nnz_per_row,
                  size_type stride, const ValueType *__restrict__ source_values,

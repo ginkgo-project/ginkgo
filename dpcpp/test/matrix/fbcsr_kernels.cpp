@@ -45,11 +45,16 @@ namespace {
 
 class Fbcsr : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Fbcsr<>;
+#if GINKGO_DPCPP_SINGLE_MODE
+    using vtype = float;
+#else
+    using vtype = double;
+#endif  // GINKGO_DPCPP_SINGLE_MODE
+    using Mtx = gko::matrix::Fbcsr<vtype>;
 
     void SetUp()
     {
-        ASSERT_GT(gko::DpcppExecutor::get_num_devices(), 0);
+        ASSERT_GT(gko::DpcppExecutor::get_num_devices("all"), 0);
         ref = gko::ReferenceExecutor::create();
         dpcpp = gko::DpcppExecutor::create(0, ref);
     }

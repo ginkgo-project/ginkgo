@@ -69,7 +69,6 @@ void count_nnz_per_row(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                        const ValueType *values, IndexType *result);
 
 
-
 }  // namespace kernel
 }  // namespace ell
 
@@ -91,10 +90,8 @@ void convert_row_idxs_to_ptrs(dim3 grid, dim3 block,
                               size_type length);
 
 
-
 }  // namespace kernel
 
-}  // namespace kernel
 
 namespace host_kernel {
 
