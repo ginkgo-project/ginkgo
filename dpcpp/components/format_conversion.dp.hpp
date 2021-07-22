@@ -37,8 +37,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <CL/sycl.hpp>
 
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/types.hpp>
+
+
+#include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/components/cooperative_groups.dp.hpp"
+#include "dpcpp/components/thread_ids.dp.hpp"
+
+
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+#include "benchmark/utils/tuning_variables.hpp"
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
 
 
 #include "dpcpp/base/dim3.dp.hpp"
@@ -88,6 +98,7 @@ void convert_row_idxs_to_ptrs(dim3 grid, dim3 block,
 
 }  // namespace kernel
 
+}  // namespace kernel
 
 namespace host_kernel {
 
@@ -102,8 +113,24 @@ template <size_type subwarp_size = config::warp_size>
 size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
                            const size_type nnz)
 {
-    size_type nwarps_in_dpcpp = exec->get_num_computing_units() * 7;
+    size_type warps_per_sm =
+        exec->get_num_warps_per_sm() * config::warp_size / subwarp_size;
+    size_type nwarps_in_dpcpp = exec->get_num_multiprocessor() * warps_per_sm;
     size_type multiple = 8;
+    if (nnz >= 2e8) {
+        multiple = 2048;
+    } else if (nnz >= 2e7) {
+        multiple = 512;
+    } else if (nnz >= 2e6) {
+        multiple = 128;
+    } else if (nnz >= 2e5) {
+        multiple = 32;
+    }
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+    if (_tuning_flag) {
+        multiple = _tuned_value;
+    }
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
     return std::min(multiple * nwarps_in_dpcpp,
                     size_type(ceildiv(nnz, config::warp_size)));
 }
