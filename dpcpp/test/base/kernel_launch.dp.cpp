@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "common/unified/base/kernel_launch_reduction.hpp"
 #include "common/unified/base/kernel_launch_solver.hpp"
 #include "core/test/utils.hpp"
 
@@ -253,6 +254,98 @@ TEST_F(KernelLaunch, Runs2DDense)
         zero_dense->get_values(), vec_dense->get_values());
 
     GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);
+}
+
+
+TEST_F(KernelLaunch, Reduction1D)
+{
+    gko::Array<int64> output{exec, 1};
+
+    gko::kernels::dpcpp::run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto a) {
+            static_assert(is_same<decltype(i), int64>::value, "index");
+            static_assert(is_same<decltype(a), int64*>::value, "value");
+            return i + 1;
+        },
+        [] GKO_KERNEL(auto i, auto j) {
+            static_assert(is_same<decltype(i), int64>::value, "i");
+            static_assert(is_same<decltype(j), int64>::value, "j");
+            return i + j;
+        },
+        [] GKO_KERNEL(auto j) {
+            static_assert(is_same<decltype(j), int64>::value, "j");
+            return j * 2;
+        },
+        int64{}, output.get_data(), size_type{100000}, output);
+
+    EXPECT_EQ(exec->copy_val_to_host(output.get_const_data()), 10000100000ll);
+
+    gko::kernels::dpcpp::run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto a) {
+            static_assert(is_same<decltype(i), int64>::value, "index");
+            static_assert(is_same<decltype(a), int64*>::value, "value");
+            return i + 1;
+        },
+        [] GKO_KERNEL(auto i, auto j) {
+            static_assert(is_same<decltype(i), int64>::value, "i");
+            static_assert(is_same<decltype(j), int64>::value, "j");
+            return i + j;
+        },
+        [] GKO_KERNEL(auto j) {
+            static_assert(is_same<decltype(j), int64>::value, "j");
+            return j * 2;
+        },
+        int64{}, output.get_data(), size_type{100}, output);
+
+    EXPECT_EQ(exec->copy_val_to_host(output.get_const_data()), 10100ll);
+}
+
+
+TEST_F(KernelLaunch, Reduction2D)
+{
+    gko::Array<int64> output{exec, 1};
+
+    gko::kernels::dpcpp::run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto a) {
+            static_assert(is_same<decltype(i), int64>::value, "index");
+            static_assert(is_same<decltype(a), int64*>::value, "value");
+            return (i + 1) * (j + 1);
+        },
+        [] GKO_KERNEL(auto i, auto j) {
+            static_assert(is_same<decltype(i), int64>::value, "i");
+            static_assert(is_same<decltype(j), int64>::value, "j");
+            return i + j;
+        },
+        [] GKO_KERNEL(auto j) {
+            static_assert(is_same<decltype(j), int64>::value, "j");
+            return j * 4;
+        },
+        int64{}, output.get_data(), gko::dim<2>{1000, 100}, output);
+
+    EXPECT_EQ(exec->copy_val_to_host(output.get_const_data()), 10110100000ll);
+
+    gko::kernels::dpcpp::run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto a) {
+            static_assert(is_same<decltype(i), int64>::value, "index");
+            static_assert(is_same<decltype(a), int64*>::value, "value");
+            return (i + 1) * (j + 1);
+        },
+        [] GKO_KERNEL(auto i, auto j) {
+            static_assert(is_same<decltype(i), int64>::value, "i");
+            static_assert(is_same<decltype(j), int64>::value, "j");
+            return i + j;
+        },
+        [] GKO_KERNEL(auto j) {
+            static_assert(is_same<decltype(j), int64>::value, "j");
+            return j * 4;
+        },
+        int64{}, output.get_data(), gko::dim<2>{10, 10}, output);
+
+    ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), 12100ll);
 }
 
 
