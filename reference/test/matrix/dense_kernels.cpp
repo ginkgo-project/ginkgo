@@ -337,6 +337,21 @@ TYPED_TEST(Dense, ScalesDataMixed)
 }
 
 
+TYPED_TEST(Dense, InvScalesData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({I<T>{0.5, -0.5}}, this->exec);
+
+    this->mtx2->inv_scale(alpha.get());
+
+    EXPECT_EQ(this->mtx2->at(0, 0), T{2.0});
+    EXPECT_EQ(this->mtx2->at(0, 1), T{2.0});
+    EXPECT_EQ(this->mtx2->at(1, 0), T{-4.0});
+    EXPECT_EQ(this->mtx2->at(1, 1), T{-4.0});
+}
+
+
 TYPED_TEST(Dense, ScalesDataWithScalar)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -344,6 +359,21 @@ TYPED_TEST(Dense, ScalesDataWithScalar)
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
 
     this->mtx2->scale(alpha.get());
+
+    EXPECT_EQ(this->mtx2->at(0, 0), T{2.0});
+    EXPECT_EQ(this->mtx2->at(0, 1), T{-2.0});
+    EXPECT_EQ(this->mtx2->at(1, 0), T{-4.0});
+    EXPECT_EQ(this->mtx2->at(1, 1), T{4.0});
+}
+
+
+TYPED_TEST(Dense, InvScalesDataWithScalar)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({0.5}, this->exec);
+
+    this->mtx2->inv_scale(alpha.get());
 
     EXPECT_EQ(this->mtx2->at(0, 0), T{2.0});
     EXPECT_EQ(this->mtx2->at(0, 1), T{-2.0});
@@ -405,6 +435,23 @@ TYPED_TEST(Dense, AddsScaledMixed)
 }
 
 
+TYPED_TEST(Dense, SubtractsScaled)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({{-2.0, -1.0, 2.0}}, this->exec);
+
+    this->mtx1->sub_scaled(alpha.get(), this->mtx3.get());
+
+    EXPECT_EQ(this->mtx1->at(0, 0), T{3.0});
+    EXPECT_EQ(this->mtx1->at(0, 1), T{4.0});
+    EXPECT_EQ(this->mtx1->at(0, 2), T{-3.0});
+    EXPECT_EQ(this->mtx1->at(1, 0), T{2.5});
+    EXPECT_EQ(this->mtx1->at(1, 1), T{4.0});
+    ASSERT_EQ(this->mtx1->at(1, 2), T{-1.5});
+}
+
+
 TYPED_TEST(Dense, AddsScaledWithScalar)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -440,6 +487,22 @@ TYPED_TEST(Dense, AddsScaledDiag)
     auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2, I<T>{3.0, 2.0});
 
     this->mtx2->add_scaled(alpha.get(), diag.get());
+
+    ASSERT_EQ(this->mtx2->at(0, 0), T{7.0});
+    ASSERT_EQ(this->mtx2->at(0, 1), T{-1.0});
+    ASSERT_EQ(this->mtx2->at(1, 0), T{-2.0});
+    ASSERT_EQ(this->mtx2->at(1, 1), T{6.0});
+}
+
+
+TYPED_TEST(Dense, SubtractsScaledDiag)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({-2.0}, this->exec);
+    auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2, I<T>{3.0, 2.0});
+
+    this->mtx2->sub_scaled(alpha.get(), diag.get());
 
     ASSERT_EQ(this->mtx2->at(0, 0), T{7.0});
     ASSERT_EQ(this->mtx2->at(0, 1), T{-1.0});

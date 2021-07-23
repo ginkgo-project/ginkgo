@@ -272,12 +272,36 @@ TEST_F(Dense, SingleVectorScaleIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, SingleVectorInvScaleIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    x->inv_scale(alpha.get());
+    dx->inv_scale(dalpha.get());
+
+    auto result = Mtx::create(ref);
+    result->copy_from(dx.get());
+    GKO_ASSERT_MTX_NEAR(result, x, r<vtype>::value);
+}
+
+
 TEST_F(Dense, MultipleVectorScaleIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
     x->scale(alpha.get());
     dx->scale(dalpha.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, MultipleVectorInvScaleIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    x->inv_scale(alpha.get());
+    dx->inv_scale(dalpha.get());
 
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
@@ -294,12 +318,34 @@ TEST_F(Dense, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, MultipleVectorInvScaleWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20, true);
+
+    x->inv_scale(alpha.get());
+    dx->inv_scale(dalpha.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
+}
+
+
 TEST_F(Dense, SingleVectorAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, SingleVectorSubtractScaledIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    x->sub_scaled(alpha.get(), y.get());
+    dx->sub_scaled(dalpha.get(), dy.get());
 
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
@@ -316,12 +362,34 @@ TEST_F(Dense, MultipleVectorAddScaledIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, MultipleVectorSubtractScaledIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    x->sub_scaled(alpha.get(), y.get());
+    dx->sub_scaled(dalpha.get(), dy.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
+}
+
+
 TEST_F(Dense, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, MultipleVectorSubtractScaledWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    x->sub_scaled(alpha.get(), y.get());
+    dx->sub_scaled(dalpha.get(), dy.get());
 
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
@@ -345,6 +413,29 @@ TEST_F(Dense, AddsScaledDiagIsEquivalentToRef)
 
     mat->add_scaled(alpha.get(), diag.get());
     dmat->add_scaled(dalpha.get(), ddiag.get());
+
+    GKO_ASSERT_MTX_NEAR(mat, dmat, r<vtype>::value);
+}
+
+
+TEST_F(Dense, SubtractScaledDiagIsEquivalentToRef)
+{
+    auto mat = gen_mtx<Mtx>(532, 532);
+    gko::Array<Mtx::value_type> diag_values(this->ref, 532);
+    gko::kernels::reference::components::fill_array(
+        this->ref, diag_values.get_data(), 532, Mtx::value_type{2.0});
+    auto diag = gko::matrix::Diagonal<Mtx::value_type>::create(this->ref, 532,
+                                                               diag_values);
+    auto alpha = gko::initialize<Mtx>({2.0}, this->ref);
+    auto dmat = Mtx::create(this->exec);
+    dmat->copy_from(mat.get());
+    auto ddiag = gko::matrix::Diagonal<Mtx::value_type>::create(this->exec);
+    ddiag->copy_from(diag.get());
+    auto dalpha = Mtx::create(this->exec);
+    dalpha->copy_from(alpha.get());
+
+    mat->sub_scaled(alpha.get(), diag.get());
+    dmat->sub_scaled(dalpha.get(), ddiag.get());
 
     GKO_ASSERT_MTX_NEAR(mat, dmat, r<vtype>::value);
 }
