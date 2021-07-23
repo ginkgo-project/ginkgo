@@ -96,18 +96,6 @@ protected:
                                            {-6., 18., 17., 14.},
                                            {-3., 24., 14., 18.}},
                                           ref)),
-          mtx_l_system(gko::initialize<Csr>({{9., 0., 0., 0.},
-                                             {0., 36., 0., 0.},
-                                             {-6., 18., 17., 0.},
-                                             {-3., 24., 14., 18.}},
-                                            ref)),
-          mtx_l_system_coo(Coo::create(exec)),
-          mtx_l_init_expect(gko::initialize<Csr>(
-              {{3., 0., 0., 0.},
-               {0., 6., 0., 0.},
-               {-6., 18., static_cast<value_type>(sqrt(17.)), 0.},
-               {-3., 24., 14., static_cast<value_type>(sqrt(18.))}},
-              ref)),
           mtx_l_it_expect(gko::initialize<Csr>({{3., 0., 0., 0.},
                                                 {0., 6., 0., 0.},
                                                 {-2., 3., 2., 0.},
@@ -115,9 +103,7 @@ protected:
                                                ref)),
           fact_fact(factorization_type::build().on(exec)),
           tol{r<value_type>::value}
-    {
-        mtx_l_system->convert_to(gko::lend(mtx_l_system_coo));
-    }
+    {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::Executor> exec;
@@ -125,9 +111,6 @@ protected:
     std::shared_ptr<Csr> banded;
     std::shared_ptr<Csr> banded_l_expect;
     std::shared_ptr<Csr> mtx_system;
-    std::unique_ptr<Csr> mtx_l_system;
-    std::unique_ptr<Coo> mtx_l_system_coo;
-    std::unique_ptr<Csr> mtx_l_init_expect;
     std::unique_ptr<Csr> mtx_l_it_expect;
     std::unique_ptr<typename factorization_type::Factory> fact_fact;
     gko::remove_complex<value_type> tol;
@@ -201,6 +184,7 @@ TYPED_TEST(Ic, GenerateDenseIdentity)
     using Dense = typename TestFixture::Dense;
     auto dense_id = Dense::create(this->exec, this->identity->get_size());
     this->identity->convert_to(dense_id.get());
+
     auto fact = this->fact_fact->generate(gko::share(dense_id));
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->identity, this->tol);
@@ -212,6 +196,7 @@ TYPED_TEST(Ic, GenerateBanded)
 {
     using factorization_type = typename TestFixture::factorization_type;
     using Csr = typename TestFixture::Csr;
+
     auto fact =
         factorization_type::build().on(this->exec)->generate(this->banded);
 
@@ -226,6 +211,7 @@ TYPED_TEST(Ic, GenerateGeneral)
 {
     using factorization_type = typename TestFixture::factorization_type;
     using Csr = typename TestFixture::Csr;
+
     auto fact =
         factorization_type::build().on(this->exec)->generate(this->mtx_system);
 

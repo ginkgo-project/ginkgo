@@ -688,7 +688,7 @@ TYPED_TEST(ParIlu, GenerateForDenseBig)
 TYPED_TEST(ParIlu, GenerateForDenseBigSort)
 {
     using value_type = typename TestFixture::value_type;
-    auto factors = this->ilu_factory_skip->generate(this->mtx_big);
+    auto factors = this->ilu_factory_sort->generate(this->mtx_big);
     auto l_factor = factors->get_l_factor();
     auto u_factor = factors->get_u_factor();
 

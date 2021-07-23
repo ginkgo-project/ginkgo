@@ -54,7 +54,7 @@ template <typename ValueType, typename IndexType>
 void compute(std::shared_ptr<const DefaultExecutor> exec,
              matrix::Csr<ValueType, IndexType> *m)
 {
-    vector<IndexType> diagonals{m->get_size()[0], -1, {exec}};
+    vector<IndexType> diagonals{m->get_size()[0], -1, exec};
     const auto row_ptrs = m->get_const_row_ptrs();
     const auto col_idxs = m->get_const_col_idxs();
     const auto values = m->get_values();
