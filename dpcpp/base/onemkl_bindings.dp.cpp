@@ -30,10 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_BASE_ONEMKL_BINDINGS_HPP_
-#define GKO_DPCPP_BASE_ONEMKL_BINDINGS_HPP_
-
-
 #include <type_traits>
 
 
@@ -41,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <oneapi/mkl.hpp>
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
+#include "dpcpp/base/onemkl_bindings.hpp"
 
 
 namespace gko {
@@ -63,70 +59,36 @@ namespace dpcpp {
  * @ingroup onemkl
  */
 namespace onemkl {
-/**
- * @brief The detail namespace.
- *
- * @ingroup detail
- */
-namespace detail {
 
 
-template <typename... Args>
-inline void not_implemented(Args &&...) GKO_NOT_IMPLEMENTED;
+#define GKO_BIND_DOT(ValueType, Name, Func)                                  \
+    void Name(::cl::sycl::queue &exec_queue, std::int64_t n,                 \
+              const ValueType *x, std::int64_t incx, const ValueType *y,     \
+              std::int64_t incy, ValueType *result)                          \
+    {                                                                        \
+        Func(exec_queue, n, x, incx, y, incy, result);                       \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
+// Bind the dot for x^T * y
+GKO_BIND_DOT(float, dot, oneapi::mkl::blas::row_major::dot);
+GKO_BIND_DOT(double, dot, oneapi::mkl::blas::row_major::dot);
+GKO_BIND_DOT(std::complex<float>, dot, oneapi::mkl::blas::row_major::dotu);
+GKO_BIND_DOT(std::complex<double>, dot, oneapi::mkl::blas::row_major::dotu);
 
-}  // namespace detail
+// Bind the conj_dot for x' * y
+GKO_BIND_DOT(float, conj_dot, oneapi::mkl::blas::row_major::dot);
+GKO_BIND_DOT(double, conj_dot, oneapi::mkl::blas::row_major::dot);
+GKO_BIND_DOT(std::complex<float>, conj_dot, oneapi::mkl::blas::row_major::dotc);
+GKO_BIND_DOT(std::complex<double>, conj_dot,
+             oneapi::mkl::blas::row_major::dotc);
 
+#undef GKO_BIND_DOT
 
-template <typename ValueType>
-struct is_supported : std::false_type {};
-
-template <>
-struct is_supported<float> : std::true_type {};
-
-template <>
-struct is_supported<double> : std::true_type {};
-
-template <>
-struct is_supported<std::complex<float>> : std::true_type {};
-
-template <>
-struct is_supported<std::complex<double>> : std::true_type {};
-
-
-#define GKO_DECLARE_DOT(ValueType, Name)                                 \
-    void Name(::cl::sycl::queue &exec_queue, std::int64_t n,             \
-              const ValueType *x, std::int64_t incx, const ValueType *y, \
-              std::int64_t incy, ValueType *result)
-
-// Declare the dot for x^T * y
-GKO_DECLARE_DOT(float, dot);
-GKO_DECLARE_DOT(double, dot);
-GKO_DECLARE_DOT(std::complex<float>, dotu);
-GKO_DECLARE_DOT(std::complex<double>, dotu);
-template <typename ValueType>
-GKO_DECLARE_DOT(ValueType, dot)
-{
-    detail::not_implemented(exec_queue, n, x, incx, y, incy, result);
-}
-
-// Declare the conj_dot for x' * y
-GKO_DECLARE_DOT(float, conj_dot);
-GKO_DECLARE_DOT(double, conj_dot);
-GKO_DECLARE_DOT(std::complex<float>, conj_dot);
-GKO_DECLARE_DOT(std::complex<double>, conj_dot);
-template <typename ValueType>
-GKO_DECLARE_DOT(ValueType, conj_dot)
-{
-    detail::not_implemented(exec_queue, n, x, incx, y, incy, result);
-}
-
-#undef GKO_DECLARE_DOT
 
 }  // namespace onemkl
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_DPCPP_BASE_ONEMKL_BINDINGS_HPP_

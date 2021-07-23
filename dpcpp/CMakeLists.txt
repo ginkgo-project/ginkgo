@@ -17,6 +17,7 @@ target_sources(ginkgo_dpcpp
     base/version.dp.cpp
     base/executor.dp.cpp
     base/helper.dp.cpp
+    base/onemkl_bindings.dp.cpp
     components/absolute_array.dp.cpp
     components/fill_array.dp.cpp
     components/prefix_sum.dp.cpp
