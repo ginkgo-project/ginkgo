@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/factorization/par_ilu.hpp>
+#include <ginkgo/core/factorization/ilu.hpp>
 
 
 #include <algorithm>
@@ -48,8 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/factorization/factorization_kernels.hpp"
-#include "core/factorization/par_ilu_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -74,7 +72,7 @@ protected:
 
 
 template <typename ValueIndexType>
-class ParIlu : public ::testing::Test {
+class Ilu : public ::testing::Test {
 protected:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
@@ -83,15 +81,11 @@ protected:
     using Dense = gko::matrix::Dense<value_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using par_ilu_type = gko::factorization::ParIlu<value_type, index_type>;
-    ParIlu()
+    using ilu_type = gko::factorization::Ilu<value_type, index_type>;
+    Ilu()
         : ref(gko::ReferenceExecutor::create()),
           exec(std::static_pointer_cast<const gko::Executor>(ref)),
           // clang-format off
-          empty_csr(gko::initialize<Csr>(
-              {{0., 0., 0.},
-               {0., 0., 0.},
-               {0., 0., 0.}}, exec)),
           identity(gko::initialize<Dense>(
               {{1., 0., 0.},
                {0., 1., 0.},
@@ -175,10 +169,8 @@ protected:
              {0., 0., 0., 0., 0., 5.73913043478261}},
             exec)),
           // clang-format on
-          ilu_factory_skip(
-              par_ilu_type::build().with_skip_sorting(true).on(exec)),
-          ilu_factory_sort(
-              par_ilu_type::build().with_skip_sorting(false).on(exec))
+          ilu_factory_skip(ilu_type::build().with_skip_sorting(true).on(exec)),
+          ilu_factory_sort(ilu_type::build().with_skip_sorting(false).on(exec))
     {
         auto tmp_csr = Csr::create(exec);
         mtx_small->convert_to(gko::lend(tmp_csr));
@@ -190,7 +182,6 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<const Csr> empty_csr;
     std::shared_ptr<const Dense> identity;
     std::shared_ptr<const Dense> lower_triangular;
     std::shared_ptr<const Dense> upper_triangular;
@@ -208,244 +199,14 @@ protected:
     std::shared_ptr<const Csr> mtx_big_nodiag;
     std::shared_ptr<const Dense> big_nodiag_l_expected;
     std::shared_ptr<const Dense> big_nodiag_u_expected;
-    std::unique_ptr<typename par_ilu_type::Factory> ilu_factory_skip;
-    std::unique_ptr<typename par_ilu_type::Factory> ilu_factory_sort;
+    std::unique_ptr<typename ilu_type::Factory> ilu_factory_skip;
+    std::unique_ptr<typename ilu_type::Factory> ilu_factory_sort;
 };
 
-TYPED_TEST_SUITE(ParIlu, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Ilu, gko::test::ValueIndexTypes);
 
 
-TYPED_TEST(ParIlu, KernelAddDiagonalElementsEmpty)
-{
-    using index_type = typename TestFixture::index_type;
-    using value_type = typename TestFixture::value_type;
-    using Csr = typename TestFixture::Csr;
-    auto expected_mtx =
-        Csr::create(this->ref, this->empty_csr->get_size(),
-                    std::initializer_list<value_type>{0., 0., 0.},
-                    std::initializer_list<index_type>{0, 1, 2},
-                    std::initializer_list<index_type>{0, 1, 2, 3});
-    auto empty_mtx = this->empty_csr->clone();
-
-    gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, gko::lend(empty_mtx), true);
-
-    GKO_ASSERT_MTX_NEAR(empty_mtx, expected_mtx, 0.);
-    GKO_ASSERT_MTX_EQ_SPARSITY(empty_mtx, expected_mtx);
-}
-
-
-TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquare)
-{
-    using Csr = typename TestFixture::Csr;
-    auto matrix = gko::initialize<Csr>(
-        {{0., 0., 0.}, {1., 0., 0.}, {1., 1., 1.}, {1., 1., 1.}}, this->ref);
-    auto exp_values = {0., 1., 0., 1., 1., 1., 1., 1., 1.};
-    auto exp_col_idxs = {0, 0, 1, 0, 1, 2, 0, 1, 2};
-    auto exp_row_ptrs = {0, 1, 3, 6, 9};
-    auto expected_mtx =
-        Csr::create(this->ref, matrix->get_size(), std::move(exp_values),
-                    std::move(exp_col_idxs), std::move(exp_row_ptrs));
-
-    gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, gko::lend(matrix), true);
-
-    GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
-    GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
-}
-
-
-TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquare2)
-{
-    using Csr = typename TestFixture::Csr;
-    auto matrix = gko::initialize<Csr>({{1., 0., 0.}, {1., 0., 0.}}, this->ref);
-    auto exp_values = {1., 1., 0.};
-    auto exp_col_idxs = {0, 0, 1};
-    auto exp_row_ptrs = {0, 1, 3};
-    auto expected_mtx =
-        Csr::create(this->ref, matrix->get_size(), std::move(exp_values),
-                    std::move(exp_col_idxs), std::move(exp_row_ptrs));
-
-    gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, gko::lend(matrix), true);
-
-    GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
-    GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
-}
-
-
-TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsorted)
-{
-    using Csr = typename TestFixture::Csr;
-    auto size = gko::dim<2>{3, 3};
-    /* matrix:
-    1 2 3
-    1 0 3
-    1 2 0
-    */
-    auto mtx_values = {3., 2., 1., 3., 1., 2., 1.};
-    auto mtx_col_idxs = {2, 1, 0, 2, 0, 1, 0};
-    auto mtx_row_ptrs = {0, 3, 5, 7};
-    auto matrix = Csr::create(this->ref, size, std::move(mtx_values),
-                              std::move(mtx_col_idxs), std::move(mtx_row_ptrs));
-    auto exp_values = {1., 2., 3., 1., 0., 3., 1., 2., 0.};
-    auto exp_col_idxs = {0, 1, 2, 0, 1, 2, 0, 1, 2};
-    auto exp_row_ptrs = {0, 3, 6, 9};
-    auto expected_mtx =
-        Csr::create(this->ref, size, std::move(exp_values),
-                    std::move(exp_col_idxs), std::move(exp_row_ptrs));
-
-    gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, gko::lend(matrix), false);
-
-    GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
-    GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
-}
-
-
-TYPED_TEST(ParIlu, KernelInitializeRowPtrsLU)
-{
-    using Csr = typename TestFixture::Csr;
-    using index_type = typename TestFixture::index_type;
-    auto small_csr_l_expected = Csr::create(this->ref);
-    this->small_l_expected->convert_to(gko::lend(small_csr_l_expected));
-    auto small_csr_u_expected = Csr::create(this->ref);
-    this->small_u_expected->convert_to(gko::lend(small_csr_u_expected));
-    auto num_row_ptrs = this->mtx_csr_small->get_size()[0] + 1;
-    std::vector<index_type> l_row_ptrs_vector(num_row_ptrs);
-    std::vector<index_type> u_row_ptrs_vector(num_row_ptrs);
-    auto l_row_ptrs = l_row_ptrs_vector.data();
-    auto u_row_ptrs = u_row_ptrs_vector.data();
-
-    gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
-        this->ref, gko::lend(this->mtx_csr_small), l_row_ptrs, u_row_ptrs);
-
-    ASSERT_TRUE(std::equal(l_row_ptrs, l_row_ptrs + num_row_ptrs,
-                           small_csr_l_expected->get_const_row_ptrs()));
-    ASSERT_TRUE(std::equal(u_row_ptrs, u_row_ptrs + num_row_ptrs,
-                           small_csr_u_expected->get_const_row_ptrs()));
-}
-
-
-TYPED_TEST(ParIlu, KernelInitializeRowPtrsLUZeroMatrix)
-{
-    using index_type = typename TestFixture::index_type;
-    using Csr = typename TestFixture::Csr;
-    auto empty_mtx = this->empty_csr->clone();
-    gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, gko::lend(empty_mtx), true);
-    auto empty_mtx_l_expected = Csr::create(this->ref);
-    this->identity->convert_to(gko::lend(empty_mtx_l_expected));
-    auto empty_mtx_u_expected = Csr::create(this->ref);
-    this->identity->convert_to(gko::lend(empty_mtx_u_expected));
-    auto num_row_ptrs = empty_mtx->get_size()[0] + 1;
-    std::vector<index_type> l_row_ptrs_vector(num_row_ptrs);
-    std::vector<index_type> u_row_ptrs_vector(num_row_ptrs);
-    auto l_row_ptrs = l_row_ptrs_vector.data();
-    auto u_row_ptrs = u_row_ptrs_vector.data();
-
-    gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
-        this->ref, gko::lend(empty_mtx), l_row_ptrs, u_row_ptrs);
-
-    ASSERT_TRUE(std::equal(l_row_ptrs, l_row_ptrs + num_row_ptrs,
-                           empty_mtx_l_expected->get_const_row_ptrs()));
-    ASSERT_TRUE(std::equal(u_row_ptrs, u_row_ptrs + num_row_ptrs,
-                           empty_mtx_u_expected->get_const_row_ptrs()));
-}
-
-
-TYPED_TEST(ParIlu, KernelInitializeLU)
-{
-    using Dense = typename TestFixture::Dense;
-    using Csr = typename TestFixture::Csr;
-    using index_type = typename TestFixture::index_type;
-    using value_type = typename TestFixture::value_type;
-    // clang-format off
-    auto expected_l =
-        gko::initialize<Dense>({{1., 0., 0.},
-                                {2., 1., 0.},
-                                {1., 1., 1.}}, this->ref);
-    auto expected_u =
-        gko::initialize<Dense>({{4., 6., 8.},
-                                {0., 2., 5.},
-                                {0., 0., 1.}}, this->ref);
-    // clang-format on
-    auto actual_l = Csr::create(this->ref, this->mtx_csr_small->get_size(), 6);
-    auto actual_u = Csr::create(this->ref, this->mtx_csr_small->get_size(), 6);
-    // Copy row_ptrs into matrices, which usually come from the
-    // `initialize_row_ptrs_l_u` kernel
-    std::vector<index_type> l_row_ptrs{0, 1, 3, 6};
-    std::vector<index_type> u_row_ptrs{0, 3, 5, 6};
-    std::copy(l_row_ptrs.begin(), l_row_ptrs.end(), actual_l->get_row_ptrs());
-    std::copy(u_row_ptrs.begin(), u_row_ptrs.end(), actual_u->get_row_ptrs());
-
-    gko::kernels::reference::factorization::initialize_l_u(
-        this->ref, gko::lend(this->mtx_csr_small), gko::lend(actual_l),
-        gko::lend(actual_u));
-
-    GKO_ASSERT_MTX_NEAR(actual_l, expected_l, r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(actual_u, expected_u, r<value_type>::value);
-}
-
-
-TYPED_TEST(ParIlu, KernelInitializeLUZeroMatrix)
-{
-    using value_type = typename TestFixture::value_type;
-    using Csr = typename TestFixture::Csr;
-    auto actual_l = Csr::create(this->ref);
-    auto actual_u = Csr::create(this->ref);
-    actual_l->copy_from(gko::lend(this->identity));
-    actual_u->copy_from(gko::lend(this->identity));
-
-    gko::kernels::reference::factorization::initialize_l_u(
-        this->ref, gko::lend(this->empty_csr), gko::lend(actual_l),
-        gko::lend(actual_u));
-
-    GKO_ASSERT_MTX_NEAR(actual_l, this->identity, r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(actual_u, this->identity, r<value_type>::value);
-}
-
-
-TYPED_TEST(ParIlu, KernelComputeLU)
-{
-    using value_type = typename TestFixture::value_type;
-    using Dense = typename TestFixture::Dense;
-    using Coo = typename TestFixture::Coo;
-    using Csr = typename TestFixture::Csr;
-    // clang-format off
-    auto l_dense =
-        gko::initialize<Dense>({{1., 0., 0.},
-                                {2., 1., 0.},
-                                {1., 1., 1.}}, this->ref);
-    // U must be transposed before calling the kernel, so we simply create it
-    // transposed
-    auto u_dense =
-        gko::initialize<Dense>({{4., 0., 0.},
-                                {6., 2., 0.},
-                                {8., 5., 1.}}, this->ref);
-    // clang-format on
-    auto l_csr = Csr::create(this->ref);
-    auto u_csr = Csr::create(this->ref);
-    auto mtx_coo = Coo::create(this->ref);
-    constexpr unsigned int iterations = 1;
-    l_dense->convert_to(gko::lend(l_csr));
-    u_dense->convert_to(gko::lend(u_csr));
-    this->mtx_small->convert_to(gko::lend(mtx_coo));
-    // The expected result of U also needs to be transposed
-    auto u_expected_lin_op = this->small_u_expected->transpose();
-    auto u_expected = std::unique_ptr<Dense>(
-        static_cast<Dense *>(u_expected_lin_op.release()));
-
-    gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
-        this->ref, iterations, gko::lend(mtx_coo), gko::lend(l_csr),
-        gko::lend(u_csr));
-
-    GKO_ASSERT_MTX_NEAR(l_csr, this->small_l_expected, r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(u_csr, u_expected, r<value_type>::value);
-}
-
-
-TYPED_TEST(ParIlu, ThrowNotSupportedForWrongLinOp1)
+TYPED_TEST(Ilu, ThrowNotSupportedForWrongLinOp1)
 {
     auto linOp = DummyLinOp::create(this->ref);
 
@@ -454,7 +215,7 @@ TYPED_TEST(ParIlu, ThrowNotSupportedForWrongLinOp1)
 }
 
 
-TYPED_TEST(ParIlu, ThrowNotSupportedForWrongLinOp2)
+TYPED_TEST(Ilu, ThrowNotSupportedForWrongLinOp2)
 {
     auto linOp = DummyLinOp::create(this->ref);
 
@@ -463,7 +224,7 @@ TYPED_TEST(ParIlu, ThrowNotSupportedForWrongLinOp2)
 }
 
 
-TYPED_TEST(ParIlu, ThrowDimensionMismatch)
+TYPED_TEST(Ilu, ThrowDimensionMismatch)
 {
     using Csr = typename TestFixture::Csr;
     auto matrix = Csr::create(this->ref, gko::dim<2>{2, 3}, 4);
@@ -473,39 +234,37 @@ TYPED_TEST(ParIlu, ThrowDimensionMismatch)
 }
 
 
-TYPED_TEST(ParIlu, SetLStrategy)
+TYPED_TEST(Ilu, SetLStrategy)
 {
     using Csr = typename TestFixture::Csr;
-    using par_ilu_type = typename TestFixture::par_ilu_type;
+    using ilu_type = typename TestFixture::ilu_type;
     auto l_strategy = std::make_shared<typename Csr::classical>();
 
-    auto factory =
-        par_ilu_type::build().with_l_strategy(l_strategy).on(this->ref);
-    auto par_ilu = factory->generate(this->mtx_small);
+    auto factory = ilu_type::build().with_l_strategy(l_strategy).on(this->ref);
+    auto ilu = factory->generate(this->mtx_small);
 
     ASSERT_EQ(factory->get_parameters().l_strategy, l_strategy);
-    ASSERT_EQ(par_ilu->get_l_factor()->get_strategy()->get_name(),
+    ASSERT_EQ(ilu->get_l_factor()->get_strategy()->get_name(),
               l_strategy->get_name());
 }
 
 
-TYPED_TEST(ParIlu, SetUStrategy)
+TYPED_TEST(Ilu, SetUStrategy)
 {
     using Csr = typename TestFixture::Csr;
-    using par_ilu_type = typename TestFixture::par_ilu_type;
+    using ilu_type = typename TestFixture::ilu_type;
     auto u_strategy = std::make_shared<typename Csr::classical>();
 
-    auto factory =
-        par_ilu_type::build().with_u_strategy(u_strategy).on(this->ref);
-    auto par_ilu = factory->generate(this->mtx_small);
+    auto factory = ilu_type::build().with_u_strategy(u_strategy).on(this->ref);
+    auto ilu = factory->generate(this->mtx_small);
 
     ASSERT_EQ(factory->get_parameters().u_strategy, u_strategy);
-    ASSERT_EQ(par_ilu->get_u_factor()->get_strategy()->get_name(),
+    ASSERT_EQ(ilu->get_u_factor()->get_strategy()->get_name(),
               u_strategy->get_name());
 }
 
 
-TYPED_TEST(ParIlu, LUFactorFunctionsSetProperly)
+TYPED_TEST(Ilu, LUFactorFunctionsSetProperly)
 {
     auto factors = this->ilu_factory_skip->generate(this->mtx_small);
 
@@ -521,7 +280,7 @@ TYPED_TEST(ParIlu, LUFactorFunctionsSetProperly)
 }
 
 
-TYPED_TEST(ParIlu, GenerateForCooIdentity)
+TYPED_TEST(Ilu, GenerateForCooIdentity)
 {
     using Coo = typename TestFixture::Coo;
     using value_type = typename TestFixture::value_type;
@@ -537,7 +296,7 @@ TYPED_TEST(ParIlu, GenerateForCooIdentity)
 }
 
 
-TYPED_TEST(ParIlu, GenerateForCsrIdentity)
+TYPED_TEST(Ilu, GenerateForCsrIdentity)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
@@ -553,7 +312,7 @@ TYPED_TEST(ParIlu, GenerateForCsrIdentity)
 }
 
 
-TYPED_TEST(ParIlu, GenerateForDenseIdentity)
+TYPED_TEST(Ilu, GenerateForDenseIdentity)
 {
     using value_type = typename TestFixture::value_type;
     auto factors = this->ilu_factory_skip->generate(this->identity);
@@ -565,7 +324,7 @@ TYPED_TEST(ParIlu, GenerateForDenseIdentity)
 }
 
 
-TYPED_TEST(ParIlu, GenerateForDenseLowerTriangular)
+TYPED_TEST(Ilu, GenerateForDenseLowerTriangular)
 {
     using value_type = typename TestFixture::value_type;
     auto factors = this->ilu_factory_skip->generate(this->lower_triangular);
@@ -577,7 +336,7 @@ TYPED_TEST(ParIlu, GenerateForDenseLowerTriangular)
 }
 
 
-TYPED_TEST(ParIlu, GenerateForDenseUpperTriangular)
+TYPED_TEST(Ilu, GenerateForDenseUpperTriangular)
 {
     using value_type = typename TestFixture::value_type;
     auto factors = this->ilu_factory_skip->generate(this->upper_triangular);
@@ -589,7 +348,7 @@ TYPED_TEST(ParIlu, GenerateForDenseUpperTriangular)
 }
 
 
-TYPED_TEST(ParIlu, ApplyMethodDenseSmall)
+TYPED_TEST(Ilu, ApplyMethodDenseSmall)
 {
     using value_type = typename TestFixture::value_type;
     using Dense = typename TestFixture::Dense;
@@ -605,7 +364,7 @@ TYPED_TEST(ParIlu, ApplyMethodDenseSmall)
 }
 
 
-TYPED_TEST(ParIlu, GenerateForDenseSmall)
+TYPED_TEST(Ilu, GenerateForDenseSmall)
 {
     using value_type = typename TestFixture::value_type;
     auto factors = this->ilu_factory_skip->generate(this->mtx_small);
@@ -617,7 +376,7 @@ TYPED_TEST(ParIlu, GenerateForDenseSmall)
 }
 
 
-TYPED_TEST(ParIlu, GenerateForCsrSmall)
+TYPED_TEST(Ilu, GenerateForCsrSmall)
 {
     using value_type = typename TestFixture::value_type;
     auto factors = this->ilu_factory_skip->generate(this->mtx_csr_small);
@@ -629,7 +388,7 @@ TYPED_TEST(ParIlu, GenerateForCsrSmall)
 }
 
 
-TYPED_TEST(ParIlu, GenerateForCsrSmall2ZeroDiagonal)
+TYPED_TEST(Ilu, GenerateForCsrSmall2ZeroDiagonal)
 {
     using value_type = typename TestFixture::value_type;
     auto factors = this->ilu_factory_skip->generate(this->mtx_csr_small2);
@@ -643,7 +402,7 @@ TYPED_TEST(ParIlu, GenerateForCsrSmall2ZeroDiagonal)
 }
 
 
-TYPED_TEST(ParIlu, GenerateForCsrBigWithDiagonalZeros)
+TYPED_TEST(Ilu, GenerateForCsrBigWithDiagonalZeros)
 {
     using value_type = typename TestFixture::value_type;
     auto factors = this->ilu_factory_skip->generate(this->mtx_big_nodiag);
@@ -657,23 +416,7 @@ TYPED_TEST(ParIlu, GenerateForCsrBigWithDiagonalZeros)
 }
 
 
-TYPED_TEST(ParIlu, GenerateForDenseSmallWithMultipleIterations)
-{
-    using value_type = typename TestFixture::value_type;
-    using par_ilu_type = typename TestFixture::par_ilu_type;
-    auto multiple_iter_factory =
-        par_ilu_type::build().with_iterations(5u).with_skip_sorting(true).on(
-            this->exec);
-    auto factors = multiple_iter_factory->generate(this->mtx_small);
-    auto l_factor = factors->get_l_factor();
-    auto u_factor = factors->get_u_factor();
-
-    GKO_ASSERT_MTX_NEAR(l_factor, this->small_l_expected, r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(u_factor, this->small_u_expected, r<value_type>::value);
-}
-
-
-TYPED_TEST(ParIlu, GenerateForDenseBig)
+TYPED_TEST(Ilu, GenerateForDenseBig)
 {
     using value_type = typename TestFixture::value_type;
     auto factors = this->ilu_factory_skip->generate(this->mtx_big);
@@ -685,7 +428,7 @@ TYPED_TEST(ParIlu, GenerateForDenseBig)
 }
 
 
-TYPED_TEST(ParIlu, GenerateForDenseBigSort)
+TYPED_TEST(Ilu, GenerateForDenseBigSort)
 {
     using value_type = typename TestFixture::value_type;
     auto factors = this->ilu_factory_sort->generate(this->mtx_big);
@@ -697,7 +440,7 @@ TYPED_TEST(ParIlu, GenerateForDenseBigSort)
 }
 
 
-TYPED_TEST(ParIlu, GenerateForReverseCooSmall)
+TYPED_TEST(Ilu, GenerateForReverseCooSmall)
 {
     using value_type = typename TestFixture::value_type;
     using Coo = typename TestFixture::Coo;
@@ -724,7 +467,7 @@ TYPED_TEST(ParIlu, GenerateForReverseCooSmall)
 }
 
 
-TYPED_TEST(ParIlu, GenerateForReverseCsrSmall)
+TYPED_TEST(Ilu, GenerateForReverseCsrSmall)
 {
     using value_type = typename TestFixture::value_type;
     using Csr = typename TestFixture::Csr;

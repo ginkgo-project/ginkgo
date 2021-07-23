@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/factorization/par_ic.hpp>
+#include <ginkgo/core/factorization/ic.hpp>
 
 
 #include <algorithm>
@@ -47,8 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/factorization/factorization_kernels.hpp"
-#include "core/factorization/par_ic_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -73,19 +71,18 @@ protected:
 
 
 template <typename ValueIndexType>
-class ParIc : public ::testing::Test {
+class Ic : public ::testing::Test {
 protected:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using factorization_type =
-        gko::factorization::ParIc<value_type, index_type>;
+    using factorization_type = gko::factorization::Ic<value_type, index_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
 
-    ParIc()
+    Ic()
         : ref(gko::ReferenceExecutor::create()),
           exec(std::static_pointer_cast<const gko::Executor>(ref)),
           identity(gko::initialize<Csr>(
@@ -99,18 +96,6 @@ protected:
                                            {-6., 18., 17., 14.},
                                            {-3., 24., 14., 18.}},
                                           ref)),
-          mtx_l_system(gko::initialize<Csr>({{9., 0., 0., 0.},
-                                             {0., 36., 0., 0.},
-                                             {-6., 18., 17., 0.},
-                                             {-3., 24., 14., 18.}},
-                                            ref)),
-          mtx_l_system_coo(Coo::create(exec)),
-          mtx_l_init_expect(gko::initialize<Csr>(
-              {{3., 0., 0., 0.},
-               {0., 6., 0., 0.},
-               {-6., 18., static_cast<value_type>(sqrt(17.)), 0.},
-               {-3., 24., 14., static_cast<value_type>(sqrt(18.))}},
-              ref)),
           mtx_l_it_expect(gko::initialize<Csr>({{3., 0., 0., 0.},
                                                 {0., 6., 0., 0.},
                                                 {-2., 3., 2., 0.},
@@ -118,9 +103,7 @@ protected:
                                                ref)),
           fact_fact(factorization_type::build().on(exec)),
           tol{r<value_type>::value}
-    {
-        mtx_l_system->convert_to(gko::lend(mtx_l_system_coo));
-    }
+    {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::Executor> exec;
@@ -128,36 +111,15 @@ protected:
     std::shared_ptr<Csr> banded;
     std::shared_ptr<Csr> banded_l_expect;
     std::shared_ptr<Csr> mtx_system;
-    std::unique_ptr<Csr> mtx_l_system;
-    std::unique_ptr<Coo> mtx_l_system_coo;
-    std::unique_ptr<Csr> mtx_l_init_expect;
     std::unique_ptr<Csr> mtx_l_it_expect;
     std::unique_ptr<typename factorization_type::Factory> fact_fact;
     gko::remove_complex<value_type> tol;
 };
 
-TYPED_TEST_SUITE(ParIc, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Ic, gko::test::ValueIndexTypes);
 
 
-TYPED_TEST(ParIc, KernelCompute)
-{
-    gko::kernels::reference::par_ic_factorization::compute_factor(
-        this->ref, 1, this->mtx_l_system_coo.get(), this->mtx_l_system.get());
-
-    GKO_ASSERT_MTX_NEAR(this->mtx_l_system, this->mtx_l_it_expect, this->tol);
-}
-
-
-TYPED_TEST(ParIc, KernelInit)
-{
-    gko::kernels::reference::par_ic_factorization::init_factor(
-        this->ref, this->mtx_l_system.get());
-
-    GKO_ASSERT_MTX_NEAR(this->mtx_l_system, this->mtx_l_init_expect, this->tol);
-}
-
-
-TYPED_TEST(ParIc, ThrowNotSupportedForWrongLinOp)
+TYPED_TEST(Ic, ThrowNotSupportedForWrongLinOp)
 {
     auto lin_op = DummyLinOp::create(this->ref);
 
@@ -166,7 +128,7 @@ TYPED_TEST(ParIc, ThrowNotSupportedForWrongLinOp)
 }
 
 
-TYPED_TEST(ParIc, ThrowDimensionMismatch)
+TYPED_TEST(Ic, ThrowDimensionMismatch)
 {
     using Csr = typename TestFixture::Csr;
     auto matrix = Csr::create(this->ref, gko::dim<2>{2, 3}, 4);
@@ -176,7 +138,7 @@ TYPED_TEST(ParIc, ThrowDimensionMismatch)
 }
 
 
-TYPED_TEST(ParIc, SetStrategy)
+TYPED_TEST(Ic, SetStrategy)
 {
     using Csr = typename TestFixture::Csr;
     using factorization_type = typename TestFixture::factorization_type;
@@ -194,7 +156,7 @@ TYPED_TEST(ParIc, SetStrategy)
 }
 
 
-TYPED_TEST(ParIc, IsConsistentWithComposition)
+TYPED_TEST(Ic, IsConsistentWithComposition)
 {
     auto fact = this->fact_fact->generate(this->mtx_system);
 
@@ -208,26 +170,7 @@ TYPED_TEST(ParIc, IsConsistentWithComposition)
 }
 
 
-TYPED_TEST(ParIc, GenerateSingleFactor)
-{
-    using factorization_type = typename TestFixture::factorization_type;
-    using Csr = typename TestFixture::Csr;
-    auto factory =
-        factorization_type::build().with_both_factors(false).on(this->ref);
-    auto fact = factory->generate(this->mtx_system);
-
-    auto lin_op_l_factor = fact->get_l_factor();
-    auto lin_op_lt_factor = fact->get_lt_factor();
-    auto first_operator = gko::as<Csr>(fact->get_operators()[0]);
-    auto first_operator_h = gko::as<Csr>(first_operator->conj_transpose());
-
-    ASSERT_EQ(fact->get_operators().size(), 1);
-    ASSERT_EQ(lin_op_l_factor, first_operator);
-    GKO_ASSERT_MTX_NEAR(lin_op_lt_factor, first_operator_h, this->tol);
-}
-
-
-TYPED_TEST(ParIc, GenerateIdentity)
+TYPED_TEST(Ic, GenerateIdentity)
 {
     auto fact = this->fact_fact->generate(this->identity);
 
@@ -236,7 +179,7 @@ TYPED_TEST(ParIc, GenerateIdentity)
 }
 
 
-TYPED_TEST(ParIc, GenerateDenseIdentity)
+TYPED_TEST(Ic, GenerateDenseIdentity)
 {
     using Dense = typename TestFixture::Dense;
     auto dense_id = Dense::create(this->exec, this->identity->get_size());
@@ -249,7 +192,7 @@ TYPED_TEST(ParIc, GenerateDenseIdentity)
 }
 
 
-TYPED_TEST(ParIc, GenerateBanded)
+TYPED_TEST(Ic, GenerateBanded)
 {
     using factorization_type = typename TestFixture::factorization_type;
     using Csr = typename TestFixture::Csr;
@@ -264,7 +207,7 @@ TYPED_TEST(ParIc, GenerateBanded)
 }
 
 
-TYPED_TEST(ParIc, GenerateGeneral)
+TYPED_TEST(Ic, GenerateGeneral)
 {
     using factorization_type = typename TestFixture::factorization_type;
     using Csr = typename TestFixture::Csr;
