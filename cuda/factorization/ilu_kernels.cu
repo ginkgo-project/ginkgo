@@ -81,6 +81,11 @@ void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
                    m->get_const_row_ptrs(), m->get_const_col_idxs(), info,
                    CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
 
+    // CUDA 11.4 has a use-after-free bug on Turing
+#if (CUDA_VERSION >= 11040)
+    exec->synchronize();
+#endif
+
     cusparse::destroy(info);
     cusparse::destroy(desc);
 }
