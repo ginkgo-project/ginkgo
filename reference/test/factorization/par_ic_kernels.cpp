@@ -241,6 +241,7 @@ TYPED_TEST(ParIc, GenerateDenseIdentity)
     using Dense = typename TestFixture::Dense;
     auto dense_id = Dense::create(this->exec, this->identity->get_size());
     this->identity->convert_to(dense_id.get());
+
     auto fact = this->fact_fact->generate(gko::share(dense_id));
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->identity, this->tol);
@@ -252,6 +253,7 @@ TYPED_TEST(ParIc, GenerateBanded)
 {
     using factorization_type = typename TestFixture::factorization_type;
     using Csr = typename TestFixture::Csr;
+
     auto fact =
         factorization_type::build().on(this->exec)->generate(this->banded);
 
@@ -266,6 +268,7 @@ TYPED_TEST(ParIc, GenerateGeneral)
 {
     using factorization_type = typename TestFixture::factorization_type;
     using Csr = typename TestFixture::Csr;
+
     auto fact =
         factorization_type::build().on(this->exec)->generate(this->mtx_system);
 

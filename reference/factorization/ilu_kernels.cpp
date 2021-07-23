@@ -57,7 +57,7 @@ template <typename ValueType, typename IndexType>
 void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::Csr<ValueType, IndexType> *m)
 {
-    vector<IndexType> diagonals{m->get_size()[0], -1, {exec}};
+    vector<IndexType> diagonals{m->get_size()[0], -1, exec};
     const auto row_ptrs = m->get_const_row_ptrs();
     const auto col_idxs = m->get_const_col_idxs();
     const auto values = m->get_values();
@@ -71,9 +71,7 @@ void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
                 diagonals[row] = nz;
             }
             auto value = values[nz];
-            const auto l_begin = begin;
-            const auto l_end = end;
-            for (auto l_nz = l_begin; l_nz < l_end; l_nz++) {
+            for (auto l_nz = begin; l_nz < end; l_nz++) {
                 // for each lower triangular entry l_ik
                 const auto l_col = col_idxs[l_nz];
                 if (l_col >= min(row, col)) {
