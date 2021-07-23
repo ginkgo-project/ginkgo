@@ -66,8 +66,11 @@ GKO_REGISTER_OPERATION(apply, dense::apply);
 GKO_REGISTER_OPERATION(copy, dense::copy);
 GKO_REGISTER_OPERATION(fill, dense::fill);
 GKO_REGISTER_OPERATION(scale, dense::scale);
+GKO_REGISTER_OPERATION(inv_scale, dense::inv_scale);
 GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
+GKO_REGISTER_OPERATION(sub_scaled, dense::sub_scaled);
 GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
+GKO_REGISTER_OPERATION(sub_scaled_diag, dense::sub_scaled_diag);
 GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot);
 GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot);
 GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2);
@@ -255,6 +258,20 @@ void Dense<ValueType>::fill(const ValueType value)
 
 
 template <typename ValueType>
+void Dense<ValueType>::inv_scale_impl(const LinOp *alpha)
+{
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        // different alpha for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+    }
+    auto exec = this->get_executor();
+    exec->run(dense::make_inv_scale(
+        make_temporary_conversion<ValueType>(alpha).get(), this));
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::scale_impl(const LinOp *alpha)
 {
     GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
@@ -285,6 +302,29 @@ void Dense<ValueType>::add_scaled_impl(const LinOp *alpha, const LinOp *b)
             dynamic_cast<const Diagonal<ValueType> *>(b), this));
     } else {
         exec->run(dense::make_add_scaled(
+            make_temporary_conversion<ValueType>(alpha).get(),
+            make_temporary_conversion<ValueType>(b).get(), this));
+    }
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::sub_scaled_impl(const LinOp *alpha, const LinOp *b)
+{
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        // different alpha for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+    }
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    auto exec = this->get_executor();
+
+    if (dynamic_cast<const Diagonal<ValueType> *>(b)) {
+        exec->run(dense::make_sub_scaled_diag(
+            as<Dense<ValueType>>(alpha),
+            dynamic_cast<const Diagonal<ValueType> *>(b), this));
+    } else {
+        exec->run(dense::make_sub_scaled(
             make_temporary_conversion<ValueType>(alpha).get(),
             make_temporary_conversion<ValueType>(b).get(), this));
     }
