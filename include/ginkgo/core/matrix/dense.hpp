@@ -633,6 +633,21 @@ public:
     }
 
     /**
+     * Scales the matrix with the inverse of a scalar.
+     *
+     * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
+     *               by 1 / alpha. If it is a Dense row vector of values,
+     *               then i-th column of the matrix is scaled with the inverse
+     *               of the i-th element of alpha (the number of columns of
+     *               alpha has to match the number of columns of the matrix).
+     */
+    void inv_scale(const LinOp *alpha)
+    {
+        auto exec = this->get_executor();
+        this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
+    }
+
+    /**
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
      *
      * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
@@ -646,6 +661,23 @@ public:
     {
         auto exec = this->get_executor();
         this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
+                              make_temporary_clone(exec, b).get());
+    }
+
+    /**
+     * Subtracts `b` scaled by `alpha` fron the matrix (aka: BLAS axpy).
+     *
+     * @param alpha  If alpha is 1x1 Dense matrix, b is scaled
+     *               by alpha. If it is a Dense row vector of values,
+     *               then i-th column of b is scaled with the i-th
+     *               element of alpha (the number of columns of alpha has to
+     *               match the number of columns of the matrix).
+     * @param b  a matrix of the same dimension as this
+     */
+    void sub_scaled(const LinOp *alpha, const LinOp *b)
+    {
+        auto exec = this->get_executor();
+        this->sub_scaled_impl(make_temporary_clone(exec, alpha).get(),
                               make_temporary_clone(exec, b).get());
     }
 
@@ -862,12 +894,28 @@ protected:
     virtual void scale_impl(const LinOp *alpha);
 
     /**
+     * @copydoc inv_scale(const LinOp *)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of inv_scale(const LinOp *alpha).
+     */
+    virtual void inv_scale_impl(const LinOp *alpha);
+
+    /**
      * @copydoc add_scaled(const LinOp *, const LinOp *)
      *
      * @note  Other implementations of dense should override this function
      *        instead of add_scale(const LinOp *alpha, const LinOp *b).
      */
     virtual void add_scaled_impl(const LinOp *alpha, const LinOp *b);
+
+    /**
+     * @copydoc sub_scaled(const LinOp *, const LinOp *)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of sub_scale(const LinOp *alpha, const LinOp *b).
+     */
+    virtual void sub_scaled_impl(const LinOp *alpha, const LinOp *b);
 
     /**
      * @copydoc compute_dot(const LinOp *, LinOp *) const
