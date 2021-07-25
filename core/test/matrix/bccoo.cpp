@@ -95,39 +95,59 @@ v[3] = 5.0;
     void assert_equal_to_original_mtx(const Mtx* m)  // GKO_NOT_IMPLEMENTED;
     {
         auto chunk_data = m->get_const_chunk();
-        index_type ind;
+        //        gko::matrix::bccoo::size_type block_size =
+        //        m->get_bloxk_size(); gko::matrix::size_type block_size =
+        //        m->get_bloxk_size();
+        gko::size_type block_size = m->get_block_size();
+        index_type ind = {};
 
-        //				std::cout << "NNZ = " <<
+        // std::cout << "NNZ = " <<
         // m->get_num_stored_elements() << std::endl;
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
         /* */
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        //				std::cout << "NNZ = " << *((value_type
-        //*) (chunk_data+ind)) << std::endl;
+        // std::cout << "NNZ = " << *((value_type
+        // *) (chunk_data+ind)) << std::endl;
         EXPECT_EQ(*((value_type*)(chunk_data + ind)), value_type{1.0});
         ind += sizeof(value_type);
 
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
         EXPECT_EQ(*((value_type*)(chunk_data + ind)), value_type{3.0});
-        //        EXPECT_EQ(chunk_data[ind], value_type{3.0});
+        // EXPECT_EQ(chunk_data[ind], value_type{3.0});
         ind += sizeof(value_type);
 
-        EXPECT_EQ(chunk_data[ind], 0x01);
+        //				std::cout << "PP" << std::endl;
+        //				gko::size_type block_size;
+        //			exec->run(gko::matrix::bccoo::make_get_default_block_size(block_size));
+        //			std::cout << "block_size = " << block_size <<
+        // std::endl; 				std::cout <<
+        // mtx->get_block_size()
+        // <<
+        // std::endl; 				if (mtx->get_block_size() == 2)
+        //        		EXPECT_EQ(chunk_data[ind], 0x02);
+        //				else
+        if (block_size < 3) {
+            EXPECT_EQ(chunk_data[ind], 0x02);
+        } else {
+            EXPECT_EQ(chunk_data[ind], 0x01);
+        }
         ind++;
         EXPECT_EQ(*((value_type*)(chunk_data + ind)), value_type{2.0});
-        //        EXPECT_EQ(chunk_data[ind], value_type{2.0});
+        // EXPECT_EQ(chunk_data[ind], value_type{2.0});
         ind += sizeof(value_type);
 
-        EXPECT_EQ(chunk_data[ind], 0xFF);
-        ind++;
+        if ((block_size == 2) || (block_size >= 4)) {
+            EXPECT_EQ(chunk_data[ind], 0xFF);
+            ind++;
+        }
 
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
         EXPECT_EQ(*((value_type*)(chunk_data + ind)), value_type{5.0});
-        //        EXPECT_EQ(chunk_data[ind], value_type{5.0});
+        // EXPECT_EQ(chunk_data[ind], value_type{5.0});
         ind += sizeof(value_type);
         /* */
     }
@@ -359,6 +379,8 @@ TYPED_TEST(Bccoo, GeneratesCorrectMatrixData)
 
     this->mtx->write(data);
 
+    //    std::cout << "block_size = " << this->mtx->get_block_size () <<
+    //    std::endl;
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 4);
     EXPECT_EQ(data.nonzeros[0], tpl(0, 0, value_type{1.0}));

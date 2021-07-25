@@ -35,10 +35,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/unaligned_access.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 
 
@@ -56,6 +58,17 @@ namespace reference {
  * @ingroup bccoo
  */
 namespace bccoo {
+
+
+void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec,
+                            size_type& block_size)
+{
+    block_size = 10;
+    //	block_size = 1;
+    block_size = 2;
+    //	block_size = 3;
+    //	block_size = 4;
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -98,7 +111,7 @@ template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::Bccoo<ValueType, IndexType>* a,
            const matrix::Dense<ValueType>* b,
-           matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+           matrix::Dense<ValueType>* c)  // GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:bccoo): change the code imported from matrix/coo if needed
 //    auto bccoo_val = a->get_const_values();
@@ -111,6 +124,80 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
 //        }
 //    }
 //}
+{
+    auto* rows_data = a->get_const_rows();
+    auto* offsets_data = a->get_const_offsets();
+    auto* chunk_data = a->get_const_chunk();
+    auto num_stored_elements = a->get_num_stored_elements();
+    auto block_size = a->get_block_size();
+    auto num_cols = b->get_size()[1];
+    //    auto exec = this->get_executor();
+    //    auto exec_master = exec->get_master();
+
+    //    std::unique_ptr<const LinOp> op{};
+    //    const Bccoo *tmp{};
+    //    if (this->get_executor()->get_master() != this->get_executor()) {
+    //    if (exec_master != exec) {
+    //        //        op = this->clone(this->get_executor()->get_master());
+    //        op = this->clone(exec_master);
+    //        tmp = static_cast<const Bccoo *>(op.get());
+    //    } else {
+    //        tmp = this;
+    //    }
+
+    // Computation of chunk
+    size_type k = 0, blk = 0, col = 0, row = 0, shf = 0;
+    ValueType val;
+    for (size_type i = 0; i < num_stored_elements; i++) {
+        if (k == 0) {
+            row = rows_data[blk];
+            col = 0;
+            shf = offsets_data[blk];
+        }
+        //				uint8 ind =
+        // a->get_value_chunk<gko::uint8>(chunk_data, shf);
+        // uint8_t ind = a->get_value_chunk<uint8_t>(chunk_data, shf);
+        // uint8_t ind = a->get_value_chunk(chunk_data, shf);
+        // uint8 ind =
+        // a->get_value_chunk<uint8>(chunk_data, shf);
+        // uint8 ind = * (chunk_data
+        //+ shf);
+        uint8 ind = (chunk_data[shf]);
+        while (ind == 0xFF) {
+            row++;
+            shf++;
+            col = 0;
+            ind = chunk_data[shf];
+        }
+        if (ind < 0xFD) {
+            col += ind;
+            shf++;
+        } else if (ind == 0xFD) {
+            shf++;
+            col += get_value_chunk<uint16>(chunk_data, shf);
+            //            col += *(uint16 *)(chunk_data + shf);
+            shf += 2;
+        } else {
+            shf++;
+            //            col += get_value_chunk<uint32>(chunk_data, shf);
+            col += *(uint32*)(chunk_data + shf);
+            shf += 4;
+        }
+        //				val =
+        // get_value_chunk<ValueType>(chunk_data, shf);
+        val = *(ValueType*)(chunk_data + shf);
+        //        data.nonzeros.emplace_back(row, col, val);
+        for (size_type j = 0; j < num_cols; j++) {
+            c->at(row, j) += val * b->at(col, j);
+        }
+        shf += sizeof(ValueType);
+        if (++k == block_size) {
+            k = 0;
+            blk++;
+        }
+    }
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BCCOO_SPMV2_KERNEL);
 

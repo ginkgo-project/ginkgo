@@ -61,6 +61,13 @@ namespace dpcpp {
 namespace bccoo {
 
 
+void get_default_blocksize(std::shared_ptr<const DefaultExecutor> exec,
+                           size_type& block_size) GKO_NOT_IMPLEMENTED;
+// {
+// 	block_size = 10;
+// }
+
+
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::Bccoo<ValueType, IndexType>* a,

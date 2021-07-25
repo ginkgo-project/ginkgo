@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+//#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -100,6 +101,7 @@ GKO_REGISTER_OPERATION(column_permute, dense::column_permute);
 GKO_REGISTER_OPERATION(inverse_row_permute, dense::inverse_row_permute);
 GKO_REGISTER_OPERATION(inverse_column_permute, dense::inverse_column_permute);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, dense::fill_in_matrix_data);
+// GKO_REGISTER_OPERATION(convert_to_bccoo, dense::convert_to_bccoo);
 GKO_REGISTER_OPERATION(convert_to_coo, dense::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_csr, dense::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell);
@@ -131,6 +133,22 @@ void Dense<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
         b, x);
 }
 
+/*
+template <typename ValueType, typename IndexType, typename MatrixType,
+          typename OperationType>
+inline void conversion_helper(Bccoo<ValueType, IndexType> *result,
+                              MatrixType *source, const OperationType &op)
+{
+    auto exec = source->get_executor();
+
+    size_type num_stored_nonzeros = 0;
+    exec->run(dense::make_count_nonzeros(source, &num_stored_nonzeros));
+    auto tmp = Bccoo<ValueType, IndexType>::create(exec, source->get_size(),
+                                                 num_stored_nonzeros);
+    exec->run(op(source, tmp.get()));
+    tmp->move_to(result);
+}
+*/
 
 template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
@@ -547,6 +565,38 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType>>* result)
     this->convert_to(result);
 }
 
+/*
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Bccoo<ValueType, int32> *result) const
+{
+    conversion_helper(result, this, [](const auto& in, const auto& out) {
+        return dense::make_convert_to_bccoo(in, out);
+    });
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Bccoo<ValueType, int32> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Bccoo<ValueType, int64> *result) const
+{
+    conversion_helper(result, this, [](const auto& in, const auto& out) {
+        return dense::make_convert_to_bccoo(in, out);
+    });
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Bccoo<ValueType, int64> *result)
+{
+    this->convert_to(result);
+}
+*/
 
 template <typename ValueType>
 template <typename IndexType>
