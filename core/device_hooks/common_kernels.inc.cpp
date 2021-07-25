@@ -949,6 +949,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 // TODO (script:bccoo): adapt this block as needed
 namespace bccoo {
 
+GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL()
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 
 template <typename ValueType, typename IndexType>
 GKO_DECLARE_BCCOO_SPMV_KERNEL(ValueType, IndexType)

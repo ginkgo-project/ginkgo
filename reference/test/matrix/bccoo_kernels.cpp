@@ -370,17 +370,17 @@ GKO_NOT_IMPLEMENTED;
 
 
 TYPED_TEST(Bccoo, AppliesToDenseVector)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
-//    using Vec = typename TestFixture::Vec;
-//    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
-//    auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
-//
-//    this->mtx->apply(x.get(), y.get());
-//
-//    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
-//}
+// GKO_NOT_IMPLEMENTED;
+{
+//  TODO (script:bccoo): change the code imported from matrix/coo if needed
+    using Vec = typename TestFixture::Vec;
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
+
+    this->mtx->apply(x.get(), y.get());
+
+    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
+}
 
 
 TYPED_TEST(Bccoo, AppliesToMixedDenseVector)
