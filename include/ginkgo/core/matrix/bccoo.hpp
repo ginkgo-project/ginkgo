@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_MATRIX_BCCOO_HPP_
 
 
+#include <cstring>
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 
@@ -251,6 +254,31 @@ public:
     size_type get_num_bytes() const noexcept { return chunk_.get_num_elems(); }
 
     /**
+     * Copies the value in the m-th byte of chunk.
+     *
+     * @copy the value in the m-th byte of chunk.
+     */
+    /*
+                    template <typename T>
+                    void set_value_chunk(void *ptr, std::size_t start, T value)
+       { std::memcpy(static_cast<std::int8_t *>(ptr) + start, &value,
+       sizeof(T));
+                    }
+    */
+    /**
+     * Returns the value in the m-th byte of chunk, which is adjusting to T
+     * class.
+     *
+     * @return the value in the m-th byte of chunk, which is adjusting to T
+     * class.
+     */
+    /*
+                    template <typename T>
+                    T get_value_chunk(const uint8 *ptr, std::size_t start) const
+       { T val{}; std::memcpy(&val, ptr + start, sizeof(T)); return val;
+                    }
+    */
+    /**
      * Applies Bccoo matrix axpy to a vector (or a sequence of vectors).
      *
      * Performs the operation x = Bccoo * b + x
@@ -424,6 +452,7 @@ protected:
         // std::endl;
         GKO_ASSERT_EQ(rows_.get_num_elems() + 1, offsets_.get_num_elems());
     }
+
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
