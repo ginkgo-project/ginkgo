@@ -48,6 +48,10 @@ namespace gko {
 namespace kernels {
 
 
+#define GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL()                          \
+    void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec, \
+                                size_type& block_size)
+
 #define GKO_DECLARE_BCCOO_SPMV_KERNEL(ValueType, IndexType) \
     void spmv(std::shared_ptr<const DefaultExecutor> exec,  \
               const matrix::Bccoo<ValueType, IndexType>* a, \
@@ -94,6 +98,7 @@ namespace kernels {
                           matrix::Diagonal<ValueType>* diag)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
+    GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL();                     \
     template <typename ValueType, typename IndexType>                \
     GKO_DECLARE_BCCOO_SPMV_KERNEL(ValueType, IndexType);             \
     template <typename ValueType, typename IndexType>                \

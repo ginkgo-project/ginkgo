@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/unaligned_access.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/bccoo_kernels.hpp"
@@ -58,6 +59,7 @@ namespace matrix {
 namespace bccoo {
 
 
+GKO_REGISTER_OPERATION(get_default_block_size, bccoo::get_default_block_size);
 GKO_REGISTER_OPERATION(spmv, bccoo::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, bccoo::advanced_spmv);
 GKO_REGISTER_OPERATION(spmv2, bccoo::spmv2);
@@ -71,7 +73,6 @@ GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
-
 
 }  // namespace bccoo
 
@@ -152,13 +153,12 @@ void Bccoo<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::move_to(
-    Bccoo<next_precision<ValueType>, IndexType>* result) GKO_NOT_IMPLEMENTED;
-/*
+    Bccoo<next_precision<ValueType>, IndexType>*
+        result)  // GKO_NOT_IMPLEMENTED;
 {
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
+    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     this->convert_to(result);
 }
-*/
 
 
 template <typename ValueType, typename IndexType>
@@ -263,14 +263,20 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         nnz += (elem.value != zero<ValueType>());
     }
 
-    // Block partitioning
-    //		const size_type block_size = 1024;
-    const size_type block_size = 10;
-    size_type num_blocks = ceildiv(nnz, block_size);
-
-    // Creation of some components of Bccoo
+    // Definition of executor
     auto exec = this->get_executor();
     auto exec_master = exec->get_master();
+
+    // Block partitioning
+    //		const size_type block_size = 1024;
+    size_type block_size = 10;
+    size_type num_blocks = ceildiv(nnz, block_size);
+
+    //		exec->run(bccoo::make_get_default_block_size(this, block_size));
+    exec->run(bccoo::make_get_default_block_size(block_size));
+    num_blocks = ceildiv(nnz, block_size);
+
+    // Creation of some components of Bccoo
     array<IndexType> rows(exec_master, num_blocks);
     array<IndexType> offsets(exec_master, num_blocks + 1);
 
@@ -290,6 +296,16 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
             //						} else { // a new value
             // is stored
             size_type d = elem.column - c;
+            //						std::cout << k << "->"
+            //<<
+            // c
+            //<<
+            //"
+            //-
+            //"
+            //<<
+            // d
+            //<< std::endl;
             if (d < 0xFD) {
                 m++;
             } else if (d < 0xFFFF) {
@@ -304,6 +320,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                 k = 0;
                 b++;
                 offsets_data[b] = m;
+                c = 0;
             }
         }
     }
@@ -318,32 +335,35 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     for (const auto& elem : data.nonzeros) {
         if (elem.value != zero<ValueType>()) {
             if (k == 0) r = rows_data[b] = elem.row;
-            while (elem.row !=
-                   r) {  // new row
-                         //								r
-                         //= elem.row; c = 0;
+            while (elem.row != r) {  // new row
                 r++;
                 c = 0;
-                chunk_data[m] = 0xFF;
+                set_value_chunk<uint8>(chunk_data, m, 0xFF);
+                //                chunk_data[m] = 0xFF;
                 m++;
-                //								std::cout
+                // std::cout
                 //<< " M0 = " << m << std::endl;
             }
             //						} else  {// a new value
             // is stored
             size_type d = elem.column - c;
             if (d < 0xFD) {
-                chunk_data[m] = d;
+                set_value_chunk<uint8>(chunk_data, m, d);
+                //                chunk_data[m] = d;
                 m++;
             } else if (d < 0xFFFF) {
-                chunk_data[m] = 0xFD;
+                set_value_chunk<uint8>(chunk_data, m, 0xFD);
+                //                chunk_data[m] = 0xFD;
                 m++;
-                *(uint16*)(chunk_data + m) = d;
+                set_value_chunk<uint16>(chunk_data, m, d);
+                //                *(uint16 *)(chunk_data + m) = d;
                 m += 2;
             } else {
-                chunk_data[m] = 0xFE;
+                set_value_chunk<uint8>(chunk_data, m, 0xFE);
+                //                chunk_data[m] = 0xFE;
                 m++;
-                *(uint32*)(chunk_data + m) = d;
+                set_value_chunk<uint32>(chunk_data, m, d);
+                //                *(uint32 *)(chunk_data + m) = d;
                 m += 4;
             }
             //								std::cout
@@ -354,7 +374,8 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
             // m
             //<< std::endl;
             c = elem.column;
-            *(ValueType*)(chunk_data + m) = elem.value;
+            set_value_chunk<ValueType>(chunk_data, m, elem.value);
+            //            *(ValueType *)(chunk_data + m) = elem.value;
             m += sizeof(ValueType);
             //								std::cout
             //<< " M2
@@ -368,6 +389,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                 k = 0;
                 b++;
                 offsets_data[b] = m;
+                c = 0;
             }
         }
     }
@@ -411,45 +433,51 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
     // Computation of chunk
     size_type k = 0, b = 0, c = 0, r = 0, m = 0;
     ValueType val;
-    //		std::cout << " block_size = " << block_size << std::endl;
-    //		std::cout << " num_bytes = " << this->get_num_bytes() <<
-    // std::endl;
+    //    std::cout << " block_size = " << block_size << std::endl;
+    //    std::cout << " num_bytes = " << this->get_num_bytes() << std::endl;
     for (size_type i = 0; i < num_stored_elements; i++) {
-        //				std::cout << " i = " << i << " , k = "
-        //<<
-        // k
-        //<< std::endl;
+        //        std::cout << " i = " << i << " , k = " << k << std::endl;
         if (k == 0) {
             r = rows_data[b];
             c = 0;
             m = offsets_data[b];
         }
-        //				std::cout << " m0 = " << m << std::endl;
-        size_type d = chunk_data[m];
+        //        std::cout << " m0 = " << m << std::endl;
+        uint8 d = get_value_chunk<uint8>(chunk_data, m);
+        //				uint8 d = get_value_chunk(chunk_data,
+        // m);
+        //        size_type d = chunk_data[m];
         while (d == 0xFF) {
             r++;
             m++;
             c = 0;
-            d = chunk_data[m];
+            d = get_value_chunk<uint8>(chunk_data, m);
+            //            d = chunk_data[m];
         }
-        //				std::cout << " m1 = " << m << std::endl;
+        //        std::cout << " m1 = " << m << std::endl;
         if (d < 0xFD) {
             c += d;
             m++;
         } else if (d == 0xFD) {
             m++;
-            c += *(uint16*)(chunk_data + m);
+            c += get_value_chunk<uint16>(chunk_data, m);
+            //            c += *(uint16 *)(chunk_data + m);
             m += 2;
         } else {
             m++;
-            c += *(uint32*)(chunk_data + m);
+            c += get_value_chunk<uint32>(chunk_data, m);
+            //            c += *(uint32 *)(chunk_data + m);
             m += 4;
         }
-        //				std::cout << " m2 = " << m << std::endl;
-        val = *(ValueType*)(chunk_data + m);
-        //				std::cout << " (r,c,val) = (" << r << ",
+        //        std::cout << " m2 = " << m << std::endl;
+        val = get_value_chunk<ValueType>(chunk_data, m);
+        //        val = *(ValueType *)(chunk_data + m);
+        //        std::cout << " (r,c,val) = (" << r << ", " << c
+        //									<<
+        //",
         //"
-        //<< c << ", " << val << std::endl;
+        //<< val
+        //<< std::endl;
         data.nonzeros.emplace_back(r, c, val);
         m += sizeof(ValueType);
         if (++k == block_size) {
