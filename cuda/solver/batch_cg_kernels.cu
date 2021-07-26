@@ -99,8 +99,8 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
 #endif
 
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-        shared_size +=
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
+        shared_size +=
             BatchIdentity<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
             sizeof(ValueType);
 #endif
@@ -112,8 +112,8 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
 
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
-        shared_size +=
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
+        shared_size +=
             BatchJacobi<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
             sizeof(ValueType);
 #endif
