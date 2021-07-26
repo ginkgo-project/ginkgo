@@ -368,7 +368,10 @@ public:
         /**
          * Creates a load_balance strategy with DPCPP executor.
          *
-         * @param exec the HIP executor
+         * @param exec the DPCPP executor
+         *
+         * @note TODO: porting - we hardcode the subgroup size is 16 and the
+         *             number of threads in a SIMD unit is 7
          */
         load_balance(std::shared_ptr<const DpcppExecutor> exec)
             : load_balance(exec->get_num_computing_units() * 7, 16, false)
