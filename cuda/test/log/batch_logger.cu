@@ -450,8 +450,10 @@ TEST(BatchSimpleFinalLogger, Logs)
     res_norms_log = d_res_norms_log;
     iters_log = d_iters_log;
     for (size_t i = 0; i < nbatch; i++) {
-        ASSERT_EQ(res_norms_log.get_const_data()[i],
-                  1.2 + static_cast<real_type>(i));
+        ASSERT_LE((res_norms_log.get_const_data()[i] - 1.2 -
+                   static_cast<real_type>(i)) /
+                      (1.2 + static_cast<real_type>(i)),
+                  r<real_type>::value);
         ASSERT_EQ(iters_log.get_const_data()[i], iter + static_cast<int>(i));
     }
 }

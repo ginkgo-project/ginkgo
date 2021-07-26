@@ -263,7 +263,7 @@ protected:
         if (check_converged) {
             h_bnorms.get_data()[0] = 1.0e6;
             if (relative) {
-                h_resnorms.get_data()[0] = h_bnorms.get_data()[0] / (tol * 10);
+                h_resnorms.get_data()[0] = h_bnorms.get_data()[0] * tol / 10;
             } else {
                 h_resnorms.get_data()[0] = tol / 10.0;
             }
