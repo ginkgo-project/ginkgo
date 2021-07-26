@@ -131,6 +131,10 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,               \
         const Array<matrix_data_entry<_type, _prec>>& data,        \
         matrix::Dense<_type>* output)
+#define GKO_DECLARE_DENSE_CONVERT_TO_BCCOO_KERNEL(_type, _prec)        \
+    void convert_to_bccoo(std::shared_ptr<const DefaultExecutor> exec, \
+                          const matrix::Dense<_type>* source,          \
+                          matrix::Bccoo<_type, _prec>* other)
 
 #define GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(_type, _prec)        \
     void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec, \
@@ -290,6 +294,8 @@ namespace kernels {
     GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL(ValueType);                      \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_DENSE_CONVERT_TO_BCCOO_KERNEL(ValueType, IndexType);        \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>                       \
