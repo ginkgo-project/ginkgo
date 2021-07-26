@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -205,6 +206,41 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_bccoo(std::shared_ptr<const HipExecutor> exec,
+                      const matrix::Dense<ValueType>* source,
+                      matrix::Bccoo<ValueType, IndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+/*
+{
+    auto num_rows = result->get_size()[0];
+    auto num_cols = result->get_size()[1];
+
+    auto row_idxs = result->get_row_idxs();
+    auto col_idxs = result->get_col_idxs();
+    auto values = result->get_values();
+
+    auto stride = source->get_stride();
+
+    auto nnz_prefix_sum = array<size_type>(exec, num_rows);
+    calculate_nonzeros_per_row(exec, source, &nnz_prefix_sum);
+
+    components::prefix_sum(exec, nnz_prefix_sum.get_data(), num_rows);
+
+    const size_type grid_dim = ceildiv(num_rows, default_block_size);
+
+    hipLaunchKernelGGL(kernel::fill_in_coo, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, num_rows, num_cols,
+                       stride, as_hip_type(nnz_prefix_sum.get_const_data()),
+                       as_hip_type(source->get_const_values()),
+                       as_hip_type(row_idxs), as_hip_type(col_idxs),
+                       as_hip_type(values));
+}
+*/
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_BCCOO_KERNEL);
 
 
 template <typename ValueType>
