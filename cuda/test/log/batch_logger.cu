@@ -79,8 +79,6 @@ protected:
     const int nrhs = 4;
     const size_t nbatch = 3;
     const int dbs = gko::kernels::cuda::default_block_size;
-    // const size_t def_stride = static_cast<size_t>(nrhs);
-    // const real_type tol = 1e-5;
 };
 
 TYPED_TEST_SUITE(BatchFinalLogger, gko::test::ValueTypes);
@@ -407,6 +405,55 @@ TYPED_TEST(BatchFinalLogger, FirstIterationResetsLogger)
     ASSERT_EQ(iters_log.get_const_data()[1 * this->nrhs + 2], maxits - 1);
     ASSERT_EQ(iters_log.get_const_data()[0 * this->nrhs + 3], maxits - 1);
     ASSERT_EQ(iters_log.get_const_data()[1 * this->nrhs + 3], 10);
+}
+
+
+template <typename RealType>
+__global__ void simple_ex_iter(
+    const size_t nbatch,
+    gko::kernels::cuda::batch_log::SimpleFinalLogger<RealType> blog,
+    const int iter)
+{
+    for (size_t ib = blockIdx.x; ib < nbatch; ib += gridDim.x) {
+        __shared__ RealType resnv;
+        if (threadIdx.x == 0) {
+            resnv = 1.2 + static_cast<RealType>(ib);
+        }
+        __syncthreads();
+        blog.log_iteration(ib, iter + static_cast<int>(ib), resnv);
+    }
+}
+
+
+TEST(BatchSimpleFinalLogger, Logs)
+{
+    using real_type = float;
+    using BatchLog =
+        gko::kernels::cuda::batch_log::SimpleFinalLogger<real_type>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto cuexec = gko::CudaExecutor::create(0, exec);
+    const size_t nbatch = 3;
+    const int dbs = gko::kernels::cuda::default_block_size;
+    gko::Array<real_type> res_norms_log(exec, nbatch);
+    gko::Array<int> iters_log(exec, nbatch);
+    for (int i = 0; i < nbatch; i++) {
+        res_norms_log.get_data()[i] = 0.0;
+        iters_log.get_data()[i] = -1;
+    }
+    gko::Array<real_type> d_res_norms_log(cuexec, res_norms_log);
+    gko::Array<int> d_iters_log(cuexec, iters_log);
+    const int iter = 5;
+
+    BatchLog blog(d_res_norms_log.get_data(), d_iters_log.get_data());
+    simple_ex_iter<<<nbatch, dbs>>>(nbatch, blog, iter);
+
+    res_norms_log = d_res_norms_log;
+    iters_log = d_iters_log;
+    for (size_t i = 0; i < nbatch; i++) {
+        ASSERT_EQ(res_norms_log.get_const_data()[i],
+                  1.2 + static_cast<real_type>(i));
+        ASSERT_EQ(iters_log.get_const_data()[i], iter + static_cast<int>(i));
+    }
 }
 
 
