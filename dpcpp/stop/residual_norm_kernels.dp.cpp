@@ -56,68 +56,6 @@ namespace dpcpp {
 namespace residual_norm {
 
 
-constexpr int default_block_size = 256;
-
-
-template <typename ValueType>
-void residual_norm_kernel(size_type num_cols, ValueType rel_residual_goal,
-                          const ValueType *__restrict__ tau,
-                          const ValueType *__restrict__ orig_tau,
-                          uint8 stoppingId, bool setFinalized,
-                          stopping_status *__restrict__ stop_status,
-                          bool *__restrict__ device_storage,
-                          sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    if (tidx < num_cols) {
-        if (tau[tidx] < rel_residual_goal * orig_tau[tidx]) {
-            stop_status[tidx].converge(stoppingId, setFinalized);
-            device_storage[1] = true;
-        }
-        // because only false is written to all_converged, write conflicts
-        // should not cause any problem
-        else if (!stop_status[tidx].has_stopped()) {
-            device_storage[0] = false;
-        }
-    }
-}
-
-template <typename ValueType>
-void residual_norm_kernel(dim3 grid, dim3 block,
-                          size_type dynamic_shared_memory, sycl::queue *queue,
-                          size_type num_cols, ValueType rel_residual_goal,
-                          const ValueType *tau, const ValueType *orig_tau,
-                          uint8 stoppingId, bool setFinalized,
-                          stopping_status *stop_status, bool *device_storage)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                residual_norm_kernel(num_cols, rel_residual_goal, tau, orig_tau,
-                                     stoppingId, setFinalized, stop_status,
-                                     device_storage, item_ct1);
-            });
-    });
-}
-
-
-void init_kernel(bool *__restrict__ device_storage)
-{
-    device_storage[0] = true;
-    device_storage[1] = false;
-}
-
-void init_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                 sycl::queue *queue, bool *device_storage)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) { init_kernel(device_storage); });
-    });
-}
-
-
 template <typename ValueType>
 void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::Dense<ValueType> *tau,
@@ -129,16 +67,32 @@ void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
-    init_kernel(1, 1, 0, exec->get_queue(), device_storage->get_data());
+    auto device_storage_val = device_storage->get_data();
+    exec->get_queue()->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{1}, [=](sycl::id<1>) {
+            device_storage_val[0] = true;
+            device_storage_val[1] = false;
+        });
+    });
 
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(tau->get_size()[1], block_size.x), 1, 1);
-
-    residual_norm_kernel(grid_size, block_size, 0, exec->get_queue(),
-                         tau->get_size()[1], rel_residual_goal,
-                         tau->get_const_values(), orig_tau->get_const_values(),
-                         stoppingId, setFinalized, stop_status->get_data(),
-                         device_storage->get_data());
+    auto orig_tau_val = orig_tau->get_const_values();
+    auto tau_val = tau->get_const_values();
+    auto stop_status_val = stop_status->get_data();
+    exec->get_queue()->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(
+            sycl::range<1>{tau->get_size()[1]}, [=](sycl::id<1> idx_id) {
+                const auto tidx = idx_id[0];
+                if (tau_val[tidx] < rel_residual_goal * orig_tau_val[tidx]) {
+                    stop_status_val[tidx].converge(stoppingId, setFinalized);
+                    device_storage_val[1] = true;
+                }
+                // because only false is written to all_converged, write
+                // conflicts should not cause any problem
+                else if (!stop_status_val[tidx].has_stopped()) {
+                    device_storage_val[0] = false;
+                }
+            });
+    });
 
     /* Represents all_converged, one_changed */
     *all_converged = exec->copy_val_to_host(device_storage->get_const_data());
@@ -160,68 +114,6 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
 namespace implicit_residual_norm {
 
 
-constexpr int default_block_size = 256;
-
-
-template <typename ValueType>
-void implicit_residual_norm_kernel(
-    size_type num_cols, remove_complex<ValueType> rel_residual_goal,
-    const ValueType *__restrict__ tau,
-    const remove_complex<ValueType> *__restrict__ orig_tau, uint8 stoppingId,
-    bool setFinalized, stopping_status *__restrict__ stop_status,
-    bool *__restrict__ device_storage, sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    if (tidx < num_cols) {
-        if (std::sqrt(std::abs(tau[tidx])) <
-            rel_residual_goal * orig_tau[tidx]) {
-            stop_status[tidx].converge(stoppingId, setFinalized);
-            device_storage[1] = true;
-        }
-        // because only false is written to all_converged, write conflicts
-        // should not cause any problem
-        else if (!stop_status[tidx].has_stopped()) {
-            device_storage[0] = false;
-        }
-    }
-}
-
-template <typename ValueType>
-void implicit_residual_norm_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
-    size_type num_cols, remove_complex<ValueType> rel_residual_goal,
-    const ValueType *tau, const remove_complex<ValueType> *orig_tau,
-    uint8 stoppingId, bool setFinalized, stopping_status *stop_status,
-    bool *device_storage)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                implicit_residual_norm_kernel(
-                    num_cols, rel_residual_goal, tau, orig_tau, stoppingId,
-                    setFinalized, stop_status, device_storage, item_ct1);
-            });
-    });
-}
-
-
-void init_kernel(bool *__restrict__ device_storage)
-{
-    device_storage[0] = true;
-    device_storage[1] = false;
-}
-
-void init_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                 sycl::queue *queue, bool *device_storage)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) { init_kernel(device_storage); });
-    });
-}
-
-
 template <typename ValueType>
 void implicit_residual_norm(
     std::shared_ptr<const DpcppExecutor> exec,
@@ -231,16 +123,33 @@ void implicit_residual_norm(
     bool setFinalized, Array<stopping_status> *stop_status,
     Array<bool> *device_storage, bool *all_converged, bool *one_changed)
 {
-    init_kernel(1, 1, 0, exec->get_queue(), device_storage->get_data());
+    auto device_storage_val = device_storage->get_data();
+    exec->get_queue()->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(sycl::range<1>{1}, [=](sycl::id<1>) {
+            device_storage_val[0] = true;
+            device_storage_val[1] = false;
+        });
+    });
 
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(tau->get_size()[1], block_size.x), 1, 1);
-
-    implicit_residual_norm_kernel(
-        grid_size, block_size, 0, exec->get_queue(), tau->get_size()[1],
-        rel_residual_goal, tau->get_const_values(),
-        orig_tau->get_const_values(), stoppingId, setFinalized,
-        stop_status->get_data(), device_storage->get_data());
+    auto orig_tau_val = orig_tau->get_const_values();
+    auto tau_val = tau->get_const_values();
+    auto stop_status_val = stop_status->get_data();
+    exec->get_queue()->submit([&](sycl::handler &cgh) {
+        cgh.parallel_for(
+            sycl::range<1>{tau->get_size()[1]}, [=](sycl::id<1> idx_id) {
+                const auto tidx = idx_id[0];
+                if (std::sqrt(std::abs(tau_val[tidx])) <
+                    rel_residual_goal * orig_tau_val[tidx]) {
+                    stop_status_val[tidx].converge(stoppingId, setFinalized);
+                    device_storage_val[1] = true;
+                }
+                // because only false is written to all_converged, write
+                // conflicts should not cause any problem
+                else if (!stop_status_val[tidx].has_stopped()) {
+                    device_storage_val[0] = false;
+                }
+            });
+    });
 
     /* Represents all_converged, one_changed */
     *all_converged = exec->copy_val_to_host(device_storage->get_const_data());
