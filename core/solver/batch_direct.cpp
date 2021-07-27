@@ -145,15 +145,8 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp *b,
     batch_dim<> sizes(num_batches, dim<2>{1, num_rhs});
 
     log::BatchLogData<ValueType> logdata;  //< Useless
-    // logdata.res_norms =
-    //    matrix::BatchDense<real_type>::create(this->get_executor());
-    // logdata.iter_counts.set_executor(this->get_executor());
-    // logdata.iter_counts.resize_and_reset(num_rhs * num_batches);
 
     exec->run(batch_direct::make_apply(adense.get(), bt.get(), logdata));
-
-    // this->template log<log::Logger::batch_solver_completed>(
-    //     logdata.iter_counts, logdata.res_norms.get());
 
     if (to_scale) {
         exec->run(batch_direct::make_transpose_scale_copy(
