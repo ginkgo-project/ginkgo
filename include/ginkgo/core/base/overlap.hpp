@@ -35,8 +35,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <tuple>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -51,6 +53,31 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+static std::tuple<std::vector<span>, std::vector<span>>
+calculate_overlap_row_and_col_spans(const dim<2> &size, span &rspan,
+                                    span &cspan, bool unidir, size_type overlap,
+                                    bool st_overlap)
+{
+    if (!unidir) {
+        auto or_span = std::vector<span>{rspan, rspan};
+        auto oc_span =
+            std::vector<span>{span{cspan.begin - overlap, cspan.begin},
+                              span{cspan.end, cspan.end + overlap}};
+        return std::make_tuple<std::vector<span>, std::vector<span>>(
+            std::move(or_span), std::move(oc_span));
+    } else {
+        auto or_span = std::vector<span>{rspan};
+        std::vector<span> oc_span;
+        if (st_overlap) {
+            oc_span.push_back(span{cspan.begin - overlap, cspan.begin});
+        } else {
+            oc_span.push_back(span{cspan.end, cspan.end + overlap});
+        }
+        return std::make_tuple<std::vector<span>, std::vector<span>>(
+            std::move(or_span), std::move(oc_span));
+    }
+}
+
 template <typename ValueType>
 class Overlap {
 public:
@@ -64,16 +91,6 @@ public:
     const bool *get_overlap_at_start_array() const
     {
         return overlap_at_start_.get_const_data();
-    }
-
-    const span *get_row_spans_array() const
-    {
-        return row_spans_.get_const_data();
-    }
-
-    const span *get_col_spans_array() const
-    {
-        return col_spans_.get_const_data();
     }
 
     size_type get_num_elems() const { return overlaps_.get_num_elems(); }
@@ -112,8 +129,9 @@ public:
         : is_unidirectional_{}, overlaps_{}, overlap_at_start_{}
     {}
 
-    explicit Overlap(std::shared_ptr<const Executor> exec, size_type num_blocks,
-                     ValueType overlap, bool is_unidirectional = false,
+    explicit Overlap(std::shared_ptr<const Executor> exec, dim<2> input_size,
+                     size_type num_blocks, ValueType overlap,
+                     bool is_unidirectional = false,
                      bool overlap_at_start = true)
         : is_unidirectional_{exec->get_master(), num_blocks},
           overlaps_{exec->get_master(), num_blocks},
@@ -149,15 +167,6 @@ public:
                    overlaps_.get_num_elems());
     }
 
-    template <typename RowSpanArray, typename ColSpanArray>
-    Overlap(std::shared_ptr<const Executor> exec, RowSpanArray &&row_spans,
-            ColSpanArray &&col_spans)
-        : row_spans_{exec, std::forward<RowSpanArray>(row_spans)},
-          col_spans_{exec, std::forward<ColSpanArray>(col_spans)}
-    {
-        GKO_ASSERT(row_spans_.get_num_elems() == col_spans_.get_num_elems());
-    }
-
     Overlap(std::shared_ptr<const Executor> exec, const Overlap &other)
         : Overlap(exec)
     {
@@ -191,8 +200,6 @@ public:
         this->is_unidirectional_ = other.is_unidirectional_;
         this->overlaps_ = other.overlaps_;
         this->overlap_at_start_ = other.overlap_at_start_;
-        this->col_spans_ = other.col_spans_;
-        this->row_spans_ = other.row_spans_;
         return *this;
     }
 
@@ -210,15 +217,11 @@ public:
             this->is_unidirectional_ = std::move(other.is_unidirectional_);
             this->overlaps_ = std::move(other.overlaps_);
             this->overlap_at_start_ = std::move(other.overlap_at_start_);
-            this->col_spans_ = std::move(other.col_spans_);
-            this->row_spans_ = std::move(other.row_spans_);
         } else {
             // different device, copy the data
             this->is_unidirectional_ = other.is_unidirectional_;
             this->overlaps_ = other.overlaps_;
             this->overlap_at_start_ = other.overlap_at_start_;
-            this->col_spans_ = other.col_spans_;
-            this->row_spans_ = other.row_spans_;
             *this = other;
         }
         return *this;
@@ -229,16 +232,13 @@ public:
         this->is_unidirectional_.clear();
         this->overlaps_.clear();
         this->overlap_at_start_.clear();
-        this->row_spans_.clear();
-        this->col_spans_.clear();
     }
 
+protected:
 private:
     Array<bool> is_unidirectional_;
     Array<ValueType> overlaps_;
     Array<bool> overlap_at_start_;
-    Array<span> row_spans_;
-    Array<span> col_spans_;
 };
 
 

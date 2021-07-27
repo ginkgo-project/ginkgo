@@ -9,6 +9,7 @@ target_sources(ginkgo
     base/executor.cpp
     base/mtx_io.cpp
     base/perturbation.cpp
+    # base/overlap.cpp
     base/version.cpp
     distributed/matrix.cpp
     distributed/partition.cpp

@@ -239,83 +239,39 @@ inline gko::dim<2> compute_block_size(size_type size_in, size_type overlap,
 
 
 template <typename ValueType>
-std::tuple<std::vector<std::unique_ptr<Dense<ValueType>>>,
-           std::vector<std::unique_ptr<Dense<ValueType>>>>
+std::vector<std::unique_ptr<SubMatrix<Dense<ValueType>>>>
 Dense<ValueType>::get_block_approx(const Array<size_type> &block_sizes_in,
                                    const Overlap<size_type> &block_overlaps_in,
                                    const Array<size_type> &permutation) const
-{
-    auto exec = this->get_executor();
-    Array<size_type> block_sizes(exec->get_master());
-    Overlap<size_type> block_overlaps(exec->get_master());
-    block_sizes = block_sizes_in;
-    block_overlaps = block_overlaps_in;
-    size_type num_blocks = block_sizes.get_num_elems();
-    std::vector<std::unique_ptr<Dense>> block_mtxs;
-    std::vector<std::unique_ptr<Dense>> overlap_mtxs;
-    // TODO Maybe move to separate optimized kernels
-    if (permutation.get_const_data() == nullptr) {
-        if (block_overlaps.get_overlaps() == nullptr) {
-            size_type block_offset = 0;
-            for (size_type i = 0; i < num_blocks; ++i) {
-                auto block_size = block_sizes.get_const_data()[i];
-                auto mtx = Dense<ValueType>::create(this->get_executor(),
-                                                    gko::dim<2>(block_size));
-                for (auto b = 0; b < block_size; ++b) {
-                    this->get_executor()->copy_from(
-                        this->get_executor().get(), block_size,
-                        &(this->get_const_values()[(block_offset + b) *
-                                                       this->get_stride() +
-                                                   block_offset]),
-                        &mtx->get_values()[b * mtx->get_stride()]);
-                }
-                block_mtxs.emplace_back(std::move(mtx));
-                block_offset += block_size;
-            }
-        } else {
-            GKO_ASSERT(block_overlaps.get_num_elems() ==
-                       block_sizes.get_num_elems());
-            size_type block_offset = 0;
-            for (size_type i = 0; i < num_blocks; ++i) {
-                auto overlap = block_overlaps.get_overlaps()[i];
-                auto unidir = block_overlaps.get_unidirectional_array()[i];
-                auto overlap_at_start =
-                    block_overlaps.get_overlap_at_start_array()[i];
-                if (i == 0 || i == num_blocks - 1) {
-                    unidir = true;
-                    overlap_at_start = false;
-                    if (i == num_blocks - 1) {
-                        overlap_at_start = true;
-                    }
-                }
-                auto block_size = block_sizes.get_const_data()[i];
-                auto mtx = Dense<ValueType>::create(
-                    this->get_executor(),
-                    compute_block_size(block_size, overlap, unidir));
-                auto mtx_size = mtx->get_size()[0];
-                size_type overlap_offset =
-                    ((unidir && !overlap_at_start) ? 0 : -overlap);
-                for (auto b = 0; b < mtx_size; ++b) {
-                    this->get_executor()->copy_from(
-                        this->get_executor().get(), mtx_size,
-                        &(this->get_const_values()
-                              [(block_offset + b + overlap_offset) *
-                                   this->get_stride() +
-                               block_offset + overlap_offset]),
-                        &mtx->get_values()[b * mtx->get_stride()]);
-                }
-                block_mtxs.emplace_back(std::move(mtx));
-                block_offset += block_size;
-            }
-        }
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
-    block_sizes.set_executor(this->get_executor());
-    return std::make_tuple<std::vector<std::unique_ptr<Dense<ValueType>>>,
-                           std::vector<std::unique_ptr<Dense<ValueType>>>>(
-        std::move(block_mtxs), std::move(overlap_mtxs));
-}
+    GKO_NOT_IMPLEMENTED;
+// {
+//     auto exec = this->get_executor();
+//     auto bsizes_in = Array<size_type>{exec->get_master()};
+//     bsizes_in = block_sizes_in;
+//     auto num_blocks = block_sizes_in.get_num_elems();
+//     std::vector<std::unique_ptr<SubMatrix<Dense<ValueType>>>> block_mtxs;
+//     size_type offset = 0;
+//     for (size_type b = 0; b < num_blocks; ++b) {
+//         auto bsize = bsizes_in.get_const_data()[b];
+//         auto mspan = gko::span{offset, offset + bsize};
+//         auto unidir = block_overlaps_in.get_unidirectional_array()[b];
+//         auto overlap = block_overlaps_in.get_overlaps()[b];
+//         auto st_overlap = block_overlaps_in.get_overlap_at_start_array()[b];
+//         if (block_overlaps_in.get_num_elems() > 0) {
+//             auto overlap_spans = calculate_overlap_row_and_col_spans(
+//                 this->get_size(), mspan, mspan, unidir, overlap, st_overlap);
+//             block_mtxs.emplace_back(SubMatrix<Dense<ValueType>>::create(
+//                 exec, this, mspan, mspan, std::get<0>(overlap_spans),
+//                 std::get<1>(overlap_spans)));
+//         } else {
+//             block_mtxs.emplace_back(
+//                 SubMatrix<Dense<ValueType>>::create(exec, this, mspan,
+//                 mspan));
+//         }
+//         offset += bsize;
+//     }
+//     return block_mtxs;
+// }
 
 
 template <typename ValueType>

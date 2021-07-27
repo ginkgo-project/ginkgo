@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/sub_matrix.hpp>
 
 
 #include "accessor/row_major.hpp"
@@ -88,6 +89,9 @@ class Sellp;
 
 template <typename ValueType, typename IndexType>
 class SparsityCsr;
+
+template <typename MatrixType>
+class SubMatrix;
 
 
 /**
@@ -366,7 +370,7 @@ public:
     std::unique_ptr<LinOp> row_permute(
         const Array<int64>* permutation_indices) const override;
 
-    std::vector<std::unique_ptr<Dense>> get_block_approx(
+    std::vector<std::unique_ptr<SubMatrix<Dense>>> get_block_approx(
         const Array<size_type>& block_sizes,
         const Overlap<size_type>& block_overlaps = {},
         const Array<size_type>& permutation = {}) const override;

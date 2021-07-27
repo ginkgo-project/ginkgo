@@ -154,124 +154,40 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType, typename IndexType>
-std::tuple<std::vector<std::unique_ptr<Csr<ValueType, IndexType>>>,
-           std::vector<std::unique_ptr<Csr<ValueType, IndexType>>>>
+std::vector<std::unique_ptr<SubMatrix<Csr<ValueType, IndexType>>>>
 Csr<ValueType, IndexType>::get_block_approx(
     const Array<size_type> &block_sizes_in,
     const Overlap<size_type> &block_overlaps_in,
     const Array<size_type> &permutation) const
 {
     auto exec = this->get_executor();
-    Array<size_type> block_sizes(exec->get_master());
-    Overlap<size_type> block_overlaps(exec->get_master());
-    block_sizes = block_sizes_in;
-    block_overlaps = block_overlaps_in;
-    // FIXME host transfer
-    block_overlaps.set_executor(exec->get_master());
-    size_type num_blocks = block_sizes.get_num_elems();
-    std::vector<std::unique_ptr<Csr<ValueType, IndexType>>> block_mtxs;
-    std::vector<std::unique_ptr<Csr<ValueType, IndexType>>> overlap_mtxs;
-    if (permutation.get_const_data() == nullptr) {
-        if (block_overlaps.get_overlaps() == nullptr) {
-            size_type block_offset = 0;
-            for (size_type i = 0; i < num_blocks; ++i) {
-                auto block_size = block_sizes.get_data()[i];
-                auto row_span =
-                    gko::span{block_offset, block_offset + block_size};
-                auto col_span =
-                    gko::span{block_offset, block_offset + block_size};
-                Array<size_type> row_nnz(exec, block_size);
-                row_nnz.fill(size_type(0));
-                exec->run(csr::make_calculate_nonzeros_per_row_in_span(
-                    this, row_span, col_span, &row_nnz));
-                Array<size_type> row_nnz_host(exec->get_master(), block_size);
-                row_nnz_host = row_nnz;
-                size_type block_nnz =
-                    std::accumulate(row_nnz_host.get_data(),
-                                    row_nnz_host.get_data() + block_size, 0);
-                auto mtx = Csr<ValueType, IndexType>::create(
-                    exec, gko::dim<2>(block_size), block_nnz,
-                    this->get_strategy());
-                exec->run(csr::make_block_approx(this, mtx.get(), &row_nnz,
-                                                 block_offset));
-                block_mtxs.emplace_back(std::move(mtx));
-                block_offset += block_sizes.get_data()[i];
-                auto omtx = Csr<ValueType, IndexType>::create(exec);
-                overlap_mtxs.emplace_back(std::move(omtx));
-            }
-
+    auto bsizes_in = Array<size_type>{exec->get_master()};
+    bsizes_in = block_sizes_in;
+    auto num_blocks = block_sizes_in.get_num_elems();
+    std::vector<std::unique_ptr<SubMatrix<Csr<ValueType, IndexType>>>>
+        block_mtxs;
+    size_type offset = 0;
+    for (size_type b = 0; b < num_blocks; ++b) {
+        auto bsize = bsizes_in.get_const_data()[b];
+        auto mspan = gko::span{offset, offset + bsize};
+        auto unidir = block_overlaps_in.get_unidirectional_array()[b];
+        auto overlap = block_overlaps_in.get_overlaps()[b];
+        auto st_overlap = block_overlaps_in.get_overlap_at_start_array()[b];
+        if (block_overlaps_in.get_num_elems() > 0) {
+            auto overlap_spans = calculate_overlap_row_and_col_spans(
+                this->get_size(), mspan, mspan, unidir, overlap, st_overlap);
+            block_mtxs.emplace_back(
+                SubMatrix<Csr<ValueType, IndexType>>::create(
+                    exec, this, mspan, mspan, std::get<0>(overlap_spans),
+                    std::get<1>(overlap_spans)));
         } else {
-            GKO_ASSERT(block_overlaps.get_num_elems() ==
-                       block_sizes.get_num_elems());
-            size_type block_offset = 0;
-            size_type block_offset_outer = 0;
-            bool flag = false;
-            for (size_type i = 0; i < num_blocks; ++i) {
-                auto overlap = block_overlaps.get_overlaps()[i];
-                auto unidir = block_overlaps.get_unidirectional_array()[i];
-                auto overlap_at_start =
-                    block_overlaps.get_overlap_at_start_array()[i];
-                if (i == 0 || i == num_blocks - 1) {
-                    unidir = true;
-                    overlap_at_start = false;
-                    if (i == num_blocks - 1) {
-                        overlap_at_start = true;
-                    }
-                }
-                size_type overlap_start_offset =
-                    ((unidir && !overlap_at_start) ? 0 : -overlap);
-                size_type overlap_end_offset =
-                    ((unidir && overlap_at_start) ? 0 : overlap);
-                auto block_size = block_sizes.get_data()[i];
-                auto row_span =
-                    gko::span{block_offset + overlap_start_offset,
-                              block_offset + block_size + overlap_end_offset};
-                auto col_span =
-                    gko::span{block_offset + overlap_start_offset,
-                              block_offset + block_size + overlap_end_offset};
-                block_size += overlap_end_offset - overlap_start_offset;
-                Array<size_type> row_nnz(exec, block_size);
-                row_nnz.fill(size_type(0));
-                exec->run(csr::make_calculate_nonzeros_per_row_in_span(
-                    this, row_span, col_span, &row_nnz));
-                Array<size_type> row_nnz_host(exec->get_master(), block_size);
-                row_nnz_host = row_nnz;
-                size_type block_nnz =
-                    std::accumulate(row_nnz_host.get_data(),
-                                    row_nnz_host.get_data() + block_size, 0);
-                auto mtx = Csr<ValueType, IndexType>::create(
-                    exec, gko::dim<2>(block_size), block_nnz,
-                    this->get_strategy());
-                exec->run(csr::make_block_approx(this, mtx.get(), &row_nnz,
-                                                 block_offset_outer));
-                block_mtxs.emplace_back(std::move(mtx));
-                if (i < num_blocks - 1 && !flag) {
-                    unidir = block_overlaps.get_unidirectional_array()[i + 1];
-                    overlap_at_start =
-                        block_overlaps.get_overlap_at_start_array()[i + 1];
-                    overlap_start_offset =
-                        ((unidir && !overlap_at_start) ? 0 : -overlap);
-                    overlap_end_offset =
-                        ((unidir && overlap_at_start) ? 0 : overlap);
-                    flag = true;
-                    block_offset_outer += overlap_start_offset;
-                }
-                if (i == num_blocks - 2 && !overlap_at_start && unidir) {
-                    block_offset_outer -= overlap;
-                }
-                block_offset += block_sizes.get_data()[i];
-                block_offset_outer += block_sizes.get_data()[i];
-                auto temp = block_offset + 1;
-            }
+            block_mtxs.emplace_back(
+                SubMatrix<Csr<ValueType, IndexType>>::create(exec, this, mspan,
+                                                             mspan));
         }
-    } else {
-        GKO_NOT_IMPLEMENTED;
+        offset += bsize;
     }
-    block_sizes.set_executor(this->get_executor());
-    return std::make_tuple<
-        std::vector<std::unique_ptr<Csr<ValueType, IndexType>>>,
-        std::vector<std::unique_ptr<Csr<ValueType, IndexType>>>>(
-        std::move(block_mtxs), std::move(overlap_mtxs));
+    return block_mtxs;
 }
 
 

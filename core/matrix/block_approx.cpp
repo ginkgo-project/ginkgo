@@ -65,18 +65,15 @@ void BlockApprox<MatrixType>::generate(const Array<size_type> &block_sizes,
                                        const MatrixType *matrix)
 {
     auto num_blocks = block_sizes.get_num_elems();
-    auto block_tuple = matrix->get_block_approx(block_sizes, block_overlaps);
-    auto block_mtxs = std::move(std::get<0>(block_tuple));
-    auto overlap_mtxs = std::move(std::get<1>(block_tuple));
+    auto block_mtxs = matrix->get_block_approx(block_sizes, block_overlaps);
 
-    this->get_executor()->run(block_approx::make_compute_block_ptrs(
-        num_blocks, block_sizes.get_const_data(), block_ptrs_.get_data()));
+    // this->get_executor()->run(block_approx::make_compute_block_ptrs(
+    //     num_blocks, block_sizes.get_const_data(), block_ptrs_.get_data()));
 
     for (size_type j = 0; j < block_mtxs.size(); ++j) {
         block_mtxs_.emplace_back(std::move(block_mtxs[j]));
-        overlap_mtxs_.emplace_back(std::move(overlap_mtxs[j]));
-        block_dims_.emplace_back(block_mtxs_.back()->get_size());
-        block_nnzs_.emplace_back(block_mtxs_.back()->get_num_stored_elements());
+        // block_dims_.emplace_back(block_mtxs_.back()->get_size());
+        // block_nnzs_.emplace_back(block_mtxs_.back()->get_num_stored_elements());
     }
 }
 
@@ -90,7 +87,12 @@ void BlockApprox<MatrixType>::apply_impl(const LinOp *b, LinOp *x) const
 
     auto dense_b = as<Dense>(b);
     auto dense_x = as<Dense>(x);
-    this->get_executor()->run(block_approx::make_spmv(this, dense_b, dense_x));
+    // this->get_executor()->run(block_approx::make_spmv(this, dense_b,
+    // dense_x));
+    auto num_blocks = block_mtxs_.size();
+    for (size_type b = 0; b < num_blocks; ++b) {
+        this->block_mtxs_[b]->apply(dense_b, dense_x);
+    }
 }
 
 
@@ -104,8 +106,12 @@ void BlockApprox<MatrixType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
     auto dense_b = as<Dense>(b);
     auto dense_x = as<Dense>(x);
-    this->get_executor()->run(block_approx::make_advanced_spmv(
-        as<Dense>(alpha), this, dense_b, as<Dense>(beta), dense_x));
+
+    auto num_blocks = block_mtxs_.size();
+    for (size_type b = 0; b < num_blocks; ++b) {
+        this->block_mtxs_[b]->apply(as<Dense>(alpha), dense_b, as<Dense>(beta),
+                                    dense_x);
+    }
 }
 
 
