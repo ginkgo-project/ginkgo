@@ -94,18 +94,7 @@ void zero_matrix_kernel(size_type m, size_type n, size_type stride,
     }
 }
 
-template <typename ValueType>
-void zero_matrix_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                        sycl::queue *queue, size_type m, size_type n,
-                        size_type stride, ValueType *array)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             zero_matrix_kernel(m, n, stride, array, item_ct1);
-                         });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(zero_matrix_kernel, zero_matrix_kernel);
 
 
 // Must be called with at least `num_rows * stride_krylov` threads in total.
@@ -221,21 +210,8 @@ void increase_final_iteration_numbers_kernel(
     }
 }
 
-void increase_final_iteration_numbers_kernel(dim3 grid, dim3 block,
-                                             size_type dynamic_shared_memory,
-                                             sycl::queue *queue,
-                                             size_type *final_iter_nums,
-                                             const stopping_status *stop_status,
-                                             size_type total_number)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                increase_final_iteration_numbers_kernel(
-                    final_iter_nums, stop_status, total_number, item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(increase_final_iteration_numbers_kernel,
+                        increase_final_iteration_numbers_kernel);
 
 
 template <typename ValueType>
