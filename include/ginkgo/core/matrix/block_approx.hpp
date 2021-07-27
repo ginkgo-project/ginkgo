@@ -68,12 +68,7 @@ public:
 
     const Overlap<size_type> &get_overlaps() const { return block_overlaps_; }
 
-    std::vector<std::shared_ptr<MatrixType>> get_overlap_mtxs() const
-    {
-        return overlap_mtxs_;
-    }
-
-    std::vector<std::shared_ptr<MatrixType>> get_block_mtxs() const
+    std::vector<std::shared_ptr<SubMatrix<MatrixType>>> get_block_mtxs() const
     {
         return block_mtxs_;
     }
@@ -85,8 +80,7 @@ protected:
         : EnableLinOp<BlockApprox<MatrixType>>{exec, dim<2>{}},
           block_overlaps_{block_overlaps},
           block_ptrs_{Array<index_type>(exec, num_blocks.get_num_elems() + 1)},
-          block_mtxs_{},
-          overlap_mtxs_{}
+          block_mtxs_{}
     {}
 
     BlockApprox(std::shared_ptr<const Executor> exec, const MatrixType *matrix,
@@ -95,8 +89,7 @@ protected:
         : EnableLinOp<BlockApprox<MatrixType>>{exec, matrix->get_size()},
           block_overlaps_{block_overlaps},
           block_ptrs_{Array<index_type>(exec, num_blocks.get_num_elems() + 1)},
-          block_mtxs_{},
-          overlap_mtxs_{}
+          block_mtxs_{}
     {
         this->generate(num_blocks, block_overlaps, matrix);
     }
@@ -115,8 +108,7 @@ private:
     std::vector<dim<2>> block_dims_;
     Array<index_type> block_ptrs_;
     std::vector<size_type> block_nnzs_;
-    std::vector<std::shared_ptr<MatrixType>> overlap_mtxs_;
-    std::vector<std::shared_ptr<MatrixType>> block_mtxs_;
+    std::vector<std::shared_ptr<SubMatrix<MatrixType>>> block_mtxs_;
 };
 
 

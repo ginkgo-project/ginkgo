@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/overlap.hpp>
+#include <ginkgo/core/matrix/sub_matrix.hpp>
 
 
 namespace gko {
@@ -781,11 +782,10 @@ public:
 
     void compute_absolute_inplace() override;
 
-    std::tuple<std::vector<std::unique_ptr<Csr>>,
-               std::vector<std::unique_ptr<Csr>>>
-    get_block_approx(const Array<size_type> &num_blocks,
-                     const Overlap<size_type> &block_overlaps = {},
-                     const Array<size_type> &permutation = {}) const override;
+    std::vector<std::unique_ptr<SubMatrix<Csr>>> get_block_approx(
+        const Array<size_type> &num_blocks,
+        const Overlap<size_type> &block_overlaps = {},
+        const Array<size_type> &permutation = {}) const override;
 
     std::unique_ptr<Csr<ValueType, IndexType>> get_submatrix(
         const gko::span &row_span, const gko::span &column_span) const override;
