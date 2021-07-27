@@ -94,34 +94,35 @@ template <>
 struct is_supported<std::complex<double>> : std::true_type {};
 
 
-#define GKO_DECLARE_DOT(ValueType, Name)                                 \
-    void Name(::cl::sycl::queue &exec_queue, std::int64_t n,             \
-              const ValueType *x, std::int64_t incx, const ValueType *y, \
-              std::int64_t incy, ValueType *result)
+#define GKO_BIND_DOT(ValueType, Name, Func)                                    \
+    inline void Name(::cl::sycl::queue &exec_queue, std::int64_t n,            \
+                     const ValueType *x, std::int64_t incx,                    \
+                     const ValueType *y, std::int64_t incy, ValueType *result) \
+    {                                                                          \
+        Func(exec_queue, n, x, incx, y, incy, result);                         \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
 
-// Declare the dot for x^T * y
-GKO_DECLARE_DOT(float, dot);
-GKO_DECLARE_DOT(double, dot);
-GKO_DECLARE_DOT(std::complex<float>, dotu);
-GKO_DECLARE_DOT(std::complex<double>, dotu);
+// Bind the dot for x^T * y
+GKO_BIND_DOT(float, dot, oneapi::mkl::blas::row_major::dot);
+GKO_BIND_DOT(double, dot, oneapi::mkl::blas::row_major::dot);
+GKO_BIND_DOT(std::complex<float>, dot, oneapi::mkl::blas::row_major::dotu);
+GKO_BIND_DOT(std::complex<double>, dot, oneapi::mkl::blas::row_major::dotu);
 template <typename ValueType>
-GKO_DECLARE_DOT(ValueType, dot)
-{
-    detail::not_implemented(exec_queue, n, x, incx, y, incy, result);
-}
+GKO_BIND_DOT(ValueType, dot, detail::not_implemented);
 
-// Declare the conj_dot for x' * y
-GKO_DECLARE_DOT(float, conj_dot);
-GKO_DECLARE_DOT(double, conj_dot);
-GKO_DECLARE_DOT(std::complex<float>, conj_dot);
-GKO_DECLARE_DOT(std::complex<double>, conj_dot);
+// Bind the conj_dot for x' * y
+GKO_BIND_DOT(float, conj_dot, oneapi::mkl::blas::row_major::dot);
+GKO_BIND_DOT(double, conj_dot, oneapi::mkl::blas::row_major::dot);
+GKO_BIND_DOT(std::complex<float>, conj_dot, oneapi::mkl::blas::row_major::dotc);
+GKO_BIND_DOT(std::complex<double>, conj_dot,
+             oneapi::mkl::blas::row_major::dotc);
 template <typename ValueType>
-GKO_DECLARE_DOT(ValueType, conj_dot)
-{
-    detail::not_implemented(exec_queue, n, x, incx, y, incy, result);
-}
+GKO_BIND_DOT(ValueType, conj_dot, detail::not_implemented);
 
-#undef GKO_DECLARE_DOT
+#undef GKO_BIND_DOT
 
 }  // namespace onemkl
 }  // namespace dpcpp

@@ -134,8 +134,9 @@ void cg_shuffle(bool *s, sycl::nd_item<3> item_ct1)
 
 // group all kernel things together
 template <int config>
-void cg_shuffle_host(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                     sycl::queue *queue, bool *s)
+void cg_shuffle_host(dim3 grid, dim3 block,
+                     gko::size_type dynamic_shared_memory, sycl::queue *queue,
+                     bool *s)
 {
     queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
@@ -150,8 +151,8 @@ GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_shuffle_config, cg_shuffle_host)
 
 // the call
 void cg_shuffle_config_call(std::uint32_t desired_cfg, dim3 grid, dim3 block,
-                            size_t dynamic_shared_memory, sycl::queue *queue,
-                            bool *s)
+                            gko::size_type dynamic_shared_memory,
+                            sycl::queue *queue, bool *s)
 {
     cg_shuffle_config(
         default_config_list,

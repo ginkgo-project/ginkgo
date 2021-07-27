@@ -179,11 +179,11 @@ void start_prefix_sum(size_type num_elements, ValueType *__restrict__ elements,
 }
 
 template <std::uint32_t block_size, typename ValueType>
-void start_prefix_sum(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                      sycl::queue *stream, size_type num_elements,
+void start_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                      sycl::queue *queue, size_type num_elements,
                       ValueType *elements, ValueType *block_sum)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<ValueType, block_size>, 0,
                        sycl::access::mode::read_write,
                        sycl::access::target::local>
@@ -231,11 +231,11 @@ void finalize_prefix_sum(size_type num_elements,
 }
 
 template <std::uint32_t block_size, typename ValueType>
-void finalize_prefix_sum(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                         sycl::queue *stream, size_type num_elements,
+void finalize_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                         sycl::queue *queue, size_type num_elements,
                          ValueType *elements, const ValueType *block_sum)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              finalize_prefix_sum<block_size>(

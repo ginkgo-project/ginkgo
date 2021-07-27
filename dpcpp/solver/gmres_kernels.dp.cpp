@@ -69,8 +69,6 @@ namespace gmres {
 
 
 constexpr int default_block_size = 256;
-// default_dot_dim can not be 64 in hip because 64 * 64 exceeds their max block
-// size limit.
 constexpr int default_dot_dim = 16;
 constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
@@ -106,16 +104,15 @@ void initialize_2_2_kernel(
 
 template <size_type block_size, typename ValueType>
 void initialize_2_2_kernel(dim3 grid, dim3 block,
-                           gko::size_type dynamic_shared_memory,
-                           sycl::queue *stream, size_type num_rows,
-                           size_type num_rhs, const ValueType *residual,
-                           size_type stride_residual,
+                           size_type dynamic_shared_memory, sycl::queue *queue,
+                           size_type num_rows, size_type num_rhs,
+                           const ValueType *residual, size_type stride_residual,
                            const remove_complex<ValueType> *residual_norm,
                            ValueType *residual_norm_collection,
                            ValueType *krylov_bases, size_type stride_krylov,
                            size_type *final_iter_nums)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 initialize_2_2_kernel<block_size>(
@@ -138,12 +135,14 @@ void increase_final_iteration_numbers_kernel(
     }
 }
 
-void increase_final_iteration_numbers_kernel(
-    dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-    sycl::queue *stream, size_type *final_iter_nums,
-    const stopping_status *stop_status, size_type total_number)
+void increase_final_iteration_numbers_kernel(dim3 grid, dim3 block,
+                                             size_type dynamic_shared_memory,
+                                             sycl::queue *queue,
+                                             size_type *final_iter_nums,
+                                             const stopping_status *stop_status,
+                                             size_type total_number)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 increase_final_iteration_numbers_kernel(
@@ -171,9 +170,9 @@ void multidot_kernel(
     const auto end_row = ((item_ct1.get_group(1) + 1) * num > num_rows)
                              ? num_rows
                              : (item_ct1.get_group(1) + 1) * num;
+
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-
     ValueType *__restrict__ reduction_helper = (*reduction_helper_array);
 
     ValueType local_res = zero<ValueType>();
@@ -202,16 +201,15 @@ void multidot_kernel(
 }
 
 template <typename ValueType>
-void multidot_kernel(dim3 grid, dim3 block,
-                     gko::size_type dynamic_shared_memory, sycl::queue *stream,
-                     size_type k, size_type num_rows, size_type num_cols,
-                     const ValueType *krylov_bases,
+void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                     sycl::queue *queue, size_type k, size_type num_rows,
+                     size_type num_cols, const ValueType *krylov_bases,
                      const ValueType *next_krylov_basis,
                      size_type stride_krylov, ValueType *hessenberg_iter,
                      size_type stride_hessenberg,
                      const stopping_status *stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<ValueType, default_dot_dim *(
                                                          default_dot_dim + 1)>,
                        0, sycl::access_mode::read_write,
@@ -259,13 +257,13 @@ void update_next_krylov_kernel(
 
 template <int block_size, typename ValueType>
 void update_next_krylov_kernel(
-    dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-    sycl::queue *stream, size_type k, size_type num_rows, size_type num_cols,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    size_type k, size_type num_rows, size_type num_cols,
     const ValueType *krylov_bases, ValueType *next_krylov_basis,
     size_type stride_krylov, const ValueType *hessenberg_iter,
     size_type stride_hessenberg, const stopping_status *stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 update_next_krylov_kernel<block_size>(
@@ -320,13 +318,13 @@ void update_hessenberg_2_kernel(
 
 template <int block_size, typename ValueType>
 void update_hessenberg_2_kernel(
-    dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-    sycl::queue *stream, size_type iter, size_type num_rows, size_type num_cols,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    size_type iter, size_type num_rows, size_type num_cols,
     const ValueType *next_krylov_basis, size_type stride_next_krylov,
     ValueType *hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<ValueType, block_size>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
@@ -370,15 +368,15 @@ void update_krylov_kernel(
 
 template <int block_size, typename ValueType>
 void update_krylov_kernel(dim3 grid, dim3 block,
-                          gko::size_type dynamic_shared_memory,
-                          sycl::queue *stream, size_type iter,
-                          size_type num_rows, size_type num_cols,
-                          ValueType *krylov_bases, size_type stride_krylov,
+                          size_type dynamic_shared_memory, sycl::queue *queue,
+                          size_type iter, size_type num_rows,
+                          size_type num_cols, ValueType *krylov_bases,
+                          size_type stride_krylov,
                           const ValueType *hessenberg_iter,
                           size_type stride_hessenberg,
                           const stopping_status *stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 update_krylov_kernel<block_size>(
@@ -419,14 +417,16 @@ void calculate_Qy_kernel(size_type num_rows, size_type num_cols,
 }
 
 template <size_type block_size, typename ValueType>
-void calculate_Qy_kernel(
-    dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-    sycl::queue *stream, size_type num_rows, size_type num_cols,
-    size_type num_rhs, const ValueType *krylov_bases, size_type stride_krylov,
-    const ValueType *y, size_type stride_y, ValueType *before_preconditioner,
-    size_type stride_preconditioner, const size_type *final_iter_nums)
+void calculate_Qy_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                         sycl::queue *queue, size_type num_rows,
+                         size_type num_cols, size_type num_rhs,
+                         const ValueType *krylov_bases, size_type stride_krylov,
+                         const ValueType *y, size_type stride_y,
+                         ValueType *before_preconditioner,
+                         size_type stride_preconditioner,
+                         const size_type *final_iter_nums)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 calculate_Qy_kernel<block_size>(
