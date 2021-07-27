@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_gmres_kernels.hpp"
 
+
 #include <hip/hip_runtime.h>
 
 
@@ -66,8 +67,6 @@ template <typename ValueType>
 void apply(std::shared_ptr<const HipExecutor> exec,
            const BatchGmresOptions<remove_complex<ValueType>> &opts,
            const BatchLinOp *const a,
-           const matrix::BatchDense<ValueType> *const left_scale,
-           const matrix::BatchDense<ValueType> *const right_scale,
            const matrix::BatchDense<ValueType> *const b,
            matrix::BatchDense<ValueType> *const x,
            log::BatchLogData<ValueType> &logdata) GKO_NOT_IMPLEMENTED;
