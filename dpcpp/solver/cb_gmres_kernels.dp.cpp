@@ -95,12 +95,11 @@ void zero_matrix_kernel(size_type m, size_type n, size_type stride,
 }
 
 template <typename ValueType>
-void zero_matrix_kernel(dim3 grid, dim3 block,
-                        gko::size_type dynamic_shared_memory,
-                        sycl::queue *stream, size_type m, size_type n,
+void zero_matrix_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                        sycl::queue *queue, size_type m, size_type n,
                         size_type stride, ValueType *array)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              zero_matrix_kernel(m, n, stride, array, item_ct1);
@@ -143,14 +142,13 @@ void initialize_2_1_kernel(size_type num_rows, size_type num_rhs,
 
 template <size_type block_size, typename ValueType, typename Accessor3d>
 void initialize_2_1_kernel(dim3 grid, dim3 block,
-                           gko::size_type dynamic_shared_memory,
-                           sycl::queue *stream, size_type num_rows,
-                           size_type num_rhs, size_type krylov_dim,
-                           Accessor3d krylov_bases,
+                           size_type dynamic_shared_memory, sycl::queue *queue,
+                           size_type num_rows, size_type num_rhs,
+                           size_type krylov_dim, Accessor3d krylov_bases,
                            ValueType *residual_norm_collection,
                            size_type stride_residual_nc)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 initialize_2_1_kernel<block_size>(
@@ -193,15 +191,14 @@ void initialize_2_2_kernel(
 
 template <size_type block_size, typename ValueType, typename Accessor3d>
 void initialize_2_2_kernel(
-    dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-    sycl::queue *stream, size_type num_rows, size_type num_rhs,
-    const ValueType *residual, size_type stride_residual,
-    const remove_complex<ValueType> *residual_norm,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    size_type num_rows, size_type num_rhs, const ValueType *residual,
+    size_type stride_residual, const remove_complex<ValueType> *residual_norm,
     ValueType *residual_norm_collection, Accessor3d krylov_bases,
     ValueType *next_krylov_basis, size_type stride_next_krylov,
     size_type *final_iter_nums)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 initialize_2_2_kernel<block_size>(
@@ -224,12 +221,14 @@ void increase_final_iteration_numbers_kernel(
     }
 }
 
-void increase_final_iteration_numbers_kernel(
-    dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-    sycl::queue *stream, size_type *final_iter_nums,
-    const stopping_status *stop_status, size_type total_number)
+void increase_final_iteration_numbers_kernel(dim3 grid, dim3 block,
+                                             size_type dynamic_shared_memory,
+                                             sycl::queue *queue,
+                                             size_type *final_iter_nums,
+                                             const stopping_status *stop_status,
+                                             size_type total_number)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 increase_final_iteration_numbers_kernel(
@@ -287,15 +286,14 @@ void multinorm2_kernel(
 }
 
 template <typename ValueType>
-void multinorm2_kernel(dim3 grid, dim3 block,
-                       gko::size_type dynamic_shared_memory,
-                       sycl::queue *stream, size_type num_rows,
+void multinorm2_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                       sycl::queue *queue, size_type num_rows,
                        size_type num_cols, const ValueType *next_krylov_basis,
                        size_type stride_next_krylov,
                        remove_complex<ValueType> *norms,
                        const stopping_status *stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<
             UninitializedArray<remove_complex<ValueType>,
                                default_dot_dim *(default_dot_dim + 1)>,
@@ -365,12 +363,12 @@ void multinorminf_without_stop_kernel(
 
 template <typename ValueType>
 void multinorminf_without_stop_kernel(
-    dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-    sycl::queue *stream, size_type num_rows, size_type num_cols,
-    const ValueType *next_krylov_basis, size_type stride_next_krylov,
-    remove_complex<ValueType> *norms, size_type stride_norms)
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    size_type num_rows, size_type num_cols, const ValueType *next_krylov_basis,
+    size_type stride_next_krylov, remove_complex<ValueType> *norms,
+    size_type stride_norms)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<
             UninitializedArray<remove_complex<ValueType>,
                                default_dot_dim *(default_dot_dim + 1)>,
@@ -465,13 +463,12 @@ void multinorm2_inf_kernel(
 
 template <bool compute_inf, typename ValueType>
 void multinorm2_inf_kernel(
-    dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-    sycl::queue *stream, size_type num_rows, size_type num_cols,
-    const ValueType *next_krylov_basis, size_type stride_next_krylov,
-    remove_complex<ValueType> *norms1, remove_complex<ValueType> *norms2,
-    const stopping_status *stop_status)
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    size_type num_rows, size_type num_cols, const ValueType *next_krylov_basis,
+    size_type stride_next_krylov, remove_complex<ValueType> *norms1,
+    remove_complex<ValueType> *norms2, const stopping_status *stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<
             UninitializedArray<remove_complex<ValueType>,
                                (1 + compute_inf) *
@@ -556,16 +553,15 @@ void multidot_kernel(
 }
 
 template <int dot_dim, typename ValueType, typename Accessor3d>
-void multidot_kernel(dim3 grid, dim3 block,
-                     gko::size_type dynamic_shared_memory, sycl::queue *stream,
-                     size_type num_rows, size_type num_cols,
+void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                     sycl::queue *queue, size_type num_rows, size_type num_cols,
                      const ValueType *next_krylov_basis,
                      size_type stride_next_krylov,
                      const Accessor3d krylov_bases, ValueType *hessenberg_iter,
                      size_type stride_hessenberg,
                      const stopping_status *stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<ValueType, dot_dim * dot_dim>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
@@ -638,15 +634,15 @@ void singledot_kernel(
 }
 
 template <int block_size, typename ValueType, typename Accessor3d>
-void singledot_kernel(dim3 grid, dim3 block,
-                      gko::size_type dynamic_shared_memory, sycl::queue *stream,
-                      size_type num_rows, const ValueType *next_krylov_basis,
+void singledot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                      sycl::queue *queue, size_type num_rows,
+                      const ValueType *next_krylov_basis,
                       size_type stride_next_krylov,
                       const Accessor3d krylov_bases, ValueType *hessenberg_iter,
                       size_type stride_hessenberg,
                       const stopping_status *stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<ValueType, block_size>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
@@ -695,14 +691,13 @@ void update_next_krylov_kernel(
 
 template <int block_size, typename ValueType, typename Accessor3d>
 void update_next_krylov_kernel(
-    dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-    sycl::queue *stream, size_type num_iters, size_type num_rows,
-    size_type num_cols, ValueType *next_krylov_basis,
-    size_type stride_next_krylov, const Accessor3d krylov_bases,
-    const ValueType *hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status *stop_status)
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    size_type num_iters, size_type num_rows, size_type num_cols,
+    ValueType *next_krylov_basis, size_type stride_next_krylov,
+    const Accessor3d krylov_bases, const ValueType *hessenberg_iter,
+    size_type stride_hessenberg, const stopping_status *stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 update_next_krylov_kernel<block_size>(
@@ -750,15 +745,15 @@ void update_next_krylov_and_add_kernel(
 
 template <int block_size, typename ValueType, typename Accessor3d>
 void update_next_krylov_and_add_kernel(
-    dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-    sycl::queue *stream, size_type num_iters, size_type num_rows,
-    size_type num_cols, ValueType *next_krylov_basis,
-    size_type stride_next_krylov, const Accessor3d krylov_bases,
-    ValueType *hessenberg_iter, size_type stride_hessenberg,
-    const ValueType *buffer_iter, size_type stride_buffer,
-    const stopping_status *stop_status, const stopping_status *reorth_status)
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    size_type num_iters, size_type num_rows, size_type num_cols,
+    ValueType *next_krylov_basis, size_type stride_next_krylov,
+    const Accessor3d krylov_bases, ValueType *hessenberg_iter,
+    size_type stride_hessenberg, const ValueType *buffer_iter,
+    size_type stride_buffer, const stopping_status *stop_status,
+    const stopping_status *reorth_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 update_next_krylov_and_add_kernel<block_size>(
@@ -806,9 +801,8 @@ void check_arnoldi_norms(
 }
 
 template <int block_size, typename ValueType, typename Accessor3d>
-void check_arnoldi_norms(dim3 grid, dim3 block,
-                         gko::size_type dynamic_shared_memory,
-                         sycl::queue *stream, size_type num_rhs,
+void check_arnoldi_norms(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                         sycl::queue *queue, size_type num_rhs,
                          remove_complex<ValueType> *arnoldi_norm,
                          size_type stride_norm, ValueType *hessenberg_iter,
                          size_type stride_hessenberg, size_type iter,
@@ -816,7 +810,7 @@ void check_arnoldi_norms(dim3 grid, dim3 block,
                          const stopping_status *stop_status,
                          stopping_status *reorth_status, size_type *num_reorth)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 check_arnoldi_norms<block_size>(
@@ -860,15 +854,14 @@ void set_scalar_kernel(size_type num_rhs, size_type num_blocks,
 }
 
 template <int block_size, typename RealValueType, typename Accessor3d>
-void set_scalar_kernel(dim3 grid, dim3 block,
-                       gko::size_type dynamic_shared_memory,
-                       sycl::queue *stream, size_type num_rhs,
+void set_scalar_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                       sycl::queue *queue, size_type num_rhs,
                        size_type num_blocks, const RealValueType *residual_norm,
                        size_type stride_residual,
                        const RealValueType *arnoldi_inf, size_type stride_inf,
                        Accessor3d krylov_bases)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 set_scalar_kernel<block_size>(
@@ -909,13 +902,13 @@ void update_krylov_next_krylov_kernel(
 
 template <int block_size, typename ValueType, typename Accessor3d>
 void update_krylov_next_krylov_kernel(
-    dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-    sycl::queue *stream, size_type iter, size_type num_rows, size_type num_cols,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    size_type iter, size_type num_rows, size_type num_cols,
     ValueType *next_krylov_basis, size_type stride_next_krylov,
     Accessor3d krylov_bases, const ValueType *hessenberg_iter,
     size_type stride_hessenberg, const stopping_status *stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 update_krylov_next_krylov_kernel<block_size>(
@@ -952,16 +945,15 @@ void calculate_Qy_kernel(size_type num_rows, size_type num_cols,
 }
 
 template <size_type block_size, typename ValueType, typename Accessor3d>
-void calculate_Qy_kernel(dim3 grid, dim3 block,
-                         gko::size_type dynamic_shared_memory,
-                         sycl::queue *stream, size_type num_rows,
+void calculate_Qy_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                         sycl::queue *queue, size_type num_rows,
                          size_type num_cols, const Accessor3d krylov_bases,
                          const ValueType *y, size_type stride_y,
                          ValueType *before_preconditioner,
                          size_type stride_preconditioner,
                          const size_type *final_iter_nums)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              calculate_Qy_kernel<block_size>(

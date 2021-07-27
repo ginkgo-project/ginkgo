@@ -158,8 +158,8 @@ while IFS='' read -r line || [ -n "$line" ]; do
                     if [ -n "${TEMPLATE_INPUT}" ]; then
                         TEMPLATE_INPUT="<${TEMPLATE_INPUT}>"
                     fi
-                    echo "${TEMPLATE} void ${NAME}${HOST_SUFFIX} (dim3 grid, dim3 block, gko::size_type dynamic_shared_memory, cudaStream_t stream, ${VARIABLE}) {
-                        /*KEEP*/${NAME}${TEMPLATE_INPUT}<<<grid, block, dynamic_shared_memory, stream>>>(${VAR_INPUT});
+                    echo "${TEMPLATE} void ${NAME}${HOST_SUFFIX} (dim3 grid, dim3 block, size_type dynamic_shared_memory, cudaStream_t queue, ${VARIABLE}) {
+                        /*KEEP*/${NAME}${TEMPLATE_INPUT}<<<grid, block, dynamic_shared_memory, queue>>>(${VAR_INPUT});
                         }"
                     echo "${NAME} -> ${NAME}${HOST_SUFFIX}" >> ${MAP_FILE}
                 fi

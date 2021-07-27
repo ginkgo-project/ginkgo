@@ -217,11 +217,11 @@ void reduce_add_array(
 }
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
-void reduce_add_array(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                      sycl::queue *stream, size_type size,
+void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                      sycl::queue *queue, size_type size,
                       const ValueType *source, ValueType *result)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>,
                        0, sycl::access::mode::read_write,
                        sycl::access::target::local>

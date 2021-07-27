@@ -83,14 +83,14 @@ void residual_norm_kernel(size_type num_cols, ValueType rel_residual_goal,
 }
 
 template <typename ValueType>
-void residual_norm_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                          sycl::queue *stream, size_type num_cols,
-                          ValueType rel_residual_goal, const ValueType *tau,
-                          const ValueType *orig_tau, uint8 stoppingId,
-                          bool setFinalized, stopping_status *stop_status,
-                          bool *device_storage)
+void residual_norm_kernel(dim3 grid, dim3 block,
+                          size_type dynamic_shared_memory, sycl::queue *queue,
+                          size_type num_cols, ValueType rel_residual_goal,
+                          const ValueType *tau, const ValueType *orig_tau,
+                          uint8 stoppingId, bool setFinalized,
+                          stopping_status *stop_status, bool *device_storage)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 residual_norm_kernel(num_cols, rel_residual_goal, tau, orig_tau,
@@ -107,10 +107,10 @@ void init_kernel(bool *__restrict__ device_storage)
     device_storage[1] = false;
 }
 
-void init_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                 sycl::queue *stream, bool *device_storage)
+void init_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                 sycl::queue *queue, bool *device_storage)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block),
             [=](sycl::nd_item<3> item_ct1) { init_kernel(device_storage); });
@@ -188,13 +188,13 @@ void implicit_residual_norm_kernel(
 
 template <typename ValueType>
 void implicit_residual_norm_kernel(
-    dim3 grid, dim3 block, size_t dynamic_shared_memory, sycl::queue *stream,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
     size_type num_cols, remove_complex<ValueType> rel_residual_goal,
     const ValueType *tau, const remove_complex<ValueType> *orig_tau,
     uint8 stoppingId, bool setFinalized, stopping_status *stop_status,
     bool *device_storage)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 implicit_residual_norm_kernel(
@@ -211,10 +211,10 @@ void init_kernel(bool *__restrict__ device_storage)
     device_storage[1] = false;
 }
 
-void init_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                 sycl::queue *stream, bool *device_storage)
+void init_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                 sycl::queue *queue, bool *device_storage)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block),
             [=](sycl::nd_item<3> item_ct1) { init_kernel(device_storage); });

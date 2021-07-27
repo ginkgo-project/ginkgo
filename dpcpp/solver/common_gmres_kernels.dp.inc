@@ -66,9 +66,8 @@ void initialize_1_kernel(
 }
 
 template <size_type block_size, typename ValueType>
-void initialize_1_kernel(dim3 grid, dim3 block,
-                         gko::size_type dynamic_shared_memory,
-                         sycl::queue *stream, size_type num_rows,
+void initialize_1_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                         sycl::queue *queue, size_type num_rows,
                          size_type num_cols, size_type krylov_dim,
                          const ValueType *b, size_type stride_b,
                          ValueType *residual, size_type stride_residual,
@@ -76,7 +75,7 @@ void initialize_1_kernel(dim3 grid, dim3 block,
                          ValueType *givens_cos, size_type stride_cos,
                          stopping_status *stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 initialize_1_kernel<block_size>(
@@ -162,10 +161,6 @@ void givens_rotation_kernel(
         const auto sin = givens_sin[i * stride_sin + col_idx];
         hessenberg_iter[i * stride_hessenberg + col_idx] =
             cos * this_hess + sin * next_hess;
-        /*
-        DPCT1007:4: Migration of this CUDA API is not supported by the Intel(R)
-        DPC++ Compatibility Tool.
-        */
         this_hess = conj(cos) * next_hess - conj(sin) * this_hess;
         next_hess = hessenberg_iter[(i + 2) * stride_hessenberg + col_idx];
     }
@@ -199,17 +194,19 @@ void givens_rotation_kernel(
 }
 
 template <size_type block_size, typename ValueType>
-void givens_rotation_kernel(
-    dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-    sycl::queue *stream, size_type num_rows, size_type num_cols, size_type iter,
-    ValueType *hessenberg_iter, size_type stride_hessenberg,
-    ValueType *givens_sin, size_type stride_sin, ValueType *givens_cos,
-    size_type stride_cos, remove_complex<ValueType> *residual_norm,
-    ValueType *residual_norm_collection,
-    size_type stride_residual_norm_collection,
-    const stopping_status *stop_status)
+void givens_rotation_kernel(dim3 grid, dim3 block,
+                            size_type dynamic_shared_memory, sycl::queue *queue,
+                            size_type num_rows, size_type num_cols,
+                            size_type iter, ValueType *hessenberg_iter,
+                            size_type stride_hessenberg, ValueType *givens_sin,
+                            size_type stride_sin, ValueType *givens_cos,
+                            size_type stride_cos,
+                            remove_complex<ValueType> *residual_norm,
+                            ValueType *residual_norm_collection,
+                            size_type stride_residual_norm_collection,
+                            const stopping_status *stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 givens_rotation_kernel<block_size>(
@@ -256,14 +253,14 @@ void solve_upper_triangular_kernel(
 
 template <size_type block_size, typename ValueType>
 void solve_upper_triangular_kernel(
-    dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-    sycl::queue *stream, size_type num_cols, size_type num_rhs,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    size_type num_cols, size_type num_rhs,
     const ValueType *residual_norm_collection,
     size_type stride_residual_norm_collection, const ValueType *hessenberg,
     size_type stride_hessenberg, ValueType *y, size_type stride_y,
     const size_type *final_iter_nums)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 solve_upper_triangular_kernel<block_size>(
@@ -273,4 +270,3 @@ void solve_upper_triangular_kernel(
             });
     });
 }
-

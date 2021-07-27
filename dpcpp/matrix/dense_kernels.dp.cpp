@@ -164,14 +164,14 @@ void compute_partial_dot(
 }
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
-void compute_partial_dot(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                         sycl::queue *stream, size_type num_rows,
+void compute_partial_dot(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                         sycl::queue *queue, size_type num_rows,
                          const ValueType *x, size_type stride_x,
                          const ValueType *y, size_type stride_y,
                          ValueType *work)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<ValueType, wg_size>, 0,
                        sycl::access::mode::read_write,
                        sycl::access::target::local>
@@ -210,13 +210,14 @@ void compute_partial_conj_dot(
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void compute_partial_conj_dot(dim3 grid, dim3 block,
-                              size_t dynamic_shared_memory, sycl::queue *stream,
-                              size_type num_rows, const ValueType *x,
-                              size_type stride_x, const ValueType *y,
-                              size_type stride_y, ValueType *work)
+                              size_type dynamic_shared_memory,
+                              sycl::queue *queue, size_type num_rows,
+                              const ValueType *x, size_type stride_x,
+                              const ValueType *y, size_type stride_y,
+                              ValueType *work)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<ValueType, wg_size>, 0,
                        sycl::access::mode::read_write,
                        sycl::access::target::local>
@@ -251,12 +252,12 @@ void finalize_sum_reduce_computation(
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void finalize_sum_reduce_computation(dim3 grid, dim3 block,
-                                     size_t dynamic_shared_memory,
-                                     sycl::queue *stream, size_type size,
+                                     size_type dynamic_shared_memory,
+                                     sycl::queue *queue, size_type size,
                                      const ValueType *work, ValueType *result)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<ValueType, wg_size>, 0,
                        sycl::access::mode::read_write,
                        sycl::access::target::local>
@@ -293,13 +294,13 @@ void compute_partial_norm2(
 }
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
-void compute_partial_norm2(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                           sycl::queue *stream, size_type num_rows,
-                           const ValueType *x, size_type stride_x,
-                           remove_complex<ValueType> *work)
+void compute_partial_norm2(dim3 grid, dim3 block,
+                           size_type dynamic_shared_memory, sycl::queue *queue,
+                           size_type num_rows, const ValueType *x,
+                           size_type stride_x, remove_complex<ValueType> *work)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<remove_complex<ValueType>, wg_size>,
                        0, sycl::access::mode::read_write,
                        sycl::access::target::local>
@@ -334,12 +335,12 @@ void finalize_sqrt_reduce_computation(
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void finalize_sqrt_reduce_computation(dim3 grid, dim3 block,
-                                      size_t dynamic_shared_memory,
-                                      sycl::queue *stream, size_type size,
+                                      size_type dynamic_shared_memory,
+                                      sycl::queue *queue, size_type size,
                                       const ValueType *work, ValueType *result)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<ValueType, wg_size>, 0,
                        sycl::access::mode::read_write,
                        sycl::access::target::local>
@@ -568,11 +569,11 @@ void reduce_max_nnz(size_type size, const size_type *__restrict__ nnz_per_row,
 }
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16)>
-void reduce_max_nnz(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                    sycl::queue *stream, size_type size,
+void reduce_max_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                    sycl::queue *queue, size_type size,
                     const size_type *nnz_per_row, size_type *result)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<uint8_t, 1, sycl::access::mode::read_write,
                        sycl::access::target::local>
             dpct_local_acc_ct1(sycl::range<1>(dynamic_shared_memory), cgh);
@@ -648,11 +649,11 @@ void reduce_total_cols(size_type num_slices,
 }
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16)>
-void reduce_total_cols(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                       sycl::queue *stream, size_type num_slices,
+void reduce_total_cols(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                       sycl::queue *queue, size_type num_slices,
                        const size_type *max_nnz_per_slice, size_type *result)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<uint8_t, 1, sycl::access::mode::read_write,
                        sycl::access::target::local>
             dpct_local_acc_ct1(sycl::range<1>(dynamic_shared_memory), cgh);
@@ -708,13 +709,12 @@ void transpose(const size_type nrows, const size_type ncols,
 }
 
 template <std::uint32_t sg_size = 32, typename ValueType>
-void transpose(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-               sycl::queue *stream, const size_type nrows,
-               const size_type ncols, const ValueType *in,
-               const size_type in_stride, ValueType *out,
+void transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+               sycl::queue *queue, const size_type nrows, const size_type ncols,
+               const ValueType *in, const size_type in_stride, ValueType *out,
                const size_type out_stride)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<ValueType, sg_size *(sg_size + 1)>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
@@ -722,10 +722,8 @@ void transpose(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                transpose<sg_size>(
-                    nrows, ncols, in, in_stride, out, out_stride, item_ct1,
-                    (UninitializedArray<ValueType, sg_size *(sg_size + 1)> *)
-                        space_acc_ct1.get_pointer());
+                transpose<sg_size>(nrows, ncols, in, in_stride, out, out_stride,
+                                   item_ct1, space_acc_ct1.get_pointer().get());
             });
     });
 }
@@ -749,13 +747,13 @@ void conj_transpose(
 }
 
 template <std::uint32_t sg_size = 16, typename ValueType>
-void conj_transpose(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                    sycl::queue *stream, const size_type nrows,
+void conj_transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                    sycl::queue *queue, const size_type nrows,
                     const size_type ncols, const ValueType *in,
                     const size_type in_stride, ValueType *out,
                     const size_type out_stride)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<ValueType, sg_size *(sg_size + 1)>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
@@ -763,10 +761,9 @@ void conj_transpose(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                conj_transpose<sg_size>(
-                    nrows, ncols, in, in_stride, out, out_stride, item_ct1,
-                    (UninitializedArray<ValueType, sg_size *(sg_size + 1)> *)
-                        space_acc_ct1.get_pointer());
+                conj_transpose<sg_size>(nrows, ncols, in, in_stride, out,
+                                        out_stride, item_ct1,
+                                        space_acc_ct1.get_pointer().get());
             });
     });
 }
