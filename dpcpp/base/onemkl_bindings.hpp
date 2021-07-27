@@ -41,6 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <oneapi/mkl.hpp>
 
 
+#include <ginkgo/core/base/exception_helpers.hpp>
+
+
 namespace gko {
 /**
  * @brief The device specific kernels namespace.
@@ -91,15 +94,15 @@ template <>
 struct is_supported<std::complex<double>> : std::true_type {};
 
 
-#define GKO_BIND_DOT(ValueType, Name, Func)                                  \
-    void Name(::cl::sycl::queue &exec_queue, std::int64_t n,                 \
-              const ValueType *x, std::int64_t incx, const ValueType *y,     \
-              std::int64_t incy, ValueType *result)                          \
-    {                                                                        \
-        Func(exec_queue, n, x, incx, y, incy, result);                       \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_BIND_DOT(ValueType, Name, Func)                                    \
+    inline void Name(::cl::sycl::queue &exec_queue, std::int64_t n,            \
+                     const ValueType *x, std::int64_t incx,                    \
+                     const ValueType *y, std::int64_t incy, ValueType *result) \
+    {                                                                          \
+        Func(exec_queue, n, x, incx, y, incy, result);                         \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
 // Bind the dot for x^T * y
@@ -120,7 +123,6 @@ template <typename ValueType>
 GKO_BIND_DOT(ValueType, conj_dot, detail::not_implemented);
 
 #undef GKO_BIND_DOT
-
 
 }  // namespace onemkl
 }  // namespace dpcpp

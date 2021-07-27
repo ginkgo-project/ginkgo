@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/cgs.hpp>
+#include "core/solver/cgs_kernels.hpp"
 
 
 #include <random>
@@ -42,12 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/cgs.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
-#include "core/solver/cgs_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
 
@@ -309,9 +309,6 @@ TEST_F(Cgs, CgsStep3IsEquivalentToRef)
 
 TEST_F(Cgs, CgsApplyOneRHSIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     int m = 123;
     int n = 1;
     auto ref_solver = ref_cgs_factory->generate(mtx);
@@ -333,9 +330,6 @@ TEST_F(Cgs, CgsApplyOneRHSIsEquivalentToRef)
 
 TEST_F(Cgs, CgsApplyMultipleRHSIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     int m = 123;
     int n = 16;
     auto exec_solver = exec_cgs_factory->generate(d_mtx);

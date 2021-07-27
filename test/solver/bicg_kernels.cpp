@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/bicg.hpp>
+#include "core/solver/bicg_kernels.hpp"
 
 
 #include <random>
@@ -42,12 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
-#include "core/solver/bicg_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "matrices/config.hpp"
 #include "test/utils/executor.hpp"
@@ -267,9 +267,6 @@ TEST_F(Bicg, BicgStep2IsEquivalentToRef)
 
 TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     auto mtx = gen_mtx(50, 50, 53);
     gko::test::make_hpd(mtx.get());
     auto x = gen_mtx(50, 3, 5);
@@ -308,9 +305,6 @@ TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
 
 TEST_F(Bicg, ApplyWithSuiteSparseMatrixIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     auto x = gen_mtx(36, 1, 2);
     auto b = gen_mtx(36, 1, 3);
     auto d_x = Mtx::create(exec);

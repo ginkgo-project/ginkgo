@@ -726,7 +726,7 @@ build/dpcpp/cpu/release/static:
 build/dpcpp/igpu/release/shared:
   <<: *default_build_with_test
   extends:
-    - .full_test_condition
+    - .quick_test_condition
     - .use_gko-oneapi-igpu
   variables:
     <<: *default_variables
@@ -736,22 +736,6 @@ build/dpcpp/igpu/release/shared:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
     DPCPP_SINGLE_MODE: "ON"
-    SYCL_DEVICE_TYPE: "GPU"
-
-build/dpcpp/opencl_igpu/release/static:
-  <<: *default_build_with_test
-  extends:
-    - .quick_test_condition
-    - .use_gko-oneapi-igpu
-  variables:
-    <<: *default_variables
-    C_COMPILER: "gcc"
-    CXX_COMPILER: "dpcpp"
-    BUILD_DPCPP: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
-    DPCPP_SINGLE_MODE: "ON"
-    SYCL_DEVICE_FILTER: "OpenCL"
     SYCL_DEVICE_TYPE: "GPU"
 
 build/dpcpp/level_zero_igpu/debug/shared:
@@ -773,7 +757,7 @@ build/dpcpp/level_zero_igpu/debug/shared:
 build/dpcpp/dgpu/release/static:
   <<: *default_build_with_test
   extends:
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-oneapi-igpu
   variables:
     <<: *default_variables
@@ -798,21 +782,6 @@ build/dpcpp/level_zero_dgpu/release/shared:
     BUILD_TYPE: "Release"
     DPCPP_SINGLE_MODE: "ON"
     SYCL_DEVICE_FILTER: "Level_Zero:GPU"
-
-build/dpcpp/opencl_dgpu/debug/shared:
-  <<: *default_build_with_test
-  extends:
-    - .full_test_condition
-    - .use_gko-oneapi-dgpu
-  variables:
-    <<: *default_variables
-    C_COMPILER: "gcc"
-    CXX_COMPILER: "dpcpp"
-    BUILD_DPCPP: "ON"
-    BUILD_TYPE: "Debug"
-    DPCPP_SINGLE_MODE: "ON"
-    SYCL_DEVICE_FILTER: "OpenCL"
-    SYCL_DEVICE_TYPE: "GPU"
 
 # Job with important warnings as error
 warnings:

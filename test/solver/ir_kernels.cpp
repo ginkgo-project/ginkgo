@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/ir.hpp>
+#include "core/solver/ir_kernels.hpp"
 
 
 #include <random>
@@ -43,11 +43,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
+#include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
 
-#include "core/solver/ir_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
 
@@ -111,9 +111,6 @@ TEST_F(Ir, InitializeIsEquivalentToRef)
 
 TEST_F(Ir, ApplyIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     auto mtx = gen_mtx(50, 50, 52);
     auto x = gen_mtx(50, 3, 8);
     auto b = gen_mtx(50, 3, 5);
@@ -145,9 +142,6 @@ TEST_F(Ir, ApplyIsEquivalentToRef)
 
 TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     auto mtx = gen_mtx(50, 50, 54);
     auto x = gen_mtx(50, 3, 6);
     auto b = gen_mtx(50, 3, 10);
@@ -192,9 +186,6 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
 
 TEST_F(Ir, RichardsonApplyIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     auto mtx = gen_mtx(50, 50, 54);
     auto x = gen_mtx(50, 3, 4);
     auto b = gen_mtx(50, 3, 3);
@@ -228,9 +219,6 @@ TEST_F(Ir, RichardsonApplyIsEquivalentToRef)
 
 TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
 {
-    if (dynamic_cast<gko::DpcppExecutor *>(exec.get())) {
-        GTEST_SKIP();
-    }
     auto mtx = gen_mtx(50, 50, 52);
     auto x = gen_mtx(50, 3, 4);
     auto b = gen_mtx(50, 3, 7);

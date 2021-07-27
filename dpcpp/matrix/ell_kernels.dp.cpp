@@ -204,14 +204,14 @@ void spmv(
 
 template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
           typename a_accessor, typename OutputValueType, typename IndexType>
-void spmv(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-          sycl::queue *stream, const size_type num_rows,
+void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+          sycl::queue *queue, const size_type num_rows,
           const int num_worker_per_row, acc::range<a_accessor> val,
           const IndexType *col, const size_type stride,
           const size_type num_stored_elements_per_row, acc::range<b_accessor> b,
           OutputValueType *c, const size_type c_stride)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<
             UninitializedArray<OutputValueType,
                                default_block_size / num_thread_per_worker>,
@@ -270,15 +270,15 @@ void spmv(
 
 template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
           typename a_accessor, typename OutputValueType, typename IndexType>
-void spmv(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-          sycl::queue *stream, const size_type num_rows,
+void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+          sycl::queue *queue, const size_type num_rows,
           const int num_worker_per_row, acc::range<a_accessor> alpha,
           acc::range<a_accessor> val, const IndexType *col,
           const size_type stride, const size_type num_stored_elements_per_row,
           acc::range<b_accessor> b, const OutputValueType *beta,
           OutputValueType *c, const size_type c_stride)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<
             UninitializedArray<OutputValueType,
                                default_block_size / num_thread_per_worker>,
@@ -317,12 +317,11 @@ void initialize_zero_dense(size_type num_rows, size_type num_cols,
 
 template <typename ValueType>
 void initialize_zero_dense(dim3 grid, dim3 block,
-                           gko::size_type dynamic_shared_memory,
-                           sycl::queue *stream, size_type num_rows,
-                           size_type num_cols, size_type stride,
-                           ValueType *result)
+                           size_type dynamic_shared_memory, sycl::queue *queue,
+                           size_type num_rows, size_type num_cols,
+                           size_type stride, ValueType *result)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              initialize_zero_dense(num_rows, num_cols, stride,
@@ -350,13 +349,13 @@ void fill_in_dense(size_type num_rows, size_type nnz, size_type source_stride,
 }
 
 template <typename ValueType, typename IndexType>
-void fill_in_dense(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                   sycl::queue *stream, size_type num_rows, size_type nnz,
+void fill_in_dense(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                   sycl::queue *queue, size_type num_rows, size_type nnz,
                    size_type source_stride, const IndexType *col_idxs,
                    const ValueType *values, size_type result_stride,
                    ValueType *result)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 fill_in_dense(num_rows, nnz, source_stride, col_idxs, values,
@@ -392,13 +391,12 @@ void count_nnz_per_row(size_type num_rows, size_type max_nnz_per_row,
 }
 
 template <typename ValueType, typename IndexType>
-void count_nnz_per_row(dim3 grid, dim3 block,
-                       gko::size_type dynamic_shared_memory,
-                       sycl::queue *stream, size_type num_rows,
+void count_nnz_per_row(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                       sycl::queue *queue, size_type num_rows,
                        size_type max_nnz_per_row, size_type stride,
                        const ValueType *values, IndexType *result)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 count_nnz_per_row(num_rows, max_nnz_per_row, stride, values,
@@ -433,14 +431,14 @@ void fill_in_csr(size_type num_rows, size_type max_nnz_per_row,
 }
 
 template <typename ValueType, typename IndexType>
-void fill_in_csr(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                 sycl::queue *stream, size_type num_rows,
+void fill_in_csr(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                 sycl::queue *queue, size_type num_rows,
                  size_type max_nnz_per_row, size_type stride,
                  const ValueType *source_values,
                  const IndexType *source_col_idxs, IndexType *result_row_ptrs,
                  IndexType *result_col_idxs, ValueType *result_values)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 fill_in_csr(num_rows, max_nnz_per_row, stride, source_values,
@@ -472,13 +470,13 @@ void extract_diagonal(size_type diag_size, size_type max_nnz_per_row,
 }
 
 template <typename ValueType, typename IndexType>
-void extract_diagonal(dim3 grid, dim3 block,
-                      gko::size_type dynamic_shared_memory, sycl::queue *stream,
-                      size_type diag_size, size_type max_nnz_per_row,
-                      size_type orig_stride, const ValueType *orig_values,
+void extract_diagonal(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                      sycl::queue *queue, size_type diag_size,
+                      size_type max_nnz_per_row, size_type orig_stride,
+                      const ValueType *orig_values,
                       const IndexType *orig_col_idxs, ValueType *diag)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 extract_diagonal(diag_size, max_nnz_per_row, orig_stride,

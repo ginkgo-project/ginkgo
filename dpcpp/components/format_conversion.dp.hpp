@@ -59,8 +59,8 @@ namespace kernel {
  * It counts the number of explicit nonzeros per row of Ell.
  */
 template <typename ValueType, typename IndexType>
-void count_nnz_per_row(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                       sycl::queue *stream, size_type num_rows,
+void count_nnz_per_row(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                       sycl::queue *queue, size_type num_rows,
                        size_type max_nnz_per_row, size_type stride,
                        const ValueType *values, IndexType *result);
 
@@ -80,9 +80,10 @@ namespace kernel {
  */
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(dim3 grid, dim3 block,
-                              size_t dynamic_shared_memory, sycl::queue *stream,
-                              const IndexType *idxs, size_type num_nonzeros,
-                              IndexType *ptrs, size_type length);
+                              size_type dynamic_shared_memory,
+                              sycl::queue *queue, const IndexType *idxs,
+                              size_type num_nonzeros, IndexType *ptrs,
+                              size_type length);
 
 
 }  // namespace kernel
