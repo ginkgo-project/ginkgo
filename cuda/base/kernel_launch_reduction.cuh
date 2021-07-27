@@ -152,7 +152,7 @@ void run_kernel_reduction(std::shared_ptr<const CudaExecutor> exec,
         Array<ValueType> partial{exec, static_cast<size_type>(num_blocks)};
         generic_kernel_reduction_1d<<<num_blocks, block_size>>>(
             static_cast<int64>(size), fn, op,
-            [] GKO_KERNEL(auto v) { return v; }, as_cuda_type(init),
+            [] __device__(auto v) { return v; }, as_cuda_type(init),
             as_cuda_type(partial.get_data()), map_to_device(args)...);
         generic_kernel_reduction_1d<<<1, block_size>>>(
             static_cast<int64>(num_blocks),
@@ -185,7 +185,7 @@ void run_kernel_reduction(std::shared_ptr<const CudaExecutor> exec,
     if (num_blocks > 1) {
         Array<ValueType> partial{exec, static_cast<size_type>(num_blocks)};
         generic_kernel_reduction_2d<<<num_blocks, block_size>>>(
-            rows, cols, fn, op, [] GKO_KERNEL(auto v) { return v; },
+            rows, cols, fn, op, [] __device__(auto v) { return v; },
             as_cuda_type(init), as_cuda_type(partial.get_data()),
             map_to_device(args)...);
         generic_kernel_reduction_1d<<<1, block_size>>>(
@@ -408,7 +408,7 @@ void run_generic_col_reduction_small(syn::value_list<int, subwarp_size>,
                                      static_cast<size_type>(num_blocks * cols)};
         generic_kernel_col_reduction_2d_small<subwarp_size>
             <<<num_blocks, default_block_size>>>(
-                rows, cols, fn, op, [] GKO_KERNEL(auto v) { return v; },
+                rows, cols, fn, op, [] __device__(auto v) { return v; },
                 as_cuda_type(init), as_cuda_type(tmp_storage.get_data()),
                 args...);
         generic_kernel_reduction_finalize_2d<<<
@@ -451,7 +451,7 @@ void run_kernel_row_reduction(std::shared_ptr<const CudaExecutor> exec,
         generic_kernel_row_reduction_2d<config::warp_size>
             <<<num_blocks, default_block_size>>>(
                 rows, cols, col_blocks, fn, op,
-                [] GKO_KERNEL(auto v) { return v; }, as_cuda_type(init),
+                [] __device__(auto v) { return v; }, as_cuda_type(init),
                 as_cuda_type(partial.get_data()), 1, map_to_device(args)...);
         const auto num_finalize_blocks = ceildiv(rows, default_block_size);
         generic_kernel_reduction_finalize_2d<<<num_finalize_blocks,
@@ -515,7 +515,7 @@ void run_kernel_col_reduction(std::shared_ptr<const CudaExecutor> exec,
                 exec, static_cast<size_type>(row_blocks * cols)};
             generic_kernel_col_reduction_2d_blocked<<<
                 dim3(row_blocks, col_blocks), default_block_size>>>(
-                rows, cols, fn, op, [] GKO_KERNEL(auto v) { return v; },
+                rows, cols, fn, op, [] __device__(auto v) { return v; },
                 as_cuda_type(init), as_cuda_type(tmp_storage.get_data()),
                 map_to_device(args)...);
             generic_kernel_reduction_finalize_2d<<<
