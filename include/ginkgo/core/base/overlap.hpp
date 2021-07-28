@@ -129,9 +129,8 @@ public:
         : is_unidirectional_{}, overlaps_{}, overlap_at_start_{}
     {}
 
-    explicit Overlap(std::shared_ptr<const Executor> exec, dim<2> input_size,
-                     size_type num_blocks, ValueType overlap,
-                     bool is_unidirectional = false,
+    explicit Overlap(std::shared_ptr<const Executor> exec, size_type num_blocks,
+                     ValueType overlap, bool is_unidirectional = false,
                      bool overlap_at_start = true)
         : is_unidirectional_{exec->get_master(), num_blocks},
           overlaps_{exec->get_master(), num_blocks},

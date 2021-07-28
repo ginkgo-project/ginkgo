@@ -353,6 +353,296 @@ protected:
 TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes);
 
 
+TYPED_TEST(Csr, CanComputeBlockApprox)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx2->get_executor();
+
+    auto mat = gko::initialize<Mtx>({{1.0, 2.0, 0.0, 0.0, 3.0},
+                                     {0.0, 3.0, 0.0, 0.0, 0.0},
+                                     {0.0, 3.0, 2.5, 1.5, 0.0},
+                                     {1.0, 0.0, 1.0, 2.0, 4.0},
+                                     {0.0, 1.0, 2.0, 1.5, 3.0}},
+                                    exec);
+    auto b_sizes = gko::Array<gko::size_type>(exec, {3, 2});
+    auto block_mtxs = mat->get_block_approx(b_sizes);
+
+    auto mat1 = gko::initialize<Mtx>(
+        {{1.0, 2.0, 0.0}, {0.0, 3.0, 0.0}, {0.0, 3.0, 2.5}}, exec);
+    auto mat2 =
+        gko::initialize<Mtx>({I<T>({2.0, 4.0}), I<T>({1.5, 3.0})}, exec);
+
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0]->get_sub_matrix(), mat1,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1]->get_sub_matrix(), mat2,
+                        r<ValueType>::value);
+}
+
+
+TYPED_TEST(Csr, CanComputeBlockApprox2)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx2->get_executor();
+
+    auto mat = gko::initialize<Mtx>({{1.0, 2.0, 0.0, 0.0, 3.0},
+                                     {0.0, 3.0, 0.0, 0.0, 0.0},
+                                     {0.0, 3.0, 2.5, 1.5, 0.0},
+                                     {1.0, 0.0, 1.0, 2.0, 4.0},
+                                     {0.0, 1.0, 2.0, 1.5, 3.0}},
+                                    exec);
+    auto b_sizes = gko::Array<gko::size_type>(exec, {1, 3, 1});
+    auto block_mtxs = mat->get_block_approx(b_sizes);
+
+    auto mat1 = gko::initialize<Mtx>({1.0}, exec);
+    auto mat2 = gko::initialize<Mtx>(
+        {{3.0, 0.0, 0.0}, {3.0, 2.5, 1.5}, {0.0, 1.0, 2.0}}, exec);
+    auto mat3 = gko::initialize<Mtx>({3.0}, exec);
+
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0]->get_sub_matrix(), mat1,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1]->get_sub_matrix(), mat2,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[2]->get_sub_matrix(), mat3,
+                        r<ValueType>::value);
+}
+
+
+TYPED_TEST(Csr, CanComputeBlockApproxWithOverlap)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx2->get_executor();
+
+    auto mat = gko::initialize<Mtx>({{1.0, 2.0, 0.0, 0.0, 3.0},
+                                     {0.0, 3.0, 0.0, 0.0, 0.0},
+                                     {0.0, 3.0, 2.5, 1.5, 0.0},
+                                     {1.0, 0.0, 1.0, 2.0, 4.0},
+                                     {0.0, 1.0, 2.0, 1.5, 3.0}},
+                                    exec);
+    auto b_sizes = gko::Array<gko::size_type>(exec, {3, 2});
+    auto overlap = gko::Overlap<gko::size_type>(mat->get_executor(), 2, 1);
+    auto block_mtxs = mat->get_block_approx(b_sizes, overlap);
+
+    auto mat1 = gko::initialize<Mtx>(
+        {{1.0, 2.0, 0.0}, {0.0, 3.0, 0.0}, {0.0, 3.0, 2.5}}, exec);
+    auto omat1 = gko::initialize<Mtx>({I<T>{0.0}, I<T>{0.0}, I<T>{1.5}}, exec);
+    auto mat2 = gko::initialize<Mtx>({I<T>{2.0, 4.0}, I<T>{1.5, 3.0}}, exec);
+    auto omat2 = gko::initialize<Mtx>({I<T>{1.0}, I<T>{2.0}}, exec);
+
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0]->get_sub_matrix(), mat1,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1]->get_sub_matrix(), mat2,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0]->get_overlap_mtxs()[0], omat1,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1]->get_overlap_mtxs()[0], omat2,
+                        r<ValueType>::value);
+}
+
+
+TYPED_TEST(Csr, CanComputeBlockApproxWithOverlapBidir)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx2->get_executor();
+
+    auto mat = gko::initialize<Mtx>({{1.0, 2.0, 0.0, 0.0, 3.0},
+                                     {0.0, 3.0, 0.0, 0.0, 0.0},
+                                     {0.0, 3.0, 2.5, 1.5, 0.0},
+                                     {1.0, 0.0, 1.0, 2.0, 4.0},
+                                     {0.0, 1.0, 2.0, 1.5, 3.0}},
+                                    exec);
+    auto b_sizes = gko::Array<gko::size_type>(exec, {1, 3, 1});
+    auto overlap = gko::Overlap<gko::size_type>(mat->get_executor(), 3, 1);
+    auto block_mtxs = mat->get_block_approx(b_sizes, overlap);
+
+    auto mat1 = gko::initialize<Mtx>({I<T>({1.0})}, exec);
+    auto omat1 = gko::initialize<Mtx>({I<T>{2.0}}, exec);
+    auto mat2 = gko::initialize<Mtx>(
+        {{3.0, 0.0, 0.0}, {3.0, 2.5, 1.5}, {0.0, 1.0, 2.0}}, exec);
+    auto omat21 = gko::initialize<Mtx>({I<T>{0.0}, I<T>{0.0}, I<T>{1.0}}, exec);
+    auto omat22 = gko::initialize<Mtx>({I<T>{0.0}, I<T>{0.0}, I<T>{4.0}}, exec);
+    auto mat3 = gko::initialize<Mtx>({I<T>({3.0})}, exec);
+    auto omat3 = gko::initialize<Mtx>({I<T>{1.5}}, exec);
+
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0]->get_sub_matrix(), mat1,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1]->get_sub_matrix(), mat2,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[2]->get_sub_matrix(), mat3,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0]->get_overlap_mtxs()[0], omat1,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1]->get_overlap_mtxs()[0], omat21,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1]->get_overlap_mtxs()[1], omat22,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[2]->get_overlap_mtxs()[0], omat3,
+                        r<ValueType>::value);
+}
+
+
+TYPED_TEST(Csr, CanComputeBlockApproxWithMultipleOverlapBidir)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx2->get_executor();
+
+    auto mat = gko::initialize<Mtx>({{1.0, 2.0, 0.0, 0.0, 3.0},
+                                     {0.0, 3.0, 0.0, 0.0, 0.0},
+                                     {0.0, 3.0, 2.5, 1.5, 0.0},
+                                     {1.0, 0.0, 1.0, 2.0, 4.0},
+                                     {0.0, 1.0, 2.0, 1.5, 3.0}},
+                                    exec);
+    auto b_sizes = gko::Array<gko::size_type>(exec, {1, 2, 1, 1});
+    auto overlap = gko::Overlap<gko::size_type>(mat->get_executor(), 4, 2);
+    auto block_mtxs = mat->get_block_approx(b_sizes, overlap);
+
+    auto mat1 = gko::initialize<Mtx>({I<T>({1.0})}, exec);
+    auto omat1 = gko::initialize<Mtx>({I<T>{2.0, 0.0}}, exec);
+    auto mat2 =
+        gko::initialize<Mtx>({I<T>({3.0, 0.0}), I<T>({3.0, 2.5})}, exec);
+    //  TODO: Fill outside with zeros ?
+    auto omat21 = gko::initialize<Mtx>({I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, exec);
+    auto omat22 = gko::initialize<Mtx>({I<T>{0.0, 0.0}, I<T>{1.5, 0.0}}, exec);
+    auto mat3 = gko::initialize<Mtx>({I<T>({2.0})}, exec);
+    auto omat31 = gko::initialize<Mtx>({I<T>{0.0, 1.0}}, exec);
+    auto omat32 = gko::initialize<Mtx>({I<T>{4.0, 0.0}}, exec);
+    auto mat4 = gko::initialize<Mtx>({I<T>({3.0})}, exec);
+    auto omat4 = gko::initialize<Mtx>({I<T>{2.0, 1.5}}, exec);
+
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0]->get_sub_matrix(), mat1,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1]->get_sub_matrix(), mat2,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[2]->get_sub_matrix(), mat3,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[3]->get_sub_matrix(), mat4,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0]->get_overlap_mtxs()[0], omat1,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1]->get_overlap_mtxs()[0], omat21,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1]->get_overlap_mtxs()[1], omat22,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[2]->get_overlap_mtxs()[0], omat31,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[2]->get_overlap_mtxs()[1], omat32,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[3]->get_overlap_mtxs()[0], omat4,
+                        r<ValueType>::value);
+}
+
+
+TYPED_TEST(Csr, CanComputeBlockApproxWithUnidirOverlapAtStart)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx2->get_executor();
+
+    auto mat = gko::initialize<Mtx>({{1.0, 2.0, 0.0, 0.0, 3.0},
+                                     {0.0, 3.0, 0.0, 0.0, 0.0},
+                                     {0.0, 3.0, 2.5, 1.5, 0.0},
+                                     {1.0, 0.0, 1.0, 2.0, 4.0},
+                                     {0.0, 1.0, 2.0, 1.5, 3.0}},
+                                    exec);
+    auto b_sizes = gko::Array<gko::size_type>(exec, {1, 2, 1, 1});
+    auto overlap = gko::Overlap<gko::size_type>(
+        mat->get_executor(), gko::size_type{4}, gko::size_type{1}, bool{true});
+    auto block_mtxs = mat->get_block_approx(b_sizes, overlap);
+
+    auto mat1 = gko::initialize<Mtx>({I<T>({1.0})}, exec);
+    auto omat1 = gko::initialize<Mtx>({I<T>{2.0}}, exec);
+    auto mat2 =
+        gko::initialize<Mtx>({I<T>({3.0, 0.0}), I<T>({3.0, 2.5})}, exec);
+    auto omat21 = gko::initialize<Mtx>({I<T>{0.0}, I<T>{0.0}}, exec);
+    auto mat3 = gko::initialize<Mtx>({I<T>({2.0})}, exec);
+    auto omat3 = gko::initialize<Mtx>({I<T>{1.0}}, exec);
+    auto mat4 = gko::initialize<Mtx>({I<T>({3.0})}, exec);
+    auto omat4 = gko::initialize<Mtx>({I<T>{1.5}}, exec);
+
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0]->get_sub_matrix(), mat1,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1]->get_sub_matrix(), mat2,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[2]->get_sub_matrix(), mat3,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[3]->get_sub_matrix(), mat4,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0]->get_overlap_mtxs()[0], omat1,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1]->get_overlap_mtxs()[0], omat21,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[2]->get_overlap_mtxs()[0], omat3,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[3]->get_overlap_mtxs()[0], omat4,
+                        r<ValueType>::value);
+}
+
+
+TYPED_TEST(Csr, CanComputeBlockApproxWithUnidirOverlapAtEnd)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx2->get_executor();
+
+    auto mat = gko::initialize<Mtx>({{1.0, 2.0, 0.0, 0.0, 3.0},
+                                     {0.0, 3.0, 0.0, 0.0, 0.0},
+                                     {0.0, 3.0, 2.5, 1.5, 0.0},
+                                     {1.0, 0.0, 1.0, 2.0, 4.0},
+                                     {0.0, 1.0, 2.0, 1.5, 3.0}},
+                                    exec);
+    auto b_sizes = gko::Array<gko::size_type>(exec, {1, 2, 1, 1});
+    auto overlap = gko::Overlap<gko::size_type>(
+        mat->get_executor(), gko::size_type{4}, gko::size_type{1}, bool{true},
+        bool{false});
+    auto block_mtxs = mat->get_block_approx(b_sizes, overlap);
+
+    auto mat1 = gko::initialize<Mtx>({I<T>({1.0})}, exec);
+    auto omat1 = gko::initialize<Mtx>({I<T>{2.0}}, exec);
+    auto mat2 =
+        gko::initialize<Mtx>({I<T>({3.0, 0.0}), I<T>({3.0, 2.5})}, exec);
+    auto omat21 = gko::initialize<Mtx>({I<T>{0.0}, I<T>{1.5}}, exec);
+    auto mat3 = gko::initialize<Mtx>({I<T>({2.0})}, exec);
+    auto omat3 = gko::initialize<Mtx>({I<T>{4.0}}, exec);
+    auto mat4 = gko::initialize<Mtx>({I<T>({3.0})}, exec);
+    auto omat4 = gko::initialize<Mtx>({I<T>{1.5}}, exec);
+
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0]->get_sub_matrix(), mat1,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1]->get_sub_matrix(), mat2,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[2]->get_sub_matrix(), mat3,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[3]->get_sub_matrix(), mat4,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[0]->get_overlap_mtxs()[0], omat1,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[1]->get_overlap_mtxs()[0], omat21,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[2]->get_overlap_mtxs()[0], omat3,
+                        r<ValueType>::value);
+    GKO_EXPECT_MTX_NEAR(block_mtxs[3]->get_overlap_mtxs()[0], omat4,
+                        r<ValueType>::value);
+}
+
+
 TYPED_TEST(Csr, CanGetSubmatrix)
 {
     using Vec = typename TestFixture::Vec;
