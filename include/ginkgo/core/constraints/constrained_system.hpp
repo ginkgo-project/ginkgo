@@ -44,50 +44,49 @@ namespace constraints {
 
 class ConstrainedHandler {
 public:
-    ConstrainedHandler() = default;
-    ConstrainedHandler(Array<int32> idxs,
-                       std::shared_ptr<const matrix::Dense<double>> values)
-    {}
-
     /**
-     * Setups the constrained system.
+     * Initializes the constrained system.
      *
-     * Afterwards, the modified system can be obtained from get_operator,
-     * get_right_hand_side, and get_initial_guess. If no initial guess was
-     * provided, the guess will be set to zero.
+     * Applies the constrains to the system operator.
+     * Other parts of the original system may be passed as well, but their
+     * constrained versions are not constructed until either get_* or
+     * construct_system is called.
+     * If these parts are not passed, they must be set with the respected with_*
+     * call.
+     *
+     * @param idxs  the indices of the constrained degrees of freedom
+     * @param system_operator  the original system operator
+     * @param values  the values of the constrained defrees of freedom
+     * @param right_hand_side  the original right-hand-side of the system
+     * @param initial_guess  the initial guess for the original system
      */
-    void setup_system(std::shared_ptr<LinOp> op,
-                      std::shared_ptr<const LinOp> rhs,
-                      std::shared_ptr<const LinOp> init = nullptr)
+    ConstrainedHandler(
+        Array<int32> idxs, std::shared_ptr<LinOp> system_operator,
+        std::shared_ptr<const matrix::Dense<Value>> values = nullptr,
+        std::shared_ptr<const matrix::Dense<Value>> right_hand_side = nullptr,
+        std::shared_ptr<const matrix::Dense<Value>> initial_guess = nullptr)
     {}
 
     /**
      * Sets new contrained values, the corresponding indices are not changed.
      *
-     * @note Invalidates previous pointers from get_operator,
-     * get_right_hand_side, and get_initial_guess
+     * @note Invalidates previous pointers from get_right_hand_side and
+     * get_initial_guess
      *
+     * @return *this
      */
-    void update_constrained_values(std::shared_ptr<const matrix::Dense<double>>)
+    ConstrainedHandler &with_constrained_values(
+        std::shared_ptr<const matrix::Dense<double>>)
     {}
-
-    /**
-     * Set a new operator for the linear system.
-     *
-     * @note Invalidates previous pointers from get_operator and
-     * get_right_hand_side
-     *
-     * This will also update the right hand side and initial guess.
-     * If those should also be changes, than setup_system is better suited.
-     */
-    void update_operator(std::shared_ptr<LinOp>) {}
 
     /**
      * Set a new right hand side for the linear system.
      *
      * @note Invalidates previous pointers from get_right_hand_side
+     *
+     * @return *this
      */
-    void update_right_hand_side(std::shared_ptr<const LinOp>) {}
+    ConstrainedHandler &with_right_hand_side(std::shared_ptr<const LinOp>) {}
 
     /**
      * Set a new initial guess for the linear system.
@@ -95,9 +94,9 @@ public:
      * @note Invalidates previous pointers from get_right_hand_side and
      * get_initial_guess
      *
-     * This will also update the right hand side.
+     * @return *this
      */
-    void update_initial_guess(std::shared_ptr<const LinOp>) {}
+    ConstrainedHandler &with_initial_guess(std::shared_ptr<const LinOp>) {}
 
     /**
      * Read access to the constrained operator
@@ -105,18 +104,34 @@ public:
     const LinOp *get_operator() {}
 
     /**
-     * Read access to the right hand side of the constrained system
+     * Read access to the right hand side of the constrained system.
+     *
+     * First call after with_right_hand_side, with_initial_guess, or
+     * with_constrained_values constructs the constrained right-hand-side.
+     * Without further with_* calls, this function does not recompute the
+     * right-hand-side.
      */
     const LinOp *get_right_hand_side() {}
 
     /**
      * Read/write access to the initial guess for the constrained system
      *
-     * @note if this function is called multiple times, the initial guess will
-     * be rebuild after the the first invocation
+     * Without providing an initial guess either to the constructor or
+     * with_initial_guess, zero will be assumed for the initial guess of the
+     * original system.
+     *
+     * @note Reconstructs the initial guess at every call.
      */
     LinOp *get_initial_guess() {}
 
+    /**
+     * Forces the construction of the constrained system.
+     *
+     * Afterwards, the modified system can be obtained from get_operator,
+     * get_right_hand_side, and get_initial_guess. If no initial guess was
+     * provided, the guess will be set to zero.
+     */
+    void construct_system() {}
 
     /**
      * Obtains the solution to the original constrained system from the solution
