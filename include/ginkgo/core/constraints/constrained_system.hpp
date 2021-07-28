@@ -76,8 +76,16 @@ public:
      * @return *this
      */
     ConstrainedHandler &with_constrained_values(
-        std::shared_ptr<const matrix::Dense<double>>)
-    {}
+        std::shared_ptr<const matrix::Dense<double>> values)
+    {
+        values_ = std::move(values);
+
+        // invalidate previous pointers
+        cons_init_guess_.reset();
+        cons_rhs_.reset();
+
+        return *this;
+    }
 
     /**
      * Set a new right hand side for the linear system.
@@ -86,7 +94,16 @@ public:
      *
      * @return *this
      */
-    ConstrainedHandler &with_right_hand_side(std::shared_ptr<const LinOp>) {}
+    ConstrainedHandler &with_right_hand_side(
+        std::shared_ptr<const LinOp> right_hand_side)
+    {
+        orig_rhs_ = std::move(right_hand_side);
+
+        // invalidate previous pointer
+        cons_rhs_.reset();
+
+        return *this;
+    }
 
     /**
      * Set a new initial guess for the linear system.
@@ -96,12 +113,22 @@ public:
      *
      * @return *this
      */
-    ConstrainedHandler &with_initial_guess(std::shared_ptr<const LinOp>) {}
+    ConstrainedHandler &with_initial_guess(
+        std::shared_ptr<const LinOp> initial_guess)
+    {
+        orig_init_guess_ = std::move(initial_guess);
+
+        // invalidate previous pointers
+        cons_init_guess_.reset();
+        cons_rhs_.reset();
+
+        return *this;
+    }
 
     /**
      * Read access to the constrained operator
      */
-    const LinOp *get_operator() {}
+    const LinOp *get_operator() { return cons_operator_.get(); }
 
     /**
      * Read access to the right hand side of the constrained system.
@@ -111,7 +138,13 @@ public:
      * Without further with_* calls, this function does not recompute the
      * right-hand-side.
      */
-    const LinOp *get_right_hand_side() {}
+    const LinOp *get_right_hand_side()
+    {
+        if (!cons_rhs_) {
+            construct_right_hand_side_impl()
+        }
+        return cons_rhs_.get();
+    }
 
     /**
      * Read/write access to the initial guess for the constrained system
@@ -122,7 +155,13 @@ public:
      *
      * @note Reconstructs the initial guess at every call.
      */
-    LinOp *get_initial_guess() {}
+    LinOp *get_initial_guess()
+    {
+        if (!cons_init_guess_) {
+            construct_initial_guess_impl();
+        }
+        return cons_init_guess_.get();
+    }
 
     /**
      * Forces the construction of the constrained system.
@@ -138,6 +177,16 @@ public:
      * of the modified system
      */
     void correct_solution(LinOp *) {}
+
+protected:
+    virtual void construct_operator_impl() = 0;
+
+    virtual void construct_right_hand_side_impl() = 0;
+
+    virtual void construct_initial_guess_impl() = 0;
+
+    virtual void correct_solution_impl() = 0;
+
 
 private:
     Array<int32> idxs_;
