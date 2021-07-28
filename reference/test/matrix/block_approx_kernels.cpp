@@ -110,19 +110,15 @@ TYPED_TEST(BlockApprox, CanApplyToDense)
     this->csr_mtx1->apply(this->b1.get(), this->x1.get());
 
     ASSERT_EQ(mtx->get_num_blocks(), 2);
-    ASSERT_EQ(mtx->get_block_dimensions()[0], gko::dim<2>(2));
-    ASSERT_EQ(mtx->get_block_dimensions()[1], gko::dim<2>(3));
-    ASSERT_EQ(mtx->get_block_nonzeros()[0], 3);
-    ASSERT_EQ(mtx->get_block_nonzeros()[1], 8);
-    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[0], this->csr_mtx0,
-                        r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[1], this->csr_mtx1,
-                        r<value_type>::value);
-    ASSERT_EQ(this->x->get_values()[0], this->x0->get_values()[0]);
-    ASSERT_EQ(this->x->get_values()[1], this->x0->get_values()[1]);
-    ASSERT_EQ(this->x->get_values()[2], this->x1->get_values()[0]);
-    ASSERT_EQ(this->x->get_values()[3], this->x1->get_values()[1]);
-    ASSERT_EQ(this->x->get_values()[4], this->x1->get_values()[2]);
+    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[0]->get_sub_matrix(),
+                        this->csr_mtx0, r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[1]->get_sub_matrix(),
+                        this->csr_mtx1, r<value_type>::value);
+    EXPECT_EQ(this->x->get_values()[0], this->x0->get_values()[0]);
+    EXPECT_EQ(this->x->get_values()[1], this->x0->get_values()[1]);
+    EXPECT_EQ(this->x->get_values()[2], this->x1->get_values()[0]);
+    EXPECT_EQ(this->x->get_values()[3], this->x1->get_values()[1]);
+    EXPECT_EQ(this->x->get_values()[4], this->x1->get_values()[2]);
 }
 
 
@@ -145,19 +141,15 @@ TYPED_TEST(BlockApprox, CanAdvancedApplyToDense)
                           this->x1.get());
 
     ASSERT_EQ(mtx->get_num_blocks(), 2);
-    ASSERT_EQ(mtx->get_block_dimensions()[0], gko::dim<2>(2));
-    ASSERT_EQ(mtx->get_block_dimensions()[1], gko::dim<2>(3));
-    ASSERT_EQ(mtx->get_block_nonzeros()[0], 3);
-    ASSERT_EQ(mtx->get_block_nonzeros()[1], 8);
-    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[0], this->csr_mtx0,
-                        r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[1], this->csr_mtx1,
-                        r<value_type>::value);
-    ASSERT_EQ(this->x->get_values()[0], this->x0->get_values()[0]);
-    ASSERT_EQ(this->x->get_values()[1], this->x0->get_values()[1]);
-    ASSERT_EQ(this->x->get_values()[2], this->x1->get_values()[0]);
-    ASSERT_EQ(this->x->get_values()[3], this->x1->get_values()[1]);
-    ASSERT_EQ(this->x->get_values()[4], this->x1->get_values()[2]);
+    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[0]->get_sub_matrix(),
+                        this->csr_mtx0, r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[1]->get_sub_matrix(),
+                        this->csr_mtx1, r<value_type>::value);
+    EXPECT_EQ(this->x->get_values()[0], this->x0->get_values()[0]);
+    EXPECT_EQ(this->x->get_values()[1], this->x0->get_values()[1]);
+    EXPECT_EQ(this->x->get_values()[2], this->x1->get_values()[0]);
+    EXPECT_EQ(this->x->get_values()[3], this->x1->get_values()[1]);
+    EXPECT_EQ(this->x->get_values()[4], this->x1->get_values()[2]);
 }
 
 

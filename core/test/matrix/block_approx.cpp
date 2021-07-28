@@ -86,7 +86,6 @@ TYPED_TEST(BlockApprox, CanBeEmpty)
     auto mtx = Mtx::create(this->exec);
 
     ASSERT_EQ(mtx->get_num_blocks(), 0);
-    ASSERT_EQ(mtx->get_block_nonzeros().size(), 0);
 }
 
 
@@ -100,14 +99,10 @@ TYPED_TEST(BlockApprox, CanBeCreatedFromCsr)
     auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes);
 
     ASSERT_EQ(mtx->get_num_blocks(), 2);
-    ASSERT_EQ(mtx->get_block_dimensions()[0], gko::dim<2>(2));
-    ASSERT_EQ(mtx->get_block_dimensions()[1], gko::dim<2>(3));
-    ASSERT_EQ(mtx->get_block_nonzeros()[0], 3);
-    ASSERT_EQ(mtx->get_block_nonzeros()[1], 8);
-    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[0], this->csr_mtx0,
-                        r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[1], this->csr_mtx1,
-                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[0]->get_sub_matrix(),
+                        this->csr_mtx0, r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[1]->get_sub_matrix(),
+                        this->csr_mtx1, r<value_type>::value);
 }
 
 
@@ -123,14 +118,10 @@ TYPED_TEST(BlockApprox, CanBeCopied)
     copy->copy_from(mtx.get());
 
     ASSERT_EQ(copy->get_num_blocks(), 2);
-    ASSERT_EQ(copy->get_block_dimensions()[0], gko::dim<2>(2));
-    ASSERT_EQ(copy->get_block_dimensions()[1], gko::dim<2>(3));
-    ASSERT_EQ(copy->get_block_nonzeros()[0], 3);
-    ASSERT_EQ(copy->get_block_nonzeros()[1], 8);
-    GKO_EXPECT_MTX_NEAR(copy->get_block_mtxs()[0], this->csr_mtx0,
-                        r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(copy->get_block_mtxs()[1], this->csr_mtx1,
-                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(copy->get_block_mtxs()[0]->get_sub_matrix(),
+                        this->csr_mtx0, r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(copy->get_block_mtxs()[1]->get_sub_matrix(),
+                        this->csr_mtx1, r<value_type>::value);
 }
 
 
@@ -146,14 +137,10 @@ TYPED_TEST(BlockApprox, CanBeMoved)
     copy->copy_from(std::move(mtx.get()));
 
     ASSERT_EQ(copy->get_num_blocks(), 2);
-    ASSERT_EQ(copy->get_block_dimensions()[0], gko::dim<2>(2));
-    ASSERT_EQ(copy->get_block_dimensions()[1], gko::dim<2>(3));
-    ASSERT_EQ(copy->get_block_nonzeros()[0], 3);
-    ASSERT_EQ(copy->get_block_nonzeros()[1], 8);
-    GKO_EXPECT_MTX_NEAR(copy->get_block_mtxs()[0], this->csr_mtx0,
-                        r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(copy->get_block_mtxs()[1], this->csr_mtx1,
-                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(copy->get_block_mtxs()[0]->get_sub_matrix(),
+                        this->csr_mtx0, r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(copy->get_block_mtxs()[1]->get_sub_matrix(),
+                        this->csr_mtx1, r<value_type>::value);
 }
 
 
@@ -167,14 +154,10 @@ TYPED_TEST(BlockApprox, CanBeCloned)
     auto clone = mtx->clone();
 
     ASSERT_EQ(clone->get_num_blocks(), 2);
-    ASSERT_EQ(clone->get_block_dimensions()[0], gko::dim<2>(2));
-    ASSERT_EQ(clone->get_block_dimensions()[1], gko::dim<2>(3));
-    ASSERT_EQ(clone->get_block_nonzeros()[0], 3);
-    ASSERT_EQ(clone->get_block_nonzeros()[1], 8);
-    GKO_EXPECT_MTX_NEAR(clone->get_block_mtxs()[0], this->csr_mtx0,
-                        r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(clone->get_block_mtxs()[1], this->csr_mtx1,
-                        r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(clone->get_block_mtxs()[0]->get_sub_matrix(),
+                        this->csr_mtx0, r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(clone->get_block_mtxs()[1]->get_sub_matrix(),
+                        this->csr_mtx1, r<value_type>::value);
 }
 
 
@@ -190,7 +173,6 @@ TYPED_TEST(BlockApprox, CanBeCleared)
     mtx->clear();
 
     ASSERT_EQ(mtx->get_num_blocks(), 0);
-    ASSERT_EQ(mtx->get_block_nonzeros().size(), 0);
 }
 
 
