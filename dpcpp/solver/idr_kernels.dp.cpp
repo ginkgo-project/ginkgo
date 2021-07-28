@@ -130,7 +130,8 @@ void orthonormalize_subspace_vectors_kernel(
                 */
                 dot += values[row * stride + j] * conj(values[i * stride + j]);
             }
-
+            // TODO: check with intel why we need this here.
+            item_ct1.barrier();
             reduction_helper[tidx] = dot;
 
             /*
@@ -595,8 +596,8 @@ void compute_omega_kernel(
     if (!stop_status[global_id].has_stopped()) {
         auto thr = omega[global_id];
         omega[global_id] /= tht[global_id];
-        auto absrho = std::abs(thr / (std::sqrt((float)(real(tht[global_id]))) *
-                                      residual_norm[global_id]));
+        auto absrho = std::abs(
+            thr / (std::sqrt(real(tht[global_id])) * residual_norm[global_id]));
 
         if (absrho < kappa) {
             omega[global_id] *= kappa / absrho;
