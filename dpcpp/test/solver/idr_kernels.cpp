@@ -273,11 +273,11 @@ TEST_F(Idr, IdrStep3IsEquivalentToRef)
         dpcpp, nrhs, k, d_p.get(), d_g.get(), d_v.get(), d_u.get(), d_m.get(),
         d_f.get(), d_alpha.get(), d_r.get(), d_x.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(g, d_g, rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(g, d_g, 2 * rr<value_type>::value);
     GKO_ASSERT_MTX_NEAR(v, d_v, rr<value_type>::value);
     GKO_ASSERT_MTX_NEAR(u, d_u, rr<value_type>::value);
     GKO_ASSERT_MTX_NEAR(m, d_m, rr<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(f, d_f, rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(f, d_f, 2 * rr<value_type>::value);
     GKO_ASSERT_MTX_NEAR(r, d_r, rr<value_type>::value);
     GKO_ASSERT_MTX_NEAR(x, d_x, rr<value_type>::value);
 }
@@ -287,7 +287,7 @@ TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
 {
     initialize_data();
 
-    double kappa = 0.7;
+    value_type kappa = 0.7;
     gko::kernels::reference::idr::compute_omega(ref, nrhs, kappa, tht.get(),
                                                 residual_norm.get(),
                                                 omega.get(), stop_status.get());
@@ -350,8 +350,8 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     dpcpp_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 10);
-    GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 10);
+    GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 100);
 }
 
 
@@ -371,8 +371,8 @@ TEST_F(Idr, IdrIterationMultipleRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     dpcpp_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-12);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 500);
+    GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 500);
 }
 
 
