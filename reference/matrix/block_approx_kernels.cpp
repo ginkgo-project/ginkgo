@@ -66,14 +66,13 @@ namespace block_approx {
 template <typename IndexType>
 void compute_block_ptrs(std::shared_ptr<const DefaultExecutor> exec,
                         const size_type num_blocks,
-                        const size_type *block_sizes,
-                        IndexType *block_ptrs) GKO_NOT_IMPLEMENTED;
-// {
-//     for (size_type b = 0; b < num_blocks; ++b) {
-//         block_ptrs[b] = block_sizes[b];
-//     }
-//     components::prefix_sum(exec, block_ptrs, num_blocks + 1);
-// }
+                        const size_type *block_sizes, IndexType *block_ptrs)
+{
+    for (size_type b = 0; b < num_blocks; ++b) {
+        block_ptrs[b] = block_sizes[b];
+    }
+    components::prefix_sum(exec, block_ptrs, num_blocks + 1);
+}
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_BLOCK_APPROX_COMPUTE_BLOCK_PTRS_KERNEL);

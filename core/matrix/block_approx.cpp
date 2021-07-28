@@ -67,8 +67,8 @@ void BlockApprox<MatrixType>::generate(const Array<size_type> &block_sizes,
     auto num_blocks = block_sizes.get_num_elems();
     auto block_mtxs = matrix->get_block_approx(block_sizes, block_overlaps);
 
-    // this->get_executor()->run(block_approx::make_compute_block_ptrs(
-    //     num_blocks, block_sizes.get_const_data(), block_ptrs_.get_data()));
+    this->get_executor()->run(block_approx::make_compute_block_ptrs(
+        num_blocks, block_sizes.get_const_data(), block_ptrs_.get_data()));
 
     for (size_type j = 0; j < block_mtxs.size(); ++j) {
         block_mtxs_.emplace_back(std::move(block_mtxs[j]));
@@ -91,7 +91,16 @@ void BlockApprox<MatrixType>::apply_impl(const LinOp *b, LinOp *x) const
     // dense_x));
     auto num_blocks = block_mtxs_.size();
     for (size_type b = 0; b < num_blocks; ++b) {
-        this->block_mtxs_[b]->apply(dense_b, dense_x);
+        auto block_size = this->block_mtxs_[b]->get_size();
+        auto b_view = dense_b->create_submatrix(
+            span{block_ptrs_.get_const_data()[b],
+                 block_ptrs_.get_const_data()[b] + block_size[0]},
+            span{0, dense_x->get_size()[1]});
+        auto x_view = dense_x->create_submatrix(
+            span{block_ptrs_.get_const_data()[b],
+                 block_ptrs_.get_const_data()[b] + block_size[0]},
+            span{0, dense_x->get_size()[1]});
+        this->block_mtxs_[b]->apply(b_view.get(), x_view.get());
     }
 }
 
@@ -109,8 +118,17 @@ void BlockApprox<MatrixType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
     auto num_blocks = block_mtxs_.size();
     for (size_type b = 0; b < num_blocks; ++b) {
-        this->block_mtxs_[b]->apply(as<Dense>(alpha), dense_b, as<Dense>(beta),
-                                    dense_x);
+        auto block_size = this->block_mtxs_[b]->get_size();
+        auto b_view = dense_b->create_submatrix(
+            span{block_ptrs_.get_const_data()[b],
+                 block_ptrs_.get_const_data()[b] + block_size[0]},
+            span{0, dense_x->get_size()[1]});
+        auto x_view = dense_x->create_submatrix(
+            span{block_ptrs_.get_const_data()[b],
+                 block_ptrs_.get_const_data()[b] + block_size[0]},
+            span{0, dense_x->get_size()[1]});
+        this->block_mtxs_[b]->apply(as<Dense>(alpha), b_view.get(),
+                                    as<Dense>(beta), x_view.get());
     }
 }
 
