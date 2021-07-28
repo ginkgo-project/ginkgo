@@ -89,6 +89,8 @@ GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
+GKO_REGISTER_OPERATION(scale, csr::scale);
+GKO_REGISTER_OPERATION(inv_scale, csr::inv_scale);
 
 
 }  // anonymous namespace
@@ -576,6 +578,28 @@ Csr<ValueType, IndexType>::compute_absolute() const
 
     convert_strategy_helper(abs_csr.get());
     return abs_csr;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::scale_impl(const LinOp *alpha)
+{
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_COLS(alpha, dim<2>(1, 1));
+    auto exec = this->get_executor();
+    exec->run(csr::make_scale(make_temporary_conversion<ValueType>(alpha).get(),
+                              this));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::inv_scale_impl(const LinOp *alpha)
+{
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_COLS(alpha, dim<2>(1, 1));
+    auto exec = this->get_executor();
+    exec->run(csr::make_inv_scale(
+        make_temporary_conversion<ValueType>(alpha).get(), this));
 }
 
 

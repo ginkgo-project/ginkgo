@@ -896,6 +896,30 @@ public:
         this->make_srow();
     }
 
+    /**
+     * Scales the matrix with a scalar.
+     *
+     * @param alpha  The entire matrix is scaled by alpha. alpha has to be a 1x1
+     * Dense matrix.
+     */
+    void scale(const LinOp *alpha)
+    {
+        auto exec = this->get_executor();
+        this->scale_impl(make_temporary_clone(exec, alpha).get());
+    }
+
+    /**
+     * Scales the matrix with the inverse of a scalar.
+     *
+     * @param alpha  The entire matrix is scaled by 1 / alpha. alpha has to be a
+     * 1x1 Dense matrix.
+     */
+    void inv_scale(const LinOp *alpha)
+    {
+        auto exec = this->get_executor();
+        this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
+    }
+
 protected:
     /**
      * Creates an uninitialized CSR matrix of the specified size.
@@ -1085,6 +1109,22 @@ protected:
         srow_.resize_and_reset(strategy_->clac_size(values_.get_num_elems()));
         strategy_->process(row_ptrs_, &srow_);
     }
+
+    /**
+     * @copydoc scale(const LinOp *)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of scale(const LinOp *alpha).
+     */
+    virtual void scale_impl(const LinOp *alpha);
+
+    /**
+     * @copydoc inv_scale(const LinOp *)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of inv_scale(const LinOp *alpha).
+     */
+    virtual void inv_scale_impl(const LinOp *alpha);
 
 private:
     Array<value_type> values_;
