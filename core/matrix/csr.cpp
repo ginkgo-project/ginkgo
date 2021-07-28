@@ -170,10 +170,10 @@ Csr<ValueType, IndexType>::get_block_approx(
     for (size_type b = 0; b < num_blocks; ++b) {
         auto bsize = bsizes_in.get_const_data()[b];
         auto mspan = gko::span{offset, offset + bsize};
-        auto unidir = block_overlaps_in.get_unidirectional_array()[b];
-        auto overlap = block_overlaps_in.get_overlaps()[b];
-        auto st_overlap = block_overlaps_in.get_overlap_at_start_array()[b];
         if (block_overlaps_in.get_num_elems() > 0) {
+            auto unidir = block_overlaps_in.get_unidirectional_array()[b];
+            auto overlap = block_overlaps_in.get_overlaps()[b];
+            auto st_overlap = block_overlaps_in.get_overlap_at_start_array()[b];
             auto overlap_spans = calculate_overlap_row_and_col_spans(
                 this->get_size(), mspan, mspan, unidir, overlap, st_overlap);
             block_mtxs.emplace_back(

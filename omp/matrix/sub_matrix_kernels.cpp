@@ -65,9 +65,55 @@ namespace sub_matrix {
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::SubMatrix<matrix::Csr<ValueType, IndexType>> *a,
+          const matrix::SubMatrix<matrix::Csr<ValueType, IndexType>> *sub_mat,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
-{}
+{
+    auto a = sub_mat->get_sub_matrix();
+    auto overlaps = sub_mat->get_overlap_mtxs();
+    auto num_overlaps = overlaps.size();
+    auto row_offset = sub_mat->get_overlap_sizes().get_data();
+    auto overlap_sizes = std::vector<int>(num_overlaps, 0);
+    auto left_ov_bound = sub_mat->get_left_overlap_bound();
+    bool fl = true;
+    for (int i = 1; i < num_overlaps; ++i) {
+        overlap_sizes[i] = overlap_sizes[i - 1] + overlaps[i]->get_size()[1];
+        if (i > left_ov_bound && fl) {
+            overlap_sizes[i] += a->get_size()[1];
+            fl = false;
+        }
+    }
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+    auto vals = a->get_const_values();
+
+    int s_row_offset = sub_mat->get_left_overlap_size();
+    for (size_type row = 0; row < sub_mat->get_size()[0]; ++row) {
+        for (size_type j = 0; j < c->get_size()[1]; ++j) {
+            c->at(row, j) = zero<ValueType>();
+        }
+        for (size_type k = row_ptrs[row];
+             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+            auto val = vals[k];
+            auto col = col_idxs[k];
+            for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                c->at(row, j) += val * b->at(s_row_offset + col, j);
+            }
+        }
+        for (size_type n = 0; n < num_overlaps; ++n) {
+            auto omat_row_ptrs = overlaps[n]->get_const_row_ptrs();
+            auto omat_col_idxs = overlaps[n]->get_const_col_idxs();
+            auto omat_vals = overlaps[n]->get_const_values();
+            for (size_type k = omat_row_ptrs[row];
+                 k < static_cast<size_type>(omat_row_ptrs[row + 1]); ++k) {
+                auto val = omat_vals[k];
+                auto col = omat_col_idxs[k];
+                for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                    c->at(row, j) += val * b->at(col + overlap_sizes[n], j);
+                }
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SUB_MATRIX_SPMV_KERNEL);
@@ -77,10 +123,50 @@ template <typename ValueType, typename IndexType>
 void advanced_spmv(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Dense<ValueType> *alpha,
-    const matrix::SubMatrix<matrix::Csr<ValueType, IndexType>> *a,
+    const matrix::SubMatrix<matrix::Csr<ValueType, IndexType>> *sub_mat,
     const matrix::Dense<ValueType> *b, const matrix::Dense<ValueType> *beta,
     matrix::Dense<ValueType> *c)
-{}
+{
+    auto a = sub_mat->get_sub_matrix();
+    auto overlaps = sub_mat->get_overlap_mtxs();
+    auto num_overlaps = overlaps.size();
+    auto overlap_sizes = sub_mat->get_overlap_sizes();
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+    auto vals = a->get_const_values();
+    auto valpha = alpha->at(0, 0);
+    auto vbeta = beta->at(0, 0);
+
+    int s_row_offset = sub_mat->get_left_overlap_size();
+    for (size_type row = 0; row < sub_mat->get_size()[0]; ++row) {
+        for (size_type j = 0; j < c->get_size()[1]; ++j) {
+            c->at(row, j) *= vbeta;
+        }
+        for (size_type k = row_ptrs[row];
+             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+            auto val = vals[k];
+            auto col = col_idxs[k];
+            for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                c->at(row, j) += valpha * val * b->at(s_row_offset + col, j);
+            }
+        }
+        for (size_type n = 0; n < num_overlaps; ++n) {
+            auto omat_row_ptrs = overlaps[n]->get_const_row_ptrs();
+            auto omat_col_idxs = overlaps[n]->get_const_col_idxs();
+            auto omat_vals = overlaps[n]->get_const_values();
+            for (size_type k = omat_row_ptrs[row];
+                 k < static_cast<size_type>(omat_row_ptrs[row + 1]); ++k) {
+                auto val = omat_vals[k];
+                auto col = omat_col_idxs[k];
+                for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                    c->at(row, j) +=
+                        valpha * val *
+                        b->at(col + overlap_sizes.get_data()[n], j);
+                }
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SUB_MATRIX_ADVANCED_SPMV_KERNEL);
