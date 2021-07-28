@@ -102,6 +102,36 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void scale(std::shared_ptr<const DefaultExecutor> exec,
+           const matrix::Dense<ValueType> *alpha,
+           matrix::Csr<ValueType, IndexType> *x)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto nnz, auto alpha, auto x) { x[nnz] *= alpha[0]; },
+        x->get_num_stored_elements(), alpha->get_const_values(),
+        x->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SCALE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
+               const matrix::Dense<ValueType> *alpha,
+               matrix::Csr<ValueType, IndexType> *x)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto nnz, auto alpha, auto x) { x[nnz] /= alpha[0]; },
+        x->get_num_stored_elements(), alpha->get_const_values(),
+        x->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_INV_SCALE_KERNEL);
+
+
 }  // namespace csr
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

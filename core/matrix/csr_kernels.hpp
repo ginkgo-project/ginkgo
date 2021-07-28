@@ -188,6 +188,16 @@ namespace kernels {
                           const matrix::Csr<ValueType, IndexType>* orig, \
                           matrix::Diagonal<ValueType>* diag)
 
+#define GKO_DECLARE_CSR_SCALE_KERNEL(ValueType, IndexType)  \
+    void scale(std::shared_ptr<const DefaultExecutor> exec, \
+               const matrix::Dense<ValueType> *alpha,       \
+               matrix::Csr<ValueType, IndexType> *to_scale)
+
+#define GKO_DECLARE_CSR_INV_SCALE_KERNEL(ValueType, IndexType)  \
+    void inv_scale(std::shared_ptr<const DefaultExecutor> exec, \
+                   const matrix::Dense<ValueType> *alpha,       \
+                   matrix::Csr<ValueType, IndexType> *to_scale)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);                       \
@@ -234,7 +244,11 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType);         \
     template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_EXTRACT_DIAGONAL(ValueType, IndexType)
+    GKO_DECLARE_CSR_EXTRACT_DIAGONAL(ValueType, IndexType);                  \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CSR_SCALE_KERNEL(ValueType, IndexType);                      \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CSR_INV_SCALE_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(csr, GKO_DECLARE_ALL_AS_TEMPLATES);
