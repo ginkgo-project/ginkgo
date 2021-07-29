@@ -66,7 +66,7 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
         [device_id](CudaExecutor *exec) {
             auto device_reset = exec->get_device_reset();
             std::lock_guard<std::recursive_mutex> guard(
-                device_type::get_mutex(device_id));
+                device_class::get_mutex(device_id));
             delete exec;
             if (!CudaExecutor::get_num_execs(device_id) && device_reset) {
                 cuda::device_guard g(device_id);
