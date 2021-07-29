@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
         std::exit(-1);
     }
 
-    const auto executor_string = argc >= 2 ? argv[1] : "omp";
+    const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto grid_dim = argc >= 3 ? std::atoi(argv[2]) : 100;
     gko::size_type overlap = argc >= 4 ? std::atoi(argv[3]) : 0;
     ValueType relax_fac = argc >= 5 ? std::atof(argv[4]) : 1.0;
@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
     auto ras_precond =
         ras::build()
             .with_block_dimensions(block_sizes)
-            .with_overlaps(block_overlaps)
+            // .with_overlaps(block_overlaps)
             .with_coarse_relaxation_factors(1.0)
             .with_coarse_solvers(
                 // ir::build()

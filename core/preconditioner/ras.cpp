@@ -95,44 +95,18 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
                                        detail::get_local(dense_x));
     } else {
         using block_t = matrix::BlockApprox<matrix::Csr<ValueType, IndexType>>;
-        const auto dense_x_clone = (dense_x->clone());
-        const auto num_subdomains = this->inner_solvers_.size();
-        // FIXME host transfer
-        auto temp_overlaps = this->overlaps_;
-        temp_overlaps.set_executor(this->get_executor()->get_master());
-        const auto block_overlaps = temp_overlaps.get_overlaps();
-        const auto overlap_unidir = temp_overlaps.get_unidirectional_array();
-        const auto overlap_start = temp_overlaps.get_overlap_at_start_array();
-        size_type offset = 0;
-        auto temp_x = detail::create_with_same_size(dense_x);
+        auto block_mtx = as<block_t>(block_system_matrix_);
+        auto block_ptrs = block_mtx->get_block_ptrs();
+        auto num_subdomains = this->inner_solvers_.size();
         for (size_type i = 0; i < num_subdomains; ++i) {
-            auto overlap_start_offset =
-                (block_overlaps && (!overlap_unidir[i] || overlap_start[i]))
-                    ? block_overlaps[i]
-                    : 0;
-            auto overlap_end_offset =
-                (block_overlaps && (!overlap_unidir[i] || !overlap_start[i]))
-                    ? block_overlaps[i]
-                    : 0;
-            auto loc_size = this->block_dims_[i] - overlap_start_offset -
-                            overlap_end_offset;
-            auto row_span = span{offset - overlap_start_offset,
-                                 offset + loc_size[0] + overlap_end_offset};
-            auto col_span = span{0, dense_b->get_size()[1]};
-            const auto loc_b = std::move(
-                detail::create_submatrix(dense_b, row_span, col_span));
-            auto x_row_span = span{offset, offset + loc_size[0]};
-            auto x_col_span = span{0, dense_x->get_size()[1]};
-            temp_x->copy_from(dense_x_clone.get());
-            auto ov_x = std::move(
-                detail::create_submatrix(temp_x.get(), row_span, col_span));
-            this->inner_solvers_[i]->apply(loc_b.get(), ov_x.get());
-            auto loc_x = std::move(
-                detail::create_submatrix(dense_x, x_row_span, x_col_span));
-            auto sol_view = std::move(
-                detail::create_submatrix(temp_x.get(), x_row_span, x_col_span));
-            loc_x->copy_from(sol_view.get());
-            offset += loc_size[0];
+            auto block_size = this->inner_solvers_[i]->get_size();
+            auto b_view = detail::create_submatrix(
+                dense_b, span{block_ptrs[i], block_ptrs[i] + block_size[0]},
+                span{0, dense_x->get_size()[1]});
+            auto x_view = detail::create_submatrix(
+                dense_x, span{block_ptrs[i], block_ptrs[i] + block_size[0]},
+                span{0, dense_x->get_size()[1]});
+            this->inner_solvers_[i]->apply(b_view.get(), x_view.get());
         }
     }
     if (this->coarse_solvers_.size() > 0) {
@@ -211,6 +185,7 @@ void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
         }
         this->is_distributed_ = false;
     } else if (dynamic_cast<const block_t *>(system_matrix) != nullptr) {
+        this->block_system_matrix_ = this->system_matrix_;
         auto block_mtxs = as<block_t>(system_matrix)->get_block_mtxs();
         this->overlaps_ = as<block_t>(system_matrix)->get_overlaps();
         this->block_dims_ = as<block_t>(system_matrix)->get_block_dimensions();
@@ -250,6 +225,7 @@ void Ras<ValueType, IndexType>::generate(const LinOp *system_matrix)
         }
         this->is_distributed_ = true;
     } else if (dynamic_cast<const dist_block_t *>(system_matrix) != nullptr) {
+        this->block_system_matrix_ = this->system_matrix_;
         auto block_mtxs = as<dist_block_t>(system_matrix)->get_block_mtxs();
         const auto num_subdomains = block_mtxs.size();
         for (size_type i = 0; i < num_subdomains; ++i) {
