@@ -10,7 +10,7 @@
 # add_host_function will add another host function with the same template and calling the cuda call
 # ```
 # template <int config = 1, int info, typename ValueType>
-# void kernel_AUTOHOSTFUNC(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory, cudaStream_t stream, ValueType a) {
+# void kernel_AUTOHOSTFUNC(dim3 grid, dim3 block, size_type dynamic_shared_memory, cudaStream_t stream, ValueType a) {
 #     /*KEEP*/kernel<config, info><<<grid, block, dynamic_shared_memory, stream>>>(a);
 # }
 # ```

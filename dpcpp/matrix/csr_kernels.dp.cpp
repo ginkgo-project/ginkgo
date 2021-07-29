@@ -273,15 +273,15 @@ void abstract_spmv(const IndexType nwarps, const IndexType num_rows,
 }
 
 template <typename ValueType, typename IndexType>
-void abstract_spmv(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                   sycl::queue *stream, const IndexType nwarps,
+void abstract_spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                   sycl::queue *queue, const IndexType nwarps,
                    const IndexType num_rows, const ValueType *val,
                    const IndexType *col_idxs, const IndexType *row_ptrs,
                    const IndexType *srow, const ValueType *b,
                    const size_type b_stride, ValueType *c,
                    const size_type c_stride)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 abstract_spmv(nwarps, num_rows, val, col_idxs, row_ptrs, srow,
@@ -311,15 +311,15 @@ void abstract_spmv(const IndexType nwarps, const IndexType num_rows,
 }
 
 template <typename ValueType, typename IndexType>
-void abstract_spmv(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                   sycl::queue *stream, const IndexType nwarps,
+void abstract_spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                   sycl::queue *queue, const IndexType nwarps,
                    const IndexType num_rows, const ValueType *alpha,
                    const ValueType *val, const IndexType *col_idxs,
                    const IndexType *row_ptrs, const IndexType *srow,
                    const ValueType *b, const size_type b_stride, ValueType *c,
                    const size_type c_stride)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 abstract_spmv(nwarps, num_rows, alpha, val, col_idxs, row_ptrs,
@@ -340,10 +340,10 @@ void set_zero(const size_type nnz, ValueType *__restrict__ val,
 }
 
 template <typename ValueType>
-void set_zero(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-              sycl::queue *stream, const size_type nnz, ValueType *val)
+void set_zero(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+              sycl::queue *queue, const size_type nnz, ValueType *val)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block),
             [=](sycl::nd_item<3> item_ct1) { set_zero(nnz, val, item_ct1); });
@@ -517,15 +517,15 @@ void abstract_merge_path_spmv(
 
 template <int items_per_thread, typename ValueType, typename IndexType>
 void abstract_merge_path_spmv(dim3 grid, dim3 block,
-                              gko::size_type dynamic_shared_memory,
-                              sycl::queue *stream, const IndexType num_rows,
+                              size_type dynamic_shared_memory,
+                              sycl::queue *queue, const IndexType num_rows,
                               const ValueType *val, const IndexType *col_idxs,
                               const IndexType *row_ptrs, const IndexType *srow,
                               const ValueType *b, const size_type b_stride,
                               ValueType *c, const size_type c_stride,
                               IndexType *row_out, ValueType *val_out)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
             shared_row_ptrs_acc_ct1(
@@ -565,14 +565,14 @@ void abstract_merge_path_spmv(
 
 template <int items_per_thread, typename ValueType, typename IndexType>
 void abstract_merge_path_spmv(
-    dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-    sycl::queue *stream, const IndexType num_rows, const ValueType *alpha,
-    const ValueType *val, const IndexType *col_idxs, const IndexType *row_ptrs,
-    const IndexType *srow, const ValueType *b, const size_type b_stride,
-    const ValueType *beta, ValueType *c, const size_type c_stride,
-    IndexType *row_out, ValueType *val_out)
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    const IndexType num_rows, const ValueType *alpha, const ValueType *val,
+    const IndexType *col_idxs, const IndexType *row_ptrs, const IndexType *srow,
+    const ValueType *b, const size_type b_stride, const ValueType *beta,
+    ValueType *c, const size_type c_stride, IndexType *row_out,
+    ValueType *val_out)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
             shared_row_ptrs_acc_ct1(
@@ -605,13 +605,12 @@ void abstract_reduce(const IndexType nwarps,
 }
 
 template <typename ValueType, typename IndexType>
-void abstract_reduce(dim3 grid, dim3 block,
-                     gko::size_type dynamic_shared_memory, sycl::queue *stream,
-                     const IndexType nwarps, const ValueType *last_val,
-                     const IndexType *last_row, ValueType *c,
-                     const size_type c_stride)
+void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                     sycl::queue *queue, const IndexType nwarps,
+                     const ValueType *last_val, const IndexType *last_row,
+                     ValueType *c, const size_type c_stride)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<IndexType, spmv_block_size>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
@@ -649,13 +648,13 @@ void abstract_reduce(const IndexType nwarps,
 }
 
 template <typename ValueType, typename IndexType>
-void abstract_reduce(dim3 grid, dim3 block,
-                     gko::size_type dynamic_shared_memory, sycl::queue *stream,
-                     const IndexType nwarps, const ValueType *last_val,
-                     const IndexType *last_row, const ValueType *alpha,
-                     ValueType *c, const size_type c_stride)
+void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                     sycl::queue *queue, const IndexType nwarps,
+                     const ValueType *last_val, const IndexType *last_row,
+                     const ValueType *alpha, ValueType *c,
+                     const size_type c_stride)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<UninitializedArray<IndexType, spmv_block_size>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
@@ -673,6 +672,13 @@ void abstract_reduce(dim3 grid, dim3 block,
             });
     });
 }
+
+
+#ifdef __SYCL_DEVICE_ONLY__
+#define CONSTANT __attribute__((opencl_constant))
+#else
+#define CONSTANT
+#endif
 
 
 template <size_type subwarp_size, typename ValueType, typename IndexType,
@@ -702,6 +708,7 @@ void device_classical_spmv(const size_type num_rows,
         auto subwarp_result = ::gko::kernels::dpcpp::reduce(
             subwarp_tile, temp_val,
             [](const ValueType &a, const ValueType &b) { return a + b; });
+        item_ct1.barrier();
         if (subid == 0) {
             c[row * c_stride + column_id] =
                 scale(subwarp_result, c[row * c_stride + column_id]);
@@ -725,14 +732,14 @@ void abstract_classical_spmv(
 
 template <size_type subwarp_size, typename ValueType, typename IndexType>
 void abstract_classical_spmv(dim3 grid, dim3 block,
-                             gko::size_type dynamic_shared_memory,
-                             sycl::queue *stream, const size_type num_rows,
+                             size_type dynamic_shared_memory,
+                             sycl::queue *queue, const size_type num_rows,
                              const ValueType *val, const IndexType *col_idxs,
                              const IndexType *row_ptrs, const ValueType *b,
                              const size_type b_stride, ValueType *c,
                              const size_type c_stride)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 abstract_classical_spmv<subwarp_size>(num_rows, val, col_idxs,
@@ -764,15 +771,15 @@ void abstract_classical_spmv(
 
 template <size_type subwarp_size, typename ValueType, typename IndexType>
 void abstract_classical_spmv(dim3 grid, dim3 block,
-                             gko::size_type dynamic_shared_memory,
-                             sycl::queue *stream, const size_type num_rows,
+                             size_type dynamic_shared_memory,
+                             sycl::queue *queue, const size_type num_rows,
                              const ValueType *alpha, const ValueType *val,
                              const IndexType *col_idxs,
                              const IndexType *row_ptrs, const ValueType *b,
                              const size_type b_stride, const ValueType *beta,
                              ValueType *c, const size_type c_stride)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              abstract_classical_spmv<subwarp_size>(
@@ -799,11 +806,11 @@ void convert_row_ptrs_to_idxs(size_type num_rows,
 
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(dim3 grid, dim3 block,
-                              gko::size_type dynamic_shared_memory,
-                              sycl::queue *stream, size_type num_rows,
+                              size_type dynamic_shared_memory,
+                              sycl::queue *queue, size_type num_rows,
                               const IndexType *ptrs, IndexType *idxs)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 convert_row_ptrs_to_idxs(num_rows, ptrs, idxs, item_ct1);
@@ -830,12 +837,11 @@ void initialize_zero_dense(size_type num_rows, size_type num_cols,
 
 template <typename ValueType>
 void initialize_zero_dense(dim3 grid, dim3 block,
-                           gko::size_type dynamic_shared_memory,
-                           sycl::queue *stream, size_type num_rows,
-                           size_type num_cols, size_type stride,
-                           ValueType *result)
+                           size_type dynamic_shared_memory, sycl::queue *queue,
+                           size_type num_rows, size_type num_cols,
+                           size_type stride, ValueType *result)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              initialize_zero_dense(num_rows, num_cols, stride,
@@ -860,12 +866,12 @@ void fill_in_dense(size_type num_rows, const IndexType *__restrict__ row_ptrs,
 }
 
 template <typename ValueType, typename IndexType>
-void fill_in_dense(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                   sycl::queue *stream, size_type num_rows,
+void fill_in_dense(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                   sycl::queue *queue, size_type num_rows,
                    const IndexType *row_ptrs, const IndexType *col_idxs,
                    const ValueType *values, size_type stride, ValueType *result)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              fill_in_dense(num_rows, row_ptrs, col_idxs, values,
@@ -889,11 +895,11 @@ void calculate_nnz_per_row(size_type num_rows,
 
 template <typename IndexType>
 void calculate_nnz_per_row(dim3 grid, dim3 block,
-                           gko::size_type dynamic_shared_memory,
-                           sycl::queue *stream, size_type num_rows,
-                           const IndexType *row_ptrs, size_type *nnz_per_row)
+                           size_type dynamic_shared_memory, sycl::queue *queue,
+                           size_type num_rows, const IndexType *row_ptrs,
+                           size_type *nnz_per_row)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              calculate_nnz_per_row(num_rows, row_ptrs,
@@ -939,13 +945,13 @@ void calculate_slice_lengths(size_type num_rows, size_type slice_size,
 }
 
 void calculate_slice_lengths(dim3 grid, dim3 block,
-                             gko::size_type dynamic_shared_memory,
-                             sycl::queue *stream, size_type num_rows,
+                             size_type dynamic_shared_memory,
+                             sycl::queue *queue, size_type num_rows,
                              size_type slice_size, size_type stride_factor,
                              const size_type *nnz_per_row,
                              size_type *slice_lengths, size_type *slice_sets)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 calculate_slice_lengths(num_rows, slice_size, stride_factor,
@@ -991,15 +997,15 @@ void fill_in_sellp(size_type num_rows, size_type slice_size,
 }
 
 template <typename ValueType, typename IndexType>
-void fill_in_sellp(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                   sycl::queue *stream, size_type num_rows,
-                   size_type slice_size, const ValueType *source_values,
+void fill_in_sellp(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                   sycl::queue *queue, size_type num_rows, size_type slice_size,
+                   const ValueType *source_values,
                    const IndexType *source_row_ptrs,
                    const IndexType *source_col_idxs, size_type *slice_lengths,
                    size_type *slice_sets, IndexType *result_col_idxs,
                    ValueType *result_values)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 fill_in_sellp(num_rows, slice_size, source_values,
@@ -1026,13 +1032,12 @@ void initialize_zero_ell(size_type max_nnz_per_row, size_type stride,
 }
 
 template <typename ValueType, typename IndexType>
-void initialize_zero_ell(dim3 grid, dim3 block,
-                         gko::size_type dynamic_shared_memory,
-                         sycl::queue *stream, size_type max_nnz_per_row,
+void initialize_zero_ell(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                         sycl::queue *queue, size_type max_nnz_per_row,
                          size_type stride, ValueType *values,
                          IndexType *col_idxs)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              initialize_zero_ell(max_nnz_per_row, stride,
@@ -1068,14 +1073,14 @@ void fill_in_ell(size_type num_rows, size_type stride,
 }
 
 template <typename ValueType, typename IndexType>
-void fill_in_ell(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                 sycl::queue *stream, size_type num_rows, size_type stride,
+void fill_in_ell(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                 sycl::queue *queue, size_type num_rows, size_type stride,
                  const ValueType *source_values,
                  const IndexType *source_row_ptrs,
                  const IndexType *source_col_idxs, ValueType *result_values,
                  IndexType *result_col_idxs)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 fill_in_ell(num_rows, stride, source_values, source_row_ptrs,
@@ -1116,12 +1121,12 @@ void reduce_max_nnz_per_slice(size_type num_rows, size_type slice_size,
 }
 
 void reduce_max_nnz_per_slice(dim3 grid, dim3 block,
-                              gko::size_type dynamic_shared_memory,
-                              sycl::queue *stream, size_type num_rows,
+                              size_type dynamic_shared_memory,
+                              sycl::queue *queue, size_type num_rows,
                               size_type slice_size, size_type stride_factor,
                               const size_type *nnz_per_row, size_type *result)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 reduce_max_nnz_per_slice(num_rows, slice_size, stride_factor,
@@ -1144,12 +1149,11 @@ void reduce_total_cols(size_type num_slices,
     }
 }
 
-void reduce_total_cols(dim3 grid, dim3 block,
-                       gko::size_type dynamic_shared_memory,
-                       sycl::queue *stream, size_type num_slices,
+void reduce_total_cols(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                       sycl::queue *queue, size_type num_slices,
                        const size_type *max_nnz_per_slice, size_type *result)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<size_type, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
             block_result_acc_ct1(sycl::range<1>(512 /*default_block_size*/),
@@ -1177,11 +1181,11 @@ void reduce_max_nnz(size_type size, const size_type *__restrict__ nnz_per_row,
     }
 }
 
-void reduce_max_nnz(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                    sycl::queue *stream, size_type size,
+void reduce_max_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                    sycl::queue *queue, size_type size,
                     const size_type *nnz_per_row, size_type *result)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<size_type, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
             block_max_acc_ct1(sycl::range<1>(512 /*default_block_size*/), cgh);
@@ -1212,13 +1216,13 @@ void calculate_hybrid_coo_row_nnz(size_type num_rows,
 
 template <typename IndexType>
 void calculate_hybrid_coo_row_nnz(dim3 grid, dim3 block,
-                                  gko::size_type dynamic_shared_memory,
-                                  sycl::queue *stream, size_type num_rows,
+                                  size_type dynamic_shared_memory,
+                                  sycl::queue *queue, size_type num_rows,
                                   size_type ell_max_nnz_per_row,
                                   IndexType *csr_row_idxs,
                                   size_type *coo_row_nnz)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 calculate_hybrid_coo_row_nnz(num_rows, ell_max_nnz_per_row,
@@ -1268,8 +1272,8 @@ void fill_in_hybrid(size_type num_rows, size_type stride,
 }
 
 template <typename ValueType, typename IndexType>
-void fill_in_hybrid(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                    sycl::queue *stream, size_type num_rows, size_type stride,
+void fill_in_hybrid(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                    sycl::queue *queue, size_type num_rows, size_type stride,
                     size_type ell_max_nnz_per_row,
                     const ValueType *source_values,
                     const IndexType *source_row_ptrs,
@@ -1278,7 +1282,7 @@ void fill_in_hybrid(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
                     IndexType *result_ell_col, ValueType *result_coo_val,
                     IndexType *result_coo_col, IndexType *result_coo_row)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 fill_in_hybrid(num_rows, stride, ell_max_nnz_per_row,
@@ -1320,11 +1324,11 @@ void check_unsorted(const IndexType *__restrict__ row_ptrs,
 }
 
 template <typename IndexType>
-void check_unsorted(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                    sycl::queue *stream, const IndexType *row_ptrs,
+void check_unsorted(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                    sycl::queue *queue, const IndexType *row_ptrs,
                     const IndexType *col_idxs, IndexType num_rows, bool *flag)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         sycl::accessor<bool, 0, sycl::access_mode::read_write,
                        sycl::access::target::local>
             sh_flag_acc_ct1(cgh);
@@ -1364,14 +1368,13 @@ void extract_diagonal(size_type diag_size, size_type nnz,
 }
 
 template <typename ValueType, typename IndexType>
-void extract_diagonal(dim3 grid, dim3 block,
-                      gko::size_type dynamic_shared_memory, sycl::queue *stream,
-                      size_type diag_size, size_type nnz,
+void extract_diagonal(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                      sycl::queue *queue, size_type diag_size, size_type nnz,
                       const ValueType *orig_values,
                       const IndexType *orig_row_ptrs,
                       const IndexType *orig_col_idxs, ValueType *diag)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 extract_diagonal(diag_size, nnz, orig_values, orig_row_ptrs,
@@ -1399,11 +1402,11 @@ void conjugate_kernel(size_type num_nonzeros, ValueType *__restrict__ val,
 }
 
 template <typename ValueType>
-void conjugate_kernel(dim3 grid, dim3 block,
-                      gko::size_type dynamic_shared_memory, sycl::queue *stream,
-                      size_type num_nonzeros, ValueType *val)
+void conjugate_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                      sycl::queue *queue, size_type num_nonzeros,
+                      ValueType *val)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              conjugate_kernel(num_nonzeros, val, item_ct1);
@@ -1430,12 +1433,11 @@ void inv_permutation_kernel(size_type size,
 
 template <typename IndexType>
 void inv_permutation_kernel(dim3 grid, dim3 block,
-                            gko::size_type dynamic_shared_memory,
-                            sycl::queue *stream, size_type size,
-                            const IndexType *permutation,
+                            size_type dynamic_shared_memory, sycl::queue *queue,
+                            size_type size, const IndexType *permutation,
                             IndexType *inv_permutation)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              inv_permutation_kernel(size, permutation,
@@ -1467,15 +1469,14 @@ void col_permute_kernel(size_type num_rows, size_type num_nonzeros,
 }
 
 template <typename ValueType, typename IndexType>
-void col_permute_kernel(dim3 grid, dim3 block,
-                        gko::size_type dynamic_shared_memory,
-                        sycl::queue *stream, size_type num_rows,
+void col_permute_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                        sycl::queue *queue, size_type num_rows,
                         size_type num_nonzeros, const IndexType *permutation,
                         const IndexType *in_row_ptrs, const IndexType *in_cols,
                         const ValueType *in_vals, IndexType *out_row_ptrs,
                         IndexType *out_cols, ValueType *out_vals)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 col_permute_kernel(num_rows, num_nonzeros, permutation,
@@ -1504,12 +1505,11 @@ void row_ptr_permute_kernel(size_type num_rows,
 
 template <typename IndexType>
 void row_ptr_permute_kernel(dim3 grid, dim3 block,
-                            gko::size_type dynamic_shared_memory,
-                            sycl::queue *stream, size_type num_rows,
-                            const IndexType *permutation,
+                            size_type dynamic_shared_memory, sycl::queue *queue,
+                            size_type num_rows, const IndexType *permutation,
                             const IndexType *in_row_ptrs, IndexType *out_nnz)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 row_ptr_permute_kernel(num_rows, permutation, in_row_ptrs,
@@ -1537,13 +1537,13 @@ void inv_row_ptr_permute_kernel(size_type num_rows,
 
 template <typename IndexType>
 void inv_row_ptr_permute_kernel(dim3 grid, dim3 block,
-                                gko::size_type dynamic_shared_memory,
-                                sycl::queue *stream, size_type num_rows,
+                                size_type dynamic_shared_memory,
+                                sycl::queue *queue, size_type num_rows,
                                 const IndexType *permutation,
                                 const IndexType *in_row_ptrs,
                                 IndexType *out_nnz)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 inv_row_ptr_permute_kernel(num_rows, permutation, in_row_ptrs,
@@ -1581,15 +1581,14 @@ void row_permute_kernel(size_type num_rows,
 }
 
 template <int subwarp_size, typename ValueType, typename IndexType>
-void row_permute_kernel(dim3 grid, dim3 block,
-                        gko::size_type dynamic_shared_memory,
-                        sycl::queue *stream, size_type num_rows,
+void row_permute_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                        sycl::queue *queue, size_type num_rows,
                         const IndexType *permutation,
                         const IndexType *in_row_ptrs, const IndexType *in_cols,
                         const ValueType *in_vals, const IndexType *out_row_ptrs,
                         IndexType *out_cols, ValueType *out_vals)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 row_permute_kernel<subwarp_size>(
@@ -1629,15 +1628,14 @@ void inv_row_permute_kernel(size_type num_rows,
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 void inv_row_permute_kernel(dim3 grid, dim3 block,
-                            gko::size_type dynamic_shared_memory,
-                            sycl::queue *stream, size_type num_rows,
-                            const IndexType *permutation,
+                            size_type dynamic_shared_memory, sycl::queue *queue,
+                            size_type num_rows, const IndexType *permutation,
                             const IndexType *in_row_ptrs,
                             const IndexType *in_cols, const ValueType *in_vals,
                             const IndexType *out_row_ptrs, IndexType *out_cols,
                             ValueType *out_vals)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 inv_row_permute_kernel<subwarp_size>(
@@ -1677,15 +1675,15 @@ void inv_symm_permute_kernel(size_type num_rows,
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 void inv_symm_permute_kernel(dim3 grid, dim3 block,
-                             gko::size_type dynamic_shared_memory,
-                             sycl::queue *stream, size_type num_rows,
+                             size_type dynamic_shared_memory,
+                             sycl::queue *queue, size_type num_rows,
                              const IndexType *permutation,
                              const IndexType *in_row_ptrs,
                              const IndexType *in_cols, const ValueType *in_vals,
                              const IndexType *out_row_ptrs, IndexType *out_cols,
                              ValueType *out_vals)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 inv_symm_permute_kernel<subwarp_size>(
