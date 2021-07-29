@@ -40,9 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-std::recursive_mutex &NvidiaDevice::get_mutex(int i)
+std::mutex &NvidiaDevice::get_mutex(int i)
 {
-    static std::recursive_mutex mutex[max_devices];
+    static std::mutex mutex[max_devices];
     return mutex[i];
 }
 
@@ -52,9 +52,9 @@ int &NvidiaDevice::get_num_execs(int i)
     return num_execs[i];
 }
 
-std::recursive_mutex &AmdDevice::get_mutex(int i)
+std::mutex &AmdDevice::get_mutex(int i)
 {
-    static std::recursive_mutex mutex[max_devices];
+    static std::mutex mutex[max_devices];
     return mutex[i];
 }
 

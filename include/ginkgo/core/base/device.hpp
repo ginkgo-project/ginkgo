@@ -70,7 +70,7 @@ private:
      *
      * @return recursive_mutex reference
      */
-    static std::recursive_mutex &get_mutex(int i);
+    static std::mutex &get_mutex(int i);
 
     /**
      * get_num_execs gets the static num_execs reference at i.
@@ -104,7 +104,7 @@ private:
      *
      * @return recursive_mutex reference
      */
-    static std::recursive_mutex &get_mutex(int i);
+    static std::mutex &get_mutex(int i);
 
     /**
      * get_num_execs gets the static num_execs reference at i.
