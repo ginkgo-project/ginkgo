@@ -1409,7 +1409,7 @@ public:
     int get_closest_numa() const { return this->get_exec_info().numa_node; }
 
 protected:
-    using device_type = NvidiaDevice;
+    using device_class = NvidiaDevice;
 
     void set_gpu_property();
 
@@ -1458,22 +1458,22 @@ protected:
     static void increase_num_execs(unsigned device_id)
     {
         std::lock_guard<std::recursive_mutex> guard(
-            device_type::get_mutex(device_id));
-        device_type::get_num_execs(device_id)++;
+            device_class::get_mutex(device_id));
+        device_class::get_num_execs(device_id)++;
     }
 
     static void decrease_num_execs(unsigned device_id)
     {
         std::lock_guard<std::recursive_mutex> guard(
-            device_type::get_mutex(device_id));
-        device_type::get_num_execs(device_id)--;
+            device_class::get_mutex(device_id));
+        device_class::get_num_execs(device_id)--;
     }
 
     static unsigned get_num_execs(unsigned device_id)
     {
         std::lock_guard<std::recursive_mutex> guard(
-            device_type::get_mutex(device_id));
-        return device_type::get_num_execs(device_id);
+            device_class::get_mutex(device_id));
+        return device_class::get_num_execs(device_id);
     }
 
     void populate_exec_info(const MachineTopology *mach_topo) override;
@@ -1633,9 +1633,9 @@ public:
 
 protected:
 #if (GINKGO_HIP_PLATFORM_NVCC == 1)
-    using device_type = NvidiaDevice;
+    using device_class = NvidiaDevice;
 #else
-    using device_type = AmdDevice;
+    using device_class = AmdDevice;
 #endif
 
     void set_gpu_property();
@@ -1685,22 +1685,22 @@ protected:
     static void increase_num_execs(int device_id)
     {
         std::lock_guard<std::recursive_mutex> guard(
-            device_type::get_mutex(device_id));
-        device_type::get_num_execs(device_id)++;
+            device_class::get_mutex(device_id));
+        device_class::get_num_execs(device_id)++;
     }
 
     static void decrease_num_execs(int device_id)
     {
         std::lock_guard<std::recursive_mutex> guard(
-            device_type::get_mutex(device_id));
-        device_type::get_num_execs(device_id)--;
+            device_class::get_mutex(device_id));
+        device_class::get_num_execs(device_id)--;
     }
 
     static int get_num_execs(int device_id)
     {
         std::lock_guard<std::recursive_mutex> guard(
-            device_type::get_mutex(device_id));
-        return device_type::get_num_execs(device_id);
+            device_class::get_mutex(device_id));
+        return device_class::get_num_execs(device_id);
     }
 
     void populate_exec_info(const MachineTopology *mach_topo) override;
