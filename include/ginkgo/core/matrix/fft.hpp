@@ -55,6 +55,15 @@ namespace matrix {
  *
  * without normalization factors.
  *
+ * The Reference and OpenMP implementations support only power-of-two input
+ * sizes, as they use the Radix-2 algorithm by J. W. Cooley and J. W. Tukey,
+ * "An Algorithm for the Machine Calculation of Complex Fourier Series,"
+ * Mathematics of Computation, vol. 19, no. 90, pp. 297–301, 1965,
+ * doi: 10.2307/2003354.
+ * The CUDA and HIP implementations use cuSPARSE/hipSPARSE with full support for
+ * non-power-of-two input sizes and special optimizations for products of
+ * small prime powers.
+ *
  * @ingroup identity
  * @ingroup mat_formats
  * @ingroup LinOp
@@ -124,6 +133,15 @@ private:
  *                           \omega^{i_1 k_1 + i_2 k_2} b_{i_1 n_2 + i_2} $$
  *
  * without normalization factors.
+ *
+ * The Reference and OpenMP implementations support only power-of-two input
+ * sizes, as they use the Radix-2 algorithm by J. W. Cooley and J. W. Tukey,
+ * "An Algorithm for the Machine Calculation of Complex Fourier Series,"
+ * Mathematics of Computation, vol. 19, no. 90, pp. 297–301, 1965,
+ * doi: 10.2307/2003354.
+ * The CUDA and HIP implementations use cuSPARSE/hipSPARSE with full support for
+ * non-power-of-two input sizes and special optimizations for products of
+ * small prime powers.
  *
  * @ingroup identity
  * @ingroup mat_formats
@@ -212,6 +230,15 @@ private:
  *                     b_{i_1 n_2 n_3 + i_2 n_3 + i_3} $$
  *
  * without normalization factors.
+ *
+ * The Reference and OpenMP implementations support only power-of-two input
+ * sizes, as they use the Radix-2 algorithm by J. W. Cooley and J. W. Tukey,
+ * "An Algorithm for the Machine Calculation of Complex Fourier Series,"
+ * Mathematics of Computation, vol. 19, no. 90, pp. 297–301, 1965,
+ * doi: 10.2307/2003354.
+ * The CUDA and HIP implementations use cuSPARSE/hipSPARSE with full support for
+ * non-power-of-two input sizes and special optimizations for products of
+ * small prime powers.
  *
  * @ingroup identity
  * @ingroup mat_formats
