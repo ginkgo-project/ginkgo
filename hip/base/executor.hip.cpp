@@ -64,10 +64,12 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
         new HipExecutor(device_id, std::move(master), device_reset, alloc_mode),
         [device_id](HipExecutor *exec) {
             auto device_reset = exec->get_device_reset();
-            std::lock_guard<std::recursive_mutex> guard(
+            std::lock_guard<std::mutex> guard(
                 device_class::get_mutex(device_id));
             delete exec;
-            if (!HipExecutor::get_num_execs(device_id) && device_reset) {
+            auto &num_execs = device_class::get_num_execs(device_id);
+            num_execs--;
+            if (!num_execs && device_reset) {
                 hip::device_guard g(device_id);
                 hipDeviceReset();
             }

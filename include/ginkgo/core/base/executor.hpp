@@ -1302,8 +1302,6 @@ public:
         bool device_reset = false,
         allocation_mode alloc_mode = default_cuda_alloc_mode);
 
-    ~CudaExecutor() { decrease_num_execs(this->get_device_id()); }
-
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
@@ -1457,22 +1455,19 @@ protected:
 
     static void increase_num_execs(unsigned device_id)
     {
-        std::lock_guard<std::recursive_mutex> guard(
-            device_class::get_mutex(device_id));
+        std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
         device_class::get_num_execs(device_id)++;
     }
 
     static void decrease_num_execs(unsigned device_id)
     {
-        std::lock_guard<std::recursive_mutex> guard(
-            device_class::get_mutex(device_id));
+        std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
         device_class::get_num_execs(device_id)--;
     }
 
     static unsigned get_num_execs(unsigned device_id)
     {
-        std::lock_guard<std::recursive_mutex> guard(
-            device_class::get_mutex(device_id));
+        std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
         return device_class::get_num_execs(device_id);
     }
 
@@ -1524,8 +1519,6 @@ public:
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false,
         allocation_mode alloc_mode = default_hip_alloc_mode);
-
-    ~HipExecutor() { decrease_num_execs(this->get_device_id()); }
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1684,22 +1677,19 @@ protected:
 
     static void increase_num_execs(int device_id)
     {
-        std::lock_guard<std::recursive_mutex> guard(
-            device_class::get_mutex(device_id));
+        std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
         device_class::get_num_execs(device_id)++;
     }
 
     static void decrease_num_execs(int device_id)
     {
-        std::lock_guard<std::recursive_mutex> guard(
-            device_class::get_mutex(device_id));
+        std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
         device_class::get_num_execs(device_id)--;
     }
 
     static int get_num_execs(int device_id)
     {
-        std::lock_guard<std::recursive_mutex> guard(
-            device_class::get_mutex(device_id));
+        std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
         return device_class::get_num_execs(device_id);
     }
 
