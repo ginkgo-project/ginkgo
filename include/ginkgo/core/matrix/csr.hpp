@@ -549,9 +549,12 @@ public:
          * Creates an automatical strategy with Dpcpp executor.
          *
          * @param exec the Dpcpp executor
+         *
+         * @note TODO: porting - we hardcode the subgroup size is 16 and the
+         *             number of threads in a SIMD unit is 7
          */
         automatical(std::shared_ptr<const DpcppExecutor> exec)
-            : automatical(exec->get_num_computing_units() * 7, 32, false)
+            : automatical(exec->get_num_computing_units() * 7, 16, false)
         {}
 
         /**
@@ -582,16 +585,16 @@ public:
             // <row_len_limit>, use load_balance otherwise use classical
             index_type nnz_limit = nvidia_nnz_limit;
             index_type row_len_limit = nvidia_row_len_limit;
+            if (!cuda_strategy_) {
+                nnz_limit = intel_nnz_limit;
+                row_len_limit = intel_row_len_limit;
+            }
 #if GINKGO_HIP_PLATFORM_HCC
             if (!cuda_strategy_) {
                 nnz_limit = amd_nnz_limit;
                 row_len_limit = amd_row_len_limit;
             }
 #endif  // GINKGO_HIP_PLATFORM_HCC
-            if (!cuda_strategy_) {
-                nnz_limit = intel_nnz_limit;
-                row_len_limit = intel_row_len_limit;
-            }
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
             const bool is_mtx_on_host{host_mtx_exec ==
                                       mtx_row_ptrs.get_executor()};
@@ -1082,7 +1085,6 @@ private:
     Array<index_type> row_ptrs_;
     Array<index_type> srow_;
     std::shared_ptr<strategy_type> strategy_;
-    // oneapi::mkl::sparse::matrix_handle_t mat_handle_;
 };
 
 

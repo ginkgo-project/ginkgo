@@ -82,13 +82,13 @@ void apply_to_dense(size_type num_rows, size_type num_cols,
 }
 
 template <typename ValueType>
-void apply_to_dense(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                    sycl::queue *stream, size_type num_rows, size_type num_cols,
+void apply_to_dense(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                    sycl::queue *queue, size_type num_rows, size_type num_cols,
                     const ValueType *diag, size_type source_stride,
                     const ValueType *source_values, size_type result_stride,
                     ValueType *result_values)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 apply_to_dense(num_rows, num_cols, diag, source_stride,
@@ -120,14 +120,13 @@ void right_apply_to_dense(size_type num_rows, size_type num_cols,
 
 template <typename ValueType>
 void right_apply_to_dense(dim3 grid, dim3 block,
-                          gko::size_type dynamic_shared_memory,
-                          sycl::queue *stream, size_type num_rows,
-                          size_type num_cols, const ValueType *diag,
-                          size_type source_stride,
+                          size_type dynamic_shared_memory, sycl::queue *queue,
+                          size_type num_rows, size_type num_cols,
+                          const ValueType *diag, size_type source_stride,
                           const ValueType *source_values,
                           size_type result_stride, ValueType *result_values)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 right_apply_to_dense(num_rows, num_cols, diag, source_stride,
@@ -163,12 +162,11 @@ void apply_to_csr(size_type num_rows, const ValueType *__restrict__ diag,
 }
 
 template <typename ValueType, typename IndexType>
-void apply_to_csr(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                  sycl::queue *stream, size_type num_rows,
-                  const ValueType *diag, const IndexType *row_ptrs,
-                  ValueType *result_values)
+void apply_to_csr(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                  sycl::queue *queue, size_type num_rows, const ValueType *diag,
+                  const IndexType *row_ptrs, ValueType *result_values)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 apply_to_csr(num_rows, diag, row_ptrs, result_values, item_ct1);
@@ -193,13 +191,12 @@ void right_apply_to_csr(size_type num_nnz, const ValueType *__restrict__ diag,
 }
 
 template <typename ValueType, typename IndexType>
-void right_apply_to_csr(dim3 grid, dim3 block,
-                        gko::size_type dynamic_shared_memory,
-                        sycl::queue *stream, size_type num_nnz,
+void right_apply_to_csr(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                        sycl::queue *queue, size_type num_nnz,
                         const ValueType *diag, const IndexType *col_idxs,
                         ValueType *result_values)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              right_apply_to_csr(num_nnz, diag, col_idxs,
@@ -231,12 +228,12 @@ void convert_to_csr(size_type size, const ValueType *__restrict__ diag_values,
 }
 
 template <typename ValueType, typename IndexType>
-void convert_to_csr(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                    sycl::queue *stream, size_type size,
+void convert_to_csr(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                    sycl::queue *queue, size_type size,
                     const ValueType *diag_values, IndexType *row_ptrs,
                     IndexType *col_idxs, ValueType *csr_values)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              convert_to_csr(size, diag_values, row_ptrs,
@@ -261,11 +258,11 @@ void conj_transpose(size_type size, const ValueType *__restrict__ orig_values,
 }
 
 template <typename ValueType>
-void conj_transpose(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                    sycl::queue *stream, size_type size,
+void conj_transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                    sycl::queue *queue, size_type size,
                     const ValueType *orig_values, ValueType *trans_values)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 conj_transpose(size, orig_values, trans_values, item_ct1);

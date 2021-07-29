@@ -222,7 +222,7 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
 }
 
 
-TEST_F(Csr, SimpleApplyIsEquivalentToRefWithCusparse)
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithOnemkl)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
 
@@ -233,7 +233,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithCusparse)
 }
 
 
-TEST_F(Csr, SimpleApplyIsEquivalentToRefWithCusparseUnsorted)
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithOnemklUnsorted)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
     unsort_mtx();
@@ -245,7 +245,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithCusparseUnsorted)
 }
 
 
-TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithCusparse)
+TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithOnemkl)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
 

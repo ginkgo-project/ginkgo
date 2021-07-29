@@ -136,13 +136,12 @@ void count_coo_row_nnz(const size_type nnz, const size_type num_lines,
 
 template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType>
-void count_coo_row_nnz(dim3 grid, dim3 block,
-                       gko::size_type dynamic_shared_memory,
-                       sycl::queue *stream, const size_type nnz,
+void count_coo_row_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                       sycl::queue *queue, const size_type nnz,
                        const size_type num_lines, const ValueType *val,
                        const IndexType *row, IndexType *nnz_per_row)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 count_coo_row_nnz<subwarp_size>(nnz, num_lines, val, row,
@@ -187,15 +186,15 @@ void fill_in_csr(size_type num_rows, size_type max_nnz_per_row,
 }
 
 template <typename ValueType, typename IndexType>
-void fill_in_csr(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-                 sycl::queue *stream, size_type num_rows,
+void fill_in_csr(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                 sycl::queue *queue, size_type num_rows,
                  size_type max_nnz_per_row, size_type stride,
                  const ValueType *ell_val, const IndexType *ell_col,
                  const ValueType *coo_val, const IndexType *coo_col,
                  const IndexType *coo_offset, IndexType *result_row_ptrs,
                  IndexType *result_col_idxs, ValueType *result_values)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 fill_in_csr(num_rows, max_nnz_per_row, stride, ell_val, ell_col,
@@ -217,11 +216,11 @@ void add(size_type num, ValueType1 *__restrict__ val1,
 }
 
 template <typename ValueType1, typename ValueType2>
-void add(dim3 grid, dim3 block, gko::size_type dynamic_shared_memory,
-         sycl::queue *stream, size_type num, ValueType1 *val1,
+void add(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+         sycl::queue *queue, size_type num, ValueType1 *val1,
          const ValueType2 *val2)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block),
             [=](sycl::nd_item<3> item_ct1) { add(num, val1, val2, item_ct1); });
