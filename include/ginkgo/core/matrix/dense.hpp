@@ -1190,6 +1190,77 @@ std::unique_ptr<Matrix> initialize(
 }
 
 
+/**
+ * Creates and initializes a matrix.
+ *
+ * This function first creates a temporary Dense matrix, fills it with passed in
+ * value, and then converts the matrix to the requested type.
+ *
+ * @tparam Matrix  matrix type to initialize
+ *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ * @tparam TArgs  argument types for Matrix::create method
+ *                (not including the implied Executor as the first argument)
+ *
+ * @param stride  row stride for the temporary Dense matrix
+ * @param vals  value used to fill the matrix
+ * @param size  the size of the matrix
+ * @param exec  Executor associated to the matrix
+ * @param create_args  additional arguments passed to Matrix::create, not
+ *                     including the Executor, which is passed as the first
+ *                     argument
+ *
+ * @ingroup LinOp
+ * @ingroup mat_formats
+ */
+template <typename Matrix, typename... TArgs>
+std::unique_ptr<Matrix> initialize(size_type stride,
+                                   typename Matrix::value_type val,
+                                   const dim<2> size,
+                                   std::shared_ptr<const Executor> exec,
+                                   TArgs &&... create_args)
+{
+    using dense = matrix::Dense<typename Matrix::value_type>;
+    auto tmp = dense::create(exec->get_master(), size, stride);
+    tmp->fill(val);
+    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
+    tmp->move_to(mtx.get());
+    return mtx;
+}
+
+
+/**
+ * Creates and initializes a matrix.
+ *
+ * This function first creates a temporary Dense matrix, fills it with the
+ * passed in value, and then converts the matrix to the requested type. The
+ * stride of the intermediate Dense matrix is set to 1.
+ *
+ * @tparam Matrix  matrix type to initialize
+ *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ * @tparam TArgs  argument types for Matrix::create method
+ *                (not including the implied Executor as the first argument)
+ *
+ * @param val  value used to fill the matrix
+ * @param size  the size of the matrix
+ * @param exec  Executor associated to the matrix
+ * @param create_args  additional arguments passed to Matrix::create, not
+ *                     including the Executor, which is passed as the first
+ *                     argument
+ *
+ * @ingroup LinOp
+ * @ingroup mat_formats
+ */
+template <typename Matrix, typename... TArgs>
+std::unique_ptr<Matrix> initialize(typename Matrix::value_type val,
+                                   const dim<2> size,
+                                   std::shared_ptr<const Executor> exec,
+                                   TArgs &&... create_args)
+{
+    return initialize<Matrix>(1, val, std::move(size), std::move(exec),
+                              std::forward<TArgs>(create_args)...);
+}
+
+
 }  // namespace gko
 
 
