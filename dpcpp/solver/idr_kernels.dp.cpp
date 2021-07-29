@@ -653,28 +653,22 @@ void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
             std::ranlux48(15));
         subspace_vectors->read(subspace_vectors_data);
     } else {
-        auto size = subspace_vectors->get_size();
-        auto stride = subspace_vectors->get_stride();
-        auto values = subspace_vectors->get_values();
+        auto seed = time(NULL);
+        auto work = reinterpret_cast<remove_complex<ValueType> *>(
+            subspace_vectors->get_values());
+        auto n =
+            subspace_vectors->get_size()[0] * subspace_vectors->get_stride();
+        n = is_complex<ValueType>() ? 2 * n : n;
         exec->get_queue()->submit([&](sycl::handler &cgh) {
-            cgh.parallel_for(
-                sycl::range<1>(size[0] * size[1]), [=](sycl::item<1> idx) {
-                    std::uint64_t offset = idx.get_linear_id();
+            cgh.parallel_for(sycl::range<1>(n), [=](sycl::item<1> idx) {
+                std::uint64_t offset = idx.get_linear_id();
+                oneapi::dpl::minstd_rand engine(seed, offset);
+                oneapi::dpl::normal_distribution<remove_complex<ValueType>>
+                    distr(0, 1);
+                auto res = distr(engine);
 
-                    // Create minstd_rand engine
-                    oneapi::dpl::minstd_rand engine(132, offset);
-
-                    // Create uniform_real_distribution distribution
-                    oneapi::dpl::uniform_real_distribution<
-                        remove_complex<ValueType>>
-                        distr;
-
-                    // Generate random number
-                    auto res = distr(engine);
-
-                    // Store results to x_acc
-                    values[idx / size[1] * stride + idx % size[1]] = res;
-                });
+                work[idx] = res;
+            });
         });
     }
 }
