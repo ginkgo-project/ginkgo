@@ -933,6 +933,7 @@ public:
     void scale(const LinOp *alpha)
     {
         auto exec = this->get_executor();
+        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
         this->scale_impl(make_temporary_clone(exec, alpha).get());
     }
 
@@ -945,6 +946,7 @@ public:
     void inv_scale(const LinOp *alpha)
     {
         auto exec = this->get_executor();
+        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
         this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
     }
 
@@ -1147,7 +1149,7 @@ protected:
     /**
      * @copydoc scale(const LinOp *)
      *
-     * @note  Other implementations of dense should override this function
+     * @note  Other implementations of Csr should override this function
      *        instead of scale(const LinOp *alpha).
      */
     virtual void scale_impl(const LinOp *alpha);
@@ -1155,7 +1157,7 @@ protected:
     /**
      * @copydoc inv_scale(const LinOp *)
      *
-     * @note  Other implementations of dense should override this function
+     * @note  Other implementations of Csr should override this function
      *        instead of inv_scale(const LinOp *alpha).
      */
     virtual void inv_scale_impl(const LinOp *alpha);
