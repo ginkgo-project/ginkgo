@@ -96,7 +96,9 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
     } else {
         using block_t = matrix::BlockApprox<matrix::Csr<ValueType, IndexType>>;
         auto block_mtx = as<block_t>(block_system_matrix_);
-        auto block_ptrs = block_mtx->get_block_ptrs();
+        auto block_ptrs_arr = block_mtx->get_block_ptrs_array();
+        block_ptrs_arr.set_executor(this->get_executor()->get_master());
+        auto block_ptrs = block_ptrs_arr.get_const_data();
         auto num_subdomains = this->inner_solvers_.size();
         for (size_type i = 0; i < num_subdomains; ++i) {
             auto block_size = this->inner_solvers_[i]->get_size();
