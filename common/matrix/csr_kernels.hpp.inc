@@ -76,8 +76,9 @@ __device__ __forceinline__ void find_next_row(
         if (ind >= *row_end) {
             *row = row_predict;
             *row_end = row_predict_end;
-            for (; ind >= *row_end; *row_end = row_ptr[++*row + 1])
-                ;
+            while (ind >= *row_end) {
+                *row_end = row_ptr[++*row + 1];
+            }
         }
 
     } else {
@@ -140,8 +141,8 @@ template <typename IndexType>
 __device__ __forceinline__ IndexType get_warp_start_idx(
     const IndexType nwarps, const IndexType nnz, const IndexType warp_idx)
 {
-    const long long cache_lines = ceildivT<IndexType>(nnz, wsize);
-    return (warp_idx * cache_lines / nwarps) * wsize;
+    const long long cache_lines = ceildivT<IndexType>(nnz, config::warp_size);
+    return (warp_idx * cache_lines / nwarps) * config::warp_size;
 }
 
 
@@ -160,6 +161,7 @@ __device__ __forceinline__ void spmv_kernel(
     }
     const IndexType data_size = row_ptrs[num_rows];
     const IndexType start = get_warp_start_idx(nwarps, data_size, warp_idx);
+    constexpr IndexType wsize = config::warp_size;
     const IndexType end =
         min(get_warp_start_idx(nwarps, data_size, warp_idx + 1),
             ceildivT<IndexType>(data_size, wsize) * wsize);
@@ -359,8 +361,7 @@ __device__ void merge_path_spmv(
     tmp_val[threadIdx.x] = value;
     tmp_ind[threadIdx.x] = row_i;
     group::this_thread_block().sync();
-    bool last = block_segment_scan_reverse(static_cast<IndexType *>(tmp_ind),
-                                           static_cast<ValueType *>(tmp_val));
+    bool last = block_segment_scan_reverse(tmp_ind, tmp_val);
     if (threadIdx.x == spmv_block_size - 1) {
         row_out[blockIdx.x] = min(end_x, num_rows - 1);
         val_out[blockIdx.x] = tmp_val[threadIdx.x];

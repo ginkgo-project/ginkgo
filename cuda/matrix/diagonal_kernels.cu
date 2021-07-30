@@ -54,61 +54,10 @@ namespace cuda {
 namespace diagonal {
 
 
-constexpr auto default_block_size = 512;
+constexpr int default_block_size = 512;
 
 
 #include "common/matrix/diagonal_kernels.hpp.inc"
-
-
-template <typename ValueType>
-void apply_to_dense(std::shared_ptr<const CudaExecutor> exec,
-                    const matrix::Diagonal<ValueType> *a,
-                    const matrix::Dense<ValueType> *b,
-                    matrix::Dense<ValueType> *c)
-{
-    const auto b_size = b->get_size();
-    const auto num_rows = b_size[0];
-    const auto num_cols = b_size[1];
-    const auto b_stride = b->get_stride();
-    const auto c_stride = c->get_stride();
-    const auto grid_dim = ceildiv(num_rows * num_cols, default_block_size);
-
-    const auto diag_values = a->get_const_values();
-    const auto b_values = b->get_const_values();
-    auto c_values = c->get_values();
-
-    kernel::apply_to_dense<<<grid_dim, default_block_size>>>(
-        num_rows, num_cols, as_cuda_type(diag_values), b_stride,
-        as_cuda_type(b_values), c_stride, as_cuda_type(c_values));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
-
-
-template <typename ValueType>
-void right_apply_to_dense(std::shared_ptr<const CudaExecutor> exec,
-                          const matrix::Diagonal<ValueType> *a,
-                          const matrix::Dense<ValueType> *b,
-                          matrix::Dense<ValueType> *c)
-{
-    const auto b_size = b->get_size();
-    const auto num_rows = b_size[0];
-    const auto num_cols = b_size[1];
-    const auto b_stride = b->get_stride();
-    const auto c_stride = c->get_stride();
-    const auto grid_dim = ceildiv(num_rows * num_cols, default_block_size);
-
-    const auto diag_values = a->get_const_values();
-    const auto b_values = b->get_const_values();
-    auto c_values = c->get_values();
-
-    kernel::right_apply_to_dense<<<grid_dim, default_block_size>>>(
-        num_rows, num_cols, as_cuda_type(diag_values), b_stride,
-        as_cuda_type(b_values), c_stride, as_cuda_type(c_values));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -132,67 +81,6 @@ void apply_to_csr(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void right_apply_to_csr(std::shared_ptr<const CudaExecutor> exec,
-                        const matrix::Diagonal<ValueType> *a,
-                        const matrix::Csr<ValueType, IndexType> *b,
-                        matrix::Csr<ValueType, IndexType> *c)
-{
-    const auto num_nnz = b->get_num_stored_elements();
-    const auto diag_values = a->get_const_values();
-    c->copy_from(b);
-    auto csr_values = c->get_values();
-    const auto csr_col_idxs = c->get_const_col_idxs();
-
-    const auto grid_dim = ceildiv(num_nnz, default_block_size);
-    kernel::right_apply_to_csr<<<grid_dim, default_block_size>>>(
-        num_nnz, as_cuda_type(diag_values), as_cuda_type(csr_col_idxs),
-        as_cuda_type(csr_values));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
-                    const matrix::Diagonal<ValueType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
-{
-    const auto size = source->get_size()[0];
-    const auto grid_dim = ceildiv(size, default_block_size);
-
-    const auto diag_values = source->get_const_values();
-    auto row_ptrs = result->get_row_ptrs();
-    auto col_idxs = result->get_col_idxs();
-    auto csr_values = result->get_values();
-
-    kernel::convert_to_csr<<<grid_dim, default_block_size>>>(
-        size, as_cuda_type(diag_values), as_cuda_type(row_ptrs),
-        as_cuda_type(col_idxs), as_cuda_type(csr_values));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL);
-
-
-template <typename ValueType>
-void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
-                    const matrix::Diagonal<ValueType> *orig,
-                    matrix::Diagonal<ValueType> *trans)
-{
-    const auto size = orig->get_size()[0];
-    const auto grid_dim = ceildiv(size, default_block_size);
-    const auto orig_values = orig->get_const_values();
-    auto trans_values = trans->get_values();
-
-    kernel::conj_transpose<<<grid_dim, default_block_size>>>(
-        size, as_cuda_type(orig_values), as_cuda_type(trans_values));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL);
 
 
 }  // namespace diagonal

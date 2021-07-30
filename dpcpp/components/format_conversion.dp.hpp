@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 #include "dpcpp/base/dim3.dp.hpp"
@@ -119,7 +120,7 @@ size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
     }
 #endif  // GINKGO_BENCHMARK_ENABLE_TUNING
     return std::min(multiple * nwarps_in_dpcpp,
-                    size_type(ceildiv(nnz, config::warp_size)));
+                    size_type(ceildiv(nnz, subwarp_size)));
 }
 
 

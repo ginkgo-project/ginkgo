@@ -84,39 +84,15 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_vector(
-        int slice_size = gko::matrix::default_slice_size,
-        int stride_factor = gko::matrix::default_stride_factor,
-        int total_cols = 0)
-    {
-        mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx(532, 231));
-        expected = gen_mtx(532, 1);
-        y = gen_mtx(231, 1);
-        alpha = gko::initialize<Vec>({2.0}, ref);
-        beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = Mtx::create(hip);
-        dmtx->copy_from(mtx.get());
-        dresult = Vec::create(hip);
-        dresult->copy_from(expected.get());
-        dy = Vec::create(hip);
-        dy->copy_from(y.get());
-        dalpha = Vec::create(hip);
-        dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(hip);
-        dbeta->copy_from(beta.get());
-    }
-
     void set_up_apply_matrix(
-        int slice_size = gko::matrix::default_slice_size,
-        int stride_factor = gko::matrix::default_stride_factor,
-        int total_cols = 0)
+        int total_cols = 1, int slice_size = gko::matrix::default_slice_size,
+        int stride_factor = gko::matrix::default_stride_factor)
     {
         mtx = Mtx::create(ref);
         mtx->copy_from(gen_mtx(532, 231));
         empty = Mtx::create(ref);
-        expected = gen_mtx(532, 64);
-        y = gen_mtx(231, 64);
+        expected = gen_mtx(532, total_cols);
+        y = gen_mtx(231, total_cols);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(hip);
@@ -155,7 +131,7 @@ protected:
 
 TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
 {
-    set_up_apply_vector();
+    set_up_apply_matrix();
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -168,7 +144,7 @@ TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
 
 TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
 {
-    set_up_apply_vector();
+    set_up_apply_matrix();
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -181,7 +157,7 @@ TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
 
 TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
-    set_up_apply_vector(32, 2);
+    set_up_apply_matrix(1, 32, 2);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -194,7 +170,7 @@ TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 
 TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFActorIsEquivalentToRef)
 {
-    set_up_apply_vector(32, 2);
+    set_up_apply_matrix(1, 32, 2);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -207,7 +183,8 @@ TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFActorIsEquivalentToRef)
 
 TEST_F(Sellp, SimpleApplyMultipleRHSIsEquivalentToRef)
 {
-    set_up_apply_matrix();
+    set_up_apply_matrix(64);
+
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -220,7 +197,8 @@ TEST_F(Sellp, SimpleApplyMultipleRHSIsEquivalentToRef)
 
 TEST_F(Sellp, AdvancedApplyMultipleRHSIsEquivalentToRef)
 {
-    set_up_apply_matrix();
+    set_up_apply_matrix(64);
+
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -261,7 +239,8 @@ TEST_F(Sellp,
 
 TEST_F(Sellp, ApplyToComplexIsEquivalentToRef)
 {
-    set_up_apply_matrix();
+    set_up_apply_matrix(64);
+
     auto complex_b = gen_mtx<ComplexVec>(231, 3);
     auto dcomplex_b = ComplexVec::create(hip);
     dcomplex_b->copy_from(complex_b.get());
@@ -278,7 +257,8 @@ TEST_F(Sellp, ApplyToComplexIsEquivalentToRef)
 
 TEST_F(Sellp, AdvancedApplyToComplexIsEquivalentToRef)
 {
-    set_up_apply_matrix();
+    set_up_apply_matrix(64);
+
     auto complex_b = gen_mtx<ComplexVec>(231, 3);
     auto dcomplex_b = ComplexVec::create(hip);
     dcomplex_b->copy_from(complex_b.get());
@@ -295,7 +275,7 @@ TEST_F(Sellp, AdvancedApplyToComplexIsEquivalentToRef)
 
 TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
 {
-    set_up_apply_matrix();
+    set_up_apply_matrix(64);
 
     auto dense_mtx = gko::matrix::Dense<>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<>::create(hip);
@@ -309,7 +289,7 @@ TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
 
 TEST_F(Sellp, ConvertToCsrIsEquivalentToRef)
 {
-    set_up_apply_matrix();
+    set_up_apply_matrix(64);
 
     auto csr_mtx = gko::matrix::Csr<>::create(ref);
     auto dcsr_mtx = gko::matrix::Csr<>::create(hip);
@@ -323,7 +303,7 @@ TEST_F(Sellp, ConvertToCsrIsEquivalentToRef)
 
 TEST_F(Sellp, ConvertEmptyToDenseIsEquivalentToRef)
 {
-    set_up_apply_matrix();
+    set_up_apply_matrix(64);
 
     auto dense_mtx = gko::matrix::Dense<>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<>::create(hip);
@@ -337,7 +317,7 @@ TEST_F(Sellp, ConvertEmptyToDenseIsEquivalentToRef)
 
 TEST_F(Sellp, ConvertEmptyToCsrIsEquivalentToRef)
 {
-    set_up_apply_matrix();
+    set_up_apply_matrix(64);
 
     auto csr_mtx = gko::matrix::Csr<>::create(ref);
     auto dcsr_mtx = gko::matrix::Csr<>::create(hip);
@@ -351,7 +331,7 @@ TEST_F(Sellp, ConvertEmptyToCsrIsEquivalentToRef)
 
 TEST_F(Sellp, CountNonzerosIsEquivalentToRef)
 {
-    set_up_apply_matrix();
+    set_up_apply_matrix(64);
 
     gko::size_type nnz;
     gko::size_type dnnz;
@@ -365,7 +345,7 @@ TEST_F(Sellp, CountNonzerosIsEquivalentToRef)
 
 TEST_F(Sellp, ExtractDiagonalIsEquivalentToRef)
 {
-    set_up_apply_matrix();
+    set_up_apply_matrix(64);
 
     auto diag = mtx->extract_diagonal();
     auto ddiag = dmtx->extract_diagonal();
@@ -376,7 +356,7 @@ TEST_F(Sellp, ExtractDiagonalIsEquivalentToRef)
 
 TEST_F(Sellp, ExtractDiagonalWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
-    set_up_apply_matrix(32, 2);
+    set_up_apply_matrix(64, 32, 2);
 
     auto diag = mtx->extract_diagonal();
     auto ddiag = dmtx->extract_diagonal();
@@ -387,7 +367,7 @@ TEST_F(Sellp, ExtractDiagonalWithSliceSizeAndStrideFactorIsEquivalentToRef)
 
 TEST_F(Sellp, InplaceAbsoluteMatrixIsEquivalentToRef)
 {
-    set_up_apply_matrix(32, 2);
+    set_up_apply_matrix(64, 32, 2);
 
     mtx->compute_absolute_inplace();
     dmtx->compute_absolute_inplace();
@@ -398,7 +378,7 @@ TEST_F(Sellp, InplaceAbsoluteMatrixIsEquivalentToRef)
 
 TEST_F(Sellp, OutplaceAbsoluteMatrixIsEquivalentToRef)
 {
-    set_up_apply_matrix(32, 2);
+    set_up_apply_matrix(64, 32, 2);
 
     auto abs_mtx = mtx->compute_absolute();
     auto dabs_mtx = dmtx->compute_absolute();
