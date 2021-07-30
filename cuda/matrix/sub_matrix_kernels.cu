@@ -67,7 +67,22 @@ template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::SubMatrix<matrix::Csr<ValueType, IndexType>> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
-{}
+{
+    // auto a = sub_mat->get_sub_matrix();
+    // auto overlaps = sub_mat->get_overlap_mtxs();
+    // auto num_overlaps = overlaps.size();
+    // auto row_offset = sub_mat->get_overlap_sizes().get_data();
+    // auto overlap_sizes = std::vector<int>(num_overlaps, 0);
+    // auto left_ov_bound = sub_mat->get_left_overlap_bound();
+    // bool fl = true;
+    // for (int i = 1; i < num_overlaps; ++i) {
+    //     overlap_sizes[i] = overlap_sizes[i - 1] + overlaps[i]->get_size()[1];
+    //     if (i > left_ov_bound && fl) {
+    //         overlap_sizes[i] += a->get_size()[1];
+    //         fl = false;
+    //     }
+    // }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SUB_MATRIX_SPMV_KERNEL);

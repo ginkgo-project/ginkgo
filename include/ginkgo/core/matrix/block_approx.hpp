@@ -61,6 +61,8 @@ public:
 
     std::vector<size_type> get_block_nonzeros() const { return block_nnzs_; }
 
+    Array<index_type> get_block_ptrs_array() const { return block_ptrs_; }
+
     const index_type *get_block_ptrs() const
     {
         return block_ptrs_.get_const_data();
