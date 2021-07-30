@@ -1455,14 +1455,20 @@ protected:
 
     static void increase_num_execs(unsigned device_id)
     {
+#ifdef GINKGO_BUILD_CUDA
+        // increase the Cuda Device count only when ginkgo build cuda
         std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
         device_class::get_num_execs(device_id)++;
+#endif  // GINKGO_BUILD_CUDA
     }
 
     static void decrease_num_execs(unsigned device_id)
     {
+#ifdef GINKGO_BUILD_CUDA
+        // increase the Cuda Device count only when ginkgo build cuda
         std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
         device_class::get_num_execs(device_id)--;
+#endif  // GINKGO_BUILD_CUDA
     }
 
     static unsigned get_num_execs(unsigned device_id)
@@ -1677,14 +1683,20 @@ protected:
 
     static void increase_num_execs(int device_id)
     {
+#ifdef GINKGO_BUILD_HIP
+        // increase the HIP Device count only when ginkgo build hip
         std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
         device_class::get_num_execs(device_id)++;
+#endif  // GINKGO_BUILD_HIP
     }
 
     static void decrease_num_execs(int device_id)
     {
+#ifdef GINKGO_BUILD_HIP
+        // increase the HIP Device count only when ginkgo build hip
         std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
         device_class::get_num_execs(device_id)--;
+#endif  // GINKGO_BUILD_HIP
     }
 
     static int get_num_execs(int device_id)
