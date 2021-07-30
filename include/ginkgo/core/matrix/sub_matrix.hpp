@@ -47,6 +47,7 @@ namespace matrix {
 
 template <class MatrixType>
 class SubMatrix : public EnableLinOp<SubMatrix<MatrixType>>,
+                  public EnableRestrictedLinOp<SubMatrix<MatrixType>>,
                   public EnableCreateMethod<SubMatrix<MatrixType>> {
     friend class EnableCreateMethod<SubMatrix>;
     friend class EnablePolymorphicObject<SubMatrix, LinOp>;
@@ -145,6 +146,11 @@ protected:
         this->generate(matrix, row_span, col_span, overlap_row_span,
                        overlap_col_span);
     }
+
+    void restricted_apply_impl(const LinOp *b, LinOp *x) const;
+
+    void restricted_apply_impl(const LinOp *alpha, const LinOp *b,
+                               const LinOp *beta, LinOp *x) const;
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
 

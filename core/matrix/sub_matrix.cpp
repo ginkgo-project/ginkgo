@@ -97,6 +97,37 @@ void SubMatrix<MatrixType>::generate(
 
 
 template <typename MatrixType>
+void SubMatrix<MatrixType>::restricted_apply_impl(const LinOp *b,
+                                                  LinOp *x) const
+{
+    using value_type = typename MatrixType::value_type;
+    using index_type = typename MatrixType::index_type;
+    using Dense = Dense<value_type>;
+
+    auto dense_b = as<Dense>(b);
+    auto dense_x = as<Dense>(x);
+    this->get_executor()->run(sub_matrix::make_spmv(this, dense_b, dense_x));
+}
+
+
+template <typename MatrixType>
+void SubMatrix<MatrixType>::restricted_apply_impl(const LinOp *alpha,
+                                                  const LinOp *b,
+                                                  const LinOp *beta,
+                                                  LinOp *x) const
+{
+    using value_type = typename MatrixType::value_type;
+    using index_type = typename MatrixType::index_type;
+    using Dense = Dense<value_type>;
+
+    auto dense_b = as<Dense>(b);
+    auto dense_x = as<Dense>(x);
+    this->get_executor()->run(sub_matrix::make_advanced_spmv(
+        as<Dense>(alpha), this, dense_b, as<Dense>(beta), dense_x));
+}
+
+
+template <typename MatrixType>
 void SubMatrix<MatrixType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using value_type = typename MatrixType::value_type;
@@ -131,6 +162,20 @@ void SubMatrix<MatrixType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SUB_MATRIX_CSR_GENERATE);
+
+
+#define GKO_DECLARE_SUB_MATRIX_CSR_RAPPLY(ValueType, IndexType)       \
+    void SubMatrix<Csr<ValueType, IndexType>>::restricted_apply_impl( \
+        const LinOp *b, LinOp *x) const
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SUB_MATRIX_CSR_RAPPLY);
+
+
+#define GKO_DECLARE_SUB_MATRIX_CSR_RAPPLY2(ValueType, IndexType)      \
+    void SubMatrix<Csr<ValueType, IndexType>>::restricted_apply_impl( \
+        const LinOp *alpha, const LinOp *b, const LinOp *beta, LinOp *x) const
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SUB_MATRIX_CSR_RAPPLY2);
 
 
 #define GKO_DECLARE_SUB_MATRIX_CSR_APPLY(ValueType, IndexType)            \

@@ -327,6 +327,52 @@ public:                                                              \
                               const LinOp* b, const LinOp* beta, const LinOp* x)
 
     /**
+     * LinOp's apply started event.
+     *
+     * @param A  the system matrix
+     * @param b  the input vector(s)
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(22, linop_restricted_apply_started,
+                              const LinOp *A, const LinOp *b, const LinOp *x)
+
+    /**
+     * LinOp's apply completed event.
+     *
+     * @param A  the system matrix
+     * @param b  the input vector(s)
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(23, linop_restricted_apply_completed,
+                              const LinOp *A, const LinOp *b, const LinOp *x)
+
+    /**
+     * LinOp's advanced apply started event.
+     *
+     * @param A  the system matrix
+     * @param alpha  scaling of the result of op(b)
+     * @param b  the input vector(s)
+     * @param beta  scaling of the input x
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(24, linop_restricted_advanced_apply_started,
+                              const LinOp *A, const LinOp *alpha,
+                              const LinOp *b, const LinOp *beta, const LinOp *x)
+
+    /**
+     * LinOp's advanced apply completed event.
+     *
+     * @param A  the system matrix
+     * @param alpha  scaling of the result of op(b)
+     * @param b  the input vector(s)
+     * @param beta  scaling of the input x
+     * @param x  the output vector(s)
+     */
+    GKO_LOGGER_REGISTER_EVENT(25, linop_restricted_advanced_apply_completed,
+                              const LinOp *A, const LinOp *alpha,
+                              const LinOp *b, const LinOp *beta, const LinOp *x)
+
+    /**
      * LinOp Factory's generate started event.
      *
      * @param factory  the factory used

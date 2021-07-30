@@ -859,6 +859,106 @@ public:
  *
  * @ingroup LinOp
  */
+template <typename ConcreteLinOp>
+class EnableRestrictedLinOp {
+public:
+    const ConcreteLinOp *restricted_apply(const LinOp *b, LinOp *x) const
+    {
+        this->template log<log::Logger::linop_restricted_apply_started>(this, b,
+                                                                        x);
+        this->validate_restricted_application_parameters(b, x);
+        auto exec = this->get_executor();
+        this->restricted_apply_impl(make_temporary_clone(exec, b).get(),
+                                    make_temporary_clone(exec, x).get());
+        this->template log<log::Logger::linop_restricted_apply_completed>(this,
+                                                                          b, x);
+        return self();
+    }
+
+    ConcreteLinOp *restricted_apply(const LinOp *b, LinOp *x)
+    {
+        this->template log<log::Logger::linop_restricted_apply_started>(this, b,
+                                                                        x);
+        this->validate_restricted_application_parameters(b, x);
+        auto exec = this->get_executor();
+        this->restricted_apply_impl(make_temporary_clone(exec, b).get(),
+                                    make_temporary_clone(exec, x).get());
+        this->template log<log::Logger::linop_restricted_apply_completed>(this,
+                                                                          b, x);
+        return self();
+    }
+
+    const ConcreteLinOp *restricted_apply(const LinOp *alpha, const LinOp *b,
+                                          const LinOp *beta, LinOp *x) const
+    {
+        this->template log<
+            log::Logger::linop_restricted_advanced_apply_started>(this, alpha,
+                                                                  b, beta, x);
+        this->validate_restricted_application_parameters(alpha, b, beta, x);
+        auto exec = this->get_executor();
+        this->restricted_apply_impl(make_temporary_clone(exec, alpha).get(),
+                                    make_temporary_clone(exec, b).get(),
+                                    make_temporary_clone(exec, beta).get(),
+                                    make_temporary_clone(exec, x).get());
+        this->template log<
+            log::Logger::linop_restricted_advanced_apply_completed>(this, alpha,
+                                                                    b, beta, x);
+        return self();
+    }
+
+    ConcreteLinOp *restricted_apply(const LinOp *alpha, const LinOp *b,
+                                    const LinOp *beta, LinOp *x)
+    {
+        this->template log<
+            log::Logger::linop_restricted_advanced_apply_started>(this, alpha,
+                                                                  b, beta, x);
+        this->validate_restricted_application_parameters(alpha, b, beta, x);
+        auto exec = this->get_executor();
+        this->restricted_apply_impl(make_temporary_clone(exec, alpha).get(),
+                                    make_temporary_clone(exec, b).get(),
+                                    make_temporary_clone(exec, beta).get(),
+                                    make_temporary_clone(exec, x).get());
+        this->template log<
+            log::Logger::linop_restricted_advanced_apply_completed>(this, alpha,
+                                                                    b, beta, x);
+        return self();
+    }
+
+protected:
+    GKO_ENABLE_SELF(ConcreteLinOp);
+};
+
+
+/**
+ * The EnableLinOp mixin can be used to provide sensible default implementations
+ * of the majority of the LinOp and PolymorphicObject interface.
+ *
+ * The goal of the mixin is to facilitate the development of new LinOp, by
+ * enabling the implementers to focus on the important parts of their operator,
+ * while the library takes care of generating the trivial utility functions.
+ * The mixin will provide default implementations for the entire
+ * PolymorphicObject interface, including a default implementation of
+ * `copy_from` between objects of the new LinOp type. It will also hide the
+ * default LinOp::apply() methods with versions that preserve the static type of
+ * the object.
+ *
+ * Implementers of new LinOps are required to specify only the following
+ * aspects:
+ *
+ * 1.  Creation of the LinOp: This can be facilitated via either
+ *     EnableCreateMethod mixin (used mostly for matrix formats),
+ *     or GKO_ENABLE_LIN_OP_FACTORY macro (used for operators created from other
+ *     operators, like preconditioners and solvers).
+ * 2.  Application of the LinOp: Implementers have to override the two
+ *     overloads of the LinOp::apply_impl() virtual methods.
+ *
+ * @tparam ConcreteLinOp  the concrete LinOp which is being implemented
+ *                        [CRTP parameter]
+ * @tparam PolymorphicBase  parent of ConcreteLinOp in the polymorphic
+ *                          hierarchy, has to be a subclass of LinOp
+ *
+ * @ingroup LinOp
+ */
 template <typename ConcreteLinOp, typename PolymorphicBase = LinOp>
 class EnableLinOp
     : public EnablePolymorphicObject<ConcreteLinOp, PolymorphicBase>,
