@@ -54,7 +54,7 @@ namespace hip {
 namespace par_ic_factorization {
 
 
-constexpr auto default_block_size = 512;
+constexpr int default_block_size = 512;
 
 
 // subwarp sizes for all warp-parallel kernels (sweep)

@@ -30,63 +30,48 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_COMPONENTS_INTRINSICS_DP_HPP_
-#define GKO_DPCPP_COMPONENTS_INTRINSICS_DP_HPP_
+#include "core/matrix/coo_kernels.hpp"
 
 
-#include <CL/sycl.hpp>
+#include <ginkgo/core/base/math.hpp>
 
 
-#include <ginkgo/core/base/types.hpp>
-
-
-#include "dpcpp/base/dpct.hpp"
+#include "common/base/kernel_launch.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
-
-
+namespace GKO_DEVICE_NAMESPACE {
 /**
- * @internal
- * Returns the number of set bits in the given mask.
+ * @brief The Coo matrix format namespace.
+ *
+ * @ingroup coo
  */
-__dpct_inline__ int popcnt(uint32 mask) { return sycl::popcount(mask); }
-
-/** @copydoc popcnt */
-__dpct_inline__ int popcnt(uint64 mask) { return sycl::popcount(mask); }
+namespace coo {
 
 
-/**
- * @internal
- * Returns the (1-based!) index of the first set bit in the given mask,
- * starting from the least significant bit.
- */
-__dpct_inline__ int ffs(uint32 mask) { return __builtin_ffs(mask); }
-
-/** @copydoc ffs */
-__dpct_inline__ int ffs(uint64 mask)
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Coo<ValueType, IndexType> *orig,
+                      matrix::Diagonal<ValueType> *diag)
 {
-    // the cast is necessary, as the overloads defined by HIP are ambiguous
-    return __builtin_ffsll(static_cast<unsigned long long int>(mask));
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto tidx, auto orig_values, auto orig_row_idxs,
+                      auto orig_col_idxs, auto diag) {
+            if (orig_row_idxs[tidx] == orig_col_idxs[tidx]) {
+                diag[orig_row_idxs[tidx]] = orig_values[tidx];
+            }
+        },
+        orig->get_num_stored_elements(), orig->get_const_values(),
+        orig->get_const_row_idxs(), orig->get_const_col_idxs(),
+        diag->get_values());
 }
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL);
 
 
-/**
- * @internal
- * Returns the number of zero bits before the first set bit in the given mask,
- * starting from the most significant bit.
- */
-__dpct_inline__ int clz(uint32 mask) { return __builtin_clz(mask); }
-
-/** @copydoc clz */
-__dpct_inline__ int clz(uint64 mask) { return __builtin_clzll(mask); }
-
-
-}  // namespace dpcpp
+}  // namespace coo
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_DPCPP_COMPONENTS_INTRINSICS_DP_HPP_

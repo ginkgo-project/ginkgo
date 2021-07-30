@@ -78,7 +78,7 @@ constexpr auto kcfg_1d_list =
 constexpr auto subgroup_list =
     syn::value_list<std::uint32_t, 64, 32, 16, 8, 4>();
 constexpr auto kcfg_1d_array = syn::as_array(kcfg_1d_list);
-constexpr auto default_block_size = 256;
+constexpr int default_block_size = 256;
 
 
 namespace kernel {
@@ -828,7 +828,7 @@ void compute_dot(std::shared_ptr<const DpcppExecutor> exec,
         // TODO: these are tuning parameters obtained experimentally, once
         // we decide how to handle this uniformly, they should be modified
         // appropriately
-        constexpr auto work_per_thread = 32;
+        constexpr int work_per_thread = 32;
         auto queue = exec->get_queue();
         constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
         const std::uint32_t cfg =
@@ -875,7 +875,7 @@ void compute_conj_dot(std::shared_ptr<const DpcppExecutor> exec,
         // TODO: these are tuning parameters obtained experimentally, once
         // we decide how to handle this uniformly, they should be modified
         // appropriately
-        constexpr auto work_per_thread = 32;
+        constexpr int work_per_thread = 32;
         auto queue = exec->get_queue();
         constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
         const std::uint32_t cfg =
@@ -920,7 +920,7 @@ void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,
         // TODO: these are tuning parameters obtained experimentally, once
         // we decide how to handle this uniformly, they should be modified
         // appropriately
-        constexpr auto work_per_thread = 32;
+        constexpr int work_per_thread = 32;
         auto queue = exec->get_queue();
         constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
         const std::uint32_t cfg =

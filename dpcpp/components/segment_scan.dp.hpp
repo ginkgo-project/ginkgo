@@ -50,18 +50,18 @@ namespace dpcpp {
 /**
  * @internal
  *
- * Compute a segement scan using add operation (+) of a subwarp. Each segment
- * performs suffix sum. Works on the source array and returns whether the thread
- * is the first element of its segment with same `ind`.
+ * Compute a segement scan using add operation (+) of a subgroup_size. Each
+ * segment performs suffix sum. Works on the source array and returns whether
+ * the thread is the first element of its segment with same `ind`.
  */
-template <unsigned subwarp_size, typename ValueType, typename IndexType>
+template <unsigned subgroup_size, typename ValueType, typename IndexType>
 __dpct_inline__ bool segment_scan(
-    const group::thread_block_tile<subwarp_size> &group, const IndexType ind,
+    const group::thread_block_tile<subgroup_size> &group, const IndexType ind,
     ValueType *__restrict__ val)
 {
     bool head = true;
 #pragma unroll
-    for (int i = 1; i < subwarp_size; i <<= 1) {
+    for (int i = 1; i < subgroup_size; i <<= 1) {
         const IndexType add_ind = group.shfl_up(ind, i);
         ValueType add_val = zero<ValueType>();
         if (add_ind == ind && group.thread_rank() >= i) {
@@ -71,7 +71,7 @@ __dpct_inline__ bool segment_scan(
             }
         }
         add_val = group.shfl_down(add_val, i);
-        if (group.thread_rank() < subwarp_size - i) {
+        if (group.thread_rank() < subgroup_size - i) {
             *val += add_val;
         }
     }

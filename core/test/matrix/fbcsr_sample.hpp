@@ -51,7 +51,7 @@ namespace gko {
 namespace testing {
 
 
-constexpr auto fbcsr_test_offset = 0.000011118888;
+constexpr double fbcsr_test_offset = 0.000011118888;
 
 
 /** Generates the same sample block CSR matrix in different formats

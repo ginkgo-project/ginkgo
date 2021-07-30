@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/helper.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 
@@ -57,84 +58,10 @@ namespace dpcpp {
 namespace diagonal {
 
 
-constexpr auto default_block_size = 256;
+constexpr int default_block_size = 256;
 
 
 namespace kernel {
-
-
-template <typename ValueType>
-void apply_to_dense(size_type num_rows, size_type num_cols,
-                    const ValueType *__restrict__ diag, size_type source_stride,
-                    const ValueType *__restrict__ source_values,
-                    size_type result_stride,
-                    ValueType *__restrict__ result_values,
-                    sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    const auto row = tidx / num_cols;
-    const auto col = tidx % num_cols;
-
-    if (row < num_rows) {
-        result_values[row * result_stride + col] =
-            source_values[row * source_stride + col] * diag[row];
-    }
-}
-
-template <typename ValueType>
-void apply_to_dense(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                    sycl::queue *queue, size_type num_rows, size_type num_cols,
-                    const ValueType *diag, size_type source_stride,
-                    const ValueType *source_values, size_type result_stride,
-                    ValueType *result_values)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                apply_to_dense(num_rows, num_cols, diag, source_stride,
-                               source_values, result_stride, result_values,
-                               item_ct1);
-            });
-    });
-}
-
-
-template <typename ValueType>
-void right_apply_to_dense(size_type num_rows, size_type num_cols,
-                          const ValueType *__restrict__ diag,
-                          size_type source_stride,
-                          const ValueType *__restrict__ source_values,
-                          size_type result_stride,
-                          ValueType *__restrict__ result_values,
-                          sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    const auto row = tidx / num_cols;
-    const auto col = tidx % num_cols;
-
-    if (row < num_rows) {
-        result_values[row * result_stride + col] =
-            source_values[row * source_stride + col] * diag[col];
-    }
-}
-
-template <typename ValueType>
-void right_apply_to_dense(dim3 grid, dim3 block,
-                          size_type dynamic_shared_memory, sycl::queue *queue,
-                          size_type num_rows, size_type num_cols,
-                          const ValueType *diag, size_type source_stride,
-                          const ValueType *source_values,
-                          size_type result_stride, ValueType *result_values)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                right_apply_to_dense(num_rows, num_cols, diag, source_stride,
-                                     source_values, result_stride,
-                                     result_values, item_ct1);
-            });
-    });
-}
 
 
 template <typename ValueType, typename IndexType>
@@ -161,168 +88,10 @@ void apply_to_csr(size_type num_rows, const ValueType *__restrict__ diag,
     }
 }
 
-template <typename ValueType, typename IndexType>
-void apply_to_csr(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                  sycl::queue *queue, size_type num_rows, const ValueType *diag,
-                  const IndexType *row_ptrs, ValueType *result_values)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                apply_to_csr(num_rows, diag, row_ptrs, result_values, item_ct1);
-            });
-    });
-}
-
-
-template <typename ValueType, typename IndexType>
-void right_apply_to_csr(size_type num_nnz, const ValueType *__restrict__ diag,
-                        const IndexType *__restrict__ col_idxs,
-                        ValueType *__restrict__ result_values,
-                        sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-
-    if (tidx >= num_nnz) {
-        return;
-    }
-
-    result_values[tidx] *= diag[col_idxs[tidx]];
-}
-
-template <typename ValueType, typename IndexType>
-void right_apply_to_csr(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                        sycl::queue *queue, size_type num_nnz,
-                        const ValueType *diag, const IndexType *col_idxs,
-                        ValueType *result_values)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             right_apply_to_csr(num_nnz, diag, col_idxs,
-                                                result_values, item_ct1);
-                         });
-    });
-}
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_csr(size_type size, const ValueType *__restrict__ diag_values,
-                    IndexType *__restrict__ row_ptrs,
-                    IndexType *__restrict__ col_idxs,
-                    ValueType *__restrict__ csr_values,
-                    sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-
-    if (tidx >= size) {
-        return;
-    }
-    if (tidx == 0) {
-        row_ptrs[size] = size;
-    }
-
-    row_ptrs[tidx] = tidx;
-    col_idxs[tidx] = tidx;
-    csr_values[tidx] = diag_values[tidx];
-}
-
-template <typename ValueType, typename IndexType>
-void convert_to_csr(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                    sycl::queue *queue, size_type size,
-                    const ValueType *diag_values, IndexType *row_ptrs,
-                    IndexType *col_idxs, ValueType *csr_values)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             convert_to_csr(size, diag_values, row_ptrs,
-                                            col_idxs, csr_values, item_ct1);
-                         });
-    });
-}
-
-
-template <typename ValueType>
-void conj_transpose(size_type size, const ValueType *__restrict__ orig_values,
-                    ValueType *__restrict__ trans_values,
-                    sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-
-    if (tidx >= size) {
-        return;
-    }
-
-    trans_values[tidx] = conj(orig_values[tidx]);
-}
-
-template <typename ValueType>
-void conj_transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                    sycl::queue *queue, size_type size,
-                    const ValueType *orig_values, ValueType *trans_values)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                conj_transpose(size, orig_values, trans_values, item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(apply_to_csr, apply_to_csr);
 
 
 }  // namespace kernel
-
-
-template <typename ValueType>
-void apply_to_dense(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Diagonal<ValueType> *a,
-                    const matrix::Dense<ValueType> *b,
-                    matrix::Dense<ValueType> *c)
-{
-    const auto b_size = b->get_size();
-    const auto num_rows = b_size[0];
-    const auto num_cols = b_size[1];
-    const auto b_stride = b->get_stride();
-    const auto c_stride = c->get_stride();
-    const auto grid_dim = ceildiv(num_rows * num_cols, default_block_size);
-
-    const auto diag_values = a->get_const_values();
-    const auto b_values = b->get_const_values();
-    auto c_values = c->get_values();
-
-    kernel::apply_to_dense(grid_dim, default_block_size, 0, exec->get_queue(),
-                           num_rows, num_cols, diag_values, b_stride, b_values,
-                           c_stride, c_values);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
-
-
-template <typename ValueType>
-void right_apply_to_dense(std::shared_ptr<const DpcppExecutor> exec,
-                          const matrix::Diagonal<ValueType> *a,
-                          const matrix::Dense<ValueType> *b,
-                          matrix::Dense<ValueType> *c)
-{
-    const auto b_size = b->get_size();
-    const auto num_rows = b_size[0];
-    const auto num_cols = b_size[1];
-    const auto b_stride = b->get_stride();
-    const auto c_stride = c->get_stride();
-    const auto grid_dim = ceildiv(num_rows * num_cols, default_block_size);
-
-    const auto diag_values = a->get_const_values();
-    const auto b_values = b->get_const_values();
-    auto c_values = c->get_values();
-
-    kernel::right_apply_to_dense(
-        grid_dim, default_block_size, 0, exec->get_queue(), num_rows, num_cols,
-        diag_values, b_stride, b_values, c_stride, c_values);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -345,66 +114,6 @@ void apply_to_csr(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void right_apply_to_csr(std::shared_ptr<const DpcppExecutor> exec,
-                        const matrix::Diagonal<ValueType> *a,
-                        const matrix::Csr<ValueType, IndexType> *b,
-                        matrix::Csr<ValueType, IndexType> *c)
-{
-    const auto num_nnz = b->get_num_stored_elements();
-    const auto diag_values = a->get_const_values();
-    c->copy_from(b);
-    auto csr_values = c->get_values();
-    const auto csr_col_idxs = c->get_const_col_idxs();
-
-    const auto grid_dim = ceildiv(num_nnz, default_block_size);
-    kernel::right_apply_to_csr(grid_dim, default_block_size, 0,
-                               exec->get_queue(), num_nnz, diag_values,
-                               csr_col_idxs, csr_values);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Diagonal<ValueType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
-{
-    const auto size = source->get_size()[0];
-    const auto grid_dim = ceildiv(size, default_block_size);
-
-    const auto diag_values = source->get_const_values();
-    auto row_ptrs = result->get_row_ptrs();
-    auto col_idxs = result->get_col_idxs();
-    auto csr_values = result->get_values();
-
-    kernel::convert_to_csr(grid_dim, default_block_size, 0, exec->get_queue(),
-                           size, diag_values, row_ptrs, col_idxs, csr_values);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL);
-
-
-template <typename ValueType>
-void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Diagonal<ValueType> *orig,
-                    matrix::Diagonal<ValueType> *trans)
-{
-    const auto size = orig->get_size()[0];
-    const auto grid_dim = ceildiv(size, default_block_size);
-    const auto orig_values = orig->get_const_values();
-    auto trans_values = trans->get_values();
-
-    kernel::conj_transpose(grid_dim, default_block_size, 0, exec->get_queue(),
-                           size, orig_values, trans_values);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL);
 
 
 }  // namespace diagonal

@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/ell_kernels.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/helper.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/format_conversion.dp.hpp"
@@ -185,24 +186,7 @@ void fill_in_csr(size_type num_rows, size_type max_nnz_per_row,
     }
 }
 
-template <typename ValueType, typename IndexType>
-void fill_in_csr(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                 sycl::queue *queue, size_type num_rows,
-                 size_type max_nnz_per_row, size_type stride,
-                 const ValueType *ell_val, const IndexType *ell_col,
-                 const ValueType *coo_val, const IndexType *coo_col,
-                 const IndexType *coo_offset, IndexType *result_row_ptrs,
-                 IndexType *result_col_idxs, ValueType *result_values)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                fill_in_csr(num_rows, max_nnz_per_row, stride, ell_val, ell_col,
-                            coo_val, coo_col, coo_offset, result_row_ptrs,
-                            result_col_idxs, result_values, item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(fill_in_csr, fill_in_csr);
 
 
 template <typename ValueType1, typename ValueType2>
@@ -215,17 +199,7 @@ void add(size_type num, ValueType1 *__restrict__ val1,
     }
 }
 
-template <typename ValueType1, typename ValueType2>
-void add(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-         sycl::queue *queue, size_type num, ValueType1 *val1,
-         const ValueType2 *val2)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) { add(num, val1, val2, item_ct1); });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(add, add);
 
 
 }  // namespace kernel

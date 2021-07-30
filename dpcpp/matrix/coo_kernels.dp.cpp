@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/helper.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/format_conversion.dp.hpp"
@@ -167,24 +168,6 @@ void abstract_spmv(const size_type nnz, const size_type num_lines,
 }
 
 template <typename ValueType, typename IndexType>
-void abstract_spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                   sycl::queue *queue, const size_type nnz,
-                   const size_type num_lines, const ValueType *val,
-                   const IndexType *col, const IndexType *row,
-                   const ValueType *b, const size_type b_stride, ValueType *c,
-                   const size_type c_stride)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             abstract_spmv(nnz, num_lines, val, col, row, b,
-                                           b_stride, c, c_stride, item_ct1);
-                         });
-    });
-}
-
-
-template <typename ValueType, typename IndexType>
 void abstract_spmv(const size_type nnz, const size_type num_lines,
                    const ValueType *__restrict__ alpha,
                    const ValueType *__restrict__ val,
@@ -201,23 +184,7 @@ void abstract_spmv(const size_type nnz, const size_type num_lines,
         item_ct1);
 }
 
-template <typename ValueType, typename IndexType>
-void abstract_spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                   sycl::queue *queue, const size_type nnz,
-                   const size_type num_lines, const ValueType *alpha,
-                   const ValueType *val, const IndexType *col,
-                   const IndexType *row, const ValueType *b,
-                   const size_type b_stride, ValueType *c,
-                   const size_type c_stride)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             abstract_spmv(nnz, num_lines, alpha, val, col, row,
-                                           b, b_stride, c, c_stride, item_ct1);
-                         });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(abstract_spmv, abstract_spmv);
 
 
 /**
@@ -292,25 +259,6 @@ void abstract_spmm(const size_type nnz, const size_type num_elems,
 }
 
 template <typename ValueType, typename IndexType>
-void abstract_spmm(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                   sycl::queue *queue, const size_type nnz,
-                   const size_type num_elems, const ValueType *val,
-                   const IndexType *col, const IndexType *row,
-                   const size_type num_cols, const ValueType *b,
-                   const size_type b_stride, ValueType *c,
-                   const size_type c_stride)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_spmm(nnz, num_elems, val, col, row, num_cols, b,
-                              b_stride, c, c_stride, item_ct1);
-            });
-    });
-}
-
-
-template <typename ValueType, typename IndexType>
 void abstract_spmm(const size_type nnz, const size_type num_elems,
                    const ValueType *__restrict__ alpha,
                    const ValueType *__restrict__ val,
@@ -327,23 +275,7 @@ void abstract_spmm(const size_type nnz, const size_type num_elems,
         item_ct1);
 }
 
-template <typename ValueType, typename IndexType>
-void abstract_spmm(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                   sycl::queue *queue, const size_type nnz,
-                   const size_type num_elems, const ValueType *alpha,
-                   const ValueType *val, const IndexType *col,
-                   const IndexType *row, const size_type num_cols,
-                   const ValueType *b, const size_type b_stride, ValueType *c,
-                   const size_type c_stride)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_spmm(nnz, num_elems, alpha, val, col, row, num_cols, b,
-                              b_stride, c, c_stride, item_ct1);
-            });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(abstract_spmm, abstract_spmm);
 
 
 }  // namespace
@@ -374,6 +306,7 @@ void convert_row_idxs_to_ptrs(const IndexType *__restrict__ idxs,
     }
 }
 
+// can not use GKO_ENABLE_DEFAULT_HOST, otherwise we can not inistantiate it.
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(dim3 grid, dim3 block,
                               size_type dynamic_shared_memory,
@@ -390,10 +323,10 @@ void convert_row_idxs_to_ptrs(dim3 grid, dim3 block,
     });
 }
 
-template void convert_row_idxs_to_ptrs(dim3, dim3, size_t, sycl::queue *,
+template void convert_row_idxs_to_ptrs(dim3, dim3, size_type, sycl::queue *,
                                        const int32 *idxs, size_type, int32 *,
                                        size_type);
-template void convert_row_idxs_to_ptrs(dim3, dim3, size_t, sycl::queue *,
+template void convert_row_idxs_to_ptrs(dim3, dim3, size_type, sycl::queue *,
                                        const int64 *idxs, size_type, int64 *,
                                        size_type);
 
@@ -413,20 +346,7 @@ void initialize_zero_dense(size_type num_rows, size_type num_cols,
     }
 }
 
-template <typename ValueType>
-void initialize_zero_dense(dim3 grid, dim3 block,
-                           size_type dynamic_shared_memory, sycl::queue *queue,
-                           size_type num_rows, size_type num_cols,
-                           size_type stride, ValueType *result)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             initialize_zero_dense(num_rows, num_cols, stride,
-                                                   result, item_ct1);
-                         });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(initialize_zero_dense, initialize_zero_dense);
 
 
 template <typename ValueType, typename IndexType>
@@ -441,52 +361,7 @@ void fill_in_dense(size_type nnz, const IndexType *__restrict__ row_idxs,
     }
 }
 
-template <typename ValueType, typename IndexType>
-void fill_in_dense(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                   sycl::queue *queue, size_type nnz, const IndexType *row_idxs,
-                   const IndexType *col_idxs, const ValueType *values,
-                   size_type stride, ValueType *result)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             fill_in_dense(nnz, row_idxs, col_idxs, values,
-                                           stride, result, item_ct1);
-                         });
-    });
-}
-
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(size_type nnz, const ValueType *__restrict__ orig_values,
-                      const IndexType *__restrict__ orig_row_idxs,
-                      const IndexType *__restrict__ orig_col_idxs,
-                      ValueType *__restrict__ diag, sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-
-    if (tidx < nnz) {
-        if (orig_row_idxs[tidx] == orig_col_idxs[tidx]) {
-            diag[orig_row_idxs[tidx]] = orig_values[tidx];
-        }
-    }
-}
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                      sycl::queue *queue, size_type nnz,
-                      const ValueType *orig_values,
-                      const IndexType *orig_row_idxs,
-                      const IndexType *orig_col_idxs, ValueType *diag)
-{
-    queue->submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             extract_diagonal(nnz, orig_values, orig_row_idxs,
-                                              orig_col_idxs, diag, item_ct1);
-                         });
-    });
-}
+GKO_ENABLE_DEFAULT_HOST(fill_in_dense, fill_in_dense);
 
 
 }  // namespace kernel
@@ -657,29 +532,6 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
-{
-    const auto nnz = orig->get_num_stored_elements();
-    const auto diag_size = diag->get_size()[0];
-    const auto num_blocks = ceildiv(nnz, default_block_size);
-
-    const auto orig_values = orig->get_const_values();
-    const auto orig_row_idxs = orig->get_const_row_idxs();
-    const auto orig_col_idxs = orig->get_const_col_idxs();
-    auto diag_values = diag->get_values();
-
-    kernel::extract_diagonal(num_blocks, default_block_size, 0,
-                             exec->get_queue(), nnz, orig_values, orig_row_idxs,
-                             orig_col_idxs, diag_values);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace coo
