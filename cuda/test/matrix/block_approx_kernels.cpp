@@ -67,15 +67,16 @@ protected:
                                            {0.0, 1.0, 2.0, 1.5, 3.0}},
                                           exec)),
           csr_mtx0(gko::initialize<CsrMtx>({I<T>({1.0, 2.0}), I<T>({0.0, 3.0})},
-                                           exec)),
+                                           exec->get_master())),
           csr_mtx1(gko::initialize<CsrMtx>(
-              {{2.5, 1.5, 0.0}, {1.0, 2.0, 4.0}, {2.0, 1.5, 3.0}}, exec)),
+              {{2.5, 1.5, 0.0}, {1.0, 2.0, 4.0}, {2.0, 1.5, 3.0}},
+              exec->get_master())),
           b(gko::initialize<Dense>({2.0, 1.0, -1.0, 3.0, 0.0}, exec)),
-          b0(gko::initialize<Dense>({2.0, 1.0}, exec)),
-          b1(gko::initialize<Dense>({-1.0, 3.0, 0.0}, exec)),
+          b0(gko::initialize<Dense>({2.0, 1.0}, exec->get_master())),
+          b1(gko::initialize<Dense>({-1.0, 3.0, 0.0}, exec->get_master())),
           x(gko::initialize<Dense>({2.0, 1.0, -1.0, 3.0, 0.0}, exec)),
-          x0(gko::initialize<Dense>({2.0, 1.0}, exec)),
-          x1(gko::initialize<Dense>({-1.0, 3.0, 0.0}, exec)),
+          x0(gko::initialize<Dense>({2.0, 1.0}, exec->get_master())),
+          x1(gko::initialize<Dense>({-1.0, 3.0, 0.0}, exec->get_master())),
           mtx(Mtx::create(exec))
     {
         csr_mtx->set_strategy(
@@ -105,43 +106,45 @@ TYPED_TEST_SUITE(BlockApprox, gko::test::ValueIndexTypes);
 TYPED_TEST(BlockApprox, CanApplyToDense)
 {
     using Mtx = typename TestFixture::Mtx;
+    using CsrMtx = typename TestFixture::CsrMtx;
     using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
 
     auto block_sizes = gko::Array<gko::size_type>(this->exec, {2, 3});
-    auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes);
 
     mtx->apply(this->b.get(), this->x.get());
     this->csr_mtx0->apply(this->b0.get(), this->x0.get());
     this->csr_mtx1->apply(this->b1.get(), this->x1.get());
 
+    auto host_x = Dense::create(this->exec->get_master());
+    host_x->copy_from(this->x.get());
+    auto host_mat1 = CsrMtx::create(this->exec->get_master());
+    host_mat1->copy_from(mtx->get_block_mtxs()[0]->get_sub_matrix().get());
+    auto host_mat2 = CsrMtx::create(this->exec->get_master());
+    host_mat2->copy_from(mtx->get_block_mtxs()[1]->get_sub_matrix().get());
     ASSERT_EQ(mtx->get_num_blocks(), 2);
-    ASSERT_EQ(mtx->get_block_dimensions()[0], gko::dim<2>(2));
-    ASSERT_EQ(mtx->get_block_dimensions()[1], gko::dim<2>(3));
-    ASSERT_EQ(mtx->get_block_nonzeros()[0], 3);
-    ASSERT_EQ(mtx->get_block_nonzeros()[1], 8);
-    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[0], this->csr_mtx0,
-                        r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[1], this->csr_mtx1,
-                        r<value_type>::value);
-    ASSERT_EQ(this->x->get_values()[0], this->x0->get_values()[0]);
-    ASSERT_EQ(this->x->get_values()[1], this->x0->get_values()[1]);
-    ASSERT_EQ(this->x->get_values()[2], this->x1->get_values()[0]);
-    ASSERT_EQ(this->x->get_values()[3], this->x1->get_values()[1]);
-    ASSERT_EQ(this->x->get_values()[4], this->x1->get_values()[2]);
+    GKO_EXPECT_MTX_NEAR(host_mat1, this->csr_mtx0, r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(host_mat2, this->csr_mtx1, r<value_type>::value);
+    EXPECT_EQ(host_x->get_values()[0], this->x0->get_values()[0]);
+    EXPECT_EQ(host_x->get_values()[1], this->x0->get_values()[1]);
+    EXPECT_EQ(host_x->get_values()[2], this->x1->get_values()[0]);
+    EXPECT_EQ(host_x->get_values()[3], this->x1->get_values()[1]);
+    EXPECT_EQ(host_x->get_values()[4], this->x1->get_values()[2]);
 }
 
 
 TYPED_TEST(BlockApprox, CanAdvancedApplyToDense)
 {
     using Mtx = typename TestFixture::Mtx;
+    using CsrMtx = typename TestFixture::CsrMtx;
     using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
 
     auto block_sizes = gko::Array<gko::size_type>(this->exec, {2, 3});
-    auto mtx = Mtx::create(this->exec, block_sizes, this->csr_mtx.get());
+    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), block_sizes);
     auto alpha = gko::initialize<Dense>({2.0}, this->exec);
     auto beta = gko::initialize<Dense>({-1.0}, this->exec);
 
@@ -151,20 +154,20 @@ TYPED_TEST(BlockApprox, CanAdvancedApplyToDense)
     this->csr_mtx1->apply(alpha.get(), this->b1.get(), beta.get(),
                           this->x1.get());
 
+    auto host_x = Dense::create(this->exec->get_master());
+    host_x->copy_from(this->x.get());
+    auto host_mat1 = CsrMtx::create(this->exec->get_master());
+    host_mat1->copy_from(mtx->get_block_mtxs()[0]->get_sub_matrix().get());
+    auto host_mat2 = CsrMtx::create(this->exec->get_master());
+    host_mat2->copy_from(mtx->get_block_mtxs()[1]->get_sub_matrix().get());
     ASSERT_EQ(mtx->get_num_blocks(), 2);
-    ASSERT_EQ(mtx->get_block_dimensions()[0], gko::dim<2>(2));
-    ASSERT_EQ(mtx->get_block_dimensions()[1], gko::dim<2>(3));
-    ASSERT_EQ(mtx->get_block_nonzeros()[0], 3);
-    ASSERT_EQ(mtx->get_block_nonzeros()[1], 8);
-    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[0], this->csr_mtx0,
-                        r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(mtx->get_block_mtxs()[1], this->csr_mtx1,
-                        r<value_type>::value);
-    ASSERT_EQ(this->x->get_values()[0], this->x0->get_values()[0]);
-    ASSERT_EQ(this->x->get_values()[1], this->x0->get_values()[1]);
-    ASSERT_EQ(this->x->get_values()[2], this->x1->get_values()[0]);
-    ASSERT_EQ(this->x->get_values()[3], this->x1->get_values()[1]);
-    ASSERT_EQ(this->x->get_values()[4], this->x1->get_values()[2]);
+    GKO_EXPECT_MTX_NEAR(host_mat1, this->csr_mtx0, r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(host_mat2, this->csr_mtx1, r<value_type>::value);
+    EXPECT_EQ(host_x->get_values()[0], this->x0->get_values()[0]);
+    EXPECT_EQ(host_x->get_values()[1], this->x0->get_values()[1]);
+    EXPECT_EQ(host_x->get_values()[2], this->x1->get_values()[0]);
+    EXPECT_EQ(host_x->get_values()[3], this->x1->get_values()[1]);
+    EXPECT_EQ(host_x->get_values()[4], this->x1->get_values()[2]);
 }
 
 

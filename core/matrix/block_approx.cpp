@@ -69,6 +69,7 @@ void BlockApprox<MatrixType>::generate(const Array<size_type> &block_sizes,
 
     this->get_executor()->run(block_approx::make_compute_block_ptrs(
         num_blocks, block_sizes.get_const_data(), block_ptrs_.get_data()));
+    block_ptrs_.set_executor(this->get_executor()->get_master());
 
     for (size_type j = 0; j < block_mtxs.size(); ++j) {
         block_mtxs_.emplace_back(std::move(block_mtxs[j]));
