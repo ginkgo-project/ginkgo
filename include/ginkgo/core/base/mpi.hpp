@@ -407,6 +407,12 @@ void gather(const SendType *send_buffer, const int send_count,
 
 
 template <typename SendType, typename RecvType>
+void all_gather(const SendType *send_buffer, const int send_count,
+                RecvType *recv_buffer, const int recv_count,
+                std::shared_ptr<const communicator> comm = {});
+
+
+template <typename SendType, typename RecvType>
 void scatter(const SendType *send_buffer, const int send_count,
              RecvType *recv_buffer, const int recv_count, int root_rank,
              std::shared_ptr<const communicator> comm = {});
