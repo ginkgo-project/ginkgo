@@ -1407,8 +1407,6 @@ public:
     int get_closest_numa() const { return this->get_exec_info().numa_node; }
 
 protected:
-    using device_class = NvidiaDevice;
-
     void set_gpu_property();
 
     void init_handles();
@@ -1453,29 +1451,11 @@ protected:
 
     bool verify_memory_to(const CudaExecutor *dest_exec) const override;
 
-    static void increase_num_execs(unsigned device_id)
-    {
-#ifdef GINKGO_BUILD_CUDA
-        // increase the Cuda Device count only when ginkgo build cuda
-        std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
-        device_class::get_num_execs(device_id)++;
-#endif  // GINKGO_BUILD_CUDA
-    }
+    static void increase_num_execs(unsigned device_id);
 
-    static void decrease_num_execs(unsigned device_id)
-    {
-#ifdef GINKGO_BUILD_CUDA
-        // increase the Cuda Device count only when ginkgo build cuda
-        std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
-        device_class::get_num_execs(device_id)--;
-#endif  // GINKGO_BUILD_CUDA
-    }
+    static void decrease_num_execs(unsigned device_id);
 
-    static unsigned get_num_execs(unsigned device_id)
-    {
-        std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
-        return device_class::get_num_execs(device_id);
-    }
+    static unsigned get_num_execs(unsigned device_id);
 
     void populate_exec_info(const MachineTopology *mach_topo) override;
 
@@ -1631,12 +1611,6 @@ public:
     }
 
 protected:
-#if (GINKGO_HIP_PLATFORM_NVCC == 1)
-    using device_class = NvidiaDevice;
-#else
-    using device_class = AmdDevice;
-#endif
-
     void set_gpu_property();
 
     void init_handles();
@@ -1681,29 +1655,11 @@ protected:
 
     bool verify_memory_to(const HipExecutor *dest_exec) const override;
 
-    static void increase_num_execs(int device_id)
-    {
-#ifdef GINKGO_BUILD_HIP
-        // increase the HIP Device count only when ginkgo build hip
-        std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
-        device_class::get_num_execs(device_id)++;
-#endif  // GINKGO_BUILD_HIP
-    }
+    static void increase_num_execs(int device_id);
 
-    static void decrease_num_execs(int device_id)
-    {
-#ifdef GINKGO_BUILD_HIP
-        // increase the HIP Device count only when ginkgo build hip
-        std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
-        device_class::get_num_execs(device_id)--;
-#endif  // GINKGO_BUILD_HIP
-    }
+    static void decrease_num_execs(int device_id);
 
-    static int get_num_execs(int device_id)
-    {
-        std::lock_guard<std::mutex> guard(device_class::get_mutex(device_id));
-        return device_class::get_num_execs(device_id);
-    }
+    static int get_num_execs(int device_id);
 
     void populate_exec_info(const MachineTopology *mach_topo) override;
 

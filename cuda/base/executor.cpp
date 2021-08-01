@@ -66,9 +66,9 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
         [device_id](CudaExecutor *exec) {
             auto device_reset = exec->get_device_reset();
             std::lock_guard<std::mutex> guard(
-                device_class::get_mutex(device_id));
+                NvidiaDevice::get_mutex(device_id));
             delete exec;
-            auto &num_execs = device_class::get_num_execs(device_id);
+            auto &num_execs = NvidiaDevice::get_num_execs(device_id);
             num_execs--;
             if (!num_execs && device_reset) {
                 cuda::device_guard g(device_id);

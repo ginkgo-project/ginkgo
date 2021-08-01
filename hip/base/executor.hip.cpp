@@ -56,6 +56,13 @@ namespace gko {
 #include "common/base/executor.hpp.inc"
 
 
+#if (GINKGO_HIP_PLATFORM_NVCC == 1)
+using hip_device_class = NvidiaDevice;
+#else
+using hip_device_class = AmdDevice;
+#endif
+
+
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
     allocation_mode alloc_mode)
@@ -65,9 +72,9 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
         [device_id](HipExecutor *exec) {
             auto device_reset = exec->get_device_reset();
             std::lock_guard<std::mutex> guard(
-                device_class::get_mutex(device_id));
+                hip_device_class::get_mutex(device_id));
             delete exec;
-            auto &num_execs = device_class::get_num_execs(device_id);
+            auto &num_execs = hip_device_class::get_num_execs(device_id);
             num_execs--;
             if (!num_execs && device_reset) {
                 hip::device_guard g(device_id);

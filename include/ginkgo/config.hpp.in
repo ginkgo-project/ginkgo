@@ -67,11 +67,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #cmakedefine GINKGO_MIXED_PRECISION
 
 
-/* Should we compile cuda kenrels for Ginkgo? */
+/* Should we compile cuda kernels for Ginkgo? */
 #cmakedefine GINKGO_BUILD_CUDA
 
 
-/* Should we compile hip kenrels for Ginkgo? */
+/* Should we compile hip kernels for Ginkgo? */
 #cmakedefine GINKGO_BUILD_HIP
 
 

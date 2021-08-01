@@ -61,4 +61,38 @@ bool HipExecutor::verify_memory_to(const CudaExecutor *dest_exec) const
 }
 
 
+#if (GINKGO_HIP_PLATFORM_NVCC == 1)
+using hip_device_class = NvidiaDevice;
+#else
+using hip_device_class = AmdDevice;
+#endif
+
+
+void HipExecutor::increase_num_execs(int device_id)
+{
+#ifdef GINKGO_BUILD_HIP
+    // increase the HIP Device count only when ginkgo build hip
+    std::lock_guard<std::mutex> guard(hip_device_class::get_mutex(device_id));
+    hip_device_class::get_num_execs(device_id)++;
+#endif  // GINKGO_BUILD_HIP
+}
+
+
+void HipExecutor::decrease_num_execs(int device_id)
+{
+#ifdef GINKGO_BUILD_HIP
+    // increase the HIP Device count only when ginkgo build hip
+    std::lock_guard<std::mutex> guard(hip_device_class::get_mutex(device_id));
+    hip_device_class::get_num_execs(device_id)--;
+#endif  // GINKGO_BUILD_HIP
+}
+
+
+int HipExecutor::get_num_execs(int device_id)
+{
+    std::lock_guard<std::mutex> guard(hip_device_class::get_mutex(device_id));
+    return hip_device_class::get_num_execs(device_id);
+}
+
+
 }  // namespace gko
