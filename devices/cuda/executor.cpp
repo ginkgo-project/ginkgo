@@ -64,4 +64,31 @@ bool CudaExecutor::verify_memory_to(const HipExecutor *dest_exec) const
 }
 
 
+void CudaExecutor::increase_num_execs(unsigned device_id)
+{
+#ifdef GINKGO_BUILD_CUDA
+    // increase the Cuda Device count only when ginkgo build cuda
+    std::lock_guard<std::mutex> guard(NvidiaDevice::get_mutex(device_id));
+    NvidiaDevice::get_num_execs(device_id)++;
+#endif  // GINKGO_BUILD_CUDA
+}
+
+
+void CudaExecutor::decrease_num_execs(unsigned device_id)
+{
+#ifdef GINKGO_BUILD_CUDA
+    // increase the Cuda Device count only when ginkgo build cuda
+    std::lock_guard<std::mutex> guard(NvidiaDevice::get_mutex(device_id));
+    NvidiaDevice::get_num_execs(device_id)--;
+#endif  // GINKGO_BUILD_CUDA
+}
+
+
+unsigned CudaExecutor::get_num_execs(unsigned device_id)
+{
+    std::lock_guard<std::mutex> guard(NvidiaDevice::get_mutex(device_id));
+    return NvidiaDevice::get_num_execs(device_id);
+}
+
+
 }  // namespace gko
