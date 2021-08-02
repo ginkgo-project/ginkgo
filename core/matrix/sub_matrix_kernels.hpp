@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/overlap.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -47,18 +48,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 
-#define GKO_DECLARE_SUB_MATRIX_SPMV_KERNEL(ValueType, IndexType)             \
-    void spmv(std::shared_ptr<const DefaultExecutor> exec,                   \
-              const matrix::SubMatrix<matrix::Csr<ValueType, IndexType>> *a, \
-              const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+#define GKO_DECLARE_SUB_MATRIX_SPMV_KERNEL(ValueType, IndexType)              \
+    void spmv(std::shared_ptr<const DefaultExecutor> exec,                    \
+              const matrix::SubMatrix<matrix::Csr<ValueType, IndexType>> *a,  \
+              const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c, \
+              const OverlapMask &w)
 
-#define GKO_DECLARE_SUB_MATRIX_ADVANCED_SPMV_KERNEL(ValueType, IndexType) \
-    void advanced_spmv(                                                   \
-        std::shared_ptr<const DefaultExecutor> exec,                      \
-        const matrix::Dense<ValueType> *alpha,                            \
-        const matrix::SubMatrix<matrix::Csr<ValueType, IndexType>> *a,    \
-        const matrix::Dense<ValueType> *b,                                \
-        const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *c)
+#define GKO_DECLARE_SUB_MATRIX_ADVANCED_SPMV_KERNEL(ValueType, IndexType)  \
+    void advanced_spmv(                                                    \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        const matrix::Dense<ValueType> *alpha,                             \
+        const matrix::SubMatrix<matrix::Csr<ValueType, IndexType>> *a,     \
+        const matrix::Dense<ValueType> *b,                                 \
+        const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *c, \
+        const OverlapMask &w)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                          \

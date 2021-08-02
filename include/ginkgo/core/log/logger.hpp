@@ -333,8 +333,8 @@ public:                                                              \
      * @param b  the input vector(s)
      * @param x  the output vector(s)
      */
-    GKO_LOGGER_REGISTER_EVENT(22, linop_restricted_apply_started,
-                              const LinOp *A, const LinOp *b, const LinOp *x)
+    GKO_LOGGER_REGISTER_EVENT(22, linop_masked_apply_started, const LinOp *A,
+                              const LinOp *b, const LinOp *x)
 
     /**
      * LinOp's apply completed event.
@@ -343,8 +343,8 @@ public:                                                              \
      * @param b  the input vector(s)
      * @param x  the output vector(s)
      */
-    GKO_LOGGER_REGISTER_EVENT(23, linop_restricted_apply_completed,
-                              const LinOp *A, const LinOp *b, const LinOp *x)
+    GKO_LOGGER_REGISTER_EVENT(23, linop_masked_apply_completed, const LinOp *A,
+                              const LinOp *b, const LinOp *x)
 
     /**
      * LinOp's advanced apply started event.
@@ -355,7 +355,7 @@ public:                                                              \
      * @param beta  scaling of the input x
      * @param x  the output vector(s)
      */
-    GKO_LOGGER_REGISTER_EVENT(24, linop_restricted_advanced_apply_started,
+    GKO_LOGGER_REGISTER_EVENT(24, linop_masked_advanced_apply_started,
                               const LinOp *A, const LinOp *alpha,
                               const LinOp *b, const LinOp *beta, const LinOp *x)
 
@@ -368,7 +368,7 @@ public:                                                              \
      * @param beta  scaling of the input x
      * @param x  the output vector(s)
      */
-    GKO_LOGGER_REGISTER_EVENT(25, linop_restricted_advanced_apply_completed,
+    GKO_LOGGER_REGISTER_EVENT(25, linop_masked_advanced_apply_completed,
                               const LinOp *A, const LinOp *alpha,
                               const LinOp *b, const LinOp *beta, const LinOp *x)
 

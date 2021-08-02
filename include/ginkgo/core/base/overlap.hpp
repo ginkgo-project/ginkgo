@@ -53,6 +53,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+struct OverlapMask {
+    gko::span write_idxs;
+};
+
+
 static std::tuple<std::vector<span>, std::vector<span>>
 calculate_overlap_row_and_col_spans(const dim<2> &size, span &rspan,
                                     span &cspan, bool unidir, size_type overlap,
