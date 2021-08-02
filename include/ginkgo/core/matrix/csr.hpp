@@ -790,6 +790,11 @@ public:
     std::unique_ptr<Csr<ValueType, IndexType>> get_submatrix(
         const gko::span &row_span, const gko::span &column_span) const override;
 
+    std::unique_ptr<Csr<ValueType, IndexType>> get_submatrix(
+        const gko::span &row_span, const gko::span &column_span,
+        const std::vector<gko::span> &left_overlaps,
+        const std::vector<gko::span> &right_overlaps) const override;
+
     /**
      * Sorts all (value, col_idx) pairs in each row by column index
      */

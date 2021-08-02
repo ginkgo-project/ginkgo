@@ -892,6 +892,12 @@ class SubMatrixExtractable {
 public:
     virtual std::unique_ptr<ConcreteType> get_submatrix(
         const gko::span &row_span, const gko::span &column_span) const = 0;
+
+
+    virtual std::unique_ptr<ConcreteType> get_submatrix(
+        const gko::span &row_span, const gko::span &column_span,
+        const std::vector<gko::span> &left_overlaps,
+        const std::vector<gko::span> &right_overlaps) const = 0;
 };
 
 
