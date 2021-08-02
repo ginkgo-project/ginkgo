@@ -68,3 +68,27 @@ __global__ void transpose_scale_copy(
         }
     }
 }
+
+
+template <typename ValueType>
+__device__ __forceinline__ void batch_scale_mat_rhs_transpose(
+    const int num_rows, const int num_cols, const size_type a_stride,
+    const ValueType *const __restrict__ a const int num_rhs,
+    const size_type b_stride, const ValueType *const __restrict__ b,
+    const ValueType *const __restrict__ scale_vec,
+    const size_type a_scaled_stride, ValueType *const __restrict__ a_scaled_t,
+    const size_type b_scaled_stride, ValueType *const __restrict__ b_scaled_t)
+{
+    for (int iz = threadIdx.x; iz < num_rows * num_cols; iz += blockDim.x) {
+        const int row = iz / num_cols;
+        const int col = iz % num_cols;
+        a_scaled_t[col * a_scaled_stride + row] =
+            a[row * a_stride + col] * scale_vec[row];
+    }
+    for (int iz = threadIdx.x; iz < num_rows * num_rhs; iz += blockDim.x) {
+        const int row = iz / num_rhs;
+        const int col = iz % num_rhs;
+        b_scaled_t[col * b_scaled_stride + row] =
+            b[row * b_stride + col] * scale_vec[row];
+    }
+}
