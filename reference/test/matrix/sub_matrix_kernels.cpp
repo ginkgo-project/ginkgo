@@ -147,8 +147,9 @@ TYPED_TEST(SubMatrix, CanApplyToDense)
     auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), rspan, cspan);
     auto s_x = Dense::create(this->exec);
     s_x->copy_from(this->x0.get());
+    auto wmask = gko::OverlapMask{rspan};
 
-    mtx->apply(this->b0.get(), s_x.get());
+    mtx->apply(this->b0.get(), s_x.get(), wmask);
     this->csr_mtx0->apply(this->b0.get(), this->x0.get());
 
     GKO_EXPECT_MTX_NEAR(mtx->get_sub_matrix(), this->csr_mtx0,
@@ -172,8 +173,9 @@ TYPED_TEST(SubMatrix, CanApplyToDenseWithOverlap)
                            ov_rspan, ov_cspan);
     auto s_x = Dense::create(this->exec);
     s_x->copy_from(this->x.get());
+    auto wmask = gko::OverlapMask{rspan};
 
-    mtx->apply(this->b.get(), s_x.get());
+    mtx->apply(this->b.get(), s_x.get(), wmask);
     this->csr_mtx111->apply(this->b.get(), this->x.get());
 
     GKO_EXPECT_MTX_NEAR(mtx->get_sub_matrix(), this->csr_mtx1,
@@ -203,8 +205,9 @@ TYPED_TEST(SubMatrix, CanApplyToDenseWithNonUnitOverlap)
                            ov_rspan, ov_cspan);
     auto s_x = Dense::create(this->exec);
     s_x->copy_from(this->x.get());
+    auto wmask = gko::OverlapMask{rspan};
 
-    mtx->apply(this->b.get(), s_x.get());
+    mtx->apply(this->b.get(), s_x.get(), wmask);
     this->csr_mtx222->apply(this->b.get(), this->x.get());
 
     GKO_EXPECT_MTX_NEAR(mtx->get_sub_matrix(), this->csr_mtx2,
@@ -236,8 +239,9 @@ TYPED_TEST(SubMatrix, CanApplyToDenseWithNonUnitLeftOverlap)
                            ov_rspan, ov_cspan);
     auto s_x = Dense::create(this->exec);
     s_x->copy_from(this->x.get());
+    auto wmask = gko::OverlapMask{rspan};
 
-    mtx->apply(this->b.get(), s_x.get());
+    mtx->apply(this->b.get(), s_x.get(), wmask);
     this->csr_mtx222->apply(this->b.get(), this->x.get());
 
     GKO_EXPECT_MTX_NEAR(mtx->get_sub_matrix(), this->csr_mtx3,
@@ -271,8 +275,9 @@ TYPED_TEST(SubMatrix, CanAdvancedApplyToDense)
     auto alpha = gko::initialize<Dense>({2.0}, this->exec);
     auto beta = gko::initialize<Dense>({-1.0}, this->exec);
     s_x->copy_from(this->x.get());
+    auto wmask = gko::OverlapMask{rspan};
 
-    mtx->apply(alpha.get(), this->b.get(), beta.get(), s_x.get());
+    mtx->apply(alpha.get(), this->b.get(), beta.get(), s_x.get(), wmask);
 
     this->csr_mtx222->apply(alpha.get(), this->b.get(), beta.get(),
                             this->x.get());
