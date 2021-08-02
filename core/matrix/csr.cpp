@@ -212,6 +212,39 @@ Csr<ValueType, IndexType>::get_submatrix(const gko::span &row_span,
 }
 
 
+std::tuple<span, span> assert_contiguous_range(
+    const gko::span &row_span, const gko::span &column_span,
+    const std::vector<gko::span> &left_overlaps,
+    const std::vector<gko::span> &right_overlaps)
+{}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>>
+Csr<ValueType, IndexType>::get_submatrix(
+    const gko::span &row_span, const gko::span &column_span,
+    const std::vector<gko::span> &left_overlaps,
+    const std::vector<gko::span> &right_overlaps) const
+{
+    using Mat = Csr<ValueType, IndexType>;
+    auto exec = this->get_executor();
+    auto submat_span = assert_contiguous_range(row_span, column_span,
+                                               left_overlaps, right_overlaps);
+    auto sub_mat_size = gko::dim<2>(std::get<0>(submat_span).length(),
+                                    std::get<1>(submat_span).length());
+    Array<size_type> row_nnz(exec, row_span.length());
+    row_nnz.fill(size_type(0));
+    exec->run(csr::make_calculate_nonzeros_per_row_in_span(
+        this, row_span, column_span, &row_nnz));
+    auto sub_mat_nnz = row_nnz.reduce();
+    auto sub_mat =
+        Mat::create(exec, sub_mat_size, sub_mat_nnz, this->get_strategy());
+    exec->run(csr::make_compute_sub_matrix(this, &row_nnz, row_span,
+                                           column_span, sub_mat.get()));
+    return sub_mat;
+}
+
+
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
     Csr<next_precision<ValueType>, IndexType> *result) const

@@ -190,7 +190,7 @@ GKO_ATTRIBUTES GKO_INLINE constexpr bool operator!=(const span &first,
 GKO_ATTRIBUTES GKO_INLINE constexpr span operator+(const span &first,
                                                    const span &second)
 {
-    return gko::span{first.begin + second.begin, first.end + second.end};
+    return gko::span{first.begin, second.end};
 }
 
 

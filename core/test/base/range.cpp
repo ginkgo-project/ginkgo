@@ -80,7 +80,7 @@ TEST(Span, CanCheckIfInSpan)
 
 TEST(Span, AddsSpan)
 {
-    ASSERT_EQ(gko::span(6, 10), gko::span(2, 3) + gko::span(4, 7));
+    ASSERT_EQ(gko::span(2, 7), gko::span(2, 3) + gko::span(4, 7));
 }
 
 
