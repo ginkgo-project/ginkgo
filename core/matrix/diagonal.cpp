@@ -147,6 +147,22 @@ std::unique_ptr<LinOp> Diagonal<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
+void Diagonal<ValueType>::convert_to(
+    Diagonal<next_precision<ValueType>> *result) const
+{
+    result->values_ = this->values_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::move_to(Diagonal<next_precision<ValueType>> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
 void Diagonal<ValueType>::convert_to(Csr<ValueType, int32> *result) const
 {
     auto exec = this->get_executor();
