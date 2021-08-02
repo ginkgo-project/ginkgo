@@ -1,5 +1,6 @@
 ginkgo_create_cuda_test(array)
 ginkgo_create_cuda_test(cuda_executor)
+ginkgo_create_thread_test(cuda_executor_reset)
 if(GINKGO_HAVE_HWLOC)
     find_package(NUMA REQUIRED)
     ginkgo_create_cuda_test(cuda_executor_topology NUMA::NUMA)

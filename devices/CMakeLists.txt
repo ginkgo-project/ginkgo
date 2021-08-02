@@ -16,7 +16,7 @@ function(ginkgo_add_library name)
     set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endfunction()
 
-ginkgo_add_library(ginkgo_device machine_topology.cpp)
+ginkgo_add_library(ginkgo_device machine_topology.cpp device.cpp)
 ginkgo_install_library(ginkgo_device)
 
 add_subdirectory(cuda)

@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
@@ -55,6 +56,13 @@ namespace gko {
 #include "common/base/executor.hpp.inc"
 
 
+#if (GINKGO_HIP_PLATFORM_NVCC == 1)
+using hip_device_class = nvidia_device;
+#else
+using hip_device_class = amd_device;
+#endif
+
+
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
     allocation_mode alloc_mode)
@@ -63,8 +71,12 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
         new HipExecutor(device_id, std::move(master), device_reset, alloc_mode),
         [device_id](HipExecutor *exec) {
             auto device_reset = exec->get_device_reset();
+            std::lock_guard<std::mutex> guard(
+                hip_device_class::get_mutex(device_id));
             delete exec;
-            if (!HipExecutor::get_num_execs(device_id) && device_reset) {
+            auto &num_execs = hip_device_class::get_num_execs(device_id);
+            num_execs--;
+            if (!num_execs && device_reset) {
                 hip::device_guard g(device_id);
                 hipDeviceReset();
             }

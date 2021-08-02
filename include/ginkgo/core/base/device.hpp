@@ -30,65 +30,88 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#ifndef GKO_PUBLIC_CORE_BASE_DEVICE_HPP_
+#define GKO_PUBLIC_CORE_BASE_DEVICE_HPP_
+
+
+#include <array>
+#include <cstdint>
+#include <mutex>
+#include <type_traits>
+
+
+#include <ginkgo/config.hpp>
 
 
 namespace gko {
 
 
-std::shared_ptr<Executor> CudaExecutor::get_master() noexcept
-{
-    return master_;
-}
+class CudaExecutor;
+
+class HipExecutor;
 
 
-std::shared_ptr<const Executor> CudaExecutor::get_master() const noexcept
-{
-    return master_;
-}
+/**
+ * nvidia_device handles the number of executor on Nvidia devices and have the
+ * corresponding recursive_mutex.
+ */
+class nvidia_device {
+    friend class CudaExecutor;
+    friend class HipExecutor;
+
+private:
+    /**
+     * get_mutex gets the static mutex reference at i.
+     *
+     * @param i  index of mutex
+     *
+     * @return recursive_mutex reference
+     */
+    static std::mutex &get_mutex(int i);
+
+    /**
+     * get_num_execs gets the static num_execs reference at i.
+     *
+     * @param i  index of num_execs
+     *
+     * @return int reference
+     */
+    static int &get_num_execs(int i);
+
+    static constexpr int max_devices = 64;
+};
 
 
-bool CudaExecutor::verify_memory_to(const CudaExecutor *dest_exec) const
-{
-    return this->get_device_id() == dest_exec->get_device_id();
-}
+/**
+ * amd_device handles the number of executor on Amd devices and have the
+ * corresponding recursive_mutex.
+ */
+class amd_device {
+    friend class HipExecutor;
 
+private:
+    /**
+     * get_mutex gets the static mutex reference at i.
+     *
+     * @param i  index of mutex
+     *
+     * @return recursive_mutex reference
+     */
+    static std::mutex &get_mutex(int i);
 
-bool CudaExecutor::verify_memory_to(const HipExecutor *dest_exec) const
-{
-#if GINKGO_HIP_PLATFORM_NVCC
-    return this->get_device_id() == dest_exec->get_device_id();
-#else
-    return false;
-#endif
-}
+    /**
+     * get_num_execs gets the static num_execs reference at i.
+     *
+     * @param i  index of num_execs
+     *
+     * @return int reference
+     */
+    static int &get_num_execs(int i);
 
-
-void CudaExecutor::increase_num_execs(unsigned device_id)
-{
-#ifdef GKO_COMPILING_CUDA_DEVICE
-    // increase the Cuda Device count only when ginkgo build cuda
-    std::lock_guard<std::mutex> guard(nvidia_device::get_mutex(device_id));
-    nvidia_device::get_num_execs(device_id)++;
-#endif  // GKO_COMPILING_CUDA_DEVICE
-}
-
-
-void CudaExecutor::decrease_num_execs(unsigned device_id)
-{
-#ifdef GKO_COMPILING_CUDA_DEVICE
-    // increase the Cuda Device count only when ginkgo build cuda
-    std::lock_guard<std::mutex> guard(nvidia_device::get_mutex(device_id));
-    nvidia_device::get_num_execs(device_id)--;
-#endif  // GKO_COMPILING_CUDA_DEVICE
-}
-
-
-unsigned CudaExecutor::get_num_execs(unsigned device_id)
-{
-    std::lock_guard<std::mutex> guard(nvidia_device::get_mutex(device_id));
-    return nvidia_device::get_num_execs(device_id);
-}
+    static constexpr int max_devices = 64;
+};
 
 
 }  // namespace gko
+
+#endif  // GKO_PUBLIC_CORE_BASE_DEVICE_HPP_

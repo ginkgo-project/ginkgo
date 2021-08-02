@@ -30,64 +30,41 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#include <memory>
+#include <mutex>
+
+
+#include <ginkgo/core/base/device.hpp>
 
 
 namespace gko {
 
 
-std::shared_ptr<Executor> CudaExecutor::get_master() noexcept
+std::mutex &nvidia_device::get_mutex(int i)
 {
-    return master_;
+    static std::mutex mutex[max_devices];
+    return mutex[i];
 }
 
 
-std::shared_ptr<const Executor> CudaExecutor::get_master() const noexcept
+int &nvidia_device::get_num_execs(int i)
 {
-    return master_;
+    static int num_execs[max_devices];
+    return num_execs[i];
 }
 
 
-bool CudaExecutor::verify_memory_to(const CudaExecutor *dest_exec) const
+std::mutex &amd_device::get_mutex(int i)
 {
-    return this->get_device_id() == dest_exec->get_device_id();
+    static std::mutex mutex[max_devices];
+    return mutex[i];
 }
 
 
-bool CudaExecutor::verify_memory_to(const HipExecutor *dest_exec) const
+int &amd_device::get_num_execs(int i)
 {
-#if GINKGO_HIP_PLATFORM_NVCC
-    return this->get_device_id() == dest_exec->get_device_id();
-#else
-    return false;
-#endif
-}
-
-
-void CudaExecutor::increase_num_execs(unsigned device_id)
-{
-#ifdef GKO_COMPILING_CUDA_DEVICE
-    // increase the Cuda Device count only when ginkgo build cuda
-    std::lock_guard<std::mutex> guard(nvidia_device::get_mutex(device_id));
-    nvidia_device::get_num_execs(device_id)++;
-#endif  // GKO_COMPILING_CUDA_DEVICE
-}
-
-
-void CudaExecutor::decrease_num_execs(unsigned device_id)
-{
-#ifdef GKO_COMPILING_CUDA_DEVICE
-    // increase the Cuda Device count only when ginkgo build cuda
-    std::lock_guard<std::mutex> guard(nvidia_device::get_mutex(device_id));
-    nvidia_device::get_num_execs(device_id)--;
-#endif  // GKO_COMPILING_CUDA_DEVICE
-}
-
-
-unsigned CudaExecutor::get_num_execs(unsigned device_id)
-{
-    std::lock_guard<std::mutex> guard(nvidia_device::get_mutex(device_id));
-    return nvidia_device::get_num_execs(device_id);
+    static int num_execs[max_devices];
+    return num_execs[i];
 }
 
 
