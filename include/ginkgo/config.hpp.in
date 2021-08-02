@@ -67,14 +67,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #cmakedefine GINKGO_MIXED_PRECISION
 
 
-/* Should we compile cuda kernels for Ginkgo? */
-#cmakedefine GINKGO_BUILD_CUDA
-
-
-/* Should we compile hip kernels for Ginkgo? */
-#cmakedefine GINKGO_BUILD_HIP
-
-
 /* What is HIP compiled for, hcc or nvcc? */
 // clang-format off
 #define GINKGO_HIP_PLATFORM_HCC @GINKGO_HIP_PLATFORM_HCC@

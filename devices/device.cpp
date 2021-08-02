@@ -40,28 +40,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-std::mutex &NvidiaDevice::get_mutex(int i)
+std::mutex &nvidia_device::get_mutex(int i)
 {
     static std::mutex mutex[max_devices];
     return mutex[i];
 }
 
 
-int &NvidiaDevice::get_num_execs(int i)
+int &nvidia_device::get_num_execs(int i)
 {
     static int num_execs[max_devices];
     return num_execs[i];
 }
 
 
-std::mutex &AmdDevice::get_mutex(int i)
+std::mutex &amd_device::get_mutex(int i)
 {
     static std::mutex mutex[max_devices];
     return mutex[i];
 }
 
 
-int &AmdDevice::get_num_execs(int i)
+int &amd_device::get_num_execs(int i)
 {
     static int num_execs[max_devices];
     return num_execs[i];

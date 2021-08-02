@@ -57,9 +57,9 @@ namespace gko {
 
 
 #if (GINKGO_HIP_PLATFORM_NVCC == 1)
-using hip_device_class = NvidiaDevice;
+using hip_device_class = nvidia_device;
 #else
-using hip_device_class = AmdDevice;
+using hip_device_class = amd_device;
 #endif
 
 
