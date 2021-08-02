@@ -385,11 +385,19 @@ TYPED_TEST(Jacobi, ScalarJacobiGeneratesOnDifferentPrecision)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using next_type = gko::next_precision<value_type>;
+    using Bj = typename TestFixture::Bj;
     auto csr =
         gko::share(gko::matrix::Csr<next_type, index_type>::create(this->exec));
     csr->copy_from(gko::lend(this->mtx));
+    std::shared_ptr<Bj> bj{};
 
-    ASSERT_NO_THROW(this->scalar_j_factory->generate(csr));
+    ASSERT_NO_THROW(bj = this->scalar_j_factory->generate(csr));
+    ASSERT_EQ(bj->get_num_blocks(), 5u);
+    ASSERT_EQ(bj->get_blocks()[0], value_type{4});
+    ASSERT_EQ(bj->get_blocks()[1], value_type{4});
+    ASSERT_EQ(bj->get_blocks()[2], value_type{4});
+    ASSERT_EQ(bj->get_blocks()[3], value_type{4});
+    ASSERT_EQ(bj->get_blocks()[4], value_type{4});
 }
 
 

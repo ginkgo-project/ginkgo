@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -233,23 +234,18 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
     if (parameters_.max_block_size == 1) {
         auto diag = share(as<DiagonalLinOpExtractable>(system_matrix)
                               ->extract_diagonal_linop());
-        using next_type = next_precision<ValueType>;
-        if (auto diag_dense =
-                std::dynamic_pointer_cast<matrix::Diagonal<ValueType>>(diag)) {
-            auto temp = gko::Array<ValueType>::view(
-                diag_dense->get_executor(), system_matrix->get_size()[0],
-                diag_dense->get_values());
-            this->blocks_ = temp;
-        } else if (auto diag_dense =
-                       std::dynamic_pointer_cast<matrix::Diagonal<next_type>>(
-                           diag)) {
-            auto temp = gko::Array<next_type>::view(
-                diag_dense->get_executor(), system_matrix->get_size()[0],
-                diag_dense->get_values());
-            this->blocks_ = temp;
-        } else {
+        auto diag_vt =
+            ::gko::detail::temporary_conversion<matrix::Diagonal<ValueType>>::
+                template create<matrix::Diagonal<next_precision<ValueType>>>(
+                    diag.get());
+        if (!diag_vt) {
             GKO_NOT_SUPPORTED(system_matrix);
         }
+        auto temp = gko::Array<ValueType>::view(diag_vt->get_executor(),
+                                                diag_vt->get_size()[0],
+                                                diag_vt->get_values());
+        this->blocks_ = temp;
+        this->num_blocks_ = diag_vt->get_size()[0];
     } else {
         auto csr_mtx = convert_to_with_sorting<csr_type>(exec, system_matrix,
                                                          skip_sorting);
