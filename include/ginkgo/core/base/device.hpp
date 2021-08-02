@@ -52,10 +52,10 @@ class HipExecutor;
 
 
 /**
- * NvidiaDevice handles the number of executor on Nvidia devices and have the
+ * nvidia_device handles the number of executor on Nvidia devices and have the
  * corresponding recursive_mutex.
  */
-class NvidiaDevice {
+class nvidia_device {
     friend class CudaExecutor;
     friend class HipExecutor;
 
@@ -83,10 +83,10 @@ private:
 
 
 /**
- * AmdDevice handles the number of executor on Amd devices and have the
+ * amd_device handles the number of executor on Amd devices and have the
  * corresponding recursive_mutex.
  */
-class AmdDevice {
+class amd_device {
     friend class HipExecutor;
 
 private:
