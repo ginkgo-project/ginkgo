@@ -282,7 +282,7 @@ TEST_F(Gmres, DpcppGmresStep1OnSingleRHSIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
                         r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter,
-                        r<value_type>::value);
+                        2 * r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
 }
