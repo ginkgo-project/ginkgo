@@ -48,6 +48,8 @@ namespace batch_direct {
 
 GKO_REGISTER_OPERATION(mat_scale, batch_csr::batch_scale);
 GKO_REGISTER_OPERATION(vec_scale, batch_dense::batch_scale);
+GKO_REGISTER_OPERATION(left_scale_system_transpose,
+                       batch_direct::left_scale_system_transpose);
 GKO_REGISTER_OPERATION(transpose_scale_copy,
                        batch_direct::transpose_scale_copy);
 GKO_REGISTER_OPERATION(apply, batch_direct::apply);
@@ -112,13 +114,22 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp *b,
         GKO_NOT_SUPPORTED(system_matrix_);
     }
 
-    std::shared_ptr<BDense> adense{};
-    std::shared_ptr<BDense> bt{};
+    const size_type num_rhs = dense_b->get_size().at(0)[1];
+    const size_type num_batches = dense_b->get_num_batch_entries();
+    const int num_rows = acsr->get_size().at()[0];
+
+    // std::shared_ptr<BDense> adense{};
+    // std::shared_ptr<BDense> bt{};
     const bool to_scale =
         this->get_left_scaling_vector() && this->get_right_scaling_vector();
+    std::shared_ptr<BDense> adense = BDense::create(
+        exec, batch_dim<>(num_batches, dim<2>(num_rows, num_rows)));
+    std::shared_ptr<BDense> bt = BDense::create(
+        exec, batch_dim<>(num_batches, dim<2>(num_rhs, num_rows)));
 
     // delete the scaled CSR copy at the end
     {
+#if 0
         auto b_scaled = Vector::create(exec);
         b_scaled->copy_from(dense_b);
         auto a_scaled_smart = Mtx::create(exec);
@@ -138,11 +149,14 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp *b,
         adense = convert_and_transpose(exec, a_scaled);
         bt = std::dynamic_pointer_cast<BDense>(
             gko::share(b_scaled->transpose()));
+#else
+        auto a1 = BDense::create(exec);
+        acsr->convert_to(a1.get());
+        exec->run(batch_direct::make_left_scale_system_transpose(
+            a1.get(), dense_b, this->get_left_scaling_vector(), adense.get(),
+            bt.get()));
+#endif
     }
-
-    const size_type num_rhs = dense_b->get_size().at(0)[1];
-    const size_type num_batches = dense_b->get_num_batch_entries();
-    batch_dim<> sizes(num_batches, dim<2>{1, num_rhs});
 
     log::BatchLogData<ValueType> logdata;  //< Useless
 
