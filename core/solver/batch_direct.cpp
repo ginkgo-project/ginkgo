@@ -152,9 +152,14 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp *b,
 #else
         auto a1 = BDense::create(exec);
         acsr->convert_to(a1.get());
-        exec->run(batch_direct::make_left_scale_system_transpose(
-            a1.get(), dense_b, this->get_left_scaling_vector(), adense.get(),
-            bt.get()));
+        if (to_scale) {
+            exec->run(batch_direct::make_left_scale_system_transpose(
+                a1.get(), dense_b, this->get_left_scaling_vector(),
+                adense.get(), bt.get()));
+        } else {
+            gko::as<BDense>(a1->transpose())->move_to(adense.get());
+            gko::as<BDense>(dense_b->transpose())->move_to(bt.get());
+        }
 #endif
     }
 
