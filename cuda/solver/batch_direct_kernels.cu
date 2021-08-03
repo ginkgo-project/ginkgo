@@ -147,6 +147,35 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DIRECT_TRANSPOSE_SCALE_COPY);
 
 
+template <typename ValueType>
+void left_scale_system_transpose(
+    std::shared_ptr<const CudaExecutor> exec,
+    const matrix::BatchDense<ValueType> *const a,
+    const matrix::BatchDense<ValueType> *const b,
+    const matrix::BatchDense<ValueType> *const scalevec,
+    matrix::BatchDense<ValueType> *const a_scaled_t,
+    matrix::BatchDense<ValueType> *const b_scaled_t)
+{
+    const size_type nbatch = a->get_num_batch_entries();
+    const int nrows = static_cast<int>(a->get_size().at()[0]);
+    const int ncols = static_cast<int>(a->get_size().at()[1]);
+    const int nrhs = static_cast<int>(b->get_size().at()[1]);
+    const size_type a_stride = a->get_stride().at();
+    const size_type a_scaled_stride = a_scaled_t->get_stride().at();
+    const size_type b_stride = b->get_stride().at();
+    const size_type b_scaled_stride = b_scaled_t->get_stride().at();
+    left_scale_system_transpose<<<nbatch, default_block_size>>>(
+        nbatch, nrows, ncols, a_stride, as_cuda_type(a->get_const_values()),
+        nrhs, b_stride, as_cuda_type(b->get_const_values()),
+        as_cuda_type(scalevec->get_const_values()), a_scaled_stride,
+        as_cuda_type(a_scaled_t->get_values()), b_scaled_stride,
+        as_cuda_type(b_scaled_t->get_values()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DIRECT_LEFT_SCALE_SYSTEM_TRANSPOSE);
+
+
 }  // namespace batch_direct
 }  // namespace cuda
 }  // namespace kernels
