@@ -858,6 +858,79 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T& x, const T& y)
 }
 
 
+namespace detail {
+
+
+template <typename T, typename Dummy = void>
+struct arithmetic_type_extractor_s {
+    static_assert(std::is_same<Dummy, void>::value,
+                  "Dummy type must not be touched!");
+    using type = T;
+};
+
+template <typename T>
+struct arithmetic_type_extractor_s<T,
+                                   xstd::void_t<typename T::arithmetic_type>> {
+    using type = typename T::arithmetic_type;
+};
+
+template <typename T>
+using arithmetic_type_extractor = typename arithmetic_type_extractor_s<T>::type;
+
+
+// Note: All functions have postfix `impl` so they are not considered for
+// overload resolution (in case a class / function also is in the namespace
+// `detail`)
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+real_impl(const T& x)
+{
+    return x;
+}
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
+                                                     remove_complex<T>>
+real_impl(const T& x)
+{
+    return x.real();
+}
+
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+imag_impl(const T&)
+{
+    return T{};
+}
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
+                                                     remove_complex<T>>
+imag_impl(const T& x)
+{
+    return x.imag();
+}
+
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+conj_impl(const T& x)
+{
+    return x;
+}
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value, T>
+conj_impl(const T& x)
+{
+    return T{real_impl(x), -imag_impl(x)};
+}
+
+
+}  // namespace detail
+
+
 /**
  * Returns the real part of the object.
  *
@@ -868,18 +941,12 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T& x, const T& y)
  * @return real part of the object (by default, the object itself)
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
-real(const T& x)
+GKO_ATTRIBUTES
+    GKO_INLINE constexpr remove_complex<detail::arithmetic_type_extractor<T>>
+    real(const T& x)
 {
-    return x;
-}
-
-template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
-                                                     remove_complex<T>>
-real(const T& x)
-{
-    return x.real();
+    using atype = detail::arithmetic_type_extractor<T>;
+    return detail::real_impl(static_cast<atype>(x));
 }
 
 
@@ -893,18 +960,12 @@ real(const T& x)
  * @return imaginary part of the object (by default, zero<T>())
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
-imag(const T&)
+GKO_ATTRIBUTES
+    GKO_INLINE constexpr remove_complex<detail::arithmetic_type_extractor<T>>
+    imag(const T& x)
 {
-    return zero<T>();
-}
-
-template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
-                                                     remove_complex<T>>
-imag(const T& x)
-{
-    return x.imag();
+    using atype = detail::arithmetic_type_extractor<T>;
+    return detail::imag_impl(static_cast<atype>(x));
 }
 
 
@@ -916,17 +977,11 @@ imag(const T& x)
  * @return  conjugate of the object (by default, the object itself)
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<!is_complex_s<T>::value, T> conj(
+GKO_ATTRIBUTES GKO_INLINE constexpr detail::arithmetic_type_extractor<T> conj(
     const T& x)
 {
-    return x;
-}
-
-template <typename T>
-GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<is_complex_s<T>::value, T> conj(
-    const T& x)
-{
-    return T{x.real(), -x.imag()};
+    using atype = detail::arithmetic_type_extractor<T>;
+    return detail::conj_impl(static_cast<atype>(x));
 }
 
 

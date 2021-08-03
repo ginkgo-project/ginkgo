@@ -150,7 +150,7 @@ public:
     scaled_reduced_storage &operator=(scaled_reduced_storage &&) = delete;
 
     constexpr explicit GKO_ACC_ATTRIBUTES scaled_reduced_storage(
-        storage_type *const GKO_ACC_RESTRICT ptr, arithmetic_type scalar)
+        const storage_type *const GKO_ACC_RESTRICT ptr, arithmetic_type scalar)
         : ptr_{ptr}, scalar_{scalar}
     {}
 
@@ -161,7 +161,7 @@ public:
     }
 
 private:
-    storage_type *const GKO_ACC_RESTRICT ptr_;
+    const storage_type *const GKO_ACC_RESTRICT ptr_;
     const arithmetic_type scalar_;
 };
 
@@ -173,23 +173,6 @@ constexpr remove_complex_t<ArithmeticType> abs(
     using std::abs;
     return abs(static_cast<ArithmeticType>(ref));
 }
-
-
-#define GKO_ACC_REFERENCE_FORWARD_MATH_FUNCTION(func_)                  \
-    template <typename ArithmeticType, typename StorageType>            \
-    constexpr GKO_ACC_ATTRIBUTES auto func_(                            \
-        const scaled_reduced_storage<ArithmeticType, StorageType> &ref) \
-    {                                                                   \
-        using gko::acc::func_;                                          \
-        return func_(detail::to_value_type<ArithmeticType>(ref));       \
-    }
-
-GKO_ACC_REFERENCE_FORWARD_MATH_FUNCTION(real)
-GKO_ACC_REFERENCE_FORWARD_MATH_FUNCTION(imag)
-GKO_ACC_REFERENCE_FORWARD_MATH_FUNCTION(conj)
-GKO_ACC_REFERENCE_FORWARD_MATH_FUNCTION(squared_norm)
-
-#undef GKO_ACC_REFERENCE_FORWARD_MATH_FUNCTION
 
 
 }  // namespace reference_class
