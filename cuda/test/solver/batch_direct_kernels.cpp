@@ -129,7 +129,7 @@ protected:
 
     void setup_ref_scaling_test()
     {
-        auto ref_scaling_vec = BDense::create(
+        ref_scaling_vec = BDense::create(
             exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, 1)));
         ref_scaling_vec->at(0, 0, 0) = 2.0;
         ref_scaling_vec->at(0, 1, 0) = 3.0;
@@ -137,11 +137,11 @@ protected:
         ref_scaling_vec->at(1, 0, 0) = 1.0;
         ref_scaling_vec->at(1, 1, 0) = -2.0;
         ref_scaling_vec->at(1, 2, 0) = -4.0;
-        auto ref_orig = gko::batch_initialize<BDense>(
+        ref_orig = gko::batch_initialize<BDense>(
             {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})},
              {{1.0, -2.0, -0.5}, {1.0, -2.5, 4.0}}},
             exec);
-        auto ref_scaled = gko::batch_initialize<BDense>(
+        ref_scaled = gko::batch_initialize<BDense>(
             {{I<T>({2.0, -4.0}), I<T>({-3.0, 6.0}), I<T>({-1.5, -3.0})},
              {{1.0, 1.0}, {4.0, 5.0}, {2.0, -16.0}}},
             exec);
@@ -198,7 +198,7 @@ TYPED_TEST(BatchDirect, SystemLeftScaleTransposeWorks)
     auto scaling_vec = BDense::create(this->cuexec);
     scaling_vec->copy_from(this->ref_scaling_vec.get());
     auto orig = BDense::create(this->cuexec);
-    orig->copy_from(this->ref_orig.get());
+    orig->copy_from(this->ref_orig->transpose().get());
     auto mat = BDense::create(this->cuexec);
     mat->copy_from(refmat.get());
     auto scaledmat = BDense::create(
@@ -206,7 +206,7 @@ TYPED_TEST(BatchDirect, SystemLeftScaleTransposeWorks)
         gko::batch_dim<>(this->nbatch, gko::dim<2>(ncols, this->nrows)));
     auto scaled = BDense::create(
         this->cuexec,
-        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, this->nrhs)));
+        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrhs, this->nrows)));
 
     gko::kernels::cuda::batch_direct::left_scale_system_transpose(
         this->cuexec, mat.get(), orig.get(), scaling_vec.get(), scaledmat.get(),
@@ -216,7 +216,8 @@ TYPED_TEST(BatchDirect, SystemLeftScaleTransposeWorks)
     scaled_b->copy_from(scaled.get());
     auto ref_mat_ans = BDense::create(this->exec);
     ref_mat_ans->copy_from(scaledmat.get());
-    GKO_ASSERT_BATCH_MTX_NEAR(scaled_b, this->ref_scaled, this->eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(
+        scaled_b, gko::as<BDense>(this->ref_scaled->transpose()), this->eps);
     GKO_ASSERT_BATCH_MTX_NEAR(ref_mat_ans, refscaledmat, this->eps);
 }
 
