@@ -72,6 +72,12 @@ public:
     using accessor = Accessor;
 
     /**
+     * The arithmetic type (type used for arithmetic operations).
+     * TODO: Might not be necessary, but useful!
+     */
+    // using arithmetic_type = typename Accessor::arithmetic_type;
+
+    /**
      * The number of dimensions of the range.
      */
     static constexpr size_type dimensionality = accessor::dimensionality;

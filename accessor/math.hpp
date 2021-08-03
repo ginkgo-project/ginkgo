@@ -43,6 +43,82 @@ namespace gko {
 namespace acc {
 
 
+namespace detail {
+
+
+template <typename T, typename Dummy = void>
+struct arithmetic_type_extractor {
+    static_assert(std::is_same<Dummy, void>::value,
+                  "Dummy type must not be touched!");
+    using type = T;
+};
+
+template <typename T>
+struct arithmetic_type_extractor<T, xstd::void_t<typename T::arithmetic_type>> {
+    using type = typename T::arithmetic_type;
+};
+
+template <typename T>
+using arithmetic_type_extractor_t = typename arithmetic_type_extractor<T>::type;
+
+
+// Note: All functions have postfix `impl` so they are not considered for
+// overload resolution (in case a class / function also is in the namespace
+// `detail`)
+template <typename T>
+constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
+    std::enable_if_t<!is_complex<T>::value, T>
+    real_impl(const T &x)
+{
+    return x;
+}
+
+template <typename T>
+constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
+    std::enable_if_t<is_complex<T>::value, remove_complex_t<T>>
+    real_impl(const T &x)
+{
+    return x.real();
+}
+
+
+template <typename T>
+constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
+    std::enable_if_t<!is_complex<T>::value, T>
+    imag_impl(const T &)
+{
+    return T{};
+}
+
+template <typename T>
+constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
+    std::enable_if_t<is_complex<T>::value, remove_complex_t<T>>
+    imag_impl(const T &x)
+{
+    return x.imag();
+}
+
+
+template <typename T>
+constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
+    std::enable_if_t<!is_complex<T>::value, T>
+    conj_impl(const T &x)
+{
+    return x;
+}
+
+template <typename T>
+constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
+    std::enable_if_t<is_complex<T>::value, T>
+    conj_impl(const T &x)
+{
+    return T{real_impl(x), -imag_impl(x)};
+}
+
+
+}  // namespace detail
+
+
 /**
  * Returns the real part of the object.
  *
@@ -53,18 +129,12 @@ namespace acc {
  * @return real part of the object (by default, the object itself)
  */
 template <typename T>
-constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<!is_complex<T>::value, T> real(
-    const T &x)
-{
-    return x;
-}
-
-template <typename T>
-constexpr GKO_ACC_ATTRIBUTES
-    std::enable_if_t<is_complex<T>::value, remove_complex_t<T>>
+constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
+    remove_complex_t<detail::arithmetic_type_extractor_t<T>>
     real(const T &x)
 {
-    return x.real();
+    using atype = detail::arithmetic_type_extractor_t<T>;
+    return detail::real_impl(static_cast<atype>(x));
 }
 
 
@@ -78,18 +148,12 @@ constexpr GKO_ACC_ATTRIBUTES
  * @return imag part of the object (by default, zero)
  */
 template <typename T>
-constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<!is_complex<T>::value, T> imag(
-    const T &)
-{
-    return T{};
-}
-
-template <typename T>
-constexpr GKO_ACC_ATTRIBUTES
-    std::enable_if_t<is_complex<T>::value, remove_complex_t<T>>
+constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
+    remove_complex_t<detail::arithmetic_type_extractor_t<T>>
     imag(const T &x)
 {
-    return x.imag();
+    using atype = detail::arithmetic_type_extractor_t<T>;
+    return detail::imag_impl(static_cast<atype>(x));
 }
 
 
@@ -101,17 +165,12 @@ constexpr GKO_ACC_ATTRIBUTES
  * @return  conjugate of the object (by default, the object itself)
  */
 template <typename T>
-constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<!is_complex<T>::value, T> conj(
-    const T &x)
+constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
+    detail::arithmetic_type_extractor_t<T>
+    conj(const T &x)
 {
-    return x;
-}
-
-template <typename T>
-constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<is_complex<T>::value, T> conj(
-    const T &x)
-{
-    return T{real(x), -imag(x)};
+    using atype = detail::arithmetic_type_extractor_t<T>;
+    return detail::conj_impl(static_cast<atype>(x));
 }
 
 
@@ -123,7 +182,7 @@ constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<is_complex<T>::value, T> conj(
  * @return  The squared norm of the object.
  */
 template <typename T>
-constexpr GKO_ACC_ATTRIBUTES auto squared_norm(const T &x)
+constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE auto squared_norm(const T &x)
 {
     return real(conj(x) * x);
 }
