@@ -212,11 +212,50 @@ Csr<ValueType, IndexType>::get_submatrix(const gko::span &row_span,
 }
 
 
-std::tuple<span, span> assert_contiguous_range(
+inline void assert_contiguous(const span &st_span,
+                              const std::vector<span> &spans, bool left)
+{
+    if (!left) {
+        if (st_span.end != spans[0].begin) {
+            GKO_NOT_IMPLEMENTED;
+        }
+    } else {
+        if (st_span.begin != spans[spans.size() - 1].end) {
+            GKO_NOT_IMPLEMENTED;
+        }
+    }
+    for (auto i = 1; i < spans.size(); ++i) {
+        if (spans[i].begin != spans[i - 1].end) {
+            GKO_NOT_IMPLEMENTED;
+        }
+    }
+}
+
+
+inline std::tuple<gko::span, gko::span> compute_contiguous_range(
     const gko::span &row_span, const gko::span &column_span,
     const std::vector<gko::span> &left_overlaps,
     const std::vector<gko::span> &right_overlaps)
-{}
+{
+    int oleft = 0;
+    int oright = 0;
+    if (left_overlaps.size() > 0) {
+        oleft = left_overlaps[left_overlaps.size() - 1].end -
+                left_overlaps[0].begin;
+        GKO_ASSERT(oleft > 0);
+        GKO_ASSERT(column_span.begin >= oleft);
+        GKO_ASSERT(row_span.begin >= oleft);
+    }
+    if (right_overlaps.size() > 0) {
+        oright = right_overlaps[right_overlaps.size() - 1].end -
+                 right_overlaps[0].begin;
+        GKO_ASSERT(oright > 0);
+    }
+
+    return std::make_tuple<gko::span, gko::span>(
+        gko::span(row_span.begin - oleft, row_span.end + oright),
+        gko::span(column_span.begin - oleft, column_span.end + oright));
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -228,19 +267,28 @@ Csr<ValueType, IndexType>::get_submatrix(
 {
     using Mat = Csr<ValueType, IndexType>;
     auto exec = this->get_executor();
-    auto submat_span = assert_contiguous_range(row_span, column_span,
-                                               left_overlaps, right_overlaps);
-    auto sub_mat_size = gko::dim<2>(std::get<0>(submat_span).length(),
-                                    std::get<1>(submat_span).length());
-    Array<size_type> row_nnz(exec, row_span.length());
+    if (left_overlaps.size() > 0) {
+        assert_contiguous(column_span, left_overlaps, true);
+    }
+    if (right_overlaps.size() > 0) {
+        assert_contiguous(column_span, right_overlaps, false);
+    }
+    auto submat_span = compute_contiguous_range(row_span, column_span,
+                                                left_overlaps, right_overlaps);
+    gko::span rspan =
+        span(std::get<0>(submat_span).begin, std::get<0>(submat_span).end);
+    gko::span cspan =
+        span(std::get<1>(submat_span).begin, std::get<1>(submat_span).end);
+    auto sub_mat_size = gko::dim<2>(rspan.length(), cspan.length());
+    Array<size_type> row_nnz(exec, rspan.length());
     row_nnz.fill(size_type(0));
-    exec->run(csr::make_calculate_nonzeros_per_row_in_span(
-        this, row_span, column_span, &row_nnz));
+    exec->run(csr::make_calculate_nonzeros_per_row_in_span(this, rspan, cspan,
+                                                           &row_nnz));
     auto sub_mat_nnz = row_nnz.reduce();
     auto sub_mat =
         Mat::create(exec, sub_mat_size, sub_mat_nnz, this->get_strategy());
-    exec->run(csr::make_compute_sub_matrix(this, &row_nnz, row_span,
-                                           column_span, sub_mat.get()));
+    exec->run(csr::make_compute_sub_matrix(this, &row_nnz, rspan, cspan,
+                                           sub_mat.get()));
     return sub_mat;
 }
 

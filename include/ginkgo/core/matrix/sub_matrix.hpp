@@ -63,59 +63,39 @@ public:
 
     Array<size_type> get_overlap_sizes() const { return overlap_sizes_; }
 
-    std::vector<std::shared_ptr<MatrixType>> get_overlap_mtxs() const
-    {
-        return overlap_mtxs_;
-    }
-
     void convert_to(SubMatrix<MatrixType> *result) const override
     {
         this->sub_mtx_->convert_to(result->sub_mtx_.get());
         result->set_size(this->get_size());
-        if (this->overlap_mtxs_.size() > 0) {
-            for (int i = 0; i < this->overlap_mtxs_.size(); ++i) {
-                auto tmp_mat = MatrixType::create(result->get_executor());
-                this->overlap_mtxs_[i]->convert_to(tmp_mat.get());
-                result->overlap_mtxs_.emplace_back(std::move(tmp_mat));
-            }
-        }
     }
 
     void move_to(SubMatrix<MatrixType> *result) override
     {
         this->sub_mtx_->move_to(result->sub_mtx_.get());
         result->set_size(this->get_size());
-        if (this->overlap_mtxs_.size() > 0) {
-            for (int i = 0; i < this->overlap_mtxs_.size(); ++i) {
-                auto tmp_mat = MatrixType::create(result->get_executor());
-                this->overlap_mtxs_[i]->move_to(tmp_mat.get());
-                result->overlap_mtxs_.emplace_back(std::move(tmp_mat));
-            }
-        }
     }
 
 private:
     inline dim<2> compute_size(const MatrixType *matrix,
                                const gko::span &row_span,
                                const gko::span &col_span,
-                               const std::vector<gko::span> &overlap_row_span,
-                               const std::vector<gko::span> &overlap_col_span)
+                               const std::vector<gko::span> &left_overlaps,
+                               const std::vector<gko::span> &right_overlaps)
     {
         auto mat_size = matrix->get_size();
-        size_type num_ov_rows = 0;
-        size_type num_ov_cols = 0;
-        if (overlap_row_span.size() > 0) {
-            for (const auto &i : overlap_row_span) {
-                num_ov_rows += i.length();
+        size_type num_ov = 0;
+        if (left_overlaps.size() > 0) {
+            for (const auto &i : left_overlaps) {
+                num_ov += i.length();
             }
         }
-        if (overlap_col_span.size() > 0) {
-            for (const auto &i : overlap_col_span) {
-                num_ov_cols += i.length();
+        if (right_overlaps.size() > 0) {
+            for (const auto &i : right_overlaps) {
+                num_ov += i.length();
             }
         }
         auto upd_size =
-            gko::dim<2>(row_span.length(), col_span.length() + num_ov_cols);
+            gko::dim<2>(row_span.length() + num_ov, col_span.length() + num_ov);
         return upd_size;
     }
 
@@ -123,27 +103,27 @@ protected:
     SubMatrix(std::shared_ptr<const Executor> exec)
         : EnableLinOp<SubMatrix<MatrixType>>{exec, dim<2>{}},
           sub_mtx_{MatrixType::create(exec)},
-          overlap_mtxs_{},
-          left_overlap_size_{0}
+          left_overlap_size_{0},
+          left_overlaps_{},
+          right_overlaps_{}
     {}
 
     SubMatrix(std::shared_ptr<const Executor> exec, const MatrixType *matrix,
               const gko::span &row_span, const gko::span &col_span,
-              const std::vector<gko::span> &overlap_row_span = {},
-              const std::vector<gko::span> &overlap_col_span = {})
-        : EnableLinOp<SubMatrix<MatrixType>>{exec,
-                                             compute_size(matrix, row_span,
-                                                          col_span,
-                                                          overlap_row_span,
-                                                          overlap_col_span)},
+              const std::vector<gko::span> &left_overlaps = {},
+              const std::vector<gko::span> &right_overlaps = {})
+        : EnableLinOp<SubMatrix<MatrixType>>{exec, compute_size(
+                                                       matrix, row_span,
+                                                       col_span, left_overlaps,
+                                                       right_overlaps)},
           sub_mtx_{MatrixType::create(exec)},
-          overlap_mtxs_{},
           left_overlap_size_{0},
-          overlap_sizes_{exec, overlap_col_span.size()}
+          overlap_sizes_{exec, overlap_span.size()},
+          left_overlaps_{left_overlaps},
+          right_overlaps_{right_overlaps}
     {
-        GKO_ASSERT(overlap_row_span.size() == overlap_col_span.size());
-        this->generate(matrix, row_span, col_span, overlap_row_span,
-                       overlap_col_span);
+        this->generate(matrix, row_span, col_span, left_overlaps_,
+                       right_overlaps_);
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -159,15 +139,16 @@ protected:
 
     void generate(const MatrixType *matrix, const gko::span &row_span,
                   const gko::span &col_span,
-                  const std::vector<gko::span> &overlap_row_span,
-                  const std::vector<gko::span> &overlap_col_span);
+                  const std::vector<gko::span> &left_overlaps,
+                  const std::vector<gko::span> &right_overlaps);
 
 private:
     std::shared_ptr<MatrixType> sub_mtx_;
-    std::vector<std::shared_ptr<MatrixType>> overlap_mtxs_;
     size_type left_overlap_size_;
     size_type left_overlap_bound_{0};
     Array<size_type> overlap_sizes_;
+    std::vector<gko::span> left_overlaps_;
+    std::vector<gko::span> right_overlaps_;
 };
 
 
