@@ -57,12 +57,36 @@ namespace batch_direct {
                               const matrix::BatchDense<_type> *orig,        \
                               matrix::BatchDense<_type> *scaled)
 
+/**
+ * @fn batch_left_scale_system_transpose
+ *
+ * Scales a dense matrix and right-hand side with a left (row) scaling vector
+ * while also transposing them before storing them in the output.
+ *
+ * @param exec  The executor to use.
+ * @param a  The original dense matrix (row-major) (A).
+ * @param b  The original RHS multi-vector (row-major).
+ * @param scalevec  The row scaling vector (S).
+ * @param a_scaled_t  Scaled and transposed matrix ((SA)^t)
+ * @param b_scaled_t  Scaled and transposed RHS ((Sb)^t)
+ */
+#define GKO_DECLARE_BATCH_DIRECT_LEFT_SCALE_SYSTEM_TRANSPOSE(_type) \
+    void left_scale_system_transpose(                               \
+        std::shared_ptr<const DefaultExecutor> exec,                \
+        const matrix::BatchDense<_type> *a,                         \
+        const matrix::BatchDense<_type> *b,                         \
+        const matrix::BatchDense<_type> *scalevec,                  \
+        matrix::BatchDense<_type> *a_scaled_t,                      \
+        matrix::BatchDense<_type> *b_scaled_t)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
-    template <typename ValueType>                     \
-    GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL(ValueType); \
-    template <typename ValueType>                     \
-    GKO_DECLARE_BATCH_DIRECT_TRANSPOSE_SCALE_COPY(ValueType)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                          \
+    template <typename ValueType>                             \
+    GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL(ValueType);         \
+    template <typename ValueType>                             \
+    GKO_DECLARE_BATCH_DIRECT_TRANSPOSE_SCALE_COPY(ValueType); \
+    template <typename ValueType>                             \
+    GKO_DECLARE_BATCH_DIRECT_LEFT_SCALE_SYSTEM_TRANSPOSE(ValueType)
 
 
 }  // namespace batch_direct
