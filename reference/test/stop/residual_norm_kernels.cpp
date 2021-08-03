@@ -162,7 +162,7 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoal)
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-        res_norm->at(0) = r<TypeParam>::value * 1.1 * res_norm->at(0);
+        res_norm->at(0) = r<TypeParam>::value * 1.1 * rhs_norm->at(0);
         ASSERT_FALSE(
             rhs_criterion->update()
                 .residual_norm(res_norm.get())
@@ -170,7 +170,7 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoal)
         ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
         ASSERT_EQ(one_changed, false);
 
-        res_norm->at(0) = r<TypeParam>::value * 0.9 * res_norm->at(0);
+        res_norm->at(0) = r<TypeParam>::value * 0.9 * rhs_norm->at(0);
         ASSERT_TRUE(
             rhs_criterion->update()
                 .residual_norm(res_norm.get())
@@ -180,6 +180,7 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoal)
     }
     {
         auto res_norm = gko::initialize<NormVector>({100.0}, this->exec_);
+        auto init_res_val = res_norm->at(0, 0);
         constexpr gko::uint8 RelativeStoppingId{1};
         bool one_changed{};
         gko::Array<gko::stopping_status> stop_status(this->exec_, 1);
@@ -190,7 +191,7 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoal)
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-        res_norm->at(0) = r<TypeParam>::value * 1.1 * res_norm->at(0);
+        res_norm->at(0) = r<TypeParam>::value * 1.1 * init_res_val;
         ASSERT_FALSE(
             rel_criterion->update()
                 .residual_norm(res_norm.get())
@@ -198,7 +199,7 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoal)
         ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
         ASSERT_EQ(one_changed, false);
 
-        res_norm->at(0) = r<TypeParam>::value * 0.9 * res_norm->at(0);
+        res_norm->at(0) = r<TypeParam>::value * 0.9 * init_res_val;
         ASSERT_TRUE(
             rel_criterion->update()
                 .residual_norm(res_norm.get())
@@ -590,6 +591,7 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
     auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
     std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
     auto res_norm = gko::initialize<NormVector>({100.0}, this->exec_);
+    auto init_res_val = res_norm->at(0, 0);
     auto criterion =
         this->factory_->generate(nullptr, rhs, nullptr, initial_res.get());
     bool one_changed{};
@@ -602,7 +604,7 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0) = r<TypeParam>::value * 1.1 * res_norm->at(0);
+    res_norm->at(0) = r<TypeParam>::value * 1.1 * init_res_val;
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
@@ -610,7 +612,7 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
     ASSERT_EQ(one_changed, false);
 
-    res_norm->at(0) = r<TypeParam>::value * 0.9 * res_norm->at(0);
+    res_norm->at(0) = r<TypeParam>::value * 0.9 * init_res_val;
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(res_norm.get())
