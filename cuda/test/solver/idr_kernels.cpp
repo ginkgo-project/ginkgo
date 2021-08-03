@@ -67,9 +67,6 @@ protected:
         ref = gko::ReferenceExecutor::create();
         cuda = gko::CudaExecutor::create(0, ref);
 
-        mtx = gen_mtx(123, 123);
-        d_mtx = Mtx::create(cuda);
-        d_mtx->copy_from(mtx.get());
         cuda_idr_factory =
             Solver::build()
                 .with_deterministic(true)
@@ -100,11 +97,11 @@ protected:
             std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
     }
 
-    void initialize_data()
+    void initialize_data(int size = 597, int input_nrhs = 17)
     {
-        int size = 597;
-        nrhs = 17;
+        nrhs = input_nrhs;
         int s = 4;
+        mtx = gen_mtx(size, size);
         x = gen_mtx(size, nrhs);
         b = gen_mtx(size, nrhs);
         r = gen_mtx(size, nrhs);
@@ -125,6 +122,7 @@ protected:
             stop_status->get_data()[i].reset();
         }
 
+        d_mtx = Mtx::create(cuda);
         d_x = Mtx::create(cuda);
         d_b = Mtx::create(cuda);
         d_r = Mtx::create(cuda);
@@ -142,6 +140,7 @@ protected:
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
             new gko::Array<gko::stopping_status>(cuda));
 
+        d_mtx->copy_from(mtx.get());
         d_x->copy_from(x.get());
         d_b->copy_from(b.get());
         d_r->copy_from(r.get());
@@ -291,16 +290,9 @@ TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
 
 TEST_F(Idr, IdrIterationOneRHSIsEquivalentToRef)
 {
-    int m = 123;
-    int n = 1;
+    initialize_data(123, 1);
     auto ref_solver = ref_idr_factory->generate(mtx);
     auto cuda_solver = cuda_idr_factory->generate(d_mtx);
-    auto b = gen_mtx(m, n);
-    auto x = gen_mtx(m, n);
-    auto d_b = Mtx::create(cuda);
-    auto d_x = Mtx::create(cuda);
-    d_b->copy_from(b.get());
-    d_x->copy_from(x.get());
 
     ref_solver->apply(b.get(), x.get());
     cuda_solver->apply(d_b.get(), d_x.get());
@@ -312,8 +304,7 @@ TEST_F(Idr, IdrIterationOneRHSIsEquivalentToRef)
 
 TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
 {
-    int m = 123;
-    int n = 1;
+    initialize_data(123, 1);
     cuda_idr_factory =
         Solver::build()
             .with_deterministic(true)
@@ -330,12 +321,6 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
             .on(ref);
     auto ref_solver = ref_idr_factory->generate(mtx);
     auto cuda_solver = cuda_idr_factory->generate(d_mtx);
-    auto b = gen_mtx(m, n);
-    auto x = gen_mtx(m, n);
-    auto d_b = Mtx::create(cuda);
-    auto d_x = Mtx::create(cuda);
-    d_b->copy_from(b.get());
-    d_x->copy_from(x.get());
 
     ref_solver->apply(b.get(), x.get());
     cuda_solver->apply(d_b.get(), d_x.get());
@@ -347,16 +332,9 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
 
 TEST_F(Idr, IdrIterationMultipleRHSIsEquivalentToRef)
 {
-    int m = 123;
-    int n = 16;
+    initialize_data(123, 16);
     auto cuda_solver = cuda_idr_factory->generate(d_mtx);
     auto ref_solver = ref_idr_factory->generate(mtx);
-    auto b = gen_mtx(m, n);
-    auto x = gen_mtx(m, n);
-    auto d_b = Mtx::create(cuda);
-    auto d_x = Mtx::create(cuda);
-    d_b->copy_from(b.get());
-    d_x->copy_from(x.get());
 
     ref_solver->apply(b.get(), x.get());
     cuda_solver->apply(d_b.get(), d_x.get());
@@ -368,8 +346,7 @@ TEST_F(Idr, IdrIterationMultipleRHSIsEquivalentToRef)
 
 TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
 {
-    int m = 123;
-    int n = 16;
+    initialize_data(123, 16);
     cuda_idr_factory =
         Solver::build()
             .with_deterministic(true)
@@ -386,12 +363,6 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
             .on(ref);
     auto cuda_solver = cuda_idr_factory->generate(d_mtx);
     auto ref_solver = ref_idr_factory->generate(mtx);
-    auto b = gen_mtx(m, n);
-    auto x = gen_mtx(m, n);
-    auto d_b = Mtx::create(cuda);
-    auto d_x = Mtx::create(cuda);
-    d_b->copy_from(b.get());
-    d_x->copy_from(x.get());
 
     ref_solver->apply(b.get(), x.get());
     cuda_solver->apply(d_b.get(), d_x.get());

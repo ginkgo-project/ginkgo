@@ -111,44 +111,31 @@ template <size_type block_size, typename ValueType>
 void orthonormalize_subspace_vectors_kernel(
     size_type num_rows, size_type num_cols, ValueType *__restrict__ values,
     size_type stride, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, block_size> *reduction_helper_array,
+    UninitializedArray<ValueType, block_size> &reduction_helper_array,
     remove_complex<ValueType> *reduction_helper_real)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
 
-
-    ValueType *__restrict__ reduction_helper = (*reduction_helper_array);
-
+    ValueType *__restrict__ reduction_helper = reduction_helper_array;
 
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type i = 0; i < row; i++) {
             auto dot = zero<ValueType>();
+            // TODO: check with intel why we need this here.
+            // Is it from we use updated the value even if it is on the same
+            // thread?
+            item_ct1.barrier();
             for (size_type j = tidx; j < num_cols; j += block_size) {
-                /*
-                DPCT1007:5: Migration of this CUDA API is not supported by the
-                Intel(R) DPC++ Compatibility Tool.
-                */
                 dot += values[row * stride + j] * conj(values[i * stride + j]);
             }
-            // TODO: check with intel why we need this here.
-            item_ct1.barrier();
+
             reduction_helper[tidx] = dot;
 
-            /*
-            DPCT1065:3: Consider replacing sycl::nd_item::barrier() with
-            sycl::nd_item::barrier(sycl::access::fence_space::local_space) for
-            better performance, if there is no access to global memory.
-            */
-            item_ct1.barrier();
+            item_ct1.barrier(sycl::access::fence_space::local_space);
             ::gko::kernels::dpcpp::reduce(
                 group::this_thread_block(item_ct1), reduction_helper,
                 [](const ValueType &a, const ValueType &b) { return a + b; });
-            /*
-            DPCT1065:4: Consider replacing sycl::nd_item::barrier() with
-            sycl::nd_item::barrier(sycl::access::fence_space::local_space) for
-            better performance, if there is no access to global memory.
-            */
-            item_ct1.barrier();
+            item_ct1.barrier(sycl::access::fence_space::local_space);
 
             dot = reduction_helper[0];
             for (size_type j = tidx; j < num_cols; j += block_size) {
@@ -163,22 +150,12 @@ void orthonormalize_subspace_vectors_kernel(
 
         reduction_helper_real[tidx] = norm;
 
-        /*
-        DPCT1065:1: Consider replacing sycl::nd_item::barrier() with
-        sycl::nd_item::barrier(sycl::access::fence_space::local_space) for
-        better performance, if there is no access to global memory.
-        */
-        item_ct1.barrier();
+        item_ct1.barrier(sycl::access::fence_space::local_space);
         ::gko::kernels::dpcpp::reduce(
             group::this_thread_block(item_ct1), reduction_helper_real,
             [](const remove_complex<ValueType> &a,
                const remove_complex<ValueType> &b) { return a + b; });
-        /*
-        DPCT1065:2: Consider replacing sycl::nd_item::barrier() with
-        sycl::nd_item::barrier(sycl::access::fence_space::local_space) for
-        better performance, if there is no access to global memory.
-        */
-        item_ct1.barrier();
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         norm = std::sqrt(reduction_helper_real[0]);
         for (size_type j = tidx; j < num_cols; j += block_size) {
@@ -206,10 +183,8 @@ void orthonormalize_subspace_vectors_kernel(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 orthonormalize_subspace_vectors_kernel<block_size>(
                     num_rows, num_cols, values, stride, item_ct1,
-                    (UninitializedArray<ValueType, block_size> *)
-                        reduction_helper_array_acc_ct1.get_pointer(),
-                    (remove_complex<ValueType> *)
-                        reduction_helper_real_acc_ct1.get_pointer());
+                    *reduction_helper_array_acc_ct1.get_pointer(),
+                    reduction_helper_real_acc_ct1.get_pointer().get());
             });
     });
 }
@@ -377,7 +352,6 @@ void multidot_kernel(
                              : (item_ct1.get_group(1) + 1) * num;
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-
     ValueType *__restrict__ reduction_helper = (*reduction_helper_array);
 
     ValueType local_res = zero<ValueType>();
@@ -389,12 +363,7 @@ void multidot_kernel(
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
-    /*
-    DPCT1065:10: Consider replacing sycl::nd_item::barrier() with
-    sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better
-    performance, if there is no access to global memory.
-    */
-    item_ct1.barrier();
+    item_ct1.barrier(sycl::access::fence_space::local_space);
     local_res = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
     const auto tile_block = group::tiled_partition<default_dot_dim>(
         group::this_thread_block(item_ct1));
@@ -426,9 +395,7 @@ void multidot_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                 multidot_kernel(
                     num_rows, nrhs, p_i, g_k, g_k_stride, alpha, stop_status,
                     item_ct1,
-                    (UninitializedArray<ValueType, default_dot_dim *(
-                                                       default_dot_dim + 1)> *)
-                        reduction_helper_array_acc_ct1.get_pointer());
+                    reduction_helper_array_acc_ct1.get_pointer().get());
             });
     });
 }
