@@ -147,6 +147,22 @@ std::unique_ptr<LinOp> Diagonal<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
+void Diagonal<ValueType>::convert_to(
+    Diagonal<next_precision<ValueType>> *result) const
+{
+    result->values_ = this->values_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::move_to(Diagonal<next_precision<ValueType>> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
 void Diagonal<ValueType>::convert_to(Csr<ValueType, int32> *result) const
 {
     auto exec = this->get_executor();
@@ -302,4 +318,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_MATRIX);
 
 
 }  // namespace matrix
+
+
+// Implement DiagonalExtractable for LinOp when Diagonal is complete class
+template <typename ValueType>
+std::unique_ptr<LinOp> DiagonalExtractable<ValueType>::extract_diagonal_linop()
+    const
+{
+    return this->extract_diagonal();
+}
+
+
+#define GKO_DECLARE_DIAGONAL_EXTRACTABLE(value_type) \
+    std::unique_ptr<LinOp>                           \
+    DiagonalExtractable<value_type>::extract_diagonal_linop() const
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_EXTRACTABLE);
+
+
 }  // namespace gko

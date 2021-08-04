@@ -108,6 +108,46 @@ protected:
 TYPED_TEST_SUITE(Diagonal, gko::test::ValueTypes);
 
 
+TYPED_TEST(Diagonal, ConvertsToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Diagonal = typename TestFixture::Diag;
+    using OtherDiagonal = gko::matrix::Diagonal<OtherType>;
+    auto tmp = OtherDiagonal::create(this->exec);
+    auto res = Diagonal::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    this->diag1->convert_to(tmp.get());
+    tmp->convert_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->diag1, res, residual);
+}
+
+
+TYPED_TEST(Diagonal, MovesToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Diagonal = typename TestFixture::Diag;
+    using OtherDiagonal = gko::matrix::Diagonal<OtherType>;
+    auto tmp = OtherDiagonal::create(this->exec);
+    auto res = Diagonal::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    this->diag1->move_to(tmp.get());
+    tmp->move_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->diag1, res, residual);
+}
+
+
 TYPED_TEST(Diagonal, AppliesToDense)
 {
     using value_type = typename TestFixture::value_type;

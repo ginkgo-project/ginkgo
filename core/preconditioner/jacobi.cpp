@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -231,11 +232,20 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
     using csr_type = matrix::Csr<ValueType, IndexType>;
     const auto exec = this->get_executor();
     if (parameters_.max_block_size == 1) {
-        auto diag = as<DiagonalExtractable<ValueType>>(system_matrix)
-                        ->extract_diagonal();
-        auto temp = gko::Array<ValueType>::view(
-            exec, system_matrix->get_size()[0], diag->get_values());
+        auto diag = share(as<DiagonalLinOpExtractable>(system_matrix)
+                              ->extract_diagonal_linop());
+        auto diag_vt =
+            ::gko::detail::temporary_conversion<matrix::Diagonal<ValueType>>::
+                template create<matrix::Diagonal<next_precision<ValueType>>>(
+                    diag.get());
+        if (!diag_vt) {
+            GKO_NOT_SUPPORTED(system_matrix);
+        }
+        auto temp = Array<ValueType>::view(diag_vt->get_executor(),
+                                           diag_vt->get_size()[0],
+                                           diag_vt->get_values());
         this->blocks_ = temp;
+        this->num_blocks_ = diag_vt->get_size()[0];
     } else {
         auto csr_mtx = convert_to_with_sorting<csr_type>(exec, system_matrix,
                                                          skip_sorting);
