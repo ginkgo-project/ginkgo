@@ -64,9 +64,9 @@ namespace cuda {
 namespace idr {
 
 
-constexpr int default_block_size = 512;
-constexpr int default_dot_dim = 32;
-constexpr int default_dot_size = default_dot_dim * default_dot_dim;
+static constexpr int default_block_size = 512;
+static constexpr int default_dot_dim = 32;
+static constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
 #include "common/solver/idr_kernels.hpp.inc"

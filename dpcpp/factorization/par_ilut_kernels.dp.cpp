@@ -102,8 +102,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL);
 
 
-constexpr auto bucket_count = 1 << sampleselect_searchtree_height;
-constexpr auto sample_size = bucket_count * sampleselect_oversampling;
+static constexpr auto bucket_count = 1 << sampleselect_searchtree_height;
+static constexpr auto sample_size = bucket_count * sampleselect_oversampling;
 
 
 template <typename ValueType, typename IndexType>

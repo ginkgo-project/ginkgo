@@ -48,7 +48,7 @@ namespace kernels {
 namespace hip {
 namespace components {
 
-constexpr int default_block_size = 512;
+static constexpr int default_block_size = 512;
 
 
 #include "common/components/fill_array.hpp.inc"

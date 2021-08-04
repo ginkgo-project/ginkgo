@@ -70,15 +70,15 @@ namespace dense {
 
 
 using KCFG_1D = ConfigSet<11, 7>;
-constexpr auto kcfg_1d_list =
+static constexpr auto kcfg_1d_list =
     syn::value_list<std::uint32_t, KCFG_1D::encode(512, 64),
                     KCFG_1D::encode(512, 32), KCFG_1D::encode(512, 16),
                     KCFG_1D::encode(256, 32), KCFG_1D::encode(256, 16),
                     KCFG_1D::encode(256, 8)>();
-constexpr auto subgroup_list =
+static constexpr auto subgroup_list =
     syn::value_list<std::uint32_t, 64, 32, 16, 8, 4>();
-constexpr auto kcfg_1d_array = syn::as_array(kcfg_1d_list);
-constexpr auto default_block_size = 256;
+static constexpr auto kcfg_1d_array = syn::as_array(kcfg_1d_list);
+static constexpr auto default_block_size = 256;
 
 
 namespace kernel {

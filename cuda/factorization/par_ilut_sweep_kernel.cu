@@ -65,7 +65,7 @@ namespace cuda {
 namespace par_ilut_factorization {
 
 
-constexpr auto default_block_size = 512;
+static constexpr auto default_block_size = 512;
 
 
 // subwarp sizes for all warp-parallel kernels (filter, add_candidates)

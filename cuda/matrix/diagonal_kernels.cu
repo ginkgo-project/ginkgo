@@ -54,7 +54,7 @@ namespace cuda {
 namespace diagonal {
 
 
-constexpr auto default_block_size = 512;
+static constexpr auto default_block_size = 512;
 
 
 #include "common/matrix/diagonal_kernels.hpp.inc"

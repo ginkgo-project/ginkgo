@@ -49,8 +49,10 @@ namespace dpcpp {
 namespace atomic {
 
 
-constexpr auto local_space = cl::sycl::access::address_space::local_space;
-constexpr auto global_space = cl::sycl::access::address_space::global_space;
+static constexpr auto local_space =
+    cl::sycl::access::address_space::local_space;
+static constexpr auto global_space =
+    cl::sycl::access::address_space::global_space;
 
 
 }  // namespace atomic

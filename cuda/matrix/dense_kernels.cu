@@ -64,7 +64,7 @@ namespace cuda {
 namespace dense {
 
 
-constexpr auto default_block_size = 512;
+static constexpr auto default_block_size = 512;
 
 
 #include "common/matrix/dense_kernels.hpp.inc"

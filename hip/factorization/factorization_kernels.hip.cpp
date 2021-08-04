@@ -59,7 +59,7 @@ namespace hip {
 namespace factorization {
 
 
-constexpr int default_block_size{512};
+static constexpr int default_block_size{512};
 
 
 #include "common/factorization/factorization_kernels.hpp.inc"

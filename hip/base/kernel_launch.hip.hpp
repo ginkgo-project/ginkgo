@@ -48,7 +48,7 @@ namespace kernels {
 namespace hip {
 
 
-constexpr int default_block_size = 512;
+static constexpr int default_block_size = 512;
 
 
 template <typename KernelFunction, typename... KernelArgs>

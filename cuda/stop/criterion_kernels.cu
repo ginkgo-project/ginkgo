@@ -54,7 +54,7 @@ namespace cuda {
 namespace set_all_statuses {
 
 
-constexpr int default_block_size = 512;
+static constexpr int default_block_size = 512;
 
 
 __global__ __launch_bounds__(default_block_size) void set_all_statuses(

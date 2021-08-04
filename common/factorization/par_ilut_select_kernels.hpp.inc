@@ -33,15 +33,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace kernel {
 
 
-constexpr auto searchtree_width = 1 << sampleselect_searchtree_height;
-constexpr auto searchtree_inner_size = searchtree_width - 1;
-constexpr auto searchtree_size = searchtree_width + searchtree_inner_size;
+static constexpr auto searchtree_width = 1 << sampleselect_searchtree_height;
+static constexpr auto searchtree_inner_size = searchtree_width - 1;
+static constexpr auto searchtree_size =
+    searchtree_width + searchtree_inner_size;
 
-constexpr auto sample_size = searchtree_width * sampleselect_oversampling;
+static constexpr auto sample_size =
+    searchtree_width * sampleselect_oversampling;
 
-constexpr auto basecase_size = 1024;
-constexpr auto basecase_local_size = 4;
-constexpr auto basecase_block_size = basecase_size / basecase_local_size;
+static constexpr auto basecase_size = 1024;
+static constexpr auto basecase_local_size = 4;
+static constexpr auto basecase_block_size = basecase_size / basecase_local_size;
 
 
 // must be launched with one thread block and block size == searchtree_width

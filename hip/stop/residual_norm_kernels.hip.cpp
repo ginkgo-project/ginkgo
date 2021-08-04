@@ -57,7 +57,7 @@ namespace hip {
 namespace residual_norm {
 
 
-constexpr int default_block_size = 512;
+static constexpr int default_block_size = 512;
 
 
 template <typename ValueType>
@@ -135,7 +135,7 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
 namespace implicit_residual_norm {
 
 
-constexpr int default_block_size = 512;
+static constexpr int default_block_size = 512;
 
 
 template <typename ValueType>

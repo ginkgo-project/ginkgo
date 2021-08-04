@@ -64,9 +64,9 @@ namespace hip {
 namespace isai {
 
 
-constexpr int subwarp_size{row_size_limit};
-constexpr int subwarps_per_block{2};
-constexpr int default_block_size{subwarps_per_block * subwarp_size};
+static constexpr int subwarp_size{row_size_limit};
+static constexpr int subwarps_per_block{2};
+static constexpr int default_block_size{subwarps_per_block * subwarp_size};
 
 
 #include "common/components/atomic.hpp.inc"

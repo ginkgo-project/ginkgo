@@ -64,15 +64,15 @@ namespace {
 
 // a total of 32/16 warps (1024 threads)
 #if GINKGO_HIP_PLATFORM_HCC
-constexpr int default_num_warps = 16;
+static constexpr int default_num_warps = 16;
 #else  // GINKGO_HIP_PLATFORM_NVCC
-constexpr int default_num_warps = 32;
+static constexpr int default_num_warps = 32;
 #endif
 // with current architectures, at most 32 warps can be scheduled per SM (and
 // current GPUs have at most 84 SMs)
-constexpr int default_grid_size = 32 * 32 * 128;
+static constexpr int default_grid_size = 32 * 32 * 128;
 
-constexpr int default_block_size = 512;
+static constexpr int default_block_size = 512;
 
 #include "common/preconditioner/jacobi_kernels.hpp.inc"
 

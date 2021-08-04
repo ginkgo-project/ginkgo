@@ -69,7 +69,7 @@ namespace hip {
 namespace amgx_pgm {
 
 
-constexpr int default_block_size = 512;
+static constexpr int default_block_size = 512;
 
 
 #include "common/multigrid/amgx_pgm_kernels.hpp.inc"

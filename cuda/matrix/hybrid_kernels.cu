@@ -62,8 +62,8 @@ namespace cuda {
 namespace hybrid {
 
 
-constexpr int default_block_size = 512;
-constexpr int warps_in_block = 4;
+static constexpr int default_block_size = 512;
+static constexpr int warps_in_block = 4;
 
 
 #include "common/matrix/hybrid_kernels.hpp.inc"

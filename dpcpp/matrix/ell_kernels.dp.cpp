@@ -72,7 +72,7 @@ namespace dpcpp {
 namespace ell {
 
 
-constexpr int default_block_size = 256;
+static constexpr int default_block_size = 256;
 
 
 // TODO: num_threads_per_core and ratio are parameters should be tuned
@@ -80,21 +80,21 @@ constexpr int default_block_size = 256;
  * num_threads_per_core is the oversubscribing parameter. There are
  * `num_threads_per_core` threads assigned to each physical core.
  */
-constexpr int num_threads_per_core = 4;
+static constexpr int num_threads_per_core = 4;
 
 
 /**
  * ratio is the parameter to decide when to use threads to do reduction on each
  * row. (#cols/#rows > ratio)
  */
-constexpr double ratio = 1e-2;
+static constexpr double ratio = 1e-2;
 
 
 /**
  * max_thread_per_worker is the max number of thread per worker. The
  * `compiled_kernels` must be a list <0, 1, 2, ..., max_thread_per_worker>
  */
-constexpr int max_thread_per_worker = 32;
+static constexpr int max_thread_per_worker = 32;
 
 
 /**

@@ -45,8 +45,8 @@ namespace cuda {
 namespace par_ilut_factorization {
 
 
-constexpr auto default_block_size = 512;
-constexpr auto items_per_thread = 16;
+static constexpr auto default_block_size = 512;
+static constexpr auto items_per_thread = 16;
 
 
 template <typename ValueType, typename IndexType>

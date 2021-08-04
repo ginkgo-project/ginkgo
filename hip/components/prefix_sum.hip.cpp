@@ -42,7 +42,7 @@ namespace hip {
 namespace components {
 
 
-constexpr int prefix_sum_block_size = 512;
+static constexpr int prefix_sum_block_size = 512;
 
 
 template <typename IndexType>

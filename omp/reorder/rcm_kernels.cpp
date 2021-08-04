@@ -100,7 +100,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
 // This constant controls how many nodes can be dequeued from the
 // UbfsLinearQueue at once at most. Increasing it reduces lock contention and
 // "unneccesary work", but disturbs queue ordering, generating extra work.
-constexpr int32 chunk_bound = 512;
+static constexpr int32 chunk_bound = 512;
 
 
 template <typename IndexType>
@@ -636,13 +636,13 @@ vector<IndexType> compute_level_offsets(std::shared_ptr<const OmpExecutor> exec,
 // Signal value to which the entire permutation is intialized.
 // Threads spin on this value, until it is replaced by another value,
 // written by another thread.
-constexpr int32 perm_untouched = -1;
+static constexpr int32 perm_untouched = -1;
 
 // Signal value which a thread writes to a level (as in the level of a node
 // becomes -1), to signal that it has been processed. This information is only
 // relevant local to the thread, since only a single thread is responsible for a
 // node.
-constexpr int32 level_processed = -1;
+static constexpr int32 level_processed = -1;
 
 /**
  * Implements the last phase of urcm,

@@ -43,7 +43,7 @@ namespace cuda {
 namespace components {
 
 
-constexpr int default_block_size = 512;
+static constexpr int default_block_size = 512;
 
 
 #include "common/components/absolute_array.hpp.inc"

@@ -80,11 +80,11 @@ namespace hip {
 namespace csr {
 
 
-constexpr int default_block_size = 512;
-constexpr int warps_in_block = 4;
-constexpr int spmv_block_size = warps_in_block * config::warp_size;
-constexpr int wsize = config::warp_size;
-constexpr int classical_overweight = 32;
+static constexpr int default_block_size = 512;
+static constexpr int warps_in_block = 4;
+static constexpr int spmv_block_size = warps_in_block * config::warp_size;
+static constexpr int wsize = config::warp_size;
+static constexpr int classical_overweight = 32;
 
 
 /**

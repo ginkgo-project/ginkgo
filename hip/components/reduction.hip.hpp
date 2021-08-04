@@ -55,7 +55,7 @@ namespace kernels {
 namespace hip {
 
 
-constexpr int default_block_size = 512;
+static constexpr int default_block_size = 512;
 
 
 #include "common/components/reduction.hpp.inc"

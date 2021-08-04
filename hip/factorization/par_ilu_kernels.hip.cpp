@@ -56,7 +56,7 @@ namespace hip {
 namespace par_ilu_factorization {
 
 
-constexpr int default_block_size{512};
+static constexpr int default_block_size{512};
 
 
 #include "common/factorization/par_ilu_kernels.hpp.inc"

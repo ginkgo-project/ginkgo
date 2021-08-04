@@ -71,9 +71,9 @@ namespace dpcpp {
 namespace cb_gmres {
 
 
-constexpr int default_block_size = 256;
-constexpr int default_dot_dim = 16;
-constexpr int default_dot_size = default_dot_dim * default_dot_dim;
+static constexpr int default_block_size = 256;
+static constexpr int default_dot_dim = 16;
+static constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
 #include "dpcpp/solver/common_gmres_kernels.dp.inc"

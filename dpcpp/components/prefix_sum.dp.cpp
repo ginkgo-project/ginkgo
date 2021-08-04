@@ -52,7 +52,7 @@ namespace components {
 
 using BlockCfg = ConfigSet<11>;
 
-constexpr auto block_cfg_list =
+static constexpr auto block_cfg_list =
     ::gko::syn::value_list<std::uint32_t, BlockCfg::encode(512),
                            BlockCfg::encode(256), BlockCfg::encode(128)>();
 

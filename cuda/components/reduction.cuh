@@ -53,7 +53,7 @@ namespace kernels {
 namespace cuda {
 
 
-constexpr int default_block_size = 512;
+static constexpr int default_block_size = 512;
 
 
 #include "common/components/reduction.hpp.inc"
