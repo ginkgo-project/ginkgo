@@ -36,7 +36,7 @@ Prerequisites
 
 For Ginkgo core library:
 
-*   _cmake 3.9+_
+*   _cmake 3.13+_
 *   C++14 compliant compiler, one of:
     *   _gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
     *   _clang 3.9+_
@@ -51,6 +51,20 @@ The Ginkgo CUDA module has the following __additional__ requirements:
     [CUDA installation guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)
     or [CUDA installation guide for Mac Os X](https://docs.nvidia.com/cuda/cuda-installation-guide-mac-os-x/index.html)
 
+The Ginkgo HIP module has the following __additional__ requirements:
+
+* _ROCm 3.5+_
+*    the HIP, hipBLAS, hipSPARSE, hip/rocRAND and rocThrust packages compiled with either:
+    * _AMD_ backend (using the `clang` compiler)
+    * _9.2 <= CUDA < 11_ backend
+
+The Ginkgo DPC++ module has the following __additional__ requirements:
+
+* _OneAPI 2021.3+_
+* Set `dpcpp` as the `CMAKE_CXX_COMPILER`
+* The following oneAPI packages should be available:
+    * oneMKL
+    * oneDPL
 
 In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
@@ -59,21 +73,14 @@ following:
 *   _clang-tidy_ (optional, when setting the flag `-DGINKGO_WITH_CLANG_TIDY=ON`)
 *   _iwyu_ (Include What You Use, optional, when setting the flag `-DGINKGO_WITH_IWYU=ON`)
 
-The Ginkgo HIP module has the following __additional__ requirements:
-
-* _ROCm 3.5+_
-*    the HIP, hipBLAS, hipSPARSE, hip/rocRAND packages compiled with either:
-    * _AMD_ backend (using the `clang` compiler)
-    * _CUDA 9.2+_ backend. When using CUDA 10+, _cmake 3.12.2+_ is required.
-
 ### Windows
 
 The prequirement needs to be verified
-*   _cmake 3.9+_
+*   _cmake 3.13+_
 *   C++14 compliant 64-bit compiler:
     *   _MinGW : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
     *   _Cygwin : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
-    *   _Microsoft Visual Studio : VS 2017 15.7+_
+    *   _Microsoft Visual Studio : VS 2019+_
 
 __NOTE:__ Need to add `--autocrlf=input` after `git clone` in _Cygwin_.
 

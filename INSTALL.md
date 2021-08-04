@@ -2,7 +2,7 @@ Installation Instructions                      {#install_ginkgo}
 -------------------------------------
 ### Building
 
-Use the standard cmake build procedure:
+Use the standard CMake build procedure:
 
 ```sh
 mkdir build; cd build
@@ -152,15 +152,6 @@ of HIP either at `/opt/rocm/hip` or at the path specified by `HIP_PATH` as a
 CMake parameter (`-DHIP_PATH=`) or environment variable (`export HIP_PATH=`),
 unless `-DGINKGO_BUILD_HIP=ON/OFF` is set explicitly.
 
-#### HIP dependencies for Ginkgo
-Ginkgo's HIP backend adds a dependency to the following packages:
-+ HIP,
-+ hipBLAS,
-+ hipSPARSE,
-+ rocRAND,
-+ rocThrust.
-
-
 #### Changing the paths to search for HIP and other packages
 All HIP installation paths can be configured through the use of environment
 variables or CMake variables. This way of configuring the paths is currently
@@ -193,14 +184,6 @@ GPUs, this should output `hcc` by default. To change this value, export the
 environment variable `HIP_PLATFORM` like so:
 ```bash
 export HIP_PLATFORM=nvcc # or nvidia for ROCM >= 4.1
-```
-
-When using `HIP_PLATFORM=hcc` (or `amd`), note that two `HIP` compilers can be
-set: the old `hcc`, or since ROCm 3.5, `clang`. Ginkgo is only compatible with
-the `clang` based installations. Although this setting should be automatically
-done, it is also possible to manually set the `HIP` compiler to `clang`:
-```
-export HIP_COMPILER=clang
 ```
 
 #### Setting platform specific compilation flags
