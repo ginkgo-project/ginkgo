@@ -59,9 +59,10 @@ __global__
     const auto tidx = thread::get_thread_id_flat();
 
     __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
-    ValueType *__restrict__ reduction_helper = reduction_helper_array;
-
-    __shared__ remove_complex<ValueType> reduction_helper_real[block_size];
+    // they are not be used in the same time.
+    ValueType *reduction_helper = reduction_helper_array;
+    auto reduction_helper_real =
+        reinterpret_cast<remove_complex<ValueType> *>(reduction_helper);
 
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type i = 0; i < row; i++) {

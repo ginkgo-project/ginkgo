@@ -470,7 +470,7 @@ void multidot_kernel(
     size_type stride_next_krylov, const Accessor3d krylov_bases,
     ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, dot_dim * dot_dim> *reduction_helper_array)
+    UninitializedArray<ValueType, dot_dim * dot_dim> &reduction_helper_array)
 {
     /*
      * In general in this kernel:
@@ -497,8 +497,7 @@ void multidot_kernel(
     const size_type k = item_ct1.get_group(0);
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-
-    ValueType *__restrict__ reduction_helper = (*reduction_helper_array);
+    ValueType *__restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
@@ -549,8 +548,7 @@ void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     num_rows, num_cols, next_krylov_basis, stride_next_krylov,
                     krylov_bases, hessenberg_iter, stride_hessenberg,
                     stop_status, item_ct1,
-                    (UninitializedArray<ValueType, dot_dim * dot_dim> *)
-                        reduction_helper_array_acc_ct1.get_pointer());
+                    *reduction_helper_array_acc_ct1.get_pointer());
             });
     });
 }
@@ -562,7 +560,7 @@ void singledot_kernel(
     size_type stride_next_krylov, const Accessor3d krylov_bases,
     ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, block_size> *reduction_helper_array)
+    UninitializedArray<ValueType, block_size> &reduction_helper_array)
 {
     /*
      * In general in this kernel:
@@ -585,7 +583,7 @@ void singledot_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
 
-    ValueType *__restrict__ reduction_helper = (*reduction_helper_array);
+    ValueType *__restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();
     if (!stop_status[col_idx].has_stopped()) {
@@ -630,8 +628,7 @@ void singledot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     num_rows, next_krylov_basis, stride_next_krylov,
                     krylov_bases, hessenberg_iter, stride_hessenberg,
                     stop_status, item_ct1,
-                    (UninitializedArray<ValueType, block_size> *)
-                        reduction_helper_array_acc_ct1.get_pointer());
+                    *reduction_helper_array_acc_ct1.get_pointer());
             });
     });
 }

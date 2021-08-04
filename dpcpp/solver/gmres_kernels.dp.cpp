@@ -271,7 +271,7 @@ void update_hessenberg_2_kernel(
     size_type stride_next_krylov, ValueType *__restrict__ hessenberg_iter,
     size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, block_size> *reduction_helper_array)
+    UninitializedArray<ValueType, block_size> &reduction_helper_array)
 {
     const auto tidx = item_ct1.get_local_id(2);
     const auto col_idx = item_ct1.get_group(2);
@@ -279,7 +279,7 @@ void update_hessenberg_2_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
 
-    ValueType *__restrict__ reduction_helper = (*reduction_helper_array);
+    ValueType *__restrict__ reduction_helper = reduction_helper_array;
 
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         ValueType local_res{};
@@ -317,15 +317,14 @@ void update_hessenberg_2_kernel(
                        sycl::access::target::local>
             reduction_helper_array_acc_ct1(cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                update_hessenberg_2_kernel<block_size>(
-                    iter, num_rows, num_cols, next_krylov_basis,
-                    stride_next_krylov, hessenberg_iter, stride_hessenberg,
-                    stop_status, item_ct1,
-                    (UninitializedArray<ValueType, block_size> *)
-                        reduction_helper_array_acc_ct1.get_pointer());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             update_hessenberg_2_kernel<block_size>(
+                                 iter, num_rows, num_cols, next_krylov_basis,
+                                 stride_next_krylov, hessenberg_iter,
+                                 stride_hessenberg, stop_status, item_ct1,
+                                 *reduction_helper_array_acc_ct1.get_pointer());
+                         });
     });
 }
 
