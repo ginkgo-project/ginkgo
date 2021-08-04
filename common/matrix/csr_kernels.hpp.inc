@@ -220,17 +220,6 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
 }
 
 
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void set_zero(
-    const size_type nnz, ValueType *__restrict__ val)
-{
-    const auto ind = thread::get_thread_id_flat();
-    if (ind < nnz) {
-        val[ind] = zero<ValueType>();
-    }
-}
-
-
 template <typename IndexType>
 __forceinline__ __device__ void merge_path_search(
     const IndexType diagonal, const IndexType a_len, const IndexType b_len,
@@ -947,39 +936,6 @@ __global__ __launch_bounds__(default_block_size) void conjugate_kernel(
 
 
 }  //  namespace
-
-
-template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void inv_permutation_kernel(
-    size_type size, const IndexType *__restrict__ permutation,
-    IndexType *__restrict__ inv_permutation)
-{
-    auto tid = thread::get_thread_id_flat();
-    if (tid >= size) {
-        return;
-    }
-    inv_permutation[permutation[tid]] = tid;
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void col_permute_kernel(
-    size_type num_rows, size_type num_nonzeros,
-    const IndexType *__restrict__ permutation,
-    const IndexType *__restrict__ in_row_ptrs,
-    const IndexType *__restrict__ in_cols,
-    const ValueType *__restrict__ in_vals, IndexType *__restrict__ out_row_ptrs,
-    IndexType *__restrict__ out_cols, ValueType *__restrict__ out_vals)
-{
-    auto tid = thread::get_thread_id_flat();
-    if (tid < num_nonzeros) {
-        out_cols[tid] = permutation[in_cols[tid]];
-        out_vals[tid] = in_vals[tid];
-    }
-    if (tid <= num_rows) {
-        out_row_ptrs[tid] = in_row_ptrs[tid];
-    }
-}
 
 
 template <typename IndexType>

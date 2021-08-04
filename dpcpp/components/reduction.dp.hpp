@@ -81,7 +81,7 @@ constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
  * @note The function is guaranteed to return the correct value on all threads
  *       only if `reduce_op` is commutative (in addition to being associative).
  *       Otherwise, the correct value is returned only to the thread with
- *       subwarp index 0.
+ *       subgroup index 0.
  */
 template <
     typename Group, typename ValueType, typename Operator,

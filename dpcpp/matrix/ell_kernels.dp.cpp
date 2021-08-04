@@ -121,7 +121,7 @@ void spmv_kernel(
     acc::range<b_accessor> b, OutputValueType *__restrict__ c,
     const size_type c_stride, Closure op, sycl::nd_item<3> item_ct1,
     UninitializedArray<OutputValueType,
-                       default_block_size / num_thread_per_worker> *storage)
+                       default_block_size / num_thread_per_worker> &storage)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     const decltype(tidx) column_id = item_ct1.get_group(1);
@@ -150,7 +150,7 @@ void spmv_kernel(
         const auto step_size = num_worker_per_row * num_thread_per_worker;
 
         if (runnable && idx_in_worker == 0) {
-            (*storage)[item_ct1.get_local_id(2)] = 0;
+            storage[item_ct1.get_local_id(2)] = 0;
         }
 
         item_ct1.barrier(sycl::access::fence_space::local_space);
@@ -167,8 +167,8 @@ void spmv_kernel(
                     temp += val(ind) * b(col_idx, column_id);
                 }
             }
-            atomic_add<atomic::local_space>(
-                &(*storage)[item_ct1.get_local_id(2)], temp);
+            atomic_add<atomic::local_space>(&storage[item_ct1.get_local_id(2)],
+                                            temp);
         }
 
         item_ct1.barrier(sycl::access::fence_space::local_space);
@@ -176,9 +176,9 @@ void spmv_kernel(
             const auto c_ind = x * c_stride + column_id;
             if (atomic) {
                 atomic_add(&(c[c_ind]),
-                           op((*storage)[item_ct1.get_local_id(2)], c[c_ind]));
+                           op(storage[item_ct1.get_local_id(2)], c[c_ind]));
             } else {
-                c[c_ind] = op((*storage)[item_ct1.get_local_id(2)], c[c_ind]);
+                c[c_ind] = op(storage[item_ct1.get_local_id(2)], c[c_ind]);
             }
         }
     }
@@ -194,7 +194,7 @@ void spmv(
     acc::range<b_accessor> b, OutputValueType *__restrict__ c,
     const size_type c_stride, sycl::nd_item<3> item_ct1,
     UninitializedArray<OutputValueType,
-                       default_block_size / num_thread_per_worker> *storage)
+                       default_block_size / num_thread_per_worker> &storage)
 {
     spmv_kernel<num_thread_per_worker, atomic>(
         num_rows, num_worker_per_row, val, col, stride,
@@ -224,7 +224,7 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                              spmv<num_thread_per_worker, atomic>(
                                  num_rows, num_worker_per_row, val, col, stride,
                                  num_stored_elements_per_row, b, c, c_stride,
-                                 item_ct1, storage_acc_ct1.get_pointer().get());
+                                 item_ct1, *storage_acc_ct1.get_pointer());
                          });
     });
 }
@@ -240,7 +240,7 @@ void spmv(
     const OutputValueType *__restrict__ beta, OutputValueType *__restrict__ c,
     const size_type c_stride, sycl::nd_item<3> item_ct1,
     UninitializedArray<OutputValueType,
-                       default_block_size / num_thread_per_worker> *storage)
+                       default_block_size / num_thread_per_worker> &storage)
 {
     const OutputValueType alpha_val = alpha(0);
     const OutputValueType beta_val = beta[0];
@@ -291,7 +291,7 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                 spmv<num_thread_per_worker, atomic>(
                     num_rows, num_worker_per_row, alpha, val, col, stride,
                     num_stored_elements_per_row, b, beta, c, c_stride, item_ct1,
-                    storage_acc_ct1.get_pointer().get());
+                    *storage_acc_ct1.get_pointer());
             });
     });
 }

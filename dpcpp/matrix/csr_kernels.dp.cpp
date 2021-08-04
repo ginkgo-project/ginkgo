@@ -154,10 +154,10 @@ __dpct_inline__ void find_next_row(
 }
 
 
-template <unsigned subwarp_size, typename ValueType, typename IndexType,
+template <unsigned subgroup_size, typename ValueType, typename IndexType,
           typename Closure>
 __dpct_inline__ void warp_atomic_add(
-    const group::thread_block_tile<subwarp_size> &group, bool force_write,
+    const group::thread_block_tile<subgroup_size> &group, bool force_write,
     ValueType *__restrict__ val, const IndexType row, ValueType *__restrict__ c,
     const size_type c_stride, const IndexType column_id, Closure scale)
 {
@@ -172,10 +172,10 @@ __dpct_inline__ void warp_atomic_add(
 }
 
 
-template <bool last, unsigned subwarp_size, typename ValueType,
+template <bool last, unsigned subgroup_size, typename ValueType,
           typename IndexType, typename Closure>
 __dpct_inline__ void process_window(
-    const group::thread_block_tile<subwarp_size> &group,
+    const group::thread_block_tile<subgroup_size> &group,
     const IndexType num_rows, const IndexType data_size, const IndexType ind,
     IndexType *__restrict__ row, IndexType *__restrict__ row_end,
     IndexType *__restrict__ nrow, IndexType *__restrict__ nrow_end,
@@ -192,8 +192,8 @@ __dpct_inline__ void process_window(
     if (group.any(curr_row != *row)) {
         warp_atomic_add(group, curr_row != *row, temp_val, curr_row, c,
                         c_stride, column_id, scale);
-        *nrow = group.shfl(*row, subwarp_size - 1);
-        *nrow_end = group.shfl(*row_end, subwarp_size - 1);
+        *nrow = group.shfl(*row, subgroup_size - 1);
+        *nrow_end = group.shfl(*row_end, subgroup_size - 1);
     }
 
     if (!last || ind < data_size) {
@@ -296,19 +296,6 @@ void abstract_spmv(const IndexType nwarps, const IndexType num_rows,
 GKO_ENABLE_DEFAULT_HOST(abstract_spmv, abstract_spmv);
 
 
-template <typename ValueType>
-void set_zero(const size_type nnz, ValueType *__restrict__ val,
-              sycl::nd_item<3> item_ct1)
-{
-    const auto ind = thread::get_thread_id_flat(item_ct1);
-    if (ind < nnz) {
-        val[ind] = zero<ValueType>();
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(set_zero, set_zero);
-
-
 template <typename IndexType>
 __dpct_inline__ void merge_path_search(
     const IndexType diagonal, const IndexType a_len, const IndexType b_len,
@@ -337,8 +324,8 @@ void merge_path_reduce(const IndexType nwarps,
                        const IndexType *__restrict__ last_row,
                        ValueType *__restrict__ c, const size_type c_stride,
                        Alpha_op alpha_op, sycl::nd_item<3> item_ct1,
-                       UninitializedArray<IndexType, spmv_block_size> *tmp_ind,
-                       UninitializedArray<ValueType, spmv_block_size> *tmp_val)
+                       UninitializedArray<IndexType, spmv_block_size> &tmp_ind,
+                       UninitializedArray<ValueType, spmv_block_size> &tmp_val)
 {
     const IndexType cache_lines = ceildivT<IndexType>(nwarps, spmv_block_size);
     const IndexType tid = item_ct1.get_local_id(2);
@@ -361,15 +348,15 @@ void merge_path_reduce(const IndexType nwarps,
     }
 
 
-    (*tmp_val)[item_ct1.get_local_id(2)] = value;
-    (*tmp_ind)[item_ct1.get_local_id(2)] = row;
+    tmp_val[item_ct1.get_local_id(2)] = value;
+    tmp_ind[item_ct1.get_local_id(2)] = row;
     group::this_thread_block(item_ct1).sync();
-    bool last = block_segment_scan_reverse(static_cast<IndexType *>((*tmp_ind)),
-                                           static_cast<ValueType *>((*tmp_val)),
-                                           item_ct1);
+    bool last =
+        block_segment_scan_reverse(static_cast<IndexType *>(tmp_ind),
+                                   static_cast<ValueType *>(tmp_val), item_ct1);
     group::this_thread_block(item_ct1).sync();
     if (last) {
-        c[row * c_stride] += alpha_op((*tmp_val)[item_ct1.get_local_id(2)]);
+        c[row * c_stride] += alpha_op(tmp_val[item_ct1.get_local_id(2)]);
     }
 }
 
@@ -552,8 +539,8 @@ void abstract_reduce(const IndexType nwarps,
                      const IndexType *__restrict__ last_row,
                      ValueType *__restrict__ c, const size_type c_stride,
                      sycl::nd_item<3> item_ct1,
-                     UninitializedArray<IndexType, spmv_block_size> *tmp_ind,
-                     UninitializedArray<ValueType, spmv_block_size> *tmp_val)
+                     UninitializedArray<IndexType, spmv_block_size> &tmp_ind,
+                     UninitializedArray<ValueType, spmv_block_size> &tmp_val)
 {
     merge_path_reduce(
         nwarps, last_val, last_row, c, c_stride, [](ValueType &x) { return x; },
@@ -579,8 +566,8 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 abstract_reduce(nwarps, last_val, last_row, c, c_stride,
-                                item_ct1, tmp_ind_acc_ct1.get_pointer().get(),
-                                tmp_val_acc_ct1.get_pointer().get());
+                                item_ct1, *tmp_ind_acc_ct1.get_pointer(),
+                                *tmp_val_acc_ct1.get_pointer());
             });
     });
 }
@@ -593,8 +580,8 @@ void abstract_reduce(const IndexType nwarps,
                      const ValueType *__restrict__ alpha,
                      ValueType *__restrict__ c, const size_type c_stride,
                      sycl::nd_item<3> item_ct1,
-                     UninitializedArray<IndexType, spmv_block_size> *tmp_ind,
-                     UninitializedArray<ValueType, spmv_block_size> *tmp_val)
+                     UninitializedArray<IndexType, spmv_block_size> &tmp_ind,
+                     UninitializedArray<ValueType, spmv_block_size> &tmp_val)
 {
     const auto alpha_val = alpha[0];
     merge_path_reduce(
@@ -623,14 +610,14 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 abstract_reduce(nwarps, last_val, last_row, alpha, c, c_stride,
-                                item_ct1, tmp_ind_acc_ct1.get_pointer().get(),
-                                tmp_val_acc_ct1.get_pointer().get());
+                                item_ct1, *tmp_ind_acc_ct1.get_pointer(),
+                                *tmp_val_acc_ct1.get_pointer());
             });
     });
 }
 
 
-template <size_type subwarp_size, typename ValueType, typename IndexType,
+template <size_type subgroup_size, typename ValueType, typename IndexType,
           typename Closure>
 void device_classical_spmv(const size_type num_rows,
                            const ValueType *__restrict__ val,
@@ -641,33 +628,33 @@ void device_classical_spmv(const size_type num_rows,
                            const size_type c_stride, Closure scale,
                            sycl::nd_item<3> item_ct1)
 {
-    auto subwarp_tile = group::tiled_partition<subwarp_size>(
+    auto subgroup_tile = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
-    const auto subrow = thread::get_subwarp_num_flat<subwarp_size>(item_ct1);
-    const auto subid = subwarp_tile.thread_rank();
+    const auto subrow = thread::get_subwarp_num_flat<subgroup_size>(item_ct1);
+    const auto subid = subgroup_tile.thread_rank();
     const auto column_id = item_ct1.get_group(1);
-    auto row = thread::get_subwarp_id_flat<subwarp_size>(item_ct1);
+    auto row = thread::get_subwarp_id_flat<subgroup_size>(item_ct1);
     for (; row < num_rows; row += subrow) {
         const auto ind_end = row_ptrs[row + 1];
         ValueType temp_val = zero<ValueType>();
         for (auto ind = row_ptrs[row] + subid; ind < ind_end;
-             ind += subwarp_size) {
+             ind += subgroup_size) {
             temp_val += val[ind] * b[col_idxs[ind] * b_stride + column_id];
         }
-        auto subwarp_result = ::gko::kernels::dpcpp::reduce(
-            subwarp_tile, temp_val,
+        auto subgroup_result = ::gko::kernels::dpcpp::reduce(
+            subgroup_tile, temp_val,
             [](const ValueType &a, const ValueType &b) { return a + b; });
         // TODO: check the barrier
         item_ct1.barrier();
         if (subid == 0) {
             c[row * c_stride + column_id] =
-                scale(subwarp_result, c[row * c_stride + column_id]);
+                scale(subgroup_result, c[row * c_stride + column_id]);
         }
     }
 }
 
 
-template <size_type subwarp_size, typename ValueType, typename IndexType>
+template <size_type subgroup_size, typename ValueType, typename IndexType>
 void abstract_classical_spmv(
     const size_type num_rows, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col_idxs,
@@ -675,12 +662,12 @@ void abstract_classical_spmv(
     const size_type b_stride, ValueType *__restrict__ c,
     const size_type c_stride, sycl::nd_item<3> item_ct1)
 {
-    device_classical_spmv<subwarp_size>(
+    device_classical_spmv<subgroup_size>(
         num_rows, val, col_idxs, row_ptrs, b, b_stride, c, c_stride,
         [](const ValueType &x, const ValueType &y) { return x; }, item_ct1);
 }
 
-template <size_type subwarp_size, typename ValueType, typename IndexType>
+template <size_type subgroup_size, typename ValueType, typename IndexType>
 void abstract_classical_spmv(dim3 grid, dim3 block,
                              size_type dynamic_shared_memory,
                              sycl::queue *queue, const size_type num_rows,
@@ -692,15 +679,15 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
     queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_classical_spmv<subwarp_size>(num_rows, val, col_idxs,
-                                                      row_ptrs, b, b_stride, c,
-                                                      c_stride, item_ct1);
+                abstract_classical_spmv<subgroup_size>(num_rows, val, col_idxs,
+                                                       row_ptrs, b, b_stride, c,
+                                                       c_stride, item_ct1);
             });
     });
 }
 
 
-template <size_type subwarp_size, typename ValueType, typename IndexType>
+template <size_type subgroup_size, typename ValueType, typename IndexType>
 void abstract_classical_spmv(
     const size_type num_rows, const ValueType *__restrict__ alpha,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
@@ -711,7 +698,7 @@ void abstract_classical_spmv(
 {
     const auto alpha_val = alpha[0];
     const auto beta_val = beta[0];
-    device_classical_spmv<subwarp_size>(
+    device_classical_spmv<subgroup_size>(
         num_rows, val, col_idxs, row_ptrs, b, b_stride, c, c_stride,
         [&alpha_val, &beta_val](const ValueType &x, const ValueType &y) {
             return alpha_val * x + beta_val * y;
@@ -719,7 +706,7 @@ void abstract_classical_spmv(
         item_ct1);
 }
 
-template <size_type subwarp_size, typename ValueType, typename IndexType>
+template <size_type subgroup_size, typename ValueType, typename IndexType>
 void abstract_classical_spmv(dim3 grid, dim3 block,
                              size_type dynamic_shared_memory,
                              sycl::queue *queue, const size_type num_rows,
@@ -732,7 +719,7 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
     queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
-                             abstract_classical_spmv<subwarp_size>(
+                             abstract_classical_spmv<subgroup_size>(
                                  num_rows, alpha, val, col_idxs, row_ptrs, b,
                                  b_stride, beta, c, c_stride, item_ct1);
                          });
@@ -1160,66 +1147,6 @@ GKO_ENABLE_DEFAULT_HOST(extract_diagonal, extract_diagonal);
 }  // namespace kernel
 
 
-namespace {
-
-
-template <typename ValueType>
-void conjugate_kernel(size_type num_nonzeros, ValueType *__restrict__ val,
-                      sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-
-    if (tidx < num_nonzeros) {
-        val[tidx] = conj(val[tidx]);
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(conjugate_kernel, conjugate_kernel);
-
-
-}  //  namespace
-
-
-template <typename IndexType>
-void inv_permutation_kernel(size_type size,
-                            const IndexType *__restrict__ permutation,
-                            IndexType *__restrict__ inv_permutation,
-                            sycl::nd_item<3> item_ct1)
-{
-    auto tid = thread::get_thread_id_flat(item_ct1);
-    if (tid >= size) {
-        return;
-    }
-    inv_permutation[permutation[tid]] = tid;
-}
-
-GKO_ENABLE_DEFAULT_HOST(inv_permutation_kernel, inv_permutation_kernel);
-
-
-template <typename ValueType, typename IndexType>
-void col_permute_kernel(size_type num_rows, size_type num_nonzeros,
-                        const IndexType *__restrict__ permutation,
-                        const IndexType *__restrict__ in_row_ptrs,
-                        const IndexType *__restrict__ in_cols,
-                        const ValueType *__restrict__ in_vals,
-                        IndexType *__restrict__ out_row_ptrs,
-                        IndexType *__restrict__ out_cols,
-                        ValueType *__restrict__ out_vals,
-                        sycl::nd_item<3> item_ct1)
-{
-    auto tid = thread::get_thread_id_flat(item_ct1);
-    if (tid < num_nonzeros) {
-        out_cols[tid] = permutation[in_cols[tid]];
-        out_vals[tid] = in_vals[tid];
-    }
-    if (tid <= num_rows) {
-        out_row_ptrs[tid] = in_row_ptrs[tid];
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(col_permute_kernel, col_permute_kernel);
-
-
 template <typename IndexType>
 void row_ptr_permute_kernel(size_type num_rows,
                             const IndexType *__restrict__ permutation,
@@ -1258,7 +1185,7 @@ void inv_row_ptr_permute_kernel(size_type num_rows,
 GKO_ENABLE_DEFAULT_HOST(inv_row_ptr_permute_kernel, inv_row_ptr_permute_kernel);
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void row_permute_kernel(size_type num_rows,
                         const IndexType *__restrict__ permutation,
                         const IndexType *__restrict__ in_row_ptrs,
@@ -1269,23 +1196,23 @@ void row_permute_kernel(size_type num_rows,
                         ValueType *__restrict__ out_vals,
                         sycl::nd_item<3> item_ct1)
 {
-    auto tid = thread::get_subwarp_id_flat<subwarp_size>(item_ct1);
+    auto tid = thread::get_subwarp_id_flat<subgroup_size>(item_ct1);
     if (tid >= num_rows) {
         return;
     }
-    auto lane = item_ct1.get_local_id(2) % subwarp_size;
+    auto lane = item_ct1.get_local_id(2) % subgroup_size;
     auto in_row = permutation[tid];
     auto out_row = tid;
     auto in_begin = in_row_ptrs[in_row];
     auto in_size = in_row_ptrs[in_row + 1] - in_begin;
     auto out_begin = out_row_ptrs[out_row];
-    for (IndexType i = lane; i < in_size; i += subwarp_size) {
+    for (IndexType i = lane; i < in_size; i += subgroup_size) {
         out_cols[out_begin + i] = in_cols[in_begin + i];
         out_vals[out_begin + i] = in_vals[in_begin + i];
     }
 }
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void row_permute_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                         sycl::queue *queue, size_type num_rows,
                         const IndexType *permutation,
@@ -1296,7 +1223,7 @@ void row_permute_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
     queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                row_permute_kernel<subwarp_size>(
+                row_permute_kernel<subgroup_size>(
                     num_rows, permutation, in_row_ptrs, in_cols, in_vals,
                     out_row_ptrs, out_cols, out_vals, item_ct1);
             });
@@ -1304,7 +1231,7 @@ void row_permute_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void inv_row_permute_kernel(size_type num_rows,
                             const IndexType *__restrict__ permutation,
                             const IndexType *__restrict__ in_row_ptrs,
@@ -1315,23 +1242,23 @@ void inv_row_permute_kernel(size_type num_rows,
                             ValueType *__restrict__ out_vals,
                             sycl::nd_item<3> item_ct1)
 {
-    auto tid = thread::get_subwarp_id_flat<subwarp_size>(item_ct1);
+    auto tid = thread::get_subwarp_id_flat<subgroup_size>(item_ct1);
     if (tid >= num_rows) {
         return;
     }
-    auto lane = item_ct1.get_local_id(2) % subwarp_size;
+    auto lane = item_ct1.get_local_id(2) % subgroup_size;
     auto in_row = tid;
     auto out_row = permutation[tid];
     auto in_begin = in_row_ptrs[in_row];
     auto in_size = in_row_ptrs[in_row + 1] - in_begin;
     auto out_begin = out_row_ptrs[out_row];
-    for (IndexType i = lane; i < in_size; i += subwarp_size) {
+    for (IndexType i = lane; i < in_size; i += subgroup_size) {
         out_cols[out_begin + i] = in_cols[in_begin + i];
         out_vals[out_begin + i] = in_vals[in_begin + i];
     }
 }
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void inv_row_permute_kernel(dim3 grid, dim3 block,
                             size_type dynamic_shared_memory, sycl::queue *queue,
                             size_type num_rows, const IndexType *permutation,
@@ -1343,7 +1270,7 @@ void inv_row_permute_kernel(dim3 grid, dim3 block,
     queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                inv_row_permute_kernel<subwarp_size>(
+                inv_row_permute_kernel<subgroup_size>(
                     num_rows, permutation, in_row_ptrs, in_cols, in_vals,
                     out_row_ptrs, out_cols, out_vals, item_ct1);
             });
@@ -1351,7 +1278,7 @@ void inv_row_permute_kernel(dim3 grid, dim3 block,
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void inv_symm_permute_kernel(size_type num_rows,
                              const IndexType *__restrict__ permutation,
                              const IndexType *__restrict__ in_row_ptrs,
@@ -1362,23 +1289,23 @@ void inv_symm_permute_kernel(size_type num_rows,
                              ValueType *__restrict__ out_vals,
                              sycl::nd_item<3> item_ct1)
 {
-    auto tid = thread::get_subwarp_id_flat<subwarp_size>(item_ct1);
+    auto tid = thread::get_subwarp_id_flat<subgroup_size>(item_ct1);
     if (tid >= num_rows) {
         return;
     }
-    auto lane = item_ct1.get_local_id(2) % subwarp_size;
+    auto lane = item_ct1.get_local_id(2) % subgroup_size;
     auto in_row = tid;
     auto out_row = permutation[tid];
     auto in_begin = in_row_ptrs[in_row];
     auto in_size = in_row_ptrs[in_row + 1] - in_begin;
     auto out_begin = out_row_ptrs[out_row];
-    for (IndexType i = lane; i < in_size; i += subwarp_size) {
+    for (IndexType i = lane; i < in_size; i += subgroup_size) {
         out_cols[out_begin + i] = permutation[in_cols[in_begin + i]];
         out_vals[out_begin + i] = in_vals[in_begin + i];
     }
 }
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void inv_symm_permute_kernel(dim3 grid, dim3 block,
                              size_type dynamic_shared_memory,
                              sycl::queue *queue, size_type num_rows,
@@ -1391,7 +1318,7 @@ void inv_symm_permute_kernel(dim3 grid, dim3 block,
     queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                inv_symm_permute_kernel<subwarp_size>(
+                inv_symm_permute_kernel<subgroup_size>(
                     num_rows, permutation, in_row_ptrs, in_cols, in_vals,
                     out_row_ptrs, out_cols, out_vals, item_ct1);
             });
@@ -1471,8 +1398,8 @@ int compute_items_per_thread(std::shared_ptr<const DpcppExecutor> exec)
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
-void classical_spmv(syn::value_list<int, subwarp_size>,
+template <int subgroup_size, typename ValueType, typename IndexType>
+void classical_spmv(syn::value_list<int, subgroup_size>,
                     std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *a,
                     const matrix::Dense<ValueType> *b,
@@ -1484,20 +1411,20 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
     const auto nwarps =
         exec->get_num_computing_units() * threads_per_cu * classical_overweight;
     const auto gridx =
-        std::min(ceildiv(a->get_size()[0], spmv_block_size / subwarp_size),
+        std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),
                  int64(nwarps / warps_in_block));
     const dim3 grid(gridx, b->get_size()[1]);
     const dim3 block(spmv_block_size);
 
     if (alpha == nullptr && beta == nullptr) {
-        kernel::abstract_classical_spmv<subwarp_size>(
+        kernel::abstract_classical_spmv<subgroup_size>(
             grid, block, 0, exec->get_queue(), a->get_size()[0],
             a->get_const_values(), a->get_const_col_idxs(),
             a->get_const_row_ptrs(), b->get_const_values(), b->get_stride(),
             c->get_values(), c->get_stride());
 
     } else if (alpha != nullptr && beta != nullptr) {
-        kernel::abstract_classical_spmv<subwarp_size>(
+        kernel::abstract_classical_spmv<subgroup_size>(
             grid, block, 0, exec->get_queue(), a->get_size()[0],
             alpha->get_const_values(), a->get_const_values(),
             a->get_const_col_idxs(), a->get_const_row_ptrs(),
@@ -2454,18 +2381,6 @@ void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
 
-template <typename IndexType>
-void invert_permutation(std::shared_ptr<const DefaultExecutor> exec,
-                        size_type size, const IndexType *permutation_indices,
-                        IndexType *inv_permutation)
-{
-    auto num_blocks = ceildiv(size, default_block_size);
-    inv_permutation_kernel(num_blocks, default_block_size, 0, exec->get_queue(),
-                           size, permutation_indices, inv_permutation);
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVERT_PERMUTATION_KERNEL);
-
 
 template <typename ValueType, typename IndexType>
 void inv_symm_permute(std::shared_ptr<const DpcppExecutor> exec,
@@ -2540,26 +2455,6 @@ void inverse_row_permute(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_column_permute(std::shared_ptr<const DpcppExecutor> exec,
-                            const IndexType *perm,
-                            const matrix::Csr<ValueType, IndexType> *orig,
-                            matrix::Csr<ValueType, IndexType> *column_permuted)
-{
-    auto num_rows = orig->get_size()[0];
-    auto nnz = orig->get_num_stored_elements();
-    auto num_blocks = ceildiv(std::max(num_rows, nnz), default_block_size);
-    col_permute_kernel(
-        num_blocks, default_block_size, 0, exec->get_queue(), num_rows, nnz,
-        perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        orig->get_const_values(), column_permuted->get_row_ptrs(),
-        column_permuted->get_col_idxs(), column_permuted->get_values());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

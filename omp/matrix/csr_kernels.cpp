@@ -789,20 +789,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL);
 
 
-template <typename IndexType>
-void invert_permutation(std::shared_ptr<const DefaultExecutor> exec,
-                        size_type size, const IndexType *permutation_indices,
-                        IndexType *inv_permutation)
-{
-#pragma omp parallel for
-    for (IndexType i = 0; i < static_cast<IndexType>(size); ++i) {
-        inv_permutation[permutation_indices[i]] = i;
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVERT_PERMUTATION_KERNEL);
-
-
 template <typename ValueType, typename IndexType>
 void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec,
                       const IndexType *perm,
@@ -917,35 +903,6 @@ void inverse_row_permute(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_column_permute(std::shared_ptr<const OmpExecutor> exec,
-                            const IndexType *perm,
-                            const matrix::Csr<ValueType, IndexType> *orig,
-                            matrix::Csr<ValueType, IndexType> *column_permuted)
-{
-    auto orig_row_ptrs = orig->get_const_row_ptrs();
-    auto orig_col_idxs = orig->get_const_col_idxs();
-    auto orig_vals = orig->get_const_values();
-    auto cp_row_ptrs = column_permuted->get_row_ptrs();
-    auto cp_col_idxs = column_permuted->get_col_idxs();
-    auto cp_vals = column_permuted->get_values();
-    size_type num_rows = orig->get_size()[0];
-
-#pragma omp parallel for
-    for (size_type row = 0; row < num_rows; ++row) {
-        cp_row_ptrs[row] = orig_row_ptrs[row];
-        for (auto k = orig_row_ptrs[row]; k < orig_row_ptrs[row + 1]; ++k) {
-            cp_col_idxs[k] = perm[orig_col_idxs[k]];
-            cp_vals[k] = orig_vals[k];
-        }
-    }
-    cp_row_ptrs[num_rows] = orig_row_ptrs[num_rows];
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

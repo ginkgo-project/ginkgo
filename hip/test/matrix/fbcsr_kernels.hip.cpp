@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/matrix/fbcsr.hpp>
+
+
 #include <gtest/gtest.h>
 
 
@@ -37,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/matrix/fbcsr_sample.hpp"
-#include "core/test/utils.hpp"
+#include "hip/test/utils.hip.hpp"
 
 
 namespace {
@@ -45,29 +48,24 @@ namespace {
 
 class Fbcsr : public ::testing::Test {
 protected:
-#if GINKGO_DPCPP_SINGLE_MODE
-    using vtype = float;
-#else
-    using vtype = double;
-#endif  // GINKGO_DPCPP_SINGLE_MODE
-    using Mtx = gko::matrix::Fbcsr<vtype>;
+    using Mtx = gko::matrix::Fbcsr<>;
 
     void SetUp()
     {
-        ASSERT_GT(gko::DpcppExecutor::get_num_devices("all"), 0);
+        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        dpcpp = gko::DpcppExecutor::create(0, ref);
+        hip = gko::HipExecutor::create(0, ref);
     }
 
     void TearDown()
     {
-        if (dpcpp != nullptr) {
-            ASSERT_NO_THROW(dpcpp->synchronize());
+        if (hip != nullptr) {
+            ASSERT_NO_THROW(hip->synchronize());
         }
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::DpcppExecutor> dpcpp;
+    std::shared_ptr<const gko::HipExecutor> hip;
 
     std::unique_ptr<Mtx> mtx;
 };
@@ -80,15 +78,15 @@ TEST_F(Fbcsr, CanWriteFromMatrixOnDevice)
     using MatData = gko::matrix_data<value_type, index_type>;
     gko::testing::FbcsrSample<value_type, index_type> sample(ref);
     auto refmat = sample.generate_fbcsr();
-    auto dpcppmat = Mtx::create(dpcpp);
-    dpcppmat->copy_from(gko::lend(refmat));
+    auto hipmat = Mtx::create(hip);
+    hipmat->copy_from(gko::lend(refmat));
     MatData refdata;
-    MatData dpcppdata;
+    MatData hipdata;
 
     refmat->write(refdata);
-    dpcppmat->write(dpcppdata);
+    hipmat->write(hipdata);
 
-    ASSERT_TRUE(refdata.nonzeros == dpcppdata.nonzeros);
+    ASSERT_TRUE(refdata.nonzeros == hipdata.nonzeros);
 }
 
 

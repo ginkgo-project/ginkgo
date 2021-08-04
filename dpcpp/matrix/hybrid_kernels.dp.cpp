@@ -84,7 +84,7 @@ namespace kernel {
  * @param row  the row index array of the matrix
  * @param nnz_per_row  the output nonzeros per row
  */
-template <int subwarp_size = config::warp_size, typename ValueType,
+template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
 void count_coo_row_nnz(const size_type nnz, const size_type num_lines,
                        const ValueType *__restrict__ val,
@@ -99,22 +99,22 @@ void count_coo_row_nnz(const size_type nnz, const size_type num_lines,
             num_lines +
         item_ct1.get_local_id(1) * item_ct1.get_local_range().get(2) *
             num_lines;
-    size_type num = (nnz > start) * ceildiv(nnz - start, subwarp_size);
+    size_type num = (nnz > start) * ceildiv(nnz - start, subgroup_size);
     num = min(num, num_lines);
     const IndexType ind_start = start + item_ct1.get_local_id(2);
-    const IndexType ind_end = ind_start + (num - 1) * subwarp_size;
+    const IndexType ind_end = ind_start + (num - 1) * subgroup_size;
     IndexType ind = ind_start;
     IndexType curr_row = (ind < nnz) ? row[ind] : 0;
-    const auto tile_block = group::tiled_partition<subwarp_size>(
+    const auto tile_block = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
-    for (; ind < ind_end; ind += subwarp_size) {
+    for (; ind < ind_end; ind += subgroup_size) {
         temp_val += ind < nnz && val[ind] != zero<ValueType>();
-        auto next_row =
-            (ind + subwarp_size < nnz) ? row[ind + subwarp_size] : row[nnz - 1];
+        auto next_row = (ind + subgroup_size < nnz) ? row[ind + subgroup_size]
+                                                    : row[nnz - 1];
         // segmented scan
         if (tile_block.any(curr_row != next_row)) {
             bool is_first_in_segment =
-                segment_scan<subwarp_size>(tile_block, curr_row, &temp_val);
+                segment_scan<subgroup_size>(tile_block, curr_row, &temp_val);
             if (is_first_in_segment) {
                 atomic_add(&(nnz_per_row[curr_row]), temp_val);
             }
@@ -128,14 +128,14 @@ void count_coo_row_nnz(const size_type nnz, const size_type num_lines,
         // segmented scan
 
         bool is_first_in_segment =
-            segment_scan<subwarp_size>(tile_block, curr_row, &temp_val);
+            segment_scan<subgroup_size>(tile_block, curr_row, &temp_val);
         if (is_first_in_segment) {
             atomic_add(&(nnz_per_row[curr_row]), temp_val);
         }
     }
 }
 
-template <int subwarp_size = config::warp_size, typename ValueType,
+template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
 void count_coo_row_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                        sycl::queue *queue, const size_type nnz,
@@ -145,8 +145,8 @@ void count_coo_row_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
     queue->submit([&](sycl::handler &cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                count_coo_row_nnz<subwarp_size>(nnz, num_lines, val, row,
-                                                nnz_per_row, item_ct1);
+                count_coo_row_nnz<subgroup_size>(nnz, num_lines, val, row,
+                                                 nnz_per_row, item_ct1);
             });
     });
 }

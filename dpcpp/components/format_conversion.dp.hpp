@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_DPCPP_COMPONENTS_FORMAT_CONVERSION_DP_HPP_
 
 
+#include <algorithm>
+
+
 #include <CL/sycl.hpp>
 
 
@@ -103,7 +106,7 @@ namespace host_kernel {
  * It calculates the number of warps used in Coo Spmv depending on the GPU
  * architecture and the number of stored elements.
  */
-template <size_type subwarp_size = config::warp_size>
+template <size_type subgroup_size = config::warp_size>
 size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
                            const size_type nnz)
 {
@@ -120,7 +123,7 @@ size_type calculate_nwarps(std::shared_ptr<const DpcppExecutor> exec,
     }
 #endif  // GINKGO_BENCHMARK_ENABLE_TUNING
     return std::min(multiple * nwarps_in_dpcpp,
-                    size_type(ceildiv(nnz, subwarp_size)));
+                    size_type(ceildiv(nnz, subgroup_size)));
 }
 
 

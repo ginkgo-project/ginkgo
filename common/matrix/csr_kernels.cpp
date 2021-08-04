@@ -30,7 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/coo_kernels.hpp"
+#include "core/matrix/csr_kernels.hpp"
+
+
+#include <algorithm>
 
 
 #include <ginkgo/core/base/math.hpp>
@@ -43,36 +46,63 @@ namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 /**
- * @brief The Coo matrix format namespace.
+ * @brief The Csr matrix format namespace.
  *
- * @ingroup coo
+ * @ingroup csr
  */
-namespace coo {
+namespace csr {
 
 
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
+template <typename IndexType>
+void invert_permutation(std::shared_ptr<const DefaultExecutor> exec,
+                        size_type size, const IndexType *permutation_indices,
+                        IndexType *inv_permutation)
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto tidx, auto orig_values, auto orig_row_idxs,
-                      auto orig_col_idxs, auto diag) {
-            if (orig_row_idxs[tidx] == orig_col_idxs[tidx]) {
-                diag[orig_row_idxs[tidx]] = orig_values[tidx];
+        [] GKO_KERNEL(auto tid, auto permutation, auto inv_permutation) {
+            inv_permutation[permutation[tid]] = tid;
+        },
+        size, permutation_indices, inv_permutation);
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVERT_PERMUTATION_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec,
+                            const IndexType *perm,
+                            const matrix::Csr<ValueType, IndexType> *orig,
+                            matrix::Csr<ValueType, IndexType> *column_permuted)
+{
+    auto num_rows = orig->get_size()[0];
+    auto nnz = orig->get_num_stored_elements();
+    auto size = std::max(num_rows, nnz);
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto tid, auto num_rows, auto num_nonzeros,
+                      auto permutation, auto in_row_ptrs, auto in_col_idxs,
+                      auto in_vals, auto out_row_ptrs, auto out_col_idxs,
+                      auto out_vals) {
+            if (tid < num_nonzeros) {
+                out_col_idxs[tid] = permutation[in_col_idxs[tid]];
+                out_vals[tid] = in_vals[tid];
+            }
+            if (tid <= num_rows) {
+                out_row_ptrs[tid] = in_row_ptrs[tid];
             }
         },
-        orig->get_num_stored_elements(), orig->get_const_values(),
-        orig->get_const_row_idxs(), orig->get_const_col_idxs(),
-        diag->get_values());
+        size, num_rows, nnz, perm, orig->get_const_row_ptrs(),
+        orig->get_const_col_idxs(), orig->get_const_values(),
+        column_permuted->get_row_ptrs(), column_permuted->get_col_idxs(),
+        column_permuted->get_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL);
+    GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);
 
 
-}  // namespace coo
+}  // namespace csr
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
