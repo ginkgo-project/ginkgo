@@ -138,9 +138,7 @@ TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    auto result = Vec::create(ref);
-    result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -151,9 +149,7 @@ TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    auto result = Vec::create(ref);
-    result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -164,9 +160,7 @@ TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    auto result = Vec::create(ref);
-    result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -177,9 +171,7 @@ TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFActorIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    auto result = Vec::create(ref);
-    result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -187,13 +179,10 @@ TEST_F(Sellp, SimpleApplyMultipleRHSIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
 
-
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    auto result = Vec::create(ref);
-    result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -201,13 +190,10 @@ TEST_F(Sellp, AdvancedApplyMultipleRHSIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
 
-
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    auto result = Vec::create(ref);
-    result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -219,9 +205,7 @@ TEST_F(Sellp,
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    auto result = Vec::create(ref);
-    result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -233,16 +217,13 @@ TEST_F(Sellp,
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    auto result = Vec::create(ref);
-    result->copy_from(dresult.get());
-    GKO_ASSERT_MTX_NEAR(result, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
 TEST_F(Sellp, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
-
     auto complex_b = gen_mtx<ComplexVec>(231, 3);
     auto dcomplex_b = ComplexVec::create(dpcpp);
     dcomplex_b->copy_from(complex_b.get());
@@ -260,7 +241,6 @@ TEST_F(Sellp, ApplyToComplexIsEquivalentToRef)
 TEST_F(Sellp, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
-
     auto complex_b = gen_mtx<ComplexVec>(231, 3);
     auto dcomplex_b = ComplexVec::create(dpcpp);
     dcomplex_b->copy_from(complex_b.get());
@@ -278,8 +258,6 @@ TEST_F(Sellp, AdvancedApplyToComplexIsEquivalentToRef)
 TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
-
-
     auto dense_mtx = gko::matrix::Dense<vtype>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<vtype>::create(dpcpp);
 
@@ -293,8 +271,6 @@ TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
 TEST_F(Sellp, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
-
-
     auto csr_mtx = gko::matrix::Csr<vtype>::create(ref);
     auto dcsr_mtx = gko::matrix::Csr<vtype>::create(dpcpp);
 
@@ -308,8 +284,6 @@ TEST_F(Sellp, ConvertToCsrIsEquivalentToRef)
 TEST_F(Sellp, ConvertEmptyToDenseIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
-
-
     auto dense_mtx = gko::matrix::Dense<vtype>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<vtype>::create(dpcpp);
 
@@ -323,8 +297,6 @@ TEST_F(Sellp, ConvertEmptyToDenseIsEquivalentToRef)
 TEST_F(Sellp, ConvertEmptyToCsrIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
-
-
     auto csr_mtx = gko::matrix::Csr<vtype>::create(ref);
     auto dcsr_mtx = gko::matrix::Csr<vtype>::create(dpcpp);
 
@@ -338,8 +310,6 @@ TEST_F(Sellp, ConvertEmptyToCsrIsEquivalentToRef)
 TEST_F(Sellp, CountNonzerosIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
-
-
     gko::size_type nnz;
     gko::size_type dnnz;
 
@@ -353,7 +323,6 @@ TEST_F(Sellp, CountNonzerosIsEquivalentToRef)
 TEST_F(Sellp, ExtractDiagonalIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
-
 
     auto diag = mtx->extract_diagonal();
     auto ddiag = dmtx->extract_diagonal();

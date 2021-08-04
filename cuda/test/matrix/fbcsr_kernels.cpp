@@ -80,9 +80,9 @@ TEST_F(Fbcsr, CanWriteFromMatrixOnDevice)
     auto refmat = sample.generate_fbcsr();
     auto cudamat = Mtx::create(cuda);
     cudamat->copy_from(gko::lend(refmat));
-
     MatData refdata;
     MatData cudadata;
+
     refmat->write(refdata);
     cudamat->write(cudadata);
 

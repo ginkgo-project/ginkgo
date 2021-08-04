@@ -53,59 +53,63 @@ namespace kernels {
 namespace dpcpp {
 
 
+// TODO: porting - some functions name still use subwarp
+
+
 /**
  * @internal
- * Computes the prefix sum and total sum of `element` over a subwarp.
+ * Computes the prefix sum and total sum of `element` over a subgroup.
  *
  * @param element     the element over which we compute the prefix sum.
  * @param prefix_sum  will be set to the sum of all `element`s from lower
  *                    lanes, plus the local `element` if `inclusive` is `true`.
- * @param total_sum   will be set to the total sum of `element` in this subwarp.
- * @param subwarp     the cooperative group representing the subwarp.
+ * @param total_sum   will be set to the total sum of `element` in this
+ * subgroup.
+ * @param subgroup     the cooperative group representing the subgroup.
  *
  * @tparam inclusive  if this is true, the computed prefix sum will be
  *                    inclusive, otherwise it will be exclusive.
  *
  * @note For this function to work on architectures with independent thread
- * scheduling, all threads of the subwarp have to execute it.
+ * scheduling, all threads of the subgroup have to execute it.
  */
 template <bool inclusive, typename ValueType, typename Group>
 __dpct_inline__ void subwarp_prefix_sum(ValueType element,
                                         ValueType &prefix_sum,
-                                        ValueType &total_sum, Group subwarp)
+                                        ValueType &total_sum, Group subgroup)
 {
     prefix_sum = inclusive ? element : zero<ValueType>();
     total_sum = element;
 #pragma unroll
     // hypercube prefix sum
-    for (int step = 1; step < subwarp.size(); step *= 2) {
-        auto neighbor = subwarp.shfl_xor(total_sum, step);
+    for (int step = 1; step < subgroup.size(); step *= 2) {
+        auto neighbor = subgroup.shfl_xor(total_sum, step);
         total_sum += neighbor;
-        prefix_sum += bool(subwarp.thread_rank() & step) ? neighbor : 0;
+        prefix_sum += bool(subgroup.thread_rank() & step) ? neighbor : 0;
     }
 }
 
 /**
  * @internal
- * Computes the prefix sum of `element` over a subwarp.
+ * Computes the prefix sum of `element` over a subgroup.
  *
  * @param element     the element over which we compute the prefix sum.
  * @param prefix_sum  will be set to the sum of all `element`s from lower
  *                    lanes, plus the local `element` if `inclusive` is `true`.
- * @param subwarp     the cooperative group representing the subwarp.
+ * @param subgroup     the cooperative group representing the subgroup.
  *
  * @tparam inclusive  if this is true, the computed prefix sum will be
  *                    inclusive, otherwise it will be exclusive.
  *
- * @note All threads of the subwarp have to execute this function for it to work
- *       (and not dead-lock on newer architectures).
+ * @note All threads of the subgroup have to execute this function for it to
+ * work (and not dead-lock on newer architectures).
  */
 template <bool inclusive, typename ValueType, typename Group>
 __dpct_inline__ void subwarp_prefix_sum(ValueType element,
-                                        ValueType &prefix_sum, Group subwarp)
+                                        ValueType &prefix_sum, Group subgroup)
 {
     ValueType tmp{};
-    subwarp_prefix_sum<inclusive>(element, prefix_sum, tmp, subwarp);
+    subwarp_prefix_sum<inclusive>(element, prefix_sum, tmp, subgroup);
 }
 
 

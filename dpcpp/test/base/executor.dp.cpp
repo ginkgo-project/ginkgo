@@ -269,30 +269,23 @@ TEST_F(DpcppExecutor, Synchronizes)
 }
 
 
-#define GTEST_ASSERT_NO_EXIT(statement) \
-    ASSERT_EXIT({ {statement} exit(0); }, ::testing::ExitedWithCode(0), "")
-
-
 TEST_F(DpcppExecutor, FreeAfterKernel)
 {
-    testing::FLAGS_gtest_death_test_style = "threadsafe";
-    GTEST_ASSERT_NO_EXIT({
-        size_t length = 10000;
-        auto dpcpp =
-            gko::DpcppExecutor::create(0, gko::ReferenceExecutor::create());
-        {
-            gko::Array<float> x(dpcpp, length);
-            gko::Array<float> y(dpcpp, length);
-            auto x_val = x.get_data();
-            auto y_val = y.get_data();
-            dpcpp->get_queue()->submit([&](sycl::handler &cgh) {
-                cgh.parallel_for(sycl::range<1>{length},
-                                 [=](sycl::id<1> i) { y_val[i] += x_val[i]; });
-            });
-        }
-        // to ensure everything on queue is finished.
-        dpcpp->synchronize();
-    });
+    size_t length = 10000;
+    auto dpcpp =
+        gko::DpcppExecutor::create(0, gko::ReferenceExecutor::create());
+    {
+        gko::Array<float> x(dpcpp, length);
+        gko::Array<float> y(dpcpp, length);
+        auto x_val = x.get_data();
+        auto y_val = y.get_data();
+        dpcpp->get_queue()->submit([&](sycl::handler &cgh) {
+            cgh.parallel_for(sycl::range<1>{length},
+                             [=](sycl::id<1> i) { y_val[i] += x_val[i]; });
+        });
+    }
+    // to ensure everything on queue is finished.
+    dpcpp->synchronize();
 }
 
 
