@@ -38,7 +38,7 @@ For Ginkgo core library:
 
 *   _cmake 3.13+_
 *   C++14 compliant compiler, one of:
-    *   _gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
+    *   _gcc 5.5+_
     *   _clang 3.9+_
     *   _Intel compiler 2018+_
     *   _Apple LLVM 8.0+_
@@ -75,11 +75,10 @@ following:
 
 ### Windows
 
-The prequirement needs to be verified
 *   _cmake 3.13+_
 *   C++14 compliant 64-bit compiler:
-    *   _MinGW : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
-    *   _Cygwin : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
+    *   _MinGW : gcc 5.5+_
+    *   _Cygwin : gcc 5.5+_
     *   _Microsoft Visual Studio : VS 2019+_
 
 __NOTE:__ Need to add `--autocrlf=input` after `git clone` in _Cygwin_.
