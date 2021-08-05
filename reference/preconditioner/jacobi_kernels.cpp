@@ -570,11 +570,8 @@ void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
 {
     for (size_type i = 0; i < x->get_size()[0]; ++i) {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            auto diag_val = diag.get_const_data()[i] == zero<ValueType>()
-                                ? one<ValueType>()
-                                : diag.get_const_data()[i];
             x->at(i, j) = beta->at(0) * x->at(i, j) +
-                          alpha->at(0) * b->at(i, j) / diag_val;
+                          alpha->at(0) * b->at(i, j) * diag.get_const_data()[i];
         }
     }
 }
@@ -590,10 +587,7 @@ void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
 {
     for (size_type i = 0; i < x->get_size()[0]; ++i) {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            auto diag_val = diag.get_const_data()[i] == zero<ValueType>()
-                                ? one<ValueType>()
-                                : diag.get_const_data()[i];
-            x->at(i, j) = b->at(i, j) / diag_val;
+            x->at(i, j) = b->at(i, j) * diag.get_const_data()[i];
         }
     }
 }

@@ -231,11 +231,9 @@ __global__ __launch_bounds__(default_block_size) void scalar_apply(
     const auto col = tidx % num_cols;
 
     if (row < num_rows) {
-        auto diag_val =
-            diag[row] == zero<ValueType>() ? one<ValueType>() : diag[row];
         result_values[row * result_stride + col] =
             result_values[row * result_stride + col] * beta[0] +
-            alpha[0] * source_values[row * source_stride + col] / diag_val;
+            alpha[0] * source_values[row * source_stride + col] * diag[row];
     }
 }
 
