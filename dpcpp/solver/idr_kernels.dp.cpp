@@ -126,13 +126,10 @@ void orthonormalize_subspace_vectors_kernel(
             for (size_type j = tidx; j < num_cols; j += block_size) {
                 dot += values[row * stride + j] * conj(values[i * stride + j]);
             }
-            // TODO: check with intel why we need this here.
-            // Is it from we use updated the value even if it is on the same
-            // thread?
-            item_ct1.barrier();
-            reduction_helper[tidx] = dot;
 
+            // Ensure already finish reading this shared memory
             item_ct1.barrier(sycl::access::fence_space::local_space);
+            reduction_helper[tidx] = dot;
             ::gko::kernels::dpcpp::reduce(
                 group::this_thread_block(item_ct1), reduction_helper,
                 [](const ValueType &a, const ValueType &b) { return a + b; });
@@ -149,9 +146,9 @@ void orthonormalize_subspace_vectors_kernel(
             norm += squared_norm(values[row * stride + j]);
         }
 
-        reduction_helper_real[tidx] = norm;
-
+        // Ensure already finish reading this shared memory
         item_ct1.barrier(sycl::access::fence_space::local_space);
+        reduction_helper_real[tidx] = norm;
         ::gko::kernels::dpcpp::reduce(
             group::this_thread_block(item_ct1), reduction_helper_real,
             [](const remove_complex<ValueType> &a,
