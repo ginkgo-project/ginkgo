@@ -20,7 +20,10 @@ jobs:
     runs-on: [windows-latest]
     steps:
     - run: git config --global core.autocrlf input
-    - uses: actions/checkout@v2
+    - name: Checkout the latest code (shallow clone)
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
 
     - name: setup
       run: |

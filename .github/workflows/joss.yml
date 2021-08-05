@@ -11,7 +11,11 @@ jobs:
     runs-on: [ubuntu-latest] 
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout the latest code (shallow clone)
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
+
     - name: setup
       run: sudo apt-get install texlive-xetex pandoc pandoc-citeproc
     - name: info

@@ -7,11 +7,11 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.issue.pull_request != '' && github.event.comment.body == 'label!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     steps:
-    - name: Checkout the latest code
+    - name: Checkout the latest code (shallow clone)
       uses: actions/checkout@v2
       with:
         ref: develop
-        fetch-depth: 0
+        fetch-depth: 1
     - name: Add appropriate labels
       env:
         GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
@@ -21,11 +21,11 @@ jobs:
     runs-on: ubuntu-18.04
     if: github.event.issue.pull_request != '' && github.event.comment.body == 'check-format!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     steps:
-    - name: Checkout the latest code
+    - name: Checkout the latest code (shallow clone)
       uses: actions/checkout@v2
       with:
         ref: develop
-        fetch-depth: 0
+        fetch-depth: 1
     - name: Check for formatting changes
       env:
         GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
@@ -41,11 +41,11 @@ jobs:
     runs-on: ubuntu-18.04
     if: github.event.issue.pull_request != '' && github.event.comment.body == 'format!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     steps:
-    - name: Checkout the latest code
+    - name: Checkout the latest code (shallow clone)
       uses: actions/checkout@v2
       with:
         ref: develop
-        fetch-depth: 0
+        fetch-depth: 1
     - name: Commit formatting changes
       env:
         GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
