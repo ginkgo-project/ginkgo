@@ -703,6 +703,7 @@ void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,
                              const gko::dim<2> &matrix_size,
                              size_type result_stride)
 {
+#pragma omp parallel for
     for (size_type i = 0; i < matrix_size[0]; ++i) {
         for (size_type j = 0; j < matrix_size[1]; ++j) {
             result_values[i * result_stride + j] = zero<ValueType>();
@@ -719,14 +720,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
-                     Array<ValueType> &diag)
+void scalar_conj(std::shared_ptr<const DefaultExecutor> exec,
+                 const Array<ValueType> &diag, Array<ValueType> &conj_diag)
 {
+#pragma omp parallel for
     for (size_type i = 0; i < diag.get_num_elems(); ++i) {
-        auto diag_val = diag.get_const_data()[i] == zero<ValueType>()
-                            ? one<ValueType>()
-                            : diag.get_const_data()[i];
-        diag.get_data()[i] = static_cast<ValueType>(1.0) / diag_val;
+        conj_diag.get_data()[i] = gko::conj(diag.get_const_data()[i]);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_CONJ_KERNEL);
+
+
+template <typename ValueType>
+void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
+                     const Array<ValueType> &diag, Array<ValueType> &inv_diag)
+{
+#pragma omp parallel for
+    for (size_type i = 0; i < diag.get_num_elems(); ++i) {
+        inv_diag.get_data()[i] =
+            static_cast<ValueType>(1.0) / diag.get_const_data()[i];
     }
 }
 

@@ -63,6 +63,7 @@ GKO_REGISTER_OPERATION(apply, jacobi::apply);
 GKO_REGISTER_OPERATION(scalar_apply, jacobi::scalar_apply);
 GKO_REGISTER_OPERATION(find_blocks, jacobi::find_blocks);
 GKO_REGISTER_OPERATION(generate, jacobi::generate);
+GKO_REGISTER_OPERATION(scalar_conj, jacobi::scalar_conj);
 GKO_REGISTER_OPERATION(invert_diagonal, jacobi::invert_diagonal);
 GKO_REGISTER_OPERATION(transpose_jacobi, jacobi::transpose_jacobi);
 GKO_REGISTER_OPERATION(conj_transpose_jacobi, jacobi::conj_transpose_jacobi);
@@ -230,7 +231,8 @@ std::unique_ptr<LinOp> Jacobi<ValueType, IndexType>::conj_transpose() const
     res->conditioning_ = conditioning_;
     res->parameters_ = parameters_;
     if (parameters_.max_block_size == 1) {
-        res->blocks_ = blocks_;
+        this->get_executor()->run(
+            jacobi::make_scalar_conj(this->blocks_, res->blocks_));
     } else {
         this->get_executor()->run(jacobi::make_conj_transpose_jacobi(
             num_blocks_, parameters_.max_block_size,
@@ -277,8 +279,8 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
         auto temp = Array<ValueType>::view(diag_vt->get_executor(),
                                            diag_vt->get_size()[0],
                                            diag_vt->get_values());
-        exec->run(jacobi::make_invert_diagonal(temp));
-        this->blocks_ = temp;
+        this->blocks_ = Array<ValueType>(exec, temp.get_num_elems());
+        exec->run(jacobi::make_invert_diagonal(temp, this->blocks_));
         this->num_blocks_ = diag_vt->get_size()[0];
     } else {
         auto csr_mtx = convert_to_with_sorting<csr_type>(exec, system_matrix,
