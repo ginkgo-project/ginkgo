@@ -20,7 +20,8 @@ jobs:
     runs-on: [windows-latest]
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout the latest code (shallow clone)
+      uses: actions/checkout@v2
     - name: setup (versioned)
       if: matrix.config.version != 'latest'
       run: |

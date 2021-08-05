@@ -8,11 +8,10 @@ jobs:
     runs-on: ubuntu-18.04
     if: github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.author_association == 'OWNER'
     steps:
-      - name: Checkout the latest code
+      - name: Checkout the latest code (shallow clone)
         uses: actions/checkout@v2
         with:
           ref: develop
-          fetch-depth: 0
       - name: Check for formatting changes
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
