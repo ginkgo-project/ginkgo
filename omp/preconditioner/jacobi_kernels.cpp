@@ -697,6 +697,43 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType>
+void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,
+                             const Array<ValueType> &blocks,
+                             ValueType *result_values,
+                             const gko::dim<2> &matrix_size,
+                             size_type result_stride)
+{
+    for (size_type i = 0; i < matrix_size[0]; ++i) {
+        for (size_type j = 0; j < matrix_size[1]; ++j) {
+            result_values[i * result_stride + j] = zero<ValueType>();
+            if (i == j) {
+                result_values[i * result_stride + j] =
+                    blocks.get_const_data()[i];
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL);
+
+
+template <typename ValueType>
+void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
+                     Array<ValueType> &diag)
+{
+    for (size_type i = 0; i < diag.get_num_elems(); ++i) {
+        auto diag_val = diag.get_const_data()[i] == zero<ValueType>()
+                            ? one<ValueType>()
+                            : diag.get_const_data()[i];
+        diag.get_data()[i] = static_cast<ValueType>(1.0) / diag_val;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_INVERT_DIAGONAL_KERNEL);
+
+
+template <typename ValueType>
 void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
                   const Array<ValueType> &diag,
                   const matrix::Dense<ValueType> *alpha,
@@ -725,10 +762,8 @@ void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
 #pragma omp parallel for
     for (size_type i = 0; i < x->get_size()[0]; ++i) {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            auto diag_val = diag.get_const_data()[i] == zero<ValueType>()
-                                ? one<ValueType>()
-                                : diag.get_const_data()[i];
-            x->at(i, j) = b->at(i, j) / diag_val;
+            auto diag_val = diag.get_const_data()[i];
+            x->at(i, j) = b->at(i, j) * diag_val;
         }
     }
 }

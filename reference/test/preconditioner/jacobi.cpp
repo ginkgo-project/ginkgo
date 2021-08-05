@@ -310,6 +310,26 @@ TYPED_TEST(Jacobi, CanBeClearedWithAdaptivePrecision)
 }
 
 
+TYPED_TEST(Jacobi, ScalarJacobiConvertsToDense)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Bj = typename TestFixture::Bj;
+    gko::matrix_data<value_type, index_type> data;
+    auto csr = gko::share(
+        gko::matrix::Csr<value_type, index_type>::create(this->exec));
+    csr->copy_from(gko::lend(this->mtx));
+    auto scalar_j = this->scalar_j_factory->generate(csr);
+
+    auto dense_j = gko::matrix::Dense<value_type>::create(this->exec);
+    dense_j->copy_from(scalar_j.get());
+    auto dense_j_val = dense_j->get_const_values();
+    auto j_val = scalar_j->get_blocks();
+
+    EXPECT_EQ(dense_j_val[0], j_val[0]);
+}
+
+
 #define GKO_EXPECT_NONZERO_NEAR(first, second, tol) \
     EXPECT_EQ(first.row, second.row);               \
     EXPECT_EQ(first.column, second.column);         \
@@ -393,11 +413,11 @@ TYPED_TEST(Jacobi, ScalarJacobiGeneratesOnDifferentPrecision)
 
     ASSERT_NO_THROW(bj = this->scalar_j_factory->generate(csr));
     ASSERT_EQ(bj->get_num_blocks(), 5u);
-    ASSERT_EQ(bj->get_blocks()[0], value_type{4});
-    ASSERT_EQ(bj->get_blocks()[1], value_type{4});
-    ASSERT_EQ(bj->get_blocks()[2], value_type{4});
-    ASSERT_EQ(bj->get_blocks()[3], value_type{4});
-    ASSERT_EQ(bj->get_blocks()[4], value_type{4});
+    ASSERT_EQ(bj->get_blocks()[0], value_type{0.25});
+    ASSERT_EQ(bj->get_blocks()[1], value_type{0.25});
+    ASSERT_EQ(bj->get_blocks()[2], value_type{0.25});
+    ASSERT_EQ(bj->get_blocks()[3], value_type{0.25});
+    ASSERT_EQ(bj->get_blocks()[4], value_type{0.25});
 }
 
 
