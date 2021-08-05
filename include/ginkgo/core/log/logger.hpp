@@ -584,7 +584,7 @@ public:
  *                          class.
  */
 template <typename ConcreteLoggable, typename PolymorphicBase = Loggable>
-class EnableLogging : public Loggable {
+class EnableLogging : public PolymorphicBase {
 public:
     void add_logger(std::shared_ptr<const Logger> logger) override
     {
@@ -593,10 +593,9 @@ public:
 
     void remove_logger(const Logger *logger) override
     {
-        auto idx = find_if(begin(loggers_), end(loggers_),
-                           [&logger](std::shared_ptr<const Logger> l) {
-                               return lend(l) == logger;
-                           });
+        auto idx =
+            find_if(begin(loggers_), end(loggers_),
+                    [&logger](const auto &l) { return lend(l) == logger; });
         if (idx != end(loggers_)) {
             loggers_.erase(idx);
         } else {
