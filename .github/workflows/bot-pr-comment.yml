@@ -46,6 +46,7 @@ jobs:
       with:
         ref: develop
         fetch-depth: 1
+        persist-credentials: false
     - name: Commit formatting changes
       env:
         GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
@@ -60,6 +61,7 @@ jobs:
       with:
         ref: develop
         fetch-depth: 0
+        persist-credentials: false
     - name: Automatic Rebase
       env:
         GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
