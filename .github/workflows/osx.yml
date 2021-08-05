@@ -21,7 +21,10 @@ jobs:
     runs-on: [macos-latest]
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout the latest code (shallow clone)
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
 
     - name: setup
       run: |
