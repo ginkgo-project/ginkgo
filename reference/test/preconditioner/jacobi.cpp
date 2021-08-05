@@ -323,12 +323,38 @@ TYPED_TEST(Jacobi, ScalarJacobiConvertsToDense)
 
     auto dense_j = gko::matrix::Dense<value_type>::create(this->exec);
     dense_j->copy_from(scalar_j.get());
-    auto dense_j_val = dense_j->get_const_values();
     auto j_val = scalar_j->get_blocks();
 
-    EXPECT_EQ(dense_j_val[0], j_val[0]);
+    EXPECT_EQ(dense_j->at(0, 0), j_val[0]);
+    EXPECT_EQ(dense_j->at(1, 1), j_val[1]);
+    EXPECT_EQ(dense_j->at(2, 2), j_val[2]);
+    EXPECT_EQ(dense_j->at(3, 3), j_val[3]);
+    EXPECT_EQ(dense_j->at(4, 4), j_val[4]);
 }
 
+
+TYPED_TEST(Jacobi, ScalarJacobiCanBeTransposed)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Bj = typename TestFixture::Bj;
+    gko::matrix_data<value_type, index_type> data;
+    auto csr = gko::share(
+        gko::matrix::Csr<value_type, index_type>::create(this->exec));
+    csr->copy_from(gko::lend(this->mtx));
+    auto scalar_j = this->scalar_j_factory->generate(csr);
+
+    auto dense_j = gko::matrix::Dense<value_type>::create(this->exec);
+    auto t_j = scalar_j->transpose();
+    auto trans_j = gko::as<Bj>(t_j.get())->get_blocks();
+    auto scal_j = scalar_j->get_blocks();
+
+    EXPECT_EQ(trans_j[0], scal_j[0]);
+    EXPECT_EQ(trans_j[1], scal_j[1]);
+    EXPECT_EQ(trans_j[2], scal_j[2]);
+    EXPECT_EQ(trans_j[3], scal_j[3]);
+    EXPECT_EQ(trans_j[4], scal_j[4]);
+}
 
 #define GKO_EXPECT_NONZERO_NEAR(first, second, tol) \
     EXPECT_EQ(first.row, second.row);               \
