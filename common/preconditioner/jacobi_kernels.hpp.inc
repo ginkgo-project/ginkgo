@@ -239,6 +239,32 @@ __global__ __launch_bounds__(default_block_size) void scalar_apply(
 
 
 template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void conj_diagonal(
+    size_type num_elems, const ValueType *__restrict__ diag,
+    ValueType *__restrict__ conj_diag)
+{
+    const auto tidx = thread::get_thread_id_flat();
+
+    if (tidx < num_elems) {
+        conj_diag[tidx] = gko::conj(diag[tidx]);
+    }
+}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void invert_diagonal(
+    size_type num_elems, const ValueType *__restrict__ diag,
+    ValueType *__restrict__ inv_diag)
+{
+    const auto tidx = thread::get_thread_id_flat();
+
+    if (tidx < num_elems) {
+        inv_diag[tidx] = ValueType(1.0) / diag[tidx];
+    }
+}
+
+
+template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void simple_scalar_apply(
     size_type num_rows, size_type num_cols, const ValueType *__restrict__ diag,
     size_type source_stride, const ValueType *__restrict__ source_values,
@@ -249,10 +275,8 @@ __global__ __launch_bounds__(default_block_size) void simple_scalar_apply(
     const auto col = tidx % num_cols;
 
     if (row < num_rows) {
-        auto diag_val =
-            diag[row] == zero<ValueType>() ? one<ValueType>() : diag[row];
         result_values[row * result_stride + col] =
-            source_values[row * source_stride + col] / diag_val;
+            source_values[row * source_stride + col] * diag[row];
     }
 }
 
