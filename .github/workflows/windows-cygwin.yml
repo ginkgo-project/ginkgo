@@ -22,8 +22,6 @@ jobs:
     - run: git config --global core.autocrlf input
     - name: Checkout the latest code (shallow clone)
       uses: actions/checkout@v2
-      with:
-        fetch-depth: 1
 
     - name: setup
       run: |

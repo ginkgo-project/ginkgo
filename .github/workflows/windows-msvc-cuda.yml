@@ -22,8 +22,6 @@ jobs:
     steps:
     - name: Checkout the latest code (shallow clone)
       uses: actions/checkout@v2
-      with:
-        fetch-depth: 1
     - name: setup (versioned)
       if: matrix.config.version != 'latest'
       run: |

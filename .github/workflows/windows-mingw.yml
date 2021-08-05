@@ -21,8 +21,6 @@ jobs:
     steps:
     - name: Checkout the latest code (shallow clone)
       uses: actions/checkout@v2
-      with:
-        fetch-depth: 1
 
     - name: Debug over SSH (tmate)
       uses: mxschmitt/action-tmate@v3.5
