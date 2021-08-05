@@ -371,6 +371,31 @@ TYPED_TEST(Jacobi, GeneratesCorrectMatrixData)
 }
 
 
+TYPED_TEST(Jacobi, ScalarJacobiGeneratesCorrectMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Bj = typename TestFixture::Bj;
+    gko::matrix_data<value_type, index_type> data;
+    using tpl = typename decltype(data)::nonzero_type;
+    auto csr = gko::share(
+        gko::matrix::Csr<value_type, index_type>::create(this->exec));
+    csr->copy_from(gko::lend(this->mtx));
+    auto scalar_j = this->scalar_j_factory->generate(csr);
+
+    scalar_j->write(data);
+
+    auto tol = r<value_type>::value;
+    ASSERT_EQ(data.size, gko::dim<2>{5});
+    ASSERT_EQ(data.nonzeros.size(), 5);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 1 / 4.0), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[1], tpl(1, 1, 1 / 4.0), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[2], tpl(2, 2, 1 / 4.0), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[3], tpl(3, 3, 1 / 4.0), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[4], tpl(4, 4, 1 / 4.0), tol);
+}
+
+
 TYPED_TEST(Jacobi, GeneratesCorrectMatrixDataWithAdaptivePrecision)
 {
     using value_type = typename TestFixture::value_type;
