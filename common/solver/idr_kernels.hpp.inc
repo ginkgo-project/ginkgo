@@ -71,9 +71,9 @@ __global__
                 dot += values[row * stride + j] * conj(values[i * stride + j]);
             }
 
-            reduction_helper[tidx] = dot;
-
+            // Ensure already finish reading this shared memory
             __syncthreads();
+            reduction_helper[tidx] = dot;
             reduce(
                 group::this_thread_block(), reduction_helper,
                 [](const ValueType &a, const ValueType &b) { return a + b; });
@@ -89,10 +89,9 @@ __global__
         for (size_type j = tidx; j < num_cols; j += block_size) {
             norm += squared_norm(values[row * stride + j]);
         }
-
-        reduction_helper_real[tidx] = norm;
-
+        // Ensure already finish reading this shared memory
         __syncthreads();
+        reduction_helper_real[tidx] = norm;
         reduce(group::this_thread_block(), reduction_helper_real,
                [](const remove_complex<ValueType> &a,
                   const remove_complex<ValueType> &b) { return a + b; });
