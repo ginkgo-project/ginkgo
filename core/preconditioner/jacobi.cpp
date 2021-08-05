@@ -149,29 +149,44 @@ void Jacobi<ValueType, IndexType>::write(mat_data &data) const
         make_temporary_clone(this->get_executor()->get_master(), this);
     data = {local_clone->get_size(), {}};
 
-    const auto ptrs = local_clone->parameters_.block_pointers.get_const_data();
-    for (size_type block = 0; block < local_clone->get_num_blocks(); ++block) {
-        const auto scheme = local_clone->get_storage_scheme();
-        const auto group_data = local_clone->blocks_.get_const_data() +
-                                scheme.get_group_offset(block);
-        const auto block_size = ptrs[block + 1] - ptrs[block];
-        const auto precisions = local_clone->parameters_.storage_optimization
-                                    .block_wise.get_const_data();
-        const auto prec =
-            precisions ? precisions[block] : precision_reduction();
-        GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(ValueType, prec, {
-            const auto block_data =
-                reinterpret_cast<const resolved_precision *>(group_data) +
-                scheme.get_block_offset(block);
-            for (IndexType row = 0; row < block_size; ++row) {
-                for (IndexType col = 0; col < block_size; ++col) {
+    if (parameters_.max_block_size == 1) {
+        for (IndexType row = 0; row < data.size[0]; ++row) {
+            for (IndexType col = 0; col < data.size[1]; ++col) {
+                if (row == col) {
                     data.nonzeros.emplace_back(
-                        ptrs[block] + row, ptrs[block] + col,
-                        static_cast<ValueType>(
-                            block_data[row + col * scheme.get_stride()]));
+                        row, col,
+                        static_cast<ValueType>(local_clone->get_blocks()[row]));
                 }
             }
-        });
+        }
+    } else {
+        const auto ptrs =
+            local_clone->parameters_.block_pointers.get_const_data();
+        for (size_type block = 0; block < local_clone->get_num_blocks();
+             ++block) {
+            const auto scheme = local_clone->get_storage_scheme();
+            const auto group_data = local_clone->blocks_.get_const_data() +
+                                    scheme.get_group_offset(block);
+            const auto block_size = ptrs[block + 1] - ptrs[block];
+            const auto precisions =
+                local_clone->parameters_.storage_optimization.block_wise
+                    .get_const_data();
+            const auto prec =
+                precisions ? precisions[block] : precision_reduction();
+            GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(ValueType, prec, {
+                const auto block_data =
+                    reinterpret_cast<const resolved_precision *>(group_data) +
+                    scheme.get_block_offset(block);
+                for (IndexType row = 0; row < block_size; ++row) {
+                    for (IndexType col = 0; col < block_size; ++col) {
+                        data.nonzeros.emplace_back(
+                            ptrs[block] + row, ptrs[block] + col,
+                            static_cast<ValueType>(
+                                block_data[row + col * scheme.get_stride()]));
+                    }
+                }
+            });
+        }
     }
 }
 
