@@ -230,6 +230,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL);
 
 
+template <typename ValueType>
+void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,
+                             const Array<ValueType> &blocks,
+                             ValueType *result_values,
+                             const gko::dim<2> &mat_size,
+                             size_type result_stride) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL);
+
+
+template <typename ValueType>
+void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
+                     Array<ValueType> &diag)
+{}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_INVERT_DIAGONAL_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,

@@ -63,9 +63,12 @@ GKO_REGISTER_OPERATION(apply, jacobi::apply);
 GKO_REGISTER_OPERATION(scalar_apply, jacobi::scalar_apply);
 GKO_REGISTER_OPERATION(find_blocks, jacobi::find_blocks);
 GKO_REGISTER_OPERATION(generate, jacobi::generate);
+GKO_REGISTER_OPERATION(invert_diagonal, jacobi::invert_diagonal);
 GKO_REGISTER_OPERATION(transpose_jacobi, jacobi::transpose_jacobi);
 GKO_REGISTER_OPERATION(conj_transpose_jacobi, jacobi::conj_transpose_jacobi);
 GKO_REGISTER_OPERATION(convert_to_dense, jacobi::convert_to_dense);
+GKO_REGISTER_OPERATION(scalar_convert_to_dense,
+                       jacobi::scalar_convert_to_dense);
 GKO_REGISTER_OPERATION(initialize_precisions, jacobi::initialize_precisions);
 
 
@@ -119,10 +122,15 @@ void Jacobi<ValueType, IndexType>::convert_to(
 {
     auto exec = this->get_executor();
     auto tmp = matrix::Dense<ValueType>::create(exec, this->get_size());
-    exec->run(jacobi::make_convert_to_dense(
-        num_blocks_, parameters_.storage_optimization.block_wise,
-        parameters_.block_pointers, blocks_, storage_scheme_, tmp->get_values(),
-        tmp->get_stride()));
+    if (parameters_.max_block_size == 1) {
+        exec->run(jacobi::make_scalar_convert_to_dense(
+            blocks_, tmp->get_values(), tmp->get_size(), tmp->get_stride()));
+    } else {
+        exec->run(jacobi::make_convert_to_dense(
+            num_blocks_, parameters_.storage_optimization.block_wise,
+            parameters_.block_pointers, blocks_, storage_scheme_,
+            tmp->get_values(), tmp->get_stride()));
+    }
     tmp->move_to(result);
 }
 
@@ -244,6 +252,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
         auto temp = Array<ValueType>::view(diag_vt->get_executor(),
                                            diag_vt->get_size()[0],
                                            diag_vt->get_values());
+        exec->run(jacobi::make_invert_diagonal(temp));
         this->blocks_ = temp;
         this->num_blocks_ = diag_vt->get_size()[0];
     } else {
