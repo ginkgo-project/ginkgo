@@ -374,7 +374,8 @@ public:
          *             number of threads in a SIMD unit is 7
          */
         load_balance(std::shared_ptr<const DpcppExecutor> exec)
-            : load_balance(exec->get_num_computing_units() * 7, 16, false)
+            : load_balance(exec->get_num_computing_units() * 7, 16, false,
+                           "intel")
         {}
 
         /**
@@ -389,11 +390,13 @@ public:
          *       parameters which is replaced during the conversion.
          */
         load_balance(int64_t nwarps, int warp_size = 32,
-                     bool cuda_strategy = true)
+                     bool cuda_strategy = true,
+                     std::string strategy_name = "none")
             : strategy_type("load_balance"),
               nwarps_(nwarps),
               warp_size_(warp_size),
-              cuda_strategy_(cuda_strategy)
+              cuda_strategy_(cuda_strategy),
+              strategy_name_(strategy_name)
         {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
@@ -460,7 +463,7 @@ public:
                 } else if (nnz >= static_cast<int64_t>(2e5)) {
                     multiple = 32;
                 }
-                if (!cuda_strategy_) {
+                if (strategy_name_ == "intel") {
                     multiple = 8;
                     if (nnz >= static_cast<int64_t>(2e8)) {
                         multiple = 256;
@@ -488,14 +491,15 @@ public:
 
         std::shared_ptr<strategy_type> copy() override
         {
-            return std::make_shared<load_balance>(nwarps_, warp_size_,
-                                                  cuda_strategy_);
+            return std::make_shared<load_balance>(
+                nwarps_, warp_size_, cuda_strategy_, strategy_name_);
         }
 
     private:
         int64_t nwarps_;
         int warp_size_;
         bool cuda_strategy_;
+        std::string strategy_name_;
     };
 
     class automatical : public strategy_type {
@@ -512,13 +516,8 @@ public:
         /* Use imbalance strategy when the matrix has more more than 1e8 on AMD
          * hardware */
         const index_type amd_nnz_limit{static_cast<index_type>(1e8)};
-        /* Use imbalance strategy when the maximum number of nonzero per row is
-         * more than 25600 on Intel hardware. */
-        const index_type intel_row_len_limit = 25600;
-        /* Use imbalance strategy when the matrix has more more than 3e8 on
-         * Intel hardware */
-        const index_type intel_nnz_limit{static_cast<index_type>(3e8)};
 
+    public:
         /**
          * Creates an automatical strategy.
          */
@@ -554,7 +553,8 @@ public:
          *             number of threads in a SIMD unit is 7
          */
         automatical(std::shared_ptr<const DpcppExecutor> exec)
-            : automatical(exec->get_num_computing_units() * 7, 16, false)
+            : automatical(exec->get_num_computing_units() * 7, 16, false,
+                          "intel")
         {}
 
         /**
@@ -569,11 +569,13 @@ public:
          *       parameters which is replaced during the conversion.
          */
         automatical(int64_t nwarps, int warp_size = 32,
-                    bool cuda_strategy = true)
+                    bool cuda_strategy = true,
+                    std::string strategy_name = "none")
             : strategy_type("automatical"),
               nwarps_(nwarps),
               warp_size_(warp_size),
               cuda_strategy_(cuda_strategy),
+              strategy_name_(strategy_name),
               max_length_per_row_(0)
         {}
 
@@ -585,9 +587,13 @@ public:
             // <row_len_limit>, use load_balance otherwise use classical
             index_type nnz_limit = nvidia_nnz_limit;
             index_type row_len_limit = nvidia_row_len_limit;
-            if (!cuda_strategy_) {
-                nnz_limit = intel_nnz_limit;
-                row_len_limit = intel_row_len_limit;
+            if (strategy_name_ == "intel") {
+                /* Use imbalance strategy when the maximum number of nonzero per
+                 * row is more than 25600 on Intel hardware. */
+                nnz_limit = 25600;
+                /* Use imbalance strategy when the matrix has more more than 3e8
+                 * on Intel hardware */
+                row_len_limit = 3e8;
             }
 #if GINKGO_HIP_PLATFORM_HCC
             if (!cuda_strategy_) {
@@ -609,7 +615,7 @@ public:
             const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
             if (row_ptrs[num_rows] > nnz_limit) {
                 load_balance actual_strategy(nwarps_, warp_size_,
-                                             cuda_strategy_);
+                                             cuda_strategy_, strategy_name_);
                 if (is_mtx_on_host) {
                     actual_strategy.process(mtx_row_ptrs, mtx_srow);
                 } else {
@@ -622,8 +628,8 @@ public:
                     maxnum = std::max(maxnum, row_ptrs[i + 1] - row_ptrs[i]);
                 }
                 if (maxnum > row_len_limit) {
-                    load_balance actual_strategy(nwarps_, warp_size_,
-                                                 cuda_strategy_);
+                    load_balance actual_strategy(
+                        nwarps_, warp_size_, cuda_strategy_, strategy_name_);
                     if (is_mtx_on_host) {
                         actual_strategy.process(mtx_row_ptrs, mtx_srow);
                     } else {
@@ -648,8 +654,8 @@ public:
 
         int64_t clac_size(const int64_t nnz) override
         {
-            return std::make_shared<load_balance>(nwarps_, warp_size_,
-                                                  cuda_strategy_)
+            return std::make_shared<load_balance>(
+                       nwarps_, warp_size_, cuda_strategy_, strategy_name_)
                 ->clac_size(nnz);
         }
 
@@ -660,14 +666,15 @@ public:
 
         std::shared_ptr<strategy_type> copy() override
         {
-            return std::make_shared<automatical>(nwarps_, warp_size_,
-                                                 cuda_strategy_);
+            return std::make_shared<automatical>(
+                nwarps_, warp_size_, cuda_strategy_, strategy_name_);
         }
 
     private:
         int64_t nwarps_;
         int warp_size_;
         bool cuda_strategy_;
+        std::string strategy_name_;
         index_type max_length_per_row_;
     };
 
