@@ -356,6 +356,31 @@ TYPED_TEST(Jacobi, ScalarJacobiCanBeTransposed)
     EXPECT_EQ(trans_j[4], scal_j[4]);
 }
 
+
+TYPED_TEST(Jacobi, ScalarJacobiCanBeConjTransposed)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Bj = typename TestFixture::Bj;
+    gko::matrix_data<value_type, index_type> data;
+    auto csr = gko::share(
+        gko::matrix::Csr<value_type, index_type>::create(this->exec));
+    csr->copy_from(gko::lend(this->mtx));
+    auto scalar_j = this->scalar_j_factory->generate(csr);
+
+    auto dense_j = gko::matrix::Dense<value_type>::create(this->exec);
+    auto t_j = scalar_j->transpose();
+    auto trans_j = gko::as<Bj>(t_j.get())->get_blocks();
+    auto scal_j = scalar_j->get_blocks();
+
+    EXPECT_EQ(trans_j[0], gko::conj(scal_j[0]));
+    EXPECT_EQ(trans_j[1], gko::conj(scal_j[1]));
+    EXPECT_EQ(trans_j[2], gko::conj(scal_j[2]));
+    EXPECT_EQ(trans_j[3], gko::conj(scal_j[3]));
+    EXPECT_EQ(trans_j[4], gko::conj(scal_j[4]));
+}
+
+
 #define GKO_EXPECT_NONZERO_NEAR(first, second, tol) \
     EXPECT_EQ(first.row, second.row);               \
     EXPECT_EQ(first.column, second.column);         \

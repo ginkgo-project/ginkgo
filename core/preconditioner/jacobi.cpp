@@ -229,10 +229,15 @@ std::unique_ptr<LinOp> Jacobi<ValueType, IndexType>::conj_transpose() const
     res->blocks_.resize_and_reset(blocks_.get_num_elems());
     res->conditioning_ = conditioning_;
     res->parameters_ = parameters_;
-    this->get_executor()->run(jacobi::make_conj_transpose_jacobi(
-        num_blocks_, parameters_.max_block_size,
-        parameters_.storage_optimization.block_wise, parameters_.block_pointers,
-        blocks_, storage_scheme_, res->blocks_));
+    if (parameters_.max_block_size == 1) {
+        res->blocks_ = blocks_;
+    } else {
+        this->get_executor()->run(jacobi::make_conj_transpose_jacobi(
+            num_blocks_, parameters_.max_block_size,
+            parameters_.storage_optimization.block_wise,
+            parameters_.block_pointers, blocks_, storage_scheme_,
+            res->blocks_));
+    }
 
     return std::move(res);
 }
