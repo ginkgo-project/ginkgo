@@ -107,9 +107,7 @@ protected:
     template <typename T>
     void init_array(T *arr, std::initializer_list<T> vals)
     {
-        for (auto elem : vals) {
-            *(arr++) = elem;
-        }
+        std::copy(std::begin(vals), std::end(vals), arr);
     }
 
     template <typename ValueType>
@@ -325,11 +323,15 @@ TYPED_TEST(Jacobi, ScalarJacobiConvertsToDense)
     dense_j->copy_from(scalar_j.get());
     auto j_val = scalar_j->get_blocks();
 
-    EXPECT_EQ(dense_j->at(0, 0), j_val[0]);
-    EXPECT_EQ(dense_j->at(1, 1), j_val[1]);
-    EXPECT_EQ(dense_j->at(2, 2), j_val[2]);
-    EXPECT_EQ(dense_j->at(3, 3), j_val[3]);
-    EXPECT_EQ(dense_j->at(4, 4), j_val[4]);
+    for (auto i = 0; i < dense_j->get_size()[0]; ++i) {
+        for (auto j = 0; j < dense_j->get_size()[1]; ++j) {
+            if (i == j) {
+                EXPECT_EQ(dense_j->at(i, j), j_val[j]);
+            } else {
+                EXPECT_EQ(dense_j->at(i, j), value_type{0.0});
+            }
+        }
+    }
 }
 
 
@@ -349,6 +351,12 @@ TYPED_TEST(Jacobi, ScalarJacobiCanBeTransposed)
     auto trans_j = gko::as<Bj>(t_j.get())->get_blocks();
     auto scal_j = scalar_j->get_blocks();
 
+    ASSERT_EQ(scalar_j->get_size(), gko::dim<2>(5, 5));
+    ASSERT_EQ(scalar_j->get_num_stored_elements(), 5);
+    ASSERT_EQ(scalar_j->get_parameters().max_block_size, 1);
+    ASSERT_EQ(scalar_j->get_num_blocks(), 5);
+    ASSERT_EQ(scalar_j->get_parameters().block_pointers.get_const_data(),
+              nullptr);
     EXPECT_EQ(trans_j[0], scal_j[0]);
     EXPECT_EQ(trans_j[1], scal_j[1]);
     EXPECT_EQ(trans_j[2], scal_j[2]);
@@ -360,9 +368,7 @@ TYPED_TEST(Jacobi, ScalarJacobiCanBeTransposed)
 template <typename T>
 void init_array(T *arr, std::initializer_list<T> vals)
 {
-    for (auto elem : vals) {
-        *(arr++) = elem;
-    }
+    std::copy(std::begin(vals), std::end(vals), arr);
 }
 
 
@@ -390,6 +396,12 @@ TEST(Jacobi, ScalarJacobiCanBeConjTransposed)
     auto trans_j = gko::as<Bj>(t_j.get())->get_blocks();
     auto scal_j = scalar_j->get_blocks();
 
+    ASSERT_EQ(scalar_j->get_size(), gko::dim<2>(5, 5));
+    ASSERT_EQ(scalar_j->get_num_stored_elements(), 5);
+    ASSERT_EQ(scalar_j->get_parameters().max_block_size, 1);
+    ASSERT_EQ(scalar_j->get_num_blocks(), 5);
+    ASSERT_EQ(scalar_j->get_parameters().block_pointers.get_const_data(),
+              nullptr);
     EXPECT_EQ(trans_j[0], gko::conj(scal_j[0]));
     EXPECT_EQ(trans_j[1], gko::conj(scal_j[1]));
     EXPECT_EQ(trans_j[2], gko::conj(scal_j[2]));
