@@ -51,7 +51,7 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The SparsityCsr pattern format namespace.
+ * @brief The Compressed sparse row matrix format namespace.
  * @ref SparsityCsr
  * @ingroup sparsity
  */

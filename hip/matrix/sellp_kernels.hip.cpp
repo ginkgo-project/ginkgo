@@ -62,7 +62,7 @@ namespace hip {
 namespace sellp {
 
 
-constexpr auto default_block_size = 512;
+constexpr int default_block_size = 512;
 
 
 #include "common/matrix/sellp_kernels.hpp.inc"

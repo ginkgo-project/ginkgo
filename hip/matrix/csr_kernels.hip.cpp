@@ -83,7 +83,6 @@ namespace csr {
 constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
-constexpr int wsize = config::warp_size;
 constexpr int classical_overweight = 32;
 
 
@@ -967,20 +966,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
 
 
-template <typename IndexType>
-void invert_permutation(std::shared_ptr<const DefaultExecutor> exec,
-                        size_type size, const IndexType *permutation_indices,
-                        IndexType *inv_permutation)
-{
-    auto num_blocks = ceildiv(size, default_block_size);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(inv_permutation_kernel), num_blocks,
-                       default_block_size, 0, 0, size, permutation_indices,
-                       inv_permutation);
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVERT_PERMUTATION_KERNEL);
-
-
 template <typename ValueType, typename IndexType>
 void inv_symm_permute(std::shared_ptr<const HipExecutor> exec,
                       const IndexType *perm,
@@ -1059,27 +1044,6 @@ void inverse_row_permute(std::shared_ptr<const HipExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_column_permute(std::shared_ptr<const HipExecutor> exec,
-                            const IndexType *perm,
-                            const matrix::Csr<ValueType, IndexType> *orig,
-                            matrix::Csr<ValueType, IndexType> *column_permuted)
-{
-    auto num_rows = orig->get_size()[0];
-    auto nnz = orig->get_num_stored_elements();
-    auto num_blocks = ceildiv(std::max(num_rows, nnz), default_block_size);
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(col_permute_kernel), num_blocks, default_block_size, 0,
-        0, num_rows, nnz, perm, orig->get_const_row_ptrs(),
-        orig->get_const_col_idxs(), as_hip_type(orig->get_const_values()),
-        column_permuted->get_row_ptrs(), column_permuted->get_col_idxs(),
-        as_hip_type(column_permuted->get_values()));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

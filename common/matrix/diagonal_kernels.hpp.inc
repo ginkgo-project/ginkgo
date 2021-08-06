@@ -33,40 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace kernel {
 
 
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void apply_to_dense(
-    size_type num_rows, size_type num_cols, const ValueType *__restrict__ diag,
-    size_type source_stride, const ValueType *__restrict__ source_values,
-    size_type result_stride, ValueType *__restrict__ result_values)
-{
-    const auto tidx = thread::get_thread_id_flat();
-    const auto row = tidx / num_cols;
-    const auto col = tidx % num_cols;
-
-    if (row < num_rows) {
-        result_values[row * result_stride + col] =
-            source_values[row * source_stride + col] * diag[row];
-    }
-}
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void right_apply_to_dense(
-    size_type num_rows, size_type num_cols, const ValueType *__restrict__ diag,
-    size_type source_stride, const ValueType *__restrict__ source_values,
-    size_type result_stride, ValueType *__restrict__ result_values)
-{
-    const auto tidx = thread::get_thread_id_flat();
-    const auto row = tidx / num_cols;
-    const auto col = tidx % num_cols;
-
-    if (row < num_rows) {
-        result_values[row * result_stride + col] =
-            source_values[row * source_stride + col] * diag[col];
-    }
-}
-
-
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void apply_to_csr(
     size_type num_rows, const ValueType *__restrict__ diag,
@@ -89,58 +55,6 @@ __global__ __launch_bounds__(default_block_size) void apply_to_csr(
          idx += warp_size) {
         result_values[idx] *= diag_val;
     }
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void right_apply_to_csr(
-    size_type num_nnz, const ValueType *__restrict__ diag,
-    const IndexType *__restrict__ col_idxs,
-    ValueType *__restrict__ result_values)
-{
-    const auto tidx = thread::get_thread_id_flat();
-
-    if (tidx >= num_nnz) {
-        return;
-    }
-
-    result_values[tidx] *= diag[col_idxs[tidx]];
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void convert_to_csr(
-    size_type size, const ValueType *__restrict__ diag_values,
-    IndexType *__restrict__ row_ptrs, IndexType *__restrict__ col_idxs,
-    ValueType *__restrict__ csr_values)
-{
-    const auto tidx = thread::get_thread_id_flat();
-
-    if (tidx >= size) {
-        return;
-    }
-    if (tidx == 0) {
-        row_ptrs[size] = size;
-    }
-
-    row_ptrs[tidx] = tidx;
-    col_idxs[tidx] = tidx;
-    csr_values[tidx] = diag_values[tidx];
-}
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void conj_transpose(
-    size_type size, const ValueType *__restrict__ orig_values,
-    ValueType *__restrict__ trans_values)
-{
-    const auto tidx = thread::get_thread_id_flat();
-
-    if (tidx >= size) {
-        return;
-    }
-
-    trans_values[tidx] = conj(orig_values[tidx]);
 }
 
 

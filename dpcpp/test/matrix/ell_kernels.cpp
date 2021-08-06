@@ -492,7 +492,7 @@ TEST_F(Ell, SimpleApplyOnSmallMatrixIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 5 * r<vtype>::value);
 }
 
 

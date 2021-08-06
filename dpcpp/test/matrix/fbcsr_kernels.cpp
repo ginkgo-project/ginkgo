@@ -30,50 +30,66 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_FACTORIZATION_PAR_ILUT_SELECT_COMMON_HIP_HPP_
-#define GKO_HIP_FACTORIZATION_PAR_ILUT_SELECT_COMMON_HIP_HPP_
+#include <gtest/gtest.h>
 
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
 
 
-namespace gko {
-namespace kernels {
-namespace hip {
-namespace par_ilut_factorization {
+#include "core/test/matrix/fbcsr_sample.hpp"
+#include "core/test/utils.hpp"
 
 
-constexpr int default_block_size = 512;
-constexpr int items_per_thread = 16;
+namespace {
 
 
-template <typename ValueType, typename IndexType>
-void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
-                        const ValueType *values, IndexType size,
-                        remove_complex<ValueType> *tree, unsigned char *oracles,
-                        IndexType *partial_counts, IndexType *total_counts);
+class Fbcsr : public ::testing::Test {
+protected:
+#if GINKGO_DPCPP_SINGLE_MODE
+    using vtype = float;
+#else
+    using vtype = double;
+#endif  // GINKGO_DPCPP_SINGLE_MODE
+    using Mtx = gko::matrix::Fbcsr<vtype>;
 
+    void SetUp()
+    {
+        ASSERT_GT(gko::DpcppExecutor::get_num_devices("all"), 0);
+        ref = gko::ReferenceExecutor::create();
+        dpcpp = gko::DpcppExecutor::create(0, ref);
+    }
 
-template <typename IndexType>
-struct sampleselect_bucket {
-    IndexType idx;
-    IndexType begin;
-    IndexType size;
+    void TearDown()
+    {
+        if (dpcpp != nullptr) {
+            ASSERT_NO_THROW(dpcpp->synchronize());
+        }
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<const gko::DpcppExecutor> dpcpp;
+
+    std::unique_ptr<Mtx> mtx;
 };
 
 
-template <typename IndexType>
-sampleselect_bucket<IndexType> sampleselect_find_bucket(
-    std::shared_ptr<const DefaultExecutor> exec, IndexType *prefix_sum,
-    IndexType rank);
+TEST_F(Fbcsr, CanWriteFromMatrixOnDevice)
+{
+    using value_type = Mtx::value_type;
+    using index_type = Mtx::index_type;
+    using MatData = gko::matrix_data<value_type, index_type>;
+    gko::testing::FbcsrSample<value_type, index_type> sample(ref);
+    auto refmat = sample.generate_fbcsr();
+    auto dpcppmat = Mtx::create(dpcpp);
+    dpcppmat->copy_from(gko::lend(refmat));
+    MatData refdata;
+    MatData dpcppdata;
+
+    refmat->write(refdata);
+    dpcppmat->write(dpcppdata);
+
+    ASSERT_TRUE(refdata.nonzeros == dpcppdata.nonzeros);
+}
 
 
-}  // namespace par_ilut_factorization
-}  // namespace hip
-}  // namespace kernels
-}  // namespace gko
-
-
-#endif  // GKO_HIP_FACTORIZATION_PAR_ILUT_SELECT_COMMON_HIP_HPP_
+}  // namespace

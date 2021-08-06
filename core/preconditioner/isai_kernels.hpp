@@ -83,7 +83,7 @@ namespace kernels {
         size_type e_end)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
-    constexpr auto row_size_limit = 32;                                     \
+    constexpr int row_size_limit = 32;                                      \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL(ValueType, IndexType);     \
     template <typename ValueType, typename IndexType>                       \

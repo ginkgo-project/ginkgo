@@ -273,12 +273,12 @@ TEST_F(Idr, IdrStep3IsEquivalentToRef)
         d_f.get(), d_alpha.get(), d_r.get(), d_x.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(g, d_g, 2 * rr<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(v, d_v, rr<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(u, d_u, rr<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(m, d_m, rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(v, d_v, 2 * rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(u, d_u, 2 * rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(m, d_m, 2 * rr<value_type>::value);
     GKO_ASSERT_MTX_NEAR(f, d_f, 13 * rr<value_type>::value);
     GKO_ASSERT_MTX_NEAR(r, d_r, 2 * rr<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(x, d_x, rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(x, d_x, 2 * rr<value_type>::value);
 }
 
 

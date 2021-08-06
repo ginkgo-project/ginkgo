@@ -132,8 +132,6 @@ class Dense
     friend class Dense<to_complex<ValueType>>;
 
 public:
-    using EnableLinOp<Dense>::convert_to;
-    using EnableLinOp<Dense>::move_to;
     using ReadableFromMatrixData<ValueType, int32>::read;
     using ReadableFromMatrixData<ValueType, int64>::read;
 

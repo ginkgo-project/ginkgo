@@ -64,7 +64,7 @@ namespace cuda {
 namespace dense {
 
 
-constexpr auto default_block_size = 512;
+constexpr int default_block_size = 512;
 
 
 #include "common/matrix/dense_kernels.hpp.inc"
@@ -135,8 +135,8 @@ void compute_dot(std::shared_ptr<const CudaExecutor> exec,
         // TODO: these are tuning parameters obtained experimentally, once
         // we decide how to handle this uniformly, they should be modified
         // appropriately
-        constexpr auto work_per_thread = 32;
-        constexpr auto block_size = 1024;
+        constexpr int work_per_thread = 32;
+        constexpr int block_size = 1024;
 
         constexpr auto work_per_block = work_per_thread * block_size;
         const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
@@ -178,8 +178,8 @@ void compute_conj_dot(std::shared_ptr<const CudaExecutor> exec,
         // TODO: these are tuning parameters obtained experimentally, once
         // we decide how to handle this uniformly, they should be modified
         // appropriately
-        constexpr auto work_per_thread = 32;
-        constexpr auto block_size = 1024;
+        constexpr int work_per_thread = 32;
+        constexpr int block_size = 1024;
 
         constexpr auto work_per_block = work_per_thread * block_size;
         const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
@@ -220,8 +220,8 @@ void compute_norm2(std::shared_ptr<const CudaExecutor> exec,
         // TODO: these are tuning parameters obtained experimentally, once
         // we decide how to handle this uniformly, they should be modified
         // appropriately
-        constexpr auto work_per_thread = 32;
-        constexpr auto block_size = 1024;
+        constexpr int work_per_thread = 32;
+        constexpr int block_size = 1024;
 
         constexpr auto work_per_block = work_per_thread * block_size;
         const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
