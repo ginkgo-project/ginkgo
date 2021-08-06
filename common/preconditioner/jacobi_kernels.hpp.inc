@@ -239,19 +239,6 @@ __global__ __launch_bounds__(default_block_size) void scalar_apply(
 
 
 template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void conj_diagonal(
-    size_type num_elems, const ValueType *__restrict__ diag,
-    ValueType *__restrict__ conj_diag)
-{
-    const auto tidx = thread::get_thread_id_flat();
-
-    if (tidx < num_elems) {
-        conj_diag[tidx] = conj(diag[tidx]);
-    }
-}
-
-
-template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void invert_diagonal(
     size_type num_elems, const ValueType *__restrict__ diag,
     ValueType *__restrict__ inv_diag)

@@ -357,19 +357,36 @@ TYPED_TEST(Jacobi, ScalarJacobiCanBeTransposed)
 }
 
 
-TYPED_TEST(Jacobi, ScalarJacobiCanBeConjTransposed)
+template <typename T>
+void init_array(T *arr, std::initializer_list<T> vals)
 {
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    using Bj = typename TestFixture::Bj;
-    gko::matrix_data<value_type, index_type> data;
-    auto csr = gko::share(
-        gko::matrix::Csr<value_type, index_type>::create(this->exec));
-    csr->copy_from(gko::lend(this->mtx));
-    auto scalar_j = this->scalar_j_factory->generate(csr);
+    for (auto elem : vals) {
+        *(arr++) = elem;
+    }
+}
 
-    auto dense_j = gko::matrix::Dense<value_type>::create(this->exec);
-    auto t_j = scalar_j->transpose();
+
+TEST(Jacobi, ScalarJacobiCanBeConjTransposed)
+{
+    using value_type = std::complex<double>;
+    using vt = value_type;
+    using index_type = int;
+    using Bj = gko::preconditioner::Jacobi<value_type, index_type>;
+    gko::matrix_data<value_type, index_type> data;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto csr = gko::share(Mtx::create(exec, gko::dim<2>(5, 5), 13));
+    auto scalar_j_factory = Bj::build().with_max_block_size(1u).on(exec);
+    init_array<index_type>(csr->get_row_ptrs(), {0, 3, 5, 7, 10, 13});
+    init_array<index_type>(csr->get_col_idxs(),
+                           {0, 1, 4, 0, 1, 2, 3, 2, 3, 4, 0, 3, 4});
+    init_array<value_type>(
+        csr->get_values(),
+        {vt(4.0, 1), vt(-2.0), vt(-2.0), vt(-1.0), vt(4.0, -1), vt(4.0),
+         vt(-2.0), vt(-1.0), vt(4.0), vt(-2.0), vt(-1.0), vt(-1.0), vt(4.0)});
+    auto scalar_j = scalar_j_factory->generate(csr);
+
+    auto t_j = scalar_j->conj_transpose();
     auto trans_j = gko::as<Bj>(t_j.get())->get_blocks();
     auto scal_j = scalar_j->get_blocks();
 
