@@ -255,42 +255,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL);
 
 
-template <typename ValueType>
-void scalar_conj(std::shared_ptr<const DefaultExecutor> exec,
-                 const Array<ValueType> &diag, Array<ValueType> &conj_diag)
-{
-    const auto num_elems = diag.get_num_elems();
-    const auto grid_dim = ceildiv(num_elems, default_block_size);
-
-    const auto diag_values = diag.get_const_data();
-    auto conj_diag_values = conj_diag.get_data();
-
-    hipLaunchKernelGGL(kernel::conj_diagonal, dim3(grid_dim),
-                       dim3(default_block_size), 0, 0, num_elems,
-                       as_hip_type(diag_values), as_hip_type(conj_diag_values));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_CONJ_KERNEL);
-
-
-template <typename ValueType>
-void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
-                     const Array<ValueType> &diag, Array<ValueType> &inv_diag)
-{
-    const auto num_elems = diag.get_num_elems();
-    const auto grid_dim = ceildiv(num_elems, default_block_size);
-
-    const auto diag_values = diag.get_const_data();
-    auto inv_diag_values = inv_diag.get_data();
-
-    hipLaunchKernelGGL(kernel::invert_diagonal, dim3(grid_dim),
-                       dim3(default_block_size), 0, 0, num_elems,
-                       as_hip_type(diag_values), as_hip_type(inv_diag_values));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_INVERT_DIAGONAL_KERNEL);
-
-
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const HipExecutor> exec, size_type num_blocks,

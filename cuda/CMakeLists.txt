@@ -71,6 +71,7 @@ set(GKO_CUDA_COMMON_SOURCES
     ../common/matrix/csr_kernels.cpp
     ../common/matrix/dense_kernels.cpp
     ../common/matrix/diagonal_kernels.cpp
+    ../common/preconditioner/jacobi_kernels.cpp
     ../common/solver/bicg_kernels.cpp
     ../common/solver/bicgstab_kernels.cpp
     ../common/solver/cg_kernels.cpp

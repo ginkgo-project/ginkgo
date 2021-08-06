@@ -720,33 +720,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void scalar_conj(std::shared_ptr<const DefaultExecutor> exec,
-                 const Array<ValueType> &diag, Array<ValueType> &conj_diag)
-{
-#pragma omp parallel for
-    for (size_type i = 0; i < diag.get_num_elems(); ++i) {
-        conj_diag.get_data()[i] = conj(diag.get_const_data()[i]);
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_CONJ_KERNEL);
-
-
-template <typename ValueType>
-void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
-                     const Array<ValueType> &diag, Array<ValueType> &inv_diag)
-{
-#pragma omp parallel for
-    for (size_type i = 0; i < diag.get_num_elems(); ++i) {
-        inv_diag.get_data()[i] =
-            static_cast<ValueType>(1.0) / diag.get_const_data()[i];
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_INVERT_DIAGONAL_KERNEL);
-
-
-template <typename ValueType>
 void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
                   const Array<ValueType> &diag,
                   const matrix::Dense<ValueType> *alpha,
