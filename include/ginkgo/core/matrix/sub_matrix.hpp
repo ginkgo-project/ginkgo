@@ -103,9 +103,7 @@ protected:
     SubMatrix(std::shared_ptr<const Executor> exec)
         : EnableLinOp<SubMatrix<MatrixType>>{exec, dim<2>{}},
           sub_mtx_{MatrixType::create(exec)},
-          left_overlap_size_{0},
-          left_overlaps_{},
-          right_overlaps_{}
+          left_overlap_size_{0}
     {}
 
     SubMatrix(std::shared_ptr<const Executor> exec, const MatrixType *matrix,
@@ -118,12 +116,10 @@ protected:
                                                        right_overlaps)},
           sub_mtx_{MatrixType::create(exec)},
           left_overlap_size_{0},
-          overlap_sizes_{exec, overlap_span.size()},
-          left_overlaps_{left_overlaps},
-          right_overlaps_{right_overlaps}
+          overlap_sizes_{exec, left_overlaps.size()}
     {
-        this->generate(matrix, row_span, col_span, left_overlaps_,
-                       right_overlaps_);
+        this->generate(matrix, row_span, col_span, left_overlaps,
+                       right_overlaps);
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -147,8 +143,6 @@ private:
     size_type left_overlap_size_;
     size_type left_overlap_bound_{0};
     Array<size_type> overlap_sizes_;
-    std::vector<gko::span> left_overlaps_;
-    std::vector<gko::span> right_overlaps_;
 };
 
 
