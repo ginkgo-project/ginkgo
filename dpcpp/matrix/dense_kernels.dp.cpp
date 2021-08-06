@@ -89,7 +89,7 @@ template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename OutType,
 void compute_partial_reduce(
     size_type num_rows, OutType *__restrict__ work, CallableGetValue get_value,
     CallableReduce reduce_op, sycl::nd_item<3> item_ct1,
-    UninitializedArray<OutType, KCFG_1D::decode<0>(cfg)> *tmp_work)
+    UninitializedArray<OutType, KCFG_1D::decode<0>(cfg)> &tmp_work)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
@@ -101,7 +101,7 @@ void compute_partial_reduce(
     const auto global_id =
         thread::get_thread_id<sg_size, warps_per_block>(item_ct1);
 
-    OutType *tmp_work_array = *tmp_work;
+    OutType *tmp_work_array = tmp_work;
     auto tmp = zero<OutType>();
     for (auto i = global_id; i < num_rows; i += wg_size * num_blocks) {
         tmp = reduce_op(tmp, get_value(i));
@@ -124,7 +124,7 @@ void finalize_reduce_computation(
     size_type size, const ValueType *work, ValueType *result,
     CallableReduce reduce_op, CallableFinalize finalize_op,
     sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> *tmp_work)
+    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> &tmp_work)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
@@ -135,7 +135,7 @@ void finalize_reduce_computation(
     for (auto i = local_id; i < size; i += wg_size) {
         tmp = reduce_op(tmp, work[i]);
     }
-    ValueType *tmp_work_array = *tmp_work;
+    ValueType *tmp_work_array = tmp_work;
     tmp_work_array[local_id] = tmp;
 
     ::gko::kernels::dpcpp::reduce<sg_size>(group::this_thread_block(item_ct1),
@@ -152,7 +152,7 @@ void compute_partial_dot(
     size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
     const ValueType *__restrict__ y, size_type stride_y,
     ValueType *__restrict__ work, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> *tmp_work)
+    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> &tmp_work)
 {
     compute_partial_reduce<cfg>(
         num_rows, work,
@@ -181,7 +181,7 @@ void compute_partial_dot(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 compute_partial_dot<cfg>(num_rows, x, stride_x, y, stride_y,
                                          work, item_ct1,
-                                         tmp_work_acc_ct1.get_pointer().get());
+                                         *tmp_work_acc_ct1.get_pointer());
             });
     });
 }
@@ -197,7 +197,7 @@ void compute_partial_conj_dot(
     size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
     const ValueType *__restrict__ y, size_type stride_y,
     ValueType *__restrict__ work, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> *tmp_work)
+    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> &tmp_work)
 {
     compute_partial_reduce<cfg>(
         num_rows, work,
@@ -225,9 +225,9 @@ void compute_partial_conj_dot(dim3 grid, dim3 block,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                compute_partial_conj_dot<cfg>(
-                    num_rows, x, stride_x, y, stride_y, work, item_ct1,
-                    tmp_work_acc_ct1.get_pointer().get());
+                compute_partial_conj_dot<cfg>(num_rows, x, stride_x, y,
+                                              stride_y, work, item_ct1,
+                                              *tmp_work_acc_ct1.get_pointer());
             });
     });
 }
@@ -242,7 +242,7 @@ template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void finalize_sum_reduce_computation(
     size_type size, const ValueType *work, ValueType *result,
     sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> *tmp_work)
+    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> &tmp_work)
 {
     finalize_reduce_computation<cfg>(
         size, work, result,
@@ -267,7 +267,7 @@ void finalize_sum_reduce_computation(dim3 grid, dim3 block,
                          [=](sycl::nd_item<3> item_ct1) {
                              finalize_sum_reduce_computation<cfg>(
                                  size, work, result, item_ct1,
-                                 tmp_work_acc_ct1.get_pointer().get());
+                                 *tmp_work_acc_ct1.get_pointer());
                          });
     });
 }
@@ -283,7 +283,7 @@ void compute_partial_norm2(
     size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
     remove_complex<ValueType> *__restrict__ work, sycl::nd_item<3> item_ct1,
     UninitializedArray<remove_complex<ValueType>, KCFG_1D::decode<0>(cfg)>
-        *tmp_work)
+        &tmp_work)
 {
     using norm_type = remove_complex<ValueType>;
     compute_partial_reduce<cfg>(
@@ -306,12 +306,12 @@ void compute_partial_norm2(dim3 grid, dim3 block,
                        sycl::access::target::local>
             tmp_work_acc_ct1(cgh);
 
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             compute_partial_norm2<cfg>(
-                                 num_rows, x, stride_x, work, item_ct1,
-                                 tmp_work_acc_ct1.get_pointer().get());
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                compute_partial_norm2<cfg>(num_rows, x, stride_x, work,
+                                           item_ct1,
+                                           *tmp_work_acc_ct1.get_pointer());
+            });
     });
 }
 
@@ -325,7 +325,7 @@ template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void finalize_sqrt_reduce_computation(
     size_type size, const ValueType *work, ValueType *result,
     sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> *tmp_work)
+    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> &tmp_work)
 {
     finalize_reduce_computation<cfg>(
         size, work, result,
@@ -351,7 +351,7 @@ void finalize_sqrt_reduce_computation(dim3 grid, dim3 block,
                          [=](sycl::nd_item<3> item_ct1) {
                              finalize_sqrt_reduce_computation<cfg>(
                                  size, work, result, item_ct1,
-                                 tmp_work_acc_ct1.get_pointer().get());
+                                 *tmp_work_acc_ct1.get_pointer());
                          });
     });
 }
@@ -677,21 +677,21 @@ void transpose(const size_type nrows, const size_type ncols,
                const ValueType *__restrict__ in, const size_type in_stride,
                ValueType *__restrict__ out, const size_type out_stride,
                Closure op, sycl::nd_item<3> item_ct1,
-               UninitializedArray<ValueType, sg_size *(sg_size + 1)> *space)
+               UninitializedArray<ValueType, sg_size *(sg_size + 1)> &space)
 {
     auto local_x = item_ct1.get_local_id(2);
     auto local_y = item_ct1.get_local_id(1);
     auto x = item_ct1.get_group(2) * sg_size + local_x;
     auto y = item_ct1.get_group(1) * sg_size + local_y;
     if (y < nrows && x < ncols) {
-        (*space)[local_y * (sg_size + 1) + local_x] = op(in[y * in_stride + x]);
+        space[local_y * (sg_size + 1) + local_x] = op(in[y * in_stride + x]);
     }
 
     item_ct1.barrier(sycl::access::fence_space::local_space);
     x = item_ct1.get_group(1) * sg_size + local_x;
     y = item_ct1.get_group(2) * sg_size + local_y;
     if (y < ncols && x < nrows) {
-        out[y * out_stride + x] = (*space)[local_x * (sg_size + 1) + local_y];
+        out[y * out_stride + x] = space[local_x * (sg_size + 1) + local_y];
     }
 }
 
@@ -701,7 +701,7 @@ void transpose(const size_type nrows, const size_type ncols,
                const ValueType *__restrict__ in, const size_type in_stride,
                ValueType *__restrict__ out, const size_type out_stride,
                sycl::nd_item<3> item_ct1,
-               UninitializedArray<ValueType, sg_size *(sg_size + 1)> *space)
+               UninitializedArray<ValueType, sg_size *(sg_size + 1)> &space)
 {
     transpose<sg_size>(
         nrows, ncols, in, in_stride, out, out_stride,
@@ -723,7 +723,7 @@ void transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 transpose<sg_size>(nrows, ncols, in, in_stride, out, out_stride,
-                                   item_ct1, space_acc_ct1.get_pointer().get());
+                                   item_ct1, *space_acc_ct1.get_pointer());
             });
     });
 }
@@ -739,7 +739,7 @@ void conj_transpose(
     const ValueType *__restrict__ in, const size_type in_stride,
     ValueType *__restrict__ out, const size_type out_stride,
     sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, sg_size *(sg_size + 1)> *space)
+    UninitializedArray<ValueType, sg_size *(sg_size + 1)> &space)
 {
     transpose<sg_size>(
         nrows, ncols, in, in_stride, out, out_stride,
@@ -763,7 +763,7 @@ void conj_transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 conj_transpose<sg_size>(nrows, ncols, in, in_stride, out,
                                         out_stride, item_ct1,
-                                        space_acc_ct1.get_pointer().get());
+                                        *space_acc_ct1.get_pointer());
             });
     });
 }

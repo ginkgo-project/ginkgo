@@ -129,13 +129,13 @@ template <std::uint32_t block_size, typename ValueType>
 void start_prefix_sum(size_type num_elements, ValueType *__restrict__ elements,
                       ValueType *__restrict__ block_sum,
                       sycl::nd_item<3> item_ct1,
-                      UninitializedArray<ValueType, block_size> *prefix_helper)
+                      UninitializedArray<ValueType, block_size> &prefix_helper)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     const auto element_id = item_ct1.get_local_id(2);
 
     // do not need to access the last element when exclusive prefix sum
-    (*prefix_helper)[element_id] =
+    prefix_helper[element_id] =
         (tidx + 1 < num_elements) ? elements[tidx] : zero<ValueType>();
     auto this_block = group::this_thread_block(item_ct1);
     this_block.sync();
@@ -146,7 +146,7 @@ void start_prefix_sum(size_type num_elements, ValueType *__restrict__ elements,
         const auto ai = i * (2 * element_id + 1) - 1;
         const auto bi = i * (2 * element_id + 2) - 1;
         if (bi < block_size) {
-            (*prefix_helper)[bi] += (*prefix_helper)[ai];
+            prefix_helper[bi] += prefix_helper[ai];
         }
         this_block.sync();
     }
@@ -154,9 +154,9 @@ void start_prefix_sum(size_type num_elements, ValueType *__restrict__ elements,
     if (element_id == 0) {
         // Store the total sum except the last block
         if (item_ct1.get_group(2) + 1 < item_ct1.get_group_range(2)) {
-            block_sum[item_ct1.get_group(2)] = (*prefix_helper)[block_size - 1];
+            block_sum[item_ct1.get_group(2)] = prefix_helper[block_size - 1];
         }
-        (*prefix_helper)[block_size - 1] = zero<ValueType>();
+        prefix_helper[block_size - 1] = zero<ValueType>();
     }
 
     this_block.sync();
@@ -167,14 +167,14 @@ void start_prefix_sum(size_type num_elements, ValueType *__restrict__ elements,
         const auto ai = i * (2 * element_id + 1) - 1;
         const auto bi = i * (2 * element_id + 2) - 1;
         if (bi < block_size) {
-            auto tmp = (*prefix_helper)[ai];
-            (*prefix_helper)[ai] = (*prefix_helper)[bi];
-            (*prefix_helper)[bi] += tmp;
+            auto tmp = prefix_helper[ai];
+            prefix_helper[ai] = prefix_helper[bi];
+            prefix_helper[bi] += tmp;
         }
         this_block.sync();
     }
     if (tidx < num_elements) {
-        elements[tidx] = (*prefix_helper)[element_id];
+        elements[tidx] = prefix_helper[element_id];
     }
 }
 
@@ -193,7 +193,7 @@ void start_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                          [=](sycl::nd_item<3> item_ct1) {
                              start_prefix_sum<block_size>(
                                  num_elements, elements, block_sum, item_ct1,
-                                 prefix_helper_acc_ct1.get_pointer().get());
+                                 *prefix_helper_acc_ct1.get_pointer());
                          });
     });
 }

@@ -8,6 +8,8 @@ set(GINKGO_DPCPP_VERSION ${GINKGO_DPCPP_VERSION} PARENT_SCOPE)
 
 find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}")
 set(GINKGO_MKL_ROOT "${MKL_ROOT}" PARENT_SCOPE)
+find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}")
+set(GINKGO_DPL_ROOT "${DPL_ROOT}" PARENT_SCOPE)
 
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
@@ -75,7 +77,7 @@ else ()
     target_link_options(ginkgo_dpcpp PUBLIC -fsycl-device-code-split=per_kernel)
 endif()
 target_link_libraries(ginkgo_dpcpp PUBLIC ginkgo_device)
-target_link_libraries(ginkgo_dpcpp PRIVATE MKL::MKL_DPCPP)
+target_link_libraries(ginkgo_dpcpp PRIVATE MKL::MKL_DPCPP oneDPL)
 if (GINKGO_DPCPP_SINGLE_MODE)
     target_compile_definitions(ginkgo_dpcpp PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
 endif()
