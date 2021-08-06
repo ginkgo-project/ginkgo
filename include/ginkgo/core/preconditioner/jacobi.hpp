@@ -200,6 +200,10 @@ struct block_interleaved_storage_scheme {
  * @note When using the adaptive variant, there may be a trade-off in terms of
  *       slightly longer preconditioner generation due to extra work required to
  *       detect the optimal precision of the blocks.
+ * @note When the max_block_size is set to 1, specialized  kernels are used,
+ *       both for generation (inverting the diagonals) and application (diagonal
+ *       scaling) to reduce the overhead involved in the usual (adaptive) block
+ *       case.
  *
  * @ingroup jacobi
  * @ingroup precond
@@ -300,7 +304,10 @@ public:
         /**
          * Maximal size of diagonal blocks.
          *
-         * @note This value has to be between 1 and 32 (NVIDIA)/64 (AMD).
+         * @note This value has to be between 1 and 32 (NVIDIA)/64 (AMD). For
+         * efficiency, when the max_block_size is set to 1, specialized kernels
+         * are used and the additional objects (block_ptrs etc) are set to null
+         * values.
          */
         uint32 GKO_FACTORY_PARAMETER_SCALAR(max_block_size, 32u);
 
