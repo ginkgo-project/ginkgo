@@ -130,11 +130,10 @@ namespace kernels {
             &storage_scheme,                                               \
         Array<ValueType> &out_blocks)
 
-#define GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL(ValueType) \
-    void scalar_convert_to_dense(                                    \
-        std::shared_ptr<const DefaultExecutor> exec,                 \
-        const Array<ValueType> &blocks, ValueType *result_values,    \
-        const gko::dim<2> &mat_size, size_type result_stride)
+#define GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL(ValueType)          \
+    void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
+                                 const Array<ValueType> &blocks,              \
+                                 matrix::Dense<ValueType> *result)
 
 #define GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)   \
     void convert_to_dense(                                                 \

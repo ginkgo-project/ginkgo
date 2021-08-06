@@ -124,8 +124,7 @@ void Jacobi<ValueType, IndexType>::convert_to(
     auto exec = this->get_executor();
     auto tmp = matrix::Dense<ValueType>::create(exec, this->get_size());
     if (parameters_.max_block_size == 1) {
-        exec->run(jacobi::make_scalar_convert_to_dense(
-            blocks_, tmp->get_values(), tmp->get_size(), tmp->get_stride()));
+        exec->run(jacobi::make_scalar_convert_to_dense(blocks_, tmp.get()));
     } else {
         exec->run(jacobi::make_convert_to_dense(
             num_blocks_, parameters_.storage_optimization.block_wise,

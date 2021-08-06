@@ -613,8 +613,10 @@ void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
                      const Array<ValueType> &diag, Array<ValueType> &inv_diag)
 {
     for (size_type i = 0; i < diag.get_num_elems(); ++i) {
-        inv_diag.get_data()[i] =
-            static_cast<ValueType>(1.0) / diag.get_const_data()[i];
+        auto diag_val = diag.get_const_data()[i] == zero<ValueType>()
+                            ? one<ValueType>()
+                            : diag.get_const_data()[i];
+        inv_diag.get_data()[i] = one<ValueType>() / diag_val;
     }
 }
 
@@ -696,16 +698,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType>
 void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,
                              const Array<ValueType> &blocks,
-                             ValueType *result_values,
-                             const gko::dim<2> &matrix_size,
-                             size_type result_stride)
+                             matrix::Dense<ValueType> *result)
 {
+    auto matrix_size = result->get_size();
     for (size_type i = 0; i < matrix_size[0]; ++i) {
         for (size_type j = 0; j < matrix_size[1]; ++j) {
-            result_values[i * result_stride + j] = zero<ValueType>();
+            result->at(i, j) = zero<ValueType>();
             if (i == j) {
-                result_values[i * result_stride + j] =
-                    blocks.get_const_data()[i];
+                result->at(i, j) = blocks.get_const_data()[i];
             }
         }
     }
