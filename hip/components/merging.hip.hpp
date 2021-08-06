@@ -45,7 +45,7 @@ namespace kernels {
 namespace hip {
 
 
-#include "common/components/merging.hpp.inc"
+#include "common/cuda_hip/components/merging.hpp.inc"
 
 
 }  // namespace hip

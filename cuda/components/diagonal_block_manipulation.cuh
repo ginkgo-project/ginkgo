@@ -48,7 +48,7 @@ namespace cuda {
 namespace csr {
 
 
-#include "common/components/diagonal_block_manipulation.hpp.inc"
+#include "common/cuda_hip/components/diagonal_block_manipulation.hpp.inc"
 
 
 }  // namespace csr

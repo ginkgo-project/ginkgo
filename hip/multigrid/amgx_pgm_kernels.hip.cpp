@@ -72,7 +72,7 @@ namespace amgx_pgm {
 constexpr int default_block_size = 512;
 
 
-#include "common/multigrid/amgx_pgm_kernels.hpp.inc"
+#include "common/cuda_hip/multigrid/amgx_pgm_kernels.hpp.inc"
 
 
 template <typename IndexType>

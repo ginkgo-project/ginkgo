@@ -42,7 +42,7 @@ namespace kernels {
 namespace hip {
 
 
-#include "common/components/segment_scan.hpp.inc"
+#include "common/cuda_hip/components/segment_scan.hpp.inc"
 
 
 }  // namespace hip

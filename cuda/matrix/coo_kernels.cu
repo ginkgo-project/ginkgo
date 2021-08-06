@@ -73,7 +73,7 @@ constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 
 
-#include "common/matrix/coo_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/coo_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>

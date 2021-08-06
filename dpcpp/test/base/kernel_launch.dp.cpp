@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "common/base/kernel_launch.hpp"
+#include "common/unified/base/kernel_launch.hpp"
 
 
 #include <memory>
@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "common/base/kernel_launch_solver.hpp"
+#include "common/unified/base/kernel_launch_solver.hpp"
 #include "core/test/utils.hpp"
 
 

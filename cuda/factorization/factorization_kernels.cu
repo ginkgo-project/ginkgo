@@ -60,7 +60,7 @@ namespace factorization {
 constexpr int default_block_size{512};
 
 
-#include "common/factorization/factorization_kernels.hpp.inc"
+#include "common/cuda_hip/factorization/factorization_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>

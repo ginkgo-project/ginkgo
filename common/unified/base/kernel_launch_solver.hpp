@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_COMMON_BASE_KERNEL_LAUNCH_SOLVER_HPP_
 
 
-#include "common/base/kernel_launch.hpp"
+#include "common/unified/base/kernel_launch.hpp"
 
 
 namespace gko {

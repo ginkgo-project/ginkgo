@@ -107,7 +107,7 @@ constexpr int max_thread_per_worker = 32;
 using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16, 32>;
 
 
-#include "common/matrix/ell_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/ell_kernels.hpp.inc"
 
 
 namespace {

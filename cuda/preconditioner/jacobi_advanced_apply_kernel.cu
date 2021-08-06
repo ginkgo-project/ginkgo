@@ -60,7 +60,7 @@ namespace cuda {
 namespace jacobi {
 
 
-#include "common/preconditioner/jacobi_advanced_apply_kernel.hpp.inc"
+#include "common/cuda_hip/preconditioner/jacobi_advanced_apply_kernel.hpp.inc"
 
 
 namespace {

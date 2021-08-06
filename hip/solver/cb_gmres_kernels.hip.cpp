@@ -76,7 +76,7 @@ constexpr int default_dot_dim = 32;
 constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
-#include "common/solver/cb_gmres_kernels.hpp.inc"
+#include "common/cuda_hip/solver/cb_gmres_kernels.hpp.inc"
 
 
 // Specialization, so the Accessor can use the same function as regular pointers

@@ -50,7 +50,7 @@ namespace kernels {
 namespace hip {
 
 
-#include "common/components/warp_blas.hpp.inc"
+#include "common/cuda_hip/components/warp_blas.hpp.inc"
 
 
 }  // namespace hip
