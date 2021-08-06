@@ -267,17 +267,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL);
 
 
-template <typename ValueType>
-void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,
-                             const Array<ValueType> &blocks,
-                             ValueType *result_values,
-                             const gko::dim<2> &mat_size,
-                             size_type result_stride) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL);
-
-
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const DpcppExecutor> exec, size_type num_blocks,
@@ -289,27 +278,6 @@ void convert_to_dense(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType>
-void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const Array<ValueType> &diag,
-                  const matrix::Dense<ValueType> *alpha,
-                  const matrix::Dense<ValueType> *b,
-                  const matrix::Dense<ValueType> *beta,
-                  matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL);
-
-
-template <typename ValueType>
-void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
-                         const Array<ValueType> &diag,
-                         const matrix::Dense<ValueType> *b,
-                         matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_JACOBI_SIMPLE_SCALAR_APPLY_KERNEL);
 
 
 }  // namespace jacobi

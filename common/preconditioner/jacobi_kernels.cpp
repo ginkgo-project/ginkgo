@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "common/base/kernel_launch_solver.hpp"
+#include "common/base/kernel_launch.hpp"
 
 
 namespace gko {
@@ -80,6 +80,81 @@ void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_INVERT_DIAGONAL_KERNEL);
+
+
+template <typename ValueType>
+void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
+                  const Array<ValueType> &diag,
+                  const matrix::Dense<ValueType> *alpha,
+                  const matrix::Dense<ValueType> *b,
+                  const matrix::Dense<ValueType> *beta,
+                  matrix::Dense<ValueType> *x)
+{
+    if (alpha->get_size()[1] > 1) {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto diag, auto alpha, auto b,
+                          auto beta, auto x) {
+                x(row, col) = beta[col] * x(row, col) +
+                              alpha[col] * b(row, col) * diag[row];
+            },
+            x->get_size(), diag.get_const_data(), alpha->get_const_values(), b,
+            beta->get_const_values(), x);
+    } else {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto diag, auto alpha, auto b,
+                          auto beta, auto x) {
+                x(row, col) =
+                    beta[0] * x(row, col) + alpha[0] * b(row, col) * diag[row];
+            },
+            x->get_size(), diag.get_const_data(), alpha->get_const_values(), b,
+            beta->get_const_values(), x);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL);
+
+
+template <typename ValueType>
+void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
+                         const Array<ValueType> &diag,
+                         const matrix::Dense<ValueType> *b,
+                         matrix::Dense<ValueType> *x)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto diag, auto b, auto x) {
+            x(row, col) = b(row, col) * diag[row];
+        },
+        x->get_size(), diag.get_const_data(), b, x);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_JACOBI_SIMPLE_SCALAR_APPLY_KERNEL);
+
+
+template <typename ValueType>
+void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,
+                             const Array<ValueType> &blocks,
+                             ValueType *result_values,
+                             const gko::dim<2> &matrix_size,
+                             size_type result_stride)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto stride, auto diag,
+                      auto result_values) {
+            result_values[row * stride + col] = zero<ValueType>();
+            if (row == col) {
+                result_values[row * stride + col] = diag[row];
+            }
+        },
+        matrix_size, result_stride, blocks.get_const_data(), result_values);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL);
 
 
 }  // namespace jacobi
