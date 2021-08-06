@@ -66,7 +66,7 @@ constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
 
 
-#include "common/matrix/hybrid_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/hybrid_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>

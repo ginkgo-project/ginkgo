@@ -43,7 +43,7 @@ namespace kernels {
 namespace hip {
 
 
-#include "common/components/searching.hpp.inc"
+#include "common/cuda_hip/components/searching.hpp.inc"
 
 
 }  // namespace hip

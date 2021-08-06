@@ -74,7 +74,7 @@ constexpr int default_grid_size = 32 * 32 * 128;
 
 constexpr int default_block_size = 512;
 
-#include "common/preconditioner/jacobi_kernels.hpp.inc"
+#include "common/cuda_hip/preconditioner/jacobi_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>

@@ -70,7 +70,7 @@ namespace dense {
 constexpr int default_block_size = 512;
 
 
-#include "common/matrix/dense_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/dense_kernels.hpp.inc"
 
 
 template <typename ValueType>

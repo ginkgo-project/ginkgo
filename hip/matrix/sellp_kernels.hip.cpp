@@ -65,7 +65,7 @@ namespace sellp {
 constexpr int default_block_size = 512;
 
 
-#include "common/matrix/sellp_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/sellp_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>

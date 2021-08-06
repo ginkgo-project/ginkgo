@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef GKO_COMMON_BASE_KERNEL_LAUNCH_SOLVER_HPP_
 #error \
-    "This file can only be used from inside common/base/kernel_launch_solver.hpp"
+    "This file can only be used from inside common/unified/base/kernel_launch_solver.hpp"
 #endif
 
 

@@ -46,7 +46,7 @@ namespace kernels {
 namespace cuda {
 
 
-#include "common/components/atomic.hpp.inc"
+#include "common/cuda_hip/components/atomic.hpp.inc"
 
 
 /**

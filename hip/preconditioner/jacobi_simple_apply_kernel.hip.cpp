@@ -63,7 +63,7 @@ namespace hip {
 namespace jacobi {
 
 
-#include "common/preconditioner/jacobi_simple_apply_kernel.hpp.inc"
+#include "common/cuda_hip/preconditioner/jacobi_simple_apply_kernel.hpp.inc"
 
 
 namespace {

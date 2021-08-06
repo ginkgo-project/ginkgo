@@ -99,7 +99,7 @@ using spgeam_kernels =
     syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
-#include "common/matrix/csr_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/csr_kernels.hpp.inc"
 
 
 namespace host_kernel {

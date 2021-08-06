@@ -34,18 +34,18 @@ target_sources(ginkgo_omp
     solver/upper_trs_kernels.cpp
     stop/criterion_kernels.cpp
     stop/residual_norm_kernels.cpp
-    ../common/components/precision_conversion.cpp
-    ../common/matrix/coo_kernels.cpp
-    ../common/matrix/csr_kernels.cpp
-    ../common/matrix/dense_kernels.cpp
-    ../common/matrix/diagonal_kernels.cpp
-    ../common/preconditioner/jacobi_kernels.cpp
-    ../common/solver/bicg_kernels.cpp
-    ../common/solver/bicgstab_kernels.cpp
-    ../common/solver/cg_kernels.cpp
-    ../common/solver/cgs_kernels.cpp
-    ../common/solver/fcg_kernels.cpp
-    ../common/solver/ir_kernels.cpp
+    ../common/unified/components/precision_conversion.cpp
+    ../common/unified/matrix/coo_kernels.cpp
+    ../common/unified/matrix/csr_kernels.cpp
+    ../common/unified/matrix/dense_kernels.cpp
+    ../common/unified/matrix/diagonal_kernels.cpp
+    ../common/unified/preconditioner/jacobi_kernels.cpp
+    ../common/unified/solver/bicg_kernels.cpp
+    ../common/unified/solver/bicgstab_kernels.cpp
+    ../common/unified/solver/cg_kernels.cpp
+    ../common/unified/solver/cgs_kernels.cpp
+    ../common/unified/solver/fcg_kernels.cpp
+    ../common/unified/solver/ir_kernels.cpp
     )
 
 ginkgo_compile_features(ginkgo_omp)

@@ -48,7 +48,7 @@ namespace kernels {
 namespace hip {
 
 
-#include "common/components/prefix_sum.hpp.inc"
+#include "common/cuda_hip/components/prefix_sum.hpp.inc"
 
 
 }  // namespace hip
