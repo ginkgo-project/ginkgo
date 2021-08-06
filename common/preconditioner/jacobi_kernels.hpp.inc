@@ -246,7 +246,7 @@ __global__ __launch_bounds__(default_block_size) void conj_diagonal(
     const auto tidx = thread::get_thread_id_flat();
 
     if (tidx < num_elems) {
-        conj_diag[tidx] = gko::conj(diag[tidx]);
+        conj_diag[tidx] = conj(diag[tidx]);
     }
 }
 

@@ -152,13 +152,9 @@ void Jacobi<ValueType, IndexType>::write(mat_data &data) const
 
     if (parameters_.max_block_size == 1) {
         for (IndexType row = 0; row < data.size[0]; ++row) {
-            for (IndexType col = 0; col < data.size[1]; ++col) {
-                if (row == col) {
-                    data.nonzeros.emplace_back(
-                        row, col,
-                        static_cast<ValueType>(local_clone->get_blocks()[row]));
-                }
-            }
+            data.nonzeros.emplace_back(
+                row, row,
+                static_cast<ValueType>(local_clone->get_blocks()[row]));
         }
     } else {
         const auto ptrs =

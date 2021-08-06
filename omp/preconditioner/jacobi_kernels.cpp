@@ -725,7 +725,7 @@ void scalar_conj(std::shared_ptr<const DefaultExecutor> exec,
 {
 #pragma omp parallel for
     for (size_type i = 0; i < diag.get_num_elems(); ++i) {
-        conj_diag.get_data()[i] = gko::conj(diag.get_const_data()[i]);
+        conj_diag.get_data()[i] = conj(diag.get_const_data()[i]);
     }
 }
 
