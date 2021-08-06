@@ -645,7 +645,7 @@ void device_classical_spmv(const size_type num_rows,
             subgroup_tile, temp_val,
             [](const ValueType &a, const ValueType &b) { return a + b; });
         // TODO: check the barrier
-        item_ct1.barrier();
+        subgroup_tile.sync();
         if (subid == 0) {
             c[row * c_stride + column_id] =
                 scale(subgroup_result, c[row * c_stride + column_id]);
@@ -1408,11 +1408,12 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
                     const matrix::Dense<ValueType> *beta = nullptr)
 {
     constexpr int threads_per_cu = 7;
-    const auto nwarps =
+    const auto num_subgroup =
         exec->get_num_computing_units() * threads_per_cu * classical_overweight;
+    const auto nsg_in_group = spmv_block_size / subgroup_size;
     const auto gridx =
         std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),
-                 int64(nwarps / warps_in_block));
+                 int64(num_subgroup / nsg_in_group));
     const dim3 grid(gridx, b->get_size()[1]);
     const dim3 block(spmv_block_size);
 
@@ -1422,7 +1423,6 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
             a->get_const_values(), a->get_const_col_idxs(),
             a->get_const_row_ptrs(), b->get_const_values(), b->get_stride(),
             c->get_values(), c->get_stride());
-
     } else if (alpha != nullptr && beta != nullptr) {
         kernel::abstract_classical_spmv<subgroup_size>(
             grid, block, 0, exec->get_queue(), a->get_size()[0],
