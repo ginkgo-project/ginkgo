@@ -65,19 +65,23 @@ protected:
                                            {0.0, 3.0, 2.5, 1.5, 0.0},
                                            {1.0, 0.0, 1.0, 2.0, 4.0},
                                            {0.0, 1.0, 2.0, 1.5, 3.0}},
-                                          exec)),
+                                          exec->get_master())),
           csr_mtx0(gko::initialize<CsrMtx>({I<T>({1.0, 2.0}), I<T>({0.0, 3.0})},
                                            exec->get_master())),
-          csr_mtx1(gko::initialize<CsrMtx>(
-              {{3.0, 2.5, 1.5}, {0.0, 1.0, 2.0}, {1.0, 2.0, 1.5}},
-              exec->get_master())),
+          csr_mtx1(gko::initialize<CsrMtx>({{1.0, 2.0, 0.0, 0.0, 3.0},
+                                            {0.0, 3.0, 0.0, 0.0, 0.0},
+                                            {0.0, 3.0, 2.5, 1.5, 0.0},
+                                            {1.0, 0.0, 1.0, 2.0, 4.0},
+                                            {0.0, 1.0, 2.0, 1.5, 3.0}},
+                                           exec->get_master())),
           csr_mtx10(gko::initialize<CsrMtx>(
               {I<T>({0.0}), I<T>({1.0}), I<T>({0.0})}, exec->get_master())),
           csr_mtx11(gko::initialize<CsrMtx>(
               {I<T>({0.0}), I<T>({4.0}), I<T>({3.0})}, exec->get_master())),
-          csr_mtx111(gko::initialize<CsrMtx>({{0.0, 3.0, 2.5, 1.5, 0.0},
-                                              {1.0, 0.0, 1.0, 2.0, 4.0},
-                                              {0.0, 1.0, 2.0, 1.5, 3.0}},
+          csr_mtx111(gko::initialize<CsrMtx>({{1.0, 2.0, 0.0},
+                                              {0.0, 3.0, 0.0},
+                                              {0.0, 3.0, 2.5},
+                                              {1.0, 0.0, 1.0}},
                                              exec->get_master())),
           csr_mtx2(gko::initialize<CsrMtx>(
               {I<T>({3.0, 0.0}), I<T>({3.0, 2.5}), I<T>({0.0, 1.0})},
@@ -106,8 +110,10 @@ protected:
           b0(gko::initialize<Dense>({2.0, 1.0}, exec->get_master())),
           b1(gko::initialize<Dense>({-1.0, 3.0, 0.0}, exec->get_master())),
           x(gko::initialize<Dense>({2.0, 1.0, -1.0}, exec->get_master())),
+          xov(gko::initialize<Dense>({2.0, 1.0, -1.0, 1.0, -2.0},
+                                     exec->get_master())),
           x0(gko::initialize<Dense>({2.0, 1.0}, exec->get_master())),
-          x1(gko::initialize<Dense>({-1.0, 3.0, 0.0}, exec->get_master())),
+          x1(gko::initialize<Dense>({-1.0, 3.0, 0.0, 1.0}, exec->get_master())),
           mtx(Mtx::create(exec))
     {}
 
@@ -132,6 +138,7 @@ protected:
     std::unique_ptr<Dense> b0;
     std::unique_ptr<Dense> b1;
     std::unique_ptr<Dense> x;
+    std::unique_ptr<Dense> xov;
     std::unique_ptr<Dense> x0;
     std::unique_ptr<Dense> x1;
 };
@@ -156,177 +163,94 @@ TYPED_TEST(SubMatrix, CanApplyToDense)
     mtx->apply(this->b0.get(), s_x.get());
     this->csr_mtx0->apply(this->b0.get(), this->x0.get());
 
-    auto host_x = Dense::create(this->exec->get_master());
-    host_x->copy_from(s_x.get());
-    auto host_smat = CsrMtx::create(this->exec->get_master());
-    host_smat->copy_from(mtx->get_sub_matrix().get());
-
-    GKO_EXPECT_MTX_NEAR(host_smat, this->csr_mtx0, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(this->x0, host_x, r<value_type>::value);
+    auto host_mat = CsrMtx::create(this->exec->get_master());
+    host_mat->copy_from(mtx->get_sub_matrix().get());
+    GKO_EXPECT_MTX_NEAR(host_mat, this->csr_mtx0, r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(this->x0, s_x, r<value_type>::value);
 }
 
 
 TYPED_TEST(SubMatrix, CanApplyToDenseWithOverlap)
 {
     using Mtx = typename TestFixture::Mtx;
-    using CsrMtx = typename TestFixture::CsrMtx;
     using Dense = typename TestFixture::Dense;
+    using CsrMtx = typename TestFixture::CsrMtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
 
-    auto rspan = gko::span(2, 5);
+    auto rspan = gko::span(1, 4);
     auto cspan = gko::span(1, 4);
-    auto ov_rspan = std::vector<gko::span>{gko::span(2, 5), gko::span(2, 5)};
-    auto ov_cspan = std::vector<gko::span>{gko::span(0, 1), gko::span(4, 5)};
+    auto ov_lspan = std::vector<gko::span>{gko::span(0, 1)};
+    auto ov_rspan = std::vector<gko::span>{gko::span(4, 5)};
     auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), rspan, cspan,
-                           ov_rspan, ov_cspan);
+                           ov_lspan, ov_rspan);
     auto s_x = Dense::create(this->exec);
-    s_x->copy_from(this->x.get());
+    s_x->copy_from(this->xov.get());
+    GKO_ASSERT_MTX_NEAR(mtx->get_sub_matrix(), this->csr_mtx,
+                        r<value_type>::value);
 
     mtx->apply(this->b.get(), s_x.get());
-    this->csr_mtx111->apply(this->b.get(), this->x.get());
+    this->csr_mtx->apply(this->b.get(), this->xov.get());
 
-    auto host_x = Dense::create(this->exec->get_master());
-    host_x->copy_from(s_x.get());
-    auto host_smat = CsrMtx::create(this->exec->get_master());
-    host_smat->copy_from(mtx->get_sub_matrix().get());
-    auto host_omat0 = CsrMtx::create(this->exec->get_master());
-    host_omat0->copy_from(mtx->get_overlap_mtxs()[0].get());
-    auto host_omat1 = CsrMtx::create(this->exec->get_master());
-    host_omat1->copy_from(mtx->get_overlap_mtxs()[1].get());
-
-    GKO_EXPECT_MTX_NEAR(host_smat, this->csr_mtx1, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(this->x, host_x, r<value_type>::value);
-
-    GKO_EXPECT_MTX_NEAR(host_omat0, this->csr_mtx10, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(host_omat1, this->csr_mtx11, r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(this->xov, s_x, r<value_type>::value);
 }
 
 
 TYPED_TEST(SubMatrix, CanApplyToDenseWithNonUnitOverlap)
 {
     using Mtx = typename TestFixture::Mtx;
-    using CsrMtx = typename TestFixture::CsrMtx;
     using Dense = typename TestFixture::Dense;
+    using CsrMtx = typename TestFixture::CsrMtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
 
-    auto rspan = gko::span(1, 4);
-    auto cspan = gko::span(1, 3);
-    auto ov_rspan = std::vector<gko::span>{gko::span(1, 4), gko::span(1, 4),
-                                           gko::span(1, 4)};
-    auto ov_cspan = std::vector<gko::span>{gko::span(0, 1), gko::span(3, 4),
-                                           gko::span(4, 5)};
+    auto rspan = gko::span(0, 3);
+    auto cspan = gko::span(0, 2);
+    auto ov_lspan = std::vector<gko::span>{};
+    auto ov_rspan = std::vector<gko::span>{gko::span(2, 3)};
     auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), rspan, cspan,
-                           ov_rspan, ov_cspan);
+                           ov_lspan, ov_rspan);
     auto s_x = Dense::create(this->exec);
-    s_x->copy_from(this->x.get());
+    s_x->copy_from(this->x1.get());
 
-    mtx->apply(this->b.get(), s_x.get());
-    this->csr_mtx222->apply(this->b.get(), this->x.get());
+    mtx->apply(this->b1.get(), s_x.get());
+    this->csr_mtx111->apply(this->b1.get(), this->x1.get());
 
-    auto host_x = Dense::create(this->exec->get_master());
-    host_x->copy_from(s_x.get());
-    auto host_smat = CsrMtx::create(this->exec->get_master());
-    host_smat->copy_from(mtx->get_sub_matrix().get());
-    auto host_omat0 = CsrMtx::create(this->exec->get_master());
-    host_omat0->copy_from(mtx->get_overlap_mtxs()[0].get());
-    auto host_omat1 = CsrMtx::create(this->exec->get_master());
-    host_omat1->copy_from(mtx->get_overlap_mtxs()[1].get());
-    auto host_omat2 = CsrMtx::create(this->exec->get_master());
-    host_omat2->copy_from(mtx->get_overlap_mtxs()[2].get());
-
-    GKO_EXPECT_MTX_NEAR(host_smat, this->csr_mtx2, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(this->x, host_x, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(host_omat0, this->csr_mtx20, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(host_omat1, this->csr_mtx21, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(host_omat2, this->csr_mtx22, r<value_type>::value);
-}
-
-
-TYPED_TEST(SubMatrix, CanApplyToDenseWithNonUnitLeftOverlap)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using CsrMtx = typename TestFixture::CsrMtx;
-    using Dense = typename TestFixture::Dense;
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-
-    auto rspan = gko::span(1, 4);
-    auto cspan = gko::span(2, 4);
-    auto ov_rspan = std::vector<gko::span>{gko::span(1, 4), gko::span(1, 4),
-                                           gko::span(1, 4)};
-    auto ov_cspan = std::vector<gko::span>{gko::span(0, 1), gko::span(1, 2),
-                                           gko::span(4, 5)};
-    auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), rspan, cspan,
-                           ov_rspan, ov_cspan);
-    auto s_x = Dense::create(this->exec);
-    s_x->copy_from(this->x.get());
-
-    mtx->apply(this->b.get(), s_x.get());
-    this->csr_mtx222->apply(this->b.get(), this->x.get());
-
-    auto host_x = Dense::create(this->exec->get_master());
-    host_x->copy_from(s_x.get());
-    auto host_smat = CsrMtx::create(this->exec->get_master());
-    host_smat->copy_from(mtx->get_sub_matrix().get());
-    auto host_omat0 = CsrMtx::create(this->exec->get_master());
-    host_omat0->copy_from(mtx->get_overlap_mtxs()[0].get());
-    auto host_omat1 = CsrMtx::create(this->exec->get_master());
-    host_omat1->copy_from(mtx->get_overlap_mtxs()[1].get());
-    auto host_omat2 = CsrMtx::create(this->exec->get_master());
-    host_omat2->copy_from(mtx->get_overlap_mtxs()[2].get());
-
-    GKO_EXPECT_MTX_NEAR(host_smat, this->csr_mtx3, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(this->x, host_x, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(host_omat0, this->csr_mtx30, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(host_omat1, this->csr_mtx31, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(host_omat2, this->csr_mtx32, r<value_type>::value);
+    auto host_mat = CsrMtx::create(this->exec->get_master());
+    host_mat->copy_from(mtx->get_sub_matrix().get());
+    GKO_EXPECT_MTX_NEAR(host_mat, this->csr_mtx111, r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(this->x1, s_x, r<value_type>::value);
 }
 
 
 TYPED_TEST(SubMatrix, CanAdvancedApplyToDense)
 {
     using Mtx = typename TestFixture::Mtx;
-    using CsrMtx = typename TestFixture::CsrMtx;
     using Dense = typename TestFixture::Dense;
+    using CsrMtx = typename TestFixture::CsrMtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
 
     auto rspan = gko::span(1, 4);
-    auto cspan = gko::span(2, 4);
-    auto ov_rspan = std::vector<gko::span>{gko::span(1, 4), gko::span(1, 4),
-                                           gko::span(1, 4)};
-    auto ov_cspan = std::vector<gko::span>{gko::span(0, 1), gko::span(1, 2),
-                                           gko::span(4, 5)};
+    auto cspan = gko::span(1, 4);
+    auto ov_lspan = std::vector<gko::span>{gko::span(0, 1)};
+    auto ov_rspan = std::vector<gko::span>{gko::span(4, 5)};
     auto mtx = Mtx::create(this->exec, this->csr_mtx.get(), rspan, cspan,
-                           ov_rspan, ov_cspan);
+                           ov_lspan, ov_rspan);
     auto s_x = Dense::create(this->exec);
     auto alpha = gko::initialize<Dense>({2.0}, this->exec);
     auto beta = gko::initialize<Dense>({-1.0}, this->exec);
-    s_x->copy_from(this->x.get());
+    s_x->copy_from(this->xov.get());
 
     mtx->apply(alpha.get(), this->b.get(), beta.get(), s_x.get());
 
-    this->csr_mtx222->apply(alpha.get(), this->b.get(), beta.get(),
-                            this->x.get());
+    this->csr_mtx->apply(alpha.get(), this->b.get(), beta.get(),
+                         this->xov.get());
 
-    auto host_x = Dense::create(this->exec->get_master());
-    host_x->copy_from(s_x.get());
-    auto host_smat = CsrMtx::create(this->exec->get_master());
-    host_smat->copy_from(mtx->get_sub_matrix().get());
-    auto host_omat0 = CsrMtx::create(this->exec->get_master());
-    host_omat0->copy_from(mtx->get_overlap_mtxs()[0].get());
-    auto host_omat1 = CsrMtx::create(this->exec->get_master());
-    host_omat1->copy_from(mtx->get_overlap_mtxs()[1].get());
-    auto host_omat2 = CsrMtx::create(this->exec->get_master());
-    host_omat2->copy_from(mtx->get_overlap_mtxs()[2].get());
-
-    GKO_EXPECT_MTX_NEAR(host_smat, this->csr_mtx3, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(this->x, host_x, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(host_omat0, this->csr_mtx30, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(host_omat1, this->csr_mtx31, r<value_type>::value);
-    GKO_EXPECT_MTX_NEAR(host_omat2, this->csr_mtx32, r<value_type>::value);
+    auto host_mat = CsrMtx::create(this->exec->get_master());
+    host_mat->copy_from(mtx->get_sub_matrix().get());
+    GKO_EXPECT_MTX_NEAR(host_mat, this->csr_mtx, r<value_type>::value);
+    GKO_EXPECT_MTX_NEAR(this->xov, s_x, r<value_type>::value);
 }
 
 
