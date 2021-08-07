@@ -696,50 +696,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL);
 
 
-template <typename ValueType>
-void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const Array<ValueType> &diag,
-                  const matrix::Dense<ValueType> *alpha,
-                  const matrix::Dense<ValueType> *b,
-                  const matrix::Dense<ValueType> *beta,
-                  matrix::Dense<ValueType> *x)
-{
-#pragma omp parallel for
-    for (size_type i = 0; i < x->get_size()[0]; ++i) {
-        for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            auto diag_val = diag.get_const_data()[i] == zero<ValueType>()
-                                ? one<ValueType>()
-                                : diag.get_const_data()[i];
-            x->at(i, j) = beta->at(0) * x->at(i, j) +
-                          alpha->at(0) * b->at(i, j) / diag_val;
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL);
-
-
-template <typename ValueType>
-void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
-                         const Array<ValueType> &diag,
-                         const matrix::Dense<ValueType> *b,
-                         matrix::Dense<ValueType> *x)
-{
-#pragma omp parallel for
-    for (size_type i = 0; i < x->get_size()[0]; ++i) {
-        for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            auto diag_val = diag.get_const_data()[i] == zero<ValueType>()
-                                ? one<ValueType>()
-                                : diag.get_const_data()[i];
-            x->at(i, j) = b->at(i, j) / diag_val;
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_JACOBI_SIMPLE_SCALAR_APPLY_KERNEL);
-
-
 }  // namespace jacobi
 }  // namespace omp
 }  // namespace kernels

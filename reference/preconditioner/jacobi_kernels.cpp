@@ -570,11 +570,8 @@ void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
 {
     for (size_type i = 0; i < x->get_size()[0]; ++i) {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            auto diag_val = diag.get_const_data()[i] == zero<ValueType>()
-                                ? one<ValueType>()
-                                : diag.get_const_data()[i];
             x->at(i, j) = beta->at(0) * x->at(i, j) +
-                          alpha->at(0) * b->at(i, j) / diag_val;
+                          alpha->at(0) * b->at(i, j) * diag.get_const_data()[i];
         }
     }
 }
@@ -590,16 +587,40 @@ void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
 {
     for (size_type i = 0; i < x->get_size()[0]; ++i) {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            auto diag_val = diag.get_const_data()[i] == zero<ValueType>()
-                                ? one<ValueType>()
-                                : diag.get_const_data()[i];
-            x->at(i, j) = b->at(i, j) / diag_val;
+            x->at(i, j) = b->at(i, j) * diag.get_const_data()[i];
         }
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_JACOBI_SIMPLE_SCALAR_APPLY_KERNEL);
+
+
+template <typename ValueType>
+void scalar_conj(std::shared_ptr<const DefaultExecutor> exec,
+                 const Array<ValueType> &diag, Array<ValueType> &conj_diag)
+{
+    for (size_type i = 0; i < diag.get_num_elems(); ++i) {
+        conj_diag.get_data()[i] = conj(diag.get_const_data()[i]);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_CONJ_KERNEL);
+
+
+template <typename ValueType>
+void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
+                     const Array<ValueType> &diag, Array<ValueType> &inv_diag)
+{
+    for (size_type i = 0; i < diag.get_num_elems(); ++i) {
+        auto diag_val = diag.get_const_data()[i] == zero<ValueType>()
+                            ? one<ValueType>()
+                            : diag.get_const_data()[i];
+        inv_diag.get_data()[i] = one<ValueType>() / diag_val;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_INVERT_DIAGONAL_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -672,6 +693,26 @@ void conj_transpose_jacobi(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType>
+void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,
+                             const Array<ValueType> &blocks,
+                             matrix::Dense<ValueType> *result)
+{
+    auto matrix_size = result->get_size();
+    for (size_type i = 0; i < matrix_size[0]; ++i) {
+        for (size_type j = 0; j < matrix_size[1]; ++j) {
+            result->at(i, j) = zero<ValueType>();
+            if (i == j) {
+                result->at(i, j) = blocks.get_const_data()[i];
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

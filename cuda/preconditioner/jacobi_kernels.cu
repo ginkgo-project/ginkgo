@@ -243,61 +243,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL);
 
 
-template <typename ValueType>
-void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const Array<ValueType> &diag,
-                  const matrix::Dense<ValueType> *alpha,
-                  const matrix::Dense<ValueType> *b,
-                  const matrix::Dense<ValueType> *beta,
-                  matrix::Dense<ValueType> *x)
-{
-    const auto b_size = b->get_size();
-    const auto num_rows = b_size[0];
-    const auto num_cols = b_size[1];
-    const auto b_stride = b->get_stride();
-    const auto x_stride = x->get_stride();
-    const auto grid_dim = ceildiv(num_rows * num_cols, default_block_size);
-
-    const auto b_values = b->get_const_values();
-    const auto diag_values = diag.get_const_data();
-    auto x_values = x->get_values();
-
-    kernel::scalar_apply<<<grid_dim, default_block_size>>>(
-        num_rows, num_cols, as_cuda_type(diag_values),
-        as_cuda_type(alpha->get_const_values()), b_stride,
-        as_cuda_type(b_values), as_cuda_type(beta->get_const_values()),
-        x_stride, as_cuda_type(x_values));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL);
-
-
-template <typename ValueType>
-void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
-                         const Array<ValueType> &diag,
-                         const matrix::Dense<ValueType> *b,
-                         matrix::Dense<ValueType> *x)
-{
-    const auto b_size = b->get_size();
-    const auto num_rows = b_size[0];
-    const auto num_cols = b_size[1];
-    const auto b_stride = b->get_stride();
-    const auto x_stride = x->get_stride();
-    const auto grid_dim = ceildiv(num_rows * num_cols, default_block_size);
-
-    const auto b_values = b->get_const_values();
-    const auto diag_values = diag.get_const_data();
-    auto x_values = x->get_values();
-
-    kernel::simple_scalar_apply<<<grid_dim, default_block_size>>>(
-        num_rows, num_cols, as_cuda_type(diag_values), b_stride,
-        as_cuda_type(b_values), x_stride, as_cuda_type(x_values));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_JACOBI_SIMPLE_SCALAR_APPLY_KERNEL);
-
-
 }  // namespace jacobi
 }  // namespace cuda
 }  // namespace kernels
