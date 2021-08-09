@@ -100,7 +100,6 @@ TYPED_TEST_SUITE(Idr, gko::test::ValueTypes);
 
 TYPED_TEST(Idr, SolvesDenseSystem)
 {
-    GTEST_ASSERT_EQ(1, 0);
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     auto solver = this->idr_factory->generate(this->mtx);

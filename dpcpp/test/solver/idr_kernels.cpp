@@ -300,6 +300,10 @@ TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
 
 TEST_F(Idr, IdrIterationOneRHSIsEquivalentToRef)
 {
+    if (dpcpp->get_queue()->get_device().is_gpu()) {
+        GTEST_SKIP() << "skip the test because oneMKL GEMM on gpu may give NaN "
+                        "(under investigation)";
+    }
     initialize_data(123, 1);
     auto ref_solver = ref_idr_factory->generate(mtx);
     auto dpcpp_solver = dpcpp_idr_factory->generate(d_mtx);
