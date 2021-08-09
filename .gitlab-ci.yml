@@ -120,22 +120,7 @@ include:
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
-    - |
-        if [[ "${IGNORE_IDR}" == "TRUE" ]]; then
-          echo "some error may be ignored"
-          ctest -V -O test.log || true
-          num_fail=$( grep '(Failed)' test.log | wc -l )
-          ignored_num_fail=$( grep 'reference/test/solver/idr_kernels (Failed)' test.log | wc -l )
-          if [[ ${num_fail} -eq ${ignored_num_fail} ]]; then
-            echo "the error is ignored"
-            exit 3
-          else
-            echo "the error is not ignored"
-            exit 1
-          fi
-        else
-          ctest -V
-        fi
+    - ctest -V
     - ninja test_install
     - pushd test/test_install
     - ninja install
@@ -167,8 +152,6 @@ include:
   dependencies: []
   except:
       - schedules
-  allow_failure:
-    exit_codes: 3
 
 status_pending:
   stage: init-status
@@ -342,7 +325,6 @@ build/cuda92/gcc/all/release/shared:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
-    IGNORE_IDR: "TRUE"
     CUDA_ARCH: 61
 
 # cuda 10.0 and friends
@@ -697,7 +679,6 @@ build/nocuda-nomixed/gcc/omp/release/shared:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
     MIXED_PRECISION: "OFF"
-    IGNORE_IDR: "TRUE"
 
 build/nocuda-nomixed/clang/omp/debug/static:
   <<: *default_build_with_test
