@@ -207,6 +207,7 @@ protected:
 
 TEST_F(Idr, IdrInitializeIsEquivalentToRef)
 {
+    EXPECT_EQ(1, 0);
     initialize_data();
 
     gko::kernels::reference::idr::initialize(ref, nrhs, m.get(), p.get(), true,
