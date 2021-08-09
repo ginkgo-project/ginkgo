@@ -69,7 +69,7 @@ constexpr int default_dot_dim = 32;
 constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
-#include "common/solver/idr_kernels.hpp.inc"
+#include "common/cuda_hip/solver/idr_kernels.hpp.inc"
 
 
 namespace {

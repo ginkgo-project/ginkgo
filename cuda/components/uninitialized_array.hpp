@@ -42,7 +42,7 @@ namespace kernels {
 namespace cuda {
 
 
-#include "common/components/uninitialized_array.hpp.inc"
+#include "common/cuda_hip/components/uninitialized_array.hpp.inc"
 
 
 }  // namespace cuda

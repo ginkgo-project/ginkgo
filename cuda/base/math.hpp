@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-#include "common/base/math.hpp.inc"
+#include "common/cuda_hip/base/math.hpp.inc"
 
 
 }  // namespace gko

@@ -63,7 +63,7 @@ namespace cuda {
 namespace par_ilut_factorization {
 
 
-#include "common/factorization/par_ilut_select_kernels.hpp.inc"
+#include "common/cuda_hip/factorization/par_ilut_select_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>

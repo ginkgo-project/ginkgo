@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "common/base/kernel_launch_solver.hpp"
+#include "common/unified/base/kernel_launch_solver.hpp"
 
 
 namespace gko {

@@ -43,7 +43,7 @@ namespace kernels {
 namespace hip {
 
 
-#include "common/components/sorting.hpp.inc"
+#include "common/cuda_hip/components/sorting.hpp.inc"
 
 
 }  // namespace hip

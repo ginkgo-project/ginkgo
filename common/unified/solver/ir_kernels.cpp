@@ -30,49 +30,33 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/coo_kernels.hpp"
+#include "core/solver/ir_kernels.hpp"
 
 
-#include <ginkgo/core/base/math.hpp>
-
-
-#include "common/base/kernel_launch.hpp"
+#include "common/unified/base/kernel_launch.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 /**
- * @brief The Coo matrix format namespace.
+ * @brief The IR solver namespace.
  *
- * @ingroup coo
+ * @ingroup ir
  */
-namespace coo {
+namespace ir {
 
 
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
+void initialize(std::shared_ptr<const DefaultExecutor> exec,
+                Array<stopping_status> *stop_status)
 {
     run_kernel(
-        exec,
-        [] GKO_KERNEL(auto tidx, auto orig_values, auto orig_row_idxs,
-                      auto orig_col_idxs, auto diag) {
-            if (orig_row_idxs[tidx] == orig_col_idxs[tidx]) {
-                diag[orig_row_idxs[tidx]] = orig_values[tidx];
-            }
-        },
-        orig->get_num_stored_elements(), orig->get_const_values(),
-        orig->get_const_row_idxs(), orig->get_const_col_idxs(),
-        diag->get_values());
+        exec, [] GKO_KERNEL(auto i, auto stop) { stop[i].reset(); },
+        stop_status->get_num_elems(), *stop_status);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL);
 
-
-}  // namespace coo
+}  // namespace ir
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

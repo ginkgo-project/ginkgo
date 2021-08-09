@@ -30,11 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_COMMON_BASE_KERNEL_LAUNCH_SOLVER_HPP_
-#define GKO_COMMON_BASE_KERNEL_LAUNCH_SOLVER_HPP_
+#ifndef GKO_COMMON_UNIFIED_BASE_KERNEL_LAUNCH_SOLVER_HPP_
+#define GKO_COMMON_UNIFIED_BASE_KERNEL_LAUNCH_SOLVER_HPP_
 
 
-#include "common/base/kernel_launch.hpp"
+#include "common/unified/base/kernel_launch.hpp"
 
 
 namespace gko {
@@ -146,4 +146,4 @@ const device_type<ValueType> *row_vector(const matrix::Dense<ValueType> *mtx)
 #endif
 
 
-#endif  // GKO_COMMON_BASE_KERNEL_LAUNCH_SOLVER_HPP_
+#endif  // GKO_COMMON_UNIFIED_BASE_KERNEL_LAUNCH_SOLVER_HPP_

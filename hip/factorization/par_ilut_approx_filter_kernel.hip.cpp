@@ -79,8 +79,8 @@ using compiled_kernels =
     syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
-#include "common/factorization/par_ilut_filter_kernels.hpp.inc"
-#include "common/factorization/par_ilut_select_kernels.hpp.inc"
+#include "common/cuda_hip/factorization/par_ilut_filter_kernels.hpp.inc"
+#include "common/cuda_hip/factorization/par_ilut_select_kernels.hpp.inc"
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>

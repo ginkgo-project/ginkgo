@@ -42,7 +42,7 @@ namespace kernels {
 namespace hip {
 
 
-#include "common/components/intrinsics.hpp.inc"
+#include "common/cuda_hip/components/intrinsics.hpp.inc"
 
 
 }  // namespace hip

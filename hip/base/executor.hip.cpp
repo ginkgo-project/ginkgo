@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-#include "common/base/executor.hpp.inc"
+#include "common/cuda_hip/base/executor.hpp.inc"
 
 
 #if (GINKGO_HIP_PLATFORM_NVCC == 1)

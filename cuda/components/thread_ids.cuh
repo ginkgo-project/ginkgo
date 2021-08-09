@@ -48,7 +48,7 @@ namespace cuda {
 namespace thread {
 
 
-#include "common/components/thread_ids.hpp.inc"
+#include "common/cuda_hip/components/thread_ids.hpp.inc"
 
 
 }  // namespace thread

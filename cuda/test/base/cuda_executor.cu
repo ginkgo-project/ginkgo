@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-#include "common/base/executor.hpp.inc"
+#include "common/cuda_hip/base/executor.hpp.inc"
 #include "cuda/test/utils.hpp"
 
 

@@ -69,9 +69,9 @@ constexpr int subwarps_per_block{2};
 constexpr int default_block_size{subwarps_per_block * subwarp_size};
 
 
-#include "common/components/atomic.hpp.inc"
-#include "common/components/warp_blas.hpp.inc"
-#include "common/preconditioner/isai_kernels.hpp.inc"
+#include "common/cuda_hip/components/atomic.hpp.inc"
+#include "common/cuda_hip/components/warp_blas.hpp.inc"
+#include "common/cuda_hip/preconditioner/isai_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
