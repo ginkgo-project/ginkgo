@@ -62,6 +62,7 @@ The Ginkgo DPC++ module has the following __additional__ requirements:
 
 * _OneAPI 2021.3+_
 * Set `dpcpp` as the `CMAKE_CXX_COMPILER`
+* `C++17` is used to compile this module, while the rest of Ginkgo is compiled using `c++14`.
 * The following oneAPI packages should be available:
     * oneMKL
     * oneDPL

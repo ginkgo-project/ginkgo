@@ -6,6 +6,139 @@ commits. For a comprehensive list, use the following command:
 git log --first-parent
 ```
 
+## Version 1.4.0
+
+The Ginkgo team is proud to announce the new Ginkgo minor release 1.4.0. This
+release brings most of the Ginkgo functionality to the Intel DPC++ ecosystem
+which enables Intel-GPU execution. The only Ginkgo features which have not been
+ported yet are some preconditioners. Ginkgo's mixed-precision support is greatly
+enhanced thanks to:
+1. The new Accessor concept, which allows writing kernels featuring on-the-fly
+memory compression, among other features. The accessor can be used as
+header-only, see the [accessor BLAS benchmarks repository](https://github.com/ginkgo-project/accessor-BLAS/tree/develop) as a usage example.
+2. All LinOps now transparently support mixed-precision execution. By default,
+this is done through a temporary copy which may have a performance impact but
+already allows mixed-precision research.
+
+Native mixed-precision ELL kernels are implemented which do not see this cost.
+The accessor is also leveraged in a new CB-GMRES solver which allows for
+performance improvements by compressing the Krylov basis vectors. Many other
+features have been added to Ginkgo, such as reordering support, a new IDR
+solver, Incomplete Cholesky preconditioner, matrix assembly support (only CPU
+for now), machine topology information, and more!
+
+Supported systems and requirements:
++ For all platforms, cmake 3.13+
++ C++14 compliant compiler
++ Linux and MacOS
+  + gcc: 5.3+, 6.3+, 7.3+, all versions after 8.1+
+  + clang: 3.9+
+  + Intel compiler: 2018+
+  + Apple LLVM: 8.0+
+  + CUDA module: CUDA 9.0+
+  + HIP module: ROCm 3.5+
+  + DPC++ module: Intel OneAPI 2021.3. Set the CXX compiler to `dpcpp`.
++ Windows
+  + MinGW and Cygwin: gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+
+  + Microsoft Visual Studio: VS 2019
+  + CUDA module: CUDA 9.0+, Microsoft Visual Studio
+  + OpenMP module: MinGW or Cygwin.
+
+
+Algorithm and important feature additions:
++ Add a new DPC++ Executor for SYCL execution and other base utilities
+  [#648](https://github.com/ginkgo-project/ginkgo/pull/648), [#661](https://github.com/ginkgo-project/ginkgo/pull/661), [#757](https://github.com/ginkgo-project/ginkgo/pull/757), [#832](https://github.com/ginkgo-project/ginkgo/pull/832)
++ Port matrix formats, solvers and related kernels to DPC++. For some kernels,
+  also make use of a shared kernel implementation for all executors (except
+  Reference). [#710](https://github.com/ginkgo-project/ginkgo/pull/710), [#799](https://github.com/ginkgo-project/ginkgo/pull/799), [#779](https://github.com/ginkgo-project/ginkgo/pull/779), [#733](https://github.com/ginkgo-project/ginkgo/pull/733), [#844](https://github.com/ginkgo-project/ginkgo/pull/844), [#843](https://github.com/ginkgo-project/ginkgo/pull/843), [#789](https://github.com/ginkgo-project/ginkgo/pull/789), [#845](https://github.com/ginkgo-project/ginkgo/pull/845), [#849](https://github.com/ginkgo-project/ginkgo/pull/849), [#855](https://github.com/ginkgo-project/ginkgo/pull/855), [#856](https://github.com/ginkgo-project/ginkgo/pull/856)
++ Add accessors which allow multi-precision kernels, among other things.
+  [#643](https://github.com/ginkgo-project/ginkgo/pull/643), [#708](https://github.com/ginkgo-project/ginkgo/pull/708)
++ Add support for mixed precision operations through apply in all LinOps. [#677](https://github.com/ginkgo-project/ginkgo/pull/677)
++ Add incomplete Cholesky factorizations and preconditioners as well as some
+  improvements to ILU. [#672](https://github.com/ginkgo-project/ginkgo/pull/672), [#837](https://github.com/ginkgo-project/ginkgo/pull/837), [#846](https://github.com/ginkgo-project/ginkgo/pull/846)
++ Add an AMGX implementation and kernels on all devices but DPC++.
+  [#528](https://github.com/ginkgo-project/ginkgo/pull/528), [#695](https://github.com/ginkgo-project/ginkgo/pull/695), [#860](https://github.com/ginkgo-project/ginkgo/pull/860)
++ Add a new mixed-precision capability solver, Compressed Basis GMRES
+  (CB-GMRES). [#693](https://github.com/ginkgo-project/ginkgo/pull/693), [#763](https://github.com/ginkgo-project/ginkgo/pull/763)
++ Add the IDR(s) solver. [#620](https://github.com/ginkgo-project/ginkgo/pull/620)
++ Add a new fixed-size block CSR matrix format (for the Reference executor).
+  [#671](https://github.com/ginkgo-project/ginkgo/pull/671), [#730](https://github.com/ginkgo-project/ginkgo/pull/730)
++ Add native mixed-precision support to the ELL format. [#717](https://github.com/ginkgo-project/ginkgo/pull/717), [#780](https://github.com/ginkgo-project/ginkgo/pull/780)
++ Add Reverse Cuthill-McKee reordering [#500](https://github.com/ginkgo-project/ginkgo/pull/500), [#649](https://github.com/ginkgo-project/ginkgo/pull/649)
++ Add matrix assembly support on CPUs. [#644](https://github.com/ginkgo-project/ginkgo/pull/644)
+
+Other additions:
++ Add possibility to apply real matrices to complex vectors.
+  [#655](https://github.com/ginkgo-project/ginkgo/pull/655), [#636](https://github.com/ginkgo-project/ginkgo/pull/636), [#658](https://github.com/ginkgo-project/ginkgo/pull/658)
++ Add symmetric permutation and improve existing permutations.
+  [#684](https://github.com/ginkgo-project/ginkgo/pull/684), [#657](https://github.com/ginkgo-project/ginkgo/pull/657), [#663](https://github.com/ginkgo-project/ginkgo/pull/663)
++ Add a MachineTopology class with HWLOC support [#554](https://github.com/ginkgo-project/ginkgo/pull/554), [#697](https://github.com/ginkgo-project/ginkgo/pull/697)
++ Add an implicit residual norm criterion. [#702](https://github.com/ginkgo-project/ginkgo/pull/702), [#714](https://github.com/ginkgo-project/ginkgo/pull/714),  [#818](https://github.com/ginkgo-project/ginkgo/pull/818), [#850](https://github.com/ginkgo-project/ginkgo/pull/850)
++ Add an heat equation example. [#698](https://github.com/ginkgo-project/ginkgo/pull/698), [#706](https://github.com/ginkgo-project/ginkgo/pull/706)
++ Add ccache support in CMake and CI. [#725](https://github.com/ginkgo-project/ginkgo/pull/725), [#739](https://github.com/ginkgo-project/ginkgo/pull/739)
++ Allow tuning and benchmarking variables non intrusively. [#692](https://github.com/ginkgo-project/ginkgo/pull/692)
++ Add triangular solver benchmark [#664](https://github.com/ginkgo-project/ginkgo/pull/664)
++ Add benchmarks for BLAS operations [#772](https://github.com/ginkgo-project/ginkgo/pull/772), [#829](https://github.com/ginkgo-project/ginkgo/pull/829)
++ Add support for different precisions and consistent index types in benchmarks.
+  [#675](https://github.com/ginkgo-project/ginkgo/pull/675), [#828](https://github.com/ginkgo-project/ginkgo/pull/828)
++ Add a Github bot system to facilitate development and PR management.
+  [#667](https://github.com/ginkgo-project/ginkgo/pull/667), [#674](https://github.com/ginkgo-project/ginkgo/pull/674), [#689](https://github.com/ginkgo-project/ginkgo/pull/689), [#853](https://github.com/ginkgo-project/ginkgo/pull/853)
++ Add Intel (DPC++) CI support and enable CI on HPC systems. [#736](https://github.com/ginkgo-project/ginkgo/pull/736), [#751](https://github.com/ginkgo-project/ginkgo/pull/751), [#781](https://github.com/ginkgo-project/ginkgo/pull/781)
++ Add ssh debugging for Github Actions CI. [#749](https://github.com/ginkgo-project/ginkgo/pull/749)
++ Add pipeline segmentation for better CI speed. [#737](https://github.com/ginkgo-project/ginkgo/pull/737)
+
+
+Changes:
++ Extends ISAI from triangular to general and spd matrices. [#690](https://github.com/ginkgo-project/ginkgo/pull/690)
++ Add a Scalar Jacobi specialization and kernels. [#808](https://github.com/ginkgo-project/ginkgo/pull/808), [#834](https://github.com/ginkgo-project/ginkgo/pull/834), [#854](https://github.com/ginkgo-project/ginkgo/pull/854)
++ Add implicit residual log for solvers and benchmarks. [#707](https://github.com/ginkgo-project/ginkgo/pull/707)
++ Change handling of the conjugate in the dense dot product. [#755](https://github.com/ginkgo-project/ginkgo/pull/755)
++ Improved Dense stride handling. [#774](https://github.com/ginkgo-project/ginkgo/pull/774)
++ Multiple improvements to the OpenMP kernels performance, including COO,
+an exclusive prefix sum, and more. [#703](https://github.com/ginkgo-project/ginkgo/pull/703), [#765](https://github.com/ginkgo-project/ginkgo/pull/765), [#740](https://github.com/ginkgo-project/ginkgo/pull/740)
++ Allow specialization of submatrix and other dense creation functions in solvers. [#718](https://github.com/ginkgo-project/ginkgo/pull/718)
++ Improved Identity constructor and treatment of rectangular matrices. [#646](https://github.com/ginkgo-project/ginkgo/pull/646)
++ Allow CUDA/HIP executors to select allocation mode. [#758](https://github.com/ginkgo-project/ginkgo/pull/758)
++ Check if executors share the same memory. [#670](https://github.com/ginkgo-project/ginkgo/pull/670)
++ Improve test install and smoke testing support. [#721](https://github.com/ginkgo-project/ginkgo/pull/721)
++ Update the JOSS paper citation and add publications in the documentation.
+  [#629](https://github.com/ginkgo-project/ginkgo/pull/629), [#724](https://github.com/ginkgo-project/ginkgo/pull/724)
++ Improve the version output. [#806](https://github.com/ginkgo-project/ginkgo/pull/806)
++ Add some utilities for dim and span. [#821](https://github.com/ginkgo-project/ginkgo/pull/821)
++ Improved solver and preconditioner benchmarks. [#660](https://github.com/ginkgo-project/ginkgo/pull/660)
++ Improve benchmark timing and output. [#669](https://github.com/ginkgo-project/ginkgo/pull/669), [#791](https://github.com/ginkgo-project/ginkgo/pull/791), [#801](https://github.com/ginkgo-project/ginkgo/pull/801), [#812](https://github.com/ginkgo-project/ginkgo/pull/812)
+
+
+Fixes:
++ Sorting fix for the Jacobi preconditioner. [#659](https://github.com/ginkgo-project/ginkgo/pull/659)
++ Also log the first residual norm in CGS [#735](https://github.com/ginkgo-project/ginkgo/pull/735)
++ Fix BiCG and HIP CSR to work with complex matrices. [#651](https://github.com/ginkgo-project/ginkgo/pull/651)
++ Fix Coo SpMV on strided vectors. [#807](https://github.com/ginkgo-project/ginkgo/pull/807)
++ Fix segfault of extract_diagonal, add short-and-fat test. [#769](https://github.com/ginkgo-project/ginkgo/pull/769)
++ Fix device_reset issue by moving counter/mutex to device. [#810](https://github.com/ginkgo-project/ginkgo/pull/810)
++ Fix `EnableLogging` superclass. [#841](https://github.com/ginkgo-project/ginkgo/pull/841)
++ Support ROCm 4.1.x and breaking HIP_PLATFORM changes. [#726](https://github.com/ginkgo-project/ginkgo/pull/726)
++ Decreased test size for a few device tests. [#742](https://github.com/ginkgo-project/ginkgo/pull/742)
++ Fix multiple issues with our CMake HIP and RPATH setup.
+  [#712](https://github.com/ginkgo-project/ginkgo/pull/712), [#745](https://github.com/ginkgo-project/ginkgo/pull/745), [#709](https://github.com/ginkgo-project/ginkgo/pull/709)
++ Cleanup our CMake installation step. [#713](https://github.com/ginkgo-project/ginkgo/pull/713)
++ Various simplification and fixes to the Windows CMake setup. [#720](https://github.com/ginkgo-project/ginkgo/pull/720), [#785](https://github.com/ginkgo-project/ginkgo/pull/785)
++ Simplify third-party integration. [#786](https://github.com/ginkgo-project/ginkgo/pull/786)
++ Improve Ginkgo device arch flags management. [#696](https://github.com/ginkgo-project/ginkgo/pull/696)
++ Other fixes and improvements to the CMake setup.
+  [#685](https://github.com/ginkgo-project/ginkgo/pull/685), [#792](https://github.com/ginkgo-project/ginkgo/pull/792), [#705](https://github.com/ginkgo-project/ginkgo/pull/705), [#836](https://github.com/ginkgo-project/ginkgo/pull/836)
++ Clarification of dense norm documentation [#784](https://github.com/ginkgo-project/ginkgo/pull/784)
++ Various development tools fixes and improvements [#738](https://github.com/ginkgo-project/ginkgo/pull/738), [#830](https://github.com/ginkgo-project/ginkgo/pull/830), [#840](https://github.com/ginkgo-project/ginkgo/pull/840)
++ Make multiple operators/constructors explicit. [#650](https://github.com/ginkgo-project/ginkgo/pull/650), [#761](https://github.com/ginkgo-project/ginkgo/pull/761)
++ Fix some issues, memory leaks and warnings found by MSVC.
+  [#666](https://github.com/ginkgo-project/ginkgo/pull/666), [#731](https://github.com/ginkgo-project/ginkgo/pull/731)
++ Improved solver memory estimates and consistent iteration counts [#691](https://github.com/ginkgo-project/ginkgo/pull/691)
++ Various logger improvements and fixes [#728](https://github.com/ginkgo-project/ginkgo/pull/728), [#743](https://github.com/ginkgo-project/ginkgo/pull/743), [#754](https://github.com/ginkgo-project/ginkgo/pull/754)
++ Fix for ForwardIterator requirements in iterator_factory. [#665](https://github.com/ginkgo-project/ginkgo/pull/665)
++ Various benchmark fixes. [#647](https://github.com/ginkgo-project/ginkgo/pull/647), [#673](https://github.com/ginkgo-project/ginkgo/pull/673), [#722](https://github.com/ginkgo-project/ginkgo/pull/722)
++ Various CI fixes and improvements. [#642](https://github.com/ginkgo-project/ginkgo/pull/642), [#641](https://github.com/ginkgo-project/ginkgo/pull/641), [#795](https://github.com/ginkgo-project/ginkgo/pull/795), [#783](https://github.com/ginkgo-project/ginkgo/pull/783), [#793](https://github.com/ginkgo-project/ginkgo/pull/793), [#852](https://github.com/ginkgo-project/ginkgo/pull/852)
+
+
 ## Version 1.3.0
 
 The Ginkgo team is proud to announce the new minor release of Ginkgo version
