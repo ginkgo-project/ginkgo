@@ -375,12 +375,33 @@ template <typename ValueType>
     auto exec = first.get_executor()->get_master();
     Array<ValueType> first_array(exec, first);
     Array<ValueType> second_array(exec, second);
-    for (decltype(first.get_num_elems()) i = 0; i < num_elems1; ++i) {
+    for (size_type i = 0; i < num_elems1; ++i) {
         if (!(first_array.get_const_data()[i] ==
               second_array.get_const_data()[i])) {
             auto fail = ::testing::AssertionFailure();
             fail << "Array " << first_expression << " is different from "
                  << second_expression << " at index " << i << "\n";
+            // how many surrounding lines to print?
+            constexpr size_type context_size = 5;
+            // find boundaries, avoid overflows
+            const size_type context_begin = i - std::min(context_size, i);
+            const size_type context_end =
+                std::min(i + context_size + 1, num_elems1);
+            if (i > context_size) {
+                fail << "...\n";
+            }
+            for (auto j = context_begin; j < context_end; j++) {
+                fail << (j == i ? "> " : "  ")
+                     << ::testing::PrintToString(
+                            first_array.get_const_data()[j])
+                     << ','
+                     << ::testing::PrintToString(
+                            second_array.get_const_data()[j])
+                     << '\n';
+            }
+            if (context_end < num_elems1) {
+                fail << "...\n";
+            }
             return fail;
         }
     }
