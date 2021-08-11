@@ -349,4 +349,74 @@ TEST_F(KernelLaunch, Reduction2D)
 }
 
 
+TEST_F(KernelLaunch, ReductionRow2D)
+{
+    for (auto num_rows : {0, 1, 10, 100, 1000, 10000}) {
+        for (auto num_cols : {0, 1, 10, 100, 1000, 10000}) {
+            SCOPED_TRACE(std::to_string(num_rows) + " rows, " +
+                         std::to_string(num_cols) + " cols");
+            gko::Array<int64> host_ref{exec->get_master(),
+                                       static_cast<size_type>(2 * num_rows)};
+            std::fill_n(host_ref.get_data(), 2 * num_rows, 1234);
+            gko::Array<int64> output{exec, host_ref};
+            for (int i = 0; i < num_rows; i++) {
+                host_ref.get_data()[2 * i] =
+                    static_cast<int64>(num_cols) * (num_cols + 1) * (i + 1);
+            }
+
+            gko::kernels::dpcpp::run_kernel_row_reduction(
+                exec,
+                [] GKO_KERNEL(auto i, auto j, auto a) {
+                    static_assert(is_same<decltype(i), int64>::value, "index");
+                    static_assert(is_same<decltype(a), int64*>::value, "value");
+                    return (i + 1) * (j + 1);
+                },
+                [] GKO_KERNEL(auto i, auto j) { return i + j; },
+                [] GKO_KERNEL(auto j) { return 2 * j; }, int64{},
+                output.get_data(), 2,
+                gko::dim<2>{static_cast<size_type>(num_rows),
+                            static_cast<size_type>(num_cols)},
+                output);
+
+            GKO_ASSERT_ARRAY_EQ(host_ref, output);
+        }
+    }
+}
+
+
+TEST_F(KernelLaunch, ReductionCol2D)
+{
+    for (int num_rows : {0, 1, 10, 100, 1000, 10000}) {
+        for (int num_cols :
+             {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 40, 100, 1000}) {
+            SCOPED_TRACE(std::to_string(num_rows) + " rows, " +
+                         std::to_string(num_cols) + " cols");
+            gko::Array<int64> host_ref{exec->get_master(),
+                                       static_cast<size_type>(num_cols)};
+            gko::Array<int64> output{exec, static_cast<size_type>(num_cols)};
+            for (int i = 0; i < num_cols; i++) {
+                host_ref.get_data()[i] =
+                    static_cast<int64>(num_rows) * (num_rows + 1) * (i + 1);
+            }
+
+            gko::kernels::dpcpp::run_kernel_col_reduction(
+                exec,
+                [] GKO_KERNEL(auto i, auto j, auto a) {
+                    static_assert(is_same<decltype(i), int64>::value, "index");
+                    static_assert(is_same<decltype(a), int64*>::value, "value");
+                    return (i + 1) * (j + 1);
+                },
+                [] GKO_KERNEL(auto i, auto j) { return i + j; },
+                [] GKO_KERNEL(auto j) { return j * 2; }, int64{},
+                output.get_data(),
+                gko::dim<2>{static_cast<size_type>(num_rows),
+                            static_cast<size_type>(num_cols)},
+                output);
+
+            GKO_ASSERT_ARRAY_EQ(host_ref, output);
+        }
+    }
+}
+
+
 }  // namespace
