@@ -344,7 +344,8 @@ TEST_F(KernelLaunch, ReductionRow2DSmall)
     std::fill_n(host_ref.get_data(), 2 * num_rows, 1234);
     gko::Array<int64> output{exec, host_ref};
     for (int i = 0; i < num_rows; i++) {
-        host_ref.get_data()[2 * i] = num_cols * (num_cols + 1) * (i + 1);
+        host_ref.get_data()[2 * i] =
+            static_cast<int64>(num_cols) * (num_cols + 1) * (i + 1);
     }
 
     gko::kernels::omp::run_kernel_row_reduction(
@@ -373,7 +374,8 @@ TEST_F(KernelLaunch, ReductionRow2D)
     std::fill_n(host_ref.get_data(), 2 * num_rows, 1234);
     gko::Array<int64> output{exec, host_ref};
     for (int i = 0; i < num_rows; i++) {
-        host_ref.get_data()[2 * i] = num_cols * (num_cols + 1) * (i + 1);
+        host_ref.get_data()[2 * i] =
+            static_cast<int64>(num_cols) * (num_cols + 1) * (i + 1);
     }
 
     gko::kernels::omp::run_kernel_row_reduction(
@@ -402,7 +404,8 @@ TEST_F(KernelLaunch, ReductionCol2D)
                                        static_cast<size_type>(num_cols)};
             gko::Array<int64> output{exec, static_cast<size_type>(num_cols)};
             for (int i = 0; i < num_cols; i++) {
-                host_ref.get_data()[i] = num_rows * (num_rows + 1) * (i + 1);
+                host_ref.get_data()[i] =
+                    static_cast<int64>(num_rows) * (num_rows + 1) * (i + 1);
             }
 
             gko::kernels::omp::run_kernel_col_reduction(
