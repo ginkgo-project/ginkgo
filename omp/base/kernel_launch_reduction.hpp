@@ -74,9 +74,7 @@ void run_kernel_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
 
         auto local_partial = init;
         for (auto i = begin; i < end; i++) {
-            local_partial = op(local_partial, [&]() {
-                return fn(i, map_to_device(args)...);
-            }());
+            local_partial = op(local_partial, fn(i, map_to_device(args)...));
         }
         partial.get_data()[thread_id] = local_partial;
     }
@@ -118,9 +116,7 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
             for (auto row = begin; row < end; row++) {
 #pragma unroll
                 for (int64 col = 0; col < local_cols; col++) {
-                    local_partial = op(local_partial, [&]() {
-                        return fn(row, col, args...);
-                    }());
+                    local_partial = op(local_partial, fn(row, col, args...));
                 }
             }
         } else {
@@ -131,16 +127,14 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
                      base_col += block_size) {
 #pragma unroll
                     for (int64 i = 0; i < block_size; i++) {
-                        local_partial = op(local_partial, [&]() {
-                            return fn(row, base_col + i, args...);
-                        }());
+                        local_partial =
+                            op(local_partial, fn(row, base_col + i, args...));
                     }
                 }
 #pragma unroll
                 for (int64 i = 0; i < remainder_cols; i++) {
-                    local_partial = op(local_partial, [&]() {
-                        return fn(row, rounded_cols + i, args...);
-                    }());
+                    local_partial =
+                        op(local_partial, fn(row, rounded_cols + i, args...));
                 }
             }
         }
@@ -217,12 +211,13 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
         cols < rows) {
 #pragma omp parallel for
         for (int64 row = 0; row < rows; row++) {
-            auto partial = init;
-            for (int64 col = 0; col < cols; col++) {
-                partial =
-                    op(partial, [&]() { return fn(row, col, args...); }());
-            }
-            result[result_stride * row] = finalize(partial);
+            [&]() {
+                auto partial = init;
+                for (int64 col = 0; col < cols; col++) {
+                    partial = op(partial, fn(row, col, args...));
+                }
+                result[result_stride * row] = finalize(partial);
+            }();
         }
     } else {
         // small number of rows and large reduction sizes: do partial sum first
@@ -248,13 +243,17 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
         // then accumulate the partial sums and write to result
 #pragma omp parallel for
         for (int64 row = 0; row < rows; row++) {
-            auto local_partial = init;
-            for (int64 thread_id = 0; thread_id < num_threads; thread_id++) {
-                local_partial =
-                    op(local_partial,
-                       partial.get_const_data()[row * num_threads + thread_id]);
-            }
-            result[row * result_stride] = finalize(local_partial);
+            [&] {
+                auto local_partial = init;
+                for (int64 thread_id = 0; thread_id < num_threads;
+                     thread_id++) {
+                    local_partial = op(
+                        local_partial,
+                        partial
+                            .get_const_data()[row * num_threads + thread_id]);
+                }
+                result[row * result_stride] = finalize(local_partial);
+            }();
         }
     }
 }
@@ -273,9 +272,8 @@ void run_kernel_col_reduction_sized_block_impl(
     for (auto row = row_begin; row < row_end; row++) {
 #pragma unroll
         for (int64 rel_col = 0; rel_col < local_cols; rel_col++) {
-            partial[rel_col] = op(partial[rel_col], [&]() {
-                return fn(row, base_col + rel_col, args...);
-            }());
+            partial[rel_col] =
+                op(partial[rel_col], fn(row, base_col + rel_col, args...));
         }
     }
 #pragma unroll
@@ -343,12 +341,16 @@ void run_kernel_col_reduction_sized_impl(
         }
 #pragma omp parallel for
         for (int64 col = 0; col < cols; col++) {
-            auto total = init;
-            for (int64 row_block = 0; row_block < reduction_size; row_block++) {
-                total =
-                    op(total, partial.get_const_data()[col + cols * row_block]);
-            }
-            result[col] = finalize(total);
+            [&] {
+                auto total = init;
+                for (int64 row_block = 0; row_block < reduction_size;
+                     row_block++) {
+                    total =
+                        op(total,
+                           partial.get_const_data()[col + cols * row_block]);
+                }
+                result[col] = finalize(total);
+            }();
         }
     }
 }
