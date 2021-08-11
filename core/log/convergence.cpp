@@ -64,20 +64,18 @@ void Convergence<ValueType>::on_criterion_check_completed(
         }
         this->num_iterations_ = num_iterations;
         if (residual != nullptr) {
-            this->residual_.reset(residual->clone().release());
+            this->residual_ = residual->clone();
         }
         if (implicit_sq_resnorm != nullptr) {
-            this->implicit_sq_resnorm_.reset(
-                implicit_sq_resnorm->clone().release());
+            this->implicit_sq_resnorm_ = implicit_sq_resnorm->clone();
         }
         if (residual_norm != nullptr) {
-            this->residual_norm_.reset(residual_norm->clone().release());
+            this->residual_norm_ = residual_norm->clone();
         } else if (residual != nullptr) {
-            using Vector = matrix::Dense<ValueType>;
             using NormVector = matrix::Dense<remove_complex<ValueType>>;
             this->residual_norm_ = NormVector::create(
                 residual->get_executor(), dim<2>{1, residual->get_size()[1]});
-            auto dense_r = as<Vector>(residual);
+            auto dense_r = as<ScalarProductComputable>(residual);
             dense_r->compute_norm2(this->residual_norm_.get());
         }
     }

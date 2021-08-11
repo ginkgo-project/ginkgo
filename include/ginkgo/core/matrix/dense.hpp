@@ -126,7 +126,8 @@ class Dense
       public Transposable,
       public Permutable<int32>,
       public Permutable<int64>,
-      public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>> {
+      public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>>,
+      public ScalarProductComputable {
     friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;
@@ -710,7 +711,7 @@ public:
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
-    void compute_dot(const LinOp* b, LinOp* result) const
+    void compute_dot(const LinOp* b, LinOp* result) const override
     {
         auto exec = this->get_executor();
         this->compute_dot_impl(make_temporary_clone(exec, b).get(),
@@ -725,7 +726,7 @@ public:
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
-    void compute_conj_dot(const LinOp* b, LinOp* result) const
+    void compute_conj_dot(const LinOp* b, LinOp* result) const override
     {
         auto exec = this->get_executor();
         this->compute_conj_dot_impl(
@@ -740,7 +741,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_norm2(LinOp* result) const
+    void compute_norm2(LinOp* result) const override
     {
         auto exec = this->get_executor();
         this->compute_norm2_impl(

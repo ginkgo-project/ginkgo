@@ -52,7 +52,8 @@ class Vector
       public ConvertibleTo<Vector<next_precision<ValueType>, LocalIndexType>>,
       public EnableAbsoluteComputation<
           remove_complex<Vector<ValueType, LocalIndexType>>>,
-      public DistributedBase {
+      public DistributedBase,
+      public ScalarProductComputable {
     friend class EnableCreateMethod<Vector<ValueType, LocalIndexType>>;
     friend class EnablePolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>, LocalIndexType>;
@@ -120,7 +121,7 @@ public:
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
-    void compute_dot(const LinOp* b, LinOp* result) const;
+    void compute_dot(const LinOp* b, LinOp* result) const override;
 
     /**
      * Computes the column-wise dot product of this matrix and `conj(b)`.
@@ -130,7 +131,7 @@ public:
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
-    void compute_conj_dot(const LinOp* b, LinOp* result) const;
+    void compute_conj_dot(const LinOp* b, LinOp* result) const override;
 
     /**
      * Computes the Euclidian (L^2) norm of this matrix.
@@ -139,7 +140,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_norm2(LinOp* result) const;
+    void compute_norm2(LinOp* result) const override;
 
     const local_mtx_type* get_local() const;
 

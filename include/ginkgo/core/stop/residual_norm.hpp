@@ -118,28 +118,14 @@ protected:
                     auto b_clone = share(args.b->clone());
                     args.system_matrix->apply(neg_one_.get(), args.x,
                                               one_.get(), b_clone.get());
-                    if (auto vec =
-                            std::dynamic_pointer_cast<const ComplexVector>(
-                                b_clone)) {
-                        vec->compute_norm2(this->starting_tau_.get());
-                    } else if (auto vec =
-                                   std::dynamic_pointer_cast<const Vector>(
-                                       b_clone)) {
-                        vec->compute_norm2(this->starting_tau_.get());
-                    } else {
-                        GKO_NOT_SUPPORTED(nullptr);
-                    }
+                    auto spc = as<const ScalarProductComputable>(b_clone);
+                    spc->compute_norm2(this->starting_tau_.get());
                 }
             } else {
                 this->starting_tau_ = NormVector::create(
                     exec, dim<2>{1, args.initial_residual->get_size()[1]});
-                if (dynamic_cast<const ComplexVector*>(args.initial_residual)) {
-                    auto dense_r = as<ComplexVector>(args.initial_residual);
-                    dense_r->compute_norm2(this->starting_tau_.get());
-                } else {
-                    auto dense_r = as<Vector>(args.initial_residual);
-                    dense_r->compute_norm2(this->starting_tau_.get());
-                }
+                auto spc = as<ScalarProductComputable>(args.initial_residual);
+                spc->compute_norm2(this->starting_tau_.get());
             }
             break;
         }
@@ -149,13 +135,8 @@ protected:
             }
             this->starting_tau_ =
                 NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
-            if (dynamic_cast<const ComplexVector*>(args.b.get())) {
-                auto dense_rhs = as<ComplexVector>(args.b);
-                dense_rhs->compute_norm2(this->starting_tau_.get());
-            } else {
-                auto dense_rhs = as<Vector>(args.b);
-                dense_rhs->compute_norm2(this->starting_tau_.get());
-            }
+            auto spc = as<ScalarProductComputable>(args.b);
+            spc->compute_norm2(this->starting_tau_.get());
             break;
         }
         case mode::absolute: {

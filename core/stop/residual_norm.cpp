@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
-#include <ginkgo/core/distributed/vector.hpp>
-
-
 #include "core/components/fill_array_kernels.hpp"
 #include "core/stop/residual_norm_kernels.hpp"
 
@@ -70,54 +67,23 @@ bool ResidualNormBase<ValueType>::check_impl(
     uint8 stopping_id, bool set_finalized, Array<stopping_status>* stop_status,
     bool* one_changed, const Criterion::Updater& updater)
 {
-    using DistributedComplex = distributed::Vector<gko::to_complex<ValueType>>;
-    using DistributedVector = distributed::Vector<ValueType>;
     const NormVector* dense_tau;
     if (updater.residual_norm_ != nullptr) {
         dense_tau = as<NormVector>(updater.residual_norm_);
     } else if (updater.residual_ != nullptr) {
-        if (dynamic_cast<const distributed::DistributedBase*>(
-                updater.residual_)) {
-            // the vector is distributed
-            if (dynamic_cast<const DistributedComplex*>(updater.residual_)) {
-                // handle solvers that use complex vectors even for real systems
-                auto dense_r = as<DistributedComplex>(updater.residual_);
-                dense_r->compute_norm2(u_dense_tau_.get());
-            } else {
-                auto dense_r = as<DistributedVector>(updater.residual_);
-                dense_r->compute_norm2(u_dense_tau_.get());
-            }
-        } else {
-            // the vector is non-distributed
-            if (dynamic_cast<const ComplexVector*>(updater.residual_)) {
-                // handle solvers that use complex vectors even for real systems
-                auto dense_r = as<ComplexVector>(updater.residual_);
-                dense_r->compute_norm2(u_dense_tau_.get());
-            } else {
-                auto dense_r = as<Vector>(updater.residual_);
-                dense_r->compute_norm2(u_dense_tau_.get());
-            }
-        }
+        auto* dense_r = as<ScalarProductComputable>(updater.residual_);
+        dense_r->compute_norm2(u_dense_tau_.get());
         dense_tau = u_dense_tau_.get();
     } else if (updater.solution_ != nullptr && system_matrix_ != nullptr &&
                b_ != nullptr) {
         auto exec = this->get_executor();
         // when LinOp is real but rhs is complex, we use real view on complex,
         // so it still uses the same type of scalar in apply.
-        if (auto vec_b = std::dynamic_pointer_cast<const Vector>(b_)) {
-            auto dense_r = vec_b->clone();
-            system_matrix_->apply(neg_one_.get(), updater.solution_, one_.get(),
-                                  dense_r.get());
-            dense_r->compute_norm2(u_dense_tau_.get());
-        } else if (auto vec_b =
-                       std::dynamic_pointer_cast<const ComplexVector>(b_)) {
-            auto dense_r = vec_b->clone();
-            system_matrix_->apply(neg_one_.get(), updater.solution_, one_.get(),
-                                  dense_r.get());
-            dense_r->compute_norm2(u_dense_tau_.get());
-        } else {
-            GKO_NOT_SUPPORTED(nullptr);
-        }
+        auto clone_r = b_->clone();
+        system_matrix_->apply(neg_one_.get(), updater.solution_, one_.get(),
+                              clone_r.get());
+        auto dense_r = as<ScalarProductComputable>(lend(clone_r));
+        dense_r->compute_norm2(u_dense_tau_.get());
         dense_tau = u_dense_tau_.get();
     } else {
         GKO_NOT_SUPPORTED(nullptr);

@@ -600,8 +600,8 @@ public:
      * @param data  the matrix_data array
      */
     virtual void read(
-        const Array<typename matrix_data<ValueType, IndexType>::nonzero_type>
-            &data,
+        const Array<typename matrix_data<ValueType, IndexType>::nonzero_type>&
+            data,
         gko::dim<2> size)
     {
         matrix_data<ValueType, IndexType> stored_data;
@@ -802,6 +802,38 @@ public:
     virtual std::unique_ptr<absolute_type> compute_absolute() const = 0;
 };
 
+
+class ScalarProductComputable {
+public:
+    /**
+     * Computes the column-wise dot product of this matrix and `b`.
+     *
+     * @param b  a Dense matrix of same dimension as this
+     * @param result  a Dense row vector, used to store the dot product
+     *                (the number of column in the vector must match the number
+     *                of columns of this)
+     */
+    virtual void compute_dot(const LinOp* b, LinOp* result) const = 0;
+
+    /**
+     * Computes the column-wise dot product of `conj(this matrix)` and `b`.
+     *
+     * @param b  a Dense matrix of same dimension as this
+     * @param result  a Dense row vector, used to store the dot product
+     *                (the number of column in the vector must match the number
+     *                of columns of this)
+     */
+    virtual void compute_conj_dot(const LinOp* b, LinOp* result) const = 0;
+
+    /**
+     * Computes the column-wise Euclidian (L^2) norm of this matrix.
+     *
+     * @param result  a Dense row vector, used to store the norm
+     *                (the number of columns in the vector must match the number
+     *                of columns of this)
+     */
+    virtual void compute_norm2(LinOp* result) const = 0;
+};
 
 /**
  * The EnableLinOp mixin can be used to provide sensible default implementations
