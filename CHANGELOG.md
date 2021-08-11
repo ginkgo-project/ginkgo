@@ -10,9 +10,10 @@ git log --first-parent
 
 The Ginkgo team is proud to announce the new Ginkgo minor release 1.4.0. This
 release brings most of the Ginkgo functionality to the Intel DPC++ ecosystem
-which enables Intel-GPU execution. The only Ginkgo features which have not been
-ported yet are some preconditioners. Ginkgo's mixed-precision support is greatly
-enhanced thanks to:
+which enables Intel-GPU and CPU execution. The only Ginkgo features which have
+not been ported yet are some preconditioners.
+
+Ginkgo's mixed-precision support is greatly enhanced thanks to:
 1. The new Accessor concept, which allows writing kernels featuring on-the-fly
 memory compression, among other features. The accessor can be used as
 header-only, see the [accessor BLAS benchmarks repository](https://github.com/ginkgo-project/accessor-BLAS/tree/develop) as a usage example.
@@ -66,14 +67,18 @@ Algorithm and important feature additions:
 + Add native mixed-precision support to the ELL format. [#717](https://github.com/ginkgo-project/ginkgo/pull/717), [#780](https://github.com/ginkgo-project/ginkgo/pull/780)
 + Add Reverse Cuthill-McKee reordering [#500](https://github.com/ginkgo-project/ginkgo/pull/500), [#649](https://github.com/ginkgo-project/ginkgo/pull/649)
 + Add matrix assembly support on CPUs. [#644](https://github.com/ginkgo-project/ginkgo/pull/644)
++ Extends ISAI from triangular to general and spd matrices. [#690](https://github.com/ginkgo-project/ginkgo/pull/690)
 
 Other additions:
 + Add possibility to apply real matrices to complex vectors.
-  [#655](https://github.com/ginkgo-project/ginkgo/pull/655), [#636](https://github.com/ginkgo-project/ginkgo/pull/636), [#658](https://github.com/ginkgo-project/ginkgo/pull/658)
+  [#655](https://github.com/ginkgo-project/ginkgo/pull/655), [#658](https://github.com/ginkgo-project/ginkgo/pull/658)
++ Add functions to compute the absolute of a matrix format. [#636](https://github.com/ginkgo-project/ginkgo/pull/636)
 + Add symmetric permutation and improve existing permutations.
   [#684](https://github.com/ginkgo-project/ginkgo/pull/684), [#657](https://github.com/ginkgo-project/ginkgo/pull/657), [#663](https://github.com/ginkgo-project/ginkgo/pull/663)
 + Add a MachineTopology class with HWLOC support [#554](https://github.com/ginkgo-project/ginkgo/pull/554), [#697](https://github.com/ginkgo-project/ginkgo/pull/697)
-+ Add an implicit residual norm criterion. [#702](https://github.com/ginkgo-project/ginkgo/pull/702), [#714](https://github.com/ginkgo-project/ginkgo/pull/714),  [#818](https://github.com/ginkgo-project/ginkgo/pull/818), [#850](https://github.com/ginkgo-project/ginkgo/pull/850)
++ Add an implicit residual norm criterion. [#702](https://github.com/ginkgo-project/ginkgo/pull/702), [#818](https://github.com/ginkgo-project/ginkgo/pull/818), [#850](https://github.com/ginkgo-project/ginkgo/pull/850)
++ Row-major accessor is generalized to more than 2 dimensions and a new
+  "block column-major" accessor has been added. [#707](https://github.com/ginkgo-project/ginkgo/pull/707)
 + Add an heat equation example. [#698](https://github.com/ginkgo-project/ginkgo/pull/698), [#706](https://github.com/ginkgo-project/ginkgo/pull/706)
 + Add ccache support in CMake and CI. [#725](https://github.com/ginkgo-project/ginkgo/pull/725), [#739](https://github.com/ginkgo-project/ginkgo/pull/739)
 + Allow tuning and benchmarking variables non intrusively. [#692](https://github.com/ginkgo-project/ginkgo/pull/692)
@@ -89,9 +94,8 @@ Other additions:
 
 
 Changes:
-+ Extends ISAI from triangular to general and spd matrices. [#690](https://github.com/ginkgo-project/ginkgo/pull/690)
 + Add a Scalar Jacobi specialization and kernels. [#808](https://github.com/ginkgo-project/ginkgo/pull/808), [#834](https://github.com/ginkgo-project/ginkgo/pull/834), [#854](https://github.com/ginkgo-project/ginkgo/pull/854)
-+ Add implicit residual log for solvers and benchmarks. [#707](https://github.com/ginkgo-project/ginkgo/pull/707)
++ Add implicit residual log for solvers and benchmarks. [#714](https://github.com/ginkgo-project/ginkgo/pull/714)
 + Change handling of the conjugate in the dense dot product. [#755](https://github.com/ginkgo-project/ginkgo/pull/755)
 + Improved Dense stride handling. [#774](https://github.com/ginkgo-project/ginkgo/pull/774)
 + Multiple improvements to the OpenMP kernels performance, including COO,
