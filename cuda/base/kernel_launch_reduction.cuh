@@ -227,7 +227,9 @@ __global__
         partial = op(partial, fn(row, col, args...));
     }
     partial = reduce(subwarp, partial, op);
-    result[(row + col_block * rows) * result_stride] = finalize(partial);
+    if (subwarp.thread_rank() == 0) {
+        result[(row + col_block * rows) * result_stride] = finalize(partial);
+    }
 }
 
 
