@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/overlap.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -112,8 +113,8 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     } else {
         precision_dispatch_real_complex<ValueType>(
             [this](auto dense_b, auto dense_x) {
-                this->get_executor()->run(
-                    csr::make_spmv(this, dense_b, dense_x));
+                this->get_executor()->run(csr::make_spmv(
+                    this, dense_b, dense_x, OverlapMask{gko::span(0, 0)}));
             },
             b, x);
     }
@@ -146,7 +147,64 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
             [this](auto dense_alpha, auto dense_b, auto dense_beta,
                    auto dense_x) {
                 this->get_executor()->run(csr::make_advanced_spmv(
-                    dense_alpha, this, dense_b, dense_beta, dense_x));
+                    dense_alpha, this, dense_b, dense_beta, dense_x,
+                    OverlapMask{gko::span(0, 0)}));
+            },
+            alpha, b, beta, x);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x,
+                                           const OverlapMask &write_mask) const
+{
+    using ComplexDense = Dense<to_complex<ValueType>>;
+    using TCsr = Csr<ValueType, IndexType>;
+    if (auto b_csr = dynamic_cast<const TCsr *>(b)) {
+        // if b is a CSR matrix, we compute a SpGeMM
+        auto x_csr = as<TCsr>(x);
+        this->get_executor()->run(csr::make_spgemm(this, b_csr, x_csr));
+    } else {
+        precision_dispatch_real_complex<ValueType>(
+            [this, write_mask](auto dense_b, auto dense_x) {
+                this->get_executor()->run(
+                    csr::make_spmv(this, dense_b, dense_x, write_mask));
+            },
+            b, x);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                           const LinOp *beta, LinOp *x,
+                                           const OverlapMask &write_mask) const
+{
+    using ComplexDense = Dense<to_complex<ValueType>>;
+    using RealDense = Dense<remove_complex<ValueType>>;
+    using TCsr = Csr<ValueType, IndexType>;
+    if (auto b_csr = dynamic_cast<const TCsr *>(b)) {
+        // if b is a CSR matrix, we compute a SpGeMM
+        auto x_csr = as<TCsr>(x);
+        auto x_copy = x_csr->clone();
+        this->get_executor()->run(csr::make_advanced_spgemm(
+            as<Dense<ValueType>>(alpha), this, b_csr,
+            as<Dense<ValueType>>(beta), x_copy.get(), x_csr));
+    } else if (dynamic_cast<const Identity<ValueType> *>(b)) {
+        // if b is an identity matrix, we compute an SpGEAM
+        auto x_csr = as<TCsr>(x);
+        auto x_copy = x_csr->clone();
+        this->get_executor()->run(
+            csr::make_spgeam(as<Dense<ValueType>>(alpha), this,
+                             as<Dense<ValueType>>(beta), lend(x_copy), x_csr));
+    } else {
+        precision_dispatch_real_complex<ValueType>(
+            [this, write_mask](auto dense_alpha, auto dense_b, auto dense_beta,
+                               auto dense_x) {
+                this->get_executor()->run(
+                    csr::make_advanced_spmv(dense_alpha, this, dense_b,
+                                            dense_beta, dense_x, write_mask));
             },
             alpha, b, beta, x);
     }

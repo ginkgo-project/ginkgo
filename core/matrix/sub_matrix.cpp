@@ -68,32 +68,6 @@ void SubMatrix<MatrixType>::generate(
     auto exec = this->get_executor();
     this->sub_mtx_ = gko::share(std::move(matrix->get_submatrix(
         row_span, col_span, left_overlaps, right_overlaps)));
-
-    // auto num_overlaps = overlap_row_span.size();
-    // auto overlap_sizes = std::vector<int>(num_overlaps + 1, 0);
-    // for (size_type j = 0; j < num_overlaps; ++j) {
-    //     if (overlap_col_span[j] <= col_span) {
-    //         this->left_overlap_size_ += overlap_col_span[j].length();
-    //         this->left_overlap_bound_ = j;
-    //     }
-    //     overlap_sizes[j + 1] = overlap_col_span[j].length();
-    //     this->overlap_mtxs_.emplace_back(std::move(
-    //         matrix->get_submatrix(overlap_row_span[j],
-    //         overlap_col_span[j])));
-    // }
-    // bool flag = true;
-    // for (size_type i = 1; i < num_overlaps + 1; ++i) {
-    //     overlap_sizes[i] =
-    //         overlap_sizes[i - 1] + this->overlap_mtxs_[i - 1]->get_size()[1];
-    //     if (i > left_overlap_bound_ && flag) {
-    //         overlap_sizes[i] += this->sub_mtx_->get_size()[1];
-    //         flag = false;
-    //     }
-    // }
-    // overlap_sizes[0] = 0;
-    // overlap_sizes_ =
-    //     gko::Array<size_type>(exec->get_master(), overlap_sizes.data(),
-    //                           overlap_sizes.data() + num_overlaps + 1);
 }
 
 
@@ -107,7 +81,6 @@ void SubMatrix<MatrixType>::apply_impl(const LinOp *b, LinOp *x) const
     auto dense_b = as<Dense>(b);
     auto dense_x = as<Dense>(x);
     this->sub_mtx_->apply(dense_b, dense_x);
-    // this->get_executor()->run(sub_matrix::make_spmv(this, dense_b, dense_x));
 }
 
 
@@ -122,8 +95,6 @@ void SubMatrix<MatrixType>::apply_impl(const LinOp *alpha, const LinOp *b,
     auto dense_b = as<Dense>(b);
     auto dense_x = as<Dense>(x);
     this->sub_mtx_->apply(as<Dense>(alpha), dense_b, as<Dense>(beta), dense_x);
-    // this->get_executor()->run(sub_matrix::make_advanced_spmv(
-    //     as<Dense>(alpha), this, dense_b, as<Dense>(beta), dense_x));
 }
 
 
@@ -137,8 +108,10 @@ void SubMatrix<MatrixType>::apply_impl(const LinOp *b, LinOp *x,
 
     auto dense_b = as<Dense>(b);
     auto dense_x = as<Dense>(x);
-    this->get_executor()->run(
-        sub_matrix::make_spmv(this, dense_b, dense_x, write_mask));
+    this->sub_mtx_->apply(dense_b, dense_x, write_mask);
+    // this->get_executor()->run(
+    //     sub_matrix::make_spmv(this, dense_b, this->write_cache_,
+    //     write_mask));
 }
 
 
@@ -153,8 +126,11 @@ void SubMatrix<MatrixType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
     auto dense_b = as<Dense>(b);
     auto dense_x = as<Dense>(x);
-    this->get_executor()->run(sub_matrix::make_advanced_spmv(
-        as<Dense>(alpha), this, dense_b, as<Dense>(beta), dense_x, write_mask));
+    this->sub_mtx_->apply(as<Dense>(alpha), dense_b, as<Dense>(beta), dense_x,
+                          write_mask);
+    // this->get_executor()->run(sub_matrix::make_advanced_spmv(
+    //     as<Dense>(alpha), this, dense_b, as<Dense>(beta), dense_x,
+    //     write_mask));
 }
 
 

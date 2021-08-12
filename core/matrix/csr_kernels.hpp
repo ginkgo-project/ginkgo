@@ -52,10 +52,11 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType)  \
-    void spmv(std::shared_ptr<const DefaultExecutor> exec, \
-              const matrix::Csr<ValueType, IndexType>* a,  \
-              const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+#define GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType)                     \
+    void spmv(std::shared_ptr<const DefaultExecutor> exec,                    \
+              const matrix::Csr<ValueType, IndexType>* a,                     \
+              const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c, \
+              const OverlapMask write_mask)
 
 #define GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType)  \
     void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec, \
@@ -63,7 +64,8 @@ namespace kernels {
                        const matrix::Csr<ValueType, IndexType>* a,  \
                        const matrix::Dense<ValueType>* b,           \
                        const matrix::Dense<ValueType>* beta,        \
-                       matrix::Dense<ValueType>* c)
+                       matrix::Dense<ValueType>* c,                 \
+                       const OverlapMask write_mask)
 
 #define GKO_DECLARE_CSR_SPGEMM_KERNEL(ValueType, IndexType)  \
     void spgemm(std::shared_ptr<const DefaultExecutor> exec, \
@@ -91,21 +93,21 @@ namespace kernels {
 #define GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL(ValueType, IndexType)  \
     void calculate_nonzeros_per_row_in_span(                                   \
         std::shared_ptr<const DefaultExecutor> exec,                           \
-        const matrix::Csr<ValueType, IndexType> *source, const span &row_span, \
-        const span &col_span, Array<size_type> *row_nnz)
+        const matrix::Csr<ValueType, IndexType>* source, const span& row_span, \
+        const span& col_span, Array<size_type>* row_nnz)
 
 #define GKO_DECLARE_CSR_BLOCK_APPROX_KERNEL(ValueType, IndexType)      \
     void block_approx(std::shared_ptr<const DefaultExecutor> exec,     \
-                      const matrix::Csr<ValueType, IndexType> *source, \
-                      matrix::Csr<ValueType, IndexType> *result,       \
-                      Array<size_type> *row_nnz, size_type block_offset)
+                      const matrix::Csr<ValueType, IndexType>* source, \
+                      matrix::Csr<ValueType, IndexType>* result,       \
+                      Array<size_type>* row_nnz, size_type block_offset)
 
 #define GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL(ValueType, IndexType)      \
     void compute_sub_matrix(std::shared_ptr<const DefaultExecutor> exec,     \
-                            const matrix::Csr<ValueType, IndexType> *source, \
-                            const Array<size_type> *row_nnz,                 \
+                            const matrix::Csr<ValueType, IndexType>* source, \
+                            const Array<size_type>* row_nnz,                 \
                             gko::span row_span, gko::span col_span,          \
-                            matrix::Csr<ValueType, IndexType> *result)
+                            matrix::Csr<ValueType, IndexType>* result)
 
 #define GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
     void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,     \

@@ -1444,7 +1444,8 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::Csr<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c,
+          const OverlapMask write_mask)
 {
     if (a->get_strategy()->get_name() == "load_balance") {
         components::fill_array(exec, c->get_values(),
@@ -1534,7 +1535,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::Csr<ValueType, IndexType>* a,
                    const matrix::Dense<ValueType>* b,
                    const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
+                   matrix::Dense<ValueType>* c, const OverlapMask write_mask)
 {
     if (a->get_strategy()->get_name() == "load_balance") {
         dense::scale(exec, beta, c);
@@ -2108,8 +2109,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *source, const span &row_span,
-    const span &col_span, Array<size_type> *row_nnz) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
+    const span& col_span, Array<size_type>* row_nnz) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL);
@@ -2117,9 +2118,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void block_approx(std::shared_ptr<const DefaultExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType> *source,
-                  matrix::Csr<ValueType, IndexType> *result,
-                  Array<size_type> *row_nnz,
+                  const matrix::Csr<ValueType, IndexType>* source,
+                  matrix::Csr<ValueType, IndexType>* result,
+                  Array<size_type>* row_nnz,
                   size_type block_offset) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2128,10 +2129,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void compute_sub_matrix(std::shared_ptr<const DefaultExecutor> exec,
-                        const matrix::Csr<ValueType, IndexType> *source,
-                        const Array<size_type> *row_nnz, gko::span row_span,
+                        const matrix::Csr<ValueType, IndexType>* source,
+                        const Array<size_type>* row_nnz, gko::span row_span,
                         gko::span col_span,
-                        matrix::Csr<ValueType, IndexType> *result)
+                        matrix::Csr<ValueType, IndexType>* result)
 {
     GKO_NOT_IMPLEMENTED;
 }

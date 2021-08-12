@@ -783,17 +783,17 @@ public:
     void compute_absolute_inplace() override;
 
     std::vector<std::unique_ptr<SubMatrix<Csr>>> get_block_approx(
-        const Array<size_type> &num_blocks,
-        const Overlap<size_type> &block_overlaps = {},
-        const Array<size_type> &permutation = {}) const override;
+        const Array<size_type>& num_blocks,
+        const Overlap<size_type>& block_overlaps = {},
+        const Array<size_type>& permutation = {}) const override;
 
     std::unique_ptr<Csr<ValueType, IndexType>> get_submatrix(
-        const gko::span &row_span, const gko::span &column_span) const override;
+        const gko::span& row_span, const gko::span& column_span) const override;
 
     std::unique_ptr<Csr<ValueType, IndexType>> get_submatrix(
-        const gko::span &row_span, const gko::span &column_span,
-        const std::vector<gko::span> &left_overlaps,
-        const std::vector<gko::span> &right_overlaps) const override;
+        const gko::span& row_span, const gko::span& column_span,
+        const std::vector<gko::span>& left_overlaps,
+        const std::vector<gko::span>& right_overlaps) const override;
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index
@@ -991,6 +991,12 @@ protected:
         GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_num_elems());
         this->make_srow();
     }
+
+    void apply_impl(const LinOp* b, LinOp* x,
+                    const OverlapMask& write_mask) const override;
+
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x, const OverlapMask& write_mask) const override;
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
