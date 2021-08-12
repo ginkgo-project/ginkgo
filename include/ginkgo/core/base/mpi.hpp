@@ -294,7 +294,7 @@ public:
     enum class win_type { allocate = 1, create = 2, dynamic_create = 3 };
     enum class lock_type { shared = 1, exclusive = 2 };
 
-    window() : window_(MPI_WIN_NULL) {}
+    window() : window_(0) {}
     window(window& other) = default;
     window& operator=(const window& other) = default;
     window(window&& other) = default;
@@ -405,29 +405,29 @@ void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
 
 
 template <typename GatherType>
-void all_gather(GatherType *recv_buffer, const int *recv_count,
-                const int *displacements,
+void all_gather(GatherType* recv_buffer, const int* recv_count,
+                const int* displacements,
                 std::shared_ptr<const communicator> comm = {},
                 std::shared_ptr<request> req = {});
 
 
 template <typename SendType, typename RecvType>
-void all_gather(const SendType *send_buffer, const int send_count,
-                RecvType *recv_buffer, const int *recv_counts,
-                const int *displacements,
+void all_gather(const SendType* send_buffer, const int send_count,
+                RecvType* recv_buffer, const int* recv_counts,
+                const int* displacements,
                 std::shared_ptr<const communicator> comm = {},
                 std::shared_ptr<request> req = {});
 
 
 template <typename GatherType>
-void all_gather(GatherType *recv_buffer, const int recv_count,
+void all_gather(GatherType* recv_buffer, const int recv_count,
                 std::shared_ptr<const communicator> comm = {},
                 std::shared_ptr<request> req = {});
 
 
 template <typename SendType, typename RecvType>
-void all_gather(const SendType *send_buffer, const int send_count,
-                RecvType *recv_buffer, const int recv_counts,
+void all_gather(const SendType* send_buffer, const int send_count,
+                RecvType* recv_buffer, const int recv_counts,
                 std::shared_ptr<const communicator> comm = {},
                 std::shared_ptr<request> req = {});
 
