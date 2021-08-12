@@ -283,7 +283,7 @@ public:
     enum class win_type { allocate = 1, create = 2, dynamic_create = 3 };
     enum class lock_type { shared = 1, exclusive = 2 };
 
-    window() : window_(nullptr) {}
+    window() : window_(0) {}
     window(window &other) = default;
     window &operator=(const window &other) = default;
     window(window &&other) = default;

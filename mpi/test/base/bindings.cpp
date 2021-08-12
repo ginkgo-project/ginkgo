@@ -71,7 +71,7 @@ protected:
 TEST_F(MpiBindings, CanSetADefaultWindow)
 {
     gko::mpi::window<int> win;
-    ASSERT_EQ(win.get(), nullptr);
+    ASSERT_EQ(win.get(), 0);
 }
 
 
@@ -82,7 +82,7 @@ TEST_F(MpiBindings, CanCreateWindow)
     data = new ValueType[4]{1, 2, 3, 4};
     auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
     auto win = gko::mpi::window<ValueType>(data, 4 * sizeof(ValueType), comm);
-    ASSERT_NE(win.get(), nullptr);
+    ASSERT_NE(win.get(), 0);
     win.lock_all();
     win.unlock_all();
     delete data;
