@@ -52,10 +52,11 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType)  \
-    void spmv(std::shared_ptr<const DefaultExecutor> exec, \
-              const matrix::Csr<ValueType, IndexType> *a,  \
-              const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+#define GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType)                     \
+    void spmv(std::shared_ptr<const DefaultExecutor> exec,                    \
+              const matrix::Csr<ValueType, IndexType> *a,                     \
+              const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c, \
+              const OverlapMask write_mask)
 
 #define GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType)  \
     void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec, \
@@ -63,7 +64,8 @@ namespace kernels {
                        const matrix::Csr<ValueType, IndexType> *a,  \
                        const matrix::Dense<ValueType> *b,           \
                        const matrix::Dense<ValueType> *beta,        \
-                       matrix::Dense<ValueType> *c)
+                       matrix::Dense<ValueType> *c,                 \
+                       const OverlapMask write_mask)
 
 #define GKO_DECLARE_CSR_SPGEMM_KERNEL(ValueType, IndexType)  \
     void spgemm(std::shared_ptr<const DefaultExecutor> exec, \

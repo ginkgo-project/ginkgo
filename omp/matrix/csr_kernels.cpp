@@ -73,7 +73,8 @@ namespace csr {
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Csr<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c,
+          const OverlapMask write_mask)
 {
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
@@ -104,7 +105,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Csr<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
+                   matrix::Dense<ValueType> *c, const OverlapMask write_mask)
 {
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
