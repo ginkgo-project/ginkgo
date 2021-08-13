@@ -616,12 +616,12 @@ void all_to_all(const SendType *send_buffer, const int *send_counts,
     if (!req.get()) {
         bindings::all_to_all_v(
             send_buffer, send_counts, send_offsets, send_type, recv_buffer,
-            recv_counts, recv_offsets, send_type,
+            recv_counts, recv_offsets, recv_type,
             comm ? comm->get() : communicator::get_comm_world());
     } else {
         bindings::i_all_to_all_v(
             send_buffer, send_counts, send_offsets, send_type, recv_buffer,
-            recv_counts, recv_offsets, send_type,
+            recv_counts, recv_offsets, recv_type,
             comm ? comm->get() : communicator::get_comm_world(),
             req->get_requests());
     }
