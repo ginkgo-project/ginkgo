@@ -54,7 +54,8 @@ namespace gko {
 
 
 struct OverlapMask {
-    gko::span write_idxs;
+    gko::span write_idxs{0, 0};
+    bool restrict{false};
 };
 
 

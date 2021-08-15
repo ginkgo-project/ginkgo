@@ -77,17 +77,34 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
+    auto wspan = write_mask.write_idxs;
+    auto restrict = write_mask.restrict;
 
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
+        ValueType sum = zero<ValueType>();
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c->at(row, j) = zero<ValueType>();
+            if (restrict) {
+                if (wspan.in_span(row)) {
+                    c->at(row, j) = zero<ValueType>();
+                }
+            } else {
+                c->at(row, j) = zero<ValueType>();
+            }
         }
         for (size_type k = row_ptrs[row];
              k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
             auto val = vals[k];
             auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) += val * b->at(col, j);
+            if (restrict) {
+                if (wspan.in_span(row)) {
+                    for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                        c->at(row, j) += val * b->at(col, j);
+                    }
+                }
+            } else {
+                for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                    c->at(row, j) += val * b->at(col, j);
+                }
             }
         }
     }
