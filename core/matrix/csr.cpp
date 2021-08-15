@@ -113,8 +113,8 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     } else {
         precision_dispatch_real_complex<ValueType>(
             [this](auto dense_b, auto dense_x) {
-                this->get_executor()->run(csr::make_spmv(
-                    this, dense_b, dense_x, OverlapMask{gko::span(0, 0)}));
+                this->get_executor()->run(
+                    csr::make_spmv(this, dense_b, dense_x, OverlapMask{}));
             },
             b, x);
     }
@@ -148,7 +148,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                    auto dense_x) {
                 this->get_executor()->run(csr::make_advanced_spmv(
                     dense_alpha, this, dense_b, dense_beta, dense_x,
-                    OverlapMask{gko::span(0, 0)}));
+                    OverlapMask{}));
             },
             alpha, b, beta, x);
     }

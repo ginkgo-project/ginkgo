@@ -90,6 +90,12 @@ using MPI_Info = int *;
 #endif
 #endif
 
+#ifdef OMPI_MAJOR_VERSION
+#define DEFAULT_WIN nullptr
+#else
+#define DEFAULT_WIN 0
+#endif
+
 
 template <typename T>
 using array_manager = std::unique_ptr<T, std::function<void(T *)>>;
@@ -283,7 +289,7 @@ public:
     enum class win_type { allocate = 1, create = 2, dynamic_create = 3 };
     enum class lock_type { shared = 1, exclusive = 2 };
 
-    window() : window_(0) {}
+    window() : window_(DEFAULT_WIN) {}
     window(window &other) = default;
     window &operator=(const window &other) = default;
     window(window &&other) = default;
