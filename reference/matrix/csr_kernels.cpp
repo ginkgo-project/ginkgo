@@ -82,12 +82,14 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
 
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         ValueType sum = zero<ValueType>();
-        for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            if (restrict) {
-                if (wspan.in_span(row)) {
+        if (restrict) {
+            if (wspan.in_span(row)) {
+                for (size_type j = 0; j < c->get_size()[1]; ++j) {
                     c->at(row, j) = zero<ValueType>();
                 }
-            } else {
+            }
+        } else {
+            for (size_type j = 0; j < c->get_size()[1]; ++j) {
                 c->at(row, j) = zero<ValueType>();
             }
         }
@@ -126,17 +128,35 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     auto vals = a->get_const_values();
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
+    auto wspan = write_mask.write_idxs;
+    auto restrict = write_mask.restrict;
 
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
-        for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c->at(row, j) *= vbeta;
+        if (restrict) {
+            if (wspan.in_span(row)) {
+                for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                    c->at(row, j) *= vbeta;
+                }
+            }
+        } else {
+            for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                c->at(row, j) *= vbeta;
+            }
         }
         for (size_type k = row_ptrs[row];
              k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
             auto val = vals[k];
             auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) += valpha * val * b->at(col, j);
+            if (restrict) {
+                if (wspan.in_span(row)) {
+                    for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                        c->at(row, j) += valpha * val * b->at(col, j);
+                    }
+                }
+            } else {
+                for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                    c->at(row, j) += valpha * val * b->at(col, j);
+                }
             }
         }
     }

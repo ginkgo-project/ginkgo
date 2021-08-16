@@ -245,13 +245,13 @@ TYPED_TEST(Csr, RestrictAppliesToDenseVector)
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
     y->at(0) = T{0.0};
-    y->at(1) = T{0.0};
+    y->at(1) = T{2489.0};
 
     auto wmask = gko::OverlapMask{gko::span(0, 1), true};
     this->mtx->apply(x.get(), y.get(), wmask);
 
     EXPECT_EQ(y->at(0), T{13.0});
-    EXPECT_EQ(y->at(1), T{0.0});
+    EXPECT_EQ(y->at(1), T{2489.0});
 }
 
 
@@ -267,6 +267,9 @@ TYPED_TEST(Csr, RestrictAppliesToDenseVector2)
                                      {0.0, 2.0, 2.0, -1.0, 2.5, 1.0, 0.5},
                                      {0.5, -1.5, 1.5, 0.0, -4.0, 0.0, 1.0}},
                                     this->exec);
+    auto smat = gko::initialize<Mtx>({{1.0, 0.0, -2.5, 3.0, -2.5, -1.0, 0.5},
+                                      {0.0, 2.0, 2.0, -1.0, 2.5, 1.0, 0.5}},
+                                     this->exec);
     auto x =
         gko::initialize<Vec>({2.0, 1.0, 4.0, 2.5, -1.5, 0.0, 1.5}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{6, 1});
@@ -278,13 +281,62 @@ TYPED_TEST(Csr, RestrictAppliesToDenseVector2)
     y->at(5) = T{1.5};
 
     auto wmask = gko::OverlapMask{gko::span(3, 5), true};
+    auto y2 =
+        Vec::create(this->exec, gko::dim<2>{wmask.write_idxs.length(), 1});
+
     mat->apply(x.get(), y.get(), wmask);
+    smat->apply(x.get(), y2.get());
 
     EXPECT_EQ(y->at(0), T{0.5});
     EXPECT_EQ(y->at(1), T{0.5});
     EXPECT_EQ(y->at(2), T{1.0});
-    EXPECT_EQ(y->at(3), T{4.0});
-    EXPECT_EQ(y->at(4), T{4.5});
+    EXPECT_EQ(y->at(3), y2->at(0));
+    EXPECT_EQ(y->at(4), y2->at(1));
+    EXPECT_EQ(y->at(5), T{1.5});
+}
+
+
+TYPED_TEST(Csr, RestrictAdvancedAppliesToDenseVector)
+{
+    using Vec = typename TestFixture::Vec;
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto mat = gko::initialize<Mtx>({{2, -1.0, 0.0, 3.0, 0.0, 1.5, -1.0},
+                                     {0.0, 0.0, -2.0, -1.0, 2, -1.0, 0.0},
+                                     {0.0, 2.0, 2.0, 4.0, 2.0, 1.0, -0.5},
+                                     {1.0, 0.0, -2.5, 3.0, -2.5, -1.0, 0.5},
+                                     {0.0, 2.0, 2.0, -1.0, 2.5, 1.0, 0.5},
+                                     {0.5, -1.5, 1.5, 0.0, -4.0, 0.0, 1.0}},
+                                    this->exec);
+    auto smat = gko::initialize<Mtx>({{1.0, 0.0, -2.5, 3.0, -2.5, -1.0, 0.5},
+                                      {0.0, 2.0, 2.0, -1.0, 2.5, 1.0, 0.5}},
+                                     this->exec);
+    auto x =
+        gko::initialize<Vec>({2.0, 1.0, 4.0, 2.5, -1.5, 0.0, 1.5}, this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{6, 1});
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    y->at(0) = T{0.5};
+    y->at(1) = T{0.5};
+    y->at(2) = T{1.0};
+    y->at(3) = T{0.1};
+    y->at(4) = T{0.9};
+    y->at(5) = T{1.5};
+
+    auto wmask = gko::OverlapMask{gko::span(3, 5), true};
+    auto y2 =
+        Vec::create(this->exec, gko::dim<2>{wmask.write_idxs.length(), 1});
+    y2->at(0) = T{0.1};
+    y2->at(1) = T{0.9};
+
+    mat->apply(alpha.get(), x.get(), beta.get(), y.get(), wmask);
+    smat->apply(alpha.get(), x.get(), beta.get(), y2.get());
+
+    EXPECT_EQ(y->at(0), T{0.5});
+    EXPECT_EQ(y->at(1), T{0.5});
+    EXPECT_EQ(y->at(2), T{1.0});
+    EXPECT_EQ(y->at(3), y2->at(0));
+    EXPECT_EQ(y->at(4), y2->at(1));
     EXPECT_EQ(y->at(5), T{1.5});
 }
 
