@@ -73,8 +73,6 @@ void BlockApprox<MatrixType>::generate(const Array<size_type> &block_sizes,
 
     for (size_type j = 0; j < block_mtxs.size(); ++j) {
         block_mtxs_.emplace_back(std::move(block_mtxs[j]));
-        // block_dims_.emplace_back(block_mtxs_.back()->get_size());
-        // block_nnzs_.emplace_back(block_mtxs_.back()->get_num_stored_elements());
     }
 }
 
@@ -88,20 +86,30 @@ void BlockApprox<MatrixType>::apply_impl(const LinOp *b, LinOp *x) const
 
     auto dense_b = as<Dense>(b);
     auto dense_x = as<Dense>(x);
-    // this->get_executor()->run(block_approx::make_spmv(this, dense_b,
-    // dense_x));
     auto num_blocks = block_mtxs_.size();
     for (size_type b = 0; b < num_blocks; ++b) {
-        auto block_size = this->block_mtxs_[b]->get_size();
+        auto block_size = block_sizes_.get_const_data()[b];
+        size_type left_ov = 0;
+        size_type right_ov = 0;
+        if (block_overlaps_.get_num_elems() > 0) {
+            left_ov = block_overlaps_.get_left_overlap_at(b);
+            right_ov = block_overlaps_.get_right_overlap_at(b);
+        }
         auto b_view = dense_b->create_submatrix(
-            span{block_ptrs_.get_const_data()[b],
-                 block_ptrs_.get_const_data()[b] + block_size[0]},
+            span{block_ptrs_.get_const_data()[b] - left_ov,
+                 block_ptrs_.get_const_data()[b] + block_size + right_ov},
             span{0, dense_x->get_size()[1]});
         auto x_view = dense_x->create_submatrix(
-            span{block_ptrs_.get_const_data()[b],
-                 block_ptrs_.get_const_data()[b] + block_size[0]},
+            span{block_ptrs_.get_const_data()[b] - left_ov,
+                 block_ptrs_.get_const_data()[b] + block_size + right_ov},
             span{0, dense_x->get_size()[1]});
-        this->block_mtxs_[b]->apply(b_view.get(), x_view.get());
+        if (block_overlaps_.get_num_elems() == 0) {
+            this->block_mtxs_[b]->apply(b_view.get(), x_view.get());
+        } else {
+            auto row_span = span{left_ov, left_ov + block_size};
+            this->block_mtxs_[b]->apply(b_view.get(), x_view.get(),
+                                        OverlapMask{row_span, true});
+        }
     }
 }
 
@@ -119,17 +127,31 @@ void BlockApprox<MatrixType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
     auto num_blocks = block_mtxs_.size();
     for (size_type b = 0; b < num_blocks; ++b) {
-        auto block_size = this->block_mtxs_[b]->get_size();
+        auto block_size = block_sizes_.get_const_data()[b];
+        size_type left_ov = 0;
+        size_type right_ov = 0;
+        if (block_overlaps_.get_num_elems() > 0) {
+            left_ov = block_overlaps_.get_left_overlap_at(b);
+            right_ov = block_overlaps_.get_right_overlap_at(b);
+        }
         auto b_view = dense_b->create_submatrix(
-            span{block_ptrs_.get_const_data()[b],
-                 block_ptrs_.get_const_data()[b] + block_size[0]},
+            span{block_ptrs_.get_const_data()[b] - left_ov,
+                 block_ptrs_.get_const_data()[b] + block_size + right_ov},
             span{0, dense_x->get_size()[1]});
         auto x_view = dense_x->create_submatrix(
-            span{block_ptrs_.get_const_data()[b],
-                 block_ptrs_.get_const_data()[b] + block_size[0]},
+            span{block_ptrs_.get_const_data()[b] - left_ov,
+                 block_ptrs_.get_const_data()[b] + block_size + right_ov},
             span{0, dense_x->get_size()[1]});
-        this->block_mtxs_[b]->apply(as<Dense>(alpha), b_view.get(),
-                                    as<Dense>(beta), x_view.get());
+
+        if (block_overlaps_.get_num_elems() == 0) {
+            this->block_mtxs_[b]->apply(as<Dense>(alpha), b_view.get(),
+                                        as<Dense>(beta), x_view.get());
+        } else {
+            auto row_span = span{left_ov, left_ov + block_size};
+            this->block_mtxs_[b]->apply(as<Dense>(alpha), b_view.get(),
+                                        as<Dense>(beta), x_view.get(),
+                                        OverlapMask{row_span, true});
+        }
     }
 }
 
@@ -141,6 +163,21 @@ void BlockApprox<MatrixType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BLOCK_APPROX_CSR_GENERATE);
+
+
+#define GKO_DECLARE_BLOCK_APPROX_CSR_RAPPLY(ValueType, IndexType) \
+    void BlockApprox<Csr<ValueType, IndexType>>::apply_impl(      \
+        const LinOp *b, LinOp *x, const OverlapMask &write_mask) const
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_APPROX_CSR_RAPPLY);
+
+
+#define GKO_DECLARE_BLOCK_APPROX_CSR_RAPPLY2(ValueType, IndexType)       \
+    void BlockApprox<Csr<ValueType, IndexType>>::apply_impl(             \
+        const LinOp *alpha, const LinOp *b, const LinOp *beta, LinOp *x, \
+        const OverlapMask &write_mask) const
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BLOCK_APPROX_CSR_RAPPLY2);
 
 
 #define GKO_DECLARE_BLOCK_APPROX_CSR_APPLY(ValueType, IndexType)            \

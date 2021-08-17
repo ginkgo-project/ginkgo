@@ -93,6 +93,36 @@ class Overlap {
 public:
     const ValueType *get_overlaps() const { return overlaps_.get_const_data(); }
 
+    ValueType get_left_overlap_at(size_type idx) const
+    {
+        GKO_ASSERT(idx < this->get_num_elems());
+        auto unidir = is_unidirectional_.get_const_data()[idx];
+        auto st_ov = overlap_at_start_.get_const_data()[idx];
+        ValueType ov = st_ov ? overlaps_.get_const_data()[idx] : 0;
+        if (!unidir) {
+            ov = overlaps_.get_const_data()[idx];
+        }
+        if (idx == 0) {
+            ov = 0;
+        }
+        return ov;
+    }
+
+    ValueType get_right_overlap_at(size_type idx) const
+    {
+        GKO_ASSERT(idx < this->get_num_elems());
+        auto unidir = is_unidirectional_.get_const_data()[idx];
+        auto st_ov = overlap_at_start_.get_const_data()[idx];
+        auto ov = unidir ? overlaps_.get_const_data()[idx] : 0;
+        if (!unidir) {
+            ov = overlaps_.get_const_data()[idx];
+        }
+        if (idx == this->get_num_elems() - 1) {
+            ov = 0;
+        }
+        return ov;
+    }
+
     const bool *get_unidirectional_array() const
     {
         return is_unidirectional_.get_const_data();

@@ -80,6 +80,7 @@ protected:
                 const Array<size_type> &num_blocks = {},
                 const Overlap<size_type> &block_overlaps = {})
         : EnableLinOp<BlockApprox<MatrixType>>{exec, dim<2>{}},
+          block_sizes_{num_blocks},
           block_overlaps_{block_overlaps},
           block_ptrs_{Array<index_type>(exec, num_blocks.get_num_elems() + 1)},
           block_mtxs_{}
@@ -89,11 +90,24 @@ protected:
                 const Array<size_type> &num_blocks = {},
                 const Overlap<size_type> &block_overlaps = {})
         : EnableLinOp<BlockApprox<MatrixType>>{exec, matrix->get_size()},
+          block_sizes_{num_blocks},
           block_overlaps_{block_overlaps},
           block_ptrs_{Array<index_type>(exec, num_blocks.get_num_elems() + 1)},
           block_mtxs_{}
     {
         this->generate(num_blocks, block_overlaps, matrix);
+    }
+
+    void apply_impl(const LinOp *b, LinOp *x,
+                    const OverlapMask &write_mask) const override
+    {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x, const OverlapMask &write_mask) const override
+    {
+        GKO_NOT_IMPLEMENTED;
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -109,6 +123,7 @@ private:
     Overlap<size_type> block_overlaps_;
     std::vector<dim<2>> block_dims_;
     Array<index_type> block_ptrs_;
+    Array<size_type> block_sizes_;
     std::vector<size_type> block_nnzs_;
     std::vector<std::shared_ptr<SubMatrix<MatrixType>>> block_mtxs_;
 };
