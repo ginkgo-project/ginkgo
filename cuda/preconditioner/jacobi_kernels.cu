@@ -65,8 +65,6 @@ constexpr int default_num_warps = 32;
 // current GPUs have at most 84 SMs)
 constexpr int default_grid_size = 32 * 32 * 128;
 
-constexpr int default_block_size = 512;
-
 
 #include "common/cuda_hip/preconditioner/jacobi_kernels.hpp.inc"
 
