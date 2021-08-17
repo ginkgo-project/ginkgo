@@ -65,19 +65,23 @@ calculate_overlap_row_and_col_spans(const dim<2> &size, span &rspan,
                                     bool st_overlap)
 {
     if (!unidir) {
-        auto or_span = std::vector<span>{rspan, rspan};
+        auto or_span =
+            std::vector<span>{span{rspan.begin - overlap, rspan.begin},
+                              span{rspan.end, rspan.end + overlap}};
         auto oc_span =
             std::vector<span>{span{cspan.begin - overlap, cspan.begin},
                               span{cspan.end, cspan.end + overlap}};
         return std::make_tuple<std::vector<span>, std::vector<span>>(
             std::move(or_span), std::move(oc_span));
     } else {
-        auto or_span = std::vector<span>{rspan};
         std::vector<span> oc_span;
+        std::vector<span> or_span;
         if (st_overlap) {
             oc_span.push_back(span{cspan.begin - overlap, cspan.begin});
+            or_span.push_back(span{rspan.begin - overlap, rspan.begin});
         } else {
             oc_span.push_back(span{cspan.end, cspan.end + overlap});
+            or_span.push_back(span{rspan.end, rspan.end + overlap});
         }
         return std::make_tuple<std::vector<span>, std::vector<span>>(
             std::move(or_span), std::move(oc_span));

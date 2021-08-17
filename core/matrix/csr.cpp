@@ -234,10 +234,21 @@ Csr<ValueType, IndexType>::get_block_approx(
             auto st_overlap = block_overlaps_in.get_overlap_at_start_array()[b];
             auto overlap_spans = calculate_overlap_row_and_col_spans(
                 this->get_size(), mspan, mspan, unidir, overlap, st_overlap);
+            std::vector<gko::span> loverlap;
+            std::vector<gko::span> roverlap;
+            if (unidir) {
+                if (st_overlap) {
+                    loverlap.push_back(std::get<0>(overlap_spans)[0]);
+                } else {
+                    roverlap.push_back(std::get<0>(overlap_spans)[0]);
+                }
+            } else {
+                loverlap.push_back(std::get<0>(overlap_spans)[0]);
+                roverlap.push_back(std::get<0>(overlap_spans)[1]);
+            }
             block_mtxs.emplace_back(
                 SubMatrix<Csr<ValueType, IndexType>>::create(
-                    exec, this, mspan, mspan, std::get<0>(overlap_spans),
-                    std::get<1>(overlap_spans)));
+                    exec, this, mspan, mspan, loverlap, roverlap));
         } else {
             block_mtxs.emplace_back(
                 SubMatrix<Csr<ValueType, IndexType>>::create(exec, this, mspan,
