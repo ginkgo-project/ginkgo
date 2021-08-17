@@ -127,8 +127,11 @@ protected:
         int nrhs = 3;
 
         agg = gen_agg_array(m, n);
-        unfinished_agg = gen_array(m, -1, n - 1);
-        strongest_neighbor = gen_array(m, 0, n - 1);
+        // only use 0 ~ n-2 and ensure the end isolated and not yet finished
+        unfinished_agg = gen_array(m, -1, n - 2);
+        unfinished_agg.get_data()[n - 1] = -1;
+        strongest_neighbor = gen_array(m, 0, n - 2);
+        strongest_neighbor.get_data()[n - 1] = n - 1;
         coarse_vector = gen_mtx(n, nrhs);
         fine_vector = gen_mtx(m, nrhs);
         auto weight = gen_mtx(m, m);

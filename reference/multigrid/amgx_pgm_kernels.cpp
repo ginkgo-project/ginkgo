@@ -74,7 +74,7 @@ void match_edge(std::shared_ptr<const ReferenceExecutor> exec,
             auto neighbor = strongest_neighbor_vals[i];
             // i < neighbor always holds when neighbor is not -1
             if (neighbor != -1 && strongest_neighbor_vals[neighbor] == i &&
-                i < neighbor) {
+                i <= neighbor) {
                 // Use the smaller index as agg point
                 agg_vals[i] = i;
                 agg_vals[neighbor] = i;
