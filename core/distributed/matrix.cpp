@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/distributed/vector.hpp>
 
+#include <ginkgo/core/matrix/csr.hpp>
+
 
 #include "core/distributed/matrix_kernels.hpp"
 
@@ -46,6 +48,10 @@ GKO_REGISTER_OPERATION(build_diag_offdiag,
                        distributed_matrix::build_diag_offdiag);
 GKO_REGISTER_OPERATION(map_to_global_idxs,
                        distributed_matrix::map_to_global_idxs);
+GKO_REGISTER_OPERATION(merge_diag_offdiag,
+                       distributed_matrix::merge_diag_offdiag);
+GKO_REGISTER_OPERATION(combine_local_mtxs,
+                       distributed_matrix::combine_local_mtxs);
 }  // namespace matrix
 
 
@@ -287,6 +293,36 @@ void Matrix<ValueType, LocalIndexType>::validate_data() const
             host_gather_idx_ptr, host_gather_idx_ptr + num_gather_rows,
             [&](auto row) { return row >= 0 && row < num_local_rows; }));
 }
+
+
+template <typename ValueType, typename LocalIndexType>
+void Matrix<ValueType, LocalIndexType>::convert_to(
+    gko::matrix::Csr<ValueType, LocalIndexType>* result) const
+{
+    // already have total size
+    // compute total nonzero number
+    auto exec = this->get_executor();
+
+    dim<2> local_size{this->get_local_diag()->get_size()[0],
+                      this->get_size()[1]};
+    auto local_nnz = this->get_local_diag()->get_num_stored_elements() +
+                     this->get_local_offdiag()->get_num_stored_elements();
+    // merge diag and off diag
+    auto tmp = gko::matrix::Csr<ValueType, LocalIndexType>::create(
+        exec, local_size, local_nnz);
+    exec->run(matrix::make_merge_diag_offdiag(
+        this->get_local_diag(), this->get_local_offdiag(), tmp.get()));
+
+    auto global_nnz = local_nnz;
+    mpi::all_reduce(&global_nnz, 1, mpi::op_type::sum,
+                    this->get_communicator());
+
+    // copy all merged data to result
+    exec->run(matrix::make_combine_local_mtxs(tmp.get(), result));
+}
+template <typename ValueType, typename LocalIndexType>
+void Matrix<ValueType, LocalIndexType>::move_to(
+    gko::matrix::Csr<ValueType, LocalIndexType>* result) GKO_NOT_IMPLEMENTED;
 
 
 #define GKO_DECLARE_DISTRIBUTED_MATRIX(ValueType, LocalIndexType) \

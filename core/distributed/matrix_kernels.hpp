@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 
 
 namespace gko {
@@ -64,13 +65,30 @@ namespace kernels {
                             const SourceType* input, size_t n,           \
                             TargetType* output, const TargetType* map)
 
+#define GKO_DECLARE_MERGE_DIAG_OFFDIAG(ValueType, LocalIndexType) \
+    void merge_diag_offdiag(                                      \
+        std::shared_ptr<const DefaultExecutor> exec,              \
+        const matrix::Csr<ValueType, LocalIndexType>* diag,       \
+        const matrix::Csr<ValueType, LocalIndexType>* offdiag,    \
+        matrix::Csr<ValueType, LocalIndexType>* result)
+
+#define GKO_DECLARE_COMBINE_LOCAL_MTXS(ValueType, LocalIndexType) \
+    void combine_local_mtxs(                                      \
+        std::shared_ptr<const DefaultExecutor> exec,              \
+        const matrix::Csr<ValueType, LocalIndexType>* local,      \
+        matrix::Csr<ValueType, LocalIndexType>* result)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                           \
     using global_index_type = distributed::global_index_type;  \
     using comm_index_type = distributed::comm_index_type;      \
     template <typename ValueType, typename LocalIndexType>     \
     GKO_DECLARE_BUILD_DIAG_OFFDIAG(ValueType, LocalIndexType); \
     template <typename SourceType, typename TargetType>        \
-    GKO_DECLARE_MAP_TO_GLOBAL_IDXS(SourceType, TargetType)
+    GKO_DECLARE_MAP_TO_GLOBAL_IDXS(SourceType, TargetType)     \
+    template <typename ValueType, typename LocalIndexType>     \
+    GKO_DECLARE_MERGE_DIAG_OFFDIAG(ValueType, LocalIndexType); \
+    template <typename ValueType, typename LocalIndexType>     \
+    GKO_DECLARE_COMBINE_LOCAL_MTXS(ValueType, LocalIndexType)
 
 namespace omp {
 namespace distributed_matrix {

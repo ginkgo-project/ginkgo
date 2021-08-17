@@ -67,6 +67,24 @@ GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_MAP_TO_GLOBAL_IDXS);
 
 
+template <typename ValueType, typename LocalIndexType>
+void merge_diag_offdiag(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, LocalIndexType>* diag,
+                        const matrix::Csr<ValueType, LocalIndexType>* offdiag,
+                        matrix::Csr<ValueType, LocalIndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_MERGE_DIAG_OFFDIAG);
+
+template <typename ValueType, typename LocalIndexType>
+void combine_local_mtxs(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, LocalIndexType>* local,
+                        matrix::Csr<ValueType, LocalIndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COMBINE_LOCAL_MTXS);
+
+
 }  // namespace distributed_matrix
 }  // namespace hip
 }  // namespace kernels
