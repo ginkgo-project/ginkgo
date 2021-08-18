@@ -59,7 +59,24 @@ public:
 
     std::vector<dim<2>> get_block_dimensions() const { return block_dims_; }
 
+    Array<size_type> get_non_overlap_block_sizes() const
+    {
+        return block_sizes_;
+    }
+
     std::vector<size_type> get_block_nonzeros() const { return block_nnzs_; }
+
+    std::vector<size_type> get_block_left_overlaps() const
+    {
+        return left_overlaps_;
+    }
+
+    std::vector<size_type> get_block_right_overlaps() const
+    {
+        return right_overlaps_;
+    }
+
+    bool has_overlap() const { return has_overlap_; }
 
     Array<index_type> get_block_ptrs_array() const { return block_ptrs_; }
 
@@ -84,7 +101,11 @@ protected:
           block_overlaps_{block_overlaps},
           block_ptrs_{Array<index_type>(exec, num_blocks.get_num_elems() + 1)},
           block_mtxs_{}
-    {}
+    {
+        if (block_overlaps_.get_num_elems() > 0) {
+            has_overlap_ = true;
+        }
+    }
 
     BlockApprox(std::shared_ptr<const Executor> exec, const MatrixType *matrix,
                 const Array<size_type> &num_blocks = {},
@@ -95,6 +116,9 @@ protected:
           block_ptrs_{Array<index_type>(exec, num_blocks.get_num_elems() + 1)},
           block_mtxs_{}
     {
+        if (block_overlaps_.get_num_elems() > 0) {
+            has_overlap_ = true;
+        }
         this->generate(num_blocks, block_overlaps, matrix);
     }
 
@@ -124,7 +148,10 @@ private:
     std::vector<dim<2>> block_dims_;
     Array<index_type> block_ptrs_;
     Array<size_type> block_sizes_;
+    bool has_overlap_;
     std::vector<size_type> block_nnzs_;
+    std::vector<size_type> left_overlaps_;
+    std::vector<size_type> right_overlaps_;
     std::vector<std::shared_ptr<SubMatrix<MatrixType>>> block_mtxs_;
 };
 

@@ -70,8 +70,16 @@ void BlockApprox<MatrixType>::generate(const Array<size_type> &block_sizes,
     this->get_executor()->run(block_approx::make_compute_block_ptrs(
         num_blocks, block_sizes.get_const_data(), block_ptrs_.get_data()));
     block_ptrs_.set_executor(this->get_executor()->get_master());
+    size_type left_ov = 0;
+    size_type right_ov = 0;
 
     for (size_type j = 0; j < block_mtxs.size(); ++j) {
+        if (block_overlaps_.get_num_elems() > 0) {
+            left_ov = block_overlaps_.get_left_overlap_at(j);
+            right_ov = block_overlaps_.get_right_overlap_at(j);
+        }
+        left_overlaps_.emplace_back(left_ov);
+        right_overlaps_.emplace_back(right_ov);
         block_mtxs_.emplace_back(std::move(block_mtxs[j]));
     }
 }
@@ -89,12 +97,8 @@ void BlockApprox<MatrixType>::apply_impl(const LinOp *b, LinOp *x) const
     auto num_blocks = block_mtxs_.size();
     for (size_type b = 0; b < num_blocks; ++b) {
         auto block_size = block_sizes_.get_const_data()[b];
-        size_type left_ov = 0;
-        size_type right_ov = 0;
-        if (block_overlaps_.get_num_elems() > 0) {
-            left_ov = block_overlaps_.get_left_overlap_at(b);
-            right_ov = block_overlaps_.get_right_overlap_at(b);
-        }
+        size_type left_ov = left_overlaps_[b];
+        size_type right_ov = right_overlaps_[b];
         auto b_view = dense_b->create_submatrix(
             span{block_ptrs_.get_const_data()[b] - left_ov,
                  block_ptrs_.get_const_data()[b] + block_size + right_ov},
@@ -106,9 +110,9 @@ void BlockApprox<MatrixType>::apply_impl(const LinOp *b, LinOp *x) const
         if (block_overlaps_.get_num_elems() == 0) {
             this->block_mtxs_[b]->apply(b_view.get(), x_view.get());
         } else {
-            auto row_span = span{left_ov, left_ov + block_size};
-            this->block_mtxs_[b]->apply(b_view.get(), x_view.get(),
-                                        OverlapMask{row_span, true});
+            this->block_mtxs_[b]->apply(
+                b_view.get(), x_view.get(),
+                OverlapMask{gko::span{left_ov, left_ov + block_size}, true});
         }
     }
 }
