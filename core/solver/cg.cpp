@@ -99,6 +99,18 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
+void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x,
+                               const OverlapMask &wmask) const
+{
+    precision_dispatch_real_complex_distributed<ValueType>(
+        [this, wmask](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x, wmask);
+        },
+        b, x);
+}
+
+
+template <typename ValueType>
 template <typename VectorType>
 void Cg<ValueType>::apply_dense_impl(const VectorType *dense_b,
                                      VectorType *dense_x) const
@@ -195,6 +207,110 @@ void Cg<ValueType>::apply_dense_impl(const VectorType *dense_b,
 
 
 template <typename ValueType>
+template <typename VectorType>
+void Cg<ValueType>::apply_dense_impl(const VectorType *dense_b,
+                                     VectorType *dense_x,
+                                     const OverlapMask &wmask) const
+{
+    using std::swap;
+    using LocalVector = matrix::Dense<ValueType>;
+
+    constexpr uint8 RelativeStoppingId{1};
+
+    auto exec = this->get_executor();
+
+    auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
+    auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
+
+    auto r = detail::create_with_same_size(dense_b);
+    auto z = detail::create_with_same_size(dense_b);
+    auto p = detail::create_with_same_size(dense_b);
+    auto q = detail::create_with_same_size(dense_b);
+
+    auto alpha = LocalVector::create(exec, dim<2>{1, dense_b->get_size()[1]});
+    auto beta = LocalVector::create_with_config_of(alpha.get());
+    auto prev_rho = LocalVector::create_with_config_of(alpha.get());
+    auto rho = LocalVector::create_with_config_of(alpha.get());
+
+    bool one_changed{};
+    Array<stopping_status> stop_status(alpha->get_executor(),
+                                       dense_b->get_size()[1]);
+
+    // TODO: replace this with automatic merged kernel generator
+    exec->run(cg::make_initialize(
+        detail::get_local(dense_b), detail::get_local(r.get()),
+        detail::get_local(z.get()), detail::get_local(p.get()),
+        detail::get_local(q.get()), prev_rho.get(), rho.get(), &stop_status));
+    // r = dense_b
+    // rho = 0.0
+    // prev_rho = 1.0
+    // z = p = q = 0
+
+    GKO_ASSERT(dense_x->get_executor() != nullptr);
+    GKO_ASSERT(r->get_executor() != nullptr);
+    GKO_ASSERT(neg_one_op->get_executor() != nullptr);
+    GKO_ASSERT(one_op->get_executor() != nullptr);
+    GKO_ASSERT(this->system_matrix_->get_executor() != nullptr);
+    auto x_clone = as<VectorType>(dense_x->clone());
+    this->system_matrix_->apply(neg_one_op.get(), x_clone.get(), one_op.get(),
+                                r.get());
+    auto stop_criterion = stop_criterion_factory_->generate(
+        system_matrix_,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}),
+        x_clone.get(), r.get());
+
+    int iter = -1;
+    /* Memory movement summary:
+     * 18n * values + matrix/preconditioner storage
+     * 1x SpMV:           2n * values + storage
+     * 1x Preconditioner: 2n * values + storage
+     * 2x dot             4n
+     * 1x step 1 (axpy)   3n
+     * 1x step 2 (axpys)  6n
+     * 1x norm2 residual   n
+     */
+    while (true) {
+        this->get_preconditioner()->apply(r.get(), z.get());
+        r->compute_conj_dot(z.get(), rho.get());
+
+        ++iter;
+        this->template log<log::Logger::iteration_complete>(
+            this, iter, r.get(), dense_x, nullptr, rho.get());
+        if (stop_criterion->update()
+                .num_iterations(iter)
+                .residual(r.get())
+                .implicit_sq_residual_norm(rho.get())
+                .solution(x_clone.get())
+                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
+            break;
+        }
+
+        // tmp = rho / prev_rho
+        // p = z + tmp * p
+        exec->run(cg::make_step_1(detail::get_local(p.get()),
+                                  detail::get_local(z.get()), rho.get(),
+                                  prev_rho.get(), &stop_status));
+        this->system_matrix_->apply(p.get(), q.get());
+        p->compute_conj_dot(q.get(), beta.get());
+        // tmp = rho / beta
+        // x = x + tmp * p
+        // r = r - tmp * q
+        exec->run(cg::make_step_2(
+            detail::get_local(x_clone.get()), detail::get_local(r.get()),
+            detail::get_local(p.get()), detail::get_local(q.get()), beta.get(),
+            rho.get(), &stop_status));
+        swap(prev_rho, rho);
+    }
+    // FIXME
+    auto x_view = dense_x->create_submatrix(
+        wmask.write_idxs, gko::span(0, dense_x->get_size()[1]));
+    auto xclone_view = x_clone->create_submatrix(
+        wmask.write_idxs, gko::span(0, dense_x->get_size()[1]));
+    x_view->copy_from(xclone_view.get());
+}
+
+
+template <typename ValueType>
 void Cg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                const LinOp *beta, LinOp *x) const
 {
@@ -204,6 +320,27 @@ void Cg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
             this->apply_dense_impl(dense_b, x_clone.get());
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
+}
+
+
+template <typename ValueType>
+void Cg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                               const LinOp *beta, LinOp *x,
+                               const OverlapMask &wmask) const
+{
+    precision_dispatch_real_complex_distributed<ValueType>(
+        [this, wmask](auto dense_alpha, auto dense_b, auto dense_beta,
+                      auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get(), wmask);
+            auto x_view = dense_x->create_submatrix(
+                wmask.write_idxs, span(0, dense_x->get_size()[1]));
+            auto xclone_view = dense_x->create_submatrix(
+                wmask.write_idxs, span(0, x_clone->get_size()[1]));
+            x_view->scale(dense_beta);
+            x_view->add_scaled(dense_alpha, xclone_view.get());
         },
         alpha, b, beta, x);
 }

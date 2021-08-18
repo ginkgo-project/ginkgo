@@ -64,6 +64,15 @@ protected:
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
           stopped{},
           non_stopped{},
+          mtx2(gko::initialize<Mtx>(
+              {
+                  {4.0, -1.0, 0.0, 0.0, 0.0},
+                  {-1.0, 4.0, -1.0, 0.0, 0.0},
+                  {0.0, -1.0, 4.0, -1.0, 0.0},
+                  {0.0, 0.0, -1.0, 4.0, -1.0},
+                  {0.0, 0.0, 0.0, -1.0, 4.0},
+              },
+              exec)),
           cg_factory(
               Solver::build()
                   .with_criteria(
@@ -127,6 +136,7 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Mtx> mtx2;
     std::shared_ptr<Mtx> mtx_big;
     std::unique_ptr<Mtx> small_one;
     std::unique_ptr<Mtx> small_zero;
@@ -249,6 +259,21 @@ TYPED_TEST(Cg, KernelStep2DivByZero)
 
     GKO_ASSERT_MTX_NEAR(this->small_x, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_r, l({{4.0, 4.0}, {4.0, 4.0}}), 0);
+}
+
+
+TYPED_TEST(Cg, SolvesSystemWithRestrictedApply)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->cg_factory->generate(this->mtx2);
+    auto b = gko::initialize<Mtx>({2.0, 5.5, 5.5, -7.0, -0.5}, this->exec);
+    auto x = gko::initialize<Mtx>({91.0, 0.0, 0.0, 0.0, 92.0}, this->exec);
+
+    solver->apply(b.get(), x.get(), gko::OverlapMask{gko::span(1, 4), true});
+
+    GKO_ASSERT_MTX_NEAR(x, l({91.0, 2.0, 1.5, -1.5, 92.0}),
+                        r<value_type>::value * 1e1);
 }
 
 
