@@ -93,8 +93,8 @@ void AmgxPgm<ValueType, IndexType>::generate()
     // Initial agg = -1
     exec->run(amgx_pgm::make_fill_array(agg_.get_data(), agg_.get_num_elems(),
                                         -one<IndexType>()));
-    IndexType num_unagg{0};
-    IndexType num_unagg_prev{0};
+    IndexType num_unagg = num_rows;
+    IndexType num_unagg_prev = num_rows;
     // TODO: if mtx is a hermitian matrix, weight_mtx = abs(mtx)
     // compute weight_mtx = (abs(mtx) + abs(mtx'))/2;
     auto abs_mtx = amgxpgm_op->compute_absolute();
@@ -128,9 +128,11 @@ void AmgxPgm<ValueType, IndexType>::generate()
         // copy the agg to intermediate_agg
         intermediate_agg = agg_;
     }
-    // Assign all left points
-    exec->run(amgx_pgm::make_assign_to_exist_agg(weight_mtx.get(), diag.get(),
-                                                 agg_, intermediate_agg));
+    if (num_unagg != 0) {
+        // Assign all left points
+        exec->run(amgx_pgm::make_assign_to_exist_agg(
+            weight_mtx.get(), diag.get(), agg_, intermediate_agg));
+    }
     IndexType num_agg = 0;
     // Renumber the index
     exec->run(amgx_pgm::make_renumber(agg_, &num_agg));
@@ -153,9 +155,9 @@ void AmgxPgm<ValueType, IndexType>::generate()
     // TODO: use less memory footprint to improve it
     auto coarse_matrix =
         share(matrix_type::create(exec, gko::dim<2>{coarse_dim, coarse_dim}));
-    auto tmp = matrix_type::create(exec, gko::dim<2>{coarse_dim, fine_dim});
-    restrict_op->apply(amgxpgm_op, tmp.get());
-    tmp->apply(prolong_op.get(), coarse_matrix.get());
+    auto tmp = matrix_type::create(exec, gko::dim<2>{fine_dim, coarse_dim});
+    amgxpgm_op->apply(prolong_op.get(), tmp.get());
+    restrict_op->apply(tmp.get(), coarse_matrix.get());
 
     this->set_multigrid_level(prolong_op, coarse_matrix, restrict_op);
 }

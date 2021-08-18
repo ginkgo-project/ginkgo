@@ -304,7 +304,8 @@ TYPED_TEST(AmgxPgm, MatchEdge)
     snb_val[1] = 0;
     snb_val[2] = 0;
     snb_val[3] = 1;
-    snb_val[4] = 2;
+    // isolated item
+    snb_val[4] = 4;
 
     gko::kernels::reference::amgx_pgm::match_edge(this->exec, snb, agg);
 
@@ -312,7 +313,8 @@ TYPED_TEST(AmgxPgm, MatchEdge)
     ASSERT_EQ(agg_val[1], -1);
     ASSERT_EQ(agg_val[2], 0);
     ASSERT_EQ(agg_val[3], -1);
-    ASSERT_EQ(agg_val[4], -1);
+    // isolated item should be self aggregation
+    ASSERT_EQ(agg_val[4], 4);
 }
 
 
