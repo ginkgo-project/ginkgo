@@ -80,6 +80,9 @@ public:
         dim<2> size,
         std::shared_ptr<const Partition<local_index_type>> partition);
 
+    void redistribute(
+        std::shared_ptr<const Partition<local_index_type>> new_partition);
+
     void validate_data() const override;
 
     void convert_to(
@@ -116,6 +119,8 @@ protected:
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
+
+    void write_local(matrix_data<ValueType, global_index_type>& data);
 
 private:
     std::vector<comm_index_type> send_offsets_;
