@@ -154,9 +154,23 @@ public:
 
     void validate_data() const override;
 
-    const local_mtx_type *create_submatrix() const { GKO_NOT_IMPLEMENTED; }
+    std::unique_ptr<local_mtx_type> create_submatrix(
+        const span &rspan, const span &cspan, const size_type stride) const
+    {
+        GKO_NOT_IMPLEMENTED;
+    }
 
-    local_mtx_type *create_submatrix() { GKO_NOT_IMPLEMENTED; }
+    std::unique_ptr<local_mtx_type> create_submatrix(const span &rspan,
+                                                     const span &cspan) const
+    {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    std::unique_ptr<local_mtx_type> create_submatrix(const span &rspan,
+                                                     const span &cspan)
+    {
+        GKO_NOT_IMPLEMENTED;
+    }
 
 protected:
     Vector(std::shared_ptr<const Executor> exec,
