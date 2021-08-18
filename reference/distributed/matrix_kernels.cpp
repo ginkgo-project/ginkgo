@@ -50,7 +50,10 @@ void build_diag_offdiag(
     comm_index_type local_part,
     Array<matrix_data_entry<ValueType, LocalIndexType>> &diag_data,
     Array<matrix_data_entry<ValueType, LocalIndexType>> &offdiag_data,
-    Array<LocalIndexType> &local_gather_idxs, comm_index_type *recv_offsets,
+    Array<LocalIndexType> &local_gather_idxs,
+    comm_index_type *recv_offsets,  // why not pass as array
+    Array<global_index_type> &local_row_to_global,
+    Array<global_index_type> &local_offdiag_col_to_global,
     ValueType deduction_help)
 {
     using range_index_type = global_index_type;
@@ -95,6 +98,9 @@ void build_diag_offdiag(
         return static_cast<LocalIndexType>(idx - info.begin) + info.base_rank;
     };
 
+    local_row_to_global.resize_and_reset(partition->get_part_size(local_part));
+    local_row_to_global.fill(-1);  // initialize with invalid global id
+
     range_info row_range{};
     range_info col_range{};
     // store offdiagonal columns and their range indices
@@ -111,6 +117,7 @@ void build_diag_offdiag(
         }
         // map to part-local indices
         auto local_row = map_to_local(entry.row, row_range);
+        local_row_to_global.get_data()[local_row] = entry.row;
         update_range(entry.column, col_range);
         if (col_range.part == local_part) {
             // store diagonal entry
@@ -150,6 +157,15 @@ void build_diag_offdiag(
             entry.first - range_begin + range_rank);
         offdiag_global_to_local[entry.first] = idx;
         ++recv_offsets[part];
+    }
+    // build local-to-global map for offdiag columns
+    local_offdiag_col_to_global.resize_and_reset(
+        local_gather_idxs.get_num_elems());
+    local_offdiag_col_to_global.fill(-1);
+    for (const auto &key_value : offdiag_global_to_local) {
+        const auto global_idx = key_value.first;
+        const auto local_idx = key_value.second;
+        local_offdiag_col_to_global.get_data()[local_idx] = global_idx;
     }
     // shift recv_offsets to the back, insert 0 in front again
     LocalIndexType local_prev{};

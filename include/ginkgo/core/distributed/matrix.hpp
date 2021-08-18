@@ -115,6 +115,8 @@ private:
     std::vector<comm_index_type> recv_offsets_;
     std::vector<comm_index_type> recv_sizes_;
     Array<local_index_type> gather_idxs_;
+    Array<global_index_type> local_to_global_row;
+    Array<global_index_type> local_to_global_offdiag_col;
     LocalVec one_scalar_;
     mutable DenseCache<value_type> host_send_buffer_;
     mutable DenseCache<value_type> host_recv_buffer_;

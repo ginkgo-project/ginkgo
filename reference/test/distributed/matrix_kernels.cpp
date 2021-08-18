@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -65,6 +66,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueLocalIndexType())>::type;
     using local_entry = gko::matrix_data_entry<value_type, local_index_type>;
     using global_entry = gko::matrix_data_entry<value_type, global_index_type>;
+    using Mtx = gko::matrix::Csr<value_type, local_index_type>;
 
     Matrix()
         : ref(gko::ReferenceExecutor::create()),
@@ -73,8 +75,23 @@ protected:
           diag{ref},
           offdiag{ref},
           gather_idxs{ref},
-          recv_offsets{ref}
-    {}
+          recv_offsets{ref},
+          local_to_global_row{ref},
+          local_to_global_col{ref},
+          mat_diag{Mtx::create(ref)},
+          mat_offdiag{Mtx::create(ref)},
+          mat_merged{Mtx::create(ref)}
+    {
+        mat_diag->read({{0, 0, 1}, {0, 1, 2}, {1, 1, 3}});
+        mat_offdiag->read({{0, 0, 4}, {0, 1, 5}, {1, 0, 6}, {1, 1, 7}});
+        mat_merged->read({{0, 0, 1},
+                          {0, 1, 2},
+                          {1, 1, 3},
+                          {0, 2, 4},
+                          {0, 3, 5},
+                          {1, 2, 6},
+                          {1, 3, 7}});
+    }
 
     void validate(
         const gko::distributed::Partition<local_index_type> *partition,
@@ -112,13 +129,46 @@ protected:
              ++part) {
             gko::kernels::reference::distributed_matrix::build_diag_offdiag(
                 ref, input, partition, part, diag, offdiag, gather_idxs,
-                recv_offsets.get_data(), value_type{});
+                recv_offsets.get_data(), local_to_global_row,
+                local_to_global_col, value_type{});
 
             GKO_ASSERT_ARRAY_EQ(diag, ref_diags[part]);
             GKO_ASSERT_ARRAY_EQ(offdiag, ref_offdiags[part]);
             GKO_ASSERT_ARRAY_EQ(gather_idxs, ref_gather_idxs[part]);
             GKO_ASSERT_ARRAY_EQ(recv_offsets, ref_recv_offsets[part]);
         }
+    }
+
+    gko::Array<global_entry> create_input_not_full_rank()
+    {
+        return gko::Array<global_entry>{
+            this->ref, std::initializer_list<global_entry>{{0, 0, 1},
+                                                           {0, 3, 2},
+                                                           {2, 2, 5},
+                                                           {3, 0, 6},
+                                                           {3, 3, 7},
+                                                           {4, 4, 8},
+                                                           {4, 6, 9},
+                                                           {5, 4, 10},
+                                                           {5, 5, 11},
+                                                           {6, 5, 12}}};
+    }
+
+    gko::Array<global_entry> create_input_full_rank()
+    {
+        return gko::Array<global_entry>{
+            this->ref, std::initializer_list<global_entry>{{0, 0, 1},
+                                                           {0, 3, 2},
+                                                           {1, 1, 3},
+                                                           {1, 2, 4},
+                                                           {2, 2, 5},
+                                                           {3, 0, 6},
+                                                           {3, 3, 7},
+                                                           {4, 4, 8},
+                                                           {4, 6, 9},
+                                                           {5, 4, 10},
+                                                           {5, 5, 11},
+                                                           {6, 5, 12}}};
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
@@ -128,6 +178,11 @@ protected:
     gko::Array<local_entry> offdiag;
     gko::Array<local_index_type> gather_idxs;
     gko::Array<comm_index_type> recv_offsets;
+    gko::Array<global_index_type> local_to_global_row;
+    gko::Array<global_index_type> local_to_global_col;
+    std::unique_ptr<gko::matrix::Csr<value_type, local_index_type>> mat_diag;
+    std::unique_ptr<gko::matrix::Csr<value_type, local_index_type>> mat_offdiag;
+    std::unique_ptr<gko::matrix::Csr<value_type, local_index_type>> mat_merged;
 };
 
 TYPED_TEST_SUITE(Matrix, gko::test::ValueIndexTypes);
@@ -243,5 +298,138 @@ TYPED_TEST(Matrix, BuildsDiagOffdiagMixed)
                    {{0, 0, 0, 1}, {0, 2, 2, 3}, {0, 1, 2, 2}});
 }
 
+TYPED_TEST(Matrix, BuildRowMapContinuous)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    this->mapping = {this->ref, {0, 0, 0, 1, 1, 2, 2}};
+    constexpr comm_index_type num_parts = 3;
+    auto partition =
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
+    this->recv_offsets.resize_and_reset(num_parts + 1);
+    gko::Array<global_index_type> result[num_parts] = {
+        {this->ref, {0, 1, 2}}, {this->ref, {3, 4}}, {this->ref, {5, 6}}};
+
+    for (int local_id = 0; local_id < num_parts; ++local_id) {
+        gko::kernels::reference::distributed_matrix::build_diag_offdiag(
+            this->ref, this->create_input_full_rank(), partition.get(),
+            local_id, this->diag, this->offdiag, this->gather_idxs,
+            this->recv_offsets.get_data(), this->local_to_global_row,
+            this->local_to_global_col, value_type{});
+
+        GKO_ASSERT_ARRAY_EQ(result[local_id], this->local_to_global_row);
+    }
+}
+
+
+TYPED_TEST(Matrix, BuildRowMapScattered)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    this->mapping = {this->ref, {0, 1, 2, 0, 1, 2, 0}};
+    constexpr comm_index_type num_parts = 3;
+    auto partition =
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
+    this->recv_offsets.resize_and_reset(num_parts + 1);
+    gko::Array<global_index_type> result[num_parts] = {
+        {this->ref, {0, 3, 6}}, {this->ref, {1, 4}}, {this->ref, {2, 5}}};
+
+    for (int local_id = 0; local_id < num_parts; ++local_id) {
+        gko::kernels::reference::distributed_matrix::build_diag_offdiag(
+            this->ref, this->create_input_full_rank(), partition.get(),
+            local_id, this->diag, this->offdiag, this->gather_idxs,
+            this->recv_offsets.get_data(), this->local_to_global_row,
+            this->local_to_global_col, value_type{});
+
+        GKO_ASSERT_ARRAY_EQ(result[local_id], this->local_to_global_row);
+    }
+}
+
+TYPED_TEST(Matrix, BuildRowMapNotFullRank)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    this->mapping = {this->ref, {0, 0, 0, 1, 1, 2, 2}};
+    constexpr comm_index_type num_parts = 3;
+    auto partition =
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
+    this->recv_offsets.resize_and_reset(num_parts + 1);
+    gko::Array<global_index_type> result[num_parts] = {
+        {this->ref, {0, -1, 2}}, {this->ref, {3, 4}}, {this->ref, {5, 6}}};
+
+    for (int local_id = 0; local_id < num_parts; ++local_id) {
+        gko::kernels::reference::distributed_matrix::build_diag_offdiag(
+            this->ref, this->create_input_not_full_rank(), partition.get(),
+            local_id, this->diag, this->offdiag, this->gather_idxs,
+            this->recv_offsets.get_data(), this->local_to_global_row,
+            this->local_to_global_col, value_type{});
+
+        GKO_ASSERT_ARRAY_EQ(result[local_id], this->local_to_global_row);
+    }
+}
+
+
+TYPED_TEST(Matrix, BuildColMapContinuous)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    this->mapping = {this->ref, {0, 0, 0, 1, 1, 2, 2}};
+    constexpr comm_index_type num_parts = 3;
+    auto partition =
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
+    this->recv_offsets.resize_and_reset(num_parts + 1);
+    gko::Array<global_index_type> result[num_parts] = {
+        {this->ref, {3}}, {this->ref, {0, 6}}, {this->ref, {4}}};
+
+    for (int local_id = 0; local_id < num_parts; ++local_id) {
+        gko::kernels::reference::distributed_matrix::build_diag_offdiag(
+            this->ref, this->create_input_full_rank(), partition.get(),
+            local_id, this->diag, this->offdiag, this->gather_idxs,
+            this->recv_offsets.get_data(), this->local_to_global_row,
+            this->local_to_global_col, value_type{});
+
+        GKO_ASSERT_ARRAY_EQ(result[local_id], this->local_to_global_col);
+    }
+}
+
+TYPED_TEST(Matrix, BuildColMapScattered)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    this->mapping = {this->ref, {0, 1, 2, 0, 1, 2, 0}};
+    constexpr comm_index_type num_parts = 3;
+    auto partition =
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
+    this->recv_offsets.resize_and_reset(num_parts + 1);
+    gko::Array<global_index_type> result[num_parts] = {
+        {this->ref, {5}},
+        {this->ref, {6, 2}},
+        {this->ref, {4}}};  // the columns are sorted by their part_id
+
+    for (int local_id = 0; local_id < num_parts; ++local_id) {
+        gko::kernels::reference::distributed_matrix::build_diag_offdiag(
+            this->ref, this->create_input_full_rank(), partition.get(),
+            local_id, this->diag, this->offdiag, this->gather_idxs,
+            this->recv_offsets.get_data(), this->local_to_global_row,
+            this->local_to_global_col, value_type{});
+
+        GKO_ASSERT_ARRAY_EQ(result[local_id], this->local_to_global_col);
+    }
+}
+
+TYPED_TEST(Matrix, MergeLocalMatricesOffdiagRight) {}
+
+TYPED_TEST(Matrix, MergeLocalMatricesOffdiagLeft) {}
+
+TYPED_TEST(Matrix, MergeLocalMatricesOffdiagBoth) {}
+
+TYPED_TEST(Matrix, MergeLocalMatricesEmptyDiag) {}
+
+TYPED_TEST(Matrix, MergeLocalMatricesEmptyOffdiag) {}
 
 }  // namespace
