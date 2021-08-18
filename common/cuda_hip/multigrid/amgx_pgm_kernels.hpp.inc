@@ -47,7 +47,7 @@ __global__ __launch_bounds__(default_block_size) void match_edge_kernel(
     }
     auto neighbor = strongest_neighbor_vals[tidx];
     if (neighbor != -1 && strongest_neighbor_vals[neighbor] == tidx &&
-        tidx < neighbor) {
+        tidx <= neighbor) {
         // Use the smaller index as agg point
         agg_vals[tidx] = tidx;
         agg_vals[neighbor] = tidx;

@@ -78,7 +78,7 @@ void match_edge(std::shared_ptr<const OmpExecutor> exec,
         if (agg_vals[i] == -1) {
             auto neighbor = strongest_neighbor_vals[i];
             if (neighbor != -1 && strongest_neighbor_vals[neighbor] == i &&
-                i < neighbor) {
+                i <= neighbor) {
                 // Use the smaller index as agg point
                 agg_vals[i] = i;
                 agg_vals[neighbor] = i;
