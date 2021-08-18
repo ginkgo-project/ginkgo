@@ -58,6 +58,8 @@ void build_diag_offdiag(
     Array<matrix_data_entry<ValueType, LocalIndexType>> &diag_data,
     Array<matrix_data_entry<ValueType, LocalIndexType>> &offdiag_data,
     Array<LocalIndexType> &local_gather_idxs, comm_index_type *recv_offsets,
+    Array<global_index_type> &local_row_to_global,
+    Array<global_index_type> &local_offdiag_col_to_global,
     ValueType deduction_help)
 {
     using range_index_type = global_index_type;

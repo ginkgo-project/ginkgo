@@ -58,6 +58,8 @@ Matrix<ValueType, LocalIndexType>::Matrix(
       recv_offsets_(comm->size() + 1),
       recv_sizes_(comm->size()),
       gather_idxs_{exec},
+      local_to_global_row{exec},
+      local_to_global_offdiag_col{exec},
       one_scalar_{exec, dim<2>{1, 1}},
       diag_mtx_{exec},
       offdiag_mtx_{exec}
@@ -115,7 +117,8 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
     // build diagonal, off-diagonal matrix and communication structures
     exec->run(matrix::make_build_diag_offdiag(
         *local_data, partition.get(), local_part, diag_data, offdiag_data,
-        recv_gather_idxs, recv_offsets_array.get_data(), ValueType{}));
+        recv_gather_idxs, recv_offsets_array.get_data(), local_to_global_row,
+        local_to_global_offdiag_col, ValueType{}));
 
     dim<2> offdiag_dim{local_size, recv_gather_idxs.get_num_elems()};
     this->diag_mtx_.read(diag_data, diag_dim);
