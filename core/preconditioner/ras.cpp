@@ -100,15 +100,32 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType *dense_b,
         block_ptrs_arr.set_executor(this->get_executor()->get_master());
         auto block_ptrs = block_ptrs_arr.get_const_data();
         auto num_subdomains = this->inner_solvers_.size();
+        auto non_ov_bsize = block_mtx->get_non_overlap_block_sizes();
+        auto left_ov = block_mtx->get_block_left_overlaps();
+        auto right_ov = block_mtx->get_block_right_overlaps();
         for (size_type i = 0; i < num_subdomains; ++i) {
             auto block_size = this->inner_solvers_[i]->get_size();
-            auto b_view = detail::create_submatrix(
-                dense_b, span{block_ptrs[i], block_ptrs[i] + block_size[0]},
-                span{0, dense_x->get_size()[1]});
-            auto x_view = detail::create_submatrix(
-                dense_x, span{block_ptrs[i], block_ptrs[i] + block_size[0]},
-                span{0, dense_x->get_size()[1]});
-            this->inner_solvers_[i]->apply(b_view.get(), x_view.get());
+            auto b_view =
+                detail::create_submatrix(dense_b,
+                                         span{block_ptrs[i] - left_ov[i],
+                                              block_ptrs[i + 1] + right_ov[i]},
+                                         span{0, dense_x->get_size()[1]});
+            auto x_view =
+                detail::create_submatrix(dense_x,
+                                         span{block_ptrs[i] - left_ov[i],
+                                              block_ptrs[i + 1] + right_ov[i]},
+                                         span{0, dense_x->get_size()[1]});
+            if (block_mtx->has_overlap()) {
+                this->inner_solvers_[i]->apply(
+                    b_view.get(), x_view.get(),
+                    gko::OverlapMask{
+                        gko::span{
+                            left_ov[i],
+                            left_ov[i] + non_ov_bsize.get_const_data()[i]},
+                        true});
+            } else {
+                this->inner_solvers_[i]->apply(b_view.get(), x_view.get());
+            }
         }
     }
     if (this->coarse_solvers_.size() > 0) {
