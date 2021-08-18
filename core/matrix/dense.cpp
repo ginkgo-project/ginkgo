@@ -244,34 +244,6 @@ Dense<ValueType>::get_block_approx(const Array<size_type> &block_sizes_in,
                                    const Overlap<size_type> &block_overlaps_in,
                                    const Array<size_type> &permutation) const
     GKO_NOT_IMPLEMENTED;
-// {
-//     auto exec = this->get_executor();
-//     auto bsizes_in = Array<size_type>{exec->get_master()};
-//     bsizes_in = block_sizes_in;
-//     auto num_blocks = block_sizes_in.get_num_elems();
-//     std::vector<std::unique_ptr<SubMatrix<Dense<ValueType>>>> block_mtxs;
-//     size_type offset = 0;
-//     for (size_type b = 0; b < num_blocks; ++b) {
-//         auto bsize = bsizes_in.get_const_data()[b];
-//         auto mspan = gko::span{offset, offset + bsize};
-//         auto unidir = block_overlaps_in.get_unidirectional_array()[b];
-//         auto overlap = block_overlaps_in.get_overlaps()[b];
-//         auto st_overlap = block_overlaps_in.get_overlap_at_start_array()[b];
-//         if (block_overlaps_in.get_num_elems() > 0) {
-//             auto overlap_spans = calculate_overlap_row_and_col_spans(
-//                 this->get_size(), mspan, mspan, unidir, overlap, st_overlap);
-//             block_mtxs.emplace_back(SubMatrix<Dense<ValueType>>::create(
-//                 exec, this, mspan, mspan, std::get<0>(overlap_spans),
-//                 std::get<1>(overlap_spans)));
-//         } else {
-//             block_mtxs.emplace_back(
-//                 SubMatrix<Dense<ValueType>>::create(exec, this, mspan,
-//                 mspan));
-//         }
-//         offset += bsize;
-//     }
-//     return block_mtxs;
-// }
 
 
 template <typename ValueType>

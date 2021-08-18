@@ -83,7 +83,7 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -94,9 +94,21 @@ void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
+void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x,
+                               const OverlapMask& wmask) const
+{
+    precision_dispatch_real_complex_distributed<ValueType>(
+        [this, wmask](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x, wmask);
+        },
+        b, x);
+}
+
+
+template <typename ValueType>
 template <typename VectorType>
-void Ir<ValueType>::apply_dense_impl(const VectorType *dense_b,
-                                     VectorType *dense_x) const
+void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                     VectorType* dense_x) const
 {
     using LocalVector = matrix::Dense<ValueType>;
     constexpr uint8 relative_stopping_id{1};
@@ -164,6 +176,85 @@ void Ir<ValueType>::apply_dense_impl(const VectorType *dense_b,
 }
 
 
+template <typename VectorType>
+void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                     VectorType* dense_x,
+                                     const OverlapMask& wmask) const
+{
+    using LocalVector = matrix::Dense<ValueType>;
+    constexpr uint8 relative_stopping_id{1};
+
+    auto exec = this->get_executor();
+    auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
+    auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
+
+    // FIXME - Performance
+    auto x_clone = as<VectorType>(dense_x->clone());
+    auto residual = detail::create_with_same_size(dense_b);
+    auto inner_solution = detail::create_with_same_size(dense_b);
+
+    bool one_changed{};
+    Array<stopping_status> stop_status(exec, dense_b->get_size()[1]);
+    exec->run(ir::make_initialize(&stop_status));
+
+    residual->copy_from(dense_b);
+    system_matrix_->apply(lend(neg_one_op), x_clone.get(), lend(one_op),
+                          lend(residual));
+
+    auto stop_criterion = stop_criterion_factory_->generate(
+        system_matrix_,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}),
+        x_clone.get(), lend(residual));
+
+    int iter = -1;
+    while (true) {
+        ++iter;
+        this->template log<log::Logger::iteration_complete>(
+            this, iter, lend(residual), x_clone.get());
+
+        if (stop_criterion->update()
+                .num_iterations(iter)
+                .residual(lend(residual))
+                .solution(x_clone.get())
+                .check(relative_stopping_id, true, &stop_status,
+                       &one_changed)) {
+            break;
+        }
+
+        if (solver_->apply_uses_initial_guess()) {
+            // Use the inner solver to solve
+            // A * inner_solution = residual
+            // with residual as initial guess.
+            inner_solution->copy_from(lend(residual));
+            solver_->apply(lend(residual), lend(inner_solution));
+
+            // x = x + relaxation_factor * inner_solution
+            x_clone->add_scaled(lend(relaxation_factor_), lend(inner_solution));
+
+            // residual = b - A * x
+            residual->copy_from(dense_b);
+            system_matrix_->apply(lend(neg_one_op), x_clone.get(), lend(one_op),
+                                  lend(residual));
+        } else {
+            // x = x + relaxation_factor * A \ residual
+            solver_->apply(lend(relaxation_factor_), lend(residual),
+                           lend(one_op), x_clone.get());
+
+            // residual = b - A * x
+            residual->copy_from(dense_b);
+            system_matrix_->apply(lend(neg_one_op), x_clone.get(), lend(one_op),
+                                  lend(residual));
+        }
+    }
+    // FIXME
+    auto x_view = dense_x->create_submatrix(
+        wmask.write_idxs, gko::span(0, dense_x->get_size()[1]));
+    auto xclone_view = x_clone->create_submatrix(
+        wmask.write_idxs, gko::span(0, dense_x->get_size()[1]));
+    x_view->copy_from(xclone_view.get());
+}
+
+
 template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                const LinOp* beta, LinOp* x) const
@@ -174,6 +265,27 @@ void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             this->apply_dense_impl(dense_b, x_clone.get());
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
+}
+
+
+template <typename ValueType>
+void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x,
+                               const OverlapMask& wmask) const
+{
+    precision_dispatch_real_complex_distributed<ValueType>(
+        [this, wmask](auto dense_alpha, auto dense_b, auto dense_beta,
+                      auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get(), wmask);
+            auto x_view = dense_x->create_submatrix(
+                wmask.write_idxs, span(0, dense_x->get_size()[1]));
+            auto xclone_view = dense_x->create_submatrix(
+                wmask.write_idxs, span(0, x_clone->get_size()[1]));
+            x_view->scale(dense_beta);
+            x_view->add_scaled(dense_alpha, xclone_view.get());
         },
         alpha, b, beta, x);
 }
