@@ -225,6 +225,18 @@ protected:
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
+    void apply_impl(const LinOp *b, LinOp *x,
+                    const OverlapMask &wmask) const override
+    {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x, const OverlapMask &wmask) const override
+    {
+        GKO_NOT_IMPLEMENTED;
+    }
+
 private:
     bool is_distributed_;
     std::vector<std::shared_ptr<const LinOp>> inner_solvers_;
