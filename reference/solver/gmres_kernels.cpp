@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
+#include "ginkgo/core/stop/stopping_status.hpp"
 
 
 namespace gko {
@@ -52,54 +53,6 @@ namespace gmres {
 
 
 namespace {
-
-
-template <typename ValueType>
-void finish_arnoldi(size_type num_rows, matrix::Dense<ValueType>* krylov_bases,
-                    matrix::Dense<ValueType>* hessenberg_iter, size_type iter,
-                    const stopping_status* stop_status)
-{
-    const auto krylov_bases_rowoffset = num_rows;
-    const auto next_krylov_rowoffset = (iter + 1) * krylov_bases_rowoffset;
-    for (size_type i = 0; i < hessenberg_iter->get_size()[1]; ++i) {
-        if (stop_status[i].has_stopped()) {
-            continue;
-        }
-        for (size_type k = 0; k < iter + 1; ++k) {
-            hessenberg_iter->at(k, i) = 0;
-            for (size_type j = 0; j < num_rows; ++j) {
-                hessenberg_iter->at(k, i) +=
-                    krylov_bases->at(j + next_krylov_rowoffset, i) *
-                    conj(krylov_bases->at(j + k * krylov_bases_rowoffset, i));
-            }
-            for (size_type j = 0; j < num_rows; ++j) {
-                krylov_bases->at(j + next_krylov_rowoffset, i) -=
-                    hessenberg_iter->at(k, i) *
-                    krylov_bases->at(j + k * krylov_bases_rowoffset, i);
-            }
-        }
-        // for i in 1:iter
-        //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
-        //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
-        // end
-
-        hessenberg_iter->at(iter + 1, i) = 0;
-        for (size_type j = 0; j < num_rows; ++j) {
-            hessenberg_iter->at(iter + 1, i) +=
-                krylov_bases->at(j + next_krylov_rowoffset, i) *
-                krylov_bases->at(j + next_krylov_rowoffset, i);
-        }
-        hessenberg_iter->at(iter + 1, i) =
-            sqrt(hessenberg_iter->at(iter + 1, i));
-        // hessenberg(iter + 1, iter) = norm(krylov_bases)
-        for (size_type j = 0; j < num_rows; ++j) {
-            krylov_bases->at(j + next_krylov_rowoffset, i) /=
-                hessenberg_iter->at(iter + 1, i);
-        }
-        // next_krylov_basis /= hessenberg(iter, iter + 1)
-        // End of arnoldi
-    }
-}
 
 
 template <typename ValueType>
@@ -187,9 +140,12 @@ template <typename ValueType>
 void solve_upper_triangular(
     const matrix::Dense<ValueType>* residual_norm_collection,
     const matrix::Dense<ValueType>* hessenberg, matrix::Dense<ValueType>* y,
-    const size_type* final_iter_nums)
+    const size_type* final_iter_nums, const stopping_status* stop_status)
 {
     for (size_type k = 0; k < residual_norm_collection->get_size()[1]; ++k) {
+        if (stop_status[k].is_finalized()) {
+            continue;
+        }
         for (int i = final_iter_nums[k] - 1; i >= 0; --i) {
             auto temp = residual_norm_collection->at(i, k);
             for (size_type j = i + 1; j < final_iter_nums[k]; ++j) {
@@ -210,10 +166,14 @@ template <typename ValueType>
 void calculate_qy(const matrix::Dense<ValueType>* krylov_bases,
                   const matrix::Dense<ValueType>* y,
                   matrix::Dense<ValueType>* before_preconditioner,
-                  const size_type* final_iter_nums)
+                  const size_type* final_iter_nums,
+                  stopping_status* stop_status)
 {
     const auto krylov_bases_rowoffset = before_preconditioner->get_size()[0];
     for (size_type k = 0; k < before_preconditioner->get_size()[1]; ++k) {
+        if (stop_status[k].is_finalized()) {
+            continue;
+        }
         for (size_type i = 0; i < before_preconditioner->get_size()[0]; ++i) {
             before_preconditioner->at(i, k) = zero<ValueType>();
             for (size_type j = 0; j < final_iter_nums[k]; ++j) {
@@ -222,6 +182,7 @@ void calculate_qy(const matrix::Dense<ValueType>* krylov_bases,
                     y->at(j, k);
             }
         }
+        stop_status[k].finalize();
     }
 }
 
@@ -230,13 +191,14 @@ void calculate_qy(const matrix::Dense<ValueType>* krylov_bases,
 
 
 template <typename ValueType>
-void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
-                  const matrix::Dense<ValueType>* b,
-                  matrix::Dense<ValueType>* residual,
-                  matrix::Dense<ValueType>* givens_sin,
-                  matrix::Dense<ValueType>* givens_cos,
-                  Array<stopping_status>* stop_status, size_type krylov_dim)
+void initialize(std::shared_ptr<const ReferenceExecutor> exec,
+                const matrix::Dense<ValueType>* b,
+                matrix::Dense<ValueType>* residual,
+                matrix::Dense<ValueType>* givens_sin,
+                matrix::Dense<ValueType>* givens_cos,
+                Array<stopping_status>& stop_status)
 {
+    const auto krylov_dim = givens_sin->get_size()[0];
     using NormValueType = remove_complex<ValueType>;
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         for (size_type i = 0; i < b->get_size()[0]; ++i) {
@@ -246,20 +208,20 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
             givens_sin->at(i, j) = zero<ValueType>();
             givens_cos->at(i, j) = zero<ValueType>();
         }
-        stop_status->get_data()[j].reset();
+        stop_status.get_data()[j].reset();
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
-void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
-                  const matrix::Dense<ValueType>* residual,
-                  matrix::Dense<remove_complex<ValueType>>* residual_norm,
-                  matrix::Dense<ValueType>* residual_norm_collection,
-                  matrix::Dense<ValueType>* krylov_bases,
-                  Array<size_type>* final_iter_nums, size_type krylov_dim)
+void restart(std::shared_ptr<const ReferenceExecutor> exec,
+             const matrix::Dense<ValueType>* residual,
+             matrix::Dense<remove_complex<ValueType>>* residual_norm,
+             matrix::Dense<ValueType>* residual_norm_collection,
+             matrix::Dense<ValueType>* krylov_bases,
+             Array<size_type>& final_iter_nums)
 {
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
@@ -273,57 +235,57 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
             krylov_bases->at(i, j) =
                 residual->at(i, j) / residual_norm->at(0, j);
         }
-        final_iter_nums->get_data()[j] = 0;
+        final_iter_nums.get_data()[j] = 0;
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_KERNEL);
 
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const ReferenceExecutor> exec, size_type num_rows,
-            matrix::Dense<ValueType>* givens_sin,
-            matrix::Dense<ValueType>* givens_cos,
-            matrix::Dense<remove_complex<ValueType>>* residual_norm,
-            matrix::Dense<ValueType>* residual_norm_collection,
-            matrix::Dense<ValueType>* krylov_bases,
-            matrix::Dense<ValueType>* hessenberg_iter, size_type iter,
-            Array<size_type>* final_iter_nums,
-            const Array<stopping_status>* stop_status)
+void hessenberg_qr(std::shared_ptr<const ReferenceExecutor> exec,
+                   matrix::Dense<ValueType>* givens_sin,
+                   matrix::Dense<ValueType>* givens_cos,
+                   matrix::Dense<remove_complex<ValueType>>* residual_norm,
+                   matrix::Dense<ValueType>* residual_norm_collection,
+                   matrix::Dense<ValueType>* hessenberg_iter, size_type iter,
+                   Array<size_type>& final_iter_nums,
+                   const Array<stopping_status>& stop_status)
 {
-    for (size_type i = 0; i < final_iter_nums->get_num_elems(); ++i) {
-        final_iter_nums->get_data()[i] +=
-            (1 - stop_status->get_const_data()[i].has_stopped());
+    for (size_type i = 0; i < final_iter_nums.get_num_elems(); ++i) {
+        if (!stop_status.get_const_data()[i].has_stopped()) {
+            final_iter_nums.get_data()[i]++;
+        }
     }
 
-    finish_arnoldi(num_rows, krylov_bases, hessenberg_iter, iter,
-                   stop_status->get_const_data());
     givens_rotation(givens_sin, givens_cos, hessenberg_iter, iter,
-                    stop_status->get_const_data());
+                    stop_status.get_const_data());
     calculate_next_residual_norm(givens_sin, givens_cos, residual_norm,
                                  residual_norm_collection, iter,
-                                 stop_status->get_const_data());
+                                 stop_status.get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_HESSENBERG_QR_KERNEL);
 
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const ReferenceExecutor> exec,
-            const matrix::Dense<ValueType>* residual_norm_collection,
-            const matrix::Dense<ValueType>* krylov_bases,
-            const matrix::Dense<ValueType>* hessenberg,
-            matrix::Dense<ValueType>* y,
-            matrix::Dense<ValueType>* before_preconditioner,
-            const Array<size_type>* final_iter_nums)
+void solve_krylov(std::shared_ptr<const ReferenceExecutor> exec,
+                  const matrix::Dense<ValueType>* residual_norm_collection,
+                  const matrix::Dense<ValueType>* krylov_bases,
+                  const matrix::Dense<ValueType>* hessenberg,
+                  matrix::Dense<ValueType>* y,
+                  matrix::Dense<ValueType>* before_preconditioner,
+                  const Array<size_type>& final_iter_nums,
+                  Array<stopping_status>& stop_status)
 {
     solve_upper_triangular(residual_norm_collection, hessenberg, y,
-                           final_iter_nums->get_const_data());
+                           final_iter_nums.get_const_data(),
+                           stop_status.get_const_data());
     calculate_qy(krylov_bases, y, before_preconditioner,
-                 final_iter_nums->get_const_data());
+                 final_iter_nums.get_const_data(), stop_status.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_SOLVE_KRYLOV_KERNEL);
 
 
 }  // namespace gmres

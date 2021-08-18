@@ -73,6 +73,7 @@ protected:
                       gko::stop::ResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
+                  .with_krylov_dim(3u)
                   .on(exec)),
           mtx_big(gko::initialize<Mtx>(
               {{2295.7, -764.8, 1166.5, 428.9, 291.7, -774.5},
