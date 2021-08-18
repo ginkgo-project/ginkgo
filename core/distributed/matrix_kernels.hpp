@@ -70,7 +70,7 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,              \
         const matrix::Csr<ValueType, LocalIndexType>* diag,       \
         const matrix::Csr<ValueType, LocalIndexType>* offdiag,    \
-        matrix::Csr<ValueType, LocalIndexType>* result)
+        matrix::Csr<ValueType, global_index_type>* result)
 
 #define GKO_DECLARE_COMBINE_LOCAL_MTXS(ValueType, LocalIndexType) \
     void combine_local_mtxs(                                      \
@@ -84,7 +84,7 @@ namespace kernels {
     template <typename ValueType, typename LocalIndexType>     \
     GKO_DECLARE_BUILD_DIAG_OFFDIAG(ValueType, LocalIndexType); \
     template <typename SourceType, typename TargetType>        \
-    GKO_DECLARE_MAP_TO_GLOBAL_IDXS(SourceType, TargetType)     \
+    GKO_DECLARE_MAP_TO_GLOBAL_IDXS(SourceType, TargetType);    \
     template <typename ValueType, typename LocalIndexType>     \
     GKO_DECLARE_MERGE_DIAG_OFFDIAG(ValueType, LocalIndexType); \
     template <typename ValueType, typename LocalIndexType>     \

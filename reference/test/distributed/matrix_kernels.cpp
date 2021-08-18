@@ -65,6 +65,7 @@ protected:
     using local_entry = gko::matrix_data_entry<value_type, local_index_type>;
     using global_entry = gko::matrix_data_entry<value_type, global_index_type>;
     using Mtx = gko::matrix::Csr<value_type, local_index_type>;
+    using GMtx = gko::matrix::Csr<value_type, global_index_type>;
 
     Matrix()
         : ref(gko::ReferenceExecutor::create()),
@@ -78,7 +79,7 @@ protected:
           local_to_global_col{ref},
           mat_diag{Mtx::create(ref)},
           mat_offdiag{Mtx::create(ref)},
-          mat_merged{Mtx::create(ref)}
+          mat_merged{GMtx::create(ref)}
     {
         mat_diag->read({{0, 0, 1}, {0, 1, 2}, {1, 1, 3}});
         mat_offdiag->read({{0, 0, 4}, {0, 1, 5}, {1, 0, 6}, {1, 1, 7}});
@@ -180,7 +181,7 @@ protected:
     gko::Array<global_index_type> local_to_global_col;
     std::unique_ptr<gko::matrix::Csr<value_type, local_index_type>> mat_diag;
     std::unique_ptr<gko::matrix::Csr<value_type, local_index_type>> mat_offdiag;
-    std::unique_ptr<gko::matrix::Csr<value_type, local_index_type>> mat_merged;
+    std::unique_ptr<gko::matrix::Csr<value_type, global_index_type>> mat_merged;
 };
 
 TYPED_TEST_SUITE(Matrix, gko::test::ValueIndexTypes);
@@ -420,7 +421,25 @@ TYPED_TEST(Matrix, BuildColMapScattered)
     }
 }
 
-TYPED_TEST(Matrix, MergeLocalMatricesOffdiagRight) {}
+TYPED_TEST(Matrix, MergeLocalMatricesOffdiagRight)
+{
+    this->mat_diag->read({
+        {0, 0, 1},
+        {1, 1, 3},
+    });
+    this->mat_offdiag->read({{0, 1, 2}, {1, 0, 4}});
+    this->mat_merged =
+        TestFixture::GMtx::create(this->ref, gko::dim<2>{2, 4}, 4);
+    auto result = TestFixture::GMtx::create(this->ref);
+    result->read({{0, 0, 1}, {0, 3, 2}, {1, 1, 3}, {1, 2, 4}});
+
+    gko::kernels::reference::distributed_matrix::merge_diag_offdiag(
+        this->ref, this->mat_diag.get(), this->mat_offdiag.get(),
+        this->local_to_global_row, this->local_to_global_col,
+        this->mat_merged.get());
+
+    GKO_ASSERT_MTX_NEAR(result.get(), this->mat_merged.get(), 0);
+}
 
 TYPED_TEST(Matrix, MergeLocalMatricesOffdiagLeft) {}
 

@@ -204,7 +204,7 @@ template <typename ValueType, typename LocalIndexType>
 void merge_diag_offdiag(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, LocalIndexType>* diag,
                         const matrix::Csr<ValueType, LocalIndexType>* offdiag,
-                        matrix::Csr<ValueType, LocalIndexType>* result)
+                        matrix::Csr<ValueType, global_index_type>* result)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_MERGE_DIAG_OFFDIAG);

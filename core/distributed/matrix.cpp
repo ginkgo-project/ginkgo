@@ -297,8 +297,9 @@ void Matrix<ValueType, LocalIndexType>::validate_data() const
 
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::convert_to(
-    gko::matrix::Csr<ValueType, LocalIndexType>* result) const
+    gko::matrix::Csr<ValueType, global_index_type>* result) const
 {
+    using GMtx = gko::matrix::Csr<ValueType, global_index_type>;
     // already have total size
     // compute total nonzero number
     auto exec = this->get_executor();
@@ -308,8 +309,7 @@ void Matrix<ValueType, LocalIndexType>::convert_to(
     auto local_nnz = this->get_local_diag()->get_num_stored_elements() +
                      this->get_local_offdiag()->get_num_stored_elements();
     // merge diag and off diag
-    auto tmp = gko::matrix::Csr<ValueType, LocalIndexType>::create(
-        exec, local_size, local_nnz);
+    auto tmp = GMtx::create(exec, local_size, local_nnz);
     exec->run(matrix::make_merge_diag_offdiag(
         this->get_local_diag(), this->get_local_offdiag(), tmp.get()));
 
@@ -322,7 +322,7 @@ void Matrix<ValueType, LocalIndexType>::convert_to(
 }
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::move_to(
-    gko::matrix::Csr<ValueType, LocalIndexType>* result) GKO_NOT_IMPLEMENTED;
+    gko::matrix::Csr<ValueType, global_index_type>* result) GKO_NOT_IMPLEMENTED;
 
 
 #define GKO_DECLARE_DISTRIBUTED_MATRIX(ValueType, LocalIndexType) \
