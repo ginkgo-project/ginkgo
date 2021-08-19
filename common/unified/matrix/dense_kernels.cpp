@@ -107,6 +107,32 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
 
 
 template <typename ValueType>
+void scale_real_complex(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Dense<ValueType> *alpha,
+                        matrix::Dense<std::complex<ValueType>> *x)
+{
+    if (alpha->get_size()[1] > 1) {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
+                x(row, col) *= alpha[col];
+            },
+            x->get_size(), alpha->get_const_values(), x);
+    } else {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
+                x(row, col) *= alpha[0];
+            },
+            x->get_size(), alpha->get_const_values(), x);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
+    GKO_DECLARE_DENSE_SCALE_REAL_COMPLEX_KERNEL);
+
+
+template <typename ValueType>
 void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
                const matrix::Dense<ValueType> *alpha,
                matrix::Dense<ValueType> *x)
@@ -129,6 +155,32 @@ void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_INV_SCALE_KERNEL);
+
+
+template <typename ValueType>
+void inv_scale_real_complex(std::shared_ptr<const DefaultExecutor> exec,
+                            const matrix::Dense<ValueType> *alpha,
+                            matrix::Dense<std::complex<ValueType>> *x)
+{
+    if (alpha->get_size()[1] > 1) {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
+                x(row, col) /= alpha[col];
+            },
+            x->get_size(), alpha->get_const_values(), x);
+    } else {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
+                x(row, col) /= alpha[0];
+            },
+            x->get_size(), alpha->get_const_values(), x);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
+    GKO_DECLARE_DENSE_INV_SCALE_REAL_COMPLEX_KERNEL);
 
 
 template <typename ValueType>
@@ -157,6 +209,33 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
 
 
 template <typename ValueType>
+void add_scaled_real_complex(std::shared_ptr<const DefaultExecutor> exec,
+                             const matrix::Dense<ValueType> *alpha,
+                             const matrix::Dense<std::complex<ValueType>> *x,
+                             matrix::Dense<std::complex<ValueType>> *y)
+{
+    if (alpha->get_size()[1] > 1) {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
+                y(row, col) += alpha[col] * x(row, col);
+            },
+            x->get_size(), alpha->get_const_values(), x, y);
+    } else {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
+                y(row, col) += alpha[0] * x(row, col);
+            },
+            x->get_size(), alpha->get_const_values(), x, y);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
+    GKO_DECLARE_DENSE_ADD_SCALED_REAL_COMPLEX_KERNEL);
+
+
+template <typename ValueType>
 void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
                 const matrix::Dense<ValueType> *alpha,
                 const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
@@ -179,6 +258,33 @@ void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SUB_SCALED_KERNEL);
+
+
+template <typename ValueType>
+void sub_scaled_real_complex(std::shared_ptr<const DefaultExecutor> exec,
+                             const matrix::Dense<ValueType> *alpha,
+                             const matrix::Dense<std::complex<ValueType>> *x,
+                             matrix::Dense<std::complex<ValueType>> *y)
+{
+    if (alpha->get_size()[1] > 1) {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
+                y(row, col) -= alpha[col] * x(row, col);
+            },
+            x->get_size(), alpha->get_const_values(), x, y);
+    } else {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
+                y(row, col) -= alpha[0] * x(row, col);
+            },
+            x->get_size(), alpha->get_const_values(), x, y);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
+    GKO_DECLARE_DENSE_SUB_SCALED_REAL_COMPLEX_KERNEL);
 
 
 template <typename ValueType>

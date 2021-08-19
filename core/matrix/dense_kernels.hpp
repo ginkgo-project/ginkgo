@@ -73,19 +73,41 @@ namespace kernels {
     void scale(std::shared_ptr<const DefaultExecutor> exec, \
                const matrix::Dense<_type> *alpha, matrix::Dense<_type> *x)
 
+#define GKO_DECLARE_DENSE_SCALE_REAL_COMPLEX_KERNEL(_type)               \
+    void scale_real_complex(std::shared_ptr<const DefaultExecutor> exec, \
+                            const matrix::Dense<_type> *alpha,           \
+                            matrix::Dense<std::complex<_type>> *x)
+
 #define GKO_DECLARE_DENSE_INV_SCALE_KERNEL(_type)               \
     void inv_scale(std::shared_ptr<const DefaultExecutor> exec, \
                    const matrix::Dense<_type> *alpha, matrix::Dense<_type> *x)
+
+#define GKO_DECLARE_DENSE_INV_SCALE_REAL_COMPLEX_KERNEL(_type)               \
+    void inv_scale_real_complex(std::shared_ptr<const DefaultExecutor> exec, \
+                                const matrix::Dense<_type> *alpha,           \
+                                matrix::Dense<std::complex<_type>> *x)
 
 #define GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(_type)               \
     void add_scaled(std::shared_ptr<const DefaultExecutor> exec, \
                     const matrix::Dense<_type> *alpha,           \
                     const matrix::Dense<_type> *x, matrix::Dense<_type> *y)
 
+#define GKO_DECLARE_DENSE_ADD_SCALED_REAL_COMPLEX_KERNEL(_type)               \
+    void add_scaled_real_complex(std::shared_ptr<const DefaultExecutor> exec, \
+                                 const matrix::Dense<_type> *alpha,           \
+                                 const matrix::Dense<std::complex<_type>> *x, \
+                                 matrix::Dense<std::complex<_type>> *y)
+
 #define GKO_DECLARE_DENSE_SUB_SCALED_KERNEL(_type)               \
     void sub_scaled(std::shared_ptr<const DefaultExecutor> exec, \
                     const matrix::Dense<_type> *alpha,           \
                     const matrix::Dense<_type> *x, matrix::Dense<_type> *y)
+
+#define GKO_DECLARE_DENSE_SUB_SCALED_REAL_COMPLEX_KERNEL(_type)               \
+    void sub_scaled_real_complex(std::shared_ptr<const DefaultExecutor> exec, \
+                                 const matrix::Dense<_type> *alpha,           \
+                                 const matrix::Dense<std::complex<_type>> *x, \
+                                 matrix::Dense<std::complex<_type>> *y)
 
 #define GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL(_type)               \
     void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec, \
@@ -255,11 +277,19 @@ namespace kernels {
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_SCALE_KERNEL(ValueType);                              \
     template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_SCALE_REAL_COMPLEX_KERNEL(ValueType);                 \
+    template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_INV_SCALE_KERNEL(ValueType);                          \
+    template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_INV_SCALE_REAL_COMPLEX_KERNEL(ValueType);             \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(ValueType);                         \
     template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_ADD_SCALED_REAL_COMPLEX_KERNEL(ValueType);            \
+    template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_SUB_SCALED_KERNEL(ValueType);                         \
+    template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_SUB_SCALED_REAL_COMPLEX_KERNEL(ValueType);            \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL(ValueType);                    \
     template <typename ValueType>                                           \
