@@ -57,7 +57,11 @@ int main(int argc, char *argv[])
     using bicgstab = gko::solver::Bicgstab<ValueType>;
     using ras = gko::preconditioner::Ras<ValueType, IndexType>;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
-    using paric = gko::preconditioner::Ic<ValueType, IndexType>;
+    using LowerSolver = gko::solver::LowerTrs<ValueType, IndexType>;
+    using UpperSolver = gko::solver::UpperTrs<ValueType, IndexType>;
+    using paric = gko::preconditioner::Ic<LowerSolver, IndexType>;
+    using ilu =
+        gko::preconditioner::Ilu<LowerSolver, UpperSolver, false, IndexType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -71,6 +75,8 @@ int main(int argc, char *argv[])
     // Figure out where to run the code
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     gko::size_type num_subdomains = argc >= 3 ? std::atoi(argv[2]) : 1;
+    gko::size_type num_ov = argc >= 4 ? std::atoi(argv[3]) : 0;
+    std::string mat_file = argc >= 5 ? argv[4] : "data/A.mtx";
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
@@ -95,10 +101,9 @@ int main(int argc, char *argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     // Read data
-    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    auto A = share(gko::read<mtx>(std::ifstream(mat_file), exec));
     // Create RHS and initial guess as 1
     gko::size_type size = A->get_size()[0];
-    std::cout << "\n Num rows " << size << std::endl;
     auto host_x = gko::matrix::Dense<ValueType>::create(exec->get_master(),
                                                         gko::dim<2>(size, 1));
     for (auto i = 0; i < size; i++) {
@@ -110,19 +115,43 @@ int main(int argc, char *argv[])
     for (auto i = 0; i < size; i++) {
         host_x->at(i, 0) = 1.;
     }
+
+    const RealValueType reduction_factor{1e-7};
+    std::shared_ptr<gko::stop::Iteration::Factory> iter_stop =
+        gko::stop::Iteration::build()
+            .with_max_iters(static_cast<gko::size_type>(size))
+            .on(exec);
+    std::shared_ptr<gko::stop::ResidualNorm<ValueType>::Factory> tol_stop =
+        gko::stop::ResidualNorm<ValueType>::build()
+            .with_reduction_factor(reduction_factor)
+            .on(exec);
+    std::shared_ptr<gko::stop::Combined::Factory> combined_stop =
+        gko::stop::Combined::build()
+            .with_criteria(iter_stop, tol_stop)
+            .on(exec);
+
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create(
+            exec, gko::log::Logger::criterion_check_completed_mask);
+    combined_stop->add_logger(logger);
     b->copy_from(host_x.get());
     auto block_sizes = gko::Array<gko::size_type>(exec, num_subdomains);
     block_sizes.fill(size / num_subdomains);
-    auto block_A = block_approx::create(exec, A.get(), block_sizes);
+    auto block_overlaps =
+        gko::Overlap<gko::size_type>(exec, num_subdomains, num_ov);
+    auto block_A = block_approx::create(exec, A.get(), block_sizes,
+                                        (num_ov > 0 && num_subdomains > 1)
+                                            ? block_overlaps
+                                            : gko::Overlap<gko::size_type>{});
 
     const RealValueType inner_reduction_factor{1e-5};
     auto ras_precond =
         ras::build()
             .with_inner_solver(
-                // bj::build().on(exec)
-                // paric::build().on(exec)
-                cg::build()
-                    // .with_preconditioner(bj::build().on(exec))
+                // bj::build().on(exec))
+                // ilu::build().on(exec))
+                bicgstab::build()
+                    .with_preconditioner(bj::build().on(exec))
                     .with_criteria(
                         // gko::stop::Iteration::build().with_max_iters(20u).on(
                         //     exec),
@@ -132,19 +161,14 @@ int main(int argc, char *argv[])
                     .on(exec))
             .on(exec)
             ->generate(gko::share(block_A));
-    const RealValueType reduction_factor{1e-7};
     // Create solver factory
     auto solver_gen =
         cg::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(size).on(exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec))
+            .with_criteria(combined_stop)
             // Add preconditioner, these 2 lines are the only
             // difference from the simple solver example
             .with_generated_preconditioner(gko::share(ras_precond))
-            // .with_preconditioner(bj::build().on(exec))
+            // .with_preconditioner(ilu::build().on(exec))
             .on(exec);
     // Create solver
     auto solver = solver_gen->generate(A);
@@ -159,10 +183,16 @@ int main(int argc, char *argv[])
     // Calculate residual
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<real_vec>({0.0}, exec);
+    auto res = gko::initialize<real_vec>({0.0}, exec->get_master());
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(res));
 
+
+    std::cout << "Problem size: " << size
+              << "\n Num subdomains: " << num_subdomains
+              << "\n Num overlaps: " << num_ov << std::endl;
     std::cout << "Residual norm sqrt(r^T r):\n";
     write(std::cout, lend(res));
+    std::cout << "Num iterations: " << logger->get_num_iterations()
+              << std::endl;
 }
