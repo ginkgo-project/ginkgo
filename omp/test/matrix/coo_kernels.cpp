@@ -88,22 +88,16 @@ protected:
 
     void set_up_apply_data(int num_vectors = 1)
     {
-        mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx(mtx_size[0], mtx_size[1], 1));
+        mtx = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 1);
         expected = gen_mtx(mtx_size[0], num_vectors, 1);
         y = gen_mtx(mtx_size[1], num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = Mtx::create(omp);
-        dmtx->copy_from(mtx.get());
-        dresult = Vec::create(omp);
-        dresult->copy_from(expected.get());
-        dy = Vec::create(omp);
-        dy->copy_from(y.get());
-        dalpha = Vec::create(omp);
-        dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(omp);
-        dbeta->copy_from(beta.get());
+        dmtx = gko::clone(omp, mtx);
+        dresult = gko::clone(omp, expected);
+        dy = gko::clone(omp, y);
+        dalpha = gko::clone(omp, alpha);
+        dbeta = gko::clone(omp, beta);
     }
 
     struct matrix_pair {
@@ -119,8 +113,7 @@ protected:
         local_mtx_ref->copy_from(generated.get());
         gko::test::unsort_matrix(local_mtx_ref.get(), rand_engine);
 
-        auto local_mtx_omp = Mtx::create(omp);
-        local_mtx_omp->copy_from(local_mtx_ref.get());
+        auto local_mtx_omp = gko::clone(omp, local_mtx_ref);
 
         return {std::move(local_mtx_ref), std::move(local_mtx_omp)};
     }
@@ -282,11 +275,9 @@ TEST_F(Coo, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
-    auto dcomplex_b = ComplexVec::create(omp);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(omp, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
-    auto dcomplex_x = ComplexVec::create(omp);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(omp, complex_x);
 
     mtx->apply(complex_b.get(), complex_x.get());
     dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
@@ -299,11 +290,9 @@ TEST_F(Coo, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
-    auto dcomplex_b = ComplexVec::create(omp);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(omp, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
-    auto dcomplex_x = ComplexVec::create(omp);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(omp, complex_x);
 
     mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
     dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
@@ -316,11 +305,9 @@ TEST_F(Coo, ApplyAddToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
-    auto dcomplex_b = ComplexVec::create(omp);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(omp, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
-    auto dcomplex_x = ComplexVec::create(omp);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(omp, complex_x);
 
     mtx->apply2(alpha.get(), complex_b.get(), complex_x.get());
     dmtx->apply2(dalpha.get(), dcomplex_b.get(), dcomplex_x.get());

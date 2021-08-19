@@ -128,13 +128,11 @@ protected:
         b = gko::test::generate_random_matrix<Vec>(
             dim, num_rhs, std::uniform_int_distribution<>(num_rhs, num_rhs),
             std::normal_distribution<>(0.0, 1.0), engine, ref);
-        d_b = Vec::create(cuda);
-        d_b->copy_from(b.get());
+        d_b = gko::clone(cuda, b);
         x = gko::test::generate_random_matrix<Vec>(
             dim, num_rhs, std::uniform_int_distribution<>(num_rhs, num_rhs),
             std::normal_distribution<>(0.0, 1.0), engine, ref);
-        d_x = Vec::create(cuda);
-        d_x->copy_from(x.get());
+        d_x = gko::clone(cuda, x);
     }
 
     const gko::precision_reduction dp{};
@@ -480,12 +478,9 @@ TEST_F(Jacobi, CudaScalarLinearCombinationApplyEquivalentToRef)
         std::normal_distribution<>(0.0, 1.0), engine, ref, gko::dim<2>(dim, 3),
         4));
 
-    auto d_smtx = gko::share(Mtx::create(cuda));
-    auto d_sb = gko::share(Vec::create(cuda));
-    auto d_sx = gko::share(Vec::create(cuda));
-    d_smtx->copy_from(smtx.get());
-    d_sb->copy_from(sb.get());
-    d_sx->copy_from(sx.get());
+    auto d_smtx = gko::share(gko::clone(cuda, smtx));
+    auto d_sb = gko::share(gko::clone(cuda, sb));
+    auto d_sx = gko::share(gko::clone(cuda, sx));
     auto alpha = gko::initialize<Vec>({2.0}, ref);
     auto d_alpha = gko::initialize<Vec>({2.0}, cuda);
     auto beta = gko::initialize<Vec>({-1.0}, ref);

@@ -76,8 +76,7 @@ protected:
 
         mtx = gen_mtx(123, 123, 125);
         gko::test::make_diag_dominant(mtx.get());
-        d_mtx = Mtx::create(exec);
-        d_mtx->copy_from(mtx.get());
+        d_mtx = gko::clone(exec, mtx);
         exec_bicgstab_factory =
             Solver::build()
                 .with_criteria(
@@ -150,43 +149,24 @@ protected:
         // check correct handling for stopped columns
         stop_status->get_data()[1].stop(1);
 
-        d_x = Mtx::create(exec);
-        d_b = Mtx::create(exec);
-        d_r = Mtx::create(exec);
-        d_z = Mtx::create(exec);
-        d_p = Mtx::create(exec);
-        d_t = Mtx::create(exec);
-        d_s = Mtx::create(exec);
-        d_y = Mtx::create(exec);
-        d_v = Mtx::create(exec);
-        d_rr = Mtx::create(exec);
-        d_prev_rho = Mtx::create(exec);
-        d_rho = Mtx::create(exec);
-        d_alpha = Mtx::create(exec);
-        d_beta = Mtx::create(exec);
-        d_gamma = Mtx::create(exec);
-        d_omega = Mtx::create(exec);
-        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(exec));
-
-        d_x->copy_from(x.get());
-        d_b->copy_from(b.get());
-        d_r->copy_from(r.get());
-        d_z->copy_from(z.get());
-        d_p->copy_from(p.get());
-        d_v->copy_from(v.get());
-        d_y->copy_from(y.get());
-        d_t->copy_from(t.get());
-        d_s->copy_from(s.get());
-        d_rr->copy_from(rr.get());
-        d_prev_rho->copy_from(prev_rho.get());
-        d_rho->copy_from(rho.get());
-        d_alpha->copy_from(alpha.get());
-        d_beta->copy_from(beta.get());
-        d_gamma->copy_from(gamma.get());
-        d_omega->copy_from(omega.get());
-        *d_stop_status =
-            *stop_status;  // copy_from is not a public member function of Array
+        d_x = gko::clone(exec, x);
+        d_b = gko::clone(exec, b);
+        d_r = gko::clone(exec, r);
+        d_z = gko::clone(exec, z);
+        d_p = gko::clone(exec, p);
+        d_t = gko::clone(exec, t);
+        d_s = gko::clone(exec, s);
+        d_y = gko::clone(exec, y);
+        d_v = gko::clone(exec, v);
+        d_rr = gko::clone(exec, rr);
+        d_prev_rho = gko::clone(exec, prev_rho);
+        d_rho = gko::clone(exec, rho);
+        d_alpha = gko::clone(exec, alpha);
+        d_beta = gko::clone(exec, beta);
+        d_gamma = gko::clone(exec, gamma);
+        d_omega = gko::clone(exec, omega);
+        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+            exec, *stop_status);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -326,10 +306,8 @@ TEST_F(Bicgstab, BicgstabApplyOneRHSIsEquivalentToRef)
     auto exec_solver = exec_bicgstab_factory->generate(d_mtx);
     auto b = gen_mtx(m, n, n + 2);
     auto x = gen_mtx(m, n, n + 3);
-    auto d_b = Mtx::create(exec);
-    auto d_x = Mtx::create(exec);
-    d_b->copy_from(b.get());
-    d_x->copy_from(x.get());
+    auto d_b = gko::clone(exec, b);
+    auto d_x = gko::clone(exec, x);
 
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
@@ -347,10 +325,8 @@ TEST_F(Bicgstab, BicgstabApplyMultipleRHSIsEquivalentToRef)
     auto ref_solver = ref_bicgstab_factory->generate(mtx);
     auto b = gen_mtx(m, n, n + 4);
     auto x = gen_mtx(m, n, n + 3);
-    auto d_b = Mtx::create(exec);
-    auto d_x = Mtx::create(exec);
-    d_b->copy_from(b.get());
-    d_x->copy_from(x.get());
+    auto d_b = gko::clone(exec, b);
+    auto d_x = gko::clone(exec, x);
 
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());

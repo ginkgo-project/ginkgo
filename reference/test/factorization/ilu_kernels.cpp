@@ -473,8 +473,7 @@ TYPED_TEST(Ilu, GenerateForReverseCsrSmall)
     using Csr = typename TestFixture::Csr;
     const auto size = this->mtx_csr_small->get_size();
     const auto nnz = size[0] * size[1];
-    auto reverse_csr = gko::share(Csr::create(this->exec));
-    reverse_csr->copy_from(gko::lend(this->mtx_csr_small));
+    auto reverse_csr = gko::share(gko::clone(this->exec, this->mtx_csr_small));
     // Fill the Csr matrix rows in reverse order
     for (size_t i = 0; i < size[0]; ++i) {
         const auto row_start = reverse_csr->get_row_ptrs()[i];

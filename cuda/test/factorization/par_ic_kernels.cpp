@@ -82,8 +82,7 @@ protected:
         dmtx_ani = Csr::create(cuda);
         dmtx_l_ani = Csr::create(cuda);
         dmtx_l_ani_init = Csr::create(cuda);
-        dmtx_l = Csr::create(cuda);
-        dmtx_l->copy_from(lend(mtx_l));
+        dmtx_l = gko::clone(cuda, mtx_l);
     }
 
     void SetUp()
@@ -109,8 +108,7 @@ protected:
             l_builder.get_value_array().resize_and_reset(l_nnz);
             gko::kernels::reference::factorization::initialize_l(
                 ref, lend(mtx_ani), lend(mtx_l_ani), false);
-            mtx_l_ani_init = Csr::create(ref);
-            mtx_l_ani_init->copy_from(lend(mtx_l_ani));
+            mtx_l_ani_init = gko::clone(ref, mtx_l_ani);
             gko::kernels::reference::par_ic_factorization::init_factor(
                 ref, lend(mtx_l_ani_init));
         }
@@ -152,8 +150,7 @@ TEST_F(ParIc, KernelComputeFactorIsEquivalentToRef)
     auto square_size = mtx_ani->get_size();
     auto mtx_l_coo = Coo::create(ref, square_size);
     mtx_l_ani->convert_to(lend(mtx_l_coo));
-    auto dmtx_l_coo = Coo::create(cuda, square_size);
-    dmtx_l_coo->copy_from(lend(mtx_l_coo));
+    auto dmtx_l_coo = gko::clone(cuda, mtx_l_coo);
 
     gko::kernels::reference::par_ic_factorization::compute_factor(
         ref, 1, lend(mtx_l_coo), lend(mtx_l_ani_init));

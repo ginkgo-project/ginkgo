@@ -84,10 +84,8 @@ protected:
 
         dmtx_ani = Csr::create(cuda);
         dmtx_l_ani = Csr::create(cuda);
-        dmtx = Csr::create(cuda);
-        dmtx->copy_from(lend(mtx));
-        dmtx_l = Csr::create(cuda);
-        dmtx_l->copy_from(lend(mtx_l));
+        dmtx = gko::clone(cuda, mtx);
+        dmtx_l = gko::clone(cuda, mtx_l);
     }
 
     void SetUp()

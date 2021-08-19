@@ -95,10 +95,8 @@ protected:
 
         dmtx_ani = Csr::create(omp);
         dmtx_l_ani = Csr::create(omp);
-        dmtx = Csr::create(omp);
-        dmtx->copy_from(lend(mtx));
-        dmtx_l = Csr::create(omp);
-        dmtx_l->copy_from(lend(mtx_l));
+        dmtx = gko::clone(omp, mtx);
+        dmtx_l = gko::clone(omp, mtx_l);
     }
 
     void SetUp()

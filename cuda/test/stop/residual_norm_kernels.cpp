@@ -80,13 +80,11 @@ TEST_F(ResidualNorm, WaitsTillResidualGoalForRhsResNorm)
     auto res = gko::initialize<Mtx>({100.0}, ref_);
     auto res_norm = gko::initialize<NormVector>({0.0}, this->ref_);
     res->compute_norm2(res_norm.get());
-    auto d_res = Mtx::create(cuda_);
-    d_res->copy_from(res.get());
+    auto d_res = gko::clone(cuda_, res);
     std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, ref_);
     auto rhs_norm = gko::initialize<NormVector>({0.0}, this->ref_);
     gko::as<Mtx>(rhs)->compute_norm2(rhs_norm.get());
-    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
-    d_rhs->copy_from(rhs.get());
+    std::shared_ptr<gko::LinOp> d_rhs = gko::clone(cuda_, rhs);
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
@@ -127,14 +125,12 @@ TEST_F(ResidualNorm, WaitsTillResidualGoalMultipleRHSForRhsResNorm)
     auto res = gko::initialize<Mtx>({{100.0, 100.0}}, ref_);
     auto res_norm = gko::initialize<NormVector>({{0.0, 0.0}}, this->ref_);
     res->compute_norm2(res_norm.get());
-    auto d_res = Mtx::create(cuda_);
-    d_res->copy_from(res.get());
+    auto d_res = gko::clone(cuda_, res);
     std::shared_ptr<gko::LinOp> rhs =
         gko::initialize<Mtx>({{10.0, 10.0}}, ref_);
     auto rhs_norm = gko::initialize<NormVector>({{0.0, 0.0}}, this->ref_);
     gko::as<Mtx>(rhs)->compute_norm2(rhs_norm.get());
-    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
-    d_rhs->copy_from(rhs.get());
+    std::shared_ptr<gko::LinOp> d_rhs = gko::clone(cuda_, rhs);
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
@@ -176,11 +172,9 @@ TEST_F(ResidualNorm, WaitsTillResidualGoalForRelResNorm)
     auto res = gko::initialize<Mtx>({100.0}, ref_);
     auto res_norm = gko::initialize<NormVector>({0.0}, this->ref_);
     res->compute_norm2(res_norm.get());
-    auto d_res = Mtx::create(cuda_);
-    d_res->copy_from(res.get());
+    auto d_res = gko::clone(cuda_, res);
     std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, ref_);
-    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
-    d_rhs->copy_from(rhs.get());
+    std::shared_ptr<gko::LinOp> d_rhs = gko::clone(cuda_, rhs);
     auto criterion =
         rel_factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
@@ -222,12 +216,10 @@ TEST_F(ResidualNorm, WaitsTillResidualGoalMultipleRHSForRelResNorm)
     auto res = gko::initialize<Mtx>({{100.0, 100.0}}, ref_);
     auto res_norm = gko::initialize<NormVector>({{0.0, 0.0}}, this->ref_);
     res->compute_norm2(res_norm.get());
-    auto d_res = Mtx::create(cuda_);
-    d_res->copy_from(res.get());
+    auto d_res = gko::clone(cuda_, res);
     std::shared_ptr<gko::LinOp> rhs =
         gko::initialize<Mtx>({{10.0, 10.0}}, ref_);
-    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
-    d_rhs->copy_from(rhs.get());
+    std::shared_ptr<gko::LinOp> d_rhs = gko::clone(cuda_, rhs);
     auto criterion =
         rel_factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
@@ -270,11 +262,9 @@ TEST_F(ResidualNorm, WaitsTillResidualGoalForAbsResNorm)
     auto res = gko::initialize<Mtx>({100.0}, ref_);
     auto res_norm = gko::initialize<NormVector>({0.0}, this->ref_);
     res->compute_norm2(res_norm.get());
-    auto d_res = Mtx::create(cuda_);
-    d_res->copy_from(res.get());
+    auto d_res = gko::clone(cuda_, res);
     std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, ref_);
-    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
-    d_rhs->copy_from(rhs.get());
+    std::shared_ptr<gko::LinOp> d_rhs = gko::clone(cuda_, rhs);
     auto criterion =
         abs_factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
@@ -316,12 +306,10 @@ TEST_F(ResidualNorm, WaitsTillResidualGoalMultipleRHSForAbsResNorm)
     auto res = gko::initialize<Mtx>({{100.0, 100.0}}, ref_);
     auto res_norm = gko::initialize<NormVector>({{0.0, 0.0}}, this->ref_);
     res->compute_norm2(res_norm.get());
-    auto d_res = Mtx::create(cuda_);
-    d_res->copy_from(res.get());
+    auto d_res = gko::clone(cuda_, res);
     std::shared_ptr<gko::LinOp> rhs =
         gko::initialize<Mtx>({{10.0, 10.0}}, ref_);
-    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
-    d_rhs->copy_from(rhs.get());
+    std::shared_ptr<gko::LinOp> d_rhs = gko::clone(cuda_, rhs);
     auto criterion =
         abs_factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
@@ -384,11 +372,9 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
     auto res = gko::initialize<Mtx>({100.0}, ref_);
     auto res_norm = gko::initialize<NormVector>({0.0}, this->ref_);
     res->compute_norm2(res_norm.get());
-    auto d_res = Mtx::create(cuda_);
-    d_res->copy_from(res.get());
+    auto d_res = gko::clone(cuda_, res);
     std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, ref_);
-    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
-    d_rhs->copy_from(rhs.get());
+    std::shared_ptr<gko::LinOp> d_rhs = gko::clone(cuda_, rhs);
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
@@ -429,12 +415,10 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     auto res = gko::initialize<Mtx>({{100.0, 100.0}}, ref_);
     auto res_norm = gko::initialize<NormVector>({{0.0, 0.0}}, this->ref_);
     res->compute_norm2(res_norm.get());
-    auto d_res = Mtx::create(cuda_);
-    d_res->copy_from(res.get());
+    auto d_res = gko::clone(cuda_, res);
     std::shared_ptr<gko::LinOp> rhs =
         gko::initialize<Mtx>({{10.0, 10.0}}, ref_);
-    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
-    d_rhs->copy_from(rhs.get());
+    std::shared_ptr<gko::LinOp> d_rhs = gko::clone(cuda_, rhs);
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
@@ -494,13 +478,11 @@ protected:
 TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 {
     auto res = gko::initialize<Mtx>({100.0}, ref_);
-    auto d_res = Mtx::create(cuda_);
-    d_res->copy_from(res.get());
+    auto d_res = gko::clone(cuda_, res);
     std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, ref_);
     auto rhs_norm = gko::initialize<NormVector>({0.0}, this->ref_);
     gko::as<Mtx>(rhs)->compute_norm2(rhs_norm.get());
-    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
-    d_rhs->copy_from(rhs.get());
+    std::shared_ptr<gko::LinOp> d_rhs = gko::clone(cuda_, rhs);
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
@@ -539,14 +521,12 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
     auto res = gko::initialize<Mtx>({{100.0, 100.0}}, ref_);
-    auto d_res = Mtx::create(cuda_);
-    d_res->copy_from(res.get());
+    auto d_res = gko::clone(cuda_, res);
     std::shared_ptr<gko::LinOp> rhs =
         gko::initialize<Mtx>({{10.0, 10.0}}, ref_);
     auto rhs_norm = gko::initialize<NormVector>({{0.0, 0.0}}, this->ref_);
     gko::as<Mtx>(rhs)->compute_norm2(rhs_norm.get());
-    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
-    d_rhs->copy_from(rhs.get());
+    std::shared_ptr<gko::LinOp> d_rhs = gko::clone(cuda_, rhs);
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
@@ -606,13 +586,11 @@ protected:
 TEST_F(ImplicitResidualNorm, WaitsTillResidualGoal)
 {
     auto res = gko::initialize<Mtx>({100.0}, ref_);
-    auto d_res = Mtx::create(cuda_);
-    d_res->copy_from(res.get());
+    auto d_res = gko::clone(cuda_, res);
     std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, ref_);
     auto rhs_norm = gko::initialize<NormVector>({0.0}, this->ref_);
     gko::as<Mtx>(rhs)->compute_norm2(rhs_norm.get());
-    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
-    d_rhs->copy_from(rhs.get());
+    std::shared_ptr<gko::LinOp> d_rhs = gko::clone(cuda_, rhs);
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
@@ -651,14 +629,12 @@ TEST_F(ImplicitResidualNorm, WaitsTillResidualGoal)
 TEST_F(ImplicitResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
     auto res = gko::initialize<Mtx>({{100.0, 100.0}}, ref_);
-    auto d_res = Mtx::create(cuda_);
-    d_res->copy_from(res.get());
+    auto d_res = gko::clone(cuda_, res);
     std::shared_ptr<gko::LinOp> rhs =
         gko::initialize<Mtx>({{10.0, 10.0}}, ref_);
     auto rhs_norm = gko::initialize<NormVector>({{0.0, 0.0}}, this->ref_);
     gko::as<Mtx>(rhs)->compute_norm2(rhs_norm.get());
-    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
-    d_rhs->copy_from(rhs.get());
+    std::shared_ptr<gko::LinOp> d_rhs = gko::clone(cuda_, rhs);
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
@@ -718,11 +694,9 @@ protected:
 TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoal)
 {
     auto res = gko::initialize<Mtx>({100.0}, ref_);
-    auto d_res = Mtx::create(cuda_);
-    d_res->copy_from(res.get());
+    auto d_res = gko::clone(cuda_, res);
     std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, ref_);
-    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
-    d_rhs->copy_from(rhs.get());
+    std::shared_ptr<gko::LinOp> d_rhs = gko::clone(cuda_, rhs);
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
@@ -761,12 +735,10 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoal)
 TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
     auto res = gko::initialize<Mtx>({{100.0, 100.0}}, ref_);
-    auto d_res = Mtx::create(cuda_);
-    d_res->copy_from(res.get());
+    auto d_res = gko::clone(cuda_, res);
     std::shared_ptr<gko::LinOp> rhs =
         gko::initialize<Mtx>({{10.0, 10.0}}, ref_);
-    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
-    d_rhs->copy_from(rhs.get());
+    std::shared_ptr<gko::LinOp> d_rhs = gko::clone(cuda_, rhs);
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};

@@ -78,8 +78,7 @@ TEST_F(Fbcsr, CanWriteFromMatrixOnDevice)
     using MatData = gko::matrix_data<value_type, index_type>;
     gko::testing::FbcsrSample<value_type, index_type> sample(ref);
     auto refmat = sample.generate_fbcsr();
-    auto cudamat = Mtx::create(cuda);
-    cudamat->copy_from(gko::lend(refmat));
+    auto cudamat = gko::clone(cuda, refmat);
     MatData refdata;
     MatData cudadata;
 

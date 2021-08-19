@@ -123,29 +123,18 @@ protected:
             final_iter_nums->get_data()[i] = 5;
         }
 
-        d_x = Mtx::create(hip);
-        d_x->copy_from(x.get());
+        d_x = gko::clone(hip, x);
         d_before_preconditioner = Mtx::create_with_config_of(d_x.get());
-        d_y = Mtx::create(hip);
-        d_y->copy_from(y.get());
-        d_b = Mtx::create(hip);
-        d_b->copy_from(b.get());
-        d_krylov_bases = Mtx::create(hip);
-        d_krylov_bases->copy_from(krylov_bases.get());
-        d_hessenberg = Mtx::create(hip);
-        d_hessenberg->copy_from(hessenberg.get());
-        d_hessenberg_iter = Mtx::create(hip);
-        d_hessenberg_iter->copy_from(hessenberg_iter.get());
-        d_residual = Mtx::create(hip);
-        d_residual->copy_from(residual.get());
-        d_residual_norm = NormVector::create(hip);
-        d_residual_norm->copy_from(residual_norm.get());
-        d_residual_norm_collection = Mtx::create(hip);
-        d_residual_norm_collection->copy_from(residual_norm_collection.get());
-        d_givens_sin = Mtx::create(hip);
-        d_givens_sin->copy_from(givens_sin.get());
-        d_givens_cos = Mtx::create(hip);
-        d_givens_cos->copy_from(givens_cos.get());
+        d_y = gko::clone(hip, y);
+        d_b = gko::clone(hip, b);
+        d_krylov_bases = gko::clone(hip, krylov_bases);
+        d_hessenberg = gko::clone(hip, hessenberg);
+        d_hessenberg_iter = gko::clone(hip, hessenberg_iter);
+        d_residual = gko::clone(hip, residual);
+        d_residual_norm = gko::clone(hip, residual_norm);
+        d_residual_norm_collection = gko::clone(hip, residual_norm_collection);
+        d_givens_sin = gko::clone(hip, givens_sin);
+        d_givens_cos = gko::clone(hip, givens_cos);
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
             new gko::Array<gko::stopping_status>(hip, nrhs));
         *d_stop_status = *stop_status;

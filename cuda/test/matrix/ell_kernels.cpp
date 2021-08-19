@@ -104,24 +104,15 @@ protected:
         alpha2 = gko::initialize<Vec2>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         beta2 = gko::initialize<Vec2>({-1.0}, ref);
-        dmtx = Mtx::create(cuda);
-        dmtx->copy_from(mtx.get());
-        dresult = Vec::create(cuda);
-        dresult->copy_from(expected.get());
-        dresult2 = Vec2::create(cuda);
-        dresult2->copy_from(expected2.get());
-        dy = Vec::create(cuda);
-        dy->copy_from(y.get());
-        dy2 = Vec2::create(cuda);
-        dy2->copy_from(y2.get());
-        dalpha = Vec::create(cuda);
-        dalpha->copy_from(alpha.get());
-        dalpha2 = Vec2::create(cuda);
-        dalpha2->copy_from(alpha2.get());
-        dbeta = Vec::create(cuda);
-        dbeta->copy_from(beta.get());
-        dbeta2 = Vec2::create(cuda);
-        dbeta2->copy_from(beta2.get());
+        dmtx = gko::clone(cuda, mtx);
+        dresult = gko::clone(cuda, expected);
+        dresult2 = gko::clone(cuda, expected2);
+        dy = gko::clone(cuda, y);
+        dy2 = gko::clone(cuda, y2);
+        dalpha = gko::clone(cuda, alpha);
+        dalpha2 = gko::clone(cuda, alpha2);
+        dbeta = gko::clone(cuda, beta);
+        dbeta2 = gko::clone(cuda, beta2);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -509,11 +500,9 @@ TEST_F(Ell, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexVec>(size[1], 3);
-    auto dcomplex_b = ComplexVec::create(cuda);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(cuda, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(size[0], 3);
-    auto dcomplex_x = ComplexVec::create(cuda);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(cuda, complex_x);
 
     mtx->apply(complex_b.get(), complex_x.get());
     dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
@@ -526,11 +515,9 @@ TEST_F(Ell, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexVec>(size[1], 3);
-    auto dcomplex_b = ComplexVec::create(cuda);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(cuda, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(size[0], 3);
-    auto dcomplex_x = ComplexVec::create(cuda);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(cuda, complex_x);
 
     mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
     dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());

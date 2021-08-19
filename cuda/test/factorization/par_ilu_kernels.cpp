@@ -89,8 +89,7 @@ protected:
                    << "\", which is required for this test.\n";
         }
         auto csr_ref_temp = gko::read<Csr>(input_file, ref);
-        auto csr_cuda_temp = Csr::create(cuda);
-        csr_cuda_temp->copy_from(gko::lend(csr_ref_temp));
+        auto csr_cuda_temp = gko::clone(cuda, csr_ref_temp);
         // Make sure there are diagonal elements present
         gko::kernels::reference::factorization::add_diagonal_elements(
             ref, gko::lend(csr_ref_temp), false);
@@ -226,8 +225,7 @@ TEST_F(ParIlu, CudaKernelAddDiagonalElementsSortedEquivalentToRef)
     index_type num_rows{600};
     index_type num_cols{600};
     auto mtx_ref = gen_mtx<Csr>(num_rows, num_cols);
-    auto mtx_cuda = Csr::create(cuda);
-    mtx_cuda->copy_from(gko::lend(mtx_ref));
+    auto mtx_cuda = gko::clone(cuda, mtx_ref);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         ref, gko::lend(mtx_ref), true);
@@ -245,8 +243,7 @@ TEST_F(ParIlu, CudaKernelAddDiagonalElementsUnsortedEquivalentToRef)
     index_type num_rows{600};
     index_type num_cols{600};
     auto mtx_ref = gen_unsorted_mtx(num_rows, num_cols);
-    auto mtx_cuda = Csr::create(cuda);
-    mtx_cuda->copy_from(gko::lend(mtx_ref));
+    auto mtx_cuda = gko::clone(cuda, mtx_ref);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         ref, gko::lend(mtx_ref), false);
@@ -264,8 +261,7 @@ TEST_F(ParIlu, CudaKernelAddDiagonalElementsNonSquareEquivalentToRef)
     index_type num_rows{600};
     index_type num_cols{500};
     auto mtx_ref = gen_mtx<Csr>(num_rows, num_cols);
-    auto mtx_cuda = Csr::create(cuda);
-    mtx_cuda->copy_from(gko::lend(mtx_ref));
+    auto mtx_cuda = gko::clone(cuda, mtx_ref);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         ref, gko::lend(mtx_ref), true);

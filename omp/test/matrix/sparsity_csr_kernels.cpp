@@ -87,27 +87,18 @@ protected:
 
     void set_up_apply_data(int num_vectors = 1)
     {
-        mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx<Vec>(mtx_size[0], mtx_size[1], 1));
-        complex_mtx = ComplexMtx::create(ref);
-        complex_mtx->copy_from(
-            gen_mtx<ComplexVec>(mtx_size[0], mtx_size[1], 1));
+        mtx = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 1);
+        complex_mtx = gen_mtx<ComplexMtx>(mtx_size[0], mtx_size[1], 1);
         expected = gen_mtx<Vec>(mtx_size[0], num_vectors, 1);
         y = gen_mtx<Vec>(mtx_size[1], num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = Mtx::create(omp);
-        dmtx->copy_from(mtx.get());
-        complex_dmtx = ComplexMtx::create(omp);
-        complex_dmtx->copy_from(complex_mtx.get());
-        dresult = Vec::create(omp);
-        dresult->copy_from(expected.get());
-        dy = Vec::create(omp);
-        dy->copy_from(y.get());
-        dalpha = Vec::create(omp);
-        dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(omp);
-        dbeta->copy_from(beta.get());
+        dmtx = gko::clone(omp, mtx);
+        complex_dmtx = gko::clone(omp, complex_mtx);
+        dresult = gko::clone(omp, expected);
+        dy = gko::clone(omp, y);
+        dalpha = gko::clone(omp, alpha);
+        dbeta = gko::clone(omp, beta);
     }
 
     struct matrix_pair {
@@ -134,8 +125,7 @@ protected:
                 std::swap(col_idx[idx1], col_idx[idx2]);
             }
         }
-        auto local_mtx_omp = Mtx::create(omp);
-        local_mtx_omp->copy_from(local_mtx_ref.get());
+        auto local_mtx_omp = gko::clone(omp, local_mtx_ref);
 
         return {std::move(local_mtx_ref), std::move(local_mtx_omp)};
     }

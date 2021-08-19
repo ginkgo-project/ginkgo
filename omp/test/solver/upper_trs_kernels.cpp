@@ -93,25 +93,17 @@ protected:
     {
         b = gen_mtx(m, n);
         x = gen_mtx(m, n);
-        t_b = Mtx::create(ref);
-        t_x = Mtx::create(ref);
-        t_b->copy_from(b.get());
-        t_x->copy_from(x.get());
-        d_b = Mtx::create(omp);
-        d_b->copy_from(b.get());
-        d_x = Mtx::create(omp);
-        d_x->copy_from(x.get());
-        dt_b = Mtx::create(omp);
-        dt_b->copy_from(b.get());
-        dt_x = Mtx::create(omp);
-        dt_x->copy_from(x.get());
+        t_b = b->clone();
+        t_x = x->clone();
+        d_b = gko::clone(omp, b);
+        d_x = gko::clone(omp, x);
+        dt_b = gko::clone(omp, b);
+        dt_x = gko::clone(omp, x);
         mat = gen_u_mtx(m, m);
         csr_mat = CsrMtx::create(ref);
         mat->convert_to(csr_mat.get());
-        d_mat = Mtx::create(omp);
-        d_mat->copy_from(mat.get());
-        d_csr_mat = CsrMtx::create(omp);
-        d_csr_mat->copy_from(csr_mat.get());
+        d_mat = gko::clone(omp, mat);
+        d_csr_mat = gko::clone(omp, csr_mat);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;

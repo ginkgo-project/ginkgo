@@ -123,12 +123,9 @@ protected:
         } else {
             alpha = gko::initialize<Mtx>({2.0}, ref);
         }
-        dx = Mtx::create(exec);
-        dx->copy_from(x.get());
-        dy = Mtx::create(exec);
-        dy->copy_from(y.get());
-        dalpha = Mtx::create(exec);
-        dalpha->copy_from(alpha.get());
+        dx = gko::clone(exec, x);
+        dy = gko::clone(exec, y);
+        dalpha = gko::clone(exec, alpha);
         expected = Mtx::create(ref, gko::dim<2>{1, num_vecs});
         dresult = Mtx::create(exec, gko::dim<2>{1, num_vecs});
     }
@@ -142,20 +139,13 @@ protected:
         alpha = gko::initialize<Mtx>({2.0}, ref);
         beta = gko::initialize<Mtx>({-1.0}, ref);
         square = gen_mtx<Mtx>(x->get_size()[0], x->get_size()[0]);
-        dx = Mtx::create(exec);
-        dx->copy_from(x.get());
-        dc_x = ComplexMtx::create(exec);
-        dc_x->copy_from(c_x.get());
-        dy = Mtx::create(exec);
-        dy->copy_from(y.get());
-        dresult = Mtx::create(exec);
-        dresult->copy_from(expected.get());
-        dalpha = Mtx::create(exec);
-        dalpha->copy_from(alpha.get());
-        dbeta = Mtx::create(exec);
-        dbeta->copy_from(beta.get());
-        dsquare = Mtx::create(exec);
-        dsquare->copy_from(square.get());
+        dx = gko::clone(exec, x);
+        dc_x = gko::clone(exec, c_x);
+        dy = gko::clone(exec, y);
+        dresult = gko::clone(exec, expected);
+        dalpha = gko::clone(exec, alpha);
+        dbeta = gko::clone(exec, beta);
+        dsquare = gko::clone(exec, square);
 
         std::vector<int> tmp(x->get_size()[0], 0);
         auto rng = std::default_random_engine{};
@@ -232,13 +222,11 @@ TEST_F(Dense, CopyRespectsStride)
 TEST_F(Dense, FillIsEquivalentToRef)
 {
     set_up_vector_data(3);
-    auto result = Mtx::create(ref);
 
     x->fill(42);
     dx->fill(42);
-    result->copy_from(dx.get());
 
-    GKO_ASSERT_MTX_NEAR(result, x, 0);
+    GKO_ASSERT_MTX_NEAR(dx, x, 0);
 }
 
 
@@ -249,13 +237,11 @@ TEST_F(Dense, StridedFillIsEquivalentToRef)
         4, {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, ref);
     auto dx = gko::initialize<gko::matrix::Dense<T>>(
         4, {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, exec);
-    auto result = Mtx::create(ref);
 
     x->fill(42);
     dx->fill(42);
-    result->copy_from(dx.get());
 
-    GKO_ASSERT_MTX_NEAR(result, x, 0);
+    GKO_ASSERT_MTX_NEAR(dx, x, 0);
 }
 
 
@@ -266,9 +252,7 @@ TEST_F(Dense, SingleVectorScaleIsEquivalentToRef)
     x->scale(alpha.get());
     dx->scale(dalpha.get());
 
-    auto result = Mtx::create(ref);
-    result->copy_from(dx.get());
-    GKO_ASSERT_MTX_NEAR(result, x, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
 
@@ -279,9 +263,7 @@ TEST_F(Dense, SingleVectorInvScaleIsEquivalentToRef)
     x->inv_scale(alpha.get());
     dx->inv_scale(dalpha.get());
 
-    auto result = Mtx::create(ref);
-    result->copy_from(dx.get());
-    GKO_ASSERT_MTX_NEAR(result, x, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
 
@@ -404,12 +386,9 @@ TEST_F(Dense, AddsScaledDiagIsEquivalentToRef)
     auto diag = gko::matrix::Diagonal<Mtx::value_type>::create(this->ref, 532,
                                                                diag_values);
     auto alpha = gko::initialize<Mtx>({2.0}, this->ref);
-    auto dmat = Mtx::create(this->exec);
-    dmat->copy_from(mat.get());
-    auto ddiag = gko::matrix::Diagonal<Mtx::value_type>::create(this->exec);
-    ddiag->copy_from(diag.get());
-    auto dalpha = Mtx::create(this->exec);
-    dalpha->copy_from(alpha.get());
+    auto dmat = gko::clone(this->exec, mat);
+    auto ddiag = gko::clone(this->exec, diag);
+    auto dalpha = gko::clone(this->exec, alpha);
 
     mat->add_scaled(alpha.get(), diag.get());
     dmat->add_scaled(dalpha.get(), ddiag.get());
@@ -427,12 +406,9 @@ TEST_F(Dense, SubtractScaledDiagIsEquivalentToRef)
     auto diag = gko::matrix::Diagonal<Mtx::value_type>::create(this->ref, 532,
                                                                diag_values);
     auto alpha = gko::initialize<Mtx>({2.0}, this->ref);
-    auto dmat = Mtx::create(this->exec);
-    dmat->copy_from(mat.get());
-    auto ddiag = gko::matrix::Diagonal<Mtx::value_type>::create(this->exec);
-    ddiag->copy_from(diag.get());
-    auto dalpha = Mtx::create(this->exec);
-    dalpha->copy_from(alpha.get());
+    auto dmat = gko::clone(this->exec, mat);
+    auto ddiag = gko::clone(this->exec, diag);
+    auto dalpha = gko::clone(this->exec, alpha);
 
     mat->sub_scaled(alpha.get(), diag.get());
     dmat->sub_scaled(dalpha.get(), ddiag.get());

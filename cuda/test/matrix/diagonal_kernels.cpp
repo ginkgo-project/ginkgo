@@ -123,39 +123,29 @@ protected:
     void set_up_apply_data()
     {
         diag = gen_diag(mtx_size[0]);
-        ddiag = Diag::create(cuda);
-        ddiag->copy_from(diag.get());
+        ddiag = gko::clone(cuda, diag);
         dense1 = gen_mtx<Dense>(mtx_size[0], mtx_size[1], mtx_size[1]);
         dense2 = gen_mtx<Dense>(mtx_size[1], mtx_size[0], mtx_size[0]);
         denseexpected1 = gen_mtx<Dense>(mtx_size[0], mtx_size[1], mtx_size[1]);
         denseexpected2 = gen_mtx<Dense>(mtx_size[1], mtx_size[0], mtx_size[0]);
-        ddense1 = Dense::create(cuda);
-        ddense1->copy_from(dense1.get());
-        ddense2 = Dense::create(cuda);
-        ddense2->copy_from(dense2.get());
-        denseresult1 = Dense::create(cuda);
-        denseresult1->copy_from(denseexpected1.get());
-        denseresult2 = Dense::create(cuda);
-        denseresult2->copy_from(denseexpected2.get());
+        ddense1 = gko::clone(cuda, dense1);
+        ddense2 = gko::clone(cuda, dense2);
+        denseresult1 = gko::clone(cuda, denseexpected1);
+        denseresult2 = gko::clone(cuda, denseexpected2);
         csr1 = gen_mtx<Csr>(mtx_size[0], mtx_size[1], 1);
         csr2 = gen_mtx<Csr>(mtx_size[1], mtx_size[0], 1);
         csrexpected1 = gen_mtx<Csr>(mtx_size[0], mtx_size[1], 1);
         csrexpected2 = gen_mtx<Csr>(mtx_size[1], mtx_size[0], 1);
-        dcsr1 = Csr::create(cuda);
-        dcsr1->copy_from(csr1.get());
-        dcsr2 = Csr::create(cuda);
-        dcsr2->copy_from(csr2.get());
-        csrresult1 = Csr::create(cuda);
-        csrresult1->copy_from(csrexpected1.get());
-        csrresult2 = Csr::create(cuda);
-        csrresult2->copy_from(csrexpected2.get());
+        dcsr1 = gko::clone(cuda, csr1);
+        dcsr2 = gko::clone(cuda, csr2);
+        csrresult1 = gko::clone(cuda, csrexpected1);
+        csrresult2 = gko::clone(cuda, csrexpected2);
     }
 
     void set_up_complex_data()
     {
         cdiag = gen_cdiag(mtx_size[0]);
-        dcdiag = ComplexDiag::create(cuda);
-        dcdiag->copy_from(cdiag.get());
+        dcdiag = gko::clone(cuda, cdiag);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;

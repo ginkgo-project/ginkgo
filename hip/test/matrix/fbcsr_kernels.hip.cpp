@@ -78,8 +78,7 @@ TEST_F(Fbcsr, CanWriteFromMatrixOnDevice)
     using MatData = gko::matrix_data<value_type, index_type>;
     gko::testing::FbcsrSample<value_type, index_type> sample(ref);
     auto refmat = sample.generate_fbcsr();
-    auto hipmat = Mtx::create(hip);
-    hipmat->copy_from(gko::lend(refmat));
+    auto hipmat = gko::clone(hip, refmat);
     MatData refdata;
     MatData hipdata;
 

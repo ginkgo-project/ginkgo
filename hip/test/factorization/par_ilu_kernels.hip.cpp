@@ -89,8 +89,7 @@ protected:
                    << "\", which is required for this test.\n";
         }
         auto csr_ref_temp = gko::read<Csr>(input_file, ref);
-        auto csr_hip_temp = Csr::create(hip);
-        csr_hip_temp->copy_from(gko::lend(csr_ref_temp));
+        auto csr_hip_temp = gko::clone(hip, csr_ref_temp);
         // Make sure there are diagonal elements present
         gko::kernels::reference::factorization::add_diagonal_elements(
             ref, gko::lend(csr_ref_temp), false);
@@ -225,8 +224,7 @@ TEST_F(ParIlu, HipKernelAddDiagonalElementsSortedEquivalentToRef)
     index_type num_rows{600};
     index_type num_cols{600};
     auto mtx_ref = gen_mtx<Csr>(num_rows, num_cols);
-    auto mtx_hip = Csr::create(hip);
-    mtx_hip->copy_from(gko::lend(mtx_ref));
+    auto mtx_hip = gko::clone(hip, mtx_ref);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         ref, gko::lend(mtx_ref), true);
@@ -245,8 +243,7 @@ TEST_F(ParIlu, HipKernelAddDiagonalElementsUnsortedEquivalentToRef)
     index_type num_rows{600};
     index_type num_cols{600};
     auto mtx_ref = gen_unsorted_mtx(num_rows, num_cols);
-    auto mtx_hip = Csr::create(hip);
-    mtx_hip->copy_from(gko::lend(mtx_ref));
+    auto mtx_hip = gko::clone(hip, mtx_ref);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         ref, gko::lend(mtx_ref), false);
@@ -265,8 +262,7 @@ TEST_F(ParIlu, HipKernelAddDiagonalElementsNonSquareEquivalentToRef)
     index_type num_rows{600};
     index_type num_cols{500};
     auto mtx_ref = gen_mtx<Csr>(num_rows, num_cols);
-    auto mtx_hip = Csr::create(hip);
-    mtx_hip->copy_from(gko::lend(mtx_ref));
+    auto mtx_hip = gko::clone(hip, mtx_ref);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         ref, gko::lend(mtx_ref), true);

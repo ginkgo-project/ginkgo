@@ -128,41 +128,23 @@ protected:
             stop_status->get_data()[i].reset();
         }
 
-        d_mtx = Mtx::create(omp);
-        d_x = Mtx::create(omp);
-        d_b = Mtx::create(omp);
-        d_r = Mtx::create(omp);
-        d_m = Mtx::create(omp);
-        d_f = Mtx::create(omp);
-        d_g = Mtx::create(omp);
-        d_u = Mtx::create(omp);
-        d_c = Mtx::create(omp);
-        d_v = Mtx::create(omp);
-        d_p = Mtx::create(omp);
-        d_alpha = Mtx::create(omp);
-        d_omega = Mtx::create(omp);
-        d_tht = Mtx::create(omp);
-        d_residual_norm = Mtx::create(omp);
-        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(omp));
-
-        d_mtx->copy_from(mtx.get());
-        d_x->copy_from(x.get());
-        d_b->copy_from(b.get());
-        d_r->copy_from(r.get());
-        d_m->copy_from(m.get());
-        d_f->copy_from(f.get());
-        d_g->copy_from(g.get());
-        d_u->copy_from(u.get());
-        d_c->copy_from(c.get());
-        d_v->copy_from(v.get());
-        d_p->copy_from(p.get());
-        d_alpha->copy_from(alpha.get());
-        d_omega->copy_from(omega.get());
-        d_tht->copy_from(tht.get());
-        d_residual_norm->copy_from(residual_norm.get());
-        *d_stop_status =
-            *stop_status;  // copy_from is not a public member function of Array
+        d_mtx = gko::clone(omp, mtx);
+        d_x = gko::clone(omp, x);
+        d_b = gko::clone(omp, b);
+        d_r = gko::clone(omp, r);
+        d_m = gko::clone(omp, m);
+        d_f = gko::clone(omp, f);
+        d_g = gko::clone(omp, g);
+        d_u = gko::clone(omp, u);
+        d_c = gko::clone(omp, c);
+        d_v = gko::clone(omp, v);
+        d_p = gko::clone(omp, p);
+        d_alpha = gko::clone(omp, alpha);
+        d_omega = gko::clone(omp, omega);
+        d_tht = gko::clone(omp, tht);
+        d_residual_norm = gko::clone(omp, residual_norm);
+        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+            omp, *stop_status);
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;

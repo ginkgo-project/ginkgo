@@ -118,22 +118,16 @@ protected:
                                                                       1.0),
             rand_engine, ref);
 
-        dmtx1 = Csr::create(omp);
-        dmtx1->copy_from(mtx1.get());
-        dmtx2 = Csr::create(omp);
-        dmtx2->copy_from(mtx2.get());
-        dmtx_square = Csr::create(omp);
-        dmtx_square->copy_from(mtx_square.get());
+        dmtx1 = gko::clone(omp, mtx1);
+        dmtx2 = gko::clone(omp, mtx2);
+        dmtx_square = gko::clone(omp, mtx_square);
         dmtx_ani = Csr::create(omp);
         dmtx_l_ani = Csr::create(omp);
         dmtx_u_ani = Csr::create(omp);
         dmtx_ut_ani = Csr::create(omp);
-        dmtx_l = Csr::create(omp);
-        dmtx_l->copy_from(mtx_l.get());
-        dmtx_l2 = Csr::create(omp);
-        dmtx_l2->copy_from(mtx_l2.get());
-        dmtx_u = Csr::create(omp);
-        dmtx_u->copy_from(mtx_u.get());
+        dmtx_l = gko::clone(omp, mtx_l);
+        dmtx_l2 = gko::clone(omp, mtx_l2);
+        dmtx_u = gko::clone(omp, mtx_u);
     }
 
     void SetUp()

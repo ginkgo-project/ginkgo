@@ -97,14 +97,10 @@ protected:
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(hip, strategy);
         dmtx->copy_from(mtx.get());
-        dresult = Vec::create(hip);
-        dresult->copy_from(expected.get());
-        dy = Vec::create(hip);
-        dy->copy_from(y.get());
-        dalpha = Vec::create(hip);
-        dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(hip);
-        dbeta->copy_from(beta.get());
+        dresult = gko::clone(hip, expected);
+        dy = gko::clone(hip, y);
+        dalpha = gko::clone(hip, alpha);
+        dbeta = gko::clone(hip, beta);
     }
 
 
@@ -188,11 +184,9 @@ TEST_F(Hybrid, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
-    auto dcomplex_b = ComplexVec::create(hip);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(hip, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
-    auto dcomplex_x = ComplexVec::create(hip);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(hip, complex_x);
 
     mtx->apply(complex_b.get(), complex_x.get());
     dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
@@ -205,11 +199,9 @@ TEST_F(Hybrid, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
-    auto dcomplex_b = ComplexVec::create(hip);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(hip, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
-    auto dcomplex_x = ComplexVec::create(hip);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(hip, complex_x);
 
     mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
     dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());

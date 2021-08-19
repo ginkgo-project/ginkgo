@@ -166,34 +166,22 @@ protected:
             num_reorth->get_data()[i] = 0;
         }
 
-        d_x = Mtx::create(omp);
-        d_x->copy_from(x.get());
+        d_x = gko::clone(omp, x);
         d_before_preconditioner = Mtx::create_with_config_of(d_x.get());
-        d_y = Mtx::create(omp);
-        d_y->copy_from(y.get());
-        d_b = Mtx::create(omp);
-        d_b->copy_from(b.get());
-        d_arnoldi_norm = Mtx::create(omp);
-        d_arnoldi_norm->copy_from(arnoldi_norm.get());
+        d_y = gko::clone(omp, y);
+        d_b = gko::clone(omp, b);
+        d_arnoldi_norm = gko::clone(omp, arnoldi_norm);
         d_range_helper = Range3dHelper{omp, {}};
         d_range_helper = range_helper;
-        d_next_krylov_basis = Mtx::create(omp);
-        d_next_krylov_basis->copy_from(next_krylov_basis.get());
-        d_hessenberg = Mtx::create(omp);
-        d_hessenberg->copy_from(hessenberg.get());
-        d_hessenberg_iter = Mtx::create(omp);
-        d_hessenberg_iter->copy_from(hessenberg_iter.get());
+        d_next_krylov_basis = gko::clone(omp, next_krylov_basis);
+        d_hessenberg = gko::clone(omp, hessenberg);
+        d_hessenberg_iter = gko::clone(omp, hessenberg_iter);
         d_buffer_iter = Mtx::create(omp);
-        d_residual = Mtx::create(omp);
-        d_residual->copy_from(residual.get());
-        d_residual_norm = Mtx::create(omp);
-        d_residual_norm->copy_from(residual_norm.get());
-        d_residual_norm_collection = Mtx::create(omp);
-        d_residual_norm_collection->copy_from(residual_norm_collection.get());
-        d_givens_sin = Mtx::create(omp);
-        d_givens_sin->copy_from(givens_sin.get());
-        d_givens_cos = Mtx::create(omp);
-        d_givens_cos->copy_from(givens_cos.get());
+        d_residual = gko::clone(omp, residual);
+        d_residual_norm = gko::clone(omp, residual_norm);
+        d_residual_norm_collection = gko::clone(omp, residual_norm_collection);
+        d_givens_sin = gko::clone(omp, givens_sin);
+        d_givens_cos = gko::clone(omp, givens_cos);
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
             new gko::Array<gko::stopping_status>(omp, n));
         *d_stop_status = *stop_status;

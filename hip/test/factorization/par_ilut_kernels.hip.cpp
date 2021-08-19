@@ -117,26 +117,18 @@ protected:
                 std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
 
 
-        dmtx1 = Csr::create(hip);
-        dmtx1->copy_from(mtx1.get());
-        dmtx2 = Csr::create(hip);
-        dmtx2->copy_from(mtx2.get());
-        dmtx_square = Csr::create(hip);
-        dmtx_square->copy_from(mtx_square.get());
+        dmtx1 = gko::clone(hip, mtx1);
+        dmtx2 = gko::clone(hip, mtx2);
+        dmtx_square = gko::clone(hip, mtx_square);
         dmtx_ani = Csr::create(hip);
         dmtx_l_ani = Csr::create(hip);
         dmtx_u_ani = Csr::create(hip);
         dmtx_ut_ani = Csr::create(hip);
-        dmtx_l = Csr::create(hip);
-        dmtx_l->copy_from(mtx_l.get());
-        dmtx_l2 = Csr::create(hip);
-        dmtx_l2->copy_from(mtx_l2.get());
-        dmtx_u = Csr::create(hip);
-        dmtx_u->copy_from(mtx_u.get());
-        dmtx_l_complex = ComplexCsr::create(hip);
-        dmtx_l_complex->copy_from(mtx_l_complex.get());
-        dmtx_u_complex = ComplexCsr::create(hip);
-        dmtx_u_complex->copy_from(mtx_u_complex.get());
+        dmtx_l = gko::clone(hip, mtx_l);
+        dmtx_l2 = gko::clone(hip, mtx_l2);
+        dmtx_u = gko::clone(hip, mtx_u);
+        dmtx_l_complex = gko::clone(hip, mtx_l_complex);
+        dmtx_u_complex = gko::clone(hip, mtx_u_complex);
     }
 
     void SetUp()

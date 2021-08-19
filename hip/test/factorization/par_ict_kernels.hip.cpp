@@ -84,10 +84,8 @@ protected:
 
         dmtx_ani = Csr::create(hip);
         dmtx_l_ani = Csr::create(hip);
-        dmtx = Csr::create(hip);
-        dmtx->copy_from(lend(mtx));
-        dmtx_l = Csr::create(hip);
-        dmtx_l->copy_from(lend(mtx_l));
+        dmtx = gko::clone(hip, mtx);
+        dmtx_l = gko::clone(hip, mtx_l);
     }
 
     void SetUp()

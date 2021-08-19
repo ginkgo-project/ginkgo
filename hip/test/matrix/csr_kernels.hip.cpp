@@ -115,14 +115,10 @@ protected:
         dmtx->copy_from(mtx.get());
         square_dmtx = Mtx::create(hip, strategy);
         square_dmtx->copy_from(square_mtx.get());
-        dresult = Vec::create(hip);
-        dresult->copy_from(expected.get());
-        dy = Vec::create(hip);
-        dy->copy_from(y.get());
-        dalpha = Vec::create(hip);
-        dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(hip);
-        dbeta->copy_from(beta.get());
+        dresult = gko::clone(hip, expected);
+        dy = gko::clone(hip, y);
+        dalpha = gko::clone(hip, alpha);
+        dbeta = gko::clone(hip, beta);
 
         std::vector<int> tmp(mtx->get_size()[0], 0);
         auto rng = std::default_random_engine{};
@@ -446,10 +442,8 @@ TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
     set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
     auto a = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     auto b = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
-    auto da = Mtx::create(hip);
-    auto db = Mtx::create(hip);
-    da->copy_from(a.get());
-    db->copy_from(b.get());
+    auto da = gko::clone(hip, a);
+    auto db = gko::clone(hip, b);
     auto id = gko::matrix::Identity<Mtx::value_type>::create(ref, mtx_size[1]);
     auto did = gko::matrix::Identity<Mtx::value_type>::create(hip, mtx_size[1]);
 
@@ -466,11 +460,9 @@ TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
     auto complex_b = gen_mtx<ComplexVec>(this->mtx_size[1], 3, 1);
-    auto dcomplex_b = ComplexVec::create(hip);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(hip, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(this->mtx_size[0], 3, 1);
-    auto dcomplex_x = ComplexVec::create(hip);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(hip, complex_x);
 
     mtx->apply(complex_b.get(), complex_x.get());
     dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
@@ -483,11 +475,9 @@ TEST_F(Csr, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
     auto complex_b = gen_mtx<ComplexVec>(this->mtx_size[1], 3, 1);
-    auto dcomplex_b = ComplexVec::create(hip);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(hip, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(this->mtx_size[0], 3, 1);
-    auto dcomplex_x = ComplexVec::create(hip);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(hip, complex_x);
 
     mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
     dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
@@ -876,15 +866,11 @@ TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
     auto automatical = std::make_shared<Mtx::automatical>(hip);
     auto row_len_limit = std::max(automatical->nvidia_row_len_limit,
                                   automatical->amd_row_len_limit);
-    auto load_balance_mtx = Mtx::create(ref);
-    auto classical_mtx = Mtx::create(ref);
-    load_balance_mtx->copy_from(
-        gen_mtx<Vec>(1, row_len_limit + 1000, row_len_limit + 1));
-    classical_mtx->copy_from(gen_mtx<Vec>(50, 50, 1));
-    auto load_balance_mtx_d = Mtx::create(hip);
-    auto classical_mtx_d = Mtx::create(hip);
-    load_balance_mtx_d->copy_from(load_balance_mtx.get());
-    classical_mtx_d->copy_from(classical_mtx.get());
+    auto load_balance_mtx =
+        gen_mtx<Mtx>(1, row_len_limit + 1000, row_len_limit + 1);
+    auto classical_mtx = gen_mtx<Mtx>(50, 50, 1);
+    auto load_balance_mtx_d = gko::clone(hip, load_balance_mtx);
+    auto classical_mtx_d = gko::clone(hip, classical_mtx);
 
     load_balance_mtx_d->set_strategy(automatical);
     classical_mtx_d->set_strategy(automatical);

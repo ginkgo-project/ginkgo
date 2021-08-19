@@ -134,22 +134,14 @@ protected:
         system_mtx = Csr::create(ref);
         system_dense->convert_to(system_mtx.get());
 
-        d_agg.set_executor(omp);
-        d_unfinished_agg.set_executor(omp);
-        d_strongest_neighbor.set_executor(omp);
-        d_coarse_vector = Mtx::create(omp);
-        d_fine_vector = Mtx::create(omp);
-        d_weight_csr = Csr::create(omp);
-        d_weight_diag = Diag::create(omp);
-        d_system_mtx = Csr::create(omp);
-        d_agg = agg;
-        d_unfinished_agg = unfinished_agg;
-        d_strongest_neighbor = strongest_neighbor;
-        d_coarse_vector->copy_from(coarse_vector.get());
-        d_fine_vector->copy_from(fine_vector.get());
-        d_weight_csr->copy_from(weight_csr.get());
-        d_weight_diag->copy_from(weight_diag.get());
-        d_system_mtx->copy_from(system_mtx.get());
+        d_agg = gko::Array<index_type>(omp, agg);
+        d_unfinished_agg = gko::Array<index_type>(omp, unfinished_agg);
+        d_strongest_neighbor = gko::Array<index_type>(omp, strongest_neighbor);
+        d_coarse_vector = gko::clone(omp, coarse_vector);
+        d_fine_vector = gko::clone(omp, fine_vector);
+        d_weight_csr = gko::clone(omp, weight_csr);
+        d_weight_diag = gko::clone(omp, weight_diag);
+        d_system_mtx = gko::clone(omp, system_mtx);
     }
 
     void make_weight(Mtx *mtx)
