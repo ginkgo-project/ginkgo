@@ -103,7 +103,7 @@ protected:
           block_mtxs_{}
     {
         if (block_overlaps_.get_num_elems() > 0) {
-            has_overlap_ = true;
+            this->has_overlap_ = true;
         }
     }
 
@@ -117,7 +117,9 @@ protected:
           block_mtxs_{}
     {
         if (block_overlaps_.get_num_elems() > 0) {
-            has_overlap_ = true;
+            this->has_overlap_ = true;
+        } else {
+            this->has_overlap_ = false;
         }
         this->generate(num_blocks, block_overlaps, matrix);
     }

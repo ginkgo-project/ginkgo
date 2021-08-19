@@ -130,6 +130,12 @@ protected:
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
+    void apply_impl(const LinOp *b, LinOp *x,
+                    const OverlapMask &wmask) const override;
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x, const OverlapMask &wmask) const override;
+
     /**
      * Generates the analysis structure from the system matrix and the right
      * hand side needed for the level solver.
