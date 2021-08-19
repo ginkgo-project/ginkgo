@@ -67,9 +67,13 @@ GKO_REGISTER_OPERATION(apply, dense::apply);
 GKO_REGISTER_OPERATION(copy, dense::copy);
 GKO_REGISTER_OPERATION(fill, dense::fill);
 GKO_REGISTER_OPERATION(scale, dense::scale);
+GKO_REGISTER_OPERATION(scale_real_complex, dense::scale_real_complex);
 GKO_REGISTER_OPERATION(inv_scale, dense::inv_scale);
+GKO_REGISTER_OPERATION(inv_scale_real_complex, dense::inv_scale_real_complex);
 GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
+GKO_REGISTER_OPERATION(add_scaled_real_complex, dense::add_scaled_real_complex);
 GKO_REGISTER_OPERATION(sub_scaled, dense::sub_scaled);
+GKO_REGISTER_OPERATION(sub_scaled_real_complex, dense::sub_scaled_real_complex);
 GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
 GKO_REGISTER_OPERATION(sub_scaled_diag, dense::sub_scaled_diag);
 GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot);
@@ -268,8 +272,20 @@ void Dense<ValueType>::inv_scale_impl(const LinOp *alpha)
         GKO_ASSERT_EQUAL_COLS(this, alpha);
     }
     auto exec = this->get_executor();
-    exec->run(dense::make_inv_scale(
-        make_temporary_conversion<ValueType>(alpha).get(), this));
+    // if alpha is real (convertible to real) and ValueType complex
+    if (dynamic_cast<const ConvertibleTo<Dense<>> *>(alpha) &&
+        is_complex<ValueType>()) {
+        // use the real-complex kernel
+        exec->run(dense::make_inv_scale_real_complex(
+            make_temporary_conversion<remove_complex<ValueType>>(alpha).get(),
+            dynamic_cast<complex_type *>(this)));
+        // this last cast is a no-op for complex value type and the branch is
+        // never taken for real value type
+    } else {
+        // otherwise: use the normal kernel
+        exec->run(dense::make_inv_scale(
+            make_temporary_conversion<ValueType>(alpha).get(), this));
+    }
 }
 
 
@@ -282,8 +298,20 @@ void Dense<ValueType>::scale_impl(const LinOp *alpha)
         GKO_ASSERT_EQUAL_COLS(this, alpha);
     }
     auto exec = this->get_executor();
-    exec->run(dense::make_scale(
-        make_temporary_conversion<ValueType>(alpha).get(), this));
+    // if alpha is real (convertible to real) and ValueType complex
+    if (dynamic_cast<const ConvertibleTo<Dense<>> *>(alpha) &&
+        is_complex<ValueType>()) {
+        // use the real-complex kernel
+        exec->run(dense::make_scale_real_complex(
+            make_temporary_conversion<remove_complex<ValueType>>(alpha).get(),
+            dynamic_cast<complex_type *>(this)));
+        // this last cast is a no-op for complex value type and the branch is
+        // never taken for real value type
+    } else {
+        // otherwise: use the normal kernel
+        exec->run(dense::make_scale(
+            make_temporary_conversion<ValueType>(alpha).get(), this));
+    }
 }
 
 
@@ -298,14 +326,23 @@ void Dense<ValueType>::add_scaled_impl(const LinOp *alpha, const LinOp *b)
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     auto exec = this->get_executor();
 
-    if (dynamic_cast<const Diagonal<ValueType> *>(b)) {
-        exec->run(dense::make_add_scaled_diag(
-            as<Dense<ValueType>>(alpha),
-            dynamic_cast<const Diagonal<ValueType> *>(b), this));
+    // if alpha is real and value type complex
+    if (dynamic_cast<const ConvertibleTo<Dense<>> *>(alpha) &&
+        is_complex<ValueType>()) {
+        exec->run(dense::make_add_scaled_real_complex(
+            make_temporary_conversion<remove_complex<ValueType>>(alpha).get(),
+            make_temporary_conversion<to_complex<ValueType>>(b).get(),
+            dynamic_cast<complex_type *>(this)));
     } else {
-        exec->run(dense::make_add_scaled(
-            make_temporary_conversion<ValueType>(alpha).get(),
-            make_temporary_conversion<ValueType>(b).get(), this));
+        if (dynamic_cast<const Diagonal<ValueType> *>(b)) {
+            exec->run(dense::make_add_scaled_diag(
+                make_temporary_conversion<ValueType>(alpha).get(),
+                dynamic_cast<const Diagonal<ValueType> *>(b), this));
+        } else {
+            exec->run(dense::make_add_scaled(
+                make_temporary_conversion<ValueType>(alpha).get(),
+                make_temporary_conversion<ValueType>(b).get(), this));
+        }
     }
 }
 
@@ -321,14 +358,22 @@ void Dense<ValueType>::sub_scaled_impl(const LinOp *alpha, const LinOp *b)
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     auto exec = this->get_executor();
 
-    if (dynamic_cast<const Diagonal<ValueType> *>(b)) {
-        exec->run(dense::make_sub_scaled_diag(
-            as<Dense<ValueType>>(alpha),
-            dynamic_cast<const Diagonal<ValueType> *>(b), this));
+    if (dynamic_cast<const ConvertibleTo<Dense<>> *>(alpha) &&
+        is_complex<ValueType>()) {
+        exec->run(dense::make_sub_scaled_real_complex(
+            make_temporary_conversion<remove_complex<ValueType>>(alpha).get(),
+            make_temporary_conversion<to_complex<ValueType>>(b).get(),
+            dynamic_cast<complex_type *>(this)));
     } else {
-        exec->run(dense::make_sub_scaled(
-            make_temporary_conversion<ValueType>(alpha).get(),
-            make_temporary_conversion<ValueType>(b).get(), this));
+        if (dynamic_cast<const Diagonal<ValueType> *>(b)) {
+            exec->run(dense::make_sub_scaled_diag(
+                make_temporary_conversion<ValueType>(alpha).get(),
+                dynamic_cast<const Diagonal<ValueType> *>(b), this));
+        } else {
+            exec->run(dense::make_sub_scaled(
+                make_temporary_conversion<ValueType>(alpha).get(),
+                make_temporary_conversion<ValueType>(b).get(), this));
+        }
     }
 }
 

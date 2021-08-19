@@ -118,31 +118,33 @@ protected:
     {
         x = gen_mtx<Mtx>(1000, num_vecs);
         y = gen_mtx<Mtx>(1000, num_vecs);
+        c_x = gen_mtx<ComplexMtx>(1000, num_vecs);
+        c_y = gen_mtx<ComplexMtx>(1000, num_vecs);
         if (different_alpha) {
             alpha = gen_mtx<Mtx>(1, num_vecs);
+            c_alpha = gen_mtx<ComplexMtx>(1, num_vecs);
         } else {
             alpha = gko::initialize<Mtx>({2.0}, ref);
+            c_alpha =
+                gko::initialize<ComplexMtx>({std::complex<vtype>{2.0}}, ref);
         }
         dx = gko::clone(exec, x);
         dy = gko::clone(exec, y);
+        dc_x = gko::clone(exec, c_x);
+        dc_y = gko::clone(exec, c_y);
         dalpha = gko::clone(exec, alpha);
-        expected = Mtx::create(ref, gko::dim<2>{1, num_vecs});
-        dresult = Mtx::create(exec, gko::dim<2>{1, num_vecs});
+        dc_alpha = gko::clone(exec, c_alpha);
     }
 
     void set_up_apply_data()
     {
         x = gen_mtx<Mtx>(40, 25);
-        c_x = gen_mtx<ComplexMtx>(40, 25);
         y = gen_mtx<Mtx>(25, 35);
-        expected = gen_mtx<Mtx>(40, 35);
         alpha = gko::initialize<Mtx>({2.0}, ref);
         beta = gko::initialize<Mtx>({-1.0}, ref);
         square = gen_mtx<Mtx>(x->get_size()[0], x->get_size()[0]);
         dx = gko::clone(exec, x);
-        dc_x = gko::clone(exec, c_x);
         dy = gko::clone(exec, y);
-        dresult = gko::clone(exec, expected);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
         dsquare = gko::clone(exec, square);
@@ -182,14 +184,16 @@ protected:
 
     std::unique_ptr<Mtx> x;
     std::unique_ptr<ComplexMtx> c_x;
+    std::unique_ptr<ComplexMtx> c_y;
+    std::unique_ptr<ComplexMtx> c_alpha;
     std::unique_ptr<Mtx> y;
     std::unique_ptr<Mtx> alpha;
     std::unique_ptr<Mtx> beta;
-    std::unique_ptr<Mtx> expected;
     std::unique_ptr<Mtx> square;
-    std::unique_ptr<Mtx> dresult;
     std::unique_ptr<Mtx> dx;
     std::unique_ptr<ComplexMtx> dc_x;
+    std::unique_ptr<ComplexMtx> dc_y;
+    std::unique_ptr<ComplexMtx> dc_alpha;
     std::unique_ptr<Mtx> dy;
     std::unique_ptr<Mtx> dalpha;
     std::unique_ptr<Mtx> dbeta;
@@ -267,6 +271,50 @@ TEST_F(Dense, SingleVectorInvScaleIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, SingleVectorComplexScaleIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    c_x->scale(c_alpha.get());
+    dc_x->scale(dc_alpha.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, SingleVectorComplexInvScaleIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    c_x->inv_scale(c_alpha.get());
+    dc_x->inv_scale(dc_alpha.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, SingleVectorComplexRealScaleIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    c_x->scale(alpha.get());
+    dc_x->scale(dalpha.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, SingleVectorComplexRealInvScaleIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    c_x->inv_scale(alpha.get());
+    dc_x->inv_scale(dalpha.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
 TEST_F(Dense, MultipleVectorScaleIsEquivalentToRef)
 {
     set_up_vector_data(20);
@@ -286,6 +334,50 @@ TEST_F(Dense, MultipleVectorInvScaleIsEquivalentToRef)
     dx->inv_scale(dalpha.get());
 
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, MultipleVectorComplexScaleIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    c_x->scale(c_alpha.get());
+    dc_x->scale(dc_alpha.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, MultipleVectorComplexInvScaleIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    c_x->inv_scale(c_alpha.get());
+    dc_x->inv_scale(dc_alpha.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, MultipleVectorComplexRealScaleIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    c_x->scale(alpha.get());
+    dc_x->scale(dalpha.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, MultipleVectorComplexRealInvScaleIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    c_x->inv_scale(alpha.get());
+    dc_x->inv_scale(dalpha.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
 
@@ -311,6 +403,51 @@ TEST_F(Dense, MultipleVectorInvScaleWithDifferentAlphaIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, MultipleVectorComplexScaleWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20, true);
+
+    c_x->scale(c_alpha.get());
+    dc_x->scale(dc_alpha.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, MultipleVectorComplexInvScaleWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20, true);
+
+    c_x->inv_scale(c_alpha.get());
+    dc_x->inv_scale(dc_alpha.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, MultipleVectorComplexRealScaleWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20, true);
+
+    c_x->scale(alpha.get());
+    dc_x->scale(dalpha.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense,
+       MultipleVectorComplexRealInvScaleWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20, true);
+
+    c_x->inv_scale(alpha.get());
+    dc_x->inv_scale(dalpha.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
 TEST_F(Dense, SingleVectorAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(1);
@@ -330,6 +467,50 @@ TEST_F(Dense, SingleVectorSubtractScaledIsEquivalentToRef)
     dx->sub_scaled(dalpha.get(), dy.get());
 
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, SingleVectorComplexAddScaledIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    c_x->add_scaled(c_alpha.get(), c_y.get());
+    dc_x->add_scaled(dc_alpha.get(), dc_y.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, SingleVectorComplexSubtractScaledIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    c_x->sub_scaled(c_alpha.get(), c_y.get());
+    dc_x->sub_scaled(dc_alpha.get(), dc_y.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, SingleVectorComplexRealAddScaledIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    c_x->add_scaled(alpha.get(), c_y.get());
+    dc_x->add_scaled(dalpha.get(), dc_y.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, SingleVectorComplexRealSubtractScaledIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    c_x->sub_scaled(alpha.get(), c_y.get());
+    dc_x->sub_scaled(dalpha.get(), dc_y.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
 
@@ -355,9 +536,53 @@ TEST_F(Dense, MultipleVectorSubtractScaledIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
+TEST_F(Dense, MultipleVectorComplexAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(20);
+
+    c_x->add_scaled(c_alpha.get(), c_y.get());
+    dc_x->add_scaled(dc_alpha.get(), dc_y.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, MultipleVectorComplexSubtractScaledIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    c_x->sub_scaled(c_alpha.get(), c_y.get());
+    dc_x->sub_scaled(dc_alpha.get(), dc_y.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, MultipleVectorComplexRealAddScaledIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    c_x->add_scaled(alpha.get(), c_y.get());
+    dc_x->add_scaled(dalpha.get(), dc_y.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, MultipleVectorComplexRealSubtractScaledIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    c_x->sub_scaled(alpha.get(), c_y.get());
+    dc_x->sub_scaled(dalpha.get(), dc_y.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20, true);
 
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
@@ -368,12 +593,60 @@ TEST_F(Dense, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 
 TEST_F(Dense, MultipleVectorSubtractScaledWithDifferentAlphaIsEquivalentToRef)
 {
-    set_up_vector_data(20);
+    set_up_vector_data(20, true);
 
     x->sub_scaled(alpha.get(), y.get());
     dx->sub_scaled(dalpha.get(), dy.get());
 
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
+}
+
+
+TEST_F(Dense, MultipleVectorComplexAddScaledWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20, true);
+
+    c_x->add_scaled(c_alpha.get(), c_y.get());
+    dc_x->add_scaled(dc_alpha.get(), dc_y.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense,
+       MultipleVectorComplexSubtractScaledWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20, true);
+
+    c_x->sub_scaled(c_alpha.get(), c_y.get());
+    dc_x->sub_scaled(dc_alpha.get(), dc_y.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(Dense,
+       MultipleVectorComplexRealAddScaledWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20, true);
+
+    c_x->add_scaled(alpha.get(), c_y.get());
+    dc_x->add_scaled(dalpha.get(), dc_y.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
+}
+
+
+TEST_F(
+    Dense,
+    MultipleVectorComplexRealSubtractScaledWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20, true);
+
+    c_x->sub_scaled(alpha.get(), c_y.get());
+    dc_x->sub_scaled(dalpha.get(), dc_y.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
 

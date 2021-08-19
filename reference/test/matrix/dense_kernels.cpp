@@ -4056,6 +4056,206 @@ protected:
 TYPED_TEST_SUITE(DenseComplex, gko::test::ComplexValueTypes);
 
 
+TYPED_TEST(DenseComplex, ScalesWithRealScalar)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto alpha =
+        gko::initialize<RealDense>({gko::remove_complex<T>{-2.0}}, exec);
+
+    mtx->scale(alpha.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-2.0, -4.0}, T{2.0, -4.5}},
+                              {T{4.0, -3.0}, T{-9.0, 0.0}},
+                              {T{-2.0, 0.0}, T{0.0, -2.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, ScalesWithRealVector)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    using RealT = gko::remove_complex<T>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto alpha = gko::initialize<RealDense>({{RealT{-2.0}, RealT{4.0}}}, exec);
+
+    mtx->scale(alpha.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-2.0, -4.0}, T{-4.0, 9.0}},
+                              {T{4.0, -3.0}, T{18.0, 0.0}},
+                              {T{-2.0, 0.0}, T{0.0, 4.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, InvScalesWithRealScalar)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto alpha =
+        gko::initialize<RealDense>({gko::remove_complex<T>{-0.5}}, exec);
+
+    mtx->inv_scale(alpha.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-2.0, -4.0}, T{2.0, -4.5}},
+                              {T{4.0, -3.0}, T{-9.0, 0.0}},
+                              {T{-2.0, 0.0}, T{0.0, -2.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, InvScalesWithRealVector)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    using RealT = gko::remove_complex<T>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto alpha = gko::initialize<RealDense>({{RealT{-0.5}, RealT{0.25}}}, exec);
+
+    mtx->inv_scale(alpha.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-2.0, -4.0}, T{-4.0, 9.0}},
+                              {T{4.0, -3.0}, T{18.0, 0.0}},
+                              {T{-2.0, 0.0}, T{0.0, 4.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, AddsScaledWithRealScalar)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto mtx2 = gko::initialize<Dense>({{T{4.0, -1.0}, T{5.0, 1.5}},
+                                        {T{3.0, 1.0}, T{0.0, 2.0}},
+                                        {T{-1.0, 1.0}, T{0.5, -2.0}}},
+                                       exec);
+    auto alpha =
+        gko::initialize<RealDense>({gko::remove_complex<T>{-2.0}}, exec);
+
+    mtx->add_scaled(alpha.get(), mtx2.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-7.0, 4.0}, T{-11.0, -0.75}},
+                              {T{-8.0, -0.5}, T{4.5, -4.0}},
+                              {T{3.0, -2.0}, T{-1.0, 5.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, AddsScaledWithRealVector)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    using RealT = gko::remove_complex<T>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto mtx2 = gko::initialize<Dense>({{T{4.0, -1.0}, T{5.0, 1.5}},
+                                        {T{3.0, 1.0}, T{0.0, 2.0}},
+                                        {T{-1.0, 1.0}, T{0.5, -2.0}}},
+                                       exec);
+    auto alpha = gko::initialize<RealDense>({{RealT{-2.0}, RealT{4.0}}}, exec);
+
+    mtx->add_scaled(alpha.get(), mtx2.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-7.0, 4.0}, T{19.0, 8.25}},
+                              {T{-8.0, -0.5}, T{4.5, 8.0}},
+                              {T{3.0, -2.0}, T{2.0, -7.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, SubtractsScaledWithRealScalar)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto mtx2 = gko::initialize<Dense>({{T{4.0, -1.0}, T{5.0, 1.5}},
+                                        {T{3.0, 1.0}, T{0.0, 2.0}},
+                                        {T{-1.0, 1.0}, T{0.5, -2.0}}},
+                                       exec);
+    auto alpha =
+        gko::initialize<RealDense>({gko::remove_complex<T>{2.0}}, exec);
+
+    mtx->sub_scaled(alpha.get(), mtx2.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-7.0, 4.0}, T{-11.0, -0.75}},
+                              {T{-8.0, -0.5}, T{4.5, -4.0}},
+                              {T{3.0, -2.0}, T{-1.0, 5.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(DenseComplex, SubtractsScaledWithRealVector)
+{
+    using Dense = typename TestFixture::Mtx;
+    using RealDense = gko::remove_complex<Dense>;
+    using T = typename TestFixture::value_type;
+    using RealT = gko::remove_complex<T>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.25}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
+    auto mtx2 = gko::initialize<Dense>({{T{4.0, -1.0}, T{5.0, 1.5}},
+                                        {T{3.0, 1.0}, T{0.0, 2.0}},
+                                        {T{-1.0, 1.0}, T{0.5, -2.0}}},
+                                       exec);
+    auto alpha = gko::initialize<RealDense>({{RealT{2.0}, RealT{-4.0}}}, exec);
+
+    mtx->sub_scaled(alpha.get(), mtx2.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx,
+                        l<T>({{T{-7.0, 4.0}, T{19.0, 8.25}},
+                              {T{-8.0, -0.5}, T{4.5, 8.0}},
+                              {T{3.0, -2.0}, T{2.0, -7.0}}}),
+                        0.0);
+}
+
+
 TYPED_TEST(DenseComplex, NonSquareMatrixIsConjugateTransposable)
 {
     using Dense = typename TestFixture::Mtx;
