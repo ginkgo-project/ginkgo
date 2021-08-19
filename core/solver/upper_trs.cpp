@@ -102,6 +102,73 @@ void UpperTrs<ValueType, IndexType>::generate()
 
 
 template <typename ValueType, typename IndexType>
+void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x,
+                                                const OverlapMask& wmask) const
+{
+    precision_dispatch_real_complex<ValueType>(
+        [this, wmask](auto dense_b, auto dense_x) {
+            using Vector = matrix::Dense<ValueType>;
+            const auto exec = this->get_executor();
+
+            // This kernel checks if a transpose is needed for the multiple rhs
+            // case. Currently only the algorithm for CUDA version <=9.1 needs
+            // this transposition due to the limitation in the cusparse
+            // algorithm. The other executors (omp and reference) do not use the
+            // transpose (trans_x and trans_b) and hence are passed in empty
+            // pointers.
+            bool do_transpose = false;
+            std::shared_ptr<Vector> trans_b;
+            std::shared_ptr<Vector> trans_x;
+            auto x_clone = as<Vector>(dense_x->clone());
+            this->get_executor()->run(
+                upper_trs::make_should_perform_transpose(do_transpose));
+            if (do_transpose) {
+                trans_b =
+                    Vector::create(exec, gko::transpose(dense_b->get_size()));
+                trans_x =
+                    Vector::create(exec, gko::transpose(dense_x->get_size()));
+            } else {
+                trans_b = Vector::create(exec);
+                trans_x = Vector::create(exec);
+            }
+            exec->run(upper_trs::make_solve(
+                gko::lend(system_matrix_), gko::lend(this->solve_struct_),
+                gko::lend(trans_b), gko::lend(trans_x), dense_b,
+                x_clone.get()));
+            // FIXME
+            auto x_view = dense_x->create_submatrix(
+                wmask.write_idxs, gko::span(0, dense_x->get_size()[1]));
+            auto xclone_view = x_clone->create_submatrix(
+                wmask.write_idxs, gko::span(0, dense_x->get_size()[1]));
+            x_view->copy_from(xclone_view.get());
+        },
+        b, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* alpha,
+                                                const LinOp* b,
+                                                const LinOp* beta, LinOp* x,
+                                                const OverlapMask& wmask) const
+{
+    precision_dispatch_real_complex<ValueType>(
+        [this, wmask](auto dense_alpha, auto dense_b, auto dense_beta,
+                      auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_impl(dense_b, x_clone.get(), wmask);
+            auto x_view = dense_x->create_submatrix(
+                wmask.write_idxs, span(0, dense_x->get_size()[1]));
+            auto xclone_view = dense_x->create_submatrix(
+                wmask.write_idxs, span(0, x_clone->get_size()[1]));
+            x_view->scale(dense_beta);
+            x_view->add_scaled(dense_alpha, xclone_view.get());
+        },
+        alpha, b, beta, x);
+}
+
+
+template <typename ValueType, typename IndexType>
 void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(

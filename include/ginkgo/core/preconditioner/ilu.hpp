@@ -230,6 +230,40 @@ protected:
             b, x);
     }
 
+    void apply_impl(const LinOp* b, LinOp* x,
+                    const OverlapMask& wmask) const override
+    {
+        // take care of real-to-complex apply
+        precision_dispatch_real_complex<value_type>(
+            [&](auto dense_b, auto dense_x) {
+                this->set_cache_to(dense_b);
+                if (!ReverseApply) {
+                    l_solver_->apply(dense_b, cache_.intermediate.get());
+                    auto cache_view =
+                        as<matrix::Dense<value_type>>(cache_.intermediate.get())
+                            ->create_submatrix(
+                                wmask.write_idxs,
+                                span(0, cache_.intermediate->get_size()[1]));
+                    if (u_solver_->apply_uses_initial_guess()) {
+                        dense_x->copy_from(cache_view.get());
+                    }
+                    u_solver_->apply(cache_.intermediate.get(), dense_x, wmask);
+                } else {
+                    u_solver_->apply(dense_b, cache_.intermediate.get());
+                    auto cache_view =
+                        as<matrix::Dense<value_type>>(cache_.intermediate.get())
+                            ->create_submatrix(
+                                wmask.write_idxs,
+                                span(0, cache_.intermediate->get_size()[1]));
+                    if (l_solver_->apply_uses_initial_guess()) {
+                        dense_x->copy_from(cache_view.get());
+                    }
+                    l_solver_->apply(cache_.intermediate.get(), dense_x, wmask);
+                }
+            },
+            b, x);
+    }
+
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override
     {
@@ -244,6 +278,25 @@ protected:
                     u_solver_->apply(dense_b, cache_.intermediate.get());
                     l_solver_->apply(dense_alpha, cache_.intermediate.get(),
                                      dense_beta, dense_x);
+                }
+            },
+            alpha, b, beta, x);
+    }
+
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x, const OverlapMask& wmask) const override
+    {
+        precision_dispatch_real_complex<value_type>(
+            [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+                this->set_cache_to(dense_b);
+                if (!ReverseApply) {
+                    l_solver_->apply(dense_b, cache_.intermediate.get());
+                    u_solver_->apply(dense_alpha, cache_.intermediate.get(),
+                                     dense_beta, dense_x, wmask);
+                } else {
+                    u_solver_->apply(dense_b, cache_.intermediate.get());
+                    l_solver_->apply(dense_alpha, cache_.intermediate.get(),
+                                     dense_beta, dense_x, wmask);
                 }
             },
             alpha, b, beta, x);

@@ -247,6 +247,181 @@ void Bicgstab<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 }
 
 
+template <typename ValueType>
+void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x,
+                                     const OverlapMask &wmask) const
+{
+    precision_dispatch_real_complex_distributed<ValueType>(
+        [this, wmask](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x, wmask);
+        },
+        b, x);
+}
+
+
+template <typename ValueType>
+template <typename VectorType>
+void Bicgstab<ValueType>::apply_dense_impl(const VectorType *dense_b,
+                                           VectorType *dense_x,
+                                           const OverlapMask &wmask) const
+{
+    using std::swap;
+    using LocalVector = matrix::Dense<ValueType>;
+
+    constexpr uint8 RelativeStoppingId{1};
+
+    auto exec = this->get_executor();
+
+    auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
+    auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
+
+    auto r = detail::create_with_same_size(dense_b);
+    auto z = detail::create_with_same_size(dense_b);
+    auto y = detail::create_with_same_size(dense_b);
+    auto v = detail::create_with_same_size(dense_b);
+    auto s = detail::create_with_same_size(dense_b);
+    auto t = detail::create_with_same_size(dense_b);
+    auto p = detail::create_with_same_size(dense_b);
+    auto rr = detail::create_with_same_size(dense_b);
+
+    auto alpha = LocalVector::create(exec, dim<2>{1, dense_b->get_size()[1]});
+    auto beta = LocalVector::create_with_config_of(alpha.get());
+    auto gamma = LocalVector::create_with_config_of(alpha.get());
+    auto prev_rho = LocalVector::create_with_config_of(alpha.get());
+    auto rho = LocalVector::create_with_config_of(alpha.get());
+    auto omega = LocalVector::create_with_config_of(alpha.get());
+
+    bool one_changed{};
+    Array<stopping_status> stop_status(alpha->get_executor(),
+                                       dense_b->get_size()[1]);
+
+    auto x_clone = as<VectorType>(dense_x->clone());
+    // TODO: replace this with automatic merged kernel generator
+    exec->run(bicgstab::make_initialize(
+        detail::get_local(dense_b), detail::get_local(r.get()),
+        detail::get_local(rr.get()), detail::get_local(y.get()),
+        detail::get_local(s.get()), detail::get_local(t.get()),
+        detail::get_local(z.get()), detail::get_local(v.get()),
+        detail::get_local(p.get()), prev_rho.get(), rho.get(), alpha.get(),
+        beta.get(), gamma.get(), omega.get(), &stop_status));
+    // r = dense_b
+    // prev_rho = rho = omega = alpha = beta = gamma = 1.0
+    // rr = v = s = t = z = y = p = 0
+    // stop_status = 0x00
+
+    system_matrix_->apply(neg_one_op.get(), x_clone.get(), one_op.get(),
+                          r.get());
+    auto stop_criterion = stop_criterion_factory_->generate(
+        system_matrix_,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}),
+        x_clone.get(), r.get());
+    rr->copy_from(r.get());
+
+    int iter = -1;
+
+    /* Memory movement summary:
+     * 31n * values + 2 * matrix/preconditioner storage
+     * 2x SpMV:                4n * values + 2 * storage
+     * 2x Preconditioner:      4n * values + 2 * storage
+     * 3x dot                  6n
+     * 1x norm2                 n
+     * 1x step 1 (fused axpys) 4n
+     * 1x step 2 (axpy)        3n
+     * 1x step 3 (fused axpys) 7n
+     * 2x norm2 residual       2n
+     */
+    while (true) {
+        ++iter;
+        this->template log<log::Logger::iteration_complete>(
+            this, iter, r.get(), x_clone.get(), nullptr, rho.get());
+        rr->compute_conj_dot(r.get(), rho.get());
+
+        if (stop_criterion->update()
+                .num_iterations(iter)
+                .residual(r.get())
+                .implicit_sq_residual_norm(rho.get())
+                .solution(x_clone.get())
+                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
+            break;
+        }
+
+        // tmp = rho / prev_rho * alpha / omega
+        // p = r + tmp * (p - omega * v)
+        exec->run(bicgstab::make_step_1(
+            detail::get_local(r.get()), detail::get_local(p.get()),
+            detail::get_local(v.get()), rho.get(), prev_rho.get(), alpha.get(),
+            omega.get(), &stop_status));
+
+        get_preconditioner()->apply(p.get(), y.get());
+        system_matrix_->apply(y.get(), v.get());
+        rr->compute_conj_dot(v.get(), beta.get());
+        // alpha = rho / beta
+        // s = r - alpha * v
+        exec->run(bicgstab::make_step_2(detail::get_local(r.get()),
+                                        detail::get_local(s.get()),
+                                        detail::get_local(v.get()), rho.get(),
+                                        alpha.get(), beta.get(), &stop_status));
+
+        auto all_converged =
+            stop_criterion->update()
+                .num_iterations(iter)
+                .residual(s.get())
+                .implicit_sq_residual_norm(rho.get())
+                // .solution(dense_x) // outdated at this point
+                .check(RelativeStoppingId, false, &stop_status, &one_changed);
+        if (one_changed) {
+            exec->run(bicgstab::make_finalize(detail::get_local(x_clone.get()),
+                                              detail::get_local(y.get()),
+                                              alpha.get(), &stop_status));
+        }
+        if (all_converged) {
+            break;
+        }
+
+        get_preconditioner()->apply(s.get(), z.get());
+        system_matrix_->apply(z.get(), t.get());
+        s->compute_conj_dot(t.get(), gamma.get());
+        t->compute_conj_dot(t.get(), beta.get());
+        // omega = gamma / beta
+        // x = x + alpha * y + omega * z
+        // r = s - omega * t
+        exec->run(bicgstab::make_step_3(
+            detail::get_local(x_clone.get()), detail::get_local(r.get()),
+            detail::get_local(s.get()), detail::get_local(t.get()),
+            detail::get_local(y.get()), detail::get_local(z.get()), alpha.get(),
+            beta.get(), gamma.get(), omega.get(), &stop_status));
+        swap(prev_rho, rho);
+    }
+    // FIXME
+    auto x_view = dense_x->create_submatrix(
+        wmask.write_idxs, gko::span(0, dense_x->get_size()[1]));
+    auto xclone_view = x_clone->create_submatrix(
+        wmask.write_idxs, gko::span(0, dense_x->get_size()[1]));
+    x_view->copy_from(xclone_view.get());
+}
+
+
+template <typename ValueType>
+void Bicgstab<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                     const LinOp *beta, LinOp *x,
+                                     const OverlapMask &wmask) const
+{
+    precision_dispatch_real_complex_distributed<ValueType>(
+        [this, wmask](auto dense_alpha, auto dense_b, auto dense_beta,
+                      auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get(), wmask);
+            auto x_view = dense_x->create_submatrix(
+                wmask.write_idxs, span(0, dense_x->get_size()[1]));
+            auto xclone_view = dense_x->create_submatrix(
+                wmask.write_idxs, span(0, x_clone->get_size()[1]));
+            x_view->scale(dense_beta);
+            x_view->add_scaled(dense_alpha, xclone_view.get());
+        },
+        alpha, b, beta, x);
+}
+
+
 #define GKO_DECLARE_BICGSTAB(_type) class Bicgstab<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB);
 
