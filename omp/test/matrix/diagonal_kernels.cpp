@@ -122,39 +122,29 @@ protected:
     void set_up_apply_data()
     {
         diag = gen_diag(mtx_size[0]);
-        ddiag = Diag::create(omp);
-        ddiag->copy_from(diag.get());
+        ddiag = gko::clone(omp, diag);
         dense1 = gen_mtx<Dense>(mtx_size[0], mtx_size[1], mtx_size[0]);
         dense2 = gen_mtx<Dense>(mtx_size[1], mtx_size[0], mtx_size[1]);
         denseexpected1 = gen_mtx<Dense>(mtx_size[0], mtx_size[1], mtx_size[0]);
         denseexpected2 = gen_mtx<Dense>(mtx_size[1], mtx_size[0], mtx_size[1]);
-        ddense1 = Dense::create(omp);
-        ddense1->copy_from(dense1.get());
-        ddense2 = Dense::create(omp);
-        ddense2->copy_from(dense2.get());
-        denseresult1 = Dense::create(omp);
-        denseresult1->copy_from(denseexpected1.get());
-        denseresult2 = Dense::create(omp);
-        denseresult2->copy_from(denseexpected2.get());
+        ddense1 = gko::clone(omp, dense1);
+        ddense2 = gko::clone(omp, dense2);
+        denseresult1 = gko::clone(omp, denseexpected1);
+        denseresult2 = gko::clone(omp, denseexpected2);
         csr1 = gen_mtx<Csr>(mtx_size[0], mtx_size[1], 1);
         csr2 = gen_mtx<Csr>(mtx_size[1], mtx_size[0], 1);
         csrexpected1 = gen_mtx<Csr>(mtx_size[0], mtx_size[1], 1);
         csrexpected2 = gen_mtx<Csr>(mtx_size[1], mtx_size[0], 1);
-        dcsr1 = Csr::create(omp);
-        dcsr1->copy_from(csr1.get());
-        dcsr2 = Csr::create(omp);
-        dcsr2->copy_from(csr2.get());
-        csrresult1 = Csr::create(omp);
-        csrresult1->copy_from(csrexpected1.get());
-        csrresult2 = Csr::create(omp);
-        csrresult2->copy_from(csrexpected2.get());
+        dcsr1 = gko::clone(omp, csr1);
+        dcsr2 = gko::clone(omp, csr2);
+        csrresult1 = gko::clone(omp, csrexpected1);
+        csrresult2 = gko::clone(omp, csrexpected2);
     }
 
     void set_up_complex_data()
     {
         cdiag = gen_cdiag(mtx_size[0]);
-        dcdiag = ComplexDiag::create(omp);
-        dcdiag->copy_from(cdiag.get());
+        dcdiag = gko::clone(omp, cdiag);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;

@@ -81,8 +81,7 @@ protected:
                    << "\", which is required for this test.\n";
         }
         csr_ref = gko::read<Csr>(input_file, ref);
-        csr_cuda = Csr::create(cuda);
-        csr_cuda->copy_from(gko::lend(csr_ref));
+        csr_cuda = gko::clone(cuda, csr_ref);
     }
 };
 

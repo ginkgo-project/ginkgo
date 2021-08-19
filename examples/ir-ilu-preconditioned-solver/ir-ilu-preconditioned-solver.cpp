@@ -97,12 +97,9 @@ int main(int argc, char *argv[])
     for (gko::size_type i = 0; i < num_rows; i++) {
         host_x->at(i, 0) = 1.;
     }
-    auto x = vec::create(exec);
-    auto b = vec::create(exec);
-    x->copy_from(host_x.get());
-    b->copy_from(host_x.get());
-    auto clone_x = vec::create(exec);
-    clone_x->copy_from(lend(x));
+    auto x = gko::clone(exec, host_x);
+    auto b = gko::clone(exec, host_x);
+    auto clone_x = gko::clone(exec, x);
 
     // Generate incomplete factors using ParILU
     auto par_ilu_fact =

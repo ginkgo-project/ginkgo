@@ -116,24 +116,15 @@ protected:
         // check correct handling for stopped columns
         stop_status->get_data()[1].stop(1);
 
-        d_b = Mtx::create(exec);
-        d_b->copy_from(b.get());
-        d_r = Mtx::create(exec);
-        d_r->copy_from(r.get());
-        d_z = Mtx::create(exec);
-        d_z->copy_from(z.get());
-        d_p = Mtx::create(exec);
-        d_p->copy_from(p.get());
-        d_q = Mtx::create(exec);
-        d_q->copy_from(q.get());
-        d_x = Mtx::create(exec);
-        d_x->copy_from(x.get());
-        d_beta = Mtx::create(exec);
-        d_beta->copy_from(beta.get());
-        d_prev_rho = Mtx::create(exec);
-        d_prev_rho->copy_from(prev_rho.get());
-        d_rho = Mtx::create(exec);
-        d_rho->copy_from(rho.get());
+        d_b = gko::clone(exec, b);
+        d_r = gko::clone(exec, r);
+        d_z = gko::clone(exec, z);
+        d_p = gko::clone(exec, p);
+        d_q = gko::clone(exec, q);
+        d_x = gko::clone(exec, x);
+        d_beta = gko::clone(exec, beta);
+        d_prev_rho = gko::clone(exec, prev_rho);
+        d_rho = gko::clone(exec, rho);
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
             new gko::Array<gko::stopping_status>(exec, n));
         *d_stop_status = *stop_status;
@@ -227,12 +218,9 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
     gko::test::make_hpd(mtx.get());
     auto x = gen_mtx(50, 3, 5);
     auto b = gen_mtx(50, 3, 4);
-    auto d_mtx = Mtx::create(exec);
-    d_mtx->copy_from(mtx.get());
-    auto d_x = Mtx::create(exec);
-    d_x->copy_from(x.get());
-    auto d_b = Mtx::create(exec);
-    d_b->copy_from(b.get());
+    auto d_mtx = gko::clone(exec, mtx);
+    auto d_x = gko::clone(exec, x);
+    auto d_b = gko::clone(exec, b);
     auto cg_factory =
         gko::solver::Cg<value_type>::build()
             .with_criteria(

@@ -108,31 +108,20 @@ protected:
 
     void set_up_apply_data(int num_vectors = 1)
     {
-        mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx<Vec>(mtx_size[0], mtx_size[1], 1));
-        complex_mtx = ComplexMtx::create(ref);
-        complex_mtx->copy_from(
-            gen_mtx<ComplexVec>(mtx_size[0], mtx_size[1], 1));
-        square_mtx = Mtx::create(ref);
-        square_mtx->copy_from(gen_mtx<Vec>(mtx_size[0], mtx_size[0], 1));
+        mtx = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 1);
+        complex_mtx = gen_mtx<ComplexMtx>(mtx_size[0], mtx_size[1], 1);
+        square_mtx = gen_mtx<Mtx>(mtx_size[0], mtx_size[0], 1);
         expected = gen_mtx<Vec>(mtx_size[0], num_vectors, 1);
         y = gen_mtx<Vec>(mtx_size[1], num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = Mtx::create(omp);
-        dmtx->copy_from(mtx.get());
-        complex_dmtx = ComplexMtx::create(omp);
-        complex_dmtx->copy_from(complex_mtx.get());
-        square_dmtx = Mtx::create(omp);
-        square_dmtx->copy_from(square_mtx.get());
-        dresult = Vec::create(omp);
-        dresult->copy_from(expected.get());
-        dy = Vec::create(omp);
-        dy->copy_from(y.get());
-        dalpha = Vec::create(omp);
-        dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(omp);
-        dbeta->copy_from(beta.get());
+        dmtx = gko::clone(omp, mtx);
+        complex_dmtx = gko::clone(omp, complex_mtx);
+        square_dmtx = gko::clone(omp, square_mtx);
+        dresult = gko::clone(omp, expected);
+        dy = gko::clone(omp, y);
+        dalpha = gko::clone(omp, alpha);
+        dbeta = gko::clone(omp, beta);
 
         std::vector<int> tmp(mtx->get_size()[0], 0);
         auto rng = std::default_random_engine{};
@@ -157,8 +146,7 @@ protected:
             gen_mtx<Mtx>(mtx_size[0], mtx_size[1], min_nnz_per_row);
         gko::test::unsort_matrix(gko::lend(local_mtx_ref), rand_engine);
 
-        auto local_mtx_omp = Mtx::create(omp);
-        local_mtx_omp->copy_from(local_mtx_ref.get());
+        auto local_mtx_omp = gko::clone(omp, local_mtx_ref);
 
         return {std::move(local_mtx_ref), std::move(local_mtx_omp)};
     }
@@ -323,10 +311,8 @@ TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
     set_up_apply_data();
     auto a = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     auto b = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
-    auto da = Mtx::create(omp);
-    auto db = Mtx::create(omp);
-    da->copy_from(a.get());
-    db->copy_from(b.get());
+    auto da = gko::clone(omp, a);
+    auto db = gko::clone(omp, b);
     auto id = gko::matrix::Identity<Mtx::value_type>::create(ref, mtx_size[1]);
     auto did = gko::matrix::Identity<Mtx::value_type>::create(omp, mtx_size[1]);
 
@@ -354,11 +340,9 @@ TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data(3);
     auto complex_b = gen_mtx<ComplexVec>(this->mtx_size[1], 3, 1);
-    auto dcomplex_b = ComplexVec::create(omp);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(omp, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(this->mtx_size[0], 3, 1);
-    auto dcomplex_x = ComplexVec::create(omp);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(omp, complex_x);
 
     mtx->apply(complex_b.get(), complex_x.get());
     dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
@@ -371,11 +355,9 @@ TEST_F(Csr, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data(3);
     auto complex_b = gen_mtx<ComplexVec>(this->mtx_size[1], 3, 1);
-    auto dcomplex_b = ComplexVec::create(omp);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(omp, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(this->mtx_size[0], 3, 1);
-    auto dcomplex_x = ComplexVec::create(omp);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(omp, complex_x);
 
     mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
     dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());

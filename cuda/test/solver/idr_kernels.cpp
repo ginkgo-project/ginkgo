@@ -122,41 +122,23 @@ protected:
             stop_status->get_data()[i].reset();
         }
 
-        d_mtx = Mtx::create(cuda);
-        d_x = Mtx::create(cuda);
-        d_b = Mtx::create(cuda);
-        d_r = Mtx::create(cuda);
-        d_m = Mtx::create(cuda);
-        d_f = Mtx::create(cuda);
-        d_g = Mtx::create(cuda);
-        d_u = Mtx::create(cuda);
-        d_c = Mtx::create(cuda);
-        d_v = Mtx::create(cuda);
-        d_p = Mtx::create(cuda);
-        d_alpha = Mtx::create(cuda);
-        d_omega = Mtx::create(cuda);
-        d_tht = Mtx::create(cuda);
-        d_residual_norm = Mtx::create(cuda);
-        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(cuda));
-
-        d_mtx->copy_from(mtx.get());
-        d_x->copy_from(x.get());
-        d_b->copy_from(b.get());
-        d_r->copy_from(r.get());
-        d_m->copy_from(m.get());
-        d_f->copy_from(f.get());
-        d_g->copy_from(g.get());
-        d_u->copy_from(u.get());
-        d_c->copy_from(c.get());
-        d_v->copy_from(v.get());
-        d_p->copy_from(p.get());
-        d_alpha->copy_from(alpha.get());
-        d_omega->copy_from(omega.get());
-        d_tht->copy_from(tht.get());
-        d_residual_norm->copy_from(residual_norm.get());
-        *d_stop_status =
-            *stop_status;  // copy_from is not a public member function of Array
+        d_mtx = gko::clone(cuda, mtx);
+        d_x = gko::clone(cuda, x);
+        d_b = gko::clone(cuda, b);
+        d_r = gko::clone(cuda, r);
+        d_m = gko::clone(cuda, m);
+        d_f = gko::clone(cuda, f);
+        d_g = gko::clone(cuda, g);
+        d_u = gko::clone(cuda, u);
+        d_c = gko::clone(cuda, c);
+        d_v = gko::clone(cuda, v);
+        d_p = gko::clone(cuda, p);
+        d_alpha = gko::clone(cuda, alpha);
+        d_omega = gko::clone(cuda, omega);
+        d_tht = gko::clone(cuda, tht);
+        d_residual_norm = gko::clone(cuda, residual_norm);
+        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+            cuda, *stop_status);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;

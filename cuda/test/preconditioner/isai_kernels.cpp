@@ -116,10 +116,8 @@ protected:
         }
         inverse = clone_allocations(mtx.get());
 
-        d_mtx = Csr::create(cuda);
-        d_mtx->copy_from(mtx.get());
-        d_inverse = Csr::create(cuda);
-        d_inverse->copy_from(inverse.get());
+        d_mtx = gko::clone(cuda, mtx);
+        d_inverse = gko::clone(cuda, inverse);
     }
 
     template <typename ReadMtx>
@@ -510,8 +508,7 @@ TEST_F(Isai, CudaIsaiScaleExcessSolutionIsEquivalentToRef)
     auto e_dim = a1.get_data()[num_rows];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
-    auto de_rhs = Dense::create(cuda);
-    de_rhs->copy_from(lend(e_rhs));
+    auto de_rhs = gko::clone(cuda, e_rhs);
     d_inverse->copy_from(lend(inverse));
 
     gko::kernels::reference::isai::scale_excess_solution(
@@ -535,8 +532,7 @@ TEST_F(Isai, CudaIsaiScalePartialExcessSolutionIsEquivalentToRef)
     auto e_dim = a1.get_data()[10] - a1.get_data()[5];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
-    auto de_rhs = Dense::create(cuda);
-    de_rhs->copy_from(lend(e_rhs));
+    auto de_rhs = gko::clone(cuda, e_rhs);
 
     gko::kernels::reference::isai::scale_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), 5u, 10u);
@@ -559,8 +555,7 @@ TEST_F(Isai, CudaIsaiScatterExcessSolutionLIsEquivalentToRef)
     auto e_dim = a1.get_data()[num_rows];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
-    auto de_rhs = Dense::create(cuda);
-    de_rhs->copy_from(lend(e_rhs));
+    auto de_rhs = gko::clone(cuda, e_rhs);
     d_inverse->copy_from(lend(inverse));
 
     gko::kernels::reference::isai::scatter_excess_solution(
@@ -585,8 +580,7 @@ TEST_F(Isai, CudaIsaiScatterExcessSolutionUIsEquivalentToRef)
     auto e_dim = a1.get_data()[num_rows];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
-    auto de_rhs = Dense::create(cuda);
-    de_rhs->copy_from(lend(e_rhs));
+    auto de_rhs = gko::clone(cuda, e_rhs);
     // overwrite -1 values with inverse
     d_inverse->copy_from(lend(inverse));
 
@@ -612,8 +606,7 @@ TEST_F(Isai, CudaIsaiScatterExcessSolutionAIsEquivalentToRef)
     auto e_dim = a1.get_data()[num_rows];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
-    auto de_rhs = Dense::create(cuda);
-    de_rhs->copy_from(lend(e_rhs));
+    auto de_rhs = gko::clone(cuda, e_rhs);
     // overwrite -1 values with inverse
     d_inverse->copy_from(lend(inverse));
 
@@ -639,8 +632,7 @@ TEST_F(Isai, CudaIsaiScatterExcessSolutionSpdIsEquivalentToRef)
     auto e_dim = a1.get_data()[num_rows];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
-    auto de_rhs = Dense::create(cuda);
-    de_rhs->copy_from(lend(e_rhs));
+    auto de_rhs = gko::clone(cuda, e_rhs);
     // overwrite -1 values with inverse
     d_inverse->copy_from(lend(inverse));
 
@@ -666,8 +658,7 @@ TEST_F(Isai, CudaIsaiScatterPartialExcessSolutionIsEquivalentToRef)
     auto e_dim = a1.get_data()[10] - a1.get_data()[5];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
-    auto de_rhs = Dense::create(cuda);
-    de_rhs->copy_from(lend(e_rhs));
+    auto de_rhs = gko::clone(cuda, e_rhs);
     // overwrite -1 values with inverse
     d_inverse->copy_from(lend(inverse));
 

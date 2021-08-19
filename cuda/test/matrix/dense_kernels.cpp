@@ -104,12 +104,9 @@ protected:
         } else {
             alpha = gko::initialize<Mtx>({2.0}, ref);
         }
-        dx = Mtx::create(cuda);
-        dx->copy_from(x.get());
-        dy = Mtx::create(cuda);
-        dy->copy_from(y.get());
-        dalpha = Mtx::create(cuda);
-        dalpha->copy_from(alpha.get());
+        dx = gko::clone(cuda, x);
+        dy = gko::clone(cuda, y);
+        dalpha = gko::clone(cuda, alpha);
         expected = Mtx::create(ref, gko::dim<2>{1, num_vecs});
         dresult = Mtx::create(cuda, gko::dim<2>{1, num_vecs});
     }
@@ -123,20 +120,13 @@ protected:
         alpha = gko::initialize<Mtx>({2.0}, ref);
         beta = gko::initialize<Mtx>({-1.0}, ref);
         square = gen_mtx<Mtx>(x->get_size()[0], x->get_size()[0]);
-        dx = Mtx::create(cuda);
-        dx->copy_from(x.get());
-        dc_x = ComplexMtx::create(cuda);
-        dc_x->copy_from(c_x.get());
-        dy = Mtx::create(cuda);
-        dy->copy_from(y.get());
-        dresult = Mtx::create(cuda);
-        dresult->copy_from(expected.get());
-        dalpha = Mtx::create(cuda);
-        dalpha->copy_from(alpha.get());
-        dbeta = Mtx::create(cuda);
-        dbeta->copy_from(beta.get());
-        dsquare = Mtx::create(cuda);
-        dsquare->copy_from(square.get());
+        dx = gko::clone(cuda, x);
+        dc_x = gko::clone(cuda, c_x);
+        dy = gko::clone(cuda, y);
+        dresult = gko::clone(cuda, expected);
+        dalpha = gko::clone(cuda, alpha);
+        dbeta = gko::clone(cuda, beta);
+        dsquare = gko::clone(cuda, square);
 
         std::vector<itype> tmp(x->get_size()[0], 0);
         auto rng = std::default_random_engine{};
@@ -299,11 +289,9 @@ TEST_F(Dense, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexMtx>(25, 1);
-    auto dcomplex_b = ComplexMtx::create(cuda);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(cuda, complex_b);
     auto complex_x = gen_mtx<ComplexMtx>(65, 1);
-    auto dcomplex_x = ComplexMtx::create(cuda);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(cuda, complex_x);
 
     x->apply(complex_b.get(), complex_x.get());
     dx->apply(dcomplex_b.get(), dcomplex_x.get());
@@ -316,11 +304,9 @@ TEST_F(Dense, ApplyToMixedComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<MixedComplexMtx>(25, 1);
-    auto dcomplex_b = MixedComplexMtx::create(cuda);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(cuda, complex_b);
     auto complex_x = gen_mtx<MixedComplexMtx>(65, 1);
-    auto dcomplex_x = MixedComplexMtx::create(cuda);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(cuda, complex_x);
 
     x->apply(complex_b.get(), complex_x.get());
     dx->apply(dcomplex_b.get(), dcomplex_x.get());
@@ -333,11 +319,9 @@ TEST_F(Dense, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexMtx>(25, 1);
-    auto dcomplex_b = ComplexMtx::create(cuda);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(cuda, complex_b);
     auto complex_x = gen_mtx<ComplexMtx>(65, 1);
-    auto dcomplex_x = ComplexMtx::create(cuda);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(cuda, complex_x);
 
     x->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
     dx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
@@ -350,11 +334,9 @@ TEST_F(Dense, AdvancedApplyToMixedComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<MixedComplexMtx>(25, 1);
-    auto dcomplex_b = MixedComplexMtx::create(cuda);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(cuda, complex_b);
     auto complex_x = gen_mtx<MixedComplexMtx>(65, 1);
-    auto dcomplex_x = MixedComplexMtx::create(cuda);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(cuda, complex_x);
 
     x->apply(convert<MixedMtx>(alpha).get(), complex_b.get(),
              convert<MixedMtx>(beta).get(), complex_x.get());
@@ -369,11 +351,9 @@ TEST_F(Dense, ComputeDotComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexMtx>(1234, 2);
-    auto dcomplex_b = ComplexMtx::create(cuda);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(cuda, complex_b);
     auto complex_x = gen_mtx<ComplexMtx>(1234, 2);
-    auto dcomplex_x = ComplexMtx::create(cuda);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(cuda, complex_x);
     auto result = ComplexMtx::create(ref, gko::dim<2>{1, 2});
     auto dresult = ComplexMtx::create(cuda, gko::dim<2>{1, 2});
 
@@ -388,11 +368,9 @@ TEST_F(Dense, ComputeConjDotComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexMtx>(1234, 2);
-    auto dcomplex_b = ComplexMtx::create(cuda);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(cuda, complex_b);
     auto complex_x = gen_mtx<ComplexMtx>(1234, 2);
-    auto dcomplex_x = ComplexMtx::create(cuda);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(cuda, complex_x);
     auto result = ComplexMtx::create(ref, gko::dim<2>{1, 2});
     auto dresult = ComplexMtx::create(cuda, gko::dim<2>{1, 2});
 

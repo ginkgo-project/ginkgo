@@ -74,8 +74,7 @@ protected:
         omp = gko::OmpExecutor::create();
 
         mtx = gen_mtx(123, 123);
-        d_mtx = Mtx::create(omp);
-        d_mtx->copy_from(mtx.get());
+        d_mtx = gko::clone(omp, mtx);
         omp_gmres_factory =
             Solver::build()
                 .with_criteria(
@@ -144,29 +143,18 @@ protected:
             final_iter_nums->get_data()[i] = 5;
         }
 
-        d_x = Mtx::create(omp);
-        d_x->copy_from(x.get());
+        d_x = gko::clone(omp, x);
         d_before_preconditioner = Mtx::create_with_config_of(d_x.get());
-        d_y = Mtx::create(omp);
-        d_y->copy_from(y.get());
-        d_b = Mtx::create(omp);
-        d_b->copy_from(b.get());
-        d_krylov_bases = Mtx::create(omp);
-        d_krylov_bases->copy_from(krylov_bases.get());
-        d_hessenberg = Mtx::create(omp);
-        d_hessenberg->copy_from(hessenberg.get());
-        d_hessenberg_iter = Mtx::create(omp);
-        d_hessenberg_iter->copy_from(hessenberg_iter.get());
-        d_residual = Mtx::create(omp);
-        d_residual->copy_from(residual.get());
-        d_residual_norm = NormVector::create(omp);
-        d_residual_norm->copy_from(residual_norm.get());
-        d_residual_norm_collection = Mtx::create(omp);
-        d_residual_norm_collection->copy_from(residual_norm_collection.get());
-        d_givens_sin = Mtx::create(omp);
-        d_givens_sin->copy_from(givens_sin.get());
-        d_givens_cos = Mtx::create(omp);
-        d_givens_cos->copy_from(givens_cos.get());
+        d_y = gko::clone(omp, y);
+        d_b = gko::clone(omp, b);
+        d_krylov_bases = gko::clone(omp, krylov_bases);
+        d_hessenberg = gko::clone(omp, hessenberg);
+        d_hessenberg_iter = gko::clone(omp, hessenberg_iter);
+        d_residual = gko::clone(omp, residual);
+        d_residual_norm = gko::clone(omp, residual_norm);
+        d_residual_norm_collection = gko::clone(omp, residual_norm_collection);
+        d_givens_sin = gko::clone(omp, givens_sin);
+        d_givens_cos = gko::clone(omp, givens_cos);
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
             new gko::Array<gko::stopping_status>(omp, n));
         *d_stop_status = *stop_status;
@@ -309,10 +297,8 @@ TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
     auto omp_solver = omp_gmres_factory->generate(gko::share(d_mtx));
     auto b = gen_mtx(m, n);
     auto x = gen_mtx(m, n);
-    auto d_b = Mtx::create(omp);
-    auto d_x = Mtx::create(omp);
-    d_b->copy_from(b.get());
-    d_x->copy_from(x.get());
+    auto d_b = gko::clone(omp, b);
+    auto d_x = gko::clone(omp, x);
 
     ref_solver->apply(b.get(), x.get());
     omp_solver->apply(d_b.get(), d_x.get());
