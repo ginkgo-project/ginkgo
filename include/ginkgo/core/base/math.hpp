@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 #include <limits>
 #include <type_traits>
+#include <utility>
 
 
 #ifdef SYCL_LANGUAGE_VERSION
@@ -878,6 +879,56 @@ template <typename T>
 using arithmetic_type_extractor = typename arithmetic_type_extractor_s<T>::type;
 
 
+/**
+ * @internal
+ * Tests if a function `to_arithmetic_type` exists, and if it results in
+ * `ArType`
+ *
+ * @note Testing the presence of `operator ArType()` results in a segmentation
+ *       fault when compiling with nvcc
+ */
+
+template <typename Ref, typename ArType, typename = xstd::void_t<>>
+struct has_to_arithmetic_type : std::false_type {};
+
+template <typename Ref, typename ArType>
+struct has_to_arithmetic_type<
+    Ref, ArType,
+    std::enable_if_t<std::is_same<
+        ArType, decltype(std::declval<Ref>().to_arithmetic_type())>::value>>
+    // xstd::void_t<decltype(std::declval<Ref>().operator ArType())>>
+    : std::true_type {};
+
+
+/**
+ * @internal
+ * converts `ref` to ArType while preferring the cast operator overload
+ * from class `Ref` before falling back to a simple
+ * `static_cast<ArType>`.
+ *
+ * This function is only needed for CUDA TOOLKIT < 11 because
+ * thrust::complex has a constructor call: `template<T> complex(const T
+ * &other) : real(other), imag()`, which is always preferred over the
+ * overloaded `operator value_type()`.
+ */
+template <typename ArType, typename Ref>
+constexpr GKO_ATTRIBUTES GKO_INLINE
+    std::enable_if_t<has_to_arithmetic_type<Ref, ArType>::value, ArType>
+    to_arithmetic_type(const Ref &ref)
+{
+    return ref.to_arithmetic_type();
+    // return ref.operator ArType();
+}
+
+template <typename ArType, typename Ref>
+constexpr GKO_ATTRIBUTES GKO_INLINE
+    std::enable_if_t<!has_to_arithmetic_type<Ref, ArType>::value, ArType>
+    to_arithmetic_type(const Ref &ref)
+{
+    return static_cast<ArType>(ref);
+}
+
+
 // Note: All functions have postfix `impl` so they are not considered for
 // overload resolution (in case a class / function also is in the namespace
 // `detail`)
@@ -946,7 +997,7 @@ GKO_ATTRIBUTES
     real(const T& x)
 {
     using atype = detail::arithmetic_type_extractor<T>;
-    return detail::real_impl(static_cast<atype>(x));
+    return detail::real_impl(detail::to_arithmetic_type<atype>(x));
 }
 
 
@@ -965,7 +1016,7 @@ GKO_ATTRIBUTES
     imag(const T& x)
 {
     using atype = detail::arithmetic_type_extractor<T>;
-    return detail::imag_impl(static_cast<atype>(x));
+    return detail::imag_impl(detail::to_arithmetic_type<atype>(x));
 }
 
 
@@ -981,7 +1032,7 @@ GKO_ATTRIBUTES GKO_INLINE constexpr detail::arithmetic_type_extractor<T> conj(
     const T& x)
 {
     using atype = detail::arithmetic_type_extractor<T>;
-    return detail::conj_impl(static_cast<atype>(x));
+    return detail::conj_impl(detail::to_arithmetic_type<atype>(x));
 }
 
 

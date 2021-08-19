@@ -166,6 +166,59 @@ struct are_all_integral<First, Args...>
                                 are_all_integral<Args...>, std::false_type> {};
 
 
+namespace detail {
+
+
+/**
+ * @internal
+ * Tests if a function `to_arithmetic_type` exists, and if it results in
+ * `ArType`
+ *
+ * @note Testing the presence of `operator ArType()` results in a segmentation
+ *       fault when compiling with nvcc
+ */
+template <typename Ref, typename ArType, typename = xstd::void_t<>>
+struct has_to_arithmetic_type : std::false_type {};
+
+template <typename Ref, typename ArType>
+struct has_to_arithmetic_type<
+    Ref, ArType,
+    std::enable_if_t<std::is_same<
+        ArType, decltype(std::declval<Ref>().to_arithmetic_type())>::value>>
+    // xstd::void_t<decltype(std::declval<Ref>().operator ArType())>>
+    : std::true_type {};
+
+
+/**
+ * @internal
+ * converts `ref` to ArType while preferring the cast operator overload
+ * from class `Ref` before falling back to a simple
+ * `static_cast<ArType>`.
+ *
+ * This function is only needed for CUDA TOOLKIT < 11 because
+ * thrust::complex has a constructor call: `template<T> complex(const T
+ * &other) : real(other), imag()`, which is always preferred over the
+ * overloaded `operator value_type()`.
+ */
+template <typename ArType, typename Ref>
+constexpr GKO_ACC_ATTRIBUTES
+    std::enable_if_t<has_to_arithmetic_type<Ref, ArType>::value, ArType>
+    to_arithmetic_type(const Ref &ref)
+{
+    // return ref.operator ArType();
+    return ref.to_arithmetic_type();
+}
+
+template <typename ArType, typename Ref>
+constexpr GKO_ACC_ATTRIBUTES
+    std::enable_if_t<!has_to_arithmetic_type<Ref, ArType>::value, ArType>
+    to_arithmetic_type(const Ref &ref)
+{
+    return static_cast<ArType>(ref);
+}
+
+
+}  // namespace detail
 }  // namespace acc
 }  // namespace gko
 

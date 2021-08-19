@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include "accessor/math.hpp"
 #include "accessor/scaled_reduced_row_major_reference.hpp"
 #include "accessor/utils.hpp"
 
@@ -75,9 +76,9 @@ protected:
 
 // using ReferenceTypes = ::testing::Types<std::tuple<char, short>>;
 using ReferenceTypes =
-    ::testing::Types<std::tuple<char, short>, std::tuple<short, int>,
-                     std::tuple<short, long long>,
-                     std::tuple<unsigned short, unsigned int>,
+    ::testing::Types<std::tuple<short, char>, std::tuple<int, short>,
+                     std::tuple<long long, short>,
+                     std::tuple<unsigned short, unsigned short>,
                      std::tuple<double, int>, std::tuple<double, double>,
                      std::tuple<double, float>, std::tuple<float, float>>;
 

@@ -64,45 +64,6 @@ namespace acc {
 namespace detail {
 
 
-// tests if the cast operator to `ValueType` is present
-template <typename Ref, typename ValueType, typename = xstd::void_t<>>
-struct has_cast_operator : std::false_type {};
-
-template <typename Ref, typename ValueType>
-struct has_cast_operator<
-    Ref, ValueType,
-    xstd::void_t<decltype(std::declval<Ref>().Ref::operator ValueType())>>
-    : std::true_type {};
-
-
-/**
- * @internal
- * converts `ref` to ValueType while preferring the cast operator overload
- * from class `Ref` before falling back to a simple
- * `static_cast<ValueType>`.
- *
- * This function is only needed for CUDA TOOLKIT < 11 because
- * thrust::complex has a constructor call: `template<T> complex(const T
- * &other) : real(other), imag()`, which is always preferred over the
- * overloaded `operator value_type()`.
- */
-template <typename ValueType, typename Ref>
-constexpr GKO_ACC_ATTRIBUTES
-    std::enable_if_t<has_cast_operator<Ref, ValueType>::value, ValueType>
-    to_value_type(const Ref& ref)
-{
-    return ref.Ref::operator ValueType();
-}
-
-template <typename ValueType, typename Ref>
-constexpr GKO_ACC_ATTRIBUTES
-    std::enable_if_t<!has_cast_operator<Ref, ValueType>::value, ValueType>
-    to_value_type(const Ref& ref)
-{
-    return static_cast<ValueType>(ref);
-}
-
-
 /**
  * This is a mixin which defines the binary operators for *, /, +, - for the
  * Reference class, the unary operator -, and the assignment operators
@@ -123,25 +84,31 @@ template <typename Reference, typename ArithmeticType>
 struct enable_reference_operators {
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
 
-#define GKO_ACC_REFERENCE_BINARY_OPERATOR_OVERLOAD(_op)              \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE         \
-        GKO_ACC_ATTRIBUTES arithmetic_type                           \
-        operator _op(const Reference& ref1, const Reference& ref2)   \
-    {                                                                \
-        return to_value_type<arithmetic_type>(ref1)                  \
-            _op to_value_type<arithmetic_type>(ref2);                \
-    }                                                                \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE         \
-        GKO_ACC_ATTRIBUTES arithmetic_type                           \
-        operator _op(const Reference& ref, const arithmetic_type& a) \
-    {                                                                \
-        return to_value_type<arithmetic_type>(ref) _op a;            \
-    }                                                                \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE         \
-        GKO_ACC_ATTRIBUTES arithmetic_type                           \
-        operator _op(const arithmetic_type& a, const Reference& ref) \
-    {                                                                \
-        return a _op to_value_type<arithmetic_type>(ref);            \
+    constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE arithmetic_type
+    to_arithmetic_type() const
+    {
+        return static_cast<const Reference*>(this)
+            ->Reference::operator arithmetic_type();
+    }
+
+#define GKO_ACC_REFERENCE_BINARY_OPERATOR_OVERLOAD(_op)                 \
+    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE            \
+        GKO_ACC_ATTRIBUTES arithmetic_type                              \
+        operator _op(const Reference& ref1, const Reference& ref2)      \
+    {                                                                   \
+        return ref1.to_arithmetic_type() _op ref2.to_arithmetic_type(); \
+    }                                                                   \
+    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE            \
+        GKO_ACC_ATTRIBUTES arithmetic_type                              \
+        operator _op(const Reference& ref, const arithmetic_type& a)    \
+    {                                                                   \
+        return ref.to_arithmetic_type() _op a;                          \
+    }                                                                   \
+    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE            \
+        GKO_ACC_ATTRIBUTES arithmetic_type                              \
+        operator _op(const arithmetic_type& a, const Reference& ref)    \
+    {                                                                   \
+        return a _op ref.to_arithmetic_type();                          \
     }
 
     GKO_ACC_REFERENCE_BINARY_OPERATOR_OVERLOAD(*)
@@ -150,19 +117,19 @@ struct enable_reference_operators {
     GKO_ACC_REFERENCE_BINARY_OPERATOR_OVERLOAD(-)
 #undef GKO_ACC_REFERENCE_BINARY_OPERATOR_OVERLOAD
 
-#define GKO_ACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(_oper, _op)         \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE               \
-        GKO_ACC_ATTRIBUTES arithmetic_type                                 \
-        _oper(Reference&& ref1, const Reference& ref2)                     \
-    {                                                                      \
-        return std::move(ref1) = to_value_type<arithmetic_type>(ref1)      \
-                   _op to_value_type<arithmetic_type>(ref2);               \
-    }                                                                      \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE               \
-        GKO_ACC_ATTRIBUTES arithmetic_type                                 \
-        _oper(Reference&& ref, const arithmetic_type& a)                   \
-    {                                                                      \
-        return std::move(ref) = to_value_type<arithmetic_type>(ref) _op a; \
+#define GKO_ACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(_oper, _op)          \
+    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE                \
+        GKO_ACC_ATTRIBUTES arithmetic_type                                  \
+        _oper(Reference&& ref1, const Reference& ref2)                      \
+    {                                                                       \
+        return std::move(ref1) =                                            \
+                   ref1.to_arithmetic_type() _op ref2.to_arithmetic_type(); \
+    }                                                                       \
+    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE                \
+        GKO_ACC_ATTRIBUTES arithmetic_type                                  \
+        _oper(Reference&& ref, const arithmetic_type& a)                    \
+    {                                                                       \
+        return std::move(ref) = ref.to_arithmetic_type() _op a;             \
     }
 
     GKO_ACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(operator*=, *)
@@ -171,25 +138,24 @@ struct enable_reference_operators {
     GKO_ACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(operator-=, -)
 #undef GKO_ACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD
 
-#define GKO_ACC_REFERENCE_COMPARISON_OPERATOR_OVERLOAD(_op)          \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE         \
-        GKO_ACC_ATTRIBUTES bool                                      \
-        operator _op(const Reference& ref1, const Reference& ref2)   \
-    {                                                                \
-        return to_value_type<arithmetic_type>(ref1)                  \
-            _op to_value_type<arithmetic_type>(ref2);                \
-    }                                                                \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE         \
-        GKO_ACC_ATTRIBUTES bool                                      \
-        operator _op(const Reference& ref, const arithmetic_type& a) \
-    {                                                                \
-        return to_value_type<arithmetic_type>(ref) _op a;            \
-    }                                                                \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE         \
-        GKO_ACC_ATTRIBUTES bool                                      \
-        operator _op(const arithmetic_type& a, const Reference& ref) \
-    {                                                                \
-        return a _op to_value_type<arithmetic_type>(ref);            \
+#define GKO_ACC_REFERENCE_COMPARISON_OPERATOR_OVERLOAD(_op)             \
+    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE            \
+        GKO_ACC_ATTRIBUTES bool                                         \
+        operator _op(const Reference& ref1, const Reference& ref2)      \
+    {                                                                   \
+        return ref1.to_arithmetic_type() _op ref2.to_arithmetic_type(); \
+    }                                                                   \
+    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE            \
+        GKO_ACC_ATTRIBUTES bool                                         \
+        operator _op(const Reference& ref, const arithmetic_type& a)    \
+    {                                                                   \
+        return ref.to_arithmetic_type() _op a;                          \
+    }                                                                   \
+    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE            \
+        GKO_ACC_ATTRIBUTES bool                                         \
+        operator _op(const arithmetic_type& a, const Reference& ref)    \
+    {                                                                   \
+        return a _op ref.to_arithmetic_type();                          \
     }
 
     GKO_ACC_REFERENCE_COMPARISON_OPERATOR_OVERLOAD(==)
@@ -199,14 +165,14 @@ struct enable_reference_operators {
         arithmetic_type
         operator-(const Reference& ref)
     {
-        return -to_value_type<arithmetic_type>(ref);
+        return -ref.to_arithmetic_type();
     }
 
     friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE GKO_ACC_ATTRIBUTES
         arithmetic_type
         operator+(const Reference& ref)
     {
-        return +to_value_type<arithmetic_type>(ref);
+        return +ref.to_arithmetic_type();
     }
 };
 
