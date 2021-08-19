@@ -134,7 +134,7 @@ constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
     real(const T &x)
 {
     using atype = detail::arithmetic_type_extractor_t<T>;
-    return detail::real_impl(static_cast<atype>(x));
+    return detail::real_impl(detail::to_arithmetic_type<atype>(x));
 }
 
 
@@ -153,7 +153,7 @@ constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
     imag(const T &x)
 {
     using atype = detail::arithmetic_type_extractor_t<T>;
-    return detail::imag_impl(static_cast<atype>(x));
+    return detail::imag_impl(detail::to_arithmetic_type<atype>(x));
 }
 
 
@@ -170,7 +170,7 @@ constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE
     conj(const T &x)
 {
     using atype = detail::arithmetic_type_extractor_t<T>;
-    return detail::conj_impl(static_cast<atype>(x));
+    return detail::conj_impl(detail::to_arithmetic_type<atype>(x));
 }
 
 
