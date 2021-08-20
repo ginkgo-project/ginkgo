@@ -507,6 +507,20 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 /**
+ * Instantiates a template for each combination of local and global index type
+ * compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take one argument, which is replaced by the
+ *                value type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(_macro) \
+    template _macro(int32, int64);                               \
+    template _macro(int64, int64)
+
+
+/**
  * Instantiates a template for each non-complex value and index type compiled by
  * Ginkgo.
  *
@@ -653,7 +667,6 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(std::complex<float>, std::complex<double>); \
     template _macro(std::complex<double>, std::complex<float>)
 
-
 /**
  * Instantiates a template for each value type conversion or copy pair compiled
  * by Ginkgo.
@@ -670,6 +683,19 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(std::complex<float>, std::complex<float>);    \
     template _macro(std::complex<double>, std::complex<double>)
 #endif
+
+
+/**
+ * Instantiates a template for each index type conversion compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments `src` and `dst`, which
+ *                are replaced by the source and destination index type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_INDEX_CONVERSION(_macro) \
+    template _macro(int32, int64);                        \
+    template _macro(int64, int32)
 
 
 /**
