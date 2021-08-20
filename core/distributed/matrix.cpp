@@ -44,7 +44,9 @@ namespace distributed {
 namespace matrix {
 GKO_REGISTER_OPERATION(build_diag_offdiag,
                        distributed_matrix::build_diag_offdiag);
-}
+GKO_REGISTER_OPERATION(map_to_global_idxs,
+                       distributed_matrix::map_to_global_idxs);
+}  // namespace matrix
 
 
 template <typename ValueType, typename LocalIndexType>
