@@ -296,6 +296,29 @@ void Matrix<ValueType, LocalIndexType>::validate_data() const
 
 
 template <typename ValueType, typename LocalIndexType>
+std::unique_ptr<gko::matrix::Csr<ValueType, global_index_type>>
+promote_index_type(const gko::matrix::Csr<ValueType, LocalIndexType>* source,
+                   const dim<2> size)
+{
+    auto exec = source->get_executor();
+    gko::Array<global_index_type> row_ptrs;
+    gko::Array<global_index_type> col_idxs;
+
+    row_ptrs = gko::Array<LocalIndexType>::view(
+        exec, source->get_size()[0] + 1,
+        const_cast<LocalIndexType*>(source->get_const_row_ptrs()));
+    col_idxs = gko::Array<LocalIndexType>::view(
+        exec, source->get_num_stored_elements(),
+        const_cast<LocalIndexType*>(source->get_const_col_idxs()));
+    gko::Array<ValueType> values = gko::Array<ValueType>::view(
+        exec, source->get_num_stored_elements(),
+        const_cast<ValueType*>(source->get_const_values()));
+    return gko::matrix::Csr<ValueType, global_index_type>::create(
+        exec, size, values, col_idxs, row_ptrs);
+}
+
+
+template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::convert_to(
     gko::matrix::Csr<ValueType, global_index_type>* result) const
 {
@@ -306,12 +329,26 @@ void Matrix<ValueType, LocalIndexType>::convert_to(
 
     dim<2> local_size{this->get_local_diag()->get_size()[0],
                       this->get_size()[1]};
-    auto local_nnz = this->get_local_diag()->get_num_stored_elements() +
-                     this->get_local_offdiag()->get_num_stored_elements();
+    auto diag_nnz = this->get_local_diag()->get_num_stored_elements();
+    auto offdiag_nnz = this->get_local_offdiag()->get_num_stored_elements();
+    auto local_nnz = diag_nnz + offdiag_nnz;
     // merge diag and off diag
+    auto mapped_diag = promote_index_type(this->get_local_diag(), local_size);
+    auto mapped_offdiag =
+        promote_index_type(this->get_local_offdiag(), local_size);
     auto tmp = GMtx::create(exec, local_size, local_nnz);
-    exec->run(matrix::make_merge_diag_offdiag(
-        this->get_local_diag(), this->get_local_offdiag(), tmp.get()));
+
+    exec->run(matrix::make_map_to_global_idxs(
+        this->get_local_diag()->get_const_col_idxs(), diag_nnz,
+        mapped_diag->get_col_idxs(),
+        this->local_to_global_row.get_const_data()));
+    exec->run(matrix::make_map_to_global_idxs(
+        this->get_local_offdiag()->get_const_col_idxs(), offdiag_nnz,
+        mapped_offdiag->get_col_idxs(),
+        this->local_to_global_offdiag_col.get_const_data()));
+    mapped_diag->sort_by_column_index();
+    mapped_offdiag->sort_by_column_index();
+
 
     auto global_nnz = local_nnz;
     mpi::all_reduce(&global_nnz, 1, mpi::op_type::sum,
@@ -320,6 +357,7 @@ void Matrix<ValueType, LocalIndexType>::convert_to(
     // copy all merged data to result
     exec->run(matrix::make_combine_local_mtxs(tmp.get(), result));
 }
+
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::move_to(
     gko::matrix::Csr<ValueType, global_index_type>* result) GKO_NOT_IMPLEMENTED;

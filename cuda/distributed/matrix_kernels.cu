@@ -68,13 +68,11 @@ GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
 
 
 template <typename ValueType>
-void merge_diag_offdiag(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, global_index_type>* diag,
-    const matrix::Csr<ValueType, global_index_type>* offdiag,
-    const Array<global_index_type>& local_to_global_row,
-    const Array<global_index_type>& local_to_global_offdiag_col,
-    matrix::Csr<ValueType, global_index_type>* result) GKO_NOT_IMPLEMENTED;
+void merge_diag_offdiag(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, global_index_type>* diag,
+                        const matrix::Csr<ValueType, global_index_type>* offdiag,
+                        matrix::Csr<ValueType, global_index_type>* result)
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MERGE_DIAG_OFFDIAG);
 

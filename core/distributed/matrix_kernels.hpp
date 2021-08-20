@@ -65,13 +65,11 @@ namespace kernels {
                             const SourceType* input, size_t n,           \
                             TargetType* output, const TargetType* map)
 
-#define GKO_DECLARE_MERGE_DIAG_OFFDIAG(ValueType)                    \
-    void merge_diag_offdiag(                                         \
-        std::shared_ptr<const DefaultExecutor> exec,                 \
-        const matrix::Csr<ValueType, global_index_type>* diag,       \
-        const matrix::Csr<ValueType, global_index_type>* offdiag,    \
-        const Array<global_index_type>& local_to_global_row,         \
-        const Array<global_index_type>& local_to_global_offdiag_col, \
+#define GKO_DECLARE_MERGE_DIAG_OFFDIAG(ValueType)                 \
+    void merge_diag_offdiag(                                      \
+        std::shared_ptr<const DefaultExecutor> exec,              \
+        const matrix::Csr<ValueType, global_index_type>* diag,    \
+        const matrix::Csr<ValueType, global_index_type>* offdiag, \
         matrix::Csr<ValueType, global_index_type>* result)
 
 #define GKO_DECLARE_COMBINE_LOCAL_MTXS(ValueType, LocalIndexType) \
