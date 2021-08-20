@@ -116,8 +116,8 @@ protected:
         omega = gen_mtx(1, nrhs);
         tht = gen_mtx(1, nrhs);
         residual_norm = gen_mtx(1, nrhs);
-        stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(ref, nrhs));
+        stop_status =
+            std::make_unique<gko::Array<gko::stopping_status>>(ref, nrhs);
         for (size_t i = 0; i < nrhs; ++i) {
             stop_status->get_data()[i].reset();
         }
