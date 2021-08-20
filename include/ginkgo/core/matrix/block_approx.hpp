@@ -94,34 +94,41 @@ public:
 
 protected:
     BlockApprox(std::shared_ptr<const Executor> exec,
-                const Array<size_type> &num_blocks = {},
+                const Array<size_type> &block_sizes = {},
                 const Overlap<size_type> &block_overlaps = {})
         : EnableLinOp<BlockApprox<MatrixType>>{exec, dim<2>{}},
-          block_sizes_{num_blocks},
-          block_overlaps_{block_overlaps},
-          block_ptrs_{Array<index_type>(exec, num_blocks.get_num_elems() + 1)},
+          block_sizes_{Array<size_type>(exec->get_master())},
+          block_overlaps_{Overlap<size_type>(exec->get_master())},
+          block_ptrs_{Array<index_type>(exec, block_sizes.get_num_elems() + 1)},
           block_mtxs_{}
     {
+        block_sizes_ = block_sizes;
+        block_overlaps_ = block_overlaps;
         if (block_overlaps_.get_num_elems() > 0) {
             this->has_overlap_ = true;
         }
     }
 
+    // FIXME: Move the auxiliary Arrays to device once the device kernels are
+    // implemented.
     BlockApprox(std::shared_ptr<const Executor> exec, const MatrixType *matrix,
-                const Array<size_type> &num_blocks = {},
+                const Array<size_type> &block_sizes = {},
                 const Overlap<size_type> &block_overlaps = {})
         : EnableLinOp<BlockApprox<MatrixType>>{exec, matrix->get_size()},
-          block_sizes_{num_blocks},
-          block_overlaps_{block_overlaps},
-          block_ptrs_{Array<index_type>(exec, num_blocks.get_num_elems() + 1)},
+          block_sizes_{Array<size_type>(exec->get_master())},
+          block_overlaps_{Overlap<size_type>(exec->get_master())},
+          block_ptrs_{Array<index_type>(exec->get_master(),
+                                        block_sizes.get_num_elems() + 1)},
           block_mtxs_{}
     {
+        block_sizes_ = block_sizes;
+        block_overlaps_ = block_overlaps;
         if (block_overlaps_.get_num_elems() > 0) {
             this->has_overlap_ = true;
         } else {
             this->has_overlap_ = false;
         }
-        this->generate(num_blocks, block_overlaps, matrix);
+        this->generate(matrix);
     }
 
     void apply_impl(const LinOp *b, LinOp *x,
@@ -141,9 +148,7 @@ protected:
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
-    void generate(const Array<size_type> &num_blocks,
-                  const Overlap<size_type> &block_overlaps,
-                  const MatrixType *matrix);
+    void generate(const MatrixType *matrix);
 
 private:
     Overlap<size_type> block_overlaps_;

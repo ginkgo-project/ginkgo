@@ -258,9 +258,9 @@ public:
             this->overlap_at_start_ = std::move(other.overlap_at_start_);
         } else {
             // different device, copy the data
-            this->is_unidirectional_ = other.is_unidirectional_;
-            this->overlaps_ = other.overlaps_;
-            this->overlap_at_start_ = other.overlap_at_start_;
+            // this->is_unidirectional_ = other.is_unidirectional_;
+            // this->overlaps_ = other.overlaps_;
+            // this->overlap_at_start_ = other.overlap_at_start_;
             *this = other;
         }
         return *this;

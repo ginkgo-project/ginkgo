@@ -63,7 +63,8 @@ protected:
     using Cg = gko::solver::Cg<value_type>;
 
     RasPrecond()
-        : exec(gko::CudaExecutor::create(0, gko::ReferenceExecutor::create())),
+        : exec(gko::CudaExecutor::create(0, gko::ReferenceExecutor::create(),
+                                         false, gko::allocation_mode::device)),
           csr_mtx(gko::initialize<CsrMtx>({{4.0, 1.0, 0.0, 0.0, 0.0},
                                            {1.0, 4.0, 1.0, 0.0, 0.0},
                                            {0.0, 1.0, 4.0, 1.0, 0.0},
@@ -82,7 +83,8 @@ protected:
                                                {0.0, 0.0, 1.0, 4.0}},
                                               exec)),
           block_sizes(gko::Array<gko::size_type>(exec, {2, 3})),
-          block_overlaps(gko::Overlap<gko::size_type>(exec, 2, 1)),
+          block_overlaps(
+              gko::Overlap<gko::size_type>(exec->get_master(), 2, 1)),
           block_mtx(
               gko::matrix::
                   BlockApprox<gko::matrix::Csr<value_type, index_type>>::create(
