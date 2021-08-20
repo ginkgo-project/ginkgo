@@ -202,12 +202,74 @@ GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_MAP_TO_GLOBAL_IDXS);
 
 
+template <typename FirstIt, typename SecondIt, typename OutputIt>
+void merge_sorted(FirstIt begin_first, FirstIt end_first, SecondIt begin_second,
+                  SecondIt end_second, OutputIt out)
+{
+    FirstIt it_first = begin_first;
+    SecondIt it_second = begin_second;
+
+    while (it_first != end_first || it_second != end_second) {
+        if (it_first == end_first)
+            *out++ = *it_second++;
+        else if (it_second == end_second)
+            *out++ = *it_first++;
+        else
+            *out++ = *it_first < *it_second ? *it_first++ : *it_second++;
+    }
+}
+
+
 template <typename ValueType>
 void merge_diag_offdiag(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, global_index_type>* diag,
     const matrix::Csr<ValueType, global_index_type>* offdiag,
-    matrix::Csr<ValueType, global_index_type>* result) GKO_NOT_IMPLEMENTED;
+    matrix::Csr<ValueType, global_index_type>* result)
+{
+    auto num_rows = result->get_size()[0];
+
+    auto* diag_row_ptrs = diag->get_const_row_ptrs();
+    auto* diag_col_idxs = diag->get_const_col_idxs();
+    auto* diag_values = diag->get_const_values();
+
+    auto* offdiag_row_ptrs = offdiag->get_const_row_ptrs();
+    auto* offdiag_col_idxs = offdiag->get_const_col_idxs();
+    auto* offdiag_values = offdiag->get_const_values();
+
+    auto* local_row_ptrs = result->get_row_ptrs();
+    auto* local_col_idxs = result->get_col_idxs();
+    auto* local_values = result->get_values();
+
+    local_row_ptrs[0] = 0;
+    for (global_index_type i = 0; i < num_rows; ++i) {
+        auto diag_offset = diag_row_ptrs[i];
+        auto offdiag_offset = offdiag_row_ptrs[i];
+        auto local_offset = local_row_ptrs[i];
+
+        auto diag_nnz_in_row = diag_row_ptrs[i + 1] - diag_offset;
+        auto offdiag_nnz_in_row = offdiag_row_ptrs[i + 1] - offdiag_offset;
+
+        detail::IteratorFactory<global_index_type, ValueType> diag_factory{
+            const_cast<global_index_type*>(diag_col_idxs) + diag_offset,
+            const_cast<ValueType*>(diag_values) + diag_offset,
+            static_cast<size_type>(diag_nnz_in_row)};
+        detail::IteratorFactory<global_index_type, ValueType> offdiag_factory{
+            const_cast<global_index_type*>(offdiag_col_idxs) + offdiag_offset,
+            const_cast<ValueType*>(offdiag_values) + offdiag_offset,
+            static_cast<size_type>(offdiag_nnz_in_row)};
+
+        local_row_ptrs[i + 1] =
+            local_row_ptrs[i] + diag_nnz_in_row + offdiag_nnz_in_row;
+        detail::IteratorFactory<global_index_type, ValueType> local_factory{
+            local_col_idxs + local_offset, local_values + local_offset,
+            static_cast<size_type>(diag_nnz_in_row + offdiag_nnz_in_row)};
+
+        merge_sorted(diag_factory.begin(), diag_factory.end(),
+                     offdiag_factory.begin(), offdiag_factory.end(),
+                     local_factory.begin());
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MERGE_DIAG_OFFDIAG);
 
