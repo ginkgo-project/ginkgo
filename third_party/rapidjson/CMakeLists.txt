@@ -3,7 +3,7 @@ include(FetchContent)
 FetchContent_Declare(
     rapidjson
     GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
-    GIT_TAG        88bd956d66d348f478bceebfdadb8e26c6844695
+    GIT_TAG        48fbd8cd202ca54031fe799db2ad44ffa8e77c13
 )
 FetchContent_GetProperties(rapidjson)
 if(NOT rapidjson_POPULATED)
