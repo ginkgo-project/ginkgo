@@ -34,7 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/allocator.hpp"
+#include "core/base/iterator_factory.hpp"
 #include "core/components/prefix_sum.hpp"
+#include "core/matrix/csr_kernels.hpp"
 
 namespace gko {
 namespace kernels {
@@ -117,9 +119,9 @@ void build_diag_offdiag(
             continue;
         }
         // map to part-local indices
+        update_range(entry.column, col_range);
         auto local_row = map_to_local(entry.row, row_range);
         local_row_to_global.get_data()[local_row] = entry.row;
-        update_range(entry.column, col_range);
         if (col_range.part == local_part) {
             // store diagonal entry
             auto local_col = map_to_local(entry.column, col_range);
@@ -200,14 +202,16 @@ GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_MAP_TO_GLOBAL_IDXS);
 
 
-template <typename ValueType, typename LocalIndexType>
-void merge_diag_offdiag(std::shared_ptr<const DefaultExecutor> exec,
-                        const matrix::Csr<ValueType, LocalIndexType>* diag,
-                        const matrix::Csr<ValueType, LocalIndexType>* offdiag,
-                        matrix::Csr<ValueType, global_index_type>* result)
-    GKO_NOT_IMPLEMENTED;
+template <typename ValueType>
+void merge_diag_offdiag(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, global_index_type>* diag,
+    const matrix::Csr<ValueType, global_index_type>* offdiag,
+    const Array<global_index_type>& local_to_global_row,
+    const Array<global_index_type>& local_to_global_offdiag_col,
+    matrix::Csr<ValueType, global_index_type>* result) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_MERGE_DIAG_OFFDIAG);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MERGE_DIAG_OFFDIAG);
 
 template <typename ValueType, typename LocalIndexType>
 void combine_local_mtxs(std::shared_ptr<const DefaultExecutor> exec,

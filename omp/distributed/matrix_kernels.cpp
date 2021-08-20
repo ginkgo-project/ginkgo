@@ -232,14 +232,16 @@ void build_diag_offdiag(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BUILD_DIAG_OFFDIAG);
 
-template <typename ValueType, typename LocalIndexType>
-void merge_diag_offdiag(std::shared_ptr<const DefaultExecutor> exec,
-                        const matrix::Csr<ValueType, LocalIndexType>* diag,
-                        const matrix::Csr<ValueType, LocalIndexType>* offdiag,
-                        matrix::Csr<ValueType, global_index_type>* result)
-    GKO_NOT_IMPLEMENTED;
+template <typename ValueType>
+void merge_diag_offdiag(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, global_index_type>* diag,
+    const matrix::Csr<ValueType, global_index_type>* offdiag,
+    const Array<global_index_type>& local_to_global_row,
+    const Array<global_index_type>& local_to_global_offdiag_col,
+    matrix::Csr<ValueType, global_index_type>* result) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_MERGE_DIAG_OFFDIAG);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MERGE_DIAG_OFFDIAG);
 
 template <typename ValueType, typename LocalIndexType>
 void combine_local_mtxs(std::shared_ptr<const DefaultExecutor> exec,
