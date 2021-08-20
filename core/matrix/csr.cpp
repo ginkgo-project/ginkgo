@@ -215,12 +215,14 @@ template <typename ValueType, typename IndexType>
 std::vector<std::unique_ptr<SubMatrix<Csr<ValueType, IndexType>>>>
 Csr<ValueType, IndexType>::get_block_approx(
     const Array<size_type> &block_sizes_in,
-    const Overlap<size_type> &block_overlaps_in,
+    const Overlap<size_type> &block_overlaps,
     const Array<size_type> &permutation) const
 {
     auto exec = this->get_executor();
     auto bsizes_in = Array<size_type>{exec->get_master()};
     bsizes_in = block_sizes_in;
+    auto block_overlaps_in = Overlap<size_type>{exec->get_master()};
+    block_overlaps_in = block_overlaps;
     auto num_blocks = block_sizes_in.get_num_elems();
     std::vector<std::unique_ptr<SubMatrix<Csr<ValueType, IndexType>>>>
         block_mtxs;
