@@ -134,8 +134,8 @@ protected:
         // check correct handling for zero values
         gamma->at(2) = 0.0;
         rho_prev->at(2) = 0.0;
-        stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(ref, n));
+        stop_status =
+            std::make_unique<gko::Array<gko::stopping_status>>(ref, n);
         for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
             stop_status->get_data()[i].reset();
         }
@@ -157,11 +157,8 @@ protected:
         d_gamma = gko::clone(exec, gamma);
         d_rho_prev = gko::clone(exec, rho_prev);
         d_rho = gko::clone(exec, rho);
-        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(exec, n));
-        // because there is no public function copy_from, use overloaded =
-        // operator
-        *d_stop_status = *stop_status;
+        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+            exec, *stop_status);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;

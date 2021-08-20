@@ -141,8 +141,8 @@ protected:
         beta->at(2) = 0.0;
         omega->at(2) = 0.0;
         omega->at(3) = 0.0;
-        stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(ref, n));
+        stop_status =
+            std::make_unique<gko::Array<gko::stopping_status>>(ref, n);
         for (size_t i = 0; i < n; ++i) {
             stop_status->get_data()[i].reset();
         }

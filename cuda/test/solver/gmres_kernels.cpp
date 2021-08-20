@@ -111,13 +111,13 @@ protected:
             gen_mtx(gko::solver::default_krylov_dim + 1, nrhs);
         givens_sin = gen_mtx(gko::solver::default_krylov_dim, nrhs);
         givens_cos = gen_mtx(gko::solver::default_krylov_dim, nrhs);
-        stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(ref, nrhs));
+        stop_status =
+            std::make_unique<gko::Array<gko::stopping_status>>(ref, nrhs);
         for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
             stop_status->get_data()[i].reset();
         }
-        final_iter_nums = std::unique_ptr<gko::Array<gko::size_type>>(
-            new gko::Array<gko::size_type>(ref, nrhs));
+        final_iter_nums =
+            std::make_unique<gko::Array<gko::size_type>>(ref, nrhs);
         for (size_t i = 0; i < final_iter_nums->get_num_elems(); ++i) {
             final_iter_nums->get_data()[i] = 5;
         }
@@ -134,12 +134,10 @@ protected:
         d_residual_norm_collection = gko::clone(cuda, residual_norm_collection);
         d_givens_sin = gko::clone(cuda, givens_sin);
         d_givens_cos = gko::clone(cuda, givens_cos);
-        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(cuda, nrhs));
-        *d_stop_status = *stop_status;
-        d_final_iter_nums = std::unique_ptr<gko::Array<gko::size_type>>(
-            new gko::Array<gko::size_type>(cuda, nrhs));
-        *d_final_iter_nums = *final_iter_nums;
+        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+            cuda, *stop_status);
+        d_final_iter_nums = std::make_unique<gko::Array<gko::size_type>>(
+            cuda, *final_iter_nums);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;

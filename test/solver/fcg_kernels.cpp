@@ -110,8 +110,8 @@ protected:
         // check correct handling for zero values
         beta->at(2) = 0.0;
         prev_rho->at(2) = 0.0;
-        stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(ref, n));
+        stop_status =
+            std::make_unique<gko::Array<gko::stopping_status>>(ref, n);
         for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
             stop_status->get_data()[i].reset();
         }
@@ -129,9 +129,8 @@ protected:
         d_prev_rho = gko::clone(exec, prev_rho);
         d_rho_t = gko::clone(exec, rho_t);
         d_rho = gko::clone(exec, rho);
-        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(exec, n));
-        *d_stop_status = *stop_status;
+        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+            exec, *stop_status);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
