@@ -313,7 +313,7 @@ double get_relative_error(const MatrixData1& first, const MatrixData2& second)
     if (first_norm == 0.0 && second_norm == 0.0) {
         first_norm = 1.0;
     }
-    return sqrt(diff / std::max(first_norm, second_norm));
+    return sqrt(diff) / sqrt(std::max(first_norm, second_norm));
 }
 
 
@@ -346,22 +346,23 @@ template <typename MatrixData1, typename MatrixData2>
     if (bat == err.end()) {
         return ::testing::AssertionSuccess();
     } else {
-        auto b = *bat;
-        auto num_rows = first[b].size[0];
-        auto num_cols = first[b].size[1];
+        const auto b_pos = static_cast<ptrdiff_t>(bat - err.begin());
+        auto num_rows = first[b_pos].size[0];
+        auto num_cols = first[b_pos].size[1];
         auto fail = ::testing::AssertionFailure();
-        fail << "Error for batch: " << b << "\n Relative error between "
+        fail << "Error for batch: " << b_pos << "\n Relative error between "
              << first_expression << " and " << second_expression << " is "
-             << err[b] << "\n"
+             << err[b_pos] << "\n"
              << "\twhich is larger than " << tolerance_expression
              << " (which is " << tolerance << ")\n";
         if (num_rows * num_cols <= 1000) {
             fail << first_expression << " is:\n";
-            detail::print_matrix(fail, first[b]);
+            detail::print_matrix(fail, first[b_pos]);
             fail << second_expression << " is:\n";
-            detail::print_matrix(fail, second[b]);
+            detail::print_matrix(fail, second[b_pos]);
             fail << "component-wise relative error is:\n";
-            detail::print_componentwise_error(fail, first[b], second[b]);
+            detail::print_componentwise_error(fail, first[b_pos],
+                                              second[b_pos]);
         } else {
             // build output filenames
             auto test_case_info =
@@ -386,10 +387,10 @@ template <typename MatrixData1, typename MatrixData2>
                 secondfile.end());
             // save matrices
             std::ofstream first_stream{firstfile};
-            gko::write_raw(first_stream, first[b],
+            gko::write_raw(first_stream, first[b_pos],
                            gko::layout_type::coordinate);
             std::ofstream second_stream{secondfile};
-            gko::write_raw(second_stream, second[b],
+            gko::write_raw(second_stream, second[b_pos],
                            gko::layout_type::coordinate);
             fail << first_expression << " saved as " << firstfile << "\n";
             fail << second_expression << " saved as " << secondfile << "\n";
