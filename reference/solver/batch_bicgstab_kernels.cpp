@@ -113,7 +113,7 @@ void apply_select_prec(
     const gko::batch_dense::UniformBatch<ValueType> &x)
 {
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-        BatchIdentity<ValueType> prec;
+        BatchIdentity<ValueType> prec{};
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             apply_impl<stop::AbsResidualMaxIter<ValueType>>(exec, opts, logger,
                                                             prec, a, b, x);
@@ -123,7 +123,7 @@ void apply_select_prec(
         }
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
-        BatchJacobi<ValueType> prec;
+        BatchJacobi<ValueType> prec{};
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             apply_impl<stop::AbsResidualMaxIter<ValueType>>(exec, opts, logger,
                                                             prec, a, b, x);
