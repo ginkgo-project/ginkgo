@@ -62,6 +62,7 @@ protected:
     using Mtx = gko::matrix::BatchCsr<value_type, int>;
     using BDense = gko::matrix::BatchDense<value_type>;
     using RBDense = gko::matrix::BatchDense<real_type>;
+    using solver_type = gko::solver::BatchDirect<value_type>;
     using Options = DummyOptions;
     using LogData = gko::log::BatchLogData<value_type>;
 
@@ -124,8 +125,6 @@ protected:
     std::function<void(const BDense *, BDense *)> scale_vecs;
 
     std::unique_ptr<BDense> ref_scaling_vec;
-    std::unique_ptr<BDense> ref_orig;
-    std::unique_ptr<BDense> ref_scaled;
 
     void setup_ref_scaling_test()
     {
@@ -137,14 +136,6 @@ protected:
         ref_scaling_vec->at(1, 0, 0) = 1.0;
         ref_scaling_vec->at(1, 1, 0) = -2.0;
         ref_scaling_vec->at(1, 2, 0) = -4.0;
-        ref_orig = gko::batch_initialize<BDense>(
-            {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})},
-             {{1.0, -2.0, -0.5}, {1.0, -2.5, 4.0}}},
-            exec);
-        ref_scaled = gko::batch_initialize<BDense>(
-            {{I<T>({2.0, -4.0}), I<T>({-3.0, 6.0}), I<T>({-1.5, -3.0})},
-             {{1.0, 1.0}, {4.0, 5.0}, {2.0, -16.0}}},
-            exec);
     }
 };
 
@@ -156,49 +147,62 @@ TYPED_TEST(BatchDirect, TransposeScaleCopyWorks)
     using T = typename TestFixture::value_type;
     using BDense = typename TestFixture::BDense;
     this->setup_ref_scaling_test();
+    auto ref_b_orig = gko::batch_initialize<BDense>(
+        {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})},
+         {{1.0, -2.0, -0.5}, {1.0, -2.5, 4.0}}},
+        this->exec);
+    auto ref_b_scaled = gko::batch_initialize<BDense>(
+        {{I<T>({2.0, -4.0}), I<T>({-3.0, 6.0}), I<T>({-1.5, -3.0})},
+         {{1.0, 1.0}, {4.0, 5.0}, {2.0, -16.0}}},
+        this->exec);
     auto scaling_vec = BDense::create(this->cuexec);
     scaling_vec->copy_from(this->ref_scaling_vec.get());
-    auto orig = BDense::create(this->cuexec);
-    orig->copy_from(this->ref_orig.get());
-    auto scaled = BDense::create(
+    auto b_orig = BDense::create(this->cuexec);
+    b_orig->copy_from(ref_b_orig.get());
+    auto b_scaled = BDense::create(
         this->cuexec,
         gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, this->nrhs)));
 
     gko::kernels::cuda::batch_direct::transpose_scale_copy(
-        this->cuexec, scaling_vec.get(), orig.get(), scaled.get());
+        this->cuexec, scaling_vec.get(), b_orig.get(), b_scaled.get());
 
     auto scaled_res = BDense::create(this->exec);
-    scaled_res->copy_from(scaled.get());
-    GKO_ASSERT_BATCH_MTX_NEAR(scaled_res, this->ref_scaled, this->eps);
+    scaled_res->copy_from(b_scaled.get());
+    GKO_ASSERT_BATCH_MTX_NEAR(scaled_res, ref_b_scaled, this->eps);
 }
 
 
-TYPED_TEST(BatchDirect, SystemLeftScaleTransposeWorks)
+TYPED_TEST(BatchDirect, SystemLeftScaleTransposeIsEquivalentToReference)
 {
     using T = typename TestFixture::value_type;
     using BDense = typename TestFixture::BDense;
     const int ncols = 5;
     this->setup_ref_scaling_test();
+    auto ref_b_orig = gko::batch_initialize<BDense>(
+        {{I<T>({1.0, -1.0}), I<T>({-2.0, 2.0}), I<T>({1.5, 4.0})},
+         {{1.0, -2.0}, {1.0, -2.5}, {-3.0, 0.5}}},
+        this->exec);
+    auto ref_b_scaled = BDense::create(
+        this->exec,
+        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrhs, this->nrows)));
     auto refmat = BDense::create(
         this->exec,
         gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, ncols)));
-    auto refscaledmat = BDense::create(
-        this->exec,
-        gko::batch_dim<>(this->nbatch, gko::dim<2>(ncols, this->nrows)));
     for (size_t ib = 0; ib < this->nbatch; ib++) {
         for (int i = 0; i < this->nrows; i++) {
             for (int j = 0; j < ncols; j++) {
                 const T val = (ib + 1.0) * (i * ncols + j);
                 refmat->at(ib, i, j) = val;
-                refscaledmat->at(ib, j, i) =
-                    val * this->ref_scaling_vec->at(ib, i);
             }
         }
     }
+    auto refscaledmat = BDense::create(
+        this->exec,
+        gko::batch_dim<>(this->nbatch, gko::dim<2>(ncols, this->nrows)));
     auto scaling_vec = BDense::create(this->cuexec);
     scaling_vec->copy_from(this->ref_scaling_vec.get());
     auto orig = BDense::create(this->cuexec);
-    orig->copy_from(this->ref_orig->transpose().get());
+    orig->copy_from(ref_b_orig.get());
     auto mat = BDense::create(this->cuexec);
     mat->copy_from(refmat.get());
     auto scaledmat = BDense::create(
@@ -208,6 +212,9 @@ TYPED_TEST(BatchDirect, SystemLeftScaleTransposeWorks)
         this->cuexec,
         gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrhs, this->nrows)));
 
+    gko::kernels::reference::batch_direct::left_scale_system_transpose(
+        this->exec, refmat.get(), ref_b_orig.get(), this->ref_scaling_vec.get(),
+        refscaledmat.get(), ref_b_scaled.get());
     gko::kernels::cuda::batch_direct::left_scale_system_transpose(
         this->cuexec, mat.get(), orig.get(), scaling_vec.get(), scaledmat.get(),
         scaled.get());
@@ -216,8 +223,7 @@ TYPED_TEST(BatchDirect, SystemLeftScaleTransposeWorks)
     scaled_b->copy_from(scaled.get());
     auto ref_mat_ans = BDense::create(this->exec);
     ref_mat_ans->copy_from(scaledmat.get());
-    GKO_ASSERT_BATCH_MTX_NEAR(
-        scaled_b, gko::as<BDense>(this->ref_scaled->transpose()), this->eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(scaled_b, ref_b_scaled, this->eps);
     GKO_ASSERT_BATCH_MTX_NEAR(ref_mat_ans, refscaledmat, this->eps);
 }
 
@@ -242,48 +248,19 @@ TYPED_TEST(BatchDirect, SolvesStencilMultipleSystem)
 }
 
 
-TYPED_TEST(BatchDirect, CoreSolvesSystemJacobi)
-{
-    using value_type = typename TestFixture::value_type;
-    using Mtx = typename TestFixture::Mtx;
-    using BDense = typename TestFixture::BDense;
-    using Solver = gko::solver::BatchDirect<value_type>;
-    auto useexec = this->cuexec;
-    std::unique_ptr<typename Solver::Factory> batchdirect_factory =
-        Solver::build().on(useexec);
-    const int nrhs_1 = 1;
-    const size_t nbatch = 3;
-    const auto sys =
-        gko::test::get_poisson_problem<value_type>(this->exec, nrhs_1, nbatch);
-    auto rx =
-        gko::batch_initialize<BDense>(nbatch, {0.0, 0.0, 0.0}, this->exec);
-    std::unique_ptr<Mtx> mtx = Mtx::create(useexec);
-    auto b = BDense::create(useexec);
-    auto x = BDense::create(useexec);
-    mtx->copy_from(gko::lend(sys.mtx));
-    b->copy_from(gko::lend(sys.b));
-    x->copy_from(gko::lend(rx));
-
-    std::unique_ptr<Solver> solver =
-        batchdirect_factory->generate(gko::give(mtx));
-    solver->apply(b.get(), x.get());
-    rx->copy_from(gko::lend(x));
-
-    GKO_ASSERT_BATCH_MTX_NEAR(rx, sys.xex, this->eps);
-}
-
-
 TYPED_TEST(BatchDirect, UnitScalingDoesNotChangeResult)
 {
     using BDense = typename TestFixture::BDense;
+    using Solver = typename TestFixture::solver_type;
     auto left_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.0, 1.0}, this->exec);
     auto right_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.0, 1.0}, this->exec);
+    auto factory = Solver::build().on(this->cuexec);
 
-    auto result = gko::test::solve_poisson_uniform(
-        this->cuexec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts, this->sys_1, 1, left_scale.get(), right_scale.get());
+    auto result = gko::test::solve_poisson_uniform_core<Solver>(
+        this->cuexec, factory.get(), this->sys_1, 1, left_scale.get(),
+        right_scale.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, this->eps);
 }
@@ -292,14 +269,16 @@ TYPED_TEST(BatchDirect, UnitScalingDoesNotChangeResult)
 TYPED_TEST(BatchDirect, GeneralScalingDoesNotChangeResult)
 {
     using BDense = typename TestFixture::BDense;
+    using Solver = typename TestFixture::solver_type;
     auto left_scale = gko::batch_initialize<BDense>(
         this->nbatch, {0.8, 0.9, 0.95}, this->exec);
     auto right_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.5, 1.05}, this->exec);
+    auto factory = Solver::build().on(this->cuexec);
 
-    auto result = gko::test::solve_poisson_uniform(
-        this->cuexec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts, this->sys_1, 1, left_scale.get(), right_scale.get());
+    auto result = gko::test::solve_poisson_uniform_core<Solver>(
+        this->cuexec, factory.get(), this->sys_1, 1, left_scale.get(),
+        right_scale.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, this->eps);
 }
