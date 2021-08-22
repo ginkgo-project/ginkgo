@@ -129,7 +129,7 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp *b,
 
     // delete the scaled CSR copy at the end
     {
-#if 0
+#if 1
         auto b_scaled = Vector::create(exec);
         b_scaled->copy_from(dense_b);
         auto a_scaled_smart = Mtx::create(exec);
