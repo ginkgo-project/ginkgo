@@ -75,7 +75,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);
         const auto c_b = gko::batch::batch_entry(c_ub, batch);
-        gko::kernels::reference::spmv_kernel(a_b, b_b, c_b);
+        gko::kernels::reference::batch_csr::spmv_kernel(a_b, b_b, c_b);
     }
 }
 
@@ -104,7 +104,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
         const auto c_b = gko::batch::batch_entry(c_ub, batch);
         const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
         const auto beta_b = gko::batch::batch_entry(beta_ub, batch);
-        gko::kernels::reference::advanced_spmv_kernel(
+        gko::kernels::reference::batch_csr::advanced_spmv_kernel(
             alpha_b.values[0], a_b, b_b, beta_b.values[0], c_b);
     }
 }
@@ -132,12 +132,38 @@ void batch_scale(std::shared_ptr<const OmpExecutor> exec,
         auto a_b = gko::batch::batch_entry(a_ub, ibatch);
         auto left_b = gko::batch::batch_entry(left_ub, ibatch);
         auto right_b = gko::batch::batch_entry(right_ub, ibatch);
-        gko::kernels::reference::batch_scale(left_b, right_b, a_b);
+        gko::kernels::reference::batch_csr::batch_scale(left_b, right_b, a_b);
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_SCALE);
+
+
+template <typename ValueType, typename IndexType>
+void pre_diag_scale_system(
+    std::shared_ptr<const OmpExecutor> exec,
+    const matrix::BatchDense<ValueType> *const left_scale,
+    const matrix::BatchDense<ValueType> *const right_scale,
+    matrix::BatchCsr<ValueType, IndexType> *const a,
+    matrix::BatchDense<ValueType> *const b)
+{
+    const size_type nbatch = a->get_num_batch_entries();
+    const int nrows = static_cast<int>(a->get_size().at()[0]);
+    const size_type nnz = a->get_num_stored_elements() / nbatch;
+    const int nrhs = static_cast<int>(b->get_size().at()[1]);
+    const size_type b_stride = b->get_stride().at();
+#pragma omp parallel for
+    for (size_type ib = 0; ib < nbatch; ib++) {
+        gko::kernels::reference::batch_csr::pre_diag_scale_system(
+            ib, nnz, nrows, a->get_values(), a->get_const_col_idxs(),
+            a->get_const_row_ptrs(), nrhs, b_stride, b->get_values(),
+            left_scale->get_const_values(), right_scale->get_const_values());
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_CSR_PRE_DIAG_SCALE_SYSTEM);
 
 
 template <typename IndexType>
@@ -252,7 +278,7 @@ void convert_to_batch_dense(
     const size_type dstride = dest->get_stride().at();
 #pragma omp parallel for
     for (size_type ibatch = 0; ibatch < nbatches; ibatch++) {
-        gko::kernels::reference::convert_csr_to_dense(
+        gko::kernels::reference::batch_csr::convert_csr_to_dense(
             nrows, ncols, src->get_const_row_ptrs(), src->get_const_col_idxs(),
             src->get_const_values() + ibatch * nnz, dstride,
             dest->get_values() + ibatch * dstride * nrows);
