@@ -60,9 +60,9 @@ namespace batch_cg {
 namespace {
 
 
-using gko::kernels::reference::advanced_spmv_kernel;
-using gko::kernels::reference::batch_scale;
-using gko::kernels::reference::spmv_kernel;
+using gko::kernels::reference::batch_csr::advanced_spmv_kernel;
+using gko::kernels::reference::batch_csr::batch_scale;
+using gko::kernels::reference::batch_csr::spmv_kernel;
 namespace batch_dense = gko::kernels::reference::batch_dense;
 using gko::kernels::reference::BatchIdentity;
 using gko::kernels::reference::BatchJacobi;

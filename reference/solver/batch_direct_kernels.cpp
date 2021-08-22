@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_direct_kernels.hpp"
 
 
+#include "core/matrix/batch_struct.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -69,7 +72,41 @@ void left_scale_system_transpose(
     const matrix::BatchDense<ValueType> *const b,
     const matrix::BatchDense<ValueType> *const scalevec,
     matrix::BatchDense<ValueType> *const a_scaled_t,
-    matrix::BatchDense<ValueType> *const b_scaled_t) GKO_NOT_IMPLEMENTED;
+    matrix::BatchDense<ValueType> *const b_scaled_t)
+{
+    const size_type nbatch = a->get_num_batch_entries();
+    const int nrows = static_cast<int>(a->get_size().at()[0]);
+    const int ncols = static_cast<int>(a->get_size().at()[1]);
+    const int nrhs = static_cast<int>(b->get_size().at()[1]);
+    const size_type a_stride = a->get_stride().at();
+    const size_type a_scaled_stride = a_scaled_t->get_stride().at();
+    const size_type b_stride = b->get_stride().at();
+    const size_type b_scaled_stride = b_scaled_t->get_stride().at();
+    const size_type scale_stride = scalevec->get_stride().at();
+    for (size_type ib = 0; ib < nbatch; ib++) {
+        auto ai = gko::batch::batch_entry_ptr(a->get_const_values(), a_stride,
+                                              nrows, ib);
+        auto asti = gko::batch::batch_entry_ptr(a_scaled_t->get_values(),
+                                                a_scaled_stride, ncols, ib);
+        auto bi = gko::batch::batch_entry_ptr(b->get_const_values(), b_stride,
+                                              nrows, ib);
+        auto bsti = gko::batch::batch_entry_ptr(b_scaled_t->get_values(),
+                                                b_scaled_stride, nrhs, ib);
+        auto scalei = gko::batch::batch_entry_ptr(scalevec->get_const_values(),
+                                                  scale_stride, nrows, ib);
+        for (int i = 0; i < nrows; i++) {
+            const ValueType scale_factor = scalei[i * scale_stride];
+            for (int j = 0; j < ncols; j++) {
+                asti[j * a_scaled_stride + i] =
+                    ai[i * a_stride + j] * scale_factor;
+            }
+            for (int j = 0; j < nrhs; j++) {
+                bsti[j * b_scaled_stride + i] =
+                    bi[i * b_stride + j] * scale_factor;
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DIRECT_LEFT_SCALE_SYSTEM_TRANSPOSE);

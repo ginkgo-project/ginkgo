@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_csr_kernels.hpp"
-#include "core/test/utils/batch.hpp"
+#include "core/test/utils/batch_test_utils.hpp"
 #include "cuda/test/utils.hpp"
 
 
@@ -243,6 +243,40 @@ TEST_F(BatchCsr, BatchScaleIsEquivalentToReference)
     dmtx->batch_scale(d_left_scale.get(), d_right_scale.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(mtx, dmtx, 0.0);
+}
+
+
+TEST_F(BatchCsr, PreDiagScaleSystemIsEquivalentToReference)
+{
+    set_up_apply_data();
+    const size_t batch_size = mtx_size.get_num_batch_entries();
+    const size_t nrows = mtx_size.at()[0];
+    const size_t ncols = mtx_size.at()[1];
+    const int nrhs = 3;
+    auto ref_left_scale = gen_mtx<Vec>(batch_size, nrows, 1, 1);
+    auto ref_right_scale = gen_mtx<Vec>(batch_size, ncols, 1, 1);
+    auto ref_b = gen_mtx<Vec>(batch_size, nrows, nrhs, 2);
+    auto d_left_scale = Vec::create(cuda);
+    d_left_scale->copy_from(ref_left_scale.get());
+    auto d_right_scale = Vec::create(cuda);
+    d_right_scale->copy_from(ref_right_scale.get());
+    auto d_b = Vec::create(cuda);
+    d_b->copy_from(ref_b.get());
+
+    gko::kernels::reference::batch_csr::pre_diag_scale_system(
+        ref, ref_left_scale.get(), ref_right_scale.get(), mtx.get(),
+        ref_b.get());
+    gko::kernels::cuda::batch_csr::pre_diag_scale_system(
+        cuda, d_left_scale.get(), d_right_scale.get(), dmtx.get(), d_b.get());
+    auto scaled_mtx = Mtx::create(ref);
+    scaled_mtx->copy_from(dmtx.get());
+    auto scaled_b = Vec::create(ref);
+    scaled_b->copy_from(d_b.get());
+
+    gko::test::check_relative_diff(mtx.get(), scaled_mtx.get(),
+                                   0.001 * r<value_type>::value);
+    // GKO_ASSERT_BATCH_MTX_NEAR(mtx, scaled_mtx, r<value_type>::value);
+    GKO_ASSERT_BATCH_MTX_NEAR(ref_b, scaled_b, 0.0);
 }
 
 
