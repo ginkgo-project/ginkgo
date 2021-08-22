@@ -57,6 +57,7 @@ class BatchRich : public ::testing::Test {
 protected:
     using value_type = T;
     using real_type = gko::remove_complex<value_type>;
+    using solver_type = gko::solver::BatchRichardson<value_type>;
     using Mtx = gko::matrix::BatchCsr<value_type, int>;
     using BDense = gko::matrix::BatchDense<value_type>;
     using RBDense = gko::matrix::BatchDense<real_type>;
@@ -126,6 +127,16 @@ protected:
     std::function<void(const BDense *, const BDense *, Mtx *)> scale_mat;
     std::function<void(const BDense *, BDense *)> scale_vecs;
 
+    std::unique_ptr<typename solver_type::Factory> create_factory(
+        std::shared_ptr<const gko::Executor> exec, const Options &opts)
+    {
+        return solver_type::build()
+            .with_max_iterations(opts.max_its)
+            .with_residual_tol(opts.residual_tol)
+            .with_tolerance_type(opts.tol_type)
+            .with_preconditioner(opts.preconditioner)
+            .on(exec);
+    }
 
     int single_iters_regression() const
     {
@@ -264,8 +275,6 @@ TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
     auto result2 = gko::test::solve_poisson_uniform<value_type>(
         this->exec, this->solve_fn, this->scale_mat, this->scale_vecs,
         opts_slower, this->sys_1, 1);
-    // Result result1 = this->solve_poisson_uniform_1(opts);
-    // Result result2 = this->solve_poisson_uniform_1(opts_slower);
 
     const int *const iter_arr1 = result1.logdata.iter_counts.get_const_data();
     const int *const iter_arr2 = result2.logdata.iter_counts.get_const_data();
@@ -280,14 +289,16 @@ TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
 TYPED_TEST(BatchRich, UnitScalingDoesNotChangeResult)
 {
     using BDense = typename TestFixture::BDense;
+    using Solver = typename TestFixture::solver_type;
     auto left_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.0, 1.0}, this->exec);
     auto right_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.0, 1.0}, this->exec);
+    auto factory = this->create_factory(this->exec, this->opts_1);
 
-    auto result = gko::test::solve_poisson_uniform(
-        this->exec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts_1, this->sys_1, 1, left_scale.get(), right_scale.get());
+    auto result = gko::test::solve_poisson_uniform_core<Solver>(
+        this->exec, factory.get(), this->sys_1, 1, left_scale.get(),
+        right_scale.get());
 
     for (size_t i = 0; i < this->nbatch; i++) {
         ASSERT_LE(result.resnorm->get_const_values()[i] /
@@ -302,16 +313,17 @@ TYPED_TEST(BatchRich, UnitScalingDoesNotChangeResult)
 TYPED_TEST(BatchRich, GeneralScalingDoesNotChangeResult)
 {
     using BDense = typename TestFixture::BDense;
+    using Solver = typename TestFixture::solver_type;
     using Options = typename TestFixture::Options;
     auto left_scale = gko::batch_initialize<BDense>(
         this->nbatch, {0.8, 0.9, 0.95}, this->exec);
     auto right_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.5, 1.05}, this->exec);
-    // const Options opts = this->opts_1;
+    auto factory = this->create_factory(this->exec, this->opts_1);
 
-    auto result = gko::test::solve_poisson_uniform(
-        this->exec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts_1, this->sys_1, 1, left_scale.get(), right_scale.get());
+    auto result = gko::test::solve_poisson_uniform_core<Solver>(
+        this->exec, factory.get(), this->sys_1, 1, left_scale.get(),
+        right_scale.get());
 
     for (size_t i = 0; i < this->nbatch; i++) {
         ASSERT_LE(result.resnorm->get_const_values()[i] /
