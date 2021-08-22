@@ -419,6 +419,58 @@ __global__ void uniform_batch_scale(
 
 
 template <typename ValueType>
+__device__ __forceinline__ void pre_diag_scale_system(
+    const int num_rows, ValueType *const __restrict__ a_values,
+    const int *const __restrict__ col_idxs,
+    const int *const __restrict__ row_ptrs, const int num_rhs,
+    const size_type b_stride, ValueType *const __restrict__ b,
+    const ValueType *const __restrict__ left_scale,
+    const ValueType *const __restrict__ right_scale)
+{
+    constexpr auto warp_size = config::warp_size;
+    const auto tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const int tile_rank = threadIdx.x / warp_size;
+    const int num_tiles = (blockDim.x - 1) / warp_size + 1;
+
+    for (int i_row = tile_rank; i_row < num_rows; i_row += num_tiles) {
+        const ValueType rowscale = left_scale[i_row];
+        for (int iz = row_ptrs[i_row] + tile.thread_rank();
+             iz < row_ptrs[i_row + 1]; iz += warp_size) {
+            a_values[iz] *= rowscale * right_scale[col_idxs[iz]];
+        }
+    }
+    for (int iz = threadIdx.x; iz < num_rows * num_rhs; iz += blockDim.x) {
+        const int row = iz / num_rhs;
+        const int col = iz % num_rhs;
+        b[row * b_stride + col] *= left_scale[row];
+    }
+}
+
+template <typename ValueType>
+__global__ void pre_diag_scale_system(
+    const size_type nbatch, const int num_rows, const size_type a_batch_stride,
+    ValueType *const __restrict__ a_values,
+    const int *const __restrict__ col_idxs,
+    const int *const __restrict__ row_ptrs, const int num_rhs,
+    const size_type b_stride, ValueType *const __restrict__ b,
+    const ValueType *const __restrict__ left_scale,
+    const ValueType *const __restrict__ right_scale)
+{
+    for (size_type ib = blockIdx.x; ib < nbatch; ib += gridDim.x) {
+        auto ab = a_values + a_batch_stride * ib;
+        auto bb = gko::batch::batch_entry_ptr(b, b_stride, num_rows, ib);
+        auto left_scaleb =
+            gko::batch::batch_entry_ptr(left_scale, 1, num_rows, ib);
+        auto right_scaleb =
+            gko::batch::batch_entry_ptr(right_scale, 1, num_rows, ib);
+        pre_diag_scale_system(num_rows, ab, col_idxs, row_ptrs, num_rhs,
+                              b_stride, bb, left_scaleb, right_scaleb);
+    }
+}
+
+
+template <typename ValueType>
 __device__ __forceinline__ void convert_to_batch_dense(
     const int nrows, const int ncols, const int *const row_ptrs,
     const int *const col_idxs, const ValueType *const values,
