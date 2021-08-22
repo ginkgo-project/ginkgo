@@ -149,9 +149,9 @@ inline void initialize(
     // r = b
     batch_dense::copy(b_entry, r_entry);
     // r = b - A*x
-    advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
-                         gko::batch::to_const(x_entry),
-                         static_cast<ValueType>(1.0), r_entry);
+    batch_csr::advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
+                                    gko::batch::to_const(x_entry),
+                                    static_cast<ValueType>(1.0), r_entry);
     // compute residual norms
     batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
                                           res_norms_entry);
@@ -895,7 +895,8 @@ inline void batch_entry_idr_impl(
                        u_k_entry, converged);
 
             // g_k = A * u_k
-            spmv_kernel(A_entry, gko::batch::to_const(u_k_entry), g_k_entry);
+            batch_csr::spmv_kernel(A_entry, gko::batch::to_const(u_k_entry),
+                                   g_k_entry);
 
             // for i = 0 to k-1
             //     alpha = (p_i * g_k)/M(i,i)
@@ -971,7 +972,7 @@ inline void batch_entry_idr_impl(
         prec.apply(gko::batch::to_const(r_entry), v_entry);
 
         // t = A *v
-        spmv_kernel(A_entry, gko::batch::to_const(v_entry), t_entry);
+        batch_csr::spmv_kernel(A_entry, gko::batch::to_const(v_entry), t_entry);
 
         // omega = ( t * r )/ (t * t)
         // rho = (t * r ) /(||t|| * || r||)
