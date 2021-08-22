@@ -206,14 +206,11 @@ public:
 
 
         /**
-         * Absolute residual tolerance.
+         * Residual tolerance.
+         *
+         * @sa tolerance_type
          */
-        real_type GKO_FACTORY_PARAMETER_SCALAR(abs_residual_tol, 1e-11);
-
-        /**
-         * Relative residual tolerance.
-         */
-        real_type GKO_FACTORY_PARAMETER_SCALAR(rel_residual_tol, 1e-6);
+        real_type GKO_FACTORY_PARAMETER_SCALAR(residual_tol, 1e-8);
 
 
         /**
@@ -225,7 +222,6 @@ public:
 
         /**
          * kappa value
-         *
          */
         real_type GKO_FACTORY_PARAMETER_SCALAR(kappa, 0.7);
 

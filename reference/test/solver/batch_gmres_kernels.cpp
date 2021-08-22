@@ -53,6 +53,7 @@ class BatchGmres : public ::testing::Test {
 protected:
     using value_type = T;
     using real_type = gko::remove_complex<value_type>;
+    using solver_type = gko::solver::BatchGmres<value_type>;
     using Mtx = gko::matrix::BatchCsr<value_type, int>;
     using BDense = gko::matrix::BatchDense<value_type>;
     using RBDense = gko::matrix::BatchDense<real_type>;
@@ -103,6 +104,18 @@ protected:
         solve_fn;
     std::function<void(const BDense *, const BDense *, Mtx *)> scale_mat;
     std::function<void(const BDense *, BDense *)> scale_vecs;
+
+    std::unique_ptr<typename solver_type::Factory> create_factory(
+        std::shared_ptr<const gko::Executor> exec, const Options &opts)
+    {
+        return solver_type::build()
+            .with_max_iterations(opts.max_its)
+            .with_rel_residual_tol(opts.residual_tol)
+            .with_tolerance_type(opts.tol_type)
+            .with_preconditioner(opts.preconditioner)
+            .with_restart(opts.restart_num)
+            .on(exec);
+    }
 
     int single_iters_regression() const
     {
@@ -208,14 +221,16 @@ TYPED_TEST(BatchGmres, StencilMultipleSystemLoggerIsCorrect)
 TYPED_TEST(BatchGmres, UnitScalingDoesNotChangeResult)
 {
     using BDense = typename TestFixture::BDense;
+    using Solver = typename TestFixture::solver_type;
     auto left_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.0, 1.0}, this->exec);
     auto right_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.0, 1.0}, this->exec);
+    auto factory = this->create_factory(this->exec, this->opts_1);
 
-    auto result = gko::test::solve_poisson_uniform(
-        this->exec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts_1, this->sys_1, 1, left_scale.get(), right_scale.get());
+    auto result = gko::test::solve_poisson_uniform_core<Solver>(
+        this->exec, factory.get(), this->sys_1, 1, left_scale.get(),
+        right_scale.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, 1e2 * this->eps);
 }
@@ -224,14 +239,16 @@ TYPED_TEST(BatchGmres, UnitScalingDoesNotChangeResult)
 TYPED_TEST(BatchGmres, GeneralScalingDoesNotChangeResult)
 {
     using BDense = typename TestFixture::BDense;
+    using Solver = typename TestFixture::solver_type;
     auto left_scale = gko::batch_initialize<BDense>(
         this->nbatch, {0.8, 0.9, 0.95}, this->exec);
     auto right_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.5, 1.05}, this->exec);
+    auto factory = this->create_factory(this->exec, this->opts_1);
 
-    auto result = gko::test::solve_poisson_uniform(
-        this->exec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts_1, this->sys_1, 1, left_scale.get(), right_scale.get());
+    auto result = gko::test::solve_poisson_uniform_core<Solver>(
+        this->exec, factory.get(), this->sys_1, 1, left_scale.get(),
+        right_scale.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, 1e2 * this->eps);
 }
