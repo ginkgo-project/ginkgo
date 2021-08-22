@@ -210,6 +210,78 @@ Result<ValueType> solve_poisson_uniform(
 }
 
 
+template <typename SolverType, typename ValueType>
+Result<ValueType> solve_poisson_uniform_core(
+    std::shared_ptr<const Executor> d_exec,
+    const typename SolverType::Factory *const factory,
+    const LinSys<ValueType> &sys, const int nrhs,
+    const matrix::BatchDense<ValueType> *const left_scale = nullptr,
+    const matrix::BatchDense<ValueType> *const right_scale = nullptr)
+{
+    using real_type = remove_complex<ValueType>;
+    using BDense = typename Result<ValueType>::BDense;
+    using RBDense = typename Result<ValueType>::RBDense;
+    using Mtx = matrix::BatchCsr<ValueType, int>;
+
+    const size_t nbatch = sys.mtx->get_num_batch_entries();
+    const int nrows = sys.mtx->get_size().at()[0];
+    const gko::batch_dim<> sizes(nbatch, gko::dim<2>(nrows, nrhs));
+    const gko::batch_dim<> normsizes(nbatch, gko::dim<2>(1, nrhs));
+
+    auto exec = d_exec->get_master();
+    auto orig_mtx = Mtx::create(exec);
+    orig_mtx->copy_from(sys.mtx.get());
+    Result<ValueType> result;
+    // Initialize r to the original unscaled b
+    result.x = BDense::create(exec, sizes);
+    ValueType *const xvalsinit = result.x->get_values();
+    for (size_t i = 0; i < nbatch * nrows * nrhs; i++) {
+        xvalsinit[i] = gko::zero<ValueType>();
+    }
+
+    std::shared_ptr<const gko::log::BatchConvergence<ValueType>> logger =
+        gko::log::BatchConvergence<ValueType>::create(d_exec);
+
+    std::shared_ptr<Mtx> mtx = Mtx::create(d_exec);
+    auto b = BDense::create(d_exec);
+    auto x = BDense::create(d_exec);
+    mtx->copy_from(gko::lend(sys.mtx));
+    b->copy_from(gko::lend(sys.b));
+    x->copy_from(gko::lend(result.x));
+
+    auto solver = factory->generate(mtx);
+
+    auto d_left = BDense::create(d_exec);
+    auto d_right = BDense::create(d_exec);
+    const bool use_scaling = left_scale && right_scale;
+    if (use_scaling) {
+        if (!left_scale || !right_scale) {
+            GKO_NOT_IMPLEMENTED;
+        }
+        d_left->copy_from(left_scale);
+        d_right->copy_from(right_scale);
+        dynamic_cast<gko::EnableBatchScaledSolver<ValueType> *>(solver.get())
+            ->batch_scale(lend(d_left), lend(d_right));
+    }
+
+    solver->add_logger(logger);
+    solver->apply(b.get(), x.get());
+    solver->remove_logger(logger.get());
+
+    result.x->copy_from(gko::lend(x));
+    auto rnorms =
+        compute_residual_norm(sys.mtx.get(), result.x.get(), sys.b.get());
+    result.resnorm = std::move(rnorms);
+
+    result.logdata.res_norms = gko::matrix::BatchDense<real_type>::create(exec);
+    result.logdata.iter_counts.set_executor(exec);
+    result.logdata.res_norms->copy_from(logger->get_residual_norm());
+    result.logdata.iter_counts = logger->get_num_iterations();
+
+    return std::move(result);
+}
+
+
 template <typename SolverType>
 void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
                 const int nrows, const int nrhs,
@@ -382,6 +454,34 @@ void test_solve_iterations_with_scaling(
     auto rnorm_s = compute_residual_norm(mtx.get(), x_s.get(), b.get());
     for (size_t i = 0; i < nbatch; i++) {
         ASSERT_GT(rnorm->at(i, 0, 0), rnorm_s->at(i, 0, 0));
+    }
+}
+
+
+template <typename ValueType>
+void check_relative_diff(const matrix::BatchCsr<ValueType> *const a_ref,
+                         const matrix::BatchCsr<ValueType> *const b,
+                         const double tolerance)
+{
+    using real_type = typename gko::remove_complex<ValueType>;
+    const size_type batch_size = a_ref->get_num_batch_entries();
+    ASSERT_EQ(batch_size, b->get_num_batch_entries());
+    for (size_type ib = 0; ib < batch_size; ib++) {
+        real_type relerr = gko::zero<real_type>();
+        real_type refnorm = gko::zero<real_type>();
+        for (size_type irow = 0; irow < a_ref->get_size().at()[0]; irow++) {
+            ASSERT_EQ(a_ref->get_const_row_ptrs()[irow],
+                      b->get_const_row_ptrs()[irow]);
+            for (int iz = a_ref->get_const_row_ptrs()[irow];
+                 iz < a_ref->get_const_row_ptrs()[irow + 1]; iz++) {
+                ASSERT_EQ(a_ref->get_const_col_idxs()[iz],
+                          b->get_const_col_idxs()[iz]);
+                relerr += gko::squared_norm(a_ref->get_const_values()[iz] -
+                                            b->get_const_values()[iz]);
+                refnorm += gko::squared_norm(a_ref->get_const_values()[iz]);
+            }
+        }
+        ASSERT_LE(relerr / refnorm, tolerance);
     }
 }
 
