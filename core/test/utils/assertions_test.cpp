@@ -167,14 +167,13 @@ protected:
           mtx3b(gko::batch_initialize<Mtx>({{{1.0, 2.0, 3.0}, {0.0, 4.1, 0.0}},
                                             {{1.0, 2.0, 3.0}, {0.0, 4.2, 0.0}}},
                                            exec)),
-          mtx13_row_ptrs({0, 3, 4}),
-          mtx2_row_ptrs({0, 3, 5}),
-          mtx13_col_idxs({0, 1, 2, 1}),
-          mtx2_col_idxs({0, 1, 2, 0, 2}),
+          mtx4(gko::batch_initialize<Mtx>(
+              num_batch, {{1.0, 2.0, 3.0}, {4.0, 0.0, 0.0}}, exec)),
           mtx1_vals({1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0}),
           mtx2_vals({1.0, 2.0, 3.0, 4.0, 4.0, 1.0, 2.0, 3.0, 4.0, 4.0}),
           mtx3_vals({1.0, 2.0, 3.0, 4.1, 1.0, 2.0, 3.0, 4.1}),
-          mtx3b_vals({1.0, 2.0, 3.0, 4.1, 1.0, 2.0, 3.0, 4.2})
+          mtx3b_vals({1.0, 2.0, 3.0, 4.1, 1.0, 2.0, 3.0, 4.2}),
+          mtx4_vals({1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0})
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -183,14 +182,12 @@ protected:
     std::unique_ptr<Mtx> mtx2;
     std::unique_ptr<Mtx> mtx3;
     std::unique_ptr<Mtx> mtx3b;
-    std::array<Sparse::index_type, 3> mtx13_row_ptrs;
-    std::array<Sparse::index_type, 3> mtx2_row_ptrs;
-    std::array<Sparse::index_type, 4> mtx13_col_idxs;
-    std::array<Sparse::index_type, 5> mtx2_col_idxs;
+    std::unique_ptr<Mtx> mtx4;
     std::array<Sparse::value_type, 8> mtx1_vals;
     std::array<Sparse::value_type, 10> mtx2_vals;
     std::array<Sparse::value_type, 8> mtx3_vals;
     std::array<Sparse::value_type, 8> mtx3b_vals;
+    std::array<Sparse::value_type, 8> mtx4_vals;
 };
 
 
@@ -205,6 +202,13 @@ TEST_F(BatchMatricesNear, FailsIfDifferent)
 {
     ASSERT_PRED_FORMAT3(!gko::test::assertions::batch_matrices_near, mtx1.get(),
                         mtx2.get(), 0.0);
+}
+
+
+TEST_F(BatchMatricesNear, FailsIfOnlySparsityIsDifferent)
+{
+    ASSERT_PRED_FORMAT3(!gko::test::assertions::batch_matrices_near, mtx1.get(),
+                        mtx4.get(), 0.0);
 }
 
 
