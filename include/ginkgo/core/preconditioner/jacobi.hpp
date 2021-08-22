@@ -109,8 +109,8 @@ struct block_interleaved_storage_scheme {
      *        blocks is not known, for a special input `size_type{} - 1`
      *        the method returns `0` to avoid overallocation of memory.
      */
-    GKO_ATTRIBUTES size_type compute_storage_space(size_type num_blocks) const
-        noexcept
+    GKO_ATTRIBUTES size_type
+    compute_storage_space(size_type num_blocks) const noexcept
     {
         return (num_blocks + 1 == size_type{0})
                    ? size_type{0}
@@ -148,8 +148,8 @@ struct block_interleaved_storage_scheme {
      *
      * @return the offset of the block with ID `block_id`
      */
-    GKO_ATTRIBUTES IndexType get_global_block_offset(IndexType block_id) const
-        noexcept
+    GKO_ATTRIBUTES IndexType
+    get_global_block_offset(IndexType block_id) const noexcept
     {
         return this->get_group_offset(block_id) +
                this->get_block_offset(block_id);
