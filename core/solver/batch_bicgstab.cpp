@@ -46,7 +46,7 @@ namespace solver {
 namespace batch_bicgstab {
 
 
-GKO_REGISTER_OPERATION(mat_scale, batch_csr::batch_scale);
+GKO_REGISTER_OPERATION(pre_diag_scale_system, batch_csr::pre_diag_scale_system);
 GKO_REGISTER_OPERATION(vec_scale, batch_dense::batch_scale);
 GKO_REGISTER_OPERATION(apply, batch_bicgstab::apply);
 
@@ -110,11 +110,9 @@ void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp *b,
     if (to_scale) {
         a_scaled_smart->copy_from(acsr);
         b_scaled_smart->copy_from(dense_b);
-        exec->run(batch_bicgstab::make_mat_scale(
+        exec->run(batch_bicgstab::make_pre_diag_scale_system(
             this->get_left_scaling_vector(), this->get_right_scaling_vector(),
-            a_scaled_smart.get()));
-        exec->run(batch_bicgstab::make_vec_scale(
-            this->get_left_scaling_vector(), b_scaled_smart.get()));
+            a_scaled_smart.get(), b_scaled_smart.get()));
         a_scaled = a_scaled_smart.get();
         b_scaled = b_scaled_smart.get();
     } else {
