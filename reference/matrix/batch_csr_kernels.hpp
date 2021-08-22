@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace reference {
+namespace batch_csr {
 
 
 /**
@@ -118,6 +119,38 @@ inline void batch_scale(
 }
 
 
+/**
+ * Scales a matrix from the left and right, and a vector from the right.
+ */
+template <typename ValueType>
+inline void pre_diag_scale_system(const size_type batch_id,
+                                  const size_type a_batch_stride,
+                                  const int num_rows, ValueType *const a_values,
+                                  const int *const col_idxs,
+                                  const int *const row_ptrs, const int num_rhs,
+                                  const size_type b_stride, ValueType *const b,
+                                  const ValueType *const left_scale,
+                                  const ValueType *const right_scale)
+{
+    auto ab = a_values + a_batch_stride * batch_id;
+    auto bb = gko::batch::batch_entry_ptr(b, b_stride, num_rows, batch_id);
+    auto left_scaleb =
+        gko::batch::batch_entry_ptr(left_scale, 1, num_rows, batch_id);
+    auto right_scaleb =
+        gko::batch::batch_entry_ptr(right_scale, 1, num_rows, batch_id);
+    for (int irow = 0; irow < num_rows; irow++) {
+        const ValueType left_scale_value = left_scaleb[irow];
+        for (int iz = row_ptrs[irow]; iz < row_ptrs[irow + 1]; iz++) {
+            const int jcol = col_idxs[iz];
+            ab[iz] *= left_scale_value * right_scaleb[jcol];
+        }
+        for (int irhs = 0; irhs < num_rhs; irhs++) {
+            bb[irow * b_stride + irhs] *= left_scale_value;
+        }
+    }
+}
+
+
 template <typename ValueType>
 inline void convert_csr_to_dense(const int num_rows, const int num_cols,
                                  const int *const row_ptrs,
@@ -138,6 +171,7 @@ inline void convert_csr_to_dense(const int num_rows, const int num_cols,
 }
 
 
+}  // namespace batch_csr
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko

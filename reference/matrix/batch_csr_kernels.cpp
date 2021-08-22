@@ -129,12 +129,37 @@ void batch_scale(std::shared_ptr<const ReferenceExecutor>,
         auto a_b = gko::batch::batch_entry(a_ub, ibatch);
         auto left_b = gko::batch::batch_entry(left_ub, ibatch);
         auto right_b = gko::batch::batch_entry(right_ub, ibatch);
-        gko::kernels::reference::batch_scale(left_b, right_b, a_b);
+        batch_scale(left_b, right_b, a_b);
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_SCALE);
+
+
+template <typename ValueType, typename IndexType>
+void pre_diag_scale_system(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const matrix::BatchDense<ValueType> *const left_scale,
+    const matrix::BatchDense<ValueType> *const right_scale,
+    matrix::BatchCsr<ValueType, IndexType> *const a,
+    matrix::BatchDense<ValueType> *const b)
+{
+    const size_type nbatch = a->get_num_batch_entries();
+    const int nrows = static_cast<int>(a->get_size().at()[0]);
+    const size_type nnz = a->get_num_stored_elements() / nbatch;
+    const int nrhs = static_cast<int>(b->get_size().at()[1]);
+    const size_type b_stride = b->get_stride().at();
+    for (size_type ib = 0; ib < nbatch; ib++) {
+        pre_diag_scale_system(
+            ib, nnz, nrows, a->get_values(), a->get_const_col_idxs(),
+            a->get_const_row_ptrs(), nrhs, b_stride, b->get_values(),
+            left_scale->get_const_values(), right_scale->get_const_values());
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_CSR_PRE_DIAG_SCALE_SYSTEM);
 
 
 template <typename IndexType>

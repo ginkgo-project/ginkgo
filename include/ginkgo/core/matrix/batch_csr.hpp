@@ -309,6 +309,45 @@ protected:
      * @tparam RowPtrsArray  type of `row_ptrs` array
      *
      * @param exec  Executor associated to the matrix
+     * @param size  the batch size of the batch matrices
+     * @param values  array of matrix values concatenated for the different
+     *                batches
+     * @param col_idxs  array of column indexes which is common among all the
+     *                  batches
+     * @param row_ptrs  array of row pointers which is common among all the
+     *                  batches
+     *
+     * @note If one of `row_ptrs`, `col_idxs` or `values` is not an rvalue, not
+     *       an array of IndexType, IndexType and ValueType, respectively, or
+     *       is on the wrong executor, an internal copy of that array will be
+     *       created, and the original array data will not be used in the
+     *       matrix.
+     */
+    template <typename ValuesArray, typename ColIdxsArray,
+              typename RowPtrsArray>
+    BatchCsr(std::shared_ptr<const Executor> exec, const batch_dim<2> &size,
+             ValuesArray &&values, ColIdxsArray &&col_idxs,
+             RowPtrsArray &&row_ptrs)
+        : EnableBatchLinOp<BatchCsr>(exec, size),
+          values_{exec, std::forward<ValuesArray>(values)},
+          col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
+          row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
+    {
+        GKO_ASSERT_EQ(values_.get_num_elems(),
+                      col_idxs_.get_num_elems() * size.get_num_batch_entries());
+        GKO_ASSERT_EQ(this->get_size().at(0)[0] + 1, row_ptrs_.get_num_elems());
+    }
+
+
+    /**
+     * Creates a BatchCsr matrix from already allocated (and initialized) row
+     * pointer, column index and value arrays.
+     *
+     * @tparam ValuesArray  type of `values` array
+     * @tparam ColIdxsArray  type of `col_idxs` array
+     * @tparam RowPtrsArray  type of `row_ptrs` array
+     *
+     * @param exec  Executor associated to the matrix
      * @param num_batch_entries  the number of batches
      * @param size  the common size of the batch matrices
      * @param values  array of matrix values concatenated for the different
@@ -330,16 +369,11 @@ protected:
              const size_type num_batch_entries, const dim<2> &size,
              ValuesArray &&values, ColIdxsArray &&col_idxs,
              RowPtrsArray &&row_ptrs)
-        : EnableBatchLinOp<BatchCsr>(exec,
-                                     batch_dim<2>(num_batch_entries, size)),
-          values_{exec, std::forward<ValuesArray>(values)},
-          col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
-          row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
-    {
-        GKO_ASSERT_EQ(values_.get_num_elems(),
-                      col_idxs_.get_num_elems() * num_batch_entries);
-        GKO_ASSERT_EQ(this->get_size().at(0)[0] + 1, row_ptrs_.get_num_elems());
-    }
+        : BatchCsr(exec, batch_dim<2>(num_batch_entries, size),
+                   std::forward<ValuesArray>(values),
+                   std::forward<ColIdxsArray>(col_idxs),
+                   std::forward<RowPtrsArray>(row_ptrs))
+    {}
 
     void apply_impl(const BatchLinOp *b, BatchLinOp *x) const override;
 
