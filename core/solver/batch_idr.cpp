@@ -46,7 +46,7 @@ namespace solver {
 namespace batch_idr {
 
 
-GKO_REGISTER_OPERATION(mat_scale, batch_csr::batch_scale);
+GKO_REGISTER_OPERATION(pre_diag_scale_system, batch_csr::pre_diag_scale_system);
 GKO_REGISTER_OPERATION(vec_scale, batch_dense::batch_scale);
 GKO_REGISTER_OPERATION(apply, batch_idr::apply);
 
@@ -116,11 +116,9 @@ void BatchIdr<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
     if (to_scale) {
         a_scaled_smart->copy_from(acsr);
         b_scaled_smart->copy_from(dense_b);
-        exec->run(batch_idr::make_mat_scale(this->get_left_scaling_vector(),
-                                            this->get_right_scaling_vector(),
-                                            a_scaled_smart.get()));
-        exec->run(batch_idr::make_vec_scale(this->get_left_scaling_vector(),
-                                            b_scaled_smart.get()));
+        exec->run(batch_idr::make_pre_diag_scale_system(
+            this->get_left_scaling_vector(), this->get_right_scaling_vector(),
+            a_scaled_smart.get(), b_scaled_smart.get()));
         a_scaled = a_scaled_smart.get();
         b_scaled = b_scaled_smart.get();
     } else {
@@ -135,10 +133,8 @@ void BatchIdr<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
         parameters_.smoothing,        parameters_.deterministic,
         parameters_.tolerance_type};
 
-    log::BatchLogData<ValueType> logdata;
     // allocate logging arrays assuming uniform size batch
-    // GKO_ASSERT(dense_b->stores_equal_sizes());
-
+    log::BatchLogData<ValueType> logdata;
     const size_type num_rhs = dense_b->get_size().at(0)[1];
     const size_type num_batches = dense_b->get_num_batch_entries();
     batch_dim<> sizes(num_batches, dim<2>{1, num_rhs});
