@@ -41,7 +41,7 @@ namespace batch_direct {
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DpcppExecutor> exec,
-           BatchDense<ValueType> *const a,
+           matrix::BatchDense<ValueType> *const a,
            matrix::BatchDense<ValueType> *const b,
            gko::log::BatchLogData<ValueType> &logdata) GKO_NOT_IMPLEMENTED;
 
