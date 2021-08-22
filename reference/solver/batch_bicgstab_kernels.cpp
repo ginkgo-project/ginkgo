@@ -59,7 +59,14 @@ namespace batch_bicgstab {
 
 namespace {
 
+
+using gko::kernels::reference::batch_csr::advanced_spmv_kernel;
+using gko::kernels::reference::batch_csr::batch_scale;
+using gko::kernels::reference::batch_csr::spmv_kernel;
+
+
 #include "reference/solver/batch_bicgstab_kernels.hpp.inc"
+
 
 }  // unnamed namespace
 
