@@ -94,7 +94,7 @@ public:
     }
 
 private:
-    ValueType *work_;
+    ValueType *work_ = nullptr;
 };
 
 
