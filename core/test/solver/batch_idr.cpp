@@ -65,7 +65,6 @@ protected:
           batchidr_factory(
               Solver::build()
                   .with_max_iterations(def_max_iters)
-                  .with_abs_residual_tol(def_abs_res_tol)
                   .with_tolerance_type(def_tol_type)
                   .with_preconditioner(gko::preconditioner::batch::type::none)
                   .with_deterministic(false)
@@ -82,7 +81,6 @@ protected:
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<typename Solver::Factory> batchidr_factory;
     const int def_max_iters = 100;
-    const real_type def_abs_res_tol = 1e-11;
     const gko::stop::batch::ToleranceType def_tol_type =
         gko::stop::batch::ToleranceType::absolute;
     std::unique_ptr<gko::BatchLinOp> solver;
@@ -190,7 +188,7 @@ TYPED_TEST(BatchIdr, CanSetCriteria)
     auto batchidr_factory =
         Solver::build()
             .with_max_iterations(22)
-            .with_rel_residual_tol(static_cast<RT>(0.25))
+            .with_residual_tol(static_cast<RT>(0.25))
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_deterministic(false)
             .with_smoothing(true)
@@ -201,7 +199,7 @@ TYPED_TEST(BatchIdr, CanSetCriteria)
 
     ASSERT_EQ(solver->get_parameters().max_iterations, 22);
     const RT tol = std::numeric_limits<RT>::epsilon();
-    ASSERT_NEAR(solver->get_parameters().rel_residual_tol, 0.25, tol);
+    ASSERT_NEAR(solver->get_parameters().residual_tol, 0.25, tol);
     ASSERT_EQ(solver->get_parameters().tolerance_type,
               gko::stop::batch::ToleranceType::relative);
     ASSERT_EQ(solver->get_parameters().deterministic, false);
@@ -311,7 +309,7 @@ TYPED_TEST(BatchIdr, CanSetScalingVectors)
 //    auto batchidr_factory =
 //        Solver::build()
 //            .with_max_iterations(3)
-//            .with_rel_residual_tol(0.25f)
+//            .with_residual_tol(0.25f)
 //            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
 //            .with_preconditioner(gko::preconditioner::batch::type::none)
 //            .on(this->exec);
@@ -321,7 +319,7 @@ TYPED_TEST(BatchIdr, CanSetScalingVectors)
 
 //    ASSERT_EQ(params.preconditioner, gko::preconditioner::batch::type::none);
 //    ASSERT_EQ(params.max_iterations, 3);
-//    ASSERT_EQ(params.rel_residual_tol, 0.25);
+//    ASSERT_EQ(params.residual_tol, 0.25);
 //    ASSERT_EQ(params.tolerance_type,
 //    gko::stop::batch::ToleranceType::relative);
 // }
