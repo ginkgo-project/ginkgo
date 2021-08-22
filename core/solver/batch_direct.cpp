@@ -46,7 +46,7 @@ namespace solver {
 namespace batch_direct {
 
 
-GKO_REGISTER_OPERATION(mat_scale, batch_csr::batch_scale);
+GKO_REGISTER_OPERATION(pre_diag_scale_system, batch_csr::pre_diag_scale_system);
 GKO_REGISTER_OPERATION(vec_scale, batch_dense::batch_scale);
 GKO_REGISTER_OPERATION(left_scale_system_transpose,
                        batch_direct::left_scale_system_transpose);
@@ -118,8 +118,6 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp *b,
     const size_type num_batches = dense_b->get_num_batch_entries();
     const int num_rows = acsr->get_size().at()[0];
 
-    // std::shared_ptr<BDense> adense{};
-    // std::shared_ptr<BDense> bt{};
     const bool to_scale =
         this->get_left_scaling_vector() && this->get_right_scaling_vector();
     std::shared_ptr<BDense> adense = BDense::create(
@@ -136,11 +134,10 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp *b,
         const Mtx *a_scaled{};
         if (to_scale) {
             a_scaled_smart->copy_from(acsr);
-            exec->run(batch_direct::make_mat_scale(
+            exec->run(batch_direct::make_pre_diag_scale_system(
                 this->get_left_scaling_vector(),
-                this->get_right_scaling_vector(), a_scaled_smart.get()));
-            exec->run(batch_direct::make_vec_scale(
-                this->get_left_scaling_vector(), b_scaled.get()));
+                this->get_right_scaling_vector(), a_scaled_smart.get(),
+                b_scaled.get()));
             a_scaled = a_scaled_smart.get();
         } else {
             a_scaled = acsr;
