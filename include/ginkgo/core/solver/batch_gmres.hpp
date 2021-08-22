@@ -50,7 +50,6 @@ namespace gko {
 namespace solver {
 
 /**
- *
  * GMRES or the generalized minimal residual method is an iterative type Krylov
  * subspace method which is suitable for nonsymmetric linear systems.
  *
