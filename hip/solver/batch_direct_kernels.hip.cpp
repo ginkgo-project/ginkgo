@@ -60,16 +60,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void left_scale_system_transpose(
+void pre_diag_scale_system_transpose(
     std::shared_ptr<const HipExecutor> exec,
     const matrix::BatchDense<ValueType> *const a,
     const matrix::BatchDense<ValueType> *const b,
     const matrix::BatchDense<ValueType> *const scalevec,
+    const matrix::BatchDense<ValueType> *const scalevec2,
     matrix::BatchDense<ValueType> *const a_scaled_t,
     matrix::BatchDense<ValueType> *const b_scaled_t) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_DIRECT_LEFT_SCALE_SYSTEM_TRANSPOSE);
+    GKO_DECLARE_BATCH_DIRECT_PRE_DIAG_SCALE_SYSTEM_TRANSPOSE);
 
 
 }  // namespace batch_direct
