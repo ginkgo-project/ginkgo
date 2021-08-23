@@ -282,6 +282,41 @@ void combine_local_mtxs(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COMBINE_LOCAL_MTXS);
 
 
+template <typename LocalIndexType>
+void build_gathered_row_permute(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const distributed::Partition<LocalIndexType>* partition,
+    Array<global_index_type>& permutation)
+{
+    auto range_bounds = partition->get_const_range_bounds();
+    auto num_ranges = partition->get_num_ranges();
+    auto part_ids = partition->get_const_part_ids();
+    auto part_sizes = partition->get_part_sizes();
+    auto num_parts = partition->get_num_parts();
+
+    std::vector<LocalIndexType> part_offsets(num_parts + 1);
+    std::partial_sum(part_sizes, part_sizes + num_parts,
+                     part_offsets.data() + 1);
+
+    permutation.resize_and_reset(partition->get_size());
+    permutation.fill(-1);
+
+    for (int i = 0; i < num_ranges; ++i) {
+        auto range_start = range_bounds[i];
+        auto range_end = range_bounds[i + 1];
+        auto pid = part_ids[i];
+        for (int local_row = 0; local_row < range_end - range_start;
+             ++local_row) {
+            permutation.get_data()[range_start + local_row] =
+                part_offsets[pid] + local_row;
+        }
+        part_offsets[pid] += range_end - range_start;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_BUILD_GATHERED_ROW_PERMUTE);
+
+
 }  // namespace distributed_matrix
 }  // namespace reference
 }  // namespace kernels

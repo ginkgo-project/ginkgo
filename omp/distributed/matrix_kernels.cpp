@@ -259,6 +259,15 @@ GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_MAP_TO_GLOBAL_IDXS);
 
 
+template <typename LocalIndexType>
+void build_gathered_row_permute(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const distributed::Partition<LocalIndexType>* partition,
+    Array<global_index_type>& permutation) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_BUILD_GATHERED_ROW_PERMUTE);
+
+
 }  // namespace distributed_matrix
 }  // namespace omp
 }  // namespace kernels

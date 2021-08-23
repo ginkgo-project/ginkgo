@@ -85,6 +85,15 @@ void combine_local_mtxs(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COMBINE_LOCAL_MTXS);
 
 
+template <typename LocalIndexType>
+void build_gathered_row_permute(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const distributed::Partition<LocalIndexType>* partition,
+    Array<global_index_type>& permutation) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_BUILD_GATHERED_ROW_PERMUTE);
+
+
 }  // namespace distributed_matrix
 }  // namespace cuda
 }  // namespace kernels
