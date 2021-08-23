@@ -66,11 +66,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void left_scale_system_transpose(
+void pre_diag_scale_system_transpose(
     std::shared_ptr<const ReferenceExecutor> exec,
     const matrix::BatchDense<ValueType> *const a,
     const matrix::BatchDense<ValueType> *const b,
-    const matrix::BatchDense<ValueType> *const scalevec,
+    const matrix::BatchDense<ValueType> *const left_scale,
+    const matrix::BatchDense<ValueType> *const right_scale,
     matrix::BatchDense<ValueType> *const a_scaled_t,
     matrix::BatchDense<ValueType> *const b_scaled_t)
 {
@@ -82,7 +83,8 @@ void left_scale_system_transpose(
     const size_type a_scaled_stride = a_scaled_t->get_stride().at();
     const size_type b_stride = b->get_stride().at();
     const size_type b_scaled_stride = b_scaled_t->get_stride().at();
-    const size_type scale_stride = scalevec->get_stride().at();
+    const size_type left_scale_stride = left_scale->get_stride().at();
+    const size_type right_scale_stride = right_scale->get_stride().at();
     for (size_type ib = 0; ib < nbatch; ib++) {
         auto ai = gko::batch::batch_entry_ptr(a->get_const_values(), a_stride,
                                               nrows, ib);
@@ -92,24 +94,27 @@ void left_scale_system_transpose(
                                               nrows, ib);
         auto bsti = gko::batch::batch_entry_ptr(b_scaled_t->get_values(),
                                                 b_scaled_stride, nrhs, ib);
-        auto scalei = gko::batch::batch_entry_ptr(scalevec->get_const_values(),
-                                                  scale_stride, nrows, ib);
+        auto lscalei = gko::batch::batch_entry_ptr(
+            left_scale->get_const_values(), left_scale_stride, nrows, ib);
+        auto rscalei = gko::batch::batch_entry_ptr(
+            right_scale->get_const_values(), right_scale_stride, ncols, ib);
         for (int i = 0; i < nrows; i++) {
-            const ValueType scale_factor = scalei[i * scale_stride];
+            const ValueType l_scale_factor = lscalei[i * left_scale_stride];
             for (int j = 0; j < ncols; j++) {
-                asti[j * a_scaled_stride + i] =
-                    ai[i * a_stride + j] * scale_factor;
+                asti[j * a_scaled_stride + i] = ai[i * a_stride + j] *
+                                                l_scale_factor *
+                                                rscalei[j * right_scale_stride];
             }
             for (int j = 0; j < nrhs; j++) {
                 bsti[j * b_scaled_stride + i] =
-                    bi[i * b_stride + j] * scale_factor;
+                    bi[i * b_stride + j] * l_scale_factor;
             }
         }
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_DIRECT_LEFT_SCALE_SYSTEM_TRANSPOSE);
+    GKO_DECLARE_BATCH_DIRECT_PRE_DIAG_SCALE_SYSTEM_TRANSPOSE);
 
 
 }  // namespace batch_direct

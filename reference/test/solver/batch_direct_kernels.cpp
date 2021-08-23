@@ -69,31 +69,44 @@ protected:
 
     const size_t nbatch = 2;
     const int nrows = 3;
+    const int ncols = 5;
     const int nrhs = 2;
 
-    std::unique_ptr<BDense> scaling_vec;
+    std::unique_ptr<BDense> left_scale;
+    std::unique_ptr<BDense> right_scale;
 
     void setup_ref_scaling_test()
     {
-        scaling_vec = BDense::create(
+        left_scale = BDense::create(
             exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, 1)));
-        scaling_vec->at(0, 0, 0) = 2.0;
-        scaling_vec->at(0, 1, 0) = 3.0;
-        scaling_vec->at(0, 2, 0) = -1.0;
-        scaling_vec->at(1, 0, 0) = 1.0;
-        scaling_vec->at(1, 1, 0) = -2.0;
-        scaling_vec->at(1, 2, 0) = -4.0;
+        left_scale->at(0, 0, 0) = 2.0;
+        left_scale->at(0, 1, 0) = 3.0;
+        left_scale->at(0, 2, 0) = -1.0;
+        left_scale->at(1, 0, 0) = 1.0;
+        left_scale->at(1, 1, 0) = -2.0;
+        left_scale->at(1, 2, 0) = -4.0;
+        right_scale = BDense::create(
+            exec, gko::batch_dim<>(nbatch, gko::dim<2>(ncols, 1)));
+        right_scale->at(0, 0, 0) = 1.0;
+        right_scale->at(0, 1, 0) = 1.5;
+        right_scale->at(0, 2, 0) = -2.0;
+        right_scale->at(0, 3, 0) = 4.0;
+        right_scale->at(0, 4, 0) = 0.25;
+        right_scale->at(1, 0, 0) = 0.5;
+        right_scale->at(1, 1, 0) = -3.0;
+        right_scale->at(1, 2, 0) = -2.0;
+        right_scale->at(1, 3, 0) = 2.0;
+        right_scale->at(1, 4, 0) = -1.0;
     }
 };
 
 TYPED_TEST_SUITE(BatchDirect, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchDirect, SystemLeftScaleTranspose)
+TYPED_TEST(BatchDirect, SystemPreScaleTranspose)
 {
     using T = typename TestFixture::value_type;
     using BDense = typename TestFixture::BDense;
-    const int ncols = 5;
     this->setup_ref_scaling_test();
     auto b_orig = gko::batch_initialize<BDense>(
         {{I<T>({1.0, -1.0}), I<T>({-2.0, 2.0}), I<T>({1.5, 4.0})},
@@ -103,33 +116,30 @@ TYPED_TEST(BatchDirect, SystemLeftScaleTranspose)
         {{I<T>({2.0, -6.0, -1.5}), I<T>({-2.0, 6.0, -4.0})},
          {{1.0, -2.0, 12.0}, {-2.0, 5.0, -2.0}}},
         this->exec);
-    auto refmat = BDense::create(
-        this->exec,
-        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, ncols)));
-    auto refscaledmat = BDense::create(
-        this->exec,
-        gko::batch_dim<>(this->nbatch, gko::dim<2>(ncols, this->nrows)));
-    for (size_t ib = 0; ib < this->nbatch; ib++) {
-        for (int i = 0; i < this->nrows; i++) {
-            for (int j = 0; j < ncols; j++) {
-                const T val = (ib + 1.0) * (i * ncols + j);
-                refmat->at(ib, i, j) = val;
-                refscaledmat->at(ib, j, i) = val * this->scaling_vec->at(ib, i);
-            }
-        }
-    }
+    auto refmat = gko::batch_initialize<BDense>(
+        {{I<T>{1.0, 2.0, -1.0, 0.0, -2.0}, I<T>{2.0, -1.0, 0.0, 0.0, 3.0},
+          I<T>{3.0, -2.0, 1.0, 2.0, 0.0}},
+         {I<T>{3.0, 1.0, -2.0, 0.0, -2.0}, I<T>{2.0, -4.0, 0.0, 0.0, 3.0},
+          I<T>{2.0, -1.0, 1.0, 2.0, 0.0}}},
+        this->exec);
+    auto refscaledmat = gko::batch_initialize<BDense>(
+        {{I<T>{2.0, 6.0, -3.0}, I<T>{6.0, -4.5, 3.0}, I<T>{4.0, 0.0, 2.0},
+          I<T>{0.0, 0.0, -8.0}, I<T>{-1.0, 2.25, 0.0}},
+         {I<T>{1.5, -2.0, -4.0}, I<T>{-3.0, -24.0, -12.0}, I<T>{4.0, 0.0, 8.0},
+          I<T>{0.0, 0.0, -16.0}, I<T>{2.0, 6.0, 0.0}}},
+        this->exec);
     auto scaledmat = BDense::create(
         this->exec,
-        gko::batch_dim<>(this->nbatch, gko::dim<2>(ncols, this->nrows)));
-    auto scaled = BDense::create(
+        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->ncols, this->nrows)));
+    auto scaledb = BDense::create(
         this->exec,
         gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrhs, this->nrows)));
 
-    gko::kernels::reference::batch_direct::left_scale_system_transpose(
-        this->exec, refmat.get(), b_orig.get(), this->scaling_vec.get(),
-        scaledmat.get(), scaled.get());
+    gko::kernels::reference::batch_direct::pre_diag_scale_system_transpose(
+        this->exec, refmat.get(), b_orig.get(), this->left_scale.get(),
+        this->right_scale.get(), scaledmat.get(), scaledb.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(scaled, b_scaled, this->eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(scaledb, b_scaled, this->eps);
     GKO_ASSERT_BATCH_MTX_NEAR(scaledmat, refscaledmat, this->eps);
 }
 
