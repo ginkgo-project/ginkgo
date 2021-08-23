@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
 
@@ -87,15 +88,15 @@ std::unique_ptr<LinOp> Bicg<ValueType>::conj_transpose() const
 
 /**
  * @internal
- * Transposes the matrix by converting it into a CSR matrix of type
- * CsrType, followed by transposing.
+ * (Conjugate-)Transposes the matrix by converting it into a CSR matrix of type
+ * CsrType, followed by (conjugate-)transposing.
  *
- * @param mtx  Matrix to transpose
+ * @param mtx  Matrix to (conjugate-)transpose
  * @tparam CsrType  Matrix format in which the matrix mtx is converted into
- *                  before transposing it
+ *                  before (conjugate-)transposing it
  */
 template <typename CsrType>
-std::unique_ptr<LinOp> transpose_with_csr(const LinOp *mtx)
+std::unique_ptr<LinOp> conj_transpose_with_csr(const LinOp *mtx)
 {
     auto csr_matrix_unique_ptr = copy_and_convert_to<CsrType>(
         mtx->get_executor(), const_cast<LinOp *>(mtx));
@@ -103,12 +104,24 @@ std::unique_ptr<LinOp> transpose_with_csr(const LinOp *mtx)
     csr_matrix_unique_ptr->set_strategy(
         std::make_shared<typename CsrType::classical>());
 
-    return csr_matrix_unique_ptr->transpose();
+    return csr_matrix_unique_ptr->conj_transpose();
 }
 
 
 template <typename ValueType>
 void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+{
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x);
+        },
+        b, x);
+}
+
+
+template <typename ValueType>
+void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
+                                       matrix::Dense<ValueType> *dense_x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
@@ -119,8 +132,6 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
-    auto dense_b = as<const Vector>(b);
-    auto dense_x = as<Vector>(x);
     auto r = Vector::create_with_config_of(dense_b);
     auto r2 = Vector::create_with_config_of(dense_b);
     auto z = Vector::create_with_config_of(dense_b);
@@ -149,12 +160,12 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // r = r2 = dense_b
     // z2 = p2 = q2 = 0
 
-    std::unique_ptr<LinOp> trans_A;
-    auto transposable_system_matrix =
+    std::unique_ptr<LinOp> conj_trans_A;
+    auto conj_transposable_system_matrix =
         dynamic_cast<const Transposable *>(system_matrix_.get());
 
-    if (transposable_system_matrix) {
-        trans_A = transposable_system_matrix->transpose();
+    if (conj_transposable_system_matrix) {
+        conj_trans_A = conj_transposable_system_matrix->conj_transpose();
     } else {
         // TODO Extend when adding more IndexTypes
         // Try to figure out the IndexType that can be used for the CSR matrix
@@ -163,57 +174,69 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         auto supports_int64 =
             dynamic_cast<const ConvertibleTo<Csr64> *>(system_matrix_.get());
         if (supports_int64) {
-            trans_A = transpose_with_csr<Csr64>(system_matrix_.get());
+            conj_trans_A = conj_transpose_with_csr<Csr64>(system_matrix_.get());
         } else {
-            trans_A = transpose_with_csr<Csr32>(system_matrix_.get());
+            conj_trans_A = conj_transpose_with_csr<Csr32>(system_matrix_.get());
         }
     }
 
-    auto trans_preconditioner_tmp =
+    auto conj_trans_preconditioner_tmp =
         as<const Transposable>(get_preconditioner().get());
-    auto trans_preconditioner = trans_preconditioner_tmp->transpose();
+    auto conj_trans_preconditioner =
+        conj_trans_preconditioner_tmp->conj_transpose();
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     // r = r - Ax =  -1.0 * A*dense_x + 1.0*r
     r2->copy_from(r.get());
     // r2 = r
     auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
-        x, r.get());
+        system_matrix_,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
+        r.get());
 
     int iter = -1;
 
+    /* Memory movement summary:
+     * 28n * values + matrix/preconditioner storage + conj storage
+     * 2x SpMV:                4n * values + storage + conj storage
+     * 2x Preconditioner:      4n * values + storage + conj storage
+     * 2x dot                  4n
+     * 1x step 1 (axpys)       6n
+     * 1x step 2 (axpys)       9n
+     * 1x norm2 residual        n
+     */
     while (true) {
         get_preconditioner()->apply(r.get(), z.get());
-        trans_preconditioner->apply(r2.get(), z2.get());
-        z->compute_dot(r2.get(), rho.get());
+        conj_trans_preconditioner->apply(r2.get(), z2.get());
+        z->compute_conj_dot(r2.get(), rho.get());
 
         ++iter;
-        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
-                                                            dense_x);
+        this->template log<log::Logger::iteration_complete>(
+            this, iter, r.get(), dense_x, nullptr, rho.get());
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r.get())
+                .implicit_sq_residual_norm(rho.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
 
-        exec->run(bicg::make_step_1(p.get(), z.get(), p2.get(), z2.get(),
-                                    rho.get(), prev_rho.get(), &stop_status));
         // tmp = rho / prev_rho
         // p = z + tmp * p
         // p2 = z2 + tmp * p2
+        exec->run(bicg::make_step_1(p.get(), z.get(), p2.get(), z2.get(),
+                                    rho.get(), prev_rho.get(), &stop_status));
         system_matrix_->apply(p.get(), q.get());
-        trans_A->apply(p2.get(), q2.get());
-        p2->compute_dot(q.get(), beta.get());
-        exec->run(bicg::make_step_2(dense_x, r.get(), r2.get(), p.get(),
-                                    q.get(), q2.get(), beta.get(), rho.get(),
-                                    &stop_status));
+        conj_trans_A->apply(p2.get(), q2.get());
+        p2->compute_conj_dot(q.get(), beta.get());
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
         // r2 = r2 - tmp * q2
+        exec->run(bicg::make_step_2(dense_x, r.get(), r2.get(), p.get(),
+                                    q.get(), q2.get(), beta.get(), rho.get(),
+                                    &stop_status));
         swap(prev_rho, rho);
     }
 }
@@ -223,12 +246,14 @@ template <typename ValueType>
 void Bicg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                  const LinOp *beta, LinOp *x) const
 {
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, x_clone.get());
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 

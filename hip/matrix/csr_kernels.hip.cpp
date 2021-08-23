@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -83,7 +83,6 @@ namespace csr {
 constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
-constexpr int wsize = config::warp_size;
 constexpr int classical_overweight = 32;
 
 
@@ -100,7 +99,7 @@ using spgeam_kernels =
     syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
-#include "common/matrix/csr_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/csr_kernels.hpp.inc"
 
 
 namespace host_kernel {
@@ -953,7 +952,7 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_col_idxs(), trans->get_row_ptrs(), copyValues, idxBase);
+            trans->get_row_ptrs(), trans->get_col_idxs(), copyValues, idxBase);
 
         hipLaunchKernelGGL(conjugate_kernel, dim3(grid_size), dim3(block_size),
                            0, 0, trans->get_num_stored_elements(),
@@ -968,47 +967,83 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void row_permute(std::shared_ptr<const HipExecutor> exec,
-                 const Array<IndexType> *permutation_indices,
+void inv_symm_permute(std::shared_ptr<const HipExecutor> exec,
+                      const IndexType *perm,
+                      const matrix::Csr<ValueType, IndexType> *orig,
+                      matrix::Csr<ValueType, IndexType> *permuted)
+{
+    auto num_rows = orig->get_size()[0];
+    auto count_num_blocks = ceildiv(num_rows, default_block_size);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(inv_row_ptr_permute_kernel),
+                       count_num_blocks, default_block_size, 0, 0, num_rows,
+                       perm, orig->get_const_row_ptrs(),
+                       permuted->get_row_ptrs());
+    components::prefix_sum(exec, permuted->get_row_ptrs(), num_rows + 1);
+    auto copy_num_blocks =
+        ceildiv(num_rows, default_block_size / config::warp_size);
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(inv_symm_permute_kernel<config::warp_size>),
+        copy_num_blocks, default_block_size, 0, 0, num_rows, perm,
+        orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
+        as_hip_type(orig->get_const_values()), permuted->get_row_ptrs(),
+        permuted->get_col_idxs(), as_hip_type(permuted->get_values()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INV_SYMM_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void row_permute(std::shared_ptr<const HipExecutor> exec, const IndexType *perm,
                  const matrix::Csr<ValueType, IndexType> *orig,
                  matrix::Csr<ValueType, IndexType> *row_permuted)
-    GKO_NOT_IMPLEMENTED;
+{
+    auto num_rows = orig->get_size()[0];
+    auto count_num_blocks = ceildiv(num_rows, default_block_size);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(row_ptr_permute_kernel),
+                       count_num_blocks, default_block_size, 0, 0, num_rows,
+                       perm, orig->get_const_row_ptrs(),
+                       row_permuted->get_row_ptrs());
+    components::prefix_sum(exec, row_permuted->get_row_ptrs(), num_rows + 1);
+    auto copy_num_blocks =
+        ceildiv(num_rows, default_block_size / config::warp_size);
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(row_permute_kernel<config::warp_size>), copy_num_blocks,
+        default_block_size, 0, 0, num_rows, perm, orig->get_const_row_ptrs(),
+        orig->get_const_col_idxs(), as_hip_type(orig->get_const_values()),
+        row_permuted->get_row_ptrs(), row_permuted->get_col_idxs(),
+        as_hip_type(row_permuted->get_values()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void column_permute(std::shared_ptr<const HipExecutor> exec,
-                    const Array<IndexType> *permutation_indices,
-                    const matrix::Csr<ValueType, IndexType> *orig,
-                    matrix::Csr<ValueType, IndexType> *column_permuted)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_COLUMN_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const HipExecutor> exec,
-                         const Array<IndexType> *permutation_indices,
+                         const IndexType *perm,
                          const matrix::Csr<ValueType, IndexType> *orig,
                          matrix::Csr<ValueType, IndexType> *row_permuted)
-    GKO_NOT_IMPLEMENTED;
+{
+    auto num_rows = orig->get_size()[0];
+    auto count_num_blocks = ceildiv(num_rows, default_block_size);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(inv_row_ptr_permute_kernel),
+                       count_num_blocks, default_block_size, 0, 0, num_rows,
+                       perm, orig->get_const_row_ptrs(),
+                       row_permuted->get_row_ptrs());
+    components::prefix_sum(exec, row_permuted->get_row_ptrs(), num_rows + 1);
+    auto copy_num_blocks =
+        ceildiv(num_rows, default_block_size / config::warp_size);
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(inv_row_permute_kernel<config::warp_size>),
+        copy_num_blocks, default_block_size, 0, 0, num_rows, perm,
+        orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
+        as_hip_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
+        row_permuted->get_col_idxs(), as_hip_type(row_permuted->get_values()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_column_permute(std::shared_ptr<const HipExecutor> exec,
-                            const Array<IndexType> *permutation_indices,
-                            const matrix::Csr<ValueType, IndexType> *orig,
-                            matrix::Csr<ValueType, IndexType> *column_permuted)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

@@ -1,0 +1,15 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+
+<h3> About the example </h3>
+This example showcases the usage of the Ginkgo solver CB-GMRES (Compressed
+Basis GMRES). A small system is solved with two un-preconditioned CB-GMRES
+solvers:
+  1. without compressing the krylov basis; it uses double precision for
+     both the matrix and the krylov basis, and
+  2. with a compression of the krylov basis; it uses double precision for the
+     matrix and all arithmetic operations, while using single precision for the
+     storage of the krylov basis
+
+Both solves are timed and the residual norm of each solution is computed to
+show that both solutions are correct.

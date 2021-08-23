@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+CLANG_FORMAT=${CLANG_FORMAT:="clang-format"}
+
 convert_header () {
     local regex="^(#include )(<|\")(.*)(\"|>)$"
     if [[ $@ =~ ${regex} ]]; then
@@ -10,7 +12,7 @@ convert_header () {
             else
                 echo "#include \"${header_file}\""
             fi
-        elif [ "${header_file}" = "matrices/config.hpp" ]; then 
+        elif [ "${header_file}" = "matrices/config.hpp" ]; then
             echo "#include \"${header_file}\""
         else
             echo "#include <${header_file}>"
@@ -23,7 +25,7 @@ convert_header () {
 get_header_def () {
     local regex="\.(hpp|cuh)"
     if [[ $@ =~ $regex ]]; then
-        local def=$(echo "$@" | sed -E "s~include/ginkgo/~~g;s~/|\.~_~g")
+        local def=$(echo "$@" | sed -E "s~include/ginkgo/~PUBLIC_~g;s~/|\.~_~g")
         def=$(echo GKO_${def^^}_)
         echo $def
     else
@@ -48,7 +50,7 @@ remove_regroup () {
 #   - CoreSuffix: "core_suffix_regex"           (default "")
 #   - PathPrefix: "path_prefix_regex"           (default "")
 #   - PathIgnore: "path_ignore_number"          (default "0")
-#   - RemoveTest: "false/true"                  (default "test")
+#   - RemoveTest: "false/true"                  (default "false")
 #   - FixInclude: "the specific main header"    (default "")
 # Only "file_regex" without any setting is fine, and it means find the same name with header suffix
 # For example, /path/to/file.cpp will change to /path/to/file.hpp
@@ -104,9 +106,9 @@ get_include_regex () {
         if [ ! -z "${path_prefix}" ]; then
             path_prefix="${path_prefix}/"
         fi
-        local_output=$(echo "${file}" | sed -E "s~\.hip~~g;s~$path_regex~$path_prefix\2~g")
+        local_output=$(echo "${file}" | sed -E "s~\.(hip|dp)~~g;s~$path_regex~$path_prefix\2~g")
         local_output=$(echo "${local_output}" | sed -E "s~$core_suffix$~~g")
-        local_output="#include (<|\")$local_output\.(hpp|hip\.hpp|cuh)(\"|>)"
+        local_output="#include (<|\")$local_output\.(hpp|hip\.hpp|dp\.hpp|cuh)(\"|>)"
         if [ "${remove_test}" = "true" ]; then
             local_output=$(echo "${local_output}" | sed -E "s~test/~~g")
         fi
@@ -152,12 +154,11 @@ CONSIDER_REGEX="${START_BLOCK_REX}|${END_BLOCK_REX}|${COMMENT_REGEX}|${INCLUDE_R
 
 # This part capture the main header and give the possible fail arrangement information
 while IFS='' read -r line || [ -n "$line" ]; do
-    if [ "${line}" = '#include "hip/hip_runtime.h"' ] && [ "${SKIP}" = "true" ]; then
-        HAS_HIP_RUNTIME="true"
-    elif [ "${line}" = "/*${GINKGO_LICENSE_BEACON}" ] || [ "${DURING_LICENSE}" = "true" ]; then
+    if [ "${line}" = "/*${GINKGO_LICENSE_BEACON}" ] || [ "${DURING_LICENSE}" = "true" ]; then
         DURING_LICENSE="true"
         if [ "${line}" = "${GINKGO_LICENSE_BEACON}*/" ]; then
             DURING_LICENSE="false"
+            SKIP="true"
         fi
     elif [ "${SKIP}" = "true" ] && ([ "$line" = "${FORCE_TOP_ON}" ] || [ "${DURING_FORCE_TOP}" = "true" ]); then
         DURING_FORCE_TOP="true"
@@ -249,7 +250,7 @@ fi
 # Write the main header and give warnning if there are multiple matches
 if [ -f "${BEFORE}" ]; then
     # sort or remove the duplication
-    clang-format -i -style=file ${BEFORE}
+    "${CLANG_FORMAT}" -i -style=file ${BEFORE}
     if [ $(wc -l < ${BEFORE}) -gt "1" ]; then
         echo "Warning $1: there are multiple main header matchings"
     fi
@@ -261,26 +262,23 @@ if [ -f "${BEFORE}" ]; then
     rm "${BEFORE}"
 fi
 
-# Arrange the remain files and give 
+# Arrange the remain files and give
 if [ -f "${CONTENT}" ]; then
     add_regroup
-    if [ "${HAS_HIP_RUNTIME}" = "true" ]; then
-        echo "#include <hip/hip_runtime.h>" > temp
-    fi
     head -n -${KEEP_LINES} ${CONTENT} >> temp
     if [ ! -z "${IFNDEF}" ] && [ ! -z "${DEFINE}" ]; then
         # Ignore the last line #endif
         if [[ "${LAST_NONEMPTY}" =~ $ENDIF_REX ]]; then
             head -n -1 temp > ${CONTENT}
             echo "#endif  // $HEADER_DEF" >> ${CONTENT}
-        else 
+        else
             echo "Warning $1: Found the begin header_def but did not find the end of header_def"
             cat temp > ${CONTENT}
         fi
     else
         cat temp > "${CONTENT}"
     fi
-    clang-format -i -style=file "${CONTENT}"
+    "${CLANG_FORMAT}" -i -style=file "${CONTENT}"
     rm temp
     remove_regroup
     PREV_INC=0

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 
+
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "cuda/base/config.hpp"
@@ -59,7 +60,7 @@ namespace factorization {
 constexpr int default_block_size{512};
 
 
-#include "common/factorization/factorization_kernels.hpp.inc"
+#include "common/cuda_hip/factorization/factorization_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>

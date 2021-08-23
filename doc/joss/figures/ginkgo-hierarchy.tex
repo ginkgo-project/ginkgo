@@ -350,7 +350,11 @@ drop shadow, text centered, anchor=north, text=black, text width=4cm]
         {
             \textbf{CudaExecutor}
         };
-    \node (hip) [abstract, rectangle, below=of cuda]
+    \node (dpcpp) [abstract, rectangle, below=of cuda]
+        {
+          \textbf{DpcppExecutor}
+        };
+    \node (hip) [abstract, rectangle, below=of dpcpp]
         {
           \textbf{HipExecutor}
         };
@@ -460,6 +464,7 @@ drop shadow, text centered, anchor=north, text=black, text width=4cm]
 
 
     \draw[myarrow] (cuda.west) -- ++(-0.5,0) -- ++(0,0.6) -| (exec.south);
+    \draw[line] (dpcpp.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] dpcpp.west);
     \draw[line] (hip.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] cuda.west);
     \draw[line] (omp.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] cuda.west);
     \draw[line] (ref.west) -- ++(-0.5,0) -- ([xshift=-0.5cm] cuda.west);

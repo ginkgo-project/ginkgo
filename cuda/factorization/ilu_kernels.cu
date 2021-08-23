@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -80,6 +80,11 @@ void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
     cusparse::ilu0(handle, num_rows, nnz, desc, m->get_values(),
                    m->get_const_row_ptrs(), m->get_const_col_idxs(), info,
                    CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
+
+    // CUDA 11.4 has a use-after-free bug on Turing
+#if (CUDA_VERSION >= 11040)
+    exec->synchronize();
+#endif
 
     cusparse::destroy(info);
     cusparse::destroy(desc);

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_LOG_PAPI_HPP_
-#define GKO_CORE_LOG_PAPI_HPP_
+#ifndef GKO_PUBLIC_CORE_LOG_PAPI_HPP_
+#define GKO_PUBLIC_CORE_LOG_PAPI_HPP_
 
 
 #include <ginkgo/config.hpp>
@@ -177,6 +177,12 @@ public:
         const LinOp *residual, const LinOp *solution = nullptr,
         const LinOp *residual_norm = nullptr) const override;
 
+    void on_iteration_complete(
+        const LinOp *solver, const size_type &num_iterations,
+        const LinOp *residual, const LinOp *solution,
+        const LinOp *residual_norm,
+        const LinOp *implicit_sq_residual_norm) const override;
+
     /**
      * Creates a Papi Logger.
      *
@@ -318,4 +324,4 @@ private:
 
 
 #endif  // GKO_HAVE_PAPI_SDE
-#endif  // GKO_CORE_LOG_PAPI_HPP_
+#endif  // GKO_PUBLIC_CORE_LOG_PAPI_HPP_

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -104,10 +104,12 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
     auto vals = matrix->get_const_values();
 
 #pragma omp parallel for
-    for (int j = 0; j < b->get_size()[1]; ++j) {
-        for (int row = matrix->get_size()[0] - 1; row >= 0; --row) {
+    for (size_type j = 0; j < b->get_size()[1]; ++j) {
+        for (size_type inv_row = 0; inv_row < matrix->get_size()[0];
+             ++inv_row) {
+            auto row = matrix->get_size()[0] - 1 - inv_row;
             x->at(row, j) = b->at(row, j) / vals[row_ptrs[row]];
-            for (int k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
+            for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
                 auto col = col_idxs[k];
                 if (col > row) {
                     x->at(row, j) +=

@@ -88,13 +88,12 @@ foreach(_LANG IN LISTS ENABLED_LANGUAGES ITEMS "HIP")
                 ${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED)
         else()
             if(DEFINED ${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED)
-                message(STATUS "Skipping ${_LANG}, not supported by build_type.cmake script")
+                message(STATUS "Skipping ${_LANG}, not supported by build_type_helpers.cmake script")
             endif()
             set(${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED FALSE)
-		        continue()
         endif()
         if(${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED)
-            if(_LANG STREQUAL "HIP" AND GINKGO_HIP_PLATFORM STREQUAL "nvcc")
+            if(_LANG STREQUAL "HIP" AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
                 set(CMAKE_${_LANG}_FLAGS_${_TYPE}
                     ${${PROJECT_NAME}_NVCC_${_TYPE}_COMPILER_FLAGS}
                     CACHE STRING "Flags used by the ${_LANG} compiler during ${_TYPE} builds." FORCE
@@ -116,6 +115,11 @@ foreach(_LANG IN LISTS ENABLED_LANGUAGES ITEMS "HIP")
     endforeach()
 endforeach()
 
+if (CMAKE_BUILD_TYPE
+    AND (CMAKE_BUILD_TYPE IN_LIST ${PROJECT_NAME}_CUSTOM_BUILD_TYPES)
+    AND (NOT ${PROJECT_NAME}_${CMAKE_BUILD_TYPE}_SUPPORTED))
+    message(FATAL_ERROR "Custom CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} not supported by the compiler")
+endif()
 
 foreach(_TYPE IN LISTS ${PROJECT_NAME}_CUSTOM_BUILD_TYPES)
     cmake_dependent_option(${PROJECT_NAME}_${_TYPE}_IN_CONFIGURATION_TYPES

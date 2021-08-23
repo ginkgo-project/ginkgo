@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -256,6 +256,17 @@ void Papi<ValueType>::on_iteration_complete(const LinOp *solver,
                                             const LinOp *residual,
                                             const LinOp *solution,
                                             const LinOp *residual_norm) const
+{
+    this->on_iteration_complete(solver, num_iterations, residual, solution,
+                                residual_norm, nullptr);
+}
+
+
+template <typename ValueType>
+void Papi<ValueType>::on_iteration_complete(
+    const LinOp *solver, const size_type &num_iterations, const LinOp *residual,
+    const LinOp *solution, const LinOp *residual_norm,
+    const LinOp *implicit_sq_residual_norm) const
 {
     iteration_complete.get_counter(solver) = num_iterations;
 }

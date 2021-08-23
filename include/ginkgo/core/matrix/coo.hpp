@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_COO_HPP_
-#define GKO_CORE_MATRIX_COO_HPP_
+#ifndef GKO_PUBLIC_CORE_MATRIX_COO_HPP_
+#define GKO_PUBLIC_CORE_MATRIX_COO_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -81,20 +81,25 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public DiagonalExtractable<ValueType>,
             public ReadableFromMatrixData<ValueType, IndexType>,
-            public WritableToMatrixData<ValueType, IndexType> {
+            public WritableToMatrixData<ValueType, IndexType>,
+            public EnableAbsoluteComputation<
+                remove_complex<Coo<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Coo>;
     friend class EnablePolymorphicObject<Coo, LinOp>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class CooBuilder<ValueType, IndexType>;
+    friend class Coo<to_complex<ValueType>, IndexType>;
 
 public:
     using EnableLinOp<Coo>::convert_to;
     using EnableLinOp<Coo>::move_to;
+    using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using absolute_type = remove_complex<Coo>;
 
     friend class Coo<next_precision<ValueType>, IndexType>;
 
@@ -116,6 +121,10 @@ public:
     void write(mat_data &data) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+
+    std::unique_ptr<absolute_type> compute_absolute() const override;
+
+    void compute_absolute_inplace() override;
 
     /**
      * Returns the values of the matrix.
@@ -318,4 +327,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_COO_HPP_
+#endif  // GKO_PUBLIC_CORE_MATRIX_COO_HPP_

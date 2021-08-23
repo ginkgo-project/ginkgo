@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -680,14 +680,14 @@ namespace detail {
 
 
 template <typename T>
-std::initializer_list<std::initializer_list<T>> l(
-    std::initializer_list<std::initializer_list<T>> list)
+const std::initializer_list<std::initializer_list<T>> &l(
+    const std::initializer_list<std::initializer_list<T>> &list)
 {
     return list;
 }
 
 template <typename T>
-std::initializer_list<T> l(std::initializer_list<T> list)
+const std::initializer_list<T> &l(const std::initializer_list<T> &list)
 {
     return list;
 }
@@ -711,7 +711,20 @@ T *plain_ptr(const std::unique_ptr<T> &ptr)
 }
 
 template <typename T>
-T plain_ptr(T ptr)
+const std::initializer_list<T> &plain_ptr(const std::initializer_list<T> &ptr)
+{
+    return ptr;
+}
+
+template <typename T>
+const std::initializer_list<std::initializer_list<T>> &plain_ptr(
+    const std::initializer_list<std::initializer_list<T>> &ptr)
+{
+    return ptr;
+}
+
+template <typename T>
+T *plain_ptr(T *ptr)
 {
     return ptr;
 }

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,11 +37,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hip/hip_runtime.h>
 
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
 
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
+
+
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+#include "benchmark/utils/tuning_variables.hpp"
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
 
 
 namespace gko {
@@ -121,6 +127,11 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
         multiple = 8;
     }
 #endif  // GINKGO_HIP_PLATFORM_NVCC
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+    if (_tuning_flag) {
+        multiple = _tuned_value;
+    }
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
     return std::min(multiple * nwarps_in_hip,
                     size_type(ceildiv(nnz, config::warp_size)));
 }

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <hip/hip_runtime.h>
 #include <hipblas.h>
+#include <hiprand.h>
 #include <hipsparse.h>
 
 
@@ -74,6 +75,31 @@ std::string HipblasError::get_error(int64 error_code)
     return "Unknown error";
 
 #undef GKO_REGISTER_HIPBLAS_ERROR
+}
+
+
+std::string HiprandError::get_error(int64 error_code)
+{
+#define GKO_REGISTER_HIPRAND_ERROR(error_name)          \
+    if (error_code == static_cast<int64>(error_name)) { \
+        return #error_name;                             \
+    }
+    GKO_REGISTER_HIPRAND_ERROR(HIPRAND_STATUS_SUCCESS);
+    GKO_REGISTER_HIPRAND_ERROR(HIPRAND_STATUS_VERSION_MISMATCH);
+    GKO_REGISTER_HIPRAND_ERROR(HIPRAND_STATUS_NOT_INITIALIZED);
+    GKO_REGISTER_HIPRAND_ERROR(HIPRAND_STATUS_ALLOCATION_FAILED);
+    GKO_REGISTER_HIPRAND_ERROR(HIPRAND_STATUS_TYPE_ERROR);
+    GKO_REGISTER_HIPRAND_ERROR(HIPRAND_STATUS_OUT_OF_RANGE);
+    GKO_REGISTER_HIPRAND_ERROR(HIPRAND_STATUS_LENGTH_NOT_MULTIPLE);
+    GKO_REGISTER_HIPRAND_ERROR(HIPRAND_STATUS_DOUBLE_PRECISION_REQUIRED);
+    GKO_REGISTER_HIPRAND_ERROR(HIPRAND_STATUS_LAUNCH_FAILURE);
+    GKO_REGISTER_HIPRAND_ERROR(HIPRAND_STATUS_PREEXISTING_FAILURE);
+    GKO_REGISTER_HIPRAND_ERROR(HIPRAND_STATUS_INITIALIZATION_FAILED);
+    GKO_REGISTER_HIPRAND_ERROR(HIPRAND_STATUS_ARCH_MISMATCH);
+    GKO_REGISTER_HIPRAND_ERROR(HIPRAND_STATUS_INTERNAL_ERROR);
+    return "Unknown error";
+
+#undef GKO_REGISTER_HIPRAND_ERROR
 }
 
 

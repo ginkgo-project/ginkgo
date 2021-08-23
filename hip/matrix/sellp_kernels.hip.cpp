@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -62,10 +62,10 @@ namespace hip {
 namespace sellp {
 
 
-constexpr auto default_block_size = 512;
+constexpr int default_block_size = 512;
 
 
-#include "common/matrix/sellp_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/sellp_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>

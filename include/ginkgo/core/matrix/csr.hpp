@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,12 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_CSR_HPP_
-#define GKO_CORE_MATRIX_CSR_HPP_
+#ifndef GKO_PUBLIC_CORE_MATRIX_CSR_HPP_
+#define GKO_PUBLIC_CORE_MATRIX_CSR_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/math.hpp>
 
 
 namespace gko {
@@ -129,7 +130,9 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable,
-            public Permutable<IndexType> {
+            public Permutable<IndexType>,
+            public EnableAbsoluteComputation<
+                remove_complex<Csr<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Csr>;
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
@@ -139,12 +142,16 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class Sellp<ValueType, IndexType>;
     friend class SparsityCsr<ValueType, IndexType>;
     friend class CsrBuilder<ValueType, IndexType>;
+    friend class Csr<to_complex<ValueType>, IndexType>;
 
 public:
+    using ReadableFromMatrixData<ValueType, IndexType>::read;
+
     using value_type = ValueType;
     using index_type = IndexType;
     using transposed_type = Csr<ValueType, IndexType>;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using absolute_type = remove_complex<Csr>;
 
     class automatical;
 
@@ -232,9 +239,9 @@ public:
             }
             auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
             max_length_per_row_ = 0;
-            for (index_type i = 1; i < num_rows + 1; i++) {
+            for (size_type i = 0; i < num_rows; i++) {
                 max_length_per_row_ = std::max(max_length_per_row_,
-                                               row_ptrs[i] - row_ptrs[i - 1]);
+                                               row_ptrs[i + 1] - row_ptrs[i]);
             }
         }
 
@@ -359,6 +366,19 @@ public:
         {}
 
         /**
+         * Creates a load_balance strategy with DPCPP executor.
+         *
+         * @param exec the DPCPP executor
+         *
+         * @note TODO: porting - we hardcode the subgroup size is 16 and the
+         *             number of threads in a SIMD unit is 7
+         */
+        load_balance(std::shared_ptr<const DpcppExecutor> exec)
+            : load_balance(exec->get_num_computing_units() * 7, 16, false,
+                           "intel")
+        {}
+
+        /**
          * Creates a load_balance strategy with specified parameters
          *
          * @param nwarps the number of warps in the executor
@@ -370,11 +390,13 @@ public:
          *       parameters which is replaced during the conversion.
          */
         load_balance(int64_t nwarps, int warp_size = 32,
-                     bool cuda_strategy = true)
+                     bool cuda_strategy = true,
+                     std::string strategy_name = "none")
             : strategy_type("load_balance"),
               nwarps_(nwarps),
               warp_size_(warp_size),
-              cuda_strategy_(cuda_strategy)
+              cuda_strategy_(cuda_strategy),
+              strategy_name_(strategy_name)
         {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
@@ -432,29 +454,36 @@ public:
         {
             if (warp_size_ > 0) {
                 int multiple = 8;
-                if (nnz >= 2e8) {
+                if (nnz >= static_cast<int64_t>(2e8)) {
                     multiple = 2048;
-                } else if (nnz >= 2e7) {
+                } else if (nnz >= static_cast<int64_t>(2e7)) {
                     multiple = 512;
-                } else if (nnz >= 2e6) {
+                } else if (nnz >= static_cast<int64_t>(2e6)) {
                     multiple = 128;
-                } else if (nnz >= 2e5) {
+                } else if (nnz >= static_cast<int64_t>(2e5)) {
                     multiple = 32;
                 }
-
+                if (strategy_name_ == "intel") {
+                    multiple = 8;
+                    if (nnz >= static_cast<int64_t>(2e8)) {
+                        multiple = 256;
+                    } else if (nnz >= static_cast<int64_t>(2e7)) {
+                        multiple = 32;
+                    }
+                }
 #if GINKGO_HIP_PLATFORM_HCC
                 if (!cuda_strategy_) {
                     multiple = 8;
-                    if (nnz >= 1e7) {
+                    if (nnz >= static_cast<int64_t>(1e7)) {
                         multiple = 64;
-                    } else if (nnz >= 1e6) {
+                    } else if (nnz >= static_cast<int64_t>(1e6)) {
                         multiple = 16;
                     }
                 }
 #endif  // GINKGO_HIP_PLATFORM_HCC
 
                 auto nwarps = nwarps_ * multiple;
-                return min(ceildiv(nnz, warp_size_), int64_t(nwarps));
+                return min(ceildiv(nnz, warp_size_), nwarps);
             } else {
                 return 0;
             }
@@ -462,14 +491,15 @@ public:
 
         std::shared_ptr<strategy_type> copy() override
         {
-            return std::make_shared<load_balance>(nwarps_, warp_size_,
-                                                  cuda_strategy_);
+            return std::make_shared<load_balance>(
+                nwarps_, warp_size_, cuda_strategy_, strategy_name_);
         }
 
     private:
         int64_t nwarps_;
         int warp_size_;
         bool cuda_strategy_;
+        std::string strategy_name_;
     };
 
     class automatical : public strategy_type {
@@ -479,14 +509,15 @@ public:
         const index_type nvidia_row_len_limit = 1024;
         /* Use imbalance strategy when the matrix has more more than 1e6 on
          * NVIDIA hardware */
-        const index_type nvidia_nnz_limit = 1e6;
+        const index_type nvidia_nnz_limit{static_cast<index_type>(1e6)};
         /* Use imbalance strategy when the maximum number of nonzero per row is
          * more than 768 on AMD hardware */
         const index_type amd_row_len_limit = 768;
         /* Use imbalance strategy when the matrix has more more than 1e8 on AMD
          * hardware */
-        const index_type amd_nnz_limit = 1e8;
+        const index_type amd_nnz_limit{static_cast<index_type>(1e8)};
 
+    public:
         /**
          * Creates an automatical strategy.
          */
@@ -514,6 +545,19 @@ public:
         {}
 
         /**
+         * Creates an automatical strategy with Dpcpp executor.
+         *
+         * @param exec the Dpcpp executor
+         *
+         * @note TODO: porting - we hardcode the subgroup size is 16 and the
+         *             number of threads in a SIMD unit is 7
+         */
+        automatical(std::shared_ptr<const DpcppExecutor> exec)
+            : automatical(exec->get_num_computing_units() * 7, 16, false,
+                          "intel")
+        {}
+
+        /**
          * Creates an automatical strategy with specified parameters
          *
          * @param nwarps the number of warps in the executor
@@ -525,11 +569,13 @@ public:
          *       parameters which is replaced during the conversion.
          */
         automatical(int64_t nwarps, int warp_size = 32,
-                    bool cuda_strategy = true)
+                    bool cuda_strategy = true,
+                    std::string strategy_name = "none")
             : strategy_type("automatical"),
               nwarps_(nwarps),
               warp_size_(warp_size),
               cuda_strategy_(cuda_strategy),
+              strategy_name_(strategy_name),
               max_length_per_row_(0)
         {}
 
@@ -541,6 +587,14 @@ public:
             // <row_len_limit>, use load_balance otherwise use classical
             index_type nnz_limit = nvidia_nnz_limit;
             index_type row_len_limit = nvidia_row_len_limit;
+            if (strategy_name_ == "intel") {
+                /* Use imbalance strategy when the maximum number of nonzero per
+                 * row is more than 25600 on Intel hardware. */
+                nnz_limit = 25600;
+                /* Use imbalance strategy when the matrix has more more than 3e8
+                 * on Intel hardware */
+                row_len_limit = 3e8;
+            }
 #if GINKGO_HIP_PLATFORM_HCC
             if (!cuda_strategy_) {
                 nnz_limit = amd_nnz_limit;
@@ -561,7 +615,7 @@ public:
             const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
             if (row_ptrs[num_rows] > nnz_limit) {
                 load_balance actual_strategy(nwarps_, warp_size_,
-                                             cuda_strategy_);
+                                             cuda_strategy_, strategy_name_);
                 if (is_mtx_on_host) {
                     actual_strategy.process(mtx_row_ptrs, mtx_srow);
                 } else {
@@ -570,12 +624,12 @@ public:
                 this->set_name(actual_strategy.get_name());
             } else {
                 index_type maxnum = 0;
-                for (index_type i = 1; i < num_rows + 1; i++) {
-                    maxnum = std::max(maxnum, row_ptrs[i] - row_ptrs[i - 1]);
+                for (size_type i = 0; i < num_rows; i++) {
+                    maxnum = std::max(maxnum, row_ptrs[i + 1] - row_ptrs[i]);
                 }
                 if (maxnum > row_len_limit) {
-                    load_balance actual_strategy(nwarps_, warp_size_,
-                                                 cuda_strategy_);
+                    load_balance actual_strategy(
+                        nwarps_, warp_size_, cuda_strategy_, strategy_name_);
                     if (is_mtx_on_host) {
                         actual_strategy.process(mtx_row_ptrs, mtx_srow);
                     } else {
@@ -600,8 +654,8 @@ public:
 
         int64_t clac_size(const int64_t nnz) override
         {
-            return std::make_shared<load_balance>(nwarps_, warp_size_,
-                                                  cuda_strategy_)
+            return std::make_shared<load_balance>(
+                       nwarps_, warp_size_, cuda_strategy_, strategy_name_)
                 ->clac_size(nnz);
         }
 
@@ -612,14 +666,15 @@ public:
 
         std::shared_ptr<strategy_type> copy() override
         {
-            return std::make_shared<automatical>(nwarps_, warp_size_,
-                                                 cuda_strategy_);
+            return std::make_shared<automatical>(
+                nwarps_, warp_size_, cuda_strategy_, strategy_name_);
         }
 
     private:
         int64_t nwarps_;
         int warp_size_;
         bool cuda_strategy_;
+        std::string strategy_name_;
         index_type max_length_per_row_;
     };
 
@@ -648,6 +703,7 @@ public:
             detail::strategy_rebuild_helper(result);
         }
     }
+
     friend class Csr<next_precision<ValueType>, IndexType>;
 
     void convert_to(
@@ -687,6 +743,12 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    std::unique_ptr<LinOp> permute(
+        const Array<IndexType> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> inverse_permute(
+        const Array<IndexType> *inverse_permutation_indices) const override;
+
     std::unique_ptr<LinOp> row_permute(
         const Array<IndexType> *permutation_indices) const override;
 
@@ -700,6 +762,10 @@ public:
         const Array<IndexType> *inverse_permutation_indices) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+
+    std::unique_ptr<absolute_type> compute_absolute() const override;
+
+    void compute_absolute_inplace() override;
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index
@@ -922,6 +988,8 @@ protected:
             auto cuda_exec =
                 std::dynamic_pointer_cast<const CudaExecutor>(rexec);
             auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(rexec);
+            auto dpcpp_exec =
+                std::dynamic_pointer_cast<const DpcppExecutor>(rexec);
             auto lb = dynamic_cast<load_balance *>(strat);
             if (cuda_exec) {
                 if (lb) {
@@ -941,6 +1009,15 @@ protected:
                     new_strat = std::make_shared<typename CsrType::automatical>(
                         hip_exec);
                 }
+            } else if (dpcpp_exec) {
+                if (lb) {
+                    new_strat =
+                        std::make_shared<typename CsrType::load_balance>(
+                            dpcpp_exec);
+                } else {
+                    new_strat = std::make_shared<typename CsrType::automatical>(
+                        dpcpp_exec);
+                }
             } else {
                 // Try to preserve this executor's configuration
                 auto this_cuda_exec =
@@ -948,6 +1025,9 @@ protected:
                         this->get_executor());
                 auto this_hip_exec =
                     std::dynamic_pointer_cast<const HipExecutor>(
+                        this->get_executor());
+                auto this_dpcpp_exec =
+                    std::dynamic_pointer_cast<const DpcppExecutor>(
                         this->get_executor());
                 if (this_cuda_exec) {
                     if (lb) {
@@ -968,6 +1048,16 @@ protected:
                         new_strat =
                             std::make_shared<typename CsrType::automatical>(
                                 this_hip_exec);
+                    }
+                } else if (this_dpcpp_exec) {
+                    if (lb) {
+                        new_strat =
+                            std::make_shared<typename CsrType::load_balance>(
+                                this_dpcpp_exec);
+                    } else {
+                        new_strat =
+                            std::make_shared<typename CsrType::automatical>(
+                                this_dpcpp_exec);
                     }
                 } else {
                     // We had a load balance or automatical strategy from a non
@@ -1046,4 +1136,4 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType> *result)
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_CSR_HPP_
+#endif  // GKO_PUBLIC_CORE_MATRIX_CSR_HPP_

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -73,6 +74,7 @@ protected:
     using Ell = gko::matrix::Ell<value_type, index_type>;
     using Hybrid = gko::matrix::Hybrid<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
+    using MixedVec = gko::matrix::Dense<gko::next_precision<value_type>>;
 
     Csr()
         : exec(gko::ReferenceExecutor::create()),
@@ -348,7 +350,7 @@ protected:
     std::unique_ptr<Mtx> mtx3_unsorted;
 };
 
-TYPED_TEST_CASE(Csr, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Csr, AppliesToDenseVector)
@@ -362,6 +364,20 @@ TYPED_TEST(Csr, AppliesToDenseVector)
 
     EXPECT_EQ(y->at(0), T{13.0});
     EXPECT_EQ(y->at(1), T{5.0});
+}
+
+
+TYPED_TEST(Csr, AppliesToMixedDenseVector)
+{
+    using MixedVec = typename TestFixture::MixedVec;
+    using MixedT = typename MixedVec::value_type;
+    auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = MixedVec::create(this->exec, gko::dim<2>{2, 1});
+
+    this->mtx->apply(x.get(), y.get());
+
+    EXPECT_EQ(y->at(0), MixedT{13.0});
+    EXPECT_EQ(y->at(1), MixedT{5.0});
 }
 
 
@@ -395,6 +411,22 @@ TYPED_TEST(Csr, AppliesLinearCombinationToDenseVector)
 
     EXPECT_EQ(y->at(0), T{-11.0});
     EXPECT_EQ(y->at(1), T{-1.0});
+}
+
+
+TYPED_TEST(Csr, AppliesLinearCombinationToMixedDenseVector)
+{
+    using MixedVec = typename TestFixture::MixedVec;
+    using MixedT = typename MixedVec::value_type;
+    auto alpha = gko::initialize<MixedVec>({-1.0}, this->exec);
+    auto beta = gko::initialize<MixedVec>({2.0}, this->exec);
+    auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<MixedVec>({1.0, 2.0}, this->exec);
+
+    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    EXPECT_EQ(y->at(0), MixedT{-11.0});
+    EXPECT_EQ(y->at(1), MixedT{-1.0});
 }
 
 
@@ -1041,8 +1073,7 @@ TYPED_TEST(Csr, SquareMtxIsTransposable)
                  {0.0, 1.5, 2.0}}, this->exec);
     // clang-format on
 
-    auto trans = mtx2->transpose();
-    auto trans_as_csr = static_cast<Csr *>(trans.get());
+    auto trans_as_csr = gko::as<Csr>(mtx2->transpose());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(trans_as_csr,
@@ -1056,8 +1087,7 @@ TYPED_TEST(Csr, SquareMtxIsTransposable)
 TYPED_TEST(Csr, NonSquareMtxIsTransposable)
 {
     using Csr = typename TestFixture::Mtx;
-    auto trans = this->mtx->transpose();
-    auto trans_as_csr = static_cast<Csr *>(trans.get());
+    auto trans_as_csr = gko::as<Csr>(this->mtx->transpose());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(trans_as_csr,
@@ -1065,6 +1095,46 @@ TYPED_TEST(Csr, NonSquareMtxIsTransposable)
                        {3.0, 5.0},
                        {2.0, 0.0}}), 0.0);
     // clang-format on
+}
+
+
+TYPED_TEST(Csr, SquareMatrixIsPermutable)
+{
+    using Csr = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    // clang-format off
+    auto p_mtx = gko::initialize<Csr>({{1.0, 3.0, 2.0},
+                                       {0.0, 5.0, 0.0},
+                                       {0.0, 1.5, 2.0}}, this->exec);
+    // clang-format on
+    gko::Array<index_type> permute_idxs{this->exec, {1, 2, 0}};
+
+    auto ref_permute_csr =
+        gko::as<Csr>(gko::as<Csr>(p_mtx->row_permute(&permute_idxs))
+                         ->column_permute(&permute_idxs));
+    auto permute_csr = gko::as<Csr>(p_mtx->permute(&permute_idxs));
+
+    GKO_ASSERT_MTX_NEAR(ref_permute_csr, permute_csr, 0.0);
+}
+
+
+TYPED_TEST(Csr, SquareMatrixIsInversePermutable)
+{
+    using Csr = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    // clang-format off
+    auto p_mtx = gko::initialize<Csr>({{1.0, 3.0, 2.0},
+                                       {0.0, 5.0, 0.0},
+                                       {0.0, 1.5, 2.0}}, this->exec);
+    // clang-format on
+    gko::Array<index_type> permute_idxs{this->exec, {1, 2, 0}};
+
+    auto ref_permute_csr =
+        gko::as<Csr>(gko::as<Csr>(p_mtx->inverse_row_permute(&permute_idxs))
+                         ->inverse_column_permute(&permute_idxs));
+    auto permute_csr = gko::as<Csr>(p_mtx->inverse_permute(&permute_idxs));
+
+    GKO_ASSERT_MTX_NEAR(ref_permute_csr, permute_csr, 0.0);
 }
 
 
@@ -1079,9 +1149,8 @@ TYPED_TEST(Csr, SquareMatrixIsRowPermutable)
     // clang-format on
     gko::Array<index_type> permute_idxs{this->exec, {1, 2, 0}};
 
-    auto row_permute = p_mtx->row_permute(&permute_idxs);
+    auto row_permute_csr = gko::as<Csr>(p_mtx->row_permute(&permute_idxs));
 
-    auto row_permute_csr = static_cast<Csr *>(row_permute.get());
     // clang-format off
     GKO_ASSERT_MTX_NEAR(row_permute_csr,
                         l({{0.0, 5.0, 0.0},
@@ -1102,9 +1171,8 @@ TYPED_TEST(Csr, NonSquareMatrixIsRowPermutable)
     // clang-format on
     gko::Array<index_type> permute_idxs{this->exec, {1, 0}};
 
-    auto row_permute = p_mtx->row_permute(&permute_idxs);
+    auto row_permute_csr = gko::as<Csr>(p_mtx->row_permute(&permute_idxs));
 
-    auto row_permute_csr = static_cast<Csr *>(row_permute.get());
     // clang-format off
     GKO_ASSERT_MTX_NEAR(row_permute_csr,
                         l({{0.0, 5.0, 0.0},
@@ -1125,9 +1193,8 @@ TYPED_TEST(Csr, SquareMatrixIsColPermutable)
     // clang-format on
     gko::Array<index_type> permute_idxs{this->exec, {1, 2, 0}};
 
-    auto c_permute = p_mtx->column_permute(&permute_idxs);
+    auto c_permute_csr = gko::as<Csr>(p_mtx->column_permute(&permute_idxs));
 
-    auto c_permute_csr = static_cast<Csr *>(c_permute.get());
     // clang-format off
     GKO_ASSERT_MTX_NEAR(c_permute_csr,
                         l({{3.0, 2.0, 1.0},
@@ -1148,9 +1215,8 @@ TYPED_TEST(Csr, NonSquareMatrixIsColPermutable)
     // clang-format on
     gko::Array<index_type> permute_idxs{this->exec, {1, 2, 0}};
 
-    auto c_permute = p_mtx->column_permute(&permute_idxs);
+    auto c_permute_csr = gko::as<Csr>(p_mtx->column_permute(&permute_idxs));
 
-    auto c_permute_csr = static_cast<Csr *>(c_permute.get());
     // clang-format off
     GKO_ASSERT_MTX_NEAR(c_permute_csr,
                         l({{0.0, 2.0, 1.0},
@@ -1171,11 +1237,9 @@ TYPED_TEST(Csr, SquareMatrixIsInverseRowPermutable)
     // clang-format on
     gko::Array<index_type> inverse_permute_idxs{this->exec, {1, 2, 0}};
 
-    auto inverse_row_permute =
-        inverse_p_mtx->inverse_row_permute(&inverse_permute_idxs);
-
     auto inverse_row_permute_csr =
-        static_cast<Csr *>(inverse_row_permute.get());
+        gko::as<Csr>(inverse_p_mtx->inverse_row_permute(&inverse_permute_idxs));
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(inverse_row_permute_csr,
                         l({{0.0, 1.5, 2.0},
@@ -1196,11 +1260,9 @@ TYPED_TEST(Csr, NonSquareMatrixIsInverseRowPermutable)
     // clang-format on
     gko::Array<index_type> inverse_permute_idxs{this->exec, {1, 0}};
 
-    auto inverse_row_permute =
-        inverse_p_mtx->inverse_row_permute(&inverse_permute_idxs);
-
     auto inverse_row_permute_csr =
-        static_cast<Csr *>(inverse_row_permute.get());
+        gko::as<Csr>(inverse_p_mtx->inverse_row_permute(&inverse_permute_idxs));
+
     // clang-format off
     GKO_ASSERT_MTX_NEAR(inverse_row_permute_csr,
                         l({{0.0, 5.0, 0.0},
@@ -1221,10 +1283,9 @@ TYPED_TEST(Csr, SquareMatrixIsInverseColPermutable)
     // clang-format on
     gko::Array<index_type> inverse_permute_idxs{this->exec, {1, 2, 0}};
 
-    auto inverse_c_permute =
-        inverse_p_mtx->inverse_column_permute(&inverse_permute_idxs);
+    auto inverse_c_permute_csr = gko::as<Csr>(
+        inverse_p_mtx->inverse_column_permute(&inverse_permute_idxs));
 
-    auto inverse_c_permute_csr = static_cast<Csr *>(inverse_c_permute.get());
     // clang-format off
     GKO_ASSERT_MTX_NEAR(inverse_c_permute_csr,
                         l({{2.0, 1.0, 3.0},
@@ -1245,10 +1306,9 @@ TYPED_TEST(Csr, NonSquareMatrixIsInverseColPermutable)
     // clang-format on
     gko::Array<index_type> inverse_permute_idxs{this->exec, {1, 2, 0}};
 
-    auto inverse_c_permute =
-        inverse_p_mtx->inverse_column_permute(&inverse_permute_idxs);
+    auto inverse_c_permute_csr = gko::as<Csr>(
+        inverse_p_mtx->inverse_column_permute(&inverse_permute_idxs));
 
-    auto inverse_c_permute_csr = static_cast<Csr *>(inverse_c_permute.get());
     // clang-format off
     GKO_ASSERT_MTX_NEAR(inverse_c_permute_csr,
                         l({{2.0, 1.0, 3.0},
@@ -1306,6 +1366,146 @@ TYPED_TEST(Csr, ExtractsDiagonal)
 }
 
 
+TYPED_TEST(Csr, InplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = gko::initialize<Mtx>(
+        {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec);
+
+    mtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(
+        mtx, l({{1.0, 2.0, 2.0}, {3.0, 5.0, 0.0}, {0.0, 1.0, 1.5}}), 0.0);
+}
+
+
+TYPED_TEST(Csr, OutplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = gko::initialize<Mtx>(
+        {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec);
+
+    auto abs_mtx = mtx->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(
+        abs_mtx, l({{1.0, 2.0, 2.0}, {3.0, 5.0, 0.0}, {0.0, 1.0, 1.5}}), 0.0);
+    ASSERT_EQ(mtx->get_strategy()->get_name(),
+              abs_mtx->get_strategy()->get_name());
+}
+
+
+TYPED_TEST(Csr, AppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Vec = gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
+    auto x = Vec::create(exec, gko::dim<2>{2,2});
+    // clang-format on
+
+    this->mtx->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{13.0, 14.0}, complex_type{19.0, 20.0}},
+           {complex_type{10.0, 10.0}, complex_type{15.0, 15.0}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Csr, AppliesToMixedComplex)
+{
+    using mixed_value_type =
+        gko::next_precision<typename TestFixture::value_type>;
+    using mixed_complex_type = gko::to_complex<mixed_value_type>;
+    using Vec = gko::matrix::Dense<mixed_complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<Vec>(
+        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
+         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
+         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}}, exec);
+    auto x = Vec::create(exec, gko::dim<2>{2,2});
+    // clang-format on
+
+    this->mtx->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{mixed_complex_type{13.0, 14.0}, mixed_complex_type{19.0, 20.0}},
+           {mixed_complex_type{10.0, 10.0}, mixed_complex_type{15.0, 15.0}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Csr, AdvancedAppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
+    using DenseComplex = gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<DenseComplex>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
+    auto x = gko::initialize<DenseComplex>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}}}, exec);
+    auto alpha = gko::initialize<Dense>({-1.0}, this->exec);
+    auto beta = gko::initialize<Dense>({2.0}, this->exec);
+    // clang-format on
+
+    this->mtx->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{-11.0, -14.0}, complex_type{-15.0, -18.0}},
+           {complex_type{-6.0, -6.0}, complex_type{-9.0, -9.0}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Csr, AdvancedAppliesToMixedComplex)
+{
+    using mixed_value_type =
+        gko::next_precision<typename TestFixture::value_type>;
+    using mixed_complex_type = gko::to_complex<mixed_value_type>;
+    using MixedDense = gko::matrix::Dense<mixed_value_type>;
+    using MixedDenseComplex = gko::matrix::Dense<mixed_complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<MixedDenseComplex>(
+        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
+         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
+         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}}, exec);
+    auto x = gko::initialize<MixedDenseComplex>(
+        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
+         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}}}, exec);
+    auto alpha = gko::initialize<MixedDense>({-1.0}, this->exec);
+    auto beta = gko::initialize<MixedDense>({2.0}, this->exec);
+    // clang-format on
+
+    this->mtx->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{mixed_complex_type{-11.0, -14.0}, mixed_complex_type{-15.0, -18.0}},
+           {mixed_complex_type{-6.0, -6.0}, mixed_complex_type{-9.0, -9.0}}}),
+        0.0);
+}
+
+
 template <typename ValueIndexType>
 class CsrComplex : public ::testing::Test {
 protected:
@@ -1316,25 +1516,23 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, index_type>;
 };
 
-TYPED_TEST_CASE(CsrComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(CsrComplex, gko::test::ComplexValueIndexTypes);
 
 
 TYPED_TEST(CsrComplex, MtxIsConjugateTransposable)
 {
     using Csr = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    using value_type = typename TestFixture::value_type;
 
     auto exec = gko::ReferenceExecutor::create();
     // clang-format off
-        auto mtx2 = gko::initialize<Csr>(
-            {{T{1.0, 2.0}, T{3.0, 0.0}, T{2.0, 0.0}},
-             {T{0.0, 0.0}, T{5.0, - 3.5}, T{0.0,0.0}},
-             {T{0.0, 0.0}, T{0.0, 1.5}, T{2.0,0.0}}}, exec);
+    auto mtx2 = gko::initialize<Csr>(
+        {{T{1.0, 2.0}, T{3.0, 0.0}, T{2.0, 0.0}},
+         {T{0.0, 0.0}, T{5.0, - 3.5}, T{0.0,0.0}},
+         {T{0.0, 0.0}, T{0.0, 1.5}, T{2.0,0.0}}}, exec);
     // clang-format on
 
-    auto trans = mtx2->conj_transpose();
-    auto trans_as_csr = static_cast<Csr *>(trans.get());
+    auto trans_as_csr = gko::as<Csr>(mtx2->conj_transpose());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(trans_as_csr,
@@ -1342,6 +1540,48 @@ TYPED_TEST(CsrComplex, MtxIsConjugateTransposable)
                            {T{3.0, 0.0}, T{5.0, 3.5}, T{0.0, - 1.5}},
                            {T{2.0, 0.0}, T{0.0, 0.0}, T{2.0 + 0.0}}}), 0.0);
     // clang-format on
+}
+
+
+TYPED_TEST(CsrComplex, InplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    mtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(
+        mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+}
+
+
+TYPED_TEST(CsrComplex, OutplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    auto abs_mtx = mtx->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(
+        abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+    ASSERT_EQ(mtx->get_strategy()->get_name(),
+              abs_mtx->get_strategy()->get_name());
 }
 
 

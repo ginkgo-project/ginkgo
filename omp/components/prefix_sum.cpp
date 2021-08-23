@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,21 +33,72 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum.hpp"
 
 
+#include <algorithm>
+
+
+#include <omp.h>
+
+
+#include "core/base/allocator.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
 namespace components {
 
 
+/*
+ * The last entry of the input array is never used, but is replaced.
+ */
 template <typename IndexType>
-void prefix_sum(std::shared_ptr<const OmpExecutor> exec, IndexType *counts,
-                size_type num_entries)
+void prefix_sum(std::shared_ptr<const OmpExecutor> exec,
+                IndexType *const counts, const size_type num_entries)
 {
-    IndexType partial_sum{};
-    for (IndexType i = 0; i < num_entries; ++i) {
-        auto nnz = counts[i];
-        counts[i] = partial_sum;
-        partial_sum += nnz;
+    // the operation only makes sense for arrays of size at least 2
+    if (num_entries < 2) {
+        if (num_entries == 0) {
+            return;
+        } else {
+            counts[0] = 0;
+            return;
+        }
+    }
+
+    const int nthreads = omp_get_max_threads();
+    vector<IndexType> proc_sums(nthreads, 0, {exec});
+    const size_type def_num_witems = (num_entries - 1) / nthreads + 1;
+
+#pragma omp parallel
+    {
+        const int thread_id = omp_get_thread_num();
+        const size_type startidx = thread_id * def_num_witems;
+        const size_type endidx =
+            std::min(num_entries, (thread_id + 1) * def_num_witems);
+
+        IndexType partial_sum{0};
+        for (size_type i = startidx; i < endidx; ++i) {
+            auto nnz = counts[i];
+            counts[i] = partial_sum;
+            partial_sum += nnz;
+        }
+
+        proc_sums[thread_id] = partial_sum;
+
+#pragma omp barrier
+
+#pragma omp single
+        {
+            for (int i = 0; i < nthreads - 1; i++) {
+                proc_sums[i + 1] += proc_sums[i];
+            }
+        }
+
+        if (thread_id > 0) {
+            for (size_type i = startidx; i < endidx; i++) {
+                counts[i] += proc_sums[thread_id - 1];
+            }
+        }
     }
 }
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,22 @@ namespace gko {
 namespace kernels {
 
 
+/**
+ * \fn prefix_sum
+ * Computes an exclusive prefix sum or exclusive scan of the input array.
+ *
+ * As with the standard definition of exclusive scan, the last entry of the
+ * input array is not read at all, but is written to.
+ * If the input is [3,4,1,9,100], it will be replaced by
+ *  [0,3,7,8,17].
+ *
+ * \tparam IndexType  Type of entries to be scanned (summed).
+ *
+ * \param exec  Executor on which to run the scan operation
+ * \param counts  The input/output array to be scanned with the sum operation
+ * \param num_entries  Size of the array, equal to one more than the number
+ *                     of entries to be summed.
+ */
 #define GKO_DECLARE_PREFIX_SUM_KERNEL(IndexType)                 \
     void prefix_sum(std::shared_ptr<const DefaultExecutor> exec, \
                     IndexType *counts, size_type num_entries)
@@ -89,6 +105,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace components
 }  // namespace hip
+
+
+namespace dpcpp {
+namespace components {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace components
+}  // namespace dpcpp
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

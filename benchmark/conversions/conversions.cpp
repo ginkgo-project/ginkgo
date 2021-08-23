@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -47,9 +47,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/spmv_common.hpp"
+#include "benchmark/utils/timer.hpp"
+#include "benchmark/utils/types.hpp"
 
 
-using etype = double;
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+#include "benchmark/utils/tuning_variables.hpp"
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
 
 
 // This function supposes that management of `FLAGS_overwrite` is done before
@@ -65,31 +69,28 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
         add_or_set_member(conversion_case, conversion_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
-        gko::matrix_data<> data{gko::dim<2>{1, 1}, 1};
+        gko::matrix_data<etype, itype> data{gko::dim<2>{1, 1}, 1};
         auto matrix_to =
             share(formats::matrix_factory.at(format_to)(exec, data));
+
+        auto timer = get_timer(exec, FLAGS_gpu_timer);
+        IterationControl ic{timer};
+
         // warm run
-        for (unsigned int i = 0; i < FLAGS_warmup; i++) {
+        for (auto _ : ic.warmup_run()) {
             exec->synchronize();
             matrix_to->copy_from(matrix_from);
             exec->synchronize();
             matrix_to->clear();
         }
-        std::chrono::nanoseconds time(0);
         // timed run
-        for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
-            exec->synchronize();
-            auto tic = std::chrono::steady_clock::now();
+        for (auto _ : ic.run()) {
             matrix_to->copy_from(matrix_from);
-            exec->synchronize();
-            auto toc = std::chrono::steady_clock::now();
-            time +=
-                std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
-            matrix_to->clear();
         }
         add_or_set_member(conversion_case[conversion_name], "time",
-                          static_cast<double>(time.count()) / FLAGS_repetitions,
-                          allocator);
+                          ic.compute_average_time(), allocator);
+        add_or_set_member(conversion_case[conversion_name], "repetitions",
+                          ic.get_num_repetitions(), allocator);
 
         // compute and write benchmark data
         add_or_set_member(conversion_case[conversion_name], "completed", true,
@@ -97,6 +98,12 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
     } catch (const std::exception &e) {
         add_or_set_member(test_case["conversions"][conversion_name],
                           "completed", false, allocator);
+        if (FLAGS_keep_errors) {
+            rapidjson::Value msg_value;
+            msg_value.SetString(e.what(), allocator);
+            add_or_set_member(test_case["conversions"][conversion_name],
+                              "error", msg_value, allocator);
+        }
         std::cerr << "Error when processing test case " << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
@@ -141,9 +148,9 @@ int main(int argc, char *argv[])
 
         std::clog << "Running test case: " << test_case << std::endl;
         std::ifstream mtx_fd(test_case["filename"].GetString());
-        gko::matrix_data<> data;
+        gko::matrix_data<etype, itype> data;
         try {
-            data = gko::read_raw<etype>(mtx_fd);
+            data = gko::read_raw<etype, itype>(mtx_fd);
         } catch (std::exception &e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
@@ -155,8 +162,7 @@ int main(int argc, char *argv[])
             try {
                 auto matrix_from =
                     share(formats::matrix_factory.at(format_from)(exec, data));
-                for (const auto &format : formats::matrix_factory) {
-                    const auto format_to = std::get<0>(format);
+                for (const auto &format_to : formats) {
                     if (format_from == format_to) {
                         continue;
                     }

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -138,17 +138,17 @@ protected:
 
 TEST_F(ParIct, KernelAddCandidatesIsEquivalentToRef)
 {
-    auto mtx_llt = Csr::create(ref, mtx_size);
-    mtx_l->apply(lend(mtx_l->transpose()), lend(mtx_llt));
-    auto dmtx_llt = Csr::create(cuda, mtx_size);
-    dmtx_llt->copy_from(lend(mtx_llt));
+    auto mtx_llh = Csr::create(ref, mtx_size);
+    mtx_l->apply(lend(mtx_l->conj_transpose()), lend(mtx_llh));
+    auto dmtx_llh = Csr::create(cuda, mtx_size);
+    dmtx_llh->copy_from(lend(mtx_llh));
     auto res_mtx_l = Csr::create(ref, mtx_size);
     auto dres_mtx_l = Csr::create(cuda, mtx_size);
 
     gko::kernels::reference::par_ict_factorization::add_candidates(
-        ref, lend(mtx_llt), lend(mtx), lend(mtx_l), lend(res_mtx_l));
+        ref, lend(mtx_llh), lend(mtx), lend(mtx_l), lend(res_mtx_l));
     gko::kernels::cuda::par_ict_factorization::add_candidates(
-        cuda, lend(dmtx_llt), lend(dmtx), lend(dmtx_l), lend(dres_mtx_l));
+        cuda, lend(dmtx_llh), lend(dmtx), lend(dmtx_l), lend(dres_mtx_l));
 
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_l, dres_mtx_l);
     GKO_ASSERT_MTX_NEAR(res_mtx_l, dres_mtx_l, 1e-14);

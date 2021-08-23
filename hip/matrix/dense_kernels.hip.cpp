@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -67,10 +67,10 @@ namespace hip {
 namespace dense {
 
 
-constexpr auto default_block_size = 512;
+constexpr int default_block_size = 512;
 
 
-#include "common/matrix/dense_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/dense_kernels.hpp.inc"
 
 
 template <typename ValueType>
@@ -121,78 +121,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void scale(std::shared_ptr<const HipExecutor> exec,
-           const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
-{
-    if (hipblas::is_supported<ValueType>::value && x->get_size()[1] == 1) {
-        hipblas::scal(exec->get_hipblas_handle(), x->get_size()[0],
-                      alpha->get_const_values(), x->get_values(),
-                      x->get_stride());
-    } else {
-        // TODO: tune this parameter
-        constexpr auto block_size = default_block_size;
-        const dim3 grid_dim =
-            ceildiv(x->get_size()[0] * x->get_size()[1], block_size);
-        const dim3 block_dim{config::warp_size, 1,
-                             block_size / config::warp_size};
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(kernel::scale<block_size>), dim3(grid_dim),
-            dim3(block_dim), 0, 0, x->get_size()[0], x->get_size()[1],
-            alpha->get_size()[1], as_hip_type(alpha->get_const_values()),
-            as_hip_type(x->get_values()), x->get_stride());
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
-
-
-template <typename ValueType>
-void add_scaled(std::shared_ptr<const HipExecutor> exec,
-                const matrix::Dense<ValueType> *alpha,
-                const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
-{
-    if (hipblas::is_supported<ValueType>::value && x->get_size()[1] == 1) {
-        hipblas::axpy(exec->get_hipblas_handle(), x->get_size()[0],
-                      alpha->get_const_values(), x->get_const_values(),
-                      x->get_stride(), y->get_values(), y->get_stride());
-    } else {
-        // TODO: tune this parameter
-        constexpr auto block_size = default_block_size;
-        const dim3 grid_dim =
-            ceildiv(x->get_size()[0] * x->get_size()[1], block_size);
-        const dim3 block_dim{config::warp_size, 1,
-                             block_size / config::warp_size};
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(kernel::add_scaled<block_size>), dim3(grid_dim),
-            dim3(block_dim), 0, 0, x->get_size()[0], x->get_size()[1],
-            alpha->get_size()[1], as_hip_type(alpha->get_const_values()),
-            as_hip_type(x->get_const_values()), x->get_stride(),
-            as_hip_type(y->get_values()), y->get_stride());
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
-
-
-template <typename ValueType>
-void add_scaled_diag(std::shared_ptr<const HipExecutor> exec,
-                     const matrix::Dense<ValueType> *alpha,
-                     const matrix::Diagonal<ValueType> *x,
-                     matrix::Dense<ValueType> *y)
-{
-    const auto size = y->get_size()[0];
-    const auto grid_dim = ceildiv(size, default_block_size);
-
-    hipLaunchKernelGGL(kernel::add_scaled_diag, grid_dim, default_block_size, 0,
-                       0, size, as_hip_type(alpha->get_const_values()),
-                       as_hip_type(x->get_const_values()),
-                       as_hip_type(y->get_values()), y->get_stride());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL);
-
-
-template <typename ValueType>
 void compute_dot(std::shared_ptr<const HipExecutor> exec,
                  const matrix::Dense<ValueType> *x,
                  const matrix::Dense<ValueType> *y,
@@ -210,8 +138,8 @@ void compute_dot(std::shared_ptr<const HipExecutor> exec,
         // TODO: these are tuning parameters obtained experimentally, once
         // we decide how to handle this uniformly, they should be modified
         // appropriately
-        constexpr auto work_per_thread = 32;
-        constexpr auto block_size = 1024;
+        constexpr int work_per_thread = 32;
+        constexpr int block_size = 1024;
 
         constexpr auto work_per_block = work_per_thread * block_size;
         const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
@@ -227,7 +155,8 @@ void compute_dot(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(y->get_const_values() + col), y->get_stride(),
                 as_hip_type(work.get_data()));
             hipLaunchKernelGGL(
-                HIP_KERNEL_NAME(kernel::finalize_dot_computation<block_size>),
+                HIP_KERNEL_NAME(
+                    kernel::finalize_sum_reduce_computation<block_size>),
                 dim3(1), dim3(block_dim), 0, 0, grid_dim.x,
                 as_hip_type(work.get_const_data()),
                 as_hip_type(result->get_values() + col));
@@ -236,6 +165,53 @@ void compute_dot(std::shared_ptr<const HipExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
+
+
+template <typename ValueType>
+void compute_conj_dot(std::shared_ptr<const HipExecutor> exec,
+                      const matrix::Dense<ValueType> *x,
+                      const matrix::Dense<ValueType> *y,
+                      matrix::Dense<ValueType> *result)
+{
+    if (hipblas::is_supported<ValueType>::value) {
+        // TODO: write a custom kernel which does this more efficiently
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            hipblas::conj_dot(exec->get_hipblas_handle(), x->get_size()[0],
+                              x->get_const_values() + col, x->get_stride(),
+                              y->get_const_values() + col, y->get_stride(),
+                              result->get_values() + col);
+        }
+    } else {
+        // TODO: these are tuning parameters obtained experimentally, once
+        // we decide how to handle this uniformly, they should be modified
+        // appropriately
+        constexpr int work_per_thread = 32;
+        constexpr int block_size = 1024;
+
+        constexpr auto work_per_block = work_per_thread * block_size;
+        const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
+        const dim3 block_dim{config::warp_size, 1,
+                             block_size / config::warp_size};
+        Array<ValueType> work(exec, grid_dim.x);
+        // TODO: write a kernel which does this more efficiently
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(kernel::compute_partial_conj_dot<block_size>),
+                dim3(grid_dim), dim3(block_dim), 0, 0, x->get_size()[0],
+                as_hip_type(x->get_const_values() + col), x->get_stride(),
+                as_hip_type(y->get_const_values() + col), y->get_stride(),
+                as_hip_type(work.get_data()));
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(
+                    kernel::finalize_sum_reduce_computation<block_size>),
+                dim3(1), dim3(block_dim), 0, 0, grid_dim.x,
+                as_hip_type(work.get_const_data()),
+                as_hip_type(result->get_values() + col));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL);
 
 
 template <typename ValueType>
@@ -254,8 +230,8 @@ void compute_norm2(std::shared_ptr<const HipExecutor> exec,
         // TODO: these are tuning parameters obtained experimentally, once
         // we decide how to handle this uniformly, they should be modified
         // appropriately
-        constexpr auto work_per_thread = 32;
-        constexpr auto block_size = 1024;
+        constexpr int work_per_thread = 32;
+        constexpr int block_size = 1024;
 
         constexpr auto work_per_block = work_per_thread * block_size;
         const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
@@ -270,7 +246,8 @@ void compute_norm2(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(x->get_const_values() + col), x->get_stride(),
                 as_hip_type(work.get_data()));
             hipLaunchKernelGGL(
-                HIP_KERNEL_NAME(kernel::finalize_norm2_computation<block_size>),
+                HIP_KERNEL_NAME(
+                    kernel::finalize_sqrt_reduce_computation<block_size>),
                 dim3(1), dim3(block_dim), 0, 0, grid_dim.x,
                 as_hip_type(work.get_const_data()),
                 as_hip_type(result->get_values() + col));
@@ -597,7 +574,7 @@ void transpose(std::shared_ptr<const HipExecutor> exec,
     }
 };
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRANSPOSE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType>
@@ -622,111 +599,7 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONJ_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void row_permute(std::shared_ptr<const HipExecutor> exec,
-                 const Array<IndexType> *permutation_indices,
-                 const matrix::Dense<ValueType> *orig,
-                 matrix::Dense<ValueType> *row_permuted)
-{
-    constexpr auto block_size = default_block_size;
-    const dim3 grid_dim =
-        ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    hipLaunchKernelGGL(
-        kernel::row_permute<block_size>, dim3(grid_dim), dim3(block_dim), 0, 0,
-        orig->get_size()[0], orig->get_size()[1],
-        as_hip_type(permutation_indices->get_const_data()),
-        as_hip_type(orig->get_const_values()), orig->get_stride(),
-        as_hip_type(row_permuted->get_values()), row_permuted->get_stride());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void column_permute(std::shared_ptr<const HipExecutor> exec,
-                    const Array<IndexType> *permutation_indices,
-                    const matrix::Dense<ValueType> *orig,
-                    matrix::Dense<ValueType> *column_permuted)
-{
-    constexpr auto block_size = default_block_size;
-    const dim3 grid_dim =
-        ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    hipLaunchKernelGGL(
-        kernel::column_permute<block_size>, dim3(grid_dim), dim3(block_dim), 0,
-        0, orig->get_size()[0], orig->get_size()[1],
-        as_hip_type(permutation_indices->get_const_data()),
-        as_hip_type(orig->get_const_values()), orig->get_stride(),
-        as_hip_type(column_permuted->get_values()),
-        column_permuted->get_stride());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COLUMN_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_row_permute(std::shared_ptr<const HipExecutor> exec,
-                         const Array<IndexType> *permutation_indices,
-                         const matrix::Dense<ValueType> *orig,
-                         matrix::Dense<ValueType> *row_permuted)
-{
-    constexpr auto block_size = default_block_size;
-    const dim3 grid_dim =
-        ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    hipLaunchKernelGGL(
-        kernel::inverse_row_permute<block_size>, dim3(grid_dim),
-        dim3(block_dim), 0, 0, orig->get_size()[0], orig->get_size()[1],
-        as_hip_type(permutation_indices->get_const_data()),
-        as_hip_type(orig->get_const_values()), orig->get_stride(),
-        as_hip_type(row_permuted->get_values()), row_permuted->get_stride());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_INVERSE_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_column_permute(std::shared_ptr<const HipExecutor> exec,
-                            const Array<IndexType> *permutation_indices,
-                            const matrix::Dense<ValueType> *orig,
-                            matrix::Dense<ValueType> *column_permuted)
-{
-    constexpr auto block_size = default_block_size;
-    const dim3 grid_dim =
-        ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
-    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
-    hipLaunchKernelGGL(
-        kernel::inverse_column_permute<block_size>, dim3(grid_dim),
-        dim3(block_dim), 0, 0, orig->get_size()[0], orig->get_size()[1],
-        as_hip_type(permutation_indices->get_const_data()),
-        as_hip_type(orig->get_const_values()), orig->get_stride(),
-        as_hip_type(column_permuted->get_values()),
-        column_permuted->get_stride());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL);
-
-
-template <typename ValueType>
-void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Dense<ValueType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
-{
-    const dim3 grid_dim = ceildiv(diag->get_size()[0], default_block_size);
-    hipLaunchKernelGGL(kernel::extract_diagonal, dim3(grid_dim),
-                       dim3(default_block_size), 0, 0, orig->get_size()[0],
-                       as_hip_type(orig->get_const_values()),
-                       orig->get_stride(), as_hip_type(diag->get_values()));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_EXTRACT_DIAGONAL_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
 
 
 }  // namespace dense

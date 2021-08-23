@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef GKO_CORE_SOLVER_BICG_KERNELS_HPP_
 #define GKO_CORE_SOLVER_BICG_KERNELS_HPP_
+
+
+#include <memory>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -122,6 +125,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace bicg
 }  // namespace hip
+
+
+namespace dpcpp {
+namespace bicg {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace bicg
+}  // namespace dpcpp
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

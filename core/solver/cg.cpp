@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
 
@@ -88,6 +89,18 @@ std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x);
+        },
+        b, x);
+}
+
+
+template <typename ValueType>
+void Cg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
+                                     matrix::Dense<ValueType> *dense_x) const
+{
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
 
@@ -98,8 +111,6 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
-    auto dense_b = as<const Vector>(b);
-    auto dense_x = as<Vector>(x);
     auto r = Vector::create_with_config_of(dense_b);
     auto z = Vector::create_with_config_of(dense_b);
     auto p = Vector::create_with_config_of(dense_b);
@@ -124,36 +135,47 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
-        x, r.get());
+        system_matrix_,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
+        r.get());
 
     int iter = -1;
+    /* Memory movement summary:
+     * 18n * values + matrix/preconditioner storage
+     * 1x SpMV:           2n * values + storage
+     * 1x Preconditioner: 2n * values + storage
+     * 2x dot             4n
+     * 1x step 1 (axpy)   3n
+     * 1x step 2 (axpys)  6n
+     * 1x norm2 residual   n
+     */
     while (true) {
         get_preconditioner()->apply(r.get(), z.get());
-        r->compute_dot(z.get(), rho.get());
+        r->compute_conj_dot(z.get(), rho.get());
 
         ++iter;
-        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
-                                                            dense_x);
+        this->template log<log::Logger::iteration_complete>(
+            this, iter, r.get(), dense_x, nullptr, rho.get());
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r.get())
+                .implicit_sq_residual_norm(rho.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
 
-        exec->run(cg::make_step_1(p.get(), z.get(), rho.get(), prev_rho.get(),
-                                  &stop_status));
         // tmp = rho / prev_rho
         // p = z + tmp * p
+        exec->run(cg::make_step_1(p.get(), z.get(), rho.get(), prev_rho.get(),
+                                  &stop_status));
         system_matrix_->apply(p.get(), q.get());
-        p->compute_dot(q.get(), beta.get());
-        exec->run(cg::make_step_2(dense_x, r.get(), p.get(), q.get(),
-                                  beta.get(), rho.get(), &stop_status));
+        p->compute_conj_dot(q.get(), beta.get());
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
+        exec->run(cg::make_step_2(dense_x, r.get(), p.get(), q.get(),
+                                  beta.get(), rho.get(), &stop_status));
         swap(prev_rho, rho);
     }
 }
@@ -163,12 +185,14 @@ template <typename ValueType>
 void Cg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                const LinOp *beta, LinOp *x) const
 {
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, x_clone.get());
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 

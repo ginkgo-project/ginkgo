@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
 
@@ -85,10 +86,20 @@ std::unique_ptr<LinOp> Fcg<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x);
+        },
+        b, x);
+}
+
+
+template <typename ValueType>
+void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
+                                      matrix::Dense<ValueType> *dense_x) const
+{
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
-    auto dense_b = as<const Vector>(b);
-    auto dense_x = as<Vector>(x);
 
     constexpr uint8 RelativeStoppingId{1};
 
@@ -126,39 +137,50 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
-        x, r.get());
+        system_matrix_,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
+        r.get());
 
     int iter = -1;
+    /* Memory movement summary:
+     * 21n * values + matrix/preconditioner storage
+     * 1x SpMV:                2n * values + storage
+     * 1x Preconditioner:      2n * values + storage
+     * 3x dot                  6n
+     * 1x step 1 (axpy)        3n
+     * 1x step 2 (fused axpys) 7n
+     * 1x norm2 residual        n
+     */
     while (true) {
         get_preconditioner()->apply(r.get(), z.get());
-        r->compute_dot(z.get(), rho.get());
-        t->compute_dot(z.get(), rho_t.get());
+        r->compute_conj_dot(z.get(), rho.get());
+        t->compute_conj_dot(z.get(), rho_t.get());
 
         ++iter;
-        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
-                                                            dense_x);
+        this->template log<log::Logger::iteration_complete>(
+            this, iter, r.get(), dense_x, nullptr, rho.get());
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r.get())
+                .implicit_sq_residual_norm(rho.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
 
-        exec->run(fcg::make_step_1(p.get(), z.get(), rho_t.get(),
-                                   prev_rho.get(), &stop_status));
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
+        exec->run(fcg::make_step_1(p.get(), z.get(), rho_t.get(),
+                                   prev_rho.get(), &stop_status));
         system_matrix_->apply(p.get(), q.get());
-        p->compute_dot(q.get(), beta.get());
-        exec->run(fcg::make_step_2(dense_x, r.get(), t.get(), p.get(), q.get(),
-                                   beta.get(), rho.get(), &stop_status));
+        p->compute_conj_dot(q.get(), beta.get());
         // tmp = rho / beta
         // [prev_r = r] in registers
         // x = x + tmp * p
         // r = r - tmp * q
         // t = r - [prev_r]
+        exec->run(fcg::make_step_2(dense_x, r.get(), t.get(), p.get(), q.get(),
+                                   beta.get(), rho.get(), &stop_status));
         swap(prev_rho, rho);
     }
 }
@@ -168,11 +190,14 @@ template <typename ValueType>
 void Fcg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                 const LinOp *beta, LinOp *x) const
 {
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, x_clone.get());
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 

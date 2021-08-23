@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -617,6 +617,20 @@ inline void destroy_ilu0_info(csrilu02Info_t info)
 }
 
 
+inline csric02Info_t create_ic0_info()
+{
+    csric02Info_t info{};
+    GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreateCsric02Info(&info));
+    return info;
+}
+
+
+inline void destroy_ic0_info(csric02Info_t info)
+{
+    GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseDestroyCsric02Info(info));
+}
+
+
 template <typename IndexType>
 void create_identity_permutation(hipsparseHandle_t handle, IndexType size,
                                  IndexType *permutation) GKO_NOT_IMPLEMENTED;
@@ -805,6 +819,118 @@ GKO_BIND_HIPSPARSE_ILU0(std::complex<double>, hipsparseZcsrilu02);
 #endif  // hipsparse version >= 1.4
 
 #undef GKO_BIND_HIPSPARSE_ILU0
+
+
+template <typename ValueType, typename IndexType>
+void ic0_buffer_size(hipsparseHandle_t handle, IndexType m, IndexType nnz,
+                     const hipsparseMatDescr_t descr, const ValueType *vals,
+                     const IndexType *row_ptrs, const IndexType *col_idxs,
+                     csric02Info_t info,
+                     size_type &buffer_size) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_HIPSPARSE_IC0_BUFFER_SIZE(ValueType, HipsparseName)         \
+    template <>                                                              \
+    inline void ic0_buffer_size<ValueType, int32>(                           \
+        hipsparseHandle_t handle, int32 m, int32 nnz,                        \
+        const hipsparseMatDescr_t descr, const ValueType *vals,              \
+        const int32 *row_ptrs, const int32 *col_idxs, csric02Info_t info,    \
+        size_type &buffer_size)                                              \
+    {                                                                        \
+        int tmp_buffer_size{};                                               \
+        GKO_ASSERT_NO_HIPSPARSE_ERRORS(                                      \
+            HipsparseName(handle, m, nnz, descr,                             \
+                          as_hiplibs_type(const_cast<ValueType *>(vals)),    \
+                          row_ptrs, col_idxs, info, &tmp_buffer_size));      \
+        buffer_size = tmp_buffer_size;                                       \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_HIPSPARSE_IC0_BUFFER_SIZE(float, hipsparseScsric02_bufferSize);
+GKO_BIND_HIPSPARSE_IC0_BUFFER_SIZE(double, hipsparseDcsric02_bufferSize);
+#if defined(hipsparseVersionMajor) && defined(hipsparseVersionMinor) && \
+    ((hipsparseVersionMajor > 1) ||                                     \
+     (hipsparseVersionMajor == 1 && hipsparseVersionMinor >= 4))
+GKO_BIND_HIPSPARSE_IC0_BUFFER_SIZE(std::complex<float>,
+                                   hipsparseCcsric02_bufferSize);
+GKO_BIND_HIPSPARSE_IC0_BUFFER_SIZE(std::complex<double>,
+                                   hipsparseZcsric02_bufferSize);
+#endif  // hipsparse version >= 1.4
+
+#undef GKO_BIND_HIPSPARSE_ILU0_BUFFER_SIZE
+
+
+template <typename ValueType, typename IndexType>
+void ic0_analysis(hipsparseHandle_t handle, IndexType m, IndexType nnz,
+                  const hipsparseMatDescr_t descr, const ValueType *vals,
+                  const IndexType *row_ptrs, const IndexType *col_idxs,
+                  csric02Info_t info, hipsparseSolvePolicy_t policy,
+                  void *buffer) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_HIPSPARSE_IC0_ANALYSIS(ValueType, HipsparseName)            \
+    template <>                                                              \
+    inline void ic0_analysis<ValueType, int32>(                              \
+        hipsparseHandle_t handle, int32 m, int32 nnz,                        \
+        const hipsparseMatDescr_t descr, const ValueType *vals,              \
+        const int32 *row_ptrs, const int32 *col_idxs, csric02Info_t info,    \
+        hipsparseSolvePolicy_t policy, void *buffer)                         \
+    {                                                                        \
+        GKO_ASSERT_NO_HIPSPARSE_ERRORS(                                      \
+            HipsparseName(handle, m, nnz, descr, as_hiplibs_type(vals),      \
+                          row_ptrs, col_idxs, info, policy, buffer));        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_HIPSPARSE_IC0_ANALYSIS(float, hipsparseScsric02_analysis);
+GKO_BIND_HIPSPARSE_IC0_ANALYSIS(double, hipsparseDcsric02_analysis);
+#if defined(hipsparseVersionMajor) && defined(hipsparseVersionMinor) && \
+    ((hipsparseVersionMajor > 1) ||                                     \
+     (hipsparseVersionMajor == 1 && hipsparseVersionMinor >= 4))
+GKO_BIND_HIPSPARSE_IC0_ANALYSIS(std::complex<float>,
+                                hipsparseCcsric02_analysis);
+GKO_BIND_HIPSPARSE_IC0_ANALYSIS(std::complex<double>,
+                                hipsparseZcsric02_analysis);
+#endif  // hipsparse version >= 1.4
+
+#undef GKO_BIND_HIPSPARSE_IC0_ANALYSIS
+
+
+template <typename ValueType, typename IndexType>
+void ic0(hipsparseHandle_t handle, IndexType m, IndexType nnz,
+         const hipsparseMatDescr_t descr, ValueType *vals,
+         const IndexType *row_ptrs, const IndexType *col_idxs,
+         csric02Info_t info, hipsparseSolvePolicy_t policy,
+         void *buffer) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_HIPSPARSE_IC0(ValueType, HipsparseName)                     \
+    template <>                                                              \
+    inline void ic0<ValueType, int32>(                                       \
+        hipsparseHandle_t handle, int32 m, int32 nnz,                        \
+        const hipsparseMatDescr_t descr, ValueType *vals,                    \
+        const int32 *row_ptrs, const int32 *col_idxs, csric02Info_t info,    \
+        hipsparseSolvePolicy_t policy, void *buffer)                         \
+    {                                                                        \
+        GKO_ASSERT_NO_HIPSPARSE_ERRORS(                                      \
+            HipsparseName(handle, m, nnz, descr, as_hiplibs_type(vals),      \
+                          row_ptrs, col_idxs, info, policy, buffer));        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_HIPSPARSE_IC0(float, hipsparseScsric02);
+GKO_BIND_HIPSPARSE_IC0(double, hipsparseDcsric02);
+#if defined(hipsparseVersionMajor) && defined(hipsparseVersionMinor) && \
+    ((hipsparseVersionMajor > 1) ||                                     \
+     (hipsparseVersionMajor == 1 && hipsparseVersionMinor >= 4))
+GKO_BIND_HIPSPARSE_IC0(std::complex<float>, hipsparseCcsric02);
+GKO_BIND_HIPSPARSE_IC0(std::complex<double>, hipsparseZcsric02);
+#endif  // hipsparse version >= 1.4
+
+#undef GKO_BIND_HIPSPARSE_IC0
 
 
 }  // namespace hipsparse

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -59,7 +59,7 @@ constexpr int num_iters = 10;
 template <typename T>
 class Stream : public ::testing::Test {};
 
-TYPED_TEST_CASE(Stream, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Stream, gko::test::ValueTypes);
 
 
 TYPED_TEST(Stream, CatchesAllocationStarted)
@@ -708,13 +708,15 @@ TYPED_TEST(Stream, CatchesIterations)
     auto residual = Dense::create(exec);
     auto solution = Dense::create(exec);
     auto residual_norm = Dense::create(exec);
+    auto implicit_sq_residual_norm = Dense::create(exec);
     std::stringstream ptrstream_solver;
     ptrstream_solver << solver.get();
     std::stringstream ptrstream_residual;
     ptrstream_residual << residual.get();
 
     logger->template on<gko::log::Logger::iteration_complete>(
-        solver.get(), num_iters, residual.get());
+        solver.get(), num_iters, residual.get(), solution.get(),
+        residual_norm.get(), implicit_sq_residual_norm.get());
 
     GKO_ASSERT_STR_CONTAINS(out.str(),
                             "iteration " + std::to_string(num_iters));

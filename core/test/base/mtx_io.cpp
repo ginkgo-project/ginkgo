@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -640,7 +640,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
 };
 
-TYPED_TEST_CASE(RealDummyLinOpTest, gko::test::RealValueIndexTypes);
+TYPED_TEST_SUITE(RealDummyLinOpTest, gko::test::RealValueIndexTypes);
 
 
 TYPED_TEST(RealDummyLinOpTest, ReadsLinOpFromStream)
@@ -713,7 +713,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
 };
 
-TYPED_TEST_CASE(ComplexDummyLinOpTest, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(ComplexDummyLinOpTest, gko::test::ComplexValueIndexTypes);
 
 
 TYPED_TEST(ComplexDummyLinOpTest, ReadsLinOpFromStream)

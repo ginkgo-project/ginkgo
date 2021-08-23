@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,7 +63,7 @@ GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
-    const std::shared_ptr<const LinOp> &system_matrix) const
+    const std::shared_ptr<const LinOp> &system_matrix, bool skip_sorting) const
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
 
@@ -74,6 +74,10 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
     auto local_system_matrix = matrix_type::create(exec);
     as<ConvertibleTo<matrix_type>>(system_matrix.get())
         ->convert_to(local_system_matrix.get());
+
+    if (!skip_sorting) {
+        local_system_matrix->sort_by_column_index();
+    }
 
     // Add explicit diagonal zero elements if they are missing
     exec->run(ilu_factorization::make_add_diagonal_elements(

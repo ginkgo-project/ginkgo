@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <chrono>
+#include <cmath>
 #include <mutex>
 #include <regex>
 #include <unordered_map>
@@ -109,9 +110,7 @@ struct OperationLogger : gko::log::Logger {
         for (const auto &entry : total) {
             add_or_set_member(
                 object, entry.first.c_str(),
-                std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    entry.second)
-                        .count() /
+                std::chrono::duration<double>(entry.second).count() /
                     repetitions,
                 alloc);
         }
@@ -202,19 +201,31 @@ private:
 // Logs true and recurrent residuals of the solver
 template <typename ValueType>
 struct ResidualLogger : gko::log::Logger {
-    void on_iteration_complete(const gko::LinOp *, const gko::size_type &,
+    using rc_vtype = gko::remove_complex<ValueType>;
+
+    // TODO2.0: Remove when deprecating simple overload
+    void on_iteration_complete(const gko::LinOp *solver,
+                               const gko::size_type &it,
                                const gko::LinOp *residual,
                                const gko::LinOp *solution,
                                const gko::LinOp *residual_norm) const override
     {
-        timestamps.PushBack(
-            std::chrono::duration_cast<std::chrono::nanoseconds>(
-                std::chrono::steady_clock::now() - start)
-                .count(),
-            alloc);
+        on_iteration_complete(solver, it, residual, solution, residual_norm,
+                              nullptr);
+    }
+
+    void on_iteration_complete(
+        const gko::LinOp *, const gko::size_type &, const gko::LinOp *residual,
+        const gko::LinOp *solution, const gko::LinOp *residual_norm,
+        const gko::LinOp *implicit_sq_residual_norm) const override
+    {
+        timestamps.PushBack(std::chrono::duration<double>(
+                                std::chrono::steady_clock::now() - start)
+                                .count(),
+                            alloc);
         if (residual_norm) {
             rec_res_norms.PushBack(
-                get_norm(gko::as<vec<ValueType>>(residual_norm)), alloc);
+                get_norm(gko::as<vec<rc_vtype>>(residual_norm)), alloc);
         } else {
             rec_res_norms.PushBack(
                 compute_norm2(gko::as<vec<ValueType>>(residual)), alloc);
@@ -227,12 +238,22 @@ struct ResidualLogger : gko::log::Logger {
         } else {
             true_res_norms.PushBack(-1.0, alloc);
         }
+        if (implicit_sq_residual_norm) {
+            implicit_res_norms.PushBack(
+                std::sqrt(get_norm(
+                    gko::as<vec<rc_vtype>>(implicit_sq_residual_norm))),
+                alloc);
+            has_implicit_res_norm = true;
+        } else {
+            implicit_res_norms.PushBack(-1.0, alloc);
+        }
     }
 
     ResidualLogger(std::shared_ptr<const gko::Executor> exec,
                    const gko::LinOp *matrix, const vec<ValueType> *b,
                    rapidjson::Value &rec_res_norms,
                    rapidjson::Value &true_res_norms,
+                   rapidjson::Value &implicit_res_norms,
                    rapidjson::Value &timestamps,
                    rapidjson::MemoryPoolAllocator<> &alloc)
         : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask),
@@ -241,9 +262,13 @@ struct ResidualLogger : gko::log::Logger {
           start{std::chrono::steady_clock::now()},
           rec_res_norms{rec_res_norms},
           true_res_norms{true_res_norms},
+          has_implicit_res_norm{},
+          implicit_res_norms{implicit_res_norms},
           timestamps{timestamps},
           alloc{alloc}
     {}
+
+    bool has_implicit_res_norms() const { return has_implicit_res_norm; }
 
 private:
     const gko::LinOp *matrix;
@@ -251,6 +276,8 @@ private:
     std::chrono::steady_clock::time_point start;
     rapidjson::Value &rec_res_norms;
     rapidjson::Value &true_res_norms;
+    mutable bool has_implicit_res_norm;
+    rapidjson::Value &implicit_res_norms;
     rapidjson::Value &timestamps;
     rapidjson::MemoryPoolAllocator<> &alloc;
 };

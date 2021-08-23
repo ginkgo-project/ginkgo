@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -109,6 +109,15 @@ GKO_DECLARE_ALL;
 }  // namespace hip
 
 
+namespace dpcpp {
+namespace overhead {
+
+GKO_DECLARE_ALL;
+
+}  // namespace overhead
+}  // namespace dpcpp
+
+
 #undef GKO_DECLARE_ALL
 
 
@@ -208,7 +217,7 @@ protected:
                 parameters_.preconditioner->generate(system_matrix_));
         } else {
             set_preconditioner(matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()[0]));
+                this->get_executor(), this->get_size()));
         }
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));

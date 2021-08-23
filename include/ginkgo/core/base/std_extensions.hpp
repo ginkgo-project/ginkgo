@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_STD_EXTENSIONS_HPP_
-#define GKO_CORE_BASE_STD_EXTENSIONS_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_STD_EXTENSIONS_HPP_
+#define GKO_PUBLIC_CORE_BASE_STD_EXTENSIONS_HPP_
 
 
 #include <functional>
@@ -120,4 +120,4 @@ constexpr bool less_equal(const T &&lhs, const T &&rhs)
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_STD_EXTENSIONS_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_STD_EXTENSIONS_HPP_

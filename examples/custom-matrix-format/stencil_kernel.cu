@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -75,7 +75,7 @@ template <typename ValueType>
 void stencil_kernel(std::size_t size, const ValueType *coefs,
                     const ValueType *b, ValueType *x)
 {
-    constexpr auto block_size = 512;
+    constexpr int block_size = 512;
     const auto grid_size = (size + block_size - 1) / block_size;
     stencil_kernel_impl<<<grid_size, block_size>>>(size, coefs, b, x);
 }

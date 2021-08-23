@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_EXTENDED_FLOAT_HPP_
 
 
+#include <limits>
 #include <type_traits>
 
 
@@ -70,18 +71,17 @@ template <std::size_t, typename = void>
 struct uint_of_impl {};
 
 template <std::size_t Bits>
-struct uint_of_impl<Bits, xstd::void_t<std::enable_if_t<(Bits <= 16)>>> {
+struct uint_of_impl<Bits, std::enable_if_t<(Bits <= 16)>> {
     using type = uint16;
 };
 
 template <std::size_t Bits>
-struct uint_of_impl<Bits,
-                    xstd::void_t<std::enable_if_t<(16 < Bits && Bits <= 32)>>> {
+struct uint_of_impl<Bits, std::enable_if_t<(16 < Bits && Bits <= 32)>> {
     using type = uint32;
 };
 
 template <std::size_t Bits>
-struct uint_of_impl<Bits, xstd::void_t<std::enable_if_t<(32 < Bits)>>> {
+struct uint_of_impl<Bits, std::enable_if_t<(32 < Bits)>> {
     using type = uint64;
 };
 
@@ -550,6 +550,31 @@ private:
     value_type imag_;
 };
 
+
+template <>
+struct is_scalar<gko::half> : std::true_type {};
+
+
+template <>
+struct numeric_limits<gko::half> {
+    static constexpr bool is_specialized{true};
+    static constexpr bool is_signed{true};
+    static constexpr bool is_integer{false};
+    static constexpr bool is_exact{false};
+    static constexpr bool is_bounded{true};
+    static constexpr bool is_modulo{false};
+    static constexpr int digits{
+        gko::detail::float_traits<gko::half>::significand_bits + 1};
+    // 3/10 is approx. log_10(2)
+    static constexpr int digits10{digits * 3 / 10};
+
+    // Note: gko::half can't return gko::half here because it does not have
+    //       a constexpr constructor.
+    static constexpr float epsilon()
+    {
+        return gko::detail::float_traits<gko::half>::eps;
+    }
+};
 
 }  // namespace std
 

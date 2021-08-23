@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -110,7 +110,7 @@ protected:
     }
 };
 
-TYPED_TEST_CASE(Ell, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Ell, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Ell, KnowsItsSize)
@@ -228,6 +228,26 @@ TYPED_TEST(Ell, GeneratesCorrectMatrixData)
     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, value_type{3.0}));
     EXPECT_EQ(data.nonzeros[2], tpl(0, 2, value_type{2.0}));
     EXPECT_EQ(data.nonzeros[3], tpl(1, 1, value_type{5.0}));
+}
+
+
+TYPED_TEST(Ell, CanBeReadFromMatrixAssemblyData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto m = Mtx::create(this->exec);
+    gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 0, 0.0);
+    data.set_value(1, 1, 5.0);
+    data.set_value(1, 2, 0.0);
+
+    m->read(data);
+
+    this->assert_equal_to_original_mtx(m.get());
 }
 
 

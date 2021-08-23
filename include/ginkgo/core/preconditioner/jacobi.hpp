@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,13 +30,15 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_PRECONDITIONER_JACOBI_HPP_
-#define GKO_CORE_PRECONDITIONER_JACOBI_HPP_
+#ifndef GKO_PUBLIC_CORE_PRECONDITIONER_JACOBI_HPP_
+#define GKO_PUBLIC_CORE_PRECONDITIONER_JACOBI_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
 
 namespace gko {
@@ -198,6 +200,10 @@ struct block_interleaved_storage_scheme {
  * @note When using the adaptive variant, there may be a trade-off in terms of
  *       slightly longer preconditioner generation due to extra work required to
  *       detect the optimal precision of the blocks.
+ * @note When the max_block_size is set to 1, specialized  kernels are used,
+ *       both for generation (inverting the diagonals) and application (diagonal
+ *       scaling) to reduce the overhead involved in the usual (adaptive) block
+ *       case.
  *
  * @ingroup jacobi
  * @ingroup precond
@@ -298,7 +304,10 @@ public:
         /**
          * Maximal size of diagonal blocks.
          *
-         * @note This value has to be between 1 and 32 (NVIDIA)/64 (AMD).
+         * @note This value has to be between 1 and 32 (NVIDIA)/64 (AMD). For
+         * efficiency, when the max_block_size is set to 1, specialized kernels
+         * are used and the additional objects (block_ptrs etc) are set to null
+         * values.
          */
         uint32 GKO_FACTORY_PARAMETER_SCALAR(max_block_size, 32u);
 
@@ -312,6 +321,25 @@ public:
          *       for NVIDIA
          */
         uint32 GKO_FACTORY_PARAMETER_SCALAR(max_block_stride, 0u);
+
+        /**
+         * @brief `true` means it is known that the matrix given to this
+         *        factory will be sorted first by row, then by column index,
+         *        `false` means it is unknown or not sorted, so an additional
+         *        sorting step will be performed during the preconditioner
+         *        generation (it will not change the matrix given).
+         *        The matrix must be sorted for this preconditioner to work.
+         *
+         * The `system_matrix`, which will be given to this factory, must be
+         * sorted (first by row, then by column) in order for the algorithm
+         * to work. If it is known that the matrix will be sorted, this
+         * parameter can be set to `true` to skip the sorting (therefore,
+         * shortening the runtime).
+         * However, if it is unknown or if the matrix is known to be not sorted,
+         * it must remain `false`, otherwise, this preconditioner might be
+         * incorrect.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
 
         /**
          * Starting (row / column) indexes of individual blocks.
@@ -465,7 +493,8 @@ public:
          * accuracy to a value as close as possible to `dropout` will result in
          * optimal memory savings, while not degrading the quality of solution.
          */
-        remove_complex<value_type> GKO_FACTORY_PARAMETER_SCALAR(accuracy, 1e-1);
+        remove_complex<value_type> GKO_FACTORY_PARAMETER_SCALAR(
+            accuracy, static_cast<remove_complex<value_type>>(1e-1));
     };
     GKO_ENABLE_LIN_OP_FACTORY(Jacobi, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -509,7 +538,7 @@ protected:
         parameters_.block_pointers.set_executor(this->get_executor());
         parameters_.storage_optimization.block_wise.set_executor(
             this->get_executor());
-        this->generate(lend(system_matrix));
+        this->generate(lend(system_matrix), parameters_.skip_sorting);
     }
 
     /**
@@ -559,8 +588,11 @@ protected:
      *
      * @param system_matrix  the source matrix used to generate the
      *                       preconditioner
+     * @param skip_sorting  determines if the sorting of system_matrix can be
+     *                      skipped (therefore, marking that it is already
+     *                      sorted)
      */
-    void generate(const LinOp *system_matrix);
+    void generate(const LinOp *system_matrix, bool skip_sorting);
 
     /**
      * Detects the diagonal blocks and allocates the memory needed to store the
@@ -588,4 +620,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_PRECONDITIONER_JACOBI_HPP_
+#endif  // GKO_PUBLIC_CORE_PRECONDITIONER_JACOBI_HPP_

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -47,12 +47,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Ginkgo currently supports three different executor types:
  *
  * +    @ref exec_omp specifies that the data should be stored and the
- * associated operations executed on an OpenMP-supporting device (e.g. host
- * CPU);
+ *      associated operations executed on an OpenMP-supporting device (e.g. host
+ *      CPU);
  * +    @ref exec_cuda specifies that the data should be stored and the
  *      operations executed on the NVIDIA GPU accelerator;
  * +    @ref exec_hip uses the HIP library to compile code for either NVIDIA or
  *      AMD GPU accelerator;
+ * +    @ref exec_dpcpp uses the DPC++ compiler for any DPC++ supported hardware
+ *      (e.g. Intel CPUs, GPU, FPGAs, ...);
  * +    @ref exec_ref executes a non-optimized reference implementation,
  *      which can be used to debug the library.
  */

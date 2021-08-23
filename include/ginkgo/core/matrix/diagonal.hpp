@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,10 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_DIAGONAL_HPP_
-#define GKO_CORE_MATRIX_DIAGONAL_HPP_
+#ifndef GKO_PUBLIC_CORE_MATRIX_DIAGONAL_HPP_
+#define GKO_PUBLIC_CORE_MATRIX_DIAGONAL_HPP_
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 
 
@@ -64,19 +65,23 @@ class Dense;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Diagonal : public EnableLinOp<Diagonal<ValueType>>,
-                 public EnableCreateMethod<Diagonal<ValueType>>,
-                 public ConvertibleTo<Csr<ValueType, int32>>,
-                 public ConvertibleTo<Csr<ValueType, int64>>,
-                 public Transposable,
-                 public WritableToMatrixData<ValueType, int32>,
-                 public WritableToMatrixData<ValueType, int64>,
-                 public ReadableFromMatrixData<ValueType, int32>,
-                 public ReadableFromMatrixData<ValueType, int64> {
+class Diagonal
+    : public EnableLinOp<Diagonal<ValueType>>,
+      public EnableCreateMethod<Diagonal<ValueType>>,
+      public ConvertibleTo<Csr<ValueType, int32>>,
+      public ConvertibleTo<Csr<ValueType, int64>>,
+      public ConvertibleTo<Diagonal<next_precision<ValueType>>>,
+      public Transposable,
+      public WritableToMatrixData<ValueType, int32>,
+      public WritableToMatrixData<ValueType, int64>,
+      public ReadableFromMatrixData<ValueType, int32>,
+      public ReadableFromMatrixData<ValueType, int64>,
+      public EnableAbsoluteComputation<remove_complex<Diagonal<ValueType>>> {
     friend class EnablePolymorphicObject<Diagonal, LinOp>;
     friend class EnableCreateMethod<Diagonal>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
+    friend class Diagonal<to_complex<ValueType>>;
 
 public:
     using EnableLinOp<Diagonal>::convert_to;
@@ -86,10 +91,17 @@ public:
     using index_type = int64;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
+    using absolute_type = remove_complex<Diagonal>;
+
+    friend class Diagonal<next_precision<ValueType>>;
 
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    void convert_to(Diagonal<next_precision<ValueType>> *result) const override;
+
+    void move_to(Diagonal<next_precision<ValueType>> *result) override;
 
     void convert_to(Csr<ValueType, int32> *result) const override;
 
@@ -98,6 +110,10 @@ public:
     void convert_to(Csr<ValueType, int64> *result) const override;
 
     void move_to(Csr<ValueType, int64> *result) override;
+
+    std::unique_ptr<absolute_type> compute_absolute() const override;
+
+    void compute_absolute_inplace() override;
 
     /**
      * Returns a pointer to the array of values of the matrix.
@@ -203,4 +219,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_DIAGONAL_HPP_
+#endif  // GKO_PUBLIC_CORE_MATRIX_DIAGONAL_HPP_

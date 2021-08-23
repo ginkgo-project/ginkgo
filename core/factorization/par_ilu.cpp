@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -83,10 +83,9 @@ ParIlu<ValueType, IndexType>::generate_l_u(
 
     // Converts the system matrix to CSR.
     // Throws an exception if it is not convertible.
-    auto csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
+    auto csr_system_matrix = CsrMatrix::create(exec);
     as<ConvertibleTo<CsrMatrix>>(system_matrix.get())
-        ->convert_to(csr_system_matrix_unique_ptr.get());
-    auto csr_system_matrix = csr_system_matrix_unique_ptr.get();
+        ->convert_to(csr_system_matrix.get());
     // If necessary, sort it
     if (!skip_sorting) {
         csr_system_matrix->sort_by_column_index();
@@ -94,14 +93,14 @@ ParIlu<ValueType, IndexType>::generate_l_u(
 
     // Add explicit diagonal zero elements if they are missing
     exec->run(par_ilu_factorization::make_add_diagonal_elements(
-        csr_system_matrix, true));
+        csr_system_matrix.get(), true));
 
     const auto matrix_size = csr_system_matrix->get_size();
     const auto number_rows = matrix_size[0];
     Array<IndexType> l_row_ptrs{exec, number_rows + 1};
     Array<IndexType> u_row_ptrs{exec, number_rows + 1};
     exec->run(par_ilu_factorization::make_initialize_row_ptrs_l_u(
-        csr_system_matrix, l_row_ptrs.get_data(), u_row_ptrs.get_data()));
+        csr_system_matrix.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
 
     // Get nnz from device memory
     auto l_nnz = static_cast<size_type>(
@@ -123,7 +122,7 @@ ParIlu<ValueType, IndexType>::generate_l_u(
         std::move(u_row_ptrs), u_strategy);
 
     exec->run(par_ilu_factorization::make_initialize_l_u(
-        csr_system_matrix, l_factor.get(), u_factor.get()));
+        csr_system_matrix.get(), l_factor.get(), u_factor.get()));
 
     // We use `transpose()` here to convert the Csr format to Csc.
     auto u_factor_transpose_lin_op = u_factor->transpose();
@@ -140,18 +139,10 @@ ParIlu<ValueType, IndexType>::generate_l_u(
 
     // If it was not, and we already own a CSR `system_matrix`,
     // we can move the Csr matrix to Coo, which has very little overhead.
-    // Otherwise, we convert from the Csr matrix, since it is the conversion
-    // with the least overhead.
-    // We also have to convert / move from the CSR matrix if it was not already
-    // sorted (in which case we definitively own a CSR `system_matrix`).
+    // We also have to move from the CSR matrix if it was not already sorted.
     if (!skip_sorting || coo_system_matrix_ptr == nullptr) {
         coo_system_matrix_unique_ptr = CooMatrix::create(exec);
-        if (csr_system_matrix_unique_ptr == nullptr) {
-            csr_system_matrix->convert_to(coo_system_matrix_unique_ptr.get());
-        } else {
-            csr_system_matrix_unique_ptr->move_to(
-                coo_system_matrix_unique_ptr.get());
-        }
+        csr_system_matrix->move_to(coo_system_matrix_unique_ptr.get());
         coo_system_matrix_ptr = coo_system_matrix_unique_ptr.get();
     }
 

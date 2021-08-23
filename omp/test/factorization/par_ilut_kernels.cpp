@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -72,7 +72,11 @@ protected:
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
     ParIlut()
+#ifdef GINKGO_FAST_TESTS
+        : mtx_size(152, 231),
+#else
         : mtx_size(532, 423),
+#endif
           rand_engine(1337),
           ref(gko::ReferenceExecutor::create()),
           omp(gko::OmpExecutor::create())
@@ -279,7 +283,7 @@ protected:
     std::unique_ptr<Csr> dmtx_u;
 };
 
-TYPED_TEST_CASE(ParIlut, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(ParIlut, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(ParIlut, KernelThresholdSelectIsEquivalentToRef)

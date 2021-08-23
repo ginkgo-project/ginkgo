@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
+#include "core/test/utils/unsort_matrix.hpp"
 
 
 namespace {
@@ -74,7 +75,7 @@ protected:
         std::initializer_list<gko::precision_reduction> block_precisions,
         std::initializer_list<double> condition_numbers,
         gko::uint32 max_block_size, int min_nnz, int max_nnz, int num_rhs = 1,
-        double accuracy = 0.1)
+        double accuracy = 0.1, bool skip_sorting = true)
     {
         std::ranlux48 engine(42);
         const auto dim = *(end(block_pointers) - 1);
@@ -100,10 +101,12 @@ protected:
             bj_factory = Bj::build()
                              .with_max_block_size(max_block_size)
                              .with_block_pointers(block_ptrs)
+                             .with_skip_sorting(skip_sorting)
                              .on(ref);
             d_bj_factory = Bj::build()
                                .with_max_block_size(max_block_size)
                                .with_block_pointers(block_ptrs)
+                               .with_skip_sorting(skip_sorting)
                                .on(omp);
         } else {
             bj_factory = Bj::build()
@@ -111,12 +114,14 @@ protected:
                              .with_block_pointers(block_ptrs)
                              .with_storage_optimization(block_prec)
                              .with_accuracy(accuracy)
+                             .with_skip_sorting(skip_sorting)
                              .on(ref);
             d_bj_factory = Bj::build()
                                .with_max_block_size(max_block_size)
                                .with_block_pointers(block_ptrs)
                                .with_storage_optimization(block_prec)
                                .with_accuracy(accuracy)
+                               .with_skip_sorting(skip_sorting)
                                .on(omp);
         }
         b = gko::test::generate_random_matrix<Vec>(
@@ -289,9 +294,22 @@ TEST_F(Jacobi,
 }
 
 
-TEST_F(Jacobi, OmpPreconditionerEquivalentToRefWithBlockSize32)
+TEST_F(Jacobi, OmpPreconditionerEquivalentToRefWithBlockSize32Sorted)
 {
     initialize_data({0, 32, 64, 96, 128}, {}, {}, 32, 100, 110);
+
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-14);
+}
+
+
+TEST_F(Jacobi, OmpPreconditionerEquivalentToRefWithBlockSize32Unsorted)
+{
+    std::ranlux48 engine(43);
+    initialize_data({0, 32, 64, 96, 128}, {}, {}, 32, 100, 110, 1, 0.1, false);
+    gko::test::unsort_matrix(mtx.get(), engine);
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -379,6 +397,37 @@ TEST_F(Jacobi, OmpApplyEquivalentToRefWithDifferentBlockSize)
 }
 
 
+TEST_F(Jacobi, OmpScalarApplyEquivalentToRef)
+{
+    gko::size_type dim = 313;
+    std::ranlux48 engine(42);
+    auto dense_smtx = gko::share(gko::test::generate_random_matrix<Vec>(
+        dim, dim, std::uniform_int_distribution<>(1, dim),
+        std::normal_distribution<>(1.0, 2.0), engine, ref));
+    gko::test::make_diag_dominant(dense_smtx.get());
+    auto smtx = gko::share(Mtx::create(ref));
+    smtx->copy_from(dense_smtx.get());
+    auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
+        dim, 3, std::uniform_int_distribution<>(1, 1),
+        std::normal_distribution<>(0.0, 1.0), engine, ref));
+    auto sx = Vec::create(ref, sb->get_size());
+
+    auto d_smtx = gko::share(Mtx::create(omp));
+    auto d_sb = gko::share(Vec::create(omp));
+    auto d_sx = gko::share(Vec::create(omp, sb->get_size()));
+    d_smtx->copy_from(smtx.get());
+    d_sb->copy_from(sb.get());
+
+    auto sj = Bj::build().with_max_block_size(1u).on(ref)->generate(smtx);
+    auto d_sj = Bj::build().with_max_block_size(1u).on(omp)->generate(d_smtx);
+
+    sj->apply(sb.get(), sx.get());
+    d_sj->apply(d_sb.get(), d_sx.get());
+
+    GKO_ASSERT_MTX_NEAR(sx.get(), d_sx.get(), 1e-12);
+}
+
+
 TEST_F(Jacobi, OmpApplyEquivalentToRef)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
@@ -408,6 +457,46 @@ TEST_F(Jacobi, OmpLinearCombinationApplyEquivalentToRef)
     d_bj->apply(d_alpha.get(), d_b.get(), d_beta.get(), d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
+}
+
+
+TEST_F(Jacobi, OmpScalarLinearCombinationApplyEquivalentToRef)
+{
+    gko::size_type dim = 5;
+    std::ranlux48 engine(42);
+    auto dense_smtx = gko::share(gko::test::generate_random_matrix<Vec>(
+        dim, dim, std::uniform_int_distribution<>(1, dim),
+        std::normal_distribution<>(1.0, 2.0), engine, ref));
+    gko::test::make_diag_dominant(dense_smtx.get());
+    auto smtx = gko::share(Mtx::create(ref));
+    smtx->copy_from(dense_smtx.get());
+    auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
+        dim, 3, std::uniform_int_distribution<>(1, 1),
+        std::normal_distribution<>(0.0, 1.0), engine, ref, gko::dim<2>(dim, 3),
+        4));
+    auto sx = gko::share(gko::test::generate_random_matrix<Vec>(
+        dim, 3, std::uniform_int_distribution<>(1, 1),
+        std::normal_distribution<>(0.0, 1.0), engine, ref, gko::dim<2>(dim, 3),
+        4));
+
+    auto d_smtx = gko::share(Mtx::create(omp));
+    auto d_sb = gko::share(Vec::create(omp));
+    auto d_sx = gko::share(Vec::create(omp));
+    d_smtx->copy_from(smtx.get());
+    d_sb->copy_from(sb.get());
+    d_sx->copy_from(sx.get());
+    auto alpha = gko::initialize<Vec>({2.0}, ref);
+    auto d_alpha = gko::initialize<Vec>({2.0}, omp);
+    auto beta = gko::initialize<Vec>({-1.0}, ref);
+    auto d_beta = gko::initialize<Vec>({-1.0}, omp);
+
+    auto sj = Bj::build().with_max_block_size(1u).on(ref)->generate(smtx);
+    auto d_sj = Bj::build().with_max_block_size(1u).on(omp)->generate(d_smtx);
+
+    sj->apply(alpha.get(), sb.get(), beta.get(), sx.get());
+    d_sj->apply(d_alpha.get(), d_sb.get(), d_beta.get(), d_sx.get());
+
+    GKO_ASSERT_MTX_NEAR(sx.get(), d_sx.get(), 1e-12);
 }
 
 

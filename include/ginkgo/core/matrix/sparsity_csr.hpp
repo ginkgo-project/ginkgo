@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_SPARSITY_CSR_HPP_
-#define GKO_CORE_MATRIX_SPARSITY_CSR_HPP_
+#ifndef GKO_PUBLIC_CORE_MATRIX_SPARSITY_CSR_HPP_
+#define GKO_PUBLIC_CORE_MATRIX_SPARSITY_CSR_HPP_
 
 
 #include <vector>
@@ -47,6 +47,10 @@ namespace matrix {
 
 template <typename ValueType, typename IndexType>
 class Csr;
+
+
+template <typename ValueType, typename IndexType>
+class Fbcsr;
 
 
 /**
@@ -77,10 +81,12 @@ class SparsityCsr
     friend class EnableCreateMethod<SparsityCsr>;
     friend class EnablePolymorphicObject<SparsityCsr, LinOp>;
     friend class Csr<ValueType, IndexType>;
+    friend class Fbcsr<ValueType, IndexType>;
 
 public:
     using EnableLinOp<SparsityCsr>::convert_to;
     using EnableLinOp<SparsityCsr>::move_to;
+    using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
     using index_type = IndexType;
@@ -264,4 +270,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_SPARSITY_CSR_HPP_
+#endif  // GKO_PUBLIC_CORE_MATRIX_SPARSITY_CSR_HPP_

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -116,9 +116,9 @@ inline size_type agglomerate_supervariables(uint32 max_block_size,
         return 0;
     }
     size_type num_blocks = 1;
-    int32 current_block_size = block_ptrs[1] - block_ptrs[0];
+    auto current_block_size = block_ptrs[1] - block_ptrs[0];
     for (size_type i = 1; i < num_natural_blocks; ++i) {
-        const int32 block_size = block_ptrs[i + 1] - block_ptrs[i];
+        const auto block_size = block_ptrs[i + 1] - block_ptrs[i];
         if (current_block_size + block_size <= max_block_size) {
             current_block_size += block_size;
         } else {
@@ -136,7 +136,7 @@ inline size_type agglomerate_supervariables(uint32 max_block_size,
 
 
 template <typename ValueType, typename IndexType>
-void find_blocks(std::shared_ptr<const ReferenceExecutor> exec,
+void find_blocks(std::shared_ptr<const DefaultExecutor> exec,
                  const matrix::Csr<ValueType, IndexType> *system_matrix,
                  uint32 max_block_size, size_type &num_blocks,
                  Array<IndexType> &block_pointers)
@@ -170,7 +170,7 @@ inline void extract_block(const matrix::Csr<ValueType, IndexType> *mtx,
     for (int row = 0; row < block_size; ++row) {
         const auto start = row_ptrs[block_start + row];
         const auto end = row_ptrs[block_start + row + 1];
-        for (int i = start; i < end; ++i) {
+        for (auto i = start; i < end; ++i) {
             const auto col = col_idxs[i] - block_start;
             if (0 <= col && col < block_size) {
                 block[row * stride + col] = vals[i];
@@ -310,7 +310,7 @@ inline bool invert_block(IndexType block_size, IndexType *perm,
 
 template <typename ReducedType, typename ValueType, typename IndexType>
 inline bool validate_precision_reduction_feasibility(
-    std::shared_ptr<const ReferenceExecutor> exec, IndexType block_size,
+    std::shared_ptr<const DefaultExecutor> exec, IndexType block_size,
     const ValueType *block, size_type stride)
 {
     using gko::detail::float_traits;
@@ -340,7 +340,7 @@ inline bool validate_precision_reduction_feasibility(
 
 
 template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const ReferenceExecutor> exec,
+void generate(std::shared_ptr<const DefaultExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size,
               remove_complex<ValueType> accuracy,
@@ -359,7 +359,7 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
         vector<Array<IndexType>> perm(group_size, {}, exec);
         vector<uint32> pr_descriptors(group_size, uint32{} - 1, exec);
         // extract group of blocks, invert them, figure out storage precision
-        for (size_type b = 0; b < group_size; ++b) {
+        for (IndexType b = 0; b < group_size; ++b) {
             if (b + g >= num_blocks) {
                 break;
             }
@@ -413,7 +413,7 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
                             [](uint32 x, uint32 y) { return x & y; }));
 
         // store the blocks
-        for (size_type b = 0; b < group_size; ++b) {
+        for (IndexType b = 0; b < group_size; ++b) {
             if (b + g >= num_blocks) {
                 break;
             }
@@ -480,7 +480,7 @@ inline void apply_block(size_type block_size, size_type num_rhs,
 }  // namespace
 
 
-void initialize_precisions(std::shared_ptr<const ReferenceExecutor> exec,
+void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec,
                            const Array<precision_reduction> &source,
                            Array<precision_reduction> &precisions)
 {
@@ -492,7 +492,7 @@ void initialize_precisions(std::shared_ptr<const ReferenceExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+void apply(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
            uint32 max_block_size,
            const preconditioner::block_interleaved_storage_scheme<IndexType>
                &storage_scheme,
@@ -528,7 +528,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_JACOBI_APPLY_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void simple_apply(
-    std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
     uint32 max_block_size,
     const preconditioner::block_interleaved_storage_scheme<IndexType>
         &storage_scheme,
@@ -558,6 +558,69 @@ void simple_apply(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL);
+
+
+template <typename ValueType>
+void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
+                  const Array<ValueType> &diag,
+                  const matrix::Dense<ValueType> *alpha,
+                  const matrix::Dense<ValueType> *b,
+                  const matrix::Dense<ValueType> *beta,
+                  matrix::Dense<ValueType> *x)
+{
+    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+        for (size_type j = 0; j < x->get_size()[1]; ++j) {
+            x->at(i, j) = beta->at(0) * x->at(i, j) +
+                          alpha->at(0) * b->at(i, j) * diag.get_const_data()[i];
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL);
+
+
+template <typename ValueType>
+void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
+                         const Array<ValueType> &diag,
+                         const matrix::Dense<ValueType> *b,
+                         matrix::Dense<ValueType> *x)
+{
+    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+        for (size_type j = 0; j < x->get_size()[1]; ++j) {
+            x->at(i, j) = b->at(i, j) * diag.get_const_data()[i];
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_JACOBI_SIMPLE_SCALAR_APPLY_KERNEL);
+
+
+template <typename ValueType>
+void scalar_conj(std::shared_ptr<const DefaultExecutor> exec,
+                 const Array<ValueType> &diag, Array<ValueType> &conj_diag)
+{
+    for (size_type i = 0; i < diag.get_num_elems(); ++i) {
+        conj_diag.get_data()[i] = conj(diag.get_const_data()[i]);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_CONJ_KERNEL);
+
+
+template <typename ValueType>
+void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
+                     const Array<ValueType> &diag, Array<ValueType> &inv_diag)
+{
+    for (size_type i = 0; i < diag.get_num_elems(); ++i) {
+        auto diag_val = diag.get_const_data()[i] == zero<ValueType>()
+                            ? one<ValueType>()
+                            : diag.get_const_data()[i];
+        inv_diag.get_data()[i] = one<ValueType>() / diag_val;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_INVERT_DIAGONAL_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -632,9 +695,29 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL);
 
 
+template <typename ValueType>
+void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,
+                             const Array<ValueType> &blocks,
+                             matrix::Dense<ValueType> *result)
+{
+    auto matrix_size = result->get_size();
+    for (size_type i = 0; i < matrix_size[0]; ++i) {
+        for (size_type j = 0; j < matrix_size[1]; ++j) {
+            result->at(i, j) = zero<ValueType>();
+            if (i == j) {
+                result->at(i, j) = blocks.get_const_data()[i];
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
-    std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
     const Array<precision_reduction> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>

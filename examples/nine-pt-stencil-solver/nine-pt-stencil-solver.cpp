@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -238,6 +238,11 @@ void solve_system(const std::string &executor_string,
                  return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
                                                  true);
              }},
+            {"dpcpp",
+             [] {
+                 return gko::DpcppExecutor::create(0,
+                                                   gko::OmpExecutor::create());
+             }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
     // executor where Ginkgo will perform the computation
@@ -280,7 +285,7 @@ void solve_system(const std::string &executor_string,
         cg::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(dp_2).on(exec),
-                gko::stop::ResidualNormReduction<ValueType>::build()
+                gko::stop::ResidualNorm<ValueType>::build()
                     .with_reduction_factor(reduction_factor)
                     .on(exec))
             .with_preconditioner(bj::build().on(exec))
@@ -294,17 +299,23 @@ void solve_system(const std::string &executor_string,
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
-                  << " [stencil_alpha] [stencil_beta] [stencil_gamma]"
-                  << std::endl;
-        std::exit(-1);
-    }
     using ValueType = double;
     using IndexType = int;
 
-    const int discretization_points = argc >= 2 ? std::atoi(argv[1]) : 100;
-    const auto executor_string = argc >= 3 ? argv[2] : "reference";
+    // Print version information
+    std::cout << gko::version_info::get() << std::endl;
+
+    if (argc == 2 && std::string(argv[1]) == "--help") {
+        std::cerr
+            << "Usage: " << argv[0]
+            << " [executor] [DISCRETIZATION_POINTS] [alpha] [beta] [gamma]"
+            << std::endl;
+        std::exit(-1);
+    }
+
+    const auto executor_string = argc >= 2 ? argv[1] : "reference";
+    const IndexType discretization_points =
+        argc >= 3 ? std::atoi(argv[2]) : 100;
     const ValueType alpha_c = argc >= 4 ? std::atof(argv[3]) : default_alpha;
     const ValueType beta_c = argc >= 5 ? std::atof(argv[4]) : default_beta;
     const ValueType gamma_c = argc >= 6 ? std::atof(argv[5]) : default_gamma;
@@ -312,7 +323,7 @@ int main(int argc, char *argv[])
     // clang-format off
     std::array<ValueType, 9> coefs{
         gamma_c, beta_c, gamma_c,
-	      beta_c, alpha_c, beta_c,
+	    beta_c, alpha_c, beta_c,
         gamma_c, beta_c, gamma_c};
     // clang-format on
 
@@ -354,7 +365,8 @@ int main(int argc, char *argv[])
                 .count()) *
         1e-6;
 
-    print_solution(dp, u.data());
+    // Uncomment to print the solution
+    // print_solution(dp, u.data());
     std::cout << "The average relative error is "
               << calculate_error(dp, u.data(), correct_u) /
                      static_cast<gko::remove_complex<ValueType>>(dp_2)

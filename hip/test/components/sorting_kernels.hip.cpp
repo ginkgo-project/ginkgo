@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -54,8 +54,8 @@ using gko::kernels::hip::bitonic_sort;
 using gko::kernels::hip::config;
 
 
-constexpr auto num_elements = 2048;
-constexpr auto num_local = 4;
+constexpr int num_elements = 2048;
+constexpr int num_local = 4;
 constexpr auto num_threads = num_elements / num_local;
 
 

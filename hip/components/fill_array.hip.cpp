@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@ namespace components {
 constexpr int default_block_size = 512;
 
 
-#include "common/components/fill_array.hpp.inc"
+#include "common/cuda_hip/components/fill_array.hpp.inc"
 
 
 template <typename ValueType>
@@ -64,10 +64,20 @@ void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
                        0, n, as_hip_type(array), as_hip_type(val));
 }
 
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
-template GKO_DECLARE_FILL_ARRAY_KERNEL(size_type);
+
+template <typename ValueType>
+void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
+                    ValueType *array, size_type n)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
+    hipLaunchKernelGGL(kernel::fill_seq_array, dim3(grid_size),
+                       dim3(block_size), 0, 0, n, as_hip_type(array));
+}
+
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
 
 
 }  // namespace components

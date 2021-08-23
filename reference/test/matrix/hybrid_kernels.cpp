@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -61,10 +61,10 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using T = value_type;
     using Mtx = gko::matrix::Hybrid<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
+    using MixedVec = gko::matrix::Dense<gko::next_precision<value_type>>;
 
     Hybrid()
         : exec(gko::ReferenceExecutor::create()),
@@ -119,10 +119,10 @@ protected:
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[2], 2);
         EXPECT_EQ(c[3], 1);
-        EXPECT_EQ(v[0], T{1.0});
-        EXPECT_EQ(v[1], T{3.0});
-        EXPECT_EQ(v[2], T{2.0});
-        EXPECT_EQ(v[3], T{5.0});
+        EXPECT_EQ(v[0], value_type{1.0});
+        EXPECT_EQ(v[1], value_type{3.0});
+        EXPECT_EQ(v[2], value_type{2.0});
+        EXPECT_EQ(v[3], value_type{5.0});
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
@@ -131,7 +131,7 @@ protected:
     std::unique_ptr<Mtx> mtx3;
 };
 
-TYPED_TEST_CASE(Hybrid, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Hybrid, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Hybrid, AppliesToDenseVector)
@@ -139,6 +139,18 @@ TYPED_TEST(Hybrid, AppliesToDenseVector)
     using Vec = typename TestFixture::Vec;
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
+
+    this->mtx1->apply(x.get(), y.get());
+
+    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
+}
+
+
+TYPED_TEST(Hybrid, AppliesToMixedDenseVector)
+{
+    using MixedVec = typename TestFixture::MixedVec;
+    auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = MixedVec::create(this->exec, gko::dim<2>{2, 1});
 
     this->mtx1->apply(x.get(), y.get());
 
@@ -175,6 +187,20 @@ TYPED_TEST(Hybrid, AppliesLinearCombinationToDenseVector)
     auto beta = gko::initialize<Vec>({2.0}, this->exec);
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
+
+    this->mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
+
+    GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
+}
+
+
+TYPED_TEST(Hybrid, AppliesLinearCombinationToMixedDenseVector)
+{
+    using MixedVec = typename TestFixture::MixedVec;
+    auto alpha = gko::initialize<MixedVec>({-1.0}, this->exec);
+    auto beta = gko::initialize<MixedVec>({2.0}, this->exec);
+    auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<MixedVec>({1.0, 2.0}, this->exec);
 
     this->mtx1->apply(alpha.get(), x.get(), beta.get(), y.get());
 
@@ -653,6 +679,209 @@ TYPED_TEST(Hybrid, ExtractsDiagonalWithoutZeros)
     ASSERT_EQ(diag->get_size()[1], 2);
     ASSERT_EQ(diag->get_values()[0], T{1.});
     ASSERT_EQ(diag->get_values()[1], T{5.});
+}
+
+
+TYPED_TEST(Hybrid, InplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = gko::initialize<Mtx>(
+        {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec);
+
+    mtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(
+        mtx, l({{1.0, 2.0, 2.0}, {3.0, 5.0, 0.0}, {0.0, 1.0, 1.5}}), 0.0);
+}
+
+
+TYPED_TEST(Hybrid, OutplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = gko::initialize<Mtx>(
+        {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec,
+        std::make_shared<typename Mtx::column_limit>(2));
+
+    auto abs_mtx = mtx->compute_absolute();
+    auto abs_strategy =
+        gko::as<typename gko::remove_complex<Mtx>::column_limit>(
+            abs_mtx->get_strategy());
+
+    GKO_ASSERT_MTX_NEAR(
+        abs_mtx, l({{1.0, 2.0, 2.0}, {3.0, 5.0, 0.0}, {0.0, 1.0, 1.5}}), 0.0);
+    GKO_ASSERT_EQ(abs_strategy->get_num_columns(), 2);
+}
+
+
+TYPED_TEST(Hybrid, AppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<Vec>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
+    auto x = Vec::create(exec, gko::dim<2>{2,2});
+    // clang-format on
+
+    this->mtx1->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{13.0, 14.0}, complex_type{19.0, 20.0}},
+           {complex_type{10.0, 10.0}, complex_type{15.0, 15.0}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Hybrid, AppliesToMixedComplex)
+{
+    using mixed_value_type =
+        gko::next_precision<typename TestFixture::value_type>;
+    using mixed_complex_type = gko::to_complex<mixed_value_type>;
+    using Vec = gko::matrix::Dense<mixed_complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<Vec>(
+        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
+         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
+         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}}, exec);
+    auto x = Vec::create(exec, gko::dim<2>{2,2});
+    // clang-format on
+
+    this->mtx1->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{mixed_complex_type{13.0, 14.0}, mixed_complex_type{19.0, 20.0}},
+           {mixed_complex_type{10.0, 10.0}, mixed_complex_type{15.0, 15.0}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Hybrid, AdvancedAppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Mtx = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<value_type>;
+    using DenseComplex = gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // clang-format off
+    auto b = gko::initialize<DenseComplex>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
+         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
+    auto x = gko::initialize<DenseComplex>(
+        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
+         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}}}, exec);
+    auto alpha = gko::initialize<Dense>({-1.0}, this->exec);
+    auto beta = gko::initialize<Dense>({2.0}, this->exec);
+    // clang-format on
+
+    this->mtx1->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{complex_type{-11.0, -14.0}, complex_type{-15.0, -18.0}},
+           {complex_type{-6.0, -6.0}, complex_type{-9.0, -9.0}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Hybrid, AdvancedAppliesToMixedComplex)
+{
+    using mixed_value_type =
+        gko::next_precision<typename TestFixture::value_type>;
+    using mixed_complex_type = gko::to_complex<mixed_value_type>;
+    using MixedDense = gko::matrix::Dense<mixed_value_type>;
+    using MixedDenseComplex = gko::matrix::Dense<mixed_complex_type>;
+
+    // clang-format off
+    auto b = gko::initialize<MixedDenseComplex>(
+        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
+         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
+         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}},
+         this->exec);
+    auto x = gko::initialize<MixedDenseComplex>(
+        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
+         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}}},
+         this->exec);
+    auto alpha = gko::initialize<MixedDense>({-1.0}, this->exec);
+    auto beta = gko::initialize<MixedDense>({2.0}, this->exec);
+    // clang-format on
+
+    this->mtx1->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({{mixed_complex_type{-11.0, -14.0}, mixed_complex_type{-15.0, -18.0}},
+           {mixed_complex_type{-6.0, -6.0}, mixed_complex_type{-9.0, -9.0}}}),
+        0.0);
+}
+
+
+template <typename ValueIndexType>
+class HybridComplex : public ::testing::Test {
+protected:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Mtx = gko::matrix::Hybrid<value_type, index_type>;
+};
+
+TYPED_TEST_SUITE(HybridComplex, gko::test::ComplexValueIndexTypes);
+
+
+TYPED_TEST(HybridComplex, OutplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec, std::make_shared<typename Mtx::column_limit>(2));
+    // clang-format on
+
+    auto abs_mtx = mtx->compute_absolute();
+    auto abs_strategy =
+        gko::as<typename gko::remove_complex<Mtx>::column_limit>(
+            abs_mtx->get_strategy());
+
+    GKO_ASSERT_MTX_NEAR(
+        abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+    GKO_ASSERT_EQ(abs_strategy->get_num_columns(), 2);
+}
+
+
+TYPED_TEST(HybridComplex, InplaceAbsolute)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+    auto mtx = gko::initialize<Mtx>(
+        {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
+         {T{-4.0, -3.0}, T{-1.0, 0}, T{0.0, 0.0}},
+         {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
+    // clang-format on
+
+    mtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(
+        mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
 }
 
 

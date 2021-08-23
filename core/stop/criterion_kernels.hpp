@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -87,6 +87,15 @@ GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
 
 }  // namespace set_all_statuses
 }  // namespace hip
+
+
+namespace dpcpp {
+namespace set_all_statuses {
+
+GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
+
+}  // namespace set_all_statuses
+}  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
 

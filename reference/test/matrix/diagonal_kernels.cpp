@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -62,6 +62,8 @@ protected:
     using Csr = gko::matrix::Csr<value_type>;
     using Diag = gko::matrix::Diagonal<value_type>;
     using Dense = gko::matrix::Dense<value_type>;
+    using MixedDense = gko::matrix::Dense<gko::next_precision<value_type>>;
+
     Diagonal()
         : exec(gko::ReferenceExecutor::create()),
           diag1(Diag::create(exec, 2)),
@@ -103,7 +105,47 @@ protected:
     std::unique_ptr<Dense> dense2;
 };
 
-TYPED_TEST_CASE(Diagonal, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Diagonal, gko::test::ValueTypes);
+
+
+TYPED_TEST(Diagonal, ConvertsToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Diagonal = typename TestFixture::Diag;
+    using OtherDiagonal = gko::matrix::Diagonal<OtherType>;
+    auto tmp = OtherDiagonal::create(this->exec);
+    auto res = Diagonal::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    this->diag1->convert_to(tmp.get());
+    tmp->convert_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->diag1, res, residual);
+}
+
+
+TYPED_TEST(Diagonal, MovesToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Diagonal = typename TestFixture::Diag;
+    using OtherDiagonal = gko::matrix::Diagonal<OtherType>;
+    auto tmp = OtherDiagonal::create(this->exec);
+    auto res = Diagonal::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    this->diag1->move_to(tmp.get());
+    tmp->move_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->diag1, res, residual);
+}
 
 
 TYPED_TEST(Diagonal, AppliesToDense)
@@ -120,6 +162,27 @@ TYPED_TEST(Diagonal, AppliesToDense)
 }
 
 
+TYPED_TEST(Diagonal, AppliesToMixedDense)
+{
+    using value_type = typename TestFixture::value_type;
+    using MixedDense = typename TestFixture::MixedDense;
+    using mixed_value_type = typename MixedDense::value_type;
+    auto mdense1 = MixedDense::create(this->exec);
+    auto mdense2 = MixedDense::create(this->exec);
+    this->dense1->convert_to(mdense1.get());
+    this->dense2->convert_to(mdense2.get());
+
+    this->diag1->apply(mdense1.get(), mdense2.get());
+
+    EXPECT_EQ(mdense2->at(0, 0), mixed_value_type{2.0});
+    EXPECT_EQ(mdense2->at(0, 1), mixed_value_type{4.0});
+    EXPECT_EQ(mdense2->at(0, 2), mixed_value_type{6.0});
+    EXPECT_EQ(mdense2->at(1, 0), mixed_value_type{4.5});
+    EXPECT_EQ(mdense2->at(1, 1), mixed_value_type{7.5});
+    EXPECT_EQ(mdense2->at(1, 2), mixed_value_type{10.5});
+}
+
+
 TYPED_TEST(Diagonal, RightAppliesToDense)
 {
     using value_type = typename TestFixture::value_type;
@@ -131,6 +194,69 @@ TYPED_TEST(Diagonal, RightAppliesToDense)
     EXPECT_EQ(this->dense2->at(1, 0), value_type{3.0});
     EXPECT_EQ(this->dense2->at(1, 1), value_type{7.5});
     EXPECT_EQ(this->dense2->at(1, 2), value_type{14.0});
+}
+
+
+TYPED_TEST(Diagonal, RightAppliesToMixedDense)
+{
+    using value_type = typename TestFixture::value_type;
+    using MixedDense = typename TestFixture::MixedDense;
+    using mixed_value_type = typename MixedDense::value_type;
+    auto mdense1 = MixedDense::create(this->exec);
+    auto mdense2 = MixedDense::create(this->exec);
+    this->dense1->convert_to(mdense1.get());
+    this->dense2->convert_to(mdense2.get());
+
+    this->diag2->rapply(mdense1.get(), mdense2.get());
+
+    EXPECT_EQ(mdense2->at(0, 0), mixed_value_type{2.0});
+    EXPECT_EQ(mdense2->at(0, 1), mixed_value_type{6.0});
+    EXPECT_EQ(mdense2->at(0, 2), mixed_value_type{12.0});
+    EXPECT_EQ(mdense2->at(1, 0), mixed_value_type{3.0});
+    EXPECT_EQ(mdense2->at(1, 1), mixed_value_type{7.5});
+    EXPECT_EQ(mdense2->at(1, 2), mixed_value_type{14.0});
+}
+
+
+TYPED_TEST(Diagonal, AppliesLinearCombinationToDense)
+{
+    using value_type = typename TestFixture::value_type;
+    using Dense = typename TestFixture::Dense;
+    auto alpha = gko::initialize<Dense>({-1.0}, this->exec);
+    auto beta = gko::initialize<Dense>({2.0}, this->exec);
+
+    this->diag1->apply(alpha.get(), this->dense1.get(), beta.get(),
+                       this->dense2.get());
+
+    EXPECT_EQ(this->dense2->at(0, 0), value_type{0.0});
+    EXPECT_EQ(this->dense2->at(0, 1), value_type{0.0});
+    EXPECT_EQ(this->dense2->at(0, 2), value_type{0.0});
+    EXPECT_EQ(this->dense2->at(1, 0), value_type{-1.5});
+    EXPECT_EQ(this->dense2->at(1, 1), value_type{-2.5});
+    EXPECT_EQ(this->dense2->at(1, 2), value_type{-3.5});
+}
+
+
+TYPED_TEST(Diagonal, AppliesLinearCombinationToMixedDense)
+{
+    using value_type = typename TestFixture::value_type;
+    using MixedDense = typename TestFixture::MixedDense;
+    using mixed_value_type = typename MixedDense::value_type;
+    auto mdense1 = MixedDense::create(this->exec);
+    auto mdense2 = MixedDense::create(this->exec);
+    auto alpha = gko::initialize<MixedDense>({-1.0}, this->exec);
+    auto beta = gko::initialize<MixedDense>({2.0}, this->exec);
+    this->dense1->convert_to(mdense1.get());
+    this->dense2->convert_to(mdense2.get());
+
+    this->diag1->apply(alpha.get(), mdense1.get(), beta.get(), mdense2.get());
+
+    EXPECT_EQ(mdense2->at(0, 0), mixed_value_type{0.0});
+    EXPECT_EQ(mdense2->at(0, 1), mixed_value_type{0.0});
+    EXPECT_EQ(mdense2->at(0, 2), mixed_value_type{0.0});
+    EXPECT_EQ(mdense2->at(1, 0), mixed_value_type{-1.5});
+    EXPECT_EQ(mdense2->at(1, 1), mixed_value_type{-2.5});
+    EXPECT_EQ(mdense2->at(1, 2), mixed_value_type{-3.5});
 }
 
 
@@ -356,6 +482,151 @@ TYPED_TEST(Diagonal, ConvertsToCsr)
 }
 
 
+TYPED_TEST(Diagonal, InplaceAbsolute)
+{
+    using value_type = typename TestFixture::value_type;
+
+    this->diag1->compute_absolute_inplace();
+    auto values = this->diag1->get_values();
+
+    EXPECT_EQ(values[0], value_type(2.0));
+    EXPECT_EQ(values[1], value_type(3.0));
+}
+
+
+TYPED_TEST(Diagonal, OutplaceAbsolute)
+{
+    using value_type = typename TestFixture::value_type;
+    using abs_type = gko::remove_complex<value_type>;
+
+    auto abs_diag = this->diag1->compute_absolute();
+    auto values = abs_diag->get_values();
+
+    EXPECT_EQ(values[0], value_type(2.0));
+    EXPECT_EQ(values[1], value_type(3.0));
+}
+
+
+TYPED_TEST(Diagonal, AppliesToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Vec = gko::matrix::Dense<complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto dense1 =
+        gko::initialize<Vec>({{complex_type{1.0, 2.0}, complex_type{2.0, 4.0},
+                               complex_type{3.0, 6.0}},
+                              {complex_type{1.5, 3.0}, complex_type{2.5, 5.0},
+                               complex_type{3.5, 7.0}}},
+                             exec);
+    auto dense2 = Vec::create(exec, gko::dim<2>{2, 3});
+
+    this->diag1->apply(dense1.get(), dense2.get());
+
+    GKO_ASSERT_MTX_NEAR(dense2,
+                        l({{complex_type{2.0, 4.0}, complex_type{4.0, 8.0},
+                            complex_type{6.0, 12.0}},
+                           {complex_type{4.5, 9.0}, complex_type{7.5, 15.0},
+                            complex_type{10.5, 21.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(Diagonal, AppliesToMixedComplex)
+{
+    using mixed_value_type =
+        gko::next_precision<typename TestFixture::value_type>;
+    using mixed_complex_type = gko::to_complex<mixed_value_type>;
+    using Vec = gko::matrix::Dense<mixed_complex_type>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mdense1 = gko::initialize<Vec>(
+        {{mixed_complex_type{1.0, 2.0}, mixed_complex_type{2.0, 4.0},
+          mixed_complex_type{3.0, 6.0}},
+         {mixed_complex_type{1.5, 3.0}, mixed_complex_type{2.5, 5.0},
+          mixed_complex_type{3.5, 7.0}}},
+        exec);
+    auto mdense2 = Vec::create(exec, gko::dim<2>{2, 3});
+
+    this->diag1->apply(mdense1.get(), mdense2.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        mdense2,
+        l({{mixed_complex_type{2.0, 4.0}, mixed_complex_type{4.0, 8.0},
+            mixed_complex_type{6.0, 12.0}},
+           {mixed_complex_type{4.5, 9.0}, mixed_complex_type{7.5, 15.0},
+            mixed_complex_type{10.5, 21.0}}}),
+        0.0);
+}
+
+
+TYPED_TEST(Diagonal, AppliesLinearCombinationToComplex)
+{
+    using value_type = typename TestFixture::value_type;
+    using complex_type = gko::to_complex<value_type>;
+    using Vec = gko::matrix::Dense<complex_type>;
+    using Scalar = gko::matrix::Dense<value_type>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto dense1 =
+        gko::initialize<Vec>({{complex_type{1.0, 2.0}, complex_type{2.0, 4.0},
+                               complex_type{3.0, 6.0}},
+                              {complex_type{1.5, 3.0}, complex_type{2.5, 5.0},
+                               complex_type{3.5, 7.0}}},
+                             exec);
+    auto dense2 =
+        gko::initialize<Vec>({{complex_type{1.0, 2.0}, complex_type{2.0, 4.0},
+                               complex_type{3.0, 6.0}},
+                              {complex_type{1.5, 3.0}, complex_type{2.5, 5.0},
+                               complex_type{3.5, 7.0}}},
+                             exec);
+    auto alpha = gko::initialize<Scalar>({-1.0}, this->exec);
+    auto beta = gko::initialize<Scalar>({2.0}, this->exec);
+
+    this->diag1->apply(alpha.get(), dense1.get(), beta.get(), dense2.get());
+
+    GKO_ASSERT_MTX_NEAR(dense2,
+                        l({{complex_type{0.0, 0.0}, complex_type{0.0, 0.0},
+                            complex_type{0.0, 0.0}},
+                           {complex_type{-1.5, -3.0}, complex_type{-2.5, -5.0},
+                            complex_type{-3.5, -7.0}}}),
+                        0.0);
+}
+
+
+TYPED_TEST(Diagonal, AppliesLinearCombinationToMixedComplex)
+{
+    using mixed_value_type =
+        gko::next_precision<typename TestFixture::value_type>;
+    using mixed_complex_type = gko::to_complex<mixed_value_type>;
+    using Vec = gko::matrix::Dense<mixed_complex_type>;
+    using Scalar = gko::matrix::Dense<mixed_value_type>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto dense1 = gko::initialize<Vec>(
+        {{mixed_complex_type{1.0, 2.0}, mixed_complex_type{2.0, 4.0},
+          mixed_complex_type{3.0, 6.0}},
+         {mixed_complex_type{1.5, 3.0}, mixed_complex_type{2.5, 5.0},
+          mixed_complex_type{3.5, 7.0}}},
+        exec);
+    auto dense2 = gko::initialize<Vec>(
+        {{mixed_complex_type{1.0, 2.0}, mixed_complex_type{2.0, 4.0},
+          mixed_complex_type{3.0, 6.0}},
+         {mixed_complex_type{1.5, 3.0}, mixed_complex_type{2.5, 5.0},
+          mixed_complex_type{3.5, 7.0}}},
+        exec);
+    auto alpha = gko::initialize<Scalar>({-1.0}, this->exec);
+    auto beta = gko::initialize<Scalar>({2.0}, this->exec);
+
+    this->diag1->apply(alpha.get(), dense1.get(), beta.get(), dense2.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        dense2,
+        l({{mixed_complex_type{0.0, 0.0}, mixed_complex_type{0.0, 0.0},
+            mixed_complex_type{0.0, 0.0}},
+           {mixed_complex_type{-1.5, -3.0}, mixed_complex_type{-2.5, -5.0},
+            mixed_complex_type{-3.5, -7.0}}}),
+        0.0);
+}
+
+
 template <typename ValueType>
 class DiagonalComplex : public ::testing::Test {
 protected:
@@ -363,14 +634,13 @@ protected:
     using Diag = gko::matrix::Diagonal<value_type>;
 };
 
-TYPED_TEST_CASE(DiagonalComplex, gko::test::ComplexValueTypes);
+TYPED_TEST_SUITE(DiagonalComplex, gko::test::ComplexValueTypes);
 
 
 TYPED_TEST(DiagonalComplex, MtxIsConjugateTransposable)
 {
     using Diag = typename TestFixture::Diag;
     using value_type = typename TestFixture::value_type;
-
     auto exec = gko::ReferenceExecutor::create();
     auto diag = Diag::create(exec, 3);
     auto diag_values = diag->get_values();
@@ -381,10 +651,51 @@ TYPED_TEST(DiagonalComplex, MtxIsConjugateTransposable)
     auto trans = diag->conj_transpose();
     auto trans_as_diagonal = static_cast<Diag *>(trans.get());
     auto trans_values = trans_as_diagonal->get_values();
+
     EXPECT_EQ(trans->get_size(), gko::dim<2>(3));
     EXPECT_EQ(trans_values[0], (value_type{1.0, -2.0}));
     EXPECT_EQ(trans_values[1], (value_type{3.0, 0.0}));
     EXPECT_EQ(trans_values[2], (value_type{0.0, -1.5}));
+}
+
+
+TYPED_TEST(DiagonalComplex, InplaceAbsolute)
+{
+    using Diag = typename TestFixture::Diag;
+    using value_type = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    auto diag = Diag::create(exec, 3);
+    auto diag_values = diag->get_values();
+    diag_values[0] = value_type{3.0, -4.0};
+    diag_values[1] = value_type{-3.0, 0.0};
+    diag_values[2] = value_type{0.0, -1.5};
+
+    diag->compute_absolute_inplace();
+
+    EXPECT_EQ(diag_values[0], (value_type{5.0, 0.0}));
+    EXPECT_EQ(diag_values[1], (value_type{3.0, 0.0}));
+    EXPECT_EQ(diag_values[2], (value_type{1.5, 0.0}));
+}
+
+
+TYPED_TEST(DiagonalComplex, OutplaceAbsolute)
+{
+    using Diag = typename TestFixture::Diag;
+    using value_type = typename TestFixture::value_type;
+    using abs_type = gko::remove_complex<value_type>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto diag = Diag::create(exec, 3);
+    auto diag_values = diag->get_values();
+    diag_values[0] = value_type{3.0, -4.0};
+    diag_values[1] = value_type{-3.0, 0.0};
+    diag_values[2] = value_type{0.0, -1.5};
+
+    auto abs_diag = diag->compute_absolute();
+    auto abs_values = abs_diag->get_values();
+
+    EXPECT_EQ(abs_values[0], (value_type{5.0}));
+    EXPECT_EQ(abs_values[1], (value_type{3.0}));
+    EXPECT_EQ(abs_values[2], (value_type{1.5}));
 }
 
 

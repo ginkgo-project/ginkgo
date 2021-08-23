@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,10 +52,17 @@ version version_info::get_hip_version() noexcept
 
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
-    int device_id, std::shared_ptr<Executor> master, bool device_reset)
+    int device_id, std::shared_ptr<Executor> master, bool device_reset,
+    allocation_mode alloc_mode)
 {
-    return std::shared_ptr<HipExecutor>(
-        new HipExecutor(device_id, std::move(master), device_reset));
+    return std::shared_ptr<HipExecutor>(new HipExecutor(
+        device_id, std::move(master), device_reset, alloc_mode));
+}
+
+
+void HipExecutor::populate_exec_info(const MachineTopology *mach_topo)
+{
+    // This method is always called, so cannot throw when not compiled.
 }
 
 
@@ -90,6 +97,11 @@ void HipExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
     GKO_NOT_COMPILED(hip);
 
 
+void HipExecutor::raw_copy_to(const DpcppExecutor *, size_type num_bytes,
+                              const void *src_ptr, void *dest_ptr) const
+    GKO_NOT_COMPILED(hip);
+
+
 void HipExecutor::synchronize() const GKO_NOT_COMPILED(hip);
 
 
@@ -107,6 +119,12 @@ std::string HipError::get_error(int64)
 
 
 std::string HipblasError::get_error(int64)
+{
+    return "ginkgo HIP module is not compiled";
+}
+
+
+std::string HiprandError::get_error(int64)
 {
     return "ginkgo HIP module is not compiled";
 }

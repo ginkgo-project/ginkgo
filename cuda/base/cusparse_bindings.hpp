@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -903,6 +903,20 @@ inline void destroy(csrilu02Info_t info)
 }
 
 
+inline csric02Info_t create_ic0_info()
+{
+    csric02Info_t info{};
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateCsric02Info(&info));
+    return info;
+}
+
+
+inline void destroy(csric02Info_t info)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyCsric02Info(info));
+}
+
+
 // CUDA versions 9.2 and above have csrsm2.
 #if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
 
@@ -1350,6 +1364,104 @@ GKO_BIND_CUSPARSE_ILU0(std::complex<float>, cusparseCcsrilu02);
 GKO_BIND_CUSPARSE_ILU0(std::complex<double>, cusparseZcsrilu02);
 
 #undef GKO_BIND_CUSPARSE_ILU0
+
+
+template <typename ValueType, typename IndexType>
+void ic0_buffer_size(cusparseHandle_t handle, IndexType m, IndexType nnz,
+                     const cusparseMatDescr_t descr, const ValueType *vals,
+                     const IndexType *row_ptrs, const IndexType *col_idxs,
+                     csric02Info_t info,
+                     size_type &buffer_size) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_CUSPARSE_IC0_BUFFER_SIZE(ValueType, CusparseName)           \
+    template <>                                                              \
+    inline void ic0_buffer_size<ValueType, int32>(                           \
+        cusparseHandle_t handle, int32 m, int32 nnz,                         \
+        const cusparseMatDescr_t descr, const ValueType *vals,               \
+        const int32 *row_ptrs, const int32 *col_idxs, csric02Info_t info,    \
+        size_type &buffer_size)                                              \
+    {                                                                        \
+        int tmp_buffer_size{};                                               \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                       \
+            CusparseName(handle, m, nnz, descr,                              \
+                         as_culibs_type(const_cast<ValueType *>(vals)),      \
+                         row_ptrs, col_idxs, info, &tmp_buffer_size));       \
+        buffer_size = tmp_buffer_size;                                       \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_CUSPARSE_IC0_BUFFER_SIZE(float, cusparseScsric02_bufferSize);
+GKO_BIND_CUSPARSE_IC0_BUFFER_SIZE(double, cusparseDcsric02_bufferSize);
+GKO_BIND_CUSPARSE_IC0_BUFFER_SIZE(std::complex<float>,
+                                  cusparseCcsric02_bufferSize);
+GKO_BIND_CUSPARSE_IC0_BUFFER_SIZE(std::complex<double>,
+                                  cusparseZcsric02_bufferSize);
+
+#undef GKO_BIND_CUSPARSE_IC0_BUFFER_SIZE
+
+
+template <typename ValueType, typename IndexType>
+void ic0_analysis(cusparseHandle_t handle, IndexType m, IndexType nnz,
+                  const cusparseMatDescr_t descr, const ValueType *vals,
+                  const IndexType *row_ptrs, const IndexType *col_idxs,
+                  csric02Info_t info, cusparseSolvePolicy_t policy,
+                  void *buffer) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_CUSPARSE_IC0_ANALYSIS(ValueType, CusparseName)              \
+    template <>                                                              \
+    inline void ic0_analysis<ValueType, int32>(                              \
+        cusparseHandle_t handle, int32 m, int32 nnz,                         \
+        const cusparseMatDescr_t descr, const ValueType *vals,               \
+        const int32 *row_ptrs, const int32 *col_idxs, csric02Info_t info,    \
+        cusparseSolvePolicy_t policy, void *buffer)                          \
+    {                                                                        \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                       \
+            CusparseName(handle, m, nnz, descr, as_culibs_type(vals),        \
+                         row_ptrs, col_idxs, info, policy, buffer));         \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_CUSPARSE_IC0_ANALYSIS(float, cusparseScsric02_analysis);
+GKO_BIND_CUSPARSE_IC0_ANALYSIS(double, cusparseDcsric02_analysis);
+GKO_BIND_CUSPARSE_IC0_ANALYSIS(std::complex<float>, cusparseCcsric02_analysis);
+GKO_BIND_CUSPARSE_IC0_ANALYSIS(std::complex<double>, cusparseZcsric02_analysis);
+
+#undef GKO_BIND_CUSPARSE_ILU0_ANALYSIS
+
+
+template <typename ValueType, typename IndexType>
+void ic0(cusparseHandle_t handle, IndexType m, IndexType nnz,
+         const cusparseMatDescr_t descr, ValueType *vals,
+         const IndexType *row_ptrs, const IndexType *col_idxs,
+         csric02Info_t info, cusparseSolvePolicy_t policy,
+         void *buffer) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_CUSPARSE_IC0(ValueType, CusparseName)                       \
+    template <>                                                              \
+    inline void ic0<ValueType, int32>(                                       \
+        cusparseHandle_t handle, int32 m, int32 nnz,                         \
+        const cusparseMatDescr_t descr, ValueType *vals,                     \
+        const int32 *row_ptrs, const int32 *col_idxs, csric02Info_t info,    \
+        cusparseSolvePolicy_t policy, void *buffer)                          \
+    {                                                                        \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                       \
+            CusparseName(handle, m, nnz, descr, as_culibs_type(vals),        \
+                         row_ptrs, col_idxs, info, policy, buffer));         \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_CUSPARSE_IC0(float, cusparseScsric02);
+GKO_BIND_CUSPARSE_IC0(double, cusparseDcsric02);
+GKO_BIND_CUSPARSE_IC0(std::complex<float>, cusparseCcsric02);
+GKO_BIND_CUSPARSE_IC0(std::complex<double>, cusparseZcsric02);
+
+#undef GKO_BIND_CUSPARSE_IC0
 
 
 }  // namespace cusparse

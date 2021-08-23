@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -464,7 +464,7 @@ TEST(Record, CatchesCriterionCheckStarted)
 }
 
 
-TEST(Record, CatchesCriterionCheckCompleted)
+TEST(Record, CatchesCriterionCheckCompletedOld)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
@@ -478,6 +478,36 @@ TEST(Record, CatchesCriterionCheckCompleted)
     logger->on<gko::log::Logger::criterion_check_completed>(
         criterion.get(), 1, nullptr, nullptr, nullptr, RelativeStoppingId, true,
         &stop_status, true, true);
+
+    stop_status.get_data()->reset();
+    stop_status.get_data()->stop(RelativeStoppingId);
+    auto &data = logger->get().criterion_check_completed.back();
+    ASSERT_NE(data->criterion, nullptr);
+    ASSERT_EQ(data->stopping_id, RelativeStoppingId);
+    ASSERT_EQ(data->set_finalized, true);
+    ASSERT_EQ(data->status->get_const_data()->has_stopped(), true);
+    ASSERT_EQ(data->status->get_const_data()->get_id(),
+              stop_status.get_const_data()->get_id());
+    ASSERT_EQ(data->status->get_const_data()->is_finalized(), true);
+    ASSERT_EQ(data->oneChanged, true);
+    ASSERT_EQ(data->converged, true);
+}
+
+
+TEST(Record, CatchesCriterionCheckCompleted)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto logger = gko::log::Record::create(
+        exec, gko::log::Logger::criterion_check_completed_mask);
+    auto criterion =
+        gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
+            nullptr, nullptr, nullptr);
+    constexpr gko::uint8 RelativeStoppingId{42};
+    gko::Array<gko::stopping_status> stop_status(exec, 1);
+
+    logger->on<gko::log::Logger::criterion_check_completed>(
+        criterion.get(), 1, nullptr, nullptr, nullptr, nullptr,
+        RelativeStoppingId, true, &stop_status, true, true);
 
     stop_status.get_data()->reset();
     stop_status.get_data()->stop(RelativeStoppingId);
@@ -509,11 +539,12 @@ TEST(Record, CatchesIterations)
     auto residual = gko::initialize<Dense>({-4.4}, exec);
     auto solution = gko::initialize<Dense>({-2.2}, exec);
     auto residual_norm = gko::initialize<Dense>({-3.3}, exec);
+    auto implicit_sq_residual_norm = gko::initialize<Dense>({-3.5}, exec);
 
 
     logger->on<gko::log::Logger::iteration_complete>(
         solver.get(), num_iters, residual.get(), solution.get(),
-        residual_norm.get());
+        residual_norm.get(), implicit_sq_residual_norm.get());
 
     auto &data = logger->get().iteration_completed.back();
     ASSERT_NE(data->solver.get(), nullptr);
@@ -522,6 +553,8 @@ TEST(Record, CatchesIterations)
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->solution.get()), solution, 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->residual_norm.get()),
                         residual_norm, 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->implicit_sq_residual_norm.get()),
+                        implicit_sq_residual_norm, 0);
 }
 
 

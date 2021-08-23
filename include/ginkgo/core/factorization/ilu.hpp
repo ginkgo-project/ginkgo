@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_FACTORIZATION_ILU_HPP_
-#define GKO_CORE_FACTORIZATION_ILU_HPP_
+#ifndef GKO_PUBLIC_CORE_FACTORIZATION_ILU_HPP_
+#define GKO_PUBLIC_CORE_FACTORIZATION_ILU_HPP_
 
 
 #include <memory>
@@ -109,6 +109,18 @@ public:
          */
         std::shared_ptr<typename matrix_type::strategy_type>
             GKO_FACTORY_PARAMETER_SCALAR(u_strategy, nullptr);
+
+        /**
+         * The `system_matrix`, which will be given to this factory, must be
+         * sorted (first by row, then by column) in order for the algorithm
+         * to work. If it is known that the matrix will be sorted, this
+         * parameter can be set to `true` to skip the sorting (therefore,
+         * shortening the runtime).
+         * However, if it is unknown or if the matrix is known to be not sorted,
+         * it must remain `false`, otherwise, this factorization might be
+         * incorrect.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ilu, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -126,7 +138,7 @@ protected:
             parameters_.u_strategy =
                 std::make_shared<typename matrix_type::classical>();
         }
-        generate_l_u(system_matrix)->move_to(this);
+        generate_l_u(system_matrix, parameters_.skip_sorting)->move_to(this);
     }
 
     /**
@@ -138,11 +150,15 @@ protected:
      * @param system_matrix  the source matrix used to generate the factors.
      *                       @note: system_matrix must be convertible to a Csr
      *                              Matrix, otherwise, an exception is thrown.
+     * @param skip_sorting  determines if the sorting of system_matrix can be
+     *                      skipped (therefore, marking that it is already
+     *                      sorted)
      * @return  A Composition, containing the incomplete LU factors for the
      *          given system_matrix (first element is L, then U)
      */
     std::unique_ptr<Composition<ValueType>> generate_l_u(
-        const std::shared_ptr<const LinOp> &system_matrix) const;
+        const std::shared_ptr<const LinOp> &system_matrix,
+        bool skip_sorting) const;
 };
 
 
@@ -150,4 +166,4 @@ protected:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_FACTORIZATION_ILU_HPP_
+#endif  // GKO_PUBLIC_CORE_FACTORIZATION_ILU_HPP_

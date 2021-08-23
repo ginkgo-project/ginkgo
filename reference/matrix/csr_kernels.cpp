@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -218,7 +218,7 @@ void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_col_idxs.clear();
         spgemm_insert_row2(local_col_idxs, a, b, a_row);
-        c_row_ptrs[a_row] = local_col_idxs.size();
+        c_row_ptrs[a_row] = static_cast<IndexType>(local_col_idxs.size());
     }
 
     // build row pointers
@@ -272,7 +272,7 @@ void advanced_spgemm(std::shared_ptr<const ReferenceExecutor> exec,
         local_col_idxs.clear();
         spgemm_insert_row(local_col_idxs, d, a_row);
         spgemm_insert_row2(local_col_idxs, a, b, a_row);
-        c_row_ptrs[a_row] = local_col_idxs.size();
+        c_row_ptrs[a_row] = static_cast<IndexType>(local_col_idxs.size());
     }
 
     // build row pointers
@@ -429,7 +429,7 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
     const auto source_col_idxs = source->get_const_col_idxs();
     const auto source_values = source->get_const_values();
 
-    int slice_num = ceildiv(num_rows, slice_size);
+    auto slice_num = ceildiv(num_rows, slice_size);
     slice_sets[0] = 0;
     for (size_type slice = 0; slice < slice_num; slice++) {
         if (slice > 0) {
@@ -689,53 +689,85 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void row_permute_impl(std::shared_ptr<const ReferenceExecutor> exec,
-                      const Array<IndexType> *permutation_indices,
-                      const matrix::Csr<ValueType, IndexType> *orig,
-                      matrix::Csr<ValueType, IndexType> *row_permuted)
+template <typename IndexType>
+void invert_permutation(std::shared_ptr<const DefaultExecutor> exec,
+                        size_type size, const IndexType *permutation_indices,
+                        IndexType *inv_permutation)
 {
-    auto perm = permutation_indices->get_const_data();
-    auto orig_row_ptrs = orig->get_const_row_ptrs();
-    auto orig_col_idxs = orig->get_const_col_idxs();
-    auto orig_vals = orig->get_const_values();
-    auto rp_row_ptrs = row_permuted->get_row_ptrs();
-    auto rp_col_idxs = row_permuted->get_col_idxs();
-    auto rp_vals = row_permuted->get_values();
-    size_type num_rows = orig->get_size()[0];
-    size_type num_nnz = orig->get_num_stored_elements();
+    for (IndexType i = 0; i < static_cast<IndexType>(size); ++i) {
+        inv_permutation[permutation_indices[i]] = i;
+    }
+}
 
-    size_type cur_ptr = 0;
-    rp_row_ptrs[0] = cur_ptr;
-    vector<size_type> orig_num_nnz_per_row(num_rows, 0, exec);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVERT_PERMUTATION_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inv_symm_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                      const IndexType *perm,
+                      const matrix::Csr<ValueType, IndexType> *orig,
+                      matrix::Csr<ValueType, IndexType> *permuted)
+{
+    auto in_row_ptrs = orig->get_const_row_ptrs();
+    auto in_col_idxs = orig->get_const_col_idxs();
+    auto in_vals = orig->get_const_values();
+    auto p_row_ptrs = permuted->get_row_ptrs();
+    auto p_col_idxs = permuted->get_col_idxs();
+    auto p_vals = permuted->get_values();
+    size_type num_rows = orig->get_size()[0];
+
     for (size_type row = 0; row < num_rows; ++row) {
-        orig_num_nnz_per_row[row] = orig_row_ptrs[row + 1] - orig_row_ptrs[row];
+        auto src_row = row;
+        auto dst_row = perm[row];
+        p_row_ptrs[dst_row] = in_row_ptrs[src_row + 1] - in_row_ptrs[src_row];
     }
+    components::prefix_sum(exec, p_row_ptrs, num_rows + 1);
     for (size_type row = 0; row < num_rows; ++row) {
-        rp_row_ptrs[row + 1] =
-            rp_row_ptrs[row] + orig_num_nnz_per_row[perm[row]];
-    }
-    rp_row_ptrs[num_rows] = orig_row_ptrs[num_rows];
-    for (size_type row = 0; row < num_rows; ++row) {
-        auto new_row = perm[row];
-        auto new_k = orig_row_ptrs[new_row];
-        for (size_type k = rp_row_ptrs[row];
-             k < size_type(rp_row_ptrs[row + 1]); ++k) {
-            rp_col_idxs[k] = orig_col_idxs[new_k];
-            rp_vals[k] = orig_vals[new_k];
-            new_k++;
+        auto src_row = row;
+        auto dst_row = perm[row];
+        auto src_begin = in_row_ptrs[src_row];
+        auto dst_begin = p_row_ptrs[dst_row];
+        auto row_size = in_row_ptrs[src_row + 1] - src_begin;
+        for (IndexType i = 0; i < row_size; ++i) {
+            p_col_idxs[dst_begin + i] = perm[in_col_idxs[src_begin + i]];
+            p_vals[dst_begin + i] = in_vals[src_begin + i];
         }
     }
 }
 
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INV_SYMM_PERMUTE_KERNEL);
+
 
 template <typename ValueType, typename IndexType>
 void row_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                 const Array<IndexType> *permutation_indices,
+                 const IndexType *perm,
                  const matrix::Csr<ValueType, IndexType> *orig,
                  matrix::Csr<ValueType, IndexType> *row_permuted)
 {
-    row_permute_impl(exec, permutation_indices, orig, row_permuted);
+    auto in_row_ptrs = orig->get_const_row_ptrs();
+    auto in_col_idxs = orig->get_const_col_idxs();
+    auto in_vals = orig->get_const_values();
+    auto rp_row_ptrs = row_permuted->get_row_ptrs();
+    auto rp_col_idxs = row_permuted->get_col_idxs();
+    auto rp_vals = row_permuted->get_values();
+    size_type num_rows = orig->get_size()[0];
+
+    for (size_type row = 0; row < num_rows; ++row) {
+        auto src_row = perm[row];
+        auto dst_row = row;
+        rp_row_ptrs[dst_row] = in_row_ptrs[src_row + 1] - in_row_ptrs[src_row];
+    }
+    components::prefix_sum(exec, rp_row_ptrs, num_rows + 1);
+    for (size_type row = 0; row < num_rows; ++row) {
+        auto src_row = perm[row];
+        auto dst_row = row;
+        auto src_begin = in_row_ptrs[src_row];
+        auto dst_begin = rp_row_ptrs[dst_row];
+        auto row_size = in_row_ptrs[src_row + 1] - src_begin;
+        std::copy_n(in_col_idxs + src_begin, row_size, rp_col_idxs + dst_begin);
+        std::copy_n(in_vals + src_begin, row_size, rp_vals + dst_begin);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -744,18 +776,33 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                         const Array<IndexType> *permutation_indices,
+                         const IndexType *perm,
                          const matrix::Csr<ValueType, IndexType> *orig,
                          matrix::Csr<ValueType, IndexType> *row_permuted)
 {
-    auto perm = permutation_indices->get_const_data();
-    Array<IndexType> inv_perm(*permutation_indices);
-    auto iperm = inv_perm.get_data();
-    for (size_type ind = 0; ind < inv_perm.get_num_elems(); ++ind) {
-        iperm[perm[ind]] = ind;
-    }
+    auto in_row_ptrs = orig->get_const_row_ptrs();
+    auto in_col_idxs = orig->get_const_col_idxs();
+    auto in_vals = orig->get_const_values();
+    auto rp_row_ptrs = row_permuted->get_row_ptrs();
+    auto rp_col_idxs = row_permuted->get_col_idxs();
+    auto rp_vals = row_permuted->get_values();
+    size_type num_rows = orig->get_size()[0];
 
-    row_permute_impl(exec, &inv_perm, orig, row_permuted);
+    for (size_type row = 0; row < num_rows; ++row) {
+        auto src_row = row;
+        auto dst_row = perm[row];
+        rp_row_ptrs[dst_row] = in_row_ptrs[src_row + 1] - in_row_ptrs[src_row];
+    }
+    components::prefix_sum(exec, rp_row_ptrs, num_rows + 1);
+    for (size_type row = 0; row < num_rows; ++row) {
+        auto src_row = row;
+        auto dst_row = perm[row];
+        auto src_begin = in_row_ptrs[src_row];
+        auto dst_begin = rp_row_ptrs[dst_row];
+        auto row_size = in_row_ptrs[src_row + 1] - src_begin;
+        std::copy_n(in_col_idxs + src_begin, row_size, rp_col_idxs + dst_begin);
+        std::copy_n(in_vals + src_begin, row_size, rp_vals + dst_begin);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -763,59 +810,29 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void column_permute_impl(const Array<IndexType> *permutation_indices,
-                         const matrix::Csr<ValueType, IndexType> *orig,
-                         matrix::Csr<ValueType, IndexType> *column_permuted)
-{
-    auto perm = permutation_indices->get_const_data();
-    auto orig_row_ptrs = orig->get_const_row_ptrs();
-    auto orig_col_idxs = orig->get_const_col_idxs();
-    auto orig_vals = orig->get_const_values();
-    auto cp_row_ptrs = column_permuted->get_row_ptrs();
-    auto cp_col_idxs = column_permuted->get_col_idxs();
-    auto cp_vals = column_permuted->get_values();
-    auto num_nnz = orig->get_num_stored_elements();
-    size_type num_rows = orig->get_size()[0];
-    size_type num_cols = orig->get_size()[1];
-
-    for (size_type row = 0; row < num_rows; ++row) {
-        cp_row_ptrs[row] = orig_row_ptrs[row];
-        for (size_type k = orig_row_ptrs[row];
-             k < size_type(orig_row_ptrs[row + 1]); ++k) {
-            cp_col_idxs[k] = perm[orig_col_idxs[k]];
-            cp_vals[k] = orig_vals[k];
-        }
-    }
-    cp_row_ptrs[num_rows] = orig_row_ptrs[num_rows];
-}
-
-
-template <typename ValueType, typename IndexType>
-void column_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                    const Array<IndexType> *permutation_indices,
-                    const matrix::Csr<ValueType, IndexType> *orig,
-                    matrix::Csr<ValueType, IndexType> *column_permuted)
-{
-    auto perm = permutation_indices->get_const_data();
-    Array<IndexType> inv_perm(*permutation_indices);
-    auto iperm = inv_perm.get_data();
-    for (size_type ind = 0; ind < inv_perm.get_num_elems(); ++ind) {
-        iperm[perm[ind]] = ind;
-    }
-    column_permute_impl(&inv_perm, orig, column_permuted);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_COLUMN_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void inverse_column_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                            const Array<IndexType> *permutation_indices,
+                            const IndexType *perm,
                             const matrix::Csr<ValueType, IndexType> *orig,
                             matrix::Csr<ValueType, IndexType> *column_permuted)
 {
-    column_permute_impl(permutation_indices, orig, column_permuted);
+    auto in_row_ptrs = orig->get_const_row_ptrs();
+    auto in_col_idxs = orig->get_const_col_idxs();
+    auto in_vals = orig->get_const_values();
+    auto cp_row_ptrs = column_permuted->get_row_ptrs();
+    auto cp_col_idxs = column_permuted->get_col_idxs();
+    auto cp_vals = column_permuted->get_values();
+    auto num_rows = orig->get_size()[0];
+
+    for (size_type row = 0; row < num_rows; ++row) {
+        auto row_begin = in_row_ptrs[row];
+        auto row_end = in_row_ptrs[row + 1];
+        cp_row_ptrs[row] = in_row_ptrs[row];
+        for (auto k = row_begin; k < row_end; ++k) {
+            cp_col_idxs[k] = perm[in_col_idxs[k]];
+            cp_vals[k] = in_vals[k];
+        }
+    }
+    cp_row_ptrs[num_rows] = in_row_ptrs[num_rows];
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

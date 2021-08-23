@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,11 +40,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/matrix/coo_kernels.hpp"
 
@@ -64,6 +66,10 @@ GKO_REGISTER_OPERATION(convert_to_csr, coo::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense);
 GKO_REGISTER_OPERATION(extract_diagonal, coo::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(inplace_absolute_array,
+                       components::inplace_absolute_array);
+GKO_REGISTER_OPERATION(outplace_absolute_array,
+                       components::outplace_absolute_array);
 
 
 }  // namespace coo
@@ -72,8 +78,11 @@ GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(coo::make_spmv(this, as<Dense>(b), as<Dense>(x)));
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->get_executor()->run(coo::make_spmv(this, dense_b, dense_x));
+        },
+        b, x);
 }
 
 
@@ -81,18 +90,23 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                            const LinOp *beta, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(coo::make_advanced_spmv(
-        as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta), as<Dense>(x)));
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            this->get_executor()->run(coo::make_advanced_spmv(
+                dense_alpha, this, dense_b, dense_beta, dense_x));
+        },
+        alpha, b, beta, x);
 }
 
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::apply2_impl(const LinOp *b, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(
-        coo::make_spmv2(this, as<Dense>(b), as<Dense>(x)));
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->get_executor()->run(coo::make_spmv2(this, dense_b, dense_x));
+        },
+        b, x);
 }
 
 
@@ -100,9 +114,12 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::apply2_impl(const LinOp *alpha, const LinOp *b,
                                             LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(coo::make_advanced_spmv2(
-        as<Dense>(alpha), this, as<Dense>(b), as<Dense>(x)));
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_x) {
+            this->get_executor()->run(
+                coo::make_advanced_spmv2(dense_alpha, this, dense_b, dense_x));
+        },
+        alpha, b, x);
 }
 
 
@@ -230,6 +247,35 @@ Coo<ValueType, IndexType>::extract_diagonal() const
                                    zero<ValueType>()));
     exec->run(coo::make_extract_diagonal(this, lend(diag)));
     return diag;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::compute_absolute_inplace()
+{
+    auto exec = this->get_executor();
+
+    exec->run(coo::make_inplace_absolute_array(
+        this->get_values(), this->get_num_stored_elements()));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<typename Coo<ValueType, IndexType>::absolute_type>
+Coo<ValueType, IndexType>::compute_absolute() const
+{
+    auto exec = this->get_executor();
+
+    auto abs_coo = absolute_type::create(exec, this->get_size(),
+                                         this->get_num_stored_elements());
+
+    abs_coo->col_idxs_ = col_idxs_;
+    abs_coo->row_idxs_ = row_idxs_;
+    exec->run(coo::make_outplace_absolute_array(this->get_const_values(),
+                                                this->get_num_stored_elements(),
+                                                abs_coo->get_values()));
+
+    return abs_coo;
 }
 
 

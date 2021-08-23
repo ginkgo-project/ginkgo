@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <string>
 
 
@@ -55,22 +56,35 @@ int main(int argc, char *argv[])
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
 
-    // Figure out where to run the code
-    std::shared_ptr<gko::Executor> exec;
-    if (argc == 1 || std::string(argv[1]) == "reference") {
-        exec = gko::ReferenceExecutor::create();
-    } else if (argc == 2 && std::string(argv[1]) == "omp") {
-        exec = gko::OmpExecutor::create();
-    } else if (argc == 2 && std::string(argv[1]) == "cuda" &&
-               gko::CudaExecutor::get_num_devices() > 0) {
-        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
-    } else if (argc == 2 && std::string(argv[1]) == "hip" &&
-               gko::HipExecutor::get_num_devices() > 0) {
-        exec = gko::HipExecutor::create(0, gko::OmpExecutor::create(), true);
-    } else {
+    if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
         std::exit(-1);
     }
+
+    const auto executor_string = argc >= 2 ? argv[1] : "reference";
+    // Figure out where to run the code
+    std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
+        exec_map{
+            {"omp", [] { return gko::OmpExecutor::create(); }},
+            {"cuda",
+             [] {
+                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
+                                                  true);
+             }},
+            {"hip",
+             [] {
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
+                                                 true);
+             }},
+            {"dpcpp",
+             [] {
+                 return gko::DpcppExecutor::create(0,
+                                                   gko::OmpExecutor::create());
+             }},
+            {"reference", [] { return gko::ReferenceExecutor::create(); }}};
+
+    // executor where Ginkgo will perform the computation
+    const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     // Read data
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
@@ -97,7 +111,7 @@ int main(int argc, char *argv[])
     const RealValueType reduction_factor = 1e-7;
     auto iter_stop =
         gko::stop::Iteration::build().with_max_iters(10000u).on(exec);
-    auto tol_stop = gko::stop::ResidualNormReduction<ValueType>::build()
+    auto tol_stop = gko::stop::ResidualNorm<ValueType>::build()
                         .with_reduction_factor(reduction_factor)
                         .on(exec);
 
@@ -119,6 +133,7 @@ int main(int argc, char *argv[])
                                      .on(exec))
             .on(exec);
     // Create solver
+    solver_gen->add_logger(logger);
     auto solver = solver_gen->generate(A);
 
 
@@ -134,11 +149,14 @@ int main(int argc, char *argv[])
     auto res = gko::initialize<real_vec>({0.0}, exec);
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(res));
+    auto impl_res = gko::as<real_vec>(logger->get_implicit_sq_resnorm());
 
-    std::cout << "Initial residual norm sqrt(r^T r): \n";
+    std::cout << "Initial residual norm sqrt(r^T r):\n";
     write(std::cout, lend(initres));
-    std::cout << "Final residual norm sqrt(r^T r): \n";
+    std::cout << "Final residual norm sqrt(r^T r):\n";
     write(std::cout, lend(res));
+    std::cout << "Implicit residual norm squared (r^2):\n";
+    write(std::cout, lend(impl_res));
 
     // Print solver statistics
     std::cout << "CG iteration count:     " << logger->get_num_iterations()

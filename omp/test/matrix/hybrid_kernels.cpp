@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -55,8 +55,10 @@ namespace {
 
 class Hybrid : public ::testing::Test {
 protected:
+    using value_type = double;
     using Mtx = gko::matrix::Hybrid<>;
     using Vec = gko::matrix::Dense<>;
+    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
 
     Hybrid() : rand_engine(42) {}
 
@@ -73,11 +75,20 @@ protected:
         }
     }
 
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols, int min_nnz_row)
+    template <typename MtxType = Vec>
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
+                                     int min_nnz_row)
     {
-        return gko::test::generate_random_matrix<Vec>(
+        return gen_mtx<MtxType>(num_rows, num_cols, min_nnz_row, num_cols);
+    }
+
+    template <typename MtxType = Vec>
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
+                                     int min_nnz_row, int max_nnz_row)
+    {
+        return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
-            std::uniform_int_distribution<>(min_nnz_row, num_cols),
+            std::uniform_int_distribution<>(min_nnz_row, max_nnz_row),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
@@ -180,6 +191,40 @@ TEST_F(Hybrid, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Hybrid, ApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
+    auto dcomplex_b = ComplexVec::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
+    auto dcomplex_x = ComplexVec::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply(complex_b.get(), complex_x.get());
+    dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
+TEST_F(Hybrid, AdvancedApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
+    auto dcomplex_b = ComplexVec::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
+    auto dcomplex_x = ComplexVec::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
+    dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
 TEST_F(Hybrid, CountNonzerosIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -190,6 +235,49 @@ TEST_F(Hybrid, CountNonzerosIsEquivalentToRef)
     gko::kernels::omp::hybrid::count_nonzeros(omp, dmtx.get(), &dnonzeros);
 
     ASSERT_EQ(nonzeros, dnonzeros);
+}
+
+
+TEST_F(Hybrid, ConvertEmptyCooToCsrIsEquivalentToRef)
+{
+    auto balanced_mtx =
+        Mtx::create(ref, std::make_shared<Mtx::column_limit>(4));
+    balanced_mtx->copy_from(gen_mtx(400, 200, 4, 4).get());
+    auto dbalanced_mtx =
+        Mtx::create(omp, std::make_shared<Mtx::column_limit>(4));
+    dbalanced_mtx->copy_from(balanced_mtx.get());
+    auto csr_mtx = gko::matrix::Csr<>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<>::create(omp);
+
+    balanced_mtx->convert_to(csr_mtx.get());
+    dbalanced_mtx->convert_to(dcsr_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Hybrid, ConvertWithEmptyFirstAndLastRowToCsrIsEquivalentToRef)
+{
+    // create a dense matrix for easier manipulation
+    auto dense_mtx = gen_mtx(400, 200, 0, 4);
+    // set first and last row to zero
+    for (gko::size_type col = 0; col < dense_mtx->get_size()[1]; col++) {
+        dense_mtx->at(0, col) = gko::zero<value_type>();
+        dense_mtx->at(dense_mtx->get_size()[0] - 1, col) =
+            gko::zero<value_type>();
+    }
+    // now convert them to hybrid matrices
+    auto balanced_mtx = Mtx::create(ref);
+    balanced_mtx->copy_from(dense_mtx.get());
+    auto dbalanced_mtx = Mtx::create(omp);
+    dbalanced_mtx->copy_from(balanced_mtx.get());
+    auto csr_mtx = gko::matrix::Csr<>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<>::create(omp);
+
+    balanced_mtx->convert_to(csr_mtx.get());
+    dbalanced_mtx->convert_to(dcsr_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
 }
 
 
@@ -227,6 +315,35 @@ TEST_F(Hybrid, ExtractDiagonalIsEquivalentToRef)
     auto ddiag = dmtx->extract_diagonal();
 
     GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+}
+
+
+TEST_F(Hybrid, InplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    mtx->compute_absolute_inplace();
+    dmtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 1e-14);
+}
+
+
+TEST_F(Hybrid, OutplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(1, std::make_shared<Mtx::column_limit>(2));
+    using AbsMtx = gko::remove_complex<Mtx>;
+
+    auto abs_mtx = mtx->compute_absolute();
+    auto dabs_mtx = dmtx->compute_absolute();
+    auto abs_strategy = gko::as<AbsMtx::column_limit>(abs_mtx->get_strategy());
+    auto dabs_strategy =
+        gko::as<AbsMtx::column_limit>(dabs_mtx->get_strategy());
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
+    GKO_ASSERT_EQ(abs_strategy->get_num_columns(),
+                  dabs_strategy->get_num_columns());
+    GKO_ASSERT_EQ(abs_strategy->get_num_columns(), 2);
 }
 
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/fill_array.hpp"
+#include "core/matrix/dense_kernels.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/math.hpp"
@@ -72,7 +73,7 @@ constexpr int default_dot_dim = 32;
 constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
-#include "common/solver/gmres_kernels.hpp.inc"
+#include "common/cuda_hip/solver/gmres_kernels.hpp.inc"
 
 
 template <typename ValueType>
@@ -118,7 +119,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
-    residual->compute_norm2(residual_norm);
+    kernels::cuda::dense::compute_norm2(exec, residual, residual_norm);
 
     const dim3 grid_dim_2(ceildiv(num_rows * num_rhs, default_block_size), 1,
                           1);

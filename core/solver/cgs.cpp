@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
 
@@ -88,10 +89,20 @@ std::unique_ptr<LinOp> Cgs<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x);
+        },
+        b, x);
+}
+
+
+template <typename ValueType>
+void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
+                                      matrix::Dense<ValueType> *dense_x) const
+{
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
-    auto dense_b = as<const Vector>(b);
-    auto dense_x = as<Vector>(x);
 
     constexpr uint8 RelativeStoppingId{1};
 
@@ -128,55 +139,64 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // r = dense_b
     // r_tld = r
     // rho = 0.0
-    // rho_prev = 1.0
+    // rho_prev = alpha = beta = gamma = 1.0
     // p = q = u = u_hat = v_hat = t = 0
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
-        x, r.get());
+        system_matrix_,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
+        r.get());
     r_tld->copy_from(r.get());
 
-    int iter = 0;
+    int iter = -1;
+    /* Memory movement summary:
+     * 28n * values + 2 * matrix/preconditioner storage
+     * 2x SpMV:                4n * values + 2 * storage
+     * 2x Preconditioner:      4n * values + 2 * storage
+     * 2x dot                  4n
+     * 1x step 1 (fused axpys) 5n
+     * 1x step 2 (fused axpys) 4n
+     * 1x step 3 (axpys)       6n
+     * 1x norm2 residual        n
+     */
     while (true) {
-        r->compute_dot(r_tld.get(), rho.get());
-        exec->run(cgs::make_step_1(r.get(), u.get(), p.get(), q.get(),
-                                   beta.get(), rho.get(), rho_prev.get(),
-                                   &stop_status));
-        // beta = rho / rho_prev
-        // u = r + beta * q;
-        // p = u + beta * ( q + beta * p );
-        get_preconditioner()->apply(p.get(), t.get());
-        system_matrix_->apply(t.get(), v_hat.get());
-        r_tld->compute_dot(v_hat.get(), gamma.get());
-        exec->run(cgs::make_step_2(u.get(), v_hat.get(), q.get(), t.get(),
-                                   alpha.get(), rho.get(), gamma.get(),
-                                   &stop_status));
+        r->compute_conj_dot(r_tld.get(), rho.get());
 
         ++iter;
-        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
-                                                            dense_x);
-
-        // alpha = rho / gamma
-        // q = u - alpha * v_hat
-        // t = u + q
-        get_preconditioner()->apply(t.get(), u_hat.get());
-        system_matrix_->apply(u_hat.get(), t.get());
-        exec->run(cgs::make_step_3(t.get(), u_hat.get(), r.get(), dense_x,
-                                   alpha.get(), &stop_status));
-        // r = r -alpha * t
-        // x = x + alpha * u_hat
-
-        ++iter;
-        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
-                                                            dense_x);
+        this->template log<log::Logger::iteration_complete>(
+            this, iter, r.get(), dense_x, nullptr, rho.get());
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r.get())
+                .implicit_sq_residual_norm(rho.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
+
+        // beta = rho / rho_prev
+        // u = r + beta * q
+        // p = u + beta * ( q + beta * p )
+        exec->run(cgs::make_step_1(r.get(), u.get(), p.get(), q.get(),
+                                   beta.get(), rho.get(), rho_prev.get(),
+                                   &stop_status));
+        get_preconditioner()->apply(p.get(), t.get());
+        system_matrix_->apply(t.get(), v_hat.get());
+        r_tld->compute_conj_dot(v_hat.get(), gamma.get());
+        // alpha = rho / gamma
+        // q = u - alpha * v_hat
+        // t = u + q
+        exec->run(cgs::make_step_2(u.get(), v_hat.get(), q.get(), t.get(),
+                                   alpha.get(), rho.get(), gamma.get(),
+                                   &stop_status));
+
+        get_preconditioner()->apply(t.get(), u_hat.get());
+        system_matrix_->apply(u_hat.get(), t.get());
+        // r = r - alpha * t
+        // x = x + alpha * u_hat
+        exec->run(cgs::make_step_3(t.get(), u_hat.get(), r.get(), dense_x,
+                                   alpha.get(), &stop_status));
 
         swap(rho_prev, rho);
     }
@@ -187,12 +207,14 @@ template <typename ValueType>
 void Cgs<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                 const LinOp *beta, LinOp *x) const
 {
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, x_clone.get());
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 

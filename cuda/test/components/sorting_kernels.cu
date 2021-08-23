@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -54,8 +54,8 @@ using gko::kernels::cuda::bitonic_sort;
 using gko::kernels::cuda::config;
 
 
-constexpr auto num_elements = 2048;
-constexpr auto num_local = 4;
+constexpr int num_elements = 2048;
+constexpr int num_local = 4;
 constexpr auto num_threads = num_elements / num_local;
 
 
@@ -99,7 +99,7 @@ protected:
     {
         // we want some duplicate elements
         std::uniform_int_distribution<gko::int32> dist(0, num_elements / 2);
-        for (auto i = 0; i < num_elements; ++i) {
+        for (int i = 0; i < num_elements; ++i) {
             ref_shared.get_data()[i] = dist(rng);
         }
         ddata = gko::Array<gko::int32>{cuda, ref_shared};

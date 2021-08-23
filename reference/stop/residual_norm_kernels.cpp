@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -85,6 +85,45 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
 
 
 }  // namespace residual_norm
+
+
+/**
+ * @brief The Implicit Residual norm stopping criterion.
+ * @ref implicit_resnorm
+ * @ingroup resnorm
+ */
+namespace implicit_residual_norm {
+
+
+template <typename ValueType>
+void implicit_residual_norm(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const matrix::Dense<ValueType> *tau,
+    const matrix::Dense<remove_complex<ValueType>> *orig_tau,
+    remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
+    bool setFinalized, Array<stopping_status> *stop_status,
+    Array<bool> *device_storage, bool *all_converged, bool *one_changed)
+{
+    *all_converged = true;
+    *one_changed = false;
+    for (size_type i = 0; i < tau->get_size()[1]; ++i) {
+        if (sqrt(abs(tau->at(i))) < rel_residual_goal * orig_tau->at(i)) {
+            stop_status->get_data()[i].converge(stoppingId, setFinalized);
+            *one_changed = true;
+        }
+    }
+    for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
+        if (!stop_status->get_const_data()[i].has_stopped()) {
+            *all_converged = false;
+            break;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
+
+
+}  // namespace implicit_residual_norm
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko

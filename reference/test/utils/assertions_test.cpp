@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,7 @@ namespace {
 template <typename T>
 class MatricesNear : public ::testing::Test {};
 
-TYPED_TEST_CASE(MatricesNear, gko::test::ValueTypes);
+TYPED_TEST_SUITE(MatricesNear, gko::test::ValueTypes);
 
 
 TYPED_TEST(MatricesNear, CanPassAnyMatrixType)

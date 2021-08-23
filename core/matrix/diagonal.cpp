@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,10 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/absolute_array.hpp"
 #include "core/matrix/diagonal_kernels.hpp"
 
 
@@ -52,6 +54,10 @@ GKO_REGISTER_OPERATION(apply_to_csr, diagonal::apply_to_csr);
 GKO_REGISTER_OPERATION(right_apply_to_csr, diagonal::right_apply_to_csr);
 GKO_REGISTER_OPERATION(convert_to_csr, diagonal::convert_to_csr);
 GKO_REGISTER_OPERATION(conj_transpose, diagonal::conj_transpose);
+GKO_REGISTER_OPERATION(inplace_absolute_array,
+                       components::inplace_absolute_array);
+GKO_REGISTER_OPERATION(outplace_absolute_array,
+                       components::outplace_absolute_array);
 
 
 }  // namespace diagonal
@@ -62,12 +68,8 @@ void Diagonal<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     auto exec = this->get_executor();
 
-    if (dynamic_cast<const Dense<ValueType> *>(b) &&
-        dynamic_cast<Dense<ValueType> *>(x)) {
-        exec->run(diagonal::make_apply_to_dense(this, as<Dense<ValueType>>(b),
-                                                as<Dense<ValueType>>(x)));
-    } else if (dynamic_cast<const Csr<ValueType, int32> *>(b) &&
-               dynamic_cast<Csr<ValueType, int32> *>(x)) {
+    if (dynamic_cast<const Csr<ValueType, int32> *>(b) &&
+        dynamic_cast<Csr<ValueType, int32> *>(x)) {
         exec->run(diagonal::make_apply_to_csr(
             this, as<Csr<ValueType, int32>>(b), as<Csr<ValueType, int32>>(x)));
     } else if (dynamic_cast<const Csr<ValueType, int64> *>(b) &&
@@ -75,7 +77,12 @@ void Diagonal<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         exec->run(diagonal::make_apply_to_csr(
             this, as<Csr<ValueType, int64>>(b), as<Csr<ValueType, int64>>(x)));
     } else {
-        GKO_NOT_IMPLEMENTED;
+        precision_dispatch_real_complex<ValueType>(
+            [this, &exec](auto dense_b, auto dense_x) {
+                exec->run(
+                    diagonal::make_apply_to_dense(this, dense_b, dense_x));
+            },
+            b, x);
     }
 }
 
@@ -85,12 +92,8 @@ void Diagonal<ValueType>::rapply_impl(const LinOp *b, LinOp *x) const
 {
     auto exec = this->get_executor();
 
-    if (dynamic_cast<const Dense<ValueType> *>(b) &&
-        dynamic_cast<Dense<ValueType> *>(x)) {
-        exec->run(diagonal::make_right_apply_to_dense(
-            this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
-    } else if (dynamic_cast<const Csr<ValueType, int32> *>(b) &&
-               dynamic_cast<Csr<ValueType, int32> *>(x)) {
+    if (dynamic_cast<const Csr<ValueType, int32> *>(b) &&
+        dynamic_cast<Csr<ValueType, int32> *>(x)) {
         exec->run(diagonal::make_right_apply_to_csr(
             this, as<Csr<ValueType, int32>>(b), as<Csr<ValueType, int32>>(x)));
     } else if (dynamic_cast<const Csr<ValueType, int64> *>(b) &&
@@ -98,7 +101,14 @@ void Diagonal<ValueType>::rapply_impl(const LinOp *b, LinOp *x) const
         exec->run(diagonal::make_right_apply_to_csr(
             this, as<Csr<ValueType, int64>>(b), as<Csr<ValueType, int64>>(x)));
     } else {
-        GKO_NOT_IMPLEMENTED;
+        // no real-to-complex conversion, as this would require doubling the
+        // diagonal entries for the complex-to-real columns
+        precision_dispatch<ValueType>(
+            [this, &exec](auto dense_b, auto dense_x) {
+                exec->run(diagonal::make_right_apply_to_dense(this, dense_b,
+                                                              dense_x));
+            },
+            b, x);
     }
 }
 
@@ -107,14 +117,14 @@ template <typename ValueType>
 void Diagonal<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                      const LinOp *beta, LinOp *x) const
 {
-    if (dynamic_cast<const Dense<ValueType> *>(b) &&
-        dynamic_cast<Dense<ValueType> *>(x)) {
-        auto dense_x = as<Dense<ValueType>>(x);
-        dense_x->scale(beta);
-        dense_x->add_scaled(alpha, b);
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_impl(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 
@@ -133,6 +143,22 @@ std::unique_ptr<LinOp> Diagonal<ValueType>::conj_transpose() const
 
     exec->run(diagonal::make_conj_transpose(this, tmp.get()));
     return std::move(tmp);
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::convert_to(
+    Diagonal<next_precision<ValueType>> *result) const
+{
+    result->values_ = this->values_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::move_to(Diagonal<next_precision<ValueType>> *result)
+{
+    this->convert_to(result);
 }
 
 
@@ -261,9 +287,52 @@ void Diagonal<ValueType>::write(mat_data32 &data) const
 }
 
 
+template <typename ValueType>
+void Diagonal<ValueType>::compute_absolute_inplace()
+{
+    auto exec = this->get_executor();
+
+    exec->run(diagonal::make_inplace_absolute_array(this->get_values(),
+                                                    this->get_size()[0]));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename Diagonal<ValueType>::absolute_type>
+Diagonal<ValueType>::compute_absolute() const
+{
+    auto exec = this->get_executor();
+
+    auto abs_diagonal = absolute_type::create(exec, this->get_size()[0]);
+
+    exec->run(diagonal::make_outplace_absolute_array(
+        this->get_const_values(), this->get_size()[0],
+        abs_diagonal->get_values()));
+
+    return abs_diagonal;
+}
+
+
 #define GKO_DECLARE_DIAGONAL_MATRIX(value_type) class Diagonal<value_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_MATRIX);
 
 
 }  // namespace matrix
+
+
+// Implement DiagonalExtractable for LinOp when Diagonal is complete class
+template <typename ValueType>
+std::unique_ptr<LinOp> DiagonalExtractable<ValueType>::extract_diagonal_linop()
+    const
+{
+    return this->extract_diagonal();
+}
+
+
+#define GKO_DECLARE_DIAGONAL_EXTRACTABLE(value_type) \
+    std::unique_ptr<LinOp>                           \
+    DiagonalExtractable<value_type>::extract_diagonal_linop() const
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_EXTRACTABLE);
+
+
 }  // namespace gko

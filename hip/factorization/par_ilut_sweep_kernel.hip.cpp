@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,7 @@ namespace hip {
 namespace par_ilut_factorization {
 
 
-constexpr auto default_block_size = 512;
+constexpr int default_block_size = 512;
 
 
 // subwarp sizes for all warp-parallel kernels (filter, add_candidates)
@@ -76,7 +76,7 @@ using compiled_kernels =
     syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
-#include "common/factorization/par_ilut_sweep_kernels.hpp.inc"
+#include "common/cuda_hip/factorization/par_ilut_sweep_kernels.hpp.inc"
 
 
 namespace {

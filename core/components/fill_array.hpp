@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,10 +49,16 @@ namespace kernels {
     void fill_array(std::shared_ptr<const DefaultExecutor> exec, \
                     ValueType *data, size_type num_entries, ValueType val)
 
+#define GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL(ValueType)                 \
+    void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec, \
+                        ValueType *data, size_type num_entries)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename IndexType>    \
-    GKO_DECLARE_FILL_ARRAY_KERNEL(IndexType)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES          \
+    template <typename ValueType>             \
+    GKO_DECLARE_FILL_ARRAY_KERNEL(ValueType); \
+    template <typename ValueType>             \
+    GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL(ValueType)
 
 
 namespace omp {
@@ -89,6 +95,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace components
 }  // namespace hip
+
+
+namespace dpcpp {
+namespace components {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace components
+}  // namespace dpcpp
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

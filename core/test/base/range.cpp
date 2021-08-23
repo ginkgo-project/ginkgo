@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,13 @@ TEST(Span, CreatesPoint)
 
     ASSERT_EQ(s.begin, 3);
     ASSERT_EQ(s.end, 4);
+}
+
+
+TEST(Span, KnowsItsLength)
+{
+    gko::span s{3, 5};
+    ASSERT_EQ(2, s.length());
 }
 
 
@@ -645,7 +652,7 @@ TEST(Range, DividesScalarAndRange)
 }
 
 
-TEST(Range, AddsRangeAndSclar)
+TEST(Range, AddsRangeAndScalar)
 {
     dummy_range r{5u, 1, 2};
 
@@ -656,7 +663,7 @@ TEST(Range, AddsRangeAndSclar)
 }
 
 
-TEST(Range, SubtractsRangeAndSclar)
+TEST(Range, SubtractsRangeAndScalar)
 {
     dummy_range r{5u, 1, 2};
 
@@ -667,7 +674,7 @@ TEST(Range, SubtractsRangeAndSclar)
 }
 
 
-TEST(Range, MultipliesRangeAndSclar)
+TEST(Range, MultipliesRangeAndScalar)
 {
     dummy_range r{5u, 1, 2};
 
@@ -678,7 +685,7 @@ TEST(Range, MultipliesRangeAndSclar)
 }
 
 
-TEST(Range, DividesRangeAndSclar)
+TEST(Range, DividesRangeAndScalar)
 {
     dummy_range r{5u, 1, 2};
 

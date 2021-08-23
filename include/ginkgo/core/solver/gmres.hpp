@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_SOLVER_GMRES_HPP_
-#define GKO_CORE_SOLVER_GMRES_HPP_
+#ifndef GKO_PUBLIC_CORE_SOLVER_GMRES_HPP_
+#define GKO_PUBLIC_CORE_SOLVER_GMRES_HPP_
 
 
 #include <vector>
@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -61,7 +62,7 @@ constexpr size_type default_krylov_dim = 100u;
  *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of GMRES are
- * merged into 2 separate steps.
+ * merged into 2 separate steps. Modified Gram-Schmidt is used.
  *
  * @tparam ValueType  precision of matrix elements
  *
@@ -101,18 +102,18 @@ public:
     bool apply_uses_initial_guess() const override { return true; }
 
     /**
-     * Gets the krylov dimension of the solver
+     * Gets the Krylov dimension of the solver
      *
-     * @return the krylov dimension
+     * @return the Krylov dimension
      */
     size_type get_krylov_dim() const { return krylov_dim_; }
 
     /**
-     * Sets the krylov dimension
+     * Sets the Krylov dimension
      *
-     * @param other  the new krylov dimension
+     * @param other  the new Krylov dimension
      */
-    void set_krylov_dim(const size_type &other) { krylov_dim_ = other; }
+    void set_krylov_dim(size_type other) { krylov_dim_ = other; }
 
     /**
      * Gets the stopping criterion factory of the solver.
@@ -158,7 +159,7 @@ public:
             generated_preconditioner, nullptr);
 
         /**
-         * krylov dimension factory.
+         * Krylov dimension factory.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 0u);
     };
@@ -167,6 +168,9 @@ public:
 
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override;
+
+    void apply_dense_impl(const matrix::Dense<ValueType> *b,
+                          matrix::Dense<ValueType> *x) const;
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
@@ -182,6 +186,7 @@ protected:
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
+        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
         if (parameters_.generated_preconditioner) {
             GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.generated_preconditioner,
                                         this);
@@ -191,7 +196,7 @@ protected:
                 parameters_.preconditioner->generate(system_matrix_));
         } else {
             set_preconditioner(matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()[0]));
+                this->get_executor(), this->get_size()));
         }
         if (parameters_.krylov_dim) {
             krylov_dim_ = parameters_.krylov_dim;
@@ -213,4 +218,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_GMRES_HPP_
+#endif  // GKO_PUBLIC_CORE_SOLVER_GMRES_HPP_

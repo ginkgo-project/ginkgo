@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_LOG_LOGGER_HPP_
-#define GKO_CORE_LOG_LOGGER_HPP_
+#ifndef GKO_PUBLIC_CORE_LOG_LOGGER_HPP_
+#define GKO_PUBLIC_CORE_LOG_LOGGER_HPP_
 
 
 #include <algorithm>
@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/base/utils_helper.hpp>
 
 
 namespace gko {
@@ -381,6 +381,10 @@ public:                                                              \
      * @param status  the stopping status of the right hand sides
      * @param one_changed  whether at least one right hand side converged or not
      * @param all_converged  whether all right hand sides
+     *
+     * @note The on_criterion_check_completed function that this macro declares
+     * is deprecated. Please use the one with the additional implicit_tau_sq
+     * parameter as below.
      */
     GKO_LOGGER_REGISTER_EVENT(
         20, criterion_check_completed, const stop::Criterion *criterion,
@@ -388,6 +392,35 @@ public:                                                              \
         const uint8 &stopping_id, const bool &set_finalized,
         const Array<stopping_status> *status, const bool &one_changed,
         const bool &all_converged)
+protected:
+    /**
+     * stop::Criterion's check completed event. Parameters are the Criterion,
+     * the stoppingId, the finalized boolean, the stopping status, plus the
+     * output one_changed boolean and output all_converged boolean.
+     *
+     * @param criterion  the criterion used
+     * @param it  the current iteration count
+     * @param r  the residual
+     * @param tau  the residual norm
+     * @param implicit_tau_sq  the implicit residual norm squared
+     * @param x  the solution
+     * @param stopping_id  the id of the stopping criterion
+     * @param set_finalized  whether this finalizes the iteration
+     * @param status  the stopping status of the right hand sides
+     * @param one_changed  whether at least one right hand side converged or not
+     * @param all_converged  whether all right hand sides
+     */
+    virtual void on_criterion_check_completed(
+        const stop::Criterion *criterion, const size_type &it, const LinOp *r,
+        const LinOp *tau, const LinOp *implicit_tau_sq, const LinOp *x,
+        const uint8 &stopping_id, const bool &set_finalized,
+        const Array<stopping_status> *status, const bool &one_changed,
+        const bool &all_converged) const
+    {
+        this->on_criterion_check_completed(criterion, it, r, tau, x,
+                                           stopping_id, set_finalized, status,
+                                           one_changed, all_converged);
+    }
 
     /**
      * Register the `iteration_complete` event which logs every completed
@@ -397,13 +430,35 @@ public:                                                              \
      * @param r  the residual
      * @param x  the solution vector (optional)
      * @param tau  the residual norm (optional)
+     *
+     * @note The on_iteration_complete function that this macro declares is
+     * deprecated. Please use the one with the additional implicit_tau_sq
+     * parameter as below.
      */
     GKO_LOGGER_REGISTER_EVENT(21, iteration_complete, const LinOp *solver,
                               const size_type &it, const LinOp *r,
                               const LinOp *x = nullptr,
                               const LinOp *tau = nullptr)
+protected:
+    /**
+     * Register the `iteration_complete` event which logs every completed
+     * iterations.
+     *
+     * @param it  the current iteration count
+     * @param r  the residual
+     * @param x  the solution vector (optional)
+     * @param tau  the residual norm (optional)
+     * @param implicit_tau_sq  the implicit residual norm squared (optional)
+     */
+    virtual void on_iteration_complete(const LinOp *solver, const size_type &it,
+                                       const LinOp *r, const LinOp *x,
+                                       const LinOp *tau,
+                                       const LinOp *implicit_tau_sq) const
+    {
+        this->on_iteration_complete(solver, it, r, x, tau);
+    }
 
-
+public:
 #undef GKO_LOGGER_REGISTER_EVENT
 
     /**
@@ -502,6 +557,17 @@ public:
      *       equal.
      */
     virtual void remove_logger(const Logger *logger) = 0;
+
+    /**
+     * Returns the vector containing all loggers registered at this object.
+     *
+     * @return the vector containing all registered loggers.
+     */
+    virtual const std::vector<std::shared_ptr<const Logger>> &get_loggers()
+        const = 0;
+
+    /** Remove all loggers registered at this object. */
+    virtual void clear_loggers() = 0;
 };
 
 
@@ -518,7 +584,7 @@ public:
  *                          class.
  */
 template <typename ConcreteLoggable, typename PolymorphicBase = Loggable>
-class EnableLogging : public Loggable {
+class EnableLogging : public PolymorphicBase {
 public:
     void add_logger(std::shared_ptr<const Logger> logger) override
     {
@@ -527,10 +593,9 @@ public:
 
     void remove_logger(const Logger *logger) override
     {
-        auto idx = find_if(begin(loggers_), end(loggers_),
-                           [&logger](std::shared_ptr<const Logger> l) {
-                               return lend(l) == logger;
-                           });
+        auto idx =
+            find_if(begin(loggers_), end(loggers_),
+                    [&logger](const auto &l) { return lend(l) == logger; });
         if (idx != end(loggers_)) {
             loggers_.erase(idx);
         } else {
@@ -538,6 +603,14 @@ public:
                                    loggers_.size());
         }
     }
+
+    const std::vector<std::shared_ptr<const Logger>> &get_loggers()
+        const override
+    {
+        return loggers_;
+    }
+
+    void clear_loggers() override { loggers_.clear(); }
 
 protected:
     template <size_type Event, typename... Params>
@@ -556,4 +629,4 @@ protected:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_LOG_LOGGER_HPP_
+#endif  // GKO_PUBLIC_CORE_LOG_LOGGER_HPP_

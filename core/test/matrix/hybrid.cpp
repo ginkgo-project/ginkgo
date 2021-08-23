@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace {
+
+
+template <typename T>
+struct change_index_s {
+    using type = gko::int32;
+};
+
+template <>
+struct change_index_s<gko::int32> {
+    using type = gko::int64;
+};
+
+
+template <typename T>
+using change_index = typename change_index_s<T>::type;
 
 
 template <typename ValueIndexType>
@@ -112,7 +127,7 @@ protected:
     }
 };
 
-TYPED_TEST_CASE(Hybrid, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Hybrid, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Hybrid, KnowsItsSize)
@@ -257,19 +272,123 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixDataByPercent40)
     auto c = m->get_const_ell_col_idxs();
     auto n = m->get_ell_num_stored_elements_per_row();
     auto p = m->get_ell_stride();
+    auto coo_v = m->get_const_coo_values();
+    auto coo_c = m->get_const_coo_col_idxs();
+    auto coo_r = m->get_const_coo_row_idxs();
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(m->get_ell_num_stored_elements(), 2);
+    ASSERT_EQ(m->get_coo_num_stored_elements(), 2);
     EXPECT_EQ(n, 1);
     EXPECT_EQ(p, 2);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(v[0], value_type{1.0});
     EXPECT_EQ(v[1], value_type{5.0});
+    EXPECT_EQ(coo_v[0], value_type{3.0});
+    EXPECT_EQ(coo_v[1], value_type{2.0});
+    EXPECT_EQ(coo_c[0], 1);
+    EXPECT_EQ(coo_c[1], 2);
+    EXPECT_EQ(coo_r[0], 0);
+    EXPECT_EQ(coo_r[1], 0);
+}
 
+
+TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataAutomatically)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto m =
+        Mtx::create(this->exec, std::make_shared<typename Mtx::automatic>());
+    gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 0, 0.0);
+    data.set_value(1, 1, 5.0);
+    data.set_value(1, 2, 0.0);
+
+    m->read(data);
+
+    auto v = m->get_const_coo_values();
+    auto c = m->get_const_coo_col_idxs();
+    auto r = m->get_const_coo_row_idxs();
+    auto n = m->get_ell_num_stored_elements_per_row();
+    auto p = m->get_ell_stride();
+    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(m->get_ell_num_stored_elements(), 0);
+    ASSERT_EQ(m->get_coo_num_stored_elements(), 4);
+    EXPECT_EQ(n, 0);
+    EXPECT_EQ(p, 2);
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 0);
+    EXPECT_EQ(r[2], 0);
+    EXPECT_EQ(r[3], 1);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 1);
+    EXPECT_EQ(v[0], value_type{1.0});
+    EXPECT_EQ(v[1], value_type{3.0});
+    EXPECT_EQ(v[2], value_type{2.0});
+    EXPECT_EQ(v[3], value_type{5.0});
+}
+
+
+TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataByColumns2)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto m = Mtx::create(this->exec,
+                         std::make_shared<typename Mtx::column_limit>(2));
+    gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 0, 0.0);
+    data.set_value(1, 1, 5.0);
+    data.set_value(1, 2, 0.0);
+
+    m->read(data);
+
+    this->assert_equal_to_original_mtx(m.get());
+}
+
+
+TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataByPercent40)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto m = Mtx::create(this->exec,
+                         std::make_shared<typename Mtx::imbalance_limit>(0.4));
+    gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 0, 0.0);
+    data.set_value(1, 1, 5.0);
+    data.set_value(1, 2, 0.0);
+
+    m->read(data);
+
+    auto v = m->get_const_ell_values();
+    auto c = m->get_const_ell_col_idxs();
+    auto n = m->get_ell_num_stored_elements_per_row();
+    auto p = m->get_ell_stride();
     auto coo_v = m->get_const_coo_values();
     auto coo_c = m->get_const_coo_col_idxs();
     auto coo_r = m->get_const_coo_row_idxs();
+    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(m->get_ell_num_stored_elements(), 2);
     ASSERT_EQ(m->get_coo_num_stored_elements(), 2);
+    EXPECT_EQ(n, 1);
+    EXPECT_EQ(p, 2);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(v[0], value_type{1.0});
+    EXPECT_EQ(v[1], value_type{5.0});
     EXPECT_EQ(coo_v[0], value_type{3.0});
     EXPECT_EQ(coo_v[1], value_type{2.0});
     EXPECT_EQ(coo_c[0], 1);
@@ -294,6 +413,104 @@ TYPED_TEST(Hybrid, GeneratesCorrectMatrixData)
     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, value_type{3.0}));
     EXPECT_EQ(data.nonzeros[2], tpl(0, 2, value_type{2.0}));
     EXPECT_EQ(data.nonzeros[3], tpl(1, 1, value_type{5.0}));
+}
+
+
+TYPED_TEST(Hybrid, GetCorrectColumnLimit)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Mtx2 = gko::remove_complex<Mtx>;
+    using strategy = typename Mtx::column_limit;
+    using strategy2 = typename Mtx2::column_limit;
+
+    auto mtx = Mtx::create(this->exec, std::make_shared<strategy>(2));
+    auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
+    auto mtx2_stra = gko::as<strategy2>(mtx->template get_strategy<Mtx2>());
+
+    EXPECT_EQ(mtx_stra->get_num_columns(), 2);
+    EXPECT_EQ(mtx2_stra->get_num_columns(), 2);
+}
+
+
+TYPED_TEST(Hybrid, GetCorrectImbalanceLimit)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Mtx2 = gko::remove_complex<Mtx>;
+    using strategy = typename Mtx::imbalance_limit;
+    using strategy2 = typename Mtx2::imbalance_limit;
+
+    auto mtx = Mtx::create(this->exec, std::make_shared<strategy>(0.4));
+    auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
+    auto mtx2_stra = gko::as<strategy2>(mtx->template get_strategy<Mtx2>());
+
+    EXPECT_EQ(mtx_stra->get_percentage(), 0.4);
+    EXPECT_EQ(mtx2_stra->get_percentage(), 0.4);
+}
+
+
+TYPED_TEST(Hybrid, GetCorrectImbalanceBoundedLimit)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Mtx2 = gko::remove_complex<Mtx>;
+    using strategy = typename Mtx::imbalance_bounded_limit;
+    using strategy2 = typename Mtx2::imbalance_bounded_limit;
+
+    auto mtx = Mtx::create(this->exec, std::make_shared<strategy>(0.4, 0.1));
+    auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
+    auto mtx2_stra = gko::as<strategy2>(mtx->template get_strategy<Mtx2>());
+
+    EXPECT_EQ(mtx_stra->get_percentage(), 0.4);
+    EXPECT_EQ(mtx_stra->get_ratio(), 0.1);
+    EXPECT_EQ(mtx2_stra->get_percentage(), 0.4);
+    EXPECT_EQ(mtx2_stra->get_ratio(), 0.1);
+}
+
+
+TYPED_TEST(Hybrid, GetCorrectMinimalStorageLimitWithDifferentHybType)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx2 = gko::matrix::Hybrid<value_type, change_index<index_type>>;
+    using strategy = typename Mtx::minimal_storage_limit;
+    using strategy2 = typename Mtx2::imbalance_limit;
+
+    auto mtx = Mtx::create(this->exec, std::make_shared<strategy>());
+    auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
+    auto mtx2_stra = gko::as<strategy2>(mtx->template get_strategy<Mtx2>());
+
+    EXPECT_EQ(mtx2_stra->get_percentage(), mtx_stra->get_percentage());
+}
+
+
+TYPED_TEST(Hybrid, GetCorrectMinimalStorageLimitWithSameHybType)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Mtx2 = Mtx;
+    using strategy = typename Mtx::minimal_storage_limit;
+    using strategy2 = typename Mtx2::minimal_storage_limit;
+
+    auto mtx = Mtx::create(this->exec, std::make_shared<strategy>());
+    auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
+    auto mtx2_stra = gko::as<strategy2>(mtx->template get_strategy<Mtx2>());
+
+    EXPECT_EQ(mtx2_stra->get_percentage(), mtx_stra->get_percentage());
+}
+
+
+TYPED_TEST(Hybrid, GetCorrectAutomatic)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx2 = Mtx;
+    using strategy = typename Mtx::automatic;
+    using strategy2 = typename Mtx2::automatic;
+
+    auto mtx = Mtx::create(this->exec, std::make_shared<strategy>());
+    auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
+
+    ASSERT_NO_THROW(gko::as<strategy2>(mtx->template get_strategy<Mtx2>()));
 }
 
 

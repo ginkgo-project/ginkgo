@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/factorization/factorization_kernels.hpp"
@@ -113,7 +114,7 @@ protected:
                                       {0., 0., 3., 0.},
                                       {-2., 0., -3., 4.}},
                                      ref)),
-          mtx_llt(gko::initialize<Csr>({{1., 1., 0., -2.},
+          mtx_llh(gko::initialize<Csr>({{1., 1., 0., -2.},
                                         {1., 5., 0., -2.},
                                         {0., 0., 9., -9.},
                                         {-2., -2., -9., 29.}},
@@ -158,7 +159,7 @@ protected:
     std::unique_ptr<Csr> mtx_l_system;
     std::unique_ptr<Csr> mtx_init;
     std::unique_ptr<Csr> mtx_l;
-    std::unique_ptr<Csr> mtx_llt;
+    std::unique_ptr<Csr> mtx_llh;
     std::unique_ptr<Csr> mtx_l_init_expect;
     std::unique_ptr<Csr> mtx_l_add_expect;
     std::unique_ptr<Csr> mtx_l_it_expect;
@@ -168,7 +169,7 @@ protected:
     gko::remove_complex<value_type> tol;
 };
 
-TYPED_TEST_CASE(ParIct, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(ParIct, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(ParIct, KernelInitializeRowPtrsL)
@@ -213,7 +214,7 @@ TYPED_TEST(ParIct, KernelAddCandidates)
     auto res_mtx_l = Csr::create(this->exec, this->mtx_system->get_size());
 
     gko::kernels::reference::par_ict_factorization::add_candidates(
-        this->ref, this->mtx_llt.get(), this->mtx_system.get(),
+        this->ref, this->mtx_llh.get(), this->mtx_system.get(),
         this->mtx_l.get(), res_mtx_l.get());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_l, this->mtx_l_add_expect);

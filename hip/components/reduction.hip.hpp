@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,7 @@ namespace hip {
 constexpr int default_block_size = 512;
 
 
-#include "common/components/reduction.hpp.inc"
+#include "common/cuda_hip/components/reduction.hpp.inc"
 
 
 /**

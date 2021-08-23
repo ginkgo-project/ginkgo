@@ -11,6 +11,7 @@
 [![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo/doc/master/)
 [![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](./LICENSE)
 [![c++ standard](https://img.shields.io/badge/c%2B%2B-14-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.02260/status.svg)](https://doi.org/10.21105/joss.02260)
 
 Ginkgo is a high-performance linear algebra library for manycore systems, with a
 focus on sparse solution of linear systems. It is implemented using modern C++
@@ -35,12 +36,12 @@ Prerequisites
 
 For Ginkgo core library:
 
-*   _cmake 3.9+_
+*   _cmake 3.13+_
 *   C++14 compliant compiler, one of:
-    *   _gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
+    *   _gcc 5.5+_
     *   _clang 3.9+_
-    *   _Intel compiler 2017+_
-    *   _Apple LLVM 8.0+_ (__TODO__: verify)
+    *   _Intel compiler 2018+_
+    *   _Apple LLVM 8.0+_
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
@@ -50,29 +51,36 @@ The Ginkgo CUDA module has the following __additional__ requirements:
     [CUDA installation guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)
     or [CUDA installation guide for Mac Os X](https://docs.nvidia.com/cuda/cuda-installation-guide-mac-os-x/index.html)
 
+The Ginkgo HIP module has the following __additional__ requirements:
+
+* _ROCm 3.5+_
+*    the HIP, hipBLAS, hipSPARSE, hip/rocRAND and rocThrust packages compiled with either:
+    * _AMD_ backend (using the `clang` compiler)
+    * _9.2 <= CUDA < 11_ backend
+
+The Ginkgo DPC++ module has the following __additional__ requirements:
+
+* _OneAPI 2021.3+_
+* Set `dpcpp` as the `CMAKE_CXX_COMPILER`
+* `c++17` is used to compile this module, while the rest of Ginkgo is compiled using `c++14`.
+* The following oneAPI packages should be available:
+    * oneMKL
+    * oneDPL
 
 In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
 
-*   _clang-format 5.0.0+_ (ships as part of _clang_)
+*   _clang-format 8.0.0+_ (ships as part of _clang_)
 *   _clang-tidy_ (optional, when setting the flag `-DGINKGO_WITH_CLANG_TIDY=ON`)
 *   _iwyu_ (Include What You Use, optional, when setting the flag `-DGINKGO_WITH_IWYU=ON`)
 
-The Ginkgo HIP module has the following __additional__ requirements:
-
-* _ROCm 2.8+_
-*    the HIP, hipBLAS and hipSPARSE packages compiled with either:
-    * _AMD_ backend
-    * _CUDA 9.0+_ backend. When using CUDA 10+, _cmake 3.12.2+_ is required.
-
 ### Windows
 
-The prequirement needs to be verified
-*   _cmake 3.9+_
+*   _cmake 3.13+_
 *   C++14 compliant 64-bit compiler:
-    *   _MinGW : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
-    *   _Cygwin : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
-    *   _Microsoft Visual Studio : VS 2017 15.7+_
+    *   _MinGW : gcc 5.5+_
+    *   _Cygwin : gcc 5.5+_
+    *   _Microsoft Visual Studio : VS 2019+_
 
 __NOTE:__ Need to add `--autocrlf=input` after `git clone` in _Cygwin_.
 
@@ -87,20 +95,10 @@ The Ginkgo CUDA module has the following __additional__ requirements:
 The Ginkgo OMP module has the following __additional__ requirements:
 *  _MinGW_ or _Cygwin_
 
-Depending on the configuration settings, some manual work might be required. More details are availble in [windows section in INSTALL.md](INSTALL.md#building-ginkgo-in-windows):
-* Build Ginkgo as shared library:
-  Add `PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH` into the environment variable `PATH`.
-  `GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH` is `windows_shared_library` by default.
-* Build Ginkgo with Debug mode:
-  Some Debug build specific issues can appear depending on the machine and environment. The known issues are the following:
-  1. `bigobj` issue: encountering  `too many sections` needs the compilation flags `\bigobj` or `-Wa,-mbig-obj`
-  2. `ld` issue: encountering  `ld: error: export ordinal too large` needs the compilation flag `-O1`
-* Build Ginkgo in _MinGW_:
-  If encountering the issue `cc1plus.exe: out of memory allocating 65536 bytes`, please follow the workaround in
-  [reference](https://www.intel.com/content/www/us/en/programmable/support/support-resources/knowledge-base/embedded/2016/cc1plus-exe--out-of-memory-allocating-65536-bytes.html),
-  or compile ginkgo again might work.
-
-__NOTE:__ _Microsoft Visual Studio_ only supports OpenMP 2.0, so it can not compile the ginkgo OMP module.
+In these environments, two problems can be encountered, the solution for which is described in the
+[windows section in INSTALL.md](INSTALL.md#building-ginkgo-in-windows):
+* `ld: error: export ordinal too large` needs the compilation flag `-O1`
+* `cc1plus.exe: out of memory allocating 65536 bytes` requires a modification of the environment
 
 __NOTE:__ Some restrictions will also apply on the version of C and C++ standard
 libraries installed on the system. This needs further investigation.
@@ -117,9 +115,12 @@ mkdir build; cd build
 cmake -G "Unix Makefiles" .. && make
 ```
 
-By default, `GINKGO_BUILD_REFERENCE` is enabled. You should be able to run examples with this
-executor. You would need to explicitly compile with the OpenMP and CUDA modules enabled
-to run with these executors. Please refer to the [Installation page](./INSTALL.md).
+By default, `GINKGO_BUILD_REFERENCE` is enabled. You should be able to run
+examples with this executor. By default, Ginkgo tries to enable the relevant
+modules depending on your machine environment (present of CUDA, ...). You can
+also explicitly compile with the OpenMP, CUDA, HIP or DPC++ modules enabled to
+run the examples with these executors. Please refer to the [Installation
+page](./INSTALL.md) for more details.
 
 After the installation, CMake can find ginkgo with `find_package(Ginkgo)`.
 An example can be found in the [`test_install`](test_install/CMakeLists.txt).

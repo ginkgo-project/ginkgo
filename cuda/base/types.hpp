@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_BASE_TYPES_HPP_
 
 
+#include <ginkgo/core/base/types.hpp>
+
+
 #include <type_traits>
 
 
@@ -41,9 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_fp16.h>
 #include <cusparse.h>
 #include <thrust/complex.h>
-
-
-#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
@@ -200,7 +200,7 @@ constexpr cudaDataType_t cuda_data_type_impl<uint8>()
 
 #if defined(CUDA_VERSION) &&  \
     (CUDA_VERSION >= 11000 || \
-     ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+     ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 template <typename T>
@@ -223,7 +223,7 @@ constexpr cusparseIndexType_t cusparse_index_type_impl<int64>()
 
 
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
-        // 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+        // 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 }  // namespace detail
@@ -246,7 +246,7 @@ constexpr cudaDataType_t cuda_data_type()
 
 #if defined(CUDA_VERSION) &&  \
     (CUDA_VERSION >= 11000 || \
-     ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+     ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 /**
@@ -265,7 +265,7 @@ constexpr cusparseIndexType_t cusparse_index_type()
 
 
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
-        // 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+        // 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 /**

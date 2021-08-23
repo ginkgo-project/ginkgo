@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_RANGE_HPP_
-#define GKO_CORE_BASE_RANGE_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_RANGE_HPP_
+#define GKO_PUBLIC_CORE_BASE_RANGE_HPP_
 
 
 #include <type_traits>
@@ -99,7 +99,18 @@ struct span {
      *
      * @return true if and only if `this->begin < this->end`
      */
-    constexpr bool is_valid() const { return begin < end; }
+    GKO_ATTRIBUTES constexpr bool is_valid() const { return begin < end; }
+
+    /**
+     * Returns the length of a span.
+     *
+     * @return `this->end - this->begin`
+     */
+    GKO_ATTRIBUTES constexpr size_type length() const
+    {
+        GKO_ASSERT(is_valid());
+        return end - begin;
+    }
 
     /**
      * Beginning of the span.
@@ -342,7 +353,7 @@ public:
         const -> decltype(std::declval<accessor>()(
             std::forward<DimensionTypes>(dimensions)...))
     {
-        static_assert(sizeof...(dimensions) <= dimensionality,
+        static_assert(sizeof...(DimensionTypes) <= dimensionality,
                       "Too many dimensions in range call");
         return accessor_(std::forward<DimensionTypes>(dimensions)...);
     }
@@ -1007,4 +1018,4 @@ GKO_BIND_RANGE_OPERATION_TO_OPERATOR(mmul_operation, mmul);
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_RANGE_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_RANGE_HPP_

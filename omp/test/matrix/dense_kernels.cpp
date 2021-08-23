@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,10 +63,16 @@ namespace {
 
 class Dense : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<Mtx::value_type>>;
-    using Arr = gko::Array<int>;
-    using ComplexMtx = gko::matrix::Dense<std::complex<double>>;
+    using itype = int;
+    using vtype = double;
+    using Mtx = gko::matrix::Dense<vtype>;
+    using MixedMtx = gko::matrix::Dense<gko::next_precision<vtype>>;
+    using NormVector = gko::matrix::Dense<gko::remove_complex<vtype>>;
+    using Arr = gko::Array<itype>;
+    using ComplexMtx = gko::matrix::Dense<std::complex<vtype>>;
+    using Diagonal = gko::matrix::Diagonal<vtype>;
+    using MixedComplexMtx =
+        gko::matrix::Dense<gko::next_precision<std::complex<vtype>>>;
 
     Dense() : rand_engine(15) {}
 
@@ -130,6 +136,7 @@ protected:
         expected = gen_mtx<Mtx>(40, 35);
         alpha = gko::initialize<Mtx>({2.0}, ref);
         beta = gko::initialize<Mtx>({-1.0}, ref);
+        square = gen_mtx<Mtx>(x->get_size()[0], x->get_size()[0]);
         dx = Mtx::create(omp);
         dx->copy_from(x.get());
         dc_x = ComplexMtx::create(omp);
@@ -142,6 +149,8 @@ protected:
         dalpha->copy_from(alpha.get());
         dbeta = Mtx::create(omp);
         dbeta->copy_from(beta.get());
+        dsquare = Mtx::create(omp);
+        dsquare->copy_from(square.get());
 
         std::vector<int> tmp(x->get_size()[0], 0);
         auto rng = std::default_random_engine{};
@@ -150,14 +159,25 @@ protected:
         std::vector<int> tmp2(x->get_size()[1], 0);
         std::iota(tmp2.begin(), tmp2.end(), 0);
         std::shuffle(tmp2.begin(), tmp2.end(), rng);
+        std::vector<int> tmp3(x->get_size()[0] / 10);
+        std::uniform_int_distribution<int> row_dist(0, x->get_size()[0] - 1);
+        for (auto &i : tmp3) {
+            i = row_dist(rng);
+        }
         rpermute_idxs =
             std::unique_ptr<Arr>(new Arr{ref, tmp.begin(), tmp.end()});
-        drpermute_idxs =
-            std::unique_ptr<Arr>(new Arr{omp, tmp.begin(), tmp.end()});
         cpermute_idxs =
             std::unique_ptr<Arr>(new Arr{ref, tmp2.begin(), tmp2.end()});
-        dcpermute_idxs =
-            std::unique_ptr<Arr>(new Arr{omp, tmp2.begin(), tmp2.end()});
+        rgather_idxs =
+            std::unique_ptr<Arr>(new Arr{ref, tmp3.begin(), tmp3.end()});
+    }
+
+    template <typename ConvertedType, typename InputType>
+    std::unique_ptr<ConvertedType> convert(InputType &&input)
+    {
+        auto result = ConvertedType::create(input->get_executor());
+        input->convert_to(result.get());
+        return result;
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -171,108 +191,18 @@ protected:
     std::unique_ptr<Mtx> alpha;
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> expected;
+    std::unique_ptr<Mtx> square;
     std::unique_ptr<Mtx> dresult;
     std::unique_ptr<Mtx> dx;
     std::unique_ptr<ComplexMtx> dc_x;
     std::unique_ptr<Mtx> dy;
     std::unique_ptr<Mtx> dalpha;
     std::unique_ptr<Mtx> dbeta;
+    std::unique_ptr<Mtx> dsquare;
     std::unique_ptr<Arr> rpermute_idxs;
-    std::unique_ptr<Arr> drpermute_idxs;
     std::unique_ptr<Arr> cpermute_idxs;
-    std::unique_ptr<Arr> dcpermute_idxs;
+    std::unique_ptr<Arr> rgather_idxs;
 };
-
-
-TEST_F(Dense, SingleVectorOmpScaleIsEquivalentToRef)
-{
-    set_up_vector_data(1);
-
-    x->scale(alpha.get());
-    dx->scale(dalpha.get());
-
-    auto result = Mtx::create(ref);
-    result->copy_from(dx.get());
-    GKO_ASSERT_MTX_NEAR(result, x, 1e-14);
-}
-
-
-TEST_F(Dense, MultipleVectorOmpScaleIsEquivalentToRef)
-{
-    set_up_vector_data(20);
-
-    x->scale(alpha.get());
-    dx->scale(dalpha.get());
-
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
-}
-
-
-TEST_F(Dense, MultipleVectorOmpScaleWithDifferentAlphaIsEquivalentToRef)
-{
-    set_up_vector_data(20, true);
-
-    x->scale(alpha.get());
-    dx->scale(dalpha.get());
-
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
-}
-
-
-TEST_F(Dense, SingleVectorOmpAddScaledIsEquivalentToRef)
-{
-    set_up_vector_data(1);
-
-    x->add_scaled(alpha.get(), y.get());
-    dx->add_scaled(dalpha.get(), dy.get());
-
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
-}
-
-
-TEST_F(Dense, MultipleVectorOmpAddScaledIsEquivalentToRef)
-{
-    set_up_vector_data(20);
-
-    x->add_scaled(alpha.get(), y.get());
-    dx->add_scaled(dalpha.get(), dy.get());
-
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
-}
-
-
-TEST_F(Dense, MultipleVectorOmpAddScaledWithDifferentAlphaIsEquivalentToRef)
-{
-    set_up_vector_data(20);
-
-    x->add_scaled(alpha.get(), y.get());
-    dx->add_scaled(dalpha.get(), dy.get());
-
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
-}
-
-
-TEST_F(Dense, AddsScaledDiagIsEquivalentToRef)
-{
-    auto mat = gen_mtx<Mtx>(532, 532);
-    gko::Array<Mtx::value_type> diag_values(this->ref, 532);
-    gko::kernels::reference::components::fill_array(
-        this->ref, diag_values.get_data(), 532, Mtx::value_type{2.0});
-    auto diag = gko::matrix::Diagonal<Mtx::value_type>::create(this->ref, 532,
-                                                               diag_values);
-    auto alpha = gko::initialize<Mtx>({2.0}, this->ref);
-    auto dmat = Mtx::create(this->omp);
-    dmat->copy_from(mat.get());
-    auto ddiag = gko::matrix::Diagonal<Mtx::value_type>::create(this->omp);
-    ddiag->copy_from(diag.get());
-    auto dalpha = Mtx::create(this->omp);
-    dalpha->copy_from(alpha.get());
-
-    mat->add_scaled(alpha.get(), diag.get());
-    dmat->add_scaled(dalpha.get(), ddiag.get());
-
-    GKO_ASSERT_MTX_NEAR(mat, dmat, 1e-14);
-}
 
 
 TEST_F(Dense, SingleVectorOmpComputeDotIsEquivalentToRef)
@@ -292,6 +222,28 @@ TEST_F(Dense, MultipleVectorOmpComputeDotIsEquivalentToRef)
 
     x->compute_dot(y.get(), expected.get());
     dx->compute_dot(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Dense, SingleVectorOmpComputeConjDotIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    x->compute_conj_dot(y.get(), expected.get());
+    dx->compute_conj_dot(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Dense, MultipleVectorOmpComputeConjDotIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    x->compute_conj_dot(y.get(), expected.get());
+    dx->compute_conj_dot(dy.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
@@ -322,6 +274,17 @@ TEST_F(Dense, SimpleApplyIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, SimpleApplyMixedIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    x->apply(convert<MixedMtx>(y).get(), convert<MixedMtx>(expected).get());
+    dx->apply(convert<MixedMtx>(dy).get(), convert<MixedMtx>(dresult).get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-7);
+}
+
+
 TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -330,6 +293,127 @@ TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
     dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Dense, AdvancedApplyMixedIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    x->apply(convert<MixedMtx>(alpha).get(), convert<MixedMtx>(y).get(),
+             convert<MixedMtx>(beta).get(), convert<MixedMtx>(expected).get());
+    dx->apply(convert<MixedMtx>(dalpha).get(), convert<MixedMtx>(dy).get(),
+              convert<MixedMtx>(dbeta).get(), convert<MixedMtx>(dresult).get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-7);
+}
+
+
+TEST_F(Dense, ApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexMtx>(25, 1);
+    auto dcomplex_b = ComplexMtx::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexMtx>(40, 1);
+    auto dcomplex_x = ComplexMtx::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+
+    x->apply(complex_b.get(), complex_x.get());
+    dx->apply(dcomplex_b.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
+TEST_F(Dense, ApplyToMixedComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<MixedComplexMtx>(25, 1);
+    auto dcomplex_b = MixedComplexMtx::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<MixedComplexMtx>(40, 1);
+    auto dcomplex_x = MixedComplexMtx::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+
+    x->apply(complex_b.get(), complex_x.get());
+    dx->apply(dcomplex_b.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-7);
+}
+
+
+TEST_F(Dense, AdvancedApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexMtx>(25, 1);
+    auto dcomplex_b = ComplexMtx::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexMtx>(40, 1);
+    auto dcomplex_x = ComplexMtx::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+
+    x->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
+    dx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
+TEST_F(Dense, AdvancedApplyToMixedComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<MixedComplexMtx>(25, 1);
+    auto dcomplex_b = MixedComplexMtx::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<MixedComplexMtx>(40, 1);
+    auto dcomplex_x = MixedComplexMtx::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+
+    x->apply(convert<MixedMtx>(alpha).get(), complex_b.get(),
+             convert<MixedMtx>(beta).get(), complex_x.get());
+    dx->apply(convert<MixedMtx>(dalpha).get(), dcomplex_b.get(),
+              convert<MixedMtx>(dbeta).get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-7);
+}
+
+
+TEST_F(Dense, ComputeDotComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexMtx>(1234, 2);
+    auto dcomplex_b = ComplexMtx::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexMtx>(1234, 2);
+    auto dcomplex_x = ComplexMtx::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+    auto result = ComplexMtx::create(ref, gko::dim<2>{1, 2});
+    auto dresult = ComplexMtx::create(omp, gko::dim<2>{1, 2});
+
+    complex_b->compute_dot(complex_x.get(), result.get());
+    dcomplex_b->compute_dot(dcomplex_x.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(result, dresult, 1e-14);
+}
+
+
+TEST_F(Dense, ComputeConjDotComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexMtx>(1234, 2);
+    auto dcomplex_b = ComplexMtx::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexMtx>(1234, 2);
+    auto dcomplex_x = ComplexMtx::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+    auto result = ComplexMtx::create(ref, gko::dim<2>{1, 2});
+    auto dresult = ComplexMtx::create(omp, gko::dim<2>{1, 2});
+
+    complex_b->compute_conj_dot(complex_x.get(), result.get());
+    dcomplex_b->compute_conj_dot(dcomplex_x.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(result, dresult, 1e-14);
 }
 
 
@@ -589,6 +673,23 @@ TEST_F(Dense, ConvertsEmptyToSellp)
 }
 
 
+TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
+{
+    set_up_apply_data();
+    gko::Array<gko::size_type> nnz_per_row(ref);
+    nnz_per_row.resize_and_reset(x->get_size()[0]);
+    gko::Array<gko::size_type> dnnz_per_row(omp);
+    dnnz_per_row.resize_and_reset(dx->get_size()[0]);
+
+    gko::kernels::reference::dense::calculate_nonzeros_per_row(ref, x.get(),
+                                                               &nnz_per_row);
+    gko::kernels::omp::dense::calculate_nonzeros_per_row(omp, dx.get(),
+                                                         &dnnz_per_row);
+
+    GKO_ASSERT_ARRAY_EQ(nnz_per_row, dnnz_per_row);
+}
+
+
 TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
 {
     std::size_t ref_max_nnz_per_row = 0;
@@ -635,6 +736,26 @@ TEST_F(Dense, IsTransposable)
 }
 
 
+TEST_F(Dense, IsTransposableIntoDenseCrossExecutor)
+{
+    set_up_apply_data();
+    auto row_span = gko::span{0, x->get_size()[0] - 2};
+    auto col_span = gko::span{0, x->get_size()[1] - 2};
+    auto sub_x = x->create_submatrix(row_span, col_span);
+    auto sub_dx = dx->create_submatrix(row_span, col_span);
+    // create the target matrices on another executor to
+    // force temporary clone
+    auto trans = Mtx::create(ref, gko::transpose(sub_x->get_size()));
+    auto dtrans = Mtx::create(ref, gko::transpose(sub_x->get_size()),
+                              sub_x->get_size()[0] + 4);
+
+    sub_x->transpose(trans.get());
+    sub_dx->transpose(dtrans.get());
+
+    GKO_ASSERT_MTX_NEAR(dtrans, trans, 0);
+}
+
+
 TEST_F(Dense, IsConjugateTransposable)
 {
     set_up_apply_data();
@@ -647,58 +768,23 @@ TEST_F(Dense, IsConjugateTransposable)
 }
 
 
-TEST_F(Dense, IsRowPermutable)
+TEST_F(Dense, IsConjugateTransposableIntoDenseCrossExecutor)
 {
     set_up_apply_data();
-    auto r_permute = x->row_permute(rpermute_idxs.get());
-    auto dr_permute = dx->row_permute(drpermute_idxs.get());
+    auto row_span = gko::span{0, c_x->get_size()[0] - 2};
+    auto col_span = gko::span{0, c_x->get_size()[1] - 2};
+    auto sub_x = c_x->create_submatrix(row_span, col_span);
+    auto sub_dx = dc_x->create_submatrix(row_span, col_span);
+    // create the target matrices on another executor to
+    // force temporary clone
+    auto trans = ComplexMtx::create(ref, gko::transpose(sub_x->get_size()));
+    auto dtrans = ComplexMtx::create(ref, gko::transpose(sub_x->get_size()),
+                                     sub_x->get_size()[0] + 4);
 
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(r_permute.get()),
-                        static_cast<Mtx *>(dr_permute.get()), 0);
-}
+    sub_x->conj_transpose(trans.get());
+    sub_dx->conj_transpose(dtrans.get());
 
-
-TEST_F(Dense, IsColPermutable)
-{
-    set_up_apply_data();
-    auto c_permute = x->column_permute(cpermute_idxs.get());
-    auto dc_permute = dx->column_permute(dcpermute_idxs.get());
-
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(c_permute.get()),
-                        static_cast<Mtx *>(dc_permute.get()), 0);
-}
-
-
-TEST_F(Dense, IsInverseRowPermutable)
-{
-    set_up_apply_data();
-    auto inverse_r_permute = x->inverse_row_permute(rpermute_idxs.get());
-    auto d_inverse_r_permute = dx->inverse_row_permute(drpermute_idxs.get());
-
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(inverse_r_permute.get()),
-                        static_cast<Mtx *>(d_inverse_r_permute.get()), 0);
-}
-
-
-TEST_F(Dense, IsInverseColPermutable)
-{
-    set_up_apply_data();
-    auto inverse_c_permute = x->inverse_column_permute(cpermute_idxs.get());
-    auto d_inverse_c_permute = dx->inverse_column_permute(dcpermute_idxs.get());
-
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(inverse_c_permute.get()),
-                        static_cast<Mtx *>(d_inverse_c_permute.get()), 0);
-}
-
-
-TEST_F(Dense, ExtractDiagonalIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto diag = x->extract_diagonal();
-    auto ddiag = dx->extract_diagonal();
-
-    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+    GKO_ASSERT_MTX_NEAR(dtrans, trans, 0);
 }
 
 

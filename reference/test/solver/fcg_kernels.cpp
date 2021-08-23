@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/time.hpp>
 
 
+#include "core/solver/fcg_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -62,6 +63,8 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
+          stopped{},
+          non_stopped{},
           fcg_factory(
               Solver::build()
                   .with_criteria(
@@ -69,7 +72,7 @@ protected:
                       gko::stop::Time::build()
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
@@ -86,20 +89,180 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_reduction_factor(r<value_type>::value)
+                          .on(exec))
+                  .on(exec)),
+          fcg_factory_big2(
+              Solver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(100u).on(
+                          exec),
+                      gko::stop::ImplicitResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec))
-    {}
+    {
+        auto small_size = gko::dim<2>{2, 2};
+        auto small_scalar_size = gko::dim<2>{1, small_size[1]};
+        small_b = Mtx::create(exec, small_size, small_size[1] + 1);
+        small_x = Mtx::create(exec, small_size, small_size[1] + 2);
+        small_one = Mtx::create(exec, small_size);
+        small_zero = Mtx::create(exec, small_size);
+        small_prev_rho = Mtx::create(exec, small_scalar_size);
+        small_rho = Mtx::create(exec, small_scalar_size);
+        small_rho_t = Mtx::create(exec, small_scalar_size);
+        small_beta = Mtx::create(exec, small_scalar_size);
+        small_zero->fill(0);
+        small_one->fill(1);
+        small_r = small_zero->clone();
+        small_t = small_zero->clone();
+        small_z = small_zero->clone();
+        small_p = small_zero->clone();
+        small_q = small_zero->clone();
+        small_stop = gko::Array<gko::stopping_status>(exec, small_size[1]);
+        stopped.stop(1);
+        non_stopped.reset();
+        std::fill_n(small_stop.get_data(), small_stop.get_num_elems(),
+                    non_stopped);
+    }
 
-    std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> mtx_big;
+    std::unique_ptr<Mtx> small_one;
+    std::unique_ptr<Mtx> small_zero;
+    std::unique_ptr<Mtx> small_prev_rho;
+    std::unique_ptr<Mtx> small_beta;
+    std::unique_ptr<Mtx> small_rho;
+    std::unique_ptr<Mtx> small_rho_t;
+    std::unique_ptr<Mtx> small_x;
+    std::unique_ptr<Mtx> small_b;
+    std::unique_ptr<Mtx> small_r;
+    std::unique_ptr<Mtx> small_t;
+    std::unique_ptr<Mtx> small_z;
+    std::unique_ptr<Mtx> small_p;
+    std::unique_ptr<Mtx> small_q;
+    gko::Array<gko::stopping_status> small_stop;
+    gko::stopping_status stopped;
+    gko::stopping_status non_stopped;
     std::unique_ptr<typename Solver::Factory> fcg_factory;
     std::unique_ptr<typename Solver::Factory> fcg_factory_big;
+    std::unique_ptr<typename Solver::Factory> fcg_factory_big2;
 };
 
-TYPED_TEST_CASE(Fcg, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Fcg, gko::test::ValueTypes);
+
+
+TYPED_TEST(Fcg, KernelInitialize)
+{
+    this->small_b->fill(2);
+    this->small_r->fill(0);
+    this->small_z->fill(1);
+    this->small_p->fill(1);
+    this->small_q->fill(1);
+    this->small_t->fill(1);
+    this->small_prev_rho->fill(0);
+    this->small_rho->fill(1);
+    this->small_rho_t->fill(0);
+    std::fill_n(this->small_stop.get_data(), this->small_stop.get_num_elems(),
+                this->stopped);
+
+    gko::kernels::reference::fcg::initialize(
+        this->exec, this->small_b.get(), this->small_r.get(),
+        this->small_z.get(), this->small_p.get(), this->small_q.get(),
+        this->small_t.get(), this->small_prev_rho.get(), this->small_rho.get(),
+        this->small_rho_t.get(), &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_r, this->small_b, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_t, this->small_b, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_z, this->small_zero, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_p, this->small_zero, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_q, this->small_zero, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_rho, l({{0.0, 0.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_rho_t, l({{1.0, 1.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_prev_rho, l({{1.0, 1.0}}), 0);
+    ASSERT_EQ(this->small_stop.get_data()[0], this->non_stopped);
+    ASSERT_EQ(this->small_stop.get_data()[1], this->non_stopped);
+}
+
+
+TYPED_TEST(Fcg, KernelStep1)
+{
+    this->small_p->fill(3);
+    this->small_z->fill(-2);
+    this->small_rho_t->at(0) = 2;
+    this->small_rho_t->at(1) = 3;
+    this->small_prev_rho->at(0) = 8;
+    this->small_prev_rho->at(1) = 3;
+    this->small_stop.get_data()[1] = this->stopped;
+
+    gko::kernels::reference::fcg::step_1(
+        this->exec, this->small_p.get(), this->small_z.get(),
+        this->small_rho_t.get(), this->small_prev_rho.get(), &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_p, l({{-1.25, 3.0}, {-1.25, 3.0}}), 0);
+}
+
+
+TYPED_TEST(Fcg, KernelStep1DivByZero)
+{
+    this->small_p->fill(3);
+    this->small_z->fill(-2);
+    this->small_rho_t->fill(1);
+    this->small_prev_rho->fill(0);
+
+    gko::kernels::reference::fcg::step_1(
+        this->exec, this->small_p.get(), this->small_z.get(),
+        this->small_rho_t.get(), this->small_prev_rho.get(), &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_p, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
+}
+
+
+TYPED_TEST(Fcg, KernelStep2)
+{
+    this->small_x->fill(-2);
+    this->small_p->fill(3);
+    this->small_r->fill(4);
+    this->small_q->fill(-5);
+    this->small_t->fill(8);
+    this->small_rho->at(0) = 2;
+    this->small_rho->at(1) = 3;
+    this->small_beta->at(0) = 8;
+    this->small_beta->at(1) = 3;
+    this->small_stop.get_data()[1] = this->stopped;
+
+    gko::kernels::reference::fcg::step_2(
+        this->exec, this->small_x.get(), this->small_r.get(),
+        this->small_t.get(), this->small_p.get(), this->small_q.get(),
+        this->small_beta.get(), this->small_rho.get(), &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_x, l({{-1.25, -2.0}, {-1.25, -2.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_r, l({{5.25, 4.0}, {5.25, 4.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_t, l({{1.25, 8.0}, {1.25, 8.0}}), 0);
+}
+
+
+TYPED_TEST(Fcg, KernelStep2DivByZero)
+{
+    this->small_x->fill(-2);
+    this->small_p->fill(3);
+    this->small_r->fill(4);
+    this->small_q->fill(-5);
+    this->small_t->fill(8);
+    this->small_rho->fill(1);
+    this->small_beta->fill(0);
+
+    gko::kernels::reference::fcg::step_2(
+        this->exec, this->small_x.get(), this->small_r.get(),
+        this->small_t.get(), this->small_p.get(), this->small_q.get(),
+        this->small_beta.get(), this->small_rho.get(), &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_x, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_r, l({{4.0, 4.0}, {4.0, 4.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_t, l({{8.0, 8.0}, {8.0, 8.0}}), 0);
+}
 
 
 TYPED_TEST(Fcg, SolvesStencilSystem)
@@ -113,6 +276,64 @@ TYPED_TEST(Fcg, SolvesStencilSystem)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value);
+}
+
+
+TYPED_TEST(Fcg, SolvesStencilSystemMixed)
+{
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}),
+                        (r_mixed<value_type, TypeParam>()));
+}
+
+
+TYPED_TEST(Fcg, SolvesStencilSystemComplex)
+{
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>(
+        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
+        this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
+                           value_type{2.0, -4.0}}),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Fcg, SolvesStencilSystemMixedComplex)
+{
+    using value_type =
+        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>(
+        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
+        this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
+                           value_type{2.0, -4.0}}),
+                        (r_mixed<value_type, TypeParam>()));
 }
 
 
@@ -146,7 +367,73 @@ TYPED_TEST(Fcg, SolvesStencilSystemUsingAdvancedApply)
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value * 1e1);
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value);
+}
+
+
+TYPED_TEST(Fcg, SolvesStencilSystemUsingAdvancedApplyMixed)
+{
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}),
+                        (r_mixed<value_type, TypeParam>()));
+}
+
+
+TYPED_TEST(Fcg, SolvesStencilSystemUsingAdvancedApplyComplex)
+{
+    using Scalar = typename TestFixture::Mtx;
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
+    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>(
+        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+        this->exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
+                           value_type{2.0, -4.0}}),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Fcg, SolvesStencilSystemUsingAdvancedApplyMixedComplex)
+{
+    using Scalar = gko::matrix::Dense<
+        gko::next_precision<typename TestFixture::value_type>>;
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
+    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>(
+        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+        this->exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
+                           value_type{2.0, -4.0}}),
+                        (r_mixed<value_type, TypeParam>()));
 }
 
 
@@ -183,6 +470,23 @@ TYPED_TEST(Fcg, SolvesBigDenseSystem1)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}),
+                        r<value_type>::value * 1e3);
+}
+
+
+TYPED_TEST(Fcg, SolvesBigDenseSystemWithImplicitResNormCrit)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->fcg_factory_big2->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
                         r<value_type>::value * 1e3);
 }
 

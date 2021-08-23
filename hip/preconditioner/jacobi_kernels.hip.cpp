@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -73,7 +73,7 @@ constexpr int default_num_warps = 32;
 constexpr int default_grid_size = 32 * 32 * 128;
 
 
-#include "common/preconditioner/jacobi_kernels.hpp.inc"
+#include "common/cuda_hip/preconditioner/jacobi_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>

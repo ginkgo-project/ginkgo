@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,12 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_DIM_HPP_
-#define GKO_CORE_BASE_DIM_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_DIM_HPP_
+#define GKO_PUBLIC_CORE_BASE_DIM_HPP_
+
+
+#include <iostream>
 
 
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/base/utils.hpp>
 
 
 namespace gko {
@@ -52,6 +54,7 @@ namespace gko {
 template <size_type Dimensionality, typename DimensionType = size_type>
 struct dim {
     static constexpr size_type dimensionality = Dimensionality;
+    friend class dim<dimensionality + 1>;
 
     using dimension_type = DimensionType;
 
@@ -118,8 +121,11 @@ struct dim {
      * different than zero.
      *
      * @return true if and only if all dimensions evaluate to true
+     *
+     * @note This operator is explicit to avoid implicit dim-to-int casts.
+     *       It will still be used in contextual conversions (if, &&, ||, !)
      */
-    constexpr GKO_ATTRIBUTES operator bool() const
+    explicit constexpr GKO_ATTRIBUTES operator bool() const
     {
         return static_cast<bool>(first_) && static_cast<bool>(rest_);
     }
@@ -150,7 +156,30 @@ struct dim {
         return dim(x.first_ * y.first_, x.rest_ * y.rest_);
     }
 
+    /**
+     * A stream operator overload for dim
+     *
+     * @param os  stream object
+     * @param x  dim object
+     *
+     * @return a stream object appended with the dim output
+     */
+    friend std::ostream &operator<<(std::ostream &os, const dim &x)
+    {
+        os << "(";
+        x.print_to(os);
+        os << ")";
+        return os;
+    }
+
 private:
+    void inline print_to(std::ostream &os) const
+    {
+        os << first_ << ", ";
+        rest_.print_to(os);
+    }
+
+
     constexpr GKO_ATTRIBUTES dim(const dimension_type first,
                                  dim<dimensionality - 1> rest)
         : first_{first}, rest_{rest}
@@ -165,6 +194,7 @@ private:
 template <typename DimensionType>
 struct dim<1u, DimensionType> {
     static constexpr size_type dimensionality = 1u;
+    friend class dim<2>;
 
     using dimension_type = DimensionType;
 
@@ -183,7 +213,7 @@ struct dim<1u, DimensionType> {
         return GKO_ASSERT(dimension == 0), first_;
     }
 
-    constexpr GKO_ATTRIBUTES operator bool() const
+    explicit constexpr GKO_ATTRIBUTES operator bool() const
     {
         return static_cast<bool>(first_);
     }
@@ -198,7 +228,17 @@ struct dim<1u, DimensionType> {
         return dim(x.first_ * y.first_);
     }
 
+    friend std::ostream &operator<<(std::ostream &os, const dim &x)
+    {
+        os << "(";
+        x.print_to(os);
+        os << ")";
+        return os;
+    }
+
 private:
+    void inline print_to(std::ostream &os) const { os << first_; }
+
     dimension_type first_;
 };
 
@@ -243,4 +283,4 @@ constexpr GKO_ATTRIBUTES GKO_INLINE dim<2, DimensionType> transpose(
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_DIM_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_DIM_HPP_

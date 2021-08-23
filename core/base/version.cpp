@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -64,8 +64,10 @@ std::ostream &operator<<(std::ostream &os, const version_info &ver_info)
     print_version(os, ver_info.omp_version);
     os << "\n    the CUDA      module is  ";
     print_version(os, ver_info.cuda_version);
-    os << "\n    the HIP      module is  ";
+    os << "\n    the HIP       module is  ";
     print_version(os, ver_info.hip_version);
+    os << "\n    the DPCPP     module is  ";
+    print_version(os, ver_info.dpcpp_version);
     return os;
 }
 

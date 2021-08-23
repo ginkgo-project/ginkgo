@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,11 +39,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/matrix/ell_kernels.hpp"
 
@@ -62,6 +64,10 @@ GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
                        ell::calculate_nonzeros_per_row);
 GKO_REGISTER_OPERATION(extract_diagonal, ell::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(inplace_absolute_array,
+                       components::inplace_absolute_array);
+GKO_REGISTER_OPERATION(outplace_absolute_array,
+                       components::outplace_absolute_array);
 
 
 }  // namespace ell
@@ -96,8 +102,11 @@ size_type calculate_max_nnz_per_row(
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(ell::make_spmv(this, as<Dense>(b), as<Dense>(x)));
+    mixed_precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->get_executor()->run(ell::make_spmv(this, dense_b, dense_x));
+        },
+        b, x);
 }
 
 
@@ -105,9 +114,15 @@ template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                            const LinOp *beta, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
-    this->get_executor()->run(ell::make_advanced_spmv(
-        as<Dense>(alpha), this, as<Dense>(b), as<Dense>(beta), as<Dense>(x)));
+    mixed_precision_dispatch_real_complex<ValueType>(
+        [this, alpha, beta](auto dense_b, auto dense_x) {
+            auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
+            auto dense_beta = make_temporary_conversion<
+                typename std::decay_t<decltype(*dense_x)>::value_type>(beta);
+            this->get_executor()->run(ell::make_advanced_spmv(
+                dense_alpha.get(), this, dense_b, dense_beta.get(), dense_x));
+        },
+        b, x);
 }
 
 
@@ -248,6 +263,35 @@ Ell<ValueType, IndexType>::extract_diagonal() const
                                    zero<ValueType>()));
     exec->run(ell::make_extract_diagonal(this, lend(diag)));
     return diag;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::compute_absolute_inplace()
+{
+    auto exec = this->get_executor();
+
+    exec->run(ell::make_inplace_absolute_array(
+        this->get_values(), this->get_num_stored_elements()));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<typename Ell<ValueType, IndexType>::absolute_type>
+Ell<ValueType, IndexType>::compute_absolute() const
+{
+    auto exec = this->get_executor();
+
+    auto abs_ell = absolute_type::create(
+        exec, this->get_size(), this->get_num_stored_elements_per_row(),
+        this->get_stride());
+
+    abs_ell->col_idxs_ = col_idxs_;
+    exec->run(ell::make_outplace_absolute_array(this->get_const_values(),
+                                                this->get_num_stored_elements(),
+                                                abs_ell->get_values()));
+
+    return abs_ell;
 }
 
 

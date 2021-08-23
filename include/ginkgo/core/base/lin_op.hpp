@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_LIN_OP_HPP_
-#define GKO_CORE_BASE_LIN_OP_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_LIN_OP_HPP_
+#define GKO_PUBLIC_CORE_BASE_LIN_OP_HPP_
 
 
 #include <memory>
@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/matrix_assembly_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -438,18 +440,19 @@ public:
  * Linear operators which support permutation should implement the
  * Permutable interface.
  *
- * It provides four functionalities, the row permute, the
- * column permute, the inverse row permute and the inverse column permute.
+ * It provides functions to permute the rows and columns of a LinOp,
+ * independently or symmetrically, and with a regular or inverted permutation.
  *
- * The row permute returns the permutation of the linear operator after
- * permuting the rows of the linear operator. For example, if for a matrix A,
- * the permuted matrix A' and the permutation array perm, the row i of the
- * matrix A is the row perm[i] in the matrix A'. And similarly, for the inverse
- * permutation, the row i in the matrix A' is the row perm[i] in the matrix A.
- *
- * The column permute returns the permutation of the linear operator after
- * permuting the columns of the linear operator. The definitions of permute and
- * inverse permute for the row_permute hold here as well.
+ * After a regular row permutation with permutation array `perm` the row `i` in
+ * the output LinOp contains the row `perm[i]` from the input LinOp.
+ * After an inverse row permutation, the row `perm[i]` in the output LinOp
+ * contains the row `i` from the input LinOp.
+ * Equivalently, after a column permutation, the output stores in column `i`
+ * the column `perm[i]` from the input, and an inverse column permutation
+ * stores in column `perm[i]` the column `i` from the input.
+ * A symmetric permutation is functionally equivalent to calling
+ * `as<Permutable>(A->row_permute(perm))->column_permute(perm)`, but the
+ * implementation can provide better performance due to kernel fusion.
  *
  * Example: Permuting a Csr matrix:
  * ------------------------------------
@@ -468,11 +471,48 @@ public:
     virtual ~Permutable() = default;
 
     /**
+     * Returns a LinOp representing the symmetric row and column permutation of
+     * the Permutable object.
+     * In the resulting LinOp, the entry at location `(i,j)` contains the input
+     * value `(perm[i],perm[j])`.
+     *
+     * @param permutation_indices  the array of indices containing the
+     *                             permutation order.
+     *
+     * @return a pointer to the new permuted object
+     */
+    virtual std::unique_ptr<LinOp> permute(
+        const Array<IndexType> *permutation_indices) const
+    {
+        return as<Permutable>(this->row_permute(permutation_indices))
+            ->column_permute(permutation_indices);
+    };
+
+    /**
+     * Returns a LinOp representing the symmetric inverse row and column
+     * permutation of the Permutable object.
+     * In the resulting LinOp, the entry at location `(perm[i],perm[j])`
+     * contains the input value `(i,j)`.
+     *
+     * @param permutation_indices  the array of indices containing the
+     *                             permutation order.
+     *
+     * @return a pointer to the new permuted object
+     */
+    virtual std::unique_ptr<LinOp> inverse_permute(
+        const Array<IndexType> *permutation_indices) const
+    {
+        return as<Permutable>(this->inverse_row_permute(permutation_indices))
+            ->inverse_column_permute(permutation_indices);
+    };
+
+    /**
      * Returns a LinOp representing the row permutation of the Permutable
      * object.
+     * In the resulting LinOp, the row `i` contains the input row `perm[i]`.
      *
-     * @param permutation_indices  the array of indices contaning the
-     * permutation order.
+     * @param permutation_indices  the array of indices containing the
+     *                             permutation order.
      *
      * @return a pointer to the new permuted object
      */
@@ -482,9 +522,11 @@ public:
     /**
      * Returns a LinOp representing the column permutation of the Permutable
      * object.
+     * In the resulting LinOp, the column `i` contains the input column
+     * `perm[i]`.
      *
-     * @param permutation_indices  the array of indices contaning the
-     * permutation order.
+     * @param permutation_indices  the array of indices containing the
+     *                             permutation order `perm`.
      *
      * @return a pointer to the new column permuted object
      */
@@ -494,26 +536,29 @@ public:
     /**
      * Returns a LinOp representing the row permutation of the inverse permuted
      * object.
+     * In the resulting LinOp, the row `perm[i]` contains the input row `i`.
      *
-     * @param inverse_permutation_indices  the array of indices contaning the
-     * inverse permutation order.
+     * @param permutation_indices  the array of indices containing the
+     *                             permutation order `perm`.
      *
      * @return a pointer to the new inverse permuted object
      */
     virtual std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<IndexType> *inverse_permutation_indices) const = 0;
+        const Array<IndexType> *permutation_indices) const = 0;
 
     /**
      * Returns a LinOp representing the row permutation of the inverse permuted
      * object.
+     * In the resulting LinOp, the column `perm[i]` contains the input column
+     * `i`.
      *
-     * @param inverse_permutation_indices  the array of indices contaning the
-     * inverse permutation order.
+     * @param permutation_indices  the array of indices containing the
+     *                             permutation order `perm`.
      *
      * @return a pointer to the new inverse permuted object
      */
     virtual std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<IndexType> *inverse_permutation_indices) const = 0;
+        const Array<IndexType> *permutation_indices) const = 0;
 };
 
 
@@ -537,6 +582,16 @@ public:
      * @param data  the matrix_data structure
      */
     virtual void read(const matrix_data<ValueType, IndexType> &data) = 0;
+
+    /**
+     * Reads a matrix from a matrix_assembly_data structure.
+     *
+     * @param data  the matrix_assembly_data structure
+     */
+    void read(const matrix_assembly_data<ValueType, IndexType> &data)
+    {
+        this->read(data.get_ordered_data());
+    }
 };
 
 
@@ -600,6 +655,29 @@ private:
 
 
 /**
+ * The diagonal of a LinOp can be extracted. It will be implemented by
+ * DiagonalExtractable<ValueType>, so the class does not need to implement it.
+ * extract_diagonal_linop returns a linop which extracts the elements whose col
+ * and row index are the same and stores the result in a min(nrows, ncols) x 1
+ * dense matrix.
+ *
+ * @ingroup diagonal
+ * @ingroup LinOp
+ */
+class DiagonalLinOpExtractable {
+public:
+    virtual ~DiagonalLinOpExtractable() = default;
+
+    /**
+     * Extracts the diagonal entries of the matrix into a vector.
+     *
+     * @return linop  the linop of diagonal format
+     */
+    virtual std::unique_ptr<LinOp> extract_diagonal_linop() const = 0;
+};
+
+
+/**
  * The diagonal of a LinOp implementing this interface can be extracted.
  * extract_diagonal extracts the elements whose col and row index are the
  * same and stores the result in a min(nrows, ncols) x 1 dense matrix.
@@ -607,11 +685,13 @@ private:
  * @ingroup LinOp
  */
 template <typename ValueType>
-class DiagonalExtractable {
+class DiagonalExtractable : public DiagonalLinOpExtractable {
 public:
     using value_type = ValueType;
 
     virtual ~DiagonalExtractable() = default;
+
+    std::unique_ptr<LinOp> extract_diagonal_linop() const override;
 
     /**
      * Extracts the diagonal entries of the matrix into a vector.
@@ -621,6 +701,60 @@ public:
     virtual std::unique_ptr<matrix::Diagonal<ValueType>> extract_diagonal()
         const = 0;
 };
+
+
+/**
+ * The AbsoluteComputable is an interface that allows to get the component wise
+ * absolute of a LinOp. Use EnableAbsoluteComputation<AbsoluteLinOp> to
+ * implement this interface.
+ */
+class AbsoluteComputable {
+public:
+    /**
+     * Gets the absolute LinOp
+     *
+     * @return a pointer to the new absolute LinOp
+     */
+    virtual std::unique_ptr<LinOp> compute_absolute_linop() const = 0;
+
+    /**
+     * Compute absolute inplace on each element.
+     */
+    virtual void compute_absolute_inplace() = 0;
+};
+
+
+/**
+ * The EnableAbsoluteComputation mixin provides the default implementations of
+ * `compute_absolute_linop` and the absolute interface. `compute_absolute` gets
+ * a new AbsoluteLinOp. `compute_absolute_inplace` applies absolute
+ * inplace, so it still keeps the value_type of the class.
+ *
+ * @tparam AbsoluteLinOp  the absolute LinOp which is being returned
+ *                        [CRTP parameter]
+ *
+ * @ingroup LinOp
+ */
+template <typename AbsoluteLinOp>
+class EnableAbsoluteComputation : public AbsoluteComputable {
+public:
+    using absolute_type = AbsoluteLinOp;
+
+    virtual ~EnableAbsoluteComputation() = default;
+
+    std::unique_ptr<LinOp> compute_absolute_linop() const override
+    {
+        return this->compute_absolute();
+    }
+
+    /**
+     * Gets the AbsoluteLinOp
+     *
+     * @return a pointer to the new absolute object
+     */
+    virtual std::unique_ptr<absolute_type> compute_absolute() const = 0;
+};
+
 
 /**
  * The EnableLinOp mixin can be used to provide sensible default implementations
@@ -755,12 +889,12 @@ using EnableDefaultLinOpFactory =
  *
  * @ingroup LinOp
  */
-#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name) \
-public:                                                                \
-    class _factory_name;                                               \
-    struct _parameters_name##_type                                     \
-        : ::gko::enable_parameters_type<_parameters_name##_type,       \
-                                        _factory_name>
+#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name)  \
+public:                                                                 \
+    class _factory_name;                                                \
+    struct _parameters_name##_type                                      \
+        : public ::gko::enable_parameters_type<_parameters_name##_type, \
+                                               _factory_name>
 
 
 /**
@@ -1008,4 +1142,4 @@ public:                                                                      \
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_LIN_OP_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_LIN_OP_HPP_

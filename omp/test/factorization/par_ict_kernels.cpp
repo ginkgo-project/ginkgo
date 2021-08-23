@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -71,7 +71,11 @@ protected:
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
     ParIct()
+#ifdef GINKGO_FAST_TESTS
+        : mtx_size(152, 152),
+#else
         : mtx_size(532, 532),
+#endif
           rand_engine(567321),
           ref(gko::ReferenceExecutor::create()),
           omp(gko::OmpExecutor::create())
@@ -142,25 +146,25 @@ protected:
     std::unique_ptr<Csr> dmtx_l;
 };
 
-TYPED_TEST_CASE(ParIct, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(ParIct, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(ParIct, KernelAddCandidatesIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
-    auto mtx_llt = Csr::create(this->ref, this->mtx_size);
-    this->mtx_l->apply(lend(this->mtx_l->transpose()), lend(mtx_llt));
-    auto dmtx_llt = Csr::create(this->omp, this->mtx_size);
-    dmtx_llt->copy_from(lend(mtx_llt));
+    auto mtx_llh = Csr::create(this->ref, this->mtx_size);
+    this->mtx_l->apply(lend(this->mtx_l->transpose()), lend(mtx_llh));
+    auto dmtx_llh = Csr::create(this->omp, this->mtx_size);
+    dmtx_llh->copy_from(lend(mtx_llh));
     auto res_mtx_l = Csr::create(this->ref, this->mtx_size);
     auto dres_mtx_l = Csr::create(this->omp, this->mtx_size);
 
     gko::kernels::reference::par_ict_factorization::add_candidates(
-        this->ref, lend(mtx_llt), lend(this->mtx), lend(this->mtx_l),
+        this->ref, lend(mtx_llh), lend(this->mtx), lend(this->mtx_l),
         lend(res_mtx_l));
     gko::kernels::omp::par_ict_factorization::add_candidates(
-        this->omp, lend(dmtx_llt), lend(this->dmtx), lend(this->dmtx_l),
+        this->omp, lend(dmtx_llh), lend(this->dmtx), lend(this->dmtx_l),
         lend(dres_mtx_l));
 
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_l, dres_mtx_l);

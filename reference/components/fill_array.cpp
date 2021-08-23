@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fill_array.hpp"
 
 
+#include <numeric>
+
+
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -46,9 +49,17 @@ void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
     std::fill_n(array, n, val);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
-template GKO_DECLARE_FILL_ARRAY_KERNEL(size_type);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
+
+
+template <typename ValueType>
+void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
+                    ValueType *array, size_type n)
+{
+    std::iota(array, array + n, 0);
+}
+
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
 
 
 }  // namespace components

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,15 +36,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <complex>
 #include <initializer_list>
+#include <limits>
 #include <type_traits>
+
+
+#include <gtest/gtest.h>
 
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/extended_float.hpp"
+#include "core/test/utils/array_generator.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/matrix_generator.hpp"
+#include "core/test/utils/matrix_utils.hpp"
+#include "core/test/utils/value_generator.hpp"
 
 
 namespace gko {
@@ -52,58 +60,108 @@ namespace test {
 
 
 using ValueTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<float, std::complex<float>>;
+#else
     ::testing::Types<float, double, std::complex<float>, std::complex<double>>;
-
+#endif
 
 using ComplexValueTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<std::complex<float>>;
+#else
     ::testing::Types<std::complex<float>, std::complex<double>>;
+#endif
 
 
 using IndexTypes = ::testing::Types<gko::int32, gko::int64>;
 
 
 using ValueAndIndexTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<float, std::complex<float>, gko::int32, gko::int64,
+                     gko::size_type>;
+#else
     ::testing::Types<float, double, std::complex<float>, std::complex<double>,
                      gko::int32, gko::int64, gko::size_type>;
+#endif
 
 
-using ValueIndexTypes = ::testing::Types<
-    std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
-    std::tuple<std::complex<float>, gko::int32>,
-    std::tuple<std::complex<double>, gko::int32>, std::tuple<float, gko::int64>,
-    std::tuple<double, gko::int64>, std::tuple<std::complex<float>, gko::int64>,
-    std::tuple<std::complex<double>, gko::int64>>;
+using RealValueAndIndexTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<float, gko::int32, gko::int64, gko::size_type>;
+#else
+    ::testing::Types<float, double, gko::int32, gko::int64, gko::size_type>;
+#endif
 
 
-using RealValueIndexTypes = ::testing::Types<
-    std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
-    std::tuple<float, gko::int64>, std::tuple<double, gko::int64>>;
+using ValueIndexTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<std::tuple<float, gko::int32>,
+                     std::tuple<std::complex<float>, gko::int32>,
+                     std::tuple<float, gko::int64>,
+                     std::tuple<std::complex<float>, gko::int64>>;
+#else
+    ::testing::Types<
+        std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
+        std::tuple<std::complex<float>, gko::int32>,
+        std::tuple<std::complex<double>, gko::int32>,
+        std::tuple<float, gko::int64>, std::tuple<double, gko::int64>,
+        std::tuple<std::complex<float>, gko::int64>,
+        std::tuple<std::complex<double>, gko::int64>>;
+#endif
+
+
+using RealValueIndexTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<std::tuple<float, gko::int32>,
+                     std::tuple<float, gko::int64>>;
+#else
+    ::testing::Types<
+        std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
+        std::tuple<float, gko::int64>, std::tuple<double, gko::int64>>;
+#endif
 
 
 using ComplexValueIndexTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<std::tuple<std::complex<float>, gko::int32>,
+                     std::tuple<std::complex<float>, gko::int64>>;
+#else
     ::testing::Types<std::tuple<std::complex<float>, gko::int32>,
                      std::tuple<std::complex<double>, gko::int32>,
                      std::tuple<std::complex<float>, gko::int64>,
                      std::tuple<std::complex<double>, gko::int64>>;
+#endif
 
 
-template <typename T>
+template <typename Precision, typename OutputType>
 struct reduction_factor {
-    static constexpr gko::remove_complex<T> value =
-        std::is_same<gko::remove_complex<T>, float>::value ? 1.0e-7 : 1.0e-14;
+    using nc_output = remove_complex<OutputType>;
+    using nc_precision = remove_complex<Precision>;
+    static constexpr nc_output value{
+        std::numeric_limits<nc_precision>::epsilon() * nc_output{10}};
 };
 
 
-template <typename T>
-constexpr gko::remove_complex<T> reduction_factor<T>::value;
+template <typename Precision, typename OutputType>
+constexpr remove_complex<OutputType>
+    reduction_factor<Precision, OutputType>::value;
 
 
 }  // namespace test
 }  // namespace gko
 
 
-template <typename T>
-using r = typename gko::test::reduction_factor<T>;
+template <typename Precision, typename OutputType = Precision>
+using r = typename gko::test::reduction_factor<Precision, OutputType>;
+
+
+template <typename Precision1, typename Precision2>
+constexpr double r_mixed()
+{
+    return std::max<double>(r<Precision1>::value, r<Precision2>::value);
+}
 
 
 template <typename T>

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/components/precision_conversion.hpp"
 
 
@@ -47,6 +48,15 @@ GKO_REGISTER_OPERATION(convert, components::convert_precision);
 
 
 }  // namespace conversion
+
+
+namespace array {
+
+
+GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+
+
+}  // namespace array
 
 
 namespace detail {
@@ -68,4 +78,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_ARRAY_CONVERSION);
 
 
 }  // namespace detail
+
+
+template <typename ValueType>
+void Array<ValueType>::fill(const ValueType value)
+{
+    this->get_executor()->run(
+        array::make_fill_array(this->get_data(), this->get_num_elems(), value));
+}
+
+
+#define GKO_DECLARE_ARRAY_FILL(_type) void Array<_type>::fill(const _type value)
+
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_FILL);
+
+
 }  // namespace gko

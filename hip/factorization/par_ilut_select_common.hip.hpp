@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,8 +45,8 @@ namespace hip {
 namespace par_ilut_factorization {
 
 
-constexpr auto default_block_size = 512;
-constexpr auto items_per_thread = 16;
+constexpr int default_block_size = 512;
+constexpr int items_per_thread = 16;
 
 
 template <typename ValueType, typename IndexType>

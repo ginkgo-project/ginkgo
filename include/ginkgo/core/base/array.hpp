@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_ARRAY_HPP_
-#define GKO_CORE_BASE_ARRAY_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_ARRAY_HPP_
+#define GKO_PUBLIC_CORE_BASE_ARRAY_HPP_
 
 
 #include <algorithm>
@@ -122,7 +122,7 @@ public:
      *
      * @param exec  the Executor where the array data is allocated
      */
-    Array(std::shared_ptr<const Executor> exec) noexcept
+    explicit Array(std::shared_ptr<const Executor> exec) noexcept
         : num_elems_(0),
           data_(nullptr, default_deleter{exec}),
           exec_(std::move(exec))
@@ -480,6 +480,13 @@ public:
     }
 
     /**
+     * Fill the array with the given value.
+     *
+     * @param value the value to be filled
+     */
+    void fill(const ValueType value);
+
+    /**
      * Returns the number of elements in the Array.
      *
      * @return the number of elements in the Array
@@ -563,7 +570,65 @@ private:
 };
 
 
+namespace detail {
+
+
+template <typename T>
+struct temporary_clone_helper<Array<T>> {
+    static std::unique_ptr<Array<T>> create(
+        std::shared_ptr<const Executor> exec, Array<T> *ptr, bool copy_data)
+    {
+        if (copy_data) {
+            return std::make_unique<Array<T>>(std::move(exec), *ptr);
+        } else {
+            return std::make_unique<Array<T>>(std::move(exec),
+                                              ptr->get_num_elems());
+        }
+    }
+};
+
+template <typename T>
+struct temporary_clone_helper<const Array<T>> {
+    static std::unique_ptr<const Array<T>> create(
+        std::shared_ptr<const Executor> exec, const Array<T> *ptr, bool)
+    {
+        return std::make_unique<const Array<T>>(std::move(exec), *ptr);
+    }
+};
+
+
+// specialization for non-constant arrays, copying back via assignment
+template <typename T>
+class copy_back_deleter<Array<T>> {
+public:
+    using pointer = Array<T> *;
+
+    /**
+     * Creates a new deleter object.
+     *
+     * @param original  the origin object where the data will be copied before
+     *                  deletion
+     */
+    copy_back_deleter(pointer original) : original_{original} {}
+
+    /**
+     * Copies back the pointed-to object to the original and deletes it.
+     *
+     * @param ptr  pointer to the object to be copied back and deleted
+     */
+    void operator()(pointer ptr) const
+    {
+        *original_ = *ptr;
+        delete ptr;
+    }
+
+private:
+    pointer original_;
+};
+
+
+}  // namespace detail
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_ARRAY_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_ARRAY_HPP_

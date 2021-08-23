@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/base/utils.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
@@ -191,24 +192,8 @@ ParIlut<ValueType, IndexType>::generate_l_u(
     const auto exec = this->get_executor();
 
     // convert and/or sort the matrix if necessary
-    std::unique_ptr<CsrMatrix> csr_system_matrix_unique_ptr{};
-    auto csr_system_matrix =
-        dynamic_cast<const CsrMatrix *>(system_matrix.get());
-    if (csr_system_matrix == nullptr ||
-        csr_system_matrix->get_executor() != exec) {
-        csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
-        as<ConvertibleTo<CsrMatrix>>(system_matrix.get())
-            ->convert_to(csr_system_matrix_unique_ptr.get());
-        csr_system_matrix = csr_system_matrix_unique_ptr.get();
-    }
-    if (!parameters_.skip_sorting) {
-        if (csr_system_matrix_unique_ptr == nullptr) {
-            csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
-            csr_system_matrix_unique_ptr->copy_from(csr_system_matrix);
-        }
-        csr_system_matrix_unique_ptr->sort_by_column_index();
-        csr_system_matrix = csr_system_matrix_unique_ptr.get();
-    }
+    auto csr_system_matrix = convert_to_with_sorting<CsrMatrix>(
+        exec, system_matrix, parameters_.skip_sorting);
 
     // initialize the L and U matrix data structures
     const auto num_rows = csr_system_matrix->get_size()[0];
@@ -216,7 +201,7 @@ ParIlut<ValueType, IndexType>::generate_l_u(
     Array<IndexType> u_row_ptrs_array{exec, num_rows + 1};
     auto l_row_ptrs = l_row_ptrs_array.get_data();
     auto u_row_ptrs = u_row_ptrs_array.get_data();
-    exec->run(make_initialize_row_ptrs_l_u(csr_system_matrix, l_row_ptrs,
+    exec->run(make_initialize_row_ptrs_l_u(csr_system_matrix.get(), l_row_ptrs,
                                            u_row_ptrs));
 
     auto l_nnz =
@@ -233,7 +218,7 @@ ParIlut<ValueType, IndexType>::generate_l_u(
                                std::move(u_row_ptrs_array));
 
     // initialize L and U
-    exec->run(make_initialize_l_u(csr_system_matrix, l.get(), u.get()));
+    exec->run(make_initialize_l_u(csr_system_matrix.get(), l.get(), u.get()));
 
     // compute limit #nnz for L and U
     auto l_nnz_limit =
@@ -242,7 +227,7 @@ ParIlut<ValueType, IndexType>::generate_l_u(
         static_cast<IndexType>(u_nnz * parameters_.fill_in_limit);
 
     ParIlutState<ValueType, IndexType> state{exec,
-                                             csr_system_matrix,
+                                             csr_system_matrix.get(),
                                              std::move(l),
                                              std::move(u),
                                              l_nnz_limit,

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -400,20 +400,60 @@ protected:
 };
 
 
-TEST_F(TemporaryClone, CopiesToAnotherExecutor)
+TEST_F(TemporaryClone, DoesNotCopyToSameMemory)
 {
-    auto clone = make_temporary_clone(omp, gko::lend(obj));
+    auto other = gko::ReferenceExecutor::create();
+    auto clone = make_temporary_clone(other, gko::lend(obj));
 
-    ASSERT_EQ(clone.get()->get_executor(), omp);
+    ASSERT_NE(clone.get()->get_executor(), other);
+    ASSERT_EQ(obj->get_executor(), ref);
+}
+
+
+TEST_F(TemporaryClone, OutputDoesNotCopyToSameMemory)
+{
+    auto other = gko::ReferenceExecutor::create();
+    auto clone = make_temporary_output_clone(other, gko::lend(obj));
+
+    ASSERT_NE(clone.get()->get_executor(), other);
     ASSERT_EQ(obj->get_executor(), ref);
 }
 
 
 TEST_F(TemporaryClone, CopiesBackAfterLeavingScope)
 {
+    obj->data = 4;
     {
         auto clone = make_temporary_clone(omp, gko::lend(obj));
         clone.get()->data = 7;
+
+        ASSERT_EQ(obj->data, 4);
+    }
+    ASSERT_EQ(obj->get_executor(), ref);
+    ASSERT_EQ(obj->data, 7);
+}
+
+
+TEST_F(TemporaryClone, OutputCopiesBackAfterLeavingScope)
+{
+    obj->data = 4;
+    {
+        auto clone = make_temporary_output_clone(omp, gko::lend(obj));
+        clone.get()->data = 7;
+
+        ASSERT_EQ(obj->data, 4);
+    }
+    ASSERT_EQ(obj->get_executor(), ref);
+    ASSERT_EQ(obj->data, 7);
+}
+
+
+TEST_F(TemporaryClone, DoesntCopyBackConstAfterLeavingScope)
+{
+    {
+        auto clone = make_temporary_clone(
+            omp, static_cast<const DummyObject *>(gko::lend(obj)));
+        obj->data = 7;
     }
 
     ASSERT_EQ(obj->get_executor(), ref);

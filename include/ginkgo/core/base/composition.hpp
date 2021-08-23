@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_COMPOSITION_HPP_
-#define GKO_CORE_BASE_COMPOSITION_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_COMPOSITION_HPP_
+#define GKO_PUBLIC_CORE_BASE_COMPOSITION_HPP_
 
 
 #include <vector>
@@ -167,7 +167,64 @@ private:
 };
 
 
+/**
+ * The UseComposition class can be used to store the composition information in
+ * LinOp.
+ *
+ * @tparam ValueType  precision of input and result vectors
+ */
+template <typename ValueType = default_precision>
+class UseComposition {
+public:
+    using value_type = ValueType;
+    /**
+     * Returns the composition opertor.
+     *
+     * @return composition
+     */
+    std::shared_ptr<Composition<ValueType>> get_composition() const
+    {
+        return composition_;
+    }
+
+    /**
+     * Returns the operator at index-th poistion of composition
+     *
+     * @return index-th operator
+     *
+     * @note when this composition is not set, this function always returns
+     *       nullptr. However, when this composition is set, it will throw
+     *       exception when exceeding index.
+     *
+     * @throw std::out_of_range if index is out of bound when composition is
+     *        existed.
+     */
+    std::shared_ptr<const LinOp> get_operator_at(size_type index) const
+    {
+        if (composition_ == nullptr) {
+            return nullptr;
+        } else {
+            return composition_->get_operators().at(index);
+        }
+    }
+
+protected:
+    /**
+     * Sets the composition with a list of operators
+     */
+    template <typename... LinOp>
+    void set_composition(LinOp &&... linop)
+    {
+        composition_ =
+            Composition<ValueType>::create(std::forward<LinOp>(linop)...);
+    }
+
+private:
+    std::shared_ptr<Composition<ValueType>> composition_;
+};
+
+
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_COMPOSITION_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_COMPOSITION_HPP_

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <hip/hip_runtime.h>
 #include <hipblas.h>
+#include <hiprand.h>
 #include <hipsparse.h>
 
 
@@ -65,6 +66,18 @@ TEST(AssertNoHipblasErrors, ThrowsOnError)
 TEST(AssertNoHipblasErrors, DoesNotThrowOnSuccess)
 {
     ASSERT_NO_THROW(GKO_ASSERT_NO_HIPBLAS_ERRORS(HIPBLAS_STATUS_SUCCESS));
+}
+
+
+TEST(AssertNoHiprandErrors, ThrowsOnError)
+{
+    ASSERT_THROW(GKO_ASSERT_NO_HIPRAND_ERRORS(1), gko::HiprandError);
+}
+
+
+TEST(AssertNoHiprandErrors, DoesNotThrowOnSuccess)
+{
+    ASSERT_NO_THROW(GKO_ASSERT_NO_HIPRAND_ERRORS(HIPRAND_STATUS_SUCCESS));
 }
 
 

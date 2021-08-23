@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -212,7 +212,7 @@ protected:
     std::unique_ptr<typename par_ilu_type::Factory> ilu_factory_sort;
 };
 
-TYPED_TEST_CASE(ParIlu, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(ParIlu, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(ParIlu, KernelAddDiagonalElementsEmpty)
@@ -688,7 +688,7 @@ TYPED_TEST(ParIlu, GenerateForDenseBig)
 TYPED_TEST(ParIlu, GenerateForDenseBigSort)
 {
     using value_type = typename TestFixture::value_type;
-    auto factors = this->ilu_factory_skip->generate(this->mtx_big);
+    auto factors = this->ilu_factory_sort->generate(this->mtx_big);
     auto l_factor = factors->get_l_factor();
     auto u_factor = factors->get_u_factor();
 

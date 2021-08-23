@@ -2,7 +2,7 @@ Installation Instructions                      {#install_ginkgo}
 -------------------------------------
 ### Building
 
-Use the standard cmake build procedure:
+Use the standard CMake build procedure:
 
 ```sh
 mkdir build; cd build
@@ -17,9 +17,19 @@ Ginkgo adds the following additional switches to control what is being built:
 
 *   `-DGINKGO_DEVEL_TOOLS={ON, OFF}` sets up the build system for development
     (requires clang-format, will also download git-cmake-format),
-    default is `OFF`.
+    default is `OFF`. The default behavior installs a pre-commit hook, which
+    disables git commits.  If it is set to `ON`, a new pre-commit hook for
+    formatting will be installed (enabling commits again). In both cases the
+    hook may overwrite a user defined pre-commit hook when Ginkgo is used as
+    a submodule.
+*   `-DGINKGO_MIXED_PRECISION={ON, OFF}` compiles true mixed-precision kernels
+    instead of converting data on the fly, default is `OFF`.
+    Enabling this flag increases the library size, but improves performance of
+    mixed-precision kernels.
 *   `-DGINKGO_BUILD_TESTS={ON, OFF}` builds Ginkgo's tests
     (will download googletest), default is `ON`.
+*   `-DGINKGO_FAST_TESTS={ON, OFF}` reduces the input sizes for a few slow tests
+    to speed them up, default is `OFF`.
 *   `-DGINKGO_BUILD_BENCHMARKS={ON, OFF}` builds Ginkgo's benchmarks
     (will download gflags and rapidjson), default is `ON`.
 *   `-DGINKGO_BUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
@@ -32,11 +42,18 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_BUILD_CUDA={ON, OFF}` builds optimized cuda versions of the kernels
     (requires CUDA), default is `ON` if a CUDA compiler could be detected,
     `OFF` otherwise.
+*   `-DGINKGO_BUILD_DPCPP={ON, OFF}` builds optimized DPC++ versions of the
+    kernels (requires `CMAKE_CXX_COMPILER` to be set to the `dpcpp` compiler).
+    The default is `ON` if `CMAKE_CXX_COMPILER` is a DPC++ compiler, `OFF`
+    otherwise.
 *   `-DGINKGO_BUILD_HIP={ON, OFF}` builds optimized HIP versions of the kernels
     (requires HIP), default is `ON` if an installation of HIP could be detected,
     `OFF` otherwise.
 *   `-DGINKGO_HIP_AMDGPU="gpuarch1;gpuarch2"` the amdgpu_target(s) variable
     passed to hipcc for the `hcc` HIP backend. The default is none (auto).
+*   `-DGINKGO_BUILD_HWLOC={ON, OFF}` builds Ginkgo with HWLOC. If system HWLOC
+    is not found, Ginkgo will try to build it. Default is `ON` on Linux. Ginkgo
+    does not support HWLOC on Windows/MacOS, so the default is `OFF` on Windows/MacOS.
 *   `-DGINKGO_BUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
     from inline comments in the code. The default is `OFF`.
 *   `-DGINKGO_DOC_GENERATE_EXAMPLES={ON, OFF}` generates the documentation of examples
@@ -59,6 +76,13 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_VERBOSE_LEVEL=integer` sets the verbosity of Ginkgo.
     * `0` disables all output in the main libraries,
     * `1` enables a few important messages related to unexpected behavior (default).
+*   `GINKGO_INSTALL_RPATH` allows setting any RPATH information when installing
+    the Ginkgo libraries. If this is `OFF`, the behavior is the same as if all
+    other RPATH flags are set to `OFF` as well. The default is `ON`.
+*   `GINKGO_INSTALL_RPATH_ORIGIN` adds $ORIGIN (Linux) or @loader_path (MacOS)
+    to the installation RPATH. The default is `ON`.
+*   `GINKGO_INSTALL_RPATH_DEPENDENCIES` adds the dependencies to the
+    installation RPATH. The default is `OFF`.
 *   `-DCMAKE_INSTALL_PREFIX=path` sets the installation path for `make install`.
     The default value is usually something like `/usr/local`.
 *   `-DCMAKE_BUILD_TYPE=type` specifies which configuration will be used for
@@ -84,7 +108,7 @@ Ginkgo adds the following additional switches to control what is being built:
     list of architectures. Supported values are:
 
     *   `Auto`
-    *   `Kepler`, `Maxwell`, `Pascal`, `Volta`, `Ampere`
+    *   `Kepler`, `Maxwell`, `Pascal`, `Volta`, `Turing`, `Ampere`
     *   `CODE`, `CODE(COMPUTE)`, `(COMPUTE)`
 
     `Auto` will automatically detect the present CUDA-enabled GPU architectures
@@ -96,14 +120,6 @@ Ginkgo adds the following additional switches to control what is being built:
     this option see the
     [`ARCHITECTURES` specification list](https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake#L58)
     section in the documentation of the CudaArchitectureSelector CMake module.
-* `-DGINKGO_WINDOWS_SHARED_LIBRARY_RELPATH=<path>` where <path> is a relative
-    path built with `PROJECT_BINARY_DIR`. Users must add the absolute path
-    (`PROJECT_BINARY_DIR`/`GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH`) into the
-    environment variable PATH when building shared libraries and executable
-    program, default is `windows_shared_library`.
-* `-DGINKGO_CHECK_PATH={ON, OFF}` checks if the environment variable PATH is valid.
-    It is checked only when building shared libraries and executable program,
-    default is `ON`.
 
 For example, to build everything (in debug mode), use:
 
@@ -119,48 +135,11 @@ generators. Other CMake generators are untested.
 
 ### Building Ginkgo in Windows
 Depending on the configuration settings, some manual work might be required:
-* Build Ginkgo as shared library:
-  Add `PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH` into the environment variable `PATH`.
-  `GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH` is `windows_shared_library` by default. More Details are available in the [Installation page](./INSTALL.md).
-  * cmd: `set PATH="<PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH>;%PATH%"`
-  * powershell: `$env:PATH="<PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH>;$env:PATH"`
-
-  CMake will give the following error message if the path is not correct.
-  ```
-  Did not find this build in the environment variable PATH. Please add <path> into the environment variable PATH.
-  ```
-  where `<path>` is the needed `<PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH>`.
 * Build Ginkgo with Debug mode:
-  Some Debug build specific issues can appear depending on the machine and environment. The known issues are the following:
-  1. `bigobj` issue: encountering  `too many sections` needs the compilation flags `\bigobj` or `-Wa,-mbig-obj`
-  2. `ld` issue: encountering  `ld: error: export ordinal too large` needs the compilation flag `-O1`
-
-  The following are the details for different environments:
-  * _Microsoft Visual Studio_:
-    1. `bigobj` issue
-      * `cmake -DCMAKE_CXX_FLAGS=\bigobj <other parameters> <source_folder>` which might overwrite the default settings.
-      * add `\bigobj` into the environment variable `CXXFLAGS` (only available in the first cmake configuration)
-        * cmd: `set CXXFLAGS=\bigobj`
-        * powershell: `$env:CXXFLAGS=\bigobj`
-    2. `ld` issue (_Microsoft Visual Studio_ does not have this issue)
-  * _Cygwin_:
-    1. `bigobj` issue
-      * add `-Wa,-mbig-obj -O1` into the environment variable `CXXFLAGS` (only available in the first cmake configuration)
-        * `export CXXFLAGS="-Wa,-mbig-obj -O1"`
-      * `cmake -DCMAKE_CXX_FLAGS=-Wa,-mbig-obj <other parameters> <source_folder>`, which might overwrite the default settings.
-    2. `ld` issue (If building Ginkgo as static library, this is not needed)
-      * `cmake -DGINKGO_COMPILER_FLAGS="-Wpedantic -O1" <other parameters> <source_folder>` (`GINKGO_COMPILER_FLAGS` is `-Wpedantic` by default)
-      * add `-O1` in the environement variable `CXX_FLAGS` or `CMAKE_CXX_FLAGS`
-  * _MinGW_:
-    1. `bigobj` issue
-      * add `-Wa,-mbig-obj -O1` into the environment variable `CXXFLAGS` (only available in the first cmake configuration)
-        * cmd: `set CXXFLAGS="-Wa,-mbig-obj"`
-        * powershell: `$env:CXXFLAGS="-Wa,-mbig-obj"`
-      * `cmake -DCMAKE_CXX_FLAGS=-Wa,-mbig-obj <other parameters> <source_folder>`, which might overwrite the default settings.
-    2. `ld` issue (If building Ginkgo as static library, this is not needed)
-      * `cmake -DGINKGO_COMPILER_FLAGS="-Wpedantic -O1" <other parameters> <source_folder>` (`GINKGO_COMPILER_FLAGS` is `-Wpedantic` by default)
-      * add `-O1` in the environement variable `CXX_FLAGS` or `CMAKE_CXX_FLAGS`
-* Build Ginkgo in _MinGW_:
+  Some Debug build specific issues can appear depending on the machine and environment:
+  When you encounter the error message `ld: error: export ordinal too large`, add the compilation flag `-O1`
+  by adding `-DCMAKE_CXX_FLAGS=-O1` to the CMake invocation.
+* Build Ginkgo in _MinGW_:\
   If encountering the issue `cc1plus.exe: out of memory allocating 65536 bytes`, please follow the workaround in
   [reference](https://www.intel.com/content/www/us/en/programmable/support/support-resources/knowledge-base/embedded/2016/cc1plus-exe--out-of-memory-allocating-65536-bytes.html),
   or trying to compile ginkgo again might work.
@@ -173,92 +152,46 @@ of HIP either at `/opt/rocm/hip` or at the path specified by `HIP_PATH` as a
 CMake parameter (`-DHIP_PATH=`) or environment variable (`export HIP_PATH=`),
 unless `-DGINKGO_BUILD_HIP=ON/OFF` is set explicitly.
 
-#### Correctly installing HIP toolkits and dependencies for Ginkgo
-In general, Ginkgo's HIP backend requires the following packages:
-+ HIP,
-+ hipBLAS,
-+ hipSPARSE,
-+ Thrust.
-
-It is necessary to provide some details about the different ways to
-procure and install these packages, in particular for NVIDIA systems since
-getting a correct, non bloated setup is not straightforward.
-
-For AMD systems, the simplest way is to follow the [instructions provided
-here](https://github.com/ROCm-Developer-Tools/HIP/blob/master/INSTALL.md) which
-provide package installers for most Linux distributions. Ginkgo also needs the
-installation of the [hipBLAS](https://github.com/ROCmSoftwarePlatform/hipBLAS)
-and [hipSPARSE](https://github.com/ROCmSoftwarePlatform/hipSPARSE) interfaces.
-Optionally if you do not already have a thrust installation, [the ROCm provided
-rocThrust package can be
-used](https://github.com/ROCmSoftwarePlatform/rocThrust).
-
-For NVIDIA systems, the traditional installation (package `hip_nvcc`), albeit
-working properly is currently odd: it depends on all the `hcc` related packages,
-although the `nvcc` backend seems to entirely rely on the CUDA suite. [See this
-issue for more
-details](https://github.com/ROCmSoftwarePlatform/hipBLAS/issues/53). It is
-advised in this case to compile everything manually, including using forks of
-`hipBLAS` and `hipSPARSE` specifically made to not depend on the `hcc` specific
-packages. `Thrust` is often provided by CUDA and this Thrust version should work
-with `HIP`. Here is a sample procedure for installing `HIP`, `hipBLAS` and
-`hipSPARSE`.
-
-
-```bash
-# HIP
-git clone https://github.com/ROCm-Developer-Tools/HIP.git
-pushd HIP && mkdir build && pushd build
-cmake .. && make install
-popd && popd
-
-# hipBLAS
-git clone https://github.com/tcojean/hipBLAS.git
-pushd hipBLAS && mkdir build && pushd build
-cmake .. && make install
-popd && popd
-
-# hipSPARSE
-git clone https://github.com/tcojean/hipSPARSE.git
-pushd hipSPARSE && mkdir build && pushd build
-cmake -DBUILD_CUDA=ON .. && make install
-popd && popd
-```
-
-
 #### Changing the paths to search for HIP and other packages
 All HIP installation paths can be configured through the use of environment
 variables or CMake variables. This way of configuring the paths is currently
 imposed by the `HIP` tool suite. The variables are the following:
-+ CMake `-DHIP_PATH=` or  environment `export HIP_PATH=`: sets the `HIP`
-  installation path. The default value is `/opt/rocm/hip`.
-+ CMake `-DHIPBLAS_PATH=` or  environment `export HIPBLAS_PATH=`: sets the
-  `hipBLAS` installation path. The default value is `/opt/rocm/hipblas`.
-+ CMake `-DHIPSPARSE_PATH=` or  environment `export HIPSPARSE_PATH=`: sets the
-  `hipSPARSE` installation path. The default value is `/opt/rocm/hipsparse`.
-+ CMake `-DHCC_PATH=` or  environment `export HCC_PATH=`: sets the `HCC`
-  installation path, for AMD backends. The default value is `/opt/rocm/hcc`.
++ CMake `-DROCM_PATH=` or environment `export ROCM_PATH=`: sets the `ROCM`
+  installation path. The default value is `/opt/rocm/`.
++ CMake `-DHIP_CLANG_PATH` or environment `export HIP_CLANG_PATH=`: sets the
+  `HIP` compatible `clang` binary path. The default value is
+  `${ROCM_PATH}/llvm/bin`.
++ CMake `-DHIP_PATH=` or environment `export HIP_PATH=`: sets the `HIP`
+  installation path. The default value is `${ROCM_PATH}/hip`.
++ CMake `-DHIPBLAS_PATH=` or environment `export HIPBLAS_PATH=`: sets the
+  `hipBLAS` installation path. The default value is `${ROCM_PATH}/hipblas`.
++ CMake `-DHIPSPARSE_PATH=` or environment `export HIPSPARSE_PATH=`: sets the
+  `hipSPARSE` installation path. The default value is `${ROCM_PATH}/hipsparse`.
++ CMake `-DROCRAND_PATH=` or environment `export ROCRAND_PATH=`: sets the
+  `rocRAND` installation path. The default value is `${ROCM_PATH}/rocrand`.
++ CMake `-DHIPRAND_PATH=` or environment `export HIPRAND_PATH=`: sets the
+  `hipRAND` installation path. The default value is `${ROCM_PATH}/hiprand`.
 + environment `export CUDA_PATH=`: where `hipcc` can find `CUDA` if it is not in
   the default `/usr/local/cuda` path.
 
 
 #### HIP platform detection of AMD and NVIDIA
 By default, Ginkgo uses the output of `/opt/rocm/hip/bin/hipconfig --platform`
-to select the backend. The accepted values are either `hcc` (AMD) or `nvcc`
-(NVIDIA). When on an AMD or NVIDIA system, this should output the correct
-platform by default. When on a system without GPUs, this should output `hcc` by
-default. To change this value, export the environment variable `HIP_PLATFORM`
-like so:
+to select the backend. The accepted values are either `hcc` (`amd` with ROCM >=
+4.1) or `nvcc` (`nvidia` with ROCM >= 4.1). When on an AMD or NVIDIA system,
+this should output the correct platform by default. When on a system without
+GPUs, this should output `hcc` by default. To change this value, export the
+environment variable `HIP_PLATFORM` like so:
 ```bash
-export HIP_PLATFORM=nvcc
+export HIP_PLATFORM=nvcc # or nvidia for ROCM >= 4.1
 ```
 
 #### Setting platform specific compilation flags
-Platform specific compilation flags can be given through the following
-CMake variables:
+Platform specific compilation flags can be given through the following CMake
+variables:
 + `-DGINKGO_HIP_COMPILER_FLAGS=`: compilation flags given to all platforms.
-+ `-DGINKGO_HIP_HCC_COMPILER_FLAGS=`: compilation flags given to AMD platforms.
 + `-DGINKGO_HIP_NVCC_COMPILER_FLAGS=`: compilation flags given to NVIDIA platforms.
++ `-DGINKGO_HIP_CLANG_COMPILER_FLAGS=`: compilation flags given to AMD clang compiler.
 
 
 ### Third party libraries and packages
@@ -266,9 +199,6 @@ CMake variables:
 Ginkgo relies on third party packages in different cases. These third party
 packages can be turned off by disabling the relevant options.
 
-+ GINKGO_BUILD_CUDA=ON:
-  [CudaArchitectureSelector](https://github.com/ginkgo-project/CudaArchitectureSelector)
-  (CAS) is a CMake helper to manage CUDA architecture settings;
 + GINKGO_BUILD_TESTS=ON: Our tests are implemented with [Google
   Test](https://github.com/google/googletest);
 + GINKGO_BUILD_BENCHMARKS=ON: For argument management we use
@@ -277,29 +207,24 @@ packages can be turned off by disabling the relevant options.
 + GINKGO_DEVEL_TOOLS=ON:
   [git-cmake-format](https://github.com/gflegar/git-cmake-format) is our CMake
   helper for code formatting.
++ GINKGO_BUILD_HWLOC=ON:
+  [hwloc](https://www.open-mpi.org/projects/hwloc) to detect and control cores
+  and devices.
 
-By default, Ginkgo uses the internal version of each package. For each of the
-packages `GTEST`, `GFLAGS`, `RAPIDJSON` and `CAS`, it is possible to force
-Ginkgo to try to use an external version of a package. For this, Ginkgo provides
-two ways to find packages. To rely on the CMake `find_package` command, use the
-CMake option `-DGINKGO_USE_EXTERNAL_<package>=ON`. Note that, if the external
-packages were not installed to the default location, the CMake option
-`-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the semicolon (`;`)
-separated list of install paths of these external packages. For more
-Information, see the [CMake documentation for
+Ginkgo attempts to use pre-installed versions of these package if they match
+version requirements using `find_package`. Otherwise, the configuration step
+will download the files for each of the packages `GTest`, `gflags`,
+`RapidJSON` and `hwloc` and build them internally.
+
+Note that, if the external packages were not installed to the default location,
+the CMake option `-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the
+semicolon (`;`) separated list of install paths of these external packages. For
+more Information, see the [CMake documentation for
 CMAKE_PREFIX_PATH](https://cmake.org/cmake/help/v3.9/variable/CMAKE_PREFIX_PATH.html)
 for details.
 
-To manually configure the paths, Ginkgo relies on the [standard xSDK Installation
-policies](https://xsdk.info/policies/) for all packages except `CAS` (as it is
-neither a library nor a header, it cannot be expressed through the `TPL`
-format):
-+ `-DTPL_ENABLE_<package>=ON`
-+ `-DTPL_<package>_LIBRARIES=/path/to/libraries.{so|a}`
-+ `-DTPL_<package>_INCLUDE_DIRS=/path/to/header/directory`
-
-When applicable (e.g. for `GTest` libraries), a `;` separated list can be given
-to the `TPL_<package>_{LIBRARIES|INCLUDE_DIRS}` variables.
+For convenience, the options `GINKGO_INSTALL_RPATH[_.*]` can be used
+to bind the installed Ginkgo shared libraries to the path of its dependencies.
 
 ### Installing Ginkgo
 

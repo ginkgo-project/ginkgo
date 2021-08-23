@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,10 @@ void Operation::run(std::shared_ptr<const CudaExecutor> executor) const
 
 
 void Operation::run(std::shared_ptr<const HipExecutor> executor) const
+    GKO_NOT_IMPLEMENTED;
+
+
+void Operation::run(std::shared_ptr<const DpcppExecutor> executor) const
     GKO_NOT_IMPLEMENTED;
 
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -94,8 +95,18 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x);
+        },
+        b, x);
+}
 
+
+template <typename ValueType>
+void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
+                                        matrix::Dense<ValueType> *dense_x) const
+{
     using Vector = matrix::Dense<ValueType>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
 
@@ -106,12 +117,11 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
-    auto dense_b = as<const Vector>(b);
-    auto dense_x = as<Vector>(x);
     auto residual = Vector::create_with_config_of(dense_b);
-    auto krylov_bases = Vector::create(
-        exec, dim<2>{system_matrix_->get_size()[1] * (krylov_dim_ + 1),
-                     dense_b->get_size()[1]});
+    auto krylov_bases = Vector::create_with_type_of(
+        dense_b, exec,
+        dim<2>{system_matrix_->get_size()[1] * (krylov_dim_ + 1),
+               dense_b->get_size()[1]});
     std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =
         Vector::create_with_config_of(dense_b);
     auto hessenberg = Vector::create(
@@ -150,8 +160,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // final_iter_nums = {0, ..., 0}
 
     auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
-        x, residual.get());
+        system_matrix_,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
+        residual.get());
 
     int total_iter = -1;
     size_type restart_iter = 0;
@@ -161,6 +172,24 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto after_preconditioner =
         matrix::Dense<ValueType>::create_with_config_of(dense_x);
 
+    /* Memory movement summary for average iteration with krylov_dim d:
+     * (5/2d+21/2+14/d)n * values + (1+1/d) * matrix/preconditioner storage
+     * 1x SpMV:                2n * values + storage
+     * 1x Preconditioner:      2n * values + storage
+     * MGS:          (5/2d+11/2)n = sum k=0 to d-1 of (5k+8)n/d
+     *       1x dots           2(k+1)n in iteration k (0-based)
+     *       1x axpys          3(k+1)n in iteration k (0-based)
+     *       1x norm2               n
+     *       1x scal               2n
+     * Restart:         (1+14/d)n  (every dth iteration)
+     *       1x gemv           (d+1)n
+     *       1x Preconditioner     2n * values + storage
+     *       1x axpy               3n
+     *       1x copy               2n
+     *       1x Advanced SpMV      3n * values + storage
+     *       1x norm2               n
+     *       1x scal               2n
+     */
     while (true) {
         ++total_iter;
         this->template log<log::Logger::iteration_complete>(
@@ -177,32 +206,31 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         if (restart_iter == krylov_dim_) {
             // Restart
+            // Solve upper triangular.
+            // y = hessenberg \ residual_norm_collection
+            // before_preconditioner = krylov_bases * y
             exec->run(gmres::make_step_2(residual_norm_collection.get(),
                                          krylov_bases.get(), hessenberg.get(),
                                          y.get(), before_preconditioner.get(),
                                          &final_iter_nums));
-            // Solve upper triangular.
-            // y = hessenberg \ residual_norm_collection
-            // before_preconditioner = krylov_bases * y
 
+            // x = x + get_preconditioner() * before_preconditioner
             get_preconditioner()->apply(before_preconditioner.get(),
                                         after_preconditioner.get());
             dense_x->add_scaled(one_op.get(), after_preconditioner.get());
-            // Solve x
-            // x = x + get_preconditioner() * before_preconditioner
-            residual->copy_from(dense_b);
             // residual = dense_b
+            residual->copy_from(dense_b);
+            // residual = residual - Ax
             system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                                   residual.get());
-            // residual = residual - Ax
-            exec->run(gmres::make_initialize_2(
-                residual.get(), residual_norm.get(),
-                residual_norm_collection.get(), krylov_bases.get(),
-                &final_iter_nums, krylov_dim_));
             // residual_norm = norm(residual)
             // residual_norm_collection = {residual_norm, unchanged}
             // krylov_bases(:, 1) = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
+            exec->run(gmres::make_initialize_2(
+                residual.get(), residual_norm.get(),
+                residual_norm_collection.get(), krylov_bases.get(),
+                &final_iter_nums, krylov_dim_));
             restart_iter = 0;
         }
         auto this_krylov = krylov_bases->create_submatrix(
@@ -214,9 +242,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             span{system_matrix_->get_size()[0] * (restart_iter + 1),
                  system_matrix_->get_size()[0] * (restart_iter + 2)},
             span{0, dense_b->get_size()[1]});
+        // preconditioned_vector = get_preconditioner() * this_krylov
         get_preconditioner()->apply(this_krylov.get(),
                                     preconditioned_vector.get());
-        // preconditioned_vector = get_preconditioner() * this_krylov
 
         // Do Arnoldi and givens rotation
         auto hessenberg_iter = hessenberg->create_submatrix(
@@ -225,14 +253,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                  dense_b->get_size()[1] * (restart_iter + 1)});
 
         // Start of arnoldi
-        system_matrix_->apply(preconditioned_vector.get(), next_krylov.get());
         // next_krylov = A * preconditioned_vector
+        system_matrix_->apply(preconditioned_vector.get(), next_krylov.get());
 
-        exec->run(gmres::make_step_1(
-            dense_b->get_size()[0], givens_sin.get(), givens_cos.get(),
-            residual_norm.get(), residual_norm_collection.get(),
-            krylov_bases.get(), hessenberg_iter.get(), restart_iter,
-            &final_iter_nums, &stop_status));
         // final_iter_nums += 1 (unconverged)
         // next_krylov_basis is alias for (restart_iter + 1)-th krylov_bases
         // for i in 0:restart_iter(include)
@@ -269,6 +292,11 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // residual_norm_collection(restart_iter) = cos(restart_iter) * this_rnc
         // residual_norm = abs(next_rnc)
         // residual_norm_collection(restart_iter + 1) = next_rnc
+        exec->run(gmres::make_step_1(
+            dense_b->get_size()[0], givens_sin.get(), givens_cos.get(),
+            residual_norm.get(), residual_norm_collection.get(),
+            krylov_bases.get(), hessenberg_iter.get(), restart_iter,
+            &final_iter_nums, &stop_status));
 
         restart_iter++;
     }
@@ -281,32 +309,32 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         span{0, restart_iter},
         span{0, dense_b->get_size()[1] * (restart_iter)});
 
+    // Solve upper triangular.
+    // y = hessenberg \ residual_norm_collection
+    // before_preconditioner = krylov_bases * y
     exec->run(gmres::make_step_2(
         residual_norm_collection.get(), krylov_bases_small.get(),
         hessenberg_small.get(), y.get(), before_preconditioner.get(),
         &final_iter_nums));
-    // Solve upper triangular.
-    // y = hessenberg \ residual_norm_collection
-    // before_preconditioner = krylov_bases * y
+    // x = x + get_preconditioner() * before_preconditioner
     get_preconditioner()->apply(before_preconditioner.get(),
                                 after_preconditioner.get());
     dense_x->add_scaled(one_op.get(), after_preconditioner.get());
-    // Solve x
-    // x = x + get_preconditioner() * before_preconditioner
 }
 
 
 template <typename ValueType>
 void Gmres<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                  const LinOp *residual_norm_collection,
-                                  LinOp *x) const
+                                  const LinOp *beta, LinOp *x) const
 {
-    auto dense_x = as<matrix::Dense<ValueType>>(x);
-
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(residual_norm_collection);
-    dense_x->add_scaled(alpha, x_clone.get());
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get());
+            dense_x->scale(dense_beta);
+            dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
 }
 
 

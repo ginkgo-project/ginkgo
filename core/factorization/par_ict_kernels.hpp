@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ namespace kernels {
 
 #define GKO_DECLARE_PAR_ICT_ADD_CANDIDATES_KERNEL(ValueType, IndexType) \
     void add_candidates(std::shared_ptr<const DefaultExecutor> exec,    \
-                        const matrix::Csr<ValueType, IndexType> *llt,   \
+                        const matrix::Csr<ValueType, IndexType> *llh,   \
                         const matrix::Csr<ValueType, IndexType> *a,     \
                         const matrix::Csr<ValueType, IndexType> *l,     \
                         matrix::Csr<ValueType, IndexType> *l_new)
@@ -104,6 +104,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace par_ict_factorization
 }  // namespace hip
+
+
+namespace dpcpp {
+namespace par_ict_factorization {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace par_ict_factorization
+}  // namespace dpcpp
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

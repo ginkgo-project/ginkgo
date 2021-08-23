@@ -16,13 +16,6 @@ if(MSVC)
     if("${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES}" STREQUAL "")
         set(CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/lib/x64")
     endif()
-
-    # This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
-    if(BUILD_SHARED_LIBS)
-        ginkgo_switch_to_windows_dynamic("CUDA")
-    else()
-        ginkgo_switch_to_windows_static("CUDA")
-    endif()
 endif()
 
 include(CudaArchitectureSelector)
@@ -35,6 +28,11 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}" PARENT_SCOPE)
 set(CMAKE_CUDA_COMPILER_VERSION ${CMAKE_CUDA_COMPILER_VERSION} PARENT_SCOPE)
 set(CUDA_INCLUDE_DIRS ${CUDA_INCLUDE_DIRS} PARENT_SCOPE)
 
+# Detect the CUDA architecture flags and propagate to all the project
+cas_variable_cuda_architectures(GINKGO_CUDA_ARCH_FLAGS
+    ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
+    UNSUPPORTED "20" "21")
+set(GINKGO_CUDA_ARCH_FLAGS "${GINKGO_CUDA_ARCH_FLAGS}" PARENT_SCOPE)
 
 # MSVC nvcc uses static cudartlibrary by default, and other platforms use shared cudartlibrary.
 # add `-cudart shared` or `-cudart=shared` according system into CMAKE_CUDA_FLAGS
@@ -63,24 +61,42 @@ find_library(CUBLAS cublas
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES} NO_DEFAULT_PATH)
 find_library(CUSPARSE cusparse
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+find_library(CURAND curand
+    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
+set(GKO_CUDA_COMMON_SOURCES
+    ../common/unified/components/precision_conversion.cpp
+    ../common/unified/matrix/coo_kernels.cpp
+    ../common/unified/matrix/csr_kernels.cpp
+    ../common/unified/matrix/dense_kernels.cpp
+    ../common/unified/matrix/diagonal_kernels.cpp
+    ../common/unified/preconditioner/jacobi_kernels.cpp
+    ../common/unified/solver/bicg_kernels.cpp
+    ../common/unified/solver/bicgstab_kernels.cpp
+    ../common/unified/solver/cg_kernels.cpp
+    ../common/unified/solver/cgs_kernels.cpp
+    ../common/unified/solver/fcg_kernels.cpp
+    ../common/unified/solver/ir_kernels.cpp
+    )
 target_sources(ginkgo_cuda
     PRIVATE
     base/exception.cpp
     base/executor.cpp
     base/version.cpp
+    components/absolute_array.cu
     components/fill_array.cu
-    components/precision_conversion.cu
     components/prefix_sum.cu
-    factorization/ilu_kernels.cu
     factorization/factorization_kernels.cu
+    factorization/ic_kernels.cu
+    factorization/ilu_kernels.cu
+    factorization/par_ic_kernels.cu
     factorization/par_ict_kernels.cu
     factorization/par_ilu_kernels.cu
     factorization/par_ilut_approx_filter_kernel.cu
     factorization/par_ilut_filter_kernel.cu
-    factorization/par_ilut_select_kernel.cu
     factorization/par_ilut_select_common.cu
+    factorization/par_ilut_select_kernel.cu
     factorization/par_ilut_spgeam_kernel.cu
     factorization/par_ilut_sweep_kernel.cu
     matrix/coo_kernels.cu
@@ -88,34 +104,46 @@ target_sources(ginkgo_cuda
     matrix/dense_kernels.cu
     matrix/diagonal_kernels.cu
     matrix/ell_kernels.cu
+    matrix/fbcsr_kernels.cu
     matrix/hybrid_kernels.cu
     matrix/sellp_kernels.cu
     matrix/sparsity_csr_kernels.cu
+    multigrid/amgx_pgm_kernels.cu
     preconditioner/isai_kernels.cu
     preconditioner/jacobi_advanced_apply_kernel.cu
     preconditioner/jacobi_generate_kernel.cu
     preconditioner/jacobi_kernels.cu
     preconditioner/jacobi_simple_apply_kernel.cu
-    solver/bicg_kernels.cu
-    solver/bicgstab_kernels.cu
-    solver/cg_kernels.cu
-    solver/cgs_kernels.cu
-    solver/fcg_kernels.cu
+    reorder/rcm_kernels.cu
     solver/gmres_kernels.cu
-    solver/ir_kernels.cu
+    solver/cb_gmres_kernels.cu
+    solver/idr_kernels.cu
     solver/lower_trs_kernels.cu
     solver/upper_trs_kernels.cu
     stop/criterion_kernels.cu
-    stop/residual_norm_kernels.cu)
+    stop/residual_norm_kernels.cu
+    ${GKO_CUDA_COMMON_SOURCES}
+    )
+# override the default language mapping for the common files, set them to CUDA
+foreach(source_file IN LISTS GKO_CUDA_COMMON_SOURCES)
+    set_source_files_properties(${source_file} PROPERTIES LANGUAGE CUDA)
+endforeach(source_file)
 
-# This creates a compilation bug on nvcc 9.0.102 *with* the new array_deleter
-# merged at commit ed12b3df5d26, and the parameter is not recognized by clang-cuda
-if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA" AND
-   NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
+if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
     # remove false positive CUDA warnings when calling one<T>() and zero<T>()
+    # and allows the usage of std::array for nvidia GPUs
     target_compile_options(ginkgo_cuda
         PRIVATE
             $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+    if(MSVC)
+        target_compile_options(ginkgo_cuda
+            PRIVATE
+                $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda>)
+    else()
+        target_compile_options(ginkgo_cuda
+            PRIVATE
+                $<$<COMPILE_LANGUAGE:CUDA>:--expt-extended-lambda>)
+    endif()
 endif()
 
 if (NOT CMAKE_CUDA_HOST_COMPILER AND NOT GINKGO_CUDA_DEFAULT_HOST_COMPILER)
@@ -145,22 +173,25 @@ endif()
 target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_COMPILER_FLAGS}>)
 target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 ginkgo_compile_features(ginkgo_cuda)
+target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA)
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
-target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
-
-# Need to link against ginkgo_hip for the `raw_copy_to(HipExecutor ...)` method
-target_link_libraries(ginkgo_cuda PUBLIC ginkgo_hip)
-
-cas_target_cuda_architectures(ginkgo_cuda
-    ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
-    UNSUPPORTED "20" "21")
+target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND})
+target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device)
+target_compile_options(ginkgo_cuda
+        PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
+# we handle CUDA architecture flags for now, disable CMake handling
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
+    set_target_properties(ginkgo_cuda PROPERTIES CUDA_ARCHITECTURES OFF)
+endif()
+list(GET CUDA_RUNTIME_LIBS 0 CUDA_FIRST_LIB)
+get_filename_component(GKO_CUDA_LIBDIR "${CUDA_FIRST_LIB}" DIRECTORY)
 
 ginkgo_default_includes(ginkgo_cuda)
-ginkgo_install_library(ginkgo_cuda cuda)
+ginkgo_install_library(ginkgo_cuda "${GKO_CUDA_LIBDIR}")
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_cuda)
+    ginkgo_check_headers(ginkgo_cuda GKO_COMPILING_CUDA)
 endif()
 
 if(GINKGO_BUILD_TESTS)

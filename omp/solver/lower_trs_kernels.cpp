@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -107,7 +107,7 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         for (size_type row = 0; row < matrix->get_size()[0]; ++row) {
             x->at(row, j) = b->at(row, j) / vals[row_ptrs[row + 1] - 1];
-            for (size_type k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
+            for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
                 auto col = col_idxs[k];
                 if (col < row) {
                     x->at(row, j) +=

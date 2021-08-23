@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,10 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <rapidjson/document.h>
 
-
-// some shortcuts
-using hybrid = gko::matrix::Hybrid<>;
-using csr = gko::matrix::Csr<>;
 
 /**
  * Function which outputs the input format for benchmarks similar to the spmv.

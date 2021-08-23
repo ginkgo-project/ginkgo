@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -244,7 +244,8 @@ void Record::on_criterion_check_started(
 
 void Record::on_criterion_check_completed(
     const stop::Criterion *criterion, const size_type &num_iterations,
-    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
+    const LinOp *residual, const LinOp *residual_norm,
+    const LinOp *implicit_residual_norm_sq, const LinOp *solution,
     const uint8 &stopping_id, const bool &set_finalized,
     const Array<stopping_status> *status, const bool &oneChanged,
     const bool &converged) const
@@ -257,15 +258,40 @@ void Record::on_criterion_check_completed(
 }
 
 
+void Record::on_criterion_check_completed(
+    const stop::Criterion *criterion, const size_type &num_iterations,
+    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
+    const uint8 &stopping_id, const bool &set_finalized,
+    const Array<stopping_status> *status, const bool &oneChanged,
+    const bool &converged) const
+{
+    this->on_criterion_check_completed(
+        criterion, num_iterations, residual, residual_norm, nullptr, solution,
+        stopping_id, set_finalized, status, oneChanged, converged);
+}
+
+
 void Record::on_iteration_complete(const LinOp *solver,
                                    const size_type &num_iterations,
                                    const LinOp *residual, const LinOp *solution,
                                    const LinOp *residual_norm) const
 {
+    this->on_iteration_complete(solver, num_iterations, residual, solution,
+                                residual_norm, nullptr);
+}
+
+
+void Record::on_iteration_complete(const LinOp *solver,
+                                   const size_type &num_iterations,
+                                   const LinOp *residual, const LinOp *solution,
+                                   const LinOp *residual_norm,
+                                   const LinOp *implicit_sq_residual_norm) const
+{
     append_deque(
         data_.iteration_completed,
         (std::unique_ptr<iteration_complete_data>(new iteration_complete_data{
-            solver, num_iterations, residual, solution, residual_norm})));
+            solver, num_iterations, residual, solution, residual_norm,
+            implicit_sq_residual_norm})));
 }
 
 

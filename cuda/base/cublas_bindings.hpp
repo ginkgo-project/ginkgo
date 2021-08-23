@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -206,12 +206,35 @@ GKO_BIND_CUBLAS_AXPY(ValueType, detail::not_implemented);
 
 GKO_BIND_CUBLAS_DOT(float, cublasSdot);
 GKO_BIND_CUBLAS_DOT(double, cublasDdot);
-GKO_BIND_CUBLAS_DOT(std::complex<float>, cublasCdotc);
-GKO_BIND_CUBLAS_DOT(std::complex<double>, cublasZdotc);
+GKO_BIND_CUBLAS_DOT(std::complex<float>, cublasCdotu);
+GKO_BIND_CUBLAS_DOT(std::complex<double>, cublasZdotu);
 template <typename ValueType>
 GKO_BIND_CUBLAS_DOT(ValueType, detail::not_implemented);
 
 #undef GKO_BIND_CUBLAS_DOT
+
+
+#define GKO_BIND_CUBLAS_CONJ_DOT(ValueType, CublasName)                       \
+    inline void conj_dot(cublasHandle_t handle, int n, const ValueType *x,    \
+                         int incx, const ValueType *y, int incy,              \
+                         ValueType *result)                                   \
+    {                                                                         \
+        GKO_ASSERT_NO_CUBLAS_ERRORS(CublasName(handle, n, as_culibs_type(x),  \
+                                               incx, as_culibs_type(y), incy, \
+                                               as_culibs_type(result)));      \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
+
+GKO_BIND_CUBLAS_CONJ_DOT(float, cublasSdot);
+GKO_BIND_CUBLAS_CONJ_DOT(double, cublasDdot);
+GKO_BIND_CUBLAS_CONJ_DOT(std::complex<float>, cublasCdotc);
+GKO_BIND_CUBLAS_CONJ_DOT(std::complex<double>, cublasZdotc);
+template <typename ValueType>
+GKO_BIND_CUBLAS_CONJ_DOT(ValueType, detail::not_implemented);
+
+#undef GKO_BIND_CUBLAS_CONJ_DOT
 
 
 #define GKO_BIND_CUBLAS_NORM2(ValueType, CublasName)                           \

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/coo_kernels.hpp"
+#include "core/test/utils/unsort_matrix.hpp"
 #include "hip/test/utils.hip.hpp"
 
 
@@ -58,6 +59,7 @@ class Coo : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Coo<>;
     using Vec = gko::matrix::Dense<>;
+    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
 
     Coo() : rand_engine(42) {}
 
@@ -75,9 +77,10 @@ protected:
         }
     }
 
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols)
+    template <typename MtxType = Vec>
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
     {
-        return gko::test::generate_random_matrix<Vec>(
+        return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols, std::uniform_int_distribution<>(1, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
@@ -100,6 +103,12 @@ protected:
         dalpha->copy_from(alpha.get());
         dbeta = Vec::create(hip);
         dbeta->copy_from(beta.get());
+    }
+
+    void unsort_mtx()
+    {
+        gko::test::unsort_matrix(mtx.get(), rand_engine);
+        dmtx->copy_from(mtx.get());
     }
 
 
@@ -133,6 +142,36 @@ TEST_F(Coo, SimpleApplyIsEquivalentToRef)
 }
 
 
+TEST_F(Coo, SimpleApplyDoesntOverwritePadding)
+{
+    set_up_apply_data();
+    auto dresult_padded =
+        Vec::create(hip, dresult->get_size(), dresult->get_stride() + 1);
+    dresult_padded->copy_from(dresult.get());
+    double padding_val{1234.0};
+    hip->copy_from(hip->get_master().get(), 1, &padding_val,
+                   dresult_padded->get_values() + 1);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult_padded.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult_padded, expected, 1e-14);
+    ASSERT_EQ(hip->copy_val_to_host(dresult_padded->get_values() + 1), 1234.0);
+}
+
+
+TEST_F(Coo, SimpleApplyIsEquivalentToRefUnsorted)
+{
+    set_up_apply_data();
+    unsort_mtx();
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
 TEST_F(Coo, AdvancedApplyIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -141,6 +180,24 @@ TEST_F(Coo, AdvancedApplyIsEquivalentToRef)
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Coo, AdvancedApplyDoesntOverwritePadding)
+{
+    set_up_apply_data();
+    auto dresult_padded =
+        Vec::create(hip, dresult->get_size(), dresult->get_stride() + 1);
+    dresult_padded->copy_from(dresult.get());
+    double padding_val{1234.0};
+    hip->copy_from(hip->get_master().get(), 1, &padding_val,
+                   dresult_padded->get_values() + 1);
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult_padded.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult_padded, expected, 1e-14);
+    ASSERT_EQ(hip->copy_val_to_host(dresult_padded->get_values() + 1), 1234.0);
 }
 
 
@@ -232,6 +289,57 @@ TEST_F(Coo, AdvancedApplyAddToLargeDenseMatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Coo, ApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexVec>(231, 3);
+    auto dcomplex_b = ComplexVec::create(hip);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3);
+    auto dcomplex_x = ComplexVec::create(hip);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply(complex_b.get(), complex_x.get());
+    dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
+TEST_F(Coo, AdvancedApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexVec>(231, 3);
+    auto dcomplex_b = ComplexVec::create(hip);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3);
+    auto dcomplex_x = ComplexVec::create(hip);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
+    dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
+TEST_F(Coo, ApplyAddToComplexIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto complex_b = gen_mtx<ComplexVec>(231, 3);
+    auto dcomplex_b = ComplexVec::create(hip);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3);
+    auto dcomplex_x = ComplexVec::create(hip);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply2(alpha.get(), complex_b.get(), complex_x.get());
+    dmtx->apply2(dalpha.get(), dcomplex_b.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
 TEST_F(Coo, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -268,6 +376,28 @@ TEST_F(Coo, ExtractDiagonalIsEquivalentToRef)
     auto ddiag = dmtx->extract_diagonal();
 
     GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+}
+
+
+TEST_F(Coo, InplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    mtx->compute_absolute_inplace();
+    dmtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 1e-14);
+}
+
+
+TEST_F(Coo, OutplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto abs_mtx = mtx->compute_absolute();
+    auto dabs_mtx = dmtx->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
 }
 
 

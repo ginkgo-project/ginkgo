@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@ namespace {
 template <typename T>
 class Convergence : public ::testing::Test {};
 
-TYPED_TEST_CASE(Convergence, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Convergence, gko::test::ValueTypes);
 
 
 TYPED_TEST(Convergence, CanGetData)
@@ -56,6 +56,7 @@ TYPED_TEST(Convergence, CanGetData)
     auto logger = gko::log::Convergence<TypeParam>::create(
         exec, gko::log::Logger::iteration_complete_mask);
 
+    ASSERT_EQ(logger->has_converged(), false);
     ASSERT_EQ(logger->get_num_iterations(), 0);
     ASSERT_EQ(logger->get_residual(), nullptr);
     ASSERT_EQ(logger->get_residual_norm(), nullptr);

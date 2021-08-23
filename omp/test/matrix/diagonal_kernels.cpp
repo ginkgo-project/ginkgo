@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,10 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-#include <iostream>
 #include <numeric>
 #include <random>
 #include <vector>
+
 
 #include <gtest/gtest.h>
 
@@ -62,7 +62,14 @@ protected:
     using Dense = gko::matrix::Dense<ValueType>;
     using ComplexDiag = gko::matrix::Diagonal<ComplexValueType>;
 
-    Diagonal() : mtx_size(532, 231), rand_engine(42) {}
+    Diagonal()
+#ifdef GINKGO_FAST_TESTS
+        : mtx_size(152, 185),
+#else
+        : mtx_size(532, 231),
+#endif
+          rand_engine(42)
+    {}
 
     void SetUp()
     {
@@ -245,6 +252,28 @@ TEST_F(Diagonal, ConjTransposeIsEquivalentToRef)
     auto dtrans_diag = static_cast<ComplexDiag *>(dtrans.get());
 
     GKO_ASSERT_MTX_NEAR(trans_diag, dtrans_diag, 0);
+}
+
+
+TEST_F(Diagonal, InplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    diag->compute_absolute_inplace();
+    ddiag->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(diag, ddiag, 1e-14);
+}
+
+
+TEST_F(Diagonal, OutplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto abs_diag = diag->compute_absolute();
+    auto dabs_diag = ddiag->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_diag, dabs_diag, 1e-14);
 }
 
 

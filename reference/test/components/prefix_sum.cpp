@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -62,7 +62,7 @@ protected:
     std::vector<index_type> expected;
 };
 
-TYPED_TEST_CASE(PrefixSum, gko::test::IndexTypes);
+TYPED_TEST_SUITE(PrefixSum, gko::test::IndexTypes);
 
 
 TYPED_TEST(PrefixSum, Works)

@@ -1,0 +1,49 @@
+name: Windows-MSVC-CUDA (compile-only)
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
+
+jobs:
+  windows_cuda:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {version: "latest", name: "cuda-latest/release/shared", "mixed": "ON"}
+    name: msvc/${{ matrix.config.name }} (only compile)
+    runs-on: [windows-latest]
+
+    steps:
+    - name: Checkout the latest code (shallow clone)
+      uses: actions/checkout@v2
+    - name: setup (versioned)
+      if: matrix.config.version != 'latest'
+      run: |
+        choco install cuda --version=${{ matrix.config.version }} -y
+
+    - name: setup (latest)
+      if: matrix.config.version == 'latest'
+      run: |
+        choco install cuda -y
+
+    - name: Debug over SSH (tmate)
+      uses: mxschmitt/action-tmate@v3.5
+      if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+      with:
+        limit-access-to-actor: true
+
+    - name: configure
+      run: |
+        $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."
+        Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+        refreshenv
+        mkdir build
+        cd build
+        cmake -T version=14.25 -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_OMP=OFF -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_CUDA_ARCHITECTURES=60 ..
+        cmake --build . -j4 --config Release

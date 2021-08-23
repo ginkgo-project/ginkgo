@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_EXCEPTION_HELPERS_HPP_
-#define GKO_CORE_BASE_EXCEPTION_HELPERS_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_EXCEPTION_HELPERS_HPP_
+#define GKO_PUBLIC_CORE_BASE_EXCEPTION_HELPERS_HPP_
 
 
 #include <typeinfo>
@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/utils_helper.hpp>
 
 
 namespace gko {
@@ -301,6 +302,15 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
+ * Instantiates a CurandError.
+ *
+ * @param errcode  The error code returned from the cuRAND routine.
+ */
+#define GKO_CURAND_ERROR(_errcode) \
+    ::gko::CurandError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
  * Instantiates a CusparseError.
  *
  * @param errcode  The error code returned from the cuSPARSE routine.
@@ -338,6 +348,20 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
+ * Asserts that a cuRAND library call completed without errors.
+ *
+ * @param _curand_call  a library call expression
+ */
+#define GKO_ASSERT_NO_CURAND_ERRORS(_curand_call) \
+    do {                                          \
+        auto _errcode = _curand_call;             \
+        if (_errcode != CURAND_STATUS_SUCCESS) {  \
+            throw GKO_CURAND_ERROR(_errcode);     \
+        }                                         \
+    } while (false)
+
+
+/**
  * Asserts that a cuSPARSE library call completed without errors.
  *
  * @param _cusparse_call  a library call expression
@@ -367,6 +391,15 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  */
 #define GKO_HIPBLAS_ERROR(_errcode) \
     ::gko::HipblasError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Instantiates a HiprandError.
+ *
+ * @param errcode  The error code returned from the HIPRAND routine.
+ */
+#define GKO_HIPRAND_ERROR(_errcode) \
+    ::gko::HiprandError(__FILE__, __LINE__, __func__, _errcode)
 
 
 /**
@@ -402,6 +435,20 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
         auto _errcode = _hipblas_call;              \
         if (_errcode != HIPBLAS_STATUS_SUCCESS) {   \
             throw GKO_HIPBLAS_ERROR(_errcode);      \
+        }                                           \
+    } while (false)
+
+
+/**
+ * Asserts that a HIPRAND library call completed without errors.
+ *
+ * @param _hiprand_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIPRAND_ERRORS(_hiprand_call) \
+    do {                                            \
+        auto _errcode = _hiprand_call;              \
+        if (_errcode != HIPRAND_STATUS_SUCCESS) {   \
+            throw GKO_HIPRAND_ERROR(_errcode);      \
         }                                           \
     } while (false)
 
@@ -520,7 +567,27 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
                   "semi-colon warnings")
 
 
+/**
+ * Ensures that a given size, typically of a linear algebraic object,
+ * is divisible by a given block size.
+ *
+ * @param _size  A size of a vector or matrix
+ * @param _block_size  Size of small dense blocks that make up
+ *                     the vector or matrix
+ *
+ * @throw BlockSizeError  if _block_size does not divide _size
+ */
+#define GKO_ASSERT_BLOCK_SIZE_CONFORMANT(_size, _block_size)                   \
+    if (_size % _block_size != 0) {                                            \
+        throw BlockSizeError<decltype(_size)>(__FILE__, __LINE__, _block_size, \
+                                              _size);                          \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_EXCEPTION_HELPERS_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_EXCEPTION_HELPERS_HPP_

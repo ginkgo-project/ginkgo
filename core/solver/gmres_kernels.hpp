@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -133,6 +133,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace gmres
 }  // namespace hip
+
+
+namespace dpcpp {
+namespace gmres {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace gmres
+}  // namespace dpcpp
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

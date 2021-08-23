@@ -1,2 +1,1 @@
-add_executable(matrix_generator matrix_generator.cpp)
-target_link_libraries(matrix_generator ginkgo gflags rapidjson)
+ginkgo_add_typed_benchmark_executables(matrix_generator "NO" matrix_generator.cpp)

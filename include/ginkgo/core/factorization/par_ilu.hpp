@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_FACTORIZATION_PAR_ILU_HPP_
-#define GKO_CORE_FACTORIZATION_PAR_ILU_HPP_
+#ifndef GKO_PUBLIC_CORE_FACTORIZATION_PAR_ILU_HPP_
+#define GKO_PUBLIC_CORE_FACTORIZATION_PAR_ILU_HPP_
 
 
 #include <memory>
@@ -78,8 +78,10 @@ namespace factorization {
  * pre-defined sparsity pattern (in case of ILU(0) the sparsity pattern of the
  * system matrix $A$). The number of ParILU sweeps needed for convergence
  * depends on the parallelism level: For sequential execution, a single sweep
- * is sufficient, for fine-grained parallelism, 3 sweeps are typically
- * generating a good approximation.
+ * is sufficient, for fine-grained parallelism, the number of sweeps necessary
+ * to get a good approximation of the incomplete factors depends heavily on the
+ * problem. On the OpenMP executor, 3 sweeps usually give a decent approximation
+ * in our experiments, while GPU executors can take 10 or more iterations.
  *
  * The ParILU algorithm in Ginkgo follows the design of E. Chow and A. Patel,
  * Fine-grained Parallel Incomplete LU Factorization, SIAM Journal on Scientific
@@ -96,20 +98,21 @@ class ParIlu : public Composition<ValueType> {
 public:
     using value_type = ValueType;
     using index_type = IndexType;
-    using l_matrix_type = matrix::Csr<ValueType, IndexType>;
-    using u_matrix_type = matrix::Csr<ValueType, IndexType>;
+    using matrix_type = matrix::Csr<ValueType, IndexType>;
+    using l_matrix_type = matrix_type;
+    using u_matrix_type = matrix_type;
 
-    std::shared_ptr<const l_matrix_type> get_l_factor() const
+    std::shared_ptr<const matrix_type> get_l_factor() const
     {
         // Can be `static_cast` since the type is guaranteed in this class
-        return std::static_pointer_cast<const l_matrix_type>(
+        return std::static_pointer_cast<const matrix_type>(
             this->get_operators()[0]);
     }
 
-    std::shared_ptr<const u_matrix_type> get_u_factor() const
+    std::shared_ptr<const matrix_type> get_u_factor() const
     {
         // Can be `static_cast` since the type is guaranteed in this class
-        return std::static_pointer_cast<const u_matrix_type>(
+        return std::static_pointer_cast<const matrix_type>(
             this->get_operators()[1]);
     }
 
@@ -130,13 +133,6 @@ public:
         size_type GKO_FACTORY_PARAMETER_SCALAR(iterations, 0);
 
         /**
-         * @brief `true` means it is known that the matrix given to this
-         *        factory will be sorted first by row, then by column index,
-         *        `false` means it is unknown or not sorted, so an additional
-         *        sorting step will be performed during the factorization
-         *        (it will not change the matrix given).
-         *        The matrix must be sorted for this factorization to work.
-         *
          * The `system_matrix`, which will be given to this factory, must be
          * sorted (first by row, then by column) in order for the algorithm
          * to work. If it is known that the matrix will be sorted, this
@@ -152,14 +148,14 @@ public:
          * Strategy which will be used by the L matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        std::shared_ptr<typename l_matrix_type::strategy_type>
+        std::shared_ptr<typename matrix_type::strategy_type>
             GKO_FACTORY_PARAMETER_SCALAR(l_strategy, nullptr);
 
         /**
          * Strategy which will be used by the U matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        std::shared_ptr<typename u_matrix_type::strategy_type>
+        std::shared_ptr<typename matrix_type::strategy_type>
             GKO_FACTORY_PARAMETER_SCALAR(u_strategy, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(ParIlu, parameters, Factory);
@@ -173,11 +169,11 @@ protected:
     {
         if (parameters_.l_strategy == nullptr) {
             parameters_.l_strategy =
-                std::make_shared<typename l_matrix_type::classical>();
+                std::make_shared<typename matrix_type::classical>();
         }
         if (parameters_.u_strategy == nullptr) {
             parameters_.u_strategy =
-                std::make_shared<typename u_matrix_type::classical>();
+                std::make_shared<typename matrix_type::classical>();
         }
         generate_l_u(system_matrix, parameters_.skip_sorting,
                      parameters_.l_strategy, parameters_.u_strategy)
@@ -203,9 +199,8 @@ protected:
      */
     std::unique_ptr<Composition<ValueType>> generate_l_u(
         const std::shared_ptr<const LinOp> &system_matrix, bool skip_sorting,
-        std::shared_ptr<typename l_matrix_type::strategy_type> l_strategy,
-        std::shared_ptr<typename u_matrix_type::strategy_type> u_strategy)
-        const;
+        std::shared_ptr<typename matrix_type::strategy_type> l_strategy,
+        std::shared_ptr<typename matrix_type::strategy_type> u_strategy) const;
 };
 
 
@@ -213,4 +208,4 @@ protected:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_FACTORIZATION_PAR_ILU_HPP_
+#endif  // GKO_PUBLIC_CORE_FACTORIZATION_PAR_ILU_HPP_

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_HYBRID_HPP_
-#define GKO_CORE_MATRIX_HYBRID_HPP_
+#ifndef GKO_PUBLIC_CORE_MATRIX_HYBRID_HPP_
+#define GKO_PUBLIC_CORE_MATRIX_HYBRID_HPP_
 
 
 #include <algorithm>
@@ -76,21 +76,28 @@ class Hybrid
       public ConvertibleTo<Csr<ValueType, IndexType>>,
       public DiagonalExtractable<ValueType>,
       public ReadableFromMatrixData<ValueType, IndexType>,
-      public WritableToMatrixData<ValueType, IndexType> {
+      public WritableToMatrixData<ValueType, IndexType>,
+      public EnableAbsoluteComputation<
+          remove_complex<Hybrid<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Hybrid>;
     friend class EnablePolymorphicObject<Hybrid, LinOp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
+    friend class Hybrid<to_complex<ValueType>, IndexType>;
+
 
 public:
     using EnableLinOp<Hybrid>::convert_to;
     using EnableLinOp<Hybrid>::move_to;
+    using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
     using coo_type = Coo<ValueType, IndexType>;
     using ell_type = Ell<ValueType, IndexType>;
+    using absolute_type = remove_complex<Hybrid>;
+
 
     /**
      * strategy_type is to decide how to set the hybrid config. It
@@ -212,6 +219,13 @@ public:
             return num_columns_;
         }
 
+        /**
+         * Get the number of columns limit
+         *
+         * @return the number of columns limit
+         */
+        auto get_num_columns() const { return num_columns_; }
+
     private:
         size_type num_columns_;
     };
@@ -231,10 +245,10 @@ public:
          * @param percent  the row_nnz[floor(num_rows*percent)] is the number of
          *                 stored elements per row of the ell part
          */
-        explicit imbalance_limit(float percent = 0.8) : percent_(percent)
+        explicit imbalance_limit(double percent = 0.8) : percent_(percent)
         {
-            percent_ = std::min(percent_, 1.0f);
-            percent_ = std::max(percent_, 0.0f);
+            percent_ = std::min(percent_, 1.0);
+            percent_ = std::max(percent_, 0.0);
         }
 
         size_type compute_ell_num_stored_elements_per_row(
@@ -254,8 +268,15 @@ public:
             }
         }
 
+        /**
+         * Get the percent setting
+         *
+         * @retrun percent
+         */
+        auto get_percentage() const { return percent_; }
+
     private:
-        float percent_;
+        double percent_;
     };
 
     /**
@@ -268,7 +289,7 @@ public:
         /**
          * Creates a imbalance_bounded_limit strategy.
          */
-        imbalance_bounded_limit(float percent = 0.8, float ratio = 0.0001)
+        imbalance_bounded_limit(double percent = 0.8, double ratio = 0.0001)
             : strategy_(imbalance_limit(percent)), ratio_(ratio)
         {}
 
@@ -282,9 +303,23 @@ public:
                             static_cast<size_type>(num_rows * ratio_));
         }
 
+        /**
+         * Get the percent setting
+         *
+         * @retrun percent
+         */
+        auto get_percentage() const { return strategy_.get_percentage(); }
+
+        /**
+         * Get the ratio setting
+         *
+         * @retrun ratio
+         */
+        auto get_ratio() const { return ratio_; }
+
     private:
         imbalance_limit strategy_;
-        float ratio_;
+        double ratio_;
     };
 
 
@@ -309,6 +344,13 @@ public:
         {
             return strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
         }
+
+        /**
+         * Get the percent setting
+         *
+         * @retrun percent
+         */
+        auto get_percentage() { return strategy_.get_percentage(); }
 
     private:
         imbalance_limit strategy_;
@@ -356,6 +398,10 @@ public:
     void write(mat_data &data) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+
+    std::unique_ptr<absolute_type> compute_absolute() const override;
+
+    void compute_absolute_inplace() override;
 
     /**
      * Returns the values of the ell part.
@@ -572,6 +618,16 @@ public:
     }
 
     /**
+     * Returns the current strategy allowed in given hybrid format
+     *
+     * @tparam HybType  hybrid type
+     *
+     * @return the strategy
+     */
+    template <typename HybType>
+    std::shared_ptr<typename HybType::strategy_type> get_strategy() const;
+
+    /**
      * Copies data from another Hybrid.
      *
      * @param other  the Hybrid to copy from
@@ -689,8 +745,50 @@ private:
 };
 
 
+template <typename ValueType, typename IndexType>
+template <typename HybType>
+std::shared_ptr<typename HybType::strategy_type>
+Hybrid<ValueType, IndexType>::get_strategy() const
+{
+    static_assert(
+        std::is_same<HybType, Hybrid<typename HybType::value_type,
+                                     typename HybType::index_type>>::value,
+        "The given `HybType` type must be of type `matrix::Hybrid`!");
+
+    std::shared_ptr<typename HybType::strategy_type> strategy;
+    if (std::dynamic_pointer_cast<automatic>(strategy_)) {
+        strategy = std::make_shared<typename HybType::automatic>();
+    } else if (auto temp = std::dynamic_pointer_cast<minimal_storage_limit>(
+                   strategy_)) {
+        // minimal_storage_limit is related to ValueType and IndexType size.
+        if (sizeof(value_type) == sizeof(typename HybType::value_type) &&
+            sizeof(index_type) == sizeof(typename HybType::index_type)) {
+            strategy =
+                std::make_shared<typename HybType::minimal_storage_limit>();
+        } else {
+            strategy = std::make_shared<typename HybType::imbalance_limit>(
+                temp->get_percentage());
+        }
+    } else if (auto temp = std::dynamic_pointer_cast<imbalance_bounded_limit>(
+                   strategy_)) {
+        strategy = std::make_shared<typename HybType::imbalance_bounded_limit>(
+            temp->get_percentage(), temp->get_ratio());
+    } else if (auto temp =
+                   std::dynamic_pointer_cast<imbalance_limit>(strategy_)) {
+        strategy = std::make_shared<typename HybType::imbalance_limit>(
+            temp->get_percentage());
+    } else if (auto temp = std::dynamic_pointer_cast<column_limit>(strategy_)) {
+        strategy = std::make_shared<typename HybType::column_limit>(
+            temp->get_num_columns());
+    } else {
+        GKO_NOT_SUPPORTED(strategy_);
+    }
+    return strategy;
+}
+
+
 }  // namespace matrix
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_HYBRID_HPP_
+#endif  // GKO_PUBLIC_CORE_MATRIX_HYBRID_HPP_

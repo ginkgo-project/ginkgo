@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,12 +57,13 @@ protected:
         x.get_data()[1] = 2;
     }
 
-    static void assert_equal_to_original_x(gko::Array<T> &a)
+    static void assert_equal_to_original_x(gko::Array<T> &a,
+                                           bool check_zero = true)
     {
         ASSERT_EQ(a.get_num_elems(), 2);
-        EXPECT_EQ(a.get_data()[0], T{5});
+        if (check_zero) EXPECT_EQ(a.get_data()[0], T{5});
         EXPECT_EQ(a.get_data()[1], T{2});
-        EXPECT_EQ(a.get_const_data()[0], T{5});
+        if (check_zero) EXPECT_EQ(a.get_const_data()[0], T{5});
         EXPECT_EQ(a.get_const_data()[1], T{2});
     }
 
@@ -70,7 +71,7 @@ protected:
     gko::Array<T> x;
 };
 
-TYPED_TEST_CASE(Array, gko::test::ValueAndIndexTypes);
+TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes);
 
 
 TYPED_TEST(Array, CanBeCreatedWithoutAnExecutor)
@@ -260,6 +261,70 @@ TYPED_TEST(Array, CanBeMovedFromExecutorlessArray)
 
     ASSERT_NE(this->x.get_executor(), nullptr);
     ASSERT_EQ(this->x.get_num_elems(), 0);
+}
+
+
+TYPED_TEST(Array, CanCreateTemporaryCloneOnSameExecutor)
+{
+    auto tmp_clone = make_temporary_clone(this->exec, &this->x);
+
+    ASSERT_EQ(tmp_clone.get(), &this->x);
+}
+
+
+TYPED_TEST(Array, CanCreateTemporaryOutputCloneOnSameExecutor)
+{
+    auto tmp_clone = make_temporary_output_clone(this->exec, &this->x);
+
+    ASSERT_EQ(tmp_clone.get(), &this->x);
+}
+
+
+// For tests between different memory, check cuda/test/base/array.cu
+TYPED_TEST(Array, DoesNotCreateATemporaryCloneBetweenSameMemory)
+{
+    auto other = gko::ReferenceExecutor::create();
+
+    auto tmp_clone = make_temporary_clone(other, &this->x);
+
+    this->assert_equal_to_original_x(*tmp_clone.get());
+    ASSERT_EQ(tmp_clone.get(), &this->x);
+}
+
+
+TYPED_TEST(Array, DoesNotCopyBackTemporaryCloneBetweenSameMemory)
+{
+    auto other = gko::ReferenceExecutor::create();
+
+    {
+        auto tmp_clone = make_temporary_clone(other, &this->x);
+        // change x, and check that there is no copy-back to overwrite it again
+        this->x.get_data()[0] = 0;
+    }
+
+    this->assert_equal_to_original_x(this->x, false);
+    EXPECT_EQ(this->x.get_data()[0], TypeParam{0});
+}
+
+
+TYPED_TEST(Array, CanCreateTemporaryOutputCloneOnDifferentExecutors)
+{
+    auto other = gko::OmpExecutor::create();
+
+    {
+        auto tmp_clone = make_temporary_output_clone(other, &this->x);
+        tmp_clone->get_data()[0] = 4;
+        tmp_clone->get_data()[1] = 5;
+
+        // there is no reliable way to check the memory is uninitialized
+        ASSERT_EQ(tmp_clone->get_num_elems(), this->x.get_num_elems());
+        ASSERT_EQ(tmp_clone->get_executor(), other);
+        ASSERT_EQ(this->x.get_executor(), this->exec);
+        ASSERT_EQ(this->x.get_data()[0], TypeParam{5});
+        ASSERT_EQ(this->x.get_data()[1], TypeParam{2});
+    }
+    ASSERT_EQ(this->x.get_data()[0], TypeParam{4});
+    ASSERT_EQ(this->x.get_data()[1], TypeParam{5});
 }
 
 

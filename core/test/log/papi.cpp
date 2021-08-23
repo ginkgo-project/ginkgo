@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -119,7 +119,7 @@ protected:
     int eventset;
 };
 
-TYPED_TEST_CASE(Papi, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Papi, gko::test::ValueTypes);
 
 
 TYPED_TEST(Papi, CatchesAllocationStarted)
@@ -482,7 +482,7 @@ TYPED_TEST(Papi, CatchesIterationComplete)
 
     this->start();
     this->logger->template on<gko::log::Logger::iteration_complete>(
-        A.get(), 42, nullptr, nullptr, nullptr);
+        A.get(), 42, nullptr, nullptr, nullptr, nullptr);
     long long int value = 0;
     this->stop(&value);
 

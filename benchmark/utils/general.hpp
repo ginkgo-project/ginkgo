@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rapidjson/prettywriter.h>
 
 
+#include "benchmark/utils/timer.hpp"
+#include "benchmark/utils/types.hpp"
+
+
 // Global command-line arguments
 DEFINE_string(executor, "reference",
               "The executor used to run the benchmarks, one of: reference, "
@@ -81,14 +85,38 @@ DEFINE_string(double_buffer, "",
 DEFINE_bool(detailed, true,
             "If set, performs several runs to obtain more detailed results");
 
+DEFINE_bool(keep_errors, false,
+            "If set, writes exception messages during the execution into the "
+            "JSON output");
+
 DEFINE_bool(nested_names, false, "If set, separately logs nested operations");
 
 DEFINE_uint32(seed, 42, "Seed used for the random number generator");
 
 DEFINE_uint32(warmup, 2, "Warm-up repetitions");
 
-DEFINE_uint32(repetitions, 10,
-              "Number of runs used to obtain an averaged result.");
+DEFINE_string(repetitions, "10",
+              "The number of runs used to obtain an averaged result, if 'auto' "
+              "is used the number is adaptively chosen."
+              " In that case, the benchmark runs at least 'min_repetitions'"
+              " times until either 'max_repetitions' is reached or the total "
+              "runtime is larger than 'min_runtime'");
+
+DEFINE_double(min_runtime, 0.05,
+              "If 'repetitions = auto' is used, the minimal runtime (seconds) "
+              "of a single benchmark.");
+
+DEFINE_uint32(min_repetitions, 10,
+              "If 'repetitions = auto' is used, the minimal number of"
+              " repetitions for a single benchmark.");
+
+DEFINE_uint32(max_repetitions, std::numeric_limits<unsigned int>::max(),
+              "If 'repetitions = auto' is used, the maximal number of"
+              " repetitions for a single benchmark.");
+
+DEFINE_double(repetition_growth_factor, 1.5,
+              "If 'repetitions = auto' is used, the factor with which the"
+              " repetitions between two timings increase.");
 
 
 /**
@@ -134,9 +162,17 @@ void print_general_information(std::string &extra)
     std::clog << gko::version_info::get() << std::endl
               << "Running on " << FLAGS_executor << "(" << FLAGS_device_id
               << ")" << std::endl
-              << "Running with " << FLAGS_warmup << " warm iterations and "
-              << FLAGS_repetitions << " running iterations" << std::endl
-              << "The random seed for right hand sides is " << FLAGS_seed
+              << "Running with " << FLAGS_warmup << " warm iterations and ";
+    if (FLAGS_repetitions == "auto") {
+        std::clog << "adaptively determined repetititions with "
+                  << FLAGS_min_repetitions
+                  << " <= rep <= " << FLAGS_max_repetitions
+                  << " and a minimal runtime of " << FLAGS_min_runtime << "s"
+                  << std::endl;
+    } else {
+        std::clog << FLAGS_repetitions << " running iterations" << std::endl;
+    }
+    std::clog << "The random seed for right hand sides is " << FLAGS_seed
               << std::endl
               << extra;
 }
@@ -263,9 +299,14 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
              return gko::CudaExecutor::create(FLAGS_device_id,
                                               gko::OmpExecutor::create(), true);
          }},
-        {"hip", [] {
+        {"hip",
+         [] {
              return gko::HipExecutor::create(FLAGS_device_id,
                                              gko::OmpExecutor::create(), true);
+         }},
+        {"dpcpp", [] {
+             return gko::DpcppExecutor::create(FLAGS_device_id,
+                                               gko::OmpExecutor::create());
          }}};
 
 
@@ -282,22 +323,51 @@ template <typename ValueType>
 using vec = gko::matrix::Dense<ValueType>;
 
 
-// creates a zero vector
+// Create a matrix with value indices s[i, j] = sin(i)
 template <typename ValueType>
-std::unique_ptr<vec<ValueType>> create_vector(
-    std::shared_ptr<const gko::Executor> exec, gko::size_type size)
+std::enable_if_t<!gko::is_complex_s<ValueType>::value,
+                 std::unique_ptr<vec<ValueType>>>
+create_matrix_sin(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
 {
+    auto h_res = vec<ValueType>::create(exec->get_master(), size);
+    for (gko::size_type i = 0; i < size[0]; ++i) {
+        for (gko::size_type j = 0; j < size[1]; ++j) {
+            h_res->at(i, j) = std::sin(static_cast<ValueType>(i));
+        }
+    }
     auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType>(gko::dim<2>{size, 1}));
+    h_res->move_to(res.get());
     return res;
 }
 
+// Note: complex values are assigned s[i, j] = {sin(2 * i), sin(2 * i + 1)}
+template <typename ValueType>
+std::enable_if_t<gko::is_complex_s<ValueType>::value,
+                 std::unique_ptr<vec<ValueType>>>
+create_matrix_sin(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
+{
+    using rc_vtype = gko::remove_complex<ValueType>;
+    auto h_res = vec<ValueType>::create(exec->get_master(), size);
+    for (gko::size_type i = 0; i < size[0]; ++i) {
+        for (gko::size_type j = 0; j < size[1]; ++j) {
+            h_res->at(i, j) =
+                ValueType{std::sin(static_cast<rc_vtype>(2 * i)),
+                          std::sin(static_cast<rc_vtype>(2 * i + 1))};
+        }
+    }
+    auto res = vec<ValueType>::create(exec);
+    h_res->move_to(res.get());
+    return res;
+}
+
+
 template <typename ValueType>
 std::unique_ptr<vec<ValueType>> create_matrix(
-    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
+    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
+    ValueType value)
 {
     auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType>(size));
+    res->read(gko::matrix_data<ValueType, itype>(size, value));
     return res;
 }
 
@@ -309,8 +379,22 @@ std::unique_ptr<vec<ValueType>> create_matrix(
     RandomEngine &engine)
 {
     auto res = vec<ValueType>::create(exec);
-    res->read(gko::matrix_data<ValueType>(
-        size, std::uniform_real_distribution<>(-1.0, 1.0), engine));
+    res->read(gko::matrix_data<ValueType, itype>(
+        size,
+        std::uniform_real_distribution<gko::remove_complex<ValueType>>(-1.0,
+                                                                       1.0),
+        engine));
+    return res;
+}
+
+
+// creates a zero vector
+template <typename ValueType>
+std::unique_ptr<vec<ValueType>> create_vector(
+    std::shared_ptr<const gko::Executor> exec, gko::size_type size)
+{
+    auto res = vec<ValueType>::create(exec);
+    res->read(gko::matrix_data<ValueType, itype>(gko::dim<2>{size, 1}));
     return res;
 }
 
@@ -327,25 +411,27 @@ std::unique_ptr<vec<ValueType>> create_vector(
 
 // utilities for computing norms and residuals
 template <typename ValueType>
-double get_norm(const vec<ValueType> *norm)
+ValueType get_norm(const vec<ValueType> *norm)
 {
     return clone(norm->get_executor()->get_master(), norm)->at(0, 0);
 }
 
 
 template <typename ValueType>
-double compute_norm2(const vec<ValueType> *b)
+gko::remove_complex<ValueType> compute_norm2(const vec<ValueType> *b)
 {
     auto exec = b->get_executor();
-    auto b_norm = gko::initialize<vec<ValueType>>({0.0}, exec);
+    auto b_norm =
+        gko::initialize<vec<gko::remove_complex<ValueType>>>({0.0}, exec);
     b->compute_norm2(lend(b_norm));
     return get_norm(lend(b_norm));
 }
 
 
 template <typename ValueType>
-double compute_residual_norm(const gko::LinOp *system_matrix,
-                             const vec<ValueType> *b, const vec<ValueType> *x)
+gko::remove_complex<ValueType> compute_residual_norm(
+    const gko::LinOp *system_matrix, const vec<ValueType> *b,
+    const vec<ValueType> *x)
 {
     auto exec = system_matrix->get_executor();
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
@@ -357,23 +443,24 @@ double compute_residual_norm(const gko::LinOp *system_matrix,
 
 
 template <typename ValueType>
-double compute_max_relative_norm2(vec<ValueType> *result,
-                                  const vec<ValueType> *answer)
+gko::remove_complex<ValueType> compute_max_relative_norm2(
+    vec<ValueType> *result, const vec<ValueType> *answer)
 {
+    using rc_vtype = gko::remove_complex<ValueType>;
     auto exec = answer->get_executor();
     auto answer_norm =
-        vec<ValueType>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
+        vec<rc_vtype>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
     answer->compute_norm2(lend(answer_norm));
     auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
     result->add_scaled(lend(neg_one), lend(answer));
     auto absolute_norm =
-        vec<ValueType>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
+        vec<rc_vtype>::create(exec, gko::dim<2>{1, answer->get_size()[1]});
     result->compute_norm2(lend(absolute_norm));
     auto host_answer_norm =
         clone(answer_norm->get_executor()->get_master(), answer_norm);
     auto host_absolute_norm =
         clone(absolute_norm->get_executor()->get_master(), absolute_norm);
-    double max_relative_norm2 = 0;
+    rc_vtype max_relative_norm2 = 0;
     for (gko::size_type i = 0; i < host_answer_norm->get_size()[1]; i++) {
         max_relative_norm2 =
             std::max(host_absolute_norm->at(0, i) / host_answer_norm->at(0, i),
@@ -381,6 +468,252 @@ double compute_max_relative_norm2(vec<ValueType> *result,
     }
     return max_relative_norm2;
 }
+
+
+/**
+ * A class for controlling the number warmup and timed iterations.
+ *
+ * The behavior is determined by the following flags
+ * - 'repetitions' switch between fixed and adaptive number of iterations
+ * - 'warmup' warmup iterations, applies in fixed and adaptive case
+ * - 'min_repetitions' minimal number of repetitions (adaptive case)
+ * - 'max_repetitions' maximal number of repetitions (adaptive case)
+ * - 'min_runtime' minimal total runtime (adaptive case)
+ * - 'repetition_growth_factor' controls the increase between two successive
+ *   timings
+ *
+ * Usage:
+ * `IterationControl` exposes the member functions:
+ * - `warmup_run()`: controls run defined by `warmup` flag
+ * - `run(bool)`: controls run defined by all other flags
+ * - `get_timer()`: access to underlying timer
+ * The first two methods return an object that is to be used in a range-based
+ * for loop:
+ * ```
+ * IterationControl ic(get_timer(...));
+ *
+ * // warmup run always uses fixed number of iteration and does not issue
+ * // timings
+ * for(auto status: ic.warmup_run()){
+ *   // execute benchmark
+ * }
+ * // run may use adaptive number of iterations (depending on cmd line flag)
+ * // and issues timing (unless manage_timings is false)
+ * for(auto status: ic.run(manage_timings [default is true])){
+ *   if(! manage_timings) ic.get_timer->tic();
+ *   // execute benchmark
+ *   if(! manage_timings) ic.get_timer->toc();
+ * }
+ *
+ * ```
+ * At the beginning of both methods, the timer is reset.
+ * The `status` object exposes the member
+ * - `cur_it`, containing the current iteration number,
+ * and the methods
+ * - `is_finished`, checks if the benchmark is finished,
+ */
+class IterationControl {
+    using IndexType = unsigned int;  //!< to be compatible with GFLAGS type
+
+    class run_control;
+
+public:
+    /**
+     * Creates an `IterationControl` object.
+     *
+     * Uses the commandline flags to setup the stopping criteria for the
+     * warmup and timed run.
+     *
+     * @param timer  the timer that is to be used for the timings
+     */
+    explicit IterationControl(const std::shared_ptr<Timer> &timer)
+    {
+        status_warmup_ = {TimerManager{timer, false}, FLAGS_warmup,
+                          FLAGS_warmup, 0., 0};
+        if (FLAGS_repetitions == "auto") {
+            status_run_ = {TimerManager{timer, true}, FLAGS_min_repetitions,
+                           FLAGS_max_repetitions, FLAGS_min_runtime};
+        } else {
+            const auto reps =
+                static_cast<unsigned int>(std::stoi(FLAGS_repetitions));
+            status_run_ = {TimerManager{timer, true}, reps, reps, 0., 0};
+        }
+    }
+
+    IterationControl() = default;
+    IterationControl(const IterationControl &) = default;
+    IterationControl(IterationControl &&) = default;
+
+    /**
+     * Creates iterable `run_control` object for the warmup run.
+     *
+     * This run uses always a fixed number of iterations.
+     */
+    run_control warmup_run()
+    {
+        status_warmup_.cur_it = 0;
+        status_warmup_.managed_timer.clear();
+        return run_control{&status_warmup_};
+    }
+
+    /**
+     * Creates iterable `run_control` object for the timed run.
+     *
+     * This run may be adaptive, depending on the commandline flags.
+     *
+     * @param manage_timings If true, the timer calls (`tic/toc`) are handled
+     * by the `run_control` object, otherwise they need to be executed outside
+     */
+    run_control run(bool manage_timings = true)
+    {
+        status_run_.cur_it = 0;
+        status_run_.managed_timer.clear();
+        status_run_.managed_timer.manage_timings = manage_timings;
+        return run_control{&status_run_};
+    }
+
+    std::shared_ptr<Timer> get_timer() const
+    {
+        return status_run_.managed_timer.timer;
+    }
+
+    double compute_average_time() const
+    {
+        return status_run_.managed_timer.get_total_time() /
+               get_num_repetitions();
+    }
+
+    IndexType get_num_repetitions() const { return status_run_.cur_it; }
+
+private:
+    struct TimerManager {
+        std::shared_ptr<Timer> timer;
+        bool manage_timings = false;
+
+        void tic()
+        {
+            if (manage_timings) {
+                timer->tic();
+            }
+        }
+        void toc()
+        {
+            if (manage_timings) {
+                timer->toc();
+            }
+        }
+
+        void clear() { timer->clear(); }
+
+        double get_total_time() const { return timer->get_total_time(); }
+    };
+
+    /**
+     * Stores stopping criteria of the adaptive benchmark run as well as the
+     * current iteration number.
+     */
+    struct status {
+        TimerManager managed_timer{};
+
+        IndexType min_it = 0;
+        IndexType max_it = 0;
+        double max_runtime = 0.;
+
+        IndexType cur_it = 0;
+
+        /**
+         * checks if the adaptive run is complete
+         *
+         * the adaptive run is complete if:
+         * - the minimum number of iteration is reached
+         * - and either:
+         *   - the maximum number of repetitions is reached
+         *   - the total runtime is above the threshold
+         *
+         * @return completeness state of the adaptive run
+         */
+        bool is_finished() const
+        {
+            return cur_it >= min_it &&
+                   (cur_it >= max_it ||
+                    managed_timer.get_total_time() >= max_runtime);
+        }
+    };
+
+    /**
+     * Iterable class managing the benchmark iteration.
+     *
+     * Has to be used in a range-based for loop.
+     */
+    struct run_control {
+        struct iterator {
+            /**
+             * Increases the current iteration count and finishes timing if
+             * necessary.
+             *
+             * As `++it` is the last step of a for-loop, the managed_timer is
+             * stopped, if enough iterations have passed since the last timing.
+             * The interval between two timings is steadily increased to
+             * reduce the timing overhead.
+             */
+            iterator operator++()
+            {
+                cur_info->cur_it++;
+                if (cur_info->cur_it >= next_timing && !stopped) {
+                    cur_info->managed_timer.toc();
+                    stopped = true;
+                    next_timing = static_cast<IndexType>(std::ceil(
+                        next_timing * FLAGS_repetition_growth_factor));
+                }
+                return *this;
+            }
+
+            status operator*() const { return *cur_info; }
+
+            /**
+             * Checks if the benchmark is finished and handles timing, if
+             * necessary.
+             *
+             * As `begin != end` is the first step in a for-loop, the
+             * managed_timer is started, if it was previously stopped.
+             * Additionally, if the benchmark is complete and the managed_timer
+             * is still running it is stopped. (This may occur if the maximal
+             * number of repetitions is surpassed)
+             *
+             * Uses only the information from the `status` object, i.e.
+             * the right hand side is ignored.
+             *
+             * @return true if benchmark is not finished, else false
+             */
+            bool operator!=(const iterator &)
+            {
+                const bool is_finished = cur_info->is_finished();
+                if (!is_finished && stopped) {
+                    stopped = false;
+                    cur_info->managed_timer.tic();
+                } else if (is_finished && !stopped) {
+                    cur_info->managed_timer.toc();
+                    stopped = true;
+                }
+                return !is_finished;
+            }
+
+            status *cur_info;
+            IndexType next_timing = 1;  //!< next iteration to stop timing
+            bool stopped = true;
+        };
+
+        iterator begin() const { return iterator{info}; }
+
+        // not used, could potentially used in c++17 as a sentinel
+        iterator end() const { return iterator{}; }
+
+        status *info;
+    };
+
+    status status_warmup_;
+    status status_run_;
+};
 
 
 #endif  // GKO_BENCHMARK_UTILS_GENERAL_HPP_

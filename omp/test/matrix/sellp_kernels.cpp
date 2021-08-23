@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,10 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 
+#include "core/matrix/sellp_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -56,6 +58,7 @@ class Sellp : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Sellp<>;
     using Vec = gko::matrix::Dense<>;
+    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
 
     Sellp() : rand_engine(42) {}
 
@@ -72,27 +75,28 @@ protected:
         }
     }
 
-    std::unique_ptr<Vec> gen_mtx(int num_rows, int num_cols)
+    template <typename MtxType = Vec>
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
     {
-        return gko::test::generate_random_matrix<Vec>(
+        return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols, std::uniform_int_distribution<>(1, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(
-        int slice_size = gko::matrix::default_slice_size,
-        int stride_factor = gko::matrix::default_stride_factor,
-        int total_cols = 0, int num_vectors = 1)
+    void set_up_apply_matrix(
+        int total_cols = 1, int slice_size = gko::matrix::default_slice_size,
+        int stride_factor = gko::matrix::default_stride_factor)
     {
-        mtx = Mtx::create(ref, gko::dim<2>{}, slice_size, stride_factor,
-                          total_cols);
+        mtx = Mtx::create(ref);
         mtx->copy_from(gen_mtx(532, 231));
-        expected = gen_mtx(532, num_vectors);
-        y = gen_mtx(231, num_vectors);
+        empty = Mtx::create(ref);
+        expected = gen_mtx(532, total_cols);
+        y = gen_mtx(231, total_cols);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(omp);
         dmtx->copy_from(mtx.get());
+        dempty = Mtx::create(omp);
         dresult = Vec::create(omp);
         dresult->copy_from(expected.get());
         dy = Vec::create(omp);
@@ -109,12 +113,14 @@ protected:
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<Mtx> empty;
     std::unique_ptr<Vec> expected;
     std::unique_ptr<Vec> y;
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
     std::unique_ptr<Mtx> dmtx;
+    std::unique_ptr<Mtx> dempty;
     std::unique_ptr<Vec> dresult;
     std::unique_ptr<Vec> dy;
     std::unique_ptr<Vec> dalpha;
@@ -124,7 +130,7 @@ protected:
 
 TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_matrix();
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -135,7 +141,7 @@ TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
 
 TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_matrix();
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -146,7 +152,7 @@ TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
 
 TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
-    set_up_apply_data(32, 4, 0);
+    set_up_apply_matrix(1, 32, 2);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -157,7 +163,7 @@ TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 
 TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
-    set_up_apply_data(32, 4, 0);
+    set_up_apply_matrix(1, 32, 2);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -166,10 +172,9 @@ TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 }
 
 
-TEST_F(Sellp, SimpleApplyToDenseMatrixIsEquivalentToRef)
+TEST_F(Sellp, SimpleApplyMultipleRHSIsEquivalentToRef)
 {
-    set_up_apply_data(gko::matrix::default_slice_size,
-                      gko::matrix::default_stride_factor, 0, 3);
+    set_up_apply_matrix(64);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -178,10 +183,9 @@ TEST_F(Sellp, SimpleApplyToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Sellp, AdvancedApplyToDenseMatrixIsEquivalentToRef)
+TEST_F(Sellp, AdvancedApplyMultipleRHSIsEquivalentToRef)
 {
-    set_up_apply_data(gko::matrix::default_slice_size,
-                      gko::matrix::default_stride_factor, 0, 3);
+    set_up_apply_matrix(64);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -191,9 +195,9 @@ TEST_F(Sellp, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 
 
 TEST_F(Sellp,
-       SimpleApplyWithSliceSizeAndStrideFactorToDenseMatrixIsEquivalentToRef)
+       SimpleApplyMultipleRHSWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
-    set_up_apply_data(32, 4, 0, 3);
+    set_up_apply_matrix(32, 2);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -203,50 +207,80 @@ TEST_F(Sellp,
 
 
 TEST_F(Sellp,
-       AdvancedApplyWithSliceSizeAndStrideFactorToDenseMatrixIsEquivalentToRef)
+       AdvancedApplyMultipleRHSWithSliceSizeAndStrideFActorIsEquivalentToRef)
 {
-    set_up_apply_data(32, 4, 0, 3);
+    set_up_apply_matrix(32, 2);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Sellp, ApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_matrix(64);
+    auto complex_b = gen_mtx<ComplexVec>(231, 3);
+    auto dcomplex_b = ComplexVec::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3);
+    auto dcomplex_x = ComplexVec::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply(complex_b.get(), complex_x.get());
+    dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
+TEST_F(Sellp, AdvancedApplyToComplexIsEquivalentToRef)
+{
+    set_up_apply_matrix(64);
+    auto complex_b = gen_mtx<ComplexVec>(231, 3);
+    auto dcomplex_b = ComplexVec::create(omp);
+    dcomplex_b->copy_from(complex_b.get());
+    auto complex_x = gen_mtx<ComplexVec>(532, 3);
+    auto dcomplex_x = ComplexVec::create(omp);
+    dcomplex_x->copy_from(complex_x.get());
+
+    mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
+    dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
+
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
 }
 
 
 TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
 {
-    auto rmtx = Mtx::create(ref);
-    rmtx->copy_from(gen_mtx(532, 231));
-    auto omtx = Mtx::create(omp);
-    omtx->copy_from(rmtx.get());
-    auto drmtx = Vec::create(ref);
-    auto domtx = Vec::create(omp);
+    set_up_apply_matrix(64);
+    auto dense_mtx = gko::matrix::Dense<>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<>::create(omp);
 
-    rmtx->convert_to(drmtx.get());
-    omtx->convert_to(domtx.get());
-    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+    mtx->convert_to(dense_mtx.get());
+    dmtx->convert_to(ddense_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
 }
 
 
-TEST_F(Sellp, MoveToDenseIsEquivalentToRef)
+TEST_F(Sellp, ConvertEmptyToDenseIsEquivalentToRef)
 {
-    auto rmtx = Mtx::create(ref);
-    rmtx->copy_from(gen_mtx(532, 231));
-    auto omtx = Mtx::create(omp);
-    omtx->copy_from(rmtx.get());
-    auto drmtx = Vec::create(ref);
-    auto domtx = Vec::create(omp);
+    set_up_apply_matrix(64);
+    auto dense_mtx = gko::matrix::Dense<>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<>::create(omp);
 
-    rmtx->move_to(drmtx.get());
-    omtx->move_to(domtx.get());
-    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
+    empty->convert_to(dense_mtx.get());
+    dempty->convert_to(ddense_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 0);
 }
 
 
 TEST_F(Sellp, ExtractDiagonalIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_matrix(64);
 
     auto diag = mtx->extract_diagonal();
     auto ddiag = dmtx->extract_diagonal();
@@ -257,12 +291,34 @@ TEST_F(Sellp, ExtractDiagonalIsEquivalentToRef)
 
 TEST_F(Sellp, ExtractDiagonalWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
-    set_up_apply_data(32, 4, 0, 3);
+    set_up_apply_matrix(64, 32, 2);
 
     auto diag = mtx->extract_diagonal();
     auto ddiag = dmtx->extract_diagonal();
 
     GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+}
+
+
+TEST_F(Sellp, InplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_matrix(64, 32, 2);
+
+    mtx->compute_absolute_inplace();
+    dmtx->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 1e-14);
+}
+
+
+TEST_F(Sellp, OutplaceAbsoluteMatrixIsEquivalentToRef)
+{
+    set_up_apply_matrix(64, 32, 2);
+
+    auto abs_mtx = mtx->compute_absolute();
+    auto dabs_mtx = dmtx->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
 }
 
 

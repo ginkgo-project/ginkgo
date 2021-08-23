@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_VERSION_HPP_
-#define GKO_CORE_BASE_VERSION_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_VERSION_HPP_
+#define GKO_PUBLIC_CORE_BASE_VERSION_HPP_
 
 
 #include <ostream>
@@ -154,7 +154,7 @@ inline std::ostream &operator<<(std::ostream &os, const version &ver)
  *     earlier version may have this implemented or fixed in a later version).
  *
  * This structure provides versions of different parts of Ginkgo: the headers,
- * the core and the kernel modules (reference, OpenMP, CUDA, HIP).
+ * the core and the kernel modules (reference, OpenMP, CUDA, HIP, DPCPP).
  * To obtain an instance of version_info filled with information about the
  * current version of Ginkgo, call the version_info::get() static method.
  */
@@ -212,6 +212,13 @@ public:
      */
     version hip_version;
 
+    /**
+     * Contains version information of the DPC++ module.
+     *
+     * This is the version of the static/shared library called "ginkgo_dpcpp".
+     */
+    version dpcpp_version;
+
 private:
     static constexpr version get_header_version() noexcept
     {
@@ -229,13 +236,16 @@ private:
 
     static version get_hip_version() noexcept;
 
+    static version get_dpcpp_version() noexcept;
+
     version_info()
         : header_version{get_header_version()},
           core_version{get_core_version()},
           reference_version{get_reference_version()},
           omp_version{get_omp_version()},
           cuda_version{get_cuda_version()},
-          hip_version{get_hip_version()}
+          hip_version{get_hip_version()},
+          dpcpp_version{get_dpcpp_version()}
     {}
 };
 
@@ -254,4 +264,4 @@ std::ostream &operator<<(std::ostream &os, const version_info &ver_info);
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_VERSION_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_VERSION_HPP_

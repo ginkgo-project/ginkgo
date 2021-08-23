@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_MATH_HPP_
-#define GKO_CORE_BASE_MATH_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_MATH_HPP_
+#define GKO_PUBLIC_CORE_BASE_MATH_HPP_
 
 
 #include <cmath>
@@ -39,6 +39,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 #include <limits>
 #include <type_traits>
+
+
+#ifdef SYCL_LANGUAGE_VERSION
+#include <CL/sycl.hpp>
+#endif
 
 
 #include <ginkgo/config.hpp>
@@ -93,6 +98,20 @@ using std::sqrt;
 }  // namespace kernels
 
 
+namespace kernels {
+namespace dpcpp {
+
+
+using std::abs;
+
+
+using std::sqrt;
+
+
+}  // namespace dpcpp
+}  // namespace kernels
+
+
 namespace test {
 
 
@@ -133,12 +152,123 @@ struct remove_complex_impl<std::complex<T>> {
 };
 
 
+/**
+ * Use the complex type if it is not complex.
+ *
+ * @tparam T  the type being made complex
+ */
+template <typename T>
+struct to_complex_impl {
+    using type = std::complex<T>;
+};
+
+/**
+ * Use the same type if it is complex type.
+ *
+ * @tparam T  the type being made complex
+ */
+template <typename T>
+struct to_complex_impl<std::complex<T>> {
+    using type = std::complex<T>;
+};
+
+
 template <typename T>
 struct is_complex_impl : public std::integral_constant<bool, false> {};
 
 template <typename T>
 struct is_complex_impl<std::complex<T>>
     : public std::integral_constant<bool, true> {};
+
+
+template <typename T>
+struct is_complex_or_scalar_impl : std::is_scalar<T> {};
+
+template <typename T>
+struct is_complex_or_scalar_impl<std::complex<T>> : std::is_scalar<T> {};
+
+
+/**
+ * template_converter is converting the template parameters of a class by
+ * converter<type>.
+ *
+ * @tparam  converter<type> which convert one type to another type
+ * @tparam  T  type
+ */
+template <template <typename> class converter, typename T>
+struct template_converter {};
+
+/**
+ * template_converter is converting the template parameters of a class by
+ * converter<type>. Converting class<T1, T2, ...> to class<converter<T1>,
+ * converter<T2>, converter<...>>.
+ *
+ * @tparam  converter<type> which convert one type to another type
+ * @tparam  template <...> T  class template base
+ * @tparam  ...Rest  the template parameter of T
+ */
+template <template <typename> class converter, template <typename...> class T,
+          typename... Rest>
+struct template_converter<converter, T<Rest...>> {
+    using type = T<typename converter<Rest>::type...>;
+};
+
+
+template <typename T, typename = void>
+struct remove_complex_s {};
+
+/**
+ * Obtains a real counterpart of a std::complex type, and leaves the type
+ * unchanged if it is not a complex type for complex/scalar type.
+ *
+ * @tparam T  complex or scalar type
+ */
+template <typename T>
+struct remove_complex_s<T,
+                        std::enable_if_t<is_complex_or_scalar_impl<T>::value>> {
+    using type = typename detail::remove_complex_impl<T>::type;
+};
+
+/**
+ * Obtains a real counterpart of a class with template parameters, which
+ * converts complex parameters to real parameters.
+ *
+ * @tparam T  class with template parameters
+ */
+template <typename T>
+struct remove_complex_s<
+    T, std::enable_if_t<!is_complex_or_scalar_impl<T>::value>> {
+    using type =
+        typename detail::template_converter<detail::remove_complex_impl,
+                                            T>::type;
+};
+
+
+template <typename T, typename = void>
+struct to_complex_s {};
+
+/**
+ * Obtains a complex counterpart of a real type, and leaves the type
+ * unchanged if it is a complex type for complex/scalar type.
+ *
+ * @tparam T  complex or scalar type
+ */
+template <typename T>
+struct to_complex_s<T, std::enable_if_t<is_complex_or_scalar_impl<T>::value>> {
+    using type = typename detail::to_complex_impl<T>::type;
+};
+
+/**
+ * Obtains a complex counterpart of a class with template parameters, which
+ * converts real parameters to complex parameters.
+ *
+ * @tparam T  class with template parameters
+ */
+template <typename T>
+struct to_complex_s<T, std::enable_if_t<!is_complex_or_scalar_impl<T>::value>> {
+    using type =
+        typename detail::template_converter<detail::to_complex_impl, T>::type;
+};
 
 
 }  // namespace detail
@@ -168,14 +298,6 @@ struct cpx_real_type<std::complex<T>> {
 
 
 /**
- * Obtains a real counterpart of a std::complex type, and leaves the type
- * unchanged if it is not a complex type.
- */
-template <typename T>
-using remove_complex = typename detail::remove_complex_impl<T>::type;
-
-
-/**
  * Allows to check if T is a complex value during compile time by accessing the
  * `value` attribute of this struct.
  * If `value` is `true`, T is a complex type, if it is `false`, T is not a
@@ -198,6 +320,70 @@ GKO_INLINE GKO_ATTRIBUTES constexpr bool is_complex()
 {
     return detail::is_complex_impl<T>::value;
 }
+
+
+/**
+ * Allows to check if T is a complex or scalar value during compile time by
+ * accessing the `value` attribute of this struct. If `value` is `true`, T is a
+ * complex/scalar type, if it is `false`, T is not a complex/scalar type.
+ *
+ * @tparam T  type to check
+ */
+template <typename T>
+using is_complex_or_scalar_s = detail::is_complex_or_scalar_impl<T>;
+
+/**
+ * Checks if T is a complex/scalar type.
+ *
+ * @tparam T  type to check
+ *
+ * @return `true` if T is a complex/scalar type, `false` otherwise
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr bool is_complex_or_scalar()
+{
+    return detail::is_complex_or_scalar_impl<T>::value;
+}
+
+
+/**
+ * Obtain the type which removed the complex of complex/scalar type or the
+ * template parameter of class by accessing the `type` attribute of this struct.
+ *
+ * @tparam T  type to remove complex
+ *
+ * @note remove_complex<class> can not be used in friend class declaration.
+ */
+template <typename T>
+using remove_complex = typename detail::remove_complex_s<T>::type;
+
+
+/**
+ * Obtain the type which adds the complex of complex/scalar type or the
+ * template parameter of class by accessing the `type` attribute of this struct.
+ *
+ * @tparam T  type to complex_type
+ *
+ * @note to_complex<class> can not be used in friend class declaration.
+ *       the followings are the error message from different combination.
+ *       friend to_complex<Csr>;
+ *         error: can not recognize it is class correctly.
+ *       friend class to_complex<Csr>;
+ *         error: using alias template specialization
+ *       friend class to_complex_s<Csr<ValueType,IndexType>>::type;
+ *         error: can not recognize it is class correctly.
+ */
+template <typename T>
+using to_complex = typename detail::to_complex_s<T>::type;
+
+
+/**
+ * to_real is alias of remove_complex
+ *
+ * @tparam T  type to real
+ */
+template <typename T>
+using to_real = remove_complex<T>;
 
 
 namespace detail {
@@ -596,22 +782,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T &)
 
 
 /**
- * Returns the absolute value of the object.
- *
- * @tparam T  the type of the object
- *
- * @param x  the object
- *
- * @return x >= zero<T>() ? x : -x;
- */
-template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T abs(const T &x)
-{
-    return x >= zero<T>() ? x : -x;
-}
-
-
-/**
  * Returns the larger of the arguments.
  *
  * @tparam T  type of the arguments
@@ -735,6 +905,33 @@ GKO_INLINE GKO_ATTRIBUTES constexpr auto squared_norm(const T &x)
 
 
 /**
+ * Returns the absolute value of the object.
+ *
+ * @tparam T  the type of the object
+ *
+ * @param x  the object
+ *
+ * @return x >= zero<T>() ? x : -x;
+ */
+template <typename T>
+GKO_INLINE
+    GKO_ATTRIBUTES constexpr xstd::enable_if_t<!is_complex_s<T>::value, T>
+    abs(const T &x)
+{
+    return x >= zero<T>() ? x : -x;
+}
+
+
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr xstd::enable_if_t<is_complex_s<T>::value,
+                                                      remove_complex<T>>
+abs(const T &x)
+{
+    return sqrt(squared_norm(x));
+}
+
+
+/**
  * Returns the position of the most significant bit of the number.
  *
  * This is the same as the rounded down base-2 logarithm of the number.
@@ -811,7 +1008,25 @@ is_finite(const T &value)
 }
 
 
+/**
+ * Computes the quotient of the given parameters, guarding against division by
+ * zero.
+ *
+ * @tparam T  value type of the parameters
+ *
+ * @param a  the dividend
+ * @param b  the divisor
+ *
+ * @return the value of `a / b` if b is non-zero, zero otherwise.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES T safe_divide(T a, T b)
+{
+    return b == zero<T>() ? zero<T>() : a / b;
+}
+
+
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_MATH_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_MATH_HPP_

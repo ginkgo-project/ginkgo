@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -46,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/matrix/csr_kernels.hpp"
 
@@ -68,10 +70,11 @@ GKO_REGISTER_OPERATION(convert_to_ell, csr::convert_to_ell);
 GKO_REGISTER_OPERATION(convert_to_hybrid, csr::convert_to_hybrid);
 GKO_REGISTER_OPERATION(transpose, csr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, csr::conj_transpose);
+GKO_REGISTER_OPERATION(inv_symm_permute, csr::inv_symm_permute);
 GKO_REGISTER_OPERATION(row_permute, csr::row_permute);
-GKO_REGISTER_OPERATION(column_permute, csr::column_permute);
 GKO_REGISTER_OPERATION(inverse_row_permute, csr::inverse_row_permute);
 GKO_REGISTER_OPERATION(inverse_column_permute, csr::inverse_column_permute);
+GKO_REGISTER_OPERATION(invert_permutation, csr::invert_permutation);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        csr::calculate_max_nnz_per_row);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
@@ -81,6 +84,10 @@ GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        csr::is_sorted_by_column_index);
 GKO_REGISTER_OPERATION(extract_diagonal, csr::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(inplace_absolute_array,
+                       components::inplace_absolute_array);
+GKO_REGISTER_OPERATION(outplace_absolute_array,
+                       components::outplace_absolute_array);
 
 
 }  // namespace csr
@@ -89,16 +96,19 @@ GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
+    using ComplexDense = Dense<to_complex<ValueType>>;
     using TCsr = Csr<ValueType, IndexType>;
     if (auto b_csr = dynamic_cast<const TCsr *>(b)) {
         // if b is a CSR matrix, we compute a SpGeMM
         auto x_csr = as<TCsr>(x);
         this->get_executor()->run(csr::make_spgemm(this, b_csr, x_csr));
     } else {
-        // otherwise we assume that b is dense and compute a SpMV/SpMM
-        this->get_executor()->run(
-            csr::make_spmv(this, as<Dense>(b), as<Dense>(x)));
+        precision_dispatch_real_complex<ValueType>(
+            [this](auto dense_b, auto dense_x) {
+                this->get_executor()->run(
+                    csr::make_spmv(this, dense_b, dense_x));
+            },
+            b, x);
     }
 }
 
@@ -107,26 +117,31 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                            const LinOp *beta, LinOp *x) const
 {
-    using Dense = Dense<ValueType>;
+    using ComplexDense = Dense<to_complex<ValueType>>;
+    using RealDense = Dense<remove_complex<ValueType>>;
     using TCsr = Csr<ValueType, IndexType>;
     if (auto b_csr = dynamic_cast<const TCsr *>(b)) {
         // if b is a CSR matrix, we compute a SpGeMM
         auto x_csr = as<TCsr>(x);
         auto x_copy = x_csr->clone();
-        this->get_executor()->run(
-            csr::make_advanced_spgemm(as<Dense>(alpha), this, b_csr,
-                                      as<Dense>(beta), x_copy.get(), x_csr));
+        this->get_executor()->run(csr::make_advanced_spgemm(
+            as<Dense<ValueType>>(alpha), this, b_csr,
+            as<Dense<ValueType>>(beta), x_copy.get(), x_csr));
     } else if (dynamic_cast<const Identity<ValueType> *>(b)) {
         // if b is an identity matrix, we compute an SpGEAM
         auto x_csr = as<TCsr>(x);
         auto x_copy = x_csr->clone();
-        this->get_executor()->run(csr::make_spgeam(
-            as<Dense>(alpha), this, as<Dense>(beta), lend(x_copy), x_csr));
-    } else {
-        // otherwise we assume that b is dense and compute a SpMV/SpMM
         this->get_executor()->run(
-            csr::make_advanced_spmv(as<Dense>(alpha), this, as<Dense>(b),
-                                    as<Dense>(beta), as<Dense>(x)));
+            csr::make_spgeam(as<Dense<ValueType>>(alpha), this,
+                             as<Dense<ValueType>>(beta), lend(x_copy), x_csr));
+    } else {
+        precision_dispatch_real_complex<ValueType>(
+            [this](auto dense_alpha, auto dense_b, auto dense_beta,
+                   auto dense_x) {
+                this->get_executor()->run(csr::make_advanced_spmv(
+                    dense_alpha, this, dense_b, dense_beta, dense_x));
+            },
+            alpha, b, beta, x);
     }
 }
 
@@ -380,6 +395,48 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
 
 
 template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Csr<ValueType, IndexType>::permute(
+    const Array<IndexType> *permutation_indices) const
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(this);
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
+    auto exec = this->get_executor();
+    auto permute_cpy =
+        Csr::create(exec, this->get_size(), this->get_num_stored_elements(),
+                    this->get_strategy());
+    Array<IndexType> inv_permutation(exec, this->get_size()[1]);
+
+    exec->run(csr::make_invert_permutation(
+        this->get_size()[1],
+        make_temporary_clone(exec, permutation_indices)->get_const_data(),
+        inv_permutation.get_data()));
+    exec->run(csr::make_inv_symm_permute(inv_permutation.get_const_data(), this,
+                                         permute_cpy.get()));
+    permute_cpy->make_srow();
+    return std::move(permute_cpy);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_permute(
+    const Array<IndexType> *permutation_indices) const
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(this);
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
+    auto exec = this->get_executor();
+    auto permute_cpy =
+        Csr::create(exec, this->get_size(), this->get_num_stored_elements(),
+                    this->get_strategy());
+
+    exec->run(csr::make_inv_symm_permute(
+        make_temporary_clone(exec, permutation_indices)->get_const_data(), this,
+        permute_cpy.get()));
+    permute_cpy->make_srow();
+    return std::move(permute_cpy);
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::row_permute(
     const Array<IndexType> *permutation_indices) const
 {
@@ -389,8 +446,9 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::row_permute(
         Csr::create(exec, this->get_size(), this->get_num_stored_elements(),
                     this->get_strategy());
 
-    exec->run(
-        csr::make_row_permute(permutation_indices, this, permute_cpy.get()));
+    exec->run(csr::make_row_permute(
+        make_temporary_clone(exec, permutation_indices)->get_const_data(), this,
+        permute_cpy.get()));
     permute_cpy->make_srow();
     return std::move(permute_cpy);
 }
@@ -405,27 +463,33 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::column_permute(
     auto permute_cpy =
         Csr::create(exec, this->get_size(), this->get_num_stored_elements(),
                     this->get_strategy());
+    Array<IndexType> inv_permutation(exec, this->get_size()[1]);
 
-    exec->run(
-        csr::make_column_permute(permutation_indices, this, permute_cpy.get()));
+    exec->run(csr::make_invert_permutation(
+        this->get_size()[1],
+        make_temporary_clone(exec, permutation_indices)->get_const_data(),
+        inv_permutation.get_data()));
+    exec->run(csr::make_inverse_column_permute(inv_permutation.get_const_data(),
+                                               this, permute_cpy.get()));
     permute_cpy->make_srow();
+    permute_cpy->sort_by_column_index();
     return std::move(permute_cpy);
 }
 
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_row_permute(
-    const Array<IndexType> *inverse_permutation_indices) const
+    const Array<IndexType> *permutation_indices) const
 {
-    GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
-                  this->get_size()[0]);
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
     auto exec = this->get_executor();
     auto inverse_permute_cpy =
         Csr::create(exec, this->get_size(), this->get_num_stored_elements(),
                     this->get_strategy());
 
-    exec->run(csr::make_inverse_row_permute(inverse_permutation_indices, this,
-                                            inverse_permute_cpy.get()));
+    exec->run(csr::make_inverse_row_permute(
+        make_temporary_clone(exec, permutation_indices)->get_const_data(), this,
+        inverse_permute_cpy.get()));
     inverse_permute_cpy->make_srow();
     return std::move(inverse_permute_cpy);
 }
@@ -433,18 +497,19 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_row_permute(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_column_permute(
-    const Array<IndexType> *inverse_permutation_indices) const
+    const Array<IndexType> *permutation_indices) const
 {
-    GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
-                  this->get_size()[1]);
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
     auto exec = this->get_executor();
     auto inverse_permute_cpy =
         Csr::create(exec, this->get_size(), this->get_num_stored_elements(),
                     this->get_strategy());
 
     exec->run(csr::make_inverse_column_permute(
-        inverse_permutation_indices, this, inverse_permute_cpy.get()));
+        make_temporary_clone(exec, permutation_indices)->get_const_data(), this,
+        inverse_permute_cpy.get()));
     inverse_permute_cpy->make_srow();
+    inverse_permute_cpy->sort_by_column_index();
     return std::move(inverse_permute_cpy);
 }
 
@@ -479,6 +544,36 @@ Csr<ValueType, IndexType>::extract_diagonal() const
                                    zero<ValueType>()));
     exec->run(csr::make_extract_diagonal(this, lend(diag)));
     return diag;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::compute_absolute_inplace()
+{
+    auto exec = this->get_executor();
+
+    exec->run(csr::make_inplace_absolute_array(
+        this->get_values(), this->get_num_stored_elements()));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<typename Csr<ValueType, IndexType>::absolute_type>
+Csr<ValueType, IndexType>::compute_absolute() const
+{
+    auto exec = this->get_executor();
+
+    auto abs_csr = absolute_type::create(exec, this->get_size(),
+                                         this->get_num_stored_elements());
+
+    abs_csr->col_idxs_ = col_idxs_;
+    abs_csr->row_ptrs_ = row_ptrs_;
+    exec->run(csr::make_outplace_absolute_array(this->get_const_values(),
+                                                this->get_num_stored_elements(),
+                                                abs_csr->get_values()));
+
+    convert_strategy_helper(abs_csr.get());
+    return abs_csr;
 }
 
 

@@ -1,3 +1,4 @@
+ginkgo_create_hip_test(absolute_array)
 ginkgo_create_hip_test(cooperative_groups_kernels)
 ginkgo_create_hip_test(fill_array)
 ginkgo_create_hip_test(merging_kernels)

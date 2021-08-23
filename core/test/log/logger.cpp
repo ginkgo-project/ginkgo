@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/log/record.hpp>
 #include <ginkgo/core/log/stream.hpp>
 
@@ -65,8 +66,8 @@ TEST(DummyLogged, CanAddLogger)
     auto exec = gko::ReferenceExecutor::create();
     DummyLoggedClass c;
 
-    c.add_logger(
-        gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
+    c.add_logger(gko::log::Convergence<>::create(
+        exec, gko::log::Logger::all_events_mask));
 
     ASSERT_EQ(c.get_num_loggers(), 1);
 }
@@ -77,8 +78,8 @@ TEST(DummyLogged, CanAddMultipleLoggers)
     auto exec = gko::ReferenceExecutor::create();
     DummyLoggedClass c;
 
-    c.add_logger(
-        gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
+    c.add_logger(gko::log::Convergence<>::create(
+        exec, gko::log::Logger::all_events_mask));
     c.add_logger(gko::log::Stream<>::create(
         exec, gko::log::Logger::all_events_mask, std::cout));
 
@@ -86,12 +87,46 @@ TEST(DummyLogged, CanAddMultipleLoggers)
 }
 
 
+TEST(DummyLogged, CanAccessLoggers)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    DummyLoggedClass c;
+
+    auto logger1 = gko::share(
+        gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
+    auto logger2 = gko::share(gko::log::Stream<>::create(
+        exec, gko::log::Logger::all_events_mask, std::cout));
+
+    c.add_logger(logger1);
+    c.add_logger(logger2);
+
+    ASSERT_EQ(c.get_loggers()[0], logger1);
+    ASSERT_EQ(c.get_loggers()[1], logger2);
+    ASSERT_EQ(c.get_num_loggers(), 2);
+}
+
+
+TEST(DummyLogged, CanClearLoggers)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    DummyLoggedClass c;
+    c.add_logger(
+        gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
+    c.add_logger(gko::log::Stream<>::create(
+        exec, gko::log::Logger::all_events_mask, std::cout));
+
+    c.clear_loggers();
+
+    ASSERT_EQ(c.get_num_loggers(), 0);
+}
+
+
 TEST(DummyLogged, CanRemoveLogger)
 {
     auto exec = gko::ReferenceExecutor::create();
     DummyLoggedClass c;
-    auto r = gko::share(
-        gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
+    auto r = gko::share(gko::log::Convergence<>::create(
+        exec, gko::log::Logger::all_events_mask));
     c.add_logger(r);
     c.add_logger(gko::log::Stream<>::create(
         exec, gko::log::Logger::all_events_mask, std::cout));

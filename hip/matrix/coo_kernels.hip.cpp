@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/components/fill_array.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
@@ -77,7 +76,7 @@ constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 
 
-#include "common/matrix/coo_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/coo_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
@@ -85,9 +84,7 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
           const matrix::Coo<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    components::fill_array(exec, c->get_values(), c->get_num_stored_elements(),
-                           zero<ValueType>());
-
+    dense::fill(exec, c, zero<ValueType>());
     spmv2(exec, a, b, c);
 }
 
@@ -256,30 +253,6 @@ void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
-{
-    const auto nnz = orig->get_num_stored_elements();
-    const auto diag_size = diag->get_size()[0];
-    const auto num_blocks = ceildiv(nnz, default_block_size);
-
-    const auto orig_values = orig->get_const_values();
-    const auto orig_row_idxs = orig->get_const_row_idxs();
-    const auto orig_col_idxs = orig->get_const_col_idxs();
-    auto diag_values = diag->get_values();
-
-    hipLaunchKernelGGL(kernel::extract_diagonal, dim3(num_blocks),
-                       dim3(default_block_size), 0, 0, nnz,
-                       as_hip_type(orig_values), as_hip_type(orig_row_idxs),
-                       as_hip_type(orig_col_idxs), as_hip_type(diag_values));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace coo

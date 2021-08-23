@@ -1,6 +1,13 @@
 name: OSX-build
 
-on: [push]
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
 
 jobs:
   osx-clang-omp:
@@ -8,26 +15,36 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {shared: "ON", build_type: "Debug", name: "omp/debug/shared"}
-        - {shared: "OFF", build_type: "Release", name: "omp/release/static"}
+        - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", "mixed": "OFF"}
+        - {shared: "OFF", build_type: "Release", name: "omp/release/static", "mixed": "ON"}
     name: ${{ matrix.config.name }}
     runs-on: [macos-latest]
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout the latest code (shallow clone)
+      uses: actions/checkout@v2
+
     - name: setup
-      run: brew install libomp
+      run: |
+        brew install libomp
+
     - name: info
       run: |
         g++ -v
         cmake --version
+
+    - name: Debug over SSH (tmate)
+      uses: mxschmitt/action-tmate@v3.5
+      if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+
     - name: configure
       run: |
         mkdir build
         cd build
-        cmake .. -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
+        cmake .. -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }}
         make -j8
         ctest -j10 --output-on-failure
+
     - name: install
       run: |
         cd build

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,10 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/spmv_common.hpp"
+#include "benchmark/utils/types.hpp"
 
 
-// some Ginkgo shortcuts
-using etype = double;
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+#include "benchmark/utils/tuning_variables.hpp"
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
 
 
 // See en.wikipedia.org/wiki/Five-number_summary
@@ -147,6 +149,10 @@ void extract_matrix_statistics(gko::matrix_data<etype, gko::int64> &data,
         ++row_dist[v.row];
         ++col_dist[v.column];
     }
+
+    add_or_set_member(problem, "rows", data.size[0], allocator);
+    add_or_set_member(problem, "columns", data.size[1], allocator);
+    add_or_set_member(problem, "nonzeros", data.nonzeros.size(), allocator);
 
     std::sort(begin(row_dist), end(row_dist));
     add_or_set_member(problem, "row_distribution",

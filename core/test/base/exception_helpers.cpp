@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -116,6 +116,14 @@ TEST(CudaError, ReturnsCublasError)
 }
 
 
+void throws_curand_error() { throw GKO_CURAND_ERROR(0); }
+
+TEST(CudaError, ReturnsCurandError)
+{
+    ASSERT_THROW(throws_curand_error(), gko::CurandError);
+}
+
+
 void throws_cusparse_error() { throw GKO_CUSPARSE_ERROR(0); }
 
 TEST(CudaError, ReturnsCusparseError)
@@ -137,6 +145,14 @@ void throws_hipblas_error() { throw GKO_HIPBLAS_ERROR(0); }
 TEST(HipError, ReturnsHipblasError)
 {
     ASSERT_THROW(throws_hipblas_error(), gko::HipblasError);
+}
+
+
+void throws_hiprand_error() { throw GKO_HIPRAND_ERROR(0); }
+
+TEST(HipError, ReturnsHiprandError)
+{
+    ASSERT_THROW(throws_hiprand_error(), gko::HiprandError);
 }
 
 

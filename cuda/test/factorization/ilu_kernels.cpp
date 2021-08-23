@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/factorization/par_ilu.hpp>
 
 
+#include "core/test/utils/unsort_matrix.hpp"
 #include "cuda/test/utils.hpp"
 #include "matrices/config.hpp"
 
@@ -61,12 +62,14 @@ protected:
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::CudaExecutor> cuda;
+    std::ranlux48 rand_engine;
     std::shared_ptr<Csr> csr_ref;
     std::shared_ptr<Csr> csr_cuda;
 
     Ilu()
         : ref(gko::ReferenceExecutor::create()),
-          cuda(gko::CudaExecutor::create(0, ref))
+          cuda(gko::CudaExecutor::create(0, ref)),
+          rand_engine(1337)
     {}
 
     void SetUp() override
@@ -84,8 +87,33 @@ protected:
 };
 
 
-TEST_F(Ilu, ComputeILUIsEquivalentToRef)
+TEST_F(Ilu, ComputeILUIsEquivalentToRefSorted)
 {
+    auto ref_fact = gko::factorization::ParIlu<>::build()
+                        .with_skip_sorting(true)
+                        .on(ref)
+                        ->generate(csr_ref);
+    auto cuda_fact = gko::factorization::Ilu<>::build()
+                         .with_skip_sorting(true)
+                         .on(cuda)
+                         ->generate(csr_cuda);
+
+    GKO_ASSERT_MTX_NEAR(ref_fact->get_l_factor(), cuda_fact->get_l_factor(),
+                        1e-14);
+    GKO_ASSERT_MTX_NEAR(ref_fact->get_u_factor(), cuda_fact->get_u_factor(),
+                        1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_l_factor(),
+                               cuda_fact->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_u_factor(),
+                               cuda_fact->get_u_factor());
+}
+
+
+TEST_F(Ilu, ComputeILUIsEquivalentToRefUnsorted)
+{
+    gko::test::unsort_matrix(gko::lend(csr_ref), rand_engine);
+    csr_cuda->copy_from(gko::lend(csr_ref));
+
     auto ref_fact =
         gko::factorization::ParIlu<>::build().on(ref)->generate(csr_ref);
     auto cuda_fact =

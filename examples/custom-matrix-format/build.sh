@@ -12,13 +12,8 @@ source ${THIS_DIR}/../build-setup.sh
 
 CXX="nvcc"
 
-# figure out correct compiler flags
-if ls ${THIS_DIR} | grep -F "libginkgo." >/dev/null; then
-    LINK_FLAGS="-lginkgo -lginkgo_omp -lginkgo_cuda -lginkgo_reference -lginkgo_hip -Xlinker -rpath -Xlinker ${THIS_DIR}"
-else
-    LINK_FLAGS="-lginkgod -lginkgo_ompd -lginkgo_cudad -lginkgo_referenced -lginkgo_hipd -Xlinker -rpath -Xlinker ${THIS_DIR}"
-fi
-
+# adjust to nvcc style link flags
+LINK_FLAGS="${LINK_FLAGS/-Wl,-rpath,/-Xlinker -rpath -Xlinker }"
 
 # build
 ${CXX} -std=c++14 -o ${THIS_DIR}/custom-matrix-format \

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-
+#include "common/cuda_hip/base/executor.hpp.inc"
 #include "hip/test/utils.hip.hpp"
 
 
@@ -75,6 +75,11 @@ public:
         value = -3;
     }
 
+    void run(std::shared_ptr<const gko::DpcppExecutor>) const override
+    {
+        value = -4;
+    }
+
     void run(std::shared_ptr<const gko::HipExecutor>) const override
     {
         hipGetDevice(&value);
@@ -86,7 +91,11 @@ public:
 
 class HipExecutor : public ::testing::Test {
 protected:
-    HipExecutor() : omp(gko::OmpExecutor::create()), hip(nullptr), hip2(nullptr)
+    HipExecutor()
+        : omp(gko::OmpExecutor::create()),
+          hip(nullptr),
+          hip2(nullptr),
+          hip3(nullptr)
     {}
 
     void SetUp()
@@ -95,6 +104,8 @@ protected:
         hip = gko::HipExecutor::create(0, omp);
         hip2 = gko::HipExecutor::create(gko::HipExecutor::get_num_devices() - 1,
                                         omp);
+        hip3 = gko::HipExecutor::create(0, omp, false,
+                                        gko::allocation_mode::unified_global);
     }
 
     void TearDown()
@@ -108,6 +119,7 @@ protected:
     std::shared_ptr<gko::Executor> omp;
     std::shared_ptr<gko::HipExecutor> hip;
     std::shared_ptr<gko::HipExecutor> hip2;
+    std::shared_ptr<gko::HipExecutor> hip3;
 };
 
 
@@ -180,6 +192,39 @@ TEST_F(HipExecutor, CopiesDataToHip)
 }
 
 
+__global__ void check_data2(int *data)
+{
+    if (data[0] != 4 || data[1] != 8) {
+#if GINKGO_HIP_PLATFORM_HCC
+        asm("s_trap 0x02;");
+#else  // GINKGO_HIP_PLATFORM_NVCC
+        asm("trap;");
+#endif
+    }
+}
+
+
+#if GINKGO_HIP_PLATFORM_NVCC
+
+
+TEST_F(HipExecutor, CanAllocateOnUnifiedMemory)
+{
+    int orig[] = {3, 8};
+    auto *copy = hip3->alloc<int>(2);
+
+    hip3->copy_from(omp.get(), 2, orig, copy);
+
+    check_data<<<1, 1>>>(copy);
+    ASSERT_NO_THROW(hip3->synchronize());
+    copy[0] = 4;
+    check_data2<<<1, 1>>>(copy);
+    hip3->free(copy);
+}
+
+
+#endif
+
+
 __global__ void init_data(int *data)
 {
     data[0] = 3;
@@ -248,7 +293,7 @@ TEST_F(HipExecutor, CopiesDataFromHipToHip)
     omp->copy_from(hip2.get(), 2, copy_hip2, copy);
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
-    hip->free(copy_hip2);
+    hip2->free(copy_hip2);
     hip->free(orig);
 }
 
@@ -257,6 +302,39 @@ TEST_F(HipExecutor, Synchronizes)
 {
     // Todo design a proper unit test once we support streams
     ASSERT_NO_THROW(hip->synchronize());
+}
+
+
+TEST_F(HipExecutor, ExecInfoSetsCorrectProperties)
+{
+    auto dev_id = hip->get_device_id();
+    auto num_sm = 0;
+    auto major = 0;
+    auto minor = 0;
+    auto max_threads_per_block = 0;
+    auto warp_size = 0;
+    GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
+        &num_sm, hipDeviceAttributeMultiprocessorCount, dev_id));
+    GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
+        &major, hipDeviceAttributeComputeCapabilityMajor, dev_id));
+    GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
+        &minor, hipDeviceAttributeComputeCapabilityMinor, dev_id));
+    GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
+        &max_threads_per_block, hipDeviceAttributeMaxThreadsPerBlock, dev_id));
+    GKO_ASSERT_NO_HIP_ERRORS(
+        hipDeviceGetAttribute(&warp_size, hipDeviceAttributeWarpSize, dev_id));
+#if GINKGO_HIP_PLATFORM_NVCC
+    auto num_cores = convert_sm_ver_to_cores(major, minor);
+#else
+    auto num_cores = warp_size * 4;
+#endif
+
+    ASSERT_EQ(hip->get_major_version(), major);
+    ASSERT_EQ(hip->get_minor_version(), minor);
+    ASSERT_EQ(hip->get_num_multiprocessor(), num_sm);
+    ASSERT_EQ(hip->get_warp_size(), warp_size);
+    ASSERT_EQ(hip->get_num_warps(), num_sm * (num_cores / warp_size));
+    ASSERT_EQ(hip->get_num_warps_per_sm(), num_cores / warp_size);
 }
 
 

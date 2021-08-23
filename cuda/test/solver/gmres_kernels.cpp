@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -92,7 +92,11 @@ protected:
 
     void initialize_data(int nrhs = 43)
     {
+#ifdef GINKGO_FAST_TESTS
+        int m = 123;
+#else
         int m = 597;
+#endif
         x = gen_mtx(m, nrhs);
         y = gen_mtx(gko::solver::default_krylov_dim, nrhs);
         before_preconditioner = Mtx::create_with_config_of(x.get());

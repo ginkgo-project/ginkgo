@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,145 +45,86 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
+#include "benchmark/utils/preconditioners.hpp"
 #include "benchmark/utils/spmv_common.hpp"
+#include "benchmark/utils/timer.hpp"
+#include "benchmark/utils/types.hpp"
 
 
-// Command-line arguments
-DEFINE_uint32(max_block_size, 32,
-              "Maximal block size of the block-Jacobi preconditioner");
-
-DEFINE_uint32(num_iterations, 5,
-              "Number of iterations for the ParICT/ParILU(T) preconditioner");
-
-DEFINE_bool(
-    approx_select, true,
-    "Use approximate selection for the threshold filtering in ParICT/ParILUT");
-
-DEFINE_double(fill_limit, 2.0, "The fill-in limit used in ParICT/ParILUT");
-
-DEFINE_string(preconditioners, "jacobi,parilu,parilut,ilu",
-              "A comma-separated list of preconditioners to run."
-              "Supported values are: jacobi, parict, parilu, parilut, ilu");
-
-DEFINE_string(storage_optimization, "0,0",
-              "Defines the kind of storage optimization to perform on "
-              "preconditioners that support it. Supported values are: "
-              "autodetect and <X>,<Y> where <X> and <Y> are the input "
-              "parameters used to construct a precision_reduction object.");
-
-DEFINE_double(accuracy, 1e-1,
-              "This value is used as the accuracy flag of the adaptive Jacobi "
-              "preconditioner.");
-
-
-// some shortcuts
-using etype = double;
-
-
-// parses the storage optimization command line argument
-gko::precision_reduction parse_storage_optimization(const std::string &flag)
-{
-    if (flag == "autodetect") {
-        return gko::precision_reduction::autodetect();
-    }
-    const auto parts = split(flag, ',');
-    if (parts.size() != 2) {
-        throw std::runtime_error(
-            "storage_optimization has to be a list of two integers");
-    }
-    return gko::precision_reduction(std::stoi(parts[0]), std::stoi(parts[1]));
-}
-
-
-// preconditioner mapping
-const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
-                                std::shared_ptr<const gko::Executor> exec)>>
-    precond_factory{
-        {"jacobi",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             return gko::preconditioner::Jacobi<etype>::build()
-                 .with_max_block_size(FLAGS_max_block_size)
-                 .with_storage_optimization(
-                     parse_storage_optimization(FLAGS_storage_optimization))
-                 .with_accuracy(FLAGS_accuracy)
-                 .on(exec);
-         }},
-        {"parict",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             auto ict_fact = std::shared_ptr<gko::LinOpFactory>(
-                 gko::factorization::ParIct<etype>::build()
-                     .with_iterations(FLAGS_num_iterations)
-                     .with_approximate_select(FLAGS_approx_select)
-                     .with_fill_in_limit(FLAGS_fill_limit)
-                     .on(exec));
-             return gko::preconditioner::Ilu<>::build()
-                 .with_factorization_factory(ict_fact)
-                 .on(exec);
-         }},
-        {"parilu",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             auto ilu_fact = std::shared_ptr<gko::LinOpFactory>(
-                 gko::factorization::ParIlu<etype>::build()
-                     .with_iterations(FLAGS_num_iterations)
-                     .on(exec));
-             return gko::preconditioner::Ilu<>::build()
-                 .with_factorization_factory(ilu_fact)
-                 .on(exec);
-         }},
-        {"parilut",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             auto ilut_fact = std::shared_ptr<gko::LinOpFactory>(
-                 gko::factorization::ParIlut<etype>::build()
-                     .with_iterations(FLAGS_num_iterations)
-                     .with_approximate_select(FLAGS_approx_select)
-                     .with_fill_in_limit(FLAGS_fill_limit)
-                     .on(exec));
-             return gko::preconditioner::Ilu<>::build()
-                 .with_factorization_factory(ilut_fact)
-                 .on(exec);
-         }},
-        {"ilu", [](std::shared_ptr<const gko::Executor> exec) {
-             auto ilu_fact = std::shared_ptr<gko::LinOpFactory>(
-                 gko::factorization::Ilu<etype>::build().on(exec));
-             return gko::preconditioner::Ilu<>::build()
-                 .with_factorization_factory(ilu_fact)
-                 .on(exec);
-         }}};
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+#include "benchmark/utils/tuning_variables.hpp"
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
 
 
 // preconditioner generation and application
-
 std::string encode_parameters(const char *precond_name)
 {
     static std::map<std::string, std::string (*)()> encoder{
         {"jacobi",
          [] {
              std::ostringstream oss;
-             oss << "jacobi-" << FLAGS_max_block_size << "-"
-                 << FLAGS_storage_optimization;
+             oss << "jacobi-" << FLAGS_jacobi_max_block_size << "-"
+                 << FLAGS_jacobi_storage;
              return oss.str();
          }},
         {"parict",
          [] {
              std::ostringstream oss;
-             oss << "parict-" << FLAGS_num_iterations << '-'
-                 << FLAGS_approx_select << '-' << FLAGS_fill_limit;
+             oss << "parict-" << FLAGS_parilu_iterations << '-'
+                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit;
              return oss.str();
          }},
         {"parilu",
          [] {
              std::ostringstream oss;
-             oss << "parilu-" << FLAGS_num_iterations;
+             oss << "parilu-" << FLAGS_parilu_iterations;
              return oss.str();
          }},
         {"parilut",
          [] {
              std::ostringstream oss;
-             oss << "parilut-" << FLAGS_num_iterations << '-'
-                 << FLAGS_approx_select << '-' << FLAGS_fill_limit;
+             oss << "parilut-" << FLAGS_parilu_iterations << '-'
+                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit;
              return oss.str();
          }},
-        {"ilu", [] { return std::string{"ilu"}; }}};
+        {"parict-isai",
+         [] {
+             std::ostringstream oss;
+             oss << "parict-isai-" << FLAGS_parilu_iterations << '-'
+                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit
+                 << '-' << FLAGS_isai_power;
+             return oss.str();
+         }},
+        {"parilu-isai",
+         [] {
+             std::ostringstream oss;
+             oss << "parilu-isai-" << FLAGS_parilu_iterations << '-'
+                 << FLAGS_isai_power;
+             return oss.str();
+         }},
+        {"parilut-isai",
+         [] {
+             std::ostringstream oss;
+             oss << "parilut-isai-" << FLAGS_parilu_iterations << '-'
+                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit
+                 << '-' << FLAGS_isai_power;
+             return oss.str();
+         }},
+        {"ilu-isai",
+         [] {
+             return std::string{"ilu-isai-"} + std::to_string(FLAGS_isai_power);
+         }},
+        {"general-isai",
+         [] {
+             return std::string{"general-isai-"} +
+                    std::to_string(FLAGS_isai_power);
+         }},
+        {"spd-isai", [] {
+             return std::string{"spd-isai-"} + std::to_string(FLAGS_isai_power);
+         }}};
+    if (encoder.find(precond_name) == encoder.end()) {
+        return precond_name;
+    }
     return encoder[precond_name]();
 }
 
@@ -218,50 +159,38 @@ void run_preconditioner(const char *precond_name,
                               allocator);
         }
 
+        IterationControl ic_gen{get_timer(exec, FLAGS_gpu_timer)};
+        IterationControl ic_apply{get_timer(exec, FLAGS_gpu_timer)};
+
         {
             // fast run, gets total time
             auto x_clone = clone(x);
 
             auto precond = precond_factory.at(precond_name)(exec);
 
-            for (auto i = 0u; i < FLAGS_warmup; ++i) {
+
+            for (auto _ : ic_apply.warmup_run()) {
                 precond->generate(system_matrix)->apply(lend(b), lend(x_clone));
             }
 
-            exec->synchronize();
-            auto g_tic = std::chrono::steady_clock::now();
-
             std::unique_ptr<gko::LinOp> precond_op;
-            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+            for (auto _ : ic_gen.run()) {
                 precond_op = precond->generate(system_matrix);
             }
 
-            exec->synchronize();
-            auto g_tac = std::chrono::steady_clock::now();
-
-            auto generate_time =
-                std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac -
-                                                                     g_tic) /
-                FLAGS_repetitions;
             add_or_set_member(this_precond_data["generate"], "time",
-                              generate_time.count(), allocator);
+                              ic_gen.compute_average_time(), allocator);
+            add_or_set_member(this_precond_data["generate"], "repetitions",
+                              ic_gen.get_num_repetitions(), allocator);
 
-            exec->synchronize();
-            auto a_tic = std::chrono::steady_clock::now();
-
-            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+            for (auto _ : ic_apply.run()) {
                 precond_op->apply(lend(b), lend(x_clone));
             }
 
-            exec->synchronize();
-            auto a_tac = std::chrono::steady_clock::now();
-
-            auto apply_time =
-                std::chrono::duration_cast<std::chrono::nanoseconds>(a_tac -
-                                                                     a_tic) /
-                FLAGS_repetitions;
             add_or_set_member(this_precond_data["apply"], "time",
-                              apply_time.count(), allocator);
+                              ic_apply.compute_average_time(), allocator);
+            add_or_set_member(this_precond_data["apply"], "repetitions",
+                              ic_apply.get_num_repetitions(), allocator);
         }
 
         if (FLAGS_detailed) {
@@ -273,24 +202,24 @@ void run_preconditioner(const char *precond_name,
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(gen_logger);
             std::unique_ptr<gko::LinOp> precond_op;
-            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+            for (auto i = 0u; i < ic_gen.get_num_repetitions(); ++i) {
                 precond_op = precond->generate(system_matrix);
             }
             exec->remove_logger(gko::lend(gen_logger));
 
             gen_logger->write_data(this_precond_data["generate"]["components"],
-                                   allocator, FLAGS_repetitions);
+                                   allocator, ic_gen.get_num_repetitions());
 
             auto apply_logger =
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(apply_logger);
-            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+            for (auto i = 0u; i < ic_apply.get_num_repetitions(); ++i) {
                 precond_op->apply(lend(b), lend(x_clone));
             }
             exec->remove_logger(gko::lend(apply_logger));
 
             apply_logger->write_data(this_precond_data["apply"]["components"],
-                                     allocator, FLAGS_repetitions);
+                                     allocator, ic_apply.get_num_repetitions());
         }
 
         add_or_set_member(this_precond_data, "completed", true, allocator);
@@ -300,6 +229,12 @@ void run_preconditioner(const char *precond_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
         add_or_set_member(test_case["preconditioner"][encoded_name.c_str()],
                           "completed", false, allocator);
+        if (FLAGS_keep_errors) {
+            rapidjson::Value msg_value;
+            msg_value.SetString(e.what(), allocator);
+            add_or_set_member(test_case["preconditioner"][encoded_name.c_str()],
+                              "error", msg_value, allocator);
+        }
         std::cerr << "Error when processing test case " << test_case << "\n"
                   << "what(): " << e.what() << std::endl;
     }
@@ -361,7 +296,7 @@ int main(int argc, char *argv[])
             std::clog << "Running test case: " << test_case << std::endl;
 
             std::ifstream mtx_fd(test_case["filename"].GetString());
-            auto data = gko::read_raw<etype>(mtx_fd);
+            auto data = gko::read_raw<etype, itype>(mtx_fd);
 
             auto system_matrix =
                 share(formats::matrix_factory.at(FLAGS_formats)(exec, data));

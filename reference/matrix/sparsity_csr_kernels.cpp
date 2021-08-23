@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The SparsityCsr pattern format namespace.
+ * @brief The Compressed sparse row matrix format namespace.
  * @ref SparsityCsr
  * @ingroup sparsity
  */

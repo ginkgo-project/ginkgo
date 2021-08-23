@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -66,7 +66,7 @@ constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
 
 
-#include "common/matrix/hybrid_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/hybrid_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>

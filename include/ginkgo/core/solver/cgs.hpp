@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_SOLVER_CGS_HPP_
-#define GKO_CORE_SOLVER_CGS_HPP_
+#ifndef GKO_PUBLIC_CORE_SOLVER_CGS_HPP_
+#define GKO_PUBLIC_CORE_SOLVER_CGS_HPP_
 
 
 #include <vector>
@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -146,6 +147,9 @@ public:
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
+    void apply_dense_impl(const matrix::Dense<ValueType> *b,
+                          matrix::Dense<ValueType> *x) const;
+
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
 
@@ -160,6 +164,7 @@ protected:
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
+        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
         if (parameters_.generated_preconditioner) {
             GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.generated_preconditioner,
                                         this);
@@ -169,7 +174,7 @@ protected:
                 parameters_.preconditioner->generate(system_matrix_));
         } else {
             set_preconditioner(matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()[0]));
+                this->get_executor(), this->get_size()));
         }
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
@@ -185,4 +190,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_CGS_HPP_
+#endif  // GKO_PUBLIC_CORE_SOLVER_CGS_HPP_

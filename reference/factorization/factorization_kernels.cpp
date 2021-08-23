@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -150,7 +150,7 @@ void add_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
             ++added_elements;
         }
     }
-    row_ptrs[num_rows] = new_nnz;
+    row_ptrs[num_rows] = static_cast<IndexType>(new_nnz);
 
     matrix::CsrBuilder<ValueType, IndexType> mtx_builder{mtx};
     mtx_builder.get_value_array() = std::move(new_values_array);
@@ -169,14 +169,14 @@ void initialize_row_ptrs_l_u(
 {
     auto row_ptrs = system_matrix->get_const_row_ptrs();
     auto col_idxs = system_matrix->get_const_col_idxs();
-    size_type l_nnz{};
-    size_type u_nnz{};
+    IndexType l_nnz{};
+    IndexType u_nnz{};
 
     l_row_ptrs[0] = 0;
     u_row_ptrs[0] = 0;
     for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
-        for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
-            size_type col = col_idxs[el];
+        for (auto el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
+            auto col = col_idxs[el];
             // don't count diagonal
             l_nnz += col < row;
             u_nnz += col > row;

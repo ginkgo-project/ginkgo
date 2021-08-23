@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,18 +46,21 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_ELL_SPMV_KERNEL(ValueType, IndexType)  \
-    void spmv(std::shared_ptr<const DefaultExecutor> exec, \
-              const matrix::Ell<ValueType, IndexType> *a,  \
-              const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+#define GKO_DECLARE_ELL_SPMV_KERNEL(InputValueType, MatrixValueType, \
+                                    OutputValueType, IndexType)      \
+    void spmv(std::shared_ptr<const DefaultExecutor> exec,           \
+              const matrix::Ell<MatrixValueType, IndexType> *a,      \
+              const matrix::Dense<InputValueType> *b,                \
+              matrix::Dense<OutputValueType> *c)
 
-#define GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType)  \
-    void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec, \
-                       const matrix::Dense<ValueType> *alpha,       \
-                       const matrix::Ell<ValueType, IndexType> *a,  \
-                       const matrix::Dense<ValueType> *b,           \
-                       const matrix::Dense<ValueType> *beta,        \
-                       matrix::Dense<ValueType> *c)
+#define GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(InputValueType, MatrixValueType, \
+                                             OutputValueType, IndexType)      \
+    void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,           \
+                       const matrix::Dense<MatrixValueType> *alpha,           \
+                       const matrix::Ell<MatrixValueType, IndexType> *a,      \
+                       const matrix::Dense<InputValueType> *b,                \
+                       const matrix::Dense<OutputValueType> *beta,            \
+                       matrix::Dense<OutputValueType> *c)
 
 #define GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
     void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,     \
@@ -87,10 +90,14 @@ namespace kernels {
                           matrix::Diagonal<ValueType> *diag)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_ELL_SPMV_KERNEL(ValueType, IndexType);                       \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType);              \
+    template <typename InputValueType, typename MatrixValueType,             \
+              typename OutputValueType, typename IndexType>                  \
+    GKO_DECLARE_ELL_SPMV_KERNEL(InputValueType, MatrixValueType,             \
+                                OutputValueType, IndexType);                 \
+    template <typename InputValueType, typename MatrixValueType,             \
+              typename OutputValueType, typename IndexType>                  \
+    GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(InputValueType, MatrixValueType,    \
+                                         OutputValueType, IndexType);        \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);           \
     template <typename ValueType, typename IndexType>                        \
@@ -137,6 +144,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace ell
 }  // namespace hip
+
+
+namespace dpcpp {
+namespace ell {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace ell
+}  // namespace dpcpp
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

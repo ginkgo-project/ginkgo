@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cusparse.h>
 
 
+#include "benchmark/utils/types.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/device_guard.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
@@ -147,7 +148,7 @@ public:
 protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
     {
-        auto dense_b = gko::as<gko::matrix::Dense<double>>(b);
+        auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
@@ -328,21 +329,6 @@ public:
         return csr_->get_num_stored_elements();
     }
 
-    ~CuspCsrEx() override
-    {
-        const auto id = this->get_gpu_exec()->get_device_id();
-        if (set_buffer_) {
-            try {
-                gko::cuda::device_guard g{id};
-                GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(buffer_));
-            } catch (const std::exception &e) {
-                std::cerr
-                    << "Error when unallocating CuspCsrEx temporary buffer: "
-                    << e.what() << std::endl;
-            }
-        }
-    }
-
     CuspCsrEx(const CuspCsrEx &other) = delete;
 
     CuspCsrEx &operator=(const CuspCsrEx &other) = default;
@@ -370,14 +356,13 @@ protected:
             csr_->get_num_stored_elements(), &alpha, this->get_descr(),
             csr_->get_const_values(), csr_->get_const_row_ptrs(),
             csr_->get_const_col_idxs(), db, &beta, dx, &buffer_size);
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaMalloc(&buffer_, buffer_size));
-        set_buffer_ = true;
+        buffer_.resize_and_reset(buffer_size);
 
         gko::kernels::cuda::cusparse::spmv<ValueType, IndexType>(
             handle, algmode_, trans_, this->get_size()[0], this->get_size()[1],
             csr_->get_num_stored_elements(), &alpha, this->get_descr(),
             csr_->get_const_values(), csr_->get_const_row_ptrs(),
-            csr_->get_const_col_idxs(), db, &beta, dx, buffer_);
+            csr_->get_const_col_idxs(), db, &beta, dx, buffer_.get_data());
 
         // Exiting the scope sets the pointer mode back to the default
         // DEVICE for Ginkgo
@@ -390,7 +375,7 @@ protected:
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE),
-          set_buffer_(false)
+          buffer_(exec)
     {
 #ifdef ALLOWMP
         algmode_ = CUSPARSE_ALG_MERGE_PATH;
@@ -401,8 +386,7 @@ private:
     std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
     cusparseAlgMode_t algmode_;
-    mutable void *buffer_;
-    mutable bool set_buffer_;
+    mutable gko::Array<char> buffer_;
 };
 
 
@@ -498,7 +482,7 @@ private:
 
 #if defined(CUDA_VERSION) &&  \
     (CUDA_VERSION >= 11000 || \
-     ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+     ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 template <typename ValueType>
@@ -694,42 +678,41 @@ private:
 
 
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
-        // 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+        // 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 }  // namespace detail
 
 
 // Some shortcuts
-using cusp_csrex = detail::CuspCsrEx<>;
+using cusp_csrex = detail::CuspCsrEx<etype, itype>;
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-using cusp_csr = detail::CuspCsr<>;
-using cusp_csrmp = detail::CuspCsrmp<>;
-using cusp_csrmm = detail::CuspCsrmm<>;
+using cusp_csr = detail::CuspCsr<etype, itype>;
+using cusp_csrmp = detail::CuspCsrmp<etype, itype>;
+using cusp_csrmm = detail::CuspCsrmm<etype, itype>;
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
 #if defined(CUDA_VERSION) &&  \
     (CUDA_VERSION >= 11000 || \
-     ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+     ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
-using cusp_gcsr = detail::CuspGenericCsr<>;
-using cusp_gcsr2 =
-    detail::CuspGenericCsr<double, gko::int32, CUSPARSE_CSRMV_ALG2>;
-using cusp_gcoo = detail::CuspGenericCoo<>;
+using cusp_gcsr = detail::CuspGenericCsr<etype, itype>;
+using cusp_gcsr2 = detail::CuspGenericCsr<etype, itype, CUSPARSE_CSRMV_ALG2>;
+using cusp_gcoo = detail::CuspGenericCoo<etype, itype>;
 
 
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
-        // 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+        // 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 using cusp_coo =
-    detail::CuspHybrid<double, gko::int32, CUSPARSE_HYB_PARTITION_USER, 0>;
+    detail::CuspHybrid<etype, itype, CUSPARSE_HYB_PARTITION_USER, 0>;
 using cusp_ell =
-    detail::CuspHybrid<double, gko::int32, CUSPARSE_HYB_PARTITION_MAX, 0>;
-using cusp_hybrid = detail::CuspHybrid<>;
+    detail::CuspHybrid<etype, itype, CUSPARSE_HYB_PARTITION_MAX, 0>;
+using cusp_hybrid = detail::CuspHybrid<etype, itype>;
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 

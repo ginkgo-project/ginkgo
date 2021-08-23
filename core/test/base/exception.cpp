@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -90,6 +90,14 @@ TEST(ExceptionClasses, CublasErrorReturnsCorrectWhatMessage)
 }
 
 
+TEST(ExceptionClasses, CurandErrorReturnsCorrectWhatMessage)
+{
+    gko::CurandError error("test_file.cpp", 123, "test_func", 1);
+    std::string expected = "test_file.cpp:123: test_func: ";
+    ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
+}
+
+
 TEST(ExceptionClasses, CusparseErrorReturnsCorrectWhatMessage)
 {
     gko::CusparseError error("test_file.cpp", 123, "test_func", 1);
@@ -114,6 +122,14 @@ TEST(ExceptionClasses, HipblasErrorReturnsCorrectWhatMessage)
 }
 
 
+TEST(ExceptionClasses, HiprandErrorReturnsCorrectWhatMessage)
+{
+    gko::HipblasError error("test_file.cpp", 123, "test_func", 1);
+    std::string expected = "test_file.cpp:123: test_func: ";
+    ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
+}
+
+
 TEST(ExceptionClasses, HipsparseErrorReturnsCorrectWhatMessage)
 {
     gko::HipsparseError error("test_file.cpp", 123, "test_func", 1);
@@ -128,6 +144,14 @@ TEST(ExceptionClasses, DimensionMismatchReturnsCorrectWhatMessage)
                                  "b", 2, 5, "my_clarify");
     ASSERT_EQ(std::string("test_file.cpp:243: test_func: attempting to combine "
                           "operators a [3 x 4] and b [2 x 5]: my_clarify"),
+              error.what());
+}
+
+
+TEST(ExceptionClasses, BlockSizeErrorCorrectWhatMessage)
+{
+    gko::BlockSizeError<int> error("test_file.cpp", 243, 3, 20);
+    ASSERT_EQ(std::string("test_file.cpp:243: block size = 3, size = 20"),
               error.what());
 }
 

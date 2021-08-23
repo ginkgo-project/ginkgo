@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 
 
@@ -49,8 +50,13 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
                    return gko::CudaExecutor::create(
                        0, gko::ReferenceExecutor::create());
                }},
-              {"hip", [] {
+              {"hip",
+               [] {
                    return gko::HipExecutor::create(
+                       0, gko::ReferenceExecutor::create());
+               }},
+              {"dpcpp", [] {
+                   return gko::DpcppExecutor::create(
                        0, gko::ReferenceExecutor::create());
                }}};
 
@@ -81,8 +87,8 @@ int main(int argc, char *argv[])
 {
     // print usage message
     if (argc < 2 || executors.find(argv[1]) == executors.end()) {
-        std::cerr << "Usage: " << argv[0]
-                  << " <reference|omp|cuda|hip> [<matrix-file>] "
+        std::cerr << "Usage: executable"
+                  << " <reference|omp|cuda|hip|dpcpp> [<matrix-file>] "
                      "[<jacobi|ilu|parilu|parilut|ilu-isai|parilu-isai|parilut-"
                      "isai] [<preconditioner args>]\n";
         std::cerr << "Jacobi parameters: [<max-block-size>] [<accuracy>] "

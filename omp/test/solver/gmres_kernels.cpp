@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,7 @@ protected:
     using value_type = gko::default_precision;
     using index_type = gko::int32;
     using Mtx = gko::matrix::Dense<value_type>;
+    using Solver = gko::solver::Gmres<value_type>;
     using norm_type = gko::remove_complex<value_type>;
     using NormVector = gko::matrix::Dense<norm_type>;
     template <typename T>
@@ -71,6 +72,27 @@ protected:
     {
         ref = gko::ReferenceExecutor::create();
         omp = gko::OmpExecutor::create();
+
+        mtx = gen_mtx(123, 123);
+        d_mtx = Mtx::create(omp);
+        d_mtx->copy_from(mtx.get());
+        omp_gmres_factory =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(246u).on(omp),
+                    gko::stop::ResidualNorm<>::build()
+                        .with_reduction_factor(1e-15)
+                        .on(omp))
+                .on(omp);
+
+        ref_gmres_factory =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(246u).on(ref),
+                    gko::stop::ResidualNorm<>::build()
+                        .with_reduction_factor(1e-15)
+                        .on(ref))
+                .on(ref);
     }
 
     void TearDown()
@@ -91,7 +113,11 @@ protected:
 
     void initialize_data()
     {
+#ifdef GINKGO_FAST_TESTS
+        int m = 123;
+#else
         int m = 597;
+#endif
         int n = 43;
         x = gen_mtx(m, n);
         y = gen_mtx(gko::solver::default_krylov_dim, n);
@@ -153,6 +179,11 @@ protected:
     std::shared_ptr<const gko::OmpExecutor> omp;
 
     std::ranlux48 rand_engine;
+
+    std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<Mtx> d_mtx;
+    std::unique_ptr<Solver::Factory> omp_gmres_factory;
+    std::unique_ptr<Solver::Factory> ref_gmres_factory;
 
     std::unique_ptr<Mtx> before_preconditioner;
     std::unique_ptr<Mtx> x;
@@ -267,6 +298,27 @@ TEST_F(Gmres, OmpGmresStep2IsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(d_y, y, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+}
+
+
+TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
+{
+    int m = 123;
+    int n = 1;
+    auto ref_solver = ref_gmres_factory->generate(gko::share(mtx));
+    auto omp_solver = omp_gmres_factory->generate(gko::share(d_mtx));
+    auto b = gen_mtx(m, n);
+    auto x = gen_mtx(m, n);
+    auto d_b = Mtx::create(omp);
+    auto d_x = Mtx::create(omp);
+    d_b->copy_from(b.get());
+    d_x->copy_from(x.get());
+
+    ref_solver->apply(b.get(), x.get());
+    omp_solver->apply(d_b.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
 }
 
 

@@ -143,12 +143,12 @@ The benchmark suite can take a number of configuration parameters. Benchmarks
 can be run only for `sparse matrix vector products (spmv)`, for full solvers
 (with or without preconditioners), or for preconditioners only when supported.
 The benchmark suite also allows to target a sub-part of the SuiteSparse matrix
-collection. For details, see the [available benchmark options](### 5: Available
+collection. For details, see the [available benchmark options](### 6: Available
 benchmark options). Here are the most important options:
 * `BENCHMARK={spmv, solver, preconditioner}` - allows to select the type of
     benchmark to be ran.
-* `EXECUTOR={reference,cuda,hip,omp}` - select the executor and platform the
-    benchmarks should be ran on.
+* `EXECUTOR={reference,cuda,hip,omp,dpcpp}` - select the executor and platform
+    the benchmarks should be ran on.
 * `SYSTEM_NAME=<name>` - a name which will be used to designate this platform
     (e.g. V100, RadeonVII, ...).
 * `SEGMENTS=<N>` - Split the benchmarked matrix space into `<N>` segments. If
@@ -156,6 +156,8 @@ benchmark options). Here are the most important options:
 * `SEGMENT_ID=<I>` - used in combination with the `SEGMENTS` variable. `<I>`
     should be an integer between 1 and `<N>`, the number of `SEGMENTS`. If
     specified, only the `<I>`-th segment of the benchmark suite will be run.
+* `BENCHMARK_PRECISION` - defines the precision the benchmarks are run in.
+    Supported values are: "double" (default), "single", "dcomplex" and "scomplex"
 * `MATRIX_LIST_FILE=/path/to/matrix_list.file` - allows to list SuiteSparse
     matrix id or name to benchmark. As an example, a matrix list file containing
     the following will ensure that benchmarks are ran for only those three
@@ -256,8 +258,8 @@ The supported environment variables are described in the following list:
                  benchmark.
     *   `preconditioner` - Runs the preconditioner benchmarks on artificially
                  generated block-diagonal matrices.
-* `EXECUTOR={reference,cuda,hip,omp}` - select the executor and platform the
-    benchmarks should be ran on. Default is `cuda`.
+* `EXECUTOR={reference,cuda,hip,omp,dpcpp}` - select the executor and platform
+    the benchmarks should be ran on. Default is `cuda`.
 * `SYSTEM_NAME=<name>` - a name which will be used to designate this platform
     (e.g. V100, RadeonVII, ...) and not overwrite previous results. Default is
     `unknown`.
@@ -282,8 +284,8 @@ The supported environment variables are described in the following list:
     benchmark runs (downloads the collections, creates the result structure,
     etc.) and outputs the list of commands that would normally be run, but does
     not run the benchmarks themselves. Default is `false`.
-* `PRECONDS={jacobi,adaptive-jacobi,ilu,parict,parilu,parilut,none}` the
-    preconditioners to use for either `solver` or `preconditioner` benchmarks.
+* `PRECONDS={jacobi,ic,ilu,paric,parict,parilu,parilut,ic-isai,ilu-isai,paric-isai,parict-isai,parilu-isai,parilut-isai,none}`
+    the preconditioners to use for either `solver` or `preconditioner` benchmarks.
     Multiple options can be passed to this variable. Default is `none`.
 * `FORMATS={csr,coo,ell,hybrid,sellp,hybridxx,cusp_xx,hipsp_xx}` the matrix
     formats to benchmark for the `spmv` phase of the benchmark. Run
@@ -293,11 +295,28 @@ The supported environment variables are described in the following list:
     library formats (cuSPARSE with `cusp_` prefix or hipSPARSE with `hipsp_`
     prefix) can be used as well. Multiple options can be passed. The default is
     `csr,coo,ell,hybrid,sellp`.
-* `SOLVERS={bicgstab,bicg,cg,cgs,fcg,gmres}` - the solvers which should be
-    benchmarked. Multiple options can be passed. The default is `cg`.
+* `SOLVERS={bicgstab,bicg,cg,cgs,fcg,gmres,cb_gmres_{keep,reduce1,reduce2,integer,ireduce1,ireduce2},lower_trs,upper_trs}`
+    - the solvers which should be benchmarked. Multiple options can be passed.
+    The default is `bicgstab,cg,cgs,fcg,gmres,idr`. Note that `lower/upper_trs`
+    by default don't use a preconditioner, as they are by default exact direct
+    solvers.
 * `SOLVERS_PRECISION=<precision>` - the minimal residual reduction before which
     the solver should stop. The default is `1e-6`.
 * `SOLVERS_MAX_ITERATION=<number>` - the maximum number of iterations with which
     a solver should be ran. The default is `10000`.
+* `SOLVERS_RHS={1, random, sinus}` - whether to use a vector of all ones,
+    random values or b = A * (s / |s|)$ with s(idx) = sin(idx) (for complex
+    numbers, s(idx) = sin(2*idx) + i * sin(2*idx+1))
+    as the right-hand side in solver benchmarks. Default is `1`.
+* `SOLVERS_INITIAL_GUESS={rhs,0,random}` - the initial guess generation of the
+    solvers. `rhs` uses the right-hand side, `0` uses a zero vector and `random`
+    generates a random vector as the initial guess.
 * `DETAILED={0,1}` - selects whether detailed benchmarks should be ran for the
     solver benchmarks, can be either `0` (off) or `1` (on). The default is `0`.
+* `GPU_TIMER={true, false}` - If set to `true`, use the gpu timer, which is
+    valid for cuda/hip executor, to measure the timing. Default is `false`.
+* `SOLVERS_JACOBI_MAX_BS` - sets the maximum block size for the Jacobi
+    preconditioner (if used, otherwise, it does nothing) in the solvers
+    benchmark. The default is '32'.
+* `SOLVERS_GMRES_RESTART` - the maximum dimension of the Krylov space to use in
+    GMRES. The default is `100`.

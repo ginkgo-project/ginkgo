@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_LOG_RECORD_HPP_
-#define GKO_CORE_LOG_RECORD_HPP_
+#ifndef GKO_PUBLIC_CORE_LOG_RECORD_HPP_
+#define GKO_PUBLIC_CORE_LOG_RECORD_HPP_
 
 
 #include <deque>
@@ -62,16 +62,19 @@ struct iteration_complete_data {
     std::unique_ptr<const LinOp> residual;
     std::unique_ptr<const LinOp> solution;
     std::unique_ptr<const LinOp> residual_norm;
+    std::unique_ptr<const LinOp> implicit_sq_residual_norm;
 
     iteration_complete_data(const LinOp *solver, const size_type num_iterations,
                             const LinOp *residual = nullptr,
                             const LinOp *solution = nullptr,
-                            const LinOp *residual_norm = nullptr)
+                            const LinOp *residual_norm = nullptr,
+                            const LinOp *implicit_sq_residual_norm = nullptr)
         : solver{nullptr},
           num_iterations{num_iterations},
           residual{nullptr},
           solution{nullptr},
-          residual_norm{nullptr}
+          residual_norm{nullptr},
+          implicit_sq_residual_norm{nullptr}
     {
         this->solver = solver->clone();
         if (residual != nullptr) {
@@ -82,6 +85,10 @@ struct iteration_complete_data {
         }
         if (residual_norm != nullptr) {
             this->residual_norm = residual_norm->clone();
+        }
+        if (implicit_sq_residual_norm != nullptr) {
+            this->implicit_sq_residual_norm =
+                implicit_sq_residual_norm->clone();
         }
     }
 };
@@ -359,6 +366,14 @@ public:
     void on_criterion_check_completed(
         const stop::Criterion *criterion, const size_type &num_iterations,
         const LinOp *residual, const LinOp *residual_norm,
+        const LinOp *implicit_residual_norm_sq, const LinOp *solution,
+        const uint8 &stopping_id, const bool &set_finalized,
+        const Array<stopping_status> *status, const bool &one_changed,
+        const bool &all_converged) const override;
+
+    void on_criterion_check_completed(
+        const stop::Criterion *criterion, const size_type &num_iterations,
+        const LinOp *residual, const LinOp *residual_norm,
         const LinOp *solution, const uint8 &stopping_id,
         const bool &set_finalized, const Array<stopping_status> *status,
         const bool &one_changed, const bool &all_converged) const override;
@@ -369,6 +384,11 @@ public:
         const LinOp *residual, const LinOp *solution = nullptr,
         const LinOp *residual_norm = nullptr) const override;
 
+    void on_iteration_complete(
+        const LinOp *solver, const size_type &num_iterations,
+        const LinOp *residual, const LinOp *solution,
+        const LinOp *residual_norm,
+        const LinOp *implicit_sq_residual_norm) const override;
 
     /**
      * Creates a Record logger. This dynamically allocates the memory,
@@ -454,4 +474,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_LOG_RECORD_HPP_
+#endif  // GKO_PUBLIC_CORE_LOG_RECORD_HPP_

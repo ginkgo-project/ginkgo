@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -114,6 +114,26 @@ TEST(Dim, ConvertsToBool)
 
     ASSERT_FALSE(d1);
     ASSERT_TRUE(d2);
+}
+
+
+TEST(Dim, CanAppendToStream1)
+{
+    gko::dim<2> d2{2, 3};
+
+    std::ostringstream os;
+    os << d2;
+    ASSERT_EQ(os.str(), "(2, 3)");
+}
+
+
+TEST(Dim, CanAppendToStream2)
+{
+    gko::dim<3> d2{2, 3, 4};
+
+    std::ostringstream os;
+    os << d2;
+    ASSERT_EQ(os.str(), "(2, 3, 4)");
 }
 
 

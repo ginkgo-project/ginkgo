@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -91,22 +91,22 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
             auto a_val = has_a ? a_vals[a_nz] : zero<ValueType>();
             // accumulate l(row,:) * l(col,:) without the last entry l(col, col)
             ValueType sum{};
-            IndexType lt_nz{};
+            IndexType lh_nz{};
             auto l_begin = l_row_ptrs[row];
             auto l_end = l_row_ptrs[row + 1];
-            auto lt_begin = l_row_ptrs[col];
-            auto lt_end = l_row_ptrs[col + 1];
-            while (l_begin < l_end && lt_begin < lt_end) {
+            auto lh_begin = l_row_ptrs[col];
+            auto lh_end = l_row_ptrs[col + 1];
+            while (l_begin < l_end && lh_begin < lh_end) {
                 auto l_col = l_col_idxs[l_begin];
-                auto lt_row = l_col_idxs[lt_begin];
-                if (l_col == lt_row && l_col < col) {
-                    sum += l_vals[l_begin] * l_vals[lt_begin];
+                auto lh_row = l_col_idxs[lh_begin];
+                if (l_col == lh_row && l_col < col) {
+                    sum += l_vals[l_begin] * conj(l_vals[lh_begin]);
                 }
-                if (lt_row == row) {
-                    lt_nz = lt_begin;
+                if (lh_row == row) {
+                    lh_nz = lh_begin;
                 }
-                l_begin += (l_col <= lt_row);
-                lt_begin += (lt_row <= l_col);
+                l_begin += (l_col <= lh_row);
+                lh_begin += (lh_row <= l_col);
             }
             auto new_val = a_val - sum;
             if (row == col) {
@@ -128,7 +128,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *llt,
+                    const matrix::Csr<ValueType, IndexType> *llh,
                     const matrix::Csr<ValueType, IndexType> *a,
                     const matrix::Csr<ValueType, IndexType> *l,
                     matrix::Csr<ValueType, IndexType> *l_new)
@@ -141,7 +141,7 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
     // count nnz
     abstract_spgeam(
-        a, llt, [](IndexType) { return IndexType{}; },
+        a, llh, [](IndexType) { return IndexType{}; },
         [](IndexType row, IndexType col, ValueType, ValueType, IndexType &nnz) {
             nnz += col <= row;
         },
@@ -164,7 +164,7 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
         IndexType l_old_end;
     };
     abstract_spgeam(
-        a, llt,
+        a, llh,
         [&](IndexType row) {
             row_state state{};
             state.l_new_nz = l_new_row_ptrs[row];
@@ -172,9 +172,9 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
             state.l_old_end = l_row_ptrs[row + 1];
             return state;
         },
-        [&](IndexType row, IndexType col, ValueType a_val, ValueType llt_val,
+        [&](IndexType row, IndexType col, ValueType a_val, ValueType llh_val,
             row_state &state) {
-            auto r_val = a_val - llt_val;
+            auto r_val = a_val - llh_val;
             // load matching entry of L
             auto l_col = checked_load(l_col_idxs, state.l_old_begin,
                                       state.l_old_end, sentinel);

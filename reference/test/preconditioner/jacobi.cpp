@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -65,6 +65,7 @@ protected:
     Jacobi()
         : exec(gko::ReferenceExecutor::create()),
           bj_factory(Bj::build().with_max_block_size(3u).on(exec)),
+          scalar_j_factory(Bj::build().with_max_block_size(1u).on(exec)),
           block_pointers(exec, 3),
           block_precisions(exec, 2),
           mtx(Mtx::create(exec, gko::dim<2>{5}, 13))
@@ -106,9 +107,7 @@ protected:
     template <typename T>
     void init_array(T *arr, std::initializer_list<T> vals)
     {
-        for (auto elem : vals) {
-            *(arr++) = elem;
-        }
+        std::copy(std::begin(vals), std::end(vals), arr);
     }
 
     template <typename ValueType>
@@ -168,6 +167,7 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<typename Bj::Factory> bj_factory;
+    std::unique_ptr<typename Bj::Factory> scalar_j_factory;
     std::unique_ptr<typename Bj::Factory> adaptive_bj_factory;
     gko::Array<index_type> block_pointers;
     gko::Array<gko::precision_reduction> block_precisions;
@@ -176,7 +176,7 @@ protected:
     std::unique_ptr<Bj> adaptive_bj;
 };
 
-TYPED_TEST_CASE(Jacobi, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Jacobi, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Jacobi, GeneratesCorrectStorageScheme)
@@ -308,22 +308,119 @@ TYPED_TEST(Jacobi, CanBeClearedWithAdaptivePrecision)
 }
 
 
+TYPED_TEST(Jacobi, ScalarJacobiConvertsToDense)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Bj = typename TestFixture::Bj;
+    gko::matrix_data<value_type, index_type> data;
+    auto csr = gko::share(
+        gko::matrix::Csr<value_type, index_type>::create(this->exec));
+    csr->copy_from(gko::lend(this->mtx));
+    auto scalar_j = this->scalar_j_factory->generate(csr);
+
+    auto dense_j = gko::matrix::Dense<value_type>::create(this->exec);
+    dense_j->copy_from(scalar_j.get());
+    auto j_val = scalar_j->get_blocks();
+
+    for (auto i = 0; i < dense_j->get_size()[0]; ++i) {
+        for (auto j = 0; j < dense_j->get_size()[1]; ++j) {
+            if (i == j) {
+                EXPECT_EQ(dense_j->at(i, j), j_val[j]);
+            } else {
+                EXPECT_EQ(dense_j->at(i, j), value_type{0.0});
+            }
+        }
+    }
+}
+
+
+TYPED_TEST(Jacobi, ScalarJacobiCanBeTransposed)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Bj = typename TestFixture::Bj;
+    gko::matrix_data<value_type, index_type> data;
+    auto csr = gko::share(
+        gko::matrix::Csr<value_type, index_type>::create(this->exec));
+    csr->copy_from(gko::lend(this->mtx));
+    auto scalar_j = this->scalar_j_factory->generate(csr);
+
+    auto dense_j = gko::matrix::Dense<value_type>::create(this->exec);
+    auto t_j = scalar_j->transpose();
+    auto trans_j = gko::as<Bj>(t_j.get())->get_blocks();
+    auto scal_j = scalar_j->get_blocks();
+
+    ASSERT_EQ(scalar_j->get_size(), gko::dim<2>(5, 5));
+    ASSERT_EQ(scalar_j->get_num_stored_elements(), 5);
+    ASSERT_EQ(scalar_j->get_parameters().max_block_size, 1);
+    ASSERT_EQ(scalar_j->get_num_blocks(), 5);
+    ASSERT_EQ(scalar_j->get_parameters().block_pointers.get_const_data(),
+              nullptr);
+    EXPECT_EQ(trans_j[0], scal_j[0]);
+    EXPECT_EQ(trans_j[1], scal_j[1]);
+    EXPECT_EQ(trans_j[2], scal_j[2]);
+    EXPECT_EQ(trans_j[3], scal_j[3]);
+    EXPECT_EQ(trans_j[4], scal_j[4]);
+}
+
+
+template <typename T>
+void init_array(T *arr, std::initializer_list<T> vals)
+{
+    std::copy(std::begin(vals), std::end(vals), arr);
+}
+
+
+TEST(Jacobi, ScalarJacobiCanBeConjTransposed)
+{
+    using value_type = std::complex<double>;
+    using vt = value_type;
+    using index_type = int;
+    using Bj = gko::preconditioner::Jacobi<value_type, index_type>;
+    gko::matrix_data<value_type, index_type> data;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto csr = gko::share(Mtx::create(exec, gko::dim<2>(5, 5), 13));
+    auto scalar_j_factory = Bj::build().with_max_block_size(1u).on(exec);
+    init_array<index_type>(csr->get_row_ptrs(), {0, 3, 5, 7, 10, 13});
+    init_array<index_type>(csr->get_col_idxs(),
+                           {0, 1, 4, 0, 1, 2, 3, 2, 3, 4, 0, 3, 4});
+    init_array<value_type>(
+        csr->get_values(),
+        {vt(4.0, 1), vt(-2.0), vt(-2.0), vt(-1.0), vt(4.0, -1), vt(4.0),
+         vt(-2.0), vt(-1.0), vt(4.0), vt(-2.0), vt(-1.0), vt(-1.0), vt(4.0)});
+    auto scalar_j = scalar_j_factory->generate(csr);
+
+    auto t_j = scalar_j->conj_transpose();
+    auto trans_j = gko::as<Bj>(t_j.get())->get_blocks();
+    auto scal_j = scalar_j->get_blocks();
+
+    ASSERT_EQ(scalar_j->get_size(), gko::dim<2>(5, 5));
+    ASSERT_EQ(scalar_j->get_num_stored_elements(), 5);
+    ASSERT_EQ(scalar_j->get_parameters().max_block_size, 1);
+    ASSERT_EQ(scalar_j->get_num_blocks(), 5);
+    ASSERT_EQ(scalar_j->get_parameters().block_pointers.get_const_data(),
+              nullptr);
+    EXPECT_EQ(trans_j[0], gko::conj(scal_j[0]));
+    EXPECT_EQ(trans_j[1], gko::conj(scal_j[1]));
+    EXPECT_EQ(trans_j[2], gko::conj(scal_j[2]));
+    EXPECT_EQ(trans_j[3], gko::conj(scal_j[3]));
+    EXPECT_EQ(trans_j[4], gko::conj(scal_j[4]));
+}
+
+
 #define GKO_EXPECT_NONZERO_NEAR(first, second, tol) \
     EXPECT_EQ(first.row, second.row);               \
     EXPECT_EQ(first.column, second.column);         \
     GKO_EXPECT_NEAR(first.value, second.value, tol)
 
 
-TYPED_TEST(Jacobi, GeneratesCorrectMatrixData)
+template <typename ValueType, typename IndexType>
+void assert_matrix_data(gko::matrix_data<ValueType, IndexType> data)
 {
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
-    auto tol = r<value_type>::value;
-    gko::matrix_data<value_type, index_type> data;
-
-    this->bj->write(data);
-
+    using tpl = typename decltype(data)::nonzero_type;
+    auto tol = r<ValueType>::value;
     ASSERT_EQ(data.size, gko::dim<2>{5});
     ASSERT_EQ(data.nonzeros.size(), 13);
     GKO_EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 4.0 / 14), tol);
@@ -339,6 +436,43 @@ TYPED_TEST(Jacobi, GeneratesCorrectMatrixData)
     GKO_EXPECT_NONZERO_NEAR(data.nonzeros[10], tpl(4, 2, 1.0 / 48), tol);
     GKO_EXPECT_NONZERO_NEAR(data.nonzeros[11], tpl(4, 3, 4.0 / 48), tol);
     GKO_EXPECT_NONZERO_NEAR(data.nonzeros[12], tpl(4, 4, 14.0 / 48), tol);
+}
+
+
+TYPED_TEST(Jacobi, GeneratesCorrectMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    gko::matrix_data<value_type, index_type> data;
+
+    this->bj->write(data);
+
+    assert_matrix_data(data);
+}
+
+
+TYPED_TEST(Jacobi, ScalarJacobiGeneratesCorrectMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Bj = typename TestFixture::Bj;
+    gko::matrix_data<value_type, index_type> data;
+    using tpl = typename decltype(data)::nonzero_type;
+    auto csr = gko::share(
+        gko::matrix::Csr<value_type, index_type>::create(this->exec));
+    csr->copy_from(gko::lend(this->mtx));
+    auto scalar_j = this->scalar_j_factory->generate(csr);
+
+    scalar_j->write(data);
+
+    auto tol = r<value_type>::value;
+    ASSERT_EQ(data.size, gko::dim<2>{5});
+    ASSERT_EQ(data.nonzeros.size(), 5);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 1 / 4.0), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[1], tpl(1, 1, 1 / 4.0), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[2], tpl(2, 2, 1 / 4.0), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[3], tpl(3, 3, 1 / 4.0), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[4], tpl(4, 4, 1 / 4.0), tol);
 }
 
 
@@ -368,6 +502,27 @@ TYPED_TEST(Jacobi, GeneratesCorrectMatrixDataWithAdaptivePrecision)
     GKO_EXPECT_NONZERO_NEAR(data.nonzeros[10], tpl(4, 2, 1.0 / 48), tol);
     GKO_EXPECT_NONZERO_NEAR(data.nonzeros[11], tpl(4, 3, 4.0 / 48), tol);
     GKO_EXPECT_NONZERO_NEAR(data.nonzeros[12], tpl(4, 4, 14.0 / 48), tol);
+}
+
+
+TYPED_TEST(Jacobi, ScalarJacobiGeneratesOnDifferentPrecision)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using next_type = gko::next_precision<value_type>;
+    using Bj = typename TestFixture::Bj;
+    auto csr =
+        gko::share(gko::matrix::Csr<next_type, index_type>::create(this->exec));
+    csr->copy_from(gko::lend(this->mtx));
+    std::shared_ptr<Bj> bj{};
+
+    ASSERT_NO_THROW(bj = this->scalar_j_factory->generate(csr));
+    ASSERT_EQ(bj->get_num_blocks(), 5u);
+    ASSERT_EQ(bj->get_blocks()[0], value_type{0.25});
+    ASSERT_EQ(bj->get_blocks()[1], value_type{0.25});
+    ASSERT_EQ(bj->get_blocks()[2], value_type{0.25});
+    ASSERT_EQ(bj->get_blocks()[3], value_type{0.25});
+    ASSERT_EQ(bj->get_blocks()[4], value_type{0.25});
 }
 
 

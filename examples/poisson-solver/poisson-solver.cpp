@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -122,16 +122,19 @@ int main(int argc, char *argv[])
     using cg = gko::solver::Cg<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
 
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
-                  << std::endl;
+    // Print version information
+    std::cout << gko::version_info::get() << std::endl;
+
+    if (argc == 2 && (std::string(argv[1]) == "--help")) {
+        std::cerr << "Usage: " << argv[0]
+                  << " [executor] [DISCRETIZATION_POINTS]" << std::endl;
         std::exit(-1);
     }
 
     // Get number of discretization points
+    const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const unsigned int discretization_points =
-        argc >= 2 ? std::atoi(argv[1]) : 100;
-    const auto executor_string = argc >= 3 ? argv[2] : "reference";
+        argc >= 3 ? std::atoi(argv[2]) : 100;
 
     // Figure out where to run the code
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -146,6 +149,11 @@ int main(int argc, char *argv[])
              [] {
                  return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
                                                  true);
+             }},
+            {"dpcpp",
+             [] {
+                 return gko::DpcppExecutor::create(0,
+                                                   gko::OmpExecutor::create());
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
@@ -177,7 +185,7 @@ int main(int argc, char *argv[])
         .with_criteria(gko::stop::Iteration::build()
                            .with_max_iters(discretization_points)
                            .on(exec),
-                       gko::stop::ResidualNormReduction<ValueType>::build()
+                       gko::stop::ResidualNorm<ValueType>::build()
                            .with_reduction_factor(reduction_factor)
                            .on(exec))
         .with_preconditioner(bj::build().on(exec))
@@ -185,8 +193,9 @@ int main(int argc, char *argv[])
         ->generate(clone(exec, matrix))  // copy the matrix to the executor
         ->apply(lend(rhs), lend(u));
 
-    print_solution<ValueType>(u0, u1, lend(u));
-    std::cout << "The average relative error is "
+    // Uncomment to print the solution
+    // print_solution<ValueType>(u0, u1, lend(u));
+    std::cout << "Solve complete.\nThe average relative error is "
               << calculate_error(discretization_points, lend(u), correct_u) /
                      static_cast<gko::remove_complex<ValueType>>(
                          discretization_points)

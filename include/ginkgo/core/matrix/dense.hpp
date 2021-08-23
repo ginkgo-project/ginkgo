@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,14 +30,15 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_DENSE_HPP_
-#define GKO_CORE_MATRIX_DENSE_HPP_
+#ifndef GKO_PUBLIC_CORE_MATRIX_DENSE_HPP_
+#define GKO_PUBLIC_CORE_MATRIX_DENSE_HPP_
 
 
 #include <initializer_list>
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
@@ -88,29 +89,31 @@ class SparsityCsr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Dense : public EnableLinOp<Dense<ValueType>>,
-              public EnableCreateMethod<Dense<ValueType>>,
-              public ConvertibleTo<Dense<next_precision<ValueType>>>,
-              public ConvertibleTo<Coo<ValueType, int32>>,
-              public ConvertibleTo<Coo<ValueType, int64>>,
-              public ConvertibleTo<Csr<ValueType, int32>>,
-              public ConvertibleTo<Csr<ValueType, int64>>,
-              public ConvertibleTo<Ell<ValueType, int32>>,
-              public ConvertibleTo<Ell<ValueType, int64>>,
-              public ConvertibleTo<Hybrid<ValueType, int32>>,
-              public ConvertibleTo<Hybrid<ValueType, int64>>,
-              public ConvertibleTo<Sellp<ValueType, int32>>,
-              public ConvertibleTo<Sellp<ValueType, int64>>,
-              public ConvertibleTo<SparsityCsr<ValueType, int32>>,
-              public ConvertibleTo<SparsityCsr<ValueType, int64>>,
-              public DiagonalExtractable<ValueType>,
-              public ReadableFromMatrixData<ValueType, int32>,
-              public ReadableFromMatrixData<ValueType, int64>,
-              public WritableToMatrixData<ValueType, int32>,
-              public WritableToMatrixData<ValueType, int64>,
-              public Transposable,
-              public Permutable<int32>,
-              public Permutable<int64> {
+class Dense
+    : public EnableLinOp<Dense<ValueType>>,
+      public EnableCreateMethod<Dense<ValueType>>,
+      public ConvertibleTo<Dense<next_precision<ValueType>>>,
+      public ConvertibleTo<Coo<ValueType, int32>>,
+      public ConvertibleTo<Coo<ValueType, int64>>,
+      public ConvertibleTo<Csr<ValueType, int32>>,
+      public ConvertibleTo<Csr<ValueType, int64>>,
+      public ConvertibleTo<Ell<ValueType, int32>>,
+      public ConvertibleTo<Ell<ValueType, int64>>,
+      public ConvertibleTo<Hybrid<ValueType, int32>>,
+      public ConvertibleTo<Hybrid<ValueType, int64>>,
+      public ConvertibleTo<Sellp<ValueType, int32>>,
+      public ConvertibleTo<Sellp<ValueType, int64>>,
+      public ConvertibleTo<SparsityCsr<ValueType, int32>>,
+      public ConvertibleTo<SparsityCsr<ValueType, int64>>,
+      public DiagonalExtractable<ValueType>,
+      public ReadableFromMatrixData<ValueType, int32>,
+      public ReadableFromMatrixData<ValueType, int64>,
+      public WritableToMatrixData<ValueType, int32>,
+      public WritableToMatrixData<ValueType, int64>,
+      public Transposable,
+      public Permutable<int32>,
+      public Permutable<int64>,
+      public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>> {
     friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;
@@ -126,21 +129,26 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
     friend class Sellp<ValueType, int64>;
     friend class SparsityCsr<ValueType, int32>;
     friend class SparsityCsr<ValueType, int64>;
+    friend class Dense<to_complex<ValueType>>;
 
 public:
-    using EnableLinOp<Dense>::convert_to;
-    using EnableLinOp<Dense>::move_to;
+    using ReadableFromMatrixData<ValueType, int32>::read;
+    using ReadableFromMatrixData<ValueType, int64>::read;
 
     using value_type = ValueType;
     using index_type = int64;
     using transposed_type = Dense<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
+    using absolute_type = remove_complex<Dense>;
+    using real_type = absolute_type;
+    using complex_type = to_complex<Dense>;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
     /**
-     * Creates a Dense matrix with the configuration of another Dense matrix.
+     * Creates a Dense matrix with the same size and stride as another Dense
+     * matrix.
      *
      * @param other  The other matrix whose configuration needs to copied.
      */
@@ -153,7 +161,46 @@ public:
         return (*other).create_with_same_config();
     }
 
+    /**
+     * Creates a Dense matrix with the same type and executor as another Dense
+     * matrix but a different size.
+     *
+     * @param other  The other matrix whose type we target.
+     * @param exec  The executor of the new matrix.
+     * @param size  The size of the new matrix.
+     * @param stride  The stride of the new matrix.
+     *
+     * @returns a Dense matrix with the type of other.
+     */
+    static std::unique_ptr<Dense> create_with_type_of(
+        const Dense *other, std::shared_ptr<const Executor> exec,
+        const dim<2> &size = dim<2>{})
+    {
+        // See create_with_config_of()
+        return (*other).create_with_type_of_impl(exec, size, size[1]);
+    }
+
+    /**
+     * @copydoc create_with_type_of(const Dense*, std::shared_ptr<const
+     * Executor>, const dim<2>)
+     *
+     * @param stride  The stride of the new matrix.
+     *
+     * @note This is an overload which allows full parameter specification.
+     */
+    static std::unique_ptr<Dense> create_with_type_of(
+        const Dense *other, std::shared_ptr<const Executor> exec,
+        const dim<2> &size, size_type stride)
+    {
+        // See create_with_config_of()
+        return (*other).create_with_type_of_impl(exec, size, stride);
+    }
+
     friend class Dense<next_precision<ValueType>>;
+
+    void convert_to(Dense<ValueType> *result) const override;
+
+    void move_to(Dense<ValueType> *result) override;
 
     void convert_to(Dense<next_precision<ValueType>> *result) const override;
 
@@ -219,11 +266,136 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    /**
+     * Writes the transposed matrix into the given output matrix.
+     *
+     * @param output  The output matrix. It must have the dimensions
+     *                `gko::transpose(this->get_size())`
+     */
+    void transpose(Dense *output) const;
+
+    /**
+     * Writes the conjugate-transposed matrix into the given output matrix.
+     *
+     * @param output  The output matrix. It must have the dimensions
+     *                `gko::transpose(this->get_size())`
+     */
+    void conj_transpose(Dense *output) const;
+
+    /**
+     * Fill the dense matrix with a given value.
+     *
+     * @param value  the value to be filled
+     */
+    void fill(const ValueType value);
+
+    std::unique_ptr<LinOp> permute(
+        const Array<int32> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> permute(
+        const Array<int64> *permutation_indices) const override;
+
+    /**
+     * Writes the symmetrically permuted matrix into the given output matrix.
+     *
+     * @param permutation_indices  The array containing permutation indices.
+     *                             It must have `this->get_size()[0]` elements.
+     * @param output  The output matrix. It must have the dimensions
+     *                `this->get_size()`
+     * @see Dense::permute(const Array<int32>*)
+     */
+    void permute(const Array<int32> *permutation_indices, Dense *output) const;
+
+    /**
+     * @copydoc Dense::permute(const Array<int32>*, Dense*)
+     */
+    void permute(const Array<int64> *permutation_indices, Dense *output) const;
+
+    std::unique_ptr<LinOp> inverse_permute(
+        const Array<int32> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> inverse_permute(
+        const Array<int64> *permutation_indices) const override;
+
+    /**
+     * Writes the inverse symmetrically permuted matrix into the given output
+     * matrix.
+     *
+     * @param permutation_indices  The array containing permutation indices.
+     *                             It must have `this->get_size()[0]` elements.
+     * @param output  The output matrix. It must have the dimensions
+     *                `this->get_size()`
+     * @see Dense::inverse_permute(const Array<int32>*)
+     */
+    void inverse_permute(const Array<int32> *permutation_indices,
+                         Dense *output) const;
+
+    /**
+     * @copydoc Dense::inverse_permute(const Array<int32>*, Dense*)
+     */
+    void inverse_permute(const Array<int64> *permutation_indices,
+                         Dense *output) const;
+
     std::unique_ptr<LinOp> row_permute(
         const Array<int32> *permutation_indices) const override;
 
     std::unique_ptr<LinOp> row_permute(
         const Array<int64> *permutation_indices) const override;
+
+    /**
+     * Writes the row-permuted matrix into the given output matrix.
+     *
+     * @param permutation_indices  The array containing permutation indices.
+     *                             It must have `this->get_size()[0]` elements.
+     * @param output  The output matrix. It must have the dimensions
+     *                `this->get_size()`
+     * @see Dense::row_permute(const Array<int32>*)
+     */
+    void row_permute(const Array<int32> *permutation_indices,
+                     Dense *output) const;
+
+    /**
+     * @copydoc Dense::row_permute(const Array<int32>*, Dense*)
+     */
+    void row_permute(const Array<int64> *permutation_indices,
+                     Dense *output) const;
+
+    /**
+     * Create a Dense matrix consisting of the given rows from this matrix.
+     *
+     * @param gather_indices  pointer to an array containing row indices
+     *                        from this matrix. It may contain duplicates.
+     * @return  Dense matrix on the same executor with the same number of
+     *          columns and `gather_indices->get_num_elems()` rows containing
+     *          the gathered rows from this matrix:
+     *          `output(i,j) = input(gather_indices(i), j)`
+     */
+    std::unique_ptr<Dense> row_gather(const Array<int32> *gather_indices) const;
+
+    /**
+     * @copydoc row_gather(const Array<int32>*) const
+     */
+    std::unique_ptr<Dense> row_gather(const Array<int64> *gather_indices) const;
+
+    /**
+     * Copies the given rows from this matrix into `row_gathered`
+     *
+     * @param gather_indices  pointer to an array containing row indices
+     *                        from this matrix. It may contain duplicates.
+     * @param row_gathered  pointer to a Dense matrix that will store the
+     *                      gathered rows:
+     *                      `output(i,j) = input(gather_indices(i), j)`
+     *                      It must have the same number of columns as this
+     *                      matrix and `gather_indices->get_num_elems()` rows.
+     */
+    void row_gather(const Array<int32> *gather_indices,
+                    Dense *row_gathered) const;
+
+    /**
+     * @copydoc row_gather(const Array<int32>*, Dense*) const
+     */
+    void row_gather(const Array<int64> *gather_indices,
+                    Dense *row_gathered) const;
 
     std::unique_ptr<LinOp> column_permute(
         const Array<int32> *permutation_indices) const override;
@@ -231,19 +403,131 @@ public:
     std::unique_ptr<LinOp> column_permute(
         const Array<int64> *permutation_indices) const override;
 
-    std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<int32> *inverse_permutation_indices) const override;
+    /**
+     * Writes the column-permuted matrix into the given output matrix.
+     *
+     * @param permutation_indices  The array containing permutation indices.
+     *                             It must have `this->get_size()[1]` elements.
+     * @param output  The output matrix. It must have the dimensions
+     *                `this->get_size()`
+     * @see Dense::column_permute(const Array<int32>*)
+     */
+    void column_permute(const Array<int32> *permutation_indices,
+                        Dense *output) const;
+
+    /**
+     * @copydoc Dense::column_permute(const Array<int32>*, Dense*)
+     */
+    void column_permute(const Array<int64> *permutation_indices,
+                        Dense *output) const;
 
     std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<int64> *inverse_permutation_indices) const override;
+        const Array<int32> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> inverse_row_permute(
+        const Array<int64> *permutation_indices) const override;
+
+    /**
+     * Writes the inverse row-permuted matrix into the given output matrix.
+     *
+     * @param permutation_indices  The array containing permutation indices.
+     *                             It must have `this->get_size()[0]` elements.
+     * @param output  The output matrix. It must have the dimensions
+     *                `this->get_size()`
+     * @see Dense::inverse_row_permute(const Array<int32>*)
+     */
+    void inverse_row_permute(const Array<int32> *permutation_indices,
+                             Dense *output) const;
+
+    /**
+     * @copydoc Dense::inverse_row_permute(const Array<int32>*, Dense*)
+     */
+    void inverse_row_permute(const Array<int64> *permutation_indices,
+                             Dense *output) const;
 
     std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<int32> *inverse_permutation_indices) const override;
+        const Array<int32> *permutation_indices) const override;
 
     std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<int64> *inverse_permutation_indices) const override;
+        const Array<int64> *permutation_indices) const override;
+
+    /**
+     * Writes the inverse column-permuted matrix into the given output matrix.
+     *
+     * @param permutation_indices  The array containing permutation indices.
+     *                             It must have `this->get_size()[1]` elements.
+     * @param output  The output matrix. It must have the dimensions
+     *                `this->get_size()`
+     * @see Dense::inverse_column_permute(const Array<int32>*)
+     */
+    void inverse_column_permute(const Array<int32> *permutation_indices,
+                                Dense *output) const;
+
+    /**
+     * @copydoc Dense::inverse_column_permute(const Array<int32>*, Dense*)
+     */
+    void inverse_column_permute(const Array<int64> *permutation_indices,
+                                Dense *output) const;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+
+    /**
+     * Writes the diagonal of this matrix into an existing diagonal matrix.
+     *
+     * @param output  The output matrix. Its size must match the size of this
+     *                matrix's diagonal.
+     * @see Dense::extract_diagonal()
+     */
+    void extract_diagonal(Diagonal<ValueType> *output) const;
+
+    std::unique_ptr<absolute_type> compute_absolute() const override;
+
+    /**
+     * Writes the absolute values of this matrix into an existing matrix.
+     *
+     * @param output  The output matrix. Its size must match the size of this
+     *                matrix.
+     * @see Dense::compute_absolute()
+     */
+    void compute_absolute(absolute_type *output) const;
+
+    void compute_absolute_inplace() override;
+
+    /**
+     * Creates a complex copy of the original matrix. If the original matrix
+     * was real, the imaginary part of the result will be zero.
+     */
+    std::unique_ptr<complex_type> make_complex() const;
+
+    /**
+     * Writes a complex copy of the original matrix to a given complex matrix.
+     * If the original matrix was real, the imaginary part of the result will
+     * be zero.
+     */
+    void make_complex(complex_type *result) const;
+
+    /**
+     * Creates a new real matrix and extracts the real part of the original
+     * matrix into that.
+     */
+    std::unique_ptr<real_type> get_real() const;
+
+    /**
+     * Extracts the real part of the original matrix into a given real matrix.
+     */
+    void get_real(real_type *result) const;
+
+    /**
+     * Creates a new real matrix and extracts the imaginary part of the
+     * original matrix into that.
+     */
+    std::unique_ptr<real_type> get_imag() const;
+
+    /**
+     * Extracts the imaginary part of the original matrix into a given real
+     * matrix.
+     */
+    void get_imag(real_type *result) const;
 
     /**
      * Returns a pointer to the array of values of the matrix.
@@ -347,6 +631,21 @@ public:
     }
 
     /**
+     * Scales the matrix with the inverse of a scalar.
+     *
+     * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
+     *               by 1 / alpha. If it is a Dense row vector of values,
+     *               then i-th column of the matrix is scaled with the inverse
+     *               of the i-th element of alpha (the number of columns of
+     *               alpha has to match the number of columns of the matrix).
+     */
+    void inv_scale(const LinOp *alpha)
+    {
+        auto exec = this->get_executor();
+        this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
+    }
+
+    /**
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
      *
      * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
@@ -364,8 +663,24 @@ public:
     }
 
     /**
-     * Computes the column-wise dot product of this matrix and `b`. The
-     * conjugate of this is taken.
+     * Subtracts `b` scaled by `alpha` fron the matrix (aka: BLAS axpy).
+     *
+     * @param alpha  If alpha is 1x1 Dense matrix, b is scaled
+     *               by alpha. If it is a Dense row vector of values,
+     *               then i-th column of b is scaled with the i-th
+     *               element of alpha (the number of columns of alpha has to
+     *               match the number of columns of the matrix).
+     * @param b  a matrix of the same dimension as this
+     */
+    void sub_scaled(const LinOp *alpha, const LinOp *b)
+    {
+        auto exec = this->get_executor();
+        this->sub_scaled_impl(make_temporary_clone(exec, alpha).get(),
+                              make_temporary_clone(exec, b).get());
+    }
+
+    /**
+     * Computes the column-wise dot product of this matrix and `b`.
      *
      * @param b  a Dense matrix of same dimension as this
      * @param result  a Dense row vector, used to store the dot product
@@ -376,11 +691,27 @@ public:
     {
         auto exec = this->get_executor();
         this->compute_dot_impl(make_temporary_clone(exec, b).get(),
-                               make_temporary_clone(exec, result).get());
+                               make_temporary_output_clone(exec, result).get());
     }
 
     /**
-     * Computes the Euclidian (L^2) norm of this matrix.
+     * Computes the column-wise dot product of `conj(this matrix)` and `b`.
+     *
+     * @param b  a Dense matrix of same dimension as this
+     * @param result  a Dense row vector, used to store the dot product
+     *                (the number of column in the vector must match the number
+     *                of columns of this)
+     */
+    void compute_conj_dot(const LinOp *b, LinOp *result) const
+    {
+        auto exec = this->get_executor();
+        this->compute_conj_dot_impl(
+            make_temporary_clone(exec, b).get(),
+            make_temporary_output_clone(exec, result).get());
+    }
+
+    /**
+     * Computes the column-wise Euclidian (L^2) norm of this matrix.
      *
      * @param result  a Dense row vector, used to store the norm
      *                (the number of columns in the vector must match the number
@@ -389,7 +720,8 @@ public:
     void compute_norm2(LinOp *result) const
     {
         auto exec = this->get_executor();
-        this->compute_norm2_impl(make_temporary_clone(exec, result).get());
+        this->compute_norm2_impl(
+            make_temporary_output_clone(exec, result).get());
     }
 
     /**
@@ -406,22 +738,10 @@ public:
                                             const span &columns,
                                             const size_type stride)
     {
-        row_major_range range_this{this->get_values(), this->get_size()[0],
-                                   this->get_size()[1], this->get_stride()};
-        auto range_result = range_this(rows, columns);
-        // TODO: can result in HUGE padding - which will be copied with the
-        // vector
-        return Dense::create(
-            this->get_executor(),
-            dim<2>{range_result.length(0), range_result.length(1)},
-            Array<ValueType>::view(
-                this->get_executor(),
-                range_result.length(0) * range_this.length(1) - columns.begin,
-                range_result->data),
-            stride);
+        return this->create_submatrix_impl(rows, columns, stride);
     }
 
-    /*
+    /**
      * Create a submatrix from the original matrix.
      *
      * @param rows     row span
@@ -431,6 +751,54 @@ public:
                                             const span &columns)
     {
         return create_submatrix(rows, columns, this->get_stride());
+    }
+
+    /**
+     * Create a real view of the (potentially) complex original matrix.
+     * If the original matrix is real, nothing changes. If the original matrix
+     * is complex, the result is created by viewing the complex matrix with as
+     * real with a reinterpret_cast with twice the number of columns and
+     * double the stride.
+     */
+    std::unique_ptr<Dense<remove_complex<ValueType>>> create_real_view()
+    {
+        const auto num_rows = this->get_size()[0];
+        const bool complex = is_complex<ValueType>();
+        const auto num_cols =
+            complex ? 2 * this->get_size()[1] : this->get_size()[1];
+        const auto stride =
+            complex ? 2 * this->get_stride() : this->get_stride();
+
+        return Dense<remove_complex<ValueType>>::create(
+            this->get_executor(), dim<2>{num_rows, num_cols},
+            Array<remove_complex<ValueType>>::view(
+                this->get_executor(), num_rows * stride,
+                reinterpret_cast<remove_complex<ValueType> *>(
+                    this->get_values())),
+            stride);
+    }
+
+    /**
+     * @copydoc create_real_view()
+     */
+    std::unique_ptr<const Dense<remove_complex<ValueType>>> create_real_view()
+        const
+    {
+        const auto num_rows = this->get_size()[0];
+        const bool complex = is_complex<ValueType>();
+        const auto num_cols =
+            complex ? 2 * this->get_size()[1] : this->get_size()[1];
+        const auto stride =
+            complex ? 2 * this->get_stride() : this->get_stride();
+
+        return Dense<remove_complex<ValueType>>::create(
+            this->get_executor(), dim<2>{num_rows, num_cols},
+            Array<remove_complex<ValueType>>::view(
+                this->get_executor(), num_rows * stride,
+                const_cast<remove_complex<ValueType> *>(
+                    reinterpret_cast<const remove_complex<ValueType> *>(
+                        this->get_const_values()))),
+            stride);
     }
 
 protected:
@@ -483,19 +851,36 @@ protected:
           values_{exec, std::forward<ValuesArray>(values)},
           stride_{stride}
     {
-        GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
-                             values_.get_num_elems());
+        if (size[0] > 0 && size[1] > 0) {
+            GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
+                                 values_.get_num_elems());
+        }
     }
 
     /**
-     * Creates a Dense matrix with the same configuration as the callers matrix.
+     * Creates a Dense matrix with the same size and stride as the callers
+     * matrix.
      *
-     * @returns a Dense matrix with the same configuration as the caller.
+     * @returns a Dense matrix with the same size and stride as the caller.
      */
     virtual std::unique_ptr<Dense> create_with_same_config() const
     {
         return Dense::create(this->get_executor(), this->get_size(),
                              this->get_stride());
+    }
+
+    /**
+     * Creates a Dense matrix with the same type as the callers matrix.
+     *
+     * @param size  size of the matrix
+     *
+     * @returns a Dense matrix with the same type as the caller.
+     */
+    virtual std::unique_ptr<Dense> create_with_type_of_impl(
+        std::shared_ptr<const Executor> exec, const dim<2> &size,
+        size_type stride) const
+    {
+        return Dense::create(exec, size, stride);
     }
 
     /**
@@ -507,12 +892,28 @@ protected:
     virtual void scale_impl(const LinOp *alpha);
 
     /**
+     * @copydoc inv_scale(const LinOp *)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of inv_scale(const LinOp *alpha).
+     */
+    virtual void inv_scale_impl(const LinOp *alpha);
+
+    /**
      * @copydoc add_scaled(const LinOp *, const LinOp *)
      *
      * @note  Other implementations of dense should override this function
      *        instead of add_scale(const LinOp *alpha, const LinOp *b).
      */
     virtual void add_scaled_impl(const LinOp *alpha, const LinOp *b);
+
+    /**
+     * @copydoc sub_scaled(const LinOp *, const LinOp *)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of sub_scale(const LinOp *alpha, const LinOp *b).
+     */
+    virtual void sub_scaled_impl(const LinOp *alpha, const LinOp *b);
 
     /**
      * @copydoc compute_dot(const LinOp *, LinOp *) const
@@ -523,12 +924,46 @@ protected:
     virtual void compute_dot_impl(const LinOp *b, LinOp *result) const;
 
     /**
+     * @copydoc compute_conj_dot(const LinOp *, LinOp *) const
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of compute_conj_dot(const LinOp *b, LinOp *result).
+     */
+    virtual void compute_conj_dot_impl(const LinOp *b, LinOp *result) const;
+
+    /**
      * @copydoc compute_norm2(LinOp *) const
      *
      * @note  Other implementations of dense should override this function
      *        instead of compute_norm2(LinOp *result).
      */
     virtual void compute_norm2_impl(LinOp *result) const;
+
+    /**
+     * @copydoc create_submatrix(const span, const span, const size_type)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of create_submatrix(const span, const span, const
+     *        size_type).
+     */
+    virtual std::unique_ptr<Dense> create_submatrix_impl(const span &rows,
+                                                         const span &columns,
+                                                         const size_type stride)
+    {
+        row_major_range range_this{this->get_values(), this->get_size()[0],
+                                   this->get_size()[1], this->get_stride()};
+        auto range_result = range_this(rows, columns);
+        // TODO: can result in HUGE padding - which will be copied with the
+        // vector
+        return Dense::create(
+            this->get_executor(),
+            dim<2>{range_result.length(0), range_result.length(1)},
+            Array<ValueType>::view(
+                this->get_executor(),
+                range_result.length(0) * range_this.length(1) - columns.begin,
+                range_result->data),
+            stride);
+    }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
@@ -546,13 +981,61 @@ protected:
                                idx % this->get_size()[1]);
     }
 
+    template <typename IndexType>
+    void permute_impl(const Array<IndexType> *permutation, Dense *output) const;
+
+    template <typename IndexType>
+    void inverse_permute_impl(const Array<IndexType> *permutation,
+                              Dense *output) const;
+
+    template <typename IndexType>
+    void row_permute_impl(const Array<IndexType> *permutation,
+                          Dense *output) const;
+
+    template <typename IndexType>
+    void inverse_row_permute_impl(const Array<IndexType> *permutation,
+                                  Dense *output) const;
+
+    template <typename IndexType>
+    void row_gather_impl(const Array<IndexType> *row_indices,
+                         Dense *output) const;
+
+    template <typename IndexType>
+    void column_permute_impl(const Array<IndexType> *permutation,
+                             Dense *output) const;
+
+    template <typename IndexType>
+    void inverse_column_permute_impl(const Array<IndexType> *permutation,
+                                     Dense *output) const;
+
 private:
     Array<value_type> values_;
     size_type stride_;
-};  // namespace matrix
+};
 
 
 }  // namespace matrix
+
+
+namespace detail {
+
+
+template <typename ValueType>
+struct temporary_clone_helper<matrix::Dense<ValueType>> {
+    static std::unique_ptr<matrix::Dense<ValueType>> create(
+        std::shared_ptr<const Executor> exec, matrix::Dense<ValueType> *ptr,
+        bool copy_data)
+    {
+        if (copy_data) {
+            return gko::clone(std::move(exec), ptr);
+        } else {
+            return matrix::Dense<ValueType>::create(exec, ptr->get_size());
+        }
+    }
+};
+
+
+}  // namespace detail
 
 
 /**
@@ -710,4 +1193,4 @@ std::unique_ptr<Matrix> initialize(
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_DENSE_HPP_
+#endif  // GKO_PUBLIC_CORE_MATRIX_DENSE_HPP_

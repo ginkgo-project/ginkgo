@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_OMP_COMPONENTS_CSR_SPGEAM_HPP_
-#define GKO_OMP_COMPONENTS_CSR_SPGEAM_HPP_
+#ifndef GKO_REFERENCE_COMPONENTS_CSR_SPGEAM_HPP_
+#define GKO_REFERENCE_COMPONENTS_CSR_SPGEAM_HPP_
 
 
 #include <limits>
@@ -77,7 +77,7 @@ void abstract_spgeam(const matrix::Csr<ValueType, IndexType> *a,
         auto b_end = b_row_ptrs[row + 1];
         auto total_size = (a_end - a_begin) + (b_end - b_begin);
         bool skip{};
-        auto local_data = begin_cb(row);
+        auto local_data = begin_cb(static_cast<IndexType>(row));
         for (IndexType i = 0; i < total_size; ++i) {
             if (skip) {
                 skip = false;
@@ -109,4 +109,4 @@ void abstract_spgeam(const matrix::Csr<ValueType, IndexType> *a,
 }  // namespace gko
 
 
-#endif  // GKO_OMP_COMPONENTS_CSR_SPGEAM_HPP_
+#endif  // GKO_REFERENCE_COMPONENTS_CSR_SPGEAM_HPP_

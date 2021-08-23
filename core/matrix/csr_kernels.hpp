@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -129,30 +129,35 @@ namespace kernels {
                         const matrix::Csr<ValueType, IndexType> *orig, \
                         matrix::Csr<ValueType, IndexType> *trans)
 
+#define GKO_DECLARE_CSR_INV_SYMM_PERMUTE_KERNEL(ValueType, IndexType)    \
+    void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec,   \
+                          const IndexType *permutation_indices,          \
+                          const matrix::Csr<ValueType, IndexType> *orig, \
+                          matrix::Csr<ValueType, IndexType> *permuted)
+
 #define GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL(ValueType, IndexType)    \
     void row_permute(std::shared_ptr<const DefaultExecutor> exec,   \
-                     const Array<IndexType> *permutation_indices,   \
+                     const IndexType *permutation_indices,          \
                      const matrix::Csr<ValueType, IndexType> *orig, \
                      matrix::Csr<ValueType, IndexType> *row_permuted)
 
-#define GKO_DECLARE_CSR_COLUMN_PERMUTE_KERNEL(ValueType, IndexType)    \
-    void column_permute(std::shared_ptr<const DefaultExecutor> exec,   \
-                        const Array<IndexType> *permutation_indices,   \
-                        const matrix::Csr<ValueType, IndexType> *orig, \
-                        matrix::Csr<ValueType, IndexType> *column_permuted)
-
 #define GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType)    \
     void inverse_row_permute(std::shared_ptr<const DefaultExecutor> exec,   \
-                             const Array<IndexType> *permutation_indices,   \
+                             const IndexType *permutation_indices,          \
                              const matrix::Csr<ValueType, IndexType> *orig, \
                              matrix::Csr<ValueType, IndexType> *row_permuted)
 
 #define GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType) \
     void inverse_column_permute(                                            \
         std::shared_ptr<const DefaultExecutor> exec,                        \
-        const Array<IndexType> *permutation_indices,                        \
+        const IndexType *permutation_indices,                               \
         const matrix::Csr<ValueType, IndexType> *orig,                      \
         matrix::Csr<ValueType, IndexType> *column_permuted)
+
+#define GKO_DECLARE_INVERT_PERMUTATION_KERNEL(IndexType)             \
+    void invert_permutation(                                         \
+        std::shared_ptr<const DefaultExecutor> exec, size_type size, \
+        const IndexType *permutation_indices, IndexType *inv_permutation)
 
 #define GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, IndexType) \
     void calculate_max_nnz_per_row(                                            \
@@ -208,13 +213,15 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType);             \
     template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL(ValueType, IndexType);                \
+    GKO_DECLARE_CSR_INV_SYMM_PERMUTE_KERNEL(ValueType, IndexType);           \
     template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);             \
+    GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL(ValueType, IndexType);                \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType);        \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);     \
+    template <typename IndexType>                                            \
+    GKO_DECLARE_INVERT_PERMUTATION_KERNEL(IndexType);                        \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, IndexType);  \
     template <typename ValueType, typename IndexType>                        \
@@ -261,6 +268,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace csr
 }  // namespace hip
+
+
+namespace dpcpp {
+namespace csr {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace csr
+}  // namespace dpcpp
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

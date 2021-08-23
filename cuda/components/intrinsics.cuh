@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@ namespace kernels {
 namespace cuda {
 
 
-#include "common/components/intrinsics.hpp.inc"
+#include "common/cuda_hip/components/intrinsics.hpp.inc"
 
 
 }  // namespace cuda

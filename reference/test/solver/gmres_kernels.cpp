@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -70,7 +70,7 @@ protected:
                       gko::stop::Time::build()
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
@@ -87,7 +87,16 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_reduction_factor(r<value_type>::value)
+                          .on(exec))
+                  .on(exec)),
+          gmres_factory_big2(
+              Solver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(100u).on(
+                          exec),
+                      gko::stop::ImplicitResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
@@ -106,9 +115,10 @@ protected:
     std::shared_ptr<Mtx> mtx_big;
     std::unique_ptr<typename Solver::Factory> gmres_factory;
     std::unique_ptr<typename Solver::Factory> gmres_factory_big;
+    std::unique_ptr<typename Solver::Factory> gmres_factory_big2;
 };
 
-TYPED_TEST_CASE(Gmres, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Gmres, gko::test::ValueTypes);
 
 
 TYPED_TEST(Gmres, SolvesStencilSystem)
@@ -122,6 +132,66 @@ TYPED_TEST(Gmres, SolvesStencilSystem)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Gmres, SolvesStencilSystemMixed)
+{
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto solver = this->gmres_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}),
+                        (r_mixed<value_type, TypeParam>()));
+}
+
+
+TYPED_TEST(Gmres, SolvesStencilSystemComplex)
+{
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto solver = this->gmres_factory->generate(this->mtx);
+    auto b =
+        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
+                              value_type{1.0, -2.0}},
+                             this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
+        this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
+                           value_type{2.0, -4.0}}),
+                        r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Gmres, SolvesStencilSystemMixedComplex)
+{
+    using value_type =
+        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto solver = this->gmres_factory->generate(this->mtx);
+    auto b =
+        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
+                              value_type{1.0, -2.0}},
+                             this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
+        this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
+                           value_type{2.0, -4.0}}),
+                        (r_mixed<value_type, TypeParam>()));
 }
 
 
@@ -156,6 +226,74 @@ TYPED_TEST(Gmres, SolvesStencilSystemUsingAdvancedApply)
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Gmres, SolvesStencilSystemUsingAdvancedApplyMixed)
+{
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    auto solver = this->gmres_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}),
+                        (r_mixed<value_type, TypeParam>()));
+}
+
+
+TYPED_TEST(Gmres, SolvesStencilSystemUsingAdvancedApplyComplex)
+{
+    using Scalar = typename TestFixture::Mtx;
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto solver = this->gmres_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
+    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
+    auto b =
+        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
+                              value_type{1.0, -2.0}},
+                             this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+        this->exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
+                           value_type{2.0, -4.0}}),
+                        r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Gmres, SolvesStencilSystemUsingAdvancedApplyMixedComplex)
+{
+    using Scalar = gko::matrix::Dense<
+        gko::next_precision<typename TestFixture::value_type>>;
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
+    auto solver = this->gmres_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
+    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
+    auto b =
+        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
+                              value_type{1.0, -2.0}},
+                             this->exec);
+    auto x = gko::initialize<Mtx>(
+        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+        this->exec);
+
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
+                           value_type{2.0, -4.0}}),
+                        (r_mixed<value_type, TypeParam>()));
 }
 
 
@@ -210,6 +348,20 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem2)
 
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
                         r<value_type>::value * 1e3);
+}
+
+
+TYPED_TEST(Gmres, SolveWithImplicitResNormCritIsDisabled)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->gmres_factory_big2->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    ASSERT_THROW(solver->apply(b.get(), x.get()), gko::NotSupported);
 }
 
 
@@ -307,7 +459,7 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestart)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(200u).on(
                     this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
+                gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(r<value_type>::value)
                     .on(this->exec))
             .on(this->exec);
@@ -333,7 +485,7 @@ TYPED_TEST(Gmres, SolvesWithPreconditioner)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(100u).on(
                     this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
+                gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(r<value_type>::value)
                     .on(this->exec))
             .with_preconditioner(
