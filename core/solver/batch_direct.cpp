@@ -48,8 +48,8 @@ namespace batch_direct {
 
 GKO_REGISTER_OPERATION(pre_diag_scale_system, batch_csr::pre_diag_scale_system);
 GKO_REGISTER_OPERATION(vec_scale, batch_dense::batch_scale);
-GKO_REGISTER_OPERATION(left_scale_system_transpose,
-                       batch_direct::left_scale_system_transpose);
+GKO_REGISTER_OPERATION(pre_diag_scale_system_transpose,
+                       batch_direct::pre_diag_scale_system_transpose);
 GKO_REGISTER_OPERATION(transpose_scale_copy,
                        batch_direct::transpose_scale_copy);
 GKO_REGISTER_OPERATION(apply, batch_direct::apply);
@@ -127,7 +127,9 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp *b,
 
     // delete the scaled CSR copy at the end
     {
-#if 1
+        // Both of these branches work, but the else branch might be
+        //  faster in general.
+#if 0
         auto b_scaled = Vector::create(exec);
         b_scaled->copy_from(dense_b);
         auto a_scaled_smart = Mtx::create(exec);
@@ -150,9 +152,9 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp *b,
         auto a1 = BDense::create(exec);
         acsr->convert_to(a1.get());
         if (to_scale) {
-            exec->run(batch_direct::make_left_scale_system_transpose(
+            exec->run(batch_direct::make_pre_diag_scale_system_transpose(
                 a1.get(), dense_b, this->get_left_scaling_vector(),
-                adense.get(), bt.get()));
+                this->get_right_scaling_vector(), adense.get(), bt.get()));
         } else {
             gko::as<BDense>(a1->transpose())->move_to(adense.get());
             gko::as<BDense>(dense_b->transpose())->move_to(bt.get());

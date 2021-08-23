@@ -71,11 +71,12 @@ __global__ void transpose_scale_copy(
 
 
 template <typename ValueType>
-__device__ __forceinline__ void left_scale_system_transpose(
+__device__ __forceinline__ void pre_diag_scale_system_transpose(
     const int num_rows, const int num_cols, const size_type a_stride,
     const ValueType *const __restrict__ a, const int num_rhs,
     const size_type b_stride, const ValueType *const __restrict__ b,
-    const ValueType *const __restrict__ scale_vec,
+    const ValueType *const __restrict__ left_scale,
+    const ValueType *const __restrict__ right_scale,
     const size_type a_scaled_stride, ValueType *const __restrict__ a_scaled_t,
     const size_type b_scaled_stride, ValueType *const __restrict__ b_scaled_t)
 {
@@ -83,23 +84,25 @@ __device__ __forceinline__ void left_scale_system_transpose(
         const int row = iz / num_cols;
         const int col = iz % num_cols;
         a_scaled_t[col * a_scaled_stride + row] =
-            a[row * a_stride + col] * scale_vec[row];
+            a[row * a_stride + col] * left_scale[row] * right_scale[col];
     }
     for (int iz = threadIdx.x; iz < num_rows * num_rhs; iz += blockDim.x) {
         const int row = iz / num_rhs;
         const int col = iz % num_rhs;
         b_scaled_t[col * b_scaled_stride + row] =
-            b[row * b_stride + col] * scale_vec[row];
+            b[row * b_stride + col] * left_scale[row];
     }
 }
 
 template <typename ValueType>
-__global__ void left_scale_system_transpose(
+__global__ void pre_diag_scale_system_transpose(
     const size_type nbatch, const int num_rows, const int num_cols,
     const size_type a_stride, const ValueType *const __restrict__ a,
     const int num_rhs, const size_type b_stride,
-    const ValueType *const __restrict__ b,
-    const ValueType *const __restrict__ scale_vec,
+    const ValueType *const __restrict__ b, const size_type left_scale_stride,
+    const ValueType *const __restrict__ left_scale,
+    const size_type rght_scale_stride,
+    const ValueType *const __restrict__ rght_scale,
     const size_type a_scaled_stride, ValueType *const __restrict__ a_scaled_t,
     const size_type b_scaled_stride, ValueType *const __restrict__ b_scaled_t)
 {
@@ -110,9 +113,12 @@ __global__ void left_scale_system_transpose(
         auto bb = gko::batch::batch_entry_ptr(b, b_stride, num_rows, ib);
         auto bstb = gko::batch::batch_entry_ptr(b_scaled_t, b_scaled_stride,
                                                 num_rhs, ib);
-        auto scaleb = gko::batch::batch_entry_ptr(scale_vec, 1, num_rows, ib);
-        left_scale_system_transpose(num_rows, num_cols, a_stride, ab, num_rhs,
-                                    b_stride, bb, scaleb, a_scaled_stride, astb,
-                                    b_scaled_stride, bstb);
+        auto lscaleb = gko::batch::batch_entry_ptr(
+            left_scale, left_scale_stride, num_rows, ib);
+        auto rscaleb = gko::batch::batch_entry_ptr(
+            rght_scale, rght_scale_stride, num_cols, ib);
+        pre_diag_scale_system_transpose(
+            num_rows, num_cols, a_stride, ab, num_rhs, b_stride, bb, lscaleb,
+            rscaleb, a_scaled_stride, astb, b_scaled_stride, bstb);
     }
 }
