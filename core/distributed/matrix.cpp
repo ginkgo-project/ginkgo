@@ -326,6 +326,16 @@ void gather_contiguous_rows(
     std::shared_ptr<const Partition<LocalIndexType>> part,
     std::shared_ptr<const mpi::communicator> comm)
 {
+    bool ranges_are_permuted = false;
+    std::vector<comm_index_type> map_pid_to_rid(part->get_num_parts());
+    for (int i = 0; i < map_pid_to_rid.size(); ++i) {
+        map_pid_to_rid[i] =
+            exec->copy_val_to_host(part->get_const_part_ids() + i);
+        if (map_pid_to_rid[i] != i) {
+            ranges_are_permuted = true;
+        }
+    }
+
     std::vector<comm_index_type> local_row_counts(part->get_num_parts());
     std::vector<comm_index_type> local_row_offsets(local_row_counts.size() + 1,
                                                    0);
@@ -337,23 +347,22 @@ void gather_contiguous_rows(
     exec->get_master()->copy_from(exec.get(), local_row_counts.size(),
                                   part_sizes.get_data(),
                                   local_row_counts.data());
-    std::partial_sum(local_row_counts.begin(), local_row_counts.end(),
-                     local_row_offsets.begin() + 1);
-
-    bool ranges_are_permuted = false;
-    std::vector<comm_index_type> map_pid_to_rid(part->get_num_parts());
-    for (int i = 0; i < map_pid_to_rid.size(); ++i) {
-        map_pid_to_rid[i] =
-            exec->copy_val_to_host(part->get_const_part_ids() + i);
-        if (map_pid_to_rid[i] != i) {
-            ranges_are_permuted = true;
-        }
-    }
     if (ranges_are_permuted) {
+        auto local_row_counts_permuted = local_row_counts;
         for (int i = 0; i < map_pid_to_rid.size(); ++i) {
-            std::swap(local_row_offsets[i],
-                      local_row_offsets[map_pid_to_rid[i]]);
+            local_row_counts_permuted[i] = local_row_counts[map_pid_to_rid[i]];
         }
+        std::partial_sum(local_row_counts_permuted.begin(),
+                         local_row_counts_permuted.end(),
+                         local_row_offsets.begin() + 1);
+        auto local_row_offset_permuted = local_row_offsets;
+        for (int i = 0; i < map_pid_to_rid.size(); ++i) {
+            local_row_offset_permuted[i] = local_row_offsets[map_pid_to_rid[i]];
+        }
+        local_row_offsets = std::move(local_row_offset_permuted);
+    } else {
+        std::partial_sum(local_row_counts.begin(), local_row_counts.end(),
+                         local_row_offsets.begin() + 1);
     }
 
     Array<global_index_type>::view(exec, global_num_rows + 1, global_row_ptrs)
@@ -364,7 +373,8 @@ void gather_contiguous_rows(
     for (comm_index_type pid = 0; pid < part->get_num_parts(); ++pid) {
         comm_index_type global_part_offset =
             static_cast<comm_index_type>(global_row_ptrs[row - 1]);
-        for (comm_index_type j = 0; j < part->get_part_size(pid); ++j) {
+        for (comm_index_type j = 0;
+             j < part->get_part_size(map_pid_to_rid[pid]); ++j) {
             global_row_ptrs[row] += global_part_offset;
             row++;
         }
