@@ -52,6 +52,8 @@ GKO_REGISTER_OPERATION(build_from_mapping, partition::build_from_mapping);
 GKO_REGISTER_OPERATION(build_from_contiguous, partition::build_from_contiguous);
 GKO_REGISTER_OPERATION(build_ranks, partition::build_ranks);
 GKO_REGISTER_OPERATION(is_ordered, partition::is_ordered);
+GKO_REGISTER_OPERATION(build_block_gathered_permute,
+                       partition::build_block_gathered_permute);
 
 
 }  // namespace partition
@@ -217,6 +219,21 @@ bool is_ordered(const Partition<LocalIndexType>* partition)
 #define GKO_DECLARE_IS_ORDERED(_type) \
     bool is_ordered(const Partition<_type>* partition)
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_IS_ORDERED);
+
+
+template <typename LocalIndexType>
+Array<global_index_type> build_block_gather_permute(
+    std::shared_ptr<const Partition<LocalIndexType>> partition)
+{
+    auto exec = partition->get_executor();
+    Array<global_index_type> permute{exec, partition->get_size()};
+    exec->run(partition::make_build_block_gathered_permute(partition, permute));
+    return permute;
+}
+#define GKO_DECLARE_BUILD_BLOCK_GATHER_PERMUTE(_type)    \
+    Array<global_index_type> build_block_gather_permute( \
+        std::shared_ptr<const Partition<_type>> partition)
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_BUILD_BLOCK_GATHER_PERMUTE);
 
 
 }  // namespace distributed

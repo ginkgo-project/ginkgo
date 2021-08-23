@@ -52,8 +52,6 @@ GKO_REGISTER_OPERATION(merge_diag_offdiag,
                        distributed_matrix::merge_diag_offdiag);
 GKO_REGISTER_OPERATION(combine_local_mtxs,
                        distributed_matrix::combine_local_mtxs);
-GKO_REGISTER_OPERATION(build_gathered_row_permute,
-                       distributed_matrix::build_gathered_row_permute);
 }  // namespace matrix
 
 
@@ -328,16 +326,6 @@ void gather_contiguous_rows(
     std::shared_ptr<const Partition<LocalIndexType>> part,
     std::shared_ptr<const mpi::communicator> comm)
 {
-    bool ranges_are_permuted = false;
-    std::vector<comm_index_type> map_pid_to_rid(part->get_num_parts());
-    for (int i = 0; i < map_pid_to_rid.size(); ++i) {
-        map_pid_to_rid[i] =
-            exec->copy_val_to_host(part->get_const_part_ids() + i);
-        if (map_pid_to_rid[i] != i) {
-            ranges_are_permuted = true;
-        }
-    }
-
     std::vector<comm_index_type> local_row_counts(part->get_num_parts());
     std::vector<comm_index_type> local_row_offsets(local_row_counts.size() + 1,
                                                    0);
@@ -349,23 +337,8 @@ void gather_contiguous_rows(
     exec->get_master()->copy_from(exec.get(), local_row_counts.size(),
                                   part_sizes.get_data(),
                                   local_row_counts.data());
-    if (ranges_are_permuted) {
-        auto local_row_counts_permuted = local_row_counts;
-        for (int i = 0; i < map_pid_to_rid.size(); ++i) {
-            local_row_counts_permuted[i] = local_row_counts[map_pid_to_rid[i]];
-        }
-        std::partial_sum(local_row_counts_permuted.begin(),
-                         local_row_counts_permuted.end(),
-                         local_row_offsets.begin() + 1);
-        auto local_row_offset_permuted = local_row_offsets;
-        for (int i = 0; i < map_pid_to_rid.size(); ++i) {
-            local_row_offset_permuted[i] = local_row_offsets[map_pid_to_rid[i]];
-        }
-        local_row_offsets = std::move(local_row_offset_permuted);
-    } else {
-        std::partial_sum(local_row_counts.begin(), local_row_counts.end(),
-                         local_row_offsets.begin() + 1);
-    }
+    std::partial_sum(local_row_counts.begin(), local_row_counts.end(),
+                     local_row_offsets.begin() + 1);
 
     Array<global_index_type>::view(exec, global_num_rows + 1, global_row_ptrs)
         .fill(0);
@@ -375,8 +348,7 @@ void gather_contiguous_rows(
     for (comm_index_type pid = 0; pid < part->get_num_parts(); ++pid) {
         comm_index_type global_part_offset =
             static_cast<comm_index_type>(global_row_ptrs[row - 1]);
-        for (comm_index_type j = 0;
-             j < part->get_part_size(map_pid_to_rid[pid]); ++j) {
+        for (comm_index_type j = 0; j < part->get_part_size(pid); ++j) {
             global_row_ptrs[row] += global_part_offset;
             row++;
         }
@@ -435,26 +407,23 @@ void Matrix<ValueType, LocalIndexType>::convert_to(
     auto global_col_idxs = tmp->get_col_idxs();
     auto global_values = tmp->get_values();
 
-    // send + recv row offsets block wise -> this ignores global row indices
-    // valid if partition is compact (get_num_ranges() == get_num_parts())
-    // and part_id == range_id
-    // if not compact: need to permute rows
-    // get permute from apply local-to-global map on each process + gather
-    if (partition_->get_num_parts() == partition_->get_num_ranges()) {
-        gather_contiguous_rows(exec, merged_local->get_const_row_ptrs(),
-                               merged_local->get_size()[0], global_row_ptrs,
-                               tmp->get_size()[0], this->partition_,
-                               this->get_communicator());
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
-
+    gather_contiguous_rows(exec, merged_local->get_const_row_ptrs(),
+                           merged_local->get_size()[0], global_row_ptrs,
+                           tmp->get_size()[0], this->partition_,
+                           this->get_communicator());
     mpi::gather(merged_local->get_const_col_idxs(), local_nnz, global_col_idxs,
                 recv_counts.data(), recv_offsets.data(), 0, comm);
     mpi::gather(merged_local->get_const_values(), local_nnz, global_values,
                 recv_counts.data(), recv_offsets.data(), 0, comm);
 
-    tmp->move_to(result);
+    if (is_ordered(partition_.get())) {
+        tmp->move_to(result);
+    } else {
+        auto row_permutation = build_block_gather_permute(partition_.get());
+        gko::as<gko::matrix::Csr<ValueType, global_index_type>>(
+            tmp->row_permute(&row_permutation))
+            ->move_to(result);
+    }
 }
 
 template <typename ValueType, typename LocalIndexType>

@@ -69,6 +69,12 @@ namespace kernels {
                     const distributed::Partition<LocalIndexType>* partition, \
                     bool* result)
 
+#define GKO_DECLARE_PARTITION_BUILD_BLOCK_GATHERED_PERMUTE(LocalIndexType) \
+    void build_block_gathered_permute(                                     \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        const distributed::Partition<LocalIndexType>* partition,           \
+        Array<global_index_type>& permute)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                             \
     using global_index_type = distributed::global_index_type;    \
@@ -81,7 +87,9 @@ namespace kernels {
     template <typename LocalIndexType>                           \
     GKO_DECLARE_PARTITION_BUILD_RANKS(LocalIndexType);           \
     template <typename LocalIndexType>                           \
-    GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType)
+    GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType);            \
+    template <typename LocalIndexType>                           \
+    GKO_DECLARE_PARTITION_BUILD_BLOCK_GATHERED_PERMUTE(LocalIndexType)
 
 namespace omp {
 namespace partition {

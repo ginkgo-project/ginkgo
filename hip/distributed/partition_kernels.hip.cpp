@@ -71,6 +71,15 @@ void build_ranks(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_RANKS);
 
+template <typename LocalIndexType>
+void build_block_gathered_permute(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const distributed::Partition<LocalIndexType>* partition,
+    Array<global_index_type>& permute) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_PARTITION_BUILD_BLOCK_GATHERED_PERMUTE);
+
 
 template <typename LocalIndexType>
 void is_ordered(std::shared_ptr<const DefaultExecutor> exec,

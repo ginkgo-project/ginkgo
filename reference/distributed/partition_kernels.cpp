@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/distributed/partition_kernels.hpp"
+#include "core/components/prefix_sum.hpp"
 
 
 namespace gko {
@@ -128,6 +129,39 @@ void is_ordered(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_IS_ORDERED);
+
+
+template <typename LocalIndexType>
+void build_block_gathered_permute(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const distributed::Partition<LocalIndexType>* partition,
+    Array<global_index_type>& permute)
+{
+    auto range_bounds = partition->get_const_range_bounds();
+    auto num_ranges = partition->get_num_ranges();
+    auto part_ids = partition->get_const_part_ids();
+    auto part_sizes = partition->get_part_sizes();
+    auto num_parts = partition->get_num_parts();
+
+    std::vector<LocalIndexType> part_offsets(num_parts + 1);
+    std::copy_n(part_sizes, num_parts, part_offsets.begin());
+    components::prefix_sum(exec, part_offsets.data(), num_parts);
+
+    for (int i = 0; i < num_ranges; ++i) {
+        auto range_start = range_bounds[i];
+        auto range_end = range_bounds[i + 1];
+        auto pid = part_ids[i];
+        for (int local_row = 0; local_row < range_end - range_start;
+             ++local_row) {
+            permute.get_data()[range_start + local_row] =
+                part_offsets[pid] + local_row;
+        }
+        part_offsets[pid] += range_end - range_start;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_PARTITION_BUILD_BLOCK_GATHERED_PERMUTE);
 
 }  // namespace partition
 }  // namespace reference

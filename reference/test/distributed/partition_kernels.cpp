@@ -223,4 +223,53 @@ TYPED_TEST(Partition, IsOrderedFail)
 }
 
 
+TYPED_TEST(Partition, BuildsRowPermuteIdentity)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    auto part = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, gko::Array<comm_index_type>{this->ref, {0, 0, 1, 1, 2}},
+            3));
+    gko::Array<global_index_type> permute{this->ref, part->get_size()};
+    gko::Array<global_index_type> result{this->ref, {0, 1, 2, 3, 4}};
+
+    gko::kernels::reference::partition::build_block_gathered_permute(
+        this->ref, part.get(), permute);
+
+    GKO_ASSERT_ARRAY_EQ(result, permute);
+}
+
+TYPED_TEST(Partition, BuildsRowPermuteReversed)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    auto part = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, gko::Array<comm_index_type>{this->ref, {2, 2, 1, 1, 0}},
+            3));
+    gko::Array<global_index_type> permute{this->ref, part->get_size()};
+    gko::Array<global_index_type> result{this->ref, {3, 4, 1, 2, 0}};
+
+    gko::kernels::reference::partition::build_block_gathered_permute(
+        this->ref, part.get(), permute);
+
+    GKO_ASSERT_ARRAY_EQ(result, permute);
+}
+
+TYPED_TEST(Partition, BuildsRowPermuteScattered)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    auto part = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, gko::Array<comm_index_type>{this->ref, {0, 1, 2, 0, 1}},
+            3));
+    gko::Array<global_index_type> permute{this->ref, part->get_size()};
+    gko::Array<global_index_type> result{this->ref, {0, 2, 4, 1, 3}};
+
+    gko::kernels::reference::partition::build_block_gathered_permute(
+        this->ref, part.get(), permute);
+
+    GKO_ASSERT_ARRAY_EQ(result, permute);
+}
+
+
 }  // namespace

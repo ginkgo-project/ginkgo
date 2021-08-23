@@ -222,6 +222,13 @@ private:
     Array<comm_index_type> part_ids_;
 };
 
+/**
+ * Creates a permutation that maps gathered indices to global indices
+ */
+template <typename LocalIndexType>
+Array<global_index_type> build_block_gather_permute(
+    std::shared_ptr<const Partition<LocalIndexType>> partition);
+
 
 template <typename LocalIndexType>
 bool is_connected(const Partition<LocalIndexType>* partition);
