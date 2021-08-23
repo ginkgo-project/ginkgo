@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     gko::size_type num_subdomains = argc >= 6 ? std::atoi(argv[5]) : 1;
     gko::size_type num_iters = argc >= 7 ? std::atoi(argv[6]) : 10000;
     RealValueType inner_reduction_factor =
-        argc >= 8 ? std::atof(argv[7]) : 1e-3;
+        argc >= 8 ? std::atof(argv[7]) : 1e-1;
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
@@ -209,28 +209,30 @@ int main(int argc, char *argv[])
     // auto block_A =
     //     block_approx::create(exec, A.get(), block_sizes, block_overlaps);
     // Create solver factory
+    gko::remove_complex<ValueType> inner2_red = 1e-1;
     auto ras_precond =
         ras::build()
             .with_block_dimensions(block_sizes)
             // .with_overlaps(block_overlaps)
-            .with_coarse_relaxation_factors(1.0)
-            // .with_coarse_solvers(
-            // ir::build()
-            //     .with_criteria(
-            // gko::stop::Iteration::build().with_max_iters(1u).on(
-            //             exec))
-            //     .on(exec))
-            // bj::build().with_max_block_size(5u).on(exec))
-            // cg::build()
-            //     // .with_preconditioner(bj::build().on(exec))
-            //     .with_criteria(
-            //         //
-            //         // gko::stop::Iteration::build().with_max_iters(10u).on(
-            //         //     exec))
-            //         gko::stop::ResidualNorm<ValueType>::build()
-            //             .with_reduction_factor(inner_reduction_factor)
-            //             .on(exec))
-            // .on(exec))
+            .with_coarse_relaxation_factors(0.4)
+            .with_coarse_solvers(
+                // ir::build()
+                //     .with_criteria(
+                // gko::stop::Iteration::build().with_max_iters(2u).on(
+                //             exec))
+                //     .on(exec))
+                // bj::build().with_max_block_size(5u).on(exec))
+                cg::build()
+                    // .with_preconditioner(bj::build().on(exec))
+                    .with_criteria(
+                        //
+                        //
+                        gko::stop::Iteration::build().with_max_iters(10u).on(
+                            exec))
+                    // gko::stop::ResidualNorm<ValueType>::build()
+                    //     .with_reduction_factor(inner2_red)
+                    //     .on(exec))
+                    .on(exec))
             .with_inner_solver(
                 // bj::build().on(exec))
                 // paric::build().on(exec)
@@ -244,7 +246,7 @@ int main(int argc, char *argv[])
                             .on(exec))
                     .on(exec))
             .on(exec)
-            ->generate(gko::share(block_A));
+            ->generate(A);
     auto solver_gen =
         ir::build()
             .with_generated_solver(gko::share(ras_precond))

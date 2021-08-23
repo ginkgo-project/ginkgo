@@ -129,53 +129,53 @@ int main(int argc, char *argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
 
-    // gko::matrix_data<ValueType, GlobalIndexType> A_data;
-    // gko::matrix_data<ValueType, GlobalIndexType> b_data;
-    // gko::matrix_data<ValueType, GlobalIndexType> x_data;
-    // A_data.size = {num_rows, num_rows};
-    // b_data.size = {num_rows, 1};
-    // x_data.size = {num_rows, 1};
-    // for (int i = 0; i < grid_dim; i++) {
-    //     for (int j = 0; j < grid_dim; j++) {
-    //         for (int k = 0; k < grid_dim; k++) {
-    //             auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
-    //             if (i > 0)
-    //                 A_data.nonzeros.emplace_back(idx, idx - grid_dim *
-    //                 grid_dim,
-    //                                              -1);
-    //             if (j > 0)
-    //                 A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
-    //             if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
-    //             A_data.nonzeros.emplace_back(idx, idx, 8);
-    //             if (k < grid_dim - 1)
-    //                 A_data.nonzeros.emplace_back(idx, idx + 1, -1);
-    //             if (j < grid_dim - 1)
-    //                 A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
-    //             if (i < grid_dim - 1)
-    //                 A_data.nonzeros.emplace_back(idx, idx + grid_dim *
-    //                 grid_dim,
-    //                                              -1);
-    //             // b_data.nonzeros.emplace_back(
-    //             //     idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
-    //             b_data.nonzeros.emplace_back(idx, 0, 1.0);
-    //             x_data.nonzeros.emplace_back(idx, 0, 1.0);
-    //         }
-    //     }
-    // }
-
-
-    std::ifstream a_stream{"data/A.mtx"};
-    auto A_data = gko::read_raw<ValueType, GlobalIndexType>(a_stream);
+    gko::matrix_data<ValueType, GlobalIndexType> A_data;
     gko::matrix_data<ValueType, GlobalIndexType> b_data;
     gko::matrix_data<ValueType, GlobalIndexType> x_data;
-    const auto num_rows = A_data.size[0];
+    const auto num_rows = grid_dim * grid_dim * grid_dim;
+    gko::size_type size = num_rows;
+    A_data.size = {num_rows, num_rows};
     b_data.size = {num_rows, 1};
     x_data.size = {num_rows, 1};
-    gko::size_type size = num_rows;
-    for (auto i = 0; i < size; i++) {
-        b_data.nonzeros.emplace_back(i, 0, 1.0);
-        x_data.nonzeros.emplace_back(i, 0, 1.0);
+    for (int i = 0; i < grid_dim; i++) {
+        for (int j = 0; j < grid_dim; j++) {
+            for (int k = 0; k < grid_dim; k++) {
+                auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
+                if (i > 0)
+                    A_data.nonzeros.emplace_back(idx, idx - grid_dim * grid_dim,
+                                                 -1);
+                if (j > 0)
+                    A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
+                if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
+                A_data.nonzeros.emplace_back(idx, idx, 8);
+                if (k < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + 1, -1);
+                if (j < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
+                if (i < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + grid_dim * grid_dim,
+                                                 -1);
+                // b_data.nonzeros.emplace_back(
+                //     idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
+                b_data.nonzeros.emplace_back(idx, 0, 1.0);
+                x_data.nonzeros.emplace_back(idx, 0, 1.0);
+            }
+        }
     }
+
+
+    // std::ifstream a_stream{"data/A.mtx"};
+    // auto A_data = gko::read_raw<ValueType, GlobalIndexType>(a_stream);
+    // gko::matrix_data<ValueType, GlobalIndexType> b_data;
+    // gko::matrix_data<ValueType, GlobalIndexType> x_data;
+    // const auto num_rows = A_data.size[0];
+    // b_data.size = {num_rows, 1};
+    // x_data.size = {num_rows, 1};
+    // gko::size_type size = num_rows;
+    // for (auto i = 0; i < size; i++) {
+    //     b_data.nonzeros.emplace_back(i, 0, 1.0);
+    //     x_data.nonzeros.emplace_back(i, 0, 1.0);
+    // }
 
     // build partition: uniform number of rows per rank
     gko::Array<gko::int64> ranges_array{
@@ -242,14 +242,14 @@ int main(int argc, char *argv[])
             .on(exec));
     auto ras_precond = ras::build()
                            .with_coarse_relaxation_factors(rel_fac)
-                           // .with_generated_coarse_solvers(coarse_solver)
+                           .with_generated_coarse_solvers(coarse_solver)
                            .with_inner_solver(inner_solver)
                            .on(exec)
-                           ->generate(gko::share(block_A));
+                           ->generate(A);
     MPI_Barrier(MPI_COMM_WORLD);
     ValueType t_prec_setup_end = MPI_Wtime();
 
-    gko::remove_complex<ValueType> reduction_factor = 1e-10;
+    gko::remove_complex<ValueType> reduction_factor = 1e-6;
     std::shared_ptr<gko::stop::Iteration::Factory> iter_stop =
         gko::stop::Iteration::build()
             .with_max_iters(static_cast<gko::size_type>(10 * num_rows))
@@ -318,7 +318,7 @@ int main(int argc, char *argv[])
         // clang-format off
     std::cout << "\nNum rows in matrix: " << num_rows
               << "\nNum ranks: " << comm->size()
-              << "\nFinal Res norm: " << *initial_resnorm->get_values()
+              << "\nInitial Res norm: " << *initial_resnorm->get_values()
               << "\nFinal Res norm: " << *result->get_values()
               << "\nNum iters: " << logger->get_num_iterations()
               << "\nLogger res norm: " << l_res_norm
