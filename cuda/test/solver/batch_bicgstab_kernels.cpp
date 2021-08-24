@@ -76,9 +76,9 @@ protected:
                 execp, opts, mtx, b, x, logdata);
         };
         scale_mat = [execp](const BDense *const left, const BDense *const right,
-                            Mtx *const mat) {
-            gko::kernels::cuda::batch_csr::batch_scale<value_type>(execp, left,
-                                                                   right, mat);
+                            Mtx *const mat, BDense *const b) {
+            gko::kernels::cuda::batch_csr::pre_diag_scale_system<value_type>(
+                execp, left, right, mat, b);
         };
         scale_vecs = [execp](const BDense *const scale, BDense *const mat) {
             gko::kernels::cuda::batch_dense::batch_scale<value_type>(
@@ -108,7 +108,8 @@ protected:
     std::function<void(Options, const Mtx *, const BDense *, BDense *,
                        LogData &)>
         solve_fn;
-    std::function<void(const BDense *, const BDense *, Mtx *)> scale_mat;
+    std::function<void(const BDense *, const BDense *, Mtx *, BDense *)>
+        scale_mat;
     std::function<void(const BDense *, BDense *)> scale_vecs;
 
     std::unique_ptr<typename solver_type::Factory> create_factory(
