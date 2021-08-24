@@ -39,11 +39,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace stop {
 namespace criterion {
+namespace {
 
 
 GKO_REGISTER_OPERATION(set_all_statuses, set_all_statuses::set_all_statuses);
 
 
+}  // anonymous namespace
 }  // namespace criterion
 
 

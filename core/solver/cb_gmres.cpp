@@ -54,9 +54,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace solver {
-
-
 namespace cb_gmres {
+namespace {
 
 
 GKO_REGISTER_OPERATION(initialize_1, cb_gmres::initialize_1);
@@ -65,6 +64,7 @@ GKO_REGISTER_OPERATION(step_1, cb_gmres::step_1);
 GKO_REGISTER_OPERATION(step_2, cb_gmres::step_2);
 
 
+}  // anonymous namespace
 }  // namespace cb_gmres
 
 
