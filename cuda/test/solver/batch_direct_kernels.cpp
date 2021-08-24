@@ -88,10 +88,10 @@ protected:
                 gko::share(btemp->transpose()));
             x->copy_from(xtemp.get());
         };
-        scale_mat = [execp](const BDense *const left, const BDense *const right,
-                            Mtx *const mat) {
-            gko::kernels::cuda::batch_csr::batch_scale<value_type>(execp, left,
-                                                                   right, mat);
+        scale_pre = [execp](const BDense *const left, const BDense *const right,
+                            Mtx *const mat, BDense *const b) {
+            gko::kernels::cuda::batch_csr::pre_diag_scale_system<value_type>(
+                execp, left, right, mat, b);
         };
         scale_vecs = [execp](const BDense *const scale, BDense *const mat) {
             gko::kernels::cuda::batch_dense::batch_scale<value_type>(
@@ -122,7 +122,8 @@ protected:
     std::function<void(Options, const Mtx *, const BDense *, BDense *,
                        LogData &)>
         solve_fn;
-    std::function<void(const BDense *, const BDense *, Mtx *)> scale_mat;
+    std::function<void(const BDense *, const BDense *, Mtx *, BDense *)>
+        scale_pre;
     std::function<void(const BDense *, BDense *)> scale_vecs;
 
     std::unique_ptr<BDense> ref_left_scale;
@@ -246,7 +247,7 @@ TYPED_TEST(BatchDirect, PreDiagScaleSystemTransposeIsEquivalentToReference)
 TYPED_TEST(BatchDirect, SolvesStencilSystem)
 {
     auto r_1 = gko::test::solve_poisson_uniform(
-        this->cuexec, this->solve_fn, this->scale_mat, this->scale_vecs,
+        this->cuexec, this->solve_fn, this->scale_pre, this->scale_vecs,
         this->opts, this->sys_1, 1);
 
     GKO_ASSERT_BATCH_MTX_NEAR(r_1.x, this->sys_1.xex, this->eps);
@@ -256,7 +257,7 @@ TYPED_TEST(BatchDirect, SolvesStencilSystem)
 TYPED_TEST(BatchDirect, SolvesStencilMultipleSystem)
 {
     auto r_m = gko::test::solve_poisson_uniform(
-        this->cuexec, this->solve_fn, this->scale_mat, this->scale_vecs,
+        this->cuexec, this->solve_fn, this->scale_pre, this->scale_vecs,
         this->opts, this->sys_m, this->nrhs);
 
     GKO_ASSERT_BATCH_MTX_NEAR(r_m.x, this->sys_m.xex, this->eps);
