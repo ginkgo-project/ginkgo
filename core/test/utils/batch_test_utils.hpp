@@ -130,11 +130,11 @@ LinSys<ValueType> get_poisson_problem(
 }
 
 
-template <typename ValueType, typename SolveFunction, typename MatScaleFunction,
+template <typename ValueType, typename SolveFunction, typename PreScaleFunction,
           typename VecScaleFunction, typename Options>
 Result<ValueType> solve_poisson_uniform(
     std::shared_ptr<const Executor> d_exec, SolveFunction solve_function,
-    MatScaleFunction msf, VecScaleFunction vsf, const Options opts,
+    PreScaleFunction msf, VecScaleFunction vsf, const Options opts,
     const LinSys<ValueType> &sys, const int nrhs,
     const matrix::BatchDense<ValueType> *const left_scale = nullptr,
     const matrix::BatchDense<ValueType> *const right_scale = nullptr)
@@ -186,8 +186,7 @@ Result<ValueType> solve_poisson_uniform(
     auto b_sc = BDense::create(d_exec);
     b_sc->copy_from(b.get());
     if (left_scale) {
-        msf(d_left_ptr, d_right_ptr, mtx.get());
-        vsf(d_left_ptr, b_sc.get());
+        msf(d_left_ptr, d_right_ptr, mtx.get(), b_sc.get());
     }
 
     solve_function(opts, mtx.get(), b_sc.get(), x.get(), logdata);
