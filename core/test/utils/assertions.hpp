@@ -382,7 +382,7 @@ template <typename ValueType>
             fail << "Array " << first_expression << " is different from "
                  << second_expression << " at index " << i << "\n";
             // how many surrounding lines to print?
-            constexpr size_type context_size = 5;
+            constexpr size_type context_size = 3;
             // find boundaries, avoid overflows
             const size_type context_begin = i - std::min(context_size, i);
             const size_type context_end =
@@ -394,7 +394,7 @@ template <typename ValueType>
                 fail << (j == i ? "> " : "  ")
                      << ::testing::PrintToString(
                             first_array.get_const_data()[j])
-                     << ','
+                     << ", "
                      << ::testing::PrintToString(
                             second_array.get_const_data()[j])
                      << '\n';
