@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace solver {
 namespace bicgstab {
+namespace {
 
 
 GKO_REGISTER_OPERATION(initialize, bicgstab::initialize);
@@ -56,6 +57,7 @@ GKO_REGISTER_OPERATION(step_3, bicgstab::step_3);
 GKO_REGISTER_OPERATION(finalize, bicgstab::finalize);
 
 
+}  // anonymous namespace
 }  // namespace bicgstab
 
 

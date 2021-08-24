@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace factorization {
 namespace par_ilu_factorization {
+namespace {
 
 
 GKO_REGISTER_OPERATION(add_diagonal_elements,
@@ -64,6 +65,7 @@ GKO_REGISTER_OPERATION(compute_l_u_factors,
 GKO_REGISTER_OPERATION(csr_transpose, csr::transpose);
 
 
+}  // anonymous namespace
 }  // namespace par_ilu_factorization
 
 

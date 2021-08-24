@@ -59,6 +59,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace matrix {
 namespace dense {
+namespace {
 
 
 GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply);
@@ -102,6 +103,7 @@ GKO_REGISTER_OPERATION(get_real, dense::get_real);
 GKO_REGISTER_OPERATION(get_imag, dense::get_imag);
 
 
+}  // anonymous namespace
 }  // namespace dense
 
 

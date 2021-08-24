@@ -43,11 +43,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace solver {
 namespace ir {
+namespace {
 
 
 GKO_REGISTER_OPERATION(initialize, ir::initialize);
 
 
+}  // anonymous namespace
 }  // namespace ir
 
 

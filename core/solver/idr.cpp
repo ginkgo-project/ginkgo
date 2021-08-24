@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace solver {
 namespace idr {
+namespace {
 
 
 GKO_REGISTER_OPERATION(initialize, idr::initialize);
@@ -58,6 +59,7 @@ GKO_REGISTER_OPERATION(compute_omega, idr::compute_omega);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
+}  // anonymous namespace
 }  // namespace idr
 
 

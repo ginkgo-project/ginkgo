@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace matrix {
 namespace sparsity_csr {
+namespace {
 
 
 GKO_REGISTER_OPERATION(spmv, sparsity_csr::spmv);
@@ -62,6 +63,7 @@ GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        sparsity_csr::is_sorted_by_column_index);
 
 
+}  // anonymous namespace
 }  // namespace sparsity_csr
 
 

@@ -58,6 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace preconditioner {
 namespace isai {
+namespace {
 
 
 GKO_REGISTER_OPERATION(generate_tri_inverse, isai::generate_tri_inverse);
@@ -71,6 +72,7 @@ GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
 GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 
 
+}  // anonymous namespace
 }  // namespace isai
 
 

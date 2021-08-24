@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace solver {
 namespace lower_trs {
+namespace {
 
 
 GKO_REGISTER_OPERATION(generate, lower_trs::generate);
@@ -60,6 +61,7 @@ GKO_REGISTER_OPERATION(should_perform_transpose,
 GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 
 
+}  // anonymous namespace
 }  // namespace lower_trs
 
 

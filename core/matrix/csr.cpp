@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace matrix {
 namespace csr {
+namespace {
 
 
 GKO_REGISTER_OPERATION(spmv, csr::spmv);
@@ -90,6 +91,7 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
 
 
+}  // anonymous namespace
 }  // namespace csr
 
 
