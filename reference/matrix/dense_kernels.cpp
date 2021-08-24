@@ -147,9 +147,9 @@ void fill(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_FILL_KERNEL);
 
 
-template <typename ValueType>
+template <typename ValueType, typename ScalarType>
 void scale(std::shared_ptr<const ReferenceExecutor> exec,
-           const matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *x)
+           const matrix::Dense<ScalarType> *alpha, matrix::Dense<ValueType> *x)
 {
     if (alpha->get_size()[1] == 1) {
         for (size_type i = 0; i < x->get_size()[0]; ++i) {
@@ -166,36 +166,12 @@ void scale(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
 
 
-template <typename ValueType>
-void scale_real_complex(std::shared_ptr<const ReferenceExecutor> exec,
-                        const matrix::Dense<ValueType> *alpha,
-                        matrix::Dense<std::complex<ValueType>> *x)
-{
-    if (alpha->get_size()[1] == 1) {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                x->at(i, j) *= alpha->at(0, 0);
-            }
-        }
-    } else {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                x->at(i, j) *= alpha->at(0, j);
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
-    GKO_DECLARE_DENSE_SCALE_REAL_COMPLEX_KERNEL);
-
-
-template <typename ValueType>
+template <typename ValueType, typename ScalarType>
 void inv_scale(std::shared_ptr<const ReferenceExecutor> exec,
-               const matrix::Dense<ValueType> *alpha,
+               const matrix::Dense<ScalarType> *alpha,
                matrix::Dense<ValueType> *x)
 {
     if (alpha->get_size()[1] == 1) {
@@ -213,36 +189,13 @@ void inv_scale(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_INV_SCALE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
+    GKO_DECLARE_DENSE_INV_SCALE_KERNEL);
 
 
-template <typename ValueType>
-void inv_scale_real_complex(std::shared_ptr<const ReferenceExecutor> exec,
-                            const matrix::Dense<ValueType> *alpha,
-                            matrix::Dense<std::complex<ValueType>> *x)
-{
-    if (alpha->get_size()[1] == 1) {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                x->at(i, j) /= alpha->at(0, 0);
-            }
-        }
-    } else {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                x->at(i, j) /= alpha->at(0, j);
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
-    GKO_DECLARE_DENSE_INV_SCALE_REAL_COMPLEX_KERNEL);
-
-
-template <typename ValueType>
+template <typename ValueType, typename ScalarType>
 void add_scaled(std::shared_ptr<const ReferenceExecutor> exec,
-                const matrix::Dense<ValueType> *alpha,
+                const matrix::Dense<ScalarType> *alpha,
                 const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
 {
     if (alpha->get_size()[1] == 1) {
@@ -260,37 +213,13 @@ void add_scaled(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
+    GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
 
 
-template <typename ValueType>
-void add_scaled_real_complex(std::shared_ptr<const ReferenceExecutor> exec,
-                             const matrix::Dense<ValueType> *alpha,
-                             const matrix::Dense<std::complex<ValueType>> *x,
-                             matrix::Dense<std::complex<ValueType>> *y)
-{
-    if (alpha->get_size()[1] == 1) {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                y->at(i, j) += alpha->at(0, 0) * x->at(i, j);
-            }
-        }
-    } else {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                y->at(i, j) += alpha->at(0, j) * x->at(i, j);
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
-    GKO_DECLARE_DENSE_ADD_SCALED_REAL_COMPLEX_KERNEL);
-
-
-template <typename ValueType>
+template <typename ValueType, typename ScalarType>
 void sub_scaled(std::shared_ptr<const ReferenceExecutor> exec,
-                const matrix::Dense<ValueType> *alpha,
+                const matrix::Dense<ScalarType> *alpha,
                 const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
 {
     if (alpha->get_size()[1] == 1) {
@@ -308,32 +237,8 @@ void sub_scaled(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SUB_SCALED_KERNEL);
-
-
-template <typename ValueType>
-void sub_scaled_real_complex(std::shared_ptr<const ReferenceExecutor> exec,
-                             const matrix::Dense<ValueType> *alpha,
-                             const matrix::Dense<std::complex<ValueType>> *x,
-                             matrix::Dense<std::complex<ValueType>> *y)
-{
-    if (alpha->get_size()[1] == 1) {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                y->at(i, j) -= alpha->at(0, 0) * x->at(i, j);
-            }
-        }
-    } else {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                y->at(i, j) -= alpha->at(0, j) * x->at(i, j);
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
-    GKO_DECLARE_DENSE_SUB_SCALED_REAL_COMPLEX_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
+    GKO_DECLARE_DENSE_SUB_SCALED_KERNEL);
 
 
 template <typename ValueType>

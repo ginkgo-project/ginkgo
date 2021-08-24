@@ -462,6 +462,58 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 /**
+ * Instantiates a template for each value type compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take one argument, which is replaced by the
+ *                value type.
+ */
+#if GINKGO_DPCPP_SINGLE_MODE
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)          \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro); \
+    template _macro(std::complex<float>);                    \
+    template <>                                              \
+    _macro(std::complex<double>) GKO_NOT_IMPLEMENTED
+#else
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)          \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro); \
+    template _macro(std::complex<float>);                    \
+    template _macro(std::complex<double>)
+#endif
+
+
+/**
+ * Instantiates a template for each value type compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take one argument, which is replaced by the
+ *                value type.
+ */
+#if GINKGO_DPCPP_SINGLE_MODE
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(_macro)              \
+    template _macro(float, float);                                          \
+    template <>                                                             \
+    _macro(double, double) GKO_NOT_IMPLEMENTED;                             \
+    template _macro(std::complex<float>, std::complex<float>);              \
+    template <>                                                             \
+    _macro(std::complex<double>, std::complex<double>) GKO_NOT_IMPLEMENTED; \
+    template _macro(std::complex<float>, float);                            \
+    template <>                                                             \
+    _macro(std::complex<double>, double) GKO_NOT_IMPLEMENTED;
+#else
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(_macro)   \
+    template _macro(float, float);                               \
+    template _macro(double, double);                             \
+    template _macro(std::complex<float>, std::complex<float>);   \
+    template _macro(std::complex<double>, std::complex<double>); \
+    template _macro(std::complex<float>, float);                 \
+    template _macro(std::complex<double>, double)
+#endif
+
+
+/**
  * Instantiates a template for each index type compiled by Ginkgo.
  *
  * @param _macro  A macro which expands the template instantiation
