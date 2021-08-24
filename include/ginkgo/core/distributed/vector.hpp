@@ -50,17 +50,18 @@ namespace gko {
 namespace distributed {
 
 
-template <typename ValueType = double>
+template <typename ValueType = double, typename LocalIndexType = int32>
 class Vector
-    : public EnableLinOp<Vector<ValueType>>,
-      public EnableCreateMethod<Vector<ValueType>>,
-      public ConvertibleTo<Vector<next_precision<ValueType>>>,
-      public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
+    : public EnableLinOp<Vector<ValueType, LocalIndexType>>,
+      public EnableCreateMethod<Vector<ValueType, LocalIndexType>>,
+      public ConvertibleTo<Vector<next_precision<ValueType>, LocalIndexType>>,
+      public EnableAbsoluteComputation<
+          remove_complex<Vector<ValueType, LocalIndexType>>>,
       public DistributedBase {
-    friend class EnableCreateMethod<Vector<ValueType>>;
+    friend class EnableCreateMethod<Vector<ValueType, LocalIndexType>>;
     friend class EnablePolymorphicObject<Vector, LinOp>;
-    friend class Vector<to_complex<ValueType>>;
-    friend class Vector<next_precision<ValueType>>;
+    friend class Vector<to_complex<ValueType>, LocalIndexType>;
+    friend class Vector<next_precision<ValueType>, LocalIndexType>;
 
 public:
     using EnableLinOp<Vector>::convert_to;
@@ -72,9 +73,11 @@ public:
     using complex_type = to_complex<Vector>;
     using local_mtx_type = matrix::Dense<value_type>;
 
-    void convert_to(Vector<next_precision<ValueType>> *result) const override;
+    void convert_to(Vector<next_precision<ValueType>, LocalIndexType> *result)
+        const override;
 
-    void move_to(Vector<next_precision<ValueType>> *result) override;
+    void move_to(
+        Vector<next_precision<ValueType>, LocalIndexType> *result) override;
 
     /**
      * Fill the distributed vector with a given value.
@@ -83,11 +86,9 @@ public:
      */
     void fill(const ValueType value);
 
-    void read_distributed(const matrix_data<ValueType, global_index_type> &data,
-                          std::shared_ptr<const Partition<int64>> partition);
-
-    void read_distributed(const matrix_data<ValueType, global_index_type> &data,
-                          std::shared_ptr<const Partition<int32>> partition);
+    void read_distributed(
+        const matrix_data<ValueType, global_index_type> &data,
+        std::shared_ptr<const Partition<LocalIndexType>> partition);
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
@@ -150,17 +151,25 @@ public:
     // Promise not to break things? :)
     local_mtx_type *get_local();
 
+    std::shared_ptr<const Partition<LocalIndexType>> get_partition() const
+    {
+        return partition_;
+    }
+
     void validate_data() const override;
 
 protected:
     Vector(std::shared_ptr<const Executor> exec,
-           std::shared_ptr<mpi::communicator> comm, dim<2> global_size,
-           dim<2> local_size, size_type stride);
+           std::shared_ptr<mpi::communicator> comm,
+           std::shared_ptr<const Partition<LocalIndexType>> partition,
+           dim<2> global_size, dim<2> local_size, size_type stride);
 
-    Vector(std::shared_ptr<const Executor> exec,
-           std::shared_ptr<mpi::communicator> comm =
-               std::make_shared<mpi::communicator>(),
-           dim<2> global_size = {}, dim<2> local_size = {});
+    explicit Vector(
+        std::shared_ptr<const Executor> exec,
+        std::shared_ptr<mpi::communicator> comm =
+            std::make_shared<mpi::communicator>(),
+        std::shared_ptr<const Partition<LocalIndexType>> partition = nullptr,
+        dim<2> global_size = {}, dim<2> local_size = {});
 
     void apply_impl(const LinOp *, LinOp *) const override;
 
@@ -168,7 +177,7 @@ protected:
                     LinOp *) const override;
 
 private:
-    // std::shared_ptr<mpi::communicator> comm_;
+    std::shared_ptr<const Partition<LocalIndexType>> partition_;
     matrix::Dense<ValueType> local_;
 };
 
