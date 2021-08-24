@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "cuda/base/config.hpp"
+#include "cuda/base/exception.cuh"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/thread_ids.cuh"
@@ -124,7 +125,6 @@ static void apply_impl(
             BatchJacobi<ValueType>::dynamic_work_size(shared_gap, a.num_nnz) *
             sizeof(ValueType);
 #endif
-
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleAbsResidual, BatchJacobi);
         } else {
@@ -133,6 +133,7 @@ static void apply_impl(
     } else {
         GKO_NOT_IMPLEMENTED;
     }
+    GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
 

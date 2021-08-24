@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "cuda/base/config.hpp"
+#include "cuda/base/exception.cuh"
 #include "cuda/base/kernel_config.cuh"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
@@ -138,6 +139,7 @@ static void apply_impl(
     } else {
         GKO_NOT_IMPLEMENTED;
     }
+    GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
 
