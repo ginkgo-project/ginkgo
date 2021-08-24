@@ -161,6 +161,19 @@ public:
     }
 
     /**
+     * Checks if each part is associated with a contiguous range.
+     */
+    bool is_connected();
+
+    /**
+     * Checks if the ranges are orderd by their part index.
+     *
+     * Implies that the partition is connected.
+     */
+    bool is_ordered();
+
+
+    /**
      * Builds a partition from a given mapping global_index -> part_id.
      * @param exec  the Executor on which the partition should be built
      * @param mapping  the mapping from global indices to part IDs.

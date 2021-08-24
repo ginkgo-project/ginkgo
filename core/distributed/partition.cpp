@@ -45,6 +45,7 @@ GKO_REGISTER_OPERATION(count_ranges, partition::count_ranges);
 GKO_REGISTER_OPERATION(build_from_mapping, partition::build_from_mapping);
 GKO_REGISTER_OPERATION(build_from_contiguous, partition::build_from_contiguous);
 GKO_REGISTER_OPERATION(build_ranks, partition::build_ranks);
+GKO_REGISTER_OPERATION(is_ordered, partition::is_ordered);
 
 
 }  // namespace partition
@@ -91,6 +92,27 @@ void Partition<LocalIndexType>::compute_range_ranks()
     exec->run(partition::make_build_ranks(
         offsets_.get_const_data(), part_ids_.get_const_data(), get_num_ranges(),
         get_num_parts(), ranks_.get_data(), part_sizes_.get_data()));
+}
+
+
+template <typename LocalIndexType>
+bool Partition<LocalIndexType>::is_connected()
+{
+    return get_num_parts() == get_num_ranges();
+}
+
+
+template <typename LocalIndexType>
+bool Partition<LocalIndexType>::is_ordered()
+{
+    if (is_connected()) {
+        auto exec = this->get_executor();
+        bool is_ordered;
+        exec->run(partition::make_is_ordered(this, &is_ordered));
+        return is_ordered;
+    } else {
+        return false;
+    }
 }
 
 

@@ -67,6 +67,11 @@ namespace kernels {
                      int num_parts, LocalIndexType* ranks,         \
                      LocalIndexType* sizes)
 
+#define GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType)                     \
+    void is_ordered(std::shared_ptr<const DefaultExecutor> exec,             \
+                    const distributed::Partition<LocalIndexType> *partition, \
+                    bool *result)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                             \
     using global_index_type = distributed::global_index_type;    \
@@ -77,8 +82,9 @@ namespace kernels {
     template <typename LocalIndexType>                           \
     GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING(LocalIndexType);    \
     template <typename LocalIndexType>                           \
-    GKO_DECLARE_PARTITION_BUILD_RANKS(LocalIndexType)
-
+    GKO_DECLARE_PARTITION_BUILD_RANKS(LocalIndexType);           \
+    template <typename LocalIndexType>                           \
+    GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType)
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(partition,
                                         GKO_DECLARE_ALL_AS_TEMPLATES);
