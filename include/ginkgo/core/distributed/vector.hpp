@@ -50,6 +50,7 @@ class Vector
     : public EnableLinOp<Vector<ValueType, LocalIndexType>>,
       public EnableCreateMethod<Vector<ValueType, LocalIndexType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>, LocalIndexType>>,
+      public ConvertibleTo<gko::matrix::Dense<ValueType>>,
       public EnableAbsoluteComputation<
           remove_complex<Vector<ValueType, LocalIndexType>>>,
       public DistributedBase,
@@ -74,6 +75,10 @@ public:
 
     void move_to(
         Vector<next_precision<ValueType>, LocalIndexType>* result) override;
+
+    void convert_to(matrix::Dense<ValueType>* result) const override;
+
+    void move_to(matrix::Dense<ValueType>* result) override;
 
     /**
      * Fill the distributed vector with a given value.

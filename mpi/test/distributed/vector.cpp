@@ -148,6 +148,65 @@ TYPED_TEST(Vector, ReadsDistributedLocalData)
                                     this->part.get());
 }
 
+TYPED_TEST(Vector, ConvertsToDense)
+{
+    using value_type = typename TestFixture::value_type;
+    auto dist_vec = TestFixture::Vec::create(this->ref);
+    auto global_vec = TestFixture::GVec::create(this->ref);
+    auto gathered_vec = TestFixture::GVec::create(this->ref);
+    dist_vec->read_distributed(this->vec_input, this->part);
+    global_vec->read(this->vec_input);
+
+    dist_vec->convert_to(gathered_vec.get());
+
+    auto rank = dist_vec->get_communicator()->rank();
+    if (rank == 0) {
+        GKO_ASSERT_MTX_NEAR(gathered_vec.get(), global_vec.get(), 0);
+    }
+}
+
+TYPED_TEST(Vector, ConvertsToDenseReversePartition)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    auto dist_vec = TestFixture::Vec::create(this->ref);
+    auto global_vec = TestFixture::GVec::create(this->ref);
+    auto gathered_vec = TestFixture::GVec::create(this->ref);
+    auto part = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, {this->ref, {2, 1, 1, 0, 0}}, 3));
+    dist_vec->read_distributed(this->vec_input, part);
+    global_vec->read(this->vec_input);
+
+    dist_vec->convert_to(gathered_vec.get());
+
+    auto rank = dist_vec->get_communicator()->rank();
+    if (rank == 0) {
+        GKO_ASSERT_MTX_NEAR(gathered_vec.get(), global_vec.get(), 0);
+    }
+}
+
+TYPED_TEST(Vector, ConvertsToDenseScatteredPartition)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    auto dist_vec = TestFixture::Vec::create(this->ref);
+    auto global_vec = TestFixture::GVec::create(this->ref);
+    auto gathered_vec = TestFixture::GVec::create(this->ref);
+    auto part = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, {this->ref, {0, 1, 2, 0, 1}}, 3));
+    dist_vec->read_distributed(this->vec_input, part);
+    global_vec->read(this->vec_input);
+
+    dist_vec->convert_to(gathered_vec.get());
+
+    auto rank = dist_vec->get_communicator()->rank();
+    if (rank == 0) {
+        GKO_ASSERT_MTX_NEAR(gathered_vec.get(), global_vec.get(), 0);
+    }
+}
+
 }  // namespace
 
 // Calls a custom gtest main with MPI listeners. See gtest-mpi-listeners.hpp for

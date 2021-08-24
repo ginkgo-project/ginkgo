@@ -94,6 +94,54 @@ void Vector<ValueType, LocalIndexType>::move_to(
 
 
 template <typename ValueType, typename LocalIndexType>
+void Vector<ValueType, LocalIndexType>::convert_to(
+    matrix::Dense<ValueType> *result) const
+{
+    // gather all local matrices
+    // gather them block-wise (part-wise)
+    // permute rows
+    auto part = this->partition_;
+    auto exec = part->get_executor();
+
+    std::vector<comm_index_type> local_row_counts(part->get_num_parts());
+    std::vector<comm_index_type> local_row_offsets(local_row_counts.size() + 1,
+                                                   0);
+
+    gko::Array<comm_index_type> part_sizes;
+    part_sizes = gko::Array<LocalIndexType>::view(
+        part->get_executor(), part->get_num_parts(),
+        const_cast<LocalIndexType *>(part->get_part_sizes()));
+    exec->get_master()->copy_from(exec.get(), local_row_counts.size(),
+                                  part_sizes.get_data(),
+                                  local_row_counts.data());
+    std::partial_sum(local_row_counts.begin(), local_row_counts.end(),
+                     local_row_offsets.begin() + 1);
+
+    auto tmp = matrix::Dense<ValueType>::create(this->get_executor(),
+                                                this->get_size());
+    mpi::gather(this->local_.get_const_values(), this->local_.get_size()[0],
+                tmp->get_values(), local_row_counts.data(),
+                local_row_offsets.data(), 0, this->get_communicator());
+
+    if (is_ordered(partition_.get())) {
+        tmp->move_to(result);
+    } else {
+        auto row_permutation = build_block_gather_permute(partition_.get());
+        gko::as<matrix::Dense<ValueType>>(tmp->row_permute(&row_permutation))
+            ->move_to(result);
+    }
+}
+
+
+template <typename ValueType, typename LocalIndexType>
+void Vector<ValueType, LocalIndexType>::move_to(
+    matrix::Dense<ValueType> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename LocalIndexType>
 std::unique_ptr<typename Vector<ValueType, LocalIndexType>::absolute_type>
 Vector<ValueType, LocalIndexType>::compute_absolute() const
 {
