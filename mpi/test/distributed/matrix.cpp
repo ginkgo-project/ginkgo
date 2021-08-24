@@ -75,7 +75,7 @@ protected:
     using global_entry = gko::matrix_data_entry<value_type, global_index_type>;
     using Mtx = gko::distributed::Matrix<value_type, local_index_type>;
     using GMtx = gko::matrix::Csr<value_type, global_index_type>;
-    using Vec = gko::distributed::Vector<value_type>;
+    using Vec = gko::distributed::Vector<value_type, local_index_type>;
     using GVec = gko::matrix::Dense<value_type>;
     using Partition = gko::distributed::Partition<local_index_type>;
     using matrix_data = gko::matrix_data<value_type, global_index_type>;
@@ -98,10 +98,9 @@ protected:
                      {4, 4, 10}}},
           x_input{gko::dim<2>{size[0], 1},
                   {{0, 0, 1}, {1, 0, 1}, {2, 0, 1}, {3, 0, 1}, {4, 0, 1}}},
-          dist_input{
-              {{size, {{0, 1, 1}, {0, 3, 2}, {1, 1, 3}, {1, 2, 4}}},
-               {size, {{2, 2, 5}, {2, 4, 6}, {3, 1, 7}, {3, 3, 8}}},
-               {size, {{4, 0, 9}, {4, 4, 10}}}}},
+          dist_input{{{size, {{0, 1, 1}, {0, 3, 2}, {1, 1, 3}, {1, 2, 4}}},
+                      {size, {{2, 2, 5}, {2, 4, 6}, {3, 1, 7}, {3, 3, 8}}},
+                      {size, {{4, 0, 9}, {4, 4, 10}}}}},
           part{Partition::build_from_contiguous(
               ref, gko::Array<global_index_type>(ref, {0, 2, 4, 5}))},
           dist_x{Vec::create(ref)},

@@ -69,7 +69,7 @@ public:
     using index_type = global_index_type;
     using local_index_type = LocalIndexType;
 
-    using GlobalVec = Vector<value_type>;
+    using GlobalVec = Vector<value_type, LocalIndexType>;
     using LocalVec = matrix::Dense<value_type>;
     using LocalMtx = matrix::Csr<value_type, local_index_type>;
 

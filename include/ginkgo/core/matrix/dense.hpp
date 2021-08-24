@@ -51,7 +51,7 @@ namespace gko {
 namespace distributed {
 
 
-template <typename ValueType>
+template <typename ValueType, typename LocalIndexType>
 class Vector;
 
 template <typename ValueType, typename LocalIndexType>
@@ -143,7 +143,8 @@ class Dense
     friend class SparsityCsr<ValueType, int32>;
     friend class SparsityCsr<ValueType, int64>;
     friend class Dense<to_complex<ValueType>>;
-    friend class distributed::Vector<ValueType>;
+    friend class distributed::Vector<ValueType, int32>;
+    friend class distributed::Vector<ValueType, int64>;
     friend class distributed::Matrix<ValueType, int32>;
     friend class distributed::Matrix<ValueType, int64>;
 

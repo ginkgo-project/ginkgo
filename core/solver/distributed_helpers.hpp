@@ -51,13 +51,13 @@ std::unique_ptr<matrix::Dense<ValueType>> create_with_same_size(
 }
 
 
-template <typename ValueType>
-std::unique_ptr<distributed::Vector<ValueType>> create_with_same_size(
-    const distributed::Vector<ValueType> *mtx)
+template <typename ValueType, typename LocalIndexType>
+std::unique_ptr<distributed::Vector<ValueType, LocalIndexType>>
+create_with_same_size(const distributed::Vector<ValueType, LocalIndexType> *mtx)
 {
-    return distributed::Vector<ValueType>::create(
-        mtx->get_executor(), mtx->get_communicator(), mtx->get_size(),
-        mtx->get_local()->get_size());
+    return distributed::Vector<ValueType, LocalIndexType>::create(
+        mtx->get_executor(), mtx->get_communicator(), mtx->get_partition(),
+        mtx->get_size(), mtx->get_local()->get_size());
 }
 
 
@@ -75,16 +75,17 @@ matrix::Dense<ValueType> *get_local(matrix::Dense<ValueType> *mtx)
 }
 
 
-template <typename ValueType>
-matrix::Dense<ValueType> *get_local(distributed::Vector<ValueType> *mtx)
+template <typename ValueType, typename LocalIndexType>
+matrix::Dense<ValueType> *get_local(
+    distributed::Vector<ValueType, LocalIndexType> *mtx)
 {
     return mtx->get_local();
 }
 
 
-template <typename ValueType>
+template <typename ValueType, typename LocalIndexType>
 const matrix::Dense<ValueType> *get_local(
-    const distributed::Vector<ValueType> *mtx)
+    const distributed::Vector<ValueType, LocalIndexType> *mtx)
 {
     return mtx->get_local();
 }
