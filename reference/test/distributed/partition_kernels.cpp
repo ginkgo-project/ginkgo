@@ -163,4 +163,64 @@ TYPED_TEST(Partition, BuildsFromRanges)
 }
 
 
+TYPED_TEST(Partition, IsConnected)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    auto part = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, gko::Array<comm_index_type>{this->ref, {0, 0, 1, 1, 2}},
+            3));
+
+    ASSERT_TRUE(gko::distributed::is_connected(part.get()));
+}
+
+
+TYPED_TEST(Partition, IsConnectedUnordered)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    auto part = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, gko::Array<comm_index_type>{this->ref, {1, 1, 0, 0, 2}},
+            3));
+
+    ASSERT_TRUE(gko::distributed::is_connected(part.get()));
+}
+
+
+TYPED_TEST(Partition, IsConnectedFail)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    auto part = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, gko::Array<comm_index_type>{this->ref, {0, 1, 2, 0, 1}},
+            3));
+
+    ASSERT_FALSE(gko::distributed::is_connected(part.get()));
+}
+
+
+TYPED_TEST(Partition, IsOrdered)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    auto part = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, gko::Array<comm_index_type>{this->ref, {1, 1, 0, 0, 2}},
+            3));
+
+    ASSERT_FALSE(gko::distributed::is_ordered(part.get()));
+}
+
+
+TYPED_TEST(Partition, IsOrderedFail)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    auto part = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, gko::Array<comm_index_type>{this->ref, {0, 1, 1, 2, 2}},
+            3));
+
+    ASSERT_TRUE(gko::distributed::is_ordered(part.get()));
+}
+
+
 }  // namespace

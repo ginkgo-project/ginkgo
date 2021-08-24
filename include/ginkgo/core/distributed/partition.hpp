@@ -189,6 +189,7 @@ public:
         const Array<global_index_type> &ranges);
 
     // assumes that local_end(rank_i) <= local_start(rank_j) for i<j
+    // and that local_end(rank_i) == local_start(rank_i+1)
     static std::unique_ptr<Partition> build_from_local_range(
         std::shared_ptr<const Executor> exec, local_index_type local_start,
         local_index_type local_end,
@@ -220,6 +221,13 @@ private:
     Array<local_index_type> part_sizes_;
     Array<comm_index_type> part_ids_;
 };
+
+
+template <typename LocalIndexType>
+bool is_connected(const Partition<LocalIndexType> *partition);
+
+template <typename LocalIndexType>
+bool is_ordered(const Partition<LocalIndexType> *partition);
 
 
 }  // namespace distributed

@@ -111,6 +111,23 @@ void build_ranks(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_RANKS);
 
+template <typename LocalIndexType>
+void is_ordered(std::shared_ptr<const DefaultExecutor> exec,
+                const distributed::Partition<LocalIndexType> *partition,
+                bool *result)
+{
+    *result = true;
+    auto part_ids = partition->get_const_part_ids();
+
+    for (comm_index_type i = 1; i < partition->get_num_ranges(); ++i) {
+        if (part_ids[i] < part_ids[i - 1]) {
+            *result = false;
+            return;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_IS_ORDERED);
 
 }  // namespace partition
 }  // namespace reference
