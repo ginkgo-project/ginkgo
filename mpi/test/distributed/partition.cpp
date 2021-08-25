@@ -65,9 +65,13 @@ template <typename LocalIndexType>
 class Partition : public ::testing::Test {
 protected:
     using local_index_type = LocalIndexType;
-    Partition() : ref(gko::ReferenceExecutor::create()) {}
+    Partition()
+        : ref(gko::ReferenceExecutor::create()),
+          comm(gko::mpi::communicator::create_world())
+    {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::mpi::communicator> comm;
 };
 
 TYPED_TEST_SUITE(Partition, gko::test::IndexTypes);
@@ -76,16 +80,15 @@ TYPED_TEST_SUITE(Partition, gko::test::IndexTypes);
 TYPED_TEST(Partition, BuildsFromLocalRanges)
 {
     using local_index_type = typename TestFixture::local_index_type;
-    auto comm = gko::mpi::communicator::create();
     local_index_type ranges[4][2] = {{0, 10}, {10, 30}, {30, 60}, {60, 100}};
-    auto rank = comm->rank();
+    auto rank = this->comm->rank();
 
     auto part =
         gko::distributed::Partition<local_index_type>::build_from_local_range(
-            this->ref, ranges[rank][0], ranges[rank][1], comm);
+            this->ref, ranges[rank][0], ranges[rank][1], this->comm);
 
     ASSERT_EQ(part->get_num_ranges(), part->get_num_parts());
-    for (int i = 0; i < comm->size(); ++i) {
+    for (int i = 0; i < this->comm->size(); ++i) {
         ASSERT_EQ(part->get_part_size(i), 10 * (i + 1));
         // ASSERT_EQ(part->get_range_ranks()[i], i);
     }
@@ -95,13 +98,12 @@ TYPED_TEST(Partition, BuildsFromLocalRanges)
 TYPED_TEST(Partition, ThrowsBuildFromUnsortedLocalRanges)
 {
     using local_index_type = typename TestFixture::local_index_type;
-    auto comm = gko::mpi::communicator::create();
     local_index_type ranges[4][2] = {{0, 10}, {30, 60}, {10, 30}, {60, 100}};
-    auto rank = comm->rank();
+    auto rank = this->comm->rank();
 
     ASSERT_THROW(
         gko::distributed::Partition<local_index_type>::build_from_local_range(
-            this->ref, ranges[rank][0], ranges[rank][1], comm),
+            this->ref, ranges[rank][0], ranges[rank][1], this->comm),
         gko::ValueMismatch);
 }
 

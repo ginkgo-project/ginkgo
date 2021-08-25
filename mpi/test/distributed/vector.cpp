@@ -83,6 +83,7 @@ protected:
 
     Vector()
         : ref(gko::ReferenceExecutor::create()),
+          comm(gko::mpi::communicator::create_world()),
           size{5, 5},
           vec_input{gko::dim<2>{size[0], 1},
                     {{0, 0, 1}, {1, 0, 2}, {2, 0, 3}, {3, 0, 4}, {4, 0, 5}}},
@@ -107,6 +108,7 @@ protected:
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::mpi::communicator> comm;
     gko::dim<2> size;
     gko::matrix_data<value_type, global_index_type> vec_input;
     std::shared_ptr<Partition> part;
@@ -118,7 +120,7 @@ TYPED_TEST_SUITE(Vector, gko::test::ValueIndexTypes);
 TYPED_TEST(Vector, ReadsDistributedGlobalData)
 {
     using value_type = typename TestFixture::value_type;
-    auto dist_vec = TestFixture::Vec::create(this->ref);
+    auto dist_vec = TestFixture::Vec::create(this->ref, this->comm);
     auto global_vec = TestFixture::GVec::create(this->ref);
 
     dist_vec->read_distributed(this->vec_input, this->part);
@@ -131,7 +133,7 @@ TYPED_TEST(Vector, ReadsDistributedGlobalData)
 TYPED_TEST(Vector, ReadsDistributedLocalData)
 {
     using value_type = typename TestFixture::value_type;
-    auto dist_vec = TestFixture::Vec::create(this->ref);
+    auto dist_vec = TestFixture::Vec::create(this->ref, this->comm);
     auto global_vec = TestFixture::GVec::create(this->ref);
     gko::matrix_data<value_type, global_index_type> local_input[3] = {
         {gko::dim<2>{2, 1}, {{0, 0, 1}, {1, 0, 2}}},
