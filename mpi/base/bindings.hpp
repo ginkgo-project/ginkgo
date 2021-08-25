@@ -129,7 +129,7 @@ inline bool compare_comm(const MPI_Comm &comm1, const MPI_Comm comm2)
 
 inline void free_comm(MPI_Comm comm)
 {
-    if (comm) {
+    if (comm && comm != MPI_COMM_NULL) {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_free(&comm));
     }
 }

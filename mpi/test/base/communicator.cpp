@@ -66,28 +66,35 @@ protected:
 };
 
 
-TEST_F(Communicator, DefaultCommIsWorld)
+TEST_F(Communicator, DefaultCommIsInvalid)
 {
-    int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
     auto comm = gko::mpi::communicator();
 
-    EXPECT_EQ(comm.size(), size);
+    EXPECT_EQ(comm.get(), MPI_COMM_NULL);
+}
+
+
+TEST_F(Communicator, CanCreateWorld)
+{
+    auto comm = gko::mpi::communicator::create_world();
+
+    EXPECT_EQ(comm->compare(MPI_COMM_WORLD), true);
 }
 
 
 TEST_F(Communicator, KnowsItsCommunicator)
 {
-    auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
+    MPI_Comm dup;
+    MPI_Comm_dup(MPI_COMM_WORLD, &dup);
+    auto comm_world = gko::mpi::communicator(dup);
 
-    EXPECT_EQ(comm_world.compare(MPI_COMM_WORLD), true);
+    EXPECT_EQ(comm_world.compare(dup), true);
 }
 
 
 TEST_F(Communicator, CommunicatorCanBeCopied)
 {
-    auto comm_world = gko::mpi::communicator();
+    auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
     auto copy = comm_world;
 
     EXPECT_EQ(comm_world.compare(MPI_COMM_WORLD), true);
@@ -97,7 +104,7 @@ TEST_F(Communicator, CommunicatorCanBeCopied)
 
 TEST_F(Communicator, CommunicatorCanBeCopyConstructed)
 {
-    auto comm_world = gko::mpi::communicator();
+    auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
     auto copy = gko::mpi::communicator(comm_world);
 
     EXPECT_EQ(comm_world.compare(MPI_COMM_WORLD), true);
@@ -108,11 +115,12 @@ TEST_F(Communicator, CommunicatorCanBeCopyConstructed)
 TEST_F(Communicator, CommunicatorCanBeMoved)
 {
     int size;
-    auto comm_world = gko::mpi::communicator();
+    auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
 
     auto moved = std::move(comm_world);
 
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+    EXPECT_EQ(comm_world.get(), MPI_COMM_NULL);
     EXPECT_EQ(comm_world.size(), 0);
     EXPECT_EQ(moved.compare(MPI_COMM_WORLD), true);
     EXPECT_EQ(moved.size(), size);
@@ -122,11 +130,12 @@ TEST_F(Communicator, CommunicatorCanBeMoved)
 TEST_F(Communicator, CommunicatorCanBeMoveConstructed)
 {
     int size;
-    auto comm_world = gko::mpi::communicator();
+    auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
 
     auto moved = gko::mpi::communicator(std::move(comm_world));
 
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+    EXPECT_EQ(comm_world.get(), MPI_COMM_NULL);
     EXPECT_EQ(comm_world.size(), 0);
     EXPECT_EQ(moved.compare(MPI_COMM_WORLD), true);
     EXPECT_EQ(moved.size(), size);
