@@ -118,9 +118,9 @@ communicator::communicator(const MPI_Comm &comm_in, int color, int key)
 
 communicator::communicator()
 {
-    this->comm_ = bindings::duplicate_comm(MPI_COMM_WORLD);
-    this->size_ = bindings::get_comm_size(this->comm_);
-    this->rank_ = bindings::get_comm_rank(this->comm_);
+    this->comm_ = MPI_COMM_NULL;
+    this->size_ = 0;
+    this->rank_ = -1;
 }
 
 
@@ -149,6 +149,7 @@ communicator::communicator(communicator &&other)
     this->size_ = bindings::get_comm_size(this->comm_);
     this->rank_ = bindings::get_comm_rank(this->comm_);
     this->local_rank_ = bindings::get_local_rank(this->comm_);
+    other.comm_ = MPI_COMM_NULL;
     other.size_ = 0;
     other.rank_ = -1;
 }

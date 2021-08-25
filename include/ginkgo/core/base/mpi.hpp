@@ -244,6 +244,11 @@ public:
 
     static MPI_Comm get_comm_world() { return MPI_COMM_WORLD; }
 
+    static std::shared_ptr<communicator> create_world()
+    {
+        return std::make_shared<communicator>(get_comm_world());
+    }
+
     MPI_Comm get() const { return comm_; }
 
     int size() const { return size_; }
