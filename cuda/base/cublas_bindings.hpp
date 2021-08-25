@@ -284,7 +284,7 @@ GKO_BIND_CUBLAS_BATCH_GETRF(ValueType, detail::not_implemented);
 
 #define GKO_BIND_CUBLAS_BATCH_GETRS(ValueType, CublasName)                    \
     inline void batch_getrs(cublasHandle_t handle, cublasOperation_t trans,   \
-                            int n, int nrhs, const ValueType *const Aarray[], \
+                            int n, int nrhs, const ValueType *Aarray[],       \
                             int lda, const int *devIpiv, ValueType *Barray[], \
                             int ldb, int *info, int batchSize)                \
     {                                                                         \
