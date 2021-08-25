@@ -462,34 +462,14 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 /**
- * Instantiates a template for each value type compiled by Ginkgo.
+ * Instantiates a template for each value and scalar type compiled by Ginkgo.
+ * This means all value and scalar type combinations for which
+ * `value = scalar * value` is well-defined.
  *
  * @param _macro  A macro which expands the template instantiation
  *                (not including the leading `template` specifier).
- *                Should take one argument, which is replaced by the
- *                value type.
- */
-#if GINKGO_DPCPP_SINGLE_MODE
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)          \
-    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro); \
-    template _macro(std::complex<float>);                    \
-    template <>                                              \
-    _macro(std::complex<double>) GKO_NOT_IMPLEMENTED
-#else
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)          \
-    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro); \
-    template _macro(std::complex<float>);                    \
-    template _macro(std::complex<double>)
-#endif
-
-
-/**
- * Instantiates a template for each value type compiled by Ginkgo.
- *
- * @param _macro  A macro which expands the template instantiation
- *                (not including the leading `template` specifier).
- *                Should take one argument, which is replaced by the
- *                value type.
+ *                Should take two arguments, which are replaced by the
+ *                value and scalar type, respectively.
  */
 #if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(_macro)              \
