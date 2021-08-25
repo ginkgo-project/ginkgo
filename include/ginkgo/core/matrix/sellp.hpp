@@ -258,8 +258,8 @@ public:
     /**
      * @copydoc Sellp::val_at(size_type, size_type, size_type)
      */
-    value_type val_at(size_type row, size_type slice_set,
-                      size_type idx) const noexcept
+    value_type val_at(size_type row, size_type slice_set, size_type idx) const
+        noexcept
     {
         return values_
             .get_const_data()[this->linearize_index(row, slice_set, idx)];
@@ -286,8 +286,8 @@ public:
     /**
      * @copydoc Sellp::col_at(size_type, size_type, size_type)
      */
-    index_type col_at(size_type row, size_type slice_set,
-                      size_type idx) const noexcept
+    index_type col_at(size_type row, size_type slice_set, size_type idx) const
+        noexcept
     {
         return this
             ->get_const_col_idxs()[this->linearize_index(row, slice_set, idx)];
