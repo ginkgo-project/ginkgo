@@ -108,7 +108,8 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     exec->free(info_array);
 
     int trsm_info{};
-    cublas::batch_getrs(handle, CUBLAS_OP_N, n, nrhs, matrices, lda,
+    cublas::batch_getrs(handle, CUBLAS_OP_N, n, nrhs,
+                        const_cast<const ValueType **>(matrices), lda,
                         pivot_array, vectors, ldb, &trsm_info, nbatch);
     if (trsm_info != 0) {
         std::cerr << "Cublas batch trsm got an illegal param in position "
