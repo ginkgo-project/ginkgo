@@ -49,7 +49,7 @@ namespace kernels {
 namespace cuda {
 
 #define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 1
-constexpr int default_block_size = 128;
+constexpr int default_block_size = 256;
 constexpr int sm_multiplier = 4;
 
 /**
@@ -65,7 +65,9 @@ namespace batch_cg {
 #include "common/cuda_hip/components/reduction.hpp.inc"
 #include "common/cuda_hip/log/batch_logger.hpp.inc"
 #include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
+// TODO: remove batch dense include
 #include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_identity.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_jacobi.hpp.inc"
 #include "common/cuda_hip/solver/batch_cg_kernels.hpp.inc"
@@ -79,14 +81,14 @@ using BatchCgOptions = gko::kernels::batch_cg::BatchCgOptions<T>;
     apply_kernel<stop::_stoppertype<ValueType>>                              \
         <<<nbatch, default_block_size, shared_size>>>(                       \
             opts.max_its, opts.residual_tol, logger, _prectype<ValueType>(), \
-            a, b, x)
+            a, b.stride, b.num_rhs, b.values, x.values)
 
 template <typename BatchMatrixType, typename LogType, typename ValueType>
 static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
                        const BatchCgOptions<remove_complex<ValueType>> opts,
-                       LogType logger, const BatchMatrixType &a,
-                       const gko::batch_dense::UniformBatch<const ValueType> &b,
-                       const gko::batch_dense::UniformBatch<ValueType> &x)
+                       LogType logger, const BatchMatrixType& a,
+                       const gko::batch_dense::UniformBatch<const ValueType>& b,
+                       const gko::batch_dense::UniformBatch<ValueType>& x)
 {
     using real_type = gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
@@ -106,9 +108,9 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
             sizeof(ValueType);
 #endif
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            BATCH_CG_KERNEL_LAUNCH(AbsResidualMaxIter, BatchIdentity);
+            BATCH_CG_KERNEL_LAUNCH(SimpleAbsResidual, BatchIdentity);
         } else {
-            BATCH_CG_KERNEL_LAUNCH(AbsResidualMaxIter, BatchIdentity);
+            BATCH_CG_KERNEL_LAUNCH(SimpleRelResidual, BatchIdentity);
         }
 
     } else if (opts.preconditioner ==
@@ -119,9 +121,9 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
             sizeof(ValueType);
 #endif
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            BATCH_CG_KERNEL_LAUNCH(AbsResidualMaxIter, BatchJacobi);
+            BATCH_CG_KERNEL_LAUNCH(SimpleAbsResidual, BatchJacobi);
         } else {
-            BATCH_CG_KERNEL_LAUNCH(RelResidualMaxIter, BatchJacobi);
+            BATCH_CG_KERNEL_LAUNCH(SimpleRelResidual, BatchJacobi);
         }
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -132,22 +134,21 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename ValueType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
-           const BatchCgOptions<remove_complex<ValueType>> &opts,
-           const BatchLinOp *const a,
-           const matrix::BatchDense<ValueType> *const b,
-           matrix::BatchDense<ValueType> *const x,
-           log::BatchLogData<ValueType> &logdata)
+           const BatchCgOptions<remove_complex<ValueType>>& opts,
+           const BatchLinOp* const a,
+           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchDense<ValueType>* const x,
+           log::BatchLogData<ValueType>& logdata)
 {
     using cu_value_type = cuda_type<ValueType>;
 
-    batch_log::FinalLogger<remove_complex<ValueType>> logger(
-        static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
+    batch_log::SimpleFinalLogger<remove_complex<ValueType>> logger(
         logdata.res_norms->get_values(), logdata.iter_counts.get_data());
 
     const gko::batch_dense::UniformBatch<cu_value_type> x_b =
         get_batch_struct(x);
 
-    if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
+    if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a)) {
         const auto m_b = get_batch_struct(amat);
         const auto b_b = get_batch_struct(b);
         apply_impl(exec, opts, logger, m_b, b_b, x_b);
