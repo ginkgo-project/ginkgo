@@ -30,11 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_CUDA_BASE_EXCEPTION_CUH_
+#define GKO_CUDA_BASE_EXCEPTION_CUH_
 
-#ifndef GKO_CUDA_BASE_EXCEPTION_CUH
-#define GKO_CUDA_BASE_EXCEPTION_CUH
 
 #include <ginkgo/core/base/exception.hpp>
+
 
 namespace gko {
 
@@ -52,4 +53,4 @@ namespace gko {
 
 }  // namespace gko
 
-#endif
+#endif  // GKO_CUDA_BASE_EXCEPTION_CUH_
