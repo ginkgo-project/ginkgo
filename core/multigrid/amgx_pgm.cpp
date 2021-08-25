@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace multigrid {
 namespace amgx_pgm {
+namespace {
 
 
 GKO_REGISTER_OPERATION(match_edge, amgx_pgm::match_edge);
@@ -64,6 +65,7 @@ GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
 
+}  // anonymous namespace
 }  // namespace amgx_pgm
 
 

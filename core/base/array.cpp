@@ -42,20 +42,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace conversion {
+namespace {
 
 
 GKO_REGISTER_OPERATION(convert, components::convert_precision);
 
 
+}  // anonymous namespace
 }  // namespace conversion
 
 
 namespace array {
+namespace {
 
 
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
+}  // anonymous namespace
 }  // namespace array
 
 

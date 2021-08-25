@@ -46,11 +46,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace composition {
+namespace {
 
 
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
+}  // anonymous namespace
 }  // namespace composition
 
 

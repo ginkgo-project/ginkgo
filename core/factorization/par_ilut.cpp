@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace factorization {
 namespace par_ilut_factorization {
+namespace {
 
 
 GKO_REGISTER_OPERATION(threshold_select,
@@ -77,6 +78,7 @@ GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
 GKO_REGISTER_OPERATION(spgemm, csr::spgemm);
 
 
+}  // anonymous namespace
 }  // namespace par_ilut_factorization
 
 

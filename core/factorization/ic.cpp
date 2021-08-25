@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace factorization {
 namespace ic_factorization {
+namespace {
 
 
 GKO_REGISTER_OPERATION(compute, ic_factorization::compute);
@@ -58,6 +59,7 @@ GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
 GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 
 
+}  // anonymous namespace
 }  // namespace ic_factorization
 
 

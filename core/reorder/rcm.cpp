@@ -54,12 +54,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace reorder {
 namespace rcm {
+namespace {
 
 
 GKO_REGISTER_OPERATION(get_permutation, rcm::get_permutation);
 GKO_REGISTER_OPERATION(get_degree_of_nodes, rcm::get_degree_of_nodes);
 
 
+}  // anonymous namespace
 }  // namespace rcm
 
 

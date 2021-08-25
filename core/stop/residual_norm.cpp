@@ -40,21 +40,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace stop {
 namespace residual_norm {
+namespace {
 
 
 GKO_REGISTER_OPERATION(residual_norm, residual_norm::residual_norm);
 
 
+}  // anonymous namespace
 }  // namespace residual_norm
 
 
 namespace implicit_residual_norm {
+namespace {
 
 
 GKO_REGISTER_OPERATION(implicit_residual_norm,
                        implicit_residual_norm::implicit_residual_norm);
 
 
+}  // anonymous namespace
 }  // namespace implicit_residual_norm
 
 

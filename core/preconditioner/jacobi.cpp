@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace preconditioner {
 namespace jacobi {
+namespace {
 
 
 GKO_REGISTER_OPERATION(simple_apply, jacobi::simple_apply);
@@ -73,6 +74,7 @@ GKO_REGISTER_OPERATION(scalar_convert_to_dense,
 GKO_REGISTER_OPERATION(initialize_precisions, jacobi::initialize_precisions);
 
 
+}  // anonymous namespace
 }  // namespace jacobi
 
 

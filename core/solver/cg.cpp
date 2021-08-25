@@ -47,9 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace solver {
-
-
 namespace cg {
+namespace {
 
 
 GKO_REGISTER_OPERATION(initialize, cg::initialize);
@@ -57,6 +56,7 @@ GKO_REGISTER_OPERATION(step_1, cg::step_1);
 GKO_REGISTER_OPERATION(step_2, cg::step_2);
 
 
+}  // anonymous namespace
 }  // namespace cg
 
 
