@@ -93,8 +93,7 @@ protected:
                    << "\", which is required for this test.\n";
         }
         auto csr_ref_temp = gko::read<Csr>(input_file, ref);
-        auto csr_omp_temp = Csr::create(omp);
-        csr_omp_temp->copy_from(gko::lend(csr_ref_temp));
+        auto csr_omp_temp = gko::clone(omp, csr_ref_temp);
         // Make sure there are diagonal elements present
         gko::kernels::reference::factorization::add_diagonal_elements(
             ref, gko::lend(csr_ref_temp), false);
@@ -234,8 +233,7 @@ TYPED_TEST(ParIlu, OmpKernelAddDiagonalElementsSortedEquivalentToRef)
     index_type num_rows{200};
     index_type num_cols{200};
     auto mtx_ref = this->template gen_mtx<Csr>(num_rows, num_cols);
-    auto mtx_omp = Csr::create(this->omp);
-    mtx_omp->copy_from(gko::lend(mtx_ref));
+    auto mtx_omp = gko::clone(this->omp, mtx_ref);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, gko::lend(mtx_ref), true);
@@ -255,8 +253,7 @@ TYPED_TEST(ParIlu, OmpKernelAddDiagonalElementsUnsortedEquivalentToRef)
     index_type num_rows{200};
     index_type num_cols{200};
     auto mtx_ref = this->gen_unsorted_mtx(num_rows, num_cols);
-    auto mtx_omp = Csr::create(this->omp);
-    mtx_omp->copy_from(gko::lend(mtx_ref));
+    auto mtx_omp = gko::clone(this->omp, mtx_ref);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, gko::lend(mtx_ref), false);
@@ -276,8 +273,7 @@ TYPED_TEST(ParIlu, OmpKernelAddDiagonalElementsNonSquareEquivalentToRef)
     index_type num_rows{200};
     index_type num_cols{100};
     auto mtx_ref = this->template gen_mtx<Csr>(num_rows, num_cols);
-    auto mtx_omp = Csr::create(this->omp);
-    mtx_omp->copy_from(gko::lend(mtx_ref));
+    auto mtx_omp = gko::clone(this->omp, mtx_ref);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, gko::lend(mtx_ref), true);

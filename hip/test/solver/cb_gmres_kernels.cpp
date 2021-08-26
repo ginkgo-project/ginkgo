@@ -143,68 +143,49 @@ protected:
         residual_norm_collection = gen_mtx(default_krylov_dim_mixed + 1, n);
         givens_sin = gen_mtx(default_krylov_dim_mixed, n);
         givens_cos = gen_mtx(default_krylov_dim_mixed, n);
-        stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(ref, n));
+        stop_status =
+            std::make_unique<gko::Array<gko::stopping_status>>(ref, n);
         for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
             stop_status->get_data()[i].reset();
         }
-        reorth_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(ref, n));
+        reorth_status =
+            std::make_unique<gko::Array<gko::stopping_status>>(ref, n);
         for (size_t i = 0; i < reorth_status->get_num_elems(); ++i) {
             reorth_status->get_data()[i].reset();
         }
-        final_iter_nums = std::unique_ptr<gko::Array<gko::size_type>>(
-            new gko::Array<gko::size_type>(ref, n));
+        final_iter_nums = std::make_unique<gko::Array<gko::size_type>>(ref, n);
         for (size_t i = 0; i < final_iter_nums->get_num_elems(); ++i) {
             final_iter_nums->get_data()[i] = 5;
         }
-        num_reorth = std::unique_ptr<gko::Array<gko::size_type>>(
-            new gko::Array<gko::size_type>(ref, n));
+        num_reorth = std::make_unique<gko::Array<gko::size_type>>(ref, n);
         for (size_t i = 0; i < num_reorth->get_num_elems(); ++i) {
             num_reorth->get_data()[i] = 5;
         }
 
-        d_x = Mtx::create(hip);
-        d_x->copy_from(x.get());
+        d_x = gko::clone(hip, x);
         d_before_preconditioner = Mtx::create_with_config_of(d_x.get());
-        d_y = Mtx::create(hip);
-        d_y->copy_from(y.get());
-        d_b = Mtx::create(hip);
-        d_b->copy_from(b.get());
-        d_arnoldi_norm = Mtx::create(hip);
-        d_arnoldi_norm->copy_from(arnoldi_norm.get());
+        d_y = gko::clone(hip, y);
+        d_b = gko::clone(hip, b);
+        d_arnoldi_norm = gko::clone(hip, arnoldi_norm);
         d_range_helper = Range3dHelper{hip, {}};
         d_range_helper = range_helper;
-        d_next_krylov_basis = Mtx::create(hip);
-        d_next_krylov_basis->copy_from(next_krylov_basis.get());
-        d_hessenberg = Mtx::create(hip);
-        d_hessenberg->copy_from(hessenberg.get());
-        d_hessenberg_iter = Mtx::create(hip);
-        d_hessenberg_iter->copy_from(hessenberg_iter.get());
-        d_buffer_iter = Mtx::create(hip);
-        d_buffer_iter->copy_from(buffer_iter.get());
-        d_residual = Mtx::create(hip);
-        d_residual->copy_from(residual.get());
-        d_residual_norm = Mtx::create(hip);
-        d_residual_norm->copy_from(residual_norm.get());
-        d_residual_norm_collection = Mtx::create(hip);
-        d_residual_norm_collection->copy_from(residual_norm_collection.get());
-        d_givens_sin = Mtx::create(hip);
-        d_givens_sin->copy_from(givens_sin.get());
-        d_givens_cos = Mtx::create(hip);
-        d_givens_cos->copy_from(givens_cos.get());
-        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(hip, n));
-        *d_stop_status = *stop_status;
-        d_reorth_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(hip, n));
-        *d_reorth_status = *reorth_status;
-        d_final_iter_nums = std::unique_ptr<gko::Array<gko::size_type>>(
-            new gko::Array<gko::size_type>(hip, n));
-        *d_final_iter_nums = *final_iter_nums;
-        d_num_reorth = std::unique_ptr<gko::Array<gko::size_type>>(
-            new gko::Array<gko::size_type>(hip, n));
-        *d_num_reorth = *num_reorth;
+        d_next_krylov_basis = gko::clone(hip, next_krylov_basis);
+        d_hessenberg = gko::clone(hip, hessenberg);
+        d_hessenberg_iter = gko::clone(hip, hessenberg_iter);
+        d_buffer_iter = gko::clone(hip, buffer_iter);
+        d_residual = gko::clone(hip, residual);
+        d_residual_norm = gko::clone(hip, residual_norm);
+        d_residual_norm_collection = gko::clone(hip, residual_norm_collection);
+        d_givens_sin = gko::clone(hip, givens_sin);
+        d_givens_cos = gko::clone(hip, givens_cos);
+        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+            hip, *stop_status);
+        d_reorth_status = std::make_unique<gko::Array<gko::stopping_status>>(
+            hip, *reorth_status);
+        d_final_iter_nums =
+            std::make_unique<gko::Array<gko::size_type>>(hip, *final_iter_nums);
+        d_num_reorth =
+            std::make_unique<gko::Array<gko::size_type>>(hip, *num_reorth);
     }
 
     void assert_krylov_bases_near()

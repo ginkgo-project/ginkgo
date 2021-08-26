@@ -115,46 +115,34 @@ protected:
             gen_mtx(gko::solver::default_krylov_dim + 1, nrhs);
         givens_sin = gen_mtx(gko::solver::default_krylov_dim, nrhs);
         givens_cos = gen_mtx(gko::solver::default_krylov_dim, nrhs);
-        stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(ref, nrhs));
+        stop_status =
+            std::make_unique<gko::Array<gko::stopping_status>>(ref, nrhs);
         for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
             stop_status->get_data()[i].reset();
         }
-        final_iter_nums = std::unique_ptr<gko::Array<gko::size_type>>(
-            new gko::Array<gko::size_type>(ref, nrhs));
+        final_iter_nums =
+            std::make_unique<gko::Array<gko::size_type>>(ref, nrhs);
         for (size_t i = 0; i < final_iter_nums->get_num_elems(); ++i) {
             final_iter_nums->get_data()[i] = 5;
         }
 
-        d_x = Mtx::create(dpcpp);
-        d_x->copy_from(x.get());
+        d_x = gko::clone(dpcpp, x);
         d_before_preconditioner = Mtx::create_with_config_of(d_x.get());
-        d_y = Mtx::create(dpcpp);
-        d_y->copy_from(y.get());
-        d_b = Mtx::create(dpcpp);
-        d_b->copy_from(b.get());
-        d_krylov_bases = Mtx::create(dpcpp);
-        d_krylov_bases->copy_from(krylov_bases.get());
-        d_hessenberg = Mtx::create(dpcpp);
-        d_hessenberg->copy_from(hessenberg.get());
-        d_hessenberg_iter = Mtx::create(dpcpp);
-        d_hessenberg_iter->copy_from(hessenberg_iter.get());
-        d_residual = Mtx::create(dpcpp);
-        d_residual->copy_from(residual.get());
-        d_residual_norm = NormVector::create(dpcpp);
-        d_residual_norm->copy_from(residual_norm.get());
-        d_residual_norm_collection = Mtx::create(dpcpp);
-        d_residual_norm_collection->copy_from(residual_norm_collection.get());
-        d_givens_sin = Mtx::create(dpcpp);
-        d_givens_sin->copy_from(givens_sin.get());
-        d_givens_cos = Mtx::create(dpcpp);
-        d_givens_cos->copy_from(givens_cos.get());
-        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(dpcpp, nrhs));
-        *d_stop_status = *stop_status;
-        d_final_iter_nums = std::unique_ptr<gko::Array<gko::size_type>>(
-            new gko::Array<gko::size_type>(dpcpp, nrhs));
-        *d_final_iter_nums = *final_iter_nums;
+        d_y = gko::clone(dpcpp, y);
+        d_b = gko::clone(dpcpp, b);
+        d_krylov_bases = gko::clone(dpcpp, krylov_bases);
+        d_hessenberg = gko::clone(dpcpp, hessenberg);
+        d_hessenberg_iter = gko::clone(dpcpp, hessenberg_iter);
+        d_residual = gko::clone(dpcpp, residual);
+        d_residual_norm = gko::clone(dpcpp, residual_norm);
+        d_residual_norm_collection =
+            gko::clone(dpcpp, residual_norm_collection);
+        d_givens_sin = gko::clone(dpcpp, givens_sin);
+        d_givens_cos = gko::clone(dpcpp, givens_cos);
+        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+            dpcpp, *stop_status);
+        d_final_iter_nums = std::make_unique<gko::Array<gko::size_type>>(
+            dpcpp, *final_iter_nums);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;

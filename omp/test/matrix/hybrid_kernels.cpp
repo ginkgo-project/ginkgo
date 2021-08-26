@@ -104,14 +104,10 @@ protected:
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(omp, strategy);
         dmtx->copy_from(mtx.get());
-        dresult = Vec::create(omp);
-        dresult->copy_from(expected.get());
-        dy = Vec::create(omp);
-        dy->copy_from(y.get());
-        dalpha = Vec::create(omp);
-        dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(omp);
-        dbeta->copy_from(beta.get());
+        dresult = gko::clone(omp, expected);
+        dy = gko::clone(omp, y);
+        dalpha = gko::clone(omp, alpha);
+        dbeta = gko::clone(omp, beta);
     }
 
 
@@ -195,11 +191,9 @@ TEST_F(Hybrid, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
-    auto dcomplex_b = ComplexVec::create(omp);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(omp, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
-    auto dcomplex_x = ComplexVec::create(omp);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(omp, complex_x);
 
     mtx->apply(complex_b.get(), complex_x.get());
     dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
@@ -212,11 +206,9 @@ TEST_F(Hybrid, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
-    auto dcomplex_b = ComplexVec::create(omp);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(omp, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(532, 3, 1);
-    auto dcomplex_x = ComplexVec::create(omp);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(omp, complex_x);
 
     mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
     dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
@@ -267,10 +259,8 @@ TEST_F(Hybrid, ConvertWithEmptyFirstAndLastRowToCsrIsEquivalentToRef)
             gko::zero<value_type>();
     }
     // now convert them to hybrid matrices
-    auto balanced_mtx = Mtx::create(ref);
-    balanced_mtx->copy_from(dense_mtx.get());
-    auto dbalanced_mtx = Mtx::create(omp);
-    dbalanced_mtx->copy_from(balanced_mtx.get());
+    auto balanced_mtx = gko::clone(ref, dense_mtx);
+    auto dbalanced_mtx = gko::clone(omp, balanced_mtx);
     auto csr_mtx = gko::matrix::Csr<>::create(ref);
     auto dcsr_mtx = gko::matrix::Csr<>::create(omp);
 

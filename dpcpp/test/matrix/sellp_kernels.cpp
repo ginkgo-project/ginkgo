@@ -90,24 +90,18 @@ protected:
         int total_cols = 1, int slice_size = gko::matrix::default_slice_size,
         int stride_factor = gko::matrix::default_stride_factor)
     {
-        mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx(532, 231));
+        mtx = gen_mtx<Mtx>(532, 231);
         empty = Mtx::create(ref);
         expected = gen_mtx(532, total_cols);
         y = gen_mtx(231, total_cols);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = Mtx::create(dpcpp);
-        dmtx->copy_from(mtx.get());
+        dmtx = gko::clone(dpcpp, mtx);
         dempty = Mtx::create(dpcpp);
-        dresult = Vec::create(dpcpp);
-        dresult->copy_from(expected.get());
-        dy = Vec::create(dpcpp);
-        dy->copy_from(y.get());
-        dalpha = Vec::create(dpcpp);
-        dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(dpcpp);
-        dbeta->copy_from(beta.get());
+        dresult = gko::clone(dpcpp, expected);
+        dy = gko::clone(dpcpp, y);
+        dalpha = gko::clone(dpcpp, alpha);
+        dbeta = gko::clone(dpcpp, beta);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -225,11 +219,9 @@ TEST_F(Sellp, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
     auto complex_b = gen_mtx<ComplexVec>(231, 3);
-    auto dcomplex_b = ComplexVec::create(dpcpp);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(dpcpp, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(532, 3);
-    auto dcomplex_x = ComplexVec::create(dpcpp);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(dpcpp, complex_x);
 
     mtx->apply(complex_b.get(), complex_x.get());
     dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
@@ -242,11 +234,9 @@ TEST_F(Sellp, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
     auto complex_b = gen_mtx<ComplexVec>(231, 3);
-    auto dcomplex_b = ComplexVec::create(dpcpp);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(dpcpp, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(532, 3);
-    auto dcomplex_x = ComplexVec::create(dpcpp);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(dpcpp, complex_x);
 
     mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
     dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());

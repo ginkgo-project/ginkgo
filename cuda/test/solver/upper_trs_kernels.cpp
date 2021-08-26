@@ -101,12 +101,10 @@ protected:
         csr_mtx = CsrMtx::create(ref);
         mtx->convert_to(csr_mtx.get());
         d_csr_mtx = CsrMtx::create(cuda);
-        d_x = Mtx::create(cuda);
-        d_x->copy_from(x.get());
+        d_x = gko::clone(cuda, x);
         d_csr_mtx->copy_from(csr_mtx.get());
         b2 = Mtx::create(ref);
-        d_b2 = Mtx::create(cuda);
-        d_b2->copy_from(b.get());
+        d_b2 = gko::clone(cuda, b);
         b2->copy_from(b.get());
     }
 

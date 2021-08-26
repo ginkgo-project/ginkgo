@@ -126,47 +126,29 @@ protected:
         omega = gen_mtx(1, nrhs);
         tht = gen_mtx(1, nrhs);
         residual_norm = gen_mtx(1, nrhs);
-        stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(ref, nrhs));
+        stop_status =
+            std::make_unique<gko::Array<gko::stopping_status>>(ref, nrhs);
         for (size_t i = 0; i < nrhs; ++i) {
             stop_status->get_data()[i].reset();
         }
 
-        d_mtx = Mtx::create(dpcpp);
-        d_x = Mtx::create(dpcpp);
-        d_b = Mtx::create(dpcpp);
-        d_r = Mtx::create(dpcpp);
-        d_m = Mtx::create(dpcpp);
-        d_f = Mtx::create(dpcpp);
-        d_g = Mtx::create(dpcpp);
-        d_u = Mtx::create(dpcpp);
-        d_c = Mtx::create(dpcpp);
-        d_v = Mtx::create(dpcpp);
-        d_p = Mtx::create(dpcpp);
-        d_alpha = Mtx::create(dpcpp);
-        d_omega = Mtx::create(dpcpp);
-        d_tht = Mtx::create(dpcpp);
-        d_residual_norm = Mtx::create(dpcpp);
-        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(dpcpp));
-
-        d_mtx->copy_from(mtx.get());
-        d_x->copy_from(x.get());
-        d_b->copy_from(b.get());
-        d_r->copy_from(r.get());
-        d_m->copy_from(m.get());
-        d_f->copy_from(f.get());
-        d_g->copy_from(g.get());
-        d_u->copy_from(u.get());
-        d_c->copy_from(c.get());
-        d_v->copy_from(v.get());
-        d_p->copy_from(p.get());
-        d_alpha->copy_from(alpha.get());
-        d_omega->copy_from(omega.get());
-        d_tht->copy_from(tht.get());
-        d_residual_norm->copy_from(residual_norm.get());
-        *d_stop_status =
-            *stop_status;  // copy_from is not a public member function of Array
+        d_mtx = gko::clone(dpcpp, mtx);
+        d_x = gko::clone(dpcpp, x);
+        d_b = gko::clone(dpcpp, b);
+        d_r = gko::clone(dpcpp, r);
+        d_m = gko::clone(dpcpp, m);
+        d_f = gko::clone(dpcpp, f);
+        d_g = gko::clone(dpcpp, g);
+        d_u = gko::clone(dpcpp, u);
+        d_c = gko::clone(dpcpp, c);
+        d_v = gko::clone(dpcpp, v);
+        d_p = gko::clone(dpcpp, p);
+        d_alpha = gko::clone(dpcpp, alpha);
+        d_omega = gko::clone(dpcpp, omega);
+        d_tht = gko::clone(dpcpp, tht);
+        d_residual_norm = gko::clone(dpcpp, residual_norm);
+        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+            dpcpp, *stop_status);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;

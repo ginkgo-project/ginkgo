@@ -118,12 +118,9 @@ protected:
         } else {
             alpha = gko::initialize<Mtx>({2.0}, ref);
         }
-        dx = Mtx::create(omp);
-        dx->copy_from(x.get());
-        dy = Mtx::create(omp);
-        dy->copy_from(y.get());
-        dalpha = Mtx::create(omp);
-        dalpha->copy_from(alpha.get());
+        dx = gko::clone(omp, x);
+        dy = gko::clone(omp, y);
+        dalpha = gko::clone(omp, alpha);
         expected = Mtx::create(ref, gko::dim<2>{1, num_vecs});
         dresult = Mtx::create(omp, gko::dim<2>{1, num_vecs});
     }
@@ -137,20 +134,13 @@ protected:
         alpha = gko::initialize<Mtx>({2.0}, ref);
         beta = gko::initialize<Mtx>({-1.0}, ref);
         square = gen_mtx<Mtx>(x->get_size()[0], x->get_size()[0]);
-        dx = Mtx::create(omp);
-        dx->copy_from(x.get());
-        dc_x = ComplexMtx::create(omp);
-        dc_x->copy_from(c_x.get());
-        dy = Mtx::create(omp);
-        dy->copy_from(y.get());
-        dresult = Mtx::create(omp);
-        dresult->copy_from(expected.get());
-        dalpha = Mtx::create(omp);
-        dalpha->copy_from(alpha.get());
-        dbeta = Mtx::create(omp);
-        dbeta->copy_from(beta.get());
-        dsquare = Mtx::create(omp);
-        dsquare->copy_from(square.get());
+        dx = gko::clone(omp, x);
+        dc_x = gko::clone(omp, c_x);
+        dy = gko::clone(omp, y);
+        dresult = gko::clone(omp, expected);
+        dalpha = gko::clone(omp, alpha);
+        dbeta = gko::clone(omp, beta);
+        dsquare = gko::clone(omp, square);
 
         std::vector<int> tmp(x->get_size()[0], 0);
         auto rng = std::default_random_engine{};
@@ -313,11 +303,9 @@ TEST_F(Dense, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexMtx>(25, 1);
-    auto dcomplex_b = ComplexMtx::create(omp);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(omp, complex_b);
     auto complex_x = gen_mtx<ComplexMtx>(40, 1);
-    auto dcomplex_x = ComplexMtx::create(omp);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(omp, complex_x);
 
     x->apply(complex_b.get(), complex_x.get());
     dx->apply(dcomplex_b.get(), dcomplex_x.get());
@@ -330,11 +318,9 @@ TEST_F(Dense, ApplyToMixedComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<MixedComplexMtx>(25, 1);
-    auto dcomplex_b = MixedComplexMtx::create(omp);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(omp, complex_b);
     auto complex_x = gen_mtx<MixedComplexMtx>(40, 1);
-    auto dcomplex_x = MixedComplexMtx::create(omp);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(omp, complex_x);
 
     x->apply(complex_b.get(), complex_x.get());
     dx->apply(dcomplex_b.get(), dcomplex_x.get());
@@ -347,11 +333,9 @@ TEST_F(Dense, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexMtx>(25, 1);
-    auto dcomplex_b = ComplexMtx::create(omp);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(omp, complex_b);
     auto complex_x = gen_mtx<ComplexMtx>(40, 1);
-    auto dcomplex_x = ComplexMtx::create(omp);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(omp, complex_x);
 
     x->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
     dx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
@@ -364,11 +348,9 @@ TEST_F(Dense, AdvancedApplyToMixedComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<MixedComplexMtx>(25, 1);
-    auto dcomplex_b = MixedComplexMtx::create(omp);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(omp, complex_b);
     auto complex_x = gen_mtx<MixedComplexMtx>(40, 1);
-    auto dcomplex_x = MixedComplexMtx::create(omp);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(omp, complex_x);
 
     x->apply(convert<MixedMtx>(alpha).get(), complex_b.get(),
              convert<MixedMtx>(beta).get(), complex_x.get());
@@ -383,11 +365,9 @@ TEST_F(Dense, ComputeDotComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexMtx>(1234, 2);
-    auto dcomplex_b = ComplexMtx::create(omp);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(omp, complex_b);
     auto complex_x = gen_mtx<ComplexMtx>(1234, 2);
-    auto dcomplex_x = ComplexMtx::create(omp);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(omp, complex_x);
     auto result = ComplexMtx::create(ref, gko::dim<2>{1, 2});
     auto dresult = ComplexMtx::create(omp, gko::dim<2>{1, 2});
 
@@ -402,11 +382,9 @@ TEST_F(Dense, ComputeConjDotComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexMtx>(1234, 2);
-    auto dcomplex_b = ComplexMtx::create(omp);
-    dcomplex_b->copy_from(complex_b.get());
+    auto dcomplex_b = gko::clone(omp, complex_b);
     auto complex_x = gen_mtx<ComplexMtx>(1234, 2);
-    auto dcomplex_x = ComplexMtx::create(omp);
-    dcomplex_x->copy_from(complex_x.get());
+    auto dcomplex_x = gko::clone(omp, complex_x);
     auto result = ComplexMtx::create(ref, gko::dim<2>{1, 2});
     auto dresult = ComplexMtx::create(omp, gko::dim<2>{1, 2});
 
@@ -420,8 +398,7 @@ TEST_F(Dense, ComputeConjDotComplexIsEquivalentToRef)
 TEST_F(Dense, ConvertToCooIsEquivalentToRef)
 {
     auto rmtx = gen_mtx<Mtx>(532, 231);
-    auto omtx = Mtx::create(omp);
-    omtx->copy_from(rmtx.get());
+    auto omtx = gko::clone(omp, rmtx);
     auto srmtx = gko::matrix::Coo<>::create(ref);
     auto somtx = gko::matrix::Coo<>::create(omp);
     auto drmtx = Mtx::create(ref);
@@ -441,8 +418,7 @@ TEST_F(Dense, ConvertToCooIsEquivalentToRef)
 TEST_F(Dense, MoveToCooIsEquivalentToRef)
 {
     auto rmtx = gen_mtx<Mtx>(532, 231);
-    auto omtx = Mtx::create(omp);
-    omtx->copy_from(rmtx.get());
+    auto omtx = gko::clone(omp, rmtx);
     auto srmtx = gko::matrix::Coo<>::create(ref);
     auto somtx = gko::matrix::Coo<>::create(omp);
     auto drmtx = Mtx::create(ref);
@@ -462,8 +438,7 @@ TEST_F(Dense, MoveToCooIsEquivalentToRef)
 TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
 {
     auto rmtx = gen_mtx<Mtx>(532, 231);
-    auto omtx = Mtx::create(omp);
-    omtx->copy_from(rmtx.get());
+    auto omtx = gko::clone(omp, rmtx);
     auto srmtx = gko::matrix::Csr<>::create(ref);
     auto somtx = gko::matrix::Csr<>::create(omp);
     auto drmtx = Mtx::create(ref);
@@ -483,8 +458,7 @@ TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
 TEST_F(Dense, MoveToCsrIsEquivalentToRef)
 {
     auto rmtx = gen_mtx<Mtx>(532, 231);
-    auto omtx = Mtx::create(omp);
-    omtx->copy_from(rmtx.get());
+    auto omtx = gko::clone(omp, rmtx);
     auto srmtx = gko::matrix::Csr<>::create(ref);
     auto somtx = gko::matrix::Csr<>::create(omp);
     auto drmtx = Mtx::create(ref);
@@ -504,8 +478,7 @@ TEST_F(Dense, MoveToCsrIsEquivalentToRef)
 TEST_F(Dense, ConvertToSparsityCsrIsEquivalentToRef)
 {
     auto mtx = gen_mtx<Mtx>(532, 231);
-    auto dmtx = Mtx::create(omp);
-    dmtx->copy_from(mtx.get());
+    auto dmtx = gko::clone(omp, mtx);
     auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
     auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(omp);
 
@@ -519,8 +492,7 @@ TEST_F(Dense, ConvertToSparsityCsrIsEquivalentToRef)
 TEST_F(Dense, MoveToSparsityCsrIsEquivalentToRef)
 {
     auto mtx = gen_mtx<Mtx>(532, 231);
-    auto dmtx = Mtx::create(omp);
-    dmtx->copy_from(mtx.get());
+    auto dmtx = gko::clone(omp, mtx);
     auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
     auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(omp);
 
@@ -534,8 +506,7 @@ TEST_F(Dense, MoveToSparsityCsrIsEquivalentToRef)
 TEST_F(Dense, ConvertToEllIsEquivalentToRef)
 {
     auto rmtx = gen_mtx<Mtx>(532, 231);
-    auto omtx = Mtx::create(omp);
-    omtx->copy_from(rmtx.get());
+    auto omtx = gko::clone(omp, rmtx);
     auto srmtx = gko::matrix::Ell<>::create(ref);
     auto somtx = gko::matrix::Ell<>::create(omp);
     auto drmtx = Mtx::create(ref);
@@ -555,8 +526,7 @@ TEST_F(Dense, ConvertToEllIsEquivalentToRef)
 TEST_F(Dense, MoveToEllIsEquivalentToRef)
 {
     auto rmtx = gen_mtx<Mtx>(532, 231);
-    auto omtx = Mtx::create(omp);
-    omtx->copy_from(rmtx.get());
+    auto omtx = gko::clone(omp, rmtx);
     auto srmtx = gko::matrix::Ell<>::create(ref);
     auto somtx = gko::matrix::Ell<>::create(omp);
     auto drmtx = Mtx::create(ref);
@@ -576,8 +546,7 @@ TEST_F(Dense, MoveToEllIsEquivalentToRef)
 TEST_F(Dense, ConvertToHybridIsEquivalentToRef)
 {
     auto rmtx = gen_mtx<Mtx>(532, 231);
-    auto omtx = Mtx::create(omp);
-    omtx->copy_from(rmtx.get());
+    auto omtx = gko::clone(omp, rmtx);
     auto srmtx = gko::matrix::Hybrid<>::create(ref);
     auto somtx = gko::matrix::Hybrid<>::create(omp);
     auto drmtx = Mtx::create(ref);
@@ -599,8 +568,7 @@ TEST_F(Dense, ConvertToHybridIsEquivalentToRef)
 TEST_F(Dense, MoveToHybridIsEquivalentToRef)
 {
     auto rmtx = gen_mtx<Mtx>(532, 231);
-    auto omtx = Mtx::create(omp);
-    omtx->copy_from(rmtx.get());
+    auto omtx = gko::clone(omp, rmtx);
     auto srmtx = gko::matrix::Hybrid<>::create(ref);
     auto somtx = gko::matrix::Hybrid<>::create(omp);
     auto drmtx = Mtx::create(ref);
@@ -622,8 +590,7 @@ TEST_F(Dense, MoveToHybridIsEquivalentToRef)
 TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
 {
     auto rmtx = gen_mtx<Mtx>(532, 231);
-    auto omtx = Mtx::create(omp);
-    omtx->copy_from(rmtx.get());
+    auto omtx = gko::clone(omp, rmtx);
     auto srmtx = gko::matrix::Sellp<>::create(ref);
     auto somtx = gko::matrix::Sellp<>::create(omp);
     auto drmtx = Mtx::create(ref);
@@ -643,8 +610,7 @@ TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
 TEST_F(Dense, MoveToSellpIsEquivalentToRef)
 {
     auto rmtx = gen_mtx<Mtx>(532, 231);
-    auto omtx = Mtx::create(omp);
-    omtx->copy_from(rmtx.get());
+    auto omtx = gko::clone(omp, rmtx);
     auto srmtx = gko::matrix::Sellp<>::create(ref);
     auto somtx = gko::matrix::Sellp<>::create(omp);
     auto drmtx = Mtx::create(ref);
@@ -695,8 +661,7 @@ TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
     std::size_t ref_max_nnz_per_row = 0;
     std::size_t omp_max_nnz_per_row = 0;
     auto rmtx = gen_mtx<Mtx>(100, 100, 1);
-    auto omtx = Mtx::create(omp);
-    omtx->copy_from(rmtx.get());
+    auto omtx = gko::clone(omp, rmtx);
 
     gko::kernels::reference::dense::calculate_max_nnz_per_row(
         ref, rmtx.get(), &ref_max_nnz_per_row);
@@ -712,8 +677,7 @@ TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
     std::size_t ref_total_cols = 0;
     std::size_t omp_total_cols = 0;
     auto rmtx = gen_mtx<Mtx>(100, 100, 1);
-    auto omtx = Mtx::create(omp);
-    omtx->copy_from(rmtx.get());
+    auto omtx = gko::clone(omp, rmtx);
 
     gko::kernels::reference::dense::calculate_total_cols(
         ref, rmtx.get(), &ref_total_cols, 1, gko::matrix::default_slice_size);

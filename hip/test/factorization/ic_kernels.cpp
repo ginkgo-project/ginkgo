@@ -81,8 +81,7 @@ protected:
                    << "\", which is required for this test.\n";
         }
         csr_ref = gko::read<Csr>(input_file, ref);
-        csr_hip = Csr::create(hip);
-        csr_hip->copy_from(gko::lend(csr_ref));
+        csr_hip = gko::clone(hip, csr_ref);
     }
 };
 

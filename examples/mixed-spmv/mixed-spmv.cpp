@@ -212,9 +212,8 @@ int main(int argc, char *argv[])
         host_b->at(i, 0) = get_rand_value<HighPrecision>(dist, rand_engine);
     }
     // copy the data from host to device
-    auto hp_b = share(hp_vec::create(exec));
+    auto hp_b = share(gko::clone(exec, host_b));
     auto lp_b = share(lp_vec::create(exec));
-    hp_b->copy_from(lend(host_b));
     lp_b->copy_from(lend(hp_b));
 
     // create several result x vector in different precision

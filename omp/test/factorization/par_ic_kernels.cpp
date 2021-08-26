@@ -85,8 +85,7 @@ protected:
         dmtx_ani = Csr::create(omp);
         dmtx_l_ani = Csr::create(omp);
         dmtx_l_ani_init = Csr::create(omp);
-        dmtx_l = Csr::create(omp);
-        dmtx_l->copy_from(lend(mtx_l));
+        dmtx_l = gko::clone(omp, mtx_l);
     }
 
     void SetUp()
@@ -112,8 +111,7 @@ protected:
             l_builder.get_value_array().resize_and_reset(l_nnz);
             gko::kernels::reference::factorization::initialize_l(
                 ref, lend(mtx_ani), lend(mtx_l_ani), false);
-            mtx_l_ani_init = Csr::create(ref);
-            mtx_l_ani_init->copy_from(lend(mtx_l_ani));
+            mtx_l_ani_init = gko::clone(ref, mtx_l_ani);
             gko::kernels::reference::par_ic_factorization::init_factor(
                 ref, lend(mtx_l_ani_init));
         }
