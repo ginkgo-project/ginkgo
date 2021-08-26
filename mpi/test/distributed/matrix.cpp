@@ -75,7 +75,7 @@ protected:
     using local_entry = gko::matrix_data_entry<value_type, local_index_type>;
     using global_entry = gko::matrix_data_entry<value_type, global_index_type>;
     using Mtx = gko::distributed::Matrix<value_type, local_index_type>;
-    using GMtx = gko::matrix::Csr<value_type, global_index_type>;
+    using GMtx = gko::matrix::Csr<value_type, local_index_type>;
     using Vec = gko::distributed::Vector<value_type, local_index_type>;
     using GVec = gko::matrix::Dense<value_type>;
     using Partition = gko::distributed::Partition<local_index_type>;
@@ -98,6 +98,17 @@ protected:
                      {3, 3, 8},
                      {4, 0, 9},
                      {4, 4, 10}}},
+          global_mat_input{size,
+                           {{0, 1, 1},
+                            {0, 3, 2},
+                            {1, 1, 3},
+                            {1, 2, 4},
+                            {2, 2, 5},
+                            {2, 4, 6},
+                            {3, 1, 7},
+                            {3, 3, 8},
+                            {4, 0, 9},
+                            {4, 4, 10}}},
           x_input{gko::dim<2>{size[0], 1},
                   {{0, 0, 1}, {1, 0, 1}, {2, 0, 1}, {3, 0, 1}, {4, 0, 1}}},
           dist_input{{{size, {{0, 1, 1}, {0, 3, 2}, {1, 1, 3}, {1, 2, 4}}},
@@ -163,6 +174,7 @@ protected:
     std::shared_ptr<gko::mpi::communicator> comm;
     gko::dim<2> size;
     gko::matrix_data<value_type, global_index_type> mat_input;
+    gko::matrix_data<value_type, local_index_type> global_mat_input;
     gko::matrix_data<value_type, global_index_type> x_input;
     std::shared_ptr<Partition> part;
 
@@ -186,7 +198,7 @@ TYPED_TEST(Matrix, ReadsDistributedGlobalData)
     this->dist_y->fill(gko::zero<value_type>());
 
     dist_mat->read_distributed(this->mat_input, this->part);
-    global_mat->read(this->mat_input);
+    global_mat->read(this->global_mat_input);
     dist_mat->apply(this->dist_x.get(), this->dist_y.get());
     global_mat->apply(this->global_x.get(), this->global_y.get());
 
@@ -206,7 +218,7 @@ TYPED_TEST(Matrix, ReadsDistributedLocalData)
     auto p_id = dist_mat->get_communicator()->rank();
 
     dist_mat->read_distributed(this->dist_input[p_id], this->part);
-    global_mat->read(this->mat_input);
+    global_mat->read(this->global_mat_input);
     dist_mat->apply(this->dist_x.get(), this->dist_y.get());
     global_mat->apply(this->global_x.get(), this->global_y.get());
 
@@ -225,7 +237,7 @@ TYPED_TEST(Matrix, ConvertToCsrContiguousRanges)
     this->global_y->fill(gko::zero<value_type>());
     this->dist_y->fill(gko::zero<value_type>());
     dist_mat->read_distributed(this->mat_input, this->part);
-    global_mat->read(this->mat_input);
+    global_mat->read(this->global_mat_input);
 
     dist_mat->convert_to(converted.get());
 
@@ -250,7 +262,7 @@ TYPED_TEST(Matrix, ConvertToCsrContiguousRangesPermuted)
             this->ref, gko::Array<comm_index_type>{this->ref, {2, 1, 1, 0, 0}},
             3));
     dist_mat->read_distributed(this->mat_input, part);
-    global_mat->read(this->mat_input);
+    global_mat->read(this->global_mat_input);
 
     dist_mat->convert_to(converted.get());
 
@@ -275,7 +287,7 @@ TYPED_TEST(Matrix, ConvertToCsrScatteredRanges)
             this->ref, gko::Array<comm_index_type>{this->ref, {0, 1, 2, 0, 1}},
             3));
     dist_mat->read_distributed(this->mat_input, part);                               gko::distributed::data_placement::local);
-    global_mat->read(this->mat_input);
+    global_mat->read(this->global_mat_input);
 
     dist_mat->convert_to(converted.get());
 

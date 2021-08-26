@@ -65,7 +65,7 @@ protected:
     using local_entry = gko::matrix_data_entry<value_type, local_index_type>;
     using global_entry = gko::matrix_data_entry<value_type, global_index_type>;
     using Mtx = gko::matrix::Csr<value_type, local_index_type>;
-    using GMtx = gko::matrix::Csr<value_type, global_index_type>;
+    using GMtx = gko::matrix::Csr<value_type, local_index_type>;
 
     Matrix()
         : ref(gko::ReferenceExecutor::create()),
@@ -179,10 +179,9 @@ protected:
     gko::Array<comm_index_type> recv_offsets;
     gko::Array<global_index_type> local_to_global_row;
     gko::Array<global_index_type> local_to_global_col;
-    std::unique_ptr<gko::matrix::Csr<value_type, global_index_type>> mat_diag;
-    std::unique_ptr<gko::matrix::Csr<value_type, global_index_type>>
-        mat_offdiag;
-    std::unique_ptr<gko::matrix::Csr<value_type, global_index_type>> mat_merged;
+    std::unique_ptr<Mtx> mat_diag;
+    std::unique_ptr<Mtx> mat_offdiag;
+    std::unique_ptr<Mtx> mat_merged;
 };
 
 TYPED_TEST_SUITE(Matrix, gko::test::ValueIndexTypes);

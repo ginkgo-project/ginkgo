@@ -236,6 +236,13 @@ bool is_connected(const Partition<LocalIndexType>* partition);
 template <typename LocalIndexType>
 bool is_ordered(const Partition<LocalIndexType>* partition);
 
+/**
+ * Creates a permutation that maps gathered indices to global indices
+ */
+template <typename LocalIndexType>
+Array<LocalIndexType> build_block_gather_permute(
+    const Partition<LocalIndexType>* partition);
+
 
 }  // namespace distributed
 }  // namespace gko

@@ -295,34 +295,37 @@ void Matrix<ValueType, LocalIndexType>::validate_data() const
 }
 
 
-template <typename ValueType, typename LocalIndexType>
-std::unique_ptr<gko::matrix::Csr<ValueType, global_index_type>>
-promote_index_type(const gko::matrix::Csr<ValueType, LocalIndexType>* source,
-                   const dim<2> size)
+template <typename ValueType, typename SourceIndexType,
+          typename TargetIndexType>
+std::unique_ptr<gko::matrix::Csr<ValueType, TargetIndexType>>
+convert_csr_index_type(
+    const gko::matrix::Csr<ValueType, SourceIndexType>* source,
+    TargetIndexType deduction_helper)
 {
     auto exec = source->get_executor();
-    gko::Array<global_index_type> row_ptrs;
-    gko::Array<global_index_type> col_idxs;
+    gko::Array<TargetIndexType> row_ptrs;
+    gko::Array<TargetIndexType> col_idxs;
+    gko::Array<ValueType> values;
 
-    row_ptrs = gko::Array<LocalIndexType>::view(
+    row_ptrs = gko::Array<SourceIndexType>::view(
         exec, source->get_size()[0] + 1,
-        const_cast<LocalIndexType*>(source->get_const_row_ptrs()));
-    col_idxs = gko::Array<LocalIndexType>::view(
+        const_cast<SourceIndexType*>(source->get_const_row_ptrs()));
+    col_idxs = gko::Array<SourceIndexType>::view(
         exec, source->get_num_stored_elements(),
-        const_cast<LocalIndexType*>(source->get_const_col_idxs()));
-    gko::Array<ValueType> values = gko::Array<ValueType>::view(
+        const_cast<SourceIndexType*>(source->get_const_col_idxs()));
+    values = gko::Array<ValueType>::view(
         exec, source->get_num_stored_elements(),
         const_cast<ValueType*>(source->get_const_values()));
-    return gko::matrix::Csr<ValueType, global_index_type>::create(
-        exec, size, values, col_idxs, row_ptrs);
+    return gko::matrix::Csr<ValueType, TargetIndexType>::create(
+        exec, source->get_size(), values, col_idxs, row_ptrs);
 }
 
 
 template <typename LocalIndexType>
 void gather_contiguous_rows(
-    std::shared_ptr<const Executor> exec,
-    const global_index_type* local_row_ptrs, size_type local_num_rows,
-    global_index_type* global_row_ptrs, size_type global_num_rows,
+    std::shared_ptr<const Executor> exec, const LocalIndexType* local_row_ptrs,
+    size_type local_num_rows, LocalIndexType* global_row_ptrs,
+    size_type global_num_rows,
     std::shared_ptr<const Partition<LocalIndexType>> part,
     std::shared_ptr<const mpi::communicator> comm)
 {
@@ -340,7 +343,7 @@ void gather_contiguous_rows(
     std::partial_sum(local_row_counts.begin(), local_row_counts.end(),
                      local_row_offsets.begin() + 1);
 
-    Array<global_index_type>::view(exec, global_num_rows + 1, global_row_ptrs)
+    Array<LocalIndexType>::view(exec, global_num_rows + 1, global_row_ptrs)
         .fill(0);
     mpi::gather(local_row_ptrs + 1, local_num_rows, global_row_ptrs + 1,
                 local_row_counts.data(), local_row_offsets.data(), 0, comm);
@@ -358,11 +361,10 @@ void gather_contiguous_rows(
 
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::convert_to(
-    gko::matrix::Csr<ValueType, global_index_type>* result) const
+    gko::matrix::Csr<ValueType, LocalIndexType>* result) const
 {
-    using GMtx = gko::matrix::Csr<ValueType, global_index_type>;
+    using GMtx = gko::matrix::Csr<ValueType, LocalIndexType>;
     // already have total size
-    // compute total nonzero number
     auto exec = this->get_executor();
 
     dim<2> local_size{this->get_local_diag()->get_size()[0],
@@ -371,9 +373,10 @@ void Matrix<ValueType, LocalIndexType>::convert_to(
     auto offdiag_nnz = this->get_local_offdiag()->get_num_stored_elements();
     auto local_nnz = diag_nnz + offdiag_nnz;
 
-    auto mapped_diag = promote_index_type(this->get_local_diag(), local_size);
+    auto mapped_diag =
+        convert_csr_index_type(this->get_local_diag(), global_index_type{});
     auto mapped_offdiag =
-        promote_index_type(this->get_local_offdiag(), local_size);
+        convert_csr_index_type(this->get_local_offdiag(), global_index_type{});
 
     exec->run(matrix::make_map_to_global_idxs(
         this->get_local_diag()->get_const_col_idxs(), diag_nnz,
@@ -388,7 +391,9 @@ void Matrix<ValueType, LocalIndexType>::convert_to(
 
     auto merged_local = GMtx::create(exec, local_size, local_nnz);
     exec->run(matrix::make_merge_diag_offdiag(
-        mapped_diag.get(), mapped_offdiag.get(), merged_local.get()));
+        convert_csr_index_type(mapped_diag.get(), LocalIndexType{}).get(),
+        convert_csr_index_type(mapped_offdiag.get(), LocalIndexType{}).get(),
+        merged_local.get()));
 
     // build gather counts + offsets
     auto comm = this->get_communicator();
@@ -400,8 +405,8 @@ void Matrix<ValueType, LocalIndexType>::convert_to(
     std::partial_sum(recv_counts.begin(), recv_counts.end(),
                      recv_offsets.begin() + 1);
     auto global_nnz = static_cast<size_type>(recv_offsets.back());
-    auto tmp = gko::matrix::Csr<value_type, global_index_type>::create(
-        exec, this->get_size(), global_nnz);
+
+    auto tmp = GMtx::create(exec, this->get_size(), global_nnz);
 
     auto global_row_ptrs = tmp->get_row_ptrs();
     auto global_col_idxs = tmp->get_col_idxs();
@@ -420,15 +425,13 @@ void Matrix<ValueType, LocalIndexType>::convert_to(
         tmp->move_to(result);
     } else {
         auto row_permutation = build_block_gather_permute(partition_.get());
-        gko::as<gko::matrix::Csr<ValueType, global_index_type>>(
-            tmp->row_permute(&row_permutation))
-            ->move_to(result);
+        gko::as<GMtx>(tmp->row_permute(&row_permutation))->move_to(result);
     }
 }
 
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::move_to(
-    gko::matrix::Csr<ValueType, global_index_type>* result) GKO_NOT_IMPLEMENTED;
+    gko::matrix::Csr<ValueType, LocalIndexType>* result) GKO_NOT_IMPLEMENTED;
 
 
 #define GKO_DECLARE_DISTRIBUTED_MATRIX(ValueType, LocalIndexType) \

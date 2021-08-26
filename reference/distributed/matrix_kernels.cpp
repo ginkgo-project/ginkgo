@@ -220,12 +220,11 @@ void merge_sorted(FirstIt begin_first, FirstIt end_first, SecondIt begin_second,
 }
 
 
-template <typename ValueType>
-void merge_diag_offdiag(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, global_index_type>* diag,
-    const matrix::Csr<ValueType, global_index_type>* offdiag,
-    matrix::Csr<ValueType, global_index_type>* result)
+template <typename ValueType, typename LocalIndexType>
+void merge_diag_offdiag(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, LocalIndexType>* diag,
+                        const matrix::Csr<ValueType, LocalIndexType>* offdiag,
+                        matrix::Csr<ValueType, LocalIndexType>* result)
 {
     auto num_rows = result->get_size()[0];
 
@@ -250,18 +249,18 @@ void merge_diag_offdiag(
         auto diag_nnz_in_row = diag_row_ptrs[i + 1] - diag_offset;
         auto offdiag_nnz_in_row = offdiag_row_ptrs[i + 1] - offdiag_offset;
 
-        detail::IteratorFactory<global_index_type, ValueType> diag_factory{
-            const_cast<global_index_type*>(diag_col_idxs) + diag_offset,
+        detail::IteratorFactory<LocalIndexType, ValueType> diag_factory{
+            const_cast<LocalIndexType*>(diag_col_idxs) + diag_offset,
             const_cast<ValueType*>(diag_values) + diag_offset,
             static_cast<size_type>(diag_nnz_in_row)};
-        detail::IteratorFactory<global_index_type, ValueType> offdiag_factory{
-            const_cast<global_index_type*>(offdiag_col_idxs) + offdiag_offset,
+        detail::IteratorFactory<LocalIndexType, ValueType> offdiag_factory{
+            const_cast<LocalIndexType*>(offdiag_col_idxs) + offdiag_offset,
             const_cast<ValueType*>(offdiag_values) + offdiag_offset,
             static_cast<size_type>(offdiag_nnz_in_row)};
 
         local_row_ptrs[i + 1] =
             local_row_ptrs[i] + diag_nnz_in_row + offdiag_nnz_in_row;
-        detail::IteratorFactory<global_index_type, ValueType> local_factory{
+        detail::IteratorFactory<LocalIndexType, ValueType> local_factory{
             local_col_idxs + local_offset, local_values + local_offset,
             static_cast<size_type>(diag_nnz_in_row + offdiag_nnz_in_row)};
 
@@ -271,7 +270,7 @@ void merge_diag_offdiag(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MERGE_DIAG_OFFDIAG);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_MERGE_DIAG_OFFDIAG);
 
 template <typename ValueType, typename LocalIndexType>
 void combine_local_mtxs(std::shared_ptr<const DefaultExecutor> exec,

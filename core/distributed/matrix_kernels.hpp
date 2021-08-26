@@ -65,12 +65,12 @@ namespace kernels {
                             const SourceType* input, size_t n,           \
                             TargetType* output, const TargetType* map)
 
-#define GKO_DECLARE_MERGE_DIAG_OFFDIAG(ValueType)                 \
+#define GKO_DECLARE_MERGE_DIAG_OFFDIAG(ValueType, LocalIndexType) \
     void merge_diag_offdiag(                                      \
         std::shared_ptr<const DefaultExecutor> exec,              \
-        const matrix::Csr<ValueType, global_index_type>* diag,    \
-        const matrix::Csr<ValueType, global_index_type>* offdiag, \
-        matrix::Csr<ValueType, global_index_type>* result)
+        const matrix::Csr<ValueType, LocalIndexType>* diag,       \
+        const matrix::Csr<ValueType, LocalIndexType>* offdiag,    \
+        matrix::Csr<ValueType, LocalIndexType>* result)
 
 #define GKO_DECLARE_COMBINE_LOCAL_MTXS(ValueType, LocalIndexType) \
     void combine_local_mtxs(                                      \
@@ -86,8 +86,8 @@ namespace kernels {
     GKO_DECLARE_BUILD_DIAG_OFFDIAG(ValueType, LocalIndexType); \
     template <typename SourceType, typename TargetType>        \
     GKO_DECLARE_MAP_TO_GLOBAL_IDXS(SourceType, TargetType);    \
-    template <typename ValueType>                              \
-    GKO_DECLARE_MERGE_DIAG_OFFDIAG(ValueType);                 \
+    template <typename ValueType, typename LocalIndexType>     \
+    GKO_DECLARE_MERGE_DIAG_OFFDIAG(ValueType, LocalIndexType); \
     template <typename ValueType, typename LocalIndexType>     \
     GKO_DECLARE_COMBINE_LOCAL_MTXS(ValueType, LocalIndexType)
 

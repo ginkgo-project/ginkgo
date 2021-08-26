@@ -222,17 +222,16 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_IS_ORDERED);
 
 
 template <typename LocalIndexType>
-Array<global_index_type> build_block_gather_permute(
+Array<LocalIndexType> build_block_gather_permute(
     std::shared_ptr<const Partition<LocalIndexType>> partition)
 {
     auto exec = partition->get_executor();
-    Array<global_index_type> permute{exec, partition->get_size()};
+    Array<LocalIndexType> permute{exec, partition->get_size()};
     exec->run(partition::make_build_block_gathered_permute(partition, permute));
     return permute;
 }
-#define GKO_DECLARE_BUILD_BLOCK_GATHER_PERMUTE(_type)    \
-    Array<global_index_type> build_block_gather_permute( \
-        std::shared_ptr<const Partition<_type>> partition)
+#define GKO_DECLARE_BUILD_BLOCK_GATHER_PERMUTE(_type) \
+    Array<_type> build_block_gather_permute(const Partition<_type>* partition)
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_BUILD_BLOCK_GATHER_PERMUTE);
 
 

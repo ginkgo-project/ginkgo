@@ -75,7 +75,6 @@ protected:
     using local_entry = gko::matrix_data_entry<value_type, local_index_type>;
     using global_entry = gko::matrix_data_entry<value_type, global_index_type>;
     using Mtx = gko::distributed::Matrix<value_type, local_index_type>;
-    using GMtx = gko::matrix::Csr<value_type, global_index_type>;
     using Vec = gko::distributed::Vector<value_type, local_index_type>;
     using GVec = gko::matrix::Dense<value_type>;
     using Partition = gko::distributed::Partition<local_index_type>;
@@ -91,8 +90,8 @@ protected:
               ref, gko::Array<comm_index_type>(ref, {0, 0, 1, 1, 2}), 3)}
     {}
 
-    void compare_local_with_global(const Vec *dist, const GVec *global,
-                                   const Partition *part)
+    void compare_local_with_global(const Vec* dist, const GVec* global,
+                                   const Partition* part)
     {
         auto p_id = dist->get_communicator()->rank();
         auto global_idx = [&](const auto idx) {

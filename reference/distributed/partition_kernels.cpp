@@ -135,7 +135,7 @@ template <typename LocalIndexType>
 void build_block_gathered_permute(
     std::shared_ptr<const DefaultExecutor> exec,
     const distributed::Partition<LocalIndexType>* partition,
-    Array<global_index_type>& permute)
+    Array<LocalIndexType>& permute)
 {
     auto range_bounds = partition->get_const_range_bounds();
     auto num_ranges = partition->get_num_ranges();

@@ -73,7 +73,7 @@ namespace kernels {
     void build_block_gathered_permute(                                     \
         std::shared_ptr<const DefaultExecutor> exec,                       \
         const distributed::Partition<LocalIndexType>* partition,           \
-        Array<global_index_type>& permute)
+        Array<LocalIndexType>& permute)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                             \

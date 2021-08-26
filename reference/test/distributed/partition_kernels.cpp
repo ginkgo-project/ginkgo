@@ -230,8 +230,8 @@ TYPED_TEST(Partition, BuildsRowPermuteIdentity)
         gko::distributed::Partition<local_index_type>::build_from_mapping(
             this->ref, gko::Array<comm_index_type>{this->ref, {0, 0, 1, 1, 2}},
             3));
-    gko::Array<global_index_type> permute{this->ref, part->get_size()};
-    gko::Array<global_index_type> result{this->ref, {0, 1, 2, 3, 4}};
+    gko::Array<local_index_type> permute{this->ref, part->get_size()};
+    gko::Array<local_index_type> result{this->ref, {0, 1, 2, 3, 4}};
 
     gko::kernels::reference::partition::build_block_gathered_permute(
         this->ref, part.get(), permute);
@@ -246,8 +246,8 @@ TYPED_TEST(Partition, BuildsRowPermuteReversed)
         gko::distributed::Partition<local_index_type>::build_from_mapping(
             this->ref, gko::Array<comm_index_type>{this->ref, {2, 2, 1, 1, 0}},
             3));
-    gko::Array<global_index_type> permute{this->ref, part->get_size()};
-    gko::Array<global_index_type> result{this->ref, {3, 4, 1, 2, 0}};
+    gko::Array<local_index_type> permute{this->ref, part->get_size()};
+    gko::Array<local_index_type> result{this->ref, {3, 4, 1, 2, 0}};
 
     gko::kernels::reference::partition::build_block_gathered_permute(
         this->ref, part.get(), permute);
@@ -262,8 +262,8 @@ TYPED_TEST(Partition, BuildsRowPermuteScattered)
         gko::distributed::Partition<local_index_type>::build_from_mapping(
             this->ref, gko::Array<comm_index_type>{this->ref, {0, 1, 2, 0, 1}},
             3));
-    gko::Array<global_index_type> permute{this->ref, part->get_size()};
-    gko::Array<global_index_type> result{this->ref, {0, 2, 4, 1, 3}};
+    gko::Array<local_index_type> permute{this->ref, part->get_size()};
+    gko::Array<local_index_type> result{this->ref, {0, 2, 4, 1, 3}};
 
     gko::kernels::reference::partition::build_block_gathered_permute(
         this->ref, part.get(), permute);
