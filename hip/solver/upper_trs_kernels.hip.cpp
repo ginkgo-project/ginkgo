@@ -69,20 +69,15 @@ void should_perform_transpose(std::shared_ptr<const HipExecutor> exec,
 }
 
 
-void init_struct(std::shared_ptr<const HipExecutor> exec,
-                 std::shared_ptr<solver::SolveStruct>& solve_struct)
-{
-    init_struct_kernel(exec, solve_struct);
-}
-
-
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const HipExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* matrix,
-              solver::SolveStruct* solve_struct, const gko::size_type num_rhs)
+              std::shared_ptr<solver::SolveStruct>& solve_struct,
+              const gko::size_type num_rhs)
 {
-    generate_kernel<ValueType, IndexType>(exec, matrix, solve_struct, num_rhs,
-                                          true);
+    init_struct_kernel(exec, solve_struct);
+    generate_kernel<ValueType, IndexType>(exec, matrix, solve_struct.get(),
+                                          num_rhs, true);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

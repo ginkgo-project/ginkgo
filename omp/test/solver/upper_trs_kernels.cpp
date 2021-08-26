@@ -138,20 +138,13 @@ TEST_F(UpperTrs, OmpUpperTrsFlagCheckIsCorrect)
 }
 
 
-TEST_F(UpperTrs, OmpUpperTrsSolveStructInitIsEquivalentToRef)
-{
-    gko::kernels::reference::upper_trs::init_struct(ref, solve_struct_ref);
-    gko::kernels::omp::upper_trs::init_struct(omp, solve_struct_omp);
-}
-
-
 TEST_F(UpperTrs, OmpUpperTrsGenerateIsEquivalentToRef)
 {
     gko::size_type num_rhs = 1;
-    gko::kernels::reference::upper_trs::generate(
-        ref, csr_mat.get(), solve_struct_ref.get(), num_rhs);
+    gko::kernels::reference::upper_trs::generate(ref, csr_mat.get(),
+                                                 solve_struct_ref, num_rhs);
     gko::kernels::omp::upper_trs::generate(omp, d_csr_mat.get(),
-                                           solve_struct_omp.get(), num_rhs);
+                                           solve_struct_omp, num_rhs);
 }
 
 
@@ -159,8 +152,6 @@ TEST_F(UpperTrs, OmpUpperTrsSolveIsEquivalentToRef)
 {
     initialize_data(59, 43);
 
-    gko::kernels::reference::upper_trs::init_struct(ref, solve_struct_ref);
-    gko::kernels::omp::upper_trs::init_struct(omp, solve_struct_omp);
     gko::kernels::reference::upper_trs::solve(ref, csr_mat.get(),
                                               solve_struct_ref.get(), t_b.get(),
                                               t_x.get(), b.get(), x.get());

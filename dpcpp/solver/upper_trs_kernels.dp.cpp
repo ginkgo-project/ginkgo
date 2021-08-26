@@ -66,23 +66,11 @@ void should_perform_transpose(std::shared_ptr<const DpcppExecutor> exec,
 }
 
 
-void init_struct(std::shared_ptr<const DpcppExecutor> exec,
-                 std::shared_ptr<solver::SolveStruct>& solve_struct)
-{
-    // This init kernel is here to allow initialization of the solve struct for
-    // a more sophisticated implementation as for other executors.
-}
-
-
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const DpcppExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* matrix,
-              solver::SolveStruct* solve_struct, const gko::size_type num_rhs)
-{
-    // This generate kernel is here to allow for a more sophisticated
-    // implementation as for other executors. This kernel would perform the
-    // "analysis" phase for the triangular matrix.
-}
+              std::shared_ptr<solver::SolveStruct>& solve_struct,
+              const gko::size_type num_rhs) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL);

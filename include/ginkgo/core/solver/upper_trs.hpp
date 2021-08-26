@@ -123,8 +123,6 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void init_trs_solve_struct();
-
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
@@ -159,7 +157,6 @@ protected:
             system_matrix_ =
                 copy_and_convert_to<CsrMatrix>(exec, system_matrix);
         }
-        this->init_trs_solve_struct();
         this->generate();
     }
 

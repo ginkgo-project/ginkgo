@@ -58,15 +58,10 @@ namespace upper_trs {
                                   bool& do_transpose)
 
 
-#define GKO_DECLARE_UPPER_TRS_INIT_STRUCT_KERNEL                  \
-    void init_struct(std::shared_ptr<const DefaultExecutor> exec, \
-                     std::shared_ptr<gko::solver::SolveStruct>& solve_struct)
-
-
-#define GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL(_vtype, _itype)  \
-    void generate(std::shared_ptr<const DefaultExecutor> exec, \
-                  const matrix::Csr<_vtype, _itype>* matrix,   \
-                  solver::SolveStruct* solve_struct,           \
+#define GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL(_vtype, _itype)              \
+    void generate(std::shared_ptr<const DefaultExecutor> exec,             \
+                  const matrix::Csr<_vtype, _itype>* matrix,               \
+                  std::shared_ptr<gko::solver::SolveStruct>& solve_struct, \
                   const gko::size_type num_rhs)
 
 
@@ -80,7 +75,6 @@ namespace upper_trs {
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                          \
     GKO_DECLARE_UPPER_TRS_SHOULD_PERFORM_TRANSPOSE_KERNEL;    \
-    GKO_DECLARE_UPPER_TRS_INIT_STRUCT_KERNEL;                 \
     template <typename ValueType, typename IndexType>         \
     GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>         \
