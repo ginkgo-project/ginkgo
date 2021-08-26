@@ -422,6 +422,7 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
         if (FLAGS_detailed && !FLAGS_overhead) {
             // slow run, get the time of each functions
             auto x_clone = clone(x);
+            auto exac_clone = clone(x);
             std::shared_ptr<const gko::BatchLinOp> mat_clone =
                 clone(system_matrix);
             std::shared_ptr<const gko::BatchLinOp> b_clone = clone(b);
@@ -429,6 +430,8 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             auto gen_logger =
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(gen_logger);
+            auto direct_solver =
+                generate_solver(exec, "direct", prec_type)->generate(mat_clone);
             auto solver =
                 generate_solver(exec, sol_name, prec_type)->generate(mat_clone);
 
@@ -445,8 +448,34 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             exec->add_logger(apply_logger);
 
             solver->apply(lend(b_clone), lend(x_clone));
-
             exec->remove_logger(gko::lend(apply_logger));
+            direct_solver->apply(lend(b_clone), lend(exac_clone));
+            auto err = clone(exac_clone);
+            auto neg_one =
+                gko::batch_initialize<gko::matrix::BatchDense<etype>>(
+                    nbatch, {etype{-1.0}}, exec);
+            auto err_nrm =
+                gko::matrix::BatchDense<gko::remove_complex<etype>>::create(
+                    exec->get_master(),
+                    gko::batch_dim<2>(nbatch, gko::dim<2>(1, 1)));
+            err->add_scaled(neg_one.get(), x_clone.get());
+            err->compute_norm2(err_nrm.get());
+            exec->synchronize();
+            add_or_set_member(solver_json["apply"], "l2_error",
+                              rapidjson::Value(rapidjson::kObjectType),
+                              allocator);
+            for (size_type i = 0; i < nbatch; ++i) {
+                add_or_set_member(
+                    solver_json["apply"]["l2_error"], std::to_string(i).c_str(),
+                    rapidjson::Value(rapidjson::kArrayType), allocator);
+                for (size_type j = 0; j < nrhs; ++j) {
+                    solver_json["apply"]["l2_error"][std::to_string(i).c_str()]
+                        .PushBack(err_nrm->get_const_values()[i * nrhs + j],
+                                  allocator);
+                }
+            }
+            exec->synchronize();
+
             apply_logger->write_data(solver_json["apply"]["components"],
                                      allocator, 1);
 
