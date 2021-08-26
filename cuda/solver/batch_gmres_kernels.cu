@@ -48,7 +48,14 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 
+
+#define GKO_CUDA_BATCH_USE_NO_SHARED_MEM 1
+
+#if GKO_CUDA_BATCH_USE_NO_SHARED_MEM
+#define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 0
+#else
 #define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 1
+#endif
 constexpr int default_block_size = 128;
 constexpr int sm_multiplier = 4;
 
@@ -76,11 +83,23 @@ namespace batch_gmres {
 template <typename T>
 using BatchGmresOptions = gko::kernels::batch_gmres::BatchGmresOptions<T>;
 
+#if GKO_CUDA_BATCH_USE_NO_SHARED_MEM
+
+#define BATCH_GMRES_KERNEL_LAUNCH(_stoppertype, _prectype)             \
+    apply_kernel<stop::_stoppertype<ValueType>>                        \
+        <<<nbatch, default_block_size>>>(                              \
+            opts.max_its, opts.residual_tol, opts.restart_num, logger, \
+            _prectype<ValueType>(), a, bptr, xptr, workspace.get_data())
+#else
+
+
 #define BATCH_GMRES_KERNEL_LAUNCH(_stoppertype, _prectype)             \
     apply_kernel<stop::_stoppertype<ValueType>>                        \
         <<<nbatch, default_block_size, shared_size>>>(                 \
             opts.max_its, opts.residual_tol, opts.restart_num, logger, \
             _prectype<ValueType>(), a, bptr, xptr)
+
+#endif
 
 template <typename BatchMatrixType, typename LogType, typename ValueType>
 static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
@@ -98,18 +117,23 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
                   "Need at least two warps per block!");
 
     int shared_size =
-#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
+        // #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         gko::kernels::batch_gmres::local_memory_requirement<ValueType>(
             a.num_rows, b.num_rhs, opts.restart_num);
-#else
-        0;
-#endif
+    // #else
+    // 0;
+    // #endif
+    auto workspace = gko::Array<ValueType>(exec);
 
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         shared_size +=
             BatchIdentity<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
             sizeof(ValueType);
+#endif
+#if GKO_CUDA_BATCH_USE_NO_SHARED_MEM
+        workspace = gko::Array<ValueType>(
+            exec, static_cast<size_type>(shared_size * nbatch * 12 / sizeof(ValueType)));
 #endif
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             BATCH_GMRES_KERNEL_LAUNCH(SimpleAbsResidual, BatchIdentity);
@@ -122,6 +146,12 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
         shared_size +=
             BatchJacobi<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
             sizeof(ValueType);
+#else
+        shared_size += a.num_rows * sizeof(ValueType);
+#endif
+#if GKO_CUDA_BATCH_USE_NO_SHARED_MEM
+        workspace = gko::Array<ValueType>(
+            exec, static_cast<size_type>(shared_size * nbatch * 12 / sizeof(ValueType)));
 #endif
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             BATCH_GMRES_KERNEL_LAUNCH(SimpleAbsResidual, BatchJacobi);
