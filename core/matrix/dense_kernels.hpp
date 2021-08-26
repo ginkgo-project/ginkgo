@@ -69,22 +69,24 @@ namespace kernels {
     void fill(std::shared_ptr<const DefaultExecutor> exec, \
               matrix::Dense<_type> *mat, _type value)
 
-#define GKO_DECLARE_DENSE_SCALE_KERNEL(_type)               \
+#define GKO_DECLARE_DENSE_SCALE_KERNEL(_type, _scalar_type) \
     void scale(std::shared_ptr<const DefaultExecutor> exec, \
-               const matrix::Dense<_type> *alpha, matrix::Dense<_type> *x)
+               const matrix::Dense<_scalar_type> *alpha,    \
+               matrix::Dense<_type> *x)
 
-#define GKO_DECLARE_DENSE_INV_SCALE_KERNEL(_type)               \
+#define GKO_DECLARE_DENSE_INV_SCALE_KERNEL(_type, _scalar_type) \
     void inv_scale(std::shared_ptr<const DefaultExecutor> exec, \
-                   const matrix::Dense<_type> *alpha, matrix::Dense<_type> *x)
+                   const matrix::Dense<_scalar_type> *alpha,    \
+                   matrix::Dense<_type> *x)
 
-#define GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(_type)               \
+#define GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(_type, _scalar_type) \
     void add_scaled(std::shared_ptr<const DefaultExecutor> exec, \
-                    const matrix::Dense<_type> *alpha,           \
+                    const matrix::Dense<_scalar_type> *alpha,    \
                     const matrix::Dense<_type> *x, matrix::Dense<_type> *y)
 
-#define GKO_DECLARE_DENSE_SUB_SCALED_KERNEL(_type)               \
+#define GKO_DECLARE_DENSE_SUB_SCALED_KERNEL(_type, _scalar_type) \
     void sub_scaled(std::shared_ptr<const DefaultExecutor> exec, \
-                    const matrix::Dense<_type> *alpha,           \
+                    const matrix::Dense<_scalar_type> *alpha,    \
                     const matrix::Dense<_type> *x, matrix::Dense<_type> *y)
 
 #define GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL(_type)               \
@@ -252,14 +254,14 @@ namespace kernels {
     GKO_DECLARE_DENSE_COPY_KERNEL(InValueType, OutValueType);               \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_FILL_KERNEL(ValueType);                               \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_SCALE_KERNEL(ValueType);                              \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_INV_SCALE_KERNEL(ValueType);                          \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(ValueType);                         \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_SUB_SCALED_KERNEL(ValueType);                         \
+    template <typename ValueType, typename ScalarType>                      \
+    GKO_DECLARE_DENSE_SCALE_KERNEL(ValueType, ScalarType);                  \
+    template <typename ValueType, typename ScalarType>                      \
+    GKO_DECLARE_DENSE_INV_SCALE_KERNEL(ValueType, ScalarType);              \
+    template <typename ValueType, typename ScalarType>                      \
+    GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(ValueType, ScalarType);             \
+    template <typename ValueType, typename ScalarType>                      \
+    GKO_DECLARE_DENSE_SUB_SCALED_KERNEL(ValueType, ScalarType);             \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL(ValueType);                    \
     template <typename ValueType>                                           \
