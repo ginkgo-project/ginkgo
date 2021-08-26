@@ -183,7 +183,8 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
                              LogType logger, PrecType prec_shared,
                              const BatchMatrixType a,
                              const ValueType* const __restrict__ b,
-                             ValueType* const __restrict__ x)
+                             ValueType* const __restrict__ x,
+                             ValueType* const workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const auto nbatch = a.num_batch;
@@ -194,6 +195,20 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
     auto warp_grp = group::tiled_partition<tile_size>(thread_block);
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
+#if GKO_CUDA_BATCH_USE_NO_SHARED_MEM
+        assert(workspace != nullptr);
+        ValueType *const r_sh = workspace + ibatch*(shared_gap*10);
+        ValueType *const r_hat_sh = r_sh + shared_gap;
+        ValueType *const p_sh = r_hat_sh + shared_gap;
+        ValueType *const p_hat_sh = p_sh + shared_gap;
+        ValueType *const v_sh = p_hat_sh + shared_gap;
+        ValueType *const s_sh = v_sh + shared_gap;
+        ValueType *const s_hat_sh = s_sh + shared_gap;
+        ValueType *const t_sh = s_hat_sh + shared_gap;
+        ValueType *const x_sh = t_sh + shared_gap;
+        ValueType *const prec_work_sh = x_sh + shared_gap;
+#else
+
 #ifdef GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         extern __shared__ char local_mem_sh[];
         ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
@@ -218,6 +233,7 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
         __shared__ ValueType x_sh[batch_config<ValueType>::max_num_rows];
         __shared__ ValueType
             prec_work_sh[batch_config<ValueType>::max_num_rows];
+#endif
 #endif
         __shared__ UninitializedArray<ValueType, 1> rho_old_sh;
         __shared__ UninitializedArray<ValueType, 1> rho_new_sh;
