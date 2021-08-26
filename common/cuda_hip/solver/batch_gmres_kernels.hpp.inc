@@ -254,7 +254,8 @@ __global__ void apply_kernel(const int max_iter,
                              const int restart, LogType logger,
                              PrecType prec_shared, const BatchMatrixType a,
                              const ValueType* const __restrict__ b,
-                             ValueType* const __restrict__ x)
+                             ValueType* const __restrict__ x,
+                             ValueType* const workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const auto nbatch = a.num_batch;
@@ -269,6 +270,24 @@ __global__ void apply_kernel(const int max_iter,
     auto warp_grp = group::tiled_partition<tile_size>(thread_block);
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
+#if GKO_CUDA_BATCH_USE_NO_SHARED_MEM
+        assert(workspace != nullptr);
+        ValueType* const r_sh = workspace + ibatch * (nrows * 12 * nrhs);
+        ValueType* const z_sh = r_sh + nrows * nrhs;
+        ValueType* const w_sh = z_sh + nrows * nrhs;
+        ValueType* const x_sh = w_sh + nrows * nrhs;
+        ValueType* const helper_sh = x_sh + nrows * nrhs;
+        ValueType* const cs_sh = helper_sh + nrows * nrhs;
+        ValueType* const sn_sh = cs_sh + restart * nrhs;
+        ValueType* const y_sh = sn_sh + restart * nrhs;
+        ValueType* const s_sh = y_sh + restart * nrhs;
+
+        ValueType* const H_sh = s_sh + (restart + 1) * nrhs;
+
+        ValueType* const V_sh = H_sh + restart * (restart + 1) * nrhs;
+
+        ValueType* const prec_work_sh = V_sh + nrows * (restart + 1) * nrhs;
+#else
         extern __shared__ char local_mem_sh[];
         ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
         ValueType* const z_sh = r_sh + nrows * nrhs;
@@ -302,6 +321,7 @@ __global__ void apply_kernel(const int max_iter,
         ValueType* const V_sh = H_sh + restart * (restart + 1) * nrhs;
 
         ValueType* const prec_work_sh = V_sh + nrows * (restart + 1) * nrhs;
+#endif
 
         // real_type *const norms_rhs_sh = reinterpret_cast<real_type *>(
         //     prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz));
