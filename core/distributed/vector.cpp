@@ -102,6 +102,7 @@ void Vector<ValueType, LocalIndexType>::convert_to(
     // permute rows
     auto part = this->partition_;
     auto exec = part->get_executor();
+    auto rank = this->get_communicator()->rank();
 
     std::vector<comm_index_type> local_row_counts(part->get_num_parts());
     std::vector<comm_index_type> local_row_offsets(local_row_counts.size() + 1,
@@ -117,13 +118,14 @@ void Vector<ValueType, LocalIndexType>::convert_to(
     std::partial_sum(local_row_counts.begin(), local_row_counts.end(),
                      local_row_offsets.begin() + 1);
 
-    auto tmp = matrix::Dense<ValueType>::create(this->get_executor(),
-                                                this->get_size());
+    auto tmp = rank == 0
+                   ? matrix::Dense<ValueType>::create(exec, this->get_size())
+                   : matrix::Dense<ValueType>::create(exec);
     mpi::gather(this->local_.get_const_values(), this->local_.get_size()[0],
                 tmp->get_values(), local_row_counts.data(),
                 local_row_offsets.data(), 0, this->get_communicator());
 
-    if (is_ordered(partition_.get())) {
+    if (rank != 0 || is_ordered(partition_.get())) {
         tmp->move_to(result);
     } else {
         auto row_permutation = build_block_gather_permute(partition_.get());

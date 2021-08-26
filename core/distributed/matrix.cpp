@@ -343,17 +343,21 @@ void gather_contiguous_rows(
     std::partial_sum(local_row_counts.begin(), local_row_counts.end(),
                      local_row_offsets.begin() + 1);
 
-    Array<LocalIndexType>::view(exec, global_num_rows + 1, global_row_ptrs)
-        .fill(0);
+    if (comm->rank() == 0) {
+        Array<LocalIndexType>::view(exec, global_num_rows + 1, global_row_ptrs)
+            .fill(0);
+    }
     mpi::gather(local_row_ptrs + 1, local_num_rows, global_row_ptrs + 1,
                 local_row_counts.data(), local_row_offsets.data(), 0, comm);
-    comm_index_type row = 1;
-    for (comm_index_type pid = 0; pid < part->get_num_parts(); ++pid) {
-        comm_index_type global_part_offset =
-            static_cast<comm_index_type>(global_row_ptrs[row - 1]);
-        for (comm_index_type j = 0; j < part->get_part_size(pid); ++j) {
-            global_row_ptrs[row] += global_part_offset;
-            row++;
+    if (comm->rank() == 0) {
+        comm_index_type row = 1;
+        for (comm_index_type pid = 0; pid < part->get_num_parts(); ++pid) {
+            comm_index_type global_part_offset =
+                static_cast<comm_index_type>(global_row_ptrs[row - 1]);
+            for (comm_index_type j = 0; j < part->get_part_size(pid); ++j) {
+                global_row_ptrs[row] += global_part_offset;
+                row++;
+            }
         }
     }
 }
@@ -406,7 +410,8 @@ void Matrix<ValueType, LocalIndexType>::convert_to(
                      recv_offsets.begin() + 1);
     auto global_nnz = static_cast<size_type>(recv_offsets.back());
 
-    auto tmp = GMtx::create(exec, this->get_size(), global_nnz);
+    auto tmp = rank == 0 ? GMtx::create(exec, this->get_size(), global_nnz)
+                         : GMtx::create(exec);
 
     auto global_row_ptrs = tmp->get_row_ptrs();
     auto global_col_idxs = tmp->get_col_idxs();
@@ -421,7 +426,7 @@ void Matrix<ValueType, LocalIndexType>::convert_to(
     mpi::gather(merged_local->get_const_values(), local_nnz, global_values,
                 recv_counts.data(), recv_offsets.data(), 0, comm);
 
-    if (is_ordered(partition_.get())) {
+    if (rank != 0 || is_ordered(partition_.get())) {
         tmp->move_to(result);
     } else {
         auto row_permutation = build_block_gather_permute(partition_.get());

@@ -244,7 +244,7 @@ TYPED_TEST(Matrix, ConvertToCsrContiguousRanges)
     if (dist_mat->get_communicator()->rank() == 0) {
         GKO_ASSERT_MTX_NEAR(global_mat.get(), converted.get(), 0);
     } else {
-        GKO_ASSERT(converted->get_num_stored_elements() == 0);
+        GKO_ASSERT_EQUAL_DIMENSIONS(converted->get_size(), gko::dim<2>(0, 0));
     }
 }
 
@@ -269,7 +269,7 @@ TYPED_TEST(Matrix, ConvertToCsrContiguousRangesPermuted)
     if (dist_mat->get_communicator()->rank() == 0) {
         GKO_ASSERT_MTX_NEAR(global_mat.get(), converted.get(), 0);
     } else {
-        GKO_ASSERT(converted->get_num_stored_elements() == 0);
+        GKO_ASSERT_EQUAL_DIMENSIONS(converted->get_size(), gko::dim<2>(0, 0));
     }
 }
 
@@ -294,7 +294,7 @@ TYPED_TEST(Matrix, ConvertToCsrScatteredRanges)
     if (dist_mat->get_communicator()->rank() == 0) {
         GKO_ASSERT_MTX_NEAR(global_mat.get(), converted.get(), 0);
     } else {
-        GKO_ASSERT(converted->get_num_stored_elements() == 0);
+        GKO_ASSERT_EQUAL_DIMENSIONS(converted->get_size(), gko::dim<2>(0, 0));
     }
 }
 

@@ -119,48 +119,48 @@ TYPED_TEST_SUITE(Vector, gko::test::ValueIndexTypes);
 TYPED_TEST(Vector, ReadsDistributedGlobalData)
 {
     using value_type = typename TestFixture::value_type;
-    auto dist_vec = TestFixture::Vec::create(this->ref, this->comm);
-    auto global_vec = TestFixture::GVec::create(this->ref);
+    auto dist = TestFixture::Vec::create(this->ref, this->comm);
+    auto global = TestFixture::GVec::create(this->ref);
 
-    dist_vec->read_distributed(this->vec_input, this->part);
-    global_vec->read(this->vec_input);
+    dist->read_distributed(this->vec_input, this->part);
+    global->read(this->vec_input);
 
-    this->compare_local_with_global(dist_vec.get(), global_vec.get(),
-                                    this->part.get());
+    this->compare_local_with_global(dist.get(), global.get(), this->part.get());
 }
 
 TYPED_TEST(Vector, ReadsDistributedLocalData)
 {
     using value_type = typename TestFixture::value_type;
-    auto dist_vec = TestFixture::Vec::create(this->ref, this->comm);
-    auto global_vec = TestFixture::GVec::create(this->ref);
+    auto dist = TestFixture::Vec::create(this->ref, this->comm);
+    auto global = TestFixture::GVec::create(this->ref);
     gko::matrix_data<value_type, global_index_type> local_input[3] = {
         {gko::dim<2>{2, 1}, {{0, 0, 1}, {1, 0, 2}}},
         {gko::dim<2>{2, 1}, {{2, 0, 3}, {3, 0, 4}}},
         {gko::dim<2>{1, 1}, {{4, 0, 5}}}};
-    auto rank = dist_vec->get_communicator()->rank();
+    auto rank = dist->get_communicator()->rank();
 
-    dist_vec->read_distributed(local_input[rank], this->part);
-    global_vec->read(this->vec_input);
+    dist->read_distributed(local_input[rank], this->part);
+    global->read(this->vec_input);
 
-    this->compare_local_with_global(dist_vec.get(), global_vec.get(),
-                                    this->part.get());
+    this->compare_local_with_global(dist.get(), global.get(), this->part.get());
 }
 
 TYPED_TEST(Vector, ConvertsToDense)
 {
     using value_type = typename TestFixture::value_type;
-    auto dist_vec = TestFixture::Vec::create(this->ref);
-    auto global_vec = TestFixture::GVec::create(this->ref);
-    auto gathered_vec = TestFixture::GVec::create(this->ref);
-    dist_vec->read_distributed(this->vec_input, this->part);
-    global_vec->read(this->vec_input);
+    auto dist = TestFixture::Vec::create(this->ref);
+    auto global = TestFixture::GVec::create(this->ref);
+    auto gathered = TestFixture::GVec::create(this->ref);
+    dist->read_distributed(this->vec_input, this->part);
+    global->read(this->vec_input);
 
-    dist_vec->convert_to(gathered_vec.get());
+    dist->convert_to(gathered.get());
 
-    auto rank = dist_vec->get_communicator()->rank();
+    auto rank = dist->get_communicator()->rank();
     if (rank == 0) {
-        GKO_ASSERT_MTX_NEAR(gathered_vec.get(), global_vec.get(), 0);
+        GKO_ASSERT_MTX_NEAR(gathered.get(), global.get(), 0);
+    } else {
+        GKO_ASSERT_EQUAL_DIMENSIONS(gathered->get_size(), gko::dim<2>(0, 0));
     }
 }
 
@@ -168,20 +168,22 @@ TYPED_TEST(Vector, ConvertsToDenseReversePartition)
 {
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
-    auto dist_vec = TestFixture::Vec::create(this->ref);
-    auto global_vec = TestFixture::GVec::create(this->ref);
-    auto gathered_vec = TestFixture::GVec::create(this->ref);
+    auto dist = TestFixture::Vec::create(this->ref);
+    auto global = TestFixture::GVec::create(this->ref);
+    auto gathered = TestFixture::GVec::create(this->ref);
     auto part = gko::share(
         gko::distributed::Partition<local_index_type>::build_from_mapping(
             this->ref, {this->ref, {2, 1, 1, 0, 0}}, 3));
-    dist_vec->read_distributed(this->vec_input, part);
-    global_vec->read(this->vec_input);
+    dist->read_distributed(this->vec_input, part);
+    global->read(this->vec_input);
 
-    dist_vec->convert_to(gathered_vec.get());
+    dist->convert_to(gathered.get());
 
-    auto rank = dist_vec->get_communicator()->rank();
+    auto rank = dist->get_communicator()->rank();
     if (rank == 0) {
-        GKO_ASSERT_MTX_NEAR(gathered_vec.get(), global_vec.get(), 0);
+        GKO_ASSERT_MTX_NEAR(gathered.get(), global.get(), 0);
+    } else {
+        GKO_ASSERT_EQUAL_DIMENSIONS(gathered->get_size(), gko::dim<2>(0, 0));
     }
 }
 
@@ -189,20 +191,22 @@ TYPED_TEST(Vector, ConvertsToDenseScatteredPartition)
 {
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
-    auto dist_vec = TestFixture::Vec::create(this->ref);
-    auto global_vec = TestFixture::GVec::create(this->ref);
-    auto gathered_vec = TestFixture::GVec::create(this->ref);
+    auto dist = TestFixture::Vec::create(this->ref);
+    auto global = TestFixture::GVec::create(this->ref);
+    auto gathered = TestFixture::GVec::create(this->ref);
     auto part = gko::share(
         gko::distributed::Partition<local_index_type>::build_from_mapping(
             this->ref, {this->ref, {0, 1, 2, 0, 1}}, 3));
-    dist_vec->read_distributed(this->vec_input, part);
-    global_vec->read(this->vec_input);
+    dist->read_distributed(this->vec_input, part);
+    global->read(this->vec_input);
 
-    dist_vec->convert_to(gathered_vec.get());
+    dist->convert_to(gathered.get());
 
-    auto rank = dist_vec->get_communicator()->rank();
+    auto rank = dist->get_communicator()->rank();
     if (rank == 0) {
-        GKO_ASSERT_MTX_NEAR(gathered_vec.get(), global_vec.get(), 0);
+        GKO_ASSERT_MTX_NEAR(gathered.get(), global.get(), 0);
+    } else {
+        GKO_ASSERT_EQUAL_DIMENSIONS(gathered->get_size(), gko::dim<2>(0, 0));
     }
 }
 
