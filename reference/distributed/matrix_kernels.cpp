@@ -99,7 +99,8 @@ void build_diag_offdiag(
     };
 
     local_row_to_global.resize_and_reset(partition->get_part_size(local_part));
-    local_row_to_global.fill(-1);  // initialize with invalid global id
+    std::fill_n(local_row_to_global.get_data(),
+                local_row_to_global.get_num_elems(), -1);
 
     range_info row_range{};
     range_info col_range{};
@@ -161,7 +162,8 @@ void build_diag_offdiag(
     // build local-to-global map for offdiag columns
     local_offdiag_col_to_global.resize_and_reset(
         local_gather_idxs.get_num_elems());
-    local_offdiag_col_to_global.fill(-1);
+    std::fill_n(local_offdiag_col_to_global.get_data(),
+                local_offdiag_col_to_global.get_num_elems(), -1);
     for (const auto &key_value : offdiag_global_to_local) {
         const auto global_idx = key_value.first;
         const auto local_idx = key_value.second;
