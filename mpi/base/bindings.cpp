@@ -291,7 +291,7 @@ void window<ValueType>::flush_all_local()
 template <typename ValueType>
 window<ValueType>::~window()
 {
-    if (this->window_) {
+    if (this->window_ && this->window_ != MPI_WIN_NULL) {
         bindings::free_window(&this->window_);
     }
 }
