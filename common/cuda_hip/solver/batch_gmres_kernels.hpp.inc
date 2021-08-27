@@ -249,7 +249,7 @@ __device__ __forceinline__ void update_x(
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
-__global__ void apply_kernel(const int max_iter,
+__global__ void apply_kernel(const int shared_gap, const int max_iter,
                              const gko::remove_complex<ValueType> tol,
                              const int restart, LogType logger,
                              PrecType prec_shared, const BatchMatrixType a,
@@ -272,7 +272,7 @@ __global__ void apply_kernel(const int max_iter,
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
 #if GKO_CUDA_BATCH_USE_NO_SHARED_MEM
         assert(workspace != nullptr);
-        ValueType* const r_sh = workspace + ibatch * (nrows * 12 * nrhs);
+        ValueType* const r_sh = workspace + ibatch * (shared_gap);
         ValueType* const z_sh = r_sh + nrows * nrhs;
         ValueType* const w_sh = z_sh + nrows * nrhs;
         ValueType* const x_sh = w_sh + nrows * nrhs;
