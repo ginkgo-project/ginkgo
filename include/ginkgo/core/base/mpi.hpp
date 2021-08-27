@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
-#ifdef GKO_HAVE_MPI
+#if GKO_HAVE_MPI
 
 #include <mpi.h>
 
