@@ -134,6 +134,22 @@ TEST_F(LowerTrs, CudaLowerTrsFlagCheckIsCorrect)
 }
 
 
+TEST_F(LowerTrs, CudaSingleRhsApplyClassicalIsEquivalentToRef)
+{
+    initialize_data(50, 1);
+    auto lower_trs_factory = gko::solver::LowerTrs<>::build().on(ref);
+    auto d_lower_trs_factory = gko::solver::LowerTrs<>::build().on(cuda);
+    d_csr_mtx->set_strategy(std::make_shared<CsrMtx::classical>());
+    auto solver = lower_trs_factory->generate(csr_mtx);
+    auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
+
+    solver->apply(b2.get(), x.get());
+    d_solver->apply(d_b2.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+}
+
+
 TEST_F(LowerTrs, CudaSingleRhsApplyIsEquivalentToRef)
 {
     initialize_data(50, 1);
