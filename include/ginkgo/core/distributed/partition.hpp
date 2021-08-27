@@ -39,6 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace mpi {
+class communicator;
+}
 namespace distributed {
 
 
@@ -184,6 +187,12 @@ public:
     static std::unique_ptr<Partition> build_from_contiguous(
         std::shared_ptr<const Executor> exec,
         const Array<global_index_type> &ranges);
+
+    // assumes that local_end(rank_i) <= local_start(rank_j) for i<j
+    static std::unique_ptr<Partition> build_from_local_range(
+        std::shared_ptr<const Executor> exec, local_index_type local_start,
+        local_index_type local_end,
+        std::shared_ptr<const mpi::communicator> comm);
 
     /**
      * Creates a partition stored on the given executor with the given number of

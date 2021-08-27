@@ -59,7 +59,6 @@ void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,
 {
     partition->get_range_bounds()[0] = 0;
     for (comm_index_type i = 0; i < ranges.get_num_elems() - 1; i++) {
-        auto begin = ranges.get_const_data()[i];
         auto end = ranges.get_const_data()[i + 1];
         partition->get_range_bounds()[i + 1] = end;
         partition->get_part_ids()[i] = i;
