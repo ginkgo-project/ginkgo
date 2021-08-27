@@ -122,10 +122,11 @@ int main(int argc, char *argv[])
     tol_stop->add_logger(logger);
 
     // Create smoother factory (ir with bj)
-    auto inner_solver_gen = bj::build().with_max_block_size(1u).on(exec);
+    auto inner_solver_gen =
+        gko::share(bj::build().with_max_block_size(1u).on(exec));
     auto smoother_gen = gko::share(
         ir::build()
-            .with_solver(gko::share(inner_solver_gen))
+            .with_solver(inner_solver_gen)
             .with_relaxation_factor(0.9)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(exec))
@@ -133,20 +134,22 @@ int main(int argc, char *argv[])
     // Create MultigridLevel factory
     auto mg_level_gen = amgx_pgm::build().with_deterministic(true).on(exec);
     // Create CoarsestSolver factory
-    auto coarsest_solver_gen =
-        cg::build()
+    auto coarsest_gen = gko::share(
+        ir::build()
+            .with_solver(inner_solver_gen)
+            .with_relaxation_factor(0.9)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec))
-            .on(exec);
+            .on(exec));
     // Create multigrid factory
     auto multigrid_gen =
         mg::build()
             .with_max_levels(9u)
             .with_min_coarse_rows(10u)
-            .with_pre_smoother(gko::share(smoother_gen))
+            .with_pre_smoother(smoother_gen)
             .with_post_uses_pre(true)
             .with_mg_level(gko::share(mg_level_gen))
-            .with_coarsest_solver(gko::share(smoother_gen))
+            .with_coarsest_solver(coarsest_gen)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec);

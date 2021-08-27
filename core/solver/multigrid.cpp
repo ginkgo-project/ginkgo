@@ -309,7 +309,8 @@ struct MultigridState {
                        mid_case == multigrid::mid_smooth_type::pre_smoother;
         if (use_pre && pre_smoother) {
             pre_smoother->apply(b, x);
-            // compute residual
+            // additional residual computation after pre_smoother if it already
+            // contained the residual.
             r->copy_from(b);  // n * b
             matrix->apply(neg_one, x, one, r.get());
         } else if (level != 0) {
