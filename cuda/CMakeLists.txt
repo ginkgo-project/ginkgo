@@ -129,6 +129,33 @@ target_sources(ginkgo_cuda
 foreach(source_file IN LISTS GKO_CUDA_COMMON_SOURCES)
     set_source_files_properties(${source_file} PROPERTIES LANGUAGE CUDA)
 endforeach(source_file)
+if(GINKGO_JACOBI_FULL_OPTIMIZATIONS)
+    # keep in sync with jacobi_common.hpp
+    set(GKO_CUDA_JACOBI_BLOCK_SIZES)
+    foreach(blocksize RANGE 1 32)
+        list(APPEND GKO_JACOBI_BLOCK_SIZES ${blocksize})
+    endforeach()
+else()
+    # keep in sync with jacobi_common.hpp
+    set(GKO_CUDA_JACOBI_BLOCK_SIZES 1 2 4 8 13 16 32)
+endif()
+set(GKO_CUDA_JACOBI_SOURCES)
+foreach(GKO_JACOBI_BLOCK_SIZE IN LISTS GKO_CUDA_JACOBI_BLOCK_SIZES)
+    configure_file(
+        preconditioner/jacobi_generate_instantiate.inc.cu
+        preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
+    configure_file(
+        preconditioner/jacobi_simple_apply_instantiate.inc.cu
+        preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
+    configure_file(
+        preconditioner/jacobi_advanced_apply_instantiate.inc.cu
+        preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
+    list(APPEND GKO_CUDA_JACOBI_SOURCES
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
+endforeach()
+target_sources(ginkgo_cuda PRIVATE ${GKO_CUDA_JACOBI_SOURCES})
 
 if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
     # remove false positive CUDA warnings when calling one<T>() and zero<T>()
