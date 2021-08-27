@@ -488,6 +488,15 @@ inline void i_all_to_all_v(const void *send_buffer, const int *send_count,
 }
 
 
+inline void scan(const void *send_buffer, void *recv_buffer, int count,
+                 MPI_Datatype &reduce_type, MPI_Op operation,
+                 const MPI_Comm &comm)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Scan(send_buffer, recv_buffer, count,
+                                      reduce_type, operation, comm));
+}
+
+
 }  // namespace bindings
 }  // namespace mpi
 }  // namespace gko

@@ -236,6 +236,12 @@ void scatter(const SendType *send_buffer, const int *send_counts,
              std::shared_ptr<const communicator> comm) GKO_NOT_COMPILED(mpi);
 
 
+template <typename ScanType>
+void scan(const ScanType *send_buffer, ScanType *recv_buffer, int count,
+          op_type op_enum, std::shared_ptr<const communicator> comm)
+    GKO_NOT_COMPILED(mpi);
+
+
 #define GKO_DECLARE_WINDOW(ValueType) class window<ValueType>
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_WINDOW);
@@ -334,6 +340,14 @@ GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCATTER1);
                  std::shared_ptr<const communicator> comm)
 
 GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCATTER2);
+
+
+#define GKO_DECLARE_SCAN(ScanType)                                           \
+    void scan(const ScanType *send_buffer, ScanType *recv_buffer, int count, \
+              op_type op_enum, std::shared_ptr<const communicator> comm)
+
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_SCAN);
+
 
 }  // namespace mpi
 }  // namespace gko
