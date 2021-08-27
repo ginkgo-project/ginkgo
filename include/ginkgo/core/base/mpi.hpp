@@ -73,11 +73,17 @@ using MPI_Info = int *;
 #ifndef MPI_COMM_SELF
 #define MPI_COMM_SELF 0
 #endif
+#ifndef MPI_COMM_NULL
+#define MPI_COMM_NULL 0
+#endif
+#ifndef MPI_WIN_NULL
+#define MPI_WIN_NULL nullptr
+#endif
 #ifndef MPI_REQUEST_NULL
 #define MPI_REQUEST_NULL 0
 #endif
 #ifndef MPI_INFO_NULL
-#define MPI_INFO_NULL 0
+#define MPI_INFO_NULL nullptr
 #endif
 #ifndef MPI_MIN
 #define MPI_MIN 0
