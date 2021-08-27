@@ -66,7 +66,7 @@ init_finalize::init_finalize(int &argc, char **&argv,
                              const size_type num_threads) GKO_NOT_COMPILED(mpi);
 
 
-init_finalize::~init_finalize() GKO_NOT_COMPILED(mpi);
+init_finalize::~init_finalize() {}
 
 
 communicator::communicator(const MPI_Comm &comm) GKO_NOT_COMPILED(mpi);
@@ -78,7 +78,6 @@ communicator::communicator(const MPI_Comm &comm_in, int color, int key)
 
 communicator::~communicator() {}
 
-
 info::info() GKO_NOT_COMPILED(mpi);
 
 void info::add(std::string key, std::string value) GKO_NOT_COMPILED(mpi);
@@ -87,7 +86,7 @@ void info::add(std::string key, std::string value) GKO_NOT_COMPILED(mpi);
 void info::remove(std::string key) GKO_NOT_COMPILED(mpi);
 
 
-info::~info() GKO_NOT_COMPILED(mpi);
+info::~info() {}
 
 
 bool communicator::compare(const MPI_Comm &comm) const GKO_NOT_COMPILED(mpi);
@@ -138,7 +137,8 @@ void window<ValueType>::flush_all_local() GKO_NOT_COMPILED(mpi);
 
 
 template <typename ValueType>
-window<ValueType>::~window() GKO_NOT_COMPILED(mpi);
+window<ValueType>::~window()
+{}
 
 
 MPI_Op create_operation(
