@@ -30,7 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
+#include <numeric>
 
 
 #include "core/distributed/partition_kernels.hpp"
@@ -81,6 +83,39 @@ Partition<LocalIndexType>::build_from_contiguous(
                                                     result.get()));
     result->compute_range_ranks();
     return result;
+}
+
+
+template <typename LocalIndexType>
+std::unique_ptr<Partition<LocalIndexType>>
+Partition<LocalIndexType>::build_from_local_range(
+    std::shared_ptr<const Executor> exec, local_index_type local_start,
+    local_index_type local_end, std::shared_ptr<const mpi::communicator> comm)
+{
+    global_index_type range[2] = {static_cast<global_index_type>(local_start),
+                                  static_cast<global_index_type>(local_end)};
+
+    // make all range_ends available on each rank
+    Array<global_index_type> ranges_start_end(exec->get_master(),
+                                              comm->size() * 2);
+    ranges_start_end.fill(0);
+    mpi::all_gather(range, 2, ranges_start_end.get_data(), 2, comm);
+
+    // remove duplicates
+    Array<global_index_type> ranges(exec->get_master(), comm->size() + 1);
+    auto ranges_se_data = ranges_start_end.get_const_data();
+    ranges.get_data()[0] = ranges_se_data[0];
+    for (int i = 1; i < ranges_start_end.get_num_elems() - 1; i += 2) {
+        GKO_ASSERT_EQ(ranges_se_data[i], ranges_se_data[i + 1]);
+        ranges.get_data()[i / 2 + 1] = ranges_se_data[i];
+    }
+    ranges.get_data()[ranges.get_num_elems() - 1] =
+        ranges_se_data[ranges_start_end.get_num_elems() - 1];
+
+    // move data to correct executor
+    ranges.set_executor(exec);
+
+    return Partition::build_from_contiguous(exec, ranges);
 }
 
 
