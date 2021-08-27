@@ -37,9 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/config.hpp>
 
 
-#if GKO_HAVE_MPI
-
-
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
@@ -186,5 +183,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_HAVE_MPI
 #endif  // GKO_PUBLIC_CORE_DISTRIBUTED_VECTOR_HPP_
