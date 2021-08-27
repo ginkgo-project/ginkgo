@@ -53,6 +53,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/multigrid/amgx_pgm_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
+#include "core/test/utils/unsort_matrix.hpp"
+
 
 namespace {
 
@@ -276,6 +278,32 @@ TEST_F(AmgxPgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
 TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRef)
 {
     initialize_data();
+    auto mg_level_factory = gko::multigrid::AmgxPgm<double, int>::build()
+                                .with_deterministic(true)
+                                .with_skip_sorting(true)
+                                .on(ref);
+    auto d_mg_level_factory = gko::multigrid::AmgxPgm<double, int>::build()
+                                  .with_deterministic(true)
+                                  .with_skip_sorting(true)
+                                  .on(omp);
+
+    auto mg_level = mg_level_factory->generate(system_mtx);
+    auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
+                        gko::as<Csr>(mg_level->get_restrict_op()), 1e-14);
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
+                        gko::as<Csr>(mg_level->get_coarse_op()), 1e-14);
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_prolong_op()),
+                        gko::as<Csr>(mg_level->get_prolong_op()), 1e-14);
+}
+
+
+TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
+{
+    initialize_data();
+    gko::test::unsort_matrix(gko::lend(system_mtx), rand_engine);
+    d_system_mtx = gko::clone(omp, system_mtx);
     auto mg_level_factory = gko::multigrid::AmgxPgm<double, int>::build()
                                 .with_deterministic(true)
                                 .on(ref);
