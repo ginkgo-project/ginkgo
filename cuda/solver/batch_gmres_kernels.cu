@@ -85,19 +85,20 @@ using BatchGmresOptions = gko::kernels::batch_gmres::BatchGmresOptions<T>;
 
 #if GKO_CUDA_BATCH_USE_NO_SHARED_MEM
 
-#define BATCH_GMRES_KERNEL_LAUNCH(_stoppertype, _prectype)             \
-    apply_kernel<stop::_stoppertype<ValueType>>                        \
-        <<<nbatch, default_block_size>>>(                              \
-            opts.max_its, opts.residual_tol, opts.restart_num, logger, \
-            _prectype<ValueType>(), a, bptr, xptr, workspace.get_data())
+#define BATCH_GMRES_KERNEL_LAUNCH(_stoppertype, _prectype)                    \
+    apply_kernel<stop::_stoppertype<ValueType>>                               \
+        <<<nbatch, default_block_size>>>(shared_gap, opts.max_its,            \
+                                         opts.residual_tol, opts.restart_num, \
+                                         logger, _prectype<ValueType>(), a,   \
+                                         bptr, xptr, workspace.get_data())
 #else
 
 
-#define BATCH_GMRES_KERNEL_LAUNCH(_stoppertype, _prectype)             \
-    apply_kernel<stop::_stoppertype<ValueType>>                        \
-        <<<nbatch, default_block_size, shared_size>>>(                 \
-            opts.max_its, opts.residual_tol, opts.restart_num, logger, \
-            _prectype<ValueType>(), a, bptr, xptr)
+#define BATCH_GMRES_KERNEL_LAUNCH(_stoppertype, _prectype)                 \
+    apply_kernel<stop::_stoppertype<ValueType>>                            \
+        <<<nbatch, default_block_size, shared_size>>>(                     \
+            shared_gap, opts.max_its, opts.residual_tol, opts.restart_num, \
+            logger, _prectype<ValueType>(), a, bptr, xptr)
 
 #endif
 
@@ -120,6 +121,12 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
         // #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         gko::kernels::batch_gmres::local_memory_requirement<ValueType>(
             a.num_rows, b.num_rhs, opts.restart_num);
+    auto nrhs = b.num_rhs;
+    auto nrows = a.num_rows;
+    auto restart = opts.restart_num;
+    int shared_gap = 5 * nrows * nrhs + 3 * restart * nrhs +
+                     (restart + 1) * nrhs + restart * (restart + 1) * nrhs +
+                     nrows * (restart + 1) * nrhs;
     // #else
     // 0;
     // #endif
@@ -133,7 +140,8 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
 #endif
 #if GKO_CUDA_BATCH_USE_NO_SHARED_MEM
         workspace = gko::Array<ValueType>(
-            exec, static_cast<size_type>(shared_size * nbatch * 12 / sizeof(ValueType)));
+            exec, static_cast<size_type>(shared_size * nbatch * 12 /
+                                         sizeof(ValueType)));
 #endif
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             BATCH_GMRES_KERNEL_LAUNCH(SimpleAbsResidual, BatchIdentity);
@@ -151,7 +159,8 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
 #endif
 #if GKO_CUDA_BATCH_USE_NO_SHARED_MEM
         workspace = gko::Array<ValueType>(
-            exec, static_cast<size_type>(shared_size * nbatch * 12 / sizeof(ValueType)));
+            exec, static_cast<size_type>(shared_size * nbatch * 12 /
+                                         sizeof(ValueType)));
 #endif
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             BATCH_GMRES_KERNEL_LAUNCH(SimpleAbsResidual, BatchJacobi);
