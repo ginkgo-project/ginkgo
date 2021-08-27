@@ -76,6 +76,7 @@ protected:
           amgxpgm_factory(MgLevel::build()
                               .with_max_iterations(2u)
                               .with_max_unassigned_ratio(0.1)
+                              .with_skip_sorting(true)
                               .on(exec)),
           fine_b(gko::initialize<Vec>(
               {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
@@ -513,6 +514,45 @@ TYPED_TEST(AmgxPgm, GenerateMgLevel)
     auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
 
     auto coarse_fine = this->amgxpgm_factory->generate(this->mtx);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_restrict_op()),
+                        restrict_op, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
+                        this->coarse, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_prolong_op()), prolong_op,
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(AmgxPgm, GenerateMgLevelOnUnsortedMatrix)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    using MgLevel = typename TestFixture::MgLevel;
+    auto mglevel_sort = MgLevel::build()
+                            .with_max_iterations(2u)
+                            .with_max_unassigned_ratio(0.1)
+                            .on(this->exec);
+    /* this unsorted matrix is stored as this->fine:
+     *  5 -3 -3  0  0
+     * -3  5  0 -2 -1
+     * -3  0  5  0 -1
+     *  0 -3  0  5  0
+     *  0 -2 -2  0  5
+     */
+    auto mtx_values = {-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, 5, -3, -2, -2, 5};
+    auto mtx_col_idxs = {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4};
+    auto mtx_row_ptrs = {0, 3, 7, 10, 12, 15};
+    auto matrix = gko::share(
+        Mtx::create(this->exec, gko::dim<2>{5, 5}, std::move(mtx_values),
+                    std::move(mtx_col_idxs), std::move(mtx_row_ptrs)));
+    auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 2}, 0));
+    // 0-2-4, 1-3
+    prolong_op->read(
+        {{5, 2}, {{0, 0, 1}, {1, 1, 1}, {2, 0, 1}, {3, 1, 1}, {4, 0, 1}}});
+    auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
+
+    auto coarse_fine = mglevel_sort->generate(matrix);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_restrict_op()),
                         restrict_op, r<value_type>::value);

@@ -61,7 +61,7 @@ constexpr int default_block_size = 512;
 namespace kernel {
 
 
-#include "common/solver/multigrid_kernels.hpp.inc"
+#include "common/cuda_hip/solver/multigrid_kernels.hpp.inc"
 
 
 }  // namespace kernel
