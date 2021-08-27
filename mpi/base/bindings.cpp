@@ -615,6 +615,17 @@ void all_to_all(const SendType *send_buffer, const int *send_counts,
 }
 
 
+template <typename ScanType>
+void scan(const ScanType *send_buffer, ScanType *recv_buffer, int count,
+          op_type op_enum, std::shared_ptr<const communicator> comm)
+{
+    auto operation = helpers::get_operation<ScanType>(op_enum);
+    auto scan_type = helpers::get_mpi_type(recv_buffer[0]);
+    bindings::scan(send_buffer, recv_buffer, count, scan_type, operation,
+                   comm ? comm->get() : communicator::get_comm_world());
+}
+
+
 #define GKO_DECLARE_WINDOW(ValueType) class window<ValueType>
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_WINDOW);
@@ -750,6 +761,12 @@ GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ALL_TO_ALL2);
 
 GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ALL_TO_ALL_V);
+
+
+#define GKO_DECLARE_SCAN(ScanType)                                           \
+    void scan(const ScanType *send_buffer, ScanType *recv_buffer, int count, \
+              op_type op_enum, std::shared_ptr<const communicator> comm)
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_SCAN);
 
 
 }  // namespace mpi
