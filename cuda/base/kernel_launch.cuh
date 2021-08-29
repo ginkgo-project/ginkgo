@@ -77,7 +77,7 @@ __global__ __launch_bounds__(default_block_size) void generic_kernel_2d(
 
 template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const CudaExecutor> exec, KernelFunction fn,
-                size_type size, KernelArgs &&... args)
+                size_type size, KernelArgs&&... args)
 {
     gko::cuda::device_guard guard{exec->get_device_id()};
     constexpr auto block_size = default_block_size;
@@ -88,7 +88,7 @@ void run_kernel(std::shared_ptr<const CudaExecutor> exec, KernelFunction fn,
 
 template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const CudaExecutor> exec, KernelFunction fn,
-                dim<2> size, KernelArgs &&... args)
+                dim<2> size, KernelArgs&&... args)
 {
     gko::cuda::device_guard guard{exec->get_device_id()};
     constexpr auto block_size = default_block_size;

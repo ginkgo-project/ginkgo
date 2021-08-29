@@ -57,7 +57,7 @@ namespace detail {
 
 #ifdef _MSC_VER
 template <typename TargetType, typename Functor>
-inline void comparator(TargetType *arr, size_type x, size_type y, Functor comp)
+inline void comparator(TargetType* arr, size_type x, size_type y, Functor comp)
 {
     const auto should_swap = !comp(arr[x], arr[y]);
     const auto tmp = arr[x];
@@ -66,7 +66,7 @@ inline void comparator(TargetType *arr, size_type x, size_type y, Functor comp)
 }
 #else
 template <typename TargetType, typename Functor>
-inline void comparator(TargetType *arr, size_type x, size_type y, Functor comp)
+inline void comparator(TargetType* arr, size_type x, size_type y, Functor comp)
 {
     const auto tx = arr[x];
     const auto ty = arr[y];
@@ -87,7 +87,7 @@ inline void comparator(TargetType *arr, size_type x, size_type y, Functor comp)
  * For larger sizes delegates to std::sort.
  */
 template <typename TargetType, typename Functor>
-void sort_small(TargetType *arr, size_type n, Functor comp)
+void sort_small(TargetType* arr, size_type n, Functor comp)
 {
     const auto sort2 = [&](size_type x, size_type y) {
         detail::comparator(arr, x, y, comp);

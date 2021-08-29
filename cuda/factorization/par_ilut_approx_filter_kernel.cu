@@ -83,11 +83,11 @@ using compiled_kernels =
 template <int subwarp_size, typename ValueType, typename IndexType>
 void threshold_filter_approx(syn::value_list<int, subwarp_size>,
                              std::shared_ptr<const DefaultExecutor> exec,
-                             const matrix::Csr<ValueType, IndexType> *m,
-                             IndexType rank, Array<ValueType> *tmp,
-                             remove_complex<ValueType> *threshold,
-                             matrix::Csr<ValueType, IndexType> *m_out,
-                             matrix::Coo<ValueType, IndexType> *m_out_coo)
+                             const matrix::Csr<ValueType, IndexType>* m,
+                             IndexType rank, Array<ValueType>* tmp,
+                             remove_complex<ValueType>* threshold,
+                             matrix::Csr<ValueType, IndexType>* m_out,
+                             matrix::Coo<ValueType, IndexType>* m_out_coo)
 {
     auto values = m->get_const_values();
     IndexType size = m->get_num_stored_elements();
@@ -108,14 +108,14 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
         tmp_size_totals + tmp_size_partials + tmp_size_oracles + tmp_size_tree;
     tmp->resize_and_reset(tmp_size);
 
-    auto total_counts = reinterpret_cast<IndexType *>(tmp->get_data());
+    auto total_counts = reinterpret_cast<IndexType*>(tmp->get_data());
     auto partial_counts =
-        reinterpret_cast<IndexType *>(tmp->get_data() + tmp_size_totals);
-    auto oracles = reinterpret_cast<unsigned char *>(
+        reinterpret_cast<IndexType*>(tmp->get_data() + tmp_size_totals);
+    auto oracles = reinterpret_cast<unsigned char*>(
         tmp->get_data() + tmp_size_totals + tmp_size_partials);
     auto tree =
-        reinterpret_cast<AbsType *>(tmp->get_data() + tmp_size_totals +
-                                    tmp_size_partials + tmp_size_oracles);
+        reinterpret_cast<AbsType*>(tmp->get_data() + tmp_size_totals +
+                                   tmp_size_partials + tmp_size_oracles);
 
     sampleselect_count(exec, values, size, tree, oracles, partial_counts,
                        total_counts);
@@ -153,7 +153,7 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
     builder.get_value_array().resize_and_reset(new_nnz);
     auto new_col_idxs = m_out->get_col_idxs();
     auto new_vals = m_out->get_values();
-    IndexType *new_row_idxs{};
+    IndexType* new_row_idxs{};
     if (m_out_coo) {
         matrix::CooBuilder<ValueType, IndexType> coo_builder{m_out_coo};
         coo_builder.get_row_idx_array().resize_and_reset(new_nnz);
@@ -176,11 +176,11 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_threshold_filter_approx,
 
 template <typename ValueType, typename IndexType>
 void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
-                             const matrix::Csr<ValueType, IndexType> *m,
-                             IndexType rank, Array<ValueType> &tmp,
-                             remove_complex<ValueType> &threshold,
-                             matrix::Csr<ValueType, IndexType> *m_out,
-                             matrix::Coo<ValueType, IndexType> *m_out_coo)
+                             const matrix::Csr<ValueType, IndexType>* m,
+                             IndexType rank, Array<ValueType>& tmp,
+                             remove_complex<ValueType>& threshold,
+                             matrix::Csr<ValueType, IndexType>* m_out,
+                             matrix::Coo<ValueType, IndexType>* m_out_coo)
 {
     auto num_rows = m->get_size()[0];
     auto total_nnz = m->get_num_stored_elements();

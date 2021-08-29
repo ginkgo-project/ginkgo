@@ -206,7 +206,7 @@ protected:
      * @param factory  the factory to use to create the preconditoner
      * @param system_matrix  the matrix for which an ISAI is to be computed
      */
-    explicit Isai(const Factory *factory,
+    explicit Isai(const Factory* factory,
                   std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Isai>(factory->get_executor(), system_matrix->get_size()),
           parameters_{factory->get_parameters()}
@@ -223,13 +223,13 @@ protected:
         }
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override
+    void apply_impl(const LinOp* b, LinOp* x) const override
     {
         approximate_inverse_->apply(b, x);
     }
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override
     {
         approximate_inverse_->apply(alpha, b, beta, x);
     }

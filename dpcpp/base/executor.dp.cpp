@@ -60,7 +60,7 @@ const std::vector<sycl::device> get_devices(std::string device_type)
         {"host", sycl::info::device_type::host},
         {"gpu", sycl::info::device_type::gpu}};
     std::for_each(device_type.begin(), device_type.end(),
-                  [](char &c) { c = std::tolower(c); });
+                  [](char& c) { c = std::tolower(c); });
     return sycl::device::get_devices(device_type_map.at(device_type));
 }
 
@@ -68,8 +68,8 @@ const std::vector<sycl::device> get_devices(std::string device_type)
 }  // namespace detail
 
 
-void OmpExecutor::raw_copy_to(const DpcppExecutor *dest, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void OmpExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
 {
     if (num_bytes > 0) {
         dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
@@ -77,7 +77,7 @@ void OmpExecutor::raw_copy_to(const DpcppExecutor *dest, size_type num_bytes,
 }
 
 
-bool OmpExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
+bool OmpExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
 {
     auto device = detail::get_devices(
         dest_exec->get_device_type())[dest_exec->get_device_id()];
@@ -93,14 +93,14 @@ std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
 }
 
 
-void DpcppExecutor::populate_exec_info(const MachineTopology *mach_topo)
+void DpcppExecutor::populate_exec_info(const MachineTopology* mach_topo)
 {
     // Closest CPUs, NUMA node can be updated when there is a way to identify
     // the device itself, which is currently not available with DPC++.
 }
 
 
-void DpcppExecutor::raw_free(void *ptr) const noexcept
+void DpcppExecutor::raw_free(void* ptr) const noexcept
 {
     // the free function may syncronize excution or not, which depends on
     // implementation or backend, so it is not guaranteed.
@@ -108,7 +108,7 @@ void DpcppExecutor::raw_free(void *ptr) const noexcept
     try {
         queue_->wait_and_throw();
         sycl::free(ptr, queue_->get_context());
-    } catch (cl::sycl::exception &err) {
+    } catch (cl::sycl::exception& err) {
 #if GKO_VERBOSE_LEVEL >= 1
         // Unfortunately, if memory free fails, there's not much we can do
         std::cerr << "Unrecoverable Dpcpp error on device "
@@ -128,16 +128,16 @@ void DpcppExecutor::raw_free(void *ptr) const noexcept
 }
 
 
-void *DpcppExecutor::raw_alloc(size_type num_bytes) const
+void* DpcppExecutor::raw_alloc(size_type num_bytes) const
 {
-    void *dev_ptr = sycl::malloc_device(num_bytes, *queue_.get());
+    void* dev_ptr = sycl::malloc_device(num_bytes, *queue_.get());
     GKO_ENSURE_ALLOCATED(dev_ptr, "DPC++", num_bytes);
     return dev_ptr;
 }
 
 
-void DpcppExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
-                                const void *src_ptr, void *dest_ptr) const
+void DpcppExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
+                                const void* src_ptr, void* dest_ptr) const
 {
     if (num_bytes > 0) {
         queue_->memcpy(dest_ptr, src_ptr, num_bytes).wait();
@@ -145,8 +145,8 @@ void DpcppExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
 }
 
 
-void DpcppExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
-                                const void *src_ptr, void *dest_ptr) const
+void DpcppExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
+                                const void* src_ptr, void* dest_ptr) const
 {
     // TODO: later when possible, if we have DPC++ with a CUDA backend
     // support/compiler, we could maybe support native copies?
@@ -154,15 +154,15 @@ void DpcppExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
 }
 
 
-void DpcppExecutor::raw_copy_to(const HipExecutor *dest, size_type num_bytes,
-                                const void *src_ptr, void *dest_ptr) const
+void DpcppExecutor::raw_copy_to(const HipExecutor* dest, size_type num_bytes,
+                                const void* src_ptr, void* dest_ptr) const
 {
     GKO_NOT_SUPPORTED(dest);
 }
 
 
-void DpcppExecutor::raw_copy_to(const DpcppExecutor *dest, size_type num_bytes,
-                                const void *src_ptr, void *dest_ptr) const
+void DpcppExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
+                                const void* src_ptr, void* dest_ptr) const
 {
     if (num_bytes > 0) {
         // If the queue is different and is not cpu/host, the queue can not
@@ -187,7 +187,7 @@ void DpcppExecutor::raw_copy_to(const DpcppExecutor *dest, size_type num_bytes,
 void DpcppExecutor::synchronize() const { queue_->wait_and_throw(); }
 
 
-void DpcppExecutor::run(const Operation &op) const
+void DpcppExecutor::run(const Operation& op) const
 {
     this->template log<log::Logger::operation_launched>(this, &op);
     op.run(std::static_pointer_cast<const DpcppExecutor>(
@@ -202,14 +202,14 @@ int DpcppExecutor::get_num_devices(std::string device_type)
 }
 
 
-bool DpcppExecutor::verify_memory_to(const OmpExecutor *dest_exec) const
+bool DpcppExecutor::verify_memory_to(const OmpExecutor* dest_exec) const
 {
     auto device = detail::get_devices(
         get_exec_info().device_type)[get_exec_info().device_id];
     return device.is_host() || device.is_cpu();
 }
 
-bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
+bool DpcppExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
 {
     // If the queue is different and is not cpu/host, the queue can not access
     // the data from another queue (on the same device)
@@ -227,7 +227,7 @@ bool DpcppExecutor::verify_memory_to(const DpcppExecutor *dest_exec) const
 namespace detail {
 
 
-void delete_queue(sycl::queue *queue)
+void delete_queue(sycl::queue* queue)
 {
     queue->wait();
     delete queue;
@@ -247,10 +247,10 @@ void DpcppExecutor::set_device_property()
         try {
             auto subgroup_sizes =
                 device.get_info<cl::sycl::info::device::sub_group_sizes>();
-            for (auto &i : subgroup_sizes) {
+            for (auto& i : subgroup_sizes) {
                 this->get_exec_info().subgroup_sizes.push_back(i);
             }
-        } catch (cl::sycl::runtime_error &err) {
+        } catch (cl::sycl::runtime_error& err) {
             GKO_NOT_SUPPORTED(device);
         }
     }
@@ -277,7 +277,7 @@ void DpcppExecutor::set_device_property()
     // `wait()` would be needed after every call to a DPC++ function or kernel.
     // For example, without `in_order`, doing a copy, a kernel, and a copy, will
     // not necessarily happen in that order by default, which we need to avoid.
-    auto *queue = new sycl::queue{device, sycl::property::queue::in_order{}};
+    auto* queue = new sycl::queue{device, sycl::property::queue::in_order{}};
     queue_ = std::move(queue_manager<sycl::queue>{queue, detail::delete_queue});
 }
 

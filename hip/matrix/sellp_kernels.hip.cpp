@@ -70,8 +70,8 @@ constexpr int default_block_size = 512;
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const HipExecutor> exec,
-          const matrix::Sellp<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+          const matrix::Sellp<ValueType, IndexType>* a,
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     const dim3 blockSize(matrix::default_slice_size);
     const dim3 gridSize(ceildiv(a->get_size()[0], matrix::default_slice_size),
@@ -90,11 +90,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Sellp<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::Sellp<ValueType, IndexType>* a,
+                   const matrix::Dense<ValueType>* b,
+                   const matrix::Dense<ValueType>* beta,
+                   matrix::Dense<ValueType>* c)
 {
     const dim3 blockSize(matrix::default_slice_size);
     const dim3 gridSize(ceildiv(a->get_size()[0], matrix::default_slice_size),
@@ -116,8 +116,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Sellp<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result)
+                      const matrix::Sellp<ValueType, IndexType>* source,
+                      matrix::Dense<ValueType>* result)
 {
     const auto num_rows = source->get_size()[0];
     const auto num_cols = source->get_size()[1];
@@ -161,8 +161,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Sellp<ValueType, IndexType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
+                    const matrix::Sellp<ValueType, IndexType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
 {
     const auto num_rows = source->get_size()[0];
     const auto slice_size = source->get_slice_size();
@@ -206,8 +206,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void count_nonzeros(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Sellp<ValueType, IndexType> *source,
-                    size_type *result)
+                    const matrix::Sellp<ValueType, IndexType>* source,
+                    size_type* result)
 {
     const auto num_rows = source->get_size()[0];
 
@@ -238,8 +238,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Sellp<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
+                      const matrix::Sellp<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag)
 {
     const auto diag_size = diag->get_size()[0];
     const auto slice_size = orig->get_slice_size();

@@ -59,105 +59,105 @@ template <typename ValueType = default_precision>
 class Stream : public Logger {
 public:
     /* Executor events */
-    void on_allocation_started(const Executor *exec,
-                               const size_type &num_bytes) const override;
+    void on_allocation_started(const Executor* exec,
+                               const size_type& num_bytes) const override;
 
-    void on_allocation_completed(const Executor *exec,
-                                 const size_type &num_bytes,
-                                 const uintptr &location) const override;
+    void on_allocation_completed(const Executor* exec,
+                                 const size_type& num_bytes,
+                                 const uintptr& location) const override;
 
-    void on_free_started(const Executor *exec,
-                         const uintptr &location) const override;
+    void on_free_started(const Executor* exec,
+                         const uintptr& location) const override;
 
-    void on_free_completed(const Executor *exec,
-                           const uintptr &location) const override;
+    void on_free_completed(const Executor* exec,
+                           const uintptr& location) const override;
 
-    void on_copy_started(const Executor *from, const Executor *to,
-                         const uintptr &location_from,
-                         const uintptr &location_to,
-                         const size_type &num_bytes) const override;
+    void on_copy_started(const Executor* from, const Executor* to,
+                         const uintptr& location_from,
+                         const uintptr& location_to,
+                         const size_type& num_bytes) const override;
 
-    void on_copy_completed(const Executor *from, const Executor *to,
-                           const uintptr &location_from,
-                           const uintptr &location_to,
-                           const size_type &num_bytes) const override;
+    void on_copy_completed(const Executor* from, const Executor* to,
+                           const uintptr& location_from,
+                           const uintptr& location_to,
+                           const size_type& num_bytes) const override;
 
     /* Operation events */
-    void on_operation_launched(const Executor *exec,
-                               const Operation *operation) const override;
+    void on_operation_launched(const Executor* exec,
+                               const Operation* operation) const override;
 
-    void on_operation_completed(const Executor *exec,
-                                const Operation *operation) const override;
+    void on_operation_completed(const Executor* exec,
+                                const Operation* operation) const override;
 
     /* PolymorphicObject events */
     void on_polymorphic_object_create_started(
-        const Executor *, const PolymorphicObject *po) const override;
+        const Executor*, const PolymorphicObject* po) const override;
 
     void on_polymorphic_object_create_completed(
-        const Executor *exec, const PolymorphicObject *input,
-        const PolymorphicObject *output) const override;
+        const Executor* exec, const PolymorphicObject* input,
+        const PolymorphicObject* output) const override;
 
     void on_polymorphic_object_copy_started(
-        const Executor *exec, const PolymorphicObject *from,
-        const PolymorphicObject *to) const override;
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
 
     void on_polymorphic_object_copy_completed(
-        const Executor *exec, const PolymorphicObject *from,
-        const PolymorphicObject *to) const override;
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
 
     void on_polymorphic_object_deleted(
-        const Executor *exec, const PolymorphicObject *po) const override;
+        const Executor* exec, const PolymorphicObject* po) const override;
 
     /* LinOp events */
-    void on_linop_apply_started(const LinOp *A, const LinOp *b,
-                                const LinOp *x) const override;
+    void on_linop_apply_started(const LinOp* A, const LinOp* b,
+                                const LinOp* x) const override;
 
-    void on_linop_apply_completed(const LinOp *A, const LinOp *b,
-                                  const LinOp *x) const override;
+    void on_linop_apply_completed(const LinOp* A, const LinOp* b,
+                                  const LinOp* x) const override;
 
-    void on_linop_advanced_apply_started(const LinOp *A, const LinOp *alpha,
-                                         const LinOp *b, const LinOp *beta,
-                                         const LinOp *x) const override;
+    void on_linop_advanced_apply_started(const LinOp* A, const LinOp* alpha,
+                                         const LinOp* b, const LinOp* beta,
+                                         const LinOp* x) const override;
 
-    void on_linop_advanced_apply_completed(const LinOp *A, const LinOp *alpha,
-                                           const LinOp *b, const LinOp *beta,
-                                           const LinOp *x) const override;
+    void on_linop_advanced_apply_completed(const LinOp* A, const LinOp* alpha,
+                                           const LinOp* b, const LinOp* beta,
+                                           const LinOp* x) const override;
 
     /* LinOpFactory events */
-    void on_linop_factory_generate_started(const LinOpFactory *factory,
-                                           const LinOp *input) const override;
+    void on_linop_factory_generate_started(const LinOpFactory* factory,
+                                           const LinOp* input) const override;
 
     void on_linop_factory_generate_completed(
-        const LinOpFactory *factory, const LinOp *input,
-        const LinOp *output) const override;
+        const LinOpFactory* factory, const LinOp* input,
+        const LinOp* output) const override;
 
     /* Criterion events */
-    void on_criterion_check_started(const stop::Criterion *criterion,
-                                    const size_type &num_iterations,
-                                    const LinOp *residual,
-                                    const LinOp *residual_norm,
-                                    const LinOp *solution,
-                                    const uint8 &stopping_id,
-                                    const bool &set_finalized) const override;
+    void on_criterion_check_started(const stop::Criterion* criterion,
+                                    const size_type& num_iterations,
+                                    const LinOp* residual,
+                                    const LinOp* residual_norm,
+                                    const LinOp* solution,
+                                    const uint8& stopping_id,
+                                    const bool& set_finalized) const override;
 
     void on_criterion_check_completed(
-        const stop::Criterion *criterion, const size_type &num_iterations,
-        const LinOp *residual, const LinOp *residual_norm,
-        const LinOp *solutino, const uint8 &stopping_id,
-        const bool &set_finalized, const Array<stopping_status> *status,
-        const bool &one_changed, const bool &all_converged) const override;
+        const stop::Criterion* criterion, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* residual_norm,
+        const LinOp* solutino, const uint8& stopping_id,
+        const bool& set_finalized, const Array<stopping_status>* status,
+        const bool& one_changed, const bool& all_converged) const override;
 
     /* Internal solver events */
     void on_iteration_complete(
-        const LinOp *solver, const size_type &num_iterations,
-        const LinOp *residual, const LinOp *solution = nullptr,
-        const LinOp *residual_norm = nullptr) const override;
+        const LinOp* solver, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* solution = nullptr,
+        const LinOp* residual_norm = nullptr) const override;
 
     void on_iteration_complete(
-        const LinOp *solver, const size_type &num_iterations,
-        const LinOp *residual, const LinOp *solution,
-        const LinOp *residual_norm,
-        const LinOp *implicit_sq_residual_norm) const override;
+        const LinOp* solver, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* solution,
+        const LinOp* residual_norm,
+        const LinOp* implicit_sq_residual_norm) const override;
 
     /**
      * Creates a Stream logger. This dynamically allocates the memory,
@@ -179,8 +179,8 @@ public:
      */
     static std::unique_ptr<Stream> create(
         std::shared_ptr<const Executor> exec,
-        const Logger::mask_type &enabled_events = Logger::all_events_mask,
-        std::ostream &os = std::cout, bool verbose = false)
+        const Logger::mask_type& enabled_events = Logger::all_events_mask,
+        std::ostream& os = std::cout, bool verbose = false)
     {
         return std::unique_ptr<Stream>(
             new Stream(exec, enabled_events, os, verbose));
@@ -200,15 +200,15 @@ protected:
      */
     explicit Stream(
         std::shared_ptr<const gko::Executor> exec,
-        const Logger::mask_type &enabled_events = Logger::all_events_mask,
-        std::ostream &os = std::cout, bool verbose = false)
+        const Logger::mask_type& enabled_events = Logger::all_events_mask,
+        std::ostream& os = std::cout, bool verbose = false)
         : Logger(exec, enabled_events), os_(os), verbose_(verbose)
     {}
 
 
 private:
-    std::ostream &os_;
-    static constexpr const char *prefix_ = "[LOG] >>> ";
+    std::ostream& os_;
+    static constexpr const char* prefix_ = "[LOG] >>> ";
     bool verbose_;
 };
 

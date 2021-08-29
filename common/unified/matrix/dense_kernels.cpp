@@ -52,8 +52,8 @@ namespace dense {
 
 template <typename InValueType, typename OutValueType>
 void copy(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Dense<InValueType> *input,
-          matrix::Dense<OutValueType> *output)
+          const matrix::Dense<InValueType>* input,
+          matrix::Dense<OutValueType>* output)
 {
     run_kernel(
         exec,
@@ -69,7 +69,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(
 
 template <typename ValueType>
 void fill(std::shared_ptr<const DefaultExecutor> exec,
-          matrix::Dense<ValueType> *mat, ValueType value)
+          matrix::Dense<ValueType>* mat, ValueType value)
 {
     run_kernel(
         exec,
@@ -84,7 +84,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_FILL_KERNEL);
 
 template <typename ValueType, typename ScalarType>
 void scale(std::shared_ptr<const DefaultExecutor> exec,
-           const matrix::Dense<ScalarType> *alpha, matrix::Dense<ValueType> *x)
+           const matrix::Dense<ScalarType>* alpha, matrix::Dense<ValueType>* x)
 {
     if (alpha->get_size()[1] > 1) {
         run_kernel(
@@ -108,8 +108,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
 
 template <typename ValueType, typename ScalarType>
 void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
-               const matrix::Dense<ScalarType> *alpha,
-               matrix::Dense<ValueType> *x)
+               const matrix::Dense<ScalarType>* alpha,
+               matrix::Dense<ValueType>* x)
 {
     if (alpha->get_size()[1] > 1) {
         run_kernel(
@@ -134,8 +134,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
 
 template <typename ValueType, typename ScalarType>
 void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Dense<ScalarType> *alpha,
-                const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
+                const matrix::Dense<ScalarType>* alpha,
+                const matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* y)
 {
     if (alpha->get_size()[1] > 1) {
         run_kernel(
@@ -160,8 +160,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
 
 template <typename ValueType, typename ScalarType>
 void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Dense<ScalarType> *alpha,
-                const matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *y)
+                const matrix::Dense<ScalarType>* alpha,
+                const matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* y)
 {
     if (alpha->get_size()[1] > 1) {
         run_kernel(
@@ -186,9 +186,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
 
 template <typename ValueType>
 void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
-                     const matrix::Dense<ValueType> *alpha,
-                     const matrix::Diagonal<ValueType> *x,
-                     matrix::Dense<ValueType> *y)
+                     const matrix::Dense<ValueType>* alpha,
+                     const matrix::Diagonal<ValueType>* x,
+                     matrix::Dense<ValueType>* y)
 {
     const auto diag_values = x->get_const_values();
     run_kernel(
@@ -204,9 +204,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL);
 
 template <typename ValueType>
 void sub_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
-                     const matrix::Dense<ValueType> *alpha,
-                     const matrix::Diagonal<ValueType> *x,
-                     matrix::Dense<ValueType> *y)
+                     const matrix::Dense<ValueType>* alpha,
+                     const matrix::Diagonal<ValueType>* x,
+                     matrix::Dense<ValueType>* y)
 {
     const auto diag_values = x->get_const_values();
     run_kernel(
@@ -222,9 +222,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SUB_SCALED_DIAG_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void symm_permute(std::shared_ptr<const DefaultExecutor> exec,
-                  const Array<IndexType> *permutation_indices,
-                  const matrix::Dense<ValueType> *orig,
-                  matrix::Dense<ValueType> *permuted)
+                  const Array<IndexType>* permutation_indices,
+                  const matrix::Dense<ValueType>* orig,
+                  matrix::Dense<ValueType>* permuted)
 {
     run_kernel(
         exec,
@@ -240,9 +240,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec,
-                      const Array<IndexType> *permutation_indices,
-                      const matrix::Dense<ValueType> *orig,
-                      matrix::Dense<ValueType> *permuted)
+                      const Array<IndexType>* permutation_indices,
+                      const matrix::Dense<ValueType>* orig,
+                      matrix::Dense<ValueType>* permuted)
 {
     run_kernel(
         exec,
@@ -258,9 +258,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void row_gather(std::shared_ptr<const DefaultExecutor> exec,
-                const Array<IndexType> *row_indices,
-                const matrix::Dense<ValueType> *orig,
-                matrix::Dense<ValueType> *row_gathered)
+                const Array<IndexType>* row_indices,
+                const matrix::Dense<ValueType>* orig,
+                matrix::Dense<ValueType>* row_gathered)
 {
     run_kernel(
         exec,
@@ -277,9 +277,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void column_permute(std::shared_ptr<const DefaultExecutor> exec,
-                    const Array<IndexType> *permutation_indices,
-                    const matrix::Dense<ValueType> *orig,
-                    matrix::Dense<ValueType> *column_permuted)
+                    const Array<IndexType>* permutation_indices,
+                    const matrix::Dense<ValueType>* orig,
+                    matrix::Dense<ValueType>* column_permuted)
 {
     run_kernel(
         exec,
@@ -295,9 +295,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const DefaultExecutor> exec,
-                         const Array<IndexType> *permutation_indices,
-                         const matrix::Dense<ValueType> *orig,
-                         matrix::Dense<ValueType> *row_permuted)
+                         const Array<IndexType>* permutation_indices,
+                         const matrix::Dense<ValueType>* orig,
+                         matrix::Dense<ValueType>* row_permuted)
 {
     run_kernel(
         exec,
@@ -313,9 +313,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec,
-                            const Array<IndexType> *permutation_indices,
-                            const matrix::Dense<ValueType> *orig,
-                            matrix::Dense<ValueType> *column_permuted)
+                            const Array<IndexType>* permutation_indices,
+                            const matrix::Dense<ValueType>* orig,
+                            matrix::Dense<ValueType>* column_permuted)
 {
     run_kernel(
         exec,
@@ -331,8 +331,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType>
 void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Dense<ValueType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
+                      const matrix::Dense<ValueType>* orig,
+                      matrix::Diagonal<ValueType>* diag)
 {
     run_kernel(
         exec,
@@ -345,7 +345,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_EXTRACT_DIAGONAL_KERNEL);
 
 template <typename ValueType>
 void inplace_absolute_dense(std::shared_ptr<const DefaultExecutor> exec,
-                            matrix::Dense<ValueType> *source)
+                            matrix::Dense<ValueType>* source)
 {
     run_kernel(
         exec,
@@ -360,8 +360,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_INPLACE_ABSOLUTE_DENSE_KERNEL);
 
 template <typename ValueType>
 void outplace_absolute_dense(std::shared_ptr<const DefaultExecutor> exec,
-                             const matrix::Dense<ValueType> *source,
-                             matrix::Dense<remove_complex<ValueType>> *result)
+                             const matrix::Dense<ValueType>* source,
+                             matrix::Dense<remove_complex<ValueType>>* result)
 {
     run_kernel(
         exec,
@@ -376,8 +376,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_DENSE_KERNEL);
 
 template <typename ValueType>
 void make_complex(std::shared_ptr<const DefaultExecutor> exec,
-                  const matrix::Dense<ValueType> *source,
-                  matrix::Dense<to_complex<ValueType>> *result)
+                  const matrix::Dense<ValueType>* source,
+                  matrix::Dense<to_complex<ValueType>>* result)
 {
     run_kernel(
         exec,
@@ -392,8 +392,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MAKE_COMPLEX_KERNEL);
 
 template <typename ValueType>
 void get_real(std::shared_ptr<const DefaultExecutor> exec,
-              const matrix::Dense<ValueType> *source,
-              matrix::Dense<remove_complex<ValueType>> *result)
+              const matrix::Dense<ValueType>* source,
+              matrix::Dense<remove_complex<ValueType>>* result)
 {
     run_kernel(
         exec,
@@ -408,8 +408,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_REAL_KERNEL);
 
 template <typename ValueType>
 void get_imag(std::shared_ptr<const DefaultExecutor> exec,
-              const matrix::Dense<ValueType> *source,
-              matrix::Dense<remove_complex<ValueType>> *result)
+              const matrix::Dense<ValueType>* source,
+              matrix::Dense<remove_complex<ValueType>>* result)
 {
     run_kernel(
         exec,

@@ -89,7 +89,7 @@ protected:
 };
 
 
-__device__ void test_assert(bool *success, bool predicate)
+__device__ void test_assert(bool* success, bool predicate)
 {
     if (!predicate) {
         *success = false;
@@ -97,7 +97,7 @@ __device__ void test_assert(bool *success, bool predicate)
 }
 
 
-__global__ void test_binary_search(bool *success, int offset, int size)
+__global__ void test_binary_search(bool* success, int offset, int size)
 {
     // test binary search on [offset, offset + size)
     // for all possible partition points
@@ -126,7 +126,7 @@ TEST_F(Searching, BinaryOffset)
 }
 
 
-__global__ void test_empty_binary_search(bool *success, int offset, int)
+__global__ void test_empty_binary_search(bool* success, int offset, int)
 {
     auto result = binary_search(offset, 0, [&](int i) {
         // don't access out-of-bounds!
@@ -147,7 +147,7 @@ TEST_F(Searching, BinaryEmptyOffset)
 }
 
 
-__global__ void test_sync_binary_search(bool *success, int, int size)
+__global__ void test_sync_binary_search(bool* success, int, int size)
 {
     // test binary search on [0, size)
     // for all possible partition points
@@ -171,7 +171,7 @@ TEST_F(Searching, SyncBinary)
 }
 
 
-__global__ void test_empty_sync_binary_search(bool *success, int, int)
+__global__ void test_empty_sync_binary_search(bool* success, int, int)
 {
     auto result = synchronous_binary_search(0, [&](int i) {
         // don't access out-of-bounds!
@@ -187,7 +187,7 @@ TEST_F(Searching, EmptySyncBinary)
 }
 
 
-__global__ void test_warp_ary_search(bool *success, int offset, int size)
+__global__ void test_warp_ary_search(bool* success, int offset, int size)
 {
     // test binary search on [offset, offset + size)
     // for all possible partition points
@@ -215,7 +215,7 @@ TEST_F(Searching, WarpAryOffset)
 }
 
 
-__global__ void test_warp_wide_search(bool *success, int offset, int size)
+__global__ void test_warp_wide_search(bool* success, int offset, int size)
 {
     // test binary search on [offset, offset + size)
     // for all possible partition points

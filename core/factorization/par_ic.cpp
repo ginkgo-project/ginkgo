@@ -73,7 +73,7 @@ GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
-    const std::shared_ptr<const LinOp> &system_matrix, bool skip_sorting,
+    const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
     bool both_factors) const
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;

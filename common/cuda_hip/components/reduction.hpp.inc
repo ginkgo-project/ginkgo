@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <
     typename Group, typename ValueType, typename Operator,
     typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
-__device__ __forceinline__ ValueType reduce(const Group &group,
+__device__ __forceinline__ ValueType reduce(const Group& group,
                                             ValueType local_data,
                                             Operator reduce_op = Operator{})
 {
@@ -70,7 +70,7 @@ __device__ __forceinline__ ValueType reduce(const Group &group,
 template <
     typename Group, typename ValueType,
     typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
-__device__ __forceinline__ int choose_pivot(const Group &group,
+__device__ __forceinline__ int choose_pivot(const Group& group,
                                             ValueType local_data,
                                             bool is_pivoted)
 {
@@ -103,8 +103,8 @@ __device__ __forceinline__ int choose_pivot(const Group &group,
 template <
     typename Group, typename ValueType, typename Operator,
     typename = std::enable_if_t<group::is_synchronizable_group<Group>::value>>
-__device__ void reduce(const Group &__restrict__ group,
-                       ValueType *__restrict__ data,
+__device__ void reduce(const Group& __restrict__ group,
+                       ValueType* __restrict__ data,
                        Operator reduce_op = Operator{})
 {
     const auto local_id = group.thread_rank();
@@ -144,8 +144,8 @@ __device__ void reduce(const Group &__restrict__ group,
 template <
     typename Group, typename ValueType, typename Operator,
     typename = xstd::enable_if_t<group::is_synchronizable_group<Group>::value>>
-__device__ void multireduce(const Group &__restrict__ group,
-                            ValueType *__restrict__ data, size_type stride,
+__device__ void multireduce(const Group& __restrict__ group,
+                            ValueType* __restrict__ data, size_type stride,
                             size_type num, Operator reduce_op = Operator{})
 {
     const auto local_id = group.thread_rank();
@@ -185,8 +185,8 @@ __device__ void multireduce(const Group &__restrict__ group,
  */
 template <typename Operator, typename ValueType>
 __device__ void reduce_array(size_type size,
-                             const ValueType *__restrict__ source,
-                             ValueType *__restrict__ result,
+                             const ValueType* __restrict__ source,
+                             ValueType* __restrict__ result,
                              Operator reduce_op = Operator{})
 {
     const auto tidx = thread::get_thread_id_flat();
@@ -212,12 +212,12 @@ __device__ void reduce_array(size_type size,
  */
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void reduce_add_array(
-    size_type size, const ValueType *__restrict__ source,
-    ValueType *__restrict__ result)
+    size_type size, const ValueType* __restrict__ source,
+    ValueType* __restrict__ result)
 {
     __shared__ UninitializedArray<ValueType, default_block_size> block_sum;
-    reduce_array(size, source, static_cast<ValueType *>(block_sum),
-                 [](const ValueType &x, const ValueType &y) { return x + y; });
+    reduce_array(size, source, static_cast<ValueType*>(block_sum),
+                 [](const ValueType& x, const ValueType& y) { return x + y; });
 
     if (threadIdx.x == 0) {
         result[blockIdx.x] = block_sum[0];

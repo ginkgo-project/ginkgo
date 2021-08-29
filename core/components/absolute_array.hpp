@@ -48,12 +48,12 @@ namespace kernels {
 
 #define GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL(ValueType)                 \
     void inplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec, \
-                                ValueType *data, size_type num_entries)
+                                ValueType* data, size_type num_entries)
 
 #define GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL(ValueType)                 \
     void outplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec, \
-                                 const ValueType *in, size_type num_entries,  \
-                                 remove_complex<ValueType> *out)
+                                 const ValueType* in, size_type num_entries,  \
+                                 remove_complex<ValueType>* out)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                      \

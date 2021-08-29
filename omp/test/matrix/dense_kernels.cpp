@@ -151,7 +151,7 @@ protected:
         std::shuffle(tmp2.begin(), tmp2.end(), rng);
         std::vector<int> tmp3(x->get_size()[0] / 10);
         std::uniform_int_distribution<int> row_dist(0, x->get_size()[0] - 1);
-        for (auto &i : tmp3) {
+        for (auto& i : tmp3) {
             i = row_dist(rng);
         }
         rpermute_idxs =
@@ -163,7 +163,7 @@ protected:
     }
 
     template <typename ConvertedType, typename InputType>
-    std::unique_ptr<ConvertedType> convert(InputType &&input)
+    std::unique_ptr<ConvertedType> convert(InputType&& input)
     {
         auto result = ConvertedType::create(input->get_executor());
         input->convert_to(result.get());
@@ -695,8 +695,8 @@ TEST_F(Dense, IsTransposable)
     auto trans = x->transpose();
     auto dtrans = dx->transpose();
 
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
-                        static_cast<Mtx *>(trans.get()), 0);
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(dtrans.get()),
+                        static_cast<Mtx*>(trans.get()), 0);
 }
 
 
@@ -727,8 +727,8 @@ TEST_F(Dense, IsConjugateTransposable)
     auto trans = c_x->conj_transpose();
     auto dtrans = dc_x->conj_transpose();
 
-    GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(dtrans.get()),
-                        static_cast<ComplexMtx *>(trans.get()), 0);
+    GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx*>(dtrans.get()),
+                        static_cast<ComplexMtx*>(trans.get()), 0);
 }
 
 

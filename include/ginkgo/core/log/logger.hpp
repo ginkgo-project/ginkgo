@@ -130,7 +130,7 @@ protected:                                                           \
 public:                                                              \
     template <size_type Event, typename... Params>                   \
     std::enable_if_t<Event == _id && (_id < event_count_max)> on(    \
-        Params &&... params) const                                   \
+        Params&&... params) const                                    \
     {                                                                \
         if (enabled_events_ & (mask_type{1} << _id)) {               \
             this->on_##_event_name(std::forward<Params>(params)...); \
@@ -145,8 +145,8 @@ public:                                                              \
      * @param exec  the executor used
      * @param num_bytes  the number of bytes to allocate
      */
-    GKO_LOGGER_REGISTER_EVENT(0, allocation_started, const Executor *exec,
-                              const size_type &num_bytes)
+    GKO_LOGGER_REGISTER_EVENT(0, allocation_started, const Executor* exec,
+                              const size_type& num_bytes)
 
     /**
      * Executor's allocation completed event.
@@ -155,9 +155,9 @@ public:                                                              \
      * @param num_bytes  the number of bytes allocated
      * @param location  the address at which the data was allocated
      */
-    GKO_LOGGER_REGISTER_EVENT(1, allocation_completed, const Executor *exec,
-                              const size_type &num_bytes,
-                              const uintptr &location)
+    GKO_LOGGER_REGISTER_EVENT(1, allocation_completed, const Executor* exec,
+                              const size_type& num_bytes,
+                              const uintptr& location)
 
     /**
      * Executor's free started event.
@@ -165,8 +165,8 @@ public:                                                              \
      * @param exec  the executor used
      * @param location  the address at which the data will be freed
      */
-    GKO_LOGGER_REGISTER_EVENT(2, free_started, const Executor *exec,
-                              const uintptr &location)
+    GKO_LOGGER_REGISTER_EVENT(2, free_started, const Executor* exec,
+                              const uintptr& location)
 
     /**
      * Executor's free completed event.
@@ -174,8 +174,8 @@ public:                                                              \
      * @param exec  the executor used
      * @param location  the address at which the data was freed
      */
-    GKO_LOGGER_REGISTER_EVENT(3, free_completed, const Executor *exec,
-                              const uintptr &location)
+    GKO_LOGGER_REGISTER_EVENT(3, free_completed, const Executor* exec,
+                              const uintptr& location)
 
     /**
      * Executor's copy started event.
@@ -186,9 +186,9 @@ public:                                                              \
      * @param loc_to  the address at which the data will be copied to
      * @param num_bytes  the number of bytes to be copied
      */
-    GKO_LOGGER_REGISTER_EVENT(4, copy_started, const Executor *exec_from,
-                              const Executor *exec_to, const uintptr &loc_from,
-                              const uintptr &loc_to, const size_type &num_bytes)
+    GKO_LOGGER_REGISTER_EVENT(4, copy_started, const Executor* exec_from,
+                              const Executor* exec_to, const uintptr& loc_from,
+                              const uintptr& loc_to, const size_type& num_bytes)
 
     /**
      * Executor's copy completed event.
@@ -199,9 +199,9 @@ public:                                                              \
      * @param loc_to  the address at which the data was copied to
      * @param num_bytes  the number of bytes copied
      */
-    GKO_LOGGER_REGISTER_EVENT(5, copy_completed, const Executor *exec_from,
-                              const Executor *exec_to, const uintptr &loc_from,
-                              const uintptr &loc_to, const size_type &num_bytes)
+    GKO_LOGGER_REGISTER_EVENT(5, copy_completed, const Executor* exec_from,
+                              const Executor* exec_to, const uintptr& loc_from,
+                              const uintptr& loc_to, const size_type& num_bytes)
 
     /**
      * Executor's operation launched event (method run).
@@ -209,8 +209,8 @@ public:                                                              \
      * @param exec  the executor used
      * @param op  the operation launched
      */
-    GKO_LOGGER_REGISTER_EVENT(6, operation_launched, const Executor *exec,
-                              const Operation *op)
+    GKO_LOGGER_REGISTER_EVENT(6, operation_launched, const Executor* exec,
+                              const Operation* op)
 
     /**
      * Executor's operation completed event (method run).
@@ -223,8 +223,8 @@ public:                                                              \
      * the loggers will do lightweight logging, and therefore this operation for
      * the GPU just notes that the Operation has been sent to the GPU.
      */
-    GKO_LOGGER_REGISTER_EVENT(7, operation_completed, const Executor *exec,
-                              const Operation *op)
+    GKO_LOGGER_REGISTER_EVENT(7, operation_completed, const Executor* exec,
+                              const Operation* op)
 
     /**
      * PolymorphicObject's create started event.
@@ -233,7 +233,7 @@ public:                                                              \
      * @param po  the PolymorphicObject to be created
      */
     GKO_LOGGER_REGISTER_EVENT(8, polymorphic_object_create_started,
-                              const Executor *exec, const PolymorphicObject *po)
+                              const Executor* exec, const PolymorphicObject* po)
 
     /**
      * PolymorphicObject's create completed event.
@@ -243,9 +243,9 @@ public:                                                              \
      * @param output  the PolymorphicObject which was created
      */
     GKO_LOGGER_REGISTER_EVENT(9, polymorphic_object_create_completed,
-                              const Executor *exec,
-                              const PolymorphicObject *input,
-                              const PolymorphicObject *output)
+                              const Executor* exec,
+                              const PolymorphicObject* input,
+                              const PolymorphicObject* output)
 
     /**
      * PolymorphicObject's copy started event.
@@ -255,9 +255,9 @@ public:                                                              \
      * @param output  the PolymorphicObject to be copied to
      */
     GKO_LOGGER_REGISTER_EVENT(10, polymorphic_object_copy_started,
-                              const Executor *exec,
-                              const PolymorphicObject *input,
-                              const PolymorphicObject *output)
+                              const Executor* exec,
+                              const PolymorphicObject* input,
+                              const PolymorphicObject* output)
 
     /**
      * PolymorphicObject's copy completed event.
@@ -267,9 +267,9 @@ public:                                                              \
      * @param output  the PolymorphicObject to be copied to
      */
     GKO_LOGGER_REGISTER_EVENT(11, polymorphic_object_copy_completed,
-                              const Executor *exec,
-                              const PolymorphicObject *input,
-                              const PolymorphicObject *output)
+                              const Executor* exec,
+                              const PolymorphicObject* input,
+                              const PolymorphicObject* output)
 
     /**
      * PolymorphicObject's deleted event.
@@ -278,7 +278,7 @@ public:                                                              \
      * @param po  the PolymorphicObject to be deleted
      */
     GKO_LOGGER_REGISTER_EVENT(12, polymorphic_object_deleted,
-                              const Executor *exec, const PolymorphicObject *po)
+                              const Executor* exec, const PolymorphicObject* po)
 
     /**
      * LinOp's apply started event.
@@ -287,8 +287,8 @@ public:                                                              \
      * @param b  the input vector(s)
      * @param x  the output vector(s)
      */
-    GKO_LOGGER_REGISTER_EVENT(13, linop_apply_started, const LinOp *A,
-                              const LinOp *b, const LinOp *x)
+    GKO_LOGGER_REGISTER_EVENT(13, linop_apply_started, const LinOp* A,
+                              const LinOp* b, const LinOp* x)
 
     /**
      * LinOp's apply completed event.
@@ -297,8 +297,8 @@ public:                                                              \
      * @param b  the input vector(s)
      * @param x  the output vector(s)
      */
-    GKO_LOGGER_REGISTER_EVENT(14, linop_apply_completed, const LinOp *A,
-                              const LinOp *b, const LinOp *x)
+    GKO_LOGGER_REGISTER_EVENT(14, linop_apply_completed, const LinOp* A,
+                              const LinOp* b, const LinOp* x)
 
     /**
      * LinOp's advanced apply started event.
@@ -309,9 +309,9 @@ public:                                                              \
      * @param beta  scaling of the input x
      * @param x  the output vector(s)
      */
-    GKO_LOGGER_REGISTER_EVENT(15, linop_advanced_apply_started, const LinOp *A,
-                              const LinOp *alpha, const LinOp *b,
-                              const LinOp *beta, const LinOp *x)
+    GKO_LOGGER_REGISTER_EVENT(15, linop_advanced_apply_started, const LinOp* A,
+                              const LinOp* alpha, const LinOp* b,
+                              const LinOp* beta, const LinOp* x)
 
     /**
      * LinOp's advanced apply completed event.
@@ -323,8 +323,8 @@ public:                                                              \
      * @param x  the output vector(s)
      */
     GKO_LOGGER_REGISTER_EVENT(16, linop_advanced_apply_completed,
-                              const LinOp *A, const LinOp *alpha,
-                              const LinOp *b, const LinOp *beta, const LinOp *x)
+                              const LinOp* A, const LinOp* alpha,
+                              const LinOp* b, const LinOp* beta, const LinOp* x)
 
     /**
      * LinOp Factory's generate started event.
@@ -334,7 +334,7 @@ public:                                                              \
      *               a system matrix)
      */
     GKO_LOGGER_REGISTER_EVENT(17, linop_factory_generate_started,
-                              const LinOpFactory *factory, const LinOp *input)
+                              const LinOpFactory* factory, const LinOp* input)
 
     /**
      * LinOp Factory's generate completed event.
@@ -345,8 +345,8 @@ public:                                                              \
      * @param output  the generated LinOp object
      */
     GKO_LOGGER_REGISTER_EVENT(18, linop_factory_generate_completed,
-                              const LinOpFactory *factory, const LinOp *input,
-                              const LinOp *output)
+                              const LinOpFactory* factory, const LinOp* input,
+                              const LinOp* output)
 
     /**
      * stop::Criterion's check started event.
@@ -360,11 +360,11 @@ public:                                                              \
      * @param set_finalized  whether this finalizes the iteration
      */
     GKO_LOGGER_REGISTER_EVENT(19, criterion_check_started,
-                              const stop::Criterion *criterion,
-                              const size_type &it, const LinOp *r,
-                              const LinOp *tau, const LinOp *x,
-                              const uint8 &stopping_id,
-                              const bool &set_finalized)
+                              const stop::Criterion* criterion,
+                              const size_type& it, const LinOp* r,
+                              const LinOp* tau, const LinOp* x,
+                              const uint8& stopping_id,
+                              const bool& set_finalized)
 
     /**
      * stop::Criterion's check completed event. Parameters are the Criterion,
@@ -387,11 +387,11 @@ public:                                                              \
      * parameter as below.
      */
     GKO_LOGGER_REGISTER_EVENT(
-        20, criterion_check_completed, const stop::Criterion *criterion,
-        const size_type &it, const LinOp *r, const LinOp *tau, const LinOp *x,
-        const uint8 &stopping_id, const bool &set_finalized,
-        const Array<stopping_status> *status, const bool &one_changed,
-        const bool &all_converged)
+        20, criterion_check_completed, const stop::Criterion* criterion,
+        const size_type& it, const LinOp* r, const LinOp* tau, const LinOp* x,
+        const uint8& stopping_id, const bool& set_finalized,
+        const Array<stopping_status>* status, const bool& one_changed,
+        const bool& all_converged)
 protected:
     /**
      * stop::Criterion's check completed event. Parameters are the Criterion,
@@ -411,11 +411,11 @@ protected:
      * @param all_converged  whether all right hand sides
      */
     virtual void on_criterion_check_completed(
-        const stop::Criterion *criterion, const size_type &it, const LinOp *r,
-        const LinOp *tau, const LinOp *implicit_tau_sq, const LinOp *x,
-        const uint8 &stopping_id, const bool &set_finalized,
-        const Array<stopping_status> *status, const bool &one_changed,
-        const bool &all_converged) const
+        const stop::Criterion* criterion, const size_type& it, const LinOp* r,
+        const LinOp* tau, const LinOp* implicit_tau_sq, const LinOp* x,
+        const uint8& stopping_id, const bool& set_finalized,
+        const Array<stopping_status>* status, const bool& one_changed,
+        const bool& all_converged) const
     {
         this->on_criterion_check_completed(criterion, it, r, tau, x,
                                            stopping_id, set_finalized, status,
@@ -435,10 +435,10 @@ protected:
      * deprecated. Please use the one with the additional implicit_tau_sq
      * parameter as below.
      */
-    GKO_LOGGER_REGISTER_EVENT(21, iteration_complete, const LinOp *solver,
-                              const size_type &it, const LinOp *r,
-                              const LinOp *x = nullptr,
-                              const LinOp *tau = nullptr)
+    GKO_LOGGER_REGISTER_EVENT(21, iteration_complete, const LinOp* solver,
+                              const size_type& it, const LinOp* r,
+                              const LinOp* x = nullptr,
+                              const LinOp* tau = nullptr)
 protected:
     /**
      * Register the `iteration_complete` event which logs every completed
@@ -450,10 +450,10 @@ protected:
      * @param tau  the residual norm (optional)
      * @param implicit_tau_sq  the implicit residual norm squared (optional)
      */
-    virtual void on_iteration_complete(const LinOp *solver, const size_type &it,
-                                       const LinOp *r, const LinOp *x,
-                                       const LinOp *tau,
-                                       const LinOp *implicit_tau_sq) const
+    virtual void on_iteration_complete(const LinOp* solver, const size_type& it,
+                                       const LinOp* r, const LinOp* x,
+                                       const LinOp* tau,
+                                       const LinOp* implicit_tau_sq) const
     {
         this->on_iteration_complete(solver, it, r, x, tau);
     }
@@ -521,7 +521,7 @@ protected:
      *                           event.
      */
     explicit Logger(std::shared_ptr<const gko::Executor> exec,
-                    const mask_type &enabled_events = all_events_mask)
+                    const mask_type& enabled_events = all_events_mask)
         : exec_{exec}, enabled_events_{enabled_events}
     {}
 
@@ -556,14 +556,14 @@ public:
      *       Thus, two loggers constructed in the same way are not considered
      *       equal.
      */
-    virtual void remove_logger(const Logger *logger) = 0;
+    virtual void remove_logger(const Logger* logger) = 0;
 
     /**
      * Returns the vector containing all loggers registered at this object.
      *
      * @return the vector containing all registered loggers.
      */
-    virtual const std::vector<std::shared_ptr<const Logger>> &get_loggers()
+    virtual const std::vector<std::shared_ptr<const Logger>>& get_loggers()
         const = 0;
 
     /** Remove all loggers registered at this object. */
@@ -591,11 +591,11 @@ public:
         loggers_.push_back(logger);
     }
 
-    void remove_logger(const Logger *logger) override
+    void remove_logger(const Logger* logger) override
     {
         auto idx =
             find_if(begin(loggers_), end(loggers_),
-                    [&logger](const auto &l) { return lend(l) == logger; });
+                    [&logger](const auto& l) { return lend(l) == logger; });
         if (idx != end(loggers_)) {
             loggers_.erase(idx);
         } else {
@@ -604,7 +604,7 @@ public:
         }
     }
 
-    const std::vector<std::shared_ptr<const Logger>> &get_loggers()
+    const std::vector<std::shared_ptr<const Logger>>& get_loggers()
         const override
     {
         return loggers_;
@@ -614,9 +614,9 @@ public:
 
 protected:
     template <size_type Event, typename... Params>
-    void log(Params &&... params) const
+    void log(Params&&... params) const
     {
-        for (auto &logger : loggers_) {
+        for (auto& logger : loggers_) {
             logger->template on<Event>(std::forward<Params>(params)...);
         }
     }

@@ -83,10 +83,10 @@ namespace {
 template <int subwarp_size, typename ValueType, typename IndexType>
 void add_candidates(syn::value_list<int, subwarp_size>,
                     std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *llh,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    const matrix::Csr<ValueType, IndexType> *l,
-                    matrix::Csr<ValueType, IndexType> *l_new)
+                    const matrix::Csr<ValueType, IndexType>* llh,
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    const matrix::Csr<ValueType, IndexType>* l,
+                    matrix::Csr<ValueType, IndexType>* l_new)
 {
     auto num_rows = static_cast<IndexType>(llh->get_size()[0]);
     auto subwarps_per_block = default_block_size / subwarp_size;
@@ -135,9 +135,9 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_add_candidates, add_candidates);
 template <int subwarp_size, typename ValueType, typename IndexType>
 void compute_factor(syn::value_list<int, subwarp_size>,
                     std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    matrix::Csr<ValueType, IndexType> *l,
-                    const matrix::Coo<ValueType, IndexType> *l_coo)
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    matrix::Csr<ValueType, IndexType>* l,
+                    const matrix::Coo<ValueType, IndexType>* l_coo)
 {
     auto total_nnz = static_cast<IndexType>(l->get_num_stored_elements());
     auto block_size = default_block_size / subwarp_size;
@@ -159,10 +159,10 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_compute_factor, compute_factor);
 
 template <typename ValueType, typename IndexType>
 void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *llh,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    const matrix::Csr<ValueType, IndexType> *l,
-                    matrix::Csr<ValueType, IndexType> *l_new)
+                    const matrix::Csr<ValueType, IndexType>* llh,
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    const matrix::Csr<ValueType, IndexType>* l,
+                    matrix::Csr<ValueType, IndexType>* l_new)
 {
     auto num_rows = a->get_size()[0];
     auto total_nnz =
@@ -183,9 +183,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    matrix::Csr<ValueType, IndexType> *l,
-                    const matrix::Coo<ValueType, IndexType> *l_coo)
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    matrix::Csr<ValueType, IndexType>* l,
+                    const matrix::Coo<ValueType, IndexType>* l_coo)
 {
     auto num_rows = a->get_size()[0];
     auto total_nnz = 2 * l->get_num_stored_elements();

@@ -154,7 +154,7 @@ public:
      *
      * @return this
      */
-    LinOp *apply(const LinOp *b, LinOp *x)
+    LinOp* apply(const LinOp* b, LinOp* x)
     {
         this->template log<log::Logger::linop_apply_started>(this, b, x);
         this->validate_application_parameters(b, x);
@@ -168,7 +168,7 @@ public:
     /**
      * @copydoc apply(const LinOp *, LinOp *)
      */
-    const LinOp *apply(const LinOp *b, LinOp *x) const
+    const LinOp* apply(const LinOp* b, LinOp* x) const
     {
         this->template log<log::Logger::linop_apply_started>(this, b, x);
         this->validate_application_parameters(b, x);
@@ -189,8 +189,8 @@ public:
      *
      * @return this
      */
-    LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                 LinOp *x)
+    LinOp* apply(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                 LinOp* x)
     {
         this->template log<log::Logger::linop_advanced_apply_started>(
             this, alpha, b, beta, x);
@@ -208,8 +208,8 @@ public:
     /**
      * @copydoc apply(const LinOp *, const LinOp *, const LinOp *, LinOp *)
      */
-    const LinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                       LinOp *x) const
+    const LinOp* apply(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                       LinOp* x) const
     {
         this->template log<log::Logger::linop_advanced_apply_started>(
             this, alpha, b, beta, x);
@@ -229,7 +229,7 @@ public:
      *
      * @return size of the operator
      */
-    const dim<2> &get_size() const noexcept { return size_; }
+    const dim<2>& get_size() const noexcept { return size_; }
 
     /**
      * Returns true if the linear operator uses the data given in x as
@@ -248,7 +248,7 @@ protected:
      * @param size  the size of the operator
      */
     explicit LinOp(std::shared_ptr<const Executor> exec,
-                   const dim<2> &size = dim<2>{})
+                   const dim<2>& size = dim<2>{})
         : EnableAbstractPolymorphicObject<LinOp>(exec), size_{size}
     {}
 
@@ -257,7 +257,7 @@ protected:
      *
      * @param value  the new size of the operator
      */
-    void set_size(const dim<2> &value) noexcept { size_ = value; }
+    void set_size(const dim<2>& value) noexcept { size_ = value; }
 
     /**
      * Implementers of LinOp should override this function instead
@@ -268,7 +268,7 @@ protected:
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
      */
-    virtual void apply_impl(const LinOp *b, LinOp *x) const = 0;
+    virtual void apply_impl(const LinOp* b, LinOp* x) const = 0;
 
     /**
      * Implementers of LinOp should override this function instead
@@ -279,8 +279,8 @@ protected:
      * @param beta  scaling of the input x
      * @param x  output vector(s)
      */
-    virtual void apply_impl(const LinOp *alpha, const LinOp *b,
-                            const LinOp *beta, LinOp *x) const = 0;
+    virtual void apply_impl(const LinOp* alpha, const LinOp* b,
+                            const LinOp* beta, LinOp* x) const = 0;
 
     /**
      * Throws a DimensionMismatch exception if the parameters to `apply` are of
@@ -289,7 +289,7 @@ protected:
      * @param b  vector(s) on which the operator is applied
      * @param x  output vector(s)
      */
-    void validate_application_parameters(const LinOp *b, const LinOp *x) const
+    void validate_application_parameters(const LinOp* b, const LinOp* x) const
     {
         GKO_ASSERT_CONFORMANT(this, b);
         GKO_ASSERT_EQUAL_ROWS(this, x);
@@ -305,9 +305,9 @@ protected:
      * @param beta  scaling of the input x
      * @param x  output vector(s)
      */
-    void validate_application_parameters(const LinOp *alpha, const LinOp *b,
-                                         const LinOp *beta,
-                                         const LinOp *x) const
+    void validate_application_parameters(const LinOp* alpha, const LinOp* b,
+                                         const LinOp* beta,
+                                         const LinOp* x) const
     {
         this->validate_application_parameters(b, x);
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -482,7 +482,7 @@ public:
      * @return a pointer to the new permuted object
      */
     virtual std::unique_ptr<LinOp> permute(
-        const Array<IndexType> *permutation_indices) const
+        const Array<IndexType>* permutation_indices) const
     {
         return as<Permutable>(this->row_permute(permutation_indices))
             ->column_permute(permutation_indices);
@@ -500,7 +500,7 @@ public:
      * @return a pointer to the new permuted object
      */
     virtual std::unique_ptr<LinOp> inverse_permute(
-        const Array<IndexType> *permutation_indices) const
+        const Array<IndexType>* permutation_indices) const
     {
         return as<Permutable>(this->inverse_row_permute(permutation_indices))
             ->inverse_column_permute(permutation_indices);
@@ -517,7 +517,7 @@ public:
      * @return a pointer to the new permuted object
      */
     virtual std::unique_ptr<LinOp> row_permute(
-        const Array<IndexType> *permutation_indices) const = 0;
+        const Array<IndexType>* permutation_indices) const = 0;
 
     /**
      * Returns a LinOp representing the column permutation of the Permutable
@@ -531,7 +531,7 @@ public:
      * @return a pointer to the new column permuted object
      */
     virtual std::unique_ptr<LinOp> column_permute(
-        const Array<IndexType> *permutation_indices) const = 0;
+        const Array<IndexType>* permutation_indices) const = 0;
 
     /**
      * Returns a LinOp representing the row permutation of the inverse permuted
@@ -544,7 +544,7 @@ public:
      * @return a pointer to the new inverse permuted object
      */
     virtual std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<IndexType> *permutation_indices) const = 0;
+        const Array<IndexType>* permutation_indices) const = 0;
 
     /**
      * Returns a LinOp representing the row permutation of the inverse permuted
@@ -558,7 +558,7 @@ public:
      * @return a pointer to the new inverse permuted object
      */
     virtual std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<IndexType> *permutation_indices) const = 0;
+        const Array<IndexType>* permutation_indices) const = 0;
 };
 
 
@@ -581,14 +581,14 @@ public:
      *
      * @param data  the matrix_data structure
      */
-    virtual void read(const matrix_data<ValueType, IndexType> &data) = 0;
+    virtual void read(const matrix_data<ValueType, IndexType>& data) = 0;
 
     /**
      * Reads a matrix from a matrix_assembly_data structure.
      *
      * @param data  the matrix_assembly_data structure
      */
-    void read(const matrix_assembly_data<ValueType, IndexType> &data)
+    void read(const matrix_assembly_data<ValueType, IndexType>& data)
     {
         this->read(data.get_ordered_data());
     }
@@ -614,7 +614,7 @@ public:
      *
      * @param data  the matrix_data structure
      */
-    virtual void write(matrix_data<ValueType, IndexType> &data) const = 0;
+    virtual void write(matrix_data<ValueType, IndexType>& data) const = 0;
 };
 
 
@@ -794,7 +794,7 @@ public:
     using EnablePolymorphicObject<ConcreteLinOp,
                                   PolymorphicBase>::EnablePolymorphicObject;
 
-    const ConcreteLinOp *apply(const LinOp *b, LinOp *x) const
+    const ConcreteLinOp* apply(const LinOp* b, LinOp* x) const
     {
         this->template log<log::Logger::linop_apply_started>(this, b, x);
         this->validate_application_parameters(b, x);
@@ -805,7 +805,7 @@ public:
         return self();
     }
 
-    ConcreteLinOp *apply(const LinOp *b, LinOp *x)
+    ConcreteLinOp* apply(const LinOp* b, LinOp* x)
     {
         this->template log<log::Logger::linop_apply_started>(this, b, x);
         this->validate_application_parameters(b, x);
@@ -816,8 +816,8 @@ public:
         return self();
     }
 
-    const ConcreteLinOp *apply(const LinOp *alpha, const LinOp *b,
-                               const LinOp *beta, LinOp *x) const
+    const ConcreteLinOp* apply(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const
     {
         this->template log<log::Logger::linop_advanced_apply_started>(
             this, alpha, b, beta, x);
@@ -832,8 +832,8 @@ public:
         return self();
     }
 
-    ConcreteLinOp *apply(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                         LinOp *x)
+    ConcreteLinOp* apply(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                         LinOp* x)
     {
         this->template log<log::Logger::linop_advanced_apply_started>(
             this, alpha, b, beta, x);
@@ -974,7 +974,7 @@ public:                                                                 \
  */
 #define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name)  \
 public:                                                                      \
-    const _parameters_name##_type &get_##_parameters_name() const            \
+    const _parameters_name##_type& get_##_parameters_name() const            \
     {                                                                        \
         return _parameters_name##_;                                          \
     }                                                                        \
@@ -992,7 +992,7 @@ public:                                                                      \
                   std::move(exec))                                           \
         {}                                                                   \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec,  \
-                               const _parameters_name##_type &parameters)    \
+                               const _parameters_name##_type& parameters)    \
             : ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,       \
                                                _parameters_name##_type>(     \
                   std::move(exec), parameters)                               \
@@ -1046,8 +1046,8 @@ public:                                                                      \
     mutable _name{__VA_ARGS__};                                              \
                                                                              \
     template <typename... Args>                                              \
-    auto with_##_name(Args &&... _value)                                     \
-        const->const std::decay_t<decltype(*this)> &                         \
+    auto with_##_name(Args&&... _value)                                      \
+        const->const std::decay_t<decltype(*this)>&                          \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Args>(_value)...};                   \
@@ -1097,8 +1097,8 @@ public:                                                                      \
     mutable _name{__VA_ARGS__};                                              \
                                                                              \
     template <typename... Args>                                              \
-    auto with_##_name(Args &&... _value)                                     \
-        const->const std::decay_t<decltype(*this)> &                         \
+    auto with_##_name(Args&&... _value)                                      \
+        const->const std::decay_t<decltype(*this)>&                          \
     {                                                                        \
         GKO_NOT_IMPLEMENTED;                                                 \
         return *this;                                                        \
@@ -1111,8 +1111,8 @@ public:                                                                      \
     mutable _name{_default};                                                 \
                                                                              \
     template <typename Arg>                                                  \
-    auto with_##_name(Arg &&_value)                                          \
-        const->const std::decay_t<decltype(*this)> &                         \
+    auto with_##_name(Arg&& _value)                                          \
+        const->const std::decay_t<decltype(*this)>&                          \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Arg>(_value)};                       \
@@ -1126,8 +1126,8 @@ public:                                                                      \
     mutable _name{__VA_ARGS__};                                              \
                                                                              \
     template <typename... Args>                                              \
-    auto with_##_name(Args &&... _value)                                     \
-        const->const std::decay_t<decltype(*this)> &                         \
+    auto with_##_name(Args&&... _value)                                      \
+        const->const std::decay_t<decltype(*this)>&                          \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Args>(_value)...};                   \

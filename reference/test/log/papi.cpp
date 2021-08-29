@@ -70,8 +70,8 @@ protected:
     void TearDown() { eventset = PAPI_NULL; }
 
     template <typename U>
-    const std::string init(const gko::log::Logger::mask_type &event,
-                           const std::string &event_name, U *ptr)
+    const std::string init(const gko::log::Logger::mask_type& event,
+                           const std::string& event_name, U* ptr)
     {
         logger = gko::log::Papi<T>::create(exec, event);
         std::ostringstream os;
@@ -80,7 +80,7 @@ protected:
         return os.str();
     }
 
-    void add_event(const std::string &event_name)
+    void add_event(const std::string& event_name)
     {
         int code;
         int ret_val = PAPI_event_name_to_code(event_name.c_str(), &code);
@@ -102,7 +102,7 @@ protected:
         }
     }
 
-    void stop(long long int *values)
+    void stop(long long int* values)
     {
         int ret_val = PAPI_stop(eventset, values);
         if (PAPI_OK != ret_val) {
@@ -137,7 +137,7 @@ TYPED_TEST(Papi, CatchesCriterionCheckCompleted)
         nullptr, false, false);
     long long int values[2];
     this->stop(values);
-    double *sde_ptr = GET_SDE_RECORDER_ADDRESS(values[1], double);
+    double* sde_ptr = GET_SDE_RECORDER_ADDRESS(values[1], double);
 
     ASSERT_EQ(values[0], 1);
     ASSERT_EQ(sde_ptr[0], 4.0);

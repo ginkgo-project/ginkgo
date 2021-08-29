@@ -72,7 +72,7 @@ GKO_REGISTER_OPERATION(csr_transpose, csr::transpose);
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>>
 ParIlu<ValueType, IndexType>::generate_l_u(
-    const std::shared_ptr<const LinOp> &system_matrix, bool skip_sorting,
+    const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
     std::shared_ptr<typename l_matrix_type::strategy_type> l_strategy,
     std::shared_ptr<typename u_matrix_type::strategy_type> u_strategy) const
 {
@@ -131,13 +131,13 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     // Since `transpose()` returns an `std::unique_ptr<LinOp>`, we need to
     // convert it to `u_matrix_type *` in order to use it.
     auto u_factor_transpose =
-        static_cast<u_matrix_type *>(u_factor_transpose_lin_op.get());
+        static_cast<u_matrix_type*>(u_factor_transpose_lin_op.get());
 
     // At first, test if the given system_matrix was already a Coo matrix,
     // so no conversion would be necessary.
     std::unique_ptr<CooMatrix> coo_system_matrix_unique_ptr{nullptr};
     auto coo_system_matrix_ptr =
-        dynamic_cast<const CooMatrix *>(system_matrix.get());
+        dynamic_cast<const CooMatrix*>(system_matrix.get());
 
     // If it was not, and we already own a CSR `system_matrix`,
     // we can move the Csr matrix to Coo, which has very little overhead.

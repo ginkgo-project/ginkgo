@@ -52,7 +52,7 @@ namespace {
 
 
 template <typename ValueType = default_precision>
-std::ostream &operator<<(std::ostream &os, const matrix::Dense<ValueType> *mtx)
+std::ostream& operator<<(std::ostream& os, const matrix::Dense<ValueType>* mtx)
 {
     auto exec = mtx->get_executor();
     auto tmp = make_temporary_clone(exec->get_master(), mtx);
@@ -67,7 +67,7 @@ std::ostream &operator<<(std::ostream &os, const matrix::Dense<ValueType> *mtx)
 }
 
 
-std::ostream &operator<<(std::ostream &os, const stopping_status *status)
+std::ostream& operator<<(std::ostream& os, const stopping_status* status)
 {
     os << "[" << std::endl;
     os << "\tConverged: " << status->has_converged() << std::endl;
@@ -78,7 +78,7 @@ std::ostream &operator<<(std::ostream &os, const stopping_status *status)
 }
 
 
-std::string bytes_name(const size_type &num_bytes)
+std::string bytes_name(const size_type& num_bytes)
 {
     std::ostringstream oss;
     oss << "Bytes[" << num_bytes << "]";
@@ -86,7 +86,7 @@ std::string bytes_name(const size_type &num_bytes)
 }
 
 
-std::string location_name(const uintptr &location)
+std::string location_name(const uintptr& location)
 {
     std::ostringstream oss;
     oss << "Location[" << std::hex << "0x" << location << "]" << std::dec;
@@ -95,7 +95,7 @@ std::string location_name(const uintptr &location)
 
 
 #define GKO_ENABLE_DEMANGLE_NAME(_object_type)                               \
-    std::string demangle_name(const _object_type *object)                    \
+    std::string demangle_name(const _object_type* object)                    \
     {                                                                        \
         std::ostringstream oss;                                              \
         oss << #_object_type "[";                                            \
@@ -123,8 +123,8 @@ GKO_ENABLE_DEMANGLE_NAME(Operation);
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_allocation_started(const Executor *exec,
-                                              const size_type &num_bytes) const
+void Stream<ValueType>::on_allocation_started(const Executor* exec,
+                                              const size_type& num_bytes) const
 {
     os_ << prefix_ << "allocation started on " << demangle_name(exec)
         << " with " << bytes_name(num_bytes) << std::endl;
@@ -132,9 +132,9 @@ void Stream<ValueType>::on_allocation_started(const Executor *exec,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_allocation_completed(const Executor *exec,
-                                                const size_type &num_bytes,
-                                                const uintptr &location) const
+void Stream<ValueType>::on_allocation_completed(const Executor* exec,
+                                                const size_type& num_bytes,
+                                                const uintptr& location) const
 {
     os_ << prefix_ << "allocation completed on " << demangle_name(exec)
         << " at " << location_name(location) << " with "
@@ -143,8 +143,8 @@ void Stream<ValueType>::on_allocation_completed(const Executor *exec,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_free_started(const Executor *exec,
-                                        const uintptr &location) const
+void Stream<ValueType>::on_free_started(const Executor* exec,
+                                        const uintptr& location) const
 {
     os_ << prefix_ << "free started on " << demangle_name(exec) << " at "
         << location_name(location) << std::endl;
@@ -152,8 +152,8 @@ void Stream<ValueType>::on_free_started(const Executor *exec,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_free_completed(const Executor *exec,
-                                          const uintptr &location) const
+void Stream<ValueType>::on_free_completed(const Executor* exec,
+                                          const uintptr& location) const
 {
     os_ << prefix_ << "free completed on " << demangle_name(exec) << " at "
         << location_name(location) << std::endl;
@@ -161,11 +161,11 @@ void Stream<ValueType>::on_free_completed(const Executor *exec,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_copy_started(const Executor *from,
-                                        const Executor *to,
-                                        const uintptr &location_from,
-                                        const uintptr &location_to,
-                                        const size_type &num_bytes) const
+void Stream<ValueType>::on_copy_started(const Executor* from,
+                                        const Executor* to,
+                                        const uintptr& location_from,
+                                        const uintptr& location_to,
+                                        const size_type& num_bytes) const
 {
     os_ << prefix_ << "copy started from " << demangle_name(from) << " to "
         << demangle_name(to) << " from " << location_name(location_from)
@@ -175,11 +175,11 @@ void Stream<ValueType>::on_copy_started(const Executor *from,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_copy_completed(const Executor *from,
-                                          const Executor *to,
-                                          const uintptr &location_from,
-                                          const uintptr &location_to,
-                                          const size_type &num_bytes) const
+void Stream<ValueType>::on_copy_completed(const Executor* from,
+                                          const Executor* to,
+                                          const uintptr& location_from,
+                                          const uintptr& location_to,
+                                          const size_type& num_bytes) const
 {
     os_ << prefix_ << "copy completed from " << demangle_name(from) << " to "
         << demangle_name(to) << " from " << location_name(location_from)
@@ -189,8 +189,8 @@ void Stream<ValueType>::on_copy_completed(const Executor *from,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_operation_launched(const Executor *exec,
-                                              const Operation *operation) const
+void Stream<ValueType>::on_operation_launched(const Executor* exec,
+                                              const Operation* operation) const
 {
     os_ << prefix_ << demangle_name(operation) << " started on "
         << demangle_name(exec) << std::endl;
@@ -198,8 +198,8 @@ void Stream<ValueType>::on_operation_launched(const Executor *exec,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_operation_completed(const Executor *exec,
-                                               const Operation *operation) const
+void Stream<ValueType>::on_operation_completed(const Executor* exec,
+                                               const Operation* operation) const
 {
     os_ << prefix_ << demangle_name(operation) << " completed on "
         << demangle_name(exec) << std::endl;
@@ -208,7 +208,7 @@ void Stream<ValueType>::on_operation_completed(const Executor *exec,
 
 template <typename ValueType>
 void Stream<ValueType>::on_polymorphic_object_create_started(
-    const Executor *exec, const PolymorphicObject *po) const
+    const Executor* exec, const PolymorphicObject* po) const
 {
     os_ << prefix_ << "PolymorphicObject create started from "
         << demangle_name(po) << " on " << demangle_name(exec) << std::endl;
@@ -217,8 +217,8 @@ void Stream<ValueType>::on_polymorphic_object_create_started(
 
 template <typename ValueType>
 void Stream<ValueType>::on_polymorphic_object_create_completed(
-    const Executor *exec, const PolymorphicObject *input,
-    const PolymorphicObject *output) const
+    const Executor* exec, const PolymorphicObject* input,
+    const PolymorphicObject* output) const
 {
     os_ << prefix_ << demangle_name(output) << " create completed from "
         << demangle_name(input) << " on " << demangle_name(exec) << std::endl;
@@ -227,8 +227,8 @@ void Stream<ValueType>::on_polymorphic_object_create_completed(
 
 template <typename ValueType>
 void Stream<ValueType>::on_polymorphic_object_copy_started(
-    const Executor *exec, const PolymorphicObject *from,
-    const PolymorphicObject *to) const
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
 {
     os_ << prefix_ << demangle_name(from) << " copy started to "
         << demangle_name(to) << " on " << demangle_name(exec) << std::endl;
@@ -237,8 +237,8 @@ void Stream<ValueType>::on_polymorphic_object_copy_started(
 
 template <typename ValueType>
 void Stream<ValueType>::on_polymorphic_object_copy_completed(
-    const Executor *exec, const PolymorphicObject *from,
-    const PolymorphicObject *to) const
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
 {
     os_ << prefix_ << demangle_name(from) << " copy completed to "
         << demangle_name(to) << " on " << demangle_name(exec) << std::endl;
@@ -247,7 +247,7 @@ void Stream<ValueType>::on_polymorphic_object_copy_completed(
 
 template <typename ValueType>
 void Stream<ValueType>::on_polymorphic_object_deleted(
-    const Executor *exec, const PolymorphicObject *po) const
+    const Executor* exec, const PolymorphicObject* po) const
 {
     os_ << prefix_ << demangle_name(po) << " deleted on " << demangle_name(exec)
         << std::endl;
@@ -255,8 +255,8 @@ void Stream<ValueType>::on_polymorphic_object_deleted(
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_linop_apply_started(const LinOp *A, const LinOp *b,
-                                               const LinOp *x) const
+void Stream<ValueType>::on_linop_apply_started(const LinOp* A, const LinOp* b,
+                                               const LinOp* x) const
 {
     os_ << prefix_ << "apply started on A " << demangle_name(A) << " with b "
         << demangle_name(b) << " and x " << demangle_name(x) << std::endl;
@@ -272,8 +272,8 @@ void Stream<ValueType>::on_linop_apply_started(const LinOp *A, const LinOp *b,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_linop_apply_completed(const LinOp *A, const LinOp *b,
-                                                 const LinOp *x) const
+void Stream<ValueType>::on_linop_apply_completed(const LinOp* A, const LinOp* b,
+                                                 const LinOp* x) const
 {
     os_ << prefix_ << "apply completed on A " << demangle_name(A) << " with b "
         << demangle_name(b) << " and x " << demangle_name(x) << std::endl;
@@ -289,11 +289,11 @@ void Stream<ValueType>::on_linop_apply_completed(const LinOp *A, const LinOp *b,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_linop_advanced_apply_started(const LinOp *A,
-                                                        const LinOp *alpha,
-                                                        const LinOp *b,
-                                                        const LinOp *beta,
-                                                        const LinOp *x) const
+void Stream<ValueType>::on_linop_advanced_apply_started(const LinOp* A,
+                                                        const LinOp* alpha,
+                                                        const LinOp* b,
+                                                        const LinOp* beta,
+                                                        const LinOp* x) const
 {
     os_ << prefix_ << "advanced apply started on A " << demangle_name(A)
         << " with alpha " << demangle_name(alpha) << " b " << demangle_name(b)
@@ -315,11 +315,11 @@ void Stream<ValueType>::on_linop_advanced_apply_started(const LinOp *A,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_linop_advanced_apply_completed(const LinOp *A,
-                                                          const LinOp *alpha,
-                                                          const LinOp *b,
-                                                          const LinOp *beta,
-                                                          const LinOp *x) const
+void Stream<ValueType>::on_linop_advanced_apply_completed(const LinOp* A,
+                                                          const LinOp* alpha,
+                                                          const LinOp* b,
+                                                          const LinOp* beta,
+                                                          const LinOp* x) const
 {
     os_ << prefix_ << "advanced apply completed on A " << demangle_name(A)
         << " with alpha " << demangle_name(alpha) << " b " << demangle_name(b)
@@ -342,7 +342,7 @@ void Stream<ValueType>::on_linop_advanced_apply_completed(const LinOp *A,
 
 template <typename ValueType>
 void Stream<ValueType>::on_linop_factory_generate_started(
-    const LinOpFactory *factory, const LinOp *input) const
+    const LinOpFactory* factory, const LinOp* input) const
 {
     os_ << prefix_ << "generate started for " << demangle_name(factory)
         << " with input " << demangle_name(input) << std::endl;
@@ -351,7 +351,7 @@ void Stream<ValueType>::on_linop_factory_generate_started(
 
 template <typename ValueType>
 void Stream<ValueType>::on_linop_factory_generate_completed(
-    const LinOpFactory *factory, const LinOp *input, const LinOp *output) const
+    const LinOpFactory* factory, const LinOp* input, const LinOp* output) const
 {
     os_ << prefix_ << "generate completed for " << demangle_name(factory)
         << " with input " << demangle_name(input) << " produced "
@@ -361,9 +361,9 @@ void Stream<ValueType>::on_linop_factory_generate_completed(
 
 template <typename ValueType>
 void Stream<ValueType>::on_criterion_check_started(
-    const stop::Criterion *criterion, const size_type &num_iterations,
-    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
-    const uint8 &stopping_id, const bool &set_finalized) const
+    const stop::Criterion* criterion, const size_type& num_iterations,
+    const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
+    const uint8& stopping_id, const bool& set_finalized) const
 {
     os_ << prefix_ << "check started for " << demangle_name(criterion)
         << " at iteration " << num_iterations << " with ID "
@@ -389,11 +389,11 @@ void Stream<ValueType>::on_criterion_check_started(
 
 template <typename ValueType>
 void Stream<ValueType>::on_criterion_check_completed(
-    const stop::Criterion *criterion, const size_type &num_iterations,
-    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
-    const uint8 &stoppingId, const bool &setFinalized,
-    const Array<stopping_status> *status, const bool &oneChanged,
-    const bool &converged) const
+    const stop::Criterion* criterion, const size_type& num_iterations,
+    const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
+    const uint8& stoppingId, const bool& setFinalized,
+    const Array<stopping_status>* status, const bool& oneChanged,
+    const bool& converged) const
 {
     os_ << prefix_ << "check completed for " << demangle_name(criterion)
         << " at iteration " << num_iterations << " with ID "
@@ -423,11 +423,11 @@ void Stream<ValueType>::on_criterion_check_completed(
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_iteration_complete(const LinOp *solver,
-                                              const size_type &num_iterations,
-                                              const LinOp *residual,
-                                              const LinOp *solution,
-                                              const LinOp *residual_norm) const
+void Stream<ValueType>::on_iteration_complete(const LinOp* solver,
+                                              const size_type& num_iterations,
+                                              const LinOp* residual,
+                                              const LinOp* solution,
+                                              const LinOp* residual_norm) const
 {
     this->on_iteration_complete(solver, num_iterations, residual, solution,
                                 residual_norm, nullptr);
@@ -436,9 +436,9 @@ void Stream<ValueType>::on_iteration_complete(const LinOp *solver,
 
 template <typename ValueType>
 void Stream<ValueType>::on_iteration_complete(
-    const LinOp *solver, const size_type &num_iterations, const LinOp *residual,
-    const LinOp *solution, const LinOp *residual_norm,
-    const LinOp *implicit_sq_residual_norm) const
+    const LinOp* solver, const size_type& num_iterations, const LinOp* residual,
+    const LinOp* solution, const LinOp* residual_norm,
+    const LinOp* implicit_sq_residual_norm) const
 {
     os_ << prefix_ << "iteration " << num_iterations
         << " completed with solver " << demangle_name(solver)

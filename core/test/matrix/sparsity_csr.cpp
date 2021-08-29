@@ -63,8 +63,8 @@ protected:
           mtx(gko::matrix::SparsityCsr<value_type, index_type>::create(
               exec, gko::dim<2>{2, 3}, 4))
     {
-        index_type *c = mtx->get_col_idxs();
-        index_type *r = mtx->get_row_ptrs();
+        index_type* c = mtx->get_col_idxs();
+        index_type* r = mtx->get_row_ptrs();
         r[0] = 0;
         r[1] = 3;
         r[2] = 4;
@@ -77,7 +77,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(const Mtx *m)
+    void assert_equal_to_original_mtx(const Mtx* m)
     {
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_ptrs();
@@ -94,7 +94,7 @@ protected:
         EXPECT_EQ(v[0], value_type{1.0});
     }
 
-    void assert_empty(Mtx *m)
+    void assert_empty(Mtx* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_nonzeros(), 0);
@@ -194,7 +194,7 @@ TYPED_TEST(SparsityCsr, CanBeCloned)
     auto clone = this->mtx->clone();
 
     this->assert_equal_to_original_mtx(this->mtx.get());
-    this->assert_equal_to_original_mtx(dynamic_cast<Mtx *>(clone.get()));
+    this->assert_equal_to_original_mtx(dynamic_cast<Mtx*>(clone.get()));
 }
 
 

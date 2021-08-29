@@ -73,7 +73,7 @@ namespace detail {
 
 
 template <typename... Args>
-inline int64 not_implemented(Args &&...)
+inline int64 not_implemented(Args&&...)
 {
     return static_cast<int64>(HIPBLAS_STATUS_NOT_SUPPORTED);
 }
@@ -101,9 +101,9 @@ struct is_supported<std::complex<double>> : std::true_type {};
 #define GKO_BIND_HIPBLAS_GEMM(ValueType, HipblasName)                        \
     inline void gemm(hipblasHandle_t handle, hipblasOperation_t transa,      \
                      hipblasOperation_t transb, int m, int n, int k,         \
-                     const ValueType *alpha, const ValueType *a, int lda,    \
-                     const ValueType *b, int ldb, const ValueType *beta,     \
-                     ValueType *c, int ldc)                                  \
+                     const ValueType* alpha, const ValueType* a, int lda,    \
+                     const ValueType* b, int ldb, const ValueType* beta,     \
+                     ValueType* c, int ldc)                                  \
     {                                                                        \
         GKO_ASSERT_NO_HIPBLAS_ERRORS(HipblasName(                            \
             handle, transa, transb, m, n, k, as_hipblas_type(alpha),         \
@@ -128,9 +128,9 @@ GKO_BIND_HIPBLAS_GEMM(ValueType, detail::not_implemented);
 #define GKO_BIND_HIPBLAS_GEAM(ValueType, HipblasName)                         \
     inline void geam(hipblasHandle_t handle, hipblasOperation_t transa,       \
                      hipblasOperation_t transb, int m, int n,                 \
-                     const ValueType *alpha, const ValueType *a, int lda,     \
-                     const ValueType *beta, const ValueType *b, int ldb,      \
-                     ValueType *c, int ldc)                                   \
+                     const ValueType* alpha, const ValueType* a, int lda,     \
+                     const ValueType* beta, const ValueType* b, int ldb,      \
+                     ValueType* c, int ldc)                                   \
     {                                                                         \
         GKO_ASSERT_NO_HIPBLAS_ERRORS(                                         \
             HipblasName(handle, transa, transb, m, n, as_hipblas_type(alpha), \
@@ -151,8 +151,8 @@ GKO_BIND_HIPBLAS_GEAM(ValueType, detail::not_implemented);
 
 
 #define GKO_BIND_HIPBLAS_SCAL(ValueType, HipblasName)                        \
-    inline void scal(hipblasHandle_t handle, int n, const ValueType *alpha,  \
-                     ValueType *x, int incx)                                 \
+    inline void scal(hipblasHandle_t handle, int n, const ValueType* alpha,  \
+                     ValueType* x, int incx)                                 \
     {                                                                        \
         GKO_ASSERT_NO_HIPBLAS_ERRORS(HipblasName(                            \
             handle, n, as_hipblas_type(alpha), as_hipblas_type(x), incx));   \
@@ -173,8 +173,8 @@ GKO_BIND_HIPBLAS_SCAL(ValueType, detail::not_implemented);
 
 
 #define GKO_BIND_HIPBLAS_AXPY(ValueType, HipblasName)                          \
-    inline void axpy(hipblasHandle_t handle, int n, const ValueType *alpha,    \
-                     const ValueType *x, int incx, ValueType *y, int incy)     \
+    inline void axpy(hipblasHandle_t handle, int n, const ValueType* alpha,    \
+                     const ValueType* x, int incx, ValueType* y, int incy)     \
     {                                                                          \
         GKO_ASSERT_NO_HIPBLAS_ERRORS(                                          \
             HipblasName(handle, n, as_hipblas_type(alpha), as_hipblas_type(x), \
@@ -196,8 +196,8 @@ GKO_BIND_HIPBLAS_AXPY(ValueType, detail::not_implemented);
 
 
 #define GKO_BIND_HIPBLAS_DOT(ValueType, HipblasName)                           \
-    inline void dot(hipblasHandle_t handle, int n, const ValueType *x,         \
-                    int incx, const ValueType *y, int incy, ValueType *result) \
+    inline void dot(hipblasHandle_t handle, int n, const ValueType* x,         \
+                    int incx, const ValueType* y, int incy, ValueType* result) \
     {                                                                          \
         GKO_ASSERT_NO_HIPBLAS_ERRORS(                                          \
             HipblasName(handle, n, as_hipblas_type(x), incx,                   \
@@ -219,9 +219,9 @@ GKO_BIND_HIPBLAS_DOT(ValueType, detail::not_implemented);
 
 
 #define GKO_BIND_HIPBLAS_CONJ_DOT(ValueType, HipblasName)                    \
-    inline void conj_dot(hipblasHandle_t handle, int n, const ValueType *x,  \
-                         int incx, const ValueType *y, int incy,             \
-                         ValueType *result)                                  \
+    inline void conj_dot(hipblasHandle_t handle, int n, const ValueType* x,  \
+                         int incx, const ValueType* y, int incy,             \
+                         ValueType* result)                                  \
     {                                                                        \
         GKO_ASSERT_NO_HIPBLAS_ERRORS(                                        \
             HipblasName(handle, n, as_hipblas_type(x), incx,                 \
@@ -243,8 +243,8 @@ GKO_BIND_HIPBLAS_CONJ_DOT(ValueType, detail::not_implemented);
 
 
 #define GKO_BIND_HIPBLAS_NORM2(ValueType, HipblasName)                       \
-    inline void norm2(hipblasHandle_t handle, int n, const ValueType *x,     \
-                      int incx, remove_complex<ValueType> *result)           \
+    inline void norm2(hipblasHandle_t handle, int n, const ValueType* x,     \
+                      int incx, remove_complex<ValueType>* result)           \
     {                                                                        \
         GKO_ASSERT_NO_HIPBLAS_ERRORS(HipblasName(                            \
             handle, n, as_hipblas_type(x), incx, as_hipblas_type(result)));  \
@@ -264,17 +264,17 @@ GKO_BIND_HIPBLAS_NORM2(ValueType, detail::not_implemented);
 #undef GKO_BIND_HIPBLAS_NORM2
 
 
-inline hipblasContext *init()
+inline hipblasContext* init()
 {
     hipblasHandle_t handle;
     GKO_ASSERT_NO_HIPBLAS_ERRORS(hipblasCreate(&handle));
     GKO_ASSERT_NO_HIPBLAS_ERRORS(
         hipblasSetPointerMode(handle, HIPBLAS_POINTER_MODE_DEVICE));
-    return reinterpret_cast<hipblasContext *>(handle);
+    return reinterpret_cast<hipblasContext*>(handle);
 }
 
 
-inline void destroy_hipblas_handle(hipblasContext *handle)
+inline void destroy_hipblas_handle(hipblasContext* handle)
 {
     GKO_ASSERT_NO_HIPBLAS_ERRORS(
         hipblasDestroy(reinterpret_cast<hipblasHandle_t>(handle)));

@@ -56,8 +56,8 @@ protected:
           mtx(gko::matrix::Ell<value_type, index_type>::create(
               exec, gko::dim<2>{2, 3}, 3))
     {
-        value_type *v = mtx->get_values();
-        index_type *c = mtx->get_col_idxs();
+        value_type* v = mtx->get_values();
+        index_type* c = mtx->get_col_idxs();
         c[0] = 0;
         c[1] = 1;
         c[2] = 1;
@@ -75,7 +75,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(const Mtx *m)
+    void assert_equal_to_original_mtx(const Mtx* m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -99,7 +99,7 @@ protected:
         EXPECT_EQ(v[5], value_type{0.0});
     }
 
-    void assert_empty(const Mtx *m)
+    void assert_empty(const Mtx* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
@@ -185,7 +185,7 @@ TYPED_TEST(Ell, CanBeCloned)
 
     this->assert_equal_to_original_mtx(this->mtx.get());
     this->mtx->get_values()[1] = 5.0;
-    this->assert_equal_to_original_mtx(static_cast<Mtx *>(clone.get()));
+    this->assert_equal_to_original_mtx(static_cast<Mtx*>(clone.get()));
 }
 
 

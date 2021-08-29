@@ -53,7 +53,7 @@ namespace par_ic_factorization {
 
 template <typename ValueType, typename IndexType>
 void init_factor(std::shared_ptr<const DefaultExecutor> exec,
-                 matrix::Csr<ValueType, IndexType> *l) GKO_NOT_IMPLEMENTED;
+                 matrix::Csr<ValueType, IndexType>* l) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_IC_INIT_FACTOR_KERNEL);
@@ -62,8 +62,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     size_type iterations,
-                    const matrix::Coo<ValueType, IndexType> *a_lower,
-                    matrix::Csr<ValueType, IndexType> *l) GKO_NOT_IMPLEMENTED;
+                    const matrix::Coo<ValueType, IndexType>* a_lower,
+                    matrix::Csr<ValueType, IndexType>* l) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_IC_COMPUTE_FACTOR_KERNEL);

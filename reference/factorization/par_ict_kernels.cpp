@@ -64,9 +64,9 @@ namespace par_ict_factorization {
 
 template <typename ValueType, typename IndexType>
 void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    matrix::Csr<ValueType, IndexType> *l,
-                    const matrix::Coo<ValueType, IndexType> *)
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    matrix::Csr<ValueType, IndexType>* l,
+                    const matrix::Coo<ValueType, IndexType>*)
 {
     auto num_rows = a->get_size()[0];
     auto l_row_ptrs = l->get_const_row_ptrs();
@@ -126,10 +126,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *llh,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    const matrix::Csr<ValueType, IndexType> *l,
-                    matrix::Csr<ValueType, IndexType> *l_new)
+                    const matrix::Csr<ValueType, IndexType>* llh,
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    const matrix::Csr<ValueType, IndexType>* l,
+                    matrix::Csr<ValueType, IndexType>* l_new)
 {
     auto num_rows = a->get_size()[0];
     auto l_row_ptrs = l->get_const_row_ptrs();
@@ -174,7 +174,7 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
             return state;
         },
         [&](IndexType row, IndexType col, ValueType a_val, ValueType llh_val,
-            row_state &state) {
+            row_state& state) {
             auto r_val = a_val - llh_val;
             // load matching entry of L
             auto l_col = checked_load(l_col_idxs, state.l_old_begin,

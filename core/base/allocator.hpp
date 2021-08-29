@@ -86,7 +86,7 @@ public:
      * @tparam U  the element type of the allocator to be constructed.
      */
     template <typename U>
-    ExecutorAllocator(const ExecutorAllocator<U> &other)
+    ExecutorAllocator(const ExecutorAllocator<U>& other)
         : exec_{other.get_executor()}
     {}
 
@@ -99,7 +99,7 @@ public:
      * @param n  the number of elements to allocate
      * @return  the pointer to a newly allocated memory area of `n` elements.
      */
-    T *allocate(std::size_t n) const { return exec_->alloc<T>(n); }
+    T* allocate(std::size_t n) const { return exec_->alloc<T>(n); }
 
     /**
      * Frees a memory area that was allocated by this allocator.
@@ -108,7 +108,7 @@ public:
      *
      * @note  The second parameter is unused.
      */
-    void deallocate(T *ptr, std::size_t) const { exec_->free(ptr); }
+    void deallocate(T* ptr, std::size_t) const { exec_->free(ptr); }
 
     /**
      * Compares two ExecutorAllocators for equality
@@ -118,8 +118,8 @@ public:
      * @return true iff the two allocators use the same executor
      */
     template <typename T2>
-    friend bool operator==(const ExecutorAllocator<T> &l,
-                           const ExecutorAllocator<T2> &r)
+    friend bool operator==(const ExecutorAllocator<T>& l,
+                           const ExecutorAllocator<T2>& r)
     {
         return l.get_executor() == r.get_executor();
     }
@@ -132,8 +132,8 @@ public:
      * @return true iff the two allocators use different executors
      */
     template <typename T2>
-    friend bool operator!=(const ExecutorAllocator<T> &l,
-                           const ExecutorAllocator<T2> &r)
+    friend bool operator!=(const ExecutorAllocator<T>& l,
+                           const ExecutorAllocator<T2>& r)
     {
         return !(l == r);
     }

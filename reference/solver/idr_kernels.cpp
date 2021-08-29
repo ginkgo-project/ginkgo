@@ -59,10 +59,10 @@ namespace {
 
 template <typename ValueType>
 void solve_lower_triangular(const size_type nrhs,
-                            const matrix::Dense<ValueType> *m,
-                            const matrix::Dense<ValueType> *f,
-                            matrix::Dense<ValueType> *c,
-                            const Array<stopping_status> *stop_status)
+                            const matrix::Dense<ValueType>* m,
+                            const matrix::Dense<ValueType>* f,
+                            matrix::Dense<ValueType>* c,
+                            const Array<stopping_status>* stop_status)
 {
     for (size_type i = 0; i < f->get_size()[1]; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {
@@ -82,11 +82,11 @@ void solve_lower_triangular(const size_type nrhs,
 
 template <typename ValueType>
 void update_g_and_u(const size_type nrhs, const size_type k,
-                    const matrix::Dense<ValueType> *p,
-                    const matrix::Dense<ValueType> *m,
-                    matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
-                    matrix::Dense<ValueType> *u,
-                    const Array<stopping_status> *stop_status)
+                    const matrix::Dense<ValueType>* p,
+                    const matrix::Dense<ValueType>* m,
+                    matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
+                    matrix::Dense<ValueType>* u,
+                    const Array<stopping_status>* stop_status)
 {
     for (size_type i = 0; i < nrhs; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {
@@ -114,7 +114,7 @@ void update_g_and_u(const size_type nrhs, const size_type k,
 
 template <typename ValueType, typename Distribution, typename Generator>
 typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(Distribution &&dist, Generator &&gen)
+get_rand_value(Distribution&& dist, Generator&& gen)
 {
     return dist(gen);
 }
@@ -122,7 +122,7 @@ get_rand_value(Distribution &&dist, Generator &&gen)
 
 template <typename ValueType, typename Distribution, typename Generator>
 typename std::enable_if<is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(Distribution &&dist, Generator &&gen)
+get_rand_value(Distribution&& dist, Generator&& gen)
 {
     return ValueType(dist(gen), dist(gen));
 }
@@ -133,9 +133,9 @@ get_rand_value(Distribution &&dist, Generator &&gen)
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const ReferenceExecutor> exec,
-                const size_type nrhs, matrix::Dense<ValueType> *m,
-                matrix::Dense<ValueType> *subspace_vectors, bool deterministic,
-                Array<stopping_status> *stop_status)
+                const size_type nrhs, matrix::Dense<ValueType>* m,
+                matrix::Dense<ValueType>* subspace_vectors, bool deterministic,
+                Array<stopping_status>* stop_status)
 {
     // Initialize M
     for (size_type i = 0; i < nrhs; i++) {
@@ -191,12 +191,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec, const size_type nrhs,
-            const size_type k, const matrix::Dense<ValueType> *m,
-            const matrix::Dense<ValueType> *f,
-            const matrix::Dense<ValueType> *residual,
-            const matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *c,
-            matrix::Dense<ValueType> *v,
-            const Array<stopping_status> *stop_status)
+            const size_type k, const matrix::Dense<ValueType>* m,
+            const matrix::Dense<ValueType>* f,
+            const matrix::Dense<ValueType>* residual,
+            const matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* c,
+            matrix::Dense<ValueType>* v,
+            const Array<stopping_status>* stop_status)
 {
     // Compute c = M \ f
     solve_lower_triangular(nrhs, m, f, c, stop_status);
@@ -221,10 +221,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const ReferenceExecutor> exec, const size_type nrhs,
-            const size_type k, const matrix::Dense<ValueType> *omega,
-            const matrix::Dense<ValueType> *preconditioned_vector,
-            const matrix::Dense<ValueType> *c, matrix::Dense<ValueType> *u,
-            const Array<stopping_status> *stop_status)
+            const size_type k, const matrix::Dense<ValueType>* omega,
+            const matrix::Dense<ValueType>* preconditioned_vector,
+            const matrix::Dense<ValueType>* c, matrix::Dense<ValueType>* u,
+            const Array<stopping_status>* stop_status)
 {
     for (size_type i = 0; i < nrhs; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {
@@ -246,12 +246,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
 
 template <typename ValueType>
 void step_3(std::shared_ptr<const ReferenceExecutor> exec, const size_type nrhs,
-            const size_type k, const matrix::Dense<ValueType> *p,
-            matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
-            matrix::Dense<ValueType> *u, matrix::Dense<ValueType> *m,
-            matrix::Dense<ValueType> *f, matrix::Dense<ValueType> *,
-            matrix::Dense<ValueType> *residual, matrix::Dense<ValueType> *x,
-            const Array<stopping_status> *stop_status)
+            const size_type k, const matrix::Dense<ValueType>* p,
+            matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
+            matrix::Dense<ValueType>* u, matrix::Dense<ValueType>* m,
+            matrix::Dense<ValueType>* f, matrix::Dense<ValueType>*,
+            matrix::Dense<ValueType>* residual, matrix::Dense<ValueType>* x,
+            const Array<stopping_status>* stop_status)
 {
     update_g_and_u(nrhs, k, p, m, g, g_k, u, stop_status);
 
@@ -290,9 +290,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
 template <typename ValueType>
 void compute_omega(
     std::shared_ptr<const ReferenceExecutor> exec, const size_type nrhs,
-    const remove_complex<ValueType> kappa, const matrix::Dense<ValueType> *tht,
-    const matrix::Dense<remove_complex<ValueType>> *residual_norm,
-    matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
+    const remove_complex<ValueType> kappa, const matrix::Dense<ValueType>* tht,
+    const matrix::Dense<remove_complex<ValueType>>* residual_norm,
+    matrix::Dense<ValueType>* omega, const Array<stopping_status>* stop_status)
 {
     for (size_type i = 0; i < nrhs; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {

@@ -65,7 +65,7 @@ auto try_generate(Function fun) -> decltype(fun())
     decltype(fun()) result;
     try {
         result = fun();
-    } catch (const gko::Error &err) {
+    } catch (const gko::Error& err) {
         std::cerr << "Error: " << err.what() << '\n';
         std::exit(-1);
     }
@@ -75,8 +75,8 @@ auto try_generate(Function fun) -> decltype(fun())
 
 template <typename ValueType, typename IndexType>
 double compute_ilu_residual_norm(
-    const gko::matrix::Csr<ValueType, IndexType> *residual,
-    const gko::matrix::Csr<ValueType, IndexType> *mtx)
+    const gko::matrix::Csr<ValueType, IndexType>* residual,
+    const gko::matrix::Csr<ValueType, IndexType>* mtx)
 {
     gko::matrix_data<ValueType, IndexType> residual_data;
     gko::matrix_data<ValueType, IndexType> mtx_data;
@@ -98,7 +98,7 @@ double compute_ilu_residual_norm(
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     using ValueType = double;
     using IndexType = int;

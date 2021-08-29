@@ -62,7 +62,7 @@ namespace hipblas {
  */
 class pointer_mode_guard {
 public:
-    pointer_mode_guard(hipblasContext *handle)
+    pointer_mode_guard(hipblasContext* handle)
     {
         l_handle = handle;
         GKO_ASSERT_NO_HIPBLAS_ERRORS(
@@ -70,13 +70,13 @@ public:
                                   HIPBLAS_POINTER_MODE_HOST));
     }
 
-    pointer_mode_guard(pointer_mode_guard &other) = delete;
+    pointer_mode_guard(pointer_mode_guard& other) = delete;
 
-    pointer_mode_guard &operator=(const pointer_mode_guard &other) = delete;
+    pointer_mode_guard& operator=(const pointer_mode_guard& other) = delete;
 
-    pointer_mode_guard(pointer_mode_guard &&other) = delete;
+    pointer_mode_guard(pointer_mode_guard&& other) = delete;
 
-    pointer_mode_guard const &operator=(pointer_mode_guard &&other) = delete;
+    pointer_mode_guard const& operator=(pointer_mode_guard&& other) = delete;
 
     ~pointer_mode_guard() noexcept(false)
     {
@@ -92,7 +92,7 @@ public:
     }
 
 private:
-    hipblasContext *l_handle;
+    hipblasContext* l_handle;
 };
 
 
@@ -112,7 +112,7 @@ namespace hipsparse {
  */
 class pointer_mode_guard {
 public:
-    pointer_mode_guard(hipsparseContext *handle)
+    pointer_mode_guard(hipsparseContext* handle)
     {
         l_handle = handle;
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(
@@ -120,13 +120,13 @@ public:
                                     HIPSPARSE_POINTER_MODE_HOST));
     }
 
-    pointer_mode_guard(pointer_mode_guard &other) = delete;
+    pointer_mode_guard(pointer_mode_guard& other) = delete;
 
-    pointer_mode_guard &operator=(const pointer_mode_guard &other) = delete;
+    pointer_mode_guard& operator=(const pointer_mode_guard& other) = delete;
 
-    pointer_mode_guard(pointer_mode_guard &&other) = delete;
+    pointer_mode_guard(pointer_mode_guard&& other) = delete;
 
-    pointer_mode_guard const &operator=(pointer_mode_guard &&other) = delete;
+    pointer_mode_guard const& operator=(pointer_mode_guard&& other) = delete;
 
     ~pointer_mode_guard() noexcept(false)
     {
@@ -143,7 +143,7 @@ public:
     }
 
 private:
-    hipsparseContext *l_handle;
+    hipsparseContext* l_handle;
 };
 
 

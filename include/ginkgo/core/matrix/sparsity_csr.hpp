@@ -93,9 +93,9 @@ public:
     using transposed_type = SparsityCsr<IndexType, ValueType>;
     using mat_data = matrix_data<ValueType, IndexType>;
 
-    void read(const mat_data &data) override;
+    void read(const mat_data& data) override;
 
-    void write(mat_data &data) const override;
+    void write(mat_data& data) const override;
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -129,7 +129,7 @@ public:
      *
      * @return the column indices of the matrix.
      */
-    index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type* get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
     /**
      * @copydoc SparsityCsr::get_col_idxs()
@@ -138,7 +138,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_col_idxs() const noexcept
+    const index_type* get_const_col_idxs() const noexcept
     {
         return col_idxs_.get_const_data();
     }
@@ -148,7 +148,7 @@ public:
      *
      * @return the row pointers of the matrix.
      */
-    index_type *get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
+    index_type* get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
 
     /**
      * @copydoc SparsityCsr::get_row_ptrs()
@@ -157,7 +157,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_row_ptrs() const noexcept
+    const index_type* get_const_row_ptrs() const noexcept
     {
         return row_ptrs_.get_const_data();
     }
@@ -167,7 +167,7 @@ public:
      *
      * @return the value of the matrix.
      */
-    value_type *get_value() noexcept { return value_.get_data(); }
+    value_type* get_value() noexcept { return value_.get_data(); }
 
     /**
      * @copydoc SparsityCsr::get_value()
@@ -176,7 +176,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type *get_const_value() const noexcept
+    const value_type* get_const_value() const noexcept
     {
         return value_.get_const_data();
     }
@@ -201,7 +201,7 @@ protected:
      * @param num_nonzeros  number of nonzeros
      */
     SparsityCsr(std::shared_ptr<const Executor> exec,
-                const dim<2> &size = dim<2>{}, size_type num_nonzeros = {})
+                const dim<2>& size = dim<2>{}, size_type num_nonzeros = {})
         : EnableLinOp<SparsityCsr>(exec, size),
           col_idxs_(exec, num_nonzeros),
           row_ptrs_(exec, size[0] + 1),
@@ -228,8 +228,8 @@ protected:
      *       matrix.
      */
     template <typename ColIdxsArray, typename RowPtrsArray>
-    SparsityCsr(std::shared_ptr<const Executor> exec, const dim<2> &size,
-                ColIdxsArray &&col_idxs, RowPtrsArray &&row_ptrs,
+    SparsityCsr(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                ColIdxsArray&& col_idxs, RowPtrsArray&& row_ptrs,
                 value_type value = one<ValueType>())
         : EnableLinOp<SparsityCsr>(exec, size),
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
@@ -254,10 +254,10 @@ protected:
         this->copy_from(std::move(tmp_.get()));
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
 private:
     Array<index_type> col_idxs_;

@@ -237,9 +237,9 @@ TEST_F(Diagonal, ConjTransposeIsEquivalentToRef)
     set_up_complex_data();
 
     auto trans = cdiag->conj_transpose();
-    auto trans_diag = static_cast<ComplexDiag *>(trans.get());
+    auto trans_diag = static_cast<ComplexDiag*>(trans.get());
     auto dtrans = dcdiag->conj_transpose();
-    auto dtrans_diag = static_cast<ComplexDiag *>(dtrans.get());
+    auto dtrans_diag = static_cast<ComplexDiag*>(dtrans.get());
 
     GKO_ASSERT_MTX_NEAR(trans_diag, dtrans_diag, 0);
 }

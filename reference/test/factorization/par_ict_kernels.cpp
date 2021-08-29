@@ -64,10 +64,10 @@ public:
     {}
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 };
 
@@ -284,9 +284,9 @@ TYPED_TEST(ParIct, IsConsistentWithComposition)
     auto fact = this->fact_fact->generate(this->mtx_system);
 
     auto lin_op_l_factor =
-        static_cast<const gko::LinOp *>(gko::lend(fact->get_l_factor()));
+        static_cast<const gko::LinOp*>(gko::lend(fact->get_l_factor()));
     auto lin_op_lt_factor =
-        static_cast<const gko::LinOp *>(gko::lend(fact->get_lt_factor()));
+        static_cast<const gko::LinOp*>(gko::lend(fact->get_lt_factor()));
     auto first_operator = gko::lend(fact->get_operators()[0]);
     auto second_operator = gko::lend(fact->get_operators()[1]);
 

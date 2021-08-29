@@ -52,8 +52,8 @@ namespace coo {
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
+                      const matrix::Coo<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag)
 {
     run_kernel(
         exec,

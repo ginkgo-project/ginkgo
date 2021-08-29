@@ -68,8 +68,8 @@ namespace rcm {
 template <typename IndexType>
 void get_degree_of_nodes(std::shared_ptr<const ReferenceExecutor> exec,
                          const IndexType num_vertices,
-                         const IndexType *const row_ptrs,
-                         IndexType *const degrees)
+                         const IndexType* const row_ptrs,
+                         IndexType* const degrees)
 {
     for (IndexType i = 0; i < num_vertices; ++i) {
         degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
@@ -86,8 +86,8 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
 template <typename IndexType>
 std::pair<IndexType, size_type> rls_contender_and_height(
     std::shared_ptr<const ReferenceExecutor> exec, const IndexType num_vertices,
-    const IndexType root, const IndexType *const row_ptrs,
-    const IndexType *const col_idxs, const IndexType *const degrees)
+    const IndexType root, const IndexType* const row_ptrs,
+    const IndexType* const col_idxs, const IndexType* const degrees)
 {
     // This could actually be allocated in the calling scope, then reused.
     vector<bool> visited_local(num_vertices, false, exec);
@@ -159,10 +159,10 @@ std::pair<IndexType, size_type> rls_contender_and_height(
 template <typename IndexType>
 IndexType find_starting_node(std::shared_ptr<const ReferenceExecutor> exec,
                              const IndexType num_vertices,
-                             const IndexType *const row_ptrs,
-                             const IndexType *const col_idxs,
-                             const IndexType *const degrees,
-                             const vector<bool> &visited,
+                             const IndexType* const row_ptrs,
+                             const IndexType* const col_idxs,
+                             const IndexType* const degrees,
+                             const vector<bool>& visited,
                              const gko::reorder::starting_strategy strategy)
 {
     using strategies = gko::reorder::starting_strategy;
@@ -224,11 +224,11 @@ IndexType find_starting_node(std::shared_ptr<const ReferenceExecutor> exec,
 template <typename IndexType>
 void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
                      const IndexType num_vertices,
-                     const IndexType *const row_ptrs,
-                     const IndexType *const col_idxs,
-                     const IndexType *const degrees,
-                     IndexType *const permutation,
-                     IndexType *const inv_permutation,
+                     const IndexType* const row_ptrs,
+                     const IndexType* const col_idxs,
+                     const IndexType* const degrees,
+                     IndexType* const permutation,
+                     IndexType* const inv_permutation,
                      const gko::reorder::starting_strategy strategy)
 {
     // Storing vertices left to proceess.

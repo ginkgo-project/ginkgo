@@ -76,7 +76,7 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
+void Coo<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -87,8 +87,8 @@ void Coo<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                           const LinOp *beta, LinOp *x) const
+void Coo<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                           const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
@@ -100,7 +100,7 @@ void Coo<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply2_impl(const LinOp *b, LinOp *x) const
+void Coo<ValueType, IndexType>::apply2_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -111,8 +111,8 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply2_impl(const LinOp *alpha, const LinOp *b,
-                                            LinOp *x) const
+void Coo<ValueType, IndexType>::apply2_impl(const LinOp* alpha, const LinOp* b,
+                                            LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_x) {
@@ -125,7 +125,7 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp *alpha, const LinOp *b,
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(
-    Coo<next_precision<ValueType>, IndexType> *result) const
+    Coo<next_precision<ValueType>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->row_idxs_ = this->row_idxs_;
@@ -136,7 +136,7 @@ void Coo<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(
-    Coo<next_precision<ValueType>, IndexType> *result)
+    Coo<next_precision<ValueType>, IndexType>* result)
 {
     this->convert_to(result);
 }
@@ -144,7 +144,7 @@ void Coo<ValueType, IndexType>::move_to(
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(
-    Csr<ValueType, IndexType> *result) const
+    Csr<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
     auto tmp = Csr<ValueType, IndexType>::create(
@@ -159,7 +159,7 @@ void Coo<ValueType, IndexType>::convert_to(
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
+void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType>* result)
 {
     auto exec = this->get_executor();
     auto tmp = Csr<ValueType, IndexType>::create(
@@ -174,7 +174,7 @@ void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
+void Coo<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
@@ -184,22 +184,22 @@ void Coo<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::move_to(Dense<ValueType> *result)
+void Coo<ValueType, IndexType>::move_to(Dense<ValueType>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::read(const mat_data &data)
+void Coo<ValueType, IndexType>::read(const mat_data& data)
 {
     size_type nnz = 0;
-    for (const auto &elem : data.nonzeros) {
+    for (const auto& elem : data.nonzeros) {
         nnz += (elem.value != zero<ValueType>());
     }
     auto tmp = Coo::create(this->get_executor()->get_master(), data.size, nnz);
     size_type elt = 0;
-    for (const auto &elem : data.nonzeros) {
+    for (const auto& elem : data.nonzeros) {
         auto val = elem.value;
         if (val != zero<ValueType>()) {
             tmp->get_row_idxs()[elt] = elem.row;
@@ -213,13 +213,13 @@ void Coo<ValueType, IndexType>::read(const mat_data &data)
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::write(mat_data &data) const
+void Coo<ValueType, IndexType>::write(mat_data& data) const
 {
     std::unique_ptr<const LinOp> op{};
-    const Coo *tmp{};
+    const Coo* tmp{};
     if (this->get_executor()->get_master() != this->get_executor()) {
         op = this->clone(this->get_executor()->get_master());
-        tmp = static_cast<const Coo *>(op.get());
+        tmp = static_cast<const Coo*>(op.get());
     } else {
         tmp = this;
     }

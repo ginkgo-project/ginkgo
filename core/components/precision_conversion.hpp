@@ -48,8 +48,8 @@ namespace kernels {
 
 #define GKO_DECLARE_CONVERT_PRECISION_KERNEL(SourceType, TargetType)    \
     void convert_precision(std::shared_ptr<const DefaultExecutor> exec, \
-                           size_type size, const SourceType *in,        \
-                           TargetType *out)
+                           size_type size, const SourceType* in,        \
+                           TargetType* out)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                    \

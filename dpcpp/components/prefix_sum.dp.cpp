@@ -67,7 +67,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(finalize_prefix_sum_call, finalize_prefix_sum,
 
 
 template <typename IndexType>
-void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType *counts,
+void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType* counts,
                 size_type num_entries)
 {
     // prefix_sum should only be performed on a valid array

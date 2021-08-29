@@ -81,7 +81,7 @@ constexpr std::enable_if_t<Size == sizeof(ValueType) * 8, ValueType> mask()
  */
 template <int current_shift, int num_groups>
 constexpr std::enable_if_t<(num_groups == current_shift + 1), int> shift(
-    const std::array<unsigned char, num_groups> &bits)
+    const std::array<unsigned char, num_groups>& bits)
 {
     return 0;
 }
@@ -93,7 +93,7 @@ constexpr std::enable_if_t<(num_groups == current_shift + 1), int> shift(
  */
 template <int current_shift, int num_groups>
 constexpr std::enable_if_t<(num_groups > current_shift + 1), int> shift(
-    const std::array<unsigned char, num_groups> &bits)
+    const std::array<unsigned char, num_groups>& bits)
 {
     return bits[current_shift + 1] +
            shift<(current_shift + 1), num_groups>(bits);
@@ -190,7 +190,7 @@ public:
     template <unsigned current_iter = 0, typename... Rest>
     static constexpr std::enable_if_t<(current_iter < num_groups),
                                       std::uint32_t>
-    encode(std::uint32_t first, Rest &&... rest)
+    encode(std::uint32_t first, Rest&&... rest)
     {
         constexpr int shift = detail::shift<current_iter, num_groups>(bits);
         if (current_iter == 0) {

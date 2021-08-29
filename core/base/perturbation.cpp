@@ -41,7 +41,7 @@ namespace gko {
 
 
 template <typename ValueType>
-void Perturbation<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Perturbation<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     // x = (I + scalar * basis * projector) * b
     // temp = projector * b                 : projector->apply(b, temp)
@@ -63,8 +63,8 @@ void Perturbation<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Perturbation<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                         const LinOp *beta, LinOp *x) const
+void Perturbation<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                         const LinOp* beta, LinOp* x) const
 {
     // x = alpha * (I + scalar * basis * projector) b + beta * x
     //   = beta * x + alpha * b + alpha * scalar * basis * projector * b

@@ -52,9 +52,9 @@ namespace diagonal {
 
 template <typename ValueType>
 void apply_to_dense(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Diagonal<ValueType> *a,
-                    const matrix::Dense<ValueType> *b,
-                    matrix::Dense<ValueType> *c)
+                    const matrix::Diagonal<ValueType>* a,
+                    const matrix::Dense<ValueType>* b,
+                    matrix::Dense<ValueType>* c)
 {
     run_kernel(
         exec,
@@ -69,9 +69,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
 
 template <typename ValueType>
 void right_apply_to_dense(std::shared_ptr<const DefaultExecutor> exec,
-                          const matrix::Diagonal<ValueType> *a,
-                          const matrix::Dense<ValueType> *b,
-                          matrix::Dense<ValueType> *c)
+                          const matrix::Diagonal<ValueType>* a,
+                          const matrix::Dense<ValueType>* b,
+                          matrix::Dense<ValueType>* c)
 {
     run_kernel(
         exec,
@@ -87,9 +87,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType, typename IndexType>
 void right_apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,
-                        const matrix::Diagonal<ValueType> *a,
-                        const matrix::Csr<ValueType, IndexType> *b,
-                        matrix::Csr<ValueType, IndexType> *c)
+                        const matrix::Diagonal<ValueType>* a,
+                        const matrix::Csr<ValueType, IndexType>* b,
+                        matrix::Csr<ValueType, IndexType>* c)
 {
     // TODO: combine copy and diag apply together
     c->copy_from(b);
@@ -108,8 +108,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Diagonal<ValueType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
+                    const matrix::Diagonal<ValueType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
 {
     run_kernel(
         exec,
@@ -133,8 +133,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Diagonal<ValueType> *orig,
-                    matrix::Diagonal<ValueType> *trans)
+                    const matrix::Diagonal<ValueType>* orig,
+                    matrix::Diagonal<ValueType>* trans)
 {
     run_kernel(
         exec,

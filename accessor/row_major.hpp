@@ -80,7 +80,7 @@ public:
     /**
      * Type of underlying data storage.
      */
-    using data_type = value_type *;
+    using data_type = value_type*;
 
     using const_accessor = row_major<const ValueType, Dimensionality>;
     using length_type = std::array<size_type, dimensionality>;
@@ -140,8 +140,8 @@ public:
      */
     template <typename... Indices>
     constexpr GKO_ACC_ATTRIBUTES
-        std::enable_if_t<are_all_integral<Indices...>::value, value_type &>
-        operator()(Indices &&... indices) const
+        std::enable_if_t<are_all_integral<Indices...>::value, value_type&>
+        operator()(Indices&&... indices) const
     {
         return data[helper::compute_row_major_index(
             lengths, stride, std::forward<Indices>(indices)...)];

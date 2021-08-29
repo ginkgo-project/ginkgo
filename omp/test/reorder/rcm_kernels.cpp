@@ -76,8 +76,8 @@ protected:
 
     static void ubfs_reference(
         std::shared_ptr<CsrMtx> mtx,
-        i_type
-            *const levels,  // Must be inf/max in all nodes connected to source
+        i_type* const
+            levels,  // Must be inf/max in all nodes connected to source
         const i_type start)
     {
         const auto row_ptrs = mtx->get_const_row_ptrs();
@@ -110,7 +110,7 @@ protected:
     static bool is_valid_start_node(std::shared_ptr<CsrMtx> mtx,
                                     std::shared_ptr<reorder_type> reorder,
                                     i_type start,
-                                    std::vector<bool> &already_visited)
+                                    std::vector<bool>& already_visited)
     {
         if (already_visited[start]) {
             return false;

@@ -73,7 +73,7 @@ T atomic_compare_exchange_strong(
 template <cl::sycl::access::address_space addressSpace = atomic::global_space,
           typename T>
 T atomic_compare_exchange_strong(
-    T *addr, T expected, T desired,
+    T* addr, T expected, T desired,
     cl::sycl::memory_order success = cl::sycl::memory_order::relaxed,
     cl::sycl::memory_order fail = cl::sycl::memory_order::relaxed)
 {
@@ -86,7 +86,7 @@ T atomic_compare_exchange_strong(
 template <cl::sycl::access::address_space addressSpace = atomic::global_space,
           typename T>
 inline T atomic_fetch_add(
-    T *addr, T operand,
+    T* addr, T operand,
     cl::sycl::memory_order memoryOrder = cl::sycl::memory_order::relaxed)
 {
     cl::sycl::atomic<T, addressSpace> obj(
@@ -98,7 +98,7 @@ inline T atomic_fetch_add(
 template <cl::sycl::access::address_space addressSpace = atomic::global_space,
           typename T>
 inline T atomic_fetch_max(
-    T *addr, T operand,
+    T* addr, T operand,
     cl::sycl::memory_order memoryOrder = cl::sycl::memory_order::relaxed)
 {
     cl::sycl::atomic<T, addressSpace> obj(
@@ -116,7 +116,7 @@ namespace detail {
 template <cl::sycl::access::address_space addressSpace, typename ValueType,
           typename = void>
 struct atomic_helper {
-    __dpct_inline__ static ValueType atomic_add(ValueType *, ValueType)
+    __dpct_inline__ static ValueType atomic_add(ValueType*, ValueType)
     {
         static_assert(sizeof(ValueType) == 0,
                       "This default function is not implemented, only the "
@@ -129,7 +129,7 @@ struct atomic_helper {
 template <cl::sycl::access::address_space addressSpace, typename ValueType,
           typename = void>
 struct atomic_max_helper {
-    __dpct_inline__ static ValueType atomic_max(ValueType *, ValueType)
+    __dpct_inline__ static ValueType atomic_max(ValueType*, ValueType)
     {
         static_assert(sizeof(ValueType) == 0,
                       "This default function is not implemented, only the "
@@ -145,7 +145,7 @@ __dpct_inline__ ResultType reinterpret(ValueType val)
     static_assert(sizeof(ValueType) == sizeof(ResultType),
                   "The type to reinterpret to must be of the same size as the "
                   "original type.");
-    return reinterpret_cast<ResultType &>(val);
+    return reinterpret_cast<ResultType&>(val);
 }
 
 
@@ -156,10 +156,10 @@ __dpct_inline__ ResultType reinterpret(ValueType val)
         addressSpace, ValueType,                                           \
         std::enable_if_t<(sizeof(ValueType) == sizeof(CONVERTER_TYPE))>> { \
         __dpct_inline__ static ValueType atomic_add(                       \
-            ValueType *__restrict__ addr, ValueType val)                   \
+            ValueType* __restrict__ addr, ValueType val)                   \
         {                                                                  \
-            CONVERTER_TYPE *address_as_converter =                         \
-                reinterpret_cast<CONVERTER_TYPE *>(addr);                  \
+            CONVERTER_TYPE* address_as_converter =                         \
+                reinterpret_cast<CONVERTER_TYPE*>(addr);                   \
             CONVERTER_TYPE old = *address_as_converter;                    \
             CONVERTER_TYPE assumed;                                        \
             do {                                                           \
@@ -185,7 +185,7 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
     template <cl::sycl::access::address_space addressSpace>                 \
     struct atomic_helper<addressSpace, ValueType, std::enable_if_t<true>> { \
         __dpct_inline__ static ValueType atomic_add(                        \
-            ValueType *__restrict__ addr, ValueType val)                    \
+            ValueType* __restrict__ addr, ValueType val)                    \
         {                                                                   \
             return atomic_fetch_add<addressSpace>(addr, val);               \
         }                                                                   \
@@ -202,11 +202,11 @@ template <cl::sycl::access::address_space addressSpace, typename ValueType>
 struct atomic_helper<
     addressSpace, ValueType,
     std::enable_if_t<is_complex<ValueType>() && sizeof(ValueType) >= 16>> {
-    __dpct_inline__ static ValueType atomic_add(ValueType *__restrict__ addr,
+    __dpct_inline__ static ValueType atomic_add(ValueType* __restrict__ addr,
                                                 ValueType val)
     {
         using real_type = remove_complex<ValueType>;
-        real_type *real_addr = reinterpret_cast<real_type *>(addr);
+        real_type* real_addr = reinterpret_cast<real_type*>(addr);
         // Separate to real part and imag part
         auto real = atomic_helper<addressSpace, real_type>::atomic_add(
             &real_addr[0], val.real());
@@ -224,10 +224,10 @@ struct atomic_helper<
         addressSpace, ValueType,                                           \
         std::enable_if_t<(sizeof(ValueType) == sizeof(CONVERTER_TYPE))>> { \
         __dpct_inline__ static ValueType atomic_max(                       \
-            ValueType *__restrict__ addr, ValueType val)                   \
+            ValueType* __restrict__ addr, ValueType val)                   \
         {                                                                  \
-            CONVERTER_TYPE *address_as_converter =                         \
-                reinterpret_cast<CONVERTER_TYPE *>(addr);                  \
+            CONVERTER_TYPE* address_as_converter =                         \
+                reinterpret_cast<CONVERTER_TYPE*>(addr);                   \
             CONVERTER_TYPE old = *address_as_converter;                    \
             CONVERTER_TYPE assumed;                                        \
             do {                                                           \
@@ -255,7 +255,7 @@ GKO_BIND_ATOMIC_MAX_STRUCTURE(unsigned int);
     struct atomic_max_helper<addressSpace, ValueType,         \
                              std::enable_if_t<true>> {        \
         __dpct_inline__ static ValueType atomic_max(          \
-            ValueType *__restrict__ addr, ValueType val)      \
+            ValueType* __restrict__ addr, ValueType val)      \
         {                                                     \
             return atomic_fetch_max<addressSpace>(addr, val); \
         }                                                     \
@@ -273,7 +273,7 @@ GKO_BIND_ATOMIC_MAX_VALUETYPE(unsigned long long int);
 
 template <cl::sycl::access::address_space addressSpace = atomic::global_space,
           typename T>
-__dpct_inline__ T atomic_add(T *__restrict__ addr, T val)
+__dpct_inline__ T atomic_add(T* __restrict__ addr, T val)
 {
     return detail::atomic_helper<addressSpace, T>::atomic_add(addr, val);
 }
@@ -281,7 +281,7 @@ __dpct_inline__ T atomic_add(T *__restrict__ addr, T val)
 
 template <cl::sycl::access::address_space addressSpace = atomic::global_space,
           typename T>
-__dpct_inline__ T atomic_max(T *__restrict__ addr, T val)
+__dpct_inline__ T atomic_max(T* __restrict__ addr, T val)
 {
     return detail::atomic_max_helper<addressSpace, T>::atomic_max(addr, val);
 }

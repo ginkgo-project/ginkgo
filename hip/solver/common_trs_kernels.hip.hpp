@@ -72,7 +72,7 @@ struct SolveStruct : gko::solver::SolveStruct {
     hipsparseSolvePolicy_t policy;
     hipsparseMatDescr_t factor_descr;
     int factor_work_size;
-    void *factor_work_vec;
+    void* factor_work_vec;
     SolveStruct()
     {
         factor_work_vec = nullptr;
@@ -87,13 +87,13 @@ struct SolveStruct : gko::solver::SolveStruct {
         policy = HIPSPARSE_SOLVE_POLICY_USE_LEVEL;
     }
 
-    SolveStruct(const SolveStruct &) = delete;
+    SolveStruct(const SolveStruct&) = delete;
 
-    SolveStruct(SolveStruct &&) = delete;
+    SolveStruct(SolveStruct&&) = delete;
 
-    SolveStruct &operator=(const SolveStruct &) = delete;
+    SolveStruct& operator=(const SolveStruct&) = delete;
 
-    SolveStruct &operator=(SolveStruct &&) = delete;
+    SolveStruct& operator=(SolveStruct&&) = delete;
 
     ~SolveStruct()
     {
@@ -119,14 +119,14 @@ namespace {
 
 
 void should_perform_transpose_kernel(std::shared_ptr<const HipExecutor> exec,
-                                     bool &do_transpose)
+                                     bool& do_transpose)
 {
     do_transpose = true;
 }
 
 
 void init_struct_kernel(std::shared_ptr<const HipExecutor> exec,
-                        std::shared_ptr<solver::SolveStruct> &solve_struct)
+                        std::shared_ptr<solver::SolveStruct>& solve_struct)
 {
     solve_struct = std::make_shared<solver::hip::SolveStruct>();
 }
@@ -134,13 +134,13 @@ void init_struct_kernel(std::shared_ptr<const HipExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void generate_kernel(std::shared_ptr<const HipExecutor> exec,
-                     const matrix::Csr<ValueType, IndexType> *matrix,
-                     solver::SolveStruct *solve_struct,
+                     const matrix::Csr<ValueType, IndexType>* matrix,
+                     solver::SolveStruct* solve_struct,
                      const gko::size_type num_rhs, bool is_upper)
 {
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         if (auto hip_solve_struct =
-                dynamic_cast<solver::hip::SolveStruct *>(solve_struct)) {
+                dynamic_cast<solver::hip::SolveStruct*>(solve_struct)) {
             auto handle = exec->get_hipsparse_handle();
             if (is_upper) {
                 GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseSetMatFillMode(
@@ -162,7 +162,7 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
                     exec->free(hip_solve_struct->factor_work_vec);
                 }
                 hip_solve_struct->factor_work_vec =
-                    exec->alloc<void *>(hip_solve_struct->factor_work_size);
+                    exec->alloc<void*>(hip_solve_struct->factor_work_size);
 
                 hipsparse::csrsv2_analysis(
                     handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
@@ -183,18 +183,18 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void solve_kernel(std::shared_ptr<const HipExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType> *matrix,
-                  const solver::SolveStruct *solve_struct,
-                  matrix::Dense<ValueType> *trans_b,
-                  matrix::Dense<ValueType> *trans_x,
-                  const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *x)
+                  const matrix::Csr<ValueType, IndexType>* matrix,
+                  const solver::SolveStruct* solve_struct,
+                  matrix::Dense<ValueType>* trans_b,
+                  matrix::Dense<ValueType>* trans_x,
+                  const matrix::Dense<ValueType>* b,
+                  matrix::Dense<ValueType>* x)
 {
     using vec = matrix::Dense<ValueType>;
 
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         if (auto hip_solve_struct =
-                dynamic_cast<const solver::hip::SolveStruct *>(solve_struct)) {
+                dynamic_cast<const solver::hip::SolveStruct*>(solve_struct)) {
             ValueType one = 1.0;
             auto handle = exec->get_hipsparse_handle();
 

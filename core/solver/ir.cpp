@@ -82,7 +82,7 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -93,8 +93,8 @@ void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
-                                     matrix::Dense<ValueType> *dense_x) const
+void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
+                                     matrix::Dense<ValueType>* dense_x) const
 {
     using Vector = matrix::Dense<ValueType>;
     constexpr uint8 relative_stopping_id{1};
@@ -116,7 +116,7 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
 
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_,
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         lend(residual));
 
     int iter = -1;
@@ -163,8 +163,8 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
 
 
 template <typename ValueType>
-void Ir<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                               const LinOp *beta, LinOp *x) const
+void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {

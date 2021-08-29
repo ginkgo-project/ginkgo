@@ -60,10 +60,10 @@ public:
     bool apply_uses_initial_guess() const override { return true; }
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 
     explicit DummyLinOp(std::shared_ptr<const gko::Executor> exec)

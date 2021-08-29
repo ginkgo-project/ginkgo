@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void zero_matrix_kernel(
-    size_type m, size_type n, size_type stride, ValueType *__restrict__ array)
+    size_type m, size_type n, size_type stride, ValueType* __restrict__ array)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < n) {
@@ -52,7 +52,7 @@ __global__ __launch_bounds__(default_block_size) void zero_matrix_kernel(
 template <size_type block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void initialize_2_1_kernel(
     size_type num_rows, size_type num_rhs, size_type krylov_dim,
-    Accessor3d krylov_bases, ValueType *__restrict__ residual_norm_collection,
+    Accessor3d krylov_bases, ValueType* __restrict__ residual_norm_collection,
     size_type stride_residual_nc)
 {
     const auto global_id = thread::get_thread_id_flat();
@@ -84,11 +84,11 @@ __global__ __launch_bounds__(block_size) void initialize_2_1_kernel(
 template <size_type block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     size_type num_rows, size_type num_rhs,
-    const ValueType *__restrict__ residual, size_type stride_residual,
-    const remove_complex<ValueType> *__restrict__ residual_norm,
-    ValueType *__restrict__ residual_norm_collection, Accessor3d krylov_bases,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-    size_type *__restrict__ final_iter_nums)
+    const ValueType* __restrict__ residual, size_type stride_residual,
+    const remove_complex<ValueType>* __restrict__ residual_norm,
+    ValueType* __restrict__ residual_norm_collection, Accessor3d krylov_bases,
+    ValueType* __restrict__ next_krylov_basis, size_type stride_next_krylov,
+    size_type* __restrict__ final_iter_nums)
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto krylov_stride =
@@ -113,8 +113,8 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
 
 __global__
     __launch_bounds__(default_block_size) void increase_final_iteration_numbers_kernel(
-        size_type *__restrict__ final_iter_nums,
-        const stopping_status *__restrict__ stop_status, size_type total_number)
+        size_type* __restrict__ final_iter_nums,
+        const stopping_status* __restrict__ stop_status, size_type total_number)
 {
     const auto global_id = thread::get_thread_id_flat();
     if (global_id < total_number) {
@@ -126,9 +126,9 @@ __global__
 template <typename ValueType>
 __global__ __launch_bounds__(default_dot_size) void multinorm2_kernel(
     size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ next_krylov_basis,
-    size_type stride_next_krylov, remove_complex<ValueType> *__restrict__ norms,
-    const stopping_status *__restrict__ stop_status)
+    const ValueType* __restrict__ next_krylov_basis,
+    size_type stride_next_krylov, remove_complex<ValueType>* __restrict__ norms,
+    const stopping_status* __restrict__ stop_status)
 {
     using rc_vtype = remove_complex<ValueType>;
     const auto tidx = threadIdx.x;
@@ -141,9 +141,9 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
     __shared__
-        UninitializedArray<rc_vtype, default_dot_dim *(default_dot_dim + 1)>
+        UninitializedArray<rc_vtype, default_dot_dim*(default_dot_dim + 1)>
             reduction_helper_array;
-    rc_vtype *__restrict__ reduction_helper = reduction_helper_array;
+    rc_vtype* __restrict__ reduction_helper = reduction_helper_array;
     rc_vtype local_res = zero<rc_vtype>();
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         for (size_type i = start_row + tidy; i < end_row;
@@ -159,7 +159,7 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_kernel(
         group::tiled_partition<default_dot_dim>(group::this_thread_block());
     const auto sum =
         reduce(tile_block, local_res,
-               [](const rc_vtype &a, const rc_vtype &b) { return a + b; });
+               [](const rc_vtype& a, const rc_vtype& b) { return a + b; });
     const auto new_col_idx = blockIdx.x * default_dot_dim + tidy;
     if (tidx == 0 && new_col_idx < num_cols &&
         !stop_status[new_col_idx].has_stopped()) {
@@ -173,9 +173,9 @@ template <typename ValueType>
 __global__
     __launch_bounds__(default_dot_size) void multinorminf_without_stop_kernel(
         size_type num_rows, size_type num_cols,
-        const ValueType *__restrict__ next_krylov_basis,
+        const ValueType* __restrict__ next_krylov_basis,
         size_type stride_next_krylov,
-        remove_complex<ValueType> *__restrict__ norms, size_type stride_norms)
+        remove_complex<ValueType>* __restrict__ norms, size_type stride_norms)
 {
     using rc_vtype = remove_complex<ValueType>;
     const auto tidx = threadIdx.x;
@@ -188,9 +188,9 @@ __global__
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
     __shared__
-        UninitializedArray<rc_vtype, default_dot_dim *(default_dot_dim + 1)>
+        UninitializedArray<rc_vtype, default_dot_dim*(default_dot_dim + 1)>
             reduction_helper_array;
-    rc_vtype *__restrict__ reduction_helper = reduction_helper_array;
+    rc_vtype* __restrict__ reduction_helper = reduction_helper_array;
     rc_vtype local_max = zero<rc_vtype>();
     if (col_idx < num_cols) {
         for (size_type i = start_row + tidy; i < end_row;
@@ -207,7 +207,7 @@ __global__
     const auto tile_block =
         group::tiled_partition<default_dot_dim>(group::this_thread_block());
     const auto value =
-        reduce(tile_block, local_max, [](const rc_vtype &a, const rc_vtype &b) {
+        reduce(tile_block, local_max, [](const rc_vtype& a, const rc_vtype& b) {
             return ((a >= b) ? a : b);
         });
     const auto new_col_idx = blockIdx.x * default_dot_dim + tidy;
@@ -222,11 +222,11 @@ __global__
 template <bool compute_inf, typename ValueType>
 __global__ __launch_bounds__(default_dot_size) void multinorm2_inf_kernel(
     size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ next_krylov_basis,
+    const ValueType* __restrict__ next_krylov_basis,
     size_type stride_next_krylov,
-    remove_complex<ValueType> *__restrict__ norms1,
-    remove_complex<ValueType> *__restrict__ norms2,
-    const stopping_status *__restrict__ stop_status)
+    remove_complex<ValueType>* __restrict__ norms1,
+    remove_complex<ValueType>* __restrict__ norms2,
+    const stopping_status* __restrict__ stop_status)
 {
     using rc_vtype = remove_complex<ValueType>;
     const auto tidx = threadIdx.x;
@@ -239,11 +239,11 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_inf_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
     __shared__ UninitializedArray<
-        rc_vtype, (1 + compute_inf) * default_dot_dim *(default_dot_dim + 1)>
+        rc_vtype, (1 + compute_inf) * default_dot_dim*(default_dot_dim + 1)>
         reduction_helper_array;
-    rc_vtype *__restrict__ reduction_helper_add = reduction_helper_array;
-    rc_vtype *__restrict__ reduction_helper_max =
-        static_cast<rc_vtype *>(reduction_helper_array) +
+    rc_vtype* __restrict__ reduction_helper_add = reduction_helper_array;
+    rc_vtype* __restrict__ reduction_helper_max =
+        static_cast<rc_vtype*>(reduction_helper_array) +
         default_dot_dim * (default_dot_dim + 1);
     rc_vtype local_res = zero<rc_vtype>();
     rc_vtype local_max = zero<rc_vtype>();
@@ -269,12 +269,12 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_inf_kernel(
         group::tiled_partition<default_dot_dim>(group::this_thread_block());
     const auto sum =
         reduce(tile_block, local_res,
-               [](const rc_vtype &a, const rc_vtype &b) { return a + b; });
+               [](const rc_vtype& a, const rc_vtype& b) { return a + b; });
     rc_vtype reduced_max{};
     if (compute_inf) {
         local_max = reduction_helper_max[tidy * (default_dot_dim + 1) + tidx];
         reduced_max = reduce(tile_block, local_max,
-                             [](const rc_vtype &a, const rc_vtype &b) {
+                             [](const rc_vtype& a, const rc_vtype& b) {
                                  return ((a >= b) ? a : b);
                              });
     }
@@ -291,12 +291,12 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_inf_kernel(
 
 
 template <int dot_dim, typename ValueType, typename Accessor3d>
-__global__ __launch_bounds__(dot_dim *dot_dim) void multidot_kernel(
+__global__ __launch_bounds__(dot_dim* dot_dim) void multidot_kernel(
     size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ next_krylov_basis,
+    const ValueType* __restrict__ next_krylov_basis,
     size_type stride_next_krylov, const Accessor3d krylov_bases,
-    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status)
+    ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status)
 {
     /*
      * In general in this kernel:
@@ -320,7 +320,7 @@ __global__ __launch_bounds__(dot_dim *dot_dim) void multidot_kernel(
     // template error when using `reduction_helper_array` directly in `reduce`
     __shared__ UninitializedArray<ValueType, dot_dim * dot_dim>
         reduction_helper_array;
-    ValueType *__restrict__ reduction_helper = reduction_helper_array;
+    ValueType* __restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
@@ -340,7 +340,7 @@ __global__ __launch_bounds__(dot_dim *dot_dim) void multidot_kernel(
     const auto tile_block = group::tiled_partition<dot_dim>(thread_block);
     const auto sum =
         reduce(tile_block, local_res,
-               [](const ValueType &a, const ValueType &b) { return a + b; });
+               [](const ValueType& a, const ValueType& b) { return a + b; });
     if (tidx == 0 && new_col_idx < num_cols &&
         !stop_status[new_col_idx].has_stopped()) {
         const auto hessenberg_idx = k * stride_hessenberg + new_col_idx;
@@ -351,10 +351,10 @@ __global__ __launch_bounds__(dot_dim *dot_dim) void multidot_kernel(
 
 template <int block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void singledot_kernel(
-    size_type num_rows, const ValueType *__restrict__ next_krylov_basis,
+    size_type num_rows, const ValueType* __restrict__ next_krylov_basis,
     size_type stride_next_krylov, const Accessor3d krylov_bases,
-    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status)
+    ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status)
 {
     /*
      * In general in this kernel:
@@ -374,7 +374,7 @@ __global__ __launch_bounds__(block_size) void singledot_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
     __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
-    ValueType *__restrict__ reduction_helper = reduction_helper_array;
+    ValueType* __restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();
     if (!stop_status[col_idx].has_stopped()) {
@@ -390,7 +390,7 @@ __global__ __launch_bounds__(block_size) void singledot_kernel(
     auto thread_block = group::this_thread_block();
     thread_block.sync();
     reduce(thread_block, reduction_helper,
-           [](const ValueType &a, const ValueType &b) { return a + b; });
+           [](const ValueType& a, const ValueType& b) { return a + b; });
     if (tidx == 0 && !stop_status[col_idx].has_stopped()) {
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
         atomic_add(hessenberg_iter + hessenberg_idx, reduction_helper[0]);
@@ -403,10 +403,10 @@ __global__ __launch_bounds__(block_size) void singledot_kernel(
 template <int block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
     size_type num_iters, size_type num_rows, size_type num_cols,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
+    ValueType* __restrict__ next_krylov_basis, size_type stride_next_krylov,
     const Accessor3d krylov_bases,
-    const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status)
+    const ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto row_idx = global_id / stride_next_krylov;
@@ -432,11 +432,11 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
 template <int block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void update_next_krylov_and_add_kernel(
     size_type num_iters, size_type num_rows, size_type num_cols,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-    const Accessor3d krylov_bases, ValueType *__restrict__ hessenberg_iter,
-    size_type stride_hessenberg, const ValueType *__restrict__ buffer_iter,
-    size_type stride_buffer, const stopping_status *__restrict__ stop_status,
-    const stopping_status *__restrict__ reorth_status)
+    ValueType* __restrict__ next_krylov_basis, size_type stride_next_krylov,
+    const Accessor3d krylov_bases, ValueType* __restrict__ hessenberg_iter,
+    size_type stride_hessenberg, const ValueType* __restrict__ buffer_iter,
+    size_type stride_buffer, const stopping_status* __restrict__ stop_status,
+    const stopping_status* __restrict__ reorth_status)
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto row_idx = global_id / stride_next_krylov;
@@ -464,12 +464,12 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_and_add_kernel(
 // Must be called with at least `num_rhs` threads
 template <int block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
-    size_type num_rhs, remove_complex<ValueType> *__restrict__ arnoldi_norm,
-    size_type stride_norm, ValueType *__restrict__ hessenberg_iter,
+    size_type num_rhs, remove_complex<ValueType>* __restrict__ arnoldi_norm,
+    size_type stride_norm, ValueType* __restrict__ hessenberg_iter,
     size_type stride_hessenberg, size_type iter, Accessor3d krylov_bases,
-    const stopping_status *__restrict__ stop_status,
-    stopping_status *__restrict__ reorth_status,
-    size_type *__restrict__ num_reorth)
+    const stopping_status* __restrict__ stop_status,
+    stopping_status* __restrict__ reorth_status,
+    size_type* __restrict__ num_reorth)
 {
     const remove_complex<ValueType> eta_squared = 1.0 / 2.0;
     const auto col_idx = thread::get_thread_id_flat();
@@ -499,8 +499,8 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
 template <int block_size, typename RealValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void set_scalar_kernel(
     size_type num_rhs, size_type num_blocks,
-    const RealValueType *__restrict__ residual_norm, size_type stride_residual,
-    const RealValueType *__restrict__ arnoldi_inf, size_type stride_inf,
+    const RealValueType* __restrict__ residual_norm, size_type stride_residual,
+    const RealValueType* __restrict__ arnoldi_inf, size_type stride_inf,
     Accessor3d krylov_bases)
 {
     static_assert(!is_complex_s<RealValueType>::value,
@@ -532,10 +532,10 @@ __global__ __launch_bounds__(block_size) void set_scalar_kernel(
 template <int block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void update_krylov_next_krylov_kernel(
     size_type iter, size_type num_rows, size_type num_cols,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-    Accessor3d krylov_bases, const ValueType *__restrict__ hessenberg_iter,
+    ValueType* __restrict__ next_krylov_basis, size_type stride_next_krylov,
+    Accessor3d krylov_bases, const ValueType* __restrict__ hessenberg_iter,
     size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status)
+    const stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto row_idx = global_id / stride_next_krylov;
@@ -561,10 +561,10 @@ __global__ __launch_bounds__(block_size) void update_krylov_next_krylov_kernel(
 template <size_type block_size, typename ValueType, typename Accessor3d>
 __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
     size_type num_rows, size_type num_cols, const Accessor3d krylov_bases,
-    const ValueType *__restrict__ y, size_type stride_y,
-    ValueType *__restrict__ before_preconditioner,
+    const ValueType* __restrict__ y, size_type stride_y,
+    ValueType* __restrict__ before_preconditioner,
     size_type stride_preconditioner,
-    const size_type *__restrict__ final_iter_nums)
+    const size_type* __restrict__ final_iter_nums)
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto row_id = global_id / stride_preconditioner;

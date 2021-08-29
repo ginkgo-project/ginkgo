@@ -496,7 +496,7 @@ TYPED_TEST(Cg, SolvesBigDenseSystem3)
 
 
 template <typename T>
-gko::remove_complex<T> infNorm(gko::matrix::Dense<T> *mat, size_t col = 0)
+gko::remove_complex<T> infNorm(gko::matrix::Dense<T>* mat, size_t col = 0)
 {
     using std::abs;
     using no_cpx_t = gko::remove_complex<T>;

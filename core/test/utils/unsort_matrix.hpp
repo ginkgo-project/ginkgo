@@ -53,8 +53,8 @@ namespace test {
 // Plan for now: shuffle values and column indices to unsort the given matrix
 // without changing the represented matrix.
 template <typename ValueType, typename IndexType, typename RandomEngine>
-void unsort_matrix(matrix::Csr<ValueType, IndexType> *mtx,
-                   RandomEngine &&engine)
+void unsort_matrix(matrix::Csr<ValueType, IndexType>* mtx,
+                   RandomEngine&& engine)
 {
     using value_type = ValueType;
     using index_type = IndexType;
@@ -62,8 +62,8 @@ void unsort_matrix(matrix::Csr<ValueType, IndexType> *mtx,
     if (mtx->get_num_stored_elements() <= 0) {
         return;
     }
-    const auto &exec = mtx->get_executor();
-    const auto &master = exec->get_master();
+    const auto& exec = mtx->get_executor();
+    const auto& master = exec->get_master();
 
     // If exec is not the master/host, extract the master and perform the
     // unsorting there, followed by copying it back
@@ -91,8 +91,8 @@ void unsort_matrix(matrix::Csr<ValueType, IndexType> *mtx,
 // Plan for now: shuffle values and column indices to unsort the given matrix
 // without changing the represented matrix.
 template <typename ValueType, typename IndexType, typename RandomEngine>
-void unsort_matrix(matrix::Coo<ValueType, IndexType> *mtx,
-                   RandomEngine &&engine)
+void unsort_matrix(matrix::Coo<ValueType, IndexType>* mtx,
+                   RandomEngine&& engine)
 {
     using value_type = ValueType;
     using index_type = IndexType;
@@ -101,8 +101,8 @@ void unsort_matrix(matrix::Coo<ValueType, IndexType> *mtx,
         return;
     }
 
-    const auto &exec = mtx->get_executor();
-    const auto &master = exec->get_master();
+    const auto& exec = mtx->get_executor();
+    const auto& master = exec->get_master();
 
     // If exec is not the master/host, extract the master and perform the
     // unsorting there, followed by copying it back
@@ -114,7 +114,7 @@ void unsort_matrix(matrix::Coo<ValueType, IndexType> *mtx,
     }
     matrix_data<value_type, index_type> data;
     mtx->write(data);
-    auto &nonzeros = data.nonzeros;
+    auto& nonzeros = data.nonzeros;
     using nz_type = typename decltype(data)::nonzero_type;
 
     std::shuffle(nonzeros.begin(), nonzeros.end(), engine);

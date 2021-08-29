@@ -49,65 +49,65 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // A logger that accumulates the time of all operations
 struct OperationLogger : gko::log::Logger {
-    void on_allocation_started(const gko::Executor *exec,
-                               const gko::size_type &) const override
+    void on_allocation_started(const gko::Executor* exec,
+                               const gko::size_type&) const override
     {
         this->start_operation(exec, "allocate");
     }
 
-    void on_allocation_completed(const gko::Executor *exec,
-                                 const gko::size_type &,
-                                 const gko::uintptr &) const override
+    void on_allocation_completed(const gko::Executor* exec,
+                                 const gko::size_type&,
+                                 const gko::uintptr&) const override
     {
         this->end_operation(exec, "allocate");
     }
 
-    void on_free_started(const gko::Executor *exec,
-                         const gko::uintptr &) const override
+    void on_free_started(const gko::Executor* exec,
+                         const gko::uintptr&) const override
     {
         this->start_operation(exec, "free");
     }
 
-    void on_free_completed(const gko::Executor *exec,
-                           const gko::uintptr &) const override
+    void on_free_completed(const gko::Executor* exec,
+                           const gko::uintptr&) const override
     {
         this->end_operation(exec, "free");
     }
 
-    void on_copy_started(const gko::Executor *from, const gko::Executor *to,
-                         const gko::uintptr &, const gko::uintptr &,
-                         const gko::size_type &) const override
+    void on_copy_started(const gko::Executor* from, const gko::Executor* to,
+                         const gko::uintptr&, const gko::uintptr&,
+                         const gko::size_type&) const override
     {
         from->synchronize();
         this->start_operation(to, "copy");
     }
 
-    void on_copy_completed(const gko::Executor *from, const gko::Executor *to,
-                           const gko::uintptr &, const gko::uintptr &,
-                           const gko::size_type &) const override
+    void on_copy_completed(const gko::Executor* from, const gko::Executor* to,
+                           const gko::uintptr&, const gko::uintptr&,
+                           const gko::size_type&) const override
     {
         from->synchronize();
         this->end_operation(to, "copy");
     }
 
-    void on_operation_launched(const gko::Executor *exec,
-                               const gko::Operation *op) const override
+    void on_operation_launched(const gko::Executor* exec,
+                               const gko::Operation* op) const override
     {
         this->start_operation(exec, op->get_name());
     }
 
-    void on_operation_completed(const gko::Executor *exec,
-                                const gko::Operation *op) const override
+    void on_operation_completed(const gko::Executor* exec,
+                                const gko::Operation* op) const override
     {
         this->end_operation(exec, op->get_name());
     }
 
-    void write_data(rapidjson::Value &object,
-                    rapidjson::MemoryPoolAllocator<> &alloc,
+    void write_data(rapidjson::Value& object,
+                    rapidjson::MemoryPoolAllocator<>& alloc,
                     gko::uint32 repetitions)
     {
         const std::lock_guard<std::mutex> lock(mutex);
-        for (const auto &entry : total) {
+        for (const auto& entry : total) {
             add_or_set_member(
                 object, entry.first.c_str(),
                 std::chrono::duration<double>(entry.second).count() /
@@ -121,8 +121,8 @@ struct OperationLogger : gko::log::Logger {
     {}
 
 private:
-    void start_operation(const gko::Executor *exec,
-                         const std::string &name) const
+    void start_operation(const gko::Executor* exec,
+                         const std::string& name) const
     {
         exec->synchronize();
         const std::lock_guard<std::mutex> lock(mutex);
@@ -133,7 +133,7 @@ private:
         start[nested_name] = std::chrono::steady_clock::now();
     }
 
-    void end_operation(const gko::Executor *exec, const std::string &name) const
+    void end_operation(const gko::Executor* exec, const std::string& name) const
     {
         exec->synchronize();
         const std::lock_guard<std::mutex> lock(mutex);
@@ -162,27 +162,27 @@ private:
 
 
 struct StorageLogger : gko::log::Logger {
-    void on_allocation_completed(const gko::Executor *,
-                                 const gko::size_type &num_bytes,
-                                 const gko::uintptr &location) const override
+    void on_allocation_completed(const gko::Executor*,
+                                 const gko::size_type& num_bytes,
+                                 const gko::uintptr& location) const override
     {
         const std::lock_guard<std::mutex> lock(mutex);
         storage[location] = num_bytes;
     }
 
-    void on_free_completed(const gko::Executor *,
-                           const gko::uintptr &location) const override
+    void on_free_completed(const gko::Executor*,
+                           const gko::uintptr& location) const override
     {
         const std::lock_guard<std::mutex> lock(mutex);
         storage[location] = 0;
     }
 
-    void write_data(rapidjson::Value &output,
-                    rapidjson::MemoryPoolAllocator<> &allocator)
+    void write_data(rapidjson::Value& output,
+                    rapidjson::MemoryPoolAllocator<>& allocator)
     {
         const std::lock_guard<std::mutex> lock(mutex);
         gko::size_type total{};
-        for (const auto &e : storage) {
+        for (const auto& e : storage) {
             total += e.second;
         }
         add_or_set_member(output, "storage", total, allocator);
@@ -204,20 +204,20 @@ struct ResidualLogger : gko::log::Logger {
     using rc_vtype = gko::remove_complex<ValueType>;
 
     // TODO2.0: Remove when deprecating simple overload
-    void on_iteration_complete(const gko::LinOp *solver,
-                               const gko::size_type &it,
-                               const gko::LinOp *residual,
-                               const gko::LinOp *solution,
-                               const gko::LinOp *residual_norm) const override
+    void on_iteration_complete(const gko::LinOp* solver,
+                               const gko::size_type& it,
+                               const gko::LinOp* residual,
+                               const gko::LinOp* solution,
+                               const gko::LinOp* residual_norm) const override
     {
         on_iteration_complete(solver, it, residual, solution, residual_norm,
                               nullptr);
     }
 
     void on_iteration_complete(
-        const gko::LinOp *, const gko::size_type &, const gko::LinOp *residual,
-        const gko::LinOp *solution, const gko::LinOp *residual_norm,
-        const gko::LinOp *implicit_sq_residual_norm) const override
+        const gko::LinOp*, const gko::size_type&, const gko::LinOp* residual,
+        const gko::LinOp* solution, const gko::LinOp* residual_norm,
+        const gko::LinOp* implicit_sq_residual_norm) const override
     {
         timestamps.PushBack(std::chrono::duration<double>(
                                 std::chrono::steady_clock::now() - start)
@@ -250,12 +250,12 @@ struct ResidualLogger : gko::log::Logger {
     }
 
     ResidualLogger(std::shared_ptr<const gko::Executor> exec,
-                   const gko::LinOp *matrix, const vec<ValueType> *b,
-                   rapidjson::Value &rec_res_norms,
-                   rapidjson::Value &true_res_norms,
-                   rapidjson::Value &implicit_res_norms,
-                   rapidjson::Value &timestamps,
-                   rapidjson::MemoryPoolAllocator<> &alloc)
+                   const gko::LinOp* matrix, const vec<ValueType>* b,
+                   rapidjson::Value& rec_res_norms,
+                   rapidjson::Value& true_res_norms,
+                   rapidjson::Value& implicit_res_norms,
+                   rapidjson::Value& timestamps,
+                   rapidjson::MemoryPoolAllocator<>& alloc)
         : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask),
           matrix{matrix},
           b{b},
@@ -271,24 +271,24 @@ struct ResidualLogger : gko::log::Logger {
     bool has_implicit_res_norms() const { return has_implicit_res_norm; }
 
 private:
-    const gko::LinOp *matrix;
-    const vec<ValueType> *b;
+    const gko::LinOp* matrix;
+    const vec<ValueType>* b;
     std::chrono::steady_clock::time_point start;
-    rapidjson::Value &rec_res_norms;
-    rapidjson::Value &true_res_norms;
+    rapidjson::Value& rec_res_norms;
+    rapidjson::Value& true_res_norms;
     mutable bool has_implicit_res_norm;
-    rapidjson::Value &implicit_res_norms;
-    rapidjson::Value &timestamps;
-    rapidjson::MemoryPoolAllocator<> &alloc;
+    rapidjson::Value& implicit_res_norms;
+    rapidjson::Value& timestamps;
+    rapidjson::MemoryPoolAllocator<>& alloc;
 };
 
 
 // Logs the number of iteration executed
 struct IterationLogger : gko::log::Logger {
-    void on_iteration_complete(const gko::LinOp *,
-                               const gko::size_type &num_iterations,
-                               const gko::LinOp *, const gko::LinOp *,
-                               const gko::LinOp *) const override
+    void on_iteration_complete(const gko::LinOp*,
+                               const gko::size_type& num_iterations,
+                               const gko::LinOp*, const gko::LinOp*,
+                               const gko::LinOp*) const override
     {
         this->num_iters = num_iterations;
     }
@@ -297,8 +297,8 @@ struct IterationLogger : gko::log::Logger {
         : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask)
     {}
 
-    void write_data(rapidjson::Value &output,
-                    rapidjson::MemoryPoolAllocator<> &allocator)
+    void write_data(rapidjson::Value& output,
+                    rapidjson::MemoryPoolAllocator<>& allocator)
     {
         add_or_set_member(output, "iterations", this->num_iters, allocator);
     }

@@ -63,8 +63,8 @@ protected:
     {}
 
     template <typename T1, typename T2>
-    void check_vector_equal(const std::vector<T1> &v1,
-                            const std::vector<T2> &v2)
+    void check_vector_equal(const std::vector<T1>& v1,
+                            const std::vector<T2>& v2)
     {
         ASSERT_TRUE(std::equal(v1.begin(), v1.end(), v2.begin()));
     }

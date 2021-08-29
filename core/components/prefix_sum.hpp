@@ -63,7 +63,7 @@ namespace kernels {
  */
 #define GKO_DECLARE_PREFIX_SUM_KERNEL(IndexType)                 \
     void prefix_sum(std::shared_ptr<const DefaultExecutor> exec, \
-                    IndexType *counts, size_type num_entries)
+                    IndexType* counts, size_type num_entries)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \

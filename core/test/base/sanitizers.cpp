@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 TEST(Sanitizers, UseAfterFree)
 {
-    char *x = new char[50];
+    char* x = new char[50];
     x[0] = 'H';
     x[1] = 'I';
     x[2] = '\n';
@@ -53,7 +53,7 @@ TEST(Sanitizers, UseAfterFree)
 
 TEST(Sanitizers, MemoryLeak)
 {
-    char *x = new char[50];
+    char* x = new char[50];
     x[0] = 'H';
     x[1] = 'I';
     x[2] = '\n';
@@ -70,7 +70,7 @@ TEST(Sanitizers, UndefinedBehavior)
 
 
 int Global = 0;
-void *Thread(void *x)
+void* Thread(void* x)
 {
     Global = 42;
     return x;

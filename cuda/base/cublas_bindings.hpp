@@ -72,7 +72,7 @@ namespace detail {
 
 
 template <typename... Args>
-inline int64 not_implemented(Args &&...)
+inline int64 not_implemented(Args&&...)
 {
     return static_cast<int64>(CUBLAS_STATUS_NOT_SUPPORTED);
 }
@@ -100,9 +100,9 @@ struct is_supported<std::complex<double>> : std::true_type {};
 #define GKO_BIND_CUBLAS_GEMM(ValueType, CublasName)                            \
     inline void gemm(cublasHandle_t handle, cublasOperation_t transa,          \
                      cublasOperation_t transb, int m, int n, int k,            \
-                     const ValueType *alpha, const ValueType *a, int lda,      \
-                     const ValueType *b, int ldb, const ValueType *beta,       \
-                     ValueType *c, int ldc)                                    \
+                     const ValueType* alpha, const ValueType* a, int lda,      \
+                     const ValueType* b, int ldb, const ValueType* beta,       \
+                     ValueType* c, int ldc)                                    \
     {                                                                          \
         GKO_ASSERT_NO_CUBLAS_ERRORS(                                           \
             CublasName(handle, transa, transb, m, n, k, as_culibs_type(alpha), \
@@ -126,9 +126,9 @@ GKO_BIND_CUBLAS_GEMM(ValueType, detail::not_implemented);
 #define GKO_BIND_CUBLAS_GEAM(ValueType, CublasName)                          \
     inline void geam(cublasHandle_t handle, cublasOperation_t transa,        \
                      cublasOperation_t transb, int m, int n,                 \
-                     const ValueType *alpha, const ValueType *a, int lda,    \
-                     const ValueType *beta, const ValueType *b, int ldb,     \
-                     ValueType *c, int ldc)                                  \
+                     const ValueType* alpha, const ValueType* a, int lda,    \
+                     const ValueType* beta, const ValueType* b, int ldb,     \
+                     ValueType* c, int ldc)                                  \
     {                                                                        \
         GKO_ASSERT_NO_CUBLAS_ERRORS(                                         \
             CublasName(handle, transa, transb, m, n, as_culibs_type(alpha),  \
@@ -150,8 +150,8 @@ GKO_BIND_CUBLAS_GEAM(ValueType, detail::not_implemented);
 
 
 #define GKO_BIND_CUBLAS_SCAL(ValueType, CublasName)                          \
-    inline void scal(cublasHandle_t handle, int n, const ValueType *alpha,   \
-                     ValueType *x, int incx)                                 \
+    inline void scal(cublasHandle_t handle, int n, const ValueType* alpha,   \
+                     ValueType* x, int incx)                                 \
     {                                                                        \
         GKO_ASSERT_NO_CUBLAS_ERRORS(CublasName(                              \
             handle, n, as_culibs_type(alpha), as_culibs_type(x), incx));     \
@@ -171,8 +171,8 @@ GKO_BIND_CUBLAS_SCAL(ValueType, detail::not_implemented);
 
 
 #define GKO_BIND_CUBLAS_AXPY(ValueType, CublasName)                          \
-    inline void axpy(cublasHandle_t handle, int n, const ValueType *alpha,   \
-                     const ValueType *x, int incx, ValueType *y, int incy)   \
+    inline void axpy(cublasHandle_t handle, int n, const ValueType* alpha,   \
+                     const ValueType* x, int incx, ValueType* y, int incy)   \
     {                                                                        \
         GKO_ASSERT_NO_CUBLAS_ERRORS(                                         \
             CublasName(handle, n, as_culibs_type(alpha), as_culibs_type(x),  \
@@ -193,8 +193,8 @@ GKO_BIND_CUBLAS_AXPY(ValueType, detail::not_implemented);
 
 
 #define GKO_BIND_CUBLAS_DOT(ValueType, CublasName)                             \
-    inline void dot(cublasHandle_t handle, int n, const ValueType *x,          \
-                    int incx, const ValueType *y, int incy, ValueType *result) \
+    inline void dot(cublasHandle_t handle, int n, const ValueType* x,          \
+                    int incx, const ValueType* y, int incy, ValueType* result) \
     {                                                                          \
         GKO_ASSERT_NO_CUBLAS_ERRORS(CublasName(handle, n, as_culibs_type(x),   \
                                                incx, as_culibs_type(y), incy,  \
@@ -215,9 +215,9 @@ GKO_BIND_CUBLAS_DOT(ValueType, detail::not_implemented);
 
 
 #define GKO_BIND_CUBLAS_CONJ_DOT(ValueType, CublasName)                       \
-    inline void conj_dot(cublasHandle_t handle, int n, const ValueType *x,    \
-                         int incx, const ValueType *y, int incy,              \
-                         ValueType *result)                                   \
+    inline void conj_dot(cublasHandle_t handle, int n, const ValueType* x,    \
+                         int incx, const ValueType* y, int incy,              \
+                         ValueType* result)                                   \
     {                                                                         \
         GKO_ASSERT_NO_CUBLAS_ERRORS(CublasName(handle, n, as_culibs_type(x),  \
                                                incx, as_culibs_type(y), incy, \
@@ -238,8 +238,8 @@ GKO_BIND_CUBLAS_CONJ_DOT(ValueType, detail::not_implemented);
 
 
 #define GKO_BIND_CUBLAS_NORM2(ValueType, CublasName)                           \
-    inline void norm2(cublasHandle_t handle, int n, const ValueType *x,        \
-                      int incx, remove_complex<ValueType> *result)             \
+    inline void norm2(cublasHandle_t handle, int n, const ValueType* x,        \
+                      int incx, remove_complex<ValueType>* result)             \
     {                                                                          \
         GKO_ASSERT_NO_CUBLAS_ERRORS(CublasName(handle, n, as_culibs_type(x),   \
                                                incx, as_culibs_type(result))); \

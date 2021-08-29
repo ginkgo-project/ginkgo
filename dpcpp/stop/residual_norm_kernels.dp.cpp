@@ -58,17 +58,17 @@ namespace residual_norm {
 
 template <typename ValueType>
 void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
-                   const matrix::Dense<ValueType> *tau,
-                   const matrix::Dense<ValueType> *orig_tau,
+                   const matrix::Dense<ValueType>* tau,
+                   const matrix::Dense<ValueType>* orig_tau,
                    ValueType rel_residual_goal, uint8 stoppingId,
-                   bool setFinalized, Array<stopping_status> *stop_status,
-                   Array<bool> *device_storage, bool *all_converged,
-                   bool *one_changed)
+                   bool setFinalized, Array<stopping_status>* stop_status,
+                   Array<bool>* device_storage, bool* all_converged,
+                   bool* one_changed)
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
     auto device_storage_val = device_storage->get_data();
-    exec->get_queue()->submit([&](sycl::handler &cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{1}, [=](sycl::id<1>) {
             device_storage_val[0] = true;
             device_storage_val[1] = false;
@@ -78,7 +78,7 @@ void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
     auto orig_tau_val = orig_tau->get_const_values();
     auto tau_val = tau->get_const_values();
     auto stop_status_val = stop_status->get_data();
-    exec->get_queue()->submit([&](sycl::handler &cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl::range<1>{tau->get_size()[1]}, [=](sycl::id<1> idx_id) {
                 const auto tidx = idx_id[0];
@@ -117,14 +117,14 @@ namespace implicit_residual_norm {
 template <typename ValueType>
 void implicit_residual_norm(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Dense<ValueType> *tau,
-    const matrix::Dense<remove_complex<ValueType>> *orig_tau,
+    const matrix::Dense<ValueType>* tau,
+    const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
-    bool setFinalized, Array<stopping_status> *stop_status,
-    Array<bool> *device_storage, bool *all_converged, bool *one_changed)
+    bool setFinalized, Array<stopping_status>* stop_status,
+    Array<bool>* device_storage, bool* all_converged, bool* one_changed)
 {
     auto device_storage_val = device_storage->get_data();
-    exec->get_queue()->submit([&](sycl::handler &cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{1}, [=](sycl::id<1>) {
             device_storage_val[0] = true;
             device_storage_val[1] = false;
@@ -134,7 +134,7 @@ void implicit_residual_norm(
     auto orig_tau_val = orig_tau->get_const_values();
     auto tau_val = tau->get_const_values();
     auto stop_status_val = stop_status->get_data();
-    exec->get_queue()->submit([&](sycl::handler &cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl::range<1>{tau->get_size()[1]}, [=](sycl::id<1> idx_id) {
                 const auto tidx = idx_id[0];

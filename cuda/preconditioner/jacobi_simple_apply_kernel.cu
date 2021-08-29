@@ -69,11 +69,11 @@ namespace {
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void apply(syn::value_list<int, max_block_size>, size_type num_blocks,
-           const precision_reduction *block_precisions,
-           const IndexType *block_pointers, const ValueType *blocks,
-           const preconditioner::block_interleaved_storage_scheme<IndexType>
-               &storage_scheme,
-           const ValueType *b, size_type b_stride, ValueType *x,
+           const precision_reduction* block_precisions,
+           const IndexType* block_pointers, const ValueType* blocks,
+           const preconditioner::block_interleaved_storage_scheme<IndexType>&
+               storage_scheme,
+           const ValueType* b, size_type b_stride, ValueType* x,
            size_type x_stride)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
@@ -107,11 +107,11 @@ template <typename ValueType, typename IndexType>
 void simple_apply(
     std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
     uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>
-        &storage_scheme,
-    const Array<precision_reduction> &block_precisions,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
+    const preconditioner::block_interleaved_storage_scheme<IndexType>&
+        storage_scheme,
+    const Array<precision_reduction>& block_precisions,
+    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
+    const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {
     // TODO: write a special kernel for multiple RHS
     for (size_type col = 0; col < b->get_size()[1]; ++col) {

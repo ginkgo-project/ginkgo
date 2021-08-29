@@ -44,8 +44,8 @@ namespace {
 
 
 template <typename ValueType>
-void print_vector(const std::string &name,
-                  const gko::matrix::Dense<ValueType> *vec)
+void print_vector(const std::string& name,
+                  const gko::matrix::Dense<ValueType>* vec)
 {
     std::cout << name << " = [" << std::endl;
     for (int i = 0; i < vec->get_size()[0]; ++i) {
@@ -58,7 +58,7 @@ void print_vector(const std::string &name,
 }  // namespace
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Some shortcuts
     using ValueType = double;
@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
 
     // Finally, get some data from `record_logger` and print the last memory
     // location copied
-    auto &last_copy = record_logger->get().copy_completed.back();
+    auto& last_copy = record_logger->get().copy_completed.back();
     std::cout << "Last memory copied was of size " << std::hex
               << std::get<0>(*last_copy).num_bytes << " FROM executor "
               << std::get<0>(*last_copy).exec << " pointer "

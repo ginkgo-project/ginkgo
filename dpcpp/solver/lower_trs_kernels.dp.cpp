@@ -60,11 +60,11 @@ namespace lower_trs {
 
 
 void should_perform_transpose(std::shared_ptr<const DpcppExecutor> exec,
-                              bool &do_transpose) GKO_NOT_IMPLEMENTED;
+                              bool& do_transpose) GKO_NOT_IMPLEMENTED;
 
 
 void init_struct(std::shared_ptr<const DpcppExecutor> exec,
-                 std::shared_ptr<solver::SolveStruct> &solve_struct)
+                 std::shared_ptr<solver::SolveStruct>& solve_struct)
 {
     // This init kernel is here to allow initialization of the solve struct for
     // a more sophisticated implementation as for other executors.
@@ -73,8 +73,8 @@ void init_struct(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const DpcppExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *matrix,
-              solver::SolveStruct *solve_struct, const gko::size_type num_rhs)
+              const matrix::Csr<ValueType, IndexType>* matrix,
+              solver::SolveStruct* solve_struct, const gko::size_type num_rhs)
 {
     // This generate kernel is here to allow for a more sophisticated
     // implementation as for other executors. This kernel would perform the
@@ -91,11 +91,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  */
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const DpcppExecutor> exec,
-           const matrix::Csr<ValueType, IndexType> *matrix,
-           const solver::SolveStruct *solve_struct,
-           matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
-           const matrix::Dense<ValueType> *b,
-           matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
+           const matrix::Csr<ValueType, IndexType>* matrix,
+           const solver::SolveStruct* solve_struct,
+           matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
+           const matrix::Dense<ValueType>* b,
+           matrix::Dense<ValueType>* x) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL);

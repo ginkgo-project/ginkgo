@@ -65,7 +65,7 @@ GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
-    const std::shared_ptr<const LinOp> &system_matrix, bool skip_sorting,
+    const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
     bool both_factors) const
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);

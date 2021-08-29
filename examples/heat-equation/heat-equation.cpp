@@ -78,7 +78,7 @@ setting.
 
 // This function implements a simple Ginkgo-themed clamped color mapping for
 // values in the range [0,5].
-void set_val(unsigned char *data, double value)
+void set_val(unsigned char* data, double value)
 {
     // RGB values for the 6 colors used for values 0, 1, ..., 5
     // We will interpolate linearly between these values.
@@ -108,8 +108,8 @@ std::pair<cv::VideoWriter, cv::Mat> build_output(int n, double fps)
 
 
 // Write the current frame to video output using the above color mapping
-void output_timestep(std::pair<cv::VideoWriter, cv::Mat> &output, int n,
-                     const double *data)
+void output_timestep(std::pair<cv::VideoWriter, cv::Mat>& output, int n,
+                     const double* data)
 {
     for (int i = 0; i < n; i++) {
         auto row = output.second.ptr(i);
@@ -121,7 +121,7 @@ void output_timestep(std::pair<cv::VideoWriter, cv::Mat> &output, int n,
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     using mtx = gko::matrix::Csr<>;
     using vec = gko::matrix::Dense<>;

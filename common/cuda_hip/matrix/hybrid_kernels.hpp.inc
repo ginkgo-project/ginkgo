@@ -48,8 +48,8 @@ template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType>
 __global__ __launch_bounds__(default_block_size) void count_coo_row_nnz(
     const size_type nnz, const size_type num_lines,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ row,
-    IndexType *__restrict__ nnz_per_row)
+    const ValueType* __restrict__ val, const IndexType* __restrict__ row,
+    IndexType* __restrict__ nnz_per_row)
 {
     IndexType temp_val = 0;
     const auto start = static_cast<size_type>(blockDim.x) * blockIdx.x *
@@ -95,14 +95,14 @@ __global__ __launch_bounds__(default_block_size) void count_coo_row_nnz(
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_csr(
     size_type num_rows, size_type max_nnz_per_row, size_type stride,
-    const ValueType *__restrict__ ell_val,
-    const IndexType *__restrict__ ell_col,
-    const ValueType *__restrict__ coo_val,
-    const IndexType *__restrict__ coo_col,
-    const IndexType *__restrict__ coo_offset,
-    IndexType *__restrict__ result_row_ptrs,
-    IndexType *__restrict__ result_col_idxs,
-    ValueType *__restrict__ result_values)
+    const ValueType* __restrict__ ell_val,
+    const IndexType* __restrict__ ell_col,
+    const ValueType* __restrict__ coo_val,
+    const IndexType* __restrict__ coo_col,
+    const IndexType* __restrict__ coo_offset,
+    IndexType* __restrict__ result_row_ptrs,
+    IndexType* __restrict__ result_col_idxs,
+    ValueType* __restrict__ result_values)
 {
     const auto tidx = thread::get_thread_id_flat();
 
@@ -129,8 +129,8 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
 
 template <typename ValueType1, typename ValueType2>
 __global__ __launch_bounds__(default_block_size) void add(
-    size_type num, ValueType1 *__restrict__ val1,
-    const ValueType2 *__restrict__ val2)
+    size_type num, ValueType1* __restrict__ val1,
+    const ValueType2* __restrict__ val2)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num) {

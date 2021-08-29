@@ -63,7 +63,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * @param value  the JSON value to test.
  */
-void validate_option_object(const rapidjson::Value &value)
+void validate_option_object(const rapidjson::Value& value)
 {
     if (!value.IsObject() || !value.HasMember("filename") ||
         !value["filename"].IsString()) {

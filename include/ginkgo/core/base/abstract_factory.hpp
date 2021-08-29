@@ -89,7 +89,7 @@ public:
      * @return an instance of AbstractProductType
      */
     template <typename... Args>
-    std::unique_ptr<AbstractProductType> generate(Args &&... args) const
+    std::unique_ptr<AbstractProductType> generate(Args&&... args) const
     {
         auto product = this->generate_impl({std::forward<Args>(args)...});
         for (auto logger : this->loggers_) {
@@ -159,9 +159,9 @@ public:
     using components_type = typename PolymorphicBase::components_type;
 
     template <typename... Args>
-    std::unique_ptr<ProductType> generate(Args &&... args) const
+    std::unique_ptr<ProductType> generate(Args&&... args) const
     {
-        auto product = std::unique_ptr<ProductType>(static_cast<ProductType *>(
+        auto product = std::unique_ptr<ProductType>(static_cast<ProductType*>(
             this->generate_impl({std::forward<Args>(args)...}).release()));
         propagate_loggers<ConcreteFactory, ProductType>(product.get());
         return product;
@@ -172,7 +172,7 @@ public:
      *
      * @return the parameters of the factory
      */
-    const parameters_type &get_parameters() const noexcept
+    const parameters_type& get_parameters() const noexcept
     {
         return parameters_;
     };
@@ -204,7 +204,7 @@ protected:
         std::is_base_of<log::Loggable, TheType>::value &&
             std::is_base_of<log::Loggable, TheFactory>::value,
         void>::type
-    propagate_loggers(TheType *product) const
+    propagate_loggers(TheType* product) const
     {
         for (auto logger : this->loggers_) {
             product->add_logger(logger);
@@ -223,7 +223,7 @@ protected:
         !std::is_base_of<log::Loggable, TheType>::value ||
             !std::is_base_of<log::Loggable, TheFactory>::value,
         void>::type
-    propagate_loggers(TheType *product) const
+    propagate_loggers(TheType* product) const
     {}
 
     /**
@@ -233,7 +233,7 @@ protected:
      * @param parameters  the parameters structure for the factory
      */
     explicit EnableDefaultFactory(std::shared_ptr<const Executor> exec,
-                                  const parameters_type &parameters = {})
+                                  const parameters_type& parameters = {})
         : EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>(
               std::move(exec)),
           parameters_{parameters}

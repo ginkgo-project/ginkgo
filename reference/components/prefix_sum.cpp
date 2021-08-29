@@ -41,7 +41,7 @@ namespace components {
 
 template <typename IndexType>
 void prefix_sum(std::shared_ptr<const ReferenceExecutor> exec,
-                IndexType *counts, size_type num_entries)
+                IndexType* counts, size_type num_entries)
 {
     IndexType partial_sum{};
     for (size_type i = 0; i < num_entries; ++i) {

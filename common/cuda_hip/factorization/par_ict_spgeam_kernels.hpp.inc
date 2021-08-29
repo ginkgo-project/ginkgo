@@ -35,11 +35,11 @@ namespace kernel {
 
 template <int subwarp_size, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_nnz(
-    const IndexType *__restrict__ llh_row_ptrs,
-    const IndexType *__restrict__ llh_col_idxs,
-    const IndexType *__restrict__ a_row_ptrs,
-    const IndexType *__restrict__ a_col_idxs,
-    IndexType *__restrict__ l_new_row_ptrs, IndexType num_rows)
+    const IndexType* __restrict__ llh_row_ptrs,
+    const IndexType* __restrict__ llh_col_idxs,
+    const IndexType* __restrict__ a_row_ptrs,
+    const IndexType* __restrict__ a_col_idxs,
+    IndexType* __restrict__ l_new_row_ptrs, IndexType num_rows)
 {
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
@@ -72,17 +72,17 @@ __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_nnz(
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_init(
-    const IndexType *__restrict__ llh_row_ptrs,
-    const IndexType *__restrict__ llh_col_idxs,
-    const ValueType *__restrict__ llh_vals,
-    const IndexType *__restrict__ a_row_ptrs,
-    const IndexType *__restrict__ a_col_idxs,
-    const ValueType *__restrict__ a_vals,
-    const IndexType *__restrict__ l_row_ptrs,
-    const IndexType *__restrict__ l_col_idxs,
-    const ValueType *__restrict__ l_vals,
-    const IndexType *__restrict__ l_new_row_ptrs,
-    IndexType *__restrict__ l_new_col_idxs, ValueType *__restrict__ l_new_vals,
+    const IndexType* __restrict__ llh_row_ptrs,
+    const IndexType* __restrict__ llh_col_idxs,
+    const ValueType* __restrict__ llh_vals,
+    const IndexType* __restrict__ a_row_ptrs,
+    const IndexType* __restrict__ a_col_idxs,
+    const ValueType* __restrict__ a_vals,
+    const IndexType* __restrict__ l_row_ptrs,
+    const IndexType* __restrict__ l_col_idxs,
+    const ValueType* __restrict__ l_vals,
+    const IndexType* __restrict__ l_new_row_ptrs,
+    IndexType* __restrict__ l_new_col_idxs, ValueType* __restrict__ l_new_vals,
     IndexType num_rows)
 {
     auto subwarp =

@@ -108,7 +108,7 @@ struct ParIctState {
     // use the approximate selection/filter kernels?
     bool use_approx_select;
     // system matrix A
-    const CsrMatrix *system_matrix;
+    const CsrMatrix* system_matrix;
     // current lower factor L
     std::unique_ptr<CsrMatrix> l;
     // current upper factor L^H
@@ -129,7 +129,7 @@ struct ParIctState {
     std::shared_ptr<typename CsrMatrix::strategy_type> lh_strategy;
 
     ParIctState(std::shared_ptr<const Executor> exec_in,
-                const CsrMatrix *system_matrix_in,
+                const CsrMatrix* system_matrix_in,
                 std::unique_ptr<CsrMatrix> l_in, IndexType l_nnz_limit,
                 bool use_approx_select,
                 std::shared_ptr<typename CsrMatrix::strategy_type> l_strategy_,
@@ -167,7 +167,7 @@ struct ParIctState {
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>>
 ParIct<ValueType, IndexType>::generate_l_lt(
-    const std::shared_ptr<const LinOp> &system_matrix) const
+    const std::shared_ptr<const LinOp>& system_matrix) const
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 

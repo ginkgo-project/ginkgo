@@ -55,7 +55,7 @@ constexpr int default_block_size = 512;
 
 
 template <typename ValueType>
-void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
+void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType* array,
                 size_type n, ValueType val)
 {
     const dim3 block_size(default_block_size, 1, 1);
@@ -70,7 +70,7 @@ template GKO_DECLARE_FILL_ARRAY_KERNEL(bool);
 
 template <typename ValueType>
 void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
-                    ValueType *array, size_type n)
+                    ValueType* array, size_type n)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);

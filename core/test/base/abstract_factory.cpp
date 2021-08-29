@@ -61,7 +61,7 @@ struct IntFactory
 };
 
 struct MyInt {
-    MyInt(const IntFactory *factory, int orig_value)
+    MyInt(const IntFactory* factory, int orig_value)
         : value{orig_value * factory->get_parameters().coefficient}
     {}
     int value;

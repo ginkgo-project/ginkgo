@@ -107,22 +107,22 @@ public:
         : nrows_{num_rows}, ncols_{num_cols}, vals_(num_rows * num_cols)
     {}
 
-    value_type &at(const int row, const int col)
+    value_type& at(const int row, const int col)
     {
         return vals_[row + col * nrows_];
     }
 
-    const value_type &at(const int row, const int col) const
+    const value_type& at(const int row, const int col) const
     {
         return vals_[row + col * nrows_];
     }
 
-    value_type &operator()(const int row, const int col)
+    value_type& operator()(const int row, const int col)
     {
         return at(row, col);
     }
 
-    const value_type &operator()(const int row, const int col) const
+    const value_type& operator()(const int row, const int col) const
     {
         return at(row, col);
     }
@@ -152,11 +152,11 @@ private:
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const b,
-                                             LinOp *const x) const
+void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* const b,
+                                             LinOp* const x) const
 {
     using Dense = Dense<ValueType>;
-    if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType> *>(b)) {
+    if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType>*>(b)) {
         // if b is a FBCSR matrix, we need an SpGeMM
         GKO_NOT_SUPPORTED(b_fbcsr);
     } else {
@@ -168,16 +168,16 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const b,
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const alpha,
-                                             const LinOp *const b,
-                                             const LinOp *const beta,
-                                             LinOp *const x) const
+void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* const alpha,
+                                             const LinOp* const b,
+                                             const LinOp* const beta,
+                                             LinOp* const x) const
 {
     using Dense = Dense<ValueType>;
-    if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType> *>(b)) {
+    if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType>*>(b)) {
         // if b is a FBCSR matrix, we need an SpGeMM
         GKO_NOT_SUPPORTED(b_fbcsr);
-    } else if (auto b_ident = dynamic_cast<const Identity<ValueType> *>(b)) {
+    } else if (auto b_ident = dynamic_cast<const Identity<ValueType>*>(b)) {
         // if b is an identity matrix, we need an SpGEAM
         GKO_NOT_SUPPORTED(b_ident);
     } else {
@@ -191,7 +191,7 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp *const alpha,
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    Fbcsr<next_precision<ValueType>, IndexType> *const result) const
+    Fbcsr<next_precision<ValueType>, IndexType>* const result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -204,7 +204,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::move_to(
-    Fbcsr<next_precision<ValueType>, IndexType> *const result)
+    Fbcsr<next_precision<ValueType>, IndexType>* const result)
 {
     this->convert_to(result);
 }
@@ -212,7 +212,7 @@ void Fbcsr<ValueType, IndexType>::move_to(
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    Dense<ValueType> *const result) const
+    Dense<ValueType>* const result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
@@ -222,7 +222,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::move_to(Dense<ValueType> *const result)
+void Fbcsr<ValueType, IndexType>::move_to(Dense<ValueType>* const result)
 {
     this->convert_to(result);
 }
@@ -230,7 +230,7 @@ void Fbcsr<ValueType, IndexType>::move_to(Dense<ValueType> *const result)
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    Csr<ValueType, IndexType> *const result) const
+    Csr<ValueType, IndexType>* const result) const
 {
     auto exec = this->get_executor();
     auto tmp = Csr<ValueType, IndexType>::create(
@@ -243,7 +243,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::move_to(
-    Csr<ValueType, IndexType> *const result)
+    Csr<ValueType, IndexType>* const result)
 {
     this->convert_to(result);
 }
@@ -251,7 +251,7 @@ void Fbcsr<ValueType, IndexType>::move_to(
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    SparsityCsr<ValueType, IndexType> *const result) const
+    SparsityCsr<ValueType, IndexType>* const result) const
 {
     auto exec = this->get_executor();
     auto tmp = SparsityCsr<ValueType, IndexType>::create(
@@ -269,7 +269,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::move_to(
-    SparsityCsr<ValueType, IndexType> *const result)
+    SparsityCsr<ValueType, IndexType>* const result)
 {
     this->convert_to(result);
 }
@@ -281,7 +281,7 @@ void Fbcsr<ValueType, IndexType>::move_to(
  * @note Can this be changed to a parallel O(nnz) implementation?
  */
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
+void Fbcsr<ValueType, IndexType>::read(const mat_data& data)
 {
     GKO_ENSURE_IN_BOUNDS(data.nonzeros.size(),
                          std::numeric_limits<index_type>::max());
@@ -297,7 +297,7 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
     };
 
     struct FbLess {
-        bool operator()(const FbEntry &a, const FbEntry &b) const
+        bool operator()(const FbEntry& a, const FbEntry& b) const
         {
             if (a.block_row != b.block_row)
                 return a.block_row < b.block_row;
@@ -306,7 +306,7 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
         }
     };
 
-    auto create_block_map = [nnz, bs](const mat_data &mdata) {
+    auto create_block_map = [nnz, bs](const mat_data& mdata) {
         std::map<FbEntry, Block_t, FbLess> blocks;
         for (index_type inz = 0; inz < nnz; inz++) {
             const index_type row = mdata.nonzeros[inz].row;
@@ -318,7 +318,7 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
             const index_type blockrow = row / bs;
             const index_type blockcol = col / bs;
 
-            Block_t &nnzblk = blocks[{blockrow, blockcol}];
+            Block_t& nnzblk = blocks[{blockrow, blockcol}];
             if (nnzblk.size() == 0) {
                 nnzblk.resize(bs, bs);
                 nnzblk.zero();
@@ -383,13 +383,13 @@ void Fbcsr<ValueType, IndexType>::read(const mat_data &data)
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::write(mat_data &data) const
+void Fbcsr<ValueType, IndexType>::write(mat_data& data) const
 {
     std::unique_ptr<const LinOp> op{};
-    const Fbcsr *tmp{};
+    const Fbcsr* tmp{};
     if (this->get_executor()->get_master() != this->get_executor()) {
         op = this->clone(this->get_executor()->get_master());
-        tmp = static_cast<const Fbcsr *>(op.get());
+        tmp = static_cast<const Fbcsr*>(op.get());
     } else {
         tmp = this;
     }

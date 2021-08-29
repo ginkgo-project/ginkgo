@@ -79,7 +79,7 @@ GKO_REGISTER_OPERATION(initialize_precisions, jacobi::initialize_precisions);
 
 
 template <typename ValueType, typename IndexType>
-void Jacobi<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
+void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -98,9 +98,9 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType, typename IndexType>
-void Jacobi<ValueType, IndexType>::apply_impl(const LinOp *alpha,
-                                              const LinOp *b, const LinOp *beta,
-                                              LinOp *x) const
+void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* alpha,
+                                              const LinOp* b, const LinOp* beta,
+                                              LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
@@ -121,7 +121,7 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp *alpha,
 
 template <typename ValueType, typename IndexType>
 void Jacobi<ValueType, IndexType>::convert_to(
-    matrix::Dense<ValueType> *result) const
+    matrix::Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
     auto tmp = matrix::Dense<ValueType>::create(exec, this->get_size());
@@ -138,14 +138,14 @@ void Jacobi<ValueType, IndexType>::convert_to(
 
 
 template <typename ValueType, typename IndexType>
-void Jacobi<ValueType, IndexType>::move_to(matrix::Dense<ValueType> *result)
+void Jacobi<ValueType, IndexType>::move_to(matrix::Dense<ValueType>* result)
 {
     this->convert_to(result);  // no special optimization possible here
 }
 
 
 template <typename ValueType, typename IndexType>
-void Jacobi<ValueType, IndexType>::write(mat_data &data) const
+void Jacobi<ValueType, IndexType>::write(mat_data& data) const
 {
     auto local_clone =
         make_temporary_clone(this->get_executor()->get_master(), this);
@@ -173,7 +173,7 @@ void Jacobi<ValueType, IndexType>::write(mat_data &data) const
                 precisions ? precisions[block] : precision_reduction();
             GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(ValueType, prec, {
                 const auto block_data =
-                    reinterpret_cast<const resolved_precision *>(group_data) +
+                    reinterpret_cast<const resolved_precision*>(group_data) +
                     scheme.get_block_offset(block);
                 for (IndexType row = 0; row < block_size; ++row) {
                     for (IndexType col = 0; col < block_size; ++col) {
@@ -244,7 +244,7 @@ std::unique_ptr<LinOp> Jacobi<ValueType, IndexType>::conj_transpose() const
 
 template <typename ValueType, typename IndexType>
 void Jacobi<ValueType, IndexType>::detect_blocks(
-    const matrix::Csr<ValueType, IndexType> *system_matrix)
+    const matrix::Csr<ValueType, IndexType>* system_matrix)
 {
     parameters_.block_pointers.resize_and_reset(system_matrix->get_size()[0] +
                                                 1);
@@ -257,7 +257,7 @@ void Jacobi<ValueType, IndexType>::detect_blocks(
 
 
 template <typename ValueType, typename IndexType>
-void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
+void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
                                             bool skip_sorting)
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
@@ -289,7 +289,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
 
         const auto all_block_opt =
             parameters_.storage_optimization.of_all_blocks;
-        auto &precisions = parameters_.storage_optimization.block_wise;
+        auto& precisions = parameters_.storage_optimization.block_wise;
         // if adaptive version is used, make sure that the precision array is of
         // the correct size by replicating it multiple times if needed
         if (parameters_.storage_optimization.is_block_wise ||

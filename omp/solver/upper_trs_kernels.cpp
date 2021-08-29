@@ -60,14 +60,14 @@ namespace upper_trs {
 
 
 void should_perform_transpose(std::shared_ptr<const OmpExecutor> exec,
-                              bool &do_transpose)
+                              bool& do_transpose)
 {
     do_transpose = false;
 }
 
 
 void init_struct(std::shared_ptr<const OmpExecutor> exec,
-                 std::shared_ptr<solver::SolveStruct> &solve_struct)
+                 std::shared_ptr<solver::SolveStruct>& solve_struct)
 {
     // This init kernel is here to allow initialization of the solve struct for
     // a more sophisticated implementation as for other executors.
@@ -76,8 +76,8 @@ void init_struct(std::shared_ptr<const OmpExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const OmpExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *matrix,
-              solver::SolveStruct *solve_struct, const gko::size_type num_rhs)
+              const matrix::Csr<ValueType, IndexType>* matrix,
+              solver::SolveStruct* solve_struct, const gko::size_type num_rhs)
 {
     // This generate kernel is here to allow for a more sophisticated
     // implementation as for other executors. This kernel would perform the
@@ -94,10 +94,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  */
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const OmpExecutor> exec,
-           const matrix::Csr<ValueType, IndexType> *matrix,
-           const solver::SolveStruct *solve_struct,
-           matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
-           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
+           const matrix::Csr<ValueType, IndexType>* matrix,
+           const solver::SolveStruct* solve_struct,
+           matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
+           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {
     auto row_ptrs = matrix->get_const_row_ptrs();
     auto col_idxs = matrix->get_const_col_idxs();

@@ -55,9 +55,9 @@ namespace par_ilu_factorization {
 template <typename ValueType, typename IndexType>
 void compute_l_u_factors(std::shared_ptr<const OmpExecutor> exec,
                          size_type iterations,
-                         const matrix::Coo<ValueType, IndexType> *system_matrix,
-                         matrix::Csr<ValueType, IndexType> *l_factor,
-                         matrix::Csr<ValueType, IndexType> *u_factor)
+                         const matrix::Coo<ValueType, IndexType>* system_matrix,
+                         matrix::Csr<ValueType, IndexType>* l_factor,
+                         matrix::Csr<ValueType, IndexType>* u_factor)
 {
     // If `iterations` is set to `Auto`, we do 3 fix-point sweeps as
     // experiements indicate this works well for many problems.

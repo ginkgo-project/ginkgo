@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-void papi_add_event(const std::string &event_name, int &eventset)
+void papi_add_event(const std::string& event_name, int& eventset)
 {
     int code;
     int ret_val = PAPI_event_name_to_code(event_name.c_str(), &code);
@@ -62,7 +62,7 @@ void papi_add_event(const std::string &event_name, int &eventset)
 
 
 template <typename T>
-std::string to_string(T *ptr)
+std::string to_string(T* ptr)
 {
     std::ostringstream os;
     os << reinterpret_cast<gko::uintptr>(ptr);
@@ -124,7 +124,7 @@ void print_papi_counters(int eventset)
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Some shortcuts
     using ValueType = double;

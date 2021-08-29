@@ -67,7 +67,7 @@ using compiled_kernels =
 
 template <typename ValueType, typename IndexType>
 void init_factor(std::shared_ptr<const DefaultExecutor> exec,
-                 matrix::Csr<ValueType, IndexType> *l)
+                 matrix::Csr<ValueType, IndexType>* l)
 {
     auto num_rows = l->get_size()[0];
     auto num_blocks = ceildiv(num_rows, default_block_size);
@@ -85,8 +85,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     size_type iterations,
-                    const matrix::Coo<ValueType, IndexType> *a_lower,
-                    matrix::Csr<ValueType, IndexType> *l)
+                    const matrix::Coo<ValueType, IndexType>* a_lower,
+                    matrix::Csr<ValueType, IndexType>* l)
 {
     auto nnz = l->get_num_stored_elements();
     auto num_blocks = ceildiv(nnz, default_block_size);

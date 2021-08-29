@@ -81,7 +81,7 @@ public:
     /**
      * Type of underlying data storage.
      */
-    using data_type = value_type *;
+    using data_type = value_type*;
 
     /**
      * Number of dimensions of the accessor.
@@ -115,7 +115,7 @@ public:
      *
      * @return data element at (row, col)
      */
-    constexpr GKO_ATTRIBUTES value_type &operator()(size_type row,
+    constexpr GKO_ATTRIBUTES value_type& operator()(size_type row,
                                                     size_type col) const
     {
         return GKO_ASSERT(row < lengths[0]), GKO_ASSERT(col < lengths[1]),
@@ -130,8 +130,8 @@ public:
      *
      * @return sub-range spanning the range (rows, cols)
      */
-    constexpr GKO_ATTRIBUTES range<row_major> operator()(const span &rows,
-                                                         const span &cols) const
+    constexpr GKO_ATTRIBUTES range<row_major> operator()(const span& rows,
+                                                         const span& cols) const
     {
         return GKO_ASSERT(rows.is_valid()), GKO_ASSERT(cols.is_valid()),
                GKO_ASSERT(rows <= span{lengths[0]}),
@@ -166,7 +166,7 @@ public:
      * @param other  other accessor
      */
     template <typename OtherAccessor>
-    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const
+    GKO_ATTRIBUTES void copy_from(const OtherAccessor& other) const
     {
         for (size_type i = 0; i < lengths[0]; ++i) {
             for (size_type j = 0; j < lengths[1]; ++j) {

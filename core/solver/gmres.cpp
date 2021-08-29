@@ -93,7 +93,7 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Gmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -104,8 +104,8 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
-                                        matrix::Dense<ValueType> *dense_x) const
+void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
+                                        matrix::Dense<ValueType>* dense_x) const
 {
     using Vector = matrix::Dense<ValueType>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -161,7 +161,7 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
 
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_,
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         residual.get());
 
     int total_iter = -1;
@@ -324,8 +324,8 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
 
 
 template <typename ValueType>
-void Gmres<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                  const LinOp *beta, LinOp *x) const
+void Gmres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                  const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {

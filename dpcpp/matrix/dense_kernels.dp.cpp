@@ -87,9 +87,9 @@ namespace kernel {
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename OutType,
           typename CallableGetValue, typename CallableReduce>
 void compute_partial_reduce(
-    size_type num_rows, OutType *__restrict__ work, CallableGetValue get_value,
+    size_type num_rows, OutType* __restrict__ work, CallableGetValue get_value,
     CallableReduce reduce_op, sycl::nd_item<3> item_ct1,
-    UninitializedArray<OutType, KCFG_1D::decode<0>(cfg)> &tmp_work)
+    UninitializedArray<OutType, KCFG_1D::decode<0>(cfg)>& tmp_work)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
@@ -101,7 +101,7 @@ void compute_partial_reduce(
     const auto global_id =
         thread::get_thread_id<sg_size, warps_per_block>(item_ct1);
 
-    OutType *tmp_work_array = tmp_work;
+    OutType* tmp_work_array = tmp_work;
     auto tmp = zero<OutType>();
     for (auto i = global_id; i < num_rows; i += wg_size * num_blocks) {
         tmp = reduce_op(tmp, get_value(i));
@@ -121,10 +121,10 @@ void compute_partial_reduce(
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType,
           typename CallableReduce, typename CallableFinalize>
 void finalize_reduce_computation(
-    size_type size, const ValueType *work, ValueType *result,
+    size_type size, const ValueType* work, ValueType* result,
     CallableReduce reduce_op, CallableFinalize finalize_op,
     sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> &tmp_work)
+    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>& tmp_work)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
@@ -135,7 +135,7 @@ void finalize_reduce_computation(
     for (auto i = local_id; i < size; i += wg_size) {
         tmp = reduce_op(tmp, work[i]);
     }
-    ValueType *tmp_work_array = tmp_work;
+    ValueType* tmp_work_array = tmp_work;
     tmp_work_array[local_id] = tmp;
 
     ::gko::kernels::dpcpp::reduce<sg_size>(group::this_thread_block(item_ct1),
@@ -149,29 +149,29 @@ void finalize_reduce_computation(
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void compute_partial_dot(
-    size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
-    const ValueType *__restrict__ y, size_type stride_y,
-    ValueType *__restrict__ work, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> &tmp_work)
+    size_type num_rows, const ValueType* __restrict__ x, size_type stride_x,
+    const ValueType* __restrict__ y, size_type stride_y,
+    ValueType* __restrict__ work, sycl::nd_item<3> item_ct1,
+    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>& tmp_work)
 {
     compute_partial_reduce<cfg>(
         num_rows, work,
         [x, stride_x, y, stride_y](size_type i) {
             return x[i * stride_x] * y[i * stride_y];
         },
-        [](const ValueType &x, const ValueType &y) { return x + y; }, item_ct1,
+        [](const ValueType& x, const ValueType& y) { return x + y; }, item_ct1,
         tmp_work);
 }
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void compute_partial_dot(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                         sycl::queue *queue, size_type num_rows,
-                         const ValueType *x, size_type stride_x,
-                         const ValueType *y, size_type stride_y,
-                         ValueType *work)
+                         sycl::queue* queue, size_type num_rows,
+                         const ValueType* x, size_type stride_x,
+                         const ValueType* y, size_type stride_y,
+                         ValueType* work)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<UninitializedArray<ValueType, wg_size>, 0,
                        sycl::access::mode::read_write,
                        sycl::access::target::local>
@@ -194,30 +194,30 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(compute_partial_dot_call, compute_partial_dot,
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void compute_partial_conj_dot(
-    size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
-    const ValueType *__restrict__ y, size_type stride_y,
-    ValueType *__restrict__ work, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> &tmp_work)
+    size_type num_rows, const ValueType* __restrict__ x, size_type stride_x,
+    const ValueType* __restrict__ y, size_type stride_y,
+    ValueType* __restrict__ work, sycl::nd_item<3> item_ct1,
+    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>& tmp_work)
 {
     compute_partial_reduce<cfg>(
         num_rows, work,
         [x, stride_x, y, stride_y](size_type i) {
             return conj(x[i * stride_x]) * y[i * stride_y];
         },
-        [](const ValueType &x, const ValueType &y) { return x + y; }, item_ct1,
+        [](const ValueType& x, const ValueType& y) { return x + y; }, item_ct1,
         tmp_work);
 }
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void compute_partial_conj_dot(dim3 grid, dim3 block,
                               size_type dynamic_shared_memory,
-                              sycl::queue *queue, size_type num_rows,
-                              const ValueType *x, size_type stride_x,
-                              const ValueType *y, size_type stride_y,
-                              ValueType *work)
+                              sycl::queue* queue, size_type num_rows,
+                              const ValueType* x, size_type stride_x,
+                              const ValueType* y, size_type stride_y,
+                              ValueType* work)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<UninitializedArray<ValueType, wg_size>, 0,
                        sycl::access::mode::read_write,
                        sycl::access::target::local>
@@ -240,24 +240,24 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(compute_partial_conj_dot_call,
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void finalize_sum_reduce_computation(
-    size_type size, const ValueType *work, ValueType *result,
+    size_type size, const ValueType* work, ValueType* result,
     sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> &tmp_work)
+    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>& tmp_work)
 {
     finalize_reduce_computation<cfg>(
         size, work, result,
-        [](const ValueType &x, const ValueType &y) { return x + y; },
-        [](const ValueType &x) { return x; }, item_ct1, tmp_work);
+        [](const ValueType& x, const ValueType& y) { return x + y; },
+        [](const ValueType& x) { return x; }, item_ct1, tmp_work);
 }
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void finalize_sum_reduce_computation(dim3 grid, dim3 block,
                                      size_type dynamic_shared_memory,
-                                     sycl::queue *queue, size_type size,
-                                     const ValueType *work, ValueType *result)
+                                     sycl::queue* queue, size_type size,
+                                     const ValueType* work, ValueType* result)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<UninitializedArray<ValueType, wg_size>, 0,
                        sycl::access::mode::read_write,
                        sycl::access::target::local>
@@ -280,27 +280,27 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(finalize_sum_reduce_computation_call,
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void compute_partial_norm2(
-    size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
-    remove_complex<ValueType> *__restrict__ work, sycl::nd_item<3> item_ct1,
-    UninitializedArray<remove_complex<ValueType>, KCFG_1D::decode<0>(cfg)>
-        &tmp_work)
+    size_type num_rows, const ValueType* __restrict__ x, size_type stride_x,
+    remove_complex<ValueType>* __restrict__ work, sycl::nd_item<3> item_ct1,
+    UninitializedArray<remove_complex<ValueType>, KCFG_1D::decode<0>(cfg)>&
+        tmp_work)
 {
     using norm_type = remove_complex<ValueType>;
     compute_partial_reduce<cfg>(
         num_rows, work,
         [x, stride_x](size_type i) { return squared_norm(x[i * stride_x]); },
-        [](const norm_type &x, const norm_type &y) { return x + y; }, item_ct1,
+        [](const norm_type& x, const norm_type& y) { return x + y; }, item_ct1,
         tmp_work);
 }
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void compute_partial_norm2(dim3 grid, dim3 block,
-                           size_type dynamic_shared_memory, sycl::queue *queue,
-                           size_type num_rows, const ValueType *x,
-                           size_type stride_x, remove_complex<ValueType> *work)
+                           size_type dynamic_shared_memory, sycl::queue* queue,
+                           size_type num_rows, const ValueType* x,
+                           size_type stride_x, remove_complex<ValueType>* work)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<UninitializedArray<remove_complex<ValueType>, wg_size>,
                        0, sycl::access::mode::read_write,
                        sycl::access::target::local>
@@ -323,24 +323,24 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(compute_partial_norm2_call,
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void finalize_sqrt_reduce_computation(
-    size_type size, const ValueType *work, ValueType *result,
+    size_type size, const ValueType* work, ValueType* result,
     sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> &tmp_work)
+    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>& tmp_work)
 {
     finalize_reduce_computation<cfg>(
         size, work, result,
-        [](const ValueType &x, const ValueType &y) { return x + y; },
-        [](const ValueType &x) { return std::sqrt(x); }, item_ct1, tmp_work);
+        [](const ValueType& x, const ValueType& y) { return x + y; },
+        [](const ValueType& x) { return std::sqrt(x); }, item_ct1, tmp_work);
 }
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void finalize_sqrt_reduce_computation(dim3 grid, dim3 block,
                                       size_type dynamic_shared_memory,
-                                      sycl::queue *queue, size_type size,
-                                      const ValueType *work, ValueType *result)
+                                      sycl::queue* queue, size_type size,
+                                      const ValueType* work, ValueType* result)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<UninitializedArray<ValueType, wg_size>, 0,
                        sycl::access::mode::read_write,
                        sycl::access::target::local>
@@ -364,11 +364,11 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(finalize_sqrt_reduce_computation_call,
 
 template <typename ValueType, typename IndexType>
 void fill_in_coo(size_type num_rows, size_type num_cols, size_type stride,
-                 const size_type *__restrict__ row_ptrs,
-                 const ValueType *__restrict__ source,
-                 IndexType *__restrict__ row_idxs,
-                 IndexType *__restrict__ col_idxs,
-                 ValueType *__restrict__ values, sycl::nd_item<3> item_ct1)
+                 const size_type* __restrict__ row_ptrs,
+                 const ValueType* __restrict__ source,
+                 IndexType* __restrict__ row_idxs,
+                 IndexType* __restrict__ col_idxs,
+                 ValueType* __restrict__ values, sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     if (tidx < num_rows) {
@@ -390,8 +390,8 @@ GKO_ENABLE_DEFAULT_HOST(fill_in_coo, fill_in_coo)
 
 template <std::uint32_t cfg, typename ValueType, typename IndexType>
 void count_nnz_per_row(size_type num_rows, size_type num_cols, size_type stride,
-                       const ValueType *__restrict__ work,
-                       IndexType *__restrict__ result,
+                       const ValueType* __restrict__ work,
+                       IndexType* __restrict__ result,
                        sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
@@ -408,7 +408,7 @@ void count_nnz_per_row(size_type num_rows, size_type num_cols, size_type stride,
         }
         result[row_idx] = ::gko::kernels::dpcpp::reduce(
             warp_tile, part_result,
-            [](const size_type &a, const size_type &b) { return a + b; });
+            [](const size_type& a, const size_type& b) { return a + b; });
     }
 }
 
@@ -420,10 +420,10 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(count_nnz_per_row_call, count_nnz_per_row,
 
 template <typename ValueType, typename IndexType>
 void fill_in_csr(size_type num_rows, size_type num_cols, size_type stride,
-                 const ValueType *__restrict__ source,
-                 IndexType *__restrict__ row_ptrs,
-                 IndexType *__restrict__ col_idxs,
-                 ValueType *__restrict__ values, sycl::nd_item<3> item_ct1)
+                 const ValueType* __restrict__ source,
+                 IndexType* __restrict__ row_ptrs,
+                 IndexType* __restrict__ col_idxs,
+                 ValueType* __restrict__ values, sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
 
@@ -444,10 +444,10 @@ GKO_ENABLE_DEFAULT_HOST(fill_in_csr, fill_in_csr)
 
 template <typename ValueType, typename IndexType>
 void fill_in_ell(size_type num_rows, size_type num_cols,
-                 size_type source_stride, const ValueType *__restrict__ source,
+                 size_type source_stride, const ValueType* __restrict__ source,
                  size_type max_nnz_per_row, size_type result_stride,
-                 IndexType *__restrict__ col_ptrs,
-                 ValueType *__restrict__ values, sycl::nd_item<3> item_ct1)
+                 IndexType* __restrict__ col_ptrs,
+                 ValueType* __restrict__ values, sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     if (tidx < num_rows) {
@@ -478,9 +478,9 @@ GKO_ENABLE_DEFAULT_HOST(fill_in_ell, fill_in_ell)
 template <std::uint32_t cfg>
 void calculate_slice_lengths(size_type num_rows, size_type slice_size,
                              int slice_num, size_type stride_factor,
-                             const size_type *__restrict__ nnz_per_row,
-                             size_type *__restrict__ slice_lengths,
-                             size_type *__restrict__ slice_sets,
+                             const size_type* __restrict__ nnz_per_row,
+                             size_type* __restrict__ slice_lengths,
+                             size_type* __restrict__ slice_sets,
                              sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = cfg;
@@ -499,7 +499,7 @@ void calculate_slice_lengths(size_type num_rows, size_type slice_size,
         group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
     auto warp_result = ::gko::kernels::dpcpp::reduce(
         warp_tile, thread_result,
-        [](const size_type &a, const size_type &b) { return max(a, b); });
+        [](const size_type& a, const size_type& b) { return max(a, b); });
 
     if (tid_in_warp == 0 && runable) {
         auto slice_length = ceildiv(warp_result, stride_factor) * stride_factor;
@@ -517,11 +517,11 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(calculate_slice_lengths_call,
 
 template <typename ValueType, typename IndexType>
 void fill_in_sellp(size_type num_rows, size_type num_cols, size_type slice_size,
-                   size_type stride, const ValueType *__restrict__ source,
-                   size_type *__restrict__ slice_lengths,
-                   size_type *__restrict__ slice_sets,
-                   IndexType *__restrict__ col_idxs,
-                   ValueType *__restrict__ vals, sycl::nd_item<3> item_ct1)
+                   size_type stride, const ValueType* __restrict__ source,
+                   size_type* __restrict__ slice_lengths,
+                   size_type* __restrict__ slice_sets,
+                   IndexType* __restrict__ col_idxs,
+                   ValueType* __restrict__ vals, sycl::nd_item<3> item_ct1)
 {
     const auto global_row = thread::get_thread_id_flat(item_ct1);
     const auto row = global_row % slice_size;
@@ -552,16 +552,16 @@ GKO_ENABLE_DEFAULT_HOST(fill_in_sellp, fill_in_sellp)
 
 
 template <std::uint32_t cfg>
-void reduce_max_nnz(size_type size, const size_type *__restrict__ nnz_per_row,
-                    size_type *__restrict__ result, sycl::nd_item<3> item_ct1,
-                    uint8_t *dpct_local)
+void reduce_max_nnz(size_type size, const size_type* __restrict__ nnz_per_row,
+                    size_type* __restrict__ result, sycl::nd_item<3> item_ct1,
+                    uint8_t* dpct_local)
 {
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
-    auto block_max = (size_type *)dpct_local;
+    auto block_max = (size_type*)dpct_local;
 
     reduce_array<sg_size>(
         size, nnz_per_row, block_max, item_ct1,
-        [](const size_type &x, const size_type &y) { return max(x, y); });
+        [](const size_type& x, const size_type& y) { return max(x, y); });
 
     if (item_ct1.get_local_id(2) == 0) {
         result[item_ct1.get_group(2)] = block_max[0];
@@ -570,10 +570,10 @@ void reduce_max_nnz(size_type size, const size_type *__restrict__ nnz_per_row,
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16)>
 void reduce_max_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                    sycl::queue *queue, size_type size,
-                    const size_type *nnz_per_row, size_type *result)
+                    sycl::queue* queue, size_type size,
+                    const size_type* nnz_per_row, size_type* result)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<uint8_t, 1, sycl::access::mode::read_write,
                        sycl::access::target::local>
             dpct_local_acc_ct1(sycl::range<1>(dynamic_shared_memory), cgh);
@@ -595,8 +595,8 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_max_nnz_call, reduce_max_nnz,
 template <std::uint32_t cfg>
 void reduce_max_nnz_per_slice(size_type num_rows, size_type slice_size,
                               size_type stride_factor,
-                              const size_type *__restrict__ nnz_per_row,
-                              size_type *__restrict__ result,
+                              const size_type* __restrict__ nnz_per_row,
+                              size_type* __restrict__ result,
                               sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
@@ -616,7 +616,7 @@ void reduce_max_nnz_per_slice(size_type num_rows, size_type slice_size,
 
     auto warp_result = ::gko::kernels::dpcpp::reduce(
         warp_tile, thread_result,
-        [](const size_type &a, const size_type &b) { return max(a, b); });
+        [](const size_type& a, const size_type& b) { return max(a, b); });
 
     if (tid_in_warp == 0 && warpid < slice_num) {
         result[warpid] = ceildiv(warp_result, stride_factor) * stride_factor;
@@ -633,15 +633,15 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_max_nnz_per_slice_call,
 
 template <std::uint32_t cfg>
 void reduce_total_cols(size_type num_slices,
-                       const size_type *__restrict__ max_nnz_per_slice,
-                       size_type *__restrict__ result,
-                       sycl::nd_item<3> item_ct1, uint8_t *dpct_local)
+                       const size_type* __restrict__ max_nnz_per_slice,
+                       size_type* __restrict__ result,
+                       sycl::nd_item<3> item_ct1, uint8_t* dpct_local)
 {
-    auto block_result = (size_type *)dpct_local;
+    auto block_result = (size_type*)dpct_local;
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
     reduce_array<sg_size>(
         num_slices, max_nnz_per_slice, block_result, item_ct1,
-        [](const size_type &x, const size_type &y) { return x + y; });
+        [](const size_type& x, const size_type& y) { return x + y; });
 
     if (item_ct1.get_local_id(2) == 0) {
         result[item_ct1.get_group(2)] = block_result[0];
@@ -650,10 +650,10 @@ void reduce_total_cols(size_type num_slices,
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16)>
 void reduce_total_cols(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                       sycl::queue *queue, size_type num_slices,
-                       const size_type *max_nnz_per_slice, size_type *result)
+                       sycl::queue* queue, size_type num_slices,
+                       const size_type* max_nnz_per_slice, size_type* result)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<uint8_t, 1, sycl::access::mode::read_write,
                        sycl::access::target::local>
             dpct_local_acc_ct1(sycl::range<1>(dynamic_shared_memory), cgh);
@@ -674,10 +674,10 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_total_cols_call, reduce_total_cols,
 
 template <std::uint32_t sg_size, typename ValueType, typename Closure>
 void transpose(const size_type nrows, const size_type ncols,
-               const ValueType *__restrict__ in, const size_type in_stride,
-               ValueType *__restrict__ out, const size_type out_stride,
+               const ValueType* __restrict__ in, const size_type in_stride,
+               ValueType* __restrict__ out, const size_type out_stride,
                Closure op, sycl::nd_item<3> item_ct1,
-               UninitializedArray<ValueType, sg_size *(sg_size + 1)> &space)
+               UninitializedArray<ValueType, sg_size*(sg_size + 1)>& space)
 {
     auto local_x = item_ct1.get_local_id(2);
     auto local_y = item_ct1.get_local_id(1);
@@ -698,10 +698,10 @@ void transpose(const size_type nrows, const size_type ncols,
 template <std::uint32_t sg_size, typename ValueType>
 __WG_BOUND__(sg_size, sg_size)
 void transpose(const size_type nrows, const size_type ncols,
-               const ValueType *__restrict__ in, const size_type in_stride,
-               ValueType *__restrict__ out, const size_type out_stride,
+               const ValueType* __restrict__ in, const size_type in_stride,
+               ValueType* __restrict__ out, const size_type out_stride,
                sycl::nd_item<3> item_ct1,
-               UninitializedArray<ValueType, sg_size *(sg_size + 1)> &space)
+               UninitializedArray<ValueType, sg_size*(sg_size + 1)>& space)
 {
     transpose<sg_size>(
         nrows, ncols, in, in_stride, out, out_stride,
@@ -710,12 +710,12 @@ void transpose(const size_type nrows, const size_type ncols,
 
 template <std::uint32_t sg_size = 32, typename ValueType>
 void transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-               sycl::queue *queue, const size_type nrows, const size_type ncols,
-               const ValueType *in, const size_type in_stride, ValueType *out,
+               sycl::queue* queue, const size_type nrows, const size_type ncols,
+               const ValueType* in, const size_type in_stride, ValueType* out,
                const size_type out_stride)
 {
-    queue->submit([&](sycl::handler &cgh) {
-        sycl::accessor<UninitializedArray<ValueType, sg_size *(sg_size + 1)>, 0,
+    queue->submit([&](sycl::handler& cgh) {
+        sycl::accessor<UninitializedArray<ValueType, sg_size*(sg_size + 1)>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
             space_acc_ct1(cgh);
@@ -734,12 +734,11 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(transpose_call, transpose, subgroup_list);
 
 template <std::uint32_t sg_size, typename ValueType>
 __WG_BOUND__(sg_size, sg_size)
-void conj_transpose(
-    const size_type nrows, const size_type ncols,
-    const ValueType *__restrict__ in, const size_type in_stride,
-    ValueType *__restrict__ out, const size_type out_stride,
-    sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, sg_size *(sg_size + 1)> &space)
+void conj_transpose(const size_type nrows, const size_type ncols,
+                    const ValueType* __restrict__ in, const size_type in_stride,
+                    ValueType* __restrict__ out, const size_type out_stride,
+                    sycl::nd_item<3> item_ct1,
+                    UninitializedArray<ValueType, sg_size*(sg_size + 1)>& space)
 {
     transpose<sg_size>(
         nrows, ncols, in, in_stride, out, out_stride,
@@ -748,13 +747,13 @@ void conj_transpose(
 
 template <std::uint32_t sg_size = 16, typename ValueType>
 void conj_transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                    sycl::queue *queue, const size_type nrows,
-                    const size_type ncols, const ValueType *in,
-                    const size_type in_stride, ValueType *out,
+                    sycl::queue* queue, const size_type nrows,
+                    const size_type ncols, const ValueType* in,
+                    const size_type in_stride, ValueType* out,
                     const size_type out_stride)
 {
-    queue->submit([&](sycl::handler &cgh) {
-        sycl::accessor<UninitializedArray<ValueType, sg_size *(sg_size + 1)>, 0,
+    queue->submit([&](sycl::handler& cgh) {
+        sycl::accessor<UninitializedArray<ValueType, sg_size*(sg_size + 1)>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
             space_acc_ct1(cgh);
@@ -779,9 +778,9 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(conj_transpose_call, conj_transpose,
 
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const DpcppExecutor> exec,
-                  const matrix::Dense<ValueType> *a,
-                  const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *c)
+                  const matrix::Dense<ValueType>* a,
+                  const matrix::Dense<ValueType>* b,
+                  matrix::Dense<ValueType>* c)
 {
     using namespace oneapi::mkl;
     oneapi::mkl::blas::row_major::gemm(
@@ -796,9 +795,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DpcppExecutor> exec,
-           const matrix::Dense<ValueType> *alpha,
-           const matrix::Dense<ValueType> *a, const matrix::Dense<ValueType> *b,
-           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *c)
+           const matrix::Dense<ValueType>* alpha,
+           const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
+           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
 {
     using namespace oneapi::mkl;
     oneapi::mkl::blas::row_major::gemm(
@@ -815,9 +814,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 template <typename ValueType>
 void compute_dot(std::shared_ptr<const DpcppExecutor> exec,
-                 const matrix::Dense<ValueType> *x,
-                 const matrix::Dense<ValueType> *y,
-                 matrix::Dense<ValueType> *result)
+                 const matrix::Dense<ValueType>* x,
+                 const matrix::Dense<ValueType>* y,
+                 matrix::Dense<ValueType>* result)
 {
     if (x->get_size()[1] == 1) {
         // TODO: write a custom kernel which does this more efficiently
@@ -860,9 +859,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 
 template <typename ValueType>
 void compute_conj_dot(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Dense<ValueType> *x,
-                      const matrix::Dense<ValueType> *y,
-                      matrix::Dense<ValueType> *result)
+                      const matrix::Dense<ValueType>* x,
+                      const matrix::Dense<ValueType>* y,
+                      matrix::Dense<ValueType>* result)
 {
     if (x->get_size()[1] == 1) {
         // TODO: write a custom kernel which does this more efficiently
@@ -908,8 +907,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL);
 
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,
-                   const matrix::Dense<ValueType> *x,
-                   matrix::Dense<remove_complex<ValueType>> *result)
+                   const matrix::Dense<ValueType>* x,
+                   matrix::Dense<remove_complex<ValueType>>* result)
 {
     if (x->get_size()[1] == 1) {
         oneapi::mkl::blas::row_major::nrm2(
@@ -953,8 +952,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Dense<ValueType> *source,
-                    matrix::Coo<ValueType, IndexType> *result)
+                    const matrix::Dense<ValueType>* source,
+                    matrix::Coo<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -992,8 +991,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Dense<ValueType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
+                    const matrix::Dense<ValueType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
 {
     auto queue = exec->get_queue();
     constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
@@ -1036,8 +1035,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Dense<ValueType> *source,
-                    matrix::Ell<ValueType, IndexType> *result)
+                    const matrix::Dense<ValueType>* source,
+                    matrix::Ell<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -1070,8 +1069,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const DpcppExecutor> exec,
-                       const matrix::Dense<ValueType> *source,
-                       matrix::Hybrid<ValueType, IndexType> *result)
+                       const matrix::Dense<ValueType>* source,
+                       matrix::Hybrid<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1080,8 +1079,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Dense<ValueType> *source,
-                      matrix::Sellp<ValueType, IndexType> *result)
+                      const matrix::Dense<ValueType>* source,
+                      matrix::Sellp<ValueType, IndexType>* result)
 {
     auto queue = exec->get_queue();
     constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
@@ -1139,8 +1138,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sparsity_csr(std::shared_ptr<const DpcppExecutor> exec,
-                             const matrix::Dense<ValueType> *source,
-                             matrix::SparsityCsr<ValueType, IndexType> *result)
+                             const matrix::Dense<ValueType>* source,
+                             matrix::SparsityCsr<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1149,7 +1148,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType>
 void count_nonzeros(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Dense<ValueType> *source, size_type *result)
+                    const matrix::Dense<ValueType>* source, size_type* result)
 {
     const auto num_rows = source->get_size()[0];
     auto nnz_per_row = Array<size_type>(exec, num_rows);
@@ -1164,8 +1163,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
 
 template <typename ValueType>
 void calculate_max_nnz_per_row(std::shared_ptr<const DpcppExecutor> exec,
-                               const matrix::Dense<ValueType> *source,
-                               size_type *result)
+                               const matrix::Dense<ValueType>* source,
+                               size_type* result)
 {
     const auto num_rows = source->get_size()[0];
     auto nnz_per_row = Array<size_type>(exec, num_rows);
@@ -1203,8 +1202,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void calculate_nonzeros_per_row(std::shared_ptr<const DpcppExecutor> exec,
-                                const matrix::Dense<ValueType> *source,
-                                Array<size_type> *result)
+                                const matrix::Dense<ValueType>* source,
+                                Array<size_type>* result)
 {
     auto queue = exec->get_queue();
     constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
@@ -1233,8 +1232,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const DpcppExecutor> exec,
-                          const matrix::Dense<ValueType> *source,
-                          size_type *result, size_type stride_factor,
+                          const matrix::Dense<ValueType>* source,
+                          size_type* result, size_type stride_factor,
                           size_type slice_size)
 {
     const auto num_rows = source->get_size()[0];
@@ -1292,8 +1291,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void transpose(std::shared_ptr<const DpcppExecutor> exec,
-               const matrix::Dense<ValueType> *orig,
-               matrix::Dense<ValueType> *trans)
+               const matrix::Dense<ValueType>* orig,
+               matrix::Dense<ValueType>* trans)
 {
     auto size = orig->get_size();
     auto sg_array = syn::as_array(subgroup_list);
@@ -1314,8 +1313,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_TRANSPOSE_KERNEL);
 
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Dense<ValueType> *orig,
-                    matrix::Dense<ValueType> *trans)
+                    const matrix::Dense<ValueType>* orig,
+                    matrix::Dense<ValueType>* trans)
 {
     auto size = orig->get_size();
     auto sg_array = syn::as_array(subgroup_list);

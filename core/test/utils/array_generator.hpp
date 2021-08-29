@@ -62,8 +62,8 @@ namespace test {
  */
 template <typename ValueType, typename ValueDistribution, typename Engine>
 Array<ValueType> generate_random_array(size_type num,
-                                       ValueDistribution &&value_dist,
-                                       Engine &&engine,
+                                       ValueDistribution&& value_dist,
+                                       Engine&& engine,
                                        std::shared_ptr<const Executor> exec)
 {
     Array<ValueType> array(exec->get_master(), num);

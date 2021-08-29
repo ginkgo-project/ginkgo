@@ -96,10 +96,10 @@ std::unique_ptr<LinOp> Bicg<ValueType>::conj_transpose() const
  *                  before (conjugate-)transposing it
  */
 template <typename CsrType>
-std::unique_ptr<LinOp> conj_transpose_with_csr(const LinOp *mtx)
+std::unique_ptr<LinOp> conj_transpose_with_csr(const LinOp* mtx)
 {
     auto csr_matrix_unique_ptr = copy_and_convert_to<CsrType>(
-        mtx->get_executor(), const_cast<LinOp *>(mtx));
+        mtx->get_executor(), const_cast<LinOp*>(mtx));
 
     csr_matrix_unique_ptr->set_strategy(
         std::make_shared<typename CsrType::classical>());
@@ -109,7 +109,7 @@ std::unique_ptr<LinOp> conj_transpose_with_csr(const LinOp *mtx)
 
 
 template <typename ValueType>
-void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Bicg<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -120,8 +120,8 @@ void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
-                                       matrix::Dense<ValueType> *dense_x) const
+void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
+                                       matrix::Dense<ValueType>* dense_x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
@@ -162,7 +162,7 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
 
     std::unique_ptr<LinOp> conj_trans_A;
     auto conj_transposable_system_matrix =
-        dynamic_cast<const Transposable *>(system_matrix_.get());
+        dynamic_cast<const Transposable*>(system_matrix_.get());
 
     if (conj_transposable_system_matrix) {
         conj_trans_A = conj_transposable_system_matrix->conj_transpose();
@@ -172,7 +172,7 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
         using Csr32 = matrix::Csr<ValueType, int32>;
         using Csr64 = matrix::Csr<ValueType, int64>;
         auto supports_int64 =
-            dynamic_cast<const ConvertibleTo<Csr64> *>(system_matrix_.get());
+            dynamic_cast<const ConvertibleTo<Csr64>*>(system_matrix_.get());
         if (supports_int64) {
             conj_trans_A = conj_transpose_with_csr<Csr64>(system_matrix_.get());
         } else {
@@ -191,7 +191,7 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
     // r2 = r
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_,
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         r.get());
 
     int iter = -1;
@@ -243,8 +243,8 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
 
 
 template <typename ValueType>
-void Bicg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                 const LinOp *beta, LinOp *x) const
+void Bicg<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                 const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {

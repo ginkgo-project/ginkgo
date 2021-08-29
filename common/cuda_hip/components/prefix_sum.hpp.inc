@@ -49,8 +49,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 template <bool inclusive, typename ValueType, typename Group>
 __forceinline__ __device__ void subwarp_prefix_sum(ValueType element,
-                                                   ValueType &prefix_sum,
-                                                   ValueType &total_sum,
+                                                   ValueType& prefix_sum,
+                                                   ValueType& total_sum,
                                                    Group subwarp)
 {
     prefix_sum = inclusive ? element : zero<ValueType>();
@@ -81,7 +81,7 @@ __forceinline__ __device__ void subwarp_prefix_sum(ValueType element,
  */
 template <bool inclusive, typename ValueType, typename Group>
 __forceinline__ __device__ void subwarp_prefix_sum(ValueType element,
-                                                   ValueType &prefix_sum,
+                                                   ValueType& prefix_sum,
                                                    Group subwarp)
 {
     ValueType tmp{};
@@ -107,8 +107,8 @@ __forceinline__ __device__ void subwarp_prefix_sum(ValueType element,
  */
 template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void start_prefix_sum(
-    size_type num_elements, ValueType *__restrict__ elements,
-    ValueType *__restrict__ block_sum)
+    size_type num_elements, ValueType* __restrict__ elements,
+    ValueType* __restrict__ block_sum)
 {
     const auto tidx = thread::get_thread_id_flat();
     const auto element_id = threadIdx.x;
@@ -174,8 +174,8 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
  */
 template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void finalize_prefix_sum(
-    size_type num_elements, ValueType *__restrict__ elements,
-    const ValueType *__restrict__ block_sum)
+    size_type num_elements, ValueType* __restrict__ elements,
+    const ValueType* __restrict__ block_sum)
 {
     const auto tidx = thread::get_thread_id_flat();
 

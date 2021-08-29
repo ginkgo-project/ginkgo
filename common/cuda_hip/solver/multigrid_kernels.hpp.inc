@@ -37,10 +37,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void kcycle_step_1_kernel(
     const size_type num_rows, const size_type nrhs, const size_type stride,
-    const size_type grid_nrows, const ValueType *__restrict__ alpha,
-    const ValueType *__restrict__ rho, const ValueType *__restrict__ v,
-    ValueType *__restrict__ g, ValueType *__restrict__ d,
-    ValueType *__restrict__ e)
+    const size_type grid_nrows, const ValueType* __restrict__ alpha,
+    const ValueType* __restrict__ rho, const ValueType* __restrict__ v,
+    ValueType* __restrict__ g, ValueType* __restrict__ d,
+    ValueType* __restrict__ e)
 {
     const auto tidx = thread::get_thread_id_flat();
     const auto col = tidx % nrhs;
@@ -68,10 +68,10 @@ __global__ __launch_bounds__(default_block_size) void kcycle_step_1_kernel(
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void kcycle_step_2_kernel(
     const size_type num_rows, const size_type nrhs, const size_type stride,
-    const size_type grid_nrows, const ValueType *__restrict__ alpha,
-    const ValueType *__restrict__ rho, const ValueType *__restrict__ gamma,
-    const ValueType *__restrict__ beta, const ValueType *__restrict__ zeta,
-    const ValueType *__restrict__ d, ValueType *__restrict__ e)
+    const size_type grid_nrows, const ValueType* __restrict__ alpha,
+    const ValueType* __restrict__ rho, const ValueType* __restrict__ gamma,
+    const ValueType* __restrict__ beta, const ValueType* __restrict__ zeta,
+    const ValueType* __restrict__ d, ValueType* __restrict__ e)
 {
     const auto tidx = thread::get_thread_id_flat();
     const auto col = tidx % nrhs;
@@ -95,9 +95,9 @@ __global__ __launch_bounds__(default_block_size) void kcycle_step_2_kernel(
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void kcycle_check_stop_kernel(
-    const size_type nrhs, const ValueType *__restrict__ old_norm,
-    const ValueType *__restrict__ new_norm, const ValueType rel_tol,
-    bool *__restrict__ is_stop)
+    const size_type nrhs, const ValueType* __restrict__ old_norm,
+    const ValueType* __restrict__ new_norm, const ValueType rel_tol,
+    bool* __restrict__ is_stop)
 {
     auto tidx = thread::get_thread_id_flat();
     if (tidx >= nrhs) {

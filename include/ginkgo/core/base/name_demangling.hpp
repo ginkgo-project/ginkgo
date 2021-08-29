@@ -56,12 +56,12 @@ namespace gko {
 namespace name_demangling {
 
 
-inline std::string get_type_name(const std::type_info &tinfo)
+inline std::string get_type_name(const std::type_info& tinfo)
 {
 #ifdef GKO_HAVE_CXXABI_H
     int status{};
     const std::string name(
-        std::unique_ptr<char[], void (*)(void *)>(
+        std::unique_ptr<char[], void (*)(void*)>(
             abi::__cxa_demangle(tinfo.name(), nullptr, nullptr, &status),
             std::free)
             .get());
@@ -82,7 +82,7 @@ inline std::string get_type_name(const std::type_info &tinfo)
  * @param  unused
  */
 template <typename T>
-std::string get_static_type(const T &)
+std::string get_static_type(const T&)
 {
     return get_type_name(typeid(T));
 }
@@ -97,7 +97,7 @@ std::string get_static_type(const T &)
  * @param t  the object we get the dynamic type of
  */
 template <typename T>
-std::string get_dynamic_type(const T &t)
+std::string get_dynamic_type(const T& t)
 {
     return get_type_name(typeid(t));
 }
@@ -107,7 +107,7 @@ namespace detail {
 
 
 template <typename T>
-std::string get_enclosing_scope(const T &)
+std::string get_enclosing_scope(const T&)
 {
     auto name = get_type_name(typeid(T));
     auto found = name.rfind(':');

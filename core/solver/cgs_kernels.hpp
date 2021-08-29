@@ -51,41 +51,41 @@ namespace cgs {
 
 #define GKO_DECLARE_CGS_INITIALIZE_KERNEL(_type)                               \
     void initialize(std::shared_ptr<const DefaultExecutor> exec,               \
-                    const matrix::Dense<_type> *b, matrix::Dense<_type> *r,    \
-                    matrix::Dense<_type> *r_tld, matrix::Dense<_type> *p,      \
-                    matrix::Dense<_type> *q, matrix::Dense<_type> *u,          \
-                    matrix::Dense<_type> *u_hat, matrix::Dense<_type> *v_hat,  \
-                    matrix::Dense<_type> *t, matrix::Dense<_type> *alpha,      \
-                    matrix::Dense<_type> *beta, matrix::Dense<_type> *gamma,   \
-                    matrix::Dense<_type> *prev_rho, matrix::Dense<_type> *rho, \
-                    Array<stopping_status> *stop_status)
+                    const matrix::Dense<_type>* b, matrix::Dense<_type>* r,    \
+                    matrix::Dense<_type>* r_tld, matrix::Dense<_type>* p,      \
+                    matrix::Dense<_type>* q, matrix::Dense<_type>* u,          \
+                    matrix::Dense<_type>* u_hat, matrix::Dense<_type>* v_hat,  \
+                    matrix::Dense<_type>* t, matrix::Dense<_type>* alpha,      \
+                    matrix::Dense<_type>* beta, matrix::Dense<_type>* gamma,   \
+                    matrix::Dense<_type>* prev_rho, matrix::Dense<_type>* rho, \
+                    Array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_CGS_STEP_1_KERNEL(_type)                                 \
     void step_1(std::shared_ptr<const DefaultExecutor> exec,                 \
-                const matrix::Dense<_type> *r, matrix::Dense<_type> *u,      \
-                matrix::Dense<_type> *p, const matrix::Dense<_type> *q,      \
-                matrix::Dense<_type> *beta, const matrix::Dense<_type> *rho, \
-                const matrix::Dense<_type> *rho_prev,                        \
-                const Array<stopping_status> *stop_status)
+                const matrix::Dense<_type>* r, matrix::Dense<_type>* u,      \
+                matrix::Dense<_type>* p, const matrix::Dense<_type>* q,      \
+                matrix::Dense<_type>* beta, const matrix::Dense<_type>* rho, \
+                const matrix::Dense<_type>* rho_prev,                        \
+                const Array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_CGS_STEP_2_KERNEL(_type)                                \
     void step_2(std::shared_ptr<const DefaultExecutor> exec,                \
-                const matrix::Dense<_type> *u,                              \
-                const matrix::Dense<_type> *v_hat, matrix::Dense<_type> *q, \
-                matrix::Dense<_type> *t, matrix::Dense<_type> *alpha,       \
-                const matrix::Dense<_type> *rho,                            \
-                const matrix::Dense<_type> *gamma,                          \
-                const Array<stopping_status> *stop_status)
+                const matrix::Dense<_type>* u,                              \
+                const matrix::Dense<_type>* v_hat, matrix::Dense<_type>* q, \
+                matrix::Dense<_type>* t, matrix::Dense<_type>* alpha,       \
+                const matrix::Dense<_type>* rho,                            \
+                const matrix::Dense<_type>* gamma,                          \
+                const Array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_CGS_STEP_3_KERNEL(_type)                                \
     void step_3(std::shared_ptr<const DefaultExecutor> exec,                \
-                const matrix::Dense<_type> *t,                              \
-                const matrix::Dense<_type> *u_hat, matrix::Dense<_type> *r, \
-                matrix::Dense<_type> *x, const matrix::Dense<_type> *alpha, \
-                const Array<stopping_status> *stop_status)
+                const matrix::Dense<_type>* t,                              \
+                const matrix::Dense<_type>* u_hat, matrix::Dense<_type>* r, \
+                matrix::Dense<_type>* x, const matrix::Dense<_type>* alpha, \
+                const Array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES              \

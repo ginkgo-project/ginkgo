@@ -58,21 +58,21 @@ namespace factorization {
 
 template <bool IsSorted, typename ValueType, typename IndexType>
 void find_missing_diagonal_elements(
-    const matrix::Csr<ValueType, IndexType> *mtx,
-    IndexType *elements_to_add_per_row,
-    bool *changes_required) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType>* mtx,
+    IndexType* elements_to_add_per_row,
+    bool* changes_required) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>
 void add_missing_diagonal_elements(
-    const matrix::Csr<ValueType, IndexType> *mtx, ValueType *new_values,
-    IndexType *new_col_idxs,
-    const IndexType *row_ptrs_addition) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType>* mtx, ValueType* new_values,
+    IndexType* new_col_idxs,
+    const IndexType* row_ptrs_addition) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>
 void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
-                           matrix::Csr<ValueType, IndexType> *mtx,
+                           matrix::Csr<ValueType, IndexType>* mtx,
                            bool is_sorted) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -82,8 +82,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l_u(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    IndexType *l_row_ptrs, IndexType *u_row_ptrs) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    IndexType* l_row_ptrs, IndexType* u_row_ptrs) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL);
@@ -91,9 +91,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_l_u(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *system_matrix,
-                    matrix::Csr<ValueType, IndexType> *csr_l,
-                    matrix::Csr<ValueType, IndexType> *csr_u)
+                    const matrix::Csr<ValueType, IndexType>* system_matrix,
+                    matrix::Csr<ValueType, IndexType>* csr_l,
+                    matrix::Csr<ValueType, IndexType>* csr_u)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -103,8 +103,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    IndexType *l_row_ptrs) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    IndexType* l_row_ptrs) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL);
@@ -112,8 +112,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_l(std::shared_ptr<const DpcppExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType> *system_matrix,
-                  matrix::Csr<ValueType, IndexType> *csr_l,
+                  const matrix::Csr<ValueType, IndexType>* system_matrix,
+                  matrix::Csr<ValueType, IndexType>* csr_l,
                   bool diag_sqrt) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

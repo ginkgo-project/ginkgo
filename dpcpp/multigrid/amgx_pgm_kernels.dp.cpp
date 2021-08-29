@@ -57,23 +57,23 @@ namespace amgx_pgm {
 
 template <typename IndexType>
 void match_edge(std::shared_ptr<const DpcppExecutor> exec,
-                const Array<IndexType> &strongest_neighbor,
-                Array<IndexType> &agg) GKO_NOT_IMPLEMENTED;
+                const Array<IndexType>& strongest_neighbor,
+                Array<IndexType>& agg) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL);
 
 
 template <typename IndexType>
 void count_unagg(std::shared_ptr<const DpcppExecutor> exec,
-                 const Array<IndexType> &agg,
-                 IndexType *num_unagg) GKO_NOT_IMPLEMENTED;
+                 const Array<IndexType>& agg,
+                 IndexType* num_unagg) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_COUNT_UNAGG_KERNEL);
 
 
 template <typename IndexType>
-void renumber(std::shared_ptr<const DpcppExecutor> exec, Array<IndexType> &agg,
-              IndexType *num_agg) GKO_NOT_IMPLEMENTED;
+void renumber(std::shared_ptr<const DpcppExecutor> exec, Array<IndexType>& agg,
+              IndexType* num_agg) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL);
 
@@ -81,9 +81,9 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL);
 template <typename ValueType, typename IndexType>
 void find_strongest_neighbor(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *weight_mtx,
-    const matrix::Diagonal<ValueType> *diag, Array<IndexType> &agg,
-    Array<IndexType> &strongest_neighbor) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType>* weight_mtx,
+    const matrix::Diagonal<ValueType>* diag, Array<IndexType>& agg,
+    Array<IndexType>& strongest_neighbor) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR);
@@ -92,9 +92,9 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void assign_to_exist_agg(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *weight_mtx,
-    const matrix::Diagonal<ValueType> *diag, Array<IndexType> &agg,
-    Array<IndexType> &intermediate_agg) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType>* weight_mtx,
+    const matrix::Diagonal<ValueType>* diag, Array<IndexType>& agg,
+    Array<IndexType>& intermediate_agg) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG);

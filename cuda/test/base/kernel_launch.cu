@@ -99,13 +99,13 @@ protected:
 
 
 // nvcc doesn't like device lambdas declared in complex classes, move it out
-void run1d(std::shared_ptr<gko::CudaExecutor> exec, size_type dim, int *data)
+void run1d(std::shared_ptr<gko::CudaExecutor> exec, size_type dim, int* data)
 {
     gko::kernels::cuda::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
-            static_assert(is_same<decltype(d), int *>::value, "type");
+            static_assert(is_same<decltype(d), int*>::value, "type");
             d[i] = i;
         },
         dim, data);
@@ -119,14 +119,14 @@ TEST_F(KernelLaunch, Runs1D)
 }
 
 
-void run1d(std::shared_ptr<gko::CudaExecutor> exec, gko::Array<int> &data)
+void run1d(std::shared_ptr<gko::CudaExecutor> exec, gko::Array<int>& data)
 {
     gko::kernels::cuda::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
-            static_assert(is_same<decltype(d), int *>::value, "type");
-            static_assert(is_same<decltype(d_ptr), const int *>::value, "type");
+            static_assert(is_same<decltype(d), int*>::value, "type");
+            static_assert(is_same<decltype(d_ptr), const int*>::value, "type");
             if (d == d_ptr) {
                 d[i] = i;
             } else {
@@ -144,16 +144,16 @@ TEST_F(KernelLaunch, Runs1DArray)
 }
 
 
-void run1d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<> *m)
+void run1d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<>* m)
 {
     gko::kernels::cuda::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d2, auto d_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
-            static_assert(is_same<decltype(d(0, 0)), double &>::value, "type");
-            static_assert(is_same<decltype(d2(0, 0)), const double &>::value,
+            static_assert(is_same<decltype(d(0, 0)), double&>::value, "type");
+            static_assert(is_same<decltype(d2(0, 0)), const double&>::value,
                           "type");
-            static_assert(is_same<decltype(d_ptr), const double *>::value,
+            static_assert(is_same<decltype(d_ptr), const double*>::value,
                           "type");
             bool pointers_correct = d.data == d_ptr && d2.data == d_ptr;
             bool strides_correct = d.stride == 5 && d2.stride == 5;
@@ -168,7 +168,7 @@ void run1d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<> *m)
                 d(i / 4, i % 4) = 0;
             }
         },
-        16, m, static_cast<const gko::matrix::Dense<> *>(m),
+        16, m, static_cast<const gko::matrix::Dense<>*>(m),
         m->get_const_values());
 }
 
@@ -180,14 +180,14 @@ TEST_F(KernelLaunch, Runs1DDense)
 }
 
 
-void run2d(std::shared_ptr<gko::CudaExecutor> exec, int *data)
+void run2d(std::shared_ptr<gko::CudaExecutor> exec, int* data)
 {
     gko::kernels::cuda::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
             static_assert(is_same<decltype(j), size_type>::value, "index");
-            static_assert(is_same<decltype(d), int *>::value, "type");
+            static_assert(is_same<decltype(d), int*>::value, "type");
             d[i + 4 * j] = 4 * i + j;
         },
         dim<2>{4, 4}, data);
@@ -201,15 +201,15 @@ TEST_F(KernelLaunch, Runs2D)
 }
 
 
-void run2d(std::shared_ptr<gko::CudaExecutor> exec, gko::Array<int> &data)
+void run2d(std::shared_ptr<gko::CudaExecutor> exec, gko::Array<int>& data)
 {
     gko::kernels::cuda::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
             static_assert(is_same<decltype(j), size_type>::value, "index");
-            static_assert(is_same<decltype(d), int *>::value, "type");
-            static_assert(is_same<decltype(d_ptr), const int *>::value, "type");
+            static_assert(is_same<decltype(d), int*>::value, "type");
+            static_assert(is_same<decltype(d_ptr), const int*>::value, "type");
             if (d == d_ptr) {
                 d[i + 4 * j] = 4 * i + j;
             } else {
@@ -227,23 +227,23 @@ TEST_F(KernelLaunch, Runs2DArray)
 }
 
 
-void run2d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<> *m1,
-           gko::matrix::Dense<> *m2, gko::matrix::Dense<> *m3)
+void run2d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<>* m1,
+           gko::matrix::Dense<>* m2, gko::matrix::Dense<>* m3)
 {
     gko::kernels::cuda::run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d2, auto d_ptr, auto d3,
                       auto d4, auto d2_ptr, auto d3_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
-            static_assert(is_same<decltype(d(0, 0)), double &>::value, "type");
-            static_assert(is_same<decltype(d2(0, 0)), const double &>::value,
+            static_assert(is_same<decltype(d(0, 0)), double&>::value, "type");
+            static_assert(is_same<decltype(d2(0, 0)), const double&>::value,
                           "type");
-            static_assert(is_same<decltype(d_ptr), const double *>::value,
+            static_assert(is_same<decltype(d_ptr), const double*>::value,
                           "type");
-            static_assert(is_same<decltype(d3(0, 0)), double &>::value, "type");
-            static_assert(is_same<decltype(d4), double *>::value, "type");
-            static_assert(is_same<decltype(d2_ptr), double *>::value, "type");
-            static_assert(is_same<decltype(d3_ptr), double *>::value, "type");
+            static_assert(is_same<decltype(d3(0, 0)), double&>::value, "type");
+            static_assert(is_same<decltype(d4), double*>::value, "type");
+            static_assert(is_same<decltype(d2_ptr), double*>::value, "type");
+            static_assert(is_same<decltype(d3_ptr), double*>::value, "type");
             bool pointers_correct = d.data == d_ptr && d2.data == d_ptr &&
                                     d3.data == d2_ptr && d4 == d3_ptr;
             bool strides_correct =
@@ -262,7 +262,7 @@ void run2d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<> *m1,
             }
         },
         dim<2>{4, 4}, m2->get_stride(), m1,
-        static_cast<const gko::matrix::Dense<> *>(m1), m1->get_const_values(),
+        static_cast<const gko::matrix::Dense<>*>(m1), m1->get_const_values(),
         gko::kernels::cuda::default_stride(m2),
         gko::kernels::cuda::row_vector(m3), m2->get_values(), m3->get_values());
 }

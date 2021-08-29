@@ -92,96 +92,96 @@ template <typename ValueType = default_precision>
 class Papi : public Logger {
 public:
     /* Executor events */
-    void on_allocation_started(const Executor *exec,
-                               const size_type &num_bytes) const override;
+    void on_allocation_started(const Executor* exec,
+                               const size_type& num_bytes) const override;
 
-    void on_allocation_completed(const Executor *exec,
-                                 const size_type &num_bytes,
-                                 const uintptr &location) const override;
+    void on_allocation_completed(const Executor* exec,
+                                 const size_type& num_bytes,
+                                 const uintptr& location) const override;
 
-    void on_free_started(const Executor *exec,
-                         const uintptr &location) const override;
+    void on_free_started(const Executor* exec,
+                         const uintptr& location) const override;
 
-    void on_free_completed(const Executor *exec,
-                           const uintptr &location) const override;
+    void on_free_completed(const Executor* exec,
+                           const uintptr& location) const override;
 
-    void on_copy_started(const Executor *from, const Executor *to,
-                         const uintptr &location_from,
-                         const uintptr &location_to,
-                         const size_type &num_bytes) const override;
+    void on_copy_started(const Executor* from, const Executor* to,
+                         const uintptr& location_from,
+                         const uintptr& location_to,
+                         const size_type& num_bytes) const override;
 
-    void on_copy_completed(const Executor *from, const Executor *to,
-                           const uintptr &location_from,
-                           const uintptr &location_to,
-                           const size_type &num_bytes) const override;
+    void on_copy_completed(const Executor* from, const Executor* to,
+                           const uintptr& location_from,
+                           const uintptr& location_to,
+                           const size_type& num_bytes) const override;
 
     /* Operation events */
-    void on_operation_launched(const Executor *exec,
-                               const Operation *operation) const override;
+    void on_operation_launched(const Executor* exec,
+                               const Operation* operation) const override;
 
-    void on_operation_completed(const Executor *exec,
-                                const Operation *operation) const override;
+    void on_operation_completed(const Executor* exec,
+                                const Operation* operation) const override;
 
     /* PolymorphicObject events */
     void on_polymorphic_object_create_started(
-        const Executor *, const PolymorphicObject *po) const override;
+        const Executor*, const PolymorphicObject* po) const override;
 
     void on_polymorphic_object_create_completed(
-        const Executor *exec, const PolymorphicObject *input,
-        const PolymorphicObject *output) const override;
+        const Executor* exec, const PolymorphicObject* input,
+        const PolymorphicObject* output) const override;
 
     void on_polymorphic_object_copy_started(
-        const Executor *exec, const PolymorphicObject *from,
-        const PolymorphicObject *to) const override;
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
 
     void on_polymorphic_object_copy_completed(
-        const Executor *exec, const PolymorphicObject *from,
-        const PolymorphicObject *to) const override;
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
 
     void on_polymorphic_object_deleted(
-        const Executor *exec, const PolymorphicObject *po) const override;
+        const Executor* exec, const PolymorphicObject* po) const override;
 
     /* LinOp events */
-    void on_linop_apply_started(const LinOp *A, const LinOp *b,
-                                const LinOp *x) const override;
+    void on_linop_apply_started(const LinOp* A, const LinOp* b,
+                                const LinOp* x) const override;
 
-    void on_linop_apply_completed(const LinOp *A, const LinOp *b,
-                                  const LinOp *x) const override;
+    void on_linop_apply_completed(const LinOp* A, const LinOp* b,
+                                  const LinOp* x) const override;
 
-    void on_linop_advanced_apply_started(const LinOp *A, const LinOp *alpha,
-                                         const LinOp *b, const LinOp *beta,
-                                         const LinOp *x) const override;
+    void on_linop_advanced_apply_started(const LinOp* A, const LinOp* alpha,
+                                         const LinOp* b, const LinOp* beta,
+                                         const LinOp* x) const override;
 
-    void on_linop_advanced_apply_completed(const LinOp *A, const LinOp *alpha,
-                                           const LinOp *b, const LinOp *beta,
-                                           const LinOp *x) const override;
+    void on_linop_advanced_apply_completed(const LinOp* A, const LinOp* alpha,
+                                           const LinOp* b, const LinOp* beta,
+                                           const LinOp* x) const override;
 
     /* LinOpFactory events */
-    void on_linop_factory_generate_started(const LinOpFactory *factory,
-                                           const LinOp *input) const override;
+    void on_linop_factory_generate_started(const LinOpFactory* factory,
+                                           const LinOp* input) const override;
 
     void on_linop_factory_generate_completed(
-        const LinOpFactory *factory, const LinOp *input,
-        const LinOp *output) const override;
+        const LinOpFactory* factory, const LinOp* input,
+        const LinOp* output) const override;
 
     void on_criterion_check_completed(
-        const stop::Criterion *criterion, const size_type &num_iterations,
-        const LinOp *residual, const LinOp *residual_norm,
-        const LinOp *solutino, const uint8 &stopping_id,
-        const bool &set_finalized, const Array<stopping_status> *status,
-        const bool &one_changed, const bool &all_converged) const override;
+        const stop::Criterion* criterion, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* residual_norm,
+        const LinOp* solutino, const uint8& stopping_id,
+        const bool& set_finalized, const Array<stopping_status>* status,
+        const bool& one_changed, const bool& all_converged) const override;
 
     /* Internal solver events */
     void on_iteration_complete(
-        const LinOp *solver, const size_type &num_iterations,
-        const LinOp *residual, const LinOp *solution = nullptr,
-        const LinOp *residual_norm = nullptr) const override;
+        const LinOp* solver, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* solution = nullptr,
+        const LinOp* residual_norm = nullptr) const override;
 
     void on_iteration_complete(
-        const LinOp *solver, const size_type &num_iterations,
-        const LinOp *residual, const LinOp *solution,
-        const LinOp *residual_norm,
-        const LinOp *implicit_sq_residual_norm) const override;
+        const LinOp* solver, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* solution,
+        const LinOp* residual_norm,
+        const LinOp* implicit_sq_residual_norm) const override;
 
     /**
      * Creates a Papi Logger.
@@ -191,7 +191,7 @@ public:
      */
     static std::shared_ptr<Papi> create(
         std::shared_ptr<const gko::Executor> exec,
-        const Logger::mask_type &enabled_events = Logger::all_events_mask)
+        const Logger::mask_type& enabled_events = Logger::all_events_mask)
     {
         return std::shared_ptr<Papi>(new Papi(exec, enabled_events));
     }
@@ -207,7 +207,7 @@ public:
 protected:
     explicit Papi(
         std::shared_ptr<const gko::Executor> exec,
-        const Logger::mask_type &enabled_events = Logger::all_events_mask)
+        const Logger::mask_type& enabled_events = Logger::all_events_mask)
         : Logger(exec, enabled_events)
     {
         std::ostringstream os;
@@ -223,7 +223,7 @@ private:
     template <typename PointerType>
     class papi_queue {
     public:
-        papi_queue(papi_handle_t *handle, const char *counter_name)
+        papi_queue(papi_handle_t* handle, const char* counter_name)
             : handle{handle}, counter_name{counter_name}
         {}
 
@@ -239,13 +239,13 @@ private:
             data.clear();
         }
 
-        size_type &get_counter(const PointerType *ptr)
+        size_type& get_counter(const PointerType* ptr)
         {
             const auto tmp = reinterpret_cast<uintptr>(ptr);
             if (data.find(tmp) == data.end()) {
                 data[tmp] = 0;
             }
-            auto &value = data[tmp];
+            auto& value = data[tmp];
             if (!value) {
                 std::ostringstream oss;
                 oss << counter_name << "::" << tmp;
@@ -257,8 +257,8 @@ private:
         }
 
     private:
-        papi_handle_t *handle;
-        const char *counter_name;
+        papi_handle_t* handle;
+        const char* counter_name;
         std::map<std::uintptr_t, size_type> data;
     };
 
@@ -308,7 +308,7 @@ private:
     mutable papi_queue<LinOp> linop_advanced_apply_completed{
         &papi_handle, "linop_advanced_apply_completed"};
 
-    mutable std::map<std::uintptr_t, void *> criterion_check_completed;
+    mutable std::map<std::uintptr_t, void*> criterion_check_completed;
 
     mutable papi_queue<LinOp> iteration_complete{&papi_handle,
                                                  "iteration_complete"};

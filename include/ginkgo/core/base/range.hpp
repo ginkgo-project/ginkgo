@@ -124,43 +124,43 @@ struct span {
 };
 
 
-GKO_ATTRIBUTES GKO_INLINE constexpr bool operator<(const span &first,
-                                                   const span &second)
+GKO_ATTRIBUTES GKO_INLINE constexpr bool operator<(const span& first,
+                                                   const span& second)
 {
     return first.end < second.begin;
 }
 
 
-GKO_ATTRIBUTES GKO_INLINE constexpr bool operator<=(const span &first,
-                                                    const span &second)
+GKO_ATTRIBUTES GKO_INLINE constexpr bool operator<=(const span& first,
+                                                    const span& second)
 {
     return first.end <= second.begin;
 }
 
 
-GKO_ATTRIBUTES GKO_INLINE constexpr bool operator>(const span &first,
-                                                   const span &second)
+GKO_ATTRIBUTES GKO_INLINE constexpr bool operator>(const span& first,
+                                                   const span& second)
 {
     return second < first;
 }
 
 
-GKO_ATTRIBUTES GKO_INLINE constexpr bool operator>=(const span &first,
-                                                    const span &second)
+GKO_ATTRIBUTES GKO_INLINE constexpr bool operator>=(const span& first,
+                                                    const span& second)
 {
     return second <= first;
 }
 
 
-GKO_ATTRIBUTES GKO_INLINE constexpr bool operator==(const span &first,
-                                                    const span &second)
+GKO_ATTRIBUTES GKO_INLINE constexpr bool operator==(const span& first,
+                                                    const span& second)
 {
     return first.begin == second.begin && first.end == second.end;
 }
 
 
-GKO_ATTRIBUTES GKO_INLINE constexpr bool operator!=(const span &first,
-                                                    const span &second)
+GKO_ATTRIBUTES GKO_INLINE constexpr bool operator!=(const span& first,
+                                                    const span& second)
 {
     return !(first == second);
 }
@@ -175,7 +175,7 @@ GKO_ATTRIBUTES constexpr GKO_INLINE
     std::enable_if_t<(CurrentDimension >= max(FirstRange::dimensionality,
                                               SecondRange::dimensionality)),
                      bool>
-    equal_dimensions(const FirstRange &, const SecondRange &)
+    equal_dimensions(const FirstRange&, const SecondRange&)
 {
     return true;
 }
@@ -186,7 +186,7 @@ GKO_ATTRIBUTES constexpr GKO_INLINE
     std::enable_if_t<(CurrentDimension < max(FirstRange::dimensionality,
                                              SecondRange::dimensionality)),
                      bool>
-    equal_dimensions(const FirstRange &first, const SecondRange &second)
+    equal_dimensions(const FirstRange& first, const SecondRange& second)
 {
     return first.length(CurrentDimension) == second.length(CurrentDimension) &&
            equal_dimensions<CurrentDimension + 1>(first, second);
@@ -332,7 +332,7 @@ public:
      * @param params  parameters forwarded to Accessor constructor.
      */
     template <typename... AccessorParams>
-    GKO_ATTRIBUTES constexpr explicit range(AccessorParams &&... params)
+    GKO_ATTRIBUTES constexpr explicit range(AccessorParams&&... params)
         : accessor_{std::forward<AccessorParams>(params)...}
     {}
 
@@ -349,7 +349,7 @@ public:
      * @return a value on position `(dimensions...)`.
      */
     template <typename... DimensionTypes>
-    GKO_ATTRIBUTES constexpr auto operator()(DimensionTypes &&... dimensions)
+    GKO_ATTRIBUTES constexpr auto operator()(DimensionTypes&&... dimensions)
         const -> decltype(std::declval<accessor>()(
             std::forward<DimensionTypes>(dimensions)...))
     {
@@ -367,8 +367,8 @@ public:
      * @tparam OtherAccessor  accessor of the other range
      */
     template <typename OtherAccessor>
-    GKO_ATTRIBUTES const range &operator=(
-        const range<OtherAccessor> &other) const
+    GKO_ATTRIBUTES const range& operator=(
+        const range<OtherAccessor>& other) const
     {
         GKO_ASSERT(detail::equal_dimensions(*this, other));
         accessor_.copy_from(other);
@@ -388,14 +388,14 @@ public:
      *
      * @param other  the range to copy the data from
      */
-    GKO_ATTRIBUTES const range &operator=(const range &other) const
+    GKO_ATTRIBUTES const range& operator=(const range& other) const
     {
         GKO_ASSERT(detail::equal_dimensions(*this, other));
         accessor_.copy_from(other.get_accessor());
         return *this;
     }
 
-    range(const range &other) = default;
+    range(const range& other) = default;
 
     /**
      * Returns the length of the specified dimension of the range.
@@ -416,7 +416,7 @@ public:
      *
      * @return pointer to the accessor
      */
-    GKO_ATTRIBUTES constexpr const accessor *operator->() const noexcept
+    GKO_ATTRIBUTES constexpr const accessor* operator->() const noexcept
     {
         return &accessor_;
     }
@@ -426,7 +426,7 @@ public:
      *
      * @return reference to the accessor
      */
-    GKO_ATTRIBUTES constexpr const accessor &get_accessor() const noexcept
+    GKO_ATTRIBUTES constexpr const accessor& get_accessor() const noexcept
     {
         return accessor_;
     }
@@ -453,13 +453,13 @@ struct implement_unary_operation {
     static constexpr size_type dimensionality = accessor::dimensionality;
 
     GKO_ATTRIBUTES constexpr explicit implement_unary_operation(
-        const Accessor &operand)
+        const Accessor& operand)
         : operand{operand}
     {}
 
     template <typename... DimensionTypes>
     GKO_ATTRIBUTES constexpr auto operator()(
-        const DimensionTypes &... dimensions) const
+        const DimensionTypes&... dimensions) const
         -> decltype(Operation::evaluate(std::declval<accessor>(),
                                         dimensions...))
     {
@@ -472,7 +472,7 @@ struct implement_unary_operation {
     }
 
     template <typename OtherAccessor>
-    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const = delete;
+    GKO_ATTRIBUTES void copy_from(const OtherAccessor& other) const = delete;
 
     const accessor operand;
 };
@@ -493,7 +493,7 @@ struct implement_binary_operation<operation_kind::range_by_range, FirstAccessor,
     static constexpr size_type dimensionality = first_accessor::dimensionality;
 
     GKO_ATTRIBUTES explicit implement_binary_operation(
-        const FirstAccessor &first, const SecondAccessor &second)
+        const FirstAccessor& first, const SecondAccessor& second)
         : first{first}, second{second}
     {
         GKO_ASSERT(gko::detail::equal_dimensions(first, second));
@@ -501,7 +501,7 @@ struct implement_binary_operation<operation_kind::range_by_range, FirstAccessor,
 
     template <typename... DimensionTypes>
     GKO_ATTRIBUTES constexpr auto operator()(
-        const DimensionTypes &... dimensions) const
+        const DimensionTypes&... dimensions) const
         -> decltype(Operation::evaluate_range_by_range(
             std::declval<first_accessor>(), std::declval<second_accessor>(),
             dimensions...))
@@ -515,7 +515,7 @@ struct implement_binary_operation<operation_kind::range_by_range, FirstAccessor,
     }
 
     template <typename OtherAccessor>
-    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const = delete;
+    GKO_ATTRIBUTES void copy_from(const OtherAccessor& other) const = delete;
 
     const first_accessor first;
     const second_accessor second;
@@ -528,13 +528,13 @@ struct implement_binary_operation<operation_kind::scalar_by_range, FirstOperand,
     static constexpr size_type dimensionality = second_accessor::dimensionality;
 
     GKO_ATTRIBUTES constexpr explicit implement_binary_operation(
-        const FirstOperand &first, const SecondAccessor &second)
+        const FirstOperand& first, const SecondAccessor& second)
         : first{first}, second{second}
     {}
 
     template <typename... DimensionTypes>
     GKO_ATTRIBUTES constexpr auto operator()(
-        const DimensionTypes &... dimensions) const
+        const DimensionTypes&... dimensions) const
         -> decltype(Operation::evaluate_scalar_by_range(
             std::declval<FirstOperand>(), std::declval<second_accessor>(),
             dimensions...))
@@ -549,7 +549,7 @@ struct implement_binary_operation<operation_kind::scalar_by_range, FirstOperand,
     }
 
     template <typename OtherAccessor>
-    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const = delete;
+    GKO_ATTRIBUTES void copy_from(const OtherAccessor& other) const = delete;
 
     const FirstOperand first;
     const second_accessor second;
@@ -562,13 +562,13 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
     static constexpr size_type dimensionality = first_accessor::dimensionality;
 
     GKO_ATTRIBUTES constexpr explicit implement_binary_operation(
-        const FirstAccessor &first, const SecondOperand &second)
+        const FirstAccessor& first, const SecondOperand& second)
         : first{first}, second{second}
     {}
 
     template <typename... DimensionTypes>
     GKO_ATTRIBUTES constexpr auto operator()(
-        const DimensionTypes &... dimensions) const
+        const DimensionTypes&... dimensions) const
         -> decltype(Operation::evaluate_range_by_scalar(
             std::declval<first_accessor>(), std::declval<SecondOperand>(),
             dimensions...))
@@ -583,7 +583,7 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
     }
 
     template <typename OtherAccessor>
-    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const = delete;
+    GKO_ATTRIBUTES void copy_from(const OtherAccessor& other) const = delete;
 
     const first_accessor first;
     const SecondOperand second;
@@ -612,7 +612,7 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
     template <typename Accessor>                                             \
     GKO_ATTRIBUTES constexpr GKO_INLINE                                      \
         range<accessor::_operation_name<Accessor>>                           \
-        _operator_name(const range<Accessor> &operand)                       \
+        _operator_name(const range<Accessor>& operand)                       \
     {                                                                        \
         return range<accessor::_operation_name<Accessor>>(                   \
             operand.get_accessor());                                         \
@@ -622,25 +622,24 @@ struct implement_binary_operation<operation_kind::range_by_scalar,
                   "semi-colon warnings")
 
 
-#define GKO_DEFINE_SIMPLE_UNARY_OPERATION(_name, ...)                  \
-    struct _name {                                                     \
-    private:                                                           \
-        template <typename Operand>                                    \
-        GKO_ATTRIBUTES static constexpr auto simple_evaluate_impl(     \
-            const Operand &operand) -> decltype(__VA_ARGS__)           \
-        {                                                              \
-            return __VA_ARGS__;                                        \
-        }                                                              \
-                                                                       \
-    public:                                                            \
-        template <typename AccessorType, typename... DimensionTypes>   \
-        GKO_ATTRIBUTES static constexpr auto evaluate(                 \
-            const AccessorType &accessor,                              \
-            const DimensionTypes &... dimensions)                      \
-            -> decltype(simple_evaluate_impl(accessor(dimensions...))) \
-        {                                                              \
-            return simple_evaluate_impl(accessor(dimensions...));      \
-        }                                                              \
+#define GKO_DEFINE_SIMPLE_UNARY_OPERATION(_name, ...)                          \
+    struct _name {                                                             \
+    private:                                                                   \
+        template <typename Operand>                                            \
+        GKO_ATTRIBUTES static constexpr auto simple_evaluate_impl(             \
+            const Operand& operand) -> decltype(__VA_ARGS__)                   \
+        {                                                                      \
+            return __VA_ARGS__;                                                \
+        }                                                                      \
+                                                                               \
+    public:                                                                    \
+        template <typename AccessorType, typename... DimensionTypes>           \
+        GKO_ATTRIBUTES static constexpr auto evaluate(                         \
+            const AccessorType& accessor, const DimensionTypes&... dimensions) \
+            -> decltype(simple_evaluate_impl(accessor(dimensions...)))         \
+        {                                                                      \
+            return simple_evaluate_impl(accessor(dimensions...));              \
+        }                                                                      \
     }
 
 
@@ -711,16 +710,16 @@ struct transpose_operation {
     static constexpr size_type dimensionality = accessor::dimensionality;
 
     GKO_ATTRIBUTES constexpr explicit transpose_operation(
-        const Accessor &operand)
+        const Accessor& operand)
         : operand{operand}
     {}
 
     template <typename FirstDimensionType, typename SecondDimensionType,
               typename... DimensionTypes>
     GKO_ATTRIBUTES constexpr auto operator()(
-        const FirstDimensionType &first_dim,
-        const SecondDimensionType &second_dim,
-        const DimensionTypes &... dims) const
+        const FirstDimensionType& first_dim,
+        const SecondDimensionType& second_dim,
+        const DimensionTypes&... dims) const
         -> decltype(std::declval<accessor>()(second_dim, first_dim, dims...))
     {
         return operand(second_dim, first_dim, dims...);
@@ -733,7 +732,7 @@ struct transpose_operation {
     }
 
     template <typename OtherAccessor>
-    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const = delete;
+    GKO_ATTRIBUTES void copy_from(const OtherAccessor& other) const = delete;
 
     const accessor operand;
 };
@@ -772,8 +771,8 @@ GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
     template <typename Accessor>                                              \
     GKO_ATTRIBUTES constexpr GKO_INLINE range<accessor::_operation_name<      \
         ::gko::detail::operation_kind::range_by_range, Accessor, Accessor>>   \
-    _operator_name(const range<Accessor> &first,                              \
-                   const range<Accessor> &second)                             \
+    _operator_name(const range<Accessor>& first,                              \
+                   const range<Accessor>& second)                             \
     {                                                                         \
         return range<accessor::_operation_name<                               \
             ::gko::detail::operation_kind::range_by_range, Accessor,          \
@@ -784,8 +783,8 @@ GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
     GKO_ATTRIBUTES constexpr GKO_INLINE range<accessor::_operation_name<      \
         ::gko::detail::operation_kind::range_by_range, FirstAccessor,         \
         SecondAccessor>>                                                      \
-    _operator_name(const range<FirstAccessor> &first,                         \
-                   const range<SecondAccessor> &second)                       \
+    _operator_name(const range<FirstAccessor>& first,                         \
+                   const range<SecondAccessor>& second)                       \
     {                                                                         \
         return range<accessor::_operation_name<                               \
             ::gko::detail::operation_kind::range_by_range, FirstAccessor,     \
@@ -796,8 +795,8 @@ GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
     GKO_ATTRIBUTES constexpr GKO_INLINE range<accessor::_operation_name<      \
         ::gko::detail::operation_kind::range_by_scalar, FirstAccessor,        \
         SecondOperand>>                                                       \
-    _operator_name(const range<FirstAccessor> &first,                         \
-                   const SecondOperand &second)                               \
+    _operator_name(const range<FirstAccessor>& first,                         \
+                   const SecondOperand& second)                               \
     {                                                                         \
         return range<accessor::_operation_name<                               \
             ::gko::detail::operation_kind::range_by_scalar, FirstAccessor,    \
@@ -808,8 +807,8 @@ GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
     GKO_ATTRIBUTES constexpr GKO_INLINE range<accessor::_operation_name<      \
         ::gko::detail::operation_kind::scalar_by_range, FirstOperand,         \
         SecondAccessor>>                                                      \
-    _operator_name(const FirstOperand &first,                                 \
-                   const range<SecondAccessor> &second)                       \
+    _operator_name(const FirstOperand& first,                                 \
+                   const range<SecondAccessor>& second)                       \
     {                                                                         \
         return range<accessor::_operation_name<                               \
             ::gko::detail::operation_kind::scalar_by_range, FirstOperand,     \
@@ -825,7 +824,7 @@ GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
     private:                                                                   \
         template <typename FirstOperand, typename SecondOperand>               \
         GKO_ATTRIBUTES constexpr static auto simple_evaluate_impl(             \
-            const FirstOperand &first, const SecondOperand &second)            \
+            const FirstOperand& first, const SecondOperand& second)            \
             -> decltype(__VA_ARGS__)                                           \
         {                                                                      \
             return __VA_ARGS__;                                                \
@@ -835,8 +834,8 @@ GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
         template <typename FirstAccessor, typename SecondAccessor,             \
                   typename... DimensionTypes>                                  \
         GKO_ATTRIBUTES static constexpr auto evaluate_range_by_range(          \
-            const FirstAccessor &first, const SecondAccessor &second,          \
-            const DimensionTypes &... dims)                                    \
+            const FirstAccessor& first, const SecondAccessor& second,          \
+            const DimensionTypes&... dims)                                     \
             -> decltype(simple_evaluate_impl(first(dims...), second(dims...))) \
         {                                                                      \
             return simple_evaluate_impl(first(dims...), second(dims...));      \
@@ -845,8 +844,8 @@ GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
         template <typename FirstOperand, typename SecondAccessor,              \
                   typename... DimensionTypes>                                  \
         GKO_ATTRIBUTES static constexpr auto evaluate_scalar_by_range(         \
-            const FirstOperand &first, const SecondAccessor &second,           \
-            const DimensionTypes &... dims)                                    \
+            const FirstOperand& first, const SecondAccessor& second,           \
+            const DimensionTypes&... dims)                                     \
             -> decltype(simple_evaluate_impl(first, second(dims...)))          \
         {                                                                      \
             return simple_evaluate_impl(first, second(dims...));               \
@@ -855,8 +854,8 @@ GKO_BIND_UNARY_RANGE_OPERATION_TO_OPERATOR(transpose_operation, transpose);
         template <typename FirstAccessor, typename SecondOperand,              \
                   typename... DimensionTypes>                                  \
         GKO_ATTRIBUTES static constexpr auto evaluate_range_by_scalar(         \
-            const FirstAccessor &first, const SecondOperand &second,           \
-            const DimensionTypes &... dims)                                    \
+            const FirstAccessor& first, const SecondOperand& second,           \
+            const DimensionTypes&... dims)                                     \
             -> decltype(simple_evaluate_impl(first(dims...), second))          \
         {                                                                      \
             return simple_evaluate_impl(first(dims...), second);               \
@@ -871,7 +870,7 @@ namespace detail {
 // binary arithmetic
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(add, first + second);
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(sub, first - second);
-GKO_DEFINE_SIMPLE_BINARY_OPERATION(mul, first *second);
+GKO_DEFINE_SIMPLE_BINARY_OPERATION(mul, first* second);
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(div, first / second);
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(mod, first % second);
 
@@ -885,11 +884,11 @@ GKO_DEFINE_SIMPLE_BINARY_OPERATION(not_equal, first != second);
 
 // binary logical
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(logical_or, first || second);
-GKO_DEFINE_SIMPLE_BINARY_OPERATION(logical_and, first &&second);
+GKO_DEFINE_SIMPLE_BINARY_OPERATION(logical_and, first&& second);
 
 // binary bitwise
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(bitwise_or, first | second);
-GKO_DEFINE_SIMPLE_BINARY_OPERATION(bitwise_and, first &second);
+GKO_DEFINE_SIMPLE_BINARY_OPERATION(bitwise_and, first& second);
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(bitwise_xor, first ^ second);
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(left_shift, first << second);
 GKO_DEFINE_SIMPLE_BINARY_OPERATION(right_shift, first >> second);
@@ -962,8 +961,8 @@ struct mmul_operation {
                   "Both ranges need to have the same number of dimensions");
     static constexpr size_type dimensionality = first_accessor::dimensionality;
 
-    GKO_ATTRIBUTES explicit mmul_operation(const FirstAccessor &first,
-                                           const SecondAccessor &second)
+    GKO_ATTRIBUTES explicit mmul_operation(const FirstAccessor& first,
+                                           const SecondAccessor& second)
         : first{first}, second{second}
     {
         GKO_ASSERT(first.length(1) == second.length(0));
@@ -972,9 +971,9 @@ struct mmul_operation {
 
     template <typename FirstDimension, typename SecondDimension,
               typename... DimensionTypes>
-    GKO_ATTRIBUTES auto operator()(const FirstDimension &row,
-                                   const SecondDimension &col,
-                                   const DimensionTypes &... rest) const
+    GKO_ATTRIBUTES auto operator()(const FirstDimension& row,
+                                   const SecondDimension& col,
+                                   const DimensionTypes&... rest) const
         -> decltype(std::declval<FirstAccessor>()(row, 0, rest...) *
                         std::declval<SecondAccessor>()(0, col, rest...) +
                     std::declval<FirstAccessor>()(row, 1, rest...) *
@@ -998,7 +997,7 @@ struct mmul_operation {
     }
 
     template <typename OtherAccessor>
-    GKO_ATTRIBUTES void copy_from(const OtherAccessor &other) const = delete;
+    GKO_ATTRIBUTES void copy_from(const OtherAccessor& other) const = delete;
 
     const first_accessor first;
     const second_accessor second;

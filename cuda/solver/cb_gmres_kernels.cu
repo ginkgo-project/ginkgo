@@ -80,7 +80,7 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 // Specialization, so the Accessor can use the same function as regular pointers
 template <int dim, typename Type1, typename Type2>
 GKO_INLINE auto as_cuda_accessor(
-    const acc::range<acc::reduced_row_major<dim, Type1, Type2>> &acc)
+    const acc::range<acc::reduced_row_major<dim, Type1, Type2>>& acc)
 {
     return acc::range<
         acc::reduced_row_major<dim, cuda_type<Type1>, cuda_type<Type2>>>(
@@ -91,8 +91,8 @@ GKO_INLINE auto as_cuda_accessor(
 
 template <int dim, typename Type1, typename Type2, size_type mask>
 GKO_INLINE auto as_cuda_accessor(
-    const acc::range<acc::scaled_reduced_row_major<dim, Type1, Type2, mask>>
-        &acc)
+    const acc::range<acc::scaled_reduced_row_major<dim, Type1, Type2, mask>>&
+        acc)
 {
     return acc::range<acc::scaled_reduced_row_major<dim, cuda_type<Type1>,
                                                     cuda_type<Type2>, mask>>(
@@ -105,7 +105,7 @@ GKO_INLINE auto as_cuda_accessor(
 
 
 template <typename ValueType>
-void zero_matrix(size_type m, size_type n, size_type stride, ValueType *array)
+void zero_matrix(size_type m, size_type n, size_type stride, ValueType* array)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
@@ -116,11 +116,11 @@ void zero_matrix(size_type m, size_type n, size_type stride, ValueType *array)
 
 template <typename ValueType>
 void initialize_1(std::shared_ptr<const CudaExecutor> exec,
-                  const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *residual,
-                  matrix::Dense<ValueType> *givens_sin,
-                  matrix::Dense<ValueType> *givens_cos,
-                  Array<stopping_status> *stop_status, size_type krylov_dim)
+                  const matrix::Dense<ValueType>* b,
+                  matrix::Dense<ValueType>* residual,
+                  matrix::Dense<ValueType>* givens_sin,
+                  matrix::Dense<ValueType>* givens_cos,
+                  Array<stopping_status>* stop_status, size_type krylov_dim)
 {
     const auto num_threads = std::max(b->get_size()[0] * b->get_stride(),
                                       krylov_dim * b->get_size()[1]);
@@ -142,13 +142,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL);
 
 template <typename ValueType, typename Accessor3d>
 void initialize_2(std::shared_ptr<const CudaExecutor> exec,
-                  const matrix::Dense<ValueType> *residual,
-                  matrix::Dense<remove_complex<ValueType>> *residual_norm,
-                  matrix::Dense<ValueType> *residual_norm_collection,
-                  matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
+                  const matrix::Dense<ValueType>* residual,
+                  matrix::Dense<remove_complex<ValueType>>* residual_norm,
+                  matrix::Dense<ValueType>* residual_norm_collection,
+                  matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
                   Accessor3d krylov_bases,
-                  matrix::Dense<ValueType> *next_krylov_basis,
-                  Array<size_type> *final_iter_nums, size_type krylov_dim)
+                  matrix::Dense<ValueType>* next_krylov_basis,
+                  Array<size_type>* final_iter_nums, size_type krylov_dim)
 {
     constexpr bool use_scalar =
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
@@ -214,14 +214,14 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
 
 template <typename ValueType, typename Accessor3dim>
 void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
-                        matrix::Dense<ValueType> *next_krylov_basis,
+                        matrix::Dense<ValueType>* next_krylov_basis,
                         Accessor3dim krylov_bases,
-                        matrix::Dense<ValueType> *hessenberg_iter,
-                        matrix::Dense<ValueType> *buffer_iter,
-                        matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
-                        size_type iter, const stopping_status *stop_status,
-                        stopping_status *reorth_status,
-                        Array<size_type> *num_reorth)
+                        matrix::Dense<ValueType>* hessenberg_iter,
+                        matrix::Dense<ValueType>* buffer_iter,
+                        matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
+                        size_type iter, const stopping_status* stop_status,
+                        stopping_status* reorth_status,
+                        Array<size_type>* num_reorth)
 {
     using non_complex = remove_complex<ValueType>;
     // optimization parameter
@@ -388,12 +388,12 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename ValueType>
 void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
-                     matrix::Dense<ValueType> *givens_sin,
-                     matrix::Dense<ValueType> *givens_cos,
-                     matrix::Dense<ValueType> *hessenberg_iter,
-                     matrix::Dense<remove_complex<ValueType>> *residual_norm,
-                     matrix::Dense<ValueType> *residual_norm_collection,
-                     size_type iter, const Array<stopping_status> *stop_status)
+                     matrix::Dense<ValueType>* givens_sin,
+                     matrix::Dense<ValueType>* givens_cos,
+                     matrix::Dense<ValueType>* hessenberg_iter,
+                     matrix::Dense<remove_complex<ValueType>>* residual_norm,
+                     matrix::Dense<ValueType>* residual_norm_collection,
+                     size_type iter, const Array<stopping_status>* stop_status)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -416,17 +416,17 @@ void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename ValueType, typename Accessor3d>
 void step_1(std::shared_ptr<const CudaExecutor> exec,
-            matrix::Dense<ValueType> *next_krylov_basis,
-            matrix::Dense<ValueType> *givens_sin,
-            matrix::Dense<ValueType> *givens_cos,
-            matrix::Dense<remove_complex<ValueType>> *residual_norm,
-            matrix::Dense<ValueType> *residual_norm_collection,
-            Accessor3d krylov_bases, matrix::Dense<ValueType> *hessenberg_iter,
-            matrix::Dense<ValueType> *buffer_iter,
-            matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
-            size_type iter, Array<size_type> *final_iter_nums,
-            const Array<stopping_status> *stop_status,
-            Array<stopping_status> *reorth_status, Array<size_type> *num_reorth)
+            matrix::Dense<ValueType>* next_krylov_basis,
+            matrix::Dense<ValueType>* givens_sin,
+            matrix::Dense<ValueType>* givens_cos,
+            matrix::Dense<remove_complex<ValueType>>* residual_norm,
+            matrix::Dense<ValueType>* residual_norm_collection,
+            Accessor3d krylov_bases, matrix::Dense<ValueType>* hessenberg_iter,
+            matrix::Dense<ValueType>* buffer_iter,
+            matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
+            size_type iter, Array<size_type>* final_iter_nums,
+            const Array<stopping_status>* stop_status,
+            Array<stopping_status>* reorth_status, Array<size_type>* num_reorth)
 {
     increase_final_iteration_numbers_kernel<<<
         static_cast<unsigned int>(
@@ -447,9 +447,9 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_STEP_1_KERNEL);
 
 template <typename ValueType>
 void solve_upper_triangular(
-    const matrix::Dense<ValueType> *residual_norm_collection,
-    const matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
-    const Array<size_type> *final_iter_nums)
+    const matrix::Dense<ValueType>* residual_norm_collection,
+    const matrix::Dense<ValueType>* hessenberg, matrix::Dense<ValueType>* y,
+    const Array<size_type>* final_iter_nums)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -470,9 +470,9 @@ void solve_upper_triangular(
 
 template <typename ValueType, typename ConstAccessor3d>
 void calculate_qy(ConstAccessor3d krylov_bases, size_type num_krylov_bases,
-                  const matrix::Dense<ValueType> *y,
-                  matrix::Dense<ValueType> *before_preconditioner,
-                  const Array<size_type> *final_iter_nums)
+                  const matrix::Dense<ValueType>* y,
+                  matrix::Dense<ValueType>* before_preconditioner,
+                  const Array<size_type>* final_iter_nums)
 {
     const auto num_rows = before_preconditioner->get_size()[0];
     const auto num_cols = before_preconditioner->get_size()[1];
@@ -500,12 +500,12 @@ void calculate_qy(ConstAccessor3d krylov_bases, size_type num_krylov_bases,
 
 template <typename ValueType, typename ConstAccessor3d>
 void step_2(std::shared_ptr<const CudaExecutor> exec,
-            const matrix::Dense<ValueType> *residual_norm_collection,
+            const matrix::Dense<ValueType>* residual_norm_collection,
             ConstAccessor3d krylov_bases,
-            const matrix::Dense<ValueType> *hessenberg,
-            matrix::Dense<ValueType> *y,
-            matrix::Dense<ValueType> *before_preconditioner,
-            const Array<size_type> *final_iter_nums)
+            const matrix::Dense<ValueType>* hessenberg,
+            matrix::Dense<ValueType>* y,
+            matrix::Dense<ValueType>* before_preconditioner,
+            const Array<size_type>* final_iter_nums)
 {
     // since hessenberg has dims:  iters x iters * num_rhs
     // krylov_bases has dims:  (iters + 1) x sysmtx[0] x num_rhs

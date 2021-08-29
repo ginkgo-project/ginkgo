@@ -328,12 +328,12 @@ public:
 
 #define GKO_ENABLE_SHUFFLE_OPERATION(_name, SelectorType)                   \
     template <typename ValueType>                                           \
-    __device__ __forceinline__ ValueType _name(const ValueType &var,        \
+    __device__ __forceinline__ ValueType _name(const ValueType& var,        \
                                                SelectorType selector) const \
     {                                                                       \
         return shuffle_impl(                                                \
             [this](uint32 v, SelectorType s) {                              \
-                return static_cast<const Group *>(this)->_name(v, s);       \
+                return static_cast<const Group*>(this)->_name(v, s);        \
             },                                                              \
             var, selector);                                                 \
     }
@@ -356,8 +356,8 @@ private:
                       "Unable to shuffle sizes which are not 4-byte multiples");
         constexpr auto value_size = sizeof(ValueType) / sizeof(uint32);
         ValueType result;
-        auto var_array = reinterpret_cast<const uint32 *>(&var);
-        auto result_array = reinterpret_cast<uint32 *>(&result);
+        auto var_array = reinterpret_cast<const uint32*>(&var);
+        auto result_array = reinterpret_cast<uint32*>(&result);
 #pragma unroll
         for (std::size_t i = 0; i < value_size; ++i) {
             result_array[i] = intrinsic_shuffle(var_array[i], selector);
@@ -491,7 +491,7 @@ using cooperative_groups::group_size;
 // Need to implement our own tiled_partition functions to make sure they return
 // our extended version of the thread_block_tile in the templated case.
 template <typename Group>
-__device__ __forceinline__ auto tiled_partition(const Group &g)
+__device__ __forceinline__ auto tiled_partition(const Group& g)
     -> decltype(cooperative_groups::tiled_partition(g))
 {
     return cooperative_groups::tiled_partition(g);
@@ -510,7 +510,7 @@ __device__ __forceinline__
     std::enable_if_t<(Size <= kernels::cuda::config::warp_size) && (Size > 0) &&
                          (kernels::cuda::config::warp_size % Size == 0),
                      thread_block_tile<Size>>
-    tiled_partition(const Group &)
+    tiled_partition(const Group&)
 {
     return thread_block_tile<Size>();
 }
@@ -524,7 +524,7 @@ __device__ __forceinline__
 // parent group type.
 template <unsigned Size, typename Group>
 __device__ __forceinline__ thread_block_tile<Size, void> tiled_partition(
-    const Group &g)
+    const Group& g)
 {
     return cooperative_groups::tiled_partition<Size>(g);
 }

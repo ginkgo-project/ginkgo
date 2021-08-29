@@ -51,7 +51,7 @@ namespace kernels {
 
 
 template <typename ValueType, typename IndexType>
-GKO_ATTRIBUTES GKO_INLINE ValueType checked_load(const ValueType *p,
+GKO_ATTRIBUTES GKO_INLINE ValueType checked_load(const ValueType* p,
                                                  IndexType i, IndexType size,
                                                  ValueType sentinel)
 {
@@ -73,7 +73,7 @@ struct conversion_sort_helper<matrix::Csr<ValueType, IndexType>> {
     using mtx_type = matrix::Csr<ValueType, IndexType>;
     template <typename Source>
     static std::unique_ptr<mtx_type> get_sorted_conversion(
-        std::shared_ptr<const Executor> &exec, Source *source)
+        std::shared_ptr<const Executor>& exec, Source* source)
     {
         auto editable_mtx = mtx_type::create(exec);
         as<ConvertibleTo<mtx_type>>(source)->convert_to(lend(editable_mtx));
@@ -84,8 +84,8 @@ struct conversion_sort_helper<matrix::Csr<ValueType, IndexType>> {
 
 
 template <typename Dest, typename Source>
-std::unique_ptr<Dest, std::function<void(Dest *)>> convert_to_with_sorting_impl(
-    std::shared_ptr<const Executor> &exec, Source *obj, bool skip_sorting)
+std::unique_ptr<Dest, std::function<void(Dest*)>> convert_to_with_sorting_impl(
+    std::shared_ptr<const Executor>& exec, Source* obj, bool skip_sorting)
 {
     if (skip_sorting) {
         return copy_and_convert_to<Dest>(exec, obj);
@@ -100,7 +100,7 @@ std::unique_ptr<Dest, std::function<void(Dest *)>> convert_to_with_sorting_impl(
 
 template <typename Dest, typename Source>
 std::shared_ptr<Dest> convert_to_with_sorting_impl(
-    std::shared_ptr<const Executor> &exec, std::shared_ptr<Source> obj,
+    std::shared_ptr<const Executor>& exec, std::shared_ptr<Source> obj,
     bool skip_sorting)
 {
     if (skip_sorting) {
@@ -139,8 +139,8 @@ std::shared_ptr<Dest> convert_to_with_sorting_impl(
  *                      not
  */
 template <typename Dest, typename Source>
-std::unique_ptr<Dest, std::function<void(Dest *)>> convert_to_with_sorting(
-    std::shared_ptr<const Executor> exec, Source *obj, bool skip_sorting)
+std::unique_ptr<Dest, std::function<void(Dest*)>> convert_to_with_sorting(
+    std::shared_ptr<const Executor> exec, Source* obj, bool skip_sorting)
 {
     return detail::convert_to_with_sorting_impl<Dest>(exec, obj, skip_sorting);
 }
@@ -153,8 +153,8 @@ std::unique_ptr<Dest, std::function<void(Dest *)>> convert_to_with_sorting(
  *       also const
  */
 template <typename Dest, typename Source>
-std::unique_ptr<const Dest, std::function<void(const Dest *)>>
-convert_to_with_sorting(std::shared_ptr<const Executor> exec, const Source *obj,
+std::unique_ptr<const Dest, std::function<void(const Dest*)>>
+convert_to_with_sorting(std::shared_ptr<const Executor> exec, const Source* obj,
                         bool skip_sorting)
 {
     return detail::convert_to_with_sorting_impl<const Dest>(exec, obj,
@@ -168,8 +168,8 @@ convert_to_with_sorting(std::shared_ptr<const Executor> exec, const Source *obj,
  * @note This version has a unique_ptr as the source instead of a plain pointer
  */
 template <typename Dest, typename Source>
-std::unique_ptr<Dest, std::function<void(Dest *)>> convert_to_with_sorting(
-    std::shared_ptr<const Executor> exec, const std::unique_ptr<Source> &obj,
+std::unique_ptr<Dest, std::function<void(Dest*)>> convert_to_with_sorting(
+    std::shared_ptr<const Executor> exec, const std::unique_ptr<Source>& obj,
     bool skip_sorting)
 {
     return detail::convert_to_with_sorting_impl<Dest>(exec, obj.get(),

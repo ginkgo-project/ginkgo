@@ -46,18 +46,18 @@ namespace kernels {
 
 #define GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
     void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,        \
-                          const matrix::Hybrid<ValueType, IndexType> *source, \
-                          matrix::Dense<ValueType> *result)
+                          const matrix::Hybrid<ValueType, IndexType>* source, \
+                          matrix::Dense<ValueType>* result)
 
 #define GKO_DECLARE_HYBRID_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
     void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,        \
-                        const matrix::Hybrid<ValueType, IndexType> *source, \
-                        matrix::Csr<ValueType, IndexType> *result)
+                        const matrix::Hybrid<ValueType, IndexType>* source, \
+                        matrix::Csr<ValueType, IndexType>* result)
 
 #define GKO_DECLARE_HYBRID_COUNT_NONZEROS_KERNEL(ValueType, IndexType)      \
     void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec,        \
-                        const matrix::Hybrid<ValueType, IndexType> *source, \
-                        size_type *result)
+                        const matrix::Hybrid<ValueType, IndexType>* source, \
+                        size_type* result)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
     template <typename ValueType, typename IndexType>                 \

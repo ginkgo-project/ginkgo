@@ -67,8 +67,8 @@ namespace jacobi {
 
 
 void initialize_precisions(std::shared_ptr<const OmpExecutor> exec,
-                           const Array<precision_reduction> &source,
-                           Array<precision_reduction> &precisions)
+                           const Array<precision_reduction>& source,
+                           Array<precision_reduction>& precisions)
 {
     const auto source_size = source.get_num_elems();
     for (auto i = 0u; i < precisions.get_num_elems(); ++i) {
@@ -81,9 +81,9 @@ namespace {
 
 
 template <typename IndexType>
-inline bool has_same_nonzero_pattern(const IndexType *prev_row_ptr,
-                                     const IndexType *curr_row_ptr,
-                                     const IndexType *next_row_ptr)
+inline bool has_same_nonzero_pattern(const IndexType* prev_row_ptr,
+                                     const IndexType* curr_row_ptr,
+                                     const IndexType* next_row_ptr)
 {
     return std::distance(curr_row_ptr, next_row_ptr) ==
                std::distance(prev_row_ptr, curr_row_ptr) &&
@@ -92,8 +92,8 @@ inline bool has_same_nonzero_pattern(const IndexType *prev_row_ptr,
 
 
 template <typename ValueType, typename IndexType>
-size_type find_natural_blocks(const matrix::Csr<ValueType, IndexType> *mtx,
-                              uint32 max_block_size, IndexType *block_ptrs)
+size_type find_natural_blocks(const matrix::Csr<ValueType, IndexType>* mtx,
+                              uint32 max_block_size, IndexType* block_ptrs)
 {
     const auto rows = mtx->get_size()[0];
     const auto row_ptrs = mtx->get_const_row_ptrs();
@@ -127,7 +127,7 @@ size_type find_natural_blocks(const matrix::Csr<ValueType, IndexType> *mtx,
 template <typename IndexType>
 inline size_type agglomerate_supervariables(uint32 max_block_size,
                                             size_type num_natural_blocks,
-                                            IndexType *block_ptrs)
+                                            IndexType* block_ptrs)
 {
     if (num_natural_blocks == 0) {
         return 0;
@@ -154,9 +154,9 @@ inline size_type agglomerate_supervariables(uint32 max_block_size,
 
 template <typename ValueType, typename IndexType>
 void find_blocks(std::shared_ptr<const OmpExecutor> exec,
-                 const matrix::Csr<ValueType, IndexType> *system_matrix,
-                 uint32 max_block_size, size_type &num_blocks,
-                 Array<IndexType> &block_pointers)
+                 const matrix::Csr<ValueType, IndexType>* system_matrix,
+                 uint32 max_block_size, size_type& num_blocks,
+                 Array<IndexType>& block_pointers)
 {
     num_blocks = find_natural_blocks(system_matrix, max_block_size,
                                      block_pointers.get_data());
@@ -172,9 +172,9 @@ namespace {
 
 
 template <typename ValueType, typename IndexType>
-inline void extract_block(const matrix::Csr<ValueType, IndexType> *mtx,
+inline void extract_block(const matrix::Csr<ValueType, IndexType>* mtx,
                           IndexType block_size, IndexType block_start,
-                          ValueType *block, size_type stride)
+                          ValueType* block, size_type stride)
 {
     for (int i = 0; i < block_size; ++i) {
         for (int j = 0; j < block_size; ++j) {
@@ -198,7 +198,7 @@ inline void extract_block(const matrix::Csr<ValueType, IndexType> *mtx,
 
 
 template <typename ValueType, typename IndexType>
-inline IndexType choose_pivot(IndexType block_size, const ValueType *block,
+inline IndexType choose_pivot(IndexType block_size, const ValueType* block,
                               size_type stride)
 {
     IndexType cp = 0;
@@ -213,7 +213,7 @@ inline IndexType choose_pivot(IndexType block_size, const ValueType *block,
 
 template <typename ValueType, typename IndexType>
 inline void swap_rows(IndexType row1, IndexType row2, IndexType block_size,
-                      ValueType *block, size_type stride)
+                      ValueType* block, size_type stride)
 {
     using std::swap;
     for (IndexType i = 0; i < block_size; ++i) {
@@ -224,7 +224,7 @@ inline void swap_rows(IndexType row1, IndexType row2, IndexType block_size,
 
 template <typename ValueType, typename IndexType>
 inline bool apply_gauss_jordan_transform(IndexType row, IndexType col,
-                                         IndexType block_size, ValueType *block,
+                                         IndexType block_size, ValueType* block,
                                          size_type stride)
 {
     const auto d = block[row * stride + col];
@@ -253,8 +253,8 @@ template <typename SourceValueType, typename ResultValueType,
           typename IndexType,
           typename ValueConverter =
               default_converter<SourceValueType, ResultValueType>>
-inline void transpose_block(IndexType block_size, const SourceValueType *from,
-                            size_type from_stride, ResultValueType *to,
+inline void transpose_block(IndexType block_size, const SourceValueType* from,
+                            size_type from_stride, ResultValueType* to,
                             size_type to_stride,
                             ValueConverter converter = {}) noexcept
 {
@@ -271,8 +271,8 @@ template <typename SourceValueType, typename ResultValueType,
           typename ValueConverter =
               default_converter<SourceValueType, ResultValueType>>
 inline void conj_transpose_block(IndexType block_size,
-                                 const SourceValueType *from,
-                                 size_type from_stride, ResultValueType *to,
+                                 const SourceValueType* from,
+                                 size_type from_stride, ResultValueType* to,
                                  size_type to_stride,
                                  ValueConverter converter = {}) noexcept
 {
@@ -289,10 +289,10 @@ template <typename SourceValueType, typename ResultValueType,
           typename ValueConverter =
               default_converter<SourceValueType, ResultValueType>>
 inline void permute_and_transpose_block(IndexType block_size,
-                                        const IndexType *col_perm,
-                                        const SourceValueType *source,
+                                        const IndexType* col_perm,
+                                        const SourceValueType* source,
                                         size_type source_stride,
-                                        ResultValueType *result,
+                                        ResultValueType* result,
                                         size_type result_stride,
                                         ValueConverter converter = {})
 {
@@ -306,8 +306,8 @@ inline void permute_and_transpose_block(IndexType block_size,
 
 
 template <typename ValueType, typename IndexType>
-inline bool invert_block(IndexType block_size, IndexType *perm,
-                         ValueType *block, size_type stride)
+inline bool invert_block(IndexType block_size, IndexType* perm,
+                         ValueType* block, size_type stride)
 {
     using std::swap;
     for (IndexType k = 0; k < block_size; ++k) {
@@ -327,10 +327,10 @@ inline bool invert_block(IndexType block_size, IndexType *perm,
 
 template <typename ReducedType, typename ValueType, typename IndexType>
 inline bool validate_precision_reduction_feasibility(IndexType block_size,
-                                                     const ValueType *block,
+                                                     const ValueType* block,
                                                      size_type stride,
-                                                     ValueType *tmp_buffer,
-                                                     IndexType *tmp_perm)
+                                                     ValueType* tmp_buffer,
+                                                     IndexType* tmp_perm)
 {
     using gko::detail::float_traits;
     std::iota(tmp_perm, tmp_perm + block_size, IndexType{0});
@@ -357,14 +357,14 @@ inline bool validate_precision_reduction_feasibility(IndexType block_size,
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const OmpExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *system_matrix,
+              const matrix::Csr<ValueType, IndexType>* system_matrix,
               size_type num_blocks, uint32 max_block_size,
               remove_complex<ValueType> accuracy,
-              const preconditioner::block_interleaved_storage_scheme<IndexType>
-                  &storage_scheme,
-              Array<remove_complex<ValueType>> &conditioning,
-              Array<precision_reduction> &block_precisions,
-              const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
+              const preconditioner::block_interleaved_storage_scheme<IndexType>&
+                  storage_scheme,
+              Array<remove_complex<ValueType>>& conditioning,
+              Array<precision_reduction>& block_precisions,
+              const Array<IndexType>& block_pointers, Array<ValueType>& blocks)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_data();
@@ -457,7 +457,7 @@ void generate(std::shared_ptr<const OmpExecutor> exec,
                 ValueType, p,
                 permute_and_transpose_block(
                     block_size, perm, block, block_size,
-                    reinterpret_cast<resolved_precision *>(
+                    reinterpret_cast<resolved_precision*>(
                         blocks.get_data() +
                         storage_scheme.get_group_offset(g + b)) +
                         storage_scheme.get_block_offset(g + b),
@@ -477,9 +477,9 @@ template <
     typename ValueType, typename BlockValueType,
     typename ValueConverter = default_converter<BlockValueType, ValueType>>
 inline void apply_block(size_type block_size, size_type num_rhs,
-                        const BlockValueType *block, size_type stride,
-                        ValueType alpha, const ValueType *b, size_type stride_b,
-                        ValueType beta, ValueType *x, size_type stride_x,
+                        const BlockValueType* block, size_type stride,
+                        ValueType alpha, const ValueType* b, size_type stride_b,
+                        ValueType beta, ValueType* x, size_type stride_x,
                         ValueConverter converter = {})
 {
     if (beta != zero<ValueType>()) {
@@ -514,14 +514,14 @@ inline void apply_block(size_type block_size, size_type num_rhs,
 template <typename ValueType, typename IndexType>
 void apply(std::shared_ptr<const OmpExecutor> exec, size_type num_blocks,
            uint32 max_block_size,
-           const preconditioner::block_interleaved_storage_scheme<IndexType>
-               &storage_scheme,
-           const Array<precision_reduction> &block_precisions,
-           const Array<IndexType> &block_pointers,
-           const Array<ValueType> &blocks,
-           const matrix::Dense<ValueType> *alpha,
-           const matrix::Dense<ValueType> *b,
-           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *x)
+           const preconditioner::block_interleaved_storage_scheme<IndexType>&
+               storage_scheme,
+           const Array<precision_reduction>& block_precisions,
+           const Array<IndexType>& block_pointers,
+           const Array<ValueType>& blocks,
+           const matrix::Dense<ValueType>* alpha,
+           const matrix::Dense<ValueType>* b,
+           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* x)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
@@ -536,7 +536,7 @@ void apply(std::shared_ptr<const OmpExecutor> exec, size_type num_blocks,
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
             ValueType, p,
             apply_block(block_size, b->get_size()[1],
-                        reinterpret_cast<const resolved_precision *>(group) +
+                        reinterpret_cast<const resolved_precision*>(group) +
                             storage_scheme.get_block_offset(i),
                         storage_scheme.get_stride(), alpha->at(0, 0), block_b,
                         b->get_stride(), beta->at(0, 0), block_x,
@@ -551,11 +551,11 @@ template <typename ValueType, typename IndexType>
 void simple_apply(
     std::shared_ptr<const OmpExecutor> exec, size_type num_blocks,
     uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>
-        &storage_scheme,
-    const Array<precision_reduction> &block_precisions,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
+    const preconditioner::block_interleaved_storage_scheme<IndexType>&
+        storage_scheme,
+    const Array<precision_reduction>& block_precisions,
+    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
+    const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
@@ -570,7 +570,7 @@ void simple_apply(
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
             ValueType, p,
             apply_block(block_size, b->get_size()[1],
-                        reinterpret_cast<const resolved_precision *>(group) +
+                        reinterpret_cast<const resolved_precision*>(group) +
                             storage_scheme.get_block_offset(i),
                         storage_scheme.get_stride(), one<ValueType>(), block_b,
                         b->get_stride(), zero<ValueType>(), block_x,
@@ -585,11 +585,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void transpose_jacobi(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
-    uint32 max_block_size, const Array<precision_reduction> &block_precisions,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>
-        &storage_scheme,
-    Array<ValueType> &out_blocks)
+    uint32 max_block_size, const Array<precision_reduction>& block_precisions,
+    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>&
+        storage_scheme,
+    Array<ValueType>& out_blocks)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
@@ -608,9 +608,9 @@ void transpose_jacobi(
             ValueType, p,
             transpose_block(
                 block_size,
-                reinterpret_cast<const resolved_precision *>(group) + block_ofs,
+                reinterpret_cast<const resolved_precision*>(group) + block_ofs,
                 block_stride,
-                reinterpret_cast<resolved_precision *>(out_group) + block_ofs,
+                reinterpret_cast<resolved_precision*>(out_group) + block_ofs,
                 block_stride));
     }
 }
@@ -622,11 +622,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void conj_transpose_jacobi(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
-    uint32 max_block_size, const Array<precision_reduction> &block_precisions,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>
-        &storage_scheme,
-    Array<ValueType> &out_blocks)
+    uint32 max_block_size, const Array<precision_reduction>& block_precisions,
+    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>&
+        storage_scheme,
+    Array<ValueType>& out_blocks)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
@@ -645,9 +645,9 @@ void conj_transpose_jacobi(
             ValueType, p,
             conj_transpose_block(
                 block_size,
-                reinterpret_cast<const resolved_precision *>(group) + block_ofs,
+                reinterpret_cast<const resolved_precision*>(group) + block_ofs,
                 block_stride,
-                reinterpret_cast<resolved_precision *>(out_group) + block_ofs,
+                reinterpret_cast<resolved_precision*>(out_group) + block_ofs,
                 block_stride));
     }
 }
@@ -659,11 +659,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const OmpExecutor> exec, size_type num_blocks,
-    const Array<precision_reduction> &block_precisions,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>
-        &storage_scheme,
-    ValueType *result_values, size_type result_stride)
+    const Array<precision_reduction>& block_precisions,
+    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>&
+        storage_scheme,
+    ValueType* result_values, size_type result_stride)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
@@ -682,13 +682,12 @@ void convert_to_dense(
         const auto p = prec ? prec[i] : precision_reduction();
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
             ValueType, p,
-            transpose_block(
-                block_size,
-                reinterpret_cast<const resolved_precision *>(group) +
-                    storage_scheme.get_block_offset(i),
-                storage_scheme.get_stride(),
-                result_values + ptrs[i] * result_stride + ptrs[i],
-                result_stride));
+            transpose_block(block_size,
+                            reinterpret_cast<const resolved_precision*>(group) +
+                                storage_scheme.get_block_offset(i),
+                            storage_scheme.get_stride(),
+                            result_values + ptrs[i] * result_stride + ptrs[i],
+                            result_stride));
     }
 }
 

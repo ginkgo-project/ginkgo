@@ -68,8 +68,8 @@ GKO_REGISTER_OPERATION(is_sorted_by_column_index,
 
 
 template <typename ValueType, typename IndexType>
-void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp *b,
-                                                   LinOp *x) const
+void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp* b,
+                                                   LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -81,10 +81,10 @@ void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp *alpha,
-                                                   const LinOp *b,
-                                                   const LinOp *beta,
-                                                   LinOp *x) const
+void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp* alpha,
+                                                   const LinOp* b,
+                                                   const LinOp* beta,
+                                                   LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
@@ -96,10 +96,10 @@ void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp *alpha,
 
 
 template <typename ValueType, typename IndexType>
-void SparsityCsr<ValueType, IndexType>::read(const mat_data &data)
+void SparsityCsr<ValueType, IndexType>::read(const mat_data& data)
 {
     size_type nnz = 0;
-    for (const auto &elem : data.nonzeros) {
+    for (const auto& elem : data.nonzeros) {
         nnz += (elem.value != zero<ValueType>());
     }
     auto tmp =
@@ -126,13 +126,13 @@ void SparsityCsr<ValueType, IndexType>::read(const mat_data &data)
 
 
 template <typename ValueType, typename IndexType>
-void SparsityCsr<ValueType, IndexType>::write(mat_data &data) const
+void SparsityCsr<ValueType, IndexType>::write(mat_data& data) const
 {
     std::unique_ptr<const LinOp> op{};
-    const SparsityCsr *tmp{};
+    const SparsityCsr* tmp{};
     if (this->get_executor()->get_master() != this->get_executor()) {
         op = this->clone(this->get_executor()->get_master());
-        tmp = static_cast<const SparsityCsr *>(op.get());
+        tmp = static_cast<const SparsityCsr*>(op.get());
     } else {
         tmp = this;
     }

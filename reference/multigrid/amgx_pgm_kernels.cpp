@@ -64,8 +64,8 @@ namespace amgx_pgm {
 
 template <typename IndexType>
 void match_edge(std::shared_ptr<const ReferenceExecutor> exec,
-                const Array<IndexType> &strongest_neighbor,
-                Array<IndexType> &agg)
+                const Array<IndexType>& strongest_neighbor,
+                Array<IndexType>& agg)
 {
     auto agg_vals = agg.get_data();
     auto strongest_neighbor_vals = strongest_neighbor.get_const_data();
@@ -88,7 +88,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL);
 
 template <typename IndexType>
 void count_unagg(std::shared_ptr<const ReferenceExecutor> exec,
-                 const Array<IndexType> &agg, IndexType *num_unagg)
+                 const Array<IndexType>& agg, IndexType* num_unagg)
 {
     IndexType unagg = 0;
     for (size_type i = 0; i < agg.get_num_elems(); i++) {
@@ -102,7 +102,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_COUNT_UNAGG_KERNEL);
 
 template <typename IndexType>
 void renumber(std::shared_ptr<const ReferenceExecutor> exec,
-              Array<IndexType> &agg, IndexType *num_agg)
+              Array<IndexType>& agg, IndexType* num_agg)
 {
     const auto num = agg.get_num_elems();
     Array<IndexType> agg_map(exec, num + 1);
@@ -127,9 +127,9 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL);
 template <typename ValueType, typename IndexType>
 void find_strongest_neighbor(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *weight_mtx,
-    const matrix::Diagonal<ValueType> *diag, Array<IndexType> &agg,
-    Array<IndexType> &strongest_neighbor)
+    const matrix::Csr<ValueType, IndexType>* weight_mtx,
+    const matrix::Diagonal<ValueType>* diag, Array<IndexType>& agg,
+    Array<IndexType>& strongest_neighbor)
 {
     const auto row_ptrs = weight_mtx->get_const_row_ptrs();
     const auto col_idxs = weight_mtx->get_const_col_idxs();
@@ -181,10 +181,10 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType> *weight_mtx,
-                         const matrix::Diagonal<ValueType> *diag,
-                         Array<IndexType> &agg,
-                         Array<IndexType> &intermediate_agg)
+                         const matrix::Csr<ValueType, IndexType>* weight_mtx,
+                         const matrix::Diagonal<ValueType>* diag,
+                         Array<IndexType>& agg,
+                         Array<IndexType>& intermediate_agg)
 {
     const auto row_ptrs = weight_mtx->get_const_row_ptrs();
     const auto col_idxs = weight_mtx->get_const_col_idxs();

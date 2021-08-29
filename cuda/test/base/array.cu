@@ -51,7 +51,7 @@ protected:
         x.get_data()[1] = 2;
     }
 
-    static void assert_equal_to_original_x(gko::Array<T> &a)
+    static void assert_equal_to_original_x(gko::Array<T>& a)
     {
         ASSERT_EQ(a.get_num_elems(), 2);
         EXPECT_EQ(a.get_data()[0], T{5});

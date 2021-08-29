@@ -66,7 +66,7 @@ public:
      *
      * @return the constexpr pointer to the first entry of the array.
      */
-    constexpr __dpct_inline__ operator const ValueType *() const noexcept
+    constexpr __dpct_inline__ operator const ValueType*() const noexcept
     {
         return &(*this)[0];
     }
@@ -77,7 +77,7 @@ public:
      *
      * @return the non-const pointer to the first entry of the array.
      */
-    __dpct_inline__ operator ValueType *() noexcept { return &(*this)[0]; }
+    __dpct_inline__ operator ValueType*() noexcept { return &(*this)[0]; }
 
     /**
      * constexpr array access operator.
@@ -87,7 +87,7 @@ public:
      *
      * @return a reference to the array entry at the given index.
      */
-    constexpr __dpct_inline__ const ValueType &operator[](size_type pos) const
+    constexpr __dpct_inline__ const ValueType& operator[](size_type pos) const
         noexcept
     {
         return data_[pos];
@@ -101,7 +101,7 @@ public:
      *
      * @return a reference to the array entry at the given index.
      */
-    __dpct_inline__ ValueType &operator[](size_type pos) noexcept
+    __dpct_inline__ ValueType& operator[](size_type pos) noexcept
     {
         return data_[pos];
     }

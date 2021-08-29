@@ -207,7 +207,7 @@ public:
     }
 
 protected:
-    void apply_impl(const LinOp *b, LinOp *x) const override
+    void apply_impl(const LinOp* b, LinOp* x) const override
     {
         // take care of real-to-complex apply
         precision_dispatch_real_complex<value_type>(
@@ -230,8 +230,8 @@ protected:
             b, x);
     }
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override
     {
         precision_dispatch_real_complex<value_type>(
             [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
@@ -253,7 +253,7 @@ protected:
         : EnableLinOp<Ilu>(std::move(exec))
     {}
 
-    explicit Ilu(const Factory *factory, std::shared_ptr<const LinOp> lin_op)
+    explicit Ilu(const Factory* factory, std::shared_ptr<const LinOp> lin_op)
         : EnableLinOp<Ilu>(factory->get_executor(), lin_op->get_size()),
           parameters_{factory->get_parameters()}
     {
@@ -309,7 +309,7 @@ protected:
      * @param b  Right hand side of the first solve. Also acts as the initial
      *           guess, meaning the intermediate value will be a copy of b
      */
-    void set_cache_to(const LinOp *b) const
+    void set_cache_to(const LinOp* b) const
     {
         if (cache_.intermediate == nullptr) {
             cache_.intermediate =
@@ -330,8 +330,8 @@ protected:
     template <typename SolverType>
     static std::enable_if_t<solver::has_with_criteria<SolverType>::value,
                             std::unique_ptr<SolverType>>
-    generate_default_solver(const std::shared_ptr<const Executor> &exec,
-                            const std::shared_ptr<const LinOp> &mtx)
+    generate_default_solver(const std::shared_ptr<const Executor>& exec,
+                            const std::shared_ptr<const LinOp>& mtx)
     {
         constexpr gko::remove_complex<value_type> default_reduce_residual{1e-4};
         const unsigned int default_max_iters{
@@ -354,8 +354,8 @@ protected:
     template <typename SolverType>
     static std::enable_if_t<!solver::has_with_criteria<SolverType>::value,
                             std::unique_ptr<SolverType>>
-    generate_default_solver(const std::shared_ptr<const Executor> &exec,
-                            const std::shared_ptr<const LinOp> &mtx)
+    generate_default_solver(const std::shared_ptr<const Executor>& exec,
+                            const std::shared_ptr<const LinOp>& mtx)
     {
         return SolverType::build().on(exec)->generate(mtx);
     }
@@ -376,10 +376,10 @@ private:
     mutable struct cache_struct {
         cache_struct() = default;
         ~cache_struct() = default;
-        cache_struct(const cache_struct &) {}
-        cache_struct(cache_struct &&) {}
-        cache_struct &operator=(const cache_struct &) { return *this; }
-        cache_struct &operator=(cache_struct &&) { return *this; }
+        cache_struct(const cache_struct&) {}
+        cache_struct(cache_struct&&) {}
+        cache_struct& operator=(const cache_struct&) { return *this; }
+        cache_struct& operator=(cache_struct&&) { return *this; }
         std::unique_ptr<LinOp> intermediate{};
     } cache_;
 };

@@ -41,7 +41,7 @@ namespace components {
 
 template <typename ValueType>
 void inplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec,
-                            ValueType *data, size_type n)
+                            ValueType* data, size_type n)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < n; ++i) {
@@ -54,8 +54,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL);
 
 template <typename ValueType>
 void outplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec,
-                             const ValueType *in, size_type n,
-                             remove_complex<ValueType> *out)
+                             const ValueType* in, size_type n,
+                             remove_complex<ValueType>* out)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < n; ++i) {

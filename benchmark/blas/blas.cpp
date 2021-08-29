@@ -342,7 +342,7 @@ struct dimensions {
 };
 
 
-gko::size_type get_optional(rapidjson::Value &obj, const char *name,
+gko::size_type get_optional(rapidjson::Value& obj, const char* name,
                             gko::size_type default_value)
 {
     if (obj.HasMember(name)) {
@@ -353,7 +353,7 @@ gko::size_type get_optional(rapidjson::Value &obj, const char *name,
 }
 
 
-dimensions parse_dims(rapidjson::Value &test_case)
+dimensions parse_dims(rapidjson::Value& test_case)
 {
     dimensions result;
     result.n = test_case["n"].GetInt64();
@@ -426,12 +426,12 @@ std::map<std::string, std::function<std::unique_ptr<BenchmarkOperation>(
          }}};
 
 
-void apply_blas(const char *operation_name, std::shared_ptr<gko::Executor> exec,
-                rapidjson::Value &test_case,
-                rapidjson::MemoryPoolAllocator<> &allocator)
+void apply_blas(const char* operation_name, std::shared_ptr<gko::Executor> exec,
+                rapidjson::Value& test_case,
+                rapidjson::MemoryPoolAllocator<>& allocator)
 {
     try {
-        auto &blas_case = test_case["blas"];
+        auto& blas_case = test_case["blas"];
         add_or_set_member(blas_case, operation_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
@@ -469,7 +469,7 @@ void apply_blas(const char *operation_name, std::shared_ptr<gko::Executor> exec,
         // compute and write benchmark data
         add_or_set_member(blas_case[operation_name], "completed", true,
                           allocator);
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
         add_or_set_member(test_case["blas"][operation_name], "completed", false,
                           allocator);
         if (FLAGS_keep_errors) {
@@ -484,7 +484,7 @@ void apply_blas(const char *operation_name, std::shared_ptr<gko::Executor> exec,
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     std::string header =
         "A benchmark for measuring performance of Ginkgo's BLAS-like "
@@ -521,9 +521,9 @@ int main(int argc, char *argv[])
         std::exit(1);
     }
 
-    auto &allocator = test_cases.GetAllocator();
+    auto& allocator = test_cases.GetAllocator();
 
-    for (auto &test_case : test_cases.GetArray()) {
+    for (auto& test_case : test_cases.GetArray()) {
         try {
             // set up benchmark
             if (!test_case.HasMember("blas")) {
@@ -531,23 +531,23 @@ int main(int argc, char *argv[])
                                     rapidjson::Value(rapidjson::kObjectType),
                                     allocator);
             }
-            auto &blas_case = test_case["blas"];
+            auto& blas_case = test_case["blas"];
             if (!FLAGS_overwrite &&
                 all_of(begin(operations), end(operations),
-                       [&blas_case](const std::string &s) {
+                       [&blas_case](const std::string& s) {
                            return blas_case.HasMember(s.c_str());
                        })) {
                 continue;
             }
             std::clog << "Running test case: " << test_case << std::endl;
 
-            for (const auto &operation_name : operations) {
+            for (const auto& operation_name : operations) {
                 apply_blas(operation_name.c_str(), exec, test_case, allocator);
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
                 backup_results(test_cases);
             }
-        } catch (const std::exception &e) {
+        } catch (const std::exception& e) {
             std::cerr << "Error setting up benchmark, what(): " << e.what()
                       << std::endl;
         }

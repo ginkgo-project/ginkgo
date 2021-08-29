@@ -105,7 +105,7 @@ protected:
      * @param stride  stride array used for memory accesses
      */
     constexpr GKO_ACC_ATTRIBUTES reduced_row_major(dim_type size,
-                                                   storage_type *storage,
+                                                   storage_type* storage,
                                                    storage_stride_type stride)
         : size_(size), storage_{storage}, stride_(stride)
     {}
@@ -121,8 +121,8 @@ protected:
      */
     template <typename... Strides>
     constexpr GKO_ACC_ATTRIBUTES reduced_row_major(dim_type size,
-                                                   storage_type *storage,
-                                                   Strides &&... strides)
+                                                   storage_type* storage,
+                                                   Strides&&... strides)
         : reduced_row_major{
               size, storage,
               storage_stride_type{{std::forward<Strides>(strides)...}}}
@@ -139,7 +139,7 @@ protected:
      * @param size  multidimensional size of the memory
      */
     constexpr GKO_ACC_ATTRIBUTES reduced_row_major(dim_type size,
-                                                   storage_type *storage)
+                                                   storage_type* storage)
         : reduced_row_major{
               size, storage,
               helper::compute_default_row_major_stride_array<size_type>(size)}
@@ -189,7 +189,7 @@ public:
     constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<
         are_all_integral<Indices...>::value,
         std::conditional_t<is_const, arithmetic_type, reference_type>>
-    operator()(Indices &&... indices) const
+    operator()(Indices&&... indices) const
     {
         return reference_type{storage_ +
                               compute_index(std::forward<Indices>(indices)...)};
@@ -229,14 +229,14 @@ public:
      * @returns returns a pointer to a stride array of size dimensionality - 1
      */
     GKO_ACC_ATTRIBUTES
-    constexpr const storage_stride_type &get_stride() const { return stride_; }
+    constexpr const storage_stride_type& get_stride() const { return stride_; }
 
     /**
      * Returns the pointer to the storage data
      *
      * @returns the pointer to the storage data
      */
-    constexpr GKO_ACC_ATTRIBUTES storage_type *get_stored_data() const
+    constexpr GKO_ACC_ATTRIBUTES storage_type* get_stored_data() const
     {
         return storage_;
     }
@@ -246,7 +246,7 @@ public:
      *
      * @returns a const pointer to the storage data
      */
-    constexpr GKO_ACC_ATTRIBUTES const storage_type *get_const_storage() const
+    constexpr GKO_ACC_ATTRIBUTES const storage_type* get_const_storage() const
     {
         return storage_;
     }
@@ -254,7 +254,7 @@ public:
 protected:
     template <typename... Indices>
     constexpr GKO_ACC_ATTRIBUTES size_type
-    compute_index(Indices &&... indices) const
+    compute_index(Indices&&... indices) const
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
@@ -264,7 +264,7 @@ protected:
 
 private:
     const dim_type size_;
-    storage_type *const storage_;
+    storage_type* const storage_;
     const storage_stride_type stride_;
 };
 

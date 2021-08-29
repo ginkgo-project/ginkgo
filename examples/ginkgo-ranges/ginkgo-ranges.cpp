@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // LU factorization implementation using Ginkgo ranges
 // For simplicity, we only consider square matrices, and no pivoting.
 template <typename Accessor>
-void factorize(const gko::range<Accessor> &A)
+void factorize(const gko::range<Accessor>& A)
 // note: const means that the range (i.e. the data handler) is constant,
 //       not that the underlying data is constant!
 {
@@ -59,7 +59,7 @@ void factorize(const gko::range<Accessor> &A)
 
 // a utility function for printing the factorization on screen
 template <typename Accessor>
-void print_lu(const gko::range<Accessor> &A)
+void print_lu(const gko::range<Accessor>& A)
 {
     std::cout << std::setprecision(2) << std::fixed;
     std::cout << "L = [";
@@ -80,7 +80,7 @@ void print_lu(const gko::range<Accessor> &A)
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     using ValueType = double;
     using IndexType = int;

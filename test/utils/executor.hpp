@@ -43,14 +43,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::OmpExecutor> &exec)
+                   std::shared_ptr<gko::OmpExecutor>& exec)
 {
     exec = gko::OmpExecutor::create();
 }
 
 
 void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::CudaExecutor> &exec)
+                   std::shared_ptr<gko::CudaExecutor>& exec)
 {
     ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
     exec = gko::CudaExecutor::create(0, ref);
@@ -58,7 +58,7 @@ void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
 
 
 void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::HipExecutor> &exec)
+                   std::shared_ptr<gko::HipExecutor>& exec)
 {
     ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
     exec = gko::HipExecutor::create(0, ref);
@@ -66,7 +66,7 @@ void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
 
 
 void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::DpcppExecutor> &exec)
+                   std::shared_ptr<gko::DpcppExecutor>& exec)
 {
     if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
         exec = gko::DpcppExecutor::create(0, ref, "gpu");

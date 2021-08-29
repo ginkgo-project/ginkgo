@@ -80,11 +80,11 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 template <size_type block_size, typename ValueType>
 void initialize_2_2_kernel(
     size_type num_rows, size_type num_rhs,
-    const ValueType *__restrict__ residual, size_type stride_residual,
-    const remove_complex<ValueType> *__restrict__ residual_norm,
-    ValueType *__restrict__ residual_norm_collection,
-    ValueType *__restrict__ krylov_bases, size_type stride_krylov,
-    size_type *__restrict__ final_iter_nums, sycl::nd_item<3> item_ct1)
+    const ValueType* __restrict__ residual, size_type stride_residual,
+    const remove_complex<ValueType>* __restrict__ residual_norm,
+    ValueType* __restrict__ residual_norm_collection,
+    ValueType* __restrict__ krylov_bases, size_type stride_krylov,
+    size_type* __restrict__ final_iter_nums, sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
     const auto row_idx = global_id / num_rhs;
@@ -104,15 +104,15 @@ void initialize_2_2_kernel(
 
 template <size_type block_size, typename ValueType>
 void initialize_2_2_kernel(dim3 grid, dim3 block,
-                           size_type dynamic_shared_memory, sycl::queue *queue,
+                           size_type dynamic_shared_memory, sycl::queue* queue,
                            size_type num_rows, size_type num_rhs,
-                           const ValueType *residual, size_type stride_residual,
-                           const remove_complex<ValueType> *residual_norm,
-                           ValueType *residual_norm_collection,
-                           ValueType *krylov_bases, size_type stride_krylov,
-                           size_type *final_iter_nums)
+                           const ValueType* residual, size_type stride_residual,
+                           const remove_complex<ValueType>* residual_norm,
+                           ValueType* residual_norm_collection,
+                           ValueType* krylov_bases, size_type stride_krylov,
+                           size_type* final_iter_nums)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 initialize_2_2_kernel<block_size>(
@@ -125,8 +125,8 @@ void initialize_2_2_kernel(dim3 grid, dim3 block,
 
 
 void increase_final_iteration_numbers_kernel(
-    size_type *__restrict__ final_iter_nums,
-    const stopping_status *__restrict__ stop_status, size_type total_number,
+    size_type* __restrict__ final_iter_nums,
+    const stopping_status* __restrict__ stop_status, size_type total_number,
     sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
@@ -142,12 +142,12 @@ GKO_ENABLE_DEFAULT_HOST(increase_final_iteration_numbers_kernel,
 template <typename ValueType>
 void multidot_kernel(
     size_type k, size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ krylov_bases,
-    const ValueType *__restrict__ next_krylov_basis, size_type stride_krylov,
-    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, default_dot_dim *(default_dot_dim + 1)>
-        *reduction_helper_array)
+    const ValueType* __restrict__ krylov_bases,
+    const ValueType* __restrict__ next_krylov_basis, size_type stride_krylov,
+    ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
+    UninitializedArray<ValueType, default_dot_dim*(default_dot_dim + 1)>*
+        reduction_helper_array)
 {
     const auto tidx = item_ct1.get_local_id(2);
     const auto tidy = item_ct1.get_local_id(1);
@@ -160,7 +160,7 @@ void multidot_kernel(
 
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-    ValueType *__restrict__ reduction_helper = (*reduction_helper_array);
+    ValueType* __restrict__ reduction_helper = (*reduction_helper_array);
 
     ValueType local_res = zero<ValueType>();
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
@@ -178,7 +178,7 @@ void multidot_kernel(
         group::this_thread_block(item_ct1));
     const auto sum = ::gko::kernels::dpcpp::reduce(
         tile_block, local_res,
-        [](const ValueType &a, const ValueType &b) { return a + b; });
+        [](const ValueType& a, const ValueType& b) { return a + b; });
     const auto new_col_idx = item_ct1.get_group(2) * default_dot_dim + tidy;
     if (tidx == 0 && new_col_idx < num_cols &&
         !stop_status[new_col_idx].has_stopped()) {
@@ -189,15 +189,15 @@ void multidot_kernel(
 
 template <typename ValueType>
 void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                     sycl::queue *queue, size_type k, size_type num_rows,
-                     size_type num_cols, const ValueType *krylov_bases,
-                     const ValueType *next_krylov_basis,
-                     size_type stride_krylov, ValueType *hessenberg_iter,
+                     sycl::queue* queue, size_type k, size_type num_rows,
+                     size_type num_cols, const ValueType* krylov_bases,
+                     const ValueType* next_krylov_basis,
+                     size_type stride_krylov, ValueType* hessenberg_iter,
                      size_type stride_hessenberg,
-                     const stopping_status *stop_status)
+                     const stopping_status* stop_status)
 {
-    queue->submit([&](sycl::handler &cgh) {
-        sycl::accessor<UninitializedArray<ValueType, default_dot_dim *(
+    queue->submit([&](sycl::handler& cgh) {
+        sycl::accessor<UninitializedArray<ValueType, default_dot_dim*(
                                                          default_dot_dim + 1)>,
                        0, sycl::access_mode::read_write,
                        sycl::access::target::local>
@@ -209,8 +209,8 @@ void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     k, num_rows, num_cols, krylov_bases, next_krylov_basis,
                     stride_krylov, hessenberg_iter, stride_hessenberg,
                     stop_status, item_ct1,
-                    (UninitializedArray<ValueType, default_dot_dim *(
-                                                       default_dot_dim + 1)> *)
+                    (UninitializedArray<ValueType,
+                                        default_dot_dim*(default_dot_dim + 1)>*)
                         reduction_helper_array_acc_ct1.get_pointer());
             });
     });
@@ -222,10 +222,10 @@ void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 template <int block_size, typename ValueType>
 void update_next_krylov_kernel(
     size_type k, size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ krylov_bases,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_krylov,
-    const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1)
+    const ValueType* __restrict__ krylov_bases,
+    ValueType* __restrict__ next_krylov_basis, size_type stride_krylov,
+    const ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
     const auto row_idx = global_id / stride_krylov;
@@ -244,13 +244,13 @@ void update_next_krylov_kernel(
 
 template <int block_size, typename ValueType>
 void update_next_krylov_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
     size_type k, size_type num_rows, size_type num_cols,
-    const ValueType *krylov_bases, ValueType *next_krylov_basis,
-    size_type stride_krylov, const ValueType *hessenberg_iter,
-    size_type stride_hessenberg, const stopping_status *stop_status)
+    const ValueType* krylov_bases, ValueType* next_krylov_basis,
+    size_type stride_krylov, const ValueType* hessenberg_iter,
+    size_type stride_hessenberg, const stopping_status* stop_status)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 update_next_krylov_kernel<block_size>(
@@ -267,11 +267,11 @@ void update_next_krylov_kernel(
 template <int block_size, typename ValueType>
 void update_hessenberg_2_kernel(
     size_type iter, size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ next_krylov_basis,
-    size_type stride_next_krylov, ValueType *__restrict__ hessenberg_iter,
+    const ValueType* __restrict__ next_krylov_basis,
+    size_type stride_next_krylov, ValueType* __restrict__ hessenberg_iter,
     size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, block_size> &reduction_helper_array)
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
+    UninitializedArray<ValueType, block_size>& reduction_helper_array)
 {
     const auto tidx = item_ct1.get_local_id(2);
     const auto col_idx = item_ct1.get_group(2);
@@ -279,7 +279,7 @@ void update_hessenberg_2_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
 
-    ValueType *__restrict__ reduction_helper = reduction_helper_array;
+    ValueType* __restrict__ reduction_helper = reduction_helper_array;
 
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         ValueType local_res{};
@@ -294,7 +294,7 @@ void update_hessenberg_2_kernel(
 
         // Perform thread block reduction. Result is in reduction_helper[0]
         reduce(group::this_thread_block(item_ct1), reduction_helper,
-               [](const ValueType &a, const ValueType &b) { return a + b; });
+               [](const ValueType& a, const ValueType& b) { return a + b; });
 
         if (tidx == 0) {
             hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] =
@@ -305,13 +305,13 @@ void update_hessenberg_2_kernel(
 
 template <int block_size, typename ValueType>
 void update_hessenberg_2_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
     size_type iter, size_type num_rows, size_type num_cols,
-    const ValueType *next_krylov_basis, size_type stride_next_krylov,
-    ValueType *hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status *stop_status)
+    const ValueType* next_krylov_basis, size_type stride_next_krylov,
+    ValueType* hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* stop_status)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<UninitializedArray<ValueType, block_size>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
@@ -334,9 +334,9 @@ void update_hessenberg_2_kernel(
 template <int block_size, typename ValueType>
 void update_krylov_kernel(
     size_type iter, size_type num_rows, size_type num_cols,
-    ValueType *__restrict__ krylov_bases, size_type stride_krylov,
-    const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1)
+    ValueType* __restrict__ krylov_bases, size_type stride_krylov,
+    const ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
     const auto row_idx = global_id / stride_krylov;
@@ -354,15 +354,15 @@ void update_krylov_kernel(
 
 template <int block_size, typename ValueType>
 void update_krylov_kernel(dim3 grid, dim3 block,
-                          size_type dynamic_shared_memory, sycl::queue *queue,
+                          size_type dynamic_shared_memory, sycl::queue* queue,
                           size_type iter, size_type num_rows,
-                          size_type num_cols, ValueType *krylov_bases,
+                          size_type num_cols, ValueType* krylov_bases,
                           size_type stride_krylov,
-                          const ValueType *hessenberg_iter,
+                          const ValueType* hessenberg_iter,
                           size_type stride_hessenberg,
-                          const stopping_status *stop_status)
+                          const stopping_status* stop_status)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 update_krylov_kernel<block_size>(
@@ -378,12 +378,12 @@ void update_krylov_kernel(dim3 grid, dim3 block,
 template <size_type block_size, typename ValueType>
 void calculate_Qy_kernel(size_type num_rows, size_type num_cols,
                          size_type num_rhs,
-                         const ValueType *__restrict__ krylov_bases,
+                         const ValueType* __restrict__ krylov_bases,
                          size_type stride_krylov,
-                         const ValueType *__restrict__ y, size_type stride_y,
-                         ValueType *__restrict__ before_preconditioner,
+                         const ValueType* __restrict__ y, size_type stride_y,
+                         ValueType* __restrict__ before_preconditioner,
                          size_type stride_preconditioner,
-                         const size_type *__restrict__ final_iter_nums,
+                         const size_type* __restrict__ final_iter_nums,
                          sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
@@ -404,15 +404,15 @@ void calculate_Qy_kernel(size_type num_rows, size_type num_cols,
 
 template <size_type block_size, typename ValueType>
 void calculate_Qy_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                         sycl::queue *queue, size_type num_rows,
+                         sycl::queue* queue, size_type num_rows,
                          size_type num_cols, size_type num_rhs,
-                         const ValueType *krylov_bases, size_type stride_krylov,
-                         const ValueType *y, size_type stride_y,
-                         ValueType *before_preconditioner,
+                         const ValueType* krylov_bases, size_type stride_krylov,
+                         const ValueType* y, size_type stride_y,
+                         ValueType* before_preconditioner,
                          size_type stride_preconditioner,
-                         const size_type *final_iter_nums)
+                         const size_type* final_iter_nums)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 calculate_Qy_kernel<block_size>(
@@ -426,11 +426,11 @@ void calculate_Qy_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 template <typename ValueType>
 void initialize_1(std::shared_ptr<const DpcppExecutor> exec,
-                  const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *residual,
-                  matrix::Dense<ValueType> *givens_sin,
-                  matrix::Dense<ValueType> *givens_cos,
-                  Array<stopping_status> *stop_status, size_type krylov_dim)
+                  const matrix::Dense<ValueType>* b,
+                  matrix::Dense<ValueType>* residual,
+                  matrix::Dense<ValueType>* givens_sin,
+                  matrix::Dense<ValueType>* givens_cos,
+                  Array<stopping_status>* stop_status, size_type krylov_dim)
 {
     const auto num_threads = std::max(b->get_size()[0] * b->get_stride(),
                                       krylov_dim * b->get_size()[1]);
@@ -452,11 +452,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 
 template <typename ValueType>
 void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
-                  const matrix::Dense<ValueType> *residual,
-                  matrix::Dense<remove_complex<ValueType>> *residual_norm,
-                  matrix::Dense<ValueType> *residual_norm_collection,
-                  matrix::Dense<ValueType> *krylov_bases,
-                  Array<size_type> *final_iter_nums, size_type krylov_dim)
+                  const matrix::Dense<ValueType>* residual,
+                  matrix::Dense<remove_complex<ValueType>>* residual_norm,
+                  matrix::Dense<ValueType>* residual_norm_collection,
+                  matrix::Dense<ValueType>* krylov_bases,
+                  Array<size_type>* final_iter_nums, size_type krylov_dim)
 {
     const auto num_rows = residual->get_size()[0];
     const auto num_rhs = residual->get_size()[1];
@@ -484,9 +484,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
 template <typename ValueType>
 void finish_arnoldi(std::shared_ptr<const DpcppExecutor> exec,
-                    size_type num_rows, matrix::Dense<ValueType> *krylov_bases,
-                    matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
-                    const stopping_status *stop_status)
+                    size_type num_rows, matrix::Dense<ValueType>* krylov_bases,
+                    matrix::Dense<ValueType>* hessenberg_iter, size_type iter,
+                    const stopping_status* stop_status)
 {
     const auto stride_krylov = krylov_bases->get_stride();
     const auto stride_hessenberg = hessenberg_iter->get_stride();
@@ -550,12 +550,12 @@ void finish_arnoldi(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename ValueType>
 void givens_rotation(std::shared_ptr<const DpcppExecutor> exec,
-                     matrix::Dense<ValueType> *givens_sin,
-                     matrix::Dense<ValueType> *givens_cos,
-                     matrix::Dense<ValueType> *hessenberg_iter,
-                     matrix::Dense<remove_complex<ValueType>> *residual_norm,
-                     matrix::Dense<ValueType> *residual_norm_collection,
-                     size_type iter, const Array<stopping_status> *stop_status)
+                     matrix::Dense<ValueType>* givens_sin,
+                     matrix::Dense<ValueType>* givens_cos,
+                     matrix::Dense<ValueType>* hessenberg_iter,
+                     matrix::Dense<remove_complex<ValueType>>* residual_norm,
+                     matrix::Dense<ValueType>* residual_norm_collection,
+                     size_type iter, const Array<stopping_status>* stop_status)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -577,14 +577,14 @@ void givens_rotation(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const DpcppExecutor> exec, size_type num_rows,
-            matrix::Dense<ValueType> *givens_sin,
-            matrix::Dense<ValueType> *givens_cos,
-            matrix::Dense<remove_complex<ValueType>> *residual_norm,
-            matrix::Dense<ValueType> *residual_norm_collection,
-            matrix::Dense<ValueType> *krylov_bases,
-            matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
-            Array<size_type> *final_iter_nums,
-            const Array<stopping_status> *stop_status)
+            matrix::Dense<ValueType>* givens_sin,
+            matrix::Dense<ValueType>* givens_cos,
+            matrix::Dense<remove_complex<ValueType>>* residual_norm,
+            matrix::Dense<ValueType>* residual_norm_collection,
+            matrix::Dense<ValueType>* krylov_bases,
+            matrix::Dense<ValueType>* hessenberg_iter, size_type iter,
+            Array<size_type>* final_iter_nums,
+            const Array<stopping_status>* stop_status)
 {
     increase_final_iteration_numbers_kernel(
         static_cast<unsigned int>(
@@ -603,9 +603,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
 template <typename ValueType>
 void solve_upper_triangular(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Dense<ValueType> *residual_norm_collection,
-    const matrix::Dense<ValueType> *hessenberg, matrix::Dense<ValueType> *y,
-    const Array<size_type> *final_iter_nums)
+    const matrix::Dense<ValueType>* residual_norm_collection,
+    const matrix::Dense<ValueType>* hessenberg, matrix::Dense<ValueType>* y,
+    const Array<size_type>* final_iter_nums)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -625,10 +625,10 @@ void solve_upper_triangular(
 
 template <typename ValueType>
 void calculate_qy(std::shared_ptr<const DpcppExecutor> exec,
-                  const matrix::Dense<ValueType> *krylov_bases,
-                  const matrix::Dense<ValueType> *y,
-                  matrix::Dense<ValueType> *before_preconditioner,
-                  const Array<size_type> *final_iter_nums)
+                  const matrix::Dense<ValueType>* krylov_bases,
+                  const matrix::Dense<ValueType>* y,
+                  matrix::Dense<ValueType>* before_preconditioner,
+                  const Array<size_type>* final_iter_nums)
 {
     const auto num_rows = before_preconditioner->get_size()[0];
     const auto num_cols = krylov_bases->get_size()[1];
@@ -657,12 +657,12 @@ void calculate_qy(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const DpcppExecutor> exec,
-            const matrix::Dense<ValueType> *residual_norm_collection,
-            const matrix::Dense<ValueType> *krylov_bases,
-            const matrix::Dense<ValueType> *hessenberg,
-            matrix::Dense<ValueType> *y,
-            matrix::Dense<ValueType> *before_preconditioner,
-            const Array<size_type> *final_iter_nums)
+            const matrix::Dense<ValueType>* residual_norm_collection,
+            const matrix::Dense<ValueType>* krylov_bases,
+            const matrix::Dense<ValueType>* hessenberg,
+            matrix::Dense<ValueType>* y,
+            matrix::Dense<ValueType>* before_preconditioner,
+            const Array<size_type>* final_iter_nums)
 {
     solve_upper_triangular(exec, residual_norm_collection, hessenberg, y,
                            final_iter_nums);

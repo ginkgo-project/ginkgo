@@ -85,8 +85,8 @@ namespace rcm {
 template <typename IndexType>
 void get_degree_of_nodes(std::shared_ptr<const OmpExecutor> exec,
                          const IndexType num_vertices,
-                         const IndexType *const row_ptrs,
-                         IndexType *const degrees)
+                         const IndexType* const row_ptrs,
+                         IndexType* const degrees)
 {
 #pragma omp parallel for
     for (IndexType i = 0; i < num_vertices; ++i) {
@@ -123,14 +123,14 @@ struct UbfsLinearQueue {
           write_mutex()
     {}
 
-    UbfsLinearQueue(UbfsLinearQueue &other) = delete;
-    UbfsLinearQueue &operator=(const UbfsLinearQueue &other) = delete;
+    UbfsLinearQueue(UbfsLinearQueue& other) = delete;
+    UbfsLinearQueue& operator=(const UbfsLinearQueue& other) = delete;
 
     /**
      * Copies a chunk of nodes back into the work queue,
      * in a thread-safe manner.
      */
-    void enqueue_chunk(const IndexType *const chunk, size_type n)
+    void enqueue_chunk(const IndexType* const chunk, size_type n)
     {
         const auto data = &arr[0];
 
@@ -159,7 +159,7 @@ struct UbfsLinearQueue {
      * finally returned, after all threads stopped working and still no nodes
      * are available, the algorithm is definitely done.
      */
-    std::pair<IndexType *, IndexType> dequeue_chunk(int *threads_working)
+    std::pair<IndexType*, IndexType> dequeue_chunk(int* threads_working)
     {
         const auto data = &arr[0];
         std::lock_guard<omp_mutex> read_guard{read_mutex};
@@ -210,26 +210,26 @@ struct UbfsLinearQueue {
 
 
 #ifdef _MSC_VER
-#define GKO_CMPXCHG_IMPL(ptr, ptr_expected, replace_with)                      \
-    if (sizeof replace_with == 8) {                                            \
-        return _InterlockedCompareExchange64(reinterpret_cast<int64_t *>(ptr), \
-                                             replace_with,                     \
-                                             *ptr_expected) == *ptr_expected;  \
-    }                                                                          \
-    if (sizeof replace_with == 4) {                                            \
-        return _InterlockedCompareExchange(reinterpret_cast<long *>(ptr),      \
-                                           replace_with,                       \
-                                           *ptr_expected) == *ptr_expected;    \
-    }                                                                          \
-    if (sizeof replace_with == 2) {                                            \
-        return _InterlockedCompareExchange16(reinterpret_cast<short *>(ptr),   \
-                                             replace_with,                     \
-                                             *ptr_expected) == *ptr_expected;  \
-    }                                                                          \
-    if (sizeof replace_with == 1) {                                            \
-        return _InterlockedCompareExchange8(reinterpret_cast<char *>(ptr),     \
-                                            replace_with,                      \
-                                            *ptr_expected) == *ptr_expected;   \
+#define GKO_CMPXCHG_IMPL(ptr, ptr_expected, replace_with)                     \
+    if (sizeof replace_with == 8) {                                           \
+        return _InterlockedCompareExchange64(reinterpret_cast<int64_t*>(ptr), \
+                                             replace_with,                    \
+                                             *ptr_expected) == *ptr_expected; \
+    }                                                                         \
+    if (sizeof replace_with == 4) {                                           \
+        return _InterlockedCompareExchange(reinterpret_cast<long*>(ptr),      \
+                                           replace_with,                      \
+                                           *ptr_expected) == *ptr_expected;   \
+    }                                                                         \
+    if (sizeof replace_with == 2) {                                           \
+        return _InterlockedCompareExchange16(reinterpret_cast<short*>(ptr),   \
+                                             replace_with,                    \
+                                             *ptr_expected) == *ptr_expected; \
+    }                                                                         \
+    if (sizeof replace_with == 1) {                                           \
+        return _InterlockedCompareExchange8(reinterpret_cast<char*>(ptr),     \
+                                            replace_with,                     \
+                                            *ptr_expected) == *ptr_expected;  \
     }
 #else
 #define GKO_CMPXCHG_IMPL(ptr, ptr_expected, replace_with) \
@@ -246,7 +246,7 @@ struct UbfsLinearQueue {
  * Usage with non-primitive types is explicitly discouraged.
  */
 template <typename TargetType>
-inline bool compare_exchange_weak_acqrel(TargetType *value, TargetType old,
+inline bool compare_exchange_weak_acqrel(TargetType* value, TargetType old,
                                          TargetType newer)
 {
     GKO_CMPXCHG_IMPL(value, &old, newer)
@@ -255,11 +255,11 @@ inline bool compare_exchange_weak_acqrel(TargetType *value, TargetType old,
 
 template <typename IndexType>
 inline void reduce_neighbours_levels(const IndexType num_vertices,
-                                     const IndexType *const row_ptrs,
-                                     const IndexType *const col_idxs,
-                                     IndexType *const local_to_insert,
-                                     size_type *const local_to_insert_size,
-                                     IndexType *const levels,
+                                     const IndexType* const row_ptrs,
+                                     const IndexType* const col_idxs,
+                                     IndexType* const local_to_insert,
+                                     size_type* const local_to_insert_size,
+                                     IndexType* const levels,
                                      const IndexType node)
 {
     IndexType level;
@@ -314,8 +314,8 @@ inline void reduce_neighbours_levels(const IndexType num_vertices,
  */
 template <typename IndexType>
 void ubfs(std::shared_ptr<const OmpExecutor> exec, const IndexType num_vertices,
-          const IndexType *const row_ptrs, const IndexType *const col_idxs,
-          IndexType *const
+          const IndexType* const row_ptrs, const IndexType* const col_idxs,
+          IndexType* const
               levels,  // Must be inf/max in all nodes connected to source
           const IndexType start, const IndexType max_degree)
 {
@@ -385,9 +385,9 @@ void ubfs(std::shared_ptr<const OmpExecutor> exec, const IndexType num_vertices,
 template <typename IndexType>
 std::pair<IndexType, IndexType> rls_contender_and_height(
     std::shared_ptr<const OmpExecutor> exec, const IndexType num_vertices,
-    const IndexType *const row_ptrs, const IndexType *const col_idxs,
-    const IndexType *const degrees,
-    IndexType *const levels,  // Must be max/inf in all nodes connected to start
+    const IndexType* const row_ptrs, const IndexType* const col_idxs,
+    const IndexType* const degrees,
+    IndexType* const levels,  // Must be max/inf in all nodes connected to start
     const IndexType start, const IndexType max_degree)
 {
     // Layout: ((level, degree), idx).
@@ -443,9 +443,9 @@ std::pair<IndexType, IndexType> rls_contender_and_height(
 template <typename IndexType>
 std::pair<IndexType, IndexType> find_min_idx_and_max_val(
     std::shared_ptr<const OmpExecutor> exec, const IndexType num_vertices,
-    const IndexType *const row_ptrs, const IndexType *const col_idxs,
-    const IndexType *const degrees, vector<IndexType> &levels,
-    const uint8 *const previous_component,
+    const IndexType* const row_ptrs, const IndexType* const col_idxs,
+    const IndexType* const degrees, vector<IndexType>& levels,
+    const uint8* const previous_component,
     gko::reorder::starting_strategy strategy)
 {
     // Layout: ((min_val, min_idx), (max_val, max_idx)).
@@ -507,11 +507,11 @@ std::pair<IndexType, IndexType> find_min_idx_and_max_val(
 template <typename IndexType>
 IndexType find_start_node(std::shared_ptr<const OmpExecutor> exec,
                           const IndexType num_vertices,
-                          const IndexType *const row_ptrs,
-                          const IndexType *const col_idxs,
-                          const IndexType *const degrees,
-                          vector<IndexType> &levels,
-                          const uint8 *const previous_component,
+                          const IndexType* const row_ptrs,
+                          const IndexType* const col_idxs,
+                          const IndexType* const degrees,
+                          vector<IndexType>& levels,
+                          const uint8* const previous_component,
                           const gko::reorder::starting_strategy strategy)
 {
     // Find the node with minimal degree and the maximum degree.
@@ -570,8 +570,8 @@ IndexType find_start_node(std::shared_ptr<const OmpExecutor> exec,
  */
 template <typename IndexType>
 vector<IndexType> count_levels(std::shared_ptr<const OmpExecutor> exec,
-                               const IndexType *const levels,
-                               uint8 *const previous_component,
+                               const IndexType* const levels,
+                               uint8* const previous_component,
                                IndexType num_vertices)
 {
     const int32 num_threads = omp_get_max_threads();
@@ -622,9 +622,9 @@ vector<IndexType> count_levels(std::shared_ptr<const OmpExecutor> exec,
  */
 template <typename IndexType>
 vector<IndexType> compute_level_offsets(std::shared_ptr<const OmpExecutor> exec,
-                                        const IndexType *const levels,
+                                        const IndexType* const levels,
                                         IndexType num_vertices,
-                                        uint8 *const previous_component)
+                                        uint8* const previous_component)
 {
     auto counts = count_levels(exec, levels, previous_component, num_vertices);
     counts.push_back(0);
@@ -650,10 +650,10 @@ constexpr int32 level_processed = -1;
  */
 template <typename IndexType>
 void write_permutation(std::shared_ptr<const OmpExecutor> exec,
-                       const IndexType *const row_ptrs,
-                       const IndexType *const col_idxs, IndexType *const levels,
-                       const IndexType *const degrees,
-                       const vector<IndexType> &offsets, IndexType *const perm,
+                       const IndexType* const row_ptrs,
+                       const IndexType* const col_idxs, IndexType* const levels,
+                       const IndexType* const degrees,
+                       const vector<IndexType>& offsets, IndexType* const perm,
                        const IndexType num_vertices,
                        const IndexType base_offset, const IndexType start)
 {
@@ -743,11 +743,11 @@ void write_permutation(std::shared_ptr<const OmpExecutor> exec,
  */
 template <typename IndexType>
 IndexType handle_isolated_nodes(std::shared_ptr<const OmpExecutor> exec,
-                                const IndexType *const row_ptrs,
-                                const IndexType *const col_idxs,
-                                const IndexType *const degrees,
-                                IndexType *const perm, IndexType num_vertices,
-                                vector<uint8> &previous_component)
+                                const IndexType* const row_ptrs,
+                                const IndexType* const col_idxs,
+                                const IndexType* const degrees,
+                                IndexType* const perm, IndexType num_vertices,
+                                vector<uint8>& previous_component)
 {
     const int32 num_threads = omp_get_max_threads();
     vector<vector<IndexType>> local_isolated_nodes(
@@ -787,10 +787,10 @@ IndexType handle_isolated_nodes(std::shared_ptr<const OmpExecutor> exec,
 template <typename IndexType>
 void get_permutation(std::shared_ptr<const OmpExecutor> exec,
                      const IndexType num_vertices,
-                     const IndexType *const row_ptrs,
-                     const IndexType *const col_idxs,
-                     const IndexType *const degrees, IndexType *const perm,
-                     IndexType *const inv_perm,
+                     const IndexType* const row_ptrs,
+                     const IndexType* const col_idxs,
+                     const IndexType* const degrees, IndexType* const perm,
+                     IndexType* const inv_perm,
                      const gko::reorder::starting_strategy strategy)
 {
     // Initialize the perm to all "signal value".

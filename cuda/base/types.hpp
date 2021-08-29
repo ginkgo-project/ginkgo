@@ -62,13 +62,13 @@ struct culibs_type_impl {
 };
 
 template <typename T>
-struct culibs_type_impl<T *> {
-    using type = typename culibs_type_impl<T>::type *;
+struct culibs_type_impl<T*> {
+    using type = typename culibs_type_impl<T>::type*;
 };
 
 template <typename T>
-struct culibs_type_impl<T &> {
-    using type = typename culibs_type_impl<T>::type &;
+struct culibs_type_impl<T&> {
+    using type = typename culibs_type_impl<T>::type&;
 };
 
 template <typename T>
@@ -102,13 +102,13 @@ struct cuda_type_impl {
 };
 
 template <typename T>
-struct cuda_type_impl<T *> {
-    using type = typename cuda_type_impl<T>::type *;
+struct cuda_type_impl<T*> {
+    using type = typename cuda_type_impl<T>::type*;
 };
 
 template <typename T>
-struct cuda_type_impl<T &> {
-    using type = typename cuda_type_impl<T>::type &;
+struct cuda_type_impl<T&> {
+    using type = typename cuda_type_impl<T>::type&;
 };
 
 template <typename T>
@@ -301,7 +301,7 @@ inline std::enable_if_t<
     !std::is_pointer<T>::value && !std::is_reference<T>::value, cuda_type<T>>
 as_cuda_type(T val)
 {
-    return *reinterpret_cast<cuda_type<T> *>(&val);
+    return *reinterpret_cast<cuda_type<T>*>(&val);
 }
 
 

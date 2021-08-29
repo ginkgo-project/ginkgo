@@ -148,19 +148,19 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_dense_impl(const matrix::Dense<ValueType> *b,
-                          matrix::Dense<ValueType> *x) const;
+    void apply_dense_impl(const matrix::Dense<ValueType>* b,
+                          matrix::Dense<ValueType>* x) const;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
     explicit Cg(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Cg>(std::move(exec))
     {}
 
-    explicit Cg(const Factory *factory,
+    explicit Cg(const Factory* factory,
                 std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Cg>(factory->get_executor(),
                           gko::transpose(system_matrix->get_size())),

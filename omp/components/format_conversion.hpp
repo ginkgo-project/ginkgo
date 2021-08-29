@@ -57,9 +57,9 @@ namespace omp {
  * matrix.
  */
 template <typename IndexType>
-inline void convert_unsorted_idxs_to_ptrs(const IndexType *idxs,
+inline void convert_unsorted_idxs_to_ptrs(const IndexType* idxs,
                                           size_type num_nonzeros,
-                                          IndexType *ptrs, size_type length)
+                                          IndexType* ptrs, size_type length)
 {
 #pragma omp parallel for schedule(static, \
                                   ceildiv(length, omp_get_max_threads()))
@@ -85,8 +85,8 @@ inline void convert_unsorted_idxs_to_ptrs(const IndexType *idxs,
  * pointers when converting a coo matrix to a csr matrix.
  */
 template <typename IndexType>
-inline void convert_sorted_idxs_to_ptrs(const IndexType *idxs,
-                                        size_type num_nonzeros, IndexType *ptrs,
+inline void convert_sorted_idxs_to_ptrs(const IndexType* idxs,
+                                        size_type num_nonzeros, IndexType* ptrs,
                                         size_type num_rows)
 {
     ptrs[0] = 0;
@@ -112,8 +112,8 @@ inline void convert_sorted_idxs_to_ptrs(const IndexType *idxs,
 
 
 template <typename IndexType>
-inline void convert_ptrs_to_idxs(const IndexType *ptrs, size_type num_rows,
-                                 IndexType *idxs)
+inline void convert_ptrs_to_idxs(const IndexType* ptrs, size_type num_rows,
+                                 IndexType* idxs)
 {
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {

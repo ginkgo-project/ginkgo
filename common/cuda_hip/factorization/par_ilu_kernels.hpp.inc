@@ -35,13 +35,13 @@ namespace kernel {
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void compute_l_u_factors(
-    size_type num_elements, const IndexType *__restrict__ row_idxs,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values,
-    const IndexType *__restrict__ l_row_ptrs,
-    const IndexType *__restrict__ l_col_idxs, ValueType *__restrict__ l_values,
-    const IndexType *__restrict__ u_row_ptrs,
-    const IndexType *__restrict__ u_col_idxs, ValueType *__restrict__ u_values)
+    size_type num_elements, const IndexType* __restrict__ row_idxs,
+    const IndexType* __restrict__ col_idxs,
+    const ValueType* __restrict__ values,
+    const IndexType* __restrict__ l_row_ptrs,
+    const IndexType* __restrict__ l_col_idxs, ValueType* __restrict__ l_values,
+    const IndexType* __restrict__ u_row_ptrs,
+    const IndexType* __restrict__ u_col_idxs, ValueType* __restrict__ u_values)
 {
     const auto elem_id = thread::get_thread_id_flat<IndexType>();
     if (elem_id < num_elements) {

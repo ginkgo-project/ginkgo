@@ -58,17 +58,17 @@ class HipspBase : public gko::LinOp {
 public:
     hipsparseMatDescr_t get_descr() const { return this->descr_.get(); }
 
-    const gko::HipExecutor *get_gpu_exec() const { return gpu_exec_.get(); }
+    const gko::HipExecutor* get_gpu_exec() const { return gpu_exec_.get(); }
 
 protected:
-    void apply_impl(const gko::LinOp *, const gko::LinOp *, const gko::LinOp *,
-                    gko::LinOp *) const override
+    void apply_impl(const gko::LinOp*, const gko::LinOp*, const gko::LinOp*,
+                    gko::LinOp*) const override
     {
         GKO_NOT_IMPLEMENTED;
     }
 
     HipspBase(std::shared_ptr<const gko::Executor> exec,
-              const gko::dim<2> &size = gko::dim<2>{})
+              const gko::dim<2>& size = gko::dim<2>{})
         : gko::LinOp(exec, size)
     {
         gpu_exec_ = std::dynamic_pointer_cast<const gko::HipExecutor>(exec);
@@ -80,9 +80,9 @@ protected:
 
     ~HipspBase() = default;
 
-    HipspBase(const HipspBase &other) = delete;
+    HipspBase(const HipspBase& other) = delete;
 
-    HipspBase &operator=(const HipspBase &other)
+    HipspBase& operator=(const HipspBase& other)
     {
         if (this != &other) {
             gko::LinOp::operator=(other);
@@ -97,9 +97,9 @@ protected:
         const auto id = this->gpu_exec_->get_device_id();
         gko::hip::device_guard g{id};
         this->descr_ = handle_manager<hipsparseMatDescr>(
-            reinterpret_cast<hipsparseMatDescr *>(
+            reinterpret_cast<hipsparseMatDescr*>(
                 gko::kernels::hip::hipsparse::create_mat_descr()),
-            [id](hipsparseMatDescr *descr) {
+            [id](hipsparseMatDescr* descr) {
                 gko::hip::device_guard g{id};
                 gko::kernels::hip::hipsparse::destroy(descr);
             });
@@ -108,7 +108,7 @@ protected:
 private:
     std::shared_ptr<const gko::HipExecutor> gpu_exec_;
     template <typename T>
-    using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
+    using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
     handle_manager<hipsparseMatDescr> descr_;
 };
 
@@ -126,7 +126,7 @@ public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
 
-    void read(const mat_data &data) override
+    void read(const mat_data& data) override
     {
         csr_->read(data);
         this->set_size(gko::dim<2>{csr_->get_size()});
@@ -138,7 +138,7 @@ public:
     }
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
@@ -157,7 +157,7 @@ protected:
     }
 
     HipspCsr(std::shared_ptr<const gko::Executor> exec,
-             const gko::dim<2> &size = gko::dim<2>{})
+             const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<HipspCsr, HipspBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
@@ -186,7 +186,7 @@ public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
 
-    void read(const mat_data &data) override
+    void read(const mat_data& data) override
     {
         csr_->read(data);
         this->set_size(gko::dim<2>{csr_->get_size()});
@@ -198,7 +198,7 @@ public:
     }
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
@@ -218,7 +218,7 @@ protected:
     }
 
     HipspCsrmm(std::shared_ptr<const gko::Executor> exec,
-               const gko::dim<2> &size = gko::dim<2>{})
+               const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<HipspCsrmm, HipspBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
@@ -251,7 +251,7 @@ public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
 
-    void read(const mat_data &data) override
+    void read(const mat_data& data) override
     {
         auto t_csr = csr::create(this->get_executor(),
                                  std::make_shared<typename csr::classical>());
@@ -273,18 +273,18 @@ public:
         try {
             gko::hip::device_guard g{id};
             GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseDestroyHybMat(hyb_));
-        } catch (const std::exception &e) {
+        } catch (const std::exception& e) {
             std::cerr << "Error when unallocating HipspHybrid hyb_ matrix: "
                       << e.what() << std::endl;
         }
     }
 
-    HipspHybrid(const HipspHybrid &other) = delete;
+    HipspHybrid(const HipspHybrid& other) = delete;
 
-    HipspHybrid &operator=(const HipspHybrid &other) = default;
+    HipspHybrid& operator=(const HipspHybrid& other) = default;
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
@@ -300,7 +300,7 @@ protected:
     }
 
     HipspHybrid(std::shared_ptr<const gko::Executor> exec,
-                const gko::dim<2> &size = gko::dim<2>{})
+                const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<HipspHybrid, HipspBase>(exec, size),
           trans_(HIPSPARSE_OPERATION_NON_TRANSPOSE)
     {

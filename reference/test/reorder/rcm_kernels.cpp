@@ -96,7 +96,7 @@ protected:
     std::shared_ptr<CsrMtx> p_mtx_1;
     std::unique_ptr<reorder_type> reorder_op_1;
 
-    static bool is_permutation(const perm_type *input_perm)
+    static bool is_permutation(const perm_type* input_perm)
     {
         const auto perm_size = input_perm->get_permutation_size();
         auto perm_sorted = std::vector<i_type>(perm_size);

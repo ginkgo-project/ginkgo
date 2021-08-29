@@ -118,7 +118,7 @@ protected:
 // kernel implementation
 template <std::uint32_t config>
 __WG_BOUND__(KCfg::decode<0>(config))
-void cg_shuffle(bool *s, sycl::nd_item<3> item_ct1)
+void cg_shuffle(bool* s, sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = KCfg::decode<1>(config);
     auto group =
@@ -135,10 +135,10 @@ void cg_shuffle(bool *s, sycl::nd_item<3> item_ct1)
 // group all kernel things together
 template <int config>
 void cg_shuffle_host(dim3 grid, dim3 block,
-                     gko::size_type dynamic_shared_memory, sycl::queue *queue,
-                     bool *s)
+                     gko::size_type dynamic_shared_memory, sycl::queue* queue,
+                     bool* s)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              cg_shuffle<config>(s, item_ct1);
@@ -152,7 +152,7 @@ GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_shuffle_config, cg_shuffle_host)
 // the call
 void cg_shuffle_config_call(std::uint32_t desired_cfg, dim3 grid, dim3 block,
                             gko::size_type dynamic_shared_memory,
-                            sycl::queue *queue, bool *s)
+                            sycl::queue* queue, bool* s)
 {
     cg_shuffle_config(
         default_config_list,
@@ -171,7 +171,7 @@ TEST_P(CooperativeGroups, Shuffle)
 
 template <std::uint32_t config>
 __WG_BOUND__(KCfg::decode<0>(config))
-void cg_all(bool *s, sycl::nd_item<3> item_ct1)
+void cg_all(bool* s, sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = KCfg::decode<1>(config);
     auto group =
@@ -188,12 +188,12 @@ GKO_ENABLE_DEFAULT_HOST_CONFIG(cg_all, cg_all)
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_all, cg_all)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_all_call, cg_all, default_config_list)
 
-TEST_P(CooperativeGroups, All) { test_all_subgroup(cg_all_call<bool *>); }
+TEST_P(CooperativeGroups, All) { test_all_subgroup(cg_all_call<bool*>); }
 
 
 template <std::uint32_t config>
 __WG_BOUND__(KCfg::decode<0>(config))
-void cg_any(bool *s, sycl::nd_item<3> item_ct1)
+void cg_any(bool* s, sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = KCfg::decode<1>(config);
     auto group = group::tiled_partition<KCfg::decode<1>(config)>(
@@ -209,12 +209,12 @@ GKO_ENABLE_DEFAULT_HOST_CONFIG(cg_any, cg_any)
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_any, cg_any)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_any_call, cg_any, default_config_list)
 
-TEST_P(CooperativeGroups, Any) { test_all_subgroup(cg_any_call<bool *>); }
+TEST_P(CooperativeGroups, Any) { test_all_subgroup(cg_any_call<bool*>); }
 
 
 template <std::uint32_t config>
 __WG_BOUND__(KCfg::decode<0>(config))
-void cg_ballot(bool *s, sycl::nd_item<3> item_ct1)
+void cg_ballot(bool* s, sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = KCfg::decode<1>(config);
     auto group =
@@ -231,7 +231,7 @@ GKO_ENABLE_DEFAULT_HOST_CONFIG(cg_ballot, cg_ballot)
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_ballot, cg_ballot)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_ballot_call, cg_ballot, default_config_list)
 
-TEST_P(CooperativeGroups, Ballot) { test_all_subgroup(cg_ballot_call<bool *>); }
+TEST_P(CooperativeGroups, Ballot) { test_all_subgroup(cg_ballot_call<bool*>); }
 
 
 INSTANTIATE_TEST_SUITE_P(DifferentSubgroup, CooperativeGroups,

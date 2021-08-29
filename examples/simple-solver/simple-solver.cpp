@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
     // with one column/one row. The advantage of this concept is that using

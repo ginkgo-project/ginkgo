@@ -41,13 +41,13 @@ template <
     typename IndexType,
     typename = std::enable_if_t<group::is_synchronizable_group<Group>::value>>
 __device__ __forceinline__ void extract_transposed_diag_blocks(
-    const Group &group, int processed_blocks,
-    const IndexType *__restrict__ row_ptrs,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values,
-    const IndexType *__restrict__ block_ptrs, size_type num_blocks,
-    ValueType *__restrict__ block_row, int increment,
-    ValueType *__restrict__ workspace)
+    const Group& group, int processed_blocks,
+    const IndexType* __restrict__ row_ptrs,
+    const IndexType* __restrict__ col_idxs,
+    const ValueType* __restrict__ values,
+    const IndexType* __restrict__ block_ptrs, size_type num_blocks,
+    ValueType* __restrict__ block_row, int increment,
+    ValueType* __restrict__ workspace)
 {
     const int tid = threadIdx.y * blockDim.x + threadIdx.x;
     const auto warp = group::tiled_partition<config::warp_size>(group);

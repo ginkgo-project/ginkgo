@@ -38,14 +38,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
-[[noreturn]] void print_usage_and_exit(const char *name)
+[[noreturn]] void print_usage_and_exit(const char* name)
 {
     std::cerr << "Usage: " << name << " [NUM_ITERS]" << std::endl;
     std::exit(-1);
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     using ValueType = double;
     using IndexType = int;

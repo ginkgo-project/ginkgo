@@ -52,7 +52,7 @@ namespace {
 
 class ExampleOperation : public gko::Operation {
 public:
-    explicit ExampleOperation(int &val) : value(val) {}
+    explicit ExampleOperation(int& val) : value(val) {}
 
     void run(std::shared_ptr<const gko::OmpExecutor>) const override
     {
@@ -79,7 +79,7 @@ public:
         cudaGetDevice(&value);
     }
 
-    int &value;
+    int& value;
 };
 
 
@@ -139,7 +139,7 @@ TEST_F(CudaExecutor, MasterKnowsNumberOfDevices)
 
 TEST_F(CudaExecutor, AllocatesAndFreesMemory)
 {
-    int *ptr = nullptr;
+    int* ptr = nullptr;
 
     ASSERT_NO_THROW(ptr = cuda->alloc<int>(2));
     ASSERT_NO_THROW(cuda->free(ptr));
@@ -149,7 +149,7 @@ TEST_F(CudaExecutor, AllocatesAndFreesMemory)
 TEST_F(CudaExecutor, FailsWhenOverallocating)
 {
     const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
-    int *ptr = nullptr;
+    int* ptr = nullptr;
 
     ASSERT_THROW(
         {
@@ -162,7 +162,7 @@ TEST_F(CudaExecutor, FailsWhenOverallocating)
 }
 
 
-__global__ void check_data(int *data)
+__global__ void check_data(int* data)
 {
     if (data[0] != 3 || data[1] != 8) {
         asm("trap;");
@@ -173,7 +173,7 @@ __global__ void check_data(int *data)
 TEST_F(CudaExecutor, CopiesDataToCuda)
 {
     int orig[] = {3, 8};
-    auto *copy = cuda->alloc<int>(2);
+    auto* copy = cuda->alloc<int>(2);
 
     cuda->copy_from(omp.get(), 2, orig, copy);
 
@@ -183,7 +183,7 @@ TEST_F(CudaExecutor, CopiesDataToCuda)
 }
 
 
-__global__ void check_data2(int *data)
+__global__ void check_data2(int* data)
 {
     if (data[0] != 4 || data[1] != 8) {
         asm("trap;");
@@ -194,7 +194,7 @@ __global__ void check_data2(int *data)
 TEST_F(CudaExecutor, CanAllocateOnUnifiedMemory)
 {
     int orig[] = {3, 8};
-    auto *copy = cuda3->alloc<int>(2);
+    auto* copy = cuda3->alloc<int>(2);
 
     cuda3->copy_from(omp.get(), 2, orig, copy);
 
@@ -206,7 +206,7 @@ TEST_F(CudaExecutor, CanAllocateOnUnifiedMemory)
 }
 
 
-__global__ void init_data(int *data)
+__global__ void init_data(int* data)
 {
     data[0] = 3;
     data[1] = 8;

@@ -43,7 +43,7 @@ namespace components {
 
 
 template <typename ValueType>
-void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
+void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType* array,
                 size_type n, ValueType val)
 {
     std::fill_n(array, n, val);
@@ -55,7 +55,7 @@ template GKO_DECLARE_FILL_ARRAY_KERNEL(bool);
 
 template <typename ValueType>
 void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
-                    ValueType *array, size_type n)
+                    ValueType* array, size_type n)
 {
     std::iota(array, array + n, 0);
 }

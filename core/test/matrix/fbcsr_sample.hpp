@@ -96,9 +96,9 @@ public:
                                       static_cast<size_type>(ncols)},
                           nnz, bs);
 
-        value_type *const v = mtx->get_values();
-        index_type *const c = mtx->get_col_idxs();
-        index_type *const r = mtx->get_row_ptrs();
+        value_type* const v = mtx->get_values();
+        index_type* const c = mtx->get_col_idxs();
+        index_type* const r = mtx->get_row_ptrs();
         r[0] = 0;
         r[1] = 2;
         r[2] = 4;
@@ -118,7 +118,7 @@ public:
                                     "block size does not divide the size!");
 
         for (index_type ibrow = 0; ibrow < mtx->get_num_block_rows(); ibrow++) {
-            const index_type *const browptr = mtx->get_row_ptrs();
+            const index_type* const browptr = mtx->get_row_ptrs();
             for (index_type inz = browptr[ibrow]; inz < browptr[ibrow + 1];
                  inz++) {
                 const index_type bcolind = mtx->get_col_idxs()[inz];
@@ -299,7 +299,7 @@ public:
         gko::Array<index_type> r(exec, {0, 1, 3, 4});
         gko::Array<index_type> c(exec, {0, 0, 3, 2});
         gko::Array<value_type> vals(exec, nnz);
-        value_type *const v = vals.get_data();
+        value_type* const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + fbcsr_test_offset;
 
         v[0] = 1;
@@ -325,7 +325,7 @@ public:
         gko::Array<index_type> c(
             exec, {0, 1, 0, 1, 0, 1, 6, 7, 0, 1, 6, 7, 4, 5, 4, 5});
         gko::Array<value_type> vals(exec, nnz);
-        value_type *const v = vals.get_data();
+        value_type* const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + fbcsr_test_offset;
         v[0] = 1;
         v[1] = 2;
@@ -398,7 +398,7 @@ public:
         gko::Array<index_type> c(exec, {1, 1});
         gko::Array<index_type> r(exec, {0, 1, 2});
         gko::Array<value_type> vals(exec, nnz);
-        value_type *const v = vals.get_data();
+        value_type* const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) v[i] = i;
 
         return Fbcsr::create(exec,
@@ -444,7 +444,7 @@ public:
         gko::Array<index_type> r(exec, {0, 1, 3, 4});
         gko::Array<index_type> c(exec, {0, 0, 3, 2});
         gko::Array<value_type> vals(exec, nnz);
-        value_type *const v = vals.get_data();
+        value_type* const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + fbcsr_test_offset;
 
         using namespace std::complex_literals;
@@ -471,7 +471,7 @@ public:
         gko::Array<index_type> c(
             exec, {0, 1, 0, 1, 0, 1, 6, 7, 0, 1, 6, 7, 4, 5, 4, 5});
         gko::Array<value_type> vals(exec, nnz);
-        value_type *const v = vals.get_data();
+        value_type* const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + fbcsr_test_offset;
 
         using namespace std::complex_literals;
@@ -527,7 +527,7 @@ public:
             exec, {0,  1,  20, 15, 12, 18, 5, 28, 3,  10, 29, 5,  9,  2,  16,
                    12, 21, 2,  0,  1,  5,  9, 12, 15, 17, 20, 22, 24, 27, 28});
         gko::Array<value_type> vals(exec, nnz);
-        value_type *const v = vals.get_data();
+        value_type* const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) {
             v[i] = static_cast<value_type>(i + 0.15 + fbcsr_test_offset);
         }

@@ -67,7 +67,7 @@ private:
      *
      * @return recursive_mutex reference
      */
-    static std::mutex &get_mutex(int i);
+    static std::mutex& get_mutex(int i);
 
     /**
      * get_num_execs gets the static num_execs reference at i.
@@ -76,7 +76,7 @@ private:
      *
      * @return int reference
      */
-    static int &get_num_execs(int i);
+    static int& get_num_execs(int i);
 
     static constexpr int max_devices = 64;
 };
@@ -97,7 +97,7 @@ private:
      *
      * @return recursive_mutex reference
      */
-    static std::mutex &get_mutex(int i);
+    static std::mutex& get_mutex(int i);
 
     /**
      * get_num_execs gets the static num_execs reference at i.
@@ -106,7 +106,7 @@ private:
      *
      * @return int reference
      */
-    static int &get_num_execs(int i);
+    static int& get_num_execs(int i);
 
     static constexpr int max_devices = 64;
 };

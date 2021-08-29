@@ -179,7 +179,7 @@ using csr = gko::matrix::Csr<etype, itype>;
 template <typename MatrixType>
 std::unique_ptr<MatrixType> read_matrix_from_data(
     std::shared_ptr<const gko::Executor> exec,
-    const gko::matrix_data<etype, itype> &data)
+    const gko::matrix_data<etype, itype>& data)
 {
     auto mat = MatrixType::create(std::move(exec));
     mat->read(data);
@@ -197,9 +197,9 @@ template <typename Strategy>
 std::shared_ptr<csr::strategy_type> create_gpu_strategy(
     std::shared_ptr<const gko::Executor> exec)
 {
-    if (auto cuda = dynamic_cast<const gko::CudaExecutor *>(exec.get())) {
+    if (auto cuda = dynamic_cast<const gko::CudaExecutor*>(exec.get())) {
         return std::make_shared<Strategy>(cuda->shared_from_this());
-    } else if (auto hip = dynamic_cast<const gko::HipExecutor *>(exec.get())) {
+    } else if (auto hip = dynamic_cast<const gko::HipExecutor*>(exec.get())) {
         return std::make_shared<Strategy>(hip->shared_from_this());
     } else {
         return std::make_shared<csr::classical>();
@@ -213,7 +213,7 @@ std::shared_ptr<csr::strategy_type> create_gpu_strategy(
  *
  * @throws gko::Error if the imbalance limit is exceeded
  */
-void check_ell_admissibility(const gko::matrix_data<etype, itype> &data)
+void check_ell_admissibility(const gko::matrix_data<etype, itype>& data)
 {
     if (data.size[0] == 0 || FLAGS_ell_imbalance_limit < 0) {
         return;
@@ -239,7 +239,7 @@ void check_ell_admissibility(const gko::matrix_data<etype, itype> &data)
  */
 #define READ_MATRIX(MATRIX_TYPE, ...)                                 \
     [](std::shared_ptr<const gko::Executor> exec,                     \
-       const gko::matrix_data<etype, itype> &data)                    \
+       const gko::matrix_data<etype, itype>& data)                    \
         -> std::unique_ptr<MATRIX_TYPE> {                             \
         auto mat = MATRIX_TYPE::create(std::move(exec), __VA_ARGS__); \
         mat->read(data);                                              \

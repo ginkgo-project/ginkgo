@@ -134,10 +134,10 @@ protected:
         return mtx;
     }
 
-    void initialize_row_ptrs(index_type *l_row_ptrs_ref,
-                             index_type *u_row_ptrs_ref,
-                             index_type *l_row_ptrs_cuda,
-                             index_type *u_row_ptrs_cuda)
+    void initialize_row_ptrs(index_type* l_row_ptrs_ref,
+                             index_type* u_row_ptrs_ref,
+                             index_type* l_row_ptrs_cuda,
+                             index_type* u_row_ptrs_cuda)
     {
         gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
             ref, gko::lend(csr_ref), l_row_ptrs_ref, u_row_ptrs_ref);
@@ -145,9 +145,9 @@ protected:
             cuda, gko::lend(csr_cuda), l_row_ptrs_cuda, u_row_ptrs_cuda);
     }
 
-    void initialize_lu(std::unique_ptr<Csr> *l_ref, std::unique_ptr<Csr> *u_ref,
-                       std::unique_ptr<Csr> *l_cuda,
-                       std::unique_ptr<Csr> *u_cuda)
+    void initialize_lu(std::unique_ptr<Csr>* l_ref, std::unique_ptr<Csr>* u_ref,
+                       std::unique_ptr<Csr>* l_cuda,
+                       std::unique_ptr<Csr>* u_cuda)
     {
         auto num_row_ptrs = csr_ref->get_size()[0] + 1;
         gko::Array<index_type> l_row_ptrs_ref{ref, num_row_ptrs};
@@ -185,13 +185,13 @@ protected:
 
     template <typename ToType, typename FromType>
     static std::unique_ptr<ToType> static_unique_ptr_cast(
-        std::unique_ptr<FromType> &&from)
+        std::unique_ptr<FromType>&& from)
     {
-        return std::unique_ptr<ToType>{static_cast<ToType *>(from.release())};
+        return std::unique_ptr<ToType>{static_cast<ToType*>(from.release())};
     }
 
-    void compute_lu(std::unique_ptr<Csr> *l_ref, std::unique_ptr<Csr> *u_ref,
-                    std::unique_ptr<Csr> *l_cuda, std::unique_ptr<Csr> *u_cuda,
+    void compute_lu(std::unique_ptr<Csr>* l_ref, std::unique_ptr<Csr>* u_ref,
+                    std::unique_ptr<Csr>* l_cuda, std::unique_ptr<Csr>* u_cuda,
                     gko::size_type iterations = 0)
     {
         auto coo_ref = Coo::create(ref);

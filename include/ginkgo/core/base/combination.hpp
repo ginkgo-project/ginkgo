@@ -67,7 +67,7 @@ public:
      *
      * @return a list of coefficients
      */
-    const std::vector<std::shared_ptr<const LinOp>> &get_coefficients() const
+    const std::vector<std::shared_ptr<const LinOp>>& get_coefficients() const
         noexcept
     {
         return coefficients_;
@@ -78,7 +78,7 @@ public:
      *
      * @return a list of operators
      */
-    const std::vector<std::shared_ptr<const LinOp>> &get_operators() const
+    const std::vector<std::shared_ptr<const LinOp>>& get_operators() const
         noexcept
     {
         return operators_;
@@ -131,11 +131,11 @@ protected:
           coefficients_(coefficient_begin, coefficient_end),
           operators_(operator_begin, operator_end)
     {
-        for (const auto &c : coefficients_) {
+        for (const auto& c : coefficients_) {
             GKO_ASSERT_EQUAL_DIMENSIONS(c, dim<2>(1, 1));
         }
         this->set_size(operators_[0]->get_size());
-        for (const auto &o : operators_) {
+        for (const auto& o : operators_) {
             GKO_ASSERT_EQUAL_DIMENSIONS(o, this->get_size());
         }
     }
@@ -152,7 +152,7 @@ protected:
      */
     template <typename... Rest>
     explicit Combination(std::shared_ptr<const LinOp> coef,
-                         std::shared_ptr<const LinOp> oper, Rest &&... rest)
+                         std::shared_ptr<const LinOp> oper, Rest&&... rest)
         : Combination(std::forward<Rest>(rest)...)
     {
         GKO_ASSERT_EQUAL_DIMENSIONS(coef, dim<2>(1, 1));
@@ -181,10 +181,10 @@ protected:
           operators_{oper}
     {}
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
 private:
     std::vector<std::shared_ptr<const LinOp>> coefficients_;
@@ -194,8 +194,8 @@ private:
     mutable struct cache_struct {
         cache_struct() = default;
         ~cache_struct() = default;
-        cache_struct(const cache_struct &other) {}
-        cache_struct &operator=(const cache_struct &other) { return *this; }
+        cache_struct(const cache_struct& other) {}
+        cache_struct& operator=(const cache_struct& other) { return *this; }
 
         std::unique_ptr<LinOp> zero;
         std::unique_ptr<LinOp> one;

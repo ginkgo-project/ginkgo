@@ -331,12 +331,12 @@ public:
 
 #define GKO_ENABLE_SHUFFLE_OPERATION(_name, SelectorType)                   \
     template <typename ValueType>                                           \
-    __device__ __forceinline__ ValueType _name(const ValueType &var,        \
+    __device__ __forceinline__ ValueType _name(const ValueType& var,        \
                                                SelectorType selector) const \
     {                                                                       \
         return shuffle_impl(                                                \
             [this](uint32 v, SelectorType s) {                              \
-                return static_cast<const Group *>(this)->_name(v, s);       \
+                return static_cast<const Group*>(this)->_name(v, s);        \
             },                                                              \
             var, selector);                                                 \
     }
@@ -359,8 +359,8 @@ private:
                       "Unable to shuffle sizes which are not 4-byte multiples");
         constexpr auto value_size = sizeof(ValueType) / sizeof(uint32);
         ValueType result;
-        auto var_array = reinterpret_cast<const uint32 *>(&var);
-        auto result_array = reinterpret_cast<uint32 *>(&result);
+        auto var_array = reinterpret_cast<const uint32*>(&var);
+        auto result_array = reinterpret_cast<uint32*>(&result);
 #pragma unroll
         for (std::size_t i = 0; i < value_size; ++i) {
             result_array[i] = intrinsic_shuffle(var_array[i], selector);
@@ -389,7 +389,7 @@ __device__ __forceinline__
     std::enable_if_t<(Size <= kernels::hip::config::warp_size) && (Size > 0) &&
                          (kernels::hip::config::warp_size % Size == 0),
                      thread_block_tile<Size>>
-    tiled_partition(const Group &)
+    tiled_partition(const Group&)
 {
     return thread_block_tile<Size>();
 }

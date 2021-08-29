@@ -212,7 +212,7 @@ TEST(Lend, LendsUniquePointer)
 
     auto lent = gko::lend(p);
 
-    ::testing::StaticAssertTypeEq<decltype(lent), Derived *>();
+    ::testing::StaticAssertTypeEq<decltype(lent), Derived*>();
     ASSERT_EQ(p.get(), lent);
 }
 
@@ -223,7 +223,7 @@ TEST(Lend, LendsSharedPointer)
 
     auto lent = gko::lend(p);
 
-    ::testing::StaticAssertTypeEq<decltype(lent), Derived *>();
+    ::testing::StaticAssertTypeEq<decltype(lent), Derived*>();
     ASSERT_EQ(p.get(), lent);
 }
 
@@ -234,7 +234,7 @@ TEST(Lend, LendsPlainPointer)
 
     auto lent = gko::lend(p.get());
 
-    ::testing::StaticAssertTypeEq<decltype(lent), Derived *>();
+    ::testing::StaticAssertTypeEq<decltype(lent), Derived*>();
     ASSERT_EQ(p.get(), lent);
 }
 
@@ -243,7 +243,7 @@ TEST(As, ConvertsPolymorphicType)
 {
     Derived d;
 
-    Base *b = &d;
+    Base* b = &d;
 
     ASSERT_EQ(gko::as<Derived>(b), &d);
 }
@@ -252,12 +252,12 @@ TEST(As, ConvertsPolymorphicType)
 TEST(As, FailsToConvertIfNotRelated)
 {
     Derived d;
-    Base *b = &d;
+    Base* b = &d;
 
     try {
         gko::as<NonRelated>(b);
         FAIL();
-    } catch (gko::NotSupported &m) {
+    } catch (gko::NotSupported& m) {
         std::string msg{m.what()};
         auto expected = gko::name_demangling::get_type_name(typeid(Derived));
         ASSERT_TRUE(
@@ -269,7 +269,7 @@ TEST(As, FailsToConvertIfNotRelated)
 TEST(As, ConvertsConstantPolymorphicType)
 {
     Derived d;
-    const Base *b = &d;
+    const Base* b = &d;
 
     ASSERT_EQ(gko::as<Derived>(b), &d);
 }
@@ -278,12 +278,12 @@ TEST(As, ConvertsConstantPolymorphicType)
 TEST(As, FailsToConvertConstantIfNotRelated)
 {
     Derived d;
-    const Base *b = &d;
+    const Base* b = &d;
 
     try {
         gko::as<NonRelated>(b);
         FAIL();
-    } catch (gko::NotSupported &m) {
+    } catch (gko::NotSupported& m) {
         std::string msg{m.what()};
         auto expected = gko::name_demangling::get_type_name(typeid(Derived));
         ASSERT_TRUE(
@@ -452,7 +452,7 @@ TEST_F(TemporaryClone, DoesntCopyBackConstAfterLeavingScope)
 {
     {
         auto clone = make_temporary_clone(
-            omp, static_cast<const DummyObject *>(gko::lend(obj)));
+            omp, static_cast<const DummyObject*>(gko::lend(obj)));
         obj->data = 7;
     }
 

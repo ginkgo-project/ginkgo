@@ -67,10 +67,10 @@ namespace par_ilut_factorization {
 
 template <typename ValueType, typename IndexType>
 void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *m,
-                      IndexType rank, Array<ValueType> &tmp,
-                      Array<remove_complex<ValueType>> &,
-                      remove_complex<ValueType> &threshold) GKO_NOT_IMPLEMENTED;
+                      const matrix::Csr<ValueType, IndexType>* m,
+                      IndexType rank, Array<ValueType>& tmp,
+                      Array<remove_complex<ValueType>>&,
+                      remove_complex<ValueType>& threshold) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_SELECT_KERNEL);
@@ -84,18 +84,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  */
 template <typename Predicate, typename ValueType, typename IndexType>
 void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
-                     const matrix::Csr<ValueType, IndexType> *m,
-                     matrix::Csr<ValueType, IndexType> *m_out,
-                     matrix::Coo<ValueType, IndexType> *m_out_coo,
+                     const matrix::Csr<ValueType, IndexType>* m,
+                     matrix::Csr<ValueType, IndexType>* m_out,
+                     matrix::Coo<ValueType, IndexType>* m_out_coo,
                      Predicate pred) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>
 void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *m,
+                      const matrix::Csr<ValueType, IndexType>* m,
                       remove_complex<ValueType> threshold,
-                      matrix::Csr<ValueType, IndexType> *m_out,
-                      matrix::Coo<ValueType, IndexType> *m_out_coo,
+                      matrix::Csr<ValueType, IndexType>* m_out,
+                      matrix::Coo<ValueType, IndexType>* m_out_coo,
                       bool) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -109,10 +109,10 @@ constexpr auto sample_size = bucket_count * sampleselect_oversampling;
 template <typename ValueType, typename IndexType>
 void threshold_filter_approx(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *m, IndexType rank,
-    Array<ValueType> &tmp, remove_complex<ValueType> &threshold,
-    matrix::Csr<ValueType, IndexType> *m_out,
-    matrix::Coo<ValueType, IndexType> *m_out_coo) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType>* m, IndexType rank,
+    Array<ValueType>& tmp, remove_complex<ValueType>& threshold,
+    matrix::Csr<ValueType, IndexType>* m_out,
+    matrix::Coo<ValueType, IndexType>* m_out_coo) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL);
@@ -120,12 +120,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType> *a,
-                         matrix::Csr<ValueType, IndexType> *l,
-                         const matrix::Coo<ValueType, IndexType> *,
-                         matrix::Csr<ValueType, IndexType> *u,
-                         const matrix::Coo<ValueType, IndexType> *,
-                         matrix::Csr<ValueType, IndexType> *u_csc)
+                         const matrix::Csr<ValueType, IndexType>* a,
+                         matrix::Csr<ValueType, IndexType>* l,
+                         const matrix::Coo<ValueType, IndexType>*,
+                         matrix::Csr<ValueType, IndexType>* u,
+                         const matrix::Coo<ValueType, IndexType>*,
+                         matrix::Csr<ValueType, IndexType>* u_csc)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -134,12 +134,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *lu,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    const matrix::Csr<ValueType, IndexType> *l,
-                    const matrix::Csr<ValueType, IndexType> *u,
-                    matrix::Csr<ValueType, IndexType> *l_new,
-                    matrix::Csr<ValueType, IndexType> *u_new)
+                    const matrix::Csr<ValueType, IndexType>* lu,
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    const matrix::Csr<ValueType, IndexType>* l,
+                    const matrix::Csr<ValueType, IndexType>* u,
+                    matrix::Csr<ValueType, IndexType>* l_new,
+                    matrix::Csr<ValueType, IndexType>* u_new)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

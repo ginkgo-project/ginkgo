@@ -92,9 +92,9 @@ constexpr double default_gamma = -1.0 / 6.0;
 // Creates a stencil matrix in CSR format for the given number of discretization
 // points.
 template <typename ValueType, typename IndexType>
-void generate_stencil_matrix(IndexType dp, IndexType *row_ptrs,
-                             IndexType *col_idxs, ValueType *values,
-                             ValueType *coefs)
+void generate_stencil_matrix(IndexType dp, IndexType* row_ptrs,
+                             IndexType* col_idxs, ValueType* values,
+                             ValueType* coefs)
 {
     IndexType pos = 0;
     const size_t dp_2 = dp * dp;
@@ -122,8 +122,8 @@ void generate_stencil_matrix(IndexType dp, IndexType *row_ptrs,
 // Generates the RHS vector given `f` and the boundary conditions.
 template <typename Closure, typename ClosureT, typename ValueType,
           typename IndexType>
-void generate_rhs(IndexType dp, Closure f, ClosureT u, ValueType *rhs,
-                  ValueType *coefs)
+void generate_rhs(IndexType dp, Closure f, ClosureT u, ValueType* rhs,
+                  ValueType* coefs)
 {
     const size_t dp_2 = dp * dp;
     const ValueType h = 1.0 / (dp + 1.0);
@@ -175,7 +175,7 @@ void generate_rhs(IndexType dp, Closure f, ClosureT u, ValueType *rhs,
 
 // Prints the solution `u`.
 template <typename ValueType, typename IndexType>
-void print_solution(IndexType dp, const ValueType *u)
+void print_solution(IndexType dp, const ValueType* u)
 {
     for (IndexType i = 0; i < dp; ++i) {
         for (IndexType j = 0; j < dp; ++j) {
@@ -190,7 +190,7 @@ void print_solution(IndexType dp, const ValueType *u)
 // Computes the 1-norm of the error given the computed `u` and the correct
 // solution function `correct_u`.
 template <typename Closure, typename ValueType, typename IndexType>
-gko::remove_complex<ValueType> calculate_error(IndexType dp, const ValueType *u,
+gko::remove_complex<ValueType> calculate_error(IndexType dp, const ValueType* u,
                                                Closure correct_u)
 {
     const ValueType h = 1.0 / (dp + 1);
@@ -209,10 +209,10 @@ gko::remove_complex<ValueType> calculate_error(IndexType dp, const ValueType *u,
 
 
 template <typename ValueType, typename IndexType>
-void solve_system(const std::string &executor_string,
-                  unsigned int discretization_points, IndexType *row_ptrs,
-                  IndexType *col_idxs, ValueType *values, ValueType *rhs,
-                  ValueType *u, gko::remove_complex<ValueType> reduction_factor)
+void solve_system(const std::string& executor_string,
+                  unsigned int discretization_points, IndexType* row_ptrs,
+                  IndexType* col_idxs, ValueType* values, ValueType* rhs,
+                  ValueType* u, gko::remove_complex<ValueType> reduction_factor)
 {
     // Some shortcuts
     using vec = gko::matrix::Dense<ValueType>;
@@ -221,7 +221,7 @@ void solve_system(const std::string &executor_string,
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
     using val_array = gko::Array<ValueType>;
     using idx_array = gko::Array<IndexType>;
-    const auto &dp = discretization_points;
+    const auto& dp = discretization_points;
     const gko::size_type dp_2 = dp * dp;
 
     // Figure out where to run the code
@@ -297,7 +297,7 @@ void solve_system(const std::string &executor_string,
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     using ValueType = double;
     using IndexType = int;

@@ -68,7 +68,7 @@ namespace gko {
  */
 template <typename ValueType>
 detail::temporary_conversion<matrix::Dense<ValueType>>
-make_temporary_conversion(LinOp *matrix)
+make_temporary_conversion(LinOp* matrix)
 {
     auto result =
         detail::temporary_conversion<matrix::Dense<ValueType>>::template create<
@@ -83,7 +83,7 @@ make_temporary_conversion(LinOp *matrix)
 /** @copydoc make_temporary_conversion(LinOp*) */
 template <typename ValueType>
 detail::temporary_conversion<const matrix::Dense<ValueType>>
-make_temporary_conversion(const LinOp *matrix)
+make_temporary_conversion(const LinOp* matrix)
 {
     auto result = detail::temporary_conversion<const matrix::Dense<ValueType>>::
         template create<matrix::Dense<next_precision<ValueType>>>(matrix);
@@ -109,7 +109,7 @@ make_temporary_conversion(const LinOp *matrix)
  * @tparam Args  the argument type list.
  * */
 template <typename ValueType, typename Function, typename... Args>
-void precision_dispatch(Function fn, Args *... linops)
+void precision_dispatch(Function fn, Args*... linops)
 {
     fn(make_temporary_conversion<ValueType>(linops).get()...);
 }
@@ -125,7 +125,7 @@ void precision_dispatch(Function fn, Args *... linops)
  * @see precision_dispatch()
  */
 template <typename ValueType, typename Function>
-void precision_dispatch_real_complex(Function fn, const LinOp *in, LinOp *out)
+void precision_dispatch_real_complex(Function fn, const LinOp* in, LinOp* out)
 {
     // do we need to convert complex Dense to real Dense?
     // all real dense vectors are intra-convertible, thus by casting to
@@ -133,7 +133,7 @@ void precision_dispatch_real_complex(Function fn, const LinOp *in, LinOp *out)
     // dense matrix:
     auto complex_to_real =
         !(is_complex<ValueType>() ||
-          dynamic_cast<const ConvertibleTo<matrix::Dense<>> *>(in));
+          dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in));
     if (complex_to_real) {
         auto dense_in = make_temporary_conversion<to_complex<ValueType>>(in);
         auto dense_out = make_temporary_conversion<to_complex<ValueType>>(out);
@@ -141,8 +141,8 @@ void precision_dispatch_real_complex(Function fn, const LinOp *in, LinOp *out)
         // These dynamic_casts are only needed to make the code compile
         // If ValueType is complex, this branch will never be taken
         // If ValueType is real, the cast is a no-op
-        fn(dynamic_cast<const Dense *>(dense_in->create_real_view().get()),
-           dynamic_cast<Dense *>(dense_out->create_real_view().get()));
+        fn(dynamic_cast<const Dense*>(dense_in->create_real_view().get()),
+           dynamic_cast<Dense*>(dense_out->create_real_view().get()));
     } else {
         precision_dispatch<ValueType>(fn, in, out);
     }
@@ -159,8 +159,8 @@ void precision_dispatch_real_complex(Function fn, const LinOp *in, LinOp *out)
  * @see precision_dispatch()
  */
 template <typename ValueType, typename Function>
-void precision_dispatch_real_complex(Function fn, const LinOp *alpha,
-                                     const LinOp *in, LinOp *out)
+void precision_dispatch_real_complex(Function fn, const LinOp* alpha,
+                                     const LinOp* in, LinOp* out)
 {
     // do we need to convert complex Dense to real Dense?
     // all real dense vectors are intra-convertible, thus by casting to
@@ -168,7 +168,7 @@ void precision_dispatch_real_complex(Function fn, const LinOp *alpha,
     // dense matrix:
     auto complex_to_real =
         !(is_complex<ValueType>() ||
-          dynamic_cast<const ConvertibleTo<matrix::Dense<>> *>(in));
+          dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in));
     if (complex_to_real) {
         auto dense_in = make_temporary_conversion<to_complex<ValueType>>(in);
         auto dense_out = make_temporary_conversion<to_complex<ValueType>>(out);
@@ -178,8 +178,8 @@ void precision_dispatch_real_complex(Function fn, const LinOp *alpha,
         // If ValueType is complex, this branch will never be taken
         // If ValueType is real, the cast is a no-op
         fn(dense_alpha.get(),
-           dynamic_cast<const Dense *>(dense_in->create_real_view().get()),
-           dynamic_cast<Dense *>(dense_out->create_real_view().get()));
+           dynamic_cast<const Dense*>(dense_in->create_real_view().get()),
+           dynamic_cast<Dense*>(dense_out->create_real_view().get()));
     } else {
         precision_dispatch<ValueType>(fn, alpha, in, out);
     }
@@ -196,9 +196,9 @@ void precision_dispatch_real_complex(Function fn, const LinOp *alpha,
  * @see precision_dispatch()
  */
 template <typename ValueType, typename Function>
-void precision_dispatch_real_complex(Function fn, const LinOp *alpha,
-                                     const LinOp *in, const LinOp *beta,
-                                     LinOp *out)
+void precision_dispatch_real_complex(Function fn, const LinOp* alpha,
+                                     const LinOp* in, const LinOp* beta,
+                                     LinOp* out)
 {
     // do we need to convert complex Dense to real Dense?
     // all real dense vectors are intra-convertible, thus by casting to
@@ -206,7 +206,7 @@ void precision_dispatch_real_complex(Function fn, const LinOp *alpha,
     // dense matrix:
     auto complex_to_real =
         !(is_complex<ValueType>() ||
-          dynamic_cast<const ConvertibleTo<matrix::Dense<>> *>(in));
+          dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in));
     if (complex_to_real) {
         auto dense_in = make_temporary_conversion<to_complex<ValueType>>(in);
         auto dense_out = make_temporary_conversion<to_complex<ValueType>>(out);
@@ -217,9 +217,9 @@ void precision_dispatch_real_complex(Function fn, const LinOp *alpha,
         // If ValueType is complex, this branch will never be taken
         // If ValueType is real, the cast is a no-op
         fn(dense_alpha.get(),
-           dynamic_cast<const Dense *>(dense_in->create_real_view().get()),
+           dynamic_cast<const Dense*>(dense_in->create_real_view().get()),
            dense_beta.get(),
-           dynamic_cast<Dense *>(dense_out->create_real_view().get()));
+           dynamic_cast<Dense*>(dense_out->create_real_view().get()));
     } else {
         precision_dispatch<ValueType>(fn, alpha, in, beta, out);
     }
@@ -256,23 +256,23 @@ void precision_dispatch_real_complex(Function fn, const LinOp *alpha,
  *                   with the converted arguments.
  */
 template <typename ValueType, typename Function>
-void mixed_precision_dispatch(Function fn, const LinOp *in, LinOp *out)
+void mixed_precision_dispatch(Function fn, const LinOp* in, LinOp* out)
 {
 #ifdef GINKGO_MIXED_PRECISION
     using fst_type = matrix::Dense<ValueType>;
     using snd_type = matrix::Dense<next_precision<ValueType>>;
-    if (auto dense_in = dynamic_cast<const fst_type *>(in)) {
-        if (auto dense_out = dynamic_cast<fst_type *>(out)) {
+    if (auto dense_in = dynamic_cast<const fst_type*>(in)) {
+        if (auto dense_out = dynamic_cast<fst_type*>(out)) {
             fn(dense_in, dense_out);
-        } else if (auto dense_out = dynamic_cast<snd_type *>(out)) {
+        } else if (auto dense_out = dynamic_cast<snd_type*>(out)) {
             fn(dense_in, dense_out);
         } else {
             GKO_NOT_SUPPORTED(out);
         }
-    } else if (auto dense_in = dynamic_cast<const snd_type *>(in)) {
-        if (auto dense_out = dynamic_cast<fst_type *>(out)) {
+    } else if (auto dense_in = dynamic_cast<const snd_type*>(in)) {
+        if (auto dense_out = dynamic_cast<fst_type*>(out)) {
             fn(dense_in, dense_out);
-        } else if (auto dense_out = dynamic_cast<snd_type *>(out)) {
+        } else if (auto dense_out = dynamic_cast<snd_type*>(out)) {
             fn(dense_in, dense_out);
         } else {
             GKO_NOT_SUPPORTED(out);
@@ -296,9 +296,9 @@ void mixed_precision_dispatch(Function fn, const LinOp *in, LinOp *out)
  * @see mixed_precision_dispatch()
  */
 template <typename ValueType, typename Function,
-          std::enable_if_t<is_complex<ValueType>()> * = nullptr>
-void mixed_precision_dispatch_real_complex(Function fn, const LinOp *in,
-                                           LinOp *out)
+          std::enable_if_t<is_complex<ValueType>()>* = nullptr>
+void mixed_precision_dispatch_real_complex(Function fn, const LinOp* in,
+                                           LinOp* out)
 {
 #ifdef GINKGO_MIXED_PRECISION
     mixed_precision_dispatch<ValueType>(fn, in, out);
@@ -309,12 +309,12 @@ void mixed_precision_dispatch_real_complex(Function fn, const LinOp *in,
 
 
 template <typename ValueType, typename Function,
-          std::enable_if_t<!is_complex<ValueType>()> * = nullptr>
-void mixed_precision_dispatch_real_complex(Function fn, const LinOp *in,
-                                           LinOp *out)
+          std::enable_if_t<!is_complex<ValueType>()>* = nullptr>
+void mixed_precision_dispatch_real_complex(Function fn, const LinOp* in,
+                                           LinOp* out)
 {
 #ifdef GINKGO_MIXED_PRECISION
-    if (!dynamic_cast<const ConvertibleTo<matrix::Dense<>> *>(in)) {
+    if (!dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in)) {
         mixed_precision_dispatch<to_complex<ValueType>>(
             [&fn](auto dense_in, auto dense_out) {
                 fn(dense_in->create_real_view().get(),

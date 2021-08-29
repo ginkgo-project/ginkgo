@@ -56,8 +56,8 @@ template <
     int max_problem_size, typename Group, typename ValueType,
     typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void apply_gauss_jordan_transform(
-    const Group &__restrict__ group, int32 key_row, int32 key_col,
-    ValueType *__restrict__ row, bool &__restrict__ status)
+    const Group& __restrict__ group, int32 key_row, int32 key_col,
+    ValueType* __restrict__ row, bool& __restrict__ status)
 {
     auto key_col_elem = group.shfl(row[key_col], key_row);
     if (key_col_elem == zero<ValueType>()) {
@@ -99,9 +99,9 @@ template <
     int max_problem_size, typename Group, typename ValueType,
     typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void apply_gauss_jordan_transform_with_rhs(
-    const Group &__restrict__ group, int32 key_row, int32 key_col,
-    ValueType *__restrict__ row, ValueType *__restrict__ rhs,
-    bool &__restrict__ status)
+    const Group& __restrict__ group, int32 key_row, int32 key_col,
+    ValueType* __restrict__ row, ValueType* __restrict__ rhs,
+    bool& __restrict__ status)
 {
     auto key_col_elem = group.shfl(row[key_col], key_row);
     auto key_rhs_elem = group.shfl(rhs[0], key_row);
@@ -164,11 +164,11 @@ __device__ __forceinline__ void apply_gauss_jordan_transform_with_rhs(
 template <
     int max_problem_size, typename Group, typename ValueType,
     typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
-__device__ __forceinline__ bool invert_block(const Group &__restrict__ group,
+__device__ __forceinline__ bool invert_block(const Group& __restrict__ group,
                                              uint32 problem_size,
-                                             ValueType *__restrict__ row,
-                                             uint32 &__restrict__ perm,
-                                             uint32 &__restrict__ trans_perm)
+                                             ValueType* __restrict__ row,
+                                             uint32& __restrict__ perm,
+                                             uint32& __restrict__ trans_perm)
 {
     GKO_ASSERT(problem_size <= max_problem_size);
     // prevent rows after problem_size to become pivots
@@ -257,9 +257,9 @@ template <
     typename Group, typename SourceValueType, typename ResultValueType,
     typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void copy_matrix(
-    const Group &__restrict__ group, uint32 problem_size,
-    const SourceValueType *__restrict__ source_row, uint32 increment,
-    uint32 row_perm, uint32 col_perm, ResultValueType *__restrict__ destination,
+    const Group& __restrict__ group, uint32 problem_size,
+    const SourceValueType* __restrict__ source_row, uint32 increment,
+    uint32 row_perm, uint32 col_perm, ResultValueType* __restrict__ destination,
     size_type stride)
 {
     GKO_ASSERT(problem_size <= max_problem_size);
@@ -310,10 +310,10 @@ template <
     typename VectorValueType,
     typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void multiply_transposed_vec(
-    const Group &__restrict__ group, uint32 problem_size,
-    const VectorValueType &__restrict__ vec,
-    const MatrixValueType *__restrict__ mtx_row, uint32 mtx_increment,
-    VectorValueType *__restrict__ res, uint32 res_increment)
+    const Group& __restrict__ group, uint32 problem_size,
+    const VectorValueType& __restrict__ vec,
+    const MatrixValueType* __restrict__ mtx_row, uint32 mtx_increment,
+    VectorValueType* __restrict__ res, uint32 res_increment)
 {
     GKO_ASSERT(problem_size <= max_problem_size);
     auto mtx_elem = zero<VectorValueType>();
@@ -370,10 +370,10 @@ template <
     typename VectorValueType, typename Closure,
     typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void multiply_vec(
-    const Group &__restrict__ group, uint32 problem_size,
-    const VectorValueType &__restrict__ vec,
-    const MatrixValueType *__restrict__ mtx_row, uint32 mtx_increment,
-    VectorValueType *__restrict__ res, uint32 res_increment, Closure closure_op)
+    const Group& __restrict__ group, uint32 problem_size,
+    const VectorValueType& __restrict__ vec,
+    const MatrixValueType* __restrict__ mtx_row, uint32 mtx_increment,
+    VectorValueType* __restrict__ res, uint32 res_increment, Closure closure_op)
 {
     GKO_ASSERT(problem_size <= max_problem_size);
     auto mtx_elem = zero<VectorValueType>();
@@ -418,7 +418,7 @@ template <
     int max_problem_size, typename Group, typename ValueType,
     typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ remove_complex<ValueType> compute_infinity_norm(
-    const Group &group, uint32 num_rows, uint32 num_cols, const ValueType *row)
+    const Group& group, uint32 num_rows, uint32 num_cols, const ValueType* row)
 {
     using result_type = remove_complex<ValueType>;
     auto sum = zero<result_type>();

@@ -316,9 +316,9 @@ public:
     {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         const auto tmp = __float2half_rn(val);
-        data_ = reinterpret_cast<const uint16 &>(tmp);
+        data_ = reinterpret_cast<const uint16&>(tmp);
 #else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        data_ = float2half(reinterpret_cast<const uint32 &>(val));
+        data_ = float2half(reinterpret_cast<const uint32&>(val));
 #endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     }
 
@@ -328,10 +328,10 @@ public:
     GKO_ATTRIBUTES operator float32() const noexcept
     {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        return __half2float(reinterpret_cast<const __half &>(data_));
+        return __half2float(reinterpret_cast<const __half&>(data_));
 #else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         const auto bits = half2float(data_);
-        return reinterpret_cast<const float32 &>(bits);
+        return reinterpret_cast<const float32&>(bits);
 #endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     }
 
@@ -453,9 +453,9 @@ public:
 
     truncated() noexcept = default;
 
-    GKO_ATTRIBUTES explicit truncated(const float_type &val) noexcept
+    GKO_ATTRIBUTES explicit truncated(const float_type& val) noexcept
     {
-        const auto &bits = reinterpret_cast<const full_bits_type &>(val);
+        const auto& bits = reinterpret_cast<const full_bits_type&>(val);
         data_ = static_cast<bits_type>((bits & component_mask) >>
                                        component_position);
     }
@@ -464,7 +464,7 @@ public:
     {
         const auto bits = static_cast<full_bits_type>(data_)
                           << component_position;
-        return reinterpret_cast<const float_type &>(bits);
+        return reinterpret_cast<const float_type&>(bits);
     }
 
     GKO_ATTRIBUTES truncated operator-() const noexcept
@@ -493,12 +493,12 @@ class complex<gko::half> {
 public:
     using value_type = gko::half;
 
-    complex(const value_type &real = 0.f, const value_type &imag = 0.f)
+    complex(const value_type& real = 0.f, const value_type& imag = 0.f)
         : real_(real), imag_(imag)
     {}
 
     template <typename U>
-    explicit complex(const complex<U> &other)
+    explicit complex(const complex<U>& other)
         : complex(static_cast<value_type>(other.real()),
                   static_cast<value_type>(other.imag()))
     {}
@@ -525,12 +525,12 @@ class complex<gko::truncated<T, NumComponents>> {
 public:
     using value_type = gko::truncated<T, NumComponents>;
 
-    complex(const value_type &real = 0.f, const value_type &imag = 0.f)
+    complex(const value_type& real = 0.f, const value_type& imag = 0.f)
         : real_(real), imag_(imag)
     {}
 
     template <typename U>
-    explicit complex(const complex<U> &other)
+    explicit complex(const complex<U>& other)
         : complex(static_cast<value_type>(other.real()),
                   static_cast<value_type>(other.imag()))
     {}

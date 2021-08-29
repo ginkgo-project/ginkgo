@@ -141,14 +141,14 @@ struct DummyLogger : gko::log::Logger {
 
     explicit DummyLogger(
         std::shared_ptr<const gko::Executor> exec,
-        const mask_type &enabled_events = Logger::all_events_mask)
+        const mask_type& enabled_events = Logger::all_events_mask)
         : Logger(exec, enabled_events)
     {}
 
     void on_iteration_complete(
-        const gko::LinOp *solver, const gko::size_type &num_iterations,
-        const gko::LinOp *residual, const gko::LinOp *solution = nullptr,
-        const gko::LinOp *residual_norm = nullptr) const override
+        const gko::LinOp* solver, const gko::size_type& num_iterations,
+        const gko::LinOp* residual, const gko::LinOp* solution = nullptr,
+        const gko::LinOp* residual_norm = nullptr) const override
     {
         this->num_iterations_ = num_iterations;
     }

@@ -40,7 +40,7 @@ namespace components {
 
 
 template <typename ValueType>
-void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
+void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType* array,
                 size_type n, ValueType val)
 {
 #pragma omp parallel for
@@ -55,7 +55,7 @@ template GKO_DECLARE_FILL_ARRAY_KERNEL(bool);
 
 template <typename ValueType>
 void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
-                    ValueType *array, size_type n)
+                    ValueType* array, size_type n)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < n; ++i) {

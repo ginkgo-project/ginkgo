@@ -55,12 +55,12 @@ public:
     /**
      * @return The column index array of the matrix.
      */
-    Array<IndexType> &get_col_idx_array() { return matrix_->col_idxs_; }
+    Array<IndexType>& get_col_idx_array() { return matrix_->col_idxs_; }
 
     /**
      * @return The value array of the matrix.
      */
-    Array<ValueType> &get_value_array() { return matrix_->values_; }
+    Array<ValueType>& get_value_array() { return matrix_->values_; }
 
     /**
      * @return The (uniform) block size
@@ -71,20 +71,20 @@ public:
      * @param matrix  An existing FBCSR matrix
      *                for which intrusive access is needed
      */
-    explicit FbcsrBuilder(Fbcsr<ValueType, IndexType> *const matrix)
+    explicit FbcsrBuilder(Fbcsr<ValueType, IndexType>* const matrix)
         : matrix_{matrix}
     {}
 
     ~FbcsrBuilder() = default;
 
     // make this type non-movable
-    FbcsrBuilder(const FbcsrBuilder &) = delete;
-    FbcsrBuilder(FbcsrBuilder &&) = delete;
-    FbcsrBuilder &operator=(const FbcsrBuilder &) = delete;
-    FbcsrBuilder &operator=(FbcsrBuilder &&) = delete;
+    FbcsrBuilder(const FbcsrBuilder&) = delete;
+    FbcsrBuilder(FbcsrBuilder&&) = delete;
+    FbcsrBuilder& operator=(const FbcsrBuilder&) = delete;
+    FbcsrBuilder& operator=(FbcsrBuilder&&) = delete;
 
 private:
-    Fbcsr<ValueType, IndexType> *matrix_;
+    Fbcsr<ValueType, IndexType>* matrix_;
 };
 
 

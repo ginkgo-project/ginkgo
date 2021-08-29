@@ -51,7 +51,7 @@ namespace kernels {
 
 #define GKO_DECLARE_ILU_COMPUTE_LU_KERNEL(ValueType, IndexType)  \
     void compute_lu(std::shared_ptr<const DefaultExecutor> exec, \
-                    matrix::Csr<ValueType, IndexType> *system_matrix)
+                    matrix::Csr<ValueType, IndexType>* system_matrix)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                  \

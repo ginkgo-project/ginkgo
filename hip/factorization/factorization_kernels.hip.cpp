@@ -67,7 +67,7 @@ constexpr int default_block_size{512};
 
 template <typename ValueType, typename IndexType>
 void add_diagonal_elements(std::shared_ptr<const HipExecutor> exec,
-                           matrix::Csr<ValueType, IndexType> *mtx,
+                           matrix::Csr<ValueType, IndexType>* mtx,
                            bool is_sorted)
 {
     // TODO: Runtime can be optimized by choosing a appropriate size for the
@@ -150,8 +150,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l_u(
     std::shared_ptr<const HipExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    IndexType *l_row_ptrs, IndexType *u_row_ptrs)
+    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    IndexType* l_row_ptrs, IndexType* u_row_ptrs)
 {
     const size_type num_rows{system_matrix->get_size()[0]};
 
@@ -177,9 +177,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_l_u(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *system_matrix,
-                    matrix::Csr<ValueType, IndexType> *csr_l,
-                    matrix::Csr<ValueType, IndexType> *csr_u)
+                    const matrix::Csr<ValueType, IndexType>* system_matrix,
+                    matrix::Csr<ValueType, IndexType>* csr_l,
+                    matrix::Csr<ValueType, IndexType>* csr_u)
 {
     const size_type num_rows{system_matrix->get_size()[0]};
     const dim3 block_size{default_block_size, 1, 1};
@@ -205,8 +205,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l(
     std::shared_ptr<const HipExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    IndexType *l_row_ptrs)
+    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    IndexType* l_row_ptrs)
 {
     const size_type num_rows{system_matrix->get_size()[0]};
 
@@ -231,8 +231,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_l(std::shared_ptr<const HipExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType> *system_matrix,
-                  matrix::Csr<ValueType, IndexType> *csr_l, bool diag_sqrt)
+                  const matrix::Csr<ValueType, IndexType>* system_matrix,
+                  matrix::Csr<ValueType, IndexType>* csr_l, bool diag_sqrt)
 {
     const size_type num_rows{system_matrix->get_size()[0]};
     const dim3 block_size{default_block_size, 1, 1};

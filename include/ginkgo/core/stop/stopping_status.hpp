@@ -48,9 +48,9 @@ namespace gko {
  */
 class stopping_status {
     friend GKO_ATTRIBUTES GKO_INLINE bool operator==(
-        const stopping_status &x, const stopping_status &y) noexcept;
+        const stopping_status& x, const stopping_status& y) noexcept;
     friend GKO_ATTRIBUTES GKO_INLINE bool operator!=(
-        const stopping_status &x, const stopping_status &y) noexcept;
+        const stopping_status& x, const stopping_status& y) noexcept;
 
 public:
     /**
@@ -159,8 +159,8 @@ private:
  * @return true if and only if both `x` and `y` have the same mask and converged
  *         and finalized state
  */
-GKO_ATTRIBUTES GKO_INLINE bool operator==(const stopping_status &x,
-                                          const stopping_status &y) noexcept
+GKO_ATTRIBUTES GKO_INLINE bool operator==(const stopping_status& x,
+                                          const stopping_status& y) noexcept
 {
     return x.data_ == y.data_;
 }
@@ -174,8 +174,8 @@ GKO_ATTRIBUTES GKO_INLINE bool operator==(const stopping_status &x,
  *
  * @return true if and only if `!(x == y)`
  */
-GKO_ATTRIBUTES GKO_INLINE bool operator!=(const stopping_status &x,
-                                          const stopping_status &y) noexcept
+GKO_ATTRIBUTES GKO_INLINE bool operator!=(const stopping_status& x,
+                                          const stopping_status& y) noexcept
 {
     return x.data_ != y.data_;
 }

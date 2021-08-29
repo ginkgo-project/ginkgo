@@ -121,7 +121,7 @@ public:
     // Remove the possibility of calling `create`, which was enabled by
     // `Composition`
     template <typename... Args>
-    static std::unique_ptr<Composition<ValueType>> create(Args &&... args) =
+    static std::unique_ptr<Composition<ValueType>> create(Args&&... args) =
         delete;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -219,7 +219,7 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    explicit ParIlut(const Factory *factory,
+    explicit ParIlut(const Factory* factory,
                      std::shared_ptr<const LinOp> system_matrix)
         : Composition<ValueType>(factory->get_executor()),
           parameters_{factory->get_parameters()}
@@ -248,7 +248,7 @@ protected:
      *          given system_matrix (first element is L, then U)
      */
     std::unique_ptr<Composition<ValueType>> generate_l_u(
-        const std::shared_ptr<const LinOp> &system_matrix) const;
+        const std::shared_ptr<const LinOp>& system_matrix) const;
 };
 
 

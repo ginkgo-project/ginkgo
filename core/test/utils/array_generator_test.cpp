@@ -111,13 +111,13 @@ TYPED_TEST(ArrayGenerator, OutputHasCorrectAverageAndDeviation)
     this->template check_average_and_deviation<T>(
         this->array.get_const_data(),
         this->array.get_const_data() + this->array.get_num_elems(), 20.0, 5.0,
-        [](T &val) { return gko::real(val); });
+        [](T& val) { return gko::real(val); });
     // check the imag part when the type is complex
     if (!std::is_same<T, gko::remove_complex<T>>::value) {
         this->template check_average_and_deviation<T>(
             this->array.get_const_data(),
             this->array.get_const_data() + this->array.get_num_elems(), 20.0,
-            5.0, [](T &val) { return gko::imag(val); });
+            5.0, [](T& val) { return gko::imag(val); });
     }
 }
 

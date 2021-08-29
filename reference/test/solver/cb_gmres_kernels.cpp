@@ -446,7 +446,7 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem2)
 
 
 template <typename T>
-gko::remove_complex<T> inf_norm(gko::matrix::Dense<T> *mat, size_t col = 0)
+gko::remove_complex<T> inf_norm(gko::matrix::Dense<T>* mat, size_t col = 0)
 {
     using std::abs;
     auto host_data = clone(mat->get_executor()->get_master(), mat);

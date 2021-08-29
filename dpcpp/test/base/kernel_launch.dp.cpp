@@ -111,7 +111,7 @@ TEST_F(KernelLaunch, Runs1D)
         exec,
         [] GKO_KERNEL(auto i, auto d) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
-            static_assert(is_same<decltype(d), int *>::value, "type");
+            static_assert(is_same<decltype(d), int*>::value, "type");
             d[i] = i;
         },
         zero_array.get_num_elems(), zero_array.get_data());
@@ -126,8 +126,8 @@ TEST_F(KernelLaunch, Runs1DArray)
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
-            static_assert(is_same<decltype(d), int *>::value, "type");
-            static_assert(is_same<decltype(d_ptr), const int *>::value, "type");
+            static_assert(is_same<decltype(d), int*>::value, "type");
+            static_assert(is_same<decltype(d_ptr), const int*>::value, "type");
             if (d == d_ptr) {
                 d[i] = i;
             } else {
@@ -146,11 +146,11 @@ TEST_F(KernelLaunch, Runs1DDense)
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d2, auto d_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
-            static_assert(is_same<decltype(d(0, 0)), value_type &>::value,
+            static_assert(is_same<decltype(d(0, 0)), value_type&>::value,
                           "type");
-            static_assert(
-                is_same<decltype(d2(0, 0)), const value_type &>::value, "type");
-            static_assert(is_same<decltype(d_ptr), const value_type *>::value,
+            static_assert(is_same<decltype(d2(0, 0)), const value_type&>::value,
+                          "type");
+            static_assert(is_same<decltype(d_ptr), const value_type*>::value,
                           "type");
             bool pointers_correct = d.data == d_ptr && d2.data == d_ptr;
             bool strides_correct = d.stride == 5 && d2.stride == 5;
@@ -165,7 +165,7 @@ TEST_F(KernelLaunch, Runs1DDense)
                 d(i / 4, i % 4) = 0;
             }
         },
-        16, zero_dense2.get(), static_cast<const Mtx *>(zero_dense2.get()),
+        16, zero_dense2.get(), static_cast<const Mtx*>(zero_dense2.get()),
         zero_dense2->get_const_values());
 
     GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);
@@ -179,7 +179,7 @@ TEST_F(KernelLaunch, Runs2D)
         [] GKO_KERNEL(auto i, auto j, auto d) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
             static_assert(is_same<decltype(j), size_type>::value, "index");
-            static_assert(is_same<decltype(d), int *>::value, "type");
+            static_assert(is_same<decltype(d), int*>::value, "type");
             d[i + 4 * j] = 4 * i + j;
         },
         dim<2>{4, 4}, zero_array.get_data());
@@ -195,8 +195,8 @@ TEST_F(KernelLaunch, Runs2DArray)
         [] GKO_KERNEL(auto i, auto j, auto d, auto d_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
             static_assert(is_same<decltype(j), size_type>::value, "index");
-            static_assert(is_same<decltype(d), int *>::value, "type");
-            static_assert(is_same<decltype(d_ptr), const int *>::value, "type");
+            static_assert(is_same<decltype(d), int*>::value, "type");
+            static_assert(is_same<decltype(d_ptr), const int*>::value, "type");
             if (d == d_ptr) {
                 d[i + 4 * j] = 4 * i + j;
             } else {
@@ -216,18 +216,18 @@ TEST_F(KernelLaunch, Runs2DDense)
         [] GKO_KERNEL(auto i, auto j, auto d, auto d2, auto d_ptr, auto d3,
                       auto d4, auto d2_ptr, auto d3_ptr) {
             static_assert(is_same<decltype(i), size_type>::value, "index");
-            static_assert(is_same<decltype(d(0, 0)), value_type &>::value,
+            static_assert(is_same<decltype(d(0, 0)), value_type&>::value,
                           "type");
-            static_assert(
-                is_same<decltype(d2(0, 0)), const value_type &>::value, "type");
-            static_assert(is_same<decltype(d_ptr), const value_type *>::value,
+            static_assert(is_same<decltype(d2(0, 0)), const value_type&>::value,
                           "type");
-            static_assert(is_same<decltype(d3(0, 0)), value_type &>::value,
+            static_assert(is_same<decltype(d_ptr), const value_type*>::value,
                           "type");
-            static_assert(is_same<decltype(d4), value_type *>::value, "type");
-            static_assert(is_same<decltype(d2_ptr), value_type *>::value,
+            static_assert(is_same<decltype(d3(0, 0)), value_type&>::value,
                           "type");
-            static_assert(is_same<decltype(d3_ptr), value_type *>::value,
+            static_assert(is_same<decltype(d4), value_type*>::value, "type");
+            static_assert(is_same<decltype(d2_ptr), value_type*>::value,
+                          "type");
+            static_assert(is_same<decltype(d3_ptr), value_type*>::value,
                           "type");
             bool pointers_correct = d.data == d_ptr && d2.data == d_ptr &&
                                     d3.data == d2_ptr && d4 == d3_ptr;
@@ -247,7 +247,7 @@ TEST_F(KernelLaunch, Runs2DDense)
             }
         },
         dim<2>{4, 4}, zero_dense->get_stride(), zero_dense2.get(),
-        static_cast<const Mtx *>(zero_dense2.get()),
+        static_cast<const Mtx*>(zero_dense2.get()),
         zero_dense2->get_const_values(),
         gko::kernels::dpcpp::default_stride(zero_dense.get()),
         gko::kernels::dpcpp::row_vector(vec_dense.get()),

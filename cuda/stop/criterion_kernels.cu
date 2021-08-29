@@ -59,7 +59,7 @@ constexpr int default_block_size = 512;
 
 __global__ __launch_bounds__(default_block_size) void set_all_statuses(
     size_type num_elems, uint8 stoppingId, bool setFinalized,
-    stopping_status *stop_status)
+    stopping_status* stop_status)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_elems) {
@@ -70,7 +70,7 @@ __global__ __launch_bounds__(default_block_size) void set_all_statuses(
 
 void set_all_statuses(std::shared_ptr<const CudaExecutor> exec,
                       uint8 stoppingId, bool setFinalized,
-                      Array<stopping_status> *stop_status)
+                      Array<stopping_status>* stop_status)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(stop_status->get_num_elems(), block_size.x), 1,

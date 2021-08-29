@@ -55,8 +55,8 @@ namespace csr {
 
 template <typename IndexType>
 void invert_permutation(std::shared_ptr<const DefaultExecutor> exec,
-                        size_type size, const IndexType *permutation_indices,
-                        IndexType *inv_permutation)
+                        size_type size, const IndexType* permutation_indices,
+                        IndexType* inv_permutation)
 {
     run_kernel(
         exec,
@@ -71,9 +71,9 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVERT_PERMUTATION_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec,
-                            const IndexType *perm,
-                            const matrix::Csr<ValueType, IndexType> *orig,
-                            matrix::Csr<ValueType, IndexType> *column_permuted)
+                            const IndexType* perm,
+                            const matrix::Csr<ValueType, IndexType>* orig,
+                            matrix::Csr<ValueType, IndexType>* column_permuted)
 {
     auto num_rows = orig->get_size()[0];
     auto nnz = orig->get_num_stored_elements();

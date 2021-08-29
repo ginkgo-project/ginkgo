@@ -87,7 +87,7 @@ struct precision_reduction_descriptor {
     };
 
     static constexpr GKO_ATTRIBUTES uint32
-    singleton(const precision_reduction &pr)
+    singleton(const precision_reduction& pr)
     {
         return pr == precision_reduction(0, 0)
                    ? p0n0

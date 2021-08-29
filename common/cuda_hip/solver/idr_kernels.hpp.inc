@@ -32,8 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void initialize_m_kernel(
-    size_type subspace_dim, size_type nrhs, ValueType *__restrict__ m_values,
-    size_type m_stride, stopping_status *__restrict__ stop_status)
+    size_type subspace_dim, size_type nrhs, ValueType* __restrict__ m_values,
+    size_type m_stride, stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto row = global_id / m_stride;
@@ -53,16 +53,16 @@ __global__ __launch_bounds__(default_block_size) void initialize_m_kernel(
 template <size_type block_size, typename ValueType>
 __global__
     __launch_bounds__(block_size) void orthonormalize_subspace_vectors_kernel(
-        size_type num_rows, size_type num_cols, ValueType *__restrict__ values,
+        size_type num_rows, size_type num_cols, ValueType* __restrict__ values,
         size_type stride)
 {
     const auto tidx = thread::get_thread_id_flat();
 
     __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
     // they are not be used in the same time.
-    ValueType *reduction_helper = reduction_helper_array;
+    ValueType* reduction_helper = reduction_helper_array;
     auto reduction_helper_real =
-        reinterpret_cast<remove_complex<ValueType> *>(reduction_helper);
+        reinterpret_cast<remove_complex<ValueType>*>(reduction_helper);
 
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type i = 0; i < row; i++) {
@@ -76,7 +76,7 @@ __global__
             reduction_helper[tidx] = dot;
             reduce(
                 group::this_thread_block(), reduction_helper,
-                [](const ValueType &a, const ValueType &b) { return a + b; });
+                [](const ValueType& a, const ValueType& b) { return a + b; });
             __syncthreads();
 
             dot = reduction_helper[0];
@@ -93,8 +93,8 @@ __global__
         __syncthreads();
         reduction_helper_real[tidx] = norm;
         reduce(group::this_thread_block(), reduction_helper_real,
-               [](const remove_complex<ValueType> &a,
-                  const remove_complex<ValueType> &b) { return a + b; });
+               [](const remove_complex<ValueType>& a,
+                  const remove_complex<ValueType>& b) { return a + b; });
         __syncthreads();
 
         norm = sqrt(reduction_helper_real[0]);
@@ -109,10 +109,10 @@ template <typename ValueType>
 __global__
     __launch_bounds__(default_block_size) void solve_lower_triangular_kernel(
         size_type subspace_dim, size_type nrhs,
-        const ValueType *__restrict__ m_values, size_type m_stride,
-        const ValueType *__restrict__ f_values, size_type f_stride,
-        ValueType *__restrict__ c_values, size_type c_stride,
-        const stopping_status *__restrict__ stop_status)
+        const ValueType* __restrict__ m_values, size_type m_stride,
+        const ValueType* __restrict__ f_values, size_type f_stride,
+        ValueType* __restrict__ c_values, size_type c_stride,
+        const stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
 
@@ -137,11 +137,11 @@ __global__
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_1_kernel(
     size_type k, size_type num_rows, size_type subspace_dim, size_type nrhs,
-    const ValueType *__restrict__ residual_values, size_type residual_stride,
-    const ValueType *__restrict__ c_values, size_type c_stride,
-    const ValueType *__restrict__ g_values, size_type g_stride,
-    ValueType *__restrict__ v_values, size_type v_stride,
-    const stopping_status *__restrict__ stop_status)
+    const ValueType* __restrict__ residual_values, size_type residual_stride,
+    const ValueType* __restrict__ c_values, size_type c_stride,
+    const ValueType* __restrict__ g_values, size_type g_stride,
+    ValueType* __restrict__ v_values, size_type v_stride,
+    const stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto row = global_id / nrhs;
@@ -165,11 +165,11 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     size_type k, size_type num_rows, size_type subspace_dim, size_type nrhs,
-    const ValueType *__restrict__ omega_values,
-    const ValueType *__restrict__ v_values, size_type v_stride,
-    const ValueType *__restrict__ c_values, size_type c_stride,
-    ValueType *__restrict__ u_values, size_type u_stride,
-    const stopping_status *__restrict__ stop_status)
+    const ValueType* __restrict__ omega_values,
+    const ValueType* __restrict__ v_values, size_type v_stride,
+    const ValueType* __restrict__ c_values, size_type c_stride,
+    ValueType* __restrict__ u_values, size_type u_stride,
+    const stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto row = global_id / nrhs;
@@ -192,10 +192,10 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
-    size_type num_rows, size_type nrhs, const ValueType *__restrict__ p_i,
-    const ValueType *__restrict__ g_k, size_type g_k_stride,
-    ValueType *__restrict__ alpha,
-    const stopping_status *__restrict__ stop_status)
+    size_type num_rows, size_type nrhs, const ValueType* __restrict__ p_i,
+    const ValueType* __restrict__ g_k, size_type g_k_stride,
+    ValueType* __restrict__ alpha,
+    const stopping_status* __restrict__ stop_status)
 {
     const auto tidx = threadIdx.x;
     const auto tidy = threadIdx.y;
@@ -207,9 +207,9 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
     __shared__
-        UninitializedArray<ValueType, default_dot_dim *(default_dot_dim + 1)>
+        UninitializedArray<ValueType, default_dot_dim*(default_dot_dim + 1)>
             reduction_helper_array;
-    ValueType *__restrict__ reduction_helper = reduction_helper_array;
+    ValueType* __restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();
     if (rhs < nrhs && !stop_status[rhs].has_stopped()) {
@@ -226,7 +226,7 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
         group::tiled_partition<default_dot_dim>(group::this_thread_block());
     const auto sum =
         reduce(tile_block, local_res,
-               [](const ValueType &a, const ValueType &b) { return a + b; });
+               [](const ValueType& a, const ValueType& b) { return a + b; });
     const auto new_rhs = blockIdx.x * default_dot_dim + tidy;
     if (tidx == 0 && new_rhs < nrhs && !stop_status[new_rhs].has_stopped()) {
         atomic_add(alpha + new_rhs, sum);
@@ -237,11 +237,11 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void update_g_k_and_u_kernel(
     size_type k, size_type i, size_type size, size_type nrhs,
-    const ValueType *__restrict__ alpha, const ValueType *__restrict__ m_values,
-    size_type m_stride, const ValueType *__restrict__ g_values,
-    size_type g_stride, ValueType *__restrict__ g_k_values,
-    size_type g_k_stride, ValueType *__restrict__ u_values, size_type u_stride,
-    const stopping_status *__restrict__ stop_status)
+    const ValueType* __restrict__ alpha, const ValueType* __restrict__ m_values,
+    size_type m_stride, const ValueType* __restrict__ g_values,
+    size_type g_stride, ValueType* __restrict__ g_k_values,
+    size_type g_k_stride, ValueType* __restrict__ u_values, size_type u_stride,
+    const stopping_status* __restrict__ stop_status)
 {
     const auto tidx = thread::get_thread_id_flat();
     const auto row = tidx / g_k_stride;
@@ -264,9 +264,9 @@ __global__ __launch_bounds__(block_size) void update_g_k_and_u_kernel(
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void update_g_kernel(
     size_type k, size_type size, size_type nrhs,
-    const ValueType *__restrict__ g_k_values, size_type g_k_stride,
-    ValueType *__restrict__ g_values, size_type g_stride,
-    const stopping_status *__restrict__ stop_status)
+    const ValueType* __restrict__ g_k_values, size_type g_k_stride,
+    ValueType* __restrict__ g_values, size_type g_stride,
+    const stopping_status* __restrict__ stop_status)
 {
     const auto tidx = thread::get_thread_id_flat();
     const auto row = tidx / g_k_stride;
@@ -286,13 +286,13 @@ __global__ __launch_bounds__(block_size) void update_g_kernel(
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void update_x_r_and_f_kernel(
     size_type k, size_type size, size_type subspace_dim, size_type nrhs,
-    const ValueType *__restrict__ m_values, size_type m_stride,
-    const ValueType *__restrict__ g_values, size_type g_stride,
-    const ValueType *__restrict__ u_values, size_type u_stride,
-    ValueType *__restrict__ f_values, size_type f_stride,
-    ValueType *__restrict__ r_values, size_type r_stride,
-    ValueType *__restrict__ x_values, size_type x_stride,
-    const stopping_status *__restrict__ stop_status)
+    const ValueType* __restrict__ m_values, size_type m_stride,
+    const ValueType* __restrict__ g_values, size_type g_stride,
+    const ValueType* __restrict__ u_values, size_type u_stride,
+    ValueType* __restrict__ f_values, size_type f_stride,
+    ValueType* __restrict__ r_values, size_type r_stride,
+    ValueType* __restrict__ x_values, size_type x_stride,
+    const stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto row = global_id / x_stride;
@@ -321,10 +321,10 @@ __global__ __launch_bounds__(default_block_size) void update_x_r_and_f_kernel(
 template <typename ValueType>
 __global__ __launch_bounds__(config::warp_size) void compute_omega_kernel(
     size_type nrhs, const remove_complex<ValueType> kappa,
-    const ValueType *__restrict__ tht,
-    const remove_complex<ValueType> *__restrict__ residual_norm,
-    ValueType *__restrict__ omega,
-    const stopping_status *__restrict__ stop_status)
+    const ValueType* __restrict__ tht,
+    const remove_complex<ValueType>* __restrict__ residual_norm,
+    ValueType* __restrict__ omega,
+    const stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
 

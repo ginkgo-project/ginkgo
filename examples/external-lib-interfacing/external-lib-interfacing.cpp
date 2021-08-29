@@ -136,8 +136,8 @@ private:
     // contribution. With this information, the following should be
     // relatively self-explanatory:
     struct AssemblyScratchData {
-        AssemblyScratchData(const FiniteElement<dim> &fe);
-        AssemblyScratchData(const AssemblyScratchData &scratch_data);
+        AssemblyScratchData(const FiniteElement<dim>& fe);
+        AssemblyScratchData(const AssemblyScratchData& scratch_data);
 
         FEValues<dim> fe_values;
         FEFaceValues<dim> fe_face_values;
@@ -151,9 +151,9 @@ private:
 
     void assemble_system();
     void local_assemble_system(
-        const typename DoFHandler<dim>::active_cell_iterator &cell,
-        AssemblyScratchData &scratch, AssemblyCopyData &copy_data);
-    void copy_local_to_global(const AssemblyCopyData &copy_data);
+        const typename DoFHandler<dim>::active_cell_iterator& cell,
+        AssemblyScratchData& scratch, AssemblyCopyData& copy_data);
+    void copy_local_to_global(const AssemblyCopyData& copy_data);
 
 
     // The following functions again are as in previous examples, as are the
@@ -204,10 +204,10 @@ class AdvectionField : public TensorFunction<1, dim> {
 public:
     AdvectionField() : TensorFunction<1, dim>() {}
 
-    virtual Tensor<1, dim> value(const Point<dim> &p) const;
+    virtual Tensor<1, dim> value(const Point<dim>& p) const;
 
-    virtual void value_list(const std::vector<Point<dim>> &points,
-                            std::vector<Tensor<1, dim>> &values) const;
+    virtual void value_list(const std::vector<Point<dim>>& points,
+                            std::vector<Tensor<1, dim>>& values) const;
 
     // In previous examples, we have used assertions that throw exceptions in
     // several places. However, we have never seen how such exceptions are
@@ -250,7 +250,7 @@ public:
 // arrays, incompatible parameters to functions and the like; using
 // assertion as in this case can eliminate many of these problems.
 template <int dim>
-Tensor<1, dim> AdvectionField<dim>::value(const Point<dim> &p) const
+Tensor<1, dim> AdvectionField<dim>::value(const Point<dim>& p) const
 {
     Point<dim> value;
     value[0] = 2;
@@ -262,8 +262,8 @@ Tensor<1, dim> AdvectionField<dim>::value(const Point<dim> &p) const
 
 
 template <int dim>
-void AdvectionField<dim>::value_list(const std::vector<Point<dim>> &points,
-                                     std::vector<Tensor<1, dim>> &values) const
+void AdvectionField<dim>::value_list(const std::vector<Point<dim>>& points,
+                                     std::vector<Tensor<1, dim>>& values) const
 {
     Assert(values.size() == points.size(),
            ExcDimensionMismatch(values.size(), points.size()));
@@ -288,11 +288,11 @@ class RightHandSide : public Function<dim> {
 public:
     RightHandSide() : Function<dim>() {}
 
-    virtual double value(const Point<dim> &p,
+    virtual double value(const Point<dim>& p,
                          const unsigned int component = 0) const;
 
-    virtual void value_list(const std::vector<Point<dim>> &points,
-                            std::vector<double> &values,
+    virtual void value_list(const std::vector<Point<dim>>& points,
+                            std::vector<double>& values,
                             const unsigned int component = 0) const;
 
 private:
@@ -321,7 +321,7 @@ const Point<3> RightHandSide<3>::center_point = Point<3>(-0.75, -0.75, -0.75);
 // one past the last (i.e. again the half-open interval so often used in the
 // C++ standard library):
 template <int dim>
-double RightHandSide<dim>::value(const Point<dim> &p,
+double RightHandSide<dim>::value(const Point<dim>& p,
                                  const unsigned int component) const
 {
     (void)component;
@@ -334,8 +334,8 @@ double RightHandSide<dim>::value(const Point<dim> &p,
 
 
 template <int dim>
-void RightHandSide<dim>::value_list(const std::vector<Point<dim>> &points,
-                                    std::vector<double> &values,
+void RightHandSide<dim>::value_list(const std::vector<Point<dim>>& points,
+                                    std::vector<double>& values,
                                     const unsigned int component) const
 {
     Assert(values.size() == points.size(),
@@ -353,17 +353,17 @@ class BoundaryValues : public Function<dim> {
 public:
     BoundaryValues() : Function<dim>() {}
 
-    virtual double value(const Point<dim> &p,
+    virtual double value(const Point<dim>& p,
                          const unsigned int component = 0) const;
 
-    virtual void value_list(const std::vector<Point<dim>> &points,
-                            std::vector<double> &values,
+    virtual void value_list(const std::vector<Point<dim>>& points,
+                            std::vector<double>& values,
                             const unsigned int component = 0) const;
 };
 
 
 template <int dim>
-double BoundaryValues<dim>::value(const Point<dim> &p,
+double BoundaryValues<dim>::value(const Point<dim>& p,
                                   const unsigned int component) const
 {
     (void)component;
@@ -377,8 +377,8 @@ double BoundaryValues<dim>::value(const Point<dim> &p,
 
 
 template <int dim>
-void BoundaryValues<dim>::value_list(const std::vector<Point<dim>> &points,
-                                     std::vector<double> &values,
+void BoundaryValues<dim>::value_list(const std::vector<Point<dim>>& points,
+                                     std::vector<double>& values,
                                      const unsigned int component) const
 {
     Assert(values.size() == points.size(),
@@ -460,9 +460,9 @@ void BoundaryValues<dim>::value_list(const std::vector<Point<dim>> &points,
 class GradientEstimation {
 public:
     template <int dim>
-    static void estimate(const DoFHandler<dim> &dof,
-                         const Vector<double> &solution,
-                         Vector<float> &error_per_cell);
+    static void estimate(const DoFHandler<dim>& dof,
+                         const Vector<double>& solution,
+                         Vector<float>& error_per_cell);
 
     DeclException2(ExcInvalidVectorLength, int, int,
                    << "Vector has length " << arg1 << ", but should have "
@@ -472,23 +472,23 @@ public:
 private:
     template <int dim>
     struct EstimateScratchData {
-        EstimateScratchData(const FiniteElement<dim> &fe,
-                            const Vector<double> &solution,
-                            Vector<float> &error_per_cell);
-        EstimateScratchData(const EstimateScratchData &data);
+        EstimateScratchData(const FiniteElement<dim>& fe,
+                            const Vector<double>& solution,
+                            Vector<float>& error_per_cell);
+        EstimateScratchData(const EstimateScratchData& data);
 
         FEValues<dim> fe_midpoint_value;
-        const Vector<double> &solution;
-        Vector<float> &error_per_cell;
+        const Vector<double>& solution;
+        Vector<float>& error_per_cell;
     };
 
     struct EstimateCopyData {};
 
     template <int dim>
     static void estimate_cell(
-        const typename DoFHandler<dim>::active_cell_iterator &cell,
-        EstimateScratchData<dim> &scratch_data,
-        const EstimateCopyData &copy_data);
+        const typename DoFHandler<dim>::active_cell_iterator& cell,
+        EstimateScratchData<dim>& scratch_data,
+        const EstimateCopyData& copy_data);
 };
 
 
@@ -582,7 +582,7 @@ void AdvectionProblem<dim>::assemble_system()
 // class:
 template <int dim>
 AdvectionProblem<dim>::AssemblyScratchData::AssemblyScratchData(
-    const FiniteElement<dim> &fe)
+    const FiniteElement<dim>& fe)
     : fe_values(fe, QGauss<dim>(2),
                 update_values | update_gradients | update_quadrature_points |
                     update_JxW_values),
@@ -594,7 +594,7 @@ AdvectionProblem<dim>::AssemblyScratchData::AssemblyScratchData(
 
 template <int dim>
 AdvectionProblem<dim>::AssemblyScratchData::AssemblyScratchData(
-    const AssemblyScratchData &scratch_data)
+    const AssemblyScratchData& scratch_data)
     : fe_values(scratch_data.fe_values.get_fe(),
                 scratch_data.fe_values.get_quadrature(),
                 update_values | update_gradients | update_quadrature_points |
@@ -641,8 +641,8 @@ AdvectionProblem<dim>::AssemblyScratchData::AssemblyScratchData(
 // an exercise.
 template <int dim>
 void AdvectionProblem<dim>::local_assemble_system(
-    const typename DoFHandler<dim>::active_cell_iterator &cell,
-    AssemblyScratchData &scratch_data, AssemblyCopyData &copy_data)
+    const typename DoFHandler<dim>::active_cell_iterator& cell,
+    AssemblyScratchData& scratch_data, AssemblyCopyData& copy_data)
 {
     // First of all, we will need some objects that describe boundary values,
     // right hand side function and the advection field. As we will only
@@ -798,7 +798,7 @@ void AdvectionProblem<dim>::local_assemble_system(
 // cell. The following should therefore be pretty obvious:
 template <int dim>
 void AdvectionProblem<dim>::copy_local_to_global(
-    const AssemblyCopyData &copy_data)
+    const AssemblyCopyData& copy_data)
 {
     for (unsigned int i = 0; i < copy_data.local_dof_indices.size(); ++i) {
         for (unsigned int j = 0; j < copy_data.local_dof_indices.size(); ++j)
@@ -846,9 +846,9 @@ void AdvectionProblem<dim>::solve()
     auto x = vec::create(exec, gko::dim<2>(num_rows, 1));
     auto A = mtx::create(exec, gko::dim<2>(num_rows),
                          system_matrix.n_nonzero_elements());
-    mtx::value_type *values = A->get_values();
-    mtx::index_type *row_ptr = A->get_row_ptrs();
-    mtx::index_type *col_idx = A->get_col_idxs();
+    mtx::value_type* values = A->get_values();
+    mtx::index_type* row_ptr = A->get_row_ptrs();
+    mtx::index_type* col_idx = A->get_col_idxs();
 
     // Convert to standard CSR format
     // As deal.ii does not expose its system matrix pointers, we construct them
@@ -992,8 +992,8 @@ void AdvectionProblem<dim>::run()
 // <code>estimate_cell()</code> function:
 template <int dim>
 GradientEstimation::EstimateScratchData<dim>::EstimateScratchData(
-    const FiniteElement<dim> &fe, const Vector<double> &solution,
-    Vector<float> &error_per_cell)
+    const FiniteElement<dim>& fe, const Vector<double>& solution,
+    Vector<float>& error_per_cell)
     : fe_midpoint_value(fe, QMidpoint<dim>(),
                         update_values | update_quadrature_points),
       solution(solution),
@@ -1003,7 +1003,7 @@ GradientEstimation::EstimateScratchData<dim>::EstimateScratchData(
 
 template <int dim>
 GradientEstimation::EstimateScratchData<dim>::EstimateScratchData(
-    const EstimateScratchData &scratch_data)
+    const EstimateScratchData& scratch_data)
     : fe_midpoint_value(scratch_data.fe_midpoint_value.get_fe(),
                         scratch_data.fe_midpoint_value.get_quadrature(),
                         update_values | update_quadrature_points),
@@ -1024,9 +1024,9 @@ GradientEstimation::EstimateScratchData<dim>::EstimateScratchData(
 // data somewhere in memory, or non-reproducible results), it is
 // well worth the effort to check for such things.
 template <int dim>
-void GradientEstimation::estimate(const DoFHandler<dim> &dof_handler,
-                                  const Vector<double> &solution,
-                                  Vector<float> &error_per_cell)
+void GradientEstimation::estimate(const DoFHandler<dim>& dof_handler,
+                                  const Vector<double>& solution,
+                                  Vector<float>& error_per_cell)
 {
     Assert(error_per_cell.size() ==
                dof_handler.get_triangulation().n_active_cells(),
@@ -1036,7 +1036,7 @@ void GradientEstimation::estimate(const DoFHandler<dim> &dof_handler,
 
     WorkStream::run(dof_handler.begin_active(), dof_handler.end(),
                     &GradientEstimation::template estimate_cell<dim>,
-                    std::function<void(const EstimateCopyData &)>(),
+                    std::function<void(const EstimateCopyData&)>(),
                     EstimateScratchData<dim>(dof_handler.get_fe(), solution,
                                              error_per_cell),
                     EstimateCopyData());
@@ -1092,8 +1092,8 @@ void GradientEstimation::estimate(const DoFHandler<dim> &dof_handler,
 // Now for the details:
 template <int dim>
 void GradientEstimation::estimate_cell(
-    const typename DoFHandler<dim>::active_cell_iterator &cell,
-    EstimateScratchData<dim> &scratch_data, const EstimateCopyData &)
+    const typename DoFHandler<dim>::active_cell_iterator& cell,
+    EstimateScratchData<dim>& scratch_data, const EstimateCopyData&)
 {
     // We need space for the tensor <code>Y</code>, which is the sum of
     // outer products of the y-vectors.
@@ -1332,7 +1332,7 @@ int main()
 
         Step9::AdvectionProblem<2> advection_problem_2d;
         advection_problem_2d.run();
-    } catch (std::exception &exc) {
+    } catch (std::exception& exc) {
         std::cerr << std::endl
                   << std::endl
                   << "----------------------------------------------------"

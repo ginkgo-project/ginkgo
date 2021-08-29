@@ -63,18 +63,18 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 }
 
 
-void CudaExecutor::populate_exec_info(const MachineTopology *mach_topo)
+void CudaExecutor::populate_exec_info(const MachineTopology* mach_topo)
 {
     // This method is always called, so cannot throw when not compiled.
 }
 
 
-void OmpExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void OmpExecutor::raw_copy_to(const CudaExecutor*, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::raw_free(void *ptr) const noexcept
+void CudaExecutor::raw_free(void* ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
     // If the nvidia module was not compiled, the library couldn't have
@@ -82,33 +82,33 @@ void CudaExecutor::raw_free(void *ptr) const noexcept
 }
 
 
-void *CudaExecutor::raw_alloc(size_type num_bytes) const GKO_NOT_COMPILED(cuda);
+void* CudaExecutor::raw_alloc(size_type num_bytes) const GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
+void CudaExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
+void CudaExecutor::raw_copy_to(const CudaExecutor*, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
+void CudaExecutor::raw_copy_to(const HipExecutor*, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::raw_copy_to(const DpcppExecutor *, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
+void CudaExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 
 
 void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::run(const Operation &op) const
+void CudaExecutor::run(const Operation& op) const
 {
     op.run(
         std::static_pointer_cast<const CudaExecutor>(this->shared_from_this()));

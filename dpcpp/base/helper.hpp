@@ -58,10 +58,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define GKO_ENABLE_DEFAULT_HOST(name_, kernel_)                           \
     template <typename... InferredArgs>                                   \
-    void name_(dim3 grid, dim3 block, gko::size_type, sycl::queue *queue, \
+    void name_(dim3 grid, dim3 block, gko::size_type, sycl::queue* queue, \
                InferredArgs... args)                                      \
     {                                                                     \
-        queue->submit([&](sycl::handler &cgh) {                           \
+        queue->submit([&](sycl::handler& cgh) {                           \
             cgh.parallel_for(sycl_nd_range(grid, block),                  \
                              [=](sycl::nd_item<3> item_ct1) {             \
                                  kernel_(args..., item_ct1);              \
@@ -81,9 +81,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_ENABLE_DEFAULT_HOST_CONFIG(name_, kernel_)                \
     template <std::uint32_t encoded, typename... InferredArgs>        \
     inline void name_(dim3 grid, dim3 block, gko::size_type,          \
-                      sycl::queue *queue, InferredArgs... args)       \
+                      sycl::queue* queue, InferredArgs... args)       \
     {                                                                 \
-        queue->submit([&](sycl::handler &cgh) {                       \
+        queue->submit([&](sycl::handler& cgh) {                       \
             cgh.parallel_for(sycl_nd_range(grid, block),              \
                              [=](sycl::nd_item<3> item_ct1) {         \
                                  kernel_<encoded>(args..., item_ct1); \
@@ -106,7 +106,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_ENABLE_DEFAULT_CONFIG_CALL(name_, callable_, list_)               \
     template <typename... InferredArgs>                                       \
     void name_(std::uint32_t desired_cfg, dim3 grid, dim3 block,              \
-               gko::size_type dynamic_shared_memory, sycl::queue *queue,      \
+               gko::size_type dynamic_shared_memory, sycl::queue* queue,      \
                InferredArgs... args)                                          \
     {                                                                         \
         callable_(                                                            \
@@ -149,7 +149,7 @@ namespace dpcpp {
  *
  * @return the given arguments are valid or not in given queue.
  */
-bool validate(sycl::queue *queue, unsigned workgroup_size,
+bool validate(sycl::queue* queue, unsigned workgroup_size,
               unsigned subgroup_size);
 
 
@@ -166,9 +166,9 @@ bool validate(sycl::queue *queue, unsigned workgroup_size,
  * @return the first valid config
  */
 template <typename IterArr, typename Validate>
-std::uint32_t get_first_cfg(IterArr &arr, Validate verify)
+std::uint32_t get_first_cfg(IterArr& arr, Validate verify)
 {
-    for (auto &cfg : arr) {
+    for (auto& cfg : arr) {
         if (verify(cfg)) {
             return cfg;
         }

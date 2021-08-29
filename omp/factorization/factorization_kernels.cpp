@@ -85,8 +85,8 @@ struct find_helper<true> {
 
 template <bool IsSorted, typename ValueType, typename IndexType>
 void find_missing_diagonal_elements(
-    const matrix::Csr<ValueType, IndexType> *mtx,
-    IndexType *elements_to_add_per_row, bool *changes_required)
+    const matrix::Csr<ValueType, IndexType>* mtx,
+    IndexType* elements_to_add_per_row, bool* changes_required)
 {
     auto num_rows = static_cast<IndexType>(mtx->get_size()[0]);
     auto num_cols = static_cast<IndexType>(mtx->get_size()[1]);
@@ -99,8 +99,8 @@ void find_missing_diagonal_elements(
             elements_to_add_per_row[row] = 0;
             continue;
         }
-        const auto *start_cols = col_idxs + row_ptrs[row];
-        const auto *end_cols = col_idxs + row_ptrs[row + 1];
+        const auto* start_cols = col_idxs + row_ptrs[row];
+        const auto* end_cols = col_idxs + row_ptrs[row + 1];
         if (detail::find_helper<IsSorted>::find(start_cols, end_cols, row)) {
             elements_to_add_per_row[row] = 0;
         } else {
@@ -113,10 +113,10 @@ void find_missing_diagonal_elements(
 
 
 template <typename ValueType, typename IndexType>
-void add_missing_diagonal_elements(const matrix::Csr<ValueType, IndexType> *mtx,
-                                   ValueType *new_values,
-                                   IndexType *new_col_idxs,
-                                   const IndexType *row_ptrs_addition)
+void add_missing_diagonal_elements(const matrix::Csr<ValueType, IndexType>* mtx,
+                                   ValueType* new_values,
+                                   IndexType* new_col_idxs,
+                                   const IndexType* row_ptrs_addition)
 {
     const auto num_rows = static_cast<IndexType>(mtx->get_size()[0]);
     const auto old_values = mtx->get_const_values();
@@ -168,7 +168,7 @@ void add_missing_diagonal_elements(const matrix::Csr<ValueType, IndexType> *mtx,
 
 template <typename ValueType, typename IndexType>
 void add_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
-                           matrix::Csr<ValueType, IndexType> *mtx,
+                           matrix::Csr<ValueType, IndexType>* mtx,
                            bool is_sorted)
 {
     auto mtx_size = mtx->get_size();
@@ -216,8 +216,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l_u(
     std::shared_ptr<const OmpExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    IndexType *l_row_ptrs, IndexType *u_row_ptrs)
+    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    IndexType* l_row_ptrs, IndexType* u_row_ptrs)
 {
     auto num_rows = system_matrix->get_size()[0];
     auto row_ptrs = system_matrix->get_const_row_ptrs();
@@ -250,9 +250,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_l_u(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *system_matrix,
-                    matrix::Csr<ValueType, IndexType> *csr_l,
-                    matrix::Csr<ValueType, IndexType> *csr_u)
+                    const matrix::Csr<ValueType, IndexType>* system_matrix,
+                    matrix::Csr<ValueType, IndexType>* csr_l,
+                    matrix::Csr<ValueType, IndexType>* csr_u)
 {
     const auto row_ptrs = system_matrix->get_const_row_ptrs();
     const auto col_idxs = system_matrix->get_const_col_idxs();
@@ -306,8 +306,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l(
     std::shared_ptr<const OmpExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    IndexType *l_row_ptrs)
+    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    IndexType* l_row_ptrs)
 {
     auto num_rows = system_matrix->get_size()[0];
     auto row_ptrs = system_matrix->get_const_row_ptrs();
@@ -336,8 +336,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_l(std::shared_ptr<const OmpExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType> *system_matrix,
-                  matrix::Csr<ValueType, IndexType> *csr_l, bool diag_sqrt)
+                  const matrix::Csr<ValueType, IndexType>* system_matrix,
+                  matrix::Csr<ValueType, IndexType>* csr_l, bool diag_sqrt)
 {
     const auto row_ptrs = system_matrix->get_const_row_ptrs();
     const auto col_idxs = system_matrix->get_const_col_idxs();

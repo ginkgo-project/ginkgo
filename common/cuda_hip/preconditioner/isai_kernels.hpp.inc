@@ -44,13 +44,13 @@ namespace kernel {
 template <int subwarp_size, int subwarps_per_block, typename ValueType,
           typename IndexType, typename Callable>
 __forceinline__ __device__ void generic_generate(
-    IndexType num_rows, const IndexType *__restrict__ m_row_ptrs,
-    const IndexType *__restrict__ m_col_idxs,
-    const ValueType *__restrict__ m_values,
-    const IndexType *__restrict__ i_row_ptrs,
-    const IndexType *__restrict__ i_col_idxs, ValueType *__restrict__ i_values,
-    IndexType *__restrict__ excess_rhs_sizes,
-    IndexType *__restrict__ excess_nnz, Callable direct_solve)
+    IndexType num_rows, const IndexType* __restrict__ m_row_ptrs,
+    const IndexType* __restrict__ m_col_idxs,
+    const ValueType* __restrict__ m_values,
+    const IndexType* __restrict__ i_row_ptrs,
+    const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
+    IndexType* __restrict__ excess_rhs_sizes,
+    IndexType* __restrict__ excess_nnz, Callable direct_solve)
 {
     static_assert(subwarp_size >= row_size_limit, "incompatible subwarp_size");
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
@@ -102,7 +102,7 @@ __forceinline__ __device__ void generic_generate(
         auto dense_system_ptr = storage + (threadIdx.x / subwarp_size) *
                                               subwarp_size * subwarp_size;
         // row-major accessor
-        auto dense_system = [&](IndexType row, IndexType col) -> ValueType & {
+        auto dense_system = [&](IndexType row, IndexType col) -> ValueType& {
             return dense_system_ptr[row * subwarp_size + col];
         };
 
@@ -164,17 +164,17 @@ __forceinline__ __device__ void generic_generate(
 template <int subwarp_size, int subwarps_per_block, typename ValueType,
           typename IndexType>
 __global__ __launch_bounds__(default_block_size) void generate_l_inverse(
-    IndexType num_rows, const IndexType *__restrict__ m_row_ptrs,
-    const IndexType *__restrict__ m_col_idxs,
-    const ValueType *__restrict__ m_values,
-    const IndexType *__restrict__ i_row_ptrs,
-    const IndexType *__restrict__ i_col_idxs, ValueType *__restrict__ i_values,
-    IndexType *__restrict__ excess_rhs_sizes,
-    IndexType *__restrict__ excess_nnz)
+    IndexType num_rows, const IndexType* __restrict__ m_row_ptrs,
+    const IndexType* __restrict__ m_col_idxs,
+    const ValueType* __restrict__ m_values,
+    const IndexType* __restrict__ i_row_ptrs,
+    const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
+    IndexType* __restrict__ excess_rhs_sizes,
+    IndexType* __restrict__ excess_nnz)
 {
     auto trs_solve =
-        [](IndexType num_elems, const ValueType *__restrict__ local_row,
-           group::thread_block_tile<subwarp_size> &subwarp, size_type) {
+        [](IndexType num_elems, const ValueType* __restrict__ local_row,
+           group::thread_block_tile<subwarp_size>& subwarp, size_type) {
             const int local_id = subwarp.thread_rank();
             ValueType rhs = local_id == num_elems - 1 ? one<ValueType>()
                                                       : zero<ValueType>();
@@ -203,17 +203,17 @@ __global__ __launch_bounds__(default_block_size) void generate_l_inverse(
 template <int subwarp_size, int subwarps_per_block, typename ValueType,
           typename IndexType>
 __global__ __launch_bounds__(default_block_size) void generate_u_inverse(
-    IndexType num_rows, const IndexType *__restrict__ m_row_ptrs,
-    const IndexType *__restrict__ m_col_idxs,
-    const ValueType *__restrict__ m_values,
-    const IndexType *__restrict__ i_row_ptrs,
-    const IndexType *__restrict__ i_col_idxs, ValueType *__restrict__ i_values,
-    IndexType *__restrict__ excess_rhs_sizes,
-    IndexType *__restrict__ excess_nnz)
+    IndexType num_rows, const IndexType* __restrict__ m_row_ptrs,
+    const IndexType* __restrict__ m_col_idxs,
+    const ValueType* __restrict__ m_values,
+    const IndexType* __restrict__ i_row_ptrs,
+    const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
+    IndexType* __restrict__ excess_rhs_sizes,
+    IndexType* __restrict__ excess_nnz)
 {
     auto trs_solve = [](IndexType num_elems,
-                        const ValueType *__restrict__ local_row,
-                        group::thread_block_tile<subwarp_size> &subwarp,
+                        const ValueType* __restrict__ local_row,
+                        group::thread_block_tile<subwarp_size>& subwarp,
                         size_type) {
         const int local_id = subwarp.thread_rank();
         ValueType rhs = local_id == 0 ? one<ValueType>() : zero<ValueType>();
@@ -242,17 +242,17 @@ __global__ __launch_bounds__(default_block_size) void generate_u_inverse(
 template <int subwarp_size, int subwarps_per_block, typename ValueType,
           typename IndexType>
 __global__ __launch_bounds__(default_block_size) void generate_general_inverse(
-    IndexType num_rows, const IndexType *__restrict__ m_row_ptrs,
-    const IndexType *__restrict__ m_col_idxs,
-    const ValueType *__restrict__ m_values,
-    const IndexType *__restrict__ i_row_ptrs,
-    const IndexType *__restrict__ i_col_idxs, ValueType *__restrict__ i_values,
-    IndexType *__restrict__ excess_rhs_sizes,
-    IndexType *__restrict__ excess_nnz, bool spd)
+    IndexType num_rows, const IndexType* __restrict__ m_row_ptrs,
+    const IndexType* __restrict__ m_col_idxs,
+    const ValueType* __restrict__ m_values,
+    const IndexType* __restrict__ i_row_ptrs,
+    const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
+    IndexType* __restrict__ excess_rhs_sizes,
+    IndexType* __restrict__ excess_nnz, bool spd)
 {
     auto general_solve = [spd](IndexType num_elems,
-                               ValueType *__restrict__ local_row,
-                               group::thread_block_tile<subwarp_size> &subwarp,
+                               ValueType* __restrict__ local_row,
+                               group::thread_block_tile<subwarp_size>& subwarp,
                                size_type rhs_one_idx) {
         const int local_id = subwarp.thread_rank();
         ValueType rhs =
@@ -291,16 +291,16 @@ __global__ __launch_bounds__(default_block_size) void generate_general_inverse(
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void generate_excess_system(
-    IndexType num_rows, const IndexType *__restrict__ m_row_ptrs,
-    const IndexType *__restrict__ m_col_idxs,
-    const ValueType *__restrict__ m_values,
-    const IndexType *__restrict__ i_row_ptrs,
-    const IndexType *__restrict__ i_col_idxs,
-    const IndexType *__restrict__ excess_rhs_ptrs,
-    const IndexType *__restrict__ excess_nz_ptrs,
-    IndexType *__restrict__ excess_row_ptrs,
-    IndexType *__restrict__ excess_col_idxs,
-    ValueType *__restrict__ excess_values, ValueType *__restrict__ excess_rhs,
+    IndexType num_rows, const IndexType* __restrict__ m_row_ptrs,
+    const IndexType* __restrict__ m_col_idxs,
+    const ValueType* __restrict__ m_values,
+    const IndexType* __restrict__ i_row_ptrs,
+    const IndexType* __restrict__ i_col_idxs,
+    const IndexType* __restrict__ excess_rhs_ptrs,
+    const IndexType* __restrict__ excess_nz_ptrs,
+    IndexType* __restrict__ excess_row_ptrs,
+    IndexType* __restrict__ excess_col_idxs,
+    ValueType* __restrict__ excess_values, ValueType* __restrict__ excess_rhs,
     size_type e_start, size_type e_end)
 {
     const auto row =
@@ -365,8 +365,8 @@ __global__ __launch_bounds__(default_block_size) void generate_excess_system(
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void scale_excess_solution(
-    const IndexType *__restrict__ excess_block_ptrs,
-    ValueType *__restrict__ excess_solution, size_type e_start, size_type e_end)
+    const IndexType* __restrict__ excess_block_ptrs,
+    ValueType* __restrict__ excess_solution, size_type e_start, size_type e_end)
 {
     const auto warp_id = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     auto subwarp =
@@ -395,10 +395,10 @@ __global__ __launch_bounds__(default_block_size) void scale_excess_solution(
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void copy_excess_solution(
-    IndexType num_rows, const IndexType *__restrict__ i_row_ptrs,
-    const IndexType *__restrict__ excess_rhs_ptrs,
-    const ValueType *__restrict__ excess_solution,
-    ValueType *__restrict__ i_values, size_type e_start, size_type e_end)
+    IndexType num_rows, const IndexType* __restrict__ i_row_ptrs,
+    const IndexType* __restrict__ excess_rhs_ptrs,
+    const ValueType* __restrict__ excess_solution,
+    ValueType* __restrict__ i_values, size_type e_start, size_type e_end)
 {
     const auto excess_row =
         thread::get_subwarp_id_flat<subwarp_size, IndexType>();

@@ -94,21 +94,21 @@ namespace detail {
 
 template <typename T, typename T2 = void>
 struct dynamic_type_helper {
-    static const std::type_info &get(const T &obj) { return typeid(obj); }
+    static const std::type_info& get(const T& obj) { return typeid(obj); }
 };
 
 template <typename T>
 struct dynamic_type_helper<T,
                            typename std::enable_if<std::is_pointer<T>::value ||
                                                    have_ownership<T>()>::type> {
-    static const std::type_info &get(const T &obj)
+    static const std::type_info& get(const T& obj)
     {
         return obj ? typeid(*obj) : typeid(nullptr);
     }
 };
 
 template <typename T>
-const std::type_info &get_dynamic_type(const T &obj)
+const std::type_info& get_dynamic_type(const T& obj)
 {
     return dynamic_type_helper<T>::get(obj);
 }
@@ -139,12 +139,12 @@ namespace detail {
 
 
 template <typename T>
-inline dim<2> get_size(const T &op)
+inline dim<2> get_size(const T& op)
 {
     return op->get_size();
 }
 
-inline dim<2> get_size(const dim<2> &size) { return size; }
+inline dim<2> get_size(const dim<2>& size) { return size; }
 
 
 }  // namespace detail
@@ -471,8 +471,8 @@ namespace detail {
 
 
 template <typename T>
-inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
-                               const std::string &dev, size_type size)
+inline T ensure_allocated_impl(T ptr, const std::string& file, int line,
+                               const std::string& dev, size_type size)
 {
     if (ptr == nullptr) {
         throw AllocationError(file, line, dev, size);

@@ -50,7 +50,7 @@ namespace reference {
 template <typename ValueType>
 remove_complex<ValueType> compute_inf_norm(size_type num_rows,
                                            size_type num_cols,
-                                           const ValueType *matrix,
+                                           const ValueType* matrix,
                                            size_type stride)
 {
     auto result = zero<remove_complex<ValueType>>();

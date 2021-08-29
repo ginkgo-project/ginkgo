@@ -71,10 +71,10 @@ namespace par_ilut_factorization {
  */
 template <typename ValueType, typename IndexType>
 void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *m,
-                      IndexType rank, Array<ValueType> &tmp,
-                      Array<remove_complex<ValueType>> &,
-                      remove_complex<ValueType> &threshold)
+                      const matrix::Csr<ValueType, IndexType>* m,
+                      IndexType rank, Array<ValueType>& tmp,
+                      Array<remove_complex<ValueType>>&,
+                      remove_complex<ValueType>& threshold)
 {
     auto values = m->get_const_values();
     IndexType size = m->get_num_stored_elements();
@@ -101,9 +101,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  */
 template <typename Predicate, typename ValueType, typename IndexType>
 void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
-                     const matrix::Csr<ValueType, IndexType> *m,
-                     matrix::Csr<ValueType, IndexType> *m_out,
-                     matrix::Coo<ValueType, IndexType> *m_out_coo,
+                     const matrix::Csr<ValueType, IndexType>* m,
+                     matrix::Csr<ValueType, IndexType>* m_out,
+                     matrix::Coo<ValueType, IndexType>* m_out_coo,
                      Predicate pred)
 {
     auto num_rows = m->get_size()[0];
@@ -132,7 +132,7 @@ void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
     builder.get_value_array().resize_and_reset(new_nnz);
     auto new_col_idxs = m_out->get_col_idxs();
     auto new_vals = m_out->get_values();
-    IndexType *new_row_idxs{};
+    IndexType* new_row_idxs{};
     if (m_out_coo) {
         matrix::CooBuilder<ValueType, IndexType> coo_builder{m_out_coo};
         coo_builder.get_row_idx_array().resize_and_reset(new_nnz);
@@ -168,10 +168,10 @@ void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
  */
 template <typename ValueType, typename IndexType>
 void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *m,
+                      const matrix::Csr<ValueType, IndexType>* m,
                       remove_complex<ValueType> threshold,
-                      matrix::Csr<ValueType, IndexType> *m_out,
-                      matrix::Coo<ValueType, IndexType> *m_out_coo, bool)
+                      matrix::Csr<ValueType, IndexType>* m_out,
+                      matrix::Coo<ValueType, IndexType>* m_out_coo, bool)
 {
     auto col_idxs = m->get_const_col_idxs();
     auto vals = m->get_const_values();
@@ -197,11 +197,11 @@ constexpr auto sample_size = bucket_count * sampleselect_oversampling;
  */
 template <typename ValueType, typename IndexType>
 void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
-                             const matrix::Csr<ValueType, IndexType> *m,
-                             IndexType rank, Array<ValueType> &tmp,
-                             remove_complex<ValueType> &threshold,
-                             matrix::Csr<ValueType, IndexType> *m_out,
-                             matrix::Coo<ValueType, IndexType> *m_out_coo)
+                             const matrix::Csr<ValueType, IndexType>* m,
+                             IndexType rank, Array<ValueType>& tmp,
+                             remove_complex<ValueType>& threshold,
+                             matrix::Csr<ValueType, IndexType>* m_out,
+                             matrix::Coo<ValueType, IndexType>* m_out_coo)
 {
     auto vals = m->get_const_values();
     auto col_idxs = m->get_const_col_idxs();
@@ -212,7 +212,7 @@ void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
         sizeof(ValueType));
     tmp.resize_and_reset(storage_size);
     // pick and sort sample
-    auto sample = reinterpret_cast<AbsType *>(tmp.get_data());
+    auto sample = reinterpret_cast<AbsType*>(tmp.get_data());
     // assuming rounding towards zero
     auto stride = double(size) / sample_size;
     for (IndexType i = 0; i < sample_size; ++i) {
@@ -225,7 +225,7 @@ void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
         sample[i] = sample[(i + 1) * sampleselect_oversampling];
     }
     // count elements per bucket
-    auto histogram = reinterpret_cast<IndexType *>(sample + bucket_count);
+    auto histogram = reinterpret_cast<IndexType*>(sample + bucket_count);
     for (IndexType bucket = 0; bucket < bucket_count; ++bucket) {
         histogram[bucket] = 0;
     }
@@ -263,12 +263,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  */
 template <typename ValueType, typename IndexType>
 void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType> *a,
-                         matrix::Csr<ValueType, IndexType> *l,
-                         const matrix::Coo<ValueType, IndexType> *,
-                         matrix::Csr<ValueType, IndexType> *u,
-                         const matrix::Coo<ValueType, IndexType> *,
-                         matrix::Csr<ValueType, IndexType> *u_csc)
+                         const matrix::Csr<ValueType, IndexType>* a,
+                         matrix::Csr<ValueType, IndexType>* l,
+                         const matrix::Coo<ValueType, IndexType>*,
+                         matrix::Csr<ValueType, IndexType>* u,
+                         const matrix::Coo<ValueType, IndexType>*,
+                         matrix::Csr<ValueType, IndexType>* u_csc)
 {
     auto num_rows = a->get_size()[0];
     auto l_row_ptrs = l->get_const_row_ptrs();
@@ -353,12 +353,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  */
 template <typename ValueType, typename IndexType>
 void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *lu,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    const matrix::Csr<ValueType, IndexType> *l,
-                    const matrix::Csr<ValueType, IndexType> *u,
-                    matrix::Csr<ValueType, IndexType> *l_new,
-                    matrix::Csr<ValueType, IndexType> *u_new)
+                    const matrix::Csr<ValueType, IndexType>* lu,
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    const matrix::Csr<ValueType, IndexType>* l,
+                    const matrix::Csr<ValueType, IndexType>* u,
+                    matrix::Csr<ValueType, IndexType>* l_new,
+                    matrix::Csr<ValueType, IndexType>* u_new)
 {
     auto num_rows = a->get_size()[0];
     auto l_row_ptrs = l->get_const_row_ptrs();
@@ -424,7 +424,7 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
             return state;
         },
         [&](IndexType row, IndexType col, ValueType a_val, ValueType lu_val,
-            row_state &state) {
+            row_state& state) {
             auto r_val = a_val - lu_val;
             // load matching entry of L + U
             auto lpu_col = state.finished_l

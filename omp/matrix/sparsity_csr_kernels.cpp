@@ -63,8 +63,8 @@ namespace sparsity_csr {
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
-          const matrix::SparsityCsr<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+          const matrix::SparsityCsr<ValueType, IndexType>* a,
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
@@ -91,11 +91,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::SparsityCsr<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::SparsityCsr<ValueType, IndexType>* a,
+                   const matrix::Dense<ValueType>* b,
+                   const matrix::Dense<ValueType>* beta,
+                   matrix::Dense<ValueType>* c)
 {
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
@@ -125,8 +125,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void count_num_diagonal_elements(
     std::shared_ptr<const OmpExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType> *matrix,
-    size_type *num_diagonal_elements)
+    const matrix::SparsityCsr<ValueType, IndexType>* matrix,
+    size_type* num_diagonal_elements)
 {
     auto num_rows = matrix->get_size()[0];
     auto row_ptrs = matrix->get_const_row_ptrs();
@@ -148,9 +148,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void remove_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
-                              const IndexType *row_ptrs,
-                              const IndexType *col_idxs,
-                              matrix::SparsityCsr<ValueType, IndexType> *matrix)
+                              const IndexType* row_ptrs,
+                              const IndexType* col_idxs,
+                              matrix::SparsityCsr<ValueType, IndexType>* matrix)
 {
     auto num_rows = matrix->get_size()[0];
     auto adj_ptrs = matrix->get_row_ptrs();
@@ -182,9 +182,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename IndexType>
 inline void convert_sparsity_to_csc(size_type num_rows,
-                                    const IndexType *row_ptrs,
-                                    const IndexType *col_idxs,
-                                    IndexType *row_idxs, IndexType *col_ptrs)
+                                    const IndexType* row_ptrs,
+                                    const IndexType* col_idxs,
+                                    IndexType* row_idxs, IndexType* col_ptrs)
 {
     for (size_type row = 0; row < num_rows; ++row) {
         for (auto i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
@@ -198,8 +198,8 @@ inline void convert_sparsity_to_csc(size_type num_rows,
 template <typename ValueType, typename IndexType>
 void transpose_and_transform(
     std::shared_ptr<const OmpExecutor> exec,
-    matrix::SparsityCsr<ValueType, IndexType> *trans,
-    const matrix::SparsityCsr<ValueType, IndexType> *orig)
+    matrix::SparsityCsr<ValueType, IndexType>* trans,
+    const matrix::SparsityCsr<ValueType, IndexType>* orig)
 {
     auto trans_row_ptrs = trans->get_row_ptrs();
     auto orig_row_ptrs = orig->get_const_row_ptrs();
@@ -221,8 +221,8 @@ void transpose_and_transform(
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const OmpExecutor> exec,
-               const matrix::SparsityCsr<ValueType, IndexType> *orig,
-               matrix::SparsityCsr<ValueType, IndexType> *trans)
+               const matrix::SparsityCsr<ValueType, IndexType>* orig,
+               matrix::SparsityCsr<ValueType, IndexType>* trans)
 {
     transpose_and_transform(exec, trans, orig);
 }
@@ -233,7 +233,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const OmpExecutor> exec,
-                          matrix::SparsityCsr<ValueType, IndexType> *to_sort)
+                          matrix::SparsityCsr<ValueType, IndexType>* to_sort)
 {
     auto row_ptrs = to_sort->get_row_ptrs();
     auto col_idxs = to_sort->get_col_idxs();
@@ -253,7 +253,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const OmpExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType> *to_check, bool *is_sorted)
+    const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool* is_sorted)
 {
     const auto row_ptrs = to_check->get_const_row_ptrs();
     const auto col_idxs = to_check->get_const_col_idxs();

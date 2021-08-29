@@ -134,9 +134,9 @@ __forceinline__ __device__ detail::merge_result<ValueType> group_merge_step(
  */
 template <int group_size, typename ValueType, typename IndexType,
           typename Group, typename Callback>
-__forceinline__ __device__ void group_merge(const ValueType *__restrict__ a,
+__forceinline__ __device__ void group_merge(const ValueType* __restrict__ a,
                                             IndexType a_size,
-                                            const ValueType *__restrict__ b,
+                                            const ValueType* __restrict__ b,
                                             IndexType b_size, Group group,
                                             Callback merge_fn)
 {
@@ -211,9 +211,9 @@ __forceinline__ __device__ void group_merge(const ValueType *__restrict__ a,
  */
 template <int group_size, typename IndexType, typename ValueType,
           typename Group, typename Callback>
-__forceinline__ __device__ void group_match(const ValueType *__restrict__ a,
+__forceinline__ __device__ void group_match(const ValueType* __restrict__ a,
                                             IndexType a_size,
-                                            const ValueType *__restrict__ b,
+                                            const ValueType* __restrict__ b,
                                             IndexType b_size, Group group,
                                             Callback match_fn)
 {
@@ -247,8 +247,8 @@ __forceinline__ __device__ void group_match(const ValueType *__restrict__ a,
  */
 template <typename ValueType, typename IndexType, typename Callback>
 __forceinline__ __device__ void sequential_merge(
-    const ValueType *__restrict__ a, IndexType a_size,
-    const ValueType *__restrict__ b, IndexType b_size, Callback merge_fn)
+    const ValueType* __restrict__ a, IndexType a_size,
+    const ValueType* __restrict__ b, IndexType b_size, Callback merge_fn)
 {
     auto c_size = a_size + b_size;
     IndexType a_begin{};
@@ -293,9 +293,9 @@ __forceinline__ __device__ void sequential_merge(
  *                  indices of the matching values from a and b.
  */
 template <typename IndexType, typename ValueType, typename Callback>
-__forceinline__ __device__ void sequential_match(const ValueType *a,
+__forceinline__ __device__ void sequential_match(const ValueType* a,
                                                  IndexType a_size,
-                                                 const ValueType *b,
+                                                 const ValueType* b,
                                                  IndexType b_size,
                                                  Callback match_fn)
 {

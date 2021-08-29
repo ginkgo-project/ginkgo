@@ -86,7 +86,7 @@ constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
 template <
     typename Group, typename ValueType, typename Operator,
     typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
-__dpct_inline__ ValueType reduce(const Group &group, ValueType local_data,
+__dpct_inline__ ValueType reduce(const Group& group, ValueType local_data,
                                  Operator reduce_op = Operator{})
 {
 #pragma unroll
@@ -109,7 +109,7 @@ __dpct_inline__ ValueType reduce(const Group &group, ValueType local_data,
 template <
     typename Group, typename ValueType,
     typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
-__dpct_inline__ int choose_pivot(const Group &group, ValueType local_data,
+__dpct_inline__ int choose_pivot(const Group& group, ValueType local_data,
                                  bool is_pivoted)
 {
     using real = remove_complex<ValueType>;
@@ -142,7 +142,7 @@ template <
     unsigned int sg_size = config::warp_size, typename Group,
     typename ValueType, typename Operator,
     typename = std::enable_if_t<group::is_synchronizable_group<Group>::value>>
-void reduce(const Group &__restrict__ group, ValueType *__restrict__ data,
+void reduce(const Group& __restrict__ group, ValueType* __restrict__ data,
             Operator reduce_op = Operator{})
 {
     const auto local_id = group.thread_rank();
@@ -176,8 +176,8 @@ void reduce(const Group &__restrict__ group, ValueType *__restrict__ data,
  */
 template <unsigned int sg_size = config::warp_size, typename Operator,
           typename ValueType>
-void reduce_array(size_type size, const ValueType *__restrict__ source,
-                  ValueType *__restrict__ result, sycl::nd_item<3> item_ct1,
+void reduce_array(size_type size, const ValueType* __restrict__ source,
+                  ValueType* __restrict__ result, sycl::nd_item<3> item_ct1,
                   Operator reduce_op = Operator{})
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
@@ -204,13 +204,13 @@ void reduce_array(size_type size, const ValueType *__restrict__ source,
  */
 template <std::uint32_t cfg, typename ValueType>
 void reduce_add_array(
-    size_type size, const ValueType *__restrict__ source,
-    ValueType *__restrict__ result, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)> &block_sum)
+    size_type size, const ValueType* __restrict__ source,
+    ValueType* __restrict__ result, sycl::nd_item<3> item_ct1,
+    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>& block_sum)
 {
     reduce_array<KCFG_1D::decode<1>(cfg)>(
-        size, source, static_cast<ValueType *>(block_sum), item_ct1,
-        [](const ValueType &x, const ValueType &y) { return x + y; });
+        size, source, static_cast<ValueType*>(block_sum), item_ct1,
+        [](const ValueType& x, const ValueType& y) { return x + y; });
 
     if (item_ct1.get_local_id(2) == 0) {
         result[item_ct1.get_group(2)] = block_sum[0];
@@ -219,10 +219,10 @@ void reduce_add_array(
 
 template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
 void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                      sycl::queue *queue, size_type size,
-                      const ValueType *source, ValueType *result)
+                      sycl::queue* queue, size_type size,
+                      const ValueType* source, ValueType* result)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>,
                        0, sycl::access::mode::read_write,
                        sycl::access::target::local>
@@ -254,7 +254,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_add_array_call, reduce_add_array_config,
  */
 template <typename ValueType>
 ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
-                           size_type size, const ValueType *source)
+                           size_type size, const ValueType* source)
 {
     auto block_results_val = source;
     size_type grid_dim = size;

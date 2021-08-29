@@ -172,8 +172,8 @@ protected:
         dmtx_ut_ani->copy_from(mtx_ut_ani.get());
     }
 
-    void test_select(const std::unique_ptr<Csr> &mtx,
-                     const std::unique_ptr<Csr> &dmtx, index_type rank,
+    void test_select(const std::unique_ptr<Csr>& mtx,
+                     const std::unique_ptr<Csr>& dmtx, index_type rank,
                      gko::remove_complex<value_type> tolerance = 0.0)
     {
         auto size = index_type(mtx->get_num_stored_elements());
@@ -193,8 +193,8 @@ protected:
         ASSERT_EQ(res, dres);
     }
 
-    void test_filter(const std::unique_ptr<Csr> &mtx,
-                     const std::unique_ptr<Csr> &dmtx,
+    void test_filter(const std::unique_ptr<Csr>& mtx,
+                     const std::unique_ptr<Csr>& dmtx,
                      gko::remove_complex<value_type> threshold, bool lower)
     {
         auto res = Csr::create(ref, mtx_size);
@@ -219,8 +219,8 @@ protected:
         GKO_ASSERT_MTX_EQ_SPARSITY(dres, dres_coo);
     }
 
-    void test_filter_approx(const std::unique_ptr<Csr> &mtx,
-                            const std::unique_ptr<Csr> &dmtx, index_type rank)
+    void test_filter_approx(const std::unique_ptr<Csr>& mtx,
+                            const std::unique_ptr<Csr>& dmtx, index_type rank)
     {
         auto res = Csr::create(ref, mtx_size);
         auto dres = Csr::create(omp, mtx_size);
@@ -306,7 +306,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterNullptrCooIsEquivalentToRef)
     using Coo = typename TestFixture::Coo;
     auto res = Csr::create(this->ref, this->mtx_size);
     auto dres = Csr::create(this->omp, this->mtx_size);
-    Coo *null_coo = nullptr;
+    Coo* null_coo = nullptr;
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter(
         this->ref, this->mtx_l.get(), 0.5, res.get(), null_coo, true);
@@ -363,7 +363,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
     this->test_filter(this->mtx_l, this->dmtx_l, 0.5, true);
     auto res = Csr::create(this->ref, this->mtx_size);
     auto dres = Csr::create(this->omp, this->mtx_size);
-    Coo *null_coo = nullptr;
+    Coo* null_coo = nullptr;
     gko::Array<value_type> tmp(this->ref);
     gko::Array<value_type> dtmp(this->omp);
     gko::remove_complex<value_type> threshold{};

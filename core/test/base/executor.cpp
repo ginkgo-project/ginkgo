@@ -56,7 +56,7 @@ using exec_ptr = std::shared_ptr<gko::Executor>;
 
 class ExampleOperation : public gko::Operation {
 public:
-    explicit ExampleOperation(int &val) : value(val) {}
+    explicit ExampleOperation(int& val) : value(val) {}
     void run(std::shared_ptr<const gko::OmpExecutor>) const override
     {
         value = 1;
@@ -78,7 +78,7 @@ public:
         value = 5;
     }
 
-    int &value;
+    int& value;
 };
 
 
@@ -112,7 +112,7 @@ TEST(OmpExecutor, AllocatesAndFreesMemory)
 {
     const int num_elems = 10;
     exec_ptr omp = gko::OmpExecutor::create();
-    int *ptr = nullptr;
+    int* ptr = nullptr;
 
     ASSERT_NO_THROW(ptr = omp->alloc<int>(num_elems));
     ASSERT_NO_THROW(omp->free(ptr));
@@ -130,7 +130,7 @@ TEST(OmpExecutor, FailsWhenOverallocating)
 {
     const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
     exec_ptr omp = gko::OmpExecutor::create();
-    int *ptr = nullptr;
+    int* ptr = nullptr;
 
     ASSERT_THROW(ptr = omp->alloc<int>(num_elems), gko::AllocationError);
 
@@ -143,7 +143,7 @@ TEST(OmpExecutor, CopiesData)
     int orig[] = {3, 8};
     const int num_elems = std::extent<decltype(orig)>::value;
     exec_ptr omp = gko::OmpExecutor::create();
-    int *copy = omp->alloc<int>(num_elems);
+    int* copy = omp->alloc<int>(num_elems);
 
     // user code is run on the OMP, so local variables are in OMP memory
     omp->copy(num_elems, orig, copy);
@@ -239,7 +239,7 @@ TEST(ReferenceExecutor, AllocatesAndFreesMemory)
 {
     const int num_elems = 10;
     exec_ptr ref = gko::ReferenceExecutor::create();
-    int *ptr = nullptr;
+    int* ptr = nullptr;
 
     ASSERT_NO_THROW(ptr = ref->alloc<int>(num_elems));
     ASSERT_NO_THROW(ref->free(ptr));
@@ -257,7 +257,7 @@ TEST(ReferenceExecutor, FailsWhenOverallocating)
 {
     const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
     exec_ptr ref = gko::ReferenceExecutor::create();
-    int *ptr = nullptr;
+    int* ptr = nullptr;
 
     ASSERT_THROW(ptr = ref->alloc<int>(num_elems), gko::AllocationError);
 
@@ -270,7 +270,7 @@ TEST(ReferenceExecutor, CopiesData)
     int orig[] = {3, 8};
     const int num_elems = std::extent<decltype(orig)>::value;
     exec_ptr ref = gko::ReferenceExecutor::create();
-    int *copy = ref->alloc<int>(num_elems);
+    int* copy = ref->alloc<int>(num_elems);
 
     // ReferenceExecutor is a type of OMP executor, so this is O.K.
     ref->copy(num_elems, orig, copy);
@@ -284,7 +284,7 @@ TEST(ReferenceExecutor, CopiesData)
 TEST(ReferenceExecutor, CopiesSingleValue)
 {
     exec_ptr ref = gko::ReferenceExecutor::create();
-    int *el = ref->alloc<int>(1);
+    int* el = ref->alloc<int>(1);
     el[0] = 83683;
 
     EXPECT_EQ(83683, ref->copy_val_to_host(el));
@@ -299,7 +299,7 @@ TEST(ReferenceExecutor, CopiesDataFromOmp)
     const int num_elems = std::extent<decltype(orig)>::value;
     exec_ptr omp = gko::OmpExecutor::create();
     exec_ptr ref = gko::ReferenceExecutor::create();
-    int *copy = ref->alloc<int>(num_elems);
+    int* copy = ref->alloc<int>(num_elems);
 
     // ReferenceExecutor is a type of OMP executor, so this is O.K.
     ref->copy_from(omp.get(), num_elems, orig, copy);
@@ -316,7 +316,7 @@ TEST(ReferenceExecutor, CopiesDataToOmp)
     const int num_elems = std::extent<decltype(orig)>::value;
     exec_ptr omp = gko::OmpExecutor::create();
     exec_ptr ref = gko::ReferenceExecutor::create();
-    int *copy = omp->alloc<int>(num_elems);
+    int* copy = omp->alloc<int>(num_elems);
 
     // ReferenceExecutor is a type of OMP executor, so this is O.K.
     omp->copy_from(ref.get(), num_elems, orig, copy);
@@ -619,10 +619,10 @@ struct mock_free : T {
      * with `()` operator instead of `{}`.
      */
     template <typename... Params>
-    mock_free(Params &&... params) : T(std::forward<Params>(params)...)
+    mock_free(Params&&... params) : T(std::forward<Params>(params)...)
     {}
 
-    void raw_free(void *ptr) const noexcept override
+    void raw_free(void* ptr) const noexcept override
     {
         called_free = true;
         T::raw_free(ptr);

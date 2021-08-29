@@ -89,8 +89,8 @@ TYPED_TEST(CsrBuilder, UpdatesSrowOnDestruction)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     struct mock_strategy : public Mtx::strategy_type {
-        virtual void process(const gko::Array<index_type> &,
-                             gko::Array<index_type> *) override
+        virtual void process(const gko::Array<index_type>&,
+                             gko::Array<index_type>*) override
         {
             *was_called = true;
         }
@@ -102,9 +102,9 @@ TYPED_TEST(CsrBuilder, UpdatesSrowOnDestruction)
             return std::make_shared<mock_strategy>(*was_called);
         }
 
-        mock_strategy(bool &flag) : Mtx::strategy_type(""), was_called(&flag) {}
+        mock_strategy(bool& flag) : Mtx::strategy_type(""), was_called(&flag) {}
 
-        bool *was_called;
+        bool* was_called;
     };
     bool was_called{};
     this->mtx->set_strategy(std::make_shared<mock_strategy>(was_called));

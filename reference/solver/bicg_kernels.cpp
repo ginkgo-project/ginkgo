@@ -52,13 +52,13 @@ namespace bicg {
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const ReferenceExecutor> exec,
-                const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
-                matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
-                matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
-                matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *r2,
-                matrix::Dense<ValueType> *z2, matrix::Dense<ValueType> *p2,
-                matrix::Dense<ValueType> *q2,
-                Array<stopping_status> *stop_status)
+                const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* r,
+                matrix::Dense<ValueType>* z, matrix::Dense<ValueType>* p,
+                matrix::Dense<ValueType>* q, matrix::Dense<ValueType>* prev_rho,
+                matrix::Dense<ValueType>* rho, matrix::Dense<ValueType>* r2,
+                matrix::Dense<ValueType>* z2, matrix::Dense<ValueType>* p2,
+                matrix::Dense<ValueType>* q2,
+                Array<stopping_status>* stop_status)
 {
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         rho->at(j) = zero<ValueType>();
@@ -80,11 +80,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec,
-            matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
-            matrix::Dense<ValueType> *p2, const matrix::Dense<ValueType> *z2,
-            const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *prev_rho,
-            const Array<stopping_status> *stop_status)
+            matrix::Dense<ValueType>* p, const matrix::Dense<ValueType>* z,
+            matrix::Dense<ValueType>* p2, const matrix::Dense<ValueType>* z2,
+            const matrix::Dense<ValueType>* rho,
+            const matrix::Dense<ValueType>* prev_rho,
+            const Array<stopping_status>* stop_status)
 {
     for (size_type i = 0; i < p->get_size()[0]; ++i) {
         for (size_type j = 0; j < p->get_size()[1]; ++j) {
@@ -108,13 +108,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const ReferenceExecutor> exec,
-            matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
-            matrix::Dense<ValueType> *r2, const matrix::Dense<ValueType> *p,
-            const matrix::Dense<ValueType> *q,
-            const matrix::Dense<ValueType> *q2,
-            const matrix::Dense<ValueType> *beta,
-            const matrix::Dense<ValueType> *rho,
-            const Array<stopping_status> *stop_status)
+            matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* r,
+            matrix::Dense<ValueType>* r2, const matrix::Dense<ValueType>* p,
+            const matrix::Dense<ValueType>* q,
+            const matrix::Dense<ValueType>* q2,
+            const matrix::Dense<ValueType>* beta,
+            const matrix::Dense<ValueType>* rho,
+            const Array<stopping_status>* stop_status)
 {
     for (size_type i = 0; i < x->get_size()[0]; ++i) {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {

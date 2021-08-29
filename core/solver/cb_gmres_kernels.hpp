@@ -127,43 +127,43 @@ namespace kernels {
 #define GKO_DECLARE_CB_GMRES_INITIALIZE_1_KERNEL(_type)                     \
     void initialize_1(                                                      \
         std::shared_ptr<const DefaultExecutor> exec,                        \
-        const matrix::Dense<_type> *b, matrix::Dense<_type> *residual,      \
-        matrix::Dense<_type> *givens_sin, matrix::Dense<_type> *givens_cos, \
-        Array<stopping_status> *stop_status, size_type krylov_dim)
+        const matrix::Dense<_type>* b, matrix::Dense<_type>* residual,      \
+        matrix::Dense<_type>* givens_sin, matrix::Dense<_type>* givens_cos, \
+        Array<stopping_status>* stop_status, size_type krylov_dim)
 
 
 #define GKO_DECLARE_CB_GMRES_INITIALIZE_2_KERNEL(_type1, _range)            \
     void initialize_2(std::shared_ptr<const DefaultExecutor> exec,          \
-                      const matrix::Dense<_type1> *residual,                \
-                      matrix::Dense<remove_complex<_type1>> *residual_norm, \
-                      matrix::Dense<_type1> *residual_norm_collection,      \
-                      matrix::Dense<remove_complex<_type1>> *arnoldi_norm,  \
+                      const matrix::Dense<_type1>* residual,                \
+                      matrix::Dense<remove_complex<_type1>>* residual_norm, \
+                      matrix::Dense<_type1>* residual_norm_collection,      \
+                      matrix::Dense<remove_complex<_type1>>* arnoldi_norm,  \
                       _range krylov_bases,                                  \
-                      matrix::Dense<_type1> *next_krylov_basis,             \
-                      Array<size_type> *final_iter_nums, size_type krylov_dim)
+                      matrix::Dense<_type1>* next_krylov_basis,             \
+                      Array<size_type>* final_iter_nums, size_type krylov_dim)
 
 
 #define GKO_DECLARE_CB_GMRES_STEP_1_KERNEL(_type1, _range)                    \
     void step_1(                                                              \
         std::shared_ptr<const DefaultExecutor> exec,                          \
-        matrix::Dense<_type1> *next_krylov_basis,                             \
-        matrix::Dense<_type1> *givens_sin, matrix::Dense<_type1> *givens_cos, \
-        matrix::Dense<remove_complex<_type1>> *residual_norm,                 \
-        matrix::Dense<_type1> *residual_norm_collection, _range krylov_bases, \
-        matrix::Dense<_type1> *hessenberg_iter,                               \
-        matrix::Dense<_type1> *buffer_iter,                                   \
-        matrix::Dense<remove_complex<_type1>> *arnoldi_norm, size_type iter,  \
-        Array<size_type> *final_iter_nums,                                    \
-        const Array<stopping_status> *stop_status,                            \
-        Array<stopping_status> *reorth_status, Array<size_type> *num_reorth)
+        matrix::Dense<_type1>* next_krylov_basis,                             \
+        matrix::Dense<_type1>* givens_sin, matrix::Dense<_type1>* givens_cos, \
+        matrix::Dense<remove_complex<_type1>>* residual_norm,                 \
+        matrix::Dense<_type1>* residual_norm_collection, _range krylov_bases, \
+        matrix::Dense<_type1>* hessenberg_iter,                               \
+        matrix::Dense<_type1>* buffer_iter,                                   \
+        matrix::Dense<remove_complex<_type1>>* arnoldi_norm, size_type iter,  \
+        Array<size_type>* final_iter_nums,                                    \
+        const Array<stopping_status>* stop_status,                            \
+        Array<stopping_status>* reorth_status, Array<size_type>* num_reorth)
 
 #define GKO_DECLARE_CB_GMRES_STEP_2_KERNEL(_type1, _range)                    \
     void step_2(std::shared_ptr<const DefaultExecutor> exec,                  \
-                const matrix::Dense<_type1> *residual_norm_collection,        \
-                _range krylov_bases, const matrix::Dense<_type1> *hessenberg, \
-                matrix::Dense<_type1> *y,                                     \
-                matrix::Dense<_type1> *before_preconditioner,                 \
-                const Array<size_type> *final_iter_nums)
+                const matrix::Dense<_type1>* residual_norm_collection,        \
+                _range krylov_bases, const matrix::Dense<_type1>* hessenberg, \
+                matrix::Dense<_type1>* y,                                     \
+                matrix::Dense<_type1>* before_preconditioner,                 \
+                const Array<size_type>* final_iter_nums)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                 \

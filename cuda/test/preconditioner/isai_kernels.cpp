@@ -74,7 +74,7 @@ protected:
         cuda = gko::CudaExecutor::create(0, ref);
     }
 
-    std::unique_ptr<Csr> clone_allocations(const Csr *csr_mtx)
+    std::unique_ptr<Csr> clone_allocations(const Csr* csr_mtx)
     {
         if (csr_mtx->get_executor() != ref) {
             return {nullptr};
@@ -121,14 +121,14 @@ protected:
     }
 
     template <typename ReadMtx>
-    std::unique_ptr<ReadMtx> read(const char *name)
+    std::unique_ptr<ReadMtx> read(const char* name)
     {
         std::ifstream mtxstream{std::string{gko::matrices::location_isai_mtxs} +
                                 name};
         auto result = gko::read<ReadMtx>(mtxstream, ref);
         // to avoid removing 0s, the matrices store 12345 instead
         for (gko::size_type i = 0; i < result->get_num_stored_elements(); ++i) {
-            auto &val = result->get_values()[i];
+            auto& val = result->get_values()[i];
             if (val == static_cast<value_type>(12345.0)) {
                 val = 0;
             }
@@ -136,7 +136,7 @@ protected:
         return std::move(result);
     }
 
-    void ensure_diagonal(Dense *mtx)
+    void ensure_diagonal(Dense* mtx)
     {
         for (int i = 0; i < mtx->get_size()[0]; ++i) {
             mtx->at(i, i) = gko::one<Dense::value_type>();

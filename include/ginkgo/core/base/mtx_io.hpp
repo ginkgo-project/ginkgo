@@ -58,7 +58,7 @@ namespace gko {
  *       structure. Consider using gko::read instead.
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-matrix_data<ValueType, IndexType> read_raw(std::istream &is);
+matrix_data<ValueType, IndexType> read_raw(std::istream& is);
 
 
 /**
@@ -91,7 +91,7 @@ enum class layout_type {
  *       gko::write instead.
  */
 template <typename ValueType, typename IndexType>
-void write_raw(std::ostream &os, const matrix_data<ValueType, IndexType> &data,
+void write_raw(std::ostream& os, const matrix_data<ValueType, IndexType>& data,
                layout_type layout = layout_type::array);
 
 
@@ -110,7 +110,7 @@ void write_raw(std::ostream &os, const matrix_data<ValueType, IndexType> &data,
  * @return A MatrixType LinOp filled with data from filename
  */
 template <typename MatrixType, typename StreamType, typename... MatrixArgs>
-inline std::unique_ptr<MatrixType> read(StreamType &&is, MatrixArgs &&... args)
+inline std::unique_ptr<MatrixType> read(StreamType&& is, MatrixArgs&&... args)
 {
     auto mtx = MatrixType::create(std::forward<MatrixArgs>(args)...);
     mtx->read(read_raw<typename MatrixType::value_type,
@@ -131,7 +131,7 @@ inline std::unique_ptr<MatrixType> read(StreamType &&is, MatrixArgs &&... args)
  * @param layout  the layout used in the output
  */
 template <typename MatrixType, typename StreamType>
-inline void write(StreamType &&os, MatrixType *matrix,
+inline void write(StreamType&& os, MatrixType* matrix,
                   layout_type layout = layout_type::array)
 {
     matrix_data<typename MatrixType::value_type,

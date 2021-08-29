@@ -77,8 +77,8 @@ namespace {
 
 
 template <typename ValueType, typename IndexType>
-void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
-                      Array<size_type> &row_nnz)
+void get_each_row_nnz(const matrix_data<ValueType, IndexType>& data,
+                      Array<size_type>& row_nnz)
 {
     size_type nnz = 0;
     IndexType current_row = 0;
@@ -86,7 +86,7 @@ void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
     for (size_type i = 0; i < row_nnz.get_num_elems(); i++) {
         row_nnz_val[i] = zero<size_type>();
     }
-    for (const auto &elem : data.nonzeros) {
+    for (const auto& elem : data.nonzeros) {
         if (elem.row != current_row) {
             row_nnz_val[current_row] = nnz;
             current_row = elem.row;
@@ -102,7 +102,7 @@ void get_each_row_nnz(const matrix_data<ValueType, IndexType> &data,
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
+void Hybrid<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -116,9 +116,9 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *alpha,
-                                              const LinOp *b, const LinOp *beta,
-                                              LinOp *x) const
+void Hybrid<ValueType, IndexType>::apply_impl(const LinOp* alpha,
+                                              const LinOp* b, const LinOp* beta,
+                                              LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
@@ -133,7 +133,7 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *alpha,
 
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::convert_to(
-    Hybrid<next_precision<ValueType>, IndexType> *result) const
+    Hybrid<next_precision<ValueType>, IndexType>* result) const
 {
     this->ell_->convert_to(result->ell_.get());
     this->coo_->convert_to(result->coo_.get());
@@ -146,14 +146,14 @@ void Hybrid<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::move_to(
-    Hybrid<next_precision<ValueType>, IndexType> *result)
+    Hybrid<next_precision<ValueType>, IndexType>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
+void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
@@ -163,7 +163,7 @@ void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::move_to(Dense<ValueType> *result)
+void Hybrid<ValueType, IndexType>::move_to(Dense<ValueType>* result)
 {
     this->convert_to(result);
 }
@@ -171,7 +171,7 @@ void Hybrid<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::convert_to(
-    Csr<ValueType, IndexType> *result) const
+    Csr<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
 
@@ -188,14 +188,14 @@ void Hybrid<ValueType, IndexType>::convert_to(
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
+void Hybrid<ValueType, IndexType>::move_to(Csr<ValueType, IndexType>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::read(const mat_data &data)
+void Hybrid<ValueType, IndexType>::read(const mat_data& data)
 {
     // get the limitation of columns of the ell part
     // calculate coo storage
@@ -253,7 +253,7 @@ void Hybrid<ValueType, IndexType>::read(const mat_data &data)
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::write(mat_data &data) const
+void Hybrid<ValueType, IndexType>::write(mat_data& data) const
 {
     std::unique_ptr<const LinOp> op{};
     auto tmp_clone =

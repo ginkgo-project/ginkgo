@@ -50,29 +50,29 @@ namespace fcg {
 
 #define GKO_DECLARE_FCG_INITIALIZE_KERNEL(_type)                               \
     void initialize(std::shared_ptr<const DefaultExecutor> exec,               \
-                    const matrix::Dense<_type> *b, matrix::Dense<_type> *r,    \
-                    matrix::Dense<_type> *z, matrix::Dense<_type> *p,          \
-                    matrix::Dense<_type> *q, matrix::Dense<_type> *t,          \
-                    matrix::Dense<_type> *prev_rho, matrix::Dense<_type> *rho, \
-                    matrix::Dense<_type> *rho_t,                               \
-                    Array<stopping_status> *stop_status)
+                    const matrix::Dense<_type>* b, matrix::Dense<_type>* r,    \
+                    matrix::Dense<_type>* z, matrix::Dense<_type>* p,          \
+                    matrix::Dense<_type>* q, matrix::Dense<_type>* t,          \
+                    matrix::Dense<_type>* prev_rho, matrix::Dense<_type>* rho, \
+                    matrix::Dense<_type>* rho_t,                               \
+                    Array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_FCG_STEP_1_KERNEL(_type)                            \
     void step_1(std::shared_ptr<const DefaultExecutor> exec,            \
-                matrix::Dense<_type> *p, const matrix::Dense<_type> *z, \
-                const matrix::Dense<_type> *rho_t,                      \
-                const matrix::Dense<_type> *prev_rho,                   \
-                const Array<stopping_status> *stop_status)
+                matrix::Dense<_type>* p, const matrix::Dense<_type>* z, \
+                const matrix::Dense<_type>* rho_t,                      \
+                const matrix::Dense<_type>* prev_rho,                   \
+                const Array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_FCG_STEP_2_KERNEL(_type)                                  \
     void step_2(                                                              \
-        std::shared_ptr<const DefaultExecutor> exec, matrix::Dense<_type> *x, \
-        matrix::Dense<_type> *r, matrix::Dense<_type> *t,                     \
-        const matrix::Dense<_type> *p, const matrix::Dense<_type> *q,         \
-        const matrix::Dense<_type> *beta, const matrix::Dense<_type> *rho,    \
-        const Array<stopping_status> *stop_status)
+        std::shared_ptr<const DefaultExecutor> exec, matrix::Dense<_type>* x, \
+        matrix::Dense<_type>* r, matrix::Dense<_type>* t,                     \
+        const matrix::Dense<_type>* p, const matrix::Dense<_type>* q,         \
+        const matrix::Dense<_type>* beta, const matrix::Dense<_type>* rho,    \
+        const Array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES              \

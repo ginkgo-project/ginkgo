@@ -53,7 +53,7 @@ namespace ic_factorization {
 
 template <typename ValueType, typename IndexType>
 void compute(std::shared_ptr<const DefaultExecutor> exec,
-             matrix::Csr<ValueType, IndexType> *m)
+             matrix::Csr<ValueType, IndexType>* m)
 {
     const auto id = exec->get_device_id();
     auto handle = exec->get_cusparse_handle();

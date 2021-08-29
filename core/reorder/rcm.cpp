@@ -67,7 +67,7 @@ GKO_REGISTER_OPERATION(get_degree_of_nodes, rcm::get_degree_of_nodes);
 
 template <typename ValueType, typename IndexType>
 void Rcm<ValueType, IndexType>::generate(
-    std::shared_ptr<const Executor> &exec,
+    std::shared_ptr<const Executor>& exec,
     std::unique_ptr<SparsityMatrix> adjacency_matrix) const
 {
     const IndexType num_rows = adjacency_matrix->get_size()[0];

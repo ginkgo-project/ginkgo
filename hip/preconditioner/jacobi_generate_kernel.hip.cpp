@@ -75,13 +75,13 @@ namespace {
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void generate(syn::value_list<int, max_block_size>,
-              const matrix::Csr<ValueType, IndexType> *mtx,
-              remove_complex<ValueType> accuracy, ValueType *block_data,
-              const preconditioner::block_interleaved_storage_scheme<IndexType>
-                  &storage_scheme,
-              remove_complex<ValueType> *conditioning,
-              precision_reduction *block_precisions,
-              const IndexType *block_ptrs, size_type num_blocks)
+              const matrix::Csr<ValueType, IndexType>* mtx,
+              remove_complex<ValueType> accuracy, ValueType* block_data,
+              const preconditioner::block_interleaved_storage_scheme<IndexType>&
+                  storage_scheme,
+              remove_complex<ValueType>* conditioning,
+              precision_reduction* block_precisions,
+              const IndexType* block_ptrs, size_type num_blocks)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
     constexpr int blocks_per_warp = config::warp_size / subwarp_size;
@@ -118,14 +118,14 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const HipExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *system_matrix,
+              const matrix::Csr<ValueType, IndexType>* system_matrix,
               size_type num_blocks, uint32 max_block_size,
               remove_complex<ValueType> accuracy,
-              const preconditioner::block_interleaved_storage_scheme<IndexType>
-                  &storage_scheme,
-              Array<remove_complex<ValueType>> &conditioning,
-              Array<precision_reduction> &block_precisions,
-              const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
+              const preconditioner::block_interleaved_storage_scheme<IndexType>&
+                  storage_scheme,
+              Array<remove_complex<ValueType>>& conditioning,
+              Array<precision_reduction>& block_precisions,
+              const Array<IndexType>& block_pointers, Array<ValueType>& blocks)
 {
     components::fill_array(exec, blocks.get_data(), blocks.get_num_elems(),
                            zero<ValueType>());

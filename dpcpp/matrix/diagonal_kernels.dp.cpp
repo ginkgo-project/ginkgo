@@ -65,9 +65,9 @@ namespace kernel {
 
 
 template <typename ValueType, typename IndexType>
-void apply_to_csr(size_type num_rows, const ValueType *__restrict__ diag,
-                  const IndexType *__restrict__ row_ptrs,
-                  ValueType *__restrict__ result_values,
+void apply_to_csr(size_type num_rows, const ValueType* __restrict__ diag,
+                  const IndexType* __restrict__ row_ptrs,
+                  ValueType* __restrict__ result_values,
                   sycl::nd_item<3> item_ct1)
 {
     constexpr auto warp_size = config::warp_size;
@@ -96,9 +96,9 @@ GKO_ENABLE_DEFAULT_HOST(apply_to_csr, apply_to_csr);
 
 template <typename ValueType, typename IndexType>
 void apply_to_csr(std::shared_ptr<const DpcppExecutor> exec,
-                  const matrix::Diagonal<ValueType> *a,
-                  const matrix::Csr<ValueType, IndexType> *b,
-                  matrix::Csr<ValueType, IndexType> *c)
+                  const matrix::Diagonal<ValueType>* a,
+                  const matrix::Csr<ValueType, IndexType>* b,
+                  matrix::Csr<ValueType, IndexType>* c)
 {
     const auto num_rows = b->get_size()[0];
     const auto diag_values = a->get_const_values();

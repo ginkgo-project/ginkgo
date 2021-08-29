@@ -75,7 +75,7 @@ public:
      *
      * @return a list of operators
      */
-    const std::vector<std::shared_ptr<const LinOp>> &get_operators() const
+    const std::vector<std::shared_ptr<const LinOp>>& get_operators() const
         noexcept
     {
         return operators_;
@@ -133,7 +133,7 @@ protected:
      * @param rest  remainging operators
      */
     template <typename... Rest>
-    explicit Composition(std::shared_ptr<const LinOp> oper, Rest &&... rest)
+    explicit Composition(std::shared_ptr<const LinOp> oper, Rest&&... rest)
         : Composition(std::forward<Rest>(rest)...)
     {
         GKO_ASSERT_CONFORMANT(oper, operators_[0]);
@@ -156,10 +156,10 @@ protected:
           storage_{oper->get_executor()}
     {}
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
 private:
     std::vector<std::shared_ptr<const LinOp>> operators_;
@@ -213,7 +213,7 @@ protected:
      * Sets the composition with a list of operators
      */
     template <typename... LinOp>
-    void set_composition(LinOp &&... linop)
+    void set_composition(LinOp&&... linop)
     {
         composition_ =
             Composition<ValueType>::create(std::forward<LinOp>(linop)...);

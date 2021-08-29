@@ -86,7 +86,7 @@ GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
  * If `power` is 1, the matrix will be returned unchanged.
  */
 template <typename Csr>
-std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor> &exec,
+std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor>& exec,
                                      std::shared_ptr<const Csr> mtx, int power)
 {
     GKO_ASSERT_EQ(power >= 1, true);

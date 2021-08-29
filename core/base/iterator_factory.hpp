@@ -87,7 +87,7 @@ private:
         ToSortType dominant;
         SecondaryType secondary;
 
-        friend bool operator<(const element &left, const element &right)
+        friend bool operator<(const element& left, const element& right)
         {
             return left.dominant < right.dominant;
         }
@@ -110,28 +110,28 @@ private:
 
         ~Reference() {}
 
-        Reference(IteratorFactory *parent, array_index_type array_index)
+        Reference(IteratorFactory* parent, array_index_type array_index)
             : parent_(parent), arr_index_(array_index)
         {}
 
         // Since it must be `MoveConstructible`
-        Reference(Reference &&other)
+        Reference(Reference&& other)
             : parent_(other.parent_), arr_index_(std::move(other.arr_index_))
         {}
 
-        Reference(const Reference &other)
+        Reference(const Reference& other)
             : parent_(other.parent_), arr_index_(other.arr_index_)
         {}
 
 
-        Reference &operator=(element other)
+        Reference& operator=(element other)
         {
             dominant() = other.dominant;
             secondary() = other.secondary;
             return *this;
         }
 
-        Reference &operator=(const Reference &other)
+        Reference& operator=(const Reference& other)
         {
             dominant() = other.dominant();
             secondary() = other.secondary();
@@ -139,7 +139,7 @@ private:
         }
 
         // Since it must be `MoveAssignable`
-        Reference &operator=(Reference &&other)
+        Reference& operator=(Reference&& other)
         {
             // In C++11, it is legal for a nested class to access private
             // members of the parent class.
@@ -159,40 +159,40 @@ private:
             std::swap(a.secondary(), b.secondary());
         }
 
-        friend bool operator<(const Reference &left, const Reference &right)
+        friend bool operator<(const Reference& left, const Reference& right)
         {
             return left.dominant() < right.dominant();
         }
 
-        friend bool operator<(const Reference &left, const element &right)
+        friend bool operator<(const Reference& left, const element& right)
         {
             return left.dominant() < right.dominant;
         }
 
-        friend bool operator<(const element &left, const Reference &right)
+        friend bool operator<(const element& left, const Reference& right)
         {
             return left.dominant < right.dominant();
         }
 
-        ToSortType &dominant() { return parent_->dominant_values_[arr_index_]; }
+        ToSortType& dominant() { return parent_->dominant_values_[arr_index_]; }
 
-        const ToSortType &dominant() const
+        const ToSortType& dominant() const
         {
             return parent_->dominant_values_[arr_index_];
         }
 
-        SecondaryType &secondary()
+        SecondaryType& secondary()
         {
             return parent_->secondary_values_[arr_index_];
         }
 
-        const SecondaryType &secondary() const
+        const SecondaryType& secondary() const
         {
             return parent_->secondary_values_[arr_index_];
         }
 
     private:
-        IteratorFactory *parent_;
+        IteratorFactory* parent_;
         array_index_type arr_index_;
     };
 
@@ -218,15 +218,15 @@ private:
 
         ~Iterator() {}
 
-        Iterator(IteratorFactory *parent, difference_type array_index)
+        Iterator(IteratorFactory* parent, difference_type array_index)
             : parent_(parent), arr_index_(array_index)
         {}
 
-        Iterator(const Iterator &other)
+        Iterator(const Iterator& other)
             : parent_(other.parent_), arr_index_(other.arr_index_)
         {}
 
-        Iterator &operator=(const Iterator &other)
+        Iterator& operator=(const Iterator& other)
         {
             arr_index_ = other.arr_index_;
             return *this;
@@ -234,19 +234,19 @@ private:
 
         // Operators needed for the std::sort requirement of
         // `LegacyRandomAccessIterator`
-        Iterator &operator+=(difference_type i)
+        Iterator& operator+=(difference_type i)
         {
             arr_index_ += i;
             return *this;
         }
 
-        Iterator &operator-=(difference_type i)
+        Iterator& operator-=(difference_type i)
         {
             arr_index_ -= i;
             return *this;
         }
 
-        Iterator &operator++()  // Prefix increment (++i)
+        Iterator& operator++()  // Prefix increment (++i)
         {
             ++arr_index_;
             return *this;
@@ -259,7 +259,7 @@ private:
             return temp;
         }
 
-        Iterator &operator--()  // Prefix decrement (--i)
+        Iterator& operator--()  // Prefix decrement (--i)
         {
             --arr_index_;
             return *this;
@@ -277,7 +277,7 @@ private:
             return {parent_, arr_index_ + i};
         }
 
-        friend Iterator operator+(difference_type i, const Iterator &iter)
+        friend Iterator operator+(difference_type i, const Iterator& iter)
         {
             return {iter.parent_, iter.arr_index_ + i};
         }
@@ -287,7 +287,7 @@ private:
             return {parent_, arr_index_ - i};
         }
 
-        difference_type operator-(const Iterator &other) const
+        difference_type operator-(const Iterator& other) const
         {
             return arr_index_ - other.arr_index_;
         }
@@ -300,38 +300,38 @@ private:
         }
 
         // Comparable operators
-        bool operator==(const Iterator &other) const
+        bool operator==(const Iterator& other) const
         {
             return arr_index_ == other.arr_index_;
         }
 
-        bool operator!=(const Iterator &other) const
+        bool operator!=(const Iterator& other) const
         {
             return arr_index_ != other.arr_index_;
         }
 
-        bool operator<(const Iterator &other) const
+        bool operator<(const Iterator& other) const
         {
             return arr_index_ < other.arr_index_;
         }
 
-        bool operator<=(const Iterator &other) const
+        bool operator<=(const Iterator& other) const
         {
             return arr_index_ <= other.arr_index_;
         }
 
-        bool operator>(const Iterator &other) const
+        bool operator>(const Iterator& other) const
         {
             return arr_index_ > other.arr_index_;
         }
 
-        bool operator>=(const Iterator &other) const
+        bool operator>=(const Iterator& other) const
         {
             return arr_index_ >= other.arr_index_;
         }
 
     private:
-        IteratorFactory *parent_{};
+        IteratorFactory* parent_{};
         difference_type arr_index_{};
     };
 
@@ -354,8 +354,8 @@ public:
      * @note Both arrays must have at least `size` elements, otherwise, the
      * behaviour is undefined.
      */
-    IteratorFactory(ToSortType *dominant_values,
-                    SecondaryType *secondary_values, size_type size)
+    IteratorFactory(ToSortType* dominant_values,
+                    SecondaryType* secondary_values, size_type size)
         : dominant_values_(dominant_values),
           secondary_values_(secondary_values),
           size_(size)
@@ -377,8 +377,8 @@ public:
     }
 
 private:
-    ToSortType *dominant_values_;
-    SecondaryType *secondary_values_;
+    ToSortType* dominant_values_;
+    SecondaryType* secondary_values_;
     size_type size_;
 };
 

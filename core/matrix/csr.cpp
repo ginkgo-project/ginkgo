@@ -96,11 +96,11 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
+void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     using ComplexDense = Dense<to_complex<ValueType>>;
     using TCsr = Csr<ValueType, IndexType>;
-    if (auto b_csr = dynamic_cast<const TCsr *>(b)) {
+    if (auto b_csr = dynamic_cast<const TCsr*>(b)) {
         // if b is a CSR matrix, we compute a SpGeMM
         auto x_csr = as<TCsr>(x);
         this->get_executor()->run(csr::make_spgemm(this, b_csr, x_csr));
@@ -116,20 +116,20 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                           const LinOp *beta, LinOp *x) const
+void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                           const LinOp* beta, LinOp* x) const
 {
     using ComplexDense = Dense<to_complex<ValueType>>;
     using RealDense = Dense<remove_complex<ValueType>>;
     using TCsr = Csr<ValueType, IndexType>;
-    if (auto b_csr = dynamic_cast<const TCsr *>(b)) {
+    if (auto b_csr = dynamic_cast<const TCsr*>(b)) {
         // if b is a CSR matrix, we compute a SpGeMM
         auto x_csr = as<TCsr>(x);
         auto x_copy = x_csr->clone();
         this->get_executor()->run(csr::make_advanced_spgemm(
             as<Dense<ValueType>>(alpha), this, b_csr,
             as<Dense<ValueType>>(beta), x_copy.get(), x_csr));
-    } else if (dynamic_cast<const Identity<ValueType> *>(b)) {
+    } else if (dynamic_cast<const Identity<ValueType>*>(b)) {
         // if b is an identity matrix, we compute an SpGEAM
         auto x_csr = as<TCsr>(x);
         auto x_copy = x_csr->clone();
@@ -150,7 +150,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
-    Csr<next_precision<ValueType>, IndexType> *result) const
+    Csr<next_precision<ValueType>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -162,7 +162,7 @@ void Csr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(
-    Csr<next_precision<ValueType>, IndexType> *result)
+    Csr<next_precision<ValueType>, IndexType>* result)
 {
     this->convert_to(result);
 }
@@ -170,7 +170,7 @@ void Csr<ValueType, IndexType>::move_to(
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
-    Coo<ValueType, IndexType> *result) const
+    Coo<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
     auto tmp = Coo<ValueType, IndexType>::create(
@@ -183,14 +183,14 @@ void Csr<ValueType, IndexType>::convert_to(
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::move_to(Coo<ValueType, IndexType> *result)
+void Csr<ValueType, IndexType>::move_to(Coo<ValueType, IndexType>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
+void Csr<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
@@ -200,7 +200,7 @@ void Csr<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::move_to(Dense<ValueType> *result)
+void Csr<ValueType, IndexType>::move_to(Dense<ValueType>* result)
 {
     this->convert_to(result);
 }
@@ -208,7 +208,7 @@ void Csr<ValueType, IndexType>::move_to(Dense<ValueType> *result)
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
-    Hybrid<ValueType, IndexType> *result) const
+    Hybrid<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
     Array<size_type> row_nnz(exec, this->get_size()[0]);
@@ -230,7 +230,7 @@ void Csr<ValueType, IndexType>::convert_to(
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::move_to(Hybrid<ValueType, IndexType> *result)
+void Csr<ValueType, IndexType>::move_to(Hybrid<ValueType, IndexType>* result)
 {
     this->convert_to(result);
 }
@@ -238,7 +238,7 @@ void Csr<ValueType, IndexType>::move_to(Hybrid<ValueType, IndexType> *result)
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
-    Sellp<ValueType, IndexType> *result) const
+    Sellp<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
     const auto stride_factor = (result->get_stride_factor() == 0)
@@ -258,7 +258,7 @@ void Csr<ValueType, IndexType>::convert_to(
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::move_to(Sellp<ValueType, IndexType> *result)
+void Csr<ValueType, IndexType>::move_to(Sellp<ValueType, IndexType>* result)
 {
     this->convert_to(result);
 }
@@ -266,7 +266,7 @@ void Csr<ValueType, IndexType>::move_to(Sellp<ValueType, IndexType> *result)
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
-    SparsityCsr<ValueType, IndexType> *result) const
+    SparsityCsr<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
     auto tmp = SparsityCsr<ValueType, IndexType>::create(
@@ -284,7 +284,7 @@ void Csr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(
-    SparsityCsr<ValueType, IndexType> *result)
+    SparsityCsr<ValueType, IndexType>* result)
 {
     this->convert_to(result);
 }
@@ -292,7 +292,7 @@ void Csr<ValueType, IndexType>::move_to(
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
-    Ell<ValueType, IndexType> *result) const
+    Ell<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
     size_type max_nnz_per_row;
@@ -305,17 +305,17 @@ void Csr<ValueType, IndexType>::convert_to(
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::move_to(Ell<ValueType, IndexType> *result)
+void Csr<ValueType, IndexType>::move_to(Ell<ValueType, IndexType>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::read(const mat_data &data)
+void Csr<ValueType, IndexType>::read(const mat_data& data)
 {
     size_type nnz = 0;
-    for (const auto &elem : data.nonzeros) {
+    for (const auto& elem : data.nonzeros) {
         nnz += (elem.value != zero<ValueType>());
     }
     auto tmp = Csr::create(this->get_executor()->get_master(), data.size, nnz,
@@ -343,13 +343,13 @@ void Csr<ValueType, IndexType>::read(const mat_data &data)
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::write(mat_data &data) const
+void Csr<ValueType, IndexType>::write(mat_data& data) const
 {
     std::unique_ptr<const LinOp> op{};
-    const Csr *tmp{};
+    const Csr* tmp{};
     if (this->get_executor()->get_master() != this->get_executor()) {
         op = this->clone(this->get_executor()->get_master());
-        tmp = static_cast<const Csr *>(op.get());
+        tmp = static_cast<const Csr*>(op.get());
     } else {
         tmp = this;
     }
@@ -398,7 +398,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::permute(
-    const Array<IndexType> *permutation_indices) const
+    const Array<IndexType>* permutation_indices) const
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(this);
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
@@ -421,7 +421,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::permute(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_permute(
-    const Array<IndexType> *permutation_indices) const
+    const Array<IndexType>* permutation_indices) const
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(this);
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
@@ -440,7 +440,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_permute(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::row_permute(
-    const Array<IndexType> *permutation_indices) const
+    const Array<IndexType>* permutation_indices) const
 {
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
     auto exec = this->get_executor();
@@ -458,7 +458,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::row_permute(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::column_permute(
-    const Array<IndexType> *permutation_indices) const
+    const Array<IndexType>* permutation_indices) const
 {
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
     auto exec = this->get_executor();
@@ -481,7 +481,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::column_permute(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_row_permute(
-    const Array<IndexType> *permutation_indices) const
+    const Array<IndexType>* permutation_indices) const
 {
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
     auto exec = this->get_executor();
@@ -499,7 +499,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_row_permute(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_column_permute(
-    const Array<IndexType> *permutation_indices) const
+    const Array<IndexType>* permutation_indices) const
 {
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
     auto exec = this->get_executor();
