@@ -276,43 +276,95 @@ public:
     virtual const char *get_name() const noexcept;
 };
 
-#define GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(_type, _namespace, _kernel)    \
-public:                                                                      \
-    void run(std::shared_ptr<const ::gko::_type> exec) const override        \
-    {                                                                        \
-        this->call(counts{}, exec);                                          \
-    }                                                                        \
-                                                                             \
-private:                                                                     \
-    template <int... Ns>                                                     \
-    void call(::gko::syn::value_list<int, Ns...>,                            \
-              std::shared_ptr<const ::gko::_type> &exec) const               \
-    {                                                                        \
-        ::gko::kernels::_namespace::_kernel(                                 \
-            exec, std::forward<Args>(std::get<Ns>(data))...);                \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
 
-#define GKO_DETAIL_DEFINE_RUN_OVERLOAD(_type, _namespace, _kernel, ...)      \
-public:                                                                      \
-    void run(std::shared_ptr<const ::gko::_type> exec) const override        \
-    {                                                                        \
-        this->call(counts{}, exec);                                          \
-    }                                                                        \
-                                                                             \
-private:                                                                     \
-    template <int... Ns>                                                     \
-    void call(::gko::syn::value_list<int, Ns...>,                            \
-              std::shared_ptr<const ::gko::_type> &exec) const               \
-    {                                                                        \
-        ::gko::kernels::_namespace::_kernel(                                 \
-            exec, std::forward<Args>(std::get<Ns>(data))...);                \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
+namespace detail {
+
+
+constexpr static int ref_exec_tag = 0;
+constexpr static int omp_exec_tag = 1;
+constexpr static int cuda_exec_tag = 2;
+constexpr static int hip_exec_tag = 3;
+constexpr static int dpcpp_exec_tag = 4;
+
+
+/**
+ * The RegisteredOperation class wraps a functor that will be called with a tag
+ * parameter based on the dynamic type of the executor that runs it.
+ *
+ * ReferenceExecutor uses ref_exec_tag, OmpExecutor uses omp_exec_tag,
+ * CudaExecutor uses cuda_exec_tag, HipExecutor uses hip_exec_tag and
+ * DpcppExecutor uses dpcpp_exec_tag.
+ *
+ * It is used to implement the @ref GKO_REGISTER_OPERATION macro.
+ *
+ * @tparam Closure  the type of the functor of taking parameters
+ *                  (std::shared_ptr<const Executor>, int)
+ */
+template <typename Closure>
+class RegisteredOperation : public Operation {
+public:
+    /**
+     * Creates a RegisteredOperation object from a functor and a name.
+     *
+     * @param name  the name to be used for this operation
+     * @param op  a functor object which will be called with the executor and
+                  corresponding tag
+     */
+    RegisteredOperation(const char *name, int num_params, Closure op)
+        : name_(name), num_params_(num_params), op_(std::move(op))
+    {}
+
+    const char *get_name() const noexcept override
+    {
+        static auto name = [this] {
+            std::ostringstream oss;
+            oss << name_ << '#' << num_params_;
+            return oss.str();
+        }();
+        return name.c_str();
+    }
+
+    void run(std::shared_ptr<const ReferenceExecutor> exec) const override
+    {
+        op_(exec, ref_exec_tag);
+    }
+
+    void run(std::shared_ptr<const OmpExecutor> exec) const override
+    {
+        op_(exec, omp_exec_tag);
+    }
+
+    void run(std::shared_ptr<const CudaExecutor> exec) const override
+    {
+        op_(exec, cuda_exec_tag);
+    }
+
+    void run(std::shared_ptr<const HipExecutor> exec) const override
+    {
+        op_(exec, hip_exec_tag);
+    }
+
+    void run(std::shared_ptr<const DpcppExecutor> exec) const override
+    {
+        op_(exec, dpcpp_exec_tag);
+    }
+
+private:
+    const char *name_;
+    int num_params_;
+    Closure op_;
+};
+
+
+template <typename Closure>
+RegisteredOperation<Closure> make_register_operation(const char *name,
+                                                     int num_params, Closure op)
+{
+    return RegisteredOperation<Closure>{name, num_params, std::move(op)};
+}
+
+
+}  // namespace detail
 
 
 /**
@@ -386,45 +438,51 @@ private:                                                                     \
  *
  * @ingroup Executor
  */
-#define GKO_REGISTER_OPERATION(_name, _kernel)                                \
-    template <typename... Args>                                               \
-    class _name##_operation : public Operation {                              \
-        using counts =                                                        \
-            ::gko::syn::as_list<::gko::syn::range<0, sizeof...(Args)>>;       \
-                                                                              \
-    public:                                                                   \
-        explicit _name##_operation(Args &&... args)                           \
-            : data(std::forward<Args>(args)...)                               \
-        {}                                                                    \
-                                                                              \
-        const char *get_name() const noexcept override                        \
-        {                                                                     \
-            static auto name = [this] {                                       \
-                std::ostringstream oss;                                       \
-                oss << #_kernel << '#' << sizeof...(Args);                    \
-                return oss.str();                                             \
-            }();                                                              \
-            return name.c_str();                                              \
-        }                                                                     \
-                                                                              \
-        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(OmpExecutor, omp, _kernel);     \
-        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(CudaExecutor, cuda, _kernel);   \
-        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(HipExecutor, hip, _kernel);     \
-        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(DpcppExecutor, dpcpp, _kernel); \
-        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference,   \
-                                              _kernel);                       \
-                                                                              \
-    private:                                                                  \
-        mutable std::tuple<Args &&...> data;                                  \
-    };                                                                        \
-                                                                              \
-    template <typename... Args>                                               \
-    static _name##_operation<Args...> make_##_name(Args &&... args)           \
-    {                                                                         \
-        return _name##_operation<Args...>(std::forward<Args>(args)...);       \
-    }                                                                         \
-    static_assert(true,                                                       \
-                  "This assert is used to counter the false positive extra "  \
+#define GKO_REGISTER_OPERATION(_name, _kernel)                                 \
+    template <typename... Args>                                                \
+    auto make_##_name(Args &&... args)                                         \
+    {                                                                          \
+        return ::gko::detail::make_register_operation(                         \
+            #_name, sizeof...(Args),                                           \
+            [&args...](std::shared_ptr<const ::gko::Executor> exec, int tag) { \
+                switch (tag) {                                                 \
+                case ::gko::detail::ref_exec_tag:                              \
+                    ::gko::kernels::reference::_kernel(                        \
+                        std::static_pointer_cast<                              \
+                            const ::gko::ReferenceExecutor>(exec),             \
+                        std::forward<Args>(args)...);                          \
+                    return;                                                    \
+                case ::gko::detail::omp_exec_tag:                              \
+                    ::gko::kernels::omp::_kernel(                              \
+                        std::static_pointer_cast<const ::gko::OmpExecutor>(    \
+                            exec),                                             \
+                        std::forward<Args>(args)...);                          \
+                    return;                                                    \
+                case ::gko::detail::cuda_exec_tag:                             \
+                    ::gko::kernels::cuda::_kernel(                             \
+                        std::static_pointer_cast<const ::gko::CudaExecutor>(   \
+                            exec),                                             \
+                        std::forward<Args>(args)...);                          \
+                    return;                                                    \
+                case ::gko::detail::hip_exec_tag:                              \
+                    ::gko::kernels::hip::_kernel(                              \
+                        std::static_pointer_cast<const ::gko::HipExecutor>(    \
+                            exec),                                             \
+                        std::forward<Args>(args)...);                          \
+                    return;                                                    \
+                case ::gko::detail::dpcpp_exec_tag:                            \
+                    ::gko::kernels::dpcpp::_kernel(                            \
+                        std::static_pointer_cast<const ::gko::DpcppExecutor>(  \
+                            exec),                                             \
+                        std::forward<Args>(args)...);                          \
+                    return;                                                    \
+                default:                                                       \
+                    GKO_NOT_IMPLEMENTED;                                       \
+                }                                                              \
+            });                                                                \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
 
@@ -923,13 +981,12 @@ protected:
 
 private:
     /**
-     * The LambdaOperation class wraps three functor objects into an
+     * The LambdaOperation class wraps four functor objects into an
      * Operation.
      *
      * The first object is called by the OmpExecutor, the second one by the
      * CudaExecutor and the last one by the HipExecutor. When run on the
-     * ReferenceExecutor, the implementation will launch the CPU reference
-     * version.
+     * ReferenceExecutor, the implementation will launch the OpenMP version.
      *
      * @tparam ClosureOmp  the type of the first functor
      * @tparam ClosureCuda  the type of the second functor
@@ -941,14 +998,14 @@ private:
     class LambdaOperation : public Operation {
     public:
         /**
-         * Creates an LambdaOperation object from two functors.
+         * Creates an LambdaOperation object from four functors.
          *
          * @param op_omp  a functor object which will be called by OmpExecutor
          *                and ReferenceExecutor
          * @param op_cuda  a functor object which will be called by CudaExecutor
          * @param op_hip  a functor object which will be called by HipExecutor
          * @param op_dpcpp  a functor object which will be called by
-         * DpcppExecutor
+         *                  DpcppExecutor
          */
         LambdaOperation(const ClosureOmp &op_omp, const ClosureCuda &op_cuda,
                         const ClosureHip &op_hip, const ClosureDpcpp &op_dpcpp)
