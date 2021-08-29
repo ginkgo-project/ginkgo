@@ -64,11 +64,11 @@ struct iteration_complete_data {
     std::unique_ptr<const LinOp> residual_norm;
     std::unique_ptr<const LinOp> implicit_sq_residual_norm;
 
-    iteration_complete_data(const LinOp *solver, const size_type num_iterations,
-                            const LinOp *residual = nullptr,
-                            const LinOp *solution = nullptr,
-                            const LinOp *residual_norm = nullptr,
-                            const LinOp *implicit_sq_residual_norm = nullptr)
+    iteration_complete_data(const LinOp* solver, const size_type num_iterations,
+                            const LinOp* residual = nullptr,
+                            const LinOp* solution = nullptr,
+                            const LinOp* residual_norm = nullptr,
+                            const LinOp* implicit_sq_residual_norm = nullptr)
         : solver{nullptr},
           num_iterations{num_iterations},
           residual{nullptr},
@@ -98,7 +98,7 @@ struct iteration_complete_data {
  * Struct representing Executor related data
  */
 struct executor_data {
-    const Executor *exec;
+    const Executor* exec;
     const size_type num_bytes;
     const uintptr location;
 };
@@ -108,8 +108,8 @@ struct executor_data {
  * Struct representing Operator related data
  */
 struct operation_data {
-    const Executor *exec;
-    const Operation *operation;
+    const Executor* exec;
+    const Operation* operation;
 };
 
 
@@ -117,13 +117,13 @@ struct operation_data {
  * Struct representing PolymorphicObject related data
  */
 struct polymorphic_object_data {
-    const Executor *exec;
+    const Executor* exec;
     std::unique_ptr<const PolymorphicObject> input;
     std::unique_ptr<const PolymorphicObject> output;  // optional
 
-    polymorphic_object_data(const Executor *exec,
-                            const PolymorphicObject *input,
-                            const PolymorphicObject *output = nullptr)
+    polymorphic_object_data(const Executor* exec,
+                            const PolymorphicObject* input,
+                            const PolymorphicObject* output = nullptr)
         : exec{exec}
     {
         this->input = input->clone();
@@ -144,8 +144,8 @@ struct linop_data {
     std::unique_ptr<const LinOp> beta;
     std::unique_ptr<const LinOp> x;
 
-    linop_data(const LinOp *A, const LinOp *alpha, const LinOp *b,
-               const LinOp *beta, const LinOp *x)
+    linop_data(const LinOp* A, const LinOp* alpha, const LinOp* b,
+               const LinOp* beta, const LinOp* x)
     {
         this->A = A->clone();
         if (alpha != nullptr) {
@@ -164,12 +164,12 @@ struct linop_data {
  * Struct representing LinOp factory related data
  */
 struct linop_factory_data {
-    const LinOpFactory *factory;
+    const LinOpFactory* factory;
     std::unique_ptr<const LinOp> input;
     std::unique_ptr<const LinOp> output;
 
-    linop_factory_data(const LinOpFactory *factory, const LinOp *input,
-                       const LinOp *output)
+    linop_factory_data(const LinOpFactory* factory, const LinOp* input,
+                       const LinOp* output)
         : factory{factory}
     {
         this->input = input->clone();
@@ -184,22 +184,22 @@ struct linop_factory_data {
  * Struct representing Criterion related data
  */
 struct criterion_data {
-    const stop::Criterion *criterion;
+    const stop::Criterion* criterion;
     const size_type num_iterations;
     std::unique_ptr<const LinOp> residual;
     std::unique_ptr<const LinOp> residual_norm;
     std::unique_ptr<const LinOp> solution;
     const uint8 stopping_id;
     const bool set_finalized;
-    const Array<stopping_status> *status;
+    const Array<stopping_status>* status;
     const bool oneChanged;
     const bool converged;
 
-    criterion_data(const stop::Criterion *criterion,
-                   const size_type &num_iterations, const LinOp *residual,
-                   const LinOp *residual_norm, const LinOp *solution,
+    criterion_data(const stop::Criterion* criterion,
+                   const size_type& num_iterations, const LinOp* residual,
+                   const LinOp* residual_norm, const LinOp* solution,
                    const uint8 stopping_id, const bool set_finalized,
-                   const Array<stopping_status> *status = nullptr,
+                   const Array<stopping_status>* status = nullptr,
                    const bool oneChanged = false, const bool converged = false)
         : criterion{criterion},
           num_iterations{num_iterations},
@@ -282,113 +282,113 @@ public:
     };
 
     /* Executor events */
-    void on_allocation_started(const Executor *exec,
-                               const size_type &num_bytes) const override;
+    void on_allocation_started(const Executor* exec,
+                               const size_type& num_bytes) const override;
 
-    void on_allocation_completed(const Executor *exec,
-                                 const size_type &num_bytes,
-                                 const uintptr &location) const override;
+    void on_allocation_completed(const Executor* exec,
+                                 const size_type& num_bytes,
+                                 const uintptr& location) const override;
 
-    void on_free_started(const Executor *exec,
-                         const uintptr &location) const override;
+    void on_free_started(const Executor* exec,
+                         const uintptr& location) const override;
 
-    void on_free_completed(const Executor *exec,
-                           const uintptr &location) const override;
+    void on_free_completed(const Executor* exec,
+                           const uintptr& location) const override;
 
-    void on_copy_started(const Executor *from, const Executor *to,
-                         const uintptr &location_from,
-                         const uintptr &location_to,
-                         const size_type &num_bytes) const override;
+    void on_copy_started(const Executor* from, const Executor* to,
+                         const uintptr& location_from,
+                         const uintptr& location_to,
+                         const size_type& num_bytes) const override;
 
-    void on_copy_completed(const Executor *from, const Executor *to,
-                           const uintptr &location_from,
-                           const uintptr &location_to,
-                           const size_type &num_bytes) const override;
+    void on_copy_completed(const Executor* from, const Executor* to,
+                           const uintptr& location_from,
+                           const uintptr& location_to,
+                           const size_type& num_bytes) const override;
 
     /* Operation events */
-    void on_operation_launched(const Executor *exec,
-                               const Operation *operation) const override;
+    void on_operation_launched(const Executor* exec,
+                               const Operation* operation) const override;
 
-    void on_operation_completed(const Executor *exec,
-                                const Operation *operation) const override;
+    void on_operation_completed(const Executor* exec,
+                                const Operation* operation) const override;
 
     /* PolymorphicObject events */
     void on_polymorphic_object_create_started(
-        const Executor *exec, const PolymorphicObject *po) const override;
+        const Executor* exec, const PolymorphicObject* po) const override;
 
     void on_polymorphic_object_create_completed(
-        const Executor *exec, const PolymorphicObject *input,
-        const PolymorphicObject *output) const override;
+        const Executor* exec, const PolymorphicObject* input,
+        const PolymorphicObject* output) const override;
 
     void on_polymorphic_object_copy_started(
-        const Executor *exec, const PolymorphicObject *from,
-        const PolymorphicObject *to) const override;
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
 
     void on_polymorphic_object_copy_completed(
-        const Executor *exec, const PolymorphicObject *from,
-        const PolymorphicObject *to) const override;
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
 
     void on_polymorphic_object_deleted(
-        const Executor *exec, const PolymorphicObject *po) const override;
+        const Executor* exec, const PolymorphicObject* po) const override;
 
     /* LinOp events */
-    void on_linop_apply_started(const LinOp *A, const LinOp *b,
-                                const LinOp *x) const override;
+    void on_linop_apply_started(const LinOp* A, const LinOp* b,
+                                const LinOp* x) const override;
 
-    void on_linop_apply_completed(const LinOp *A, const LinOp *b,
-                                  const LinOp *x) const override;
+    void on_linop_apply_completed(const LinOp* A, const LinOp* b,
+                                  const LinOp* x) const override;
 
-    void on_linop_advanced_apply_started(const LinOp *A, const LinOp *alpha,
-                                         const LinOp *b, const LinOp *beta,
-                                         const LinOp *x) const override;
+    void on_linop_advanced_apply_started(const LinOp* A, const LinOp* alpha,
+                                         const LinOp* b, const LinOp* beta,
+                                         const LinOp* x) const override;
 
-    void on_linop_advanced_apply_completed(const LinOp *A, const LinOp *alpha,
-                                           const LinOp *b, const LinOp *beta,
-                                           const LinOp *x) const override;
+    void on_linop_advanced_apply_completed(const LinOp* A, const LinOp* alpha,
+                                           const LinOp* b, const LinOp* beta,
+                                           const LinOp* x) const override;
 
     /* LinOpFactory events */
-    void on_linop_factory_generate_started(const LinOpFactory *factory,
-                                           const LinOp *input) const override;
+    void on_linop_factory_generate_started(const LinOpFactory* factory,
+                                           const LinOp* input) const override;
 
     void on_linop_factory_generate_completed(
-        const LinOpFactory *factory, const LinOp *input,
-        const LinOp *output) const override;
+        const LinOpFactory* factory, const LinOp* input,
+        const LinOp* output) const override;
 
     /* Criterion events */
-    void on_criterion_check_started(const stop::Criterion *criterion,
-                                    const size_type &num_iterations,
-                                    const LinOp *residual,
-                                    const LinOp *residual_norm,
-                                    const LinOp *solution,
-                                    const uint8 &stopping_id,
-                                    const bool &set_finalized) const override;
+    void on_criterion_check_started(const stop::Criterion* criterion,
+                                    const size_type& num_iterations,
+                                    const LinOp* residual,
+                                    const LinOp* residual_norm,
+                                    const LinOp* solution,
+                                    const uint8& stopping_id,
+                                    const bool& set_finalized) const override;
 
     void on_criterion_check_completed(
-        const stop::Criterion *criterion, const size_type &num_iterations,
-        const LinOp *residual, const LinOp *residual_norm,
-        const LinOp *implicit_residual_norm_sq, const LinOp *solution,
-        const uint8 &stopping_id, const bool &set_finalized,
-        const Array<stopping_status> *status, const bool &one_changed,
-        const bool &all_converged) const override;
+        const stop::Criterion* criterion, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* residual_norm,
+        const LinOp* implicit_residual_norm_sq, const LinOp* solution,
+        const uint8& stopping_id, const bool& set_finalized,
+        const Array<stopping_status>* status, const bool& one_changed,
+        const bool& all_converged) const override;
 
     void on_criterion_check_completed(
-        const stop::Criterion *criterion, const size_type &num_iterations,
-        const LinOp *residual, const LinOp *residual_norm,
-        const LinOp *solution, const uint8 &stopping_id,
-        const bool &set_finalized, const Array<stopping_status> *status,
-        const bool &one_changed, const bool &all_converged) const override;
+        const stop::Criterion* criterion, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* residual_norm,
+        const LinOp* solution, const uint8& stopping_id,
+        const bool& set_finalized, const Array<stopping_status>* status,
+        const bool& one_changed, const bool& all_converged) const override;
 
     /* Internal solver events */
     void on_iteration_complete(
-        const LinOp *solver, const size_type &num_iterations,
-        const LinOp *residual, const LinOp *solution = nullptr,
-        const LinOp *residual_norm = nullptr) const override;
+        const LinOp* solver, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* solution = nullptr,
+        const LinOp* residual_norm = nullptr) const override;
 
     void on_iteration_complete(
-        const LinOp *solver, const size_type &num_iterations,
-        const LinOp *residual, const LinOp *solution,
-        const LinOp *residual_norm,
-        const LinOp *implicit_sq_residual_norm) const override;
+        const LinOp* solver, const size_type& num_iterations,
+        const LinOp* residual, const LinOp* solution,
+        const LinOp* residual_norm,
+        const LinOp* implicit_sq_residual_norm) const override;
 
     /**
      * Creates a Record logger. This dynamically allocates the memory,
@@ -410,7 +410,7 @@ public:
      */
     static std::unique_ptr<Record> create(
         std::shared_ptr<const Executor> exec,
-        const mask_type &enabled_events = Logger::all_events_mask,
+        const mask_type& enabled_events = Logger::all_events_mask,
         size_type max_storage = 1)
     {
         return std::unique_ptr<Record>(
@@ -422,12 +422,12 @@ public:
      *
      * @return the logged data
      */
-    const logged_data &get() const noexcept { return data_; }
+    const logged_data& get() const noexcept { return data_; }
 
     /**
      * @copydoc ::get()
      */
-    logged_data &get() noexcept { return data_; }
+    logged_data& get() noexcept { return data_; }
 
 protected:
     /**
@@ -442,7 +442,7 @@ protected:
      *                     memory overhead of this logger.
      */
     explicit Record(std::shared_ptr<const gko::Executor> exec,
-                    const mask_type &enabled_events = Logger::all_events_mask,
+                    const mask_type& enabled_events = Logger::all_events_mask,
                     size_type max_storage = 0)
         : Logger(exec, enabled_events), max_storage_{max_storage}
     {}
@@ -456,7 +456,7 @@ protected:
      * @param object  the object to append
      */
     template <typename deque_type>
-    void append_deque(std::deque<deque_type> &deque, deque_type object) const
+    void append_deque(std::deque<deque_type>& deque, deque_type object) const
     {
         if (this->max_storage_ && deque.size() == this->max_storage_) {
             deque.pop_front();

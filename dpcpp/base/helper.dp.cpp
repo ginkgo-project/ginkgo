@@ -41,7 +41,7 @@ namespace kernels {
 namespace dpcpp {
 
 
-bool validate(sycl::queue *queue, unsigned int workgroup_size,
+bool validate(sycl::queue* queue, unsigned int workgroup_size,
               unsigned int subgroup_size)
 {
     auto device = queue->get_device();
@@ -50,7 +50,7 @@ bool validate(sycl::queue *queue, unsigned int workgroup_size,
     auto max_workgroup_size =
         device.get_info<sycl::info::device::max_work_group_size>();
     bool allowed = false;
-    for (auto &i : subgroup_size_list) {
+    for (auto& i : subgroup_size_list) {
         allowed |= (i == subgroup_size);
     }
     return allowed && (workgroup_size <= max_workgroup_size);

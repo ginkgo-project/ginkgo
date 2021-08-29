@@ -166,13 +166,13 @@ public:
     friend class Fbcsr<next_precision<ValueType>, IndexType>;
 
     void convert_to(
-        Fbcsr<next_precision<ValueType>, IndexType> *result) const override;
+        Fbcsr<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(Fbcsr<next_precision<ValueType>, IndexType> *result) override;
+    void move_to(Fbcsr<next_precision<ValueType>, IndexType>* result) override;
 
-    void convert_to(Dense<ValueType> *other) const override;
+    void convert_to(Dense<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType> *other) override;
+    void move_to(Dense<ValueType>* other) override;
 
     /**
      * Converts the matrix to CSR format
@@ -180,9 +180,9 @@ public:
      * @note Any explicit zeros in the original matrix are retained
      * in the converted result.
      */
-    void convert_to(Csr<ValueType, IndexType> *result) const override;
+    void convert_to(Csr<ValueType, IndexType>* result) const override;
 
-    void move_to(Csr<ValueType, IndexType> *result) override;
+    void move_to(Csr<ValueType, IndexType>* result) override;
 
     /**
      * Get the block sparsity pattern in CSR-like format
@@ -190,9 +190,9 @@ public:
      * @note The actual non-zero values are never copied;
      * the result always has a value array of size 1 with the value 1.
      */
-    void convert_to(SparsityCsr<ValueType, IndexType> *result) const override;
+    void convert_to(SparsityCsr<ValueType, IndexType>* result) const override;
 
-    void move_to(SparsityCsr<ValueType, IndexType> *result) override;
+    void move_to(SparsityCsr<ValueType, IndexType>* result) override;
 
     /**
      * Reads a @ref matrix_data into Fbcsr format.
@@ -200,9 +200,9 @@ public:
      *
      * @warning Unlike Csr::read, here explicit non-zeros are NOT dropped.
      */
-    void read(const mat_data &data) override;
+    void read(const mat_data& data) override;
 
-    void write(mat_data &data) const override;
+    void write(mat_data& data) const override;
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -231,7 +231,7 @@ public:
     /**
      * @return The values of the matrix.
      */
-    value_type *get_values() noexcept { return values_.get_data(); }
+    value_type* get_values() noexcept { return values_.get_data(); }
 
     /**
      * @copydoc Fbcsr::get_values()
@@ -240,7 +240,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type *get_const_values() const noexcept
+    const value_type* get_const_values() const noexcept
     {
         return values_.get_const_data();
     }
@@ -248,7 +248,7 @@ public:
     /**
      * @return The column indexes of the matrix.
      */
-    index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type* get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
     /**
      * @copydoc Fbcsr::get_col_idxs()
@@ -257,7 +257,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_col_idxs() const noexcept
+    const index_type* get_const_col_idxs() const noexcept
     {
         return col_idxs_.get_const_data();
     }
@@ -265,7 +265,7 @@ public:
     /**
      * @return The row pointers of the matrix.
      */
-    index_type *get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
+    index_type* get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
 
     /**
      * @copydoc Fbcsr::get_row_ptrs()
@@ -274,7 +274,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_row_ptrs() const noexcept
+    const index_type* get_const_row_ptrs() const noexcept
     {
         return row_ptrs_.get_const_data();
     }
@@ -340,7 +340,7 @@ protected:
      * @param num_nonzeros  number of nonzeros
      * @param block_size Size of the small dense square blocks
      */
-    Fbcsr(std::shared_ptr<const Executor> exec, const dim<2> &size,
+    Fbcsr(std::shared_ptr<const Executor> exec, const dim<2>& size,
           size_type num_nonzeros, int block_size)
         : EnableLinOp<Fbcsr>(exec, size),
           bs_{block_size},
@@ -375,9 +375,9 @@ protected:
      */
     template <typename ValuesArray, typename ColIdxsArray,
               typename RowPtrsArray>
-    Fbcsr(std::shared_ptr<const Executor> exec, const dim<2> &size,
-          int block_size, ValuesArray &&values, ColIdxsArray &&col_idxs,
-          RowPtrsArray &&row_ptrs)
+    Fbcsr(std::shared_ptr<const Executor> exec, const dim<2>& size,
+          int block_size, ValuesArray&& values, ColIdxsArray&& col_idxs,
+          RowPtrsArray&& row_ptrs)
         : EnableLinOp<Fbcsr>(exec, size),
           bs_{block_size},
           nbcols_{static_cast<index_type>(
@@ -391,10 +391,10 @@ protected:
         GKO_ASSERT_EQ(this->get_size()[0] / bs_ + 1, row_ptrs_.get_num_elems());
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
 private:
     int bs_;                      ///< Block size

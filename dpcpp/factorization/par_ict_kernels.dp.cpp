@@ -63,9 +63,9 @@ namespace par_ict_factorization {
 
 template <typename ValueType, typename IndexType>
 void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    matrix::Csr<ValueType, IndexType> *l,
-                    const matrix::Coo<ValueType, IndexType> *)
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    matrix::Csr<ValueType, IndexType>* l,
+                    const matrix::Coo<ValueType, IndexType>*)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -74,10 +74,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *llh,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    const matrix::Csr<ValueType, IndexType> *l,
-                    matrix::Csr<ValueType, IndexType> *l_new)
+                    const matrix::Csr<ValueType, IndexType>* llh,
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    const matrix::Csr<ValueType, IndexType>* l,
+                    matrix::Csr<ValueType, IndexType>* l_new)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

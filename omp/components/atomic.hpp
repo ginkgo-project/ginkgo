@@ -47,20 +47,20 @@ namespace omp {
 
 
 template <typename ValueType,
-          std::enable_if_t<!is_complex<ValueType>()> * = nullptr>
-void atomic_add(ValueType &out, ValueType val)
+          std::enable_if_t<!is_complex<ValueType>()>* = nullptr>
+void atomic_add(ValueType& out, ValueType val)
 {
 #pragma omp atomic
     out += val;
 }
 
 template <typename ValueType,
-          std::enable_if_t<is_complex<ValueType>()> * = nullptr>
-void atomic_add(ValueType &out, ValueType val)
+          std::enable_if_t<is_complex<ValueType>()>* = nullptr>
+void atomic_add(ValueType& out, ValueType val)
 {
     // The C++ standard explicitly allows casting complex<double>* to double*
     // [complex.numbers.general]
-    auto values = reinterpret_cast<gko::remove_complex<ValueType> *>(&out);
+    auto values = reinterpret_cast<gko::remove_complex<ValueType>*>(&out);
 #pragma omp atomic
     values[0] += real(val);
 #pragma omp atomic

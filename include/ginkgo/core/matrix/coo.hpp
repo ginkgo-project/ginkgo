@@ -104,21 +104,21 @@ public:
     friend class Coo<next_precision<ValueType>, IndexType>;
 
     void convert_to(
-        Coo<next_precision<ValueType>, IndexType> *result) const override;
+        Coo<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(Coo<next_precision<ValueType>, IndexType> *result) override;
+    void move_to(Coo<next_precision<ValueType>, IndexType>* result) override;
 
-    void convert_to(Csr<ValueType, IndexType> *other) const override;
+    void convert_to(Csr<ValueType, IndexType>* other) const override;
 
-    void move_to(Csr<ValueType, IndexType> *other) override;
+    void move_to(Csr<ValueType, IndexType>* other) override;
 
-    void convert_to(Dense<ValueType> *other) const override;
+    void convert_to(Dense<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType> *other) override;
+    void move_to(Dense<ValueType>* other) override;
 
-    void read(const mat_data &data) override;
+    void read(const mat_data& data) override;
 
-    void write(mat_data &data) const override;
+    void write(mat_data& data) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
@@ -131,7 +131,7 @@ public:
      *
      * @return the values of the matrix.
      */
-    value_type *get_values() noexcept { return values_.get_data(); }
+    value_type* get_values() noexcept { return values_.get_data(); }
 
     /**
      * @copydoc Csr::get_values()
@@ -140,7 +140,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type *get_const_values() const noexcept
+    const value_type* get_const_values() const noexcept
     {
         return values_.get_const_data();
     }
@@ -150,7 +150,7 @@ public:
      *
      * @return the column indexes of the matrix.
      */
-    index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type* get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
     /**
      * @copydoc Csr::get_col_idxs()
@@ -159,7 +159,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_col_idxs() const noexcept
+    const index_type* get_const_col_idxs() const noexcept
     {
         return col_idxs_.get_const_data();
     }
@@ -169,7 +169,7 @@ public:
      *
      * @return the row indexes of the matrix.
      */
-    index_type *get_row_idxs() noexcept { return row_idxs_.get_data(); }
+    index_type* get_row_idxs() noexcept { return row_idxs_.get_data(); }
 
     /**
      * @copydoc Csr::get_row_idxs()
@@ -178,7 +178,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_row_idxs() const noexcept
+    const index_type* get_const_row_idxs() const noexcept
     {
         return row_idxs_.get_const_data();
     }
@@ -203,7 +203,7 @@ public:
      *
      * @return this
      */
-    LinOp *apply2(const LinOp *b, LinOp *x)
+    LinOp* apply2(const LinOp* b, LinOp* x)
     {
         this->validate_application_parameters(b, x);
         auto exec = this->get_executor();
@@ -215,7 +215,7 @@ public:
     /**
      * @copydoc apply2(cost LinOp *, LinOp *)
      */
-    const LinOp *apply2(const LinOp *b, LinOp *x) const
+    const LinOp* apply2(const LinOp* b, LinOp* x) const
     {
         this->validate_application_parameters(b, x);
         auto exec = this->get_executor();
@@ -233,7 +233,7 @@ public:
      *
      * @return this
      */
-    LinOp *apply2(const LinOp *alpha, const LinOp *b, LinOp *x)
+    LinOp* apply2(const LinOp* alpha, const LinOp* b, LinOp* x)
     {
         this->validate_application_parameters(b, x);
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -247,7 +247,7 @@ public:
     /**
      * @copydoc apply2(const LinOp *, const LinOp *, LinOp *)
      */
-    const LinOp *apply2(const LinOp *alpha, const LinOp *b, LinOp *x) const
+    const LinOp* apply2(const LinOp* alpha, const LinOp* b, LinOp* x) const
     {
         this->validate_application_parameters(b, x);
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -266,7 +266,7 @@ protected:
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
      */
-    Coo(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
+    Coo(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
         size_type num_nonzeros = {})
         : EnableLinOp<Coo>(exec, size),
           values_(exec, num_nonzeros),
@@ -296,8 +296,8 @@ protected:
      */
     template <typename ValuesArray, typename ColIdxsArray,
               typename RowIdxsArray>
-    Coo(std::shared_ptr<const Executor> exec, const dim<2> &size,
-        ValuesArray &&values, ColIdxsArray &&col_idxs, RowIdxsArray &&row_idxs)
+    Coo(std::shared_ptr<const Executor> exec, const dim<2>& size,
+        ValuesArray&& values, ColIdxsArray&& col_idxs, RowIdxsArray&& row_idxs)
         : EnableLinOp<Coo>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
@@ -307,14 +307,14 @@ protected:
         GKO_ASSERT_EQ(values_.get_num_elems(), row_idxs_.get_num_elems());
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
-    void apply2_impl(const LinOp *b, LinOp *x) const;
+    void apply2_impl(const LinOp* b, LinOp* x) const;
 
-    void apply2_impl(const LinOp *alpha, const LinOp *b, LinOp *x) const;
+    void apply2_impl(const LinOp* alpha, const LinOp* b, LinOp* x) const;
 
 private:
     Array<value_type> values_;

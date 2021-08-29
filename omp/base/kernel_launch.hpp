@@ -43,7 +43,7 @@ namespace omp {
 
 template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
-                size_type size, KernelArgs &&... args)
+                size_type size, KernelArgs&&... args)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < size; i++) {
@@ -143,7 +143,7 @@ void run_kernel_impl(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
 
 template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
-                dim<2> size, KernelArgs &&... args)
+                dim<2> size, KernelArgs&&... args)
 {
     run_kernel_impl(exec, fn, size, map_to_device(args)...);
 }

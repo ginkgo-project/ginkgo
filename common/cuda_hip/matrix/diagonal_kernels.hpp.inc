@@ -35,9 +35,9 @@ namespace kernel {
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void apply_to_csr(
-    size_type num_rows, const ValueType *__restrict__ diag,
-    const IndexType *__restrict__ row_ptrs,
-    ValueType *__restrict__ result_values)
+    size_type num_rows, const ValueType* __restrict__ diag,
+    const IndexType* __restrict__ row_ptrs,
+    ValueType* __restrict__ result_values)
 {
     constexpr auto warp_size = config::warp_size;
     auto warp_tile =

@@ -36,7 +36,7 @@ namespace kernel {
 template <typename ValueType>
 __global__
     __launch_bounds__(default_block_size) void inplace_absolute_array_kernel(
-        const size_type n, ValueType *__restrict__ array)
+        const size_type n, ValueType* __restrict__ array)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < n) {
@@ -48,8 +48,8 @@ __global__
 template <typename ValueType>
 __global__
     __launch_bounds__(default_block_size) void outplace_absolute_array_kernel(
-        const size_type n, const ValueType *__restrict__ in,
-        remove_complex<ValueType> *__restrict__ out)
+        const size_type n, const ValueType* __restrict__ in,
+        remove_complex<ValueType>* __restrict__ out)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < n) {

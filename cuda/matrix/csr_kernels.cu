@@ -105,11 +105,11 @@ namespace host_kernel {
 template <int items_per_thread, typename ValueType, typename IndexType>
 void merge_path_spmv(syn::value_list<int, items_per_thread>,
                      std::shared_ptr<const CudaExecutor> exec,
-                     const matrix::Csr<ValueType, IndexType> *a,
-                     const matrix::Dense<ValueType> *b,
-                     matrix::Dense<ValueType> *c,
-                     const matrix::Dense<ValueType> *alpha = nullptr,
-                     const matrix::Dense<ValueType> *beta = nullptr)
+                     const matrix::Csr<ValueType, IndexType>* a,
+                     const matrix::Dense<ValueType>* b,
+                     matrix::Dense<ValueType>* c,
+                     const matrix::Dense<ValueType>* alpha = nullptr,
+                     const matrix::Dense<ValueType>* beta = nullptr)
 {
     const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
     const IndexType grid_num =
@@ -209,11 +209,11 @@ int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
 template <int subwarp_size, typename ValueType, typename IndexType>
 void classical_spmv(syn::value_list<int, subwarp_size>,
                     std::shared_ptr<const CudaExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    const matrix::Dense<ValueType> *b,
-                    matrix::Dense<ValueType> *c,
-                    const matrix::Dense<ValueType> *alpha = nullptr,
-                    const matrix::Dense<ValueType> *beta = nullptr)
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    const matrix::Dense<ValueType>* b,
+                    matrix::Dense<ValueType>* c,
+                    const matrix::Dense<ValueType>* alpha = nullptr,
+                    const matrix::Dense<ValueType>* beta = nullptr)
 {
     const auto nwarps = exec->get_num_warps_per_sm() *
                         exec->get_num_multiprocessor() * classical_overweight;
@@ -251,8 +251,8 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const CudaExecutor> exec,
-          const matrix::Csr<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+          const matrix::Csr<ValueType, IndexType>* a,
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     if (a->get_strategy()->get_name() == "load_balance") {
         components::fill_array(exec, c->get_values(),
@@ -328,15 +328,13 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
 #else  // CUDA_VERSION >= 11000
                 cusparseOperation_t trans = CUSPARSE_OPERATION_NON_TRANSPOSE;
                 cusparseSpMVAlg_t alg = CUSPARSE_CSRMV_ALG1;
-                auto row_ptrs =
-                    const_cast<IndexType *>(a->get_const_row_ptrs());
-                auto col_idxs =
-                    const_cast<IndexType *>(a->get_const_col_idxs());
-                auto values = const_cast<ValueType *>(a->get_const_values());
+                auto row_ptrs = const_cast<IndexType*>(a->get_const_row_ptrs());
+                auto col_idxs = const_cast<IndexType*>(a->get_const_col_idxs());
+                auto values = const_cast<ValueType*>(a->get_const_values());
                 auto mat = cusparse::create_csr(
                     a->get_size()[0], a->get_size()[1],
                     a->get_num_stored_elements(), row_ptrs, col_idxs, values);
-                auto b_val = const_cast<ValueType *>(b->get_const_values());
+                auto b_val = const_cast<ValueType*>(b->get_const_values());
                 auto c_val = c->get_values();
                 auto vecb =
                     cusparse::create_dnvec(b->get_num_stored_elements(), b_val);
@@ -369,11 +367,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Csr<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::Csr<ValueType, IndexType>* a,
+                   const matrix::Dense<ValueType>* b,
+                   const matrix::Dense<ValueType>* beta,
+                   matrix::Dense<ValueType>* c)
 {
     if (a->get_strategy()->get_name() == "load_balance") {
         dense::scale(exec, beta, c);
@@ -419,13 +417,13 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
 #else  // CUDA_VERSION >= 11000
             cusparseOperation_t trans = CUSPARSE_OPERATION_NON_TRANSPOSE;
             cusparseSpMVAlg_t alg = CUSPARSE_CSRMV_ALG1;
-            auto row_ptrs = const_cast<IndexType *>(a->get_const_row_ptrs());
-            auto col_idxs = const_cast<IndexType *>(a->get_const_col_idxs());
-            auto values = const_cast<ValueType *>(a->get_const_values());
+            auto row_ptrs = const_cast<IndexType*>(a->get_const_row_ptrs());
+            auto col_idxs = const_cast<IndexType*>(a->get_const_col_idxs());
+            auto values = const_cast<ValueType*>(a->get_const_values());
             auto mat = cusparse::create_csr(a->get_size()[0], a->get_size()[1],
                                             a->get_num_stored_elements(),
                                             row_ptrs, col_idxs, values);
-            auto b_val = const_cast<ValueType *>(b->get_const_values());
+            auto b_val = const_cast<ValueType*>(b->get_const_values());
             auto c_val = c->get_values();
             auto vecb =
                 cusparse::create_dnvec(b->get_num_stored_elements(), b_val);
@@ -488,9 +486,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const CudaExecutor> exec,
-            const matrix::Csr<ValueType, IndexType> *a,
-            const matrix::Csr<ValueType, IndexType> *b,
-            matrix::Csr<ValueType, IndexType> *c)
+            const matrix::Csr<ValueType, IndexType>* a,
+            const matrix::Csr<ValueType, IndexType>* b,
+            matrix::Csr<ValueType, IndexType>* c)
 {
     auto a_nnz = IndexType(a->get_num_stored_elements());
     auto a_vals = a->get_const_values();
@@ -508,15 +506,15 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
         auto alpha = one<ValueType>();
         auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
         auto b_nnz = static_cast<IndexType>(b->get_num_stored_elements());
-        auto null_value = static_cast<ValueType *>(nullptr);
-        auto null_index = static_cast<IndexType *>(nullptr);
+        auto null_value = static_cast<ValueType*>(nullptr);
+        auto null_index = static_cast<IndexType*>(nullptr);
         auto zero_nnz = IndexType{};
         auto m = IndexType(a->get_size()[0]);
         auto n = IndexType(b->get_size()[1]);
         auto k = IndexType(a->get_size()[1]);
         matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-        auto &c_col_idxs_array = c_builder.get_col_idx_array();
-        auto &c_vals_array = c_builder.get_value_array();
+        auto& c_col_idxs_array = c_builder.get_col_idx_array();
+        auto& c_vals_array = c_builder.get_value_array();
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
         auto a_descr = cusparse::create_mat_descr();
@@ -560,14 +558,12 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
 #else   // CUDA_VERSION >= 11000
         const auto beta = zero<ValueType>();
         auto spgemm_descr = cusparse::create_spgemm_descr();
-        auto a_descr = cusparse::create_csr(m, k, a_nnz,
-                                            const_cast<IndexType *>(a_row_ptrs),
-                                            const_cast<IndexType *>(a_col_idxs),
-                                            const_cast<ValueType *>(a_vals));
-        auto b_descr = cusparse::create_csr(k, n, b_nnz,
-                                            const_cast<IndexType *>(b_row_ptrs),
-                                            const_cast<IndexType *>(b_col_idxs),
-                                            const_cast<ValueType *>(b_vals));
+        auto a_descr = cusparse::create_csr(
+            m, k, a_nnz, const_cast<IndexType*>(a_row_ptrs),
+            const_cast<IndexType*>(a_col_idxs), const_cast<ValueType*>(a_vals));
+        auto b_descr = cusparse::create_csr(
+            k, n, b_nnz, const_cast<IndexType*>(b_row_ptrs),
+            const_cast<IndexType*>(b_col_idxs), const_cast<ValueType*>(b_vals));
         auto c_descr = cusparse::create_csr(m, n, zero_nnz, null_index,
                                             null_index, null_value);
 
@@ -620,11 +616,11 @@ namespace {
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 void spgeam(syn::value_list<int, subwarp_size>,
-            std::shared_ptr<const DefaultExecutor> exec, const ValueType *alpha,
-            const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
-            const ValueType *a_vals, const ValueType *beta,
-            const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
-            const ValueType *b_vals, matrix::Csr<ValueType, IndexType> *c)
+            std::shared_ptr<const DefaultExecutor> exec, const ValueType* alpha,
+            const IndexType* a_row_ptrs, const IndexType* a_col_idxs,
+            const ValueType* a_vals, const ValueType* beta,
+            const IndexType* b_row_ptrs, const IndexType* b_col_idxs,
+            const ValueType* b_vals, matrix::Csr<ValueType, IndexType>* c)
 {
     auto m = static_cast<IndexType>(c->get_size()[0]);
     auto c_row_ptrs = c->get_row_ptrs();
@@ -658,12 +654,12 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_spgeam, spgeam);
 
 template <typename ValueType, typename IndexType>
 void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
-                     const matrix::Dense<ValueType> *alpha,
-                     const matrix::Csr<ValueType, IndexType> *a,
-                     const matrix::Csr<ValueType, IndexType> *b,
-                     const matrix::Dense<ValueType> *beta,
-                     const matrix::Csr<ValueType, IndexType> *d,
-                     matrix::Csr<ValueType, IndexType> *c)
+                     const matrix::Dense<ValueType>* alpha,
+                     const matrix::Csr<ValueType, IndexType>* a,
+                     const matrix::Csr<ValueType, IndexType>* b,
+                     const matrix::Dense<ValueType>* beta,
+                     const matrix::Csr<ValueType, IndexType>* d,
+                     matrix::Csr<ValueType, IndexType>* c)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_cusparse_handle();
@@ -690,8 +686,8 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
         matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-        auto &c_col_idxs_array = c_builder.get_col_idx_array();
-        auto &c_vals_array = c_builder.get_value_array();
+        auto& c_col_idxs_array = c_builder.get_col_idx_array();
+        auto& c_vals_array = c_builder.get_value_array();
         auto a_descr = cusparse::create_mat_descr();
         auto b_descr = cusparse::create_mat_descr();
         auto c_descr = cusparse::create_mat_descr();
@@ -730,20 +726,18 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
         cusparse::destroy(b_descr);
         cusparse::destroy(a_descr);
 #else   // CUDA_VERSION >= 11000
-        auto null_value = static_cast<ValueType *>(nullptr);
-        auto null_index = static_cast<IndexType *>(nullptr);
+        auto null_value = static_cast<ValueType*>(nullptr);
+        auto null_index = static_cast<IndexType*>(nullptr);
         auto one_val = one<ValueType>();
         auto zero_val = zero<ValueType>();
         auto zero_nnz = IndexType{};
         auto spgemm_descr = cusparse::create_spgemm_descr();
-        auto a_descr = cusparse::create_csr(m, k, a_nnz,
-                                            const_cast<IndexType *>(a_row_ptrs),
-                                            const_cast<IndexType *>(a_col_idxs),
-                                            const_cast<ValueType *>(a_vals));
-        auto b_descr = cusparse::create_csr(k, n, b_nnz,
-                                            const_cast<IndexType *>(b_row_ptrs),
-                                            const_cast<IndexType *>(b_col_idxs),
-                                            const_cast<ValueType *>(b_vals));
+        auto a_descr = cusparse::create_csr(
+            m, k, a_nnz, const_cast<IndexType*>(a_row_ptrs),
+            const_cast<IndexType*>(a_col_idxs), const_cast<ValueType*>(a_vals));
+        auto b_descr = cusparse::create_csr(
+            k, n, b_nnz, const_cast<IndexType*>(b_row_ptrs),
+            const_cast<IndexType*>(b_col_idxs), const_cast<ValueType*>(b_vals));
         auto c_descr = cusparse::create_csr(m, n, zero_nnz, null_index,
                                             null_index, null_value);
 
@@ -809,11 +803,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void spgeam(std::shared_ptr<const DefaultExecutor> exec,
-            const matrix::Dense<ValueType> *alpha,
-            const matrix::Csr<ValueType, IndexType> *a,
-            const matrix::Dense<ValueType> *beta,
-            const matrix::Csr<ValueType, IndexType> *b,
-            matrix::Csr<ValueType, IndexType> *c)
+            const matrix::Dense<ValueType>* alpha,
+            const matrix::Csr<ValueType, IndexType>* a,
+            const matrix::Dense<ValueType>* beta,
+            const matrix::Csr<ValueType, IndexType>* b,
+            matrix::Csr<ValueType, IndexType>* c)
 {
     auto total_nnz =
         a->get_num_stored_elements() + b->get_num_stored_elements();
@@ -836,8 +830,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const CudaExecutor> exec,
-                              const IndexType *ptrs, size_type num_rows,
-                              IndexType *idxs)
+                              const IndexType* ptrs, size_type num_rows,
+                              IndexType* idxs)
 {
     const auto grid_dim = ceildiv(num_rows, default_block_size);
 
@@ -848,8 +842,8 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *source,
-                    matrix::Coo<ValueType, IndexType> *result)
+                    const matrix::Csr<ValueType, IndexType>* source,
+                    matrix::Coo<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
 
@@ -865,8 +859,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result)
+                      const matrix::Csr<ValueType, IndexType>* source,
+                      matrix::Dense<ValueType>* result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
@@ -894,8 +888,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *source,
-                      matrix::Sellp<ValueType, IndexType> *result)
+                      const matrix::Csr<ValueType, IndexType>* source,
+                      matrix::Sellp<ValueType, IndexType>* result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
@@ -953,8 +947,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const CudaExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *source,
-                    matrix::Ell<ValueType, IndexType> *result)
+                    const matrix::Csr<ValueType, IndexType>* source,
+                    matrix::Ell<ValueType, IndexType>* result)
 {
     const auto source_values = source->get_const_values();
     const auto source_row_ptrs = source->get_const_row_ptrs();
@@ -989,8 +983,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType> *source,
-                          size_type *result, size_type stride_factor,
+                          const matrix::Csr<ValueType, IndexType>* source,
+                          size_type* result, size_type stride_factor,
                           size_type slice_size)
 {
     const auto num_rows = source->get_size()[0];
@@ -1039,8 +1033,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const CudaExecutor> exec,
-               const matrix::Csr<ValueType, IndexType> *orig,
-               matrix::Csr<ValueType, IndexType> *trans)
+               const matrix::Csr<ValueType, IndexType>* orig,
+               matrix::Csr<ValueType, IndexType>* trans)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
@@ -1087,8 +1081,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *orig,
-                    matrix::Csr<ValueType, IndexType> *trans)
+                    const matrix::Csr<ValueType, IndexType>* orig,
+                    matrix::Csr<ValueType, IndexType>* trans)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         const dim3 block_size(default_block_size, 1, 1);
@@ -1144,9 +1138,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inv_symm_permute(std::shared_ptr<const CudaExecutor> exec,
-                      const IndexType *perm,
-                      const matrix::Csr<ValueType, IndexType> *orig,
-                      matrix::Csr<ValueType, IndexType> *permuted)
+                      const IndexType* perm,
+                      const matrix::Csr<ValueType, IndexType>* orig,
+                      matrix::Csr<ValueType, IndexType>* permuted)
 {
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
@@ -1169,9 +1163,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void row_permute(std::shared_ptr<const CudaExecutor> exec,
-                 const IndexType *perm,
-                 const matrix::Csr<ValueType, IndexType> *orig,
-                 matrix::Csr<ValueType, IndexType> *row_permuted)
+                 const IndexType* perm,
+                 const matrix::Csr<ValueType, IndexType>* orig,
+                 matrix::Csr<ValueType, IndexType>* row_permuted)
 {
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
@@ -1195,9 +1189,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const CudaExecutor> exec,
-                         const IndexType *perm,
-                         const matrix::Csr<ValueType, IndexType> *orig,
-                         matrix::Csr<ValueType, IndexType> *row_permuted)
+                         const IndexType* perm,
+                         const matrix::Csr<ValueType, IndexType>* orig,
+                         matrix::Csr<ValueType, IndexType>* row_permuted)
 {
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
@@ -1221,8 +1215,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
-                               const matrix::Csr<ValueType, IndexType> *source,
-                               size_type *result)
+                               const matrix::Csr<ValueType, IndexType>* source,
+                               size_type* result)
 {
     const auto num_rows = source->get_size()[0];
 
@@ -1254,8 +1248,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const CudaExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType> *source,
-                       matrix::Hybrid<ValueType, IndexType> *result)
+                       const matrix::Csr<ValueType, IndexType>* source,
+                       matrix::Hybrid<ValueType, IndexType>* result)
 {
     auto ell_val = result->get_ell_values();
     auto ell_col = result->get_ell_col_idxs();
@@ -1296,8 +1290,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row(std::shared_ptr<const CudaExecutor> exec,
-                                const matrix::Csr<ValueType, IndexType> *source,
-                                Array<size_type> *result)
+                                const matrix::Csr<ValueType, IndexType>* source,
+                                Array<size_type>* result)
 {
     const auto num_rows = source->get_size()[0];
     auto row_ptrs = source->get_const_row_ptrs();
@@ -1313,7 +1307,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
-                          matrix::Csr<ValueType, IndexType> *to_sort)
+                          matrix::Csr<ValueType, IndexType>* to_sort)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_cusparse_handle();
@@ -1352,7 +1346,7 @@ void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
 #else  // CUDA_VERSION >= 11000
         auto val_vec = cusparse::create_spvec(nnz, nnz, permutation, vals);
         auto tmp_vec =
-            cusparse::create_dnvec(nnz, const_cast<ValueType *>(tmp_vals));
+            cusparse::create_dnvec(nnz, const_cast<ValueType*>(tmp_vals));
         cusparse::gather(handle, tmp_vec, val_vec);
 #endif
 
@@ -1369,7 +1363,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const CudaExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *to_check, bool *is_sorted)
+    const matrix::Csr<ValueType, IndexType>* to_check, bool* is_sorted)
 {
     *is_sorted = true;
     auto cpu_array = Array<bool>::view(exec->get_master(), 1, is_sorted);
@@ -1389,8 +1383,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
+                      const matrix::Csr<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag)
 {
     const auto nnz = orig->get_num_stored_elements();
     const auto diag_size = diag->get_size()[0];

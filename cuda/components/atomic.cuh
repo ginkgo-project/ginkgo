@@ -55,9 +55,9 @@ namespace cuda {
  * @note It is not 'real' complex<float> atomic add operation
  */
 __forceinline__ __device__ thrust::complex<float> atomic_add(
-    thrust::complex<float> *__restrict__ address, thrust::complex<float> val)
+    thrust::complex<float>* __restrict__ address, thrust::complex<float> val)
 {
-    cuComplex *addr = reinterpret_cast<cuComplex *>(address);
+    cuComplex* addr = reinterpret_cast<cuComplex*>(address);
     // Separate to real part and imag part
     auto real = atomic_add(&(addr->x), val.real());
     auto imag = atomic_add(&(addr->y), val.imag());
@@ -71,9 +71,9 @@ __forceinline__ __device__ thrust::complex<float> atomic_add(
  * @note It is not 'real' complex<double> atomic add operation
  */
 __forceinline__ __device__ thrust::complex<double> atomic_add(
-    thrust::complex<double> *__restrict__ address, thrust::complex<double> val)
+    thrust::complex<double>* __restrict__ address, thrust::complex<double> val)
 {
-    cuDoubleComplex *addr = reinterpret_cast<cuDoubleComplex *>(address);
+    cuDoubleComplex* addr = reinterpret_cast<cuDoubleComplex*>(address);
     // Separate to real part and imag part
     auto real = atomic_add(&(addr->x), val.real());
     auto imag = atomic_add(&(addr->y), val.imag());

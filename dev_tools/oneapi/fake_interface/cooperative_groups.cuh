@@ -48,7 +48,7 @@ __device__ __forceinline__ grid_group this_grid_i() { return this_grid(); }
 __device__ auto this_thread_block_i() { return this_thread_block(); }
 
 template <unsigned Size, typename Group>
-__device__ __forceinline__ auto tiled_partition_i(const Group &g)
+__device__ __forceinline__ auto tiled_partition_i(const Group& g)
 {
     return ::gko::kernels::cuda::group::tiled_partition<Size>(g);
 }

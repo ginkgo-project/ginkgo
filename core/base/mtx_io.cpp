@@ -77,7 +77,7 @@ public:
      *
      * @return an instance of the matrix.
      */
-    static const mtx_io &get()
+    static const mtx_io& get()
     {
         static mtx_io instance;
         return instance;
@@ -90,7 +90,7 @@ public:
      *
      * @return the matrix data.
      */
-    matrix_data<ValueType, IndexType> read(std::istream &is) const
+    matrix_data<ValueType, IndexType> read(std::istream& is) const
     {
         auto parsed_header = this->read_header(is);
         std::istringstream dimensions_stream(parsed_header.dimensions_line);
@@ -107,8 +107,8 @@ public:
      * @param data  the matrix data to be written.
      * @param header  the header to be printed at the start of the file.
      */
-    void write(std::ostream &os, const matrix_data<ValueType, IndexType> &data,
-               const std::string &header) const
+    void write(std::ostream& os, const matrix_data<ValueType, IndexType>& data,
+               const std::string& header) const
     {
         std::istringstream header_stream(header);
         auto parsed_header = this->read_description_line(header_stream);
@@ -124,15 +124,15 @@ private:
      * entry of the matrix, depending on its storage scheme:
      */
     struct entry_format {
-        virtual ValueType read_entry(std::istream &is) const = 0;
-        virtual void write_entry(std::ostream &os,
-                                 const ValueType &value) const = 0;
+        virtual ValueType read_entry(std::istream& is) const = 0;
+        virtual void write_entry(std::ostream& os,
+                                 const ValueType& value) const = 0;
     };
 
     /**
      * maps entry format specification strings to algorithms
      */
-    std::map<std::string, const entry_format *> format_map;
+    std::map<std::string, const entry_format*> format_map;
 
     /**
      * the value is encoded as a decimal number
@@ -145,7 +145,7 @@ private:
          *
          * @return the matrix entry.
          */
-        ValueType read_entry(std::istream &is) const override
+        ValueType read_entry(std::istream& is) const override
         {
             double result{};
             GKO_CHECK_STREAM(is >> result, "error while reading matrix entry");
@@ -158,8 +158,8 @@ private:
          * @param  os the output stream
          * @param  value the matrix entry to be written
          */
-        void write_entry(std::ostream &os,
-                         const ValueType &value) const override
+        void write_entry(std::ostream& os,
+                         const ValueType& value) const override
         {
             write_entry_impl<ValueType>(os, value);
         }
@@ -167,7 +167,7 @@ private:
     private:
         template <typename T>
         static std::enable_if_t<is_complex_s<T>::value> write_entry_impl(
-            std::ostream &, const T &)
+            std::ostream&, const T&)
         {
             throw GKO_STREAM_ERROR(
                 "trying to write a complex matrix into a real entry format");
@@ -175,7 +175,7 @@ private:
 
         template <typename T>
         static std::enable_if_t<!is_complex_s<T>::value> write_entry_impl(
-            std::ostream &os, const T &value)
+            std::ostream& os, const T& value)
         {
             GKO_CHECK_STREAM(os << static_cast<double>(value),
                              "error while writing matrix entry");
@@ -194,7 +194,7 @@ private:
          *
          * @return the matrix entry.
          */
-        ValueType read_entry(std::istream &is) const override
+        ValueType read_entry(std::istream& is) const override
         {
             return read_entry_impl<ValueType>(is);
         }
@@ -205,8 +205,8 @@ private:
          * @param  os the output stream
          * @param  value the matrix entry to be written
          */
-        void write_entry(std::ostream &os,
-                         const ValueType &value) const override
+        void write_entry(std::ostream& os,
+                         const ValueType& value) const override
         {
             GKO_CHECK_STREAM(os << static_cast<double>(real(value)) << ' '
                                 << static_cast<double>(imag(value)),
@@ -216,7 +216,7 @@ private:
     private:
         template <typename T>
         static std::enable_if_t<is_complex_s<T>::value, T> read_entry_impl(
-            std::istream &is)
+            std::istream& is)
         {
             using real_type = remove_complex<T>;
             double real{};
@@ -228,7 +228,7 @@ private:
 
         template <typename T>
         static std::enable_if_t<!is_complex_s<T>::value, T> read_entry_impl(
-            std::istream &)
+            std::istream&)
         {
             throw GKO_STREAM_ERROR(
                 "trying to read a complex matrix into a real storage type");
@@ -247,7 +247,7 @@ private:
          *
          * @return the matrix entry(one).
          */
-        ValueType read_entry(std::istream &) const override
+        ValueType read_entry(std::istream&) const override
         {
             return one<ValueType>();
         }
@@ -258,7 +258,7 @@ private:
          * @param  dummy output stream
          * @param  dummy matrix entry to be written
          */
-        void write_entry(std::ostream &, const ValueType &) const override {}
+        void write_entry(std::ostream&, const ValueType&) const override {}
 
     } pattern_format{};
 
@@ -274,8 +274,8 @@ private:
             size_type num_nonzeros) const = 0;
 
         virtual void insert_entry(
-            const IndexType &row, const IndexType &col, const ValueType &entry,
-            matrix_data<ValueType, IndexType> &data) const = 0;
+            const IndexType& row, const IndexType& col, const ValueType& entry,
+            matrix_data<ValueType, IndexType>& data) const = 0;
 
         virtual size_type get_row_start(size_type col) const = 0;
     };
@@ -283,7 +283,7 @@ private:
     /**
      * maps storage modifier specification strings to algorithms
      */
-    std::map<std::string, const storage_modifier *> modifier_map;
+    std::map<std::string, const storage_modifier*> modifier_map;
 
     /**
      * all (nonzero) elements of the matrix are stored
@@ -313,8 +313,8 @@ private:
          * @param data  the data holding the matrix.
          */
         void insert_entry(
-            const IndexType &row, const IndexType &col, const ValueType &entry,
-            matrix_data<ValueType, IndexType> &data) const override
+            const IndexType& row, const IndexType& col, const ValueType& entry,
+            matrix_data<ValueType, IndexType>& data) const override
         {
             data.nonzeros.emplace_back(row, col, entry);
         }
@@ -353,8 +353,8 @@ private:
          * @param data  the data holding the matrix.
          */
         void insert_entry(
-            const IndexType &row, const IndexType &col, const ValueType &entry,
-            matrix_data<ValueType, IndexType> &data) const override
+            const IndexType& row, const IndexType& col, const ValueType& entry,
+            matrix_data<ValueType, IndexType>& data) const override
         {
             data.nonzeros.emplace_back(row, col, entry);
             if (row != col) {
@@ -398,8 +398,8 @@ private:
          * @param data  the data holding the matrix.
          */
         void insert_entry(
-            const IndexType &row, const IndexType &col, const ValueType &entry,
-            matrix_data<ValueType, IndexType> &data) const override
+            const IndexType& row, const IndexType& col, const ValueType& entry,
+            matrix_data<ValueType, IndexType>& data) const override
         {
             data.nonzeros.emplace_back(row, col, entry);
             data.nonzeros.emplace_back(col, row, -entry);
@@ -443,8 +443,8 @@ private:
          * @param data  the data holding the matrix.
          */
         void insert_entry(
-            const IndexType &row, const IndexType &col, const ValueType &entry,
-            matrix_data<ValueType, IndexType> &data) const override
+            const IndexType& row, const IndexType& col, const ValueType& entry,
+            matrix_data<ValueType, IndexType>& data) const override
         {
             data.nonzeros.emplace_back(row, col, entry);
             if (row != col) {
@@ -476,9 +476,9 @@ private:
          * @return the matrix data
          */
         virtual matrix_data<ValueType, IndexType> read_data(
-            std::istream &header, std::istream &content,
-            const entry_format *entry_reader,
-            const storage_modifier *modifier) const = 0;
+            std::istream& header, std::istream& content,
+            const entry_format* entry_reader,
+            const storage_modifier* modifier) const = 0;
         /**
          * Write the matrix data
          *
@@ -487,16 +487,16 @@ private:
          * @param entry_writer  The entry format to write in.
          * @param modifier  The strorage modifer
          */
-        virtual void write_data(std::ostream &os,
-                                const matrix_data<ValueType, IndexType> &data,
-                                const entry_format *entry_writer,
-                                const storage_modifier *modifier) const = 0;
+        virtual void write_data(std::ostream& os,
+                                const matrix_data<ValueType, IndexType>& data,
+                                const entry_format* entry_writer,
+                                const storage_modifier* modifier) const = 0;
     };
 
     /**
      * maps storage layout specification strings to algorithms
      */
-    std::map<std::string, const storage_layout *> layout_map;
+    std::map<std::string, const storage_layout*> layout_map;
 
     /**
      * the matrix is sparse, and every nonzero is stored together with its
@@ -514,9 +514,9 @@ private:
          * @return the matrix data
          */
         matrix_data<ValueType, IndexType> read_data(
-            std::istream &header, std::istream &content,
-            const entry_format *entry_reader,
-            const storage_modifier *modifier) const override
+            std::istream& header, std::istream& content,
+            const entry_format* entry_reader,
+            const storage_modifier* modifier) const override
         {
             size_type num_rows{};
             size_type num_cols{};
@@ -550,16 +550,16 @@ private:
          * @param entry_writer  The entry format to write in.
          * @param modifier  The strorage modifer
          */
-        void write_data(std::ostream &os,
-                        const matrix_data<ValueType, IndexType> &data,
-                        const entry_format *entry_writer,
-                        const storage_modifier *) const override
+        void write_data(std::ostream& os,
+                        const matrix_data<ValueType, IndexType>& data,
+                        const entry_format* entry_writer,
+                        const storage_modifier*) const override
         {
             // TODO: use the storage modifier
             GKO_CHECK_STREAM(os << data.size[0] << ' ' << data.size[1] << ' '
                                 << data.nonzeros.size() << '\n',
                              "error when writing size information");
-            for (const auto &nonzero : data.nonzeros) {
+            for (const auto& nonzero : data.nonzeros) {
                 GKO_CHECK_STREAM(
                     os << nonzero.row + 1 << ' ' << nonzero.column + 1 << ' ',
                     "error when writing matrix index");
@@ -585,9 +585,9 @@ private:
          * @return the matrix data
          */
         matrix_data<ValueType, IndexType> read_data(
-            std::istream &header, std::istream &content,
-            const entry_format *entry_reader,
-            const storage_modifier *modifier) const override
+            std::istream& header, std::istream& content,
+            const entry_format* entry_reader,
+            const storage_modifier* modifier) const override
         {
             size_type num_rows{};
             size_type num_cols{};
@@ -619,10 +619,10 @@ private:
          * @param entry_writer  The entry format to write in.
          * @param modifier  The strorage modifer
          */
-        void write_data(std::ostream &os,
-                        const matrix_data<ValueType, IndexType> &data,
-                        const entry_format *entry_writer,
-                        const storage_modifier *) const override
+        void write_data(std::ostream& os,
+                        const matrix_data<ValueType, IndexType>& data,
+                        const entry_format* entry_writer,
+                        const storage_modifier*) const override
         {
             using nt = typename matrix_data<ValueType, IndexType>::nonzero_type;
             auto nonzeros = data.nonzeros;
@@ -673,9 +673,9 @@ private:
      * read/write the rest of the file
      */
     struct header_data {
-        const entry_format *entry{};
-        const storage_modifier *modifier{};
-        const storage_layout *layout{};
+        const entry_format* entry{};
+        const storage_modifier* modifier{};
+        const storage_layout* layout{};
         std::string dimensions_line{};
     };
 
@@ -686,7 +686,7 @@ private:
      *
      * @return the data containing the description
      */
-    header_data read_description_line(std::istream &is) const
+    header_data read_description_line(std::istream& is) const
     {
         header_data data{};
 
@@ -731,7 +731,7 @@ private:
      *
      * @return the header data
      */
-    header_data read_header(std::istream &is) const
+    header_data read_header(std::istream& is) const
     {
         auto data = read_description_line(is);
         do {
@@ -754,7 +754,7 @@ private:
  * @return matrix_data  the matrix data.
  */
 template <typename ValueType, typename IndexType>
-matrix_data<ValueType, IndexType> read_raw(std::istream &is)
+matrix_data<ValueType, IndexType> read_raw(std::istream& is)
 {
     return mtx_io<ValueType, IndexType>::get().read(is);
 }
@@ -768,7 +768,7 @@ matrix_data<ValueType, IndexType> read_raw(std::istream &is)
  * @param layout  the layout type which the data should be written in.
  */
 template <typename ValueType, typename IndexType>
-void write_raw(std::ostream &os, const matrix_data<ValueType, IndexType> &data,
+void write_raw(std::ostream& os, const matrix_data<ValueType, IndexType>& data,
                layout_type layout)
 {
     // TODO: add support for all layout combinations
@@ -781,10 +781,10 @@ void write_raw(std::ostream &os, const matrix_data<ValueType, IndexType> &data,
 
 
 #define GKO_DECLARE_READ_RAW(ValueType, IndexType) \
-    matrix_data<ValueType, IndexType> read_raw(std::istream &is)
+    matrix_data<ValueType, IndexType> read_raw(std::istream& is)
 #define GKO_DECLARE_WRITE_RAW(ValueType, IndexType)               \
-    void write_raw(std::ostream &os,                              \
-                   const matrix_data<ValueType, IndexType> &data, \
+    void write_raw(std::ostream& os,                              \
+                   const matrix_data<ValueType, IndexType>& data, \
                    layout_type layout)
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_READ_RAW);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_WRITE_RAW);

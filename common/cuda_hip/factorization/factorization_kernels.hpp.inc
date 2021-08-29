@@ -41,8 +41,8 @@ template <bool IsSorted>
 struct find_helper {
     template <typename Group, typename IndexType>
     static __forceinline__ __device__ bool find(Group subwarp_grp,
-                                                const IndexType *first,
-                                                const IndexType *last,
+                                                const IndexType* first,
+                                                const IndexType* last,
                                                 IndexType value)
     {
         auto subwarp_idx = subwarp_grp.thread_rank();
@@ -66,8 +66,8 @@ template <>
 struct find_helper<true> {
     template <typename Group, typename IndexType>
     static __forceinline__ __device__ bool find(Group subwarp_grp,
-                                                const IndexType *first,
-                                                const IndexType *last,
+                                                const IndexType* first,
+                                                const IndexType* last,
                                                 IndexType value)
     {
         const auto length = static_cast<IndexType>(last - first);
@@ -88,10 +88,10 @@ template <bool IsSorted, int SubwarpSize, typename IndexType>
 __global__
     __launch_bounds__(default_block_size) void find_missing_diagonal_elements(
         IndexType num_rows, IndexType num_cols,
-        const IndexType *__restrict__ col_idxs,
-        const IndexType *__restrict__ row_ptrs,
-        IndexType *__restrict__ elements_to_add_per_row,
-        bool *__restrict__ changes_required)
+        const IndexType* __restrict__ col_idxs,
+        const IndexType* __restrict__ row_ptrs,
+        IndexType* __restrict__ elements_to_add_per_row,
+        bool* __restrict__ changes_required)
 {
     const auto total_subwarp_count =
         thread::get_subwarp_num_flat<SubwarpSize, IndexType>();
@@ -110,8 +110,8 @@ __global__
             }
             continue;
         }
-        const auto *start_cols = col_idxs + row_ptrs[row];
-        const auto *end_cols = col_idxs + row_ptrs[row + 1];
+        const auto* start_cols = col_idxs + row_ptrs[row];
+        const auto* end_cols = col_idxs + row_ptrs[row + 1];
         if (detail::find_helper<IsSorted>::find(subwarp_grp, start_cols,
                                                 end_cols, row)) {
             if (subwarp_idx == 0) {
@@ -136,12 +136,12 @@ __global__
 template <int SubwarpSize, typename ValueType, typename IndexType>
 __global__
     __launch_bounds__(default_block_size) void add_missing_diagonal_elements(
-        IndexType num_rows, const ValueType *__restrict__ old_values,
-        const IndexType *__restrict__ old_col_idxs,
-        const IndexType *__restrict__ old_row_ptrs,
-        ValueType *__restrict__ new_values,
-        IndexType *__restrict__ new_col_idxs,
-        const IndexType *__restrict__ row_ptrs_addition)
+        IndexType num_rows, const ValueType* __restrict__ old_values,
+        const IndexType* __restrict__ old_col_idxs,
+        const IndexType* __restrict__ old_row_ptrs,
+        ValueType* __restrict__ new_values,
+        IndexType* __restrict__ new_col_idxs,
+        const IndexType* __restrict__ row_ptrs_addition)
 {
     // Precaution in case not enough threads were created
     const auto total_subwarp_count =
@@ -218,8 +218,8 @@ __global__
 
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void update_row_ptrs(
-    IndexType num_rows, IndexType *__restrict__ row_ptrs,
-    IndexType *__restrict__ row_ptr_addition)
+    IndexType num_rows, IndexType* __restrict__ row_ptrs,
+    IndexType* __restrict__ row_ptr_addition)
 {
     const auto total_thread_count = thread::get_thread_num_flat<IndexType>();
     const auto begin_row = thread::get_thread_id_flat<IndexType>();
@@ -232,10 +232,10 @@ __global__ __launch_bounds__(default_block_size) void update_row_ptrs(
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_u_row(
-    size_type num_rows, const IndexType *__restrict__ row_ptrs,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values, IndexType *__restrict__ l_nnz_row,
-    IndexType *__restrict__ u_nnz_row)
+    size_type num_rows, const IndexType* __restrict__ row_ptrs,
+    const IndexType* __restrict__ col_idxs,
+    const ValueType* __restrict__ values, IndexType* __restrict__ l_nnz_row,
+    IndexType* __restrict__ u_nnz_row)
 {
     const auto row = thread::get_thread_id_flat<IndexType>();
     if (row < num_rows) {
@@ -256,13 +256,13 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_u_row(
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void initialize_l_u(
-    size_type num_rows, const IndexType *__restrict__ row_ptrs,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values,
-    const IndexType *__restrict__ l_row_ptrs,
-    IndexType *__restrict__ l_col_idxs, ValueType *__restrict__ l_values,
-    const IndexType *__restrict__ u_row_ptrs,
-    IndexType *__restrict__ u_col_idxs, ValueType *__restrict__ u_values)
+    size_type num_rows, const IndexType* __restrict__ row_ptrs,
+    const IndexType* __restrict__ col_idxs,
+    const ValueType* __restrict__ values,
+    const IndexType* __restrict__ l_row_ptrs,
+    IndexType* __restrict__ l_col_idxs, ValueType* __restrict__ l_values,
+    const IndexType* __restrict__ u_row_ptrs,
+    IndexType* __restrict__ u_col_idxs, ValueType* __restrict__ u_values)
 {
     const auto row = thread::get_thread_id_flat<IndexType>();
     if (row < num_rows) {
@@ -301,9 +301,9 @@ __global__ __launch_bounds__(default_block_size) void initialize_l_u(
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_row(
-    size_type num_rows, const IndexType *__restrict__ row_ptrs,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values, IndexType *__restrict__ l_nnz_row)
+    size_type num_rows, const IndexType* __restrict__ row_ptrs,
+    const IndexType* __restrict__ col_idxs,
+    const ValueType* __restrict__ values, IndexType* __restrict__ l_nnz_row)
 {
     const auto row = thread::get_thread_id_flat<IndexType>();
     if (row < num_rows) {
@@ -321,11 +321,11 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_row(
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void initialize_l(
-    size_type num_rows, const IndexType *__restrict__ row_ptrs,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values,
-    const IndexType *__restrict__ l_row_ptrs,
-    IndexType *__restrict__ l_col_idxs, ValueType *__restrict__ l_values,
+    size_type num_rows, const IndexType* __restrict__ row_ptrs,
+    const IndexType* __restrict__ col_idxs,
+    const ValueType* __restrict__ values,
+    const IndexType* __restrict__ l_row_ptrs,
+    IndexType* __restrict__ l_col_idxs, ValueType* __restrict__ l_values,
     bool use_sqrt)
 {
     const auto row = thread::get_thread_id_flat<IndexType>();

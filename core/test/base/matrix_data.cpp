@@ -87,7 +87,7 @@ TEST(MatrixData, InitializesWithRandomValues)
 
     ASSERT_EQ(m.size, gko::dim<2>(2, 3));
     ASSERT_LE(m.nonzeros.size(), 6);
-    for (const auto &elem : m.nonzeros) {
+    for (const auto& elem : m.nonzeros) {
         EXPECT_TRUE(-1 <= elem.value && elem.value <= 1);
     }
 }
@@ -288,7 +288,7 @@ TEST(MatrixData, InitializesBlockDiagonalMatrixFromBlockList)
 
 struct dummy_distribution {
     template <typename RandomEngine>
-    double operator()(RandomEngine &&) const
+    double operator()(RandomEngine&&) const
     {
         if (last >= 2.0) {
             last = 0.0;

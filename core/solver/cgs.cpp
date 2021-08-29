@@ -87,7 +87,7 @@ std::unique_ptr<LinOp> Cgs<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Cgs<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -98,8 +98,8 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
-                                      matrix::Dense<ValueType> *dense_x) const
+void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
+                                      matrix::Dense<ValueType>* dense_x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
@@ -145,7 +145,7 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_,
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         r.get());
     r_tld->copy_from(r.get());
 
@@ -204,8 +204,8 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType> *dense_b,
 
 
 template <typename ValueType>
-void Cgs<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                const LinOp *beta, LinOp *x) const
+void Cgs<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {

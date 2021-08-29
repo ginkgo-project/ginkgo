@@ -44,7 +44,7 @@ namespace components {
 
 template <typename SourceType, typename TargetType>
 void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
-                       size_type size, const SourceType *in, TargetType *out)
+                       size_type size, const SourceType* in, TargetType* out)
 {
     run_kernel(
         exec,

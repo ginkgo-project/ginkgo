@@ -155,7 +155,7 @@ struct dummy_accessor {
 
     int operator()(int a, int b, int c) const { return x * a + y * b + c; }
 
-    void copy_from(const dummy_accessor &other) const
+    void copy_from(const dummy_accessor& other) const
     {
         x = other.x;
         y = other.y;

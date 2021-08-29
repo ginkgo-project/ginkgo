@@ -39,9 +39,9 @@ template <int num_thread_per_worker, bool atomic, typename b_accessor,
           typename Closure>
 __device__ void spmv_kernel(
     const size_type num_rows, const int num_worker_per_row,
-    acc::range<a_accessor> val, const IndexType *__restrict__ col,
+    acc::range<a_accessor> val, const IndexType* __restrict__ col,
     const size_type stride, const size_type num_stored_elements_per_row,
-    acc::range<b_accessor> b, OutputValueType *__restrict__ c,
+    acc::range<b_accessor> b, OutputValueType* __restrict__ c,
     const size_type c_stride, Closure op)
 {
     const auto tidx = thread::get_thread_id_flat();
@@ -107,15 +107,15 @@ template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
           typename a_accessor, typename OutputValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void spmv(
     const size_type num_rows, const int num_worker_per_row,
-    acc::range<a_accessor> val, const IndexType *__restrict__ col,
+    acc::range<a_accessor> val, const IndexType* __restrict__ col,
     const size_type stride, const size_type num_stored_elements_per_row,
-    acc::range<b_accessor> b, OutputValueType *__restrict__ c,
+    acc::range<b_accessor> b, OutputValueType* __restrict__ c,
     const size_type c_stride)
 {
     spmv_kernel<num_thread_per_worker, atomic>(
         num_rows, num_worker_per_row, val, col, stride,
         num_stored_elements_per_row, b, c, c_stride,
-        [](const OutputValueType &x, const OutputValueType &y) { return x; });
+        [](const OutputValueType& x, const OutputValueType& y) { return x; });
 }
 
 
@@ -124,9 +124,9 @@ template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
 __global__ __launch_bounds__(default_block_size) void spmv(
     const size_type num_rows, const int num_worker_per_row,
     acc::range<a_accessor> alpha, acc::range<a_accessor> val,
-    const IndexType *__restrict__ col, const size_type stride,
+    const IndexType* __restrict__ col, const size_type stride,
     const size_type num_stored_elements_per_row, acc::range<b_accessor> b,
-    const OutputValueType *__restrict__ beta, OutputValueType *__restrict__ c,
+    const OutputValueType* __restrict__ beta, OutputValueType* __restrict__ c,
     const size_type c_stride)
 {
     const OutputValueType alpha_val = alpha(0);
@@ -140,15 +140,15 @@ __global__ __launch_bounds__(default_block_size) void spmv(
         spmv_kernel<num_thread_per_worker, atomic>(
             num_rows, num_worker_per_row, val, col, stride,
             num_stored_elements_per_row, b, c, c_stride,
-            [&alpha_val](const OutputValueType &x, const OutputValueType &y) {
+            [&alpha_val](const OutputValueType& x, const OutputValueType& y) {
                 return alpha_val * x;
             });
     } else {
         spmv_kernel<num_thread_per_worker, atomic>(
             num_rows, num_worker_per_row, val, col, stride,
             num_stored_elements_per_row, b, c, c_stride,
-            [&alpha_val, &beta_val](const OutputValueType &x,
-                                    const OutputValueType &y) {
+            [&alpha_val, &beta_val](const OutputValueType& x,
+                                    const OutputValueType& y) {
                 return alpha_val * x + beta_val * y;
             });
     }
@@ -161,7 +161,7 @@ __global__ __launch_bounds__(default_block_size) void spmv(
 template <typename ValueType>
 __global__ __launch_bounds__(config::max_block_size) void initialize_zero_dense(
     size_type num_rows, size_type num_cols, size_type stride,
-    ValueType *__restrict__ result)
+    ValueType* __restrict__ result)
 {
     const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
     const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
@@ -174,9 +174,9 @@ __global__ __launch_bounds__(config::max_block_size) void initialize_zero_dense(
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_dense(
     size_type num_rows, size_type nnz, size_type source_stride,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values, size_type result_stride,
-    ValueType *__restrict__ result)
+    const IndexType* __restrict__ col_idxs,
+    const ValueType* __restrict__ values, size_type result_stride,
+    ValueType* __restrict__ result)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_rows) {
@@ -192,7 +192,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
     size_type num_rows, size_type max_nnz_per_row, size_type stride,
-    const ValueType *__restrict__ values, IndexType *__restrict__ result)
+    const ValueType* __restrict__ values, IndexType* __restrict__ result)
 {
     constexpr auto warp_size = config::warp_size;
     const auto row_idx = thread::get_subwarp_id_flat<warp_size>();
@@ -209,7 +209,7 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
         }
         result[row_idx] = reduce(
             warp_tile, part_result,
-            [](const size_type &a, const size_type &b) { return a + b; });
+            [](const size_type& a, const size_type& b) { return a + b; });
     }
 }
 
@@ -217,11 +217,11 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_csr(
     size_type num_rows, size_type max_nnz_per_row, size_type stride,
-    const ValueType *__restrict__ source_values,
-    const IndexType *__restrict__ source_col_idxs,
-    IndexType *__restrict__ result_row_ptrs,
-    IndexType *__restrict__ result_col_idxs,
-    ValueType *__restrict__ result_values)
+    const ValueType* __restrict__ source_values,
+    const IndexType* __restrict__ source_col_idxs,
+    IndexType* __restrict__ result_row_ptrs,
+    IndexType* __restrict__ result_col_idxs,
+    ValueType* __restrict__ result_values)
 {
     const auto tidx = thread::get_thread_id_flat();
 
@@ -242,8 +242,8 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void extract_diagonal(
     size_type diag_size, size_type max_nnz_per_row, size_type orig_stride,
-    const ValueType *__restrict__ orig_values,
-    const IndexType *__restrict__ orig_col_idxs, ValueType *__restrict__ diag)
+    const ValueType* __restrict__ orig_values,
+    const IndexType* __restrict__ orig_col_idxs, ValueType* __restrict__ diag)
 {
     const auto tidx = thread::get_thread_id_flat();
     const auto row = tidx % diag_size;

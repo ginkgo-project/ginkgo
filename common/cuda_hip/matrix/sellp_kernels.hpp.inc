@@ -36,10 +36,10 @@ namespace {
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(matrix::default_slice_size) void spmv_kernel(
     size_type num_rows, size_type num_right_hand_sides, size_type b_stride,
-    size_type c_stride, const size_type *__restrict__ slice_lengths,
-    const size_type *__restrict__ slice_sets, const ValueType *__restrict__ a,
-    const IndexType *__restrict__ col, const ValueType *__restrict__ b,
-    ValueType *__restrict__ c)
+    size_type c_stride, const size_type* __restrict__ slice_lengths,
+    const size_type* __restrict__ slice_sets, const ValueType* __restrict__ a,
+    const IndexType* __restrict__ col, const ValueType* __restrict__ b,
+    ValueType* __restrict__ c)
 {
     const auto slice_id = blockIdx.x;
     const auto slice_size = blockDim.x;
@@ -63,11 +63,11 @@ template <typename ValueType, typename IndexType>
 __global__
     __launch_bounds__(matrix::default_slice_size) void advanced_spmv_kernel(
         size_type num_rows, size_type num_right_hand_sides, size_type b_stride,
-        size_type c_stride, const size_type *__restrict__ slice_lengths,
-        const size_type *__restrict__ slice_sets,
-        const ValueType *__restrict__ alpha, const ValueType *__restrict__ a,
-        const IndexType *__restrict__ col, const ValueType *__restrict__ b,
-        const ValueType *__restrict__ beta, ValueType *__restrict__ c)
+        size_type c_stride, const size_type* __restrict__ slice_lengths,
+        const size_type* __restrict__ slice_sets,
+        const ValueType* __restrict__ alpha, const ValueType* __restrict__ a,
+        const IndexType* __restrict__ col, const ValueType* __restrict__ b,
+        const ValueType* __restrict__ beta, ValueType* __restrict__ c)
 {
     const auto slice_id = blockIdx.x;
     const auto slice_size = blockDim.x;
@@ -97,7 +97,7 @@ namespace kernel {
 template <typename ValueType>
 __global__ __launch_bounds__(config::max_block_size) void initialize_zero_dense(
     size_type num_rows, size_type num_cols, size_type stride,
-    ValueType *__restrict__ result)
+    ValueType* __restrict__ result)
 {
     const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
     const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
@@ -110,10 +110,10 @@ __global__ __launch_bounds__(config::max_block_size) void initialize_zero_dense(
 template <unsigned int threads_per_row, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_dense(
     size_type num_rows, size_type num_cols, size_type stride,
-    size_type slice_size, const size_type *__restrict__ slice_lengths,
-    const size_type *__restrict__ slice_sets,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values, ValueType *__restrict__ result)
+    size_type slice_size, const size_type* __restrict__ slice_lengths,
+    const size_type* __restrict__ slice_sets,
+    const IndexType* __restrict__ col_idxs,
+    const ValueType* __restrict__ values, ValueType* __restrict__ result)
 {
     const auto global_row = thread::get_subwarp_id_flat<threads_per_row>();
     const auto row = global_row % slice_size;
@@ -137,8 +137,8 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
     size_type num_rows, size_type slice_size,
-    const size_type *__restrict__ slice_sets,
-    const ValueType *__restrict__ values, IndexType *__restrict__ result)
+    const size_type* __restrict__ slice_sets,
+    const ValueType* __restrict__ values, IndexType* __restrict__ result)
 {
     constexpr auto warp_size = config::warp_size;
     auto warp_tile =
@@ -161,7 +161,7 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
         }
         result[row_idx] = reduce(
             warp_tile, part_result,
-            [](const size_type &a, const size_type &b) { return a + b; });
+            [](const size_type& a, const size_type& b) { return a + b; });
     }
 }
 
@@ -169,12 +169,12 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_csr(
     size_type num_rows, size_type slice_size,
-    const size_type *__restrict__ source_slice_sets,
-    const IndexType *__restrict__ source_col_idxs,
-    const ValueType *__restrict__ source_values,
-    IndexType *__restrict__ result_row_ptrs,
-    IndexType *__restrict__ result_col_idxs,
-    ValueType *__restrict__ result_values)
+    const size_type* __restrict__ source_slice_sets,
+    const IndexType* __restrict__ source_col_idxs,
+    const ValueType* __restrict__ source_values,
+    IndexType* __restrict__ result_row_ptrs,
+    IndexType* __restrict__ result_col_idxs,
+    ValueType* __restrict__ result_values)
 {
     const auto row = thread::get_thread_id_flat();
     const auto slice_id = row / slice_size;
@@ -199,9 +199,9 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void extract_diagonal(
     size_type diag_size, size_type slice_size,
-    const size_type *__restrict__ orig_slice_sets,
-    const ValueType *__restrict__ orig_values,
-    const IndexType *__restrict__ orig_col_idxs, ValueType *__restrict__ diag)
+    const size_type* __restrict__ orig_slice_sets,
+    const ValueType* __restrict__ orig_values,
+    const IndexType* __restrict__ orig_col_idxs, ValueType* __restrict__ diag)
 {
     constexpr auto warp_size = config::warp_size;
     auto warp_tile =

@@ -58,14 +58,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // This function supposes that management of `FLAGS_overwrite` is done before
 // calling it
-void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
-                    const char *conversion_name,
+void convert_matrix(const gko::LinOp* matrix_from, const char* format_to,
+                    const char* conversion_name,
                     std::shared_ptr<gko::Executor> exec,
-                    rapidjson::Value &test_case,
-                    rapidjson::MemoryPoolAllocator<> &allocator)
+                    rapidjson::Value& test_case,
+                    rapidjson::MemoryPoolAllocator<>& allocator)
 {
     try {
-        auto &conversion_case = test_case["conversions"];
+        auto& conversion_case = test_case["conversions"];
         add_or_set_member(conversion_case, conversion_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
@@ -95,7 +95,7 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
         // compute and write benchmark data
         add_or_set_member(conversion_case[conversion_name], "completed", true,
                           allocator);
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
         add_or_set_member(test_case["conversions"][conversion_name],
                           "completed", false, allocator);
         if (FLAGS_keep_errors) {
@@ -110,7 +110,7 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     std::string header =
         "A benchmark for measuring performance of Ginkgo's conversions.\n";
@@ -133,9 +133,9 @@ int main(int argc, char *argv[])
         print_config_error_and_exit();
     }
 
-    auto &allocator = test_cases.GetAllocator();
+    auto& allocator = test_cases.GetAllocator();
 
-    for (auto &test_case : test_cases.GetArray()) {
+    for (auto& test_case : test_cases.GetArray()) {
         std::clog << "Benchmarking conversions. " << std::endl;
         // set up benchmark
         validate_option_object(test_case);
@@ -144,25 +144,25 @@ int main(int argc, char *argv[])
                                 rapidjson::Value(rapidjson::kObjectType),
                                 allocator);
         }
-        auto &conversion_case = test_case["conversions"];
+        auto& conversion_case = test_case["conversions"];
 
         std::clog << "Running test case: " << test_case << std::endl;
         std::ifstream mtx_fd(test_case["filename"].GetString());
         gko::matrix_data<etype, itype> data;
         try {
             data = gko::read_raw<etype, itype>(mtx_fd);
-        } catch (std::exception &e) {
+        } catch (std::exception& e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
             continue;
         }
         std::clog << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << ")" << std::endl;
-        for (const auto &format_from : formats) {
+        for (const auto& format_from : formats) {
             try {
                 auto matrix_from =
                     share(formats::matrix_factory.at(format_from)(exec, data));
-                for (const auto &format_to : formats) {
+                for (const auto& format_to : formats) {
                     if (format_from == format_to) {
                         continue;
                     }
@@ -181,8 +181,8 @@ int main(int argc, char *argv[])
                               << test_cases << std::endl;
                 }
                 backup_results(test_cases);
-            } catch (const gko::AllocationError &e) {
-                for (const auto &format : formats::matrix_factory) {
+            } catch (const gko::AllocationError& e) {
+                for (const auto& format : formats::matrix_factory) {
                     const auto format_to = std::get<0>(format);
                     auto conversion_name =
                         std::string(format_from) + "-" + format_to;
@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
                           << format_from << ". what(): " << e.what()
                           << std::endl;
                 backup_results(test_cases);
-            } catch (const std::exception &e) {
+            } catch (const std::exception& e) {
                 std::cerr << "Error when running benchmark, what(): "
                           << e.what() << std::endl;
             }

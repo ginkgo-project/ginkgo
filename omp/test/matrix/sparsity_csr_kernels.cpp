@@ -203,8 +203,8 @@ TEST_F(SparsityCsr, TransposeIsEquivalentToRef)
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
 
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(d_trans.get()),
-                        static_cast<Mtx *>(trans.get()), 0.0);
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(d_trans.get()),
+                        static_cast<Mtx*>(trans.get()), 0.0);
 }
 
 

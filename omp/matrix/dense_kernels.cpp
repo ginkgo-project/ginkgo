@@ -67,9 +67,9 @@ namespace dense {
 
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const OmpExecutor> exec,
-                  const matrix::Dense<ValueType> *a,
-                  const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *c)
+                  const matrix::Dense<ValueType>* a,
+                  const matrix::Dense<ValueType>* b,
+                  matrix::Dense<ValueType>* c)
 {
 #pragma omp parallel for
     for (size_type row = 0; row < c->get_size()[0]; ++row) {
@@ -93,9 +93,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 template <typename ValueType>
 void apply(std::shared_ptr<const OmpExecutor> exec,
-           const matrix::Dense<ValueType> *alpha,
-           const matrix::Dense<ValueType> *a, const matrix::Dense<ValueType> *b,
-           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *c)
+           const matrix::Dense<ValueType>* alpha,
+           const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
+           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
 {
     if (beta->at(0, 0) != zero<ValueType>()) {
 #pragma omp parallel for
@@ -129,9 +129,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 template <typename ValueType>
 void compute_dot(std::shared_ptr<const OmpExecutor> exec,
-                 const matrix::Dense<ValueType> *x,
-                 const matrix::Dense<ValueType> *y,
-                 matrix::Dense<ValueType> *result)
+                 const matrix::Dense<ValueType>* x,
+                 const matrix::Dense<ValueType>* y,
+                 matrix::Dense<ValueType>* result)
 {
 #pragma omp parallel for
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
@@ -150,9 +150,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 
 template <typename ValueType>
 void compute_conj_dot(std::shared_ptr<const OmpExecutor> exec,
-                      const matrix::Dense<ValueType> *x,
-                      const matrix::Dense<ValueType> *y,
-                      matrix::Dense<ValueType> *result)
+                      const matrix::Dense<ValueType>* x,
+                      const matrix::Dense<ValueType>* y,
+                      matrix::Dense<ValueType>* result)
 {
 #pragma omp parallel for
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
@@ -171,8 +171,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL);
 
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Dense<ValueType> *x,
-                   matrix::Dense<remove_complex<ValueType>> *result)
+                   const matrix::Dense<ValueType>* x,
+                   matrix::Dense<remove_complex<ValueType>>* result)
 {
     using norm_type = remove_complex<ValueType>;
 #pragma omp parallel for
@@ -196,8 +196,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Dense<ValueType> *source,
-                    matrix::Coo<ValueType, IndexType> *result)
+                    const matrix::Dense<ValueType>* source,
+                    matrix::Coo<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -242,8 +242,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Dense<ValueType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
+                    const matrix::Dense<ValueType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -285,8 +285,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Dense<ValueType> *source,
-                    matrix::Ell<ValueType, IndexType> *result)
+                    const matrix::Dense<ValueType>* source,
+                    matrix::Ell<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -318,8 +318,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
-                       const matrix::Dense<ValueType> *source,
-                       matrix::Hybrid<ValueType, IndexType> *result)
+                       const matrix::Dense<ValueType>* source,
+                       matrix::Hybrid<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -389,8 +389,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const OmpExecutor> exec,
-                      const matrix::Dense<ValueType> *source,
-                      matrix::Sellp<ValueType, IndexType> *result)
+                      const matrix::Dense<ValueType>* source,
+                      matrix::Sellp<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -464,8 +464,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sparsity_csr(std::shared_ptr<const OmpExecutor> exec,
-                             const matrix::Dense<ValueType> *source,
-                             matrix::SparsityCsr<ValueType, IndexType> *result)
+                             const matrix::Dense<ValueType>* source,
+                             matrix::SparsityCsr<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -506,7 +506,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType>
 void count_nonzeros(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Dense<ValueType> *source, size_type *result)
+                    const matrix::Dense<ValueType>* source, size_type* result)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
@@ -527,8 +527,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
 
 template <typename ValueType>
 void calculate_max_nnz_per_row(std::shared_ptr<const OmpExecutor> exec,
-                               const matrix::Dense<ValueType> *source,
-                               size_type *result)
+                               const matrix::Dense<ValueType>* source,
+                               size_type* result)
 {
     const auto num_rows = source->get_size()[0];
     const auto num_cols = source->get_size()[1];
@@ -550,8 +550,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void calculate_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
-                                const matrix::Dense<ValueType> *source,
-                                Array<size_type> *result)
+                                const matrix::Dense<ValueType>* source,
+                                Array<size_type>* result)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
@@ -572,8 +572,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
-                          const matrix::Dense<ValueType> *source,
-                          size_type *result, size_type stride_factor,
+                          const matrix::Dense<ValueType>* source,
+                          size_type* result, size_type stride_factor,
                           size_type slice_size)
 {
     auto num_rows = source->get_size()[0];
@@ -605,8 +605,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void transpose(std::shared_ptr<const OmpExecutor> exec,
-               const matrix::Dense<ValueType> *orig,
-               matrix::Dense<ValueType> *trans)
+               const matrix::Dense<ValueType>* orig,
+               matrix::Dense<ValueType>* trans)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < orig->get_size()[0]; ++i) {
@@ -621,8 +621,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_TRANSPOSE_KERNEL);
 
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Dense<ValueType> *orig,
-                    matrix::Dense<ValueType> *trans)
+                    const matrix::Dense<ValueType>* orig,
+                    matrix::Dense<ValueType>* trans)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < orig->get_size()[0]; ++i) {

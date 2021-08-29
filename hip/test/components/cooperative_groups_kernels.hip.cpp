@@ -105,7 +105,7 @@ protected:
 constexpr static int subwarp_size = config::warp_size / 4;
 
 
-__device__ void test_assert(bool *success, bool partial)
+__device__ void test_assert(bool* success, bool partial)
 {
     if (!partial) {
         *success = false;
@@ -113,7 +113,7 @@ __device__ void test_assert(bool *success, bool partial)
 }
 
 
-__global__ void cg_shuffle(bool *s)
+__global__ void cg_shuffle(bool* s)
 {
     auto group =
         group::tiled_partition<config::warp_size>(group::this_thread_block());
@@ -127,7 +127,7 @@ __global__ void cg_shuffle(bool *s)
 TEST_F(CooperativeGroups, Shuffle) { test(cg_shuffle); }
 
 
-__global__ void cg_all(bool *s)
+__global__ void cg_all(bool* s)
 {
     auto group =
         group::tiled_partition<config::warp_size>(group::this_thread_block());
@@ -140,7 +140,7 @@ __global__ void cg_all(bool *s)
 TEST_F(CooperativeGroups, All) { test(cg_all); }
 
 
-__global__ void cg_any(bool *s)
+__global__ void cg_any(bool* s)
 {
     auto group =
         group::tiled_partition<config::warp_size>(group::this_thread_block());
@@ -153,7 +153,7 @@ __global__ void cg_any(bool *s)
 TEST_F(CooperativeGroups, Any) { test(cg_any); }
 
 
-__global__ void cg_ballot(bool *s)
+__global__ void cg_ballot(bool* s)
 {
     auto group =
         group::tiled_partition<config::warp_size>(group::this_thread_block());
@@ -166,7 +166,7 @@ __global__ void cg_ballot(bool *s)
 TEST_F(CooperativeGroups, Ballot) { test(cg_ballot); }
 
 
-__global__ void cg_subwarp_shuffle(bool *s)
+__global__ void cg_subwarp_shuffle(bool* s)
 {
     auto group =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
@@ -193,7 +193,7 @@ TEST_F(CooperativeGroups, SubwarpShuffle) { test(cg_subwarp_shuffle); }
 TEST_F(CooperativeGroups, SubwarpShuffle2) { test_subwarp(cg_subwarp_shuffle); }
 
 
-__global__ void cg_subwarp_all(bool *s)
+__global__ void cg_subwarp_all(bool* s)
 {
     auto grp = threadIdx.x / subwarp_size;
     bool test_grp = grp == 1;
@@ -222,7 +222,7 @@ TEST_F(CooperativeGroups, SubwarpAll) { test(cg_subwarp_all); }
 TEST_F(CooperativeGroups, SubwarpAll2) { test_subwarp(cg_subwarp_all); }
 
 
-__global__ void cg_subwarp_any(bool *s)
+__global__ void cg_subwarp_any(bool* s)
 {
     auto grp = threadIdx.x / subwarp_size;
     bool test_grp = grp == 1;
@@ -251,7 +251,7 @@ TEST_F(CooperativeGroups, SubwarpAny) { test(cg_subwarp_any); }
 TEST_F(CooperativeGroups, SubwarpAny2) { test_subwarp(cg_subwarp_any); }
 
 
-__global__ void cg_subwarp_ballot(bool *s)
+__global__ void cg_subwarp_ballot(bool* s)
 {
     auto grp = threadIdx.x / subwarp_size;
     bool test_grp = grp == 1;
@@ -282,7 +282,7 @@ TEST_F(CooperativeGroups, SubwarpBallot2) { test_subwarp(cg_subwarp_ballot); }
 
 
 template <typename ValueType>
-__global__ void cg_shuffle_sum(const int num, ValueType *__restrict__ value)
+__global__ void cg_shuffle_sum(const int num, ValueType* __restrict__ value)
 {
     auto group =
         group::tiled_partition<config::warp_size>(group::this_thread_block());

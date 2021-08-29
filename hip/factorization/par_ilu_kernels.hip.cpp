@@ -65,9 +65,9 @@ constexpr int default_block_size{512};
 template <typename ValueType, typename IndexType>
 void compute_l_u_factors(std::shared_ptr<const HipExecutor> exec,
                          size_type iterations,
-                         const matrix::Coo<ValueType, IndexType> *system_matrix,
-                         matrix::Csr<ValueType, IndexType> *l_factor,
-                         matrix::Csr<ValueType, IndexType> *u_factor)
+                         const matrix::Coo<ValueType, IndexType>* system_matrix,
+                         matrix::Csr<ValueType, IndexType>* l_factor,
+                         matrix::Csr<ValueType, IndexType>* u_factor)
 {
     iterations = (iterations == 0) ? 10 : iterations;
     const auto num_elements = system_matrix->get_num_stored_elements();

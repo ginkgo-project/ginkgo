@@ -43,8 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // CUDA executor. Unfortunately, NVCC has serious problems interpreting some
 // parts of Ginkgo's code, so the kernel has to be compiled separately.
 template <typename ValueType>
-void stencil_kernel(std::size_t size, const ValueType *coefs,
-                    const ValueType *b, ValueType *x);
+void stencil_kernel(std::size_t size, const ValueType* coefs,
+                    const ValueType* b, ValueType* x);
 
 
 // A stencil matrix class representing the 3pt stencil linear operator.
@@ -83,7 +83,7 @@ protected:
     // For simplicity, we assume that there is always only one right hand side
     // and the stride of consecutive elements in the vectors is 1 (both of these
     // are always true in this example).
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         // we only implement the operator for dense RHS.
         // gko::as will throw an exception if its argument is not Dense.
@@ -93,8 +93,8 @@ protected:
         // we need separate implementations depending on the executor, so we
         // create an operation which maps the call to the correct implementation
         struct stencil_operation : gko::Operation {
-            stencil_operation(const coef_type &coefficients, const vec *b,
-                              vec *x)
+            stencil_operation(const coef_type& coefficients, const vec* b,
+                              vec* x)
                 : coefficients{coefficients}, b{b}, x{x}
             {}
 
@@ -128,9 +128,9 @@ protected:
             // If not provided, Ginkgo will use the implementation for the
             // OpenMP executor when calling it in the reference executor.
 
-            const coef_type &coefficients;
-            const vec *b;
-            vec *x;
+            const coef_type& coefficients;
+            const vec* b;
+            vec* x;
         };
         this->get_executor()->run(
             stencil_operation(coefficients, dense_b, dense_x));
@@ -140,8 +140,8 @@ protected:
     // x = alpha * A * b + beta * x. This function is commonly used and can
     // often be better optimized than implementing it using x = A * b. However,
     // for simplicity, we will implement it exactly like that in this example.
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {
         auto dense_b = gko::as<vec>(b);
         auto dense_x = gko::as<vec>(x);
@@ -159,7 +159,7 @@ private:
 // Creates a stencil matrix in CSR format for the given number of discretization
 // points.
 template <typename ValueType, typename IndexType>
-void generate_stencil_matrix(gko::matrix::Csr<ValueType, IndexType> *matrix)
+void generate_stencil_matrix(gko::matrix::Csr<ValueType, IndexType>* matrix)
 {
     const auto discretization_points = matrix->get_size()[0];
     auto row_ptrs = matrix->get_row_ptrs();
@@ -184,7 +184,7 @@ void generate_stencil_matrix(gko::matrix::Csr<ValueType, IndexType> *matrix)
 // Generates the RHS vector given `f` and the boundary conditions.
 template <typename Closure, typename ValueType>
 void generate_rhs(Closure f, ValueType u0, ValueType u1,
-                  gko::matrix::Dense<ValueType> *rhs)
+                  gko::matrix::Dense<ValueType>* rhs)
 {
     const auto discretization_points = rhs->get_size()[0];
     auto values = rhs->get_values();
@@ -201,7 +201,7 @@ void generate_rhs(Closure f, ValueType u0, ValueType u1,
 // Prints the solution `u`.
 template <typename ValueType>
 void print_solution(ValueType u0, ValueType u1,
-                    const gko::matrix::Dense<ValueType> *u)
+                    const gko::matrix::Dense<ValueType>* u)
 {
     std::cout << u0 << '\n';
     for (int i = 0; i < u->get_size()[0]; ++i) {
@@ -215,7 +215,7 @@ void print_solution(ValueType u0, ValueType u1,
 // solution function `correct_u`.
 template <typename Closure, typename ValueType>
 double calculate_error(int discretization_points,
-                       const gko::matrix::Dense<ValueType> *u,
+                       const gko::matrix::Dense<ValueType>* u,
                        Closure correct_u)
 {
     const auto h = 1.0 / (discretization_points + 1);
@@ -230,7 +230,7 @@ double calculate_error(int discretization_points,
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Some shortcuts
     using ValueType = double;

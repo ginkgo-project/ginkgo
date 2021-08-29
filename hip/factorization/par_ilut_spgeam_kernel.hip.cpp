@@ -85,12 +85,12 @@ namespace {
 template <int subwarp_size, typename ValueType, typename IndexType>
 void add_candidates(syn::value_list<int, subwarp_size>,
                     std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *lu,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    const matrix::Csr<ValueType, IndexType> *l,
-                    const matrix::Csr<ValueType, IndexType> *u,
-                    matrix::Csr<ValueType, IndexType> *l_new,
-                    matrix::Csr<ValueType, IndexType> *u_new)
+                    const matrix::Csr<ValueType, IndexType>* lu,
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    const matrix::Csr<ValueType, IndexType>* l,
+                    const matrix::Csr<ValueType, IndexType>* u,
+                    matrix::Csr<ValueType, IndexType>* l_new,
+                    matrix::Csr<ValueType, IndexType>* u_new)
 {
     auto num_rows = static_cast<IndexType>(lu->get_size()[0]);
     auto subwarps_per_block = default_block_size / subwarp_size;
@@ -154,12 +154,12 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_add_candidates, add_candidates);
 
 template <typename ValueType, typename IndexType>
 void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *lu,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    const matrix::Csr<ValueType, IndexType> *l,
-                    const matrix::Csr<ValueType, IndexType> *u,
-                    matrix::Csr<ValueType, IndexType> *l_new,
-                    matrix::Csr<ValueType, IndexType> *u_new)
+                    const matrix::Csr<ValueType, IndexType>* lu,
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    const matrix::Csr<ValueType, IndexType>* l,
+                    const matrix::Csr<ValueType, IndexType>* u,
+                    matrix::Csr<ValueType, IndexType>* l_new,
+                    matrix::Csr<ValueType, IndexType>* u_new)
 {
     auto num_rows = a->get_size()[0];
     auto total_nnz =

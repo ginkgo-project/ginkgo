@@ -160,9 +160,9 @@ struct ConvertibleToDummyObject
           x{v}
     {}
 
-    void convert_to(DummyObject *obj) const override { obj->x = x; }
+    void convert_to(DummyObject* obj) const override { obj->x = x; }
 
-    void move_to(DummyObject *obj) override { obj->x = x; }
+    void move_to(DummyObject* obj) override { obj->x = x; }
 
     int x;
 };

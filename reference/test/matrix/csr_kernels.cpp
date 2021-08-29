@@ -93,12 +93,12 @@ protected:
         this->create_mtx3(mtx3_sorted.get(), mtx3_unsorted.get());
     }
 
-    void create_mtx(Mtx *m)
+    void create_mtx(Mtx* m)
     {
-        value_type *v = m->get_values();
-        index_type *c = m->get_col_idxs();
-        index_type *r = m->get_row_ptrs();
-        auto *s = m->get_srow();
+        value_type* v = m->get_values();
+        index_type* c = m->get_col_idxs();
+        index_type* r = m->get_row_ptrs();
+        auto* s = m->get_srow();
         /*
          * 1   3   2
          * 0   5   0
@@ -117,11 +117,11 @@ protected:
         s[0] = 0;
     }
 
-    void create_mtx2(Mtx *m)
+    void create_mtx2(Mtx* m)
     {
-        value_type *v = m->get_values();
-        index_type *c = m->get_col_idxs();
-        index_type *r = m->get_row_ptrs();
+        value_type* v = m->get_values();
+        index_type* c = m->get_col_idxs();
+        index_type* r = m->get_row_ptrs();
         // It keeps an explict zero
         /*
          *  1    3   2
@@ -142,7 +142,7 @@ protected:
         v[4] = 5.0;
     }
 
-    void create_mtx3(Mtx *sorted, Mtx *unsorted)
+    void create_mtx3(Mtx* sorted, Mtx* unsorted)
     {
         auto vals_s = sorted->get_values();
         auto cols_s = sorted->get_col_idxs();
@@ -199,7 +199,7 @@ protected:
         cols_u[6] = 0;
     }
 
-    void assert_equal_to_mtx(const Coo *m)
+    void assert_equal_to_mtx(const Coo* m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -221,7 +221,7 @@ protected:
         EXPECT_EQ(v[3], value_type{5.0});
     }
 
-    void assert_equal_to_mtx(const Sellp *m)
+    void assert_equal_to_mtx(const Sellp* m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -249,10 +249,10 @@ protected:
         EXPECT_EQ(v[129], value_type{0.0});
     }
 
-    void assert_equal_to_mtx(const SparsityCsr *m)
+    void assert_equal_to_mtx(const SparsityCsr* m)
     {
-        auto *c = m->get_const_col_idxs();
-        auto *r = m->get_const_row_ptrs();
+        auto* c = m->get_const_col_idxs();
+        auto* r = m->get_const_row_ptrs();
 
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_nonzeros(), 4);
@@ -265,7 +265,7 @@ protected:
         EXPECT_EQ(c[3], 1);
     }
 
-    void assert_equal_to_mtx(const Ell *m)
+    void assert_equal_to_mtx(const Ell* m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -286,7 +286,7 @@ protected:
         EXPECT_EQ(v[5], value_type{0.0});
     }
 
-    void assert_equal_to_mtx(const Hybrid *m)
+    void assert_equal_to_mtx(const Hybrid* m)
     {
         auto v = m->get_const_coo_values();
         auto c = m->get_const_coo_col_idxs();
@@ -313,7 +313,7 @@ protected:
         EXPECT_EQ(v[3], value_type{5.0});
     }
 
-    void assert_equal_to_mtx2(const Hybrid *m)
+    void assert_equal_to_mtx2(const Hybrid* m)
     {
         auto v = m->get_const_coo_values();
         auto c = m->get_const_coo_col_idxs();

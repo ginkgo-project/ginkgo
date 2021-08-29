@@ -42,8 +42,8 @@ namespace gko {
 namespace log {
 
 
-void Record::on_allocation_started(const Executor *exec,
-                                   const size_type &num_bytes) const
+void Record::on_allocation_started(const Executor* exec,
+                                   const size_type& num_bytes) const
 {
     append_deque(data_.allocation_started,
                  (std::unique_ptr<executor_data>(
@@ -51,9 +51,9 @@ void Record::on_allocation_started(const Executor *exec,
 }
 
 
-void Record::on_allocation_completed(const Executor *exec,
-                                     const size_type &num_bytes,
-                                     const uintptr &location) const
+void Record::on_allocation_completed(const Executor* exec,
+                                     const size_type& num_bytes,
+                                     const uintptr& location) const
 {
     append_deque(data_.allocation_completed,
                  (std::unique_ptr<executor_data>(
@@ -61,8 +61,8 @@ void Record::on_allocation_completed(const Executor *exec,
 }
 
 
-void Record::on_free_started(const Executor *exec,
-                             const uintptr &location) const
+void Record::on_free_started(const Executor* exec,
+                             const uintptr& location) const
 {
     append_deque(
         data_.free_started,
@@ -70,8 +70,8 @@ void Record::on_free_started(const Executor *exec,
 }
 
 
-void Record::on_free_completed(const Executor *exec,
-                               const uintptr &location) const
+void Record::on_free_completed(const Executor* exec,
+                               const uintptr& location) const
 {
     append_deque(
         data_.free_completed,
@@ -79,10 +79,10 @@ void Record::on_free_completed(const Executor *exec,
 }
 
 
-void Record::on_copy_started(const Executor *from, const Executor *to,
-                             const uintptr &location_from,
-                             const uintptr &location_to,
-                             const size_type &num_bytes) const
+void Record::on_copy_started(const Executor* from, const Executor* to,
+                             const uintptr& location_from,
+                             const uintptr& location_to,
+                             const size_type& num_bytes) const
 {
     using tuple = std::tuple<executor_data, executor_data>;
     append_deque(
@@ -92,10 +92,10 @@ void Record::on_copy_started(const Executor *from, const Executor *to,
 }
 
 
-void Record::on_copy_completed(const Executor *from, const Executor *to,
-                               const uintptr &location_from,
-                               const uintptr &location_to,
-                               const size_type &num_bytes) const
+void Record::on_copy_completed(const Executor* from, const Executor* to,
+                               const uintptr& location_from,
+                               const uintptr& location_to,
+                               const size_type& num_bytes) const
 {
     using tuple = std::tuple<executor_data, executor_data>;
     append_deque(
@@ -105,8 +105,8 @@ void Record::on_copy_completed(const Executor *from, const Executor *to,
 }
 
 
-void Record::on_operation_launched(const Executor *exec,
-                                   const Operation *operation) const
+void Record::on_operation_launched(const Executor* exec,
+                                   const Operation* operation) const
 {
     append_deque(
         data_.operation_launched,
@@ -114,8 +114,8 @@ void Record::on_operation_launched(const Executor *exec,
 }
 
 
-void Record::on_operation_completed(const Executor *exec,
-                                    const Operation *operation) const
+void Record::on_operation_completed(const Executor* exec,
+                                    const Operation* operation) const
 {
     append_deque(
         data_.operation_completed,
@@ -124,7 +124,7 @@ void Record::on_operation_completed(const Executor *exec,
 
 
 void Record::on_polymorphic_object_create_started(
-    const Executor *exec, const PolymorphicObject *po) const
+    const Executor* exec, const PolymorphicObject* po) const
 {
     append_deque(data_.polymorphic_object_create_started,
                  (std::unique_ptr<polymorphic_object_data>(
@@ -133,8 +133,8 @@ void Record::on_polymorphic_object_create_started(
 
 
 void Record::on_polymorphic_object_create_completed(
-    const Executor *exec, const PolymorphicObject *input,
-    const PolymorphicObject *output) const
+    const Executor* exec, const PolymorphicObject* input,
+    const PolymorphicObject* output) const
 {
     append_deque(data_.polymorphic_object_create_completed,
                  (std::unique_ptr<polymorphic_object_data>(
@@ -143,8 +143,8 @@ void Record::on_polymorphic_object_create_completed(
 
 
 void Record::on_polymorphic_object_copy_started(
-    const Executor *exec, const PolymorphicObject *from,
-    const PolymorphicObject *to) const
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
 {
     append_deque(data_.polymorphic_object_copy_started,
                  (std::unique_ptr<polymorphic_object_data>(
@@ -153,8 +153,8 @@ void Record::on_polymorphic_object_copy_started(
 
 
 void Record::on_polymorphic_object_copy_completed(
-    const Executor *exec, const PolymorphicObject *from,
-    const PolymorphicObject *to) const
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
 {
     append_deque(data_.polymorphic_object_copy_completed,
                  (std::unique_ptr<polymorphic_object_data>(
@@ -162,8 +162,8 @@ void Record::on_polymorphic_object_copy_completed(
 }
 
 
-void Record::on_polymorphic_object_deleted(const Executor *exec,
-                                           const PolymorphicObject *po) const
+void Record::on_polymorphic_object_deleted(const Executor* exec,
+                                           const PolymorphicObject* po) const
 {
     append_deque(data_.polymorphic_object_deleted,
                  (std::unique_ptr<polymorphic_object_data>(
@@ -171,8 +171,8 @@ void Record::on_polymorphic_object_deleted(const Executor *exec,
 }
 
 
-void Record::on_linop_apply_started(const LinOp *A, const LinOp *b,
-                                    const LinOp *x) const
+void Record::on_linop_apply_started(const LinOp* A, const LinOp* b,
+                                    const LinOp* x) const
 {
     append_deque(data_.linop_apply_started,
                  (std::unique_ptr<linop_data>(
@@ -180,8 +180,8 @@ void Record::on_linop_apply_started(const LinOp *A, const LinOp *b,
 }
 
 
-void Record::on_linop_apply_completed(const LinOp *A, const LinOp *b,
-                                      const LinOp *x) const
+void Record::on_linop_apply_completed(const LinOp* A, const LinOp* b,
+                                      const LinOp* x) const
 {
     append_deque(data_.linop_apply_completed,
                  (std::unique_ptr<linop_data>(
@@ -189,9 +189,9 @@ void Record::on_linop_apply_completed(const LinOp *A, const LinOp *b,
 }
 
 
-void Record::on_linop_advanced_apply_started(const LinOp *A, const LinOp *alpha,
-                                             const LinOp *b, const LinOp *beta,
-                                             const LinOp *x) const
+void Record::on_linop_advanced_apply_started(const LinOp* A, const LinOp* alpha,
+                                             const LinOp* b, const LinOp* beta,
+                                             const LinOp* x) const
 {
     append_deque(
         data_.linop_advanced_apply_started,
@@ -199,11 +199,11 @@ void Record::on_linop_advanced_apply_started(const LinOp *A, const LinOp *alpha,
 }
 
 
-void Record::on_linop_advanced_apply_completed(const LinOp *A,
-                                               const LinOp *alpha,
-                                               const LinOp *b,
-                                               const LinOp *beta,
-                                               const LinOp *x) const
+void Record::on_linop_advanced_apply_completed(const LinOp* A,
+                                               const LinOp* alpha,
+                                               const LinOp* b,
+                                               const LinOp* beta,
+                                               const LinOp* x) const
 {
     append_deque(
         data_.linop_advanced_apply_completed,
@@ -211,8 +211,8 @@ void Record::on_linop_advanced_apply_completed(const LinOp *A,
 }
 
 
-void Record::on_linop_factory_generate_started(const LinOpFactory *factory,
-                                               const LinOp *input) const
+void Record::on_linop_factory_generate_started(const LinOpFactory* factory,
+                                               const LinOp* input) const
 {
     append_deque(data_.linop_factory_generate_started,
                  (std::unique_ptr<linop_factory_data>(
@@ -220,9 +220,9 @@ void Record::on_linop_factory_generate_started(const LinOpFactory *factory,
 }
 
 
-void Record::on_linop_factory_generate_completed(const LinOpFactory *factory,
-                                                 const LinOp *input,
-                                                 const LinOp *output) const
+void Record::on_linop_factory_generate_completed(const LinOpFactory* factory,
+                                                 const LinOp* input,
+                                                 const LinOp* output) const
 {
     append_deque(data_.linop_factory_generate_completed,
                  (std::unique_ptr<linop_factory_data>(
@@ -231,9 +231,9 @@ void Record::on_linop_factory_generate_completed(const LinOpFactory *factory,
 
 
 void Record::on_criterion_check_started(
-    const stop::Criterion *criterion, const size_type &num_iterations,
-    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
-    const uint8 &stopping_id, const bool &set_finalized) const
+    const stop::Criterion* criterion, const size_type& num_iterations,
+    const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
+    const uint8& stopping_id, const bool& set_finalized) const
 {
     append_deque(data_.criterion_check_started,
                  (std::unique_ptr<criterion_data>(new criterion_data{
@@ -243,12 +243,12 @@ void Record::on_criterion_check_started(
 
 
 void Record::on_criterion_check_completed(
-    const stop::Criterion *criterion, const size_type &num_iterations,
-    const LinOp *residual, const LinOp *residual_norm,
-    const LinOp *implicit_residual_norm_sq, const LinOp *solution,
-    const uint8 &stopping_id, const bool &set_finalized,
-    const Array<stopping_status> *status, const bool &oneChanged,
-    const bool &converged) const
+    const stop::Criterion* criterion, const size_type& num_iterations,
+    const LinOp* residual, const LinOp* residual_norm,
+    const LinOp* implicit_residual_norm_sq, const LinOp* solution,
+    const uint8& stopping_id, const bool& set_finalized,
+    const Array<stopping_status>* status, const bool& oneChanged,
+    const bool& converged) const
 {
     append_deque(
         data_.criterion_check_completed,
@@ -259,11 +259,11 @@ void Record::on_criterion_check_completed(
 
 
 void Record::on_criterion_check_completed(
-    const stop::Criterion *criterion, const size_type &num_iterations,
-    const LinOp *residual, const LinOp *residual_norm, const LinOp *solution,
-    const uint8 &stopping_id, const bool &set_finalized,
-    const Array<stopping_status> *status, const bool &oneChanged,
-    const bool &converged) const
+    const stop::Criterion* criterion, const size_type& num_iterations,
+    const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
+    const uint8& stopping_id, const bool& set_finalized,
+    const Array<stopping_status>* status, const bool& oneChanged,
+    const bool& converged) const
 {
     this->on_criterion_check_completed(
         criterion, num_iterations, residual, residual_norm, nullptr, solution,
@@ -271,21 +271,21 @@ void Record::on_criterion_check_completed(
 }
 
 
-void Record::on_iteration_complete(const LinOp *solver,
-                                   const size_type &num_iterations,
-                                   const LinOp *residual, const LinOp *solution,
-                                   const LinOp *residual_norm) const
+void Record::on_iteration_complete(const LinOp* solver,
+                                   const size_type& num_iterations,
+                                   const LinOp* residual, const LinOp* solution,
+                                   const LinOp* residual_norm) const
 {
     this->on_iteration_complete(solver, num_iterations, residual, solution,
                                 residual_norm, nullptr);
 }
 
 
-void Record::on_iteration_complete(const LinOp *solver,
-                                   const size_type &num_iterations,
-                                   const LinOp *residual, const LinOp *solution,
-                                   const LinOp *residual_norm,
-                                   const LinOp *implicit_sq_residual_norm) const
+void Record::on_iteration_complete(const LinOp* solver,
+                                   const size_type& num_iterations,
+                                   const LinOp* residual, const LinOp* solution,
+                                   const LinOp* residual_norm,
+                                   const LinOp* implicit_sq_residual_norm) const
 {
     append_deque(
         data_.iteration_completed,

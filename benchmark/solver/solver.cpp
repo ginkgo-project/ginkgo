@@ -166,7 +166,7 @@ std::unique_ptr<vec<etype>> generate_rhs(
 template <typename Engine>
 std::unique_ptr<vec<etype>> generate_initial_guess(
     std::shared_ptr<const gko::Executor> exec,
-    std::shared_ptr<const gko::LinOp> system_matrix, const vec<etype> *rhs,
+    std::shared_ptr<const gko::LinOp> system_matrix, const vec<etype>* rhs,
     Engine engine)
 {
     gko::dim<2> vec_size{system_matrix->get_size()[1], FLAGS_nrhs};
@@ -183,7 +183,7 @@ std::unique_ptr<vec<etype>> generate_initial_guess(
 }
 
 
-void validate_option_object(const rapidjson::Value &value)
+void validate_option_object(const rapidjson::Value& value)
 {
     if (!value.IsObject() || !value.HasMember("optimal") ||
         !value["optimal"].HasMember("spmv") ||
@@ -221,7 +221,7 @@ std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
 
 template <typename SolverIntermediate>
 std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
-    SolverIntermediate inter, const std::shared_ptr<const gko::Executor> &exec,
+    SolverIntermediate inter, const std::shared_ptr<const gko::Executor>& exec,
     std::shared_ptr<const gko::LinOpFactory> precond)
 {
     return inter.with_criteria(create_criterion(exec))
@@ -232,7 +232,7 @@ std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
 
 template <typename Solver>
 std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
-    const std::shared_ptr<const gko::Executor> &exec,
+    const std::shared_ptr<const gko::Executor>& exec,
     std::shared_ptr<const gko::LinOpFactory> precond)
 {
     return add_criteria_precond_finalize(Solver::build(), exec, precond);
@@ -240,9 +240,9 @@ std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
 
 
 std::unique_ptr<gko::LinOpFactory> generate_solver(
-    const std::shared_ptr<const gko::Executor> &exec,
+    const std::shared_ptr<const gko::Executor>& exec,
     std::shared_ptr<const gko::LinOpFactory> precond,
-    const std::string &description)
+    const std::string& description)
 {
     std::string cb_gmres_prefix("cb_gmres_");
     if (description.find(cb_gmres_prefix) == 0) {
@@ -314,12 +314,12 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
 }
 
 
-void write_precond_info(const gko::LinOp *precond,
-                        rapidjson::Value &precond_info,
-                        rapidjson::MemoryPoolAllocator<> &allocator)
+void write_precond_info(const gko::LinOp* precond,
+                        rapidjson::Value& precond_info,
+                        rapidjson::MemoryPoolAllocator<>& allocator)
 {
     if (const auto jacobi =
-            dynamic_cast<const gko::preconditioner::Jacobi<etype> *>(precond)) {
+            dynamic_cast<const gko::preconditioner::Jacobi<etype>*>(precond)) {
         // extract block sizes
         const auto bdata =
             jacobi->get_parameters().block_pointers.get_const_data();
@@ -360,24 +360,24 @@ void write_precond_info(const gko::LinOp *precond,
 }
 
 
-void solve_system(const std::string &solver_name,
-                  const std::string &precond_name,
-                  const char *precond_solver_name,
+void solve_system(const std::string& solver_name,
+                  const std::string& precond_name,
+                  const char* precond_solver_name,
                   std::shared_ptr<gko::Executor> exec,
                   std::shared_ptr<const gko::LinOp> system_matrix,
-                  const vec<etype> *b, const vec<etype> *x,
-                  rapidjson::Value &test_case,
-                  rapidjson::MemoryPoolAllocator<> &allocator)
+                  const vec<etype>* b, const vec<etype>* x,
+                  rapidjson::Value& test_case,
+                  rapidjson::MemoryPoolAllocator<>& allocator)
 {
     try {
-        auto &solver_case = test_case["solver"];
+        auto& solver_case = test_case["solver"];
         if (!FLAGS_overwrite && solver_case.HasMember(precond_solver_name)) {
             return;
         }
 
         add_or_set_member(solver_case, precond_solver_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
-        auto &solver_json = solver_case[precond_solver_name];
+        auto& solver_json = solver_case[precond_solver_name];
         add_or_set_member(solver_json, "recurrent_residuals",
                           rapidjson::Value(rapidjson::kArrayType), allocator);
         add_or_set_member(solver_json, "true_residuals",
@@ -435,7 +435,7 @@ void solve_system(const std::string &solver_name,
                                    allocator, 1);
 
             if (auto prec =
-                    dynamic_cast<const gko::Preconditionable *>(lend(solver))) {
+                    dynamic_cast<const gko::Preconditionable*>(lend(solver))) {
                 add_or_set_member(solver_json, "preconditioner",
                                   rapidjson::Value(rapidjson::kObjectType),
                                   allocator);
@@ -506,7 +506,7 @@ void solve_system(const std::string &solver_name,
 
         // compute and write benchmark data
         add_or_set_member(solver_json, "completed", true, allocator);
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
         add_or_set_member(test_case["solver"][precond_solver_name], "completed",
                           false, allocator);
         if (FLAGS_keep_errors) {
@@ -521,7 +521,7 @@ void solve_system(const std::string &solver_name,
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Set the default repetitions = 1.
     FLAGS_repetitions = "1";
@@ -554,8 +554,8 @@ int main(int argc, char *argv[])
     auto solvers = split(FLAGS_solvers, ',');
     auto preconds = split(FLAGS_preconditioners, ',');
     std::vector<std::string> precond_solvers;
-    for (const auto &s : solvers) {
-        for (const auto &p : preconds) {
+    for (const auto& s : solvers) {
+        for (const auto& p : preconds) {
             precond_solvers.push_back(s + (p == "none" ? "" : "-" + p));
         }
     }
@@ -577,9 +577,9 @@ int main(int argc, char *argv[])
     }
 
     auto engine = get_engine();
-    auto &allocator = test_cases.GetAllocator();
+    auto& allocator = test_cases.GetAllocator();
 
-    for (auto &test_case : test_cases.GetArray()) {
+    for (auto& test_case : test_cases.GetArray()) {
         try {
             // set up benchmark
             validate_option_object(test_case);
@@ -588,10 +588,10 @@ int main(int argc, char *argv[])
                                     rapidjson::Value(rapidjson::kObjectType),
                                     allocator);
             }
-            auto &solver_case = test_case["solver"];
+            auto& solver_case = test_case["solver"];
             if (!FLAGS_overwrite &&
                 all_of(begin(precond_solvers), end(precond_solvers),
-                       [&solver_case](const std::string &s) {
+                       [&solver_case](const std::string& s) {
                            return solver_case.HasMember(s.c_str());
                        })) {
                 continue;
@@ -626,8 +626,8 @@ int main(int argc, char *argv[])
                       << ", " << system_matrix->get_size()[1] << ")"
                       << std::endl;
             auto precond_solver_name = begin(precond_solvers);
-            for (const auto &solver_name : solvers) {
-                for (const auto &precond_name : preconds) {
+            for (const auto& solver_name : solvers) {
+                for (const auto& precond_name : preconds) {
                     std::clog << "\tRunning solver: " << *precond_solver_name
                               << std::endl;
                     solve_system(solver_name, precond_name,
@@ -638,7 +638,7 @@ int main(int argc, char *argv[])
                     ++precond_solver_name;
                 }
             }
-        } catch (const std::exception &e) {
+        } catch (const std::exception& e) {
             std::cerr << "Error setting up solver, what(): " << e.what()
                       << std::endl;
         }

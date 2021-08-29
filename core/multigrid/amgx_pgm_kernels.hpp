@@ -53,30 +53,30 @@ namespace amgx_pgm {
 
 #define GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL(IndexType)        \
     void match_edge(std::shared_ptr<const DefaultExecutor> exec, \
-                    const Array<IndexType> &strongest_neighbor,  \
-                    Array<IndexType> &agg)
+                    const Array<IndexType>& strongest_neighbor,  \
+                    Array<IndexType>& agg)
 
 #define GKO_DECLARE_AMGX_PGM_COUNT_UNAGG_KERNEL(IndexType)        \
     void count_unagg(std::shared_ptr<const DefaultExecutor> exec, \
-                     const Array<IndexType> &agg, IndexType *num_unagg)
+                     const Array<IndexType>& agg, IndexType* num_unagg)
 
 #define GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL(IndexType)        \
     void renumber(std::shared_ptr<const DefaultExecutor> exec, \
-                  Array<IndexType> &agg, IndexType *num_agg)
+                  Array<IndexType>& agg, IndexType* num_agg)
 
 #define GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType) \
     void find_strongest_neighbor(                                          \
         std::shared_ptr<const DefaultExecutor> exec,                       \
-        const matrix::Csr<ValueType, IndexType> *weight_mtx,               \
-        const matrix::Diagonal<ValueType> *diag, Array<IndexType> &agg,    \
-        Array<IndexType> &strongest_neighbor)
+        const matrix::Csr<ValueType, IndexType>* weight_mtx,               \
+        const matrix::Diagonal<ValueType>* diag, Array<IndexType>& agg,    \
+        Array<IndexType>& strongest_neighbor)
 
 #define GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType)  \
     void assign_to_exist_agg(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                    \
-        const matrix::Csr<ValueType, IndexType> *weight_mtx,            \
-        const matrix::Diagonal<ValueType> *diag, Array<IndexType> &agg, \
-        Array<IndexType> &intermediate_agg)
+        const matrix::Csr<ValueType, IndexType>* weight_mtx,            \
+        const matrix::Diagonal<ValueType>* diag, Array<IndexType>& agg, \
+        Array<IndexType>& intermediate_agg)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
     template <typename IndexType>                                       \

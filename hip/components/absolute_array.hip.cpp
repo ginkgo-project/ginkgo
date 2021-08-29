@@ -54,7 +54,7 @@ constexpr int default_block_size = 512;
 
 template <typename ValueType>
 void inplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec,
-                            ValueType *data, size_type n)
+                            ValueType* data, size_type n)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
@@ -67,8 +67,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL);
 
 template <typename ValueType>
 void outplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec,
-                             const ValueType *in, size_type n,
-                             remove_complex<ValueType> *out)
+                             const ValueType* in, size_type n,
+                             remove_complex<ValueType>* out)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);

@@ -53,7 +53,7 @@ namespace gko {
  */
 struct version {
     constexpr version(const uint64 major, const uint64 minor,
-                      const uint64 patch, const char *tag)
+                      const uint64 patch, const char* tag)
         : major{major}, minor{minor}, patch{patch}, tag{tag}
     {}
 
@@ -77,21 +77,21 @@ struct version {
      *
      * It does not participate in comparisons.
      */
-    const char *const tag;
+    const char* const tag;
 };
 
-inline bool operator==(const version &first, const version &second)
+inline bool operator==(const version& first, const version& second)
 {
     return first.major == second.major && first.minor == second.minor &&
            first.patch == second.patch;
 }
 
-inline bool operator!=(const version &first, const version &second)
+inline bool operator!=(const version& first, const version& second)
 {
     return !(first == second);
 }
 
-inline bool operator<(const version &first, const version &second)
+inline bool operator<(const version& first, const version& second)
 {
     if (first.major < second.major) return true;
     if (first.major == second.major && first.minor < second.minor) return true;
@@ -101,17 +101,17 @@ inline bool operator<(const version &first, const version &second)
     return false;
 }
 
-inline bool operator<=(const version &first, const version &second)
+inline bool operator<=(const version& first, const version& second)
 {
     return !(second < first);
 }
 
-inline bool operator>(const version &first, const version &second)
+inline bool operator>(const version& first, const version& second)
 {
     return second < first;
 }
 
-inline bool operator>=(const version &first, const version &second)
+inline bool operator>=(const version& first, const version& second)
 {
     return !(first < second);
 }
@@ -127,7 +127,7 @@ inline bool operator>=(const version &first, const version &second)
  *
  * @return os
  */
-inline std::ostream &operator<<(std::ostream &os, const version &ver)
+inline std::ostream& operator<<(std::ostream& os, const version& ver)
 {
     os << ver.major << "." << ver.minor << "." << ver.patch;
     if (ver.tag) {
@@ -165,7 +165,7 @@ public:
      *
      * @return an instance of version info
      */
-    static const version_info &get()
+    static const version_info& get()
     {
         static version_info info{};
         return info;
@@ -258,7 +258,7 @@ private:
  *
  * @return os
  */
-std::ostream &operator<<(std::ostream &os, const version_info &ver_info);
+std::ostream& operator<<(std::ostream& os, const version_info& ver_info);
 
 
 }  // namespace gko

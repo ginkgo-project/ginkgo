@@ -75,7 +75,7 @@ struct SolveStruct : gko::solver::SolveStruct {
     cusparseSolvePolicy_t policy;
     cusparseMatDescr_t factor_descr;
     size_t factor_work_size;
-    void *factor_work_vec;
+    void* factor_work_vec;
     SolveStruct()
     {
         factor_work_vec = nullptr;
@@ -91,13 +91,13 @@ struct SolveStruct : gko::solver::SolveStruct {
         policy = CUSPARSE_SOLVE_POLICY_USE_LEVEL;
     }
 
-    SolveStruct(const SolveStruct &) = delete;
+    SolveStruct(const SolveStruct&) = delete;
 
-    SolveStruct(SolveStruct &&) = delete;
+    SolveStruct(SolveStruct&&) = delete;
 
-    SolveStruct &operator=(const SolveStruct &) = delete;
+    SolveStruct& operator=(const SolveStruct&) = delete;
 
-    SolveStruct &operator=(SolveStruct &&) = delete;
+    SolveStruct& operator=(SolveStruct&&) = delete;
 
     ~SolveStruct()
     {
@@ -132,13 +132,13 @@ struct SolveStruct : gko::solver::SolveStruct {
             cusparseSetMatDiagType(factor_descr, CUSPARSE_DIAG_TYPE_NON_UNIT));
     }
 
-    SolveStruct(const SolveStruct &) = delete;
+    SolveStruct(const SolveStruct&) = delete;
 
-    SolveStruct(SolveStruct &&) = delete;
+    SolveStruct(SolveStruct&&) = delete;
 
-    SolveStruct &operator=(const SolveStruct &) = delete;
+    SolveStruct& operator=(const SolveStruct&) = delete;
 
-    SolveStruct &operator=(SolveStruct &&) = delete;
+    SolveStruct& operator=(SolveStruct&&) = delete;
 
     ~SolveStruct()
     {
@@ -161,7 +161,7 @@ namespace {
 
 
 void should_perform_transpose_kernel(std::shared_ptr<const CudaExecutor> exec,
-                                     bool &do_transpose)
+                                     bool& do_transpose)
 {
 #if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
 
@@ -180,7 +180,7 @@ void should_perform_transpose_kernel(std::shared_ptr<const CudaExecutor> exec,
 
 
 void init_struct_kernel(std::shared_ptr<const CudaExecutor> exec,
-                        std::shared_ptr<solver::SolveStruct> &solve_struct)
+                        std::shared_ptr<solver::SolveStruct>& solve_struct)
 {
     solve_struct = std::make_shared<solver::cuda::SolveStruct>();
 }
@@ -188,13 +188,13 @@ void init_struct_kernel(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void generate_kernel(std::shared_ptr<const CudaExecutor> exec,
-                     const matrix::Csr<ValueType, IndexType> *matrix,
-                     solver::SolveStruct *solve_struct,
+                     const matrix::Csr<ValueType, IndexType>* matrix,
+                     solver::SolveStruct* solve_struct,
                      const gko::size_type num_rhs, bool is_upper)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         if (auto cuda_solve_struct =
-                dynamic_cast<solver::cuda::SolveStruct *>(solve_struct)) {
+                dynamic_cast<solver::cuda::SolveStruct*>(solve_struct)) {
             auto handle = exec->get_cusparse_handle();
             if (is_upper) {
                 GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatFillMode(
@@ -225,7 +225,7 @@ void generate_kernel(std::shared_ptr<const CudaExecutor> exec,
                     exec->free(cuda_solve_struct->factor_work_vec);
                 }
                 cuda_solve_struct->factor_work_vec =
-                    exec->alloc<void *>(cuda_solve_struct->factor_work_size);
+                    exec->alloc<void*>(cuda_solve_struct->factor_work_size);
 
                 cusparse::csrsm2_analysis(
                     handle, cuda_solve_struct->algorithm,
@@ -268,18 +268,18 @@ void generate_kernel(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType> *matrix,
-                  const solver::SolveStruct *solve_struct,
-                  matrix::Dense<ValueType> *trans_b,
-                  matrix::Dense<ValueType> *trans_x,
-                  const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *x)
+                  const matrix::Csr<ValueType, IndexType>* matrix,
+                  const solver::SolveStruct* solve_struct,
+                  matrix::Dense<ValueType>* trans_b,
+                  matrix::Dense<ValueType>* trans_x,
+                  const matrix::Dense<ValueType>* b,
+                  matrix::Dense<ValueType>* x)
 {
     using vec = matrix::Dense<ValueType>;
 
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         if (auto cuda_solve_struct =
-                dynamic_cast<const solver::cuda::SolveStruct *>(solve_struct)) {
+                dynamic_cast<const solver::cuda::SolveStruct*>(solve_struct)) {
             ValueType one = 1.0;
             auto handle = exec->get_cusparse_handle();
 

@@ -54,15 +54,15 @@ namespace kernels {
 
 #define GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL(IndexType)                     \
     void get_permutation(std::shared_ptr<const DefaultExecutor> exec,         \
-                         IndexType num_vertices, const IndexType *row_ptrs,   \
-                         const IndexType *col_idxs, const IndexType *degrees, \
-                         IndexType *permutation, IndexType *inv_permutation,  \
+                         IndexType num_vertices, const IndexType* row_ptrs,   \
+                         const IndexType* col_idxs, const IndexType* degrees, \
+                         IndexType* permutation, IndexType* inv_permutation,  \
                          gko::reorder::starting_strategy strategy)
 
 #define GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL(IndexType)             \
     void get_degree_of_nodes(std::shared_ptr<const DefaultExecutor> exec, \
                              IndexType num_vertices,                      \
-                             const IndexType *row_ptrs, IndexType *degrees)
+                             const IndexType* row_ptrs, IndexType* degrees)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                       \
     template <typename IndexType>                          \

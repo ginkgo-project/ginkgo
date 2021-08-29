@@ -63,10 +63,10 @@ public:
     {}
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 };
 
@@ -201,7 +201,7 @@ protected:
     {}
 
     template <typename Mtx>
-    void test_select(const std::unique_ptr<Mtx> &mtx, index_type rank,
+    void test_select(const std::unique_ptr<Mtx>& mtx, index_type rank,
                      gko::remove_complex<value_type> expected,
                      gko::remove_complex<value_type> tolerance = 0.0)
     {
@@ -221,9 +221,9 @@ protected:
     template <typename Mtx,
               typename Coo = gko::matrix::Coo<typename Mtx::value_type,
                                               typename Mtx::index_type>>
-    void test_filter(const std::unique_ptr<Mtx> &mtx,
+    void test_filter(const std::unique_ptr<Mtx>& mtx,
                      gko::remove_complex<value_type> threshold,
-                     const std::unique_ptr<Mtx> &expected, bool lower)
+                     const std::unique_ptr<Mtx>& expected, bool lower)
     {
         auto res_mtx = Mtx::create(exec, mtx->get_size());
         auto res_mtx_coo = Coo::create(exec, mtx->get_size());
@@ -245,8 +245,8 @@ protected:
     template <typename Mtx,
               typename Coo = gko::matrix::Coo<typename Mtx::value_type,
                                               typename Mtx::index_type>>
-    void test_filter_approx(const std::unique_ptr<Mtx> &mtx, index_type rank,
-                            const std::unique_ptr<Mtx> &expected)
+    void test_filter_approx(const std::unique_ptr<Mtx>& mtx, index_type rank,
+                            const std::unique_ptr<Mtx>& expected)
     {
         auto res_mtx = Mtx::create(exec, mtx->get_size());
         auto res_mtx_coo = Coo::create(exec, mtx->get_size());
@@ -347,7 +347,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterNullptrCoo)
     using Csr = typename TestFixture::Csr;
     using Coo = typename TestFixture::Coo;
     auto res_mtx = Csr::create(this->exec, this->mtx1->get_size());
-    Coo *null_coo = nullptr;
+    Coo* null_coo = nullptr;
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter(
         this->ref, this->mtx1.get(), 0.0, res_mtx.get(), null_coo, true);
@@ -428,7 +428,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCoo)
     auto res_mtx = Csr::create(this->exec, this->mtx1->get_size());
     auto tmp = gko::Array<value_type>{this->ref};
     gko::remove_complex<value_type> threshold{};
-    Coo *null_coo = nullptr;
+    Coo* null_coo = nullptr;
     index_type rank{};
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter_approx(
@@ -558,9 +558,9 @@ TYPED_TEST(ParIlut, IsConsistentWithComposition)
     auto fact = this->fact_fact->generate(this->mtx_system);
 
     auto lin_op_l_factor =
-        static_cast<const gko::LinOp *>(gko::lend(fact->get_l_factor()));
+        static_cast<const gko::LinOp*>(gko::lend(fact->get_l_factor()));
     auto lin_op_u_factor =
-        static_cast<const gko::LinOp *>(gko::lend(fact->get_u_factor()));
+        static_cast<const gko::LinOp*>(gko::lend(fact->get_u_factor()));
     auto first_operator = gko::lend(fact->get_operators()[0]);
     auto second_operator = gko::lend(fact->get_operators()[1]);
 

@@ -35,8 +35,8 @@ namespace kernel {
 
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void match_edge_kernel(
-    size_type num, const IndexType *__restrict__ strongest_neighbor_vals,
-    IndexType *__restrict__ agg_vals)
+    size_type num, const IndexType* __restrict__ strongest_neighbor_vals,
+    IndexType* __restrict__ agg_vals)
 {
     auto tidx = thread::get_thread_id_flat<IndexType>();
     if (tidx >= num) {
@@ -57,8 +57,8 @@ __global__ __launch_bounds__(default_block_size) void match_edge_kernel(
 
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void activate_kernel(
-    size_type num, const IndexType *__restrict__ agg,
-    IndexType *__restrict__ active_agg)
+    size_type num, const IndexType* __restrict__ agg,
+    IndexType* __restrict__ active_agg)
 {
     auto tidx = thread::get_thread_id_flat();
     if (tidx >= num) {
@@ -70,8 +70,8 @@ __global__ __launch_bounds__(default_block_size) void activate_kernel(
 
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_agg_kernel(
-    size_type num, const IndexType *__restrict__ index,
-    IndexType *__restrict__ result)
+    size_type num, const IndexType* __restrict__ index,
+    IndexType* __restrict__ result)
 {
     auto tidx = thread::get_thread_id_flat();
     if (tidx >= num) {
@@ -85,8 +85,8 @@ __global__ __launch_bounds__(default_block_size) void fill_agg_kernel(
 
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void renumber_kernel(
-    size_type num, const IndexType *__restrict__ map,
-    IndexType *__restrict__ result)
+    size_type num, const IndexType* __restrict__ map,
+    IndexType* __restrict__ result)
 {
     auto tidx = thread::get_thread_id_flat();
     if (tidx >= num) {
@@ -99,11 +99,11 @@ __global__ __launch_bounds__(default_block_size) void renumber_kernel(
 template <typename ValueType, typename IndexType>
 __global__
     __launch_bounds__(default_block_size) void find_strongest_neighbor_kernel(
-        const size_type num, const IndexType *__restrict__ row_ptrs,
-        const IndexType *__restrict__ col_idxs,
-        const ValueType *__restrict__ weight_vals,
-        const ValueType *__restrict__ diag, IndexType *__restrict__ agg,
-        IndexType *__restrict__ strongest_neighbor)
+        const size_type num, const IndexType* __restrict__ row_ptrs,
+        const IndexType* __restrict__ col_idxs,
+        const ValueType* __restrict__ weight_vals,
+        const ValueType* __restrict__ diag, IndexType* __restrict__ agg,
+        IndexType* __restrict__ strongest_neighbor)
 {
     auto row = thread::get_thread_id_flat();
     if (row >= num) {
@@ -155,12 +155,12 @@ __global__
 template <typename ValueType, typename IndexType>
 __global__
     __launch_bounds__(default_block_size) void assign_to_exist_agg_kernel(
-        const size_type num, const IndexType *__restrict__ row_ptrs,
-        const IndexType *__restrict__ col_idxs,
-        const ValueType *__restrict__ weight_vals,
-        const ValueType *__restrict__ diag,
-        const IndexType *__restrict__ agg_const_val,
-        IndexType *__restrict__ agg_val)
+        const size_type num, const IndexType* __restrict__ row_ptrs,
+        const IndexType* __restrict__ col_idxs,
+        const ValueType* __restrict__ weight_vals,
+        const ValueType* __restrict__ diag,
+        const IndexType* __restrict__ agg_const_val,
+        IndexType* __restrict__ agg_val)
 {
     auto row = thread::get_thread_id_flat();
     if (row >= num || agg_val[row] != -1) {
@@ -193,10 +193,10 @@ __global__
 template <typename ValueType, typename IndexType>
 __global__
     __launch_bounds__(default_block_size) void assign_to_exist_agg_kernel(
-        const size_type num, const IndexType *__restrict__ row_ptrs,
-        const IndexType *__restrict__ col_idxs,
-        const ValueType *__restrict__ weight_vals,
-        const ValueType *__restrict__ diag, IndexType *__restrict__ agg_val)
+        const size_type num, const IndexType* __restrict__ row_ptrs,
+        const IndexType* __restrict__ col_idxs,
+        const ValueType* __restrict__ weight_vals,
+        const ValueType* __restrict__ diag, IndexType* __restrict__ agg_val)
 {
     auto row = thread::get_thread_id_flat();
     if (row >= num || agg_val[row] != -1) {

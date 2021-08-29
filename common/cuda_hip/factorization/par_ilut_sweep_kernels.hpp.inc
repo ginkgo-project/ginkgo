@@ -35,16 +35,16 @@ namespace kernel {
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void sweep(
-    const IndexType *__restrict__ a_row_ptrs,
-    const IndexType *__restrict__ a_col_idxs,
-    const ValueType *__restrict__ a_vals,
-    const IndexType *__restrict__ l_row_ptrs,
-    const IndexType *__restrict__ l_row_idxs,
-    const IndexType *__restrict__ l_col_idxs, ValueType *__restrict__ l_vals,
-    IndexType l_nnz, const IndexType *__restrict__ u_row_idxs,
-    const IndexType *__restrict__ u_col_idxs, ValueType *__restrict__ u_vals,
-    const IndexType *__restrict__ ut_col_ptrs,
-    const IndexType *__restrict__ ut_row_idxs, ValueType *__restrict__ ut_vals,
+    const IndexType* __restrict__ a_row_ptrs,
+    const IndexType* __restrict__ a_col_idxs,
+    const ValueType* __restrict__ a_vals,
+    const IndexType* __restrict__ l_row_ptrs,
+    const IndexType* __restrict__ l_row_idxs,
+    const IndexType* __restrict__ l_col_idxs, ValueType* __restrict__ l_vals,
+    IndexType l_nnz, const IndexType* __restrict__ u_row_idxs,
+    const IndexType* __restrict__ u_col_idxs, ValueType* __restrict__ u_vals,
+    const IndexType* __restrict__ ut_col_ptrs,
+    const IndexType* __restrict__ ut_row_idxs, ValueType* __restrict__ ut_vals,
     IndexType u_nnz)
 {
     auto tidx = thread::get_subwarp_id_flat<subwarp_size, IndexType>();

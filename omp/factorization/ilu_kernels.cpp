@@ -46,7 +46,7 @@ namespace ilu_factorization {
 
 template <typename ValueType, typename IndexType>
 void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
-                matrix::Csr<ValueType, IndexType> *m) GKO_NOT_IMPLEMENTED;
+                matrix::Csr<ValueType, IndexType>* m) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ILU_COMPUTE_LU_KERNEL);

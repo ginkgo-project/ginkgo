@@ -90,7 +90,7 @@ TYPED_TEST(Fcg, FcgFactoryCreatesCorrectSolver)
 {
     using Solver = typename TestFixture::Solver;
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
-    auto fcg_solver = dynamic_cast<Solver *>(this->solver.get());
+    auto fcg_solver = dynamic_cast<Solver*>(this->solver.get());
     ASSERT_NE(fcg_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(fcg_solver->get_system_matrix(), this->mtx);
 }
@@ -105,8 +105,8 @@ TYPED_TEST(Fcg, CanBeCopied)
     copy->copy_from(this->solver.get());
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()),
+    auto copy_mtx = dynamic_cast<Solver*>(copy.get())->get_system_matrix();
+    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx*>(copy_mtx.get()),
                         this->mtx.get(), 0.0);
 }
 
@@ -120,8 +120,8 @@ TYPED_TEST(Fcg, CanBeMoved)
     copy->copy_from(std::move(this->solver));
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()),
+    auto copy_mtx = dynamic_cast<Solver*>(copy.get())->get_system_matrix();
+    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx*>(copy_mtx.get()),
                         this->mtx.get(), 0.0);
 }
 
@@ -133,8 +133,8 @@ TYPED_TEST(Fcg, CanBeCloned)
     auto clone = this->solver->clone();
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
-    auto clone_mtx = dynamic_cast<Solver *>(clone.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(clone_mtx.get()),
+    auto clone_mtx = dynamic_cast<Solver*>(clone.get())->get_system_matrix();
+    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx*>(clone_mtx.get()),
                         this->mtx.get(), 0.0);
 }
 
@@ -146,7 +146,7 @@ TYPED_TEST(Fcg, CanBeCleared)
 
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
     auto solver_mtx =
-        static_cast<Solver *>(this->solver.get())->get_system_matrix();
+        static_cast<Solver*>(this->solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
@@ -177,8 +177,8 @@ TYPED_TEST(Fcg, CanSetPreconditionerGenerator)
                     .on(this->exec))
             .on(this->exec);
     auto solver = fcg_factory->generate(this->mtx);
-    auto precond = dynamic_cast<const gko::solver::Fcg<value_type> *>(
-        static_cast<gko::solver::Fcg<value_type> *>(solver.get())
+    auto precond = dynamic_cast<const gko::solver::Fcg<value_type>*>(
+        static_cast<gko::solver::Fcg<value_type>*>(solver.get())
             ->get_preconditioner()
             .get());
 
@@ -204,7 +204,7 @@ TYPED_TEST(Fcg, CanSetCriteriaAgain)
     solver->set_stop_criterion_factory(new_crit);
     auto new_crit_fac = solver->get_stop_criterion_factory();
     auto niter =
-        static_cast<const gko::stop::Iteration::Factory *>(new_crit_fac.get())
+        static_cast<const gko::stop::Iteration::Factory*>(new_crit_fac.get())
             ->get_parameters()
             .max_iters;
 

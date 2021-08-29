@@ -58,7 +58,7 @@ namespace {
 
 class ExampleOperation : public gko::Operation {
 public:
-    explicit ExampleOperation(int &val) : value(val) {}
+    explicit ExampleOperation(int& val) : value(val) {}
 
     void run(std::shared_ptr<const gko::OmpExecutor>) const override
     {
@@ -85,7 +85,7 @@ public:
         hipGetDevice(&value);
     }
 
-    int &value;
+    int& value;
 };
 
 
@@ -145,7 +145,7 @@ TEST_F(HipExecutor, MasterKnowsNumberOfDevices)
 
 TEST_F(HipExecutor, AllocatesAndFreesMemory)
 {
-    int *ptr = nullptr;
+    int* ptr = nullptr;
 
     ASSERT_NO_THROW(ptr = hip->alloc<int>(2));
     ASSERT_NO_THROW(hip->free(ptr));
@@ -155,7 +155,7 @@ TEST_F(HipExecutor, AllocatesAndFreesMemory)
 TEST_F(HipExecutor, FailsWhenOverallocating)
 {
     const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
-    int *ptr = nullptr;
+    int* ptr = nullptr;
 
     ASSERT_THROW(
         {
@@ -168,7 +168,7 @@ TEST_F(HipExecutor, FailsWhenOverallocating)
 }
 
 
-__global__ void check_data(int *data)
+__global__ void check_data(int* data)
 {
     if (data[0] != 3 || data[1] != 8) {
 #if GINKGO_HIP_PLATFORM_HCC
@@ -182,7 +182,7 @@ __global__ void check_data(int *data)
 TEST_F(HipExecutor, CopiesDataToHip)
 {
     int orig[] = {3, 8};
-    auto *copy = hip->alloc<int>(2);
+    auto* copy = hip->alloc<int>(2);
 
     hip->copy_from(omp.get(), 2, orig, copy);
 
@@ -192,7 +192,7 @@ TEST_F(HipExecutor, CopiesDataToHip)
 }
 
 
-__global__ void check_data2(int *data)
+__global__ void check_data2(int* data)
 {
     if (data[0] != 4 || data[1] != 8) {
 #if GINKGO_HIP_PLATFORM_HCC
@@ -210,7 +210,7 @@ __global__ void check_data2(int *data)
 TEST_F(HipExecutor, CanAllocateOnUnifiedMemory)
 {
     int orig[] = {3, 8};
-    auto *copy = hip3->alloc<int>(2);
+    auto* copy = hip3->alloc<int>(2);
 
     hip3->copy_from(omp.get(), 2, orig, copy);
 
@@ -225,7 +225,7 @@ TEST_F(HipExecutor, CanAllocateOnUnifiedMemory)
 #endif
 
 
-__global__ void init_data(int *data)
+__global__ void init_data(int* data)
 {
     data[0] = 3;
     data[1] = 8;

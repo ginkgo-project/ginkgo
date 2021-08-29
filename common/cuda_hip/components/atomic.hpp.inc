@@ -36,7 +36,7 @@ namespace detail {
 
 template <typename ValueType, typename = void>
 struct atomic_helper {
-    __forceinline__ __device__ static ValueType atomic_add(ValueType *,
+    __forceinline__ __device__ static ValueType atomic_add(ValueType*,
                                                            ValueType)
     {
         static_assert(sizeof(ValueType) == 0,
@@ -44,7 +44,7 @@ struct atomic_helper {
                       "specializations are.");
         // TODO: add proper implementation of generic atomic add
     }
-    __forceinline__ __device__ static ValueType atomic_max(ValueType *,
+    __forceinline__ __device__ static ValueType atomic_max(ValueType*,
                                                            ValueType)
     {
         static_assert(sizeof(ValueType) == 0,
@@ -61,7 +61,7 @@ __forceinline__ __device__ ResultType reinterpret(ValueType val)
     static_assert(sizeof(ValueType) == sizeof(ResultType),
                   "The type to reinterpret to must be of the same size as the "
                   "original type.");
-    return reinterpret_cast<ResultType &>(val);
+    return reinterpret_cast<ResultType&>(val);
 }
 
 
@@ -71,22 +71,22 @@ __forceinline__ __device__ ResultType reinterpret(ValueType val)
         ValueType,                                                           \
         std::enable_if_t<(sizeof(ValueType) == sizeof(CONVERTER_TYPE))>> {   \
         __forceinline__ __device__ static ValueType atomic_add(              \
-            ValueType *__restrict__ addr, ValueType val)                     \
+            ValueType* __restrict__ addr, ValueType val)                     \
         {                                                                    \
             using c_type = CONVERTER_TYPE;                                   \
-            return atomic_wrapper(addr, [&val](c_type &old, c_type assumed,  \
-                                               c_type *c_addr) {             \
+            return atomic_wrapper(addr, [&val](c_type& old, c_type assumed,  \
+                                               c_type* c_addr) {             \
                 old = atomicCAS(c_addr, assumed,                             \
                                 reinterpret<c_type>(                         \
                                     val + reinterpret<ValueType>(assumed))); \
             });                                                              \
         }                                                                    \
         __forceinline__ __device__ static ValueType atomic_max(              \
-            ValueType *__restrict__ addr, ValueType val)                     \
+            ValueType* __restrict__ addr, ValueType val)                     \
         {                                                                    \
             using c_type = CONVERTER_TYPE;                                   \
             return atomic_wrapper(                                           \
-                addr, [&val](c_type &old, c_type assumed, c_type *c_addr) {  \
+                addr, [&val](c_type& old, c_type assumed, c_type* c_addr) {  \
                     if (reinterpret<ValueType>(assumed) < val) {             \
                         old = atomicCAS(c_addr, assumed,                     \
                                         reinterpret<c_type>(val));           \
@@ -97,10 +97,10 @@ __forceinline__ __device__ ResultType reinterpret(ValueType val)
     private:                                                                 \
         template <typename Callable>                                         \
         __forceinline__ __device__ static ValueType atomic_wrapper(          \
-            ValueType *__restrict__ addr, Callable set_old)                  \
+            ValueType* __restrict__ addr, Callable set_old)                  \
         {                                                                    \
-            CONVERTER_TYPE *address_as_converter =                           \
-                reinterpret_cast<CONVERTER_TYPE *>(addr);                    \
+            CONVERTER_TYPE* address_as_converter =                           \
+                reinterpret_cast<CONVERTER_TYPE*>(addr);                     \
             CONVERTER_TYPE old = *address_as_converter;                      \
             CONVERTER_TYPE assumed;                                          \
             do {                                                             \
@@ -129,7 +129,7 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned short int);
 
 
 template <typename T>
-__forceinline__ __device__ T atomic_add(T *__restrict__ addr, T val)
+__forceinline__ __device__ T atomic_add(T* __restrict__ addr, T val)
 {
     return detail::atomic_helper<T>::atomic_add(addr, val);
 }
@@ -137,7 +137,7 @@ __forceinline__ __device__ T atomic_add(T *__restrict__ addr, T val)
 
 #define GKO_BIND_ATOMIC_ADD(ValueType)               \
     __forceinline__ __device__ ValueType atomic_add( \
-        ValueType *__restrict__ addr, ValueType val) \
+        ValueType* __restrict__ addr, ValueType val) \
     {                                                \
         return atomicAdd(addr, val);                 \
     }
@@ -186,7 +186,7 @@ GKO_BIND_ATOMIC_ADD(__half2);
 #undef GKO_BIND_ATOMIC_ADD
 
 template <typename T>
-__forceinline__ __device__ T atomic_max(T *__restrict__ addr, T val)
+__forceinline__ __device__ T atomic_max(T* __restrict__ addr, T val)
 {
     return detail::atomic_helper<T>::atomic_max(addr, val);
 }
@@ -194,7 +194,7 @@ __forceinline__ __device__ T atomic_max(T *__restrict__ addr, T val)
 
 #define GKO_BIND_ATOMIC_MAX(ValueType)               \
     __forceinline__ __device__ ValueType atomic_max( \
-        ValueType *__restrict__ addr, ValueType val) \
+        ValueType* __restrict__ addr, ValueType val) \
     {                                                \
         return atomicMax(addr, val);                 \
     }

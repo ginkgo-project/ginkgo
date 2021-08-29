@@ -85,7 +85,7 @@ std::string input_format =
 // clang-format on
 
 
-void validate_option_object(const rapidjson::Value &value)
+void validate_option_object(const rapidjson::Value& value)
 {
     if (!value.IsObject() || !value.HasMember("filename") ||
         !value["filename"].IsString() || !value.HasMember("problem") ||
@@ -97,12 +97,12 @@ void validate_option_object(const rapidjson::Value &value)
 
 
 using generator_function = std::function<gko::matrix_data<etype, itype>(
-    rapidjson::Value &, std::ranlux24 &)>;
+    rapidjson::Value&, std::ranlux24&)>;
 
 
 // matrix generators
-gko::matrix_data<etype, itype> generate_block_diagonal(rapidjson::Value &config,
-                                                       std::ranlux24 &engine)
+gko::matrix_data<etype, itype> generate_block_diagonal(rapidjson::Value& config,
+                                                       std::ranlux24& engine)
 {
     if (!config.HasMember("num_blocks") || !config["num_blocks"].IsUint() ||
         !config.HasMember("block_size") || !config["block_size"].IsUint()) {
@@ -122,7 +122,7 @@ std::map<std::string, generator_function> generator{
     {"block-diagonal", generate_block_diagonal}};
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     std::string header =
         "A utility that generates various types of "
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
         print_config_error_and_exit(1);
     }
 
-    for (auto &config : configurations.GetArray()) {
+    for (auto& config : configurations.GetArray()) {
         try {
             validate_option_object(config);
             std::clog << "Generating matrix: " << config << std::endl;
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
             auto mdata = generator[type](config["problem"], engine);
             std::ofstream ofs(filename);
             gko::write_raw(ofs, mdata, gko::layout_type::coordinate);
-        } catch (const std::exception &e) {
+        } catch (const std::exception& e) {
             std::cerr << "Error generating matrix, what(): " << e.what()
                       << std::endl;
         }

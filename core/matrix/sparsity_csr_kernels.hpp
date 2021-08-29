@@ -47,47 +47,47 @@ namespace kernels {
 
 #define GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(ValueType, IndexType) \
     void spmv(std::shared_ptr<const DefaultExecutor> exec,         \
-              const matrix::SparsityCsr<ValueType, IndexType> *a,  \
-              const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+              const matrix::SparsityCsr<ValueType, IndexType>* a,  \
+              const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 
 #define GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType) \
     void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,         \
-                       const matrix::Dense<ValueType> *alpha,               \
-                       const matrix::SparsityCsr<ValueType, IndexType> *a,  \
-                       const matrix::Dense<ValueType> *b,                   \
-                       const matrix::Dense<ValueType> *beta,                \
-                       matrix::Dense<ValueType> *c)
+                       const matrix::Dense<ValueType>* alpha,               \
+                       const matrix::SparsityCsr<ValueType, IndexType>* a,  \
+                       const matrix::Dense<ValueType>* b,                   \
+                       const matrix::Dense<ValueType>* beta,                \
+                       matrix::Dense<ValueType>* c)
 
 #define GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL(ValueType, \
                                                                  IndexType) \
     void remove_diagonal_elements(                                          \
         std::shared_ptr<const DefaultExecutor> exec,                        \
-        const IndexType *row_ptrs, const IndexType *col_idxs,               \
-        matrix::SparsityCsr<ValueType, IndexType> *matrix)
+        const IndexType* row_ptrs, const IndexType* col_idxs,               \
+        matrix::SparsityCsr<ValueType, IndexType>* matrix)
 
 #define GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL(ValueType, \
                                                                     IndexType) \
     void count_num_diagonal_elements(                                          \
         std::shared_ptr<const DefaultExecutor> exec,                           \
-        const matrix::SparsityCsr<ValueType, IndexType> *matrix,               \
-        size_type *num_diagonal_elements)
+        const matrix::SparsityCsr<ValueType, IndexType>* matrix,               \
+        size_type* num_diagonal_elements)
 
 #define GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL(ValueType, IndexType)   \
     void transpose(std::shared_ptr<const DefaultExecutor> exec,           \
-                   const matrix::SparsityCsr<ValueType, IndexType> *orig, \
-                   matrix::SparsityCsr<ValueType, IndexType> *trans)
+                   const matrix::SparsityCsr<ValueType, IndexType>* orig, \
+                   matrix::SparsityCsr<ValueType, IndexType>* trans)
 
 #define GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType) \
     void sort_by_column_index(                                              \
         std::shared_ptr<const DefaultExecutor> exec,                        \
-        matrix::SparsityCsr<ValueType, IndexType> *to_sort)
+        matrix::SparsityCsr<ValueType, IndexType>* to_sort)
 
 #define GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, \
                                                            IndexType) \
     void is_sorted_by_column_index(                                   \
         std::shared_ptr<const DefaultExecutor> exec,                  \
-        const matrix::SparsityCsr<ValueType, IndexType> *to_check,    \
-        bool *is_sorted)
+        const matrix::SparsityCsr<ValueType, IndexType>* to_check,    \
+        bool* is_sorted)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     template <typename ValueType, typename IndexType>                       \

@@ -61,13 +61,13 @@ struct hiplibs_type_impl {
 };
 
 template <typename T>
-struct hiplibs_type_impl<T *> {
-    using type = typename hiplibs_type_impl<T>::type *;
+struct hiplibs_type_impl<T*> {
+    using type = typename hiplibs_type_impl<T>::type*;
 };
 
 template <typename T>
-struct hiplibs_type_impl<T &> {
-    using type = typename hiplibs_type_impl<T>::type &;
+struct hiplibs_type_impl<T&> {
+    using type = typename hiplibs_type_impl<T>::type&;
 };
 
 template <typename T>
@@ -102,13 +102,13 @@ struct hipblas_type_impl {
 };
 
 template <typename T>
-struct hipblas_type_impl<T *> {
-    using type = typename hipblas_type_impl<T>::type *;
+struct hipblas_type_impl<T*> {
+    using type = typename hipblas_type_impl<T>::type*;
 };
 
 template <typename T>
-struct hipblas_type_impl<T &> {
-    using type = typename hipblas_type_impl<T>::type &;
+struct hipblas_type_impl<T&> {
+    using type = typename hipblas_type_impl<T>::type&;
 };
 
 template <typename T>
@@ -143,13 +143,13 @@ struct hip_type_impl {
 };
 
 template <typename T>
-struct hip_type_impl<T *> {
-    using type = typename hip_type_impl<T>::type *;
+struct hip_type_impl<T*> {
+    using type = typename hip_type_impl<T>::type*;
 };
 
 template <typename T>
-struct hip_type_impl<T &> {
-    using type = typename hip_type_impl<T>::type &;
+struct hip_type_impl<T&> {
+    using type = typename hip_type_impl<T>::type&;
 };
 
 template <typename T>
@@ -265,7 +265,7 @@ inline std::enable_if_t<
     !std::is_pointer<T>::value && !std::is_reference<T>::value, hip_type<T>>
 as_hip_type(T val)
 {
-    return *reinterpret_cast<hip_type<T> *>(&val);
+    return *reinterpret_cast<hip_type<T>*>(&val);
 }
 
 

@@ -36,8 +36,8 @@ namespace kernel {
 template <int max_block_size, typename ReducedType, typename Group,
           typename ValueType, typename IndexType>
 __device__ __forceinline__ bool validate_precision_reduction_feasibility(
-    Group &__restrict__ group, IndexType block_size,
-    ValueType *__restrict__ row, ValueType *__restrict__ work, size_type stride)
+    Group& __restrict__ group, IndexType block_size,
+    ValueType* __restrict__ row, ValueType* __restrict__ work, size_type stride)
 {
     using gko::detail::float_traits;
     // save original data and reduce precision
@@ -79,12 +79,12 @@ __device__ __forceinline__ bool validate_precision_reduction_feasibility(
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
-__global__ void __launch_bounds__(warps_per_block *config::warp_size) generate(
-    size_type num_rows, const IndexType *__restrict__ row_ptrs,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values, ValueType *__restrict__ block_data,
+__global__ void __launch_bounds__(warps_per_block* config::warp_size) generate(
+    size_type num_rows, const IndexType* __restrict__ row_ptrs,
+    const IndexType* __restrict__ col_idxs,
+    const ValueType* __restrict__ values, ValueType* __restrict__ block_data,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
-    const IndexType *__restrict__ block_ptrs, size_type num_blocks)
+    const IndexType* __restrict__ block_ptrs, size_type num_blocks)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
@@ -114,15 +114,15 @@ __global__ void __launch_bounds__(warps_per_block *config::warp_size) generate(
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 __global__ void
-__launch_bounds__(warps_per_block *config::warp_size) adaptive_generate(
-    size_type num_rows, const IndexType *__restrict__ row_ptrs,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values, remove_complex<ValueType> accuracy,
-    ValueType *__restrict__ block_data,
+__launch_bounds__(warps_per_block* config::warp_size) adaptive_generate(
+    size_type num_rows, const IndexType* __restrict__ row_ptrs,
+    const IndexType* __restrict__ col_idxs,
+    const ValueType* __restrict__ values, remove_complex<ValueType> accuracy,
+    ValueType* __restrict__ block_data,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
-    remove_complex<ValueType> *__restrict__ conditioning,
-    precision_reduction *__restrict__ block_precisions,
-    const IndexType *__restrict__ block_ptrs, size_type num_blocks)
+    remove_complex<ValueType>* __restrict__ conditioning,
+    precision_reduction* __restrict__ block_precisions,
+    const IndexType* __restrict__ block_ptrs, size_type num_blocks)
 {
     // extract blocks
     const auto block_id =
@@ -197,7 +197,7 @@ __launch_bounds__(warps_per_block *config::warp_size) adaptive_generate(
             ValueType, prec,
             copy_matrix<max_block_size, and_transpose>(
                 subwarp, block_size, row, 1, perm, trans_perm,
-                reinterpret_cast<resolved_precision *>(
+                reinterpret_cast<resolved_precision*>(
                     block_data + storage_scheme.get_group_offset(block_id)) +
                     storage_scheme.get_block_offset(block_id),
                 storage_scheme.get_stride()));

@@ -56,12 +56,12 @@ TEST(NotCompiled, ThrowsWhenUsed)
 
 
 template <typename Expected, typename T>
-void test_not_supported_impl(const T &obj)
+void test_not_supported_impl(const T& obj)
 {
     try {
         GKO_NOT_SUPPORTED(obj);
         FAIL();
-    } catch (gko::NotSupported &m) {
+    } catch (gko::NotSupported& m) {
         // check for equal suffix
         std::string msg{m.what()};
         auto expected = gko::name_demangling::get_type_name(typeid(Expected));
@@ -87,7 +87,7 @@ struct Derived : Base {};
 TEST(NotSupported, ReturnsPtrNotSupportedException)
 {
     Derived d;
-    Base *b = &d;
+    Base* b = &d;
     test_not_supported_impl<Derived>(b);
 }
 
@@ -95,7 +95,7 @@ TEST(NotSupported, ReturnsPtrNotSupportedException)
 TEST(NotSupported, ReturnsRefNotSupportedException)
 {
     Derived d;
-    Base &b = d;
+    Base& b = d;
     test_not_supported_impl<Derived>(b);
 }
 

@@ -60,18 +60,18 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 }
 
 
-void HipExecutor::populate_exec_info(const MachineTopology *mach_topo)
+void HipExecutor::populate_exec_info(const MachineTopology* mach_topo)
 {
     // This method is always called, so cannot throw when not compiled.
 }
 
 
-void OmpExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void OmpExecutor::raw_copy_to(const HipExecutor*, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::raw_free(void *ptr) const noexcept
+void HipExecutor::raw_free(void* ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
     // If the nvidia module was not compiled, the library couldn't have
@@ -79,33 +79,33 @@ void HipExecutor::raw_free(void *ptr) const noexcept
 }
 
 
-void *HipExecutor::raw_alloc(size_type num_bytes) const GKO_NOT_COMPILED(hip);
+void* HipExecutor::raw_alloc(size_type num_bytes) const GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void HipExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void HipExecutor::raw_copy_to(const CudaExecutor*, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void HipExecutor::raw_copy_to(const HipExecutor*, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::raw_copy_to(const DpcppExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void HipExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
 void HipExecutor::synchronize() const GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::run(const Operation &op) const
+void HipExecutor::run(const Operation& op) const
 {
     op.run(
         std::static_pointer_cast<const HipExecutor>(this->shared_from_this()));

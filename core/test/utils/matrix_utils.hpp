@@ -54,7 +54,7 @@ namespace test {
  * @param mtx  the dense matrix
  */
 template <typename ValueType>
-void make_symmetric(matrix::Dense<ValueType> *mtx)
+void make_symmetric(matrix::Dense<ValueType>* mtx)
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(mtx);
     auto mtx_host =
@@ -76,7 +76,7 @@ void make_symmetric(matrix::Dense<ValueType> *mtx)
  * @param mtx  the dense matrix
  */
 template <typename ValueType>
-void make_hermitian(matrix::Dense<ValueType> *mtx)
+void make_hermitian(matrix::Dense<ValueType>* mtx)
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(mtx);
     auto mtx_host =
@@ -105,7 +105,7 @@ void make_hermitian(matrix::Dense<ValueType> *mtx)
  *               be larger than or equal to 1.
  */
 template <typename ValueType>
-void make_diag_dominant(matrix::Dense<ValueType> *mtx,
+void make_diag_dominant(matrix::Dense<ValueType>* mtx,
                         remove_complex<ValueType> ratio = 1.0)
 {
     // To keep the diag dominant, the ratio should be larger than or equal to 1
@@ -134,7 +134,7 @@ void make_diag_dominant(matrix::Dense<ValueType> *mtx,
  *               be larger than 1.
  */
 template <typename ValueType>
-void make_hpd(matrix::Dense<ValueType> *mtx,
+void make_hpd(matrix::Dense<ValueType>* mtx,
               remove_complex<ValueType> ratio = 1.001)
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(mtx);

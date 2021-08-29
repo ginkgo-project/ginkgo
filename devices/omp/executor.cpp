@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-void OmpExecutor::populate_exec_info(const MachineTopology *mach_topo)
+void OmpExecutor::populate_exec_info(const MachineTopology* mach_topo)
 {
     auto num_cores =
         (mach_topo->get_num_cores() == 0 ? 1 : mach_topo->get_num_cores());
@@ -55,7 +55,7 @@ void OmpExecutor::populate_exec_info(const MachineTopology *mach_topo)
 }
 
 
-void OmpExecutor::raw_free(void *ptr) const noexcept { std::free(ptr); }
+void OmpExecutor::raw_free(void* ptr) const noexcept { std::free(ptr); }
 
 
 std::shared_ptr<Executor> OmpExecutor::get_master() noexcept
@@ -70,14 +70,14 @@ std::shared_ptr<const Executor> OmpExecutor::get_master() const noexcept
 }
 
 
-void *OmpExecutor::raw_alloc(size_type num_bytes) const
+void* OmpExecutor::raw_alloc(size_type num_bytes) const
 {
     return GKO_ENSURE_ALLOCATED(std::malloc(num_bytes), "OMP", num_bytes);
 }
 
 
-void OmpExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void OmpExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
 {
     if (num_bytes > 0) {
         std::memcpy(dest_ptr, src_ptr, num_bytes);

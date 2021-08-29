@@ -52,16 +52,16 @@ namespace kernels {
 
 #define GKO_DECLARE_PAR_ICT_ADD_CANDIDATES_KERNEL(ValueType, IndexType) \
     void add_candidates(std::shared_ptr<const DefaultExecutor> exec,    \
-                        const matrix::Csr<ValueType, IndexType> *llh,   \
-                        const matrix::Csr<ValueType, IndexType> *a,     \
-                        const matrix::Csr<ValueType, IndexType> *l,     \
-                        matrix::Csr<ValueType, IndexType> *l_new)
+                        const matrix::Csr<ValueType, IndexType>* llh,   \
+                        const matrix::Csr<ValueType, IndexType>* a,     \
+                        const matrix::Csr<ValueType, IndexType>* l,     \
+                        matrix::Csr<ValueType, IndexType>* l_new)
 
 #define GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL(ValueType, IndexType) \
     void compute_factor(std::shared_ptr<const DefaultExecutor> exec,    \
-                        const matrix::Csr<ValueType, IndexType> *a,     \
-                        matrix::Csr<ValueType, IndexType> *l,           \
-                        const matrix::Coo<ValueType, IndexType> *l_coo)
+                        const matrix::Csr<ValueType, IndexType>* a,     \
+                        matrix::Csr<ValueType, IndexType>* l,           \
+                        const matrix::Coo<ValueType, IndexType>* l_coo)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
     template <typename ValueType, typename IndexType>                \

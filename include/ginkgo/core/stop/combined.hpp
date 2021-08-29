@@ -75,18 +75,18 @@ public:
 
 protected:
     bool check_impl(uint8 stoppingId, bool setFinalized,
-                    Array<stopping_status> *stop_status, bool *one_changed,
-                    const Updater &) override;
+                    Array<stopping_status>* stop_status, bool* one_changed,
+                    const Updater&) override;
 
     explicit Combined(std::shared_ptr<const gko::Executor> exec)
         : EnablePolymorphicObject<Combined, Criterion>(std::move(exec))
     {}
 
-    explicit Combined(const Factory *factory, const CriterionArgs &args)
+    explicit Combined(const Factory* factory, const CriterionArgs& args)
         : EnablePolymorphicObject<Combined, Criterion>(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
-        for (const auto &f : parameters_.criteria) {
+        for (const auto& f : parameters_.criteria) {
             // Ignore the nullptr from the list
             if (f != nullptr) {
                 criteria_.push_back(f->generate(args));
@@ -120,7 +120,7 @@ private:
  * @ingroup stop
  */
 template <typename FactoryContainer>
-std::shared_ptr<const CriterionFactory> combine(FactoryContainer &&factories)
+std::shared_ptr<const CriterionFactory> combine(FactoryContainer&& factories)
 {
     switch (factories.size()) {
     case 0:

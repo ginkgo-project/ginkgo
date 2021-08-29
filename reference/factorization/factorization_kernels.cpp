@@ -58,8 +58,8 @@ namespace factorization {
 
 template <typename IndexType>
 size_type count_missing_elements(IndexType num_rows, IndexType num_cols,
-                                 const IndexType *col_idxs,
-                                 const IndexType *row_ptrs)
+                                 const IndexType* col_idxs,
+                                 const IndexType* row_ptrs)
 {
     size_type missing_elements{};
     // if row >= num_cols, diagonal elements no longer exist
@@ -82,7 +82,7 @@ size_type count_missing_elements(IndexType num_rows, IndexType num_cols,
 
 template <typename ValueType, typename IndexType>
 void add_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
-                           matrix::Csr<ValueType, IndexType> *mtx,
+                           matrix::Csr<ValueType, IndexType>* mtx,
                            bool /*is_sorted*/)
 {
     const auto values = mtx->get_const_values();
@@ -164,8 +164,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l_u(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    IndexType *l_row_ptrs, IndexType *u_row_ptrs)
+    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    IndexType* l_row_ptrs, IndexType* u_row_ptrs)
 {
     auto row_ptrs = system_matrix->get_const_row_ptrs();
     auto col_idxs = system_matrix->get_const_col_idxs();
@@ -195,9 +195,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_l_u(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *system_matrix,
-                    matrix::Csr<ValueType, IndexType> *csr_l,
-                    matrix::Csr<ValueType, IndexType> *csr_u)
+                    const matrix::Csr<ValueType, IndexType>* system_matrix,
+                    matrix::Csr<ValueType, IndexType>* csr_l,
+                    matrix::Csr<ValueType, IndexType>* csr_u)
 {
     const auto row_ptrs = system_matrix->get_const_row_ptrs();
     const auto col_idxs = system_matrix->get_const_col_idxs();
@@ -250,8 +250,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    IndexType *l_row_ptrs)
+    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    IndexType* l_row_ptrs)
 {
     auto row_ptrs = system_matrix->get_const_row_ptrs();
     auto col_idxs = system_matrix->get_const_col_idxs();
@@ -276,8 +276,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_l(std::shared_ptr<const ReferenceExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType> *system_matrix,
-                  matrix::Csr<ValueType, IndexType> *csr_l, bool diag_sqrt)
+                  const matrix::Csr<ValueType, IndexType>* system_matrix,
+                  matrix::Csr<ValueType, IndexType>* csr_l, bool diag_sqrt)
 {
     const auto row_ptrs = system_matrix->get_const_row_ptrs();
     const auto col_idxs = system_matrix->get_const_col_idxs();

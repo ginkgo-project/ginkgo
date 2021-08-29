@@ -57,7 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 // preconditioner generation and application
-std::string encode_parameters(const char *precond_name)
+std::string encode_parameters(const char* precond_name)
 {
     static std::map<std::string, std::string (*)()> encoder{
         {"jacobi",
@@ -129,15 +129,15 @@ std::string encode_parameters(const char *precond_name)
 }
 
 
-void run_preconditioner(const char *precond_name,
+void run_preconditioner(const char* precond_name,
                         std::shared_ptr<gko::Executor> exec,
                         std::shared_ptr<const gko::LinOp> system_matrix,
-                        const vec<etype> *b, const vec<etype> *x,
-                        rapidjson::Value &test_case,
-                        rapidjson::MemoryPoolAllocator<> &allocator)
+                        const vec<etype>* b, const vec<etype>* x,
+                        rapidjson::Value& test_case,
+                        rapidjson::MemoryPoolAllocator<>& allocator)
 {
     try {
-        auto &precond_object = test_case["preconditioner"];
+        auto& precond_object = test_case["preconditioner"];
         auto encoded_name = encode_parameters(precond_name);
 
         if (!FLAGS_overwrite &&
@@ -147,7 +147,7 @@ void run_preconditioner(const char *precond_name,
 
         add_or_set_member(precond_object, encoded_name.c_str(),
                           rapidjson::Value(rapidjson::kObjectType), allocator);
-        auto &this_precond_data = precond_object[encoded_name.c_str()];
+        auto& this_precond_data = precond_object[encoded_name.c_str()];
 
         add_or_set_member(this_precond_data, "generate",
                           rapidjson::Value(rapidjson::kObjectType), allocator);
@@ -223,7 +223,7 @@ void run_preconditioner(const char *precond_name,
         }
 
         add_or_set_member(this_precond_data, "completed", true, allocator);
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
         auto encoded_name = encode_parameters(precond_name);
         add_or_set_member(test_case["preconditioner"], encoded_name.c_str(),
                           rapidjson::Value(rapidjson::kObjectType), allocator);
@@ -241,7 +241,7 @@ void run_preconditioner(const char *precond_name,
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Use csr as the default format
     FLAGS_formats = "csr";
@@ -257,7 +257,7 @@ int main(int argc, char *argv[])
     print_general_information(extra_information);
 
     auto exec = get_executor();
-    auto &engine = get_engine();
+    auto& engine = get_engine();
 
     auto preconditioners = split(FLAGS_preconditioners, ',');
 
@@ -274,9 +274,9 @@ int main(int argc, char *argv[])
         print_config_error_and_exit();
     }
 
-    auto &allocator = test_cases.GetAllocator();
+    auto& allocator = test_cases.GetAllocator();
 
-    for (auto &test_case : test_cases.GetArray()) {
+    for (auto& test_case : test_cases.GetArray()) {
         try {
             // set up benchmark
             validate_option_object(test_case);
@@ -285,10 +285,10 @@ int main(int argc, char *argv[])
                                     rapidjson::Value(rapidjson::kObjectType),
                                     allocator);
             }
-            auto &precond_object = test_case["preconditioner"];
+            auto& precond_object = test_case["preconditioner"];
             if (!FLAGS_overwrite &&
                 all_of(begin(preconditioners), end(preconditioners),
-                       [&precond_object](const std::string &s) {
+                       [&precond_object](const std::string& s) {
                            return precond_object.HasMember(s.c_str());
                        })) {
                 continue;
@@ -307,14 +307,14 @@ int main(int argc, char *argv[])
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
                       << ", " << system_matrix->get_size()[1] << ")"
                       << std::endl;
-            for (const auto &precond_name : preconditioners) {
+            for (const auto& precond_name : preconditioners) {
                 run_preconditioner(precond_name.c_str(), exec, system_matrix,
                                    lend(b), lend(x), test_case, allocator);
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
                 backup_results(test_cases);
             }
-        } catch (const std::exception &e) {
+        } catch (const std::exception& e) {
             std::cerr << "Error setting up preconditioner, what(): " << e.what()
                       << std::endl;
         }

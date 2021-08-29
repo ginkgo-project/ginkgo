@@ -114,7 +114,7 @@ public:
         return Range(krylov_dim_, bases_.get_data(), scale_.get_data());
     }
 
-    gko::Array<StorageType> &get_bases() { return bases_; }
+    gko::Array<StorageType>& get_bases() { return bases_; }
 
 private:
     std::array<size_type, 3> krylov_dim_;
@@ -139,7 +139,7 @@ public:
 
     Range get_range() { return Range(krylov_dim_, bases_.get_data()); }
 
-    gko::Array<StorageType> &get_bases() { return bases_; }
+    gko::Array<StorageType>& get_bases() { return bases_; }
 
 private:
     std::array<size_type, 3> krylov_dim_;

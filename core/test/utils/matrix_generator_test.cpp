@@ -170,12 +170,12 @@ TYPED_TEST(MatrixGenerator, OutputHasCorrectValuesAverageAndDeviation)
     // check the real part
     this->template check_average_and_deviation<T>(
         begin(this->values_sample), end(this->values_sample), 20.0, 5.0,
-        [](T &val) { return gko::real(val); });
+        [](T& val) { return gko::real(val); });
     // check the imag part when the type is complex
     if (!std::is_same<T, gko::remove_complex<T>>::value) {
         this->template check_average_and_deviation<T>(
             begin(this->values_sample), end(this->values_sample), 20.0, 5.0,
-            [](T &val) { return gko::imag(val); });
+            [](T& val) { return gko::imag(val); });
     }
 }
 
@@ -231,12 +231,12 @@ TYPED_TEST(MatrixGenerator, CanGenerateBandMatrix)
     // check the real part of elements in band
     this->template check_average_and_deviation<T>(
         begin(this->band_values_sample), end(this->band_values_sample), 20.0,
-        5.0, [](T &val) { return gko::real(val); });
+        5.0, [](T& val) { return gko::real(val); });
     // check the imag part when the type is complex
     if (!std::is_same<T, gko::remove_complex<T>>::value) {
         this->template check_average_and_deviation<T>(
             begin(this->band_values_sample), end(this->band_values_sample),
-            20.0, 5.0, [](T &val) { return gko::imag(val); });
+            20.0, 5.0, [](T& val) { return gko::imag(val); });
     }
 }
 

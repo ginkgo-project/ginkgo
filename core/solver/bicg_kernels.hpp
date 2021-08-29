@@ -51,32 +51,32 @@ namespace bicg {
 
 #define GKO_DECLARE_BICG_INITIALIZE_KERNEL(_type)                            \
     void initialize(std::shared_ptr<const DefaultExecutor> exec,             \
-                    const matrix::Dense<_type> *b, matrix::Dense<_type> *r,  \
-                    matrix::Dense<_type> *z, matrix::Dense<_type> *p,        \
-                    matrix::Dense<_type> *q, matrix::Dense<_type> *prev_rho, \
-                    matrix::Dense<_type> *rho, matrix::Dense<_type> *r2,     \
-                    matrix::Dense<_type> *z2, matrix::Dense<_type> *p2,      \
-                    matrix::Dense<_type> *q2,                                \
-                    Array<stopping_status> *stop_status)
+                    const matrix::Dense<_type>* b, matrix::Dense<_type>* r,  \
+                    matrix::Dense<_type>* z, matrix::Dense<_type>* p,        \
+                    matrix::Dense<_type>* q, matrix::Dense<_type>* prev_rho, \
+                    matrix::Dense<_type>* rho, matrix::Dense<_type>* r2,     \
+                    matrix::Dense<_type>* z2, matrix::Dense<_type>* p2,      \
+                    matrix::Dense<_type>* q2,                                \
+                    Array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_BICG_STEP_1_KERNEL(_type)                             \
     void step_1(std::shared_ptr<const DefaultExecutor> exec,              \
-                matrix::Dense<_type> *p, const matrix::Dense<_type> *z,   \
-                matrix::Dense<_type> *p2, const matrix::Dense<_type> *z2, \
-                const matrix::Dense<_type> *rho,                          \
-                const matrix::Dense<_type> *prev_rho,                     \
-                const Array<stopping_status> *stop_status)
+                matrix::Dense<_type>* p, const matrix::Dense<_type>* z,   \
+                matrix::Dense<_type>* p2, const matrix::Dense<_type>* z2, \
+                const matrix::Dense<_type>* rho,                          \
+                const matrix::Dense<_type>* prev_rho,                     \
+                const Array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_BICG_STEP_2_KERNEL(_type)                                  \
     void step_2(std::shared_ptr<const DefaultExecutor> exec,                   \
-                matrix::Dense<_type> *x, matrix::Dense<_type> *r,              \
-                matrix::Dense<_type> *r2, const matrix::Dense<_type> *p,       \
-                const matrix::Dense<_type> *q, const matrix::Dense<_type> *q2, \
-                const matrix::Dense<_type> *beta,                              \
-                const matrix::Dense<_type> *rho,                               \
-                const Array<stopping_status> *stop_status)
+                matrix::Dense<_type>* x, matrix::Dense<_type>* r,              \
+                matrix::Dense<_type>* r2, const matrix::Dense<_type>* p,       \
+                const matrix::Dense<_type>* q, const matrix::Dense<_type>* q2, \
+                const matrix::Dense<_type>* beta,                              \
+                const matrix::Dense<_type>* rho,                               \
+                const Array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES               \

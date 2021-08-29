@@ -42,7 +42,7 @@ namespace dpcpp {
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void generic_kernel_2d_solver(sycl::handler &cgh, size_type rows,
+void generic_kernel_2d_solver(sycl::handler& cgh, size_type rows,
                               size_type cols, size_type default_stride,
                               KernelFunction fn, KernelArgs... args)
 {
@@ -59,9 +59,9 @@ void generic_kernel_2d_solver(sycl::handler &cgh, size_type rows,
 template <typename KernelFunction, typename... KernelArgs>
 void run_kernel_solver(std::shared_ptr<const DpcppExecutor> exec,
                        KernelFunction fn, dim<2> size, size_type default_stride,
-                       KernelArgs &&... args)
+                       KernelArgs&&... args)
 {
-    exec->get_queue()->submit([&](sycl::handler &cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         kernels::dpcpp::generic_kernel_2d_solver(
             cgh, size[0], size[1], default_stride, fn,
             kernels::dpcpp::map_to_device(args)...);

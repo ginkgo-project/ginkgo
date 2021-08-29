@@ -148,14 +148,14 @@ protected:
      * Generates the permutation matrix and if required the inverse permutation
      * matrix.
      */
-    void generate(std::shared_ptr<const Executor> &exec,
+    void generate(std::shared_ptr<const Executor>& exec,
                   std::unique_ptr<SparsityMatrix> adjacency_matrix) const;
 
     explicit Rcm(std::shared_ptr<const Executor> exec)
         : EnablePolymorphicObject<Rcm, ReorderingBase>(std::move(exec))
     {}
 
-    explicit Rcm(const Factory *factory, const ReorderingBaseArgs &args)
+    explicit Rcm(const Factory* factory, const ReorderingBaseArgs& args)
         : EnablePolymorphicObject<Rcm, ReorderingBase>(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {

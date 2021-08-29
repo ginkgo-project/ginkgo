@@ -108,11 +108,11 @@ namespace host_kernel {
 template <int items_per_thread, typename ValueType, typename IndexType>
 void merge_path_spmv(syn::value_list<int, items_per_thread>,
                      std::shared_ptr<const HipExecutor> exec,
-                     const matrix::Csr<ValueType, IndexType> *a,
-                     const matrix::Dense<ValueType> *b,
-                     matrix::Dense<ValueType> *c,
-                     const matrix::Dense<ValueType> *alpha = nullptr,
-                     const matrix::Dense<ValueType> *beta = nullptr)
+                     const matrix::Csr<ValueType, IndexType>* a,
+                     const matrix::Dense<ValueType>* b,
+                     matrix::Dense<ValueType>* c,
+                     const matrix::Dense<ValueType>* alpha = nullptr,
+                     const matrix::Dense<ValueType>* beta = nullptr)
 {
     const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
     const IndexType grid_num =
@@ -232,11 +232,11 @@ int compute_items_per_thread(std::shared_ptr<const HipExecutor> exec)
 template <int subwarp_size, typename ValueType, typename IndexType>
 void classical_spmv(syn::value_list<int, subwarp_size>,
                     std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *a,
-                    const matrix::Dense<ValueType> *b,
-                    matrix::Dense<ValueType> *c,
-                    const matrix::Dense<ValueType> *alpha = nullptr,
-                    const matrix::Dense<ValueType> *beta = nullptr)
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    const matrix::Dense<ValueType>* b,
+                    matrix::Dense<ValueType>* c,
+                    const matrix::Dense<ValueType>* alpha = nullptr,
+                    const matrix::Dense<ValueType>* beta = nullptr)
 {
     const auto nwarps = exec->get_num_warps_per_sm() *
                         exec->get_num_multiprocessor() * classical_overweight;
@@ -278,8 +278,8 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const HipExecutor> exec,
-          const matrix::Csr<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+          const matrix::Csr<ValueType, IndexType>* a,
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     if (a->get_strategy()->get_name() == "load_balance") {
         components::fill_array(exec, c->get_values(),
@@ -364,11 +364,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Csr<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::Csr<ValueType, IndexType>* a,
+                   const matrix::Dense<ValueType>* b,
+                   const matrix::Dense<ValueType>* beta,
+                   matrix::Dense<ValueType>* c)
 {
     if (a->get_strategy()->get_name() == "load_balance") {
         dense::scale(exec, beta, c);
@@ -457,9 +457,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const HipExecutor> exec,
-            const matrix::Csr<ValueType, IndexType> *a,
-            const matrix::Csr<ValueType, IndexType> *b,
-            matrix::Csr<ValueType, IndexType> *c)
+            const matrix::Csr<ValueType, IndexType>* a,
+            const matrix::Csr<ValueType, IndexType>* b,
+            matrix::Csr<ValueType, IndexType>* c)
 {
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_hipsparse_handle();
@@ -479,16 +479,16 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
         auto b_vals = b->get_const_values();
         auto b_row_ptrs = b->get_const_row_ptrs();
         auto b_col_idxs = b->get_const_col_idxs();
-        auto null_value = static_cast<ValueType *>(nullptr);
-        auto null_index = static_cast<IndexType *>(nullptr);
+        auto null_value = static_cast<ValueType*>(nullptr);
+        auto null_index = static_cast<IndexType*>(nullptr);
         auto zero_nnz = IndexType{};
         auto m = static_cast<IndexType>(a->get_size()[0]);
         auto n = static_cast<IndexType>(b->get_size()[1]);
         auto k = static_cast<IndexType>(a->get_size()[1]);
         auto c_row_ptrs = c->get_row_ptrs();
         matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-        auto &c_col_idxs_array = c_builder.get_col_idx_array();
-        auto &c_vals_array = c_builder.get_value_array();
+        auto& c_col_idxs_array = c_builder.get_col_idx_array();
+        auto& c_vals_array = c_builder.get_value_array();
 
         // allocate buffer
         size_type buffer_size{};
@@ -535,11 +535,11 @@ namespace {
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 void spgeam(syn::value_list<int, subwarp_size>,
-            std::shared_ptr<const HipExecutor> exec, const ValueType *alpha,
-            const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
-            const ValueType *a_vals, const ValueType *beta,
-            const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
-            const ValueType *b_vals, matrix::Csr<ValueType, IndexType> *c)
+            std::shared_ptr<const HipExecutor> exec, const ValueType* alpha,
+            const IndexType* a_row_ptrs, const IndexType* a_col_idxs,
+            const ValueType* a_vals, const ValueType* beta,
+            const IndexType* b_row_ptrs, const IndexType* b_col_idxs,
+            const ValueType* b_vals, matrix::Csr<ValueType, IndexType>* c)
 {
     auto m = static_cast<IndexType>(c->get_size()[0]);
     auto c_row_ptrs = c->get_row_ptrs();
@@ -577,12 +577,12 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_spgeam, spgeam);
 
 template <typename ValueType, typename IndexType>
 void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
-                     const matrix::Dense<ValueType> *alpha,
-                     const matrix::Csr<ValueType, IndexType> *a,
-                     const matrix::Csr<ValueType, IndexType> *b,
-                     const matrix::Dense<ValueType> *beta,
-                     const matrix::Csr<ValueType, IndexType> *d,
-                     matrix::Csr<ValueType, IndexType> *c)
+                     const matrix::Dense<ValueType>* alpha,
+                     const matrix::Csr<ValueType, IndexType>* a,
+                     const matrix::Csr<ValueType, IndexType>* b,
+                     const matrix::Dense<ValueType>* beta,
+                     const matrix::Csr<ValueType, IndexType>* d,
+                     matrix::Csr<ValueType, IndexType>* c)
 {
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_hipsparse_handle();
@@ -604,8 +604,8 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
         auto d_vals = d->get_const_values();
         auto d_row_ptrs = d->get_const_row_ptrs();
         auto d_col_idxs = d->get_const_col_idxs();
-        auto null_value = static_cast<ValueType *>(nullptr);
-        auto null_index = static_cast<IndexType *>(nullptr);
+        auto null_value = static_cast<ValueType*>(nullptr);
+        auto null_index = static_cast<IndexType*>(nullptr);
         auto one_value = one<ValueType>();
         auto m = static_cast<IndexType>(a->get_size()[0]);
         auto n = static_cast<IndexType>(b->get_size()[1]);
@@ -671,11 +671,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void spgeam(std::shared_ptr<const DefaultExecutor> exec,
-            const matrix::Dense<ValueType> *alpha,
-            const matrix::Csr<ValueType, IndexType> *a,
-            const matrix::Dense<ValueType> *beta,
-            const matrix::Csr<ValueType, IndexType> *b,
-            matrix::Csr<ValueType, IndexType> *c)
+            const matrix::Dense<ValueType>* alpha,
+            const matrix::Csr<ValueType, IndexType>* a,
+            const matrix::Dense<ValueType>* beta,
+            const matrix::Csr<ValueType, IndexType>* b,
+            matrix::Csr<ValueType, IndexType>* c)
 {
     auto total_nnz =
         a->get_num_stored_elements() + b->get_num_stored_elements();
@@ -698,8 +698,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const HipExecutor> exec,
-                              const IndexType *ptrs, size_type num_rows,
-                              IndexType *idxs)
+                              const IndexType* ptrs, size_type num_rows,
+                              IndexType* idxs)
 {
     const auto grid_dim = ceildiv(num_rows, default_block_size);
 
@@ -711,8 +711,8 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const HipExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *source,
-                    matrix::Coo<ValueType, IndexType> *result)
+                    const matrix::Csr<ValueType, IndexType>* source,
+                    matrix::Coo<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
 
@@ -728,8 +728,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result)
+                      const matrix::Csr<ValueType, IndexType>* source,
+                      matrix::Dense<ValueType>* result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
@@ -759,8 +759,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *source,
-                      matrix::Sellp<ValueType, IndexType> *result)
+                      const matrix::Csr<ValueType, IndexType>* source,
+                      matrix::Sellp<ValueType, IndexType>* result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
@@ -821,8 +821,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *source,
-                    matrix::Ell<ValueType, IndexType> *result)
+                    const matrix::Csr<ValueType, IndexType>* source,
+                    matrix::Ell<ValueType, IndexType>* result)
 {
     const auto source_values = source->get_const_values();
     const auto source_row_ptrs = source->get_const_row_ptrs();
@@ -859,8 +859,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void calculate_total_cols(std::shared_ptr<const HipExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType> *source,
-                          size_type *result, size_type stride_factor,
+                          const matrix::Csr<ValueType, IndexType>* source,
+                          size_type* result, size_type stride_factor,
                           size_type slice_size)
 {
     const auto num_rows = source->get_size()[0];
@@ -913,8 +913,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const HipExecutor> exec,
-               const matrix::Csr<ValueType, IndexType> *orig,
-               matrix::Csr<ValueType, IndexType> *trans)
+               const matrix::Csr<ValueType, IndexType>* orig,
+               matrix::Csr<ValueType, IndexType>* trans)
 {
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         hipsparseAction_t copyValues = HIPSPARSE_ACTION_NUMERIC;
@@ -936,8 +936,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *orig,
-                    matrix::Csr<ValueType, IndexType> *trans)
+                    const matrix::Csr<ValueType, IndexType>* orig,
+                    matrix::Csr<ValueType, IndexType>* trans)
 {
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         const dim3 block_size(default_block_size, 1, 1);
@@ -968,9 +968,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inv_symm_permute(std::shared_ptr<const HipExecutor> exec,
-                      const IndexType *perm,
-                      const matrix::Csr<ValueType, IndexType> *orig,
-                      matrix::Csr<ValueType, IndexType> *permuted)
+                      const IndexType* perm,
+                      const matrix::Csr<ValueType, IndexType>* orig,
+                      matrix::Csr<ValueType, IndexType>* permuted)
 {
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
@@ -994,9 +994,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void row_permute(std::shared_ptr<const HipExecutor> exec, const IndexType *perm,
-                 const matrix::Csr<ValueType, IndexType> *orig,
-                 matrix::Csr<ValueType, IndexType> *row_permuted)
+void row_permute(std::shared_ptr<const HipExecutor> exec, const IndexType* perm,
+                 const matrix::Csr<ValueType, IndexType>* orig,
+                 matrix::Csr<ValueType, IndexType>* row_permuted)
 {
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
@@ -1021,9 +1021,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const HipExecutor> exec,
-                         const IndexType *perm,
-                         const matrix::Csr<ValueType, IndexType> *orig,
-                         matrix::Csr<ValueType, IndexType> *row_permuted)
+                         const IndexType* perm,
+                         const matrix::Csr<ValueType, IndexType>* orig,
+                         matrix::Csr<ValueType, IndexType>* row_permuted)
 {
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
@@ -1048,8 +1048,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void calculate_max_nnz_per_row(std::shared_ptr<const HipExecutor> exec,
-                               const matrix::Csr<ValueType, IndexType> *source,
-                               size_type *result)
+                               const matrix::Csr<ValueType, IndexType>* source,
+                               size_type* result)
 {
     const auto num_rows = source->get_size()[0];
 
@@ -1084,8 +1084,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const HipExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType> *source,
-                       matrix::Hybrid<ValueType, IndexType> *result)
+                       const matrix::Csr<ValueType, IndexType>* source,
+                       matrix::Hybrid<ValueType, IndexType>* result)
 {
     auto ell_val = result->get_ell_values();
     auto ell_col = result->get_ell_col_idxs();
@@ -1130,8 +1130,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row(std::shared_ptr<const HipExecutor> exec,
-                                const matrix::Csr<ValueType, IndexType> *source,
-                                Array<size_type> *result)
+                                const matrix::Csr<ValueType, IndexType>* source,
+                                Array<size_type>* result)
 {
     const auto num_rows = source->get_size()[0];
     auto row_ptrs = source->get_const_row_ptrs();
@@ -1148,7 +1148,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const HipExecutor> exec,
-                          matrix::Csr<ValueType, IndexType> *to_sort)
+                          matrix::Csr<ValueType, IndexType>* to_sort)
 {
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_hipsparse_handle();
@@ -1197,7 +1197,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const HipExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *to_check, bool *is_sorted)
+    const matrix::Csr<ValueType, IndexType>* to_check, bool* is_sorted)
 {
     *is_sorted = true;
     auto cpu_array = Array<bool>::view(exec->get_master(), 1, is_sorted);
@@ -1218,8 +1218,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
+                      const matrix::Csr<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag)
 {
     const auto nnz = orig->get_num_stored_elements();
     const auto diag_size = diag->get_size()[0];

@@ -243,7 +243,7 @@ public:
      * @internal
      * TODO: replace with ranges
      */
-    const block_interleaved_storage_scheme<index_type> &get_storage_scheme()
+    const block_interleaved_storage_scheme<index_type>& get_storage_scheme()
         const noexcept
     {
         return storage_scheme_;
@@ -260,7 +260,7 @@ public:
      * @internal
      * TODO: replace with ranges
      */
-    const value_type *get_blocks() const noexcept
+    const value_type* get_blocks() const noexcept
     {
         return blocks_.get_const_data();
     }
@@ -274,7 +274,7 @@ public:
      *       implementations of the standard non-adaptive variant are allowed to
      *       omit the calculation of condition numbers.
      */
-    const remove_complex<value_type> *get_conditioning() const noexcept
+    const remove_complex<value_type>* get_conditioning() const noexcept
     {
         return conditioning_.get_const_data();
     }
@@ -289,11 +289,11 @@ public:
         return blocks_.get_num_elems();
     }
 
-    void convert_to(matrix::Dense<value_type> *result) const override;
+    void convert_to(matrix::Dense<value_type>* result) const override;
 
-    void move_to(matrix::Dense<value_type> *result) override;
+    void move_to(matrix::Dense<value_type>* result) override;
 
-    void write(mat_data &data) const override;
+    void write(mat_data& data) const override;
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -378,13 +378,13 @@ public:
             {}
 
             storage_optimization_type(
-                const Array<precision_reduction> &block_wise_opt)
+                const Array<precision_reduction>& block_wise_opt)
                 : is_block_wise{block_wise_opt.get_num_elems() > 0},
                   block_wise{block_wise_opt}
             {}
 
             storage_optimization_type(
-                Array<precision_reduction> &&block_wise_opt)
+                Array<precision_reduction>&& block_wise_opt)
                 : is_block_wise{block_wise_opt.get_num_elems() > 0},
                   block_wise{std::move(block_wise_opt)}
             {}
@@ -522,7 +522,7 @@ protected:
      * @param system_matrix  the matrix this preconditioner should be created
      *                       from
      */
-    explicit Jacobi(const Factory *factory,
+    explicit Jacobi(const Factory* factory,
                     std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Jacobi>(factory->get_executor(),
                               gko::transpose(system_matrix->get_size())),
@@ -592,7 +592,7 @@ protected:
      *                      skipped (therefore, marking that it is already
      *                      sorted)
      */
-    void generate(const LinOp *system_matrix, bool skip_sorting);
+    void generate(const LinOp* system_matrix, bool skip_sorting);
 
     /**
      * Detects the diagonal blocks and allocates the memory needed to store the
@@ -601,12 +601,12 @@ protected:
      * @param system_matrix  the source matrix whose diagonal block pattern is
      *                       to be detected
      */
-    void detect_blocks(const matrix::Csr<ValueType, IndexType> *system_matrix);
+    void detect_blocks(const matrix::Csr<ValueType, IndexType>* system_matrix);
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
 private:
     block_interleaved_storage_scheme<index_type> storage_scheme_{};

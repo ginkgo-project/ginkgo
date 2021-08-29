@@ -40,8 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 template <unsigned subwarp_size, typename ValueType, typename IndexType>
 __device__ __forceinline__ bool segment_scan(
-    const group::thread_block_tile<subwarp_size> &group, const IndexType ind,
-    ValueType *__restrict__ val)
+    const group::thread_block_tile<subwarp_size>& group, const IndexType ind,
+    ValueType* __restrict__ val)
 {
     bool head = true;
 #pragma unroll

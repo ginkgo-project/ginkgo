@@ -97,7 +97,7 @@ public:
               std::enable_if_t<
                   !check_if_same<range, std::decay_t<AccessorParams>...>::value,
                   int> = 0>
-    GKO_ACC_ATTRIBUTES constexpr explicit range(AccessorParams &&... args)
+    GKO_ACC_ATTRIBUTES constexpr explicit range(AccessorParams&&... args)
         : accessor_{std::forward<AccessorParams>(args)...}
     {}
 
@@ -117,9 +117,8 @@ public:
      *         given index_spans.
      */
     template <typename... DimensionTypes>
-    GKO_ACC_ATTRIBUTES constexpr auto operator()(
-        DimensionTypes &&... dimensions) const
-        -> decltype(std::declval<accessor>()(
+    GKO_ACC_ATTRIBUTES constexpr auto operator()(DimensionTypes&&... dimensions)
+        const -> decltype(std::declval<accessor>()(
             std::forward<DimensionTypes>(dimensions)...))
     {
         static_assert(sizeof...(dimensions) <= dimensionality,
@@ -146,7 +145,7 @@ public:
      *
      * @return pointer to the accessor
      */
-    GKO_ACC_ATTRIBUTES constexpr const accessor *operator->() const noexcept
+    GKO_ACC_ATTRIBUTES constexpr const accessor* operator->() const noexcept
     {
         return &accessor_;
     }
@@ -156,7 +155,7 @@ public:
      *
      * @return reference to the accessor
      */
-    GKO_ACC_ATTRIBUTES constexpr const accessor &get_accessor() const noexcept
+    GKO_ACC_ATTRIBUTES constexpr const accessor& get_accessor() const noexcept
     {
         return accessor_;
     }

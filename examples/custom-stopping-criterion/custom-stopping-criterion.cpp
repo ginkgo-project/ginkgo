@@ -65,8 +65,8 @@ public:
 
 protected:
     bool check_impl(gko::uint8 stoppingId, bool setFinalized,
-                    gko::Array<gko::stopping_status> *stop_status,
-                    bool *one_changed, const Criterion::Updater &) override
+                    gko::Array<gko::stopping_status>* stop_status,
+                    bool* one_changed, const Criterion::Updater&) override
     {
         bool result = *(parameters_.stop_iteration_process);
         if (result) {
@@ -80,8 +80,8 @@ protected:
         : EnablePolymorphicObject<ByInteraction, Criterion>(std::move(exec))
     {}
 
-    explicit ByInteraction(const Factory *factory,
-                           const gko::stop::CriterionArgs &args)
+    explicit ByInteraction(const Factory* factory,
+                           const gko::stop::CriterionArgs& args)
 
         : EnablePolymorphicObject<ByInteraction, Criterion>(
               factory->get_executor()),
@@ -90,7 +90,7 @@ protected:
 };
 
 
-void run_solver(volatile bool *stop_iteration_process,
+void run_solver(volatile bool* stop_iteration_process,
                 std::shared_ptr<gko::Executor> exec)
 {
     // Some shortcuts
@@ -138,7 +138,7 @@ void run_solver(volatile bool *stop_iteration_process,
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Print version information
     std::cout << gko::version_info::get() << std::endl;

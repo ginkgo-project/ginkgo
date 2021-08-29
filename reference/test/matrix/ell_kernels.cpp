@@ -79,7 +79,7 @@ protected:
         // clang-format on
     }
 
-    void assert_equal_to_mtx(const Csr *m)
+    void assert_equal_to_mtx(const Csr* m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();

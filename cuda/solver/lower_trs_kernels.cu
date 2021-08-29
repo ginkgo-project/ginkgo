@@ -63,14 +63,14 @@ namespace lower_trs {
 
 
 void should_perform_transpose(std::shared_ptr<const CudaExecutor> exec,
-                              bool &do_transpose)
+                              bool& do_transpose)
 {
     should_perform_transpose_kernel(exec, do_transpose);
 }
 
 
 void init_struct(std::shared_ptr<const CudaExecutor> exec,
-                 std::shared_ptr<solver::SolveStruct> &solve_struct)
+                 std::shared_ptr<solver::SolveStruct>& solve_struct)
 {
     init_struct_kernel(exec, solve_struct);
 }
@@ -78,8 +78,8 @@ void init_struct(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CudaExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *matrix,
-              solver::SolveStruct *solve_struct, const gko::size_type num_rhs)
+              const matrix::Csr<ValueType, IndexType>* matrix,
+              solver::SolveStruct* solve_struct, const gko::size_type num_rhs)
 {
     generate_kernel<ValueType, IndexType>(exec, matrix, solve_struct, num_rhs,
                                           false);
@@ -91,10 +91,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const CudaExecutor> exec,
-           const matrix::Csr<ValueType, IndexType> *matrix,
-           const solver::SolveStruct *solve_struct,
-           matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
-           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
+           const matrix::Csr<ValueType, IndexType>* matrix,
+           const solver::SolveStruct* solve_struct,
+           matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
+           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {
     solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
                                        trans_x, b, x);

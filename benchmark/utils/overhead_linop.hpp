@@ -53,8 +53,8 @@ namespace overhead {
     static volatile std::uintptr_t val_operation_##_num = 0;          \
     template <typename _type>                                         \
     void operation##_num(std::shared_ptr<const DefaultExecutor> exec, \
-                         const matrix::Dense<_type> *b,               \
-                         matrix::Dense<_type> *x)                     \
+                         const matrix::Dense<_type>* b,               \
+                         matrix::Dense<_type>* x)                     \
     {                                                                 \
         val_operation_##_num = reinterpret_cast<std::uintptr_t>(x);   \
     }
@@ -169,7 +169,7 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const LinOp *b, LinOp *x) const override
+    void apply_impl(const LinOp* b, LinOp* x) const override
     {
         using Vector = matrix::Dense<ValueType>;
 
@@ -186,8 +186,8 @@ protected:
         exec->run(overhead::make_operation4(dense_b, dense_x));
     }
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override
     {
         auto dense_x = as<matrix::Dense<ValueType>>(x);
 
@@ -201,7 +201,7 @@ protected:
         : EnableLinOp<Overhead>(std::move(exec))
     {}
 
-    explicit Overhead(const Factory *factory,
+    explicit Overhead(const Factory* factory,
                       std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Overhead>(factory->get_executor(),
                                 transpose(system_matrix->get_size())),

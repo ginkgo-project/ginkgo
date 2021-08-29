@@ -60,9 +60,9 @@ namespace par_ilut_factorization {
 
 template <typename ValueType, typename IndexType>
 void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
-                        const ValueType *values, IndexType size,
-                        remove_complex<ValueType> *tree, unsigned char *oracles,
-                        IndexType *partial_counts, IndexType *total_counts)
+                        const ValueType* values, IndexType size,
+                        remove_complex<ValueType>* tree, unsigned char* oracles,
+                        IndexType* partial_counts, IndexType* total_counts)
 {
     constexpr auto bucket_count = kernel::searchtree_width;
     auto num_threads_total = ceildiv(size, items_per_thread);
@@ -85,17 +85,17 @@ void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
 
 #define DECLARE_SSSS_COUNT(ValueType, IndexType)                               \
     void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,       \
-                            const ValueType *values, IndexType size,           \
-                            remove_complex<ValueType> *tree,                   \
-                            unsigned char *oracles, IndexType *partial_counts, \
-                            IndexType *total_counts)
+                            const ValueType* values, IndexType size,           \
+                            remove_complex<ValueType>* tree,                   \
+                            unsigned char* oracles, IndexType* partial_counts, \
+                            IndexType* total_counts)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_SSSS_COUNT);
 
 
 template <typename IndexType>
 sampleselect_bucket<IndexType> sampleselect_find_bucket(
-    std::shared_ptr<const DefaultExecutor> exec, IndexType *prefix_sum,
+    std::shared_ptr<const DefaultExecutor> exec, IndexType* prefix_sum,
     IndexType rank)
 {
     kernel::find_bucket<<<1, config::warp_size>>>(prefix_sum, rank);
@@ -107,7 +107,7 @@ sampleselect_bucket<IndexType> sampleselect_find_bucket(
 
 #define DECLARE_SSSS_FIND_BUCKET(IndexType)                                 \
     sampleselect_bucket<IndexType> sampleselect_find_bucket(                \
-        std::shared_ptr<const DefaultExecutor> exec, IndexType *prefix_sum, \
+        std::shared_ptr<const DefaultExecutor> exec, IndexType* prefix_sum, \
         IndexType rank)
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(DECLARE_SSSS_FIND_BUCKET);

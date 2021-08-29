@@ -53,8 +53,8 @@ constexpr auto basecase_block_size = basecase_size / basecase_local_size;
  */
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(searchtree_width) void build_searchtree(
-    const ValueType *__restrict__ input, IndexType size,
-    remove_complex<ValueType> *__restrict__ tree_output)
+    const ValueType* __restrict__ input, IndexType size,
+    remove_complex<ValueType>* __restrict__ tree_output)
 {
     using AbsType = remove_complex<ValueType>;
     auto idx = threadIdx.x;
@@ -92,9 +92,9 @@ __global__ __launch_bounds__(searchtree_width) void build_searchtree(
  */
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void count_buckets(
-    const ValueType *__restrict__ input, IndexType size,
-    const remove_complex<ValueType> *__restrict__ tree, IndexType *counter,
-    unsigned char *oracles, int items_per_thread)
+    const ValueType* __restrict__ input, IndexType size,
+    const remove_complex<ValueType>* __restrict__ tree, IndexType* counter,
+    unsigned char* oracles, int items_per_thread)
 {
     // load tree into shared memory, initialize counters
     __shared__ remove_complex<ValueType> sh_tree[searchtree_inner_size];
@@ -148,7 +148,7 @@ __global__ __launch_bounds__(default_block_size) void count_buckets(
  */
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void block_prefix_sum(
-    IndexType *__restrict__ counters, IndexType *__restrict__ totals,
+    IndexType* __restrict__ counters, IndexType* __restrict__ totals,
     IndexType num_blocks)
 {
     constexpr auto num_warps = default_block_size / config::warp_size;
@@ -225,9 +225,9 @@ __global__ __launch_bounds__(default_block_size) void block_prefix_sum(
  */
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void filter_bucket(
-    const ValueType *__restrict__ input, IndexType size, unsigned char bucket,
-    const unsigned char *oracles, const IndexType *block_offsets,
-    remove_complex<ValueType> *__restrict__ output, int items_per_thread)
+    const ValueType* __restrict__ input, IndexType size, unsigned char bucket,
+    const unsigned char* oracles, const IndexType* block_offsets,
+    remove_complex<ValueType>* __restrict__ output, int items_per_thread)
 {
     // initialize the counter with the block prefix sum.
     __shared__ IndexType counter;
@@ -261,8 +261,8 @@ __global__ __launch_bounds__(default_block_size) void filter_bucket(
  */
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(basecase_block_size) void basecase_select(
-    const ValueType *__restrict__ input, IndexType size, IndexType rank,
-    ValueType *__restrict__ out)
+    const ValueType* __restrict__ input, IndexType size, IndexType rank,
+    ValueType* __restrict__ out)
 {
     constexpr auto sentinel = device_numeric_limits<ValueType>::inf;
     ValueType local[basecase_local_size];
@@ -287,7 +287,7 @@ __global__ __launch_bounds__(basecase_block_size) void basecase_select(
  */
 template <typename IndexType>
 __global__ __launch_bounds__(config::warp_size) void find_bucket(
-    IndexType *prefix_sum, IndexType rank)
+    IndexType* prefix_sum, IndexType rank)
 {
     auto warp =
         group::tiled_partition<config::warp_size>(group::this_thread_block());

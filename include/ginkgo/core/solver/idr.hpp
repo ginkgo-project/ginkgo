@@ -245,20 +245,20 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
     template <typename SubspaceType>
-    void iterate(const matrix::Dense<SubspaceType> *dense_b,
-                 matrix::Dense<SubspaceType> *dense_x) const;
+    void iterate(const matrix::Dense<SubspaceType>* dense_b,
+                 matrix::Dense<SubspaceType>* dense_x) const;
 
     explicit Idr(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Idr>(std::move(exec))
     {}
 
-    explicit Idr(const Factory *factory,
+    explicit Idr(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Idr>(factory->get_executor(),
                            gko::transpose(system_matrix->get_size())),

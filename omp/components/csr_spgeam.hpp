@@ -59,8 +59,8 @@ namespace omp {
  */
 template <typename ValueType, typename IndexType, typename BeginCallback,
           typename EntryCallback, typename EndCallback>
-void abstract_spgeam(const matrix::Csr<ValueType, IndexType> *a,
-                     const matrix::Csr<ValueType, IndexType> *b,
+void abstract_spgeam(const matrix::Csr<ValueType, IndexType>* a,
+                     const matrix::Csr<ValueType, IndexType>* b,
                      BeginCallback begin_cb, EntryCallback entry_cb,
                      EndCallback end_cb)
 {

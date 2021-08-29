@@ -65,7 +65,7 @@ protected:
 
 
     static void assert_equal_to_original_mtx(
-        gko::matrix::Permutation<i_type> *m)
+        gko::matrix::Permutation<i_type>* m)
     {
         auto perm = m->get_permutation();
         ASSERT_EQ(m->get_size(), gko::dim<2>(4, 3));
@@ -76,7 +76,7 @@ protected:
         ASSERT_EQ(perm[3], 3);
     }
 
-    static void assert_empty(gko::matrix::Permutation<i_type> *m)
+    static void assert_empty(gko::matrix::Permutation<i_type>* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_permutation_size(), 0);

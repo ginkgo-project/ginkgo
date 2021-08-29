@@ -97,21 +97,21 @@ public:
     friend class Ell<next_precision<ValueType>, IndexType>;
 
     void convert_to(
-        Ell<next_precision<ValueType>, IndexType> *result) const override;
+        Ell<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(Ell<next_precision<ValueType>, IndexType> *result) override;
+    void move_to(Ell<next_precision<ValueType>, IndexType>* result) override;
 
-    void convert_to(Dense<ValueType> *other) const override;
+    void convert_to(Dense<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType> *other) override;
+    void move_to(Dense<ValueType>* other) override;
 
-    void convert_to(Csr<ValueType, IndexType> *other) const override;
+    void convert_to(Csr<ValueType, IndexType>* other) const override;
 
-    void move_to(Csr<ValueType, IndexType> *other) override;
+    void move_to(Csr<ValueType, IndexType>* other) override;
 
-    void read(const mat_data &data) override;
+    void read(const mat_data& data) override;
 
-    void write(mat_data &data) const override;
+    void write(mat_data& data) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
@@ -124,7 +124,7 @@ public:
      *
      * @return the values of the matrix.
      */
-    value_type *get_values() noexcept { return values_.get_data(); }
+    value_type* get_values() noexcept { return values_.get_data(); }
 
     /**
      * @copydoc Ell::get_values()
@@ -133,7 +133,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type *get_const_values() const noexcept
+    const value_type* get_const_values() const noexcept
     {
         return values_.get_const_data();
     }
@@ -143,7 +143,7 @@ public:
      *
      * @return the column indexes of the matrix.
      */
-    index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type* get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
     /**
      * @copydoc Ell::get_col_idxs()
@@ -152,7 +152,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_col_idxs() const noexcept
+    const index_type* get_const_col_idxs() const noexcept
     {
         return col_idxs_.get_const_data();
     }
@@ -194,7 +194,7 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the OMP results in a runtime error)
      */
-    value_type &val_at(size_type row, size_type idx) noexcept
+    value_type& val_at(size_type row, size_type idx) noexcept
     {
         return values_.get_data()[this->linearize_index(row, idx)];
     }
@@ -217,7 +217,7 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the OMP results in a runtime error)
      */
-    index_type &col_at(size_type row, size_type idx) noexcept
+    index_type& col_at(size_type row, size_type idx) noexcept
     {
         return this->get_col_idxs()[this->linearize_index(row, idx)];
     }
@@ -240,7 +240,7 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      */
-    Ell(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{})
+    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{})
         : Ell(std::move(exec), size, size[1])
     {}
 
@@ -253,7 +253,7 @@ protected:
      * @param num_stored_elements_per_row   the number of stored elements per
      *                                      row
      */
-    Ell(std::shared_ptr<const Executor> exec, const dim<2> &size,
+    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
         size_type num_stored_elements_per_row)
         : Ell(std::move(exec), size, num_stored_elements_per_row, size[0])
     {}
@@ -267,7 +267,7 @@ protected:
      *                                      row
      * @param stride                stride of the rows
      */
-    Ell(std::shared_ptr<const Executor> exec, const dim<2> &size,
+    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
         size_type num_stored_elements_per_row, size_type stride)
         : EnableLinOp<Ell>(exec, size),
           values_(exec, stride * num_stored_elements_per_row),
@@ -298,8 +298,8 @@ protected:
      *       array data will not be used in the matrix.
      */
     template <typename ValuesArray, typename ColIdxsArray>
-    Ell(std::shared_ptr<const Executor> exec, const dim<2> &size,
-        ValuesArray &&values, ColIdxsArray &&col_idxs,
+    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
+        ValuesArray&& values, ColIdxsArray&& col_idxs,
         size_type num_stored_elements_per_row, size_type stride)
         : EnableLinOp<Ell>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
@@ -313,10 +313,10 @@ protected:
                       col_idxs_.get_num_elems());
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {

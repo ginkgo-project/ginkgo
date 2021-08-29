@@ -105,14 +105,14 @@ protected:
     }
 
     template <typename T>
-    void init_array(T *arr, std::initializer_list<T> vals)
+    void init_array(T* arr, std::initializer_list<T> vals)
     {
         std::copy(std::begin(vals), std::end(vals), arr);
     }
 
     template <typename ValueType>
-    void assert_same_block(gko::size_type block_size, const ValueType *ptr_a,
-                           gko::size_type stride_a, const ValueType *ptr_b,
+    void assert_same_block(gko::size_type block_size, const ValueType* ptr_a,
+                           gko::size_type stride_a, const ValueType* ptr_b,
                            gko::size_type stride_b)
     {
         for (int i = 0; i < block_size; ++i) {
@@ -124,7 +124,7 @@ protected:
         }
     }
 
-    void assert_same_precond(const Bj *a, const Bj *b)
+    void assert_same_precond(const Bj* a, const Bj* b)
     {
         ASSERT_EQ(a->get_size()[0], b->get_size()[0]);
         ASSERT_EQ(a->get_size()[1], b->get_size()[1]);
@@ -154,11 +154,11 @@ protected:
                 value_type, prec_a,
                 assert_same_block(
                     b_ptr_a[i + 1] - b_ptr_a[i],
-                    reinterpret_cast<const resolved_precision *>(
+                    reinterpret_cast<const resolved_precision*>(
                         a->get_blocks() + scheme.get_group_offset(i)) +
                         scheme.get_block_offset(i),
                     scheme.get_stride(),
-                    reinterpret_cast<const resolved_precision *>(
+                    reinterpret_cast<const resolved_precision*>(
                         a->get_blocks() + scheme.get_group_offset(i)) +
                         scheme.get_block_offset(i),
                     scheme.get_stride()));
@@ -366,7 +366,7 @@ TYPED_TEST(Jacobi, ScalarJacobiCanBeTransposed)
 
 
 template <typename T>
-void init_array(T *arr, std::initializer_list<T> vals)
+void init_array(T* arr, std::initializer_list<T> vals)
 {
     std::copy(std::begin(vals), std::end(vals), arr);
 }

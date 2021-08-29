@@ -56,8 +56,8 @@ namespace dpcpp {
  */
 template <unsigned subgroup_size, typename ValueType, typename IndexType>
 __dpct_inline__ bool segment_scan(
-    const group::thread_block_tile<subgroup_size> &group, const IndexType ind,
-    ValueType *__restrict__ val)
+    const group::thread_block_tile<subgroup_size>& group, const IndexType ind,
+    ValueType* __restrict__ val)
 {
     bool head = true;
 #pragma unroll

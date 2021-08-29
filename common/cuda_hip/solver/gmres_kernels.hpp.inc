@@ -37,11 +37,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     size_type num_rows, size_type num_rhs,
-    const ValueType *__restrict__ residual, size_type stride_residual,
-    const remove_complex<ValueType> *__restrict__ residual_norm,
-    ValueType *__restrict__ residual_norm_collection,
-    ValueType *__restrict__ krylov_bases, size_type stride_krylov,
-    size_type *__restrict__ final_iter_nums)
+    const ValueType* __restrict__ residual, size_type stride_residual,
+    const remove_complex<ValueType>* __restrict__ residual_norm,
+    ValueType* __restrict__ residual_norm_collection,
+    ValueType* __restrict__ krylov_bases, size_type stride_krylov,
+    size_type* __restrict__ final_iter_nums)
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto row_idx = global_id / num_rhs;
@@ -62,8 +62,8 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
 
 __global__
     __launch_bounds__(default_block_size) void increase_final_iteration_numbers_kernel(
-        size_type *__restrict__ final_iter_nums,
-        const stopping_status *__restrict__ stop_status, size_type total_number)
+        size_type* __restrict__ final_iter_nums,
+        const stopping_status* __restrict__ stop_status, size_type total_number)
 {
     const auto global_id = thread::get_thread_id_flat();
     if (global_id < total_number) {
@@ -75,10 +75,10 @@ __global__
 template <typename ValueType>
 __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     size_type k, size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ krylov_bases,
-    const ValueType *__restrict__ next_krylov_basis, size_type stride_krylov,
-    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status)
+    const ValueType* __restrict__ krylov_bases,
+    const ValueType* __restrict__ next_krylov_basis, size_type stride_krylov,
+    ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status)
 {
     const auto tidx = threadIdx.x;
     const auto tidy = threadIdx.y;
@@ -90,9 +90,9 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
     __shared__
-        UninitializedArray<ValueType, default_dot_dim *(default_dot_dim + 1)>
+        UninitializedArray<ValueType, default_dot_dim*(default_dot_dim + 1)>
             reduction_helper_array;
-    ValueType *__restrict__ reduction_helper = reduction_helper_array;
+    ValueType* __restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
@@ -110,7 +110,7 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
         group::tiled_partition<default_dot_dim>(group::this_thread_block());
     const auto sum =
         reduce(tile_block, local_res,
-               [](const ValueType &a, const ValueType &b) { return a + b; });
+               [](const ValueType& a, const ValueType& b) { return a + b; });
     const auto new_col_idx = blockIdx.x * default_dot_dim + tidy;
     if (tidx == 0 && new_col_idx < num_cols &&
         !stop_status[new_col_idx].has_stopped()) {
@@ -125,10 +125,10 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
 template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
     size_type k, size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ krylov_bases,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_krylov,
-    const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status)
+    const ValueType* __restrict__ krylov_bases,
+    ValueType* __restrict__ next_krylov_basis, size_type stride_krylov,
+    const ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto row_idx = global_id / stride_krylov;
@@ -151,10 +151,10 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
 template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void update_hessenberg_2_kernel(
     size_type iter, size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ next_krylov_basis,
-    size_type stride_next_krylov, ValueType *__restrict__ hessenberg_iter,
+    const ValueType* __restrict__ next_krylov_basis,
+    size_type stride_next_krylov, ValueType* __restrict__ hessenberg_iter,
     size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status)
+    const stopping_status* __restrict__ stop_status)
 {
     const auto tidx = threadIdx.x;
     const auto col_idx = blockIdx.x;
@@ -162,7 +162,7 @@ __global__ __launch_bounds__(block_size) void update_hessenberg_2_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
     __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
-    ValueType *__restrict__ reduction_helper = reduction_helper_array;
+    ValueType* __restrict__ reduction_helper = reduction_helper_array;
 
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         ValueType local_res{};
@@ -177,7 +177,7 @@ __global__ __launch_bounds__(block_size) void update_hessenberg_2_kernel(
 
         // Perform thread block reduction. Result is in reduction_helper[0]
         reduce(group::this_thread_block(), reduction_helper,
-               [](const ValueType &a, const ValueType &b) { return a + b; });
+               [](const ValueType& a, const ValueType& b) { return a + b; });
 
         if (tidx == 0) {
             hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] =
@@ -192,9 +192,9 @@ __global__ __launch_bounds__(block_size) void update_hessenberg_2_kernel(
 template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void update_krylov_kernel(
     size_type iter, size_type num_rows, size_type num_cols,
-    ValueType *__restrict__ krylov_bases, size_type stride_krylov,
-    const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status)
+    ValueType* __restrict__ krylov_bases, size_type stride_krylov,
+    const ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto row_idx = global_id / stride_krylov;
@@ -216,11 +216,11 @@ __global__ __launch_bounds__(block_size) void update_krylov_kernel(
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
     size_type num_rows, size_type num_cols, size_type num_rhs,
-    const ValueType *__restrict__ krylov_bases, size_type stride_krylov,
-    const ValueType *__restrict__ y, size_type stride_y,
-    ValueType *__restrict__ before_preconditioner,
+    const ValueType* __restrict__ krylov_bases, size_type stride_krylov,
+    const ValueType* __restrict__ y, size_type stride_y,
+    ValueType* __restrict__ before_preconditioner,
     size_type stride_preconditioner,
-    const size_type *__restrict__ final_iter_nums)
+    const size_type* __restrict__ final_iter_nums)
 {
     const auto global_id = thread::get_thread_id_flat();
     const auto row_id = global_id / stride_preconditioner;
