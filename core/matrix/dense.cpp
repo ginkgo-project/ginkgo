@@ -468,10 +468,9 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType>> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Coo<ValueType, int32> *result) const
 {
-    conversion_helper(
-        result, this,
-        dense::template make_convert_to_coo<const Dense<ValueType> *&,
-                                            decltype(result)>);
+    conversion_helper(result, this, [](const auto &in, const auto &out) {
+        return dense::make_convert_to_coo(in, out);
+    });
 }
 
 
@@ -485,10 +484,9 @@ void Dense<ValueType>::move_to(Coo<ValueType, int32> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Coo<ValueType, int64> *result) const
 {
-    conversion_helper(
-        result, this,
-        dense::template make_convert_to_coo<const Dense<ValueType> *&,
-                                            decltype(result)>);
+    conversion_helper(result, this, [](const auto &in, const auto &out) {
+        return dense::make_convert_to_coo(in, out);
+    });
 }
 
 
@@ -502,10 +500,9 @@ void Dense<ValueType>::move_to(Coo<ValueType, int64> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Csr<ValueType, int32> *result) const
 {
-    conversion_helper(
-        result, this,
-        dense::template make_convert_to_csr<const Dense<ValueType> *&,
-                                            decltype(result)>);
+    conversion_helper(result, this, [](const auto &in, const auto &out) {
+        return dense::make_convert_to_csr(in, out);
+    });
     result->make_srow();
 }
 
@@ -520,10 +517,9 @@ void Dense<ValueType>::move_to(Csr<ValueType, int32> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Csr<ValueType, int64> *result) const
 {
-    conversion_helper(
-        result, this,
-        dense::template make_convert_to_csr<const Dense<ValueType> *&,
-                                            decltype(result)>);
+    conversion_helper(result, this, [](const auto &in, const auto &out) {
+        return dense::make_convert_to_csr(in, out);
+    });
     result->make_srow();
 }
 
@@ -538,10 +534,9 @@ void Dense<ValueType>::move_to(Csr<ValueType, int64> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Ell<ValueType, int32> *result) const
 {
-    conversion_helper(
-        result, this,
-        dense::template make_convert_to_ell<const Dense<ValueType> *&,
-                                            decltype(result)>);
+    conversion_helper(result, this, [](const auto &in, const auto &out) {
+        return dense::make_convert_to_ell(in, out);
+    });
 }
 
 
@@ -555,10 +550,9 @@ void Dense<ValueType>::move_to(Ell<ValueType, int32> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Ell<ValueType, int64> *result) const
 {
-    conversion_helper(
-        result, this,
-        dense::template make_convert_to_ell<const Dense<ValueType> *&,
-                                            decltype(result)>);
+    conversion_helper(result, this, [](const auto &in, const auto &out) {
+        return dense::make_convert_to_ell(in, out);
+    });
 }
 
 
@@ -572,10 +566,9 @@ void Dense<ValueType>::move_to(Ell<ValueType, int64> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Hybrid<ValueType, int32> *result) const
 {
-    conversion_helper(
-        result, this,
-        dense::template make_convert_to_hybrid<const Dense<ValueType> *&,
-                                               decltype(result)>);
+    conversion_helper(result, this, [](const auto &in, const auto &out) {
+        return dense::make_convert_to_hybrid(in, out);
+    });
 }
 
 
@@ -589,10 +582,9 @@ void Dense<ValueType>::move_to(Hybrid<ValueType, int32> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Hybrid<ValueType, int64> *result) const
 {
-    conversion_helper(
-        result, this,
-        dense::template make_convert_to_hybrid<const Dense<ValueType> *&,
-                                               decltype(result)>);
+    conversion_helper(result, this, [](const auto &in, const auto &out) {
+        return dense::make_convert_to_hybrid(in, out);
+    });
 }
 
 
@@ -606,10 +598,9 @@ void Dense<ValueType>::move_to(Hybrid<ValueType, int64> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Sellp<ValueType, int32> *result) const
 {
-    conversion_helper(
-        result, this,
-        dense::template make_convert_to_sellp<const Dense<ValueType> *&,
-                                              decltype(result)>);
+    conversion_helper(result, this, [](const auto &in, const auto &out) {
+        return dense::make_convert_to_sellp(in, out);
+    });
 }
 
 
@@ -623,10 +614,9 @@ void Dense<ValueType>::move_to(Sellp<ValueType, int32> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Sellp<ValueType, int64> *result) const
 {
-    conversion_helper(
-        result, this,
-        dense::template make_convert_to_sellp<const Dense<ValueType> *&,
-                                              decltype(result)>);
+    conversion_helper(result, this, [](const auto &in, const auto &out) {
+        return dense::make_convert_to_sellp(in, out);
+    });
 }
 
 
@@ -640,10 +630,9 @@ void Dense<ValueType>::move_to(Sellp<ValueType, int64> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(SparsityCsr<ValueType, int32> *result) const
 {
-    conversion_helper(
-        result, this,
-        dense::template make_convert_to_sparsity_csr<const Dense<ValueType> *&,
-                                                     decltype(result)>);
+    conversion_helper(result, this, [](const auto &in, const auto &out) {
+        return dense::make_convert_to_sparsity_csr(in, out);
+    });
 }
 
 
@@ -657,10 +646,9 @@ void Dense<ValueType>::move_to(SparsityCsr<ValueType, int32> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(SparsityCsr<ValueType, int64> *result) const
 {
-    conversion_helper(
-        result, this,
-        dense::template make_convert_to_sparsity_csr<const Dense<ValueType> *&,
-                                                     decltype(result)>);
+    conversion_helper(result, this, [](const auto &in, const auto &out) {
+        return dense::make_convert_to_sparsity_csr(in, out);
+    });
 }
 
 
