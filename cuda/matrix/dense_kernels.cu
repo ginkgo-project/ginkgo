@@ -47,10 +47,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
+#include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
+
+
+#include "accessor/range.hpp"
+#include "accessor/reduced_row_major.hpp"
 
 
 namespace gko {
@@ -161,6 +166,57 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 
 
 template <typename ValueType>
+__global__ __launch_bounds__(1) void init_res_kernel(
+    ValueType *__restrict__ res)
+{
+    *res = ValueType{0};
+}
+
+// Currently, x and y need to be 2D to also have a proper stride parameter
+// (lowest-dim must always be 0)
+template <std::int64_t block_size, typename XRange, typename YRange,
+          typename ResType>
+__global__ __launch_bounds__(block_size) void acc_conj_dot_kernel(
+    XRange x, YRange y, ResType *__restrict__ res)
+{
+    using ar_type = decltype(x(0, 0) + y(0, 0));
+    // Here, using int64 results in better performance since the stride in the
+    // accessors is stored in uint64
+    using index_type = std::int64_t;
+    static_assert(std::is_same<ResType, ar_type>::value,
+                  "Types must be equal!");
+
+    const index_type start = blockIdx.x * blockDim.x + threadIdx.x;
+    const index_type increment = blockDim.x * gridDim.x;
+
+    ar_type local_result{};
+    const auto tgroup = group::this_thread_block();
+    const auto local_id = tgroup.thread_rank();
+
+    __shared__ char shared_impl[sizeof(ar_type) * block_size];
+    auto shared = reinterpret_cast<ar_type *>(shared_impl);
+
+    for (index_type idx = start; idx < x.length(0); idx += increment) {
+        local_result += conj(x(idx, 0)) * y(idx, 0);
+    }
+    shared[local_id] = local_result;
+    reduce(tgroup, shared, [](ar_type a, ar_type b) { return a + b; });
+    if (local_id == 0) {
+        atomic_add(res, shared[local_id]);
+    }
+}
+
+template <typename InType, typename OutType>
+__global__ __launch_bounds__(1) void acc_conj_dot_conv_kernel(
+    const InType *__restrict__ in, OutType *__restrict__ out)
+{
+    if (threadIdx.x == 0) {
+        *out = static_cast<OutType>(*in);
+    }
+}
+
+
+template <typename ValueType>
 void compute_conj_dot(std::shared_ptr<const CudaExecutor> exec,
                       const matrix::Dense<ValueType> *x,
                       const matrix::Dense<ValueType> *y,
@@ -168,12 +224,47 @@ void compute_conj_dot(std::shared_ptr<const CudaExecutor> exec,
 {
     if (cublas::is_supported<ValueType>::value) {
         // TODO: write a custom kernel which does this more efficiently
+        /*
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
             cublas::conj_dot(exec->get_cublas_handle(), x->get_size()[0],
                              x->get_const_values() + col, x->get_stride(),
                              y->get_const_values() + col, y->get_stride(),
                              result->get_values() + col);
-        }
+                }
+        */
+        constexpr int grids_per_sm{32};
+        constexpr int dot_block_size{1024};
+        constexpr std::int32_t block_size{dot_block_size};
+        const dim3 block(block_size, 1, 1);
+        const dim3 grid(exec->get_num_multiprocessor() * grids_per_sm, 1, 1);
+
+        // Accessor Setup
+        constexpr std::size_t dimensionality{2};
+        std::array<std::size_t, dimensionality - 1> x_stride{x->get_stride()};
+        std::array<std::size_t, dimensionality - 1> y_stride{y->get_stride()};
+
+        using st_type = cuda_type<ValueType>;
+        using ar_type = cuda_type<increase_precision<ValueType>>;
+        using accessor =
+            gko::acc::reduced_row_major<dimensionality, ar_type, st_type>;
+        using range = gko::acc::range<accessor>;
+        using c_range = gko::acc::range<typename accessor::const_accessor>;
+        auto x_size =
+            std::array<size_type, 2>{x->get_size()[0], x->get_size()[1]};
+        auto y_size =
+            std::array<size_type, 2>{y->get_size()[0], y->get_size()[1]};
+        auto x_acc =
+            c_range(x_size, as_cuda_type(x->get_const_values()), x_stride);
+        auto y_acc =
+            c_range(y_size, as_cuda_type(y->get_const_values()), y_stride);
+
+        Array<ar_type> tmp_res(exec, 1);
+
+        init_res_kernel<<<1, 1>>>(tmp_res.get_data());
+        acc_conj_dot_kernel<block_size>
+            <<<grid, block>>>(x_acc, y_acc, tmp_res.get_data());
+        acc_conj_dot_conv_kernel<<<1, 1>>>(tmp_res.get_data(),
+                                           as_cuda_type(result->get_values()));
     } else {
         // TODO: these are tuning parameters obtained experimentally, once
         // we decide how to handle this uniformly, they should be modified
