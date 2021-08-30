@@ -185,6 +185,7 @@ set(GINKGO_HIP_SOURCES
     preconditioner/ras_kernels.hip.cpp
     reorder/rcm_kernels.hip.cpp
     solver/gmres_kernels.hip.cpp
+    solver/cb_gmres_kernels.hip.cpp
     solver/idr_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
     solver/multigrid_kernels.hip.cpp

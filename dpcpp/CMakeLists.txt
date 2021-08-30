@@ -46,6 +46,7 @@ target_sources(ginkgo_dpcpp
     preconditioner/ras_kernels.dp.cpp
     reorder/rcm_kernels.dp.cpp
     solver/gmres_kernels.dp.cpp
+    solver/cb_gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
     solver/lower_trs_kernels.dp.cpp
     solver/multigrid_kernels.dp.cpp
