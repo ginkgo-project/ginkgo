@@ -127,6 +127,7 @@ target_sources(ginkgo_cuda
     preconditioner/ras_simple_apply_kernel.cu
     reorder/rcm_kernels.cu
     solver/gmres_kernels.cu
+    solver/cb_gmres_kernels.cu
     solver/idr_kernels.cu
     solver/lower_trs_kernels.cu
     solver/upper_trs_kernels.cu

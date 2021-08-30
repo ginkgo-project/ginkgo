@@ -272,25 +272,32 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
     using dist_type = distributed::Matrix<ValueType, IndexType>;
     using dist_base_type = distributed::DistributedBase;
     const auto exec = this->get_executor();
-    if (parameters_.max_block_size == 1) {
-        auto diag = share(as<DiagonalLinOpExtractable>(system_matrix)
-                              ->extract_diagonal_linop());
-        auto diag_vt =
-            ::gko::detail::temporary_conversion<matrix::Diagonal<ValueType>>::
+    if (dynamic_cast<const dist_base_type *>(system_matrix)) {
+        if (parameters_.max_block_size > 1) {
+            GKO_NOT_IMPLEMENTED;
+        }
+        auto dist_mat = dynamic_cast<const dist_type *>(system_matrix);
+        diag_ = dist_mat->get_local_matrix()->extract_diagonal();
+        is_distributed_ = true;
+
+    } else {
+        if (parameters_.max_block_size == 1) {
+            auto diag = share(as<DiagonalLinOpExtractable>(system_matrix)
+                                  ->extract_diagonal_linop());
+            auto diag_vt = ::gko::detail::temporary_conversion<
+                matrix::Diagonal<ValueType>>::
                 template create<matrix::Diagonal<next_precision<ValueType>>>(
                     diag.get());
-        if (!diag_vt) {
-            GKO_NOT_SUPPORTED(system_matrix);
-        }
-        auto temp = Array<ValueType>::view(diag_vt->get_executor(),
-                                           diag_vt->get_size()[0],
-                                           diag_vt->get_values());
-        this->blocks_ = Array<ValueType>(exec, temp.get_num_elems());
-        exec->run(jacobi::make_invert_diagonal(temp, this->blocks_));
-        this->num_blocks_ = diag_vt->get_size()[0];
-    } else {
-        if (dynamic_cast<const ConvertibleTo<const csr_type> *>(
-                system_matrix)) {
+            if (!diag_vt) {
+                GKO_NOT_SUPPORTED(system_matrix);
+            }
+            auto temp = Array<ValueType>::view(diag_vt->get_executor(),
+                                               diag_vt->get_size()[0],
+                                               diag_vt->get_values());
+            this->blocks_ = Array<ValueType>(exec, temp.get_num_elems());
+            exec->run(jacobi::make_invert_diagonal(temp, this->blocks_));
+            this->num_blocks_ = diag_vt->get_size()[0];
+        } else {
             auto csr_mtx = convert_to_with_sorting<csr_type>(
                 exec, system_matrix, skip_sorting);
 
@@ -320,13 +327,6 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix,
                 csr_mtx.get(), num_blocks_, parameters_.max_block_size,
                 parameters_.accuracy, storage_scheme_, conditioning_,
                 precisions, parameters_.block_pointers, blocks_));
-        } else if (dynamic_cast<const dist_base_type *>(system_matrix)) {
-            if (parameters_.max_block_size > 1) {
-                GKO_NOT_IMPLEMENTED;
-            }
-            auto dist_mat = dynamic_cast<const dist_type *>(system_matrix);
-            diag_ = dist_mat->get_local_matrix()->extract_diagonal();
-            is_distributed_ = true;
         }
     }
 }

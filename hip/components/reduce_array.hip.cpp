@@ -58,7 +58,7 @@ namespace components {
 constexpr int default_block_size = 512;
 
 
-#include "common/components/reduction.hpp.inc"
+#include "common/components/cuda_hip/reduction.hpp.inc"
 
 
 template <typename ValueType>

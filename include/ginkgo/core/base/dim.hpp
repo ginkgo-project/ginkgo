@@ -190,10 +190,12 @@ struct dim {
      *
      * @return a stream object appended with the dim output
      */
-    friend GKO_ATTRIBUTES std::ostream &operator<<(std::ostream &os,
-                                                   const dim &x)
+    friend std::ostream &operator<<(std::ostream &os, const dim &x)
     {
-        return os << "(" << x.first_ << " , " << x.rest_ << ")";
+        os << "(";
+        x.print_to(os);
+        os << ")";
+        return os;
     }
 
 private:

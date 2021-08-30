@@ -36,6 +36,7 @@ target_sources(ginkgo_omp
     preconditioner/ras_kernels.cpp
     reorder/rcm_kernels.cpp
     solver/gmres_kernels.cpp
+    solver/cb_gmres_kernels.cpp
     solver/idr_kernels.cpp
     solver/lower_trs_kernels.cpp
     solver/upper_trs_kernels.cpp
