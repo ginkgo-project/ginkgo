@@ -281,12 +281,8 @@ namespace detail {
 
 
 /**
- * The RegisteredOperation class wraps a functor that will be called with a tag
- * parameter based on the dynamic type of the executor that runs it.
- *
- * ReferenceExecutor uses ref_exec_tag, OmpExecutor uses omp_exec_tag,
- * CudaExecutor uses cuda_exec_tag, HipExecutor uses hip_exec_tag and
- * DpcppExecutor uses dpcpp_exec_tag.
+ * The RegisteredOperation class wraps a functor that will be called with the
+ * executor statically cast to its dynamic type.
  *
  * It is used to implement the @ref GKO_REGISTER_OPERATION macro.
  *
@@ -300,8 +296,7 @@ public:
      * Creates a RegisteredOperation object from a functor and a name.
      *
      * @param name  the name to be used for this operation
-     * @param op  a functor object which will be called with the executor and
-                  corresponding tag
+     * @param op  a functor object which will be called with the executor.
      */
     RegisteredOperation(const char *name, int num_params, Closure op)
         : name_(name), num_params_(num_params), op_(std::move(op))
@@ -433,12 +428,13 @@ RegisteredOperation<Closure> make_register_operation(const char *name,
  */
 #define GKO_REGISTER_OPERATION(_name, _kernel)                                 \
     template <typename... Args>                                                \
-    auto make_##_name(Args &&... args)                                          \
+    auto make_##_name(Args &&... args)                                         \
     {                                                                          \
         return ::gko::detail::make_register_operation(                         \
             #_name, sizeof...(Args), [&args...](auto exec) {                   \
+                using exec_type = decltype(exec);                              \
                 if (std::is_same<                                              \
-                        decltype(exec),                                        \
+                        exec_type,                                             \
                         std::shared_ptr<const ::gko::ReferenceExecutor>>::     \
                         value) {                                               \
                     ::gko::kernels::reference::_kernel(                        \
@@ -446,7 +442,7 @@ RegisteredOperation<Closure> make_register_operation(const char *name,
                             const ::gko::ReferenceExecutor>(exec),             \
                         std::forward<Args>(args)...);                          \
                 } else if (std::is_same<                                       \
-                               decltype(exec),                                 \
+                               exec_type,                                      \
                                std::shared_ptr<const ::gko::OmpExecutor>>::    \
                                value) {                                        \
                     ::gko::kernels::omp::_kernel(                              \
@@ -454,7 +450,7 @@ RegisteredOperation<Closure> make_register_operation(const char *name,
                             exec),                                             \
                         std::forward<Args>(args)...);                          \
                 } else if (std::is_same<                                       \
-                               decltype(exec),                                 \
+                               exec_type,                                      \
                                std::shared_ptr<const ::gko::CudaExecutor>>::   \
                                value) {                                        \
                     ::gko::kernels::cuda::_kernel(                             \
@@ -462,7 +458,7 @@ RegisteredOperation<Closure> make_register_operation(const char *name,
                             exec),                                             \
                         std::forward<Args>(args)...);                          \
                 } else if (std::is_same<                                       \
-                               decltype(exec),                                 \
+                               exec_type,                                      \
                                std::shared_ptr<const ::gko::HipExecutor>>::    \
                                value) {                                        \
                     ::gko::kernels::hip::_kernel(                              \
@@ -470,7 +466,7 @@ RegisteredOperation<Closure> make_register_operation(const char *name,
                             exec),                                             \
                         std::forward<Args>(args)...);                          \
                 } else if (std::is_same<                                       \
-                               decltype(exec),                                 \
+                               exec_type,                                      \
                                std::shared_ptr<const ::gko::DpcppExecutor>>::  \
                                value) {                                        \
                     ::gko::kernels::dpcpp::_kernel(                            \
