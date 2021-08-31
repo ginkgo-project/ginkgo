@@ -48,13 +48,15 @@ constexpr int default_block_size = 256;
 #include "common/cuda_hip/solver/batch_direct_kernels.hpp.inc"
 
 
+#ifndef NDEBUG
+
 namespace {
 
 void check_batch(std::shared_ptr<const CudaExecutor> exec, const int nbatch,
-                 const int *const info, const bool factorization)
+                 const int* const info, const bool factorization)
 {
     auto host_exec = exec->get_master();
-    int *const h_info = host_exec->alloc<int>(nbatch);
+    int* const h_info = host_exec->alloc<int>(nbatch);
     host_exec->copy_from(exec.get(), nbatch, info, h_info);
     for (int i = 0; i < nbatch; i++) {
         if (info[i] < 0 && factorization) {
@@ -73,12 +75,14 @@ void check_batch(std::shared_ptr<const CudaExecutor> exec, const int nbatch,
 
 }  // namespace
 
+#endif
+
 
 template <typename ValueType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
-           matrix::BatchDense<ValueType> *const a_t,
-           matrix::BatchDense<ValueType> *const b_t,
-           gko::log::BatchLogData<ValueType> &logdata)
+           matrix::BatchDense<ValueType>* const a_t,
+           matrix::BatchDense<ValueType>* const b_t,
+           gko::log::BatchLogData<ValueType>& logdata)
 {
     const size_type num_batches = a_t->get_num_batch_entries();
     const int nbatch = static_cast<int>(num_batches);
@@ -89,10 +93,10 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     const int nrhs = static_cast<int>(b_t->get_size().at()[0]);
     const int ldb = static_cast<int>(b_stride);
 
-    int *const pivot_array = exec->alloc<int>(nbatch * n);
-    int *const info_array = exec->alloc<int>(nbatch);
-    ValueType **const matrices = exec->alloc<ValueType *>(nbatch);
-    ValueType **const vectors = exec->alloc<ValueType *>(nbatch);
+    int* const pivot_array = exec->alloc<int>(nbatch * n);
+    int* const info_array = exec->alloc<int>(nbatch);
+    ValueType** const matrices = exec->alloc<ValueType*>(nbatch);
+    ValueType** const vectors = exec->alloc<ValueType*>(nbatch);
     const int nblk_1 = (nbatch - 1) / default_block_size + 1;
     setup_batch_pointers<<<nblk_1, default_block_size>>>(
         num_batches, n, stride, as_cuda_type(a_t->get_values()),
@@ -109,7 +113,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
 
     int trsm_info{};
     cublas::batch_getrs(handle, CUBLAS_OP_N, n, nrhs,
-                        const_cast<const ValueType **>(matrices), lda,
+                        const_cast<const ValueType**>(matrices), lda,
                         pivot_array, vectors, ldb, &trsm_info, nbatch);
     if (trsm_info != 0) {
         std::cerr << "Cublas batch trsm got an illegal param in position "
@@ -128,9 +132,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL);
 template <typename ValueType>
 void transpose_scale_copy(
     std::shared_ptr<const CudaExecutor> exec,
-    const matrix::BatchDense<ValueType> *const scaling_vec,
-    const matrix::BatchDense<ValueType> *const orig,
-    matrix::BatchDense<ValueType> *const scaled)
+    const matrix::BatchDense<ValueType>* const scaling_vec,
+    const matrix::BatchDense<ValueType>* const orig,
+    matrix::BatchDense<ValueType>* const scaled)
 {
     const size_type nbatch = orig->get_num_batch_entries();
     const int nrows = static_cast<int>(scaled->get_size().at()[0]);
@@ -151,12 +155,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void pre_diag_scale_system_transpose(
     std::shared_ptr<const CudaExecutor> exec,
-    const matrix::BatchDense<ValueType> *const a,
-    const matrix::BatchDense<ValueType> *const b,
-    const matrix::BatchDense<ValueType> *const left_scale,
-    const matrix::BatchDense<ValueType> *const right_scale,
-    matrix::BatchDense<ValueType> *const a_scaled_t,
-    matrix::BatchDense<ValueType> *const b_scaled_t)
+    const matrix::BatchDense<ValueType>* const a,
+    const matrix::BatchDense<ValueType>* const b,
+    const matrix::BatchDense<ValueType>* const left_scale,
+    const matrix::BatchDense<ValueType>* const right_scale,
+    matrix::BatchDense<ValueType>* const a_scaled_t,
+    matrix::BatchDense<ValueType>* const b_scaled_t)
 {
     const size_type nbatch = a->get_num_batch_entries();
     const int nrows = static_cast<int>(a->get_size().at()[0]);
