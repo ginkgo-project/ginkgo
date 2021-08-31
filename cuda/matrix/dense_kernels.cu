@@ -75,6 +75,49 @@ constexpr int default_block_size = 512;
 #include "common/cuda_hip/matrix/dense_kernels.hpp.inc"
 
 
+namespace kernel {
+
+
+template <std::int64_t block_size, typename MtxRange, typename XRange,
+          typename ResRange, typename ArType>
+__global__ __launch_bounds__(block_size) void acc_gemv(ArType alpha,
+                                                       MtxRange mtx, XRange x,
+                                                       ArType beta,
+                                                       ResRange res)
+{
+    using ar_type = decltype(alpha * mtx(0, 0) * x(0, 0) + beta * res(0, 0));
+    static_assert(std::is_same<ArType, ar_type>::value, "Types must be equal!");
+    // expect x_info.size[1] == 1
+    const std::int64_t row_idx{blockIdx.x};
+    if (row_idx >= mtx.length(0)) {
+        return;
+    }
+
+    const auto num_cols = mtx.length(1);
+    __shared__ char shared_impl[sizeof(ar_type) * block_size];
+    auto shared = reinterpret_cast<ar_type *>(shared_impl);
+    ar_type local_result{};
+    const auto tgroup = group::this_thread_block();
+    const auto local_id = tgroup.thread_rank();
+
+    for (std::int64_t col = local_id; col < num_cols; col += block_size) {
+        local_result += mtx(row_idx, col) * x(col, 0);
+    }
+    shared[local_id] = local_result;
+    reduce(tgroup, shared, [](ar_type a, ar_type b) { return a + b; });
+    if (local_id == 0) {
+        if (beta == ArType{0}) {
+            res(row_idx, 0) = alpha * shared[local_id];
+        } else {
+            res(row_idx, 0) = alpha * shared[local_id] + beta * res(row_idx, 0);
+        }
+    }
+}
+
+
+}  // namespace kernel
+
+
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Dense<ValueType> *a,
@@ -84,6 +127,7 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
         {
+            /*
             cublas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
@@ -92,7 +136,38 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
                          b->get_const_values(), b->get_stride(),
                          a->get_const_values(), a->get_stride(), &beta,
                          c->get_values(), c->get_stride());
+                         */
         }
+        using st_type = cuda_type<ValueType>;
+        using ar_type = cuda_type<increase_precision<ValueType>>;
+        constexpr int32 block_size{512};
+        const dim3 block(block_size, 1, 1);
+        const dim3 grid(a->get_size()[0], 1, 1);
+
+        // Accessor Setup
+        constexpr size_type dimensionality{2};
+        std::array<size_type, dimensionality - 1> m_stride{a->get_stride()};
+        std::array<size_type, dimensionality - 1> x_stride{b->get_stride()};
+        std::array<size_type, dimensionality - 1> res_stride{c->get_stride()};
+        auto a_size =
+            std::array<size_type, 2>{a->get_size()[0], a->get_size()[1]};
+        auto b_size =
+            std::array<size_type, 2>{b->get_size()[0], b->get_size()[1]};
+        auto c_size =
+            std::array<size_type, 2>{c->get_size()[0], c->get_size()[1]};
+
+        using accessor =
+            gko::acc::reduced_row_major<dimensionality, ar_type, st_type>;
+        using range = gko::acc::range<accessor>;
+        using c_range = gko::acc::range<typename accessor::const_accessor>;
+        auto m_acc =
+            c_range(a_size, as_cuda_type(a->get_const_values()), m_stride);
+        auto x_acc =
+            c_range(b_size, as_cuda_type(b->get_const_values()), x_stride);
+        auto res_acc = range(c_size, as_cuda_type(c->get_values()), res_stride);
+
+        kernel::acc_gemv<block_size>
+            <<<grid, block>>>(ar_type{1}, m_acc, x_acc, ar_type{0}, res_acc);
     } else {
         GKO_NOT_IMPLEMENTED;
     }

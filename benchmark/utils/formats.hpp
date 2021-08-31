@@ -252,6 +252,14 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
                                 const gko::matrix_data<etype, itype> &)>>
     matrix_factory{
+        {"dense",
+         [](std::shared_ptr<const gko::Executor> exec,
+            const gko::matrix_data<etype, itype> &data) {
+            auto mat =
+                gko::matrix::Dense<etype>::create(exec);
+            mat->read(data);
+            return mat;
+         }},
         {"csr",
          [](std::shared_ptr<const gko::Executor> exec,
             const gko::matrix_data<etype, itype> &data) -> std::unique_ptr<csr> {
