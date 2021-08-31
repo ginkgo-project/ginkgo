@@ -125,11 +125,15 @@ class Multigrid : public EnableLinOp<Multigrid> {
 
 public:
     /**
-     * Return true as iterative solvers use the data in x as an initial guess.
+     * Return true as iterative solvers use the data in x as an initial guess or
+     * false if multigrid always set the input as zero
      *
-     * @return true as iterative solvers use the data in x as an initial guess.
+     * @return bool  it is related to parameters variable zero_guess
      */
-    bool apply_uses_initial_guess() const override { return true; }
+    bool apply_uses_initial_guess() const override
+    {
+        return !parameters_.zero_guess;
+    }
 
     /**
      * Gets the stopping criterion factory of the solver.
@@ -403,6 +407,13 @@ public:
          * when a user-supplied smoother does not use the initial guess.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(smoother_iters, 1);
+
+        /**
+         * zero_guess is to set the initial guess as zero or not. If it's true,
+         * the initial guess will always be zeros. Otherwise, it will use given
+         * input as initial guess.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(zero_guess, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
