@@ -126,8 +126,8 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
 {
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
+        //*
         {
-            /*
             cublas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
@@ -136,8 +136,9 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
                          b->get_const_values(), b->get_stride(),
                          a->get_const_values(), a->get_stride(), &beta,
                          c->get_values(), c->get_stride());
-                         */
         }
+        return;
+        //*/
         using st_type = cuda_type<ValueType>;
         using ar_type = cuda_type<increase_precision<ValueType>>;
         constexpr int32 block_size{512};
@@ -299,14 +300,15 @@ void compute_conj_dot(std::shared_ptr<const CudaExecutor> exec,
 {
     if (cublas::is_supported<ValueType>::value) {
         // TODO: write a custom kernel which does this more efficiently
-        /*
+        //*
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
             cublas::conj_dot(exec->get_cublas_handle(), x->get_size()[0],
                              x->get_const_values() + col, x->get_stride(),
                              y->get_const_values() + col, y->get_stride(),
                              result->get_values() + col);
-                }
-        */
+        }
+        return;
+        //*/
         constexpr int grids_per_sm{32};
         constexpr int dot_block_size{1024};
         constexpr std::int32_t block_size{dot_block_size};
