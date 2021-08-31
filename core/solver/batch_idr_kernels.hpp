@@ -88,15 +88,10 @@ struct BatchIdrOptions {
  * - G
  * - U
  * - M
- * and small arrays for
- * - omega
- * - temp1
- * - temp2
- * - norms_t
- * - norms_r
- * - rhs_norms
- * - res_norms
+ * and small array for
  * - tmp_norms (this one is of length: subspace_dim)
+ *
+ * TODO: Accept additional argument for smoothing and return adjusted size.
  */
 template <typename ValueType>
 inline int local_memory_requirement(const int num_rows, const int num_rhs,
@@ -104,21 +99,20 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs,
 {
     return (7 * num_rows * num_rhs + num_rows + 2 * subspace_dim * num_rhs +
             num_rows * subspace_dim + 2 * num_rows * subspace_dim * num_rhs +
-            subspace_dim * subspace_dim * num_rhs + 3 * num_rhs) *
+            subspace_dim * subspace_dim * num_rhs) *
                sizeof(ValueType) +
-           (4 * num_rhs + subspace_dim) *
-               sizeof(typename gko::remove_complex<ValueType>);
+           subspace_dim * sizeof(typename gko::remove_complex<ValueType>);
 }
 
 
-#define GKO_DECLARE_BATCH_IDR_APPLY_KERNEL(_type)                             \
-    void apply(                                                               \
-        std::shared_ptr<const DefaultExecutor> exec,                          \
-        const gko::kernels::batch_idr::BatchIdrOptions<remove_complex<_type>> \
-            &options,                                                         \
-        const BatchLinOp *const a, const matrix::BatchDense<_type> *const b,  \
-        matrix::BatchDense<_type> *const x,                                   \
-        gko::log::BatchLogData<_type> &logdata)
+#define GKO_DECLARE_BATCH_IDR_APPLY_KERNEL(_type)                              \
+    void apply(                                                                \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const gko::kernels::batch_idr::BatchIdrOptions<remove_complex<_type>>& \
+            options,                                                           \
+        const BatchLinOp* const a, const matrix::BatchDense<_type>* const b,   \
+        matrix::BatchDense<_type>* const x,                                    \
+        gko::log::BatchLogData<_type>& logdata)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \
