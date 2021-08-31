@@ -342,7 +342,7 @@ template <typename MatrixData1, typename MatrixData2>
     }
 
     auto bat = std::find_if(err.begin(), err.end(),
-                            [&](double &e) { return e > tolerance; });
+                            [&](double &e) { return !(e <= tolerance); });
     if (bat == err.end()) {
         return ::testing::AssertionSuccess();
     } else {
