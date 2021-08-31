@@ -183,8 +183,8 @@ __global__ __launch_bounds__(block_size) void acc_conj_dot_kernel(
     // Here, using int64 results in better performance since the stride in the
     // accessors is stored in uint64
     using index_type = std::int64_t;
-    // static_assert(std::is_same<ResType, ar_type>::value,
-    //              "Types must be equal!");
+    static_assert(std::is_same<ResType, ar_type>::value,
+                  "Types must be equal!");
 
     const index_type start = blockIdx.x * blockDim.x + threadIdx.x;
     const index_type increment = blockDim.x * gridDim.x;
@@ -202,9 +202,19 @@ __global__ __launch_bounds__(block_size) void acc_conj_dot_kernel(
     shared[local_id] = local_result;
     reduce(tgroup, shared, [](ar_type a, ar_type b) { return a + b; });
     if (local_id == 0) {
-        atomic_add(res, static_cast<ResType>(shared[local_id]));
+        atomic_add(res, shared[local_id]);
     }
 }
+
+template <typename InType, typename OutType>
+__global__ __launch_bounds__(1) void acc_conj_dot_conv_kernel(
+    const InType *__restrict__ in, OutType *__restrict__ out)
+{
+    if (threadIdx.x == 0) {
+        *out = static_cast<OutType>(*in);
+    }
+}
+
 
 template <typename ValueType>
 void compute_conj_dot(std::shared_ptr<const CudaExecutor> exec,
@@ -248,10 +258,13 @@ void compute_conj_dot(std::shared_ptr<const CudaExecutor> exec,
         auto y_acc =
             c_range(y_size, as_cuda_type(y->get_const_values()), y_stride);
 
-        auto result_ptr = as_cuda_type(result->get_values());
-        init_res_kernel<<<1, 1>>>(result_ptr);
+        Array<ar_type> tmp_res(exec, 1);
+
+        init_res_kernel<<<1, 1>>>(tmp_res.get_data());
         acc_conj_dot_kernel<block_size>
-            <<<grid, block>>>(x_acc, y_acc, result_ptr);
+            <<<grid, block>>>(x_acc, y_acc, tmp_res.get_data());
+        acc_conj_dot_conv_kernel<<<1, 1>>>(tmp_res.get_data(),
+                                           as_cuda_type(result->get_values()));
     } else {
         // TODO: these are tuning parameters obtained experimentally, once
         // we decide how to handle this uniformly, they should be modified
