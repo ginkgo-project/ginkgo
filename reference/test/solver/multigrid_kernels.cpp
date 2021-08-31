@@ -1487,6 +1487,37 @@ TYPED_TEST(Multigrid, CanChangeCycle)
 }
 
 
+TYPED_TEST(Multigrid, ZeroGuessIgnoresInput)
+{
+    using Solver = typename TestFixture::Solver;
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto common_part =
+        Solver::build()
+            .with_pre_smoother(this->smoother_factory)
+            .with_coarsest_solver(this->coarsest_factory)
+            .with_max_levels(2u)
+            .with_mg_level(this->coarse_factory)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
+            .with_min_coarse_rows(1u);
+    auto normal_mg =
+        common_part.with_zero_guess(false).on(this->exec)->generate(this->mtx);
+    auto zeroguess_mg =
+        common_part.with_zero_guess(true).on(this->exec)->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({-1.0, -3.0, -2.0}, this->exec);
+    auto zero = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    // putting zero to normal multigrid is the same behavior as using zero guess
+    // in multigrid
+    normal_mg->apply(b.get(), zero.get());
+    zeroguess_mg->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(zero, x, r<value_type>::value);
+}
+
+
 TYPED_TEST(Multigrid, SolvesStencilSystemByVCycle)
 {
     using Mtx = typename TestFixture::Mtx;

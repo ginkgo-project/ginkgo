@@ -284,6 +284,27 @@ TYPED_TEST(Multigrid, ApplyUsesInitialGuessReturnsTrue)
 }
 
 
+TYPED_TEST(Multigrid, ApplyUsesInitialGuessReturnsFalseWhenZeroGuess)
+{
+    using Solver = typename TestFixture::Solver;
+    auto multigrid_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .with_max_levels(2u)
+            .with_coarsest_solver(this->lo_factory)
+            .with_pre_smoother(this->lo_factory)
+            .with_mg_level(this->rp_factory)
+            .with_min_coarse_rows(2u)
+            .with_zero_guess(true)
+            .on(this->exec);
+
+    auto solver = multigrid_factory->generate(this->mtx);
+
+    ASSERT_FALSE(solver->apply_uses_initial_guess());
+}
+
+
 TYPED_TEST(Multigrid, CanChangeCycle)
 {
     using Solver = typename TestFixture::Solver;

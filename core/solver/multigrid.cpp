@@ -621,6 +621,21 @@ void Multigrid::apply_impl(const LinOp *b, LinOp *x) const
         // compute the residual at the r_list(0);
         auto r = state.r_list.at(0);
         r->copy_from(b);
+        if (parameters_.zero_guess) {
+            using matrix::Dense;
+            using std::complex;
+            if (auto dense = dynamic_cast<Dense<float> *>(x)) {
+                dense->fill(zero<float>());
+            } else if (auto dense = dynamic_cast<Dense<double> *>(x)) {
+                dense->fill(zero<double>());
+            } else if (auto dense = dynamic_cast<Dense<complex<float>> *>(x)) {
+                dense->fill(zero<complex<float>>());
+            } else if (auto dense = dynamic_cast<Dense<complex<double>> *>(x)) {
+                dense->fill(zero<complex<double>>());
+            } else {
+                GKO_NOT_SUPPORTED(x);
+            }
+        }
         system_matrix_->apply(lend(neg_one_op), x, lend(one_op), r.get());
         auto stop_criterion = stop_criterion_factory_->generate(
             system_matrix_,
