@@ -468,6 +468,7 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType>> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Coo<ValueType, int32> *result) const
 {
+    // const ref parameters, as make_* functions take parameters by ref
     conversion_helper(result, this, [](const auto &in, const auto &out) {
         return dense::make_convert_to_coo(in, out);
     });
