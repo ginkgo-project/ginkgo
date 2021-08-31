@@ -64,7 +64,7 @@ void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
                        0, n, as_hip_type(array), as_hip_type(val));
 }
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_AND_BOOL(GKO_DECLARE_FILL_ARRAY_KERNEL);
 
 
 template <typename ValueType>
@@ -77,7 +77,8 @@ void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
                        dim3(block_size), 0, 0, n, as_hip_type(array));
 }
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_AND_BOOL(
+    GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
 
 
 }  // namespace components

@@ -36,12 +36,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/distributed/block_approx.hpp>
 #include <ginkgo/core/matrix/block_approx.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#if GKO_HAVE_MPI
+
+#include <ginkgo/core/distributed/block_approx.hpp>
+
+#else
+
+
+namespace gko {
+namespace distributed {
+
+template <typename ValueType, typename IndexType>
+class BlockApprox<ValueType, IndexType>;
+
+
+}
+}  // namespace gko
+
+#endif
 
 namespace gko {
 /**
