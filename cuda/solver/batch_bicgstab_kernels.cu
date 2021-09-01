@@ -60,18 +60,18 @@ constexpr int sm_multiplier = 4;
 namespace batch_bicgstab {
 
 
-#include "common/components/uninitialized_array.hpp.inc"
+#include "common/cuda_hip/components/uninitialized_array.hpp.inc"
 // include all depedencies (note: do not remove this comment)
-#include "common/components/reduction.hpp.inc"
-#include "common/log/batch_logger.hpp.inc"
-#include "common/matrix/batch_csr_kernels.hpp.inc"
+#include "common/cuda_hip/components/reduction.hpp.inc"
+#include "common/cuda_hip/log/batch_logger.hpp.inc"
+#include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
 // TODO: remove batch dense include
-#include "common/matrix/batch_dense_kernels.hpp.inc"
-#include "common/matrix/batch_vector_kernels.hpp.inc"
-#include "common/preconditioner/batch_identity.hpp.inc"
-#include "common/preconditioner/batch_jacobi.hpp.inc"
-#include "common/solver/batch_bicgstab_kernels.hpp.inc"
-#include "common/stop/batch_criteria.hpp.inc"
+#include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_identity.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_jacobi.hpp.inc"
+#include "common/cuda_hip/solver/batch_bicgstab_kernels.hpp.inc"
+#include "common/cuda_hip/stop/batch_criteria.hpp.inc"
 
 
 template <typename T>
