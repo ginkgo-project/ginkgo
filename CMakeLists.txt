@@ -126,6 +126,14 @@ if (${CMAKE_CXX_COMPILER_ID} MATCHES "PGI|NVHPC")
     set(GINKGO_BUILD_OMP OFF)
 endif()
 
+#Batch Ginkgo options:
+option(GINKGO_CUDA_BATCH_USE_NO_SHMEM "Use no shared memory in the batch solver kernels (Might be necessary for large matrices)" OFF)
+if(GINKGO_CUDA_BATCH_USE_NO_SHMEM)
+    set(GINKGO_CUDA_BATCH_HAVE_NO_SHMEM 1)
+else()
+    set(GINKGO_CUDA_BATCH_HAVE_NO_SHMEM 0)
+endif()
+
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
 # Use ccache as compilation launcher
@@ -287,6 +295,10 @@ if(GINKGO_BUILD_DPCPP)
 else()
     set(GINKGO_DPCPP_MAJOR_VERSION "0")
 endif()
+
+configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/batch_config.hpp.in
+    ${Ginkgo_BINARY_DIR}/include/ginkgo/batch_config.hpp @ONLY)
+
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
 
