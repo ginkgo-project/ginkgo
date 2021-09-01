@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 
 namespace gko {
@@ -248,6 +249,55 @@ private:
 
 template <typename ValueType = default_precision>
 using Richardson = Ir<ValueType>;
+
+
+/**
+ * build_smoother gives a shortcut to build a smoother by IR(Richardson) with
+ * limited stop criterion(iterations and relacation_factor).
+ *
+ * @param factory  the shared pointer of factory
+ * @param iteration  the maximum number of iteraion, which default is 1
+ * @param relaxation_factor  the relaxation factor for Richardson
+ *
+ * @return the pointer of Ir(Richardson)
+ */
+template <typename ValueType>
+auto build_smoother(std::shared_ptr<const LinOpFactory> factory,
+                    size_type iteration = 1, ValueType relaxation_factor = 0.9)
+{
+    auto exec = factory->get_executor();
+    return Ir<ValueType>::build()
+        .with_solver(factory)
+        .with_relaxation_factor(relaxation_factor)
+        .with_criteria(
+            gko::stop::Iteration::build().with_max_iters(iteration).on(exec))
+        .on(exec);
+}
+
+/**
+ * build_smoother gives a shortcut to build a smoother by IR(Richardson) with
+ * limited stop criterion(iterations and relacation_factor).
+ *
+ * @param solver  the shared pointer of solver
+ * @param iteration  the maximum number of iteraion, which default is 1
+ * @param relaxation_factor  the relaxation factor for Richardson
+ *
+ * @return the pointer of Ir(Richardson)
+ *
+ * @note this is the overload function for LinOp.
+ */
+template <typename ValueType>
+auto build_smoother(std::shared_ptr<const LinOp> solver,
+                    size_type iteration = 1, ValueType relaxation_factor = 0.9)
+{
+    auto exec = solver->get_executor();
+    return Ir<ValueType>::build()
+        .with_generated_solver(solver)
+        .with_relaxation_factor(relaxation_factor)
+        .with_criteria(
+            gko::stop::Iteration::build().with_max_iters(iteration).on(exec))
+        .on(exec);
+}
 
 
 }  // namespace solver

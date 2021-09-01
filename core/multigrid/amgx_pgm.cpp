@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/identity.hpp>
 
 
+#include "core/base/utils.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/amgx_pgm_kernels.hpp"
@@ -81,14 +82,13 @@ void AmgxPgm<ValueType, IndexType>::generate()
     Array<IndexType> intermediate_agg(this->get_executor(),
                                       parameters_.deterministic * num_rows);
     // Only support csr matrix currently.
-    const matrix_type *amgxpgm_op = nullptr;
-    // Store the csr matrix if needed
-    auto amgxpgm_op_unique_ptr = matrix_type::create(exec);
-    amgxpgm_op = dynamic_cast<const matrix_type *>(system_matrix_.get());
-    if (!amgxpgm_op) {
-        // if original matrix is not csr, converting it to csr.
-        as<ConvertibleTo<matrix_type>>(this->system_matrix_.get())
-            ->convert_to(amgxpgm_op_unique_ptr.get());
+    const matrix_type *amgxpgm_op =
+        dynamic_cast<const matrix_type *>(system_matrix_.get());
+    std::shared_ptr<const matrix_type> amgxpgm_op_unique_ptr{};
+    // If system matrix is not csr or need sorting, generate the csr.
+    if (!parameters_.skip_sorting || !amgxpgm_op) {
+        amgxpgm_op_unique_ptr = convert_to_with_sorting<matrix_type>(
+            exec, system_matrix_, parameters_.skip_sorting);
         amgxpgm_op = amgxpgm_op_unique_ptr.get();
     }
 

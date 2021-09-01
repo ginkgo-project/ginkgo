@@ -139,6 +139,18 @@ public:
          * different depending on the execution ordering.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(deterministic, false);
+
+        /**
+         * The `system_matrix`, which will be given to this factory, must be
+         * sorted (first by row, then by column) in order for the algorithm
+         * to work. If it is known that the matrix will be sorted, this
+         * parameter can be set to `true` to skip the sorting (therefore,
+         * shortening the runtime).
+         * However, if it is unknown or if the matrix is known to be not sorted,
+         * it must remain `false`, otherwise, this multigrid_level might be
+         * incorrect.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(AmgxPgm, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

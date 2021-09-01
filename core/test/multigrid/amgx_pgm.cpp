@@ -64,6 +64,7 @@ protected:
                               .with_max_iterations(2u)
                               .with_max_unassigned_ratio(0.1)
                               .with_deterministic(true)
+                              .with_skip_sorting(true)
                               .on(exec))
 
     {}
@@ -89,6 +90,7 @@ TYPED_TEST(AmgxPgmFactory, DefaultSetting)
     ASSERT_EQ(factory->get_parameters().max_iterations, 15u);
     ASSERT_EQ(factory->get_parameters().max_unassigned_ratio, 0.05);
     ASSERT_EQ(factory->get_parameters().deterministic, false);
+    ASSERT_EQ(factory->get_parameters().skip_sorting, false);
 }
 
 
@@ -108,6 +110,12 @@ TYPED_TEST(AmgxPgmFactory, SetMaxUnassignedPercentage)
 TYPED_TEST(AmgxPgmFactory, SetDeterministic)
 {
     ASSERT_EQ(this->amgxpgm_factory->get_parameters().deterministic, true);
+}
+
+
+TYPED_TEST(AmgxPgmFactory, SetSkipSorting)
+{
+    ASSERT_EQ(this->amgxpgm_factory->get_parameters().skip_sorting, true);
 }
 
 

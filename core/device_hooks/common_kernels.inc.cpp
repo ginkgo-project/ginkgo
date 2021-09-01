@@ -68,6 +68,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/idr_kernels.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/lower_trs_kernels.hpp"
+#include "core/solver/multigrid_kernels.hpp"
 #include "core/solver/upper_trs_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
 #include "core/stop/residual_norm_kernels.hpp"
@@ -100,6 +101,7 @@ template <typename IndexType>
 GKO_DECLARE_FILL_ARRAY_KERNEL(IndexType)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
+template GKO_DECLARE_FILL_ARRAY_KERNEL(bool);
 
 template <typename IndexType>
 GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL(IndexType)
@@ -643,6 +645,29 @@ GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 
 
 }  // namespace ir
+
+
+namespace multigrid {
+
+
+template <typename ValueType>
+GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_MULTIGRID_KCYCLE_CHECK_STOP_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
+    GKO_DECLARE_MULTIGRID_KCYCLE_CHECK_STOP_KERNEL);
+
+
+}  // namespace multigrid
 
 
 namespace sparsity_csr {
