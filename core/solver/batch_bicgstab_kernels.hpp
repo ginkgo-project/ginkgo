@@ -52,6 +52,7 @@ namespace batch_bicgstab {
  */
 template <typename RealType>
 struct BatchBicgstabOptions {
+    int num_sh_vecs;
     preconditioner::batch::type preconditioner;
     int max_its;
     RealType residual_tol;

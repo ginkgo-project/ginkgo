@@ -178,7 +178,7 @@ __device__ __forceinline__ void update_x_middle(
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
-__global__ void apply_kernel(const int shared_gap, const int max_iter,
+__global__ void apply_kernel(const int num_sh_vecs, const int shared_gap, const int max_iter,
                              const gko::remove_complex<ValueType> tol,
                              LogType logger, PrecType prec_shared,
                              const BatchMatrixType a,
@@ -197,7 +197,7 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
 #if GKO_CUDA_BATCH_HAVE_NO_SHMEM
         assert(workspace != nullptr);
-        ValueType *const r_sh = workspace + ibatch * (shared_gap * 10);
+        ValueType *const r_sh = workspace + ibatch * (shared_gap * 11);
         ValueType *const r_hat_sh = r_sh + shared_gap;
         ValueType *const p_sh = r_hat_sh + shared_gap;
         ValueType *const p_hat_sh = p_sh + shared_gap;
@@ -208,8 +208,6 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
         ValueType *const x_sh = t_sh + shared_gap;
         ValueType *const prec_work_sh = x_sh + shared_gap;
 #else
-
-#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         extern __shared__ char local_mem_sh[];
         ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
         ValueType* const r_hat_sh = r_sh + shared_gap;
@@ -221,19 +219,6 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
         ValueType* const t_sh = s_hat_sh + shared_gap;
         ValueType* const x_sh = t_sh + shared_gap;
         ValueType* const prec_work_sh = x_sh + shared_gap;
-#else
-        __shared__ ValueType r_sh[batch_config<ValueType>::max_num_rows];
-        __shared__ ValueType r_hat_sh[batch_config<ValueType>::max_num_rows];
-        __shared__ ValueType p_sh[batch_config<ValueType>::max_num_rows];
-        __shared__ ValueType p_hat_sh[batch_config<ValueType>::max_num_rows];
-        __shared__ ValueType s_sh[batch_config<ValueType>::max_num_rows];
-        __shared__ ValueType s_hat_sh[batch_config<ValueType>::max_num_rows];
-        __shared__ ValueType v_sh[batch_config<ValueType>::max_num_rows];
-        __shared__ ValueType t_sh[batch_config<ValueType>::max_num_rows];
-        __shared__ ValueType x_sh[batch_config<ValueType>::max_num_rows];
-        __shared__ ValueType
-            prec_work_sh[batch_config<ValueType>::max_num_rows];
-#endif
 #endif
         __shared__ UninitializedArray<ValueType, 1> rho_old_sh;
         __shared__ UninitializedArray<ValueType, 1> rho_new_sh;
