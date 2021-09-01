@@ -746,18 +746,6 @@ public:
     virtual std::shared_ptr<const Executor> get_master() const noexcept = 0;
 
     /**
-     * Returns the sub-executor of this Executor.
-     * @return the sub-executor of this Executor.
-     */
-    virtual std::shared_ptr<Executor> get_sub_executor() noexcept = 0;
-
-    /**
-     * @copydoc get_sub_executor
-     */
-    virtual std::shared_ptr<const Executor> get_sub_executor()
-        const noexcept = 0;
-
-    /**
      * Synchronize the operations launched on the executor with its master.
      */
     virtual void synchronize() const = 0;
