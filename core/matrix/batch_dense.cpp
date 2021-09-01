@@ -85,41 +85,6 @@ GKO_REGISTER_OPERATION(conj_transpose, batch_dense::conj_transpose);
 }  // namespace batch_dense
 
 
-namespace {
-
-
-template <typename ValueType, typename IndexType, typename MatrixType,
-          typename OperationType>
-inline void conversion_helper(BatchCsr<ValueType, IndexType> *result,
-                              MatrixType *source, const OperationType &op)
-{
-    auto exec = source->get_executor();
-
-    auto batch_size = source->get_size();
-    Array<size_type> num_stored_nonzeros{exec->get_master()};
-    gko::dim<2> main_size = dim<2>{};
-    if (!batch_size.stores_equal_sizes()) {
-        GKO_NOT_IMPLEMENTED;
-    } else {
-        num_stored_nonzeros = Array<size_type>{exec->get_master(),
-                                               source->get_num_batch_entries()};
-
-        exec->get_master()->run(batch_dense::make_count_nonzeros(
-            source, num_stored_nonzeros.get_data()));
-        main_size = source->get_size().at(0);
-    }
-    size_type num_nnz =
-        num_stored_nonzeros.get_data() ? num_stored_nonzeros.get_data()[0] : 0;
-    auto tmp = BatchCsr<ValueType, IndexType>::create(
-        exec, source->get_num_batch_entries(), main_size, num_nnz);
-    exec->run(op(source, tmp.get()));
-    tmp->move_to(result);
-}
-
-
-}  // namespace
-
-
 template <typename ValueType>
 void BatchDense<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
 {
@@ -249,9 +214,25 @@ void BatchDense<ValueType>::move_to(
 template <typename ValueType>
 void BatchDense<ValueType>::convert_to(BatchCsr<ValueType, int32> *result) const
 {
-    conversion_helper(result, this,
-                      batch_dense::template make_convert_to_batch_csr<
-                          const BatchDense<ValueType> *&, decltype(result)>);
+    auto exec = this->get_executor();
+
+    auto batch_size = this->get_size();
+    if (!batch_size.stores_equal_sizes()) {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    auto num_stored_nonzeros =
+        Array<size_type>{exec->get_master(), this->get_num_batch_entries()};
+
+    exec->get_master()->run(
+        batch_dense::make_count_nonzeros(this, num_stored_nonzeros.get_data()));
+    gko::dim<2> main_size = this->get_size().at(0);
+    const size_type num_nnz =
+        num_stored_nonzeros.get_data() ? num_stored_nonzeros.get_data()[0] : 0;
+    auto tmp = BatchCsr<ValueType, int32>::create(
+        exec, this->get_num_batch_entries(), main_size, num_nnz);
+    exec->run(batch_dense::make_convert_to_batch_csr(this, tmp.get()));
+    tmp->move_to(result);
 }
 
 

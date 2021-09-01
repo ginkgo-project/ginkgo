@@ -50,7 +50,7 @@ namespace cuda {
 
 constexpr int default_block_size = 128;
 
-#include "common/log/batch_logger.hpp.inc"
+#include "common/cuda_hip/log/batch_logger.hpp.inc"
 
 }  // namespace cuda
 }  // namespace kernels
