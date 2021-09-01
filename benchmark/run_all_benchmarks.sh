@@ -62,6 +62,11 @@ if [ ! "${ELL_IMBALANCE_LIMIT}" ]; then
     print_default ELL_IMBALANCE_LIMIT
 fi
 
+if [ ! "${NUM_SHARED_VECS}" ]; then
+    NUM_SHARED_VECS="-1"
+    echo "NUM_SHARED_VECS environment variable not set - assuming \"${NUM_SHARED_VECS}\"" 1>&2
+fi
+
 if [ ! "${BATCH_SOLVERS}" ]; then
     BATCH_SOLVERS="richardson"
     echo "BATCH_SOLVERS    environment variable not set - assuming \"${BATCH_SOLVERS}\"" 1>&2
@@ -401,6 +406,7 @@ run_batch_solver_benchmarks() {
                     --num_duplications="${NUM_BATCH_DUP}" "${BATCH_SCALING_STR}" \
                     "${PRINT_RES_ITER_STR}" \
                     --num_batches="${NUM_BATCH_ENTRIES}" "${SS_STR}" \
+                    --num_shared_vecs="${NUM_SHARED_VECS}" \
                     --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
                     ${SOLVERS_RHS_FLAG} ${DETAILED_STR} ${SOLVERS_INITIAL_GUESS_FLAG} \
                     --gpu_timer=${GPU_TIMER} \
