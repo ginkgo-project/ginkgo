@@ -132,16 +132,6 @@ struct dim {
     }
 
     /**
-     * Overload ostream operator to print the dimension to the output stream.
-     */
-    friend GKO_ATTRIBUTES std::ostream &operator<<(std::ostream &os,
-                                                   const dim &out_dim)
-    {
-        os << " ( " << out_dim.first_ << " , " << out_dim.rest_ << " ) ";
-        return os;
-    }
-
-    /**
      * Checks if two dim objects are equal.
      *
      * @param x  first object
