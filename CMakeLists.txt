@@ -98,6 +98,14 @@ option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
 option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) to the installation RPATH." ON)
 option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
 
+#Batch Ginkgo options:
+option(GINKGO_CUDA_BATCH_USE_NO_SHMEM "Use no shared memory in the batch solver kernels (Might be necessary for large matrices)" OFF)
+if(GINKGO_CUDA_BATCH_USE_NO_SHMEM)
+    set(GINKGO_CUDA_BATCH_HAVE_NO_SHMEM 1)
+else()
+    set(GINKGO_CUDA_BATCH_HAVE_NO_SHMEM 0)
+endif()
+
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
 # Use ccache as compilation launcher
@@ -236,6 +244,9 @@ if(MSVC)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
     endif()
 endif()
+
+configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/batch_config.hpp.in
+    ${Ginkgo_BINARY_DIR}/include/ginkgo/batch_config.hpp @ONLY)
 
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
