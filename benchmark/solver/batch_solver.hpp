@@ -496,7 +496,8 @@ void solve_system(const std::string &sol_name, const std::string &prec_name,
         // timed run
         auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
         auto apply_timer = get_timer(exec, FLAGS_gpu_timer);
-        for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
+        const int num_repeats = read_num_repetitions(FLAGS_repetitions);
+        for (int i = 0; i < num_repeats; i++) {
             auto x_clone = clone(x);
             std::shared_ptr<const gko::BatchLinOp> mat_clone =
                 clone(system_matrix);
@@ -518,7 +519,7 @@ void solve_system(const std::string &sol_name, const std::string &prec_name,
             solver->apply(lend(b_clone), lend(x_clone));
             apply_timer->toc();
 
-            if (b->get_size().at(0)[1] == 1 && i == FLAGS_repetitions - 1 &&
+            if (b->get_size().at(0)[1] == 1 && i == num_repeats - 1 &&
                 !FLAGS_overhead &&
                 (FLAGS_print_residuals_and_iters || FLAGS_detailed)) {
                 auto residual = compute_batch_residual_norm(
@@ -553,7 +554,7 @@ int read_data_and_launch_benchmark(int argc, char *argv[],
                                    const bool io_from_std)
 {
     // Set the default repetitions = 1.
-    FLAGS_repetitions = 1;
+    FLAGS_repetitions = "1";
     std::string header =
         "A benchmark for measuring performance of Ginkgo's batch solvers.\n";
     std::string format =
