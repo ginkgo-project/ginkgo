@@ -50,13 +50,6 @@ namespace kernels {
 namespace cuda {
 
 
-#if GKO_CUDA_BATCH_HAVE_NO_SHMEM
-#define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 0
-#else
-#define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 1
-#endif
-
-
 constexpr int default_block_size = 128;
 constexpr int sm_multiplier = 4;
 
@@ -119,26 +112,20 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
                   "Need at least two warps per block!");
 
     int shared_size =
-        // #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         gko::kernels::batch_gmres::local_memory_requirement<ValueType>(
             a.num_rows, b.num_rhs, opts.restart_num);
     auto nrhs = b.num_rhs;
     auto nrows = a.num_rows;
     auto restart = opts.restart_num;
-    int shared_gap = 5 * nrows * nrhs + 3 * restart * nrhs +
+    int shared_gap = 6 * nrows * nrhs + 3 * restart * nrhs +
                      (restart + 1) * nrhs + restart * (restart + 1) * nrhs +
                      nrows * (restart + 1) * nrhs;
-    // #else
-    // 0;
-    // #endif
     auto workspace = gko::Array<ValueType>(exec);
 
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         shared_size +=
             BatchIdentity<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
             sizeof(ValueType);
-#endif
 #if GKO_CUDA_BATCH_HAVE_NO_SHMEM
         workspace = gko::Array<ValueType>(
             exec,
@@ -151,13 +138,9 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
         }
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
-#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         shared_size +=
             BatchJacobi<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
             sizeof(ValueType);
-#else
-        shared_size += a.num_rows * sizeof(ValueType);
-#endif
 #if GKO_CUDA_BATCH_HAVE_NO_SHMEM
         workspace = gko::Array<ValueType>(
             exec,
