@@ -37,15 +37,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/config.hpp>
 
 
-#if GKO_HAVE_MPI
-
-
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#if GKO_HAVE_MPI
 
 
 namespace gko {
@@ -193,6 +193,17 @@ private:
 
 
 }  // namespace distributed
+}  // namespace gko
+
+
+#else
+
+
+namespace gko {
+namespace distributed {
+template <typename ValueType>
+class Vector;
+}
 }  // namespace gko
 
 

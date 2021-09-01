@@ -131,6 +131,16 @@ private:
 }  // namespace gko
 
 
-#endif
+#else
 
+
+namespace gko {
+namespace distributed {
+template <typename ValueType, typename IndexType>
+class BlockApprox;
+}
+}  // namespace gko
+
+
+#endif  // GKO_HAVE_MPI
 #endif

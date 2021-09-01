@@ -68,5 +68,16 @@ private:
 }  // namespace distributed
 }  // namespace gko
 
+
+#else
+
+
+namespace gko {
+namespace distributed {
+class DistributedBase;
+}
+}  // namespace gko
+
+
 #endif  // GKO_HAVE_MPI
 #endif  // GKO_PUBLIC_CORE_DISTRIBUTED_MATRIX_HPP_
