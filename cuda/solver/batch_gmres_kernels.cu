@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_gmres_kernels.hpp"
 
 
+#include <ginkgo/batch_config.hpp>
 #include <ginkgo/core/base/math.hpp>
 
 
@@ -49,13 +50,13 @@ namespace kernels {
 namespace cuda {
 
 
-#define GKO_CUDA_BATCH_USE_NO_SHARED_MEM 1
-
-#if GKO_CUDA_BATCH_USE_NO_SHARED_MEM
+#if GKO_CUDA_BATCH_HAVE_NO_SHMEM
 #define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 0
 #else
 #define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 1
 #endif
+
+
 constexpr int default_block_size = 128;
 constexpr int sm_multiplier = 4;
 
@@ -83,7 +84,7 @@ namespace batch_gmres {
 template <typename T>
 using BatchGmresOptions = gko::kernels::batch_gmres::BatchGmresOptions<T>;
 
-#if GKO_CUDA_BATCH_USE_NO_SHARED_MEM
+#if GKO_CUDA_BATCH_HAVE_NO_SHMEM
 
 #define BATCH_GMRES_KERNEL_LAUNCH(_stoppertype, _prectype)                    \
     apply_kernel<stop::_stoppertype<ValueType>>                               \
@@ -138,10 +139,10 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
             BatchIdentity<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
             sizeof(ValueType);
 #endif
-#if GKO_CUDA_BATCH_USE_NO_SHARED_MEM
+#if GKO_CUDA_BATCH_HAVE_NO_SHMEM
         workspace = gko::Array<ValueType>(
-            exec, static_cast<size_type>(shared_size * nbatch * 12 /
-                                         sizeof(ValueType)));
+            exec,
+            static_cast<size_type>(shared_size * nbatch / sizeof(ValueType)));
 #endif
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             BATCH_GMRES_KERNEL_LAUNCH(SimpleAbsResidual, BatchIdentity);
@@ -157,10 +158,10 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
 #else
         shared_size += a.num_rows * sizeof(ValueType);
 #endif
-#if GKO_CUDA_BATCH_USE_NO_SHARED_MEM
+#if GKO_CUDA_BATCH_HAVE_NO_SHMEM
         workspace = gko::Array<ValueType>(
-            exec, static_cast<size_type>(shared_size * nbatch * 12 /
-                                         sizeof(ValueType)));
+            exec,
+            static_cast<size_type>(shared_size * nbatch / sizeof(ValueType)));
 #endif
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             BATCH_GMRES_KERNEL_LAUNCH(SimpleAbsResidual, BatchJacobi);
