@@ -195,9 +195,9 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
     auto warp_grp = group::tiled_partition<tile_size>(thread_block);
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
-#if GKO_CUDA_BATCH_USE_NO_SHARED_MEM
+#if GKO_CUDA_BATCH_HAVE_NO_SHMEM
         assert(workspace != nullptr);
-        ValueType *const r_sh = workspace + ibatch*(shared_gap*10);
+        ValueType *const r_sh = workspace + ibatch * (shared_gap * 10);
         ValueType *const r_hat_sh = r_sh + shared_gap;
         ValueType *const p_sh = r_hat_sh + shared_gap;
         ValueType *const p_hat_sh = p_sh + shared_gap;
@@ -209,7 +209,7 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
         ValueType *const prec_work_sh = x_sh + shared_gap;
 #else
 
-#ifdef GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
+#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         extern __shared__ char local_mem_sh[];
         ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
         ValueType* const r_hat_sh = r_sh + shared_gap;
