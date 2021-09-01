@@ -206,6 +206,7 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 }
 
 
+template <typename ValueType>
 template <typename VectorType>
 void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                      VectorType* dense_x,

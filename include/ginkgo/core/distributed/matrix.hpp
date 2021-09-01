@@ -54,10 +54,6 @@ namespace gko {
 namespace distributed {
 
 
-template <typename ValueType, typename LocalIndexType>
-class Matrix;
-
-
 template <typename ValueType = double, typename LocalIndexType = int32>
 class Matrix : public EnableLinOp<Matrix<ValueType, LocalIndexType>>,
                public EnableCreateMethod<Matrix<ValueType, LocalIndexType>>,

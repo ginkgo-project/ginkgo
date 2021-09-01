@@ -92,22 +92,22 @@ public:
     /**
      * Scales the matrix with a scalar (aka: BLAS scal).
      *
-     * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
-     *               by alpha. If it is a Dense row vector of values,
-     *               then i-th column of the matrix is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of columns of the matrix).
+     * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is
+     * scaled by alpha. If it is a Dense row vector of values, then i-th
+     * column of the matrix is scaled with the i-th element of alpha (the
+     * number of columns of alpha has to match the number of columns of the
+     * matrix).
      */
     void scale(const LinOp* alpha);
 
     /**
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
      *
-     * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
-     *               by alpha. If it is a Dense row vector of values,
-     *               then i-th column of the matrix is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of columns of the matrix).
+     * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is
+     * scaled by alpha. If it is a Dense row vector of values, then i-th
+     * column of the matrix is scaled with the i-th element of alpha (the
+     * number of columns of alpha has to match the number of columns of the
+     * matrix).
      * @param b  a matrix of the same dimension as this
      */
     void add_scaled(const LinOp* alpha, const LinOp* b);
@@ -117,8 +117,8 @@ public:
      *
      * @param b  a Dense matrix of same dimension as this
      * @param result  a Dense row vector, used to store the dot product
-     *                (the number of column in the vector must match the number
-     *                of columns of this)
+     *                (the number of column in the vector must match the
+     * number of columns of this)
      */
     void compute_dot(const LinOp* b, LinOp* result) const;
 
@@ -127,8 +127,8 @@ public:
      *
      * @param b  a Dense matrix of same dimension as this
      * @param result  a Dense row vector, used to store the dot product
-     *                (the number of column in the vector must match the number
-     *                of columns of this)
+     *                (the number of column in the vector must match the
+     * number of columns of this)
      */
     void compute_conj_dot(const LinOp* b, LinOp* result) const;
 
@@ -136,8 +136,8 @@ public:
      * Computes the Euclidian (L^2) norm of this matrix.
      *
      * @param result  a Dense row vector, used to store the norm
-     *                (the number of columns in the vector must match the number
-     *                of columns of this)
+     *                (the number of columns in the vector must match the
+     * number of columns of this)
      */
     void compute_norm2(LinOp* result) const;
 

@@ -56,6 +56,7 @@ void Identity<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 }
 
 
+template <typename ValueType>
 template <typename VectorType>
 void Identity<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                            VectorType* dense_x) const

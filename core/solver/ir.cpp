@@ -176,6 +176,7 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
 }
 
 
+template <typename ValueType>
 template <typename VectorType>
 void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                      VectorType* dense_x,

@@ -117,7 +117,7 @@ ValueType Array<ValueType>::reduce(ValueType init_value) const
 
 #define GKO_DECLARE_ARRAY_FILL(_type) void Array<_type>::fill(const _type value)
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_FILL);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_AND_BOOL(GKO_DECLARE_ARRAY_FILL);
 
 
 template <typename ValueType>
