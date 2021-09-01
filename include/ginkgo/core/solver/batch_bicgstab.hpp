@@ -109,6 +109,11 @@ public:
             preconditioner, preconditioner::batch::type::none);
 
         /**
+         * Number of shared vectors.
+         */
+        int GKO_FACTORY_PARAMETER_SCALAR(num_shared_vectors, 0);
+
+        /**
          * Maximum number iterations allowed.
          */
         int GKO_FACTORY_PARAMETER_SCALAR(max_iterations, 100);
