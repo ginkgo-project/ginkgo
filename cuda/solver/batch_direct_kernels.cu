@@ -45,7 +45,7 @@ namespace batch_direct {
 
 
 constexpr int default_block_size = 256;
-#include "common/solver/batch_direct_kernels.hpp.inc"
+#include "common/cuda_hip/solver/batch_direct_kernels.hpp.inc"
 
 
 namespace {

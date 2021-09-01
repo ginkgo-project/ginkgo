@@ -597,6 +597,22 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
 
 
 /**
+ * Get an integer iteration count from a string, if possible.
+ *
+ * @throw runtime_error If conversion to integer fails.
+ */
+int read_num_repetitions(const std::string &flags_repetitions)
+{
+    std::stringstream sstr(flags_repetitions);
+    int repeats = -1;
+    if (!sstr >> repeats) {
+        throw std::runtime_error("Invalid number of repititions!");
+    }
+    return repeats;
+}
+
+
+/**
  * A class for controlling the number warmup and timed iterations.
  *
  * The behavior is determined by the following flags

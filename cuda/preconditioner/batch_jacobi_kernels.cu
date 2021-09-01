@@ -57,8 +57,8 @@ constexpr int default_block_size = 128;
 // constexpr int sm_multiplier = 4;
 
 
-#include "common/components/uninitialized_array.hpp.inc"
-#include "common/preconditioner/batch_jacobi.hpp.inc"
+#include "common/cuda_hip/components/uninitialized_array.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_jacobi.hpp.inc"
 
 
 template <typename ValueType>
