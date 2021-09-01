@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,15 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
+#ifndef GKO_INCLUDE_BATCH_CONFIG_H
+#define GKO_INCLUDE_BATCH_CONFIG_H
 
 
-#include <ginkgo/batch_config.hpp>
-#include <ginkgo/config.hpp>
+/* Should we compile with shared_memory for Batched Ginkgo? */
+// clang-format off
+#define GKO_CUDA_BATCH_HAVE_NO_SHMEM @GINKGO_CUDA_BATCH_HAVE_NO_SHMEM@
+// clang-format on
 
 
-#PUBLIC_HEADER_PLACE_HOLDER
-
-
-#endif  // GKO_GINKGO_HPP_
+#endif  // GKO_INCLUDE_BATCH_CONFIG_H
