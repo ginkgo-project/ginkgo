@@ -679,6 +679,7 @@ inline void batch_entry_idr_impl(
     Array<unsigned char>& local_space)
 {
     using real_type = typename gko::remove_complex<ValueType>;
+    constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
@@ -703,14 +704,15 @@ inline void batch_entry_idr_impl(
     ValueType* const prec_work = M + subspace_dim * subspace_dim * nrhs;
     ValueType* const temp_for_single_rhs =
         prec_work + PrecType::dynamic_work_size(nrows, a.num_nnz);
-    ValueType* const omega = temp_for_single_rhs + nrows;
-    ValueType* const temp1 = omega + nrhs;
-    ValueType* const temp2 = temp1 + nrhs;
-    real_type* const norms_t = reinterpret_cast<real_type*>(temp2 + nrhs);
-    real_type* const norms_r = norms_t + nrhs;
-    real_type* const norms_rhs = norms_r + nrhs;
-    real_type* const norms_res = norms_rhs + nrhs;
-    real_type* const norms_tmp = norms_res + nrhs;
+    real_type* const norms_tmp =
+        reinterpret_cast<real_type*>(temp_for_single_rhs + nrows * nrhs);
+    ValueType omega[max_nrhs];
+    ValueType temp1[max_nrhs];
+    ValueType temp2[max_nrhs];
+    real_type norms_t[max_nrhs];
+    real_type norms_r[max_nrhs];
+    real_type norms_rhs[max_nrhs];
+    real_type norms_res[max_nrhs];
 
     uint32 converged = 0;
 
