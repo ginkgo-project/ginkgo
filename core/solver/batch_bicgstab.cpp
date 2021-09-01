@@ -120,8 +120,9 @@ void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp* b,
 
     const kernels::batch_bicgstab::BatchBicgstabOptions<
         remove_complex<ValueType>>
-        opts{parameters_.preconditioner, parameters_.max_iterations,
-             parameters_.residual_tol, parameters_.tolerance_type};
+        opts{parameters_.num_shared_vectors, parameters_.preconditioner,
+             parameters_.max_iterations, parameters_.residual_tol,
+             parameters_.tolerance_type};
 
     log::BatchLogData<ValueType> logdata;
 
