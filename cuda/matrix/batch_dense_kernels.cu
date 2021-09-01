@@ -64,8 +64,8 @@ constexpr auto default_block_size = 256;
 constexpr int sm_multiplier = 4;
 
 
-#include "common/matrix/batch_dense_kernels.hpp.inc"
-#include "common/matrix/batch_vector_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
 
 
 template <typename ValueType>
