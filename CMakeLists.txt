@@ -112,6 +112,14 @@ if (MINGW OR CYGWIN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
 endif()
 
+#Batch Ginkgo options:
+option(GINKGO_CUDA_BATCH_USE_NO_SHMEM "Use no shared memory in the batch solver kernels (Might be necessary for large matrices)" OFF)
+if(GINKGO_CUDA_BATCH_USE_NO_SHMEM)
+    set(GINKGO_CUDA_BATCH_HAVE_NO_SHMEM 1)
+else()
+    set(GINKGO_CUDA_BATCH_HAVE_NO_SHMEM 0)
+endif()
+
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
 # Use ccache as compilation launcher
@@ -227,6 +235,9 @@ if(MSVC)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
     endif()
 endif()
+
+configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/batch_config.hpp.in
+    ${Ginkgo_BINARY_DIR}/include/ginkgo/batch_config.hpp @ONLY)
 
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
