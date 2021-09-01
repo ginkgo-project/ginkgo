@@ -58,11 +58,11 @@ constexpr int default_block_size = 128;
 constexpr int sm_multiplier = 4;
 
 
-#include "common/components/uninitialized_array.hpp.inc"
+#include "common/cuda_hip/components/uninitialized_array.hpp.inc"
 // include all depedencies (note: do not remove this comment)
-#include "common/components/reduction.hpp.inc"
-#include "common/matrix/batch_dense_kernels.hpp.inc"
-#include "common/stop/batch_criteria.hpp.inc"
+#include "common/cuda_hip/components/reduction.hpp.inc"
+#include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
+#include "common/cuda_hip/stop/batch_criteria.hpp.inc"
 
 
 }  // namespace cuda

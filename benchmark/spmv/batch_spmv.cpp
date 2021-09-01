@@ -132,6 +132,8 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             exec->synchronize();
         }
 
+        const int num_repeats = read_num_repetitions(FLAGS_repetitions);
+
         // tuning run
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
         auto &format_case = spmv_case[format_name];
@@ -156,7 +158,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             // variable is used.
             gko::_tuned_value = val;
             auto tuning_timer = get_timer(exec, FLAGS_gpu_timer);
-            for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
+            for (int i = 0; i < num_repeats; i++) {
                 auto x_clone = clone(x);
                 exec->synchronize();
                 tuning_timer->tic();
@@ -174,7 +176,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
 
         // timed run
         auto timer = get_timer(exec, FLAGS_gpu_timer);
-        for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
+        for (int i = 0; i < num_repeats; i++) {
             auto x_clone = clone(x);
             exec->synchronize();
             timer->tic();
@@ -236,6 +238,8 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             exec->synchronize();
         }
 
+        const int num_repeats = read_num_repetitions(FLAGS_repetitions);
+
         // tuning run
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
         auto &format_case = spmv_case[format_name];
@@ -260,7 +264,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             // variable is used.
             gko::_tuned_value = val;
             auto tuning_timer = get_timer(exec, FLAGS_gpu_timer);
-            for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
+            for (int i = 0; i < num_repeats; i++) {
                 auto x_clone = clone(x);
                 exec->synchronize();
                 tuning_timer->tic();
@@ -278,7 +282,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
 
         // timed run
         auto timer = get_timer(exec, FLAGS_gpu_timer);
-        for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
+        for (int i = 0; i < num_repeats; i++) {
             auto x_clone = clone(x);
             exec->synchronize();
             timer->tic();
