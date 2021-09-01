@@ -49,11 +49,6 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 
-#if GKO_CUDA_BATCH_HAVE_NO_SHMEM
-#define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 0
-#else
-#define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 1
-#endif
 
 constexpr int default_block_size = 256;
 constexpr int sm_multiplier = 4;
@@ -86,20 +81,20 @@ using BatchBicgstabOptions =
 
 #if GKO_CUDA_BATCH_HAVE_NO_SHMEM
 
-#define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)                 \
-    apply_kernel<stop::_stoppertype<ValueType>>                               \
-        <<<nbatch, default_block_size>>>(shared_gap, opts.max_its,            \
-                                         opts.residual_tol, logger,           \
-                                         _prectype<ValueType>(), a, b.values, \
-                                         x.values, workspace.get_data())
-#else
-
 #define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)    \
     apply_kernel<stop::_stoppertype<ValueType>>                  \
-        <<<nbatch, default_block_size, shared_size>>>(           \
+        <<<nbatch, default_block_size, partial_shared_size>>>(   \
             shared_gap, opts.max_its, opts.residual_tol, logger, \
             _prectype<ValueType>(), a, b.values, x.values,       \
             workspace.get_data())
+#else
+
+#define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)                 \
+    apply_kernel<stop::_stoppertype<ValueType>>                               \
+        <<<nbatch, default_block_size, shared_size>>>(                        \
+            opts.num_sh_vecs, shared_gap, opts.max_its, opts.residual_tol,    \
+            logger, _prectype<ValueType>(), a, b.stride, b.num_rhs, b.values, \
+            x.values)
 #endif
 
 template <typename BatchMatrixType, typename LogType, typename ValueType>
@@ -115,29 +110,18 @@ static void apply_impl(
     const int shared_gap = ((a.num_rows - 1) / 32 + 1) * 32;
     static_assert(default_block_size >= 2 * config::warp_size,
                   "Need at least two warps!");
+    int partial_shared_size = 0;
 
     int shared_size =
-#if GKO_CUDA_BATCH_HAVE_NO_SHMEM
         gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
             shared_gap, b.num_rhs);
-#else
-
-#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
-        gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
-            shared_gap, b.num_rhs);
-#else
-        0;
-#endif
-
-#endif
     auto workspace = gko::Array<ValueType>(exec);
 
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         shared_size +=
             BatchIdentity<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
             sizeof(ValueType);
-#endif
+
 #if GKO_CUDA_BATCH_HAVE_NO_SHMEM
         workspace = gko::Array<ValueType>(
             exec,
@@ -150,13 +134,10 @@ static void apply_impl(
         }
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
-#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         shared_size +=
             BatchJacobi<ValueType>::dynamic_work_size(shared_gap, a.num_nnz) *
             sizeof(ValueType);
-#else
         shared_size += shared_gap * sizeof(ValueType);
-#endif
 #if GKO_CUDA_BATCH_HAVE_NO_SHMEM
         workspace = gko::Array<ValueType>(
             exec,

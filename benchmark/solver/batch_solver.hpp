@@ -119,6 +119,7 @@ DEFINE_bool(overhead, false,
             "If set, uses dummy data to benchmark Ginkgo overhead");
 
 
+DEFINE_int32(num_shared_vecs, -1, "The number of vectors in shared memory");
 DEFINE_uint32(num_duplications, 1, "The number of duplications");
 DEFINE_uint32(num_batches, 1, "The number of batch entries");
 DEFINE_string(batch_scaling, "none", "Whether to use scaled matrices");
@@ -298,6 +299,7 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
     } else if (description == "bicgstab") {
         using Solver = gko::solver::BatchBicgstab<etype>;
         return Solver::build()
+            .with_num_shared_vectors(static_cast<int>(FLAGS_num_shared_vecs))
             .with_max_iterations(static_cast<int>(FLAGS_max_iters))
             .with_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
