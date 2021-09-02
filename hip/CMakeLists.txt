@@ -206,13 +206,11 @@ else()
     set(GKO_HIP_JACOBI_MAX_BLOCK_SIZE 64)
 endif()
 if(GINKGO_JACOBI_FULL_OPTIMIZATIONS)
-    # keep in sync with jacobi_common.hpp
     set(GKO_HIP_JACOBI_BLOCK_SIZES)
     foreach(blocksize RANGE 1 ${GKO_HIP_JACOBI_MAX_BLOCK_SIZE})
         list(APPEND GKO_HIP_JACOBI_BLOCK_SIZES ${blocksize})
     endforeach()
 else()
-    # keep in sync with jacobi_common.hpp
     set(GKO_HIP_JACOBI_BLOCK_SIZES 1 2 4 8 13 16 32 ${GKO_HIP_JACOBI_MAX_BLOCK_SIZE})
     list(REMOVE_DUPLICATES GKO_HIP_JACOBI_BLOCK_SIZES)
 endif()
@@ -231,6 +229,8 @@ foreach(GKO_JACOBI_BLOCK_SIZE IN LISTS GKO_HIP_JACOBI_BLOCK_SIZES)
         ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
 endforeach()
+string(REPLACE ";" "," GKO_HIP_JACOBI_BLOCK_SIZES_CODE "${GKO_HIP_JACOBI_BLOCK_SIZES}")
+configure_file(preconditioner/jacobi_common.hip.hpp.in preconditioner/jacobi_common.hip.hpp)
 
 set(GINKGO_HIP_NVCC_ARCH "")
 if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
@@ -286,6 +286,7 @@ target_include_directories(ginkgo_hip
     PUBLIC
         ${HIP_INCLUDE_DIRS}
     PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}/.. # for generated headers like jacobi_common.hip.hpp
         ${GINKGO_HIP_THRUST_PATH}
         ${HIPBLAS_INCLUDE_DIRS}
         ${hiprand_INCLUDE_DIRS}
