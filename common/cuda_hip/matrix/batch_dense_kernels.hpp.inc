@@ -42,8 +42,8 @@ using BatchEntry = gko::batch_dense::BatchEntry<ValueType>;
  *
  */
 template <typename ValueType>
-__device__ __forceinline__ void scale(const BatchEntry<const ValueType> &alpha,
-                                      const BatchEntry<ValueType> &x)
+__device__ __forceinline__ void scale(const BatchEntry<const ValueType>& alpha,
+                                      const BatchEntry<ValueType>& x)
 {
     const int max_li = x.num_rows * x.num_rhs;
     for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
@@ -75,9 +75,9 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void scale(
 
 
 template <typename ValueType>
-__device__ __forceinline__ void scale(const BatchEntry<const ValueType> &alpha,
-                                      const BatchEntry<ValueType> &x,
-                                      const uint32 &converged)
+__device__ __forceinline__ void scale(const BatchEntry<const ValueType>& alpha,
+                                      const BatchEntry<ValueType>& x,
+                                      const uint32& converged)
 {
     const int max_li = x.num_rows * x.num_rhs;
     for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
@@ -113,9 +113,9 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void scale(
 
 template <typename ValueType>
 __device__ __forceinline__ void add_scaled(
-    const gko::batch_dense::BatchEntry<const ValueType> &alpha,
-    const gko::batch_dense::BatchEntry<const ValueType> &x,
-    const gko::batch_dense::BatchEntry<ValueType> &y)
+    const gko::batch_dense::BatchEntry<const ValueType>& alpha,
+    const gko::batch_dense::BatchEntry<const ValueType>& x,
+    const gko::batch_dense::BatchEntry<ValueType>& y)
 {
     const int max_li = x.num_rows * x.num_rhs;
     for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
@@ -150,9 +150,9 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void add_scaled(
 
 template <typename ValueType>
 __device__ __forceinline__ void add_scaled(
-    const gko::batch_dense::BatchEntry<const ValueType> &alpha,
-    const gko::batch_dense::BatchEntry<const ValueType> &x,
-    const gko::batch_dense::BatchEntry<ValueType> &y, const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& alpha,
+    const gko::batch_dense::BatchEntry<const ValueType>& x,
+    const gko::batch_dense::BatchEntry<ValueType>& y, const uint32& converged)
 {
     const int max_li = x.num_rows * x.num_rhs;
     for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
@@ -193,10 +193,10 @@ namespace {
 
 template <typename ValueType>
 __device__ __forceinline__ void one_norm2(
-    const gko::batch_dense::BatchEntry<const ValueType> &x, const int rhs_index,
-    const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result,
-    gko::kernels::cuda::group::thread_block_tile<config::warp_size>
-        &subwarp_grp)
+    const gko::batch_dense::BatchEntry<const ValueType>& x, const int rhs_index,
+    const gko::batch_dense::BatchEntry<remove_complex<ValueType>>& result,
+    gko::kernels::cuda::group::thread_block_tile<config::warp_size>&
+        subwarp_grp)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     real_type val = zero<real_type>();
@@ -227,8 +227,8 @@ __device__ __forceinline__ void one_norm2(
  */
 template <typename ValueType>
 __device__ __forceinline__ void compute_norm2(
-    const gko::batch_dense::BatchEntry<const ValueType> &x,
-    const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result)
+    const gko::batch_dense::BatchEntry<const ValueType>& x,
+    const gko::batch_dense::BatchEntry<remove_complex<ValueType>>& result)
 {
     constexpr auto tile_size = config::warp_size;
     auto thread_block = group::this_thread_block();
@@ -253,9 +253,9 @@ __device__ __forceinline__ void compute_norm2(
  */
 template <typename ValueType>
 __device__ __forceinline__ void compute_norm2(
-    const gko::batch_dense::BatchEntry<const ValueType> &x,
-    const gko::batch_dense::BatchEntry<remove_complex<ValueType>> &result,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& x,
+    const gko::batch_dense::BatchEntry<remove_complex<ValueType>>& result,
+    const uint32& converged)
 {
     constexpr auto tile_size = config::warp_size;
     auto thread_block = group::this_thread_block();
@@ -314,8 +314,8 @@ __global__
  */
 template <typename ValueType>
 __device__ __forceinline__ void batch_scale(
-    const gko::batch_dense::BatchEntry<const ValueType> &scale_vec,
-    const gko::batch_dense::BatchEntry<ValueType> &a)
+    const gko::batch_dense::BatchEntry<const ValueType>& scale_vec,
+    const gko::batch_dense::BatchEntry<ValueType>& a)
 {
     for (int iz = threadIdx.x; iz < a.num_rows * a.num_rhs; iz += blockDim.x) {
         const int row = iz / a.num_rhs;
@@ -328,8 +328,8 @@ template <typename ValueType>
 __device__ __forceinline__ void batch_scale(const int num_rows,
                                             const size_type stride,
                                             const int num_rhs,
-                                            const ValueType *const scale_vec,
-                                            ValueType *const a)
+                                            const ValueType* const scale_vec,
+                                            ValueType* const a)
 {
     for (int iz = threadIdx.x; iz < num_rows * num_rhs; iz += blockDim.x) {
         const int row = iz / num_rhs;
@@ -341,8 +341,8 @@ __device__ __forceinline__ void batch_scale(const int num_rows,
 template <typename ValueType>
 __global__ void uniform_batch_scale(
     const int nrows, const size_type stride, const int nrhs,
-    const size_type num_batch, const ValueType *const __restrict__ scale_vec,
-    ValueType *const __restrict__ a)
+    const size_type num_batch, const ValueType* const __restrict__ scale_vec,
+    ValueType* const __restrict__ a)
 {
     for (size_type batch_id = blockIdx.x; batch_id < num_batch;
          batch_id += gridDim.x) {
@@ -364,8 +364,8 @@ __global__ void uniform_batch_scale(
  */
 template <typename ValueType>
 __device__ __forceinline__ void copy(
-    const gko::batch_dense::BatchEntry<const ValueType> &in,
-    const gko::batch_dense::BatchEntry<ValueType> &out)
+    const gko::batch_dense::BatchEntry<const ValueType>& in,
+    const gko::batch_dense::BatchEntry<ValueType>& out)
 {
     for (int iz = threadIdx.x; iz < in.num_rows * in.num_rhs;
          iz += blockDim.x) {
@@ -392,9 +392,9 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void copy(
 
 template <typename ValueType>
 __device__ __forceinline__ void copy(
-    const gko::batch_dense::BatchEntry<const ValueType> &src_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &dest_shared_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& src_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& dest_shared_entry,
+    const uint32& converged)
 {
     for (int li = threadIdx.x;
          li < dest_shared_entry.num_rhs * dest_shared_entry.num_rows;
@@ -428,10 +428,10 @@ namespace {
 
 template <typename ValueType>
 __device__ __forceinline__ void one_dot(
-    const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
-    const int rhs_index, const BatchEntry<ValueType> &result,
-    gko::kernels::cuda::group::thread_block_tile<config::warp_size>
-        &subwarp_grp)
+    const BatchEntry<const ValueType>& x, const BatchEntry<const ValueType>& y,
+    const int rhs_index, const BatchEntry<ValueType>& result,
+    gko::kernels::cuda::group::thread_block_tile<config::warp_size>&
+        subwarp_grp)
 {
     ValueType val = zero<ValueType>();
 
@@ -461,8 +461,8 @@ __device__ __forceinline__ void one_dot(
  */
 template <typename ValueType>
 __device__ __forceinline__ void compute_dot_product(
-    const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
-    const BatchEntry<ValueType> &result)
+    const BatchEntry<const ValueType>& x, const BatchEntry<const ValueType>& y,
+    const BatchEntry<ValueType>& result)
 {
     constexpr auto tile_size = config::warp_size;
     auto thread_block = group::this_thread_block();
@@ -488,8 +488,8 @@ __device__ __forceinline__ void compute_dot_product(
  */
 template <typename ValueType>
 __device__ __forceinline__ void compute_dot_product(
-    const BatchEntry<const ValueType> &x, const BatchEntry<const ValueType> &y,
-    const BatchEntry<ValueType> &result, const uint32 &converged)
+    const BatchEntry<const ValueType>& x, const BatchEntry<const ValueType>& y,
+    const BatchEntry<ValueType>& result, const uint32& converged)
 {
     constexpr auto tile_size = config::warp_size;
     auto thread_block = group::this_thread_block();
@@ -551,9 +551,9 @@ template <typename Op, typename ValueType>
 __device__ __forceinline__ void transpose_entry(const int src_nrows,
                                                 const int src_ncols,
                                                 const size_type src_stride,
-                                                const ValueType *const src,
+                                                const ValueType* const src,
                                                 const size_type dest_stride,
-                                                ValueType *const dest, Op op)
+                                                ValueType* const dest, Op op)
 {
     constexpr auto tile_size = config::warp_size;
     auto thread_block = group::this_thread_block();
@@ -571,12 +571,12 @@ __device__ __forceinline__ void transpose_entry(const int src_nrows,
 template <typename Op, typename ValueType>
 __global__ void transpose(const int src_nrows, const int src_ncols,
                           const size_type src_stride,
-                          const ValueType *const src,
-                          const size_type dest_stride, ValueType *const dest,
+                          const ValueType* const src,
+                          const size_type dest_stride, ValueType* const dest,
                           Op op)
 {
-    const ValueType *const bsrc = src + blockIdx.x * src_stride * src_nrows;
-    ValueType *const bdest = dest + blockIdx.x * dest_stride * src_ncols;
+    const ValueType* const bsrc = src + blockIdx.x * src_stride * src_nrows;
+    ValueType* const bdest = dest + blockIdx.x * dest_stride * src_ncols;
     transpose_entry(src_nrows, src_ncols, src_stride, bsrc, dest_stride, bdest,
                     op);
 }

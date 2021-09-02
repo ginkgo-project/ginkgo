@@ -35,16 +35,16 @@ namespace {
 
 template <typename BatchMatrixType_entry, typename PrecType, typename ValueType>
 __device__ __forceinline__ void initialize(
-    group::thread_block_tile<config::warp_size> &warp_grp, const int restart,
-    const BatchMatrixType_entry &a_gl_entry,
-    const ValueType *const b_global_entry,
-    const ValueType *const x_global_entry, ValueType *const x_shared_entry,
-    ValueType *const r_shared_entry, const PrecType &prec_shared,
-    ValueType *const z_shared_entry, ValueType *const V_shared_entry,
-    ValueType *const H_shared_entry, ValueType *const cs_shared_entry,
-    ValueType *const sn_shared_entry,
-    typename gko::remove_complex<ValueType> &rhs_norms,
-    typename gko::remove_complex<ValueType> &res_norms)
+    group::thread_block_tile<config::warp_size>& warp_grp, const int restart,
+    const BatchMatrixType_entry& a_gl_entry,
+    const ValueType* const b_global_entry,
+    const ValueType* const x_global_entry, ValueType* const x_shared_entry,
+    ValueType* const r_shared_entry, const PrecType& prec_shared,
+    ValueType* const z_shared_entry, ValueType* const V_shared_entry,
+    ValueType* const H_shared_entry, ValueType* const cs_shared_entry,
+    ValueType* const sn_shared_entry,
+    typename gko::remove_complex<ValueType>& rhs_norms,
+    typename gko::remove_complex<ValueType>& res_norms)
 {
     for (int i = threadIdx.x; i < a_gl_entry.num_rows; i += blockDim.x) {
         x_shared_entry[i] = x_global_entry[i];
@@ -87,9 +87,9 @@ __device__ __forceinline__ void initialize(
 
 template <typename ValueType>
 __device__ __forceinline__ void update_v_naught_and_s(
-    group::thread_block_tile<config::warp_size> &warp_grp, const int num_rows,
-    const int restart, const ValueType *const z_shared_entry,
-    ValueType *const V_shared_entry, ValueType *const s_shared_entry)
+    group::thread_block_tile<config::warp_size>& warp_grp, const int num_rows,
+    const int restart, const ValueType* const z_shared_entry,
+    ValueType* const V_shared_entry, ValueType* const s_shared_entry)
 {
     using real_type = typename gko::remove_complex<ValueType>;
 
@@ -114,16 +114,16 @@ __device__ __forceinline__ void update_v_naught_and_s(
 
 template <typename BatchMatrixType_entry, typename ValueType, typename PrecType>
 __device__ __forceinline__ void arnoldi(
-    group::thread_block_tile<config::warp_size> &warp_grp, const int restart,
-    const BatchMatrixType_entry &a_gl_entry, const int inner_iter,
-    ValueType *const V_shared_entry, ValueType *const H_shared_entry,
-    const size_type h_stride, ValueType *const w_shared_entry,
-    ValueType *const helper_shared_entry, const PrecType &prec_shared)
+    group::thread_block_tile<config::warp_size>& warp_grp, const int restart,
+    const BatchMatrixType_entry& a_gl_entry, const int inner_iter,
+    ValueType* const V_shared_entry, ValueType* const H_shared_entry,
+    const size_type h_stride, ValueType* const w_shared_entry,
+    ValueType* const helper_shared_entry, const PrecType& prec_shared)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const int num_rows = a_gl_entry.num_rows;
 
-    const ValueType *const v_i_sh = V_shared_entry + inner_iter * num_rows;
+    const ValueType* const v_i_sh = V_shared_entry + inner_iter * num_rows;
 
     single_spmv_kernel(a_gl_entry, v_i_sh, helper_shared_entry);
     __syncthreads();
@@ -132,8 +132,8 @@ __device__ __forceinline__ void arnoldi(
     __syncthreads();
 
     for (int k = 0; k <= inner_iter; k++) {
-        const ValueType *const v_k_sh = V_shared_entry + k * num_rows;
-        ValueType *const h_k_i_sh = H_shared_entry + k * h_stride + inner_iter;
+        const ValueType* const v_k_sh = V_shared_entry + k * num_rows;
+        ValueType* const h_k_i_sh = H_shared_entry + k * h_stride + inner_iter;
 
         if (threadIdx.x / config::warp_size == 0) {
             single_compute_dot_product(warp_grp, num_rows, w_shared_entry,
@@ -157,7 +157,7 @@ __device__ __forceinline__ void arnoldi(
         H_shared_entry[(inner_iter + 1) * h_stride + inner_iter] = tmp_norm;
     }
 
-    ValueType *const v_iplus1_sh = V_shared_entry + (inner_iter + 1) * num_rows;
+    ValueType* const v_iplus1_sh = V_shared_entry + (inner_iter + 1) * num_rows;
 
     for (int li = threadIdx.x; li < num_rows; li += blockDim.x) {
         v_iplus1_sh[li] = w_shared_entry[li] / tmp_norm;
@@ -166,10 +166,10 @@ __device__ __forceinline__ void arnoldi(
 
 
 template <typename ValueType>
-__device__ __forceinline__ void apply_plane_rotation(const ValueType *const cs,
-                                                     const ValueType *const sn,
-                                                     ValueType *const x,
-                                                     ValueType *const y)
+__device__ __forceinline__ void apply_plane_rotation(const ValueType* const cs,
+                                                     const ValueType* const sn,
+                                                     ValueType* const x,
+                                                     ValueType* const y)
 {
     if (threadIdx.x == 0) {
         const ValueType temp = cs[0] * x[0] + sn[0] * y[0];
@@ -181,9 +181,9 @@ __device__ __forceinline__ void apply_plane_rotation(const ValueType *const cs,
 
 template <typename ValueType>
 __device__ __forceinline__ void generate_and_apply_plane_rot_fused(
-    ValueType *const cs_i, ValueType *const sn_i, ValueType *const H_i_i,
-    ValueType *const H_i_plus_1_i, ValueType *const s_i,
-    ValueType *const s_i_plus_1)
+    ValueType* const cs_i, ValueType* const sn_i, ValueType* const H_i_i,
+    ValueType* const H_i_plus_1_i, ValueType* const s_i,
+    ValueType* const s_i_plus_1)
 {
     if (threadIdx.x == 0) {
         if (H_i_plus_1_i[0] == zero<ValueType>()) {
@@ -213,11 +213,11 @@ __device__ __forceinline__ void generate_and_apply_plane_rot_fused(
 
 template <typename ValueType>
 __device__ __forceinline__ void update_x(
-    group::thread_block_tile<config::warp_size> &warp_grp, const int num_rows,
-    const int m, const int restart, const ValueType *const H_shared_entry,
-    const size_type h_stride, const ValueType *const s_shared_entry,
-    const ValueType *const V_shared_entry, ValueType *const x_shared_entry,
-    ValueType *const y_shared_entry)
+    group::thread_block_tile<config::warp_size>& warp_grp, const int num_rows,
+    const int m, const int restart, const ValueType* const H_shared_entry,
+    const size_type h_stride, const ValueType* const s_shared_entry,
+    const ValueType* const V_shared_entry, ValueType* const x_shared_entry,
+    ValueType* const y_shared_entry)
 {
     // triangular solve
     if (threadIdx.x == 0) {
@@ -253,8 +253,8 @@ __global__ void apply_kernel(const int max_iter,
                              const gko::remove_complex<ValueType> tol,
                              const int restart, LogType logger,
                              PrecType prec_shared, const BatchMatrixType a,
-                             const ValueType *const __restrict__ b,
-                             ValueType *const __restrict__ x)
+                             const ValueType* const __restrict__ b,
+                             ValueType* const __restrict__ x)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const auto nbatch = a.num_batch;
@@ -270,15 +270,15 @@ __global__ void apply_kernel(const int max_iter,
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
         extern __shared__ char local_mem_sh[];
-        ValueType *const r_sh = reinterpret_cast<ValueType *>(local_mem_sh);
-        ValueType *const z_sh = r_sh + nrows * nrhs;
-        ValueType *const w_sh = z_sh + nrows * nrhs;
-        ValueType *const x_sh = w_sh + nrows * nrhs;
-        ValueType *const helper_sh = x_sh + nrows * nrhs;
-        ValueType *const cs_sh = helper_sh + nrows * nrhs;
-        ValueType *const sn_sh = cs_sh + restart * nrhs;
-        ValueType *const y_sh = sn_sh + restart * nrhs;
-        ValueType *const s_sh = y_sh + restart * nrhs;
+        ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
+        ValueType* const z_sh = r_sh + nrows * nrhs;
+        ValueType* const w_sh = z_sh + nrows * nrhs;
+        ValueType* const x_sh = w_sh + nrows * nrhs;
+        ValueType* const helper_sh = x_sh + nrows * nrhs;
+        ValueType* const cs_sh = helper_sh + nrows * nrhs;
+        ValueType* const sn_sh = cs_sh + restart * nrhs;
+        ValueType* const y_sh = sn_sh + restart * nrhs;
+        ValueType* const s_sh = y_sh + restart * nrhs;
 
         // Hessenberg matrix
         // const gko::batch_dense::BatchEntry<ValueType> H_shared_entry{
@@ -288,7 +288,7 @@ __global__ void apply_kernel(const int max_iter,
         // the other in a row - when drawn on paper, (and the same is true for
         // actual storage as the storage order is row-major) to get entry (i,j)
         // for rhs: rhs_k , H_entry.stride*i + j*nrhs  + rhs_k
-        ValueType *const H_sh = s_sh + (restart + 1) * nrhs;
+        ValueType* const H_sh = s_sh + (restart + 1) * nrhs;
 
         // Krylov subspace basis vectors
         // storage:row-major order , subspace basis vectors corr. to each rhs
@@ -299,9 +299,9 @@ __global__ void apply_kernel(const int max_iter,
         // are stored contiguously in memory one after the other.
         // const gko::batch_dense::BatchEntry<ValueType> V_shared_entry{
         //     V_sh, static_cast<size_type>(nrhs), nrows * (restart + 1), nrhs};
-        ValueType *const V_sh = H_sh + restart * (restart + 1) * nrhs;
+        ValueType* const V_sh = H_sh + restart * (restart + 1) * nrhs;
 
-        ValueType *const prec_work_sh = V_sh + nrows * (restart + 1) * nrhs;
+        ValueType* const prec_work_sh = V_sh + nrows * (restart + 1) * nrhs;
 
         // real_type *const norms_rhs_sh = reinterpret_cast<real_type *>(
         //     prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz));
@@ -311,9 +311,9 @@ __global__ void apply_kernel(const int max_iter,
         __shared__ real_type norms_res_sh[1];
 
         const auto a_gl_entry = gko::batch::batch_entry(a, ibatch);
-        const ValueType *const b_entry_ptr =
+        const ValueType* const b_entry_ptr =
             gko::batch::batch_entry_ptr(b, 1, nrows, ibatch);
-        ValueType *const x_gl_entry_ptr =
+        ValueType* const x_gl_entry_ptr =
             gko::batch::batch_entry_ptr(x, 1, nrows, ibatch);
 
         // Stride of Hessenberg matrix

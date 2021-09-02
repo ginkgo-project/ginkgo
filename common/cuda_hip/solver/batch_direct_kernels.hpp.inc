@@ -34,10 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename ValueType>
 __global__ void setup_batch_pointers(
     const size_type nbatch, const int nrows, const size_type mat_stride,
-    ValueType *const __restrict__ entire_batch_mats,
-    ValueType **const __restrict__ mat_batches, const int nrhs,
-    const size_type vec_stride, ValueType *const __restrict__ entire_batch_vecs,
-    ValueType **const __restrict__ vec_batches)
+    ValueType* const __restrict__ entire_batch_mats,
+    ValueType** const __restrict__ mat_batches, const int nrhs,
+    const size_type vec_stride, ValueType* const __restrict__ entire_batch_vecs,
+    ValueType** const __restrict__ vec_batches)
 {
     for (size_type ib = thread::get_thread_id_flat(); ib < nbatch;
          ib += thread::get_thread_num_flat()) {
@@ -53,8 +53,8 @@ template <typename ValueType>
 __global__ void transpose_scale_copy(
     const size_type nbatch, const int nrows, const int nrhs,
     const size_type in_stride, const size_type out_stride,
-    const ValueType *const __restrict__ scaling,
-    const ValueType *const __restrict__ in, ValueType *const __restrict__ out)
+    const ValueType* const __restrict__ scaling,
+    const ValueType* const __restrict__ in, ValueType* const __restrict__ out)
 {
     for (size_type ib = blockIdx.x; ib < nbatch; ib += gridDim.x) {
         auto outb = gko::batch::batch_entry_ptr(out, out_stride, nrows, ib);
@@ -73,12 +73,12 @@ __global__ void transpose_scale_copy(
 template <typename ValueType>
 __device__ __forceinline__ void pre_diag_scale_system_transpose(
     const int num_rows, const int num_cols, const size_type a_stride,
-    const ValueType *const __restrict__ a, const int num_rhs,
-    const size_type b_stride, const ValueType *const __restrict__ b,
-    const ValueType *const __restrict__ left_scale,
-    const ValueType *const __restrict__ right_scale,
-    const size_type a_scaled_stride, ValueType *const __restrict__ a_scaled_t,
-    const size_type b_scaled_stride, ValueType *const __restrict__ b_scaled_t)
+    const ValueType* const __restrict__ a, const int num_rhs,
+    const size_type b_stride, const ValueType* const __restrict__ b,
+    const ValueType* const __restrict__ left_scale,
+    const ValueType* const __restrict__ right_scale,
+    const size_type a_scaled_stride, ValueType* const __restrict__ a_scaled_t,
+    const size_type b_scaled_stride, ValueType* const __restrict__ b_scaled_t)
 {
     for (int iz = threadIdx.x; iz < num_rows * num_cols; iz += blockDim.x) {
         const int row = iz / num_cols;
@@ -97,14 +97,14 @@ __device__ __forceinline__ void pre_diag_scale_system_transpose(
 template <typename ValueType>
 __global__ void pre_diag_scale_system_transpose(
     const size_type nbatch, const int num_rows, const int num_cols,
-    const size_type a_stride, const ValueType *const __restrict__ a,
+    const size_type a_stride, const ValueType* const __restrict__ a,
     const int num_rhs, const size_type b_stride,
-    const ValueType *const __restrict__ b, const size_type left_scale_stride,
-    const ValueType *const __restrict__ left_scale,
+    const ValueType* const __restrict__ b, const size_type left_scale_stride,
+    const ValueType* const __restrict__ left_scale,
     const size_type rght_scale_stride,
-    const ValueType *const __restrict__ rght_scale,
-    const size_type a_scaled_stride, ValueType *const __restrict__ a_scaled_t,
-    const size_type b_scaled_stride, ValueType *const __restrict__ b_scaled_t)
+    const ValueType* const __restrict__ rght_scale,
+    const size_type a_scaled_stride, ValueType* const __restrict__ a_scaled_t,
+    const size_type b_scaled_stride, ValueType* const __restrict__ b_scaled_t)
 {
     for (size_type ib = blockIdx.x; ib < nbatch; ib += gridDim.x) {
         auto ab = gko::batch::batch_entry_ptr(a, a_stride, num_rows, ib);

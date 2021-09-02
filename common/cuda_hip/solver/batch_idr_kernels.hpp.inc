@@ -36,13 +36,13 @@ namespace {
 
 template <typename ValueType>
 __device__ __forceinline__ void orthonormalize_subspace_vectors(
-    const gko::batch_dense::BatchEntry<ValueType>
-        &Subspace_vectors_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>&
+        Subspace_vectors_shared_entry,
     const int num_rows, const int subspace_dim,
-    const gko::batch_dense::BatchEntry<ValueType>
-        &temp_for_single_rhs_shared_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &tmp_norms_shared_entry)
+    const gko::batch_dense::BatchEntry<ValueType>&
+        temp_for_single_rhs_shared_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>&
+        tmp_norms_shared_entry)
 {
     using real_type = typename gko::remove_complex<ValueType>;
 
@@ -51,7 +51,7 @@ __device__ __forceinline__ void orthonormalize_subspace_vectors(
             &Subspace_vectors_shared_entry
                  .values[i * num_rows * Subspace_vectors_shared_entry.stride],
             Subspace_vectors_shared_entry.stride, num_rows, 1};
-        const gko::batch_dense::BatchEntry<ValueType> &w_i_shared_entry =
+        const gko::batch_dense::BatchEntry<ValueType>& w_i_shared_entry =
             temp_for_single_rhs_shared_entry;
 
         // w_i = p_i
@@ -117,31 +117,31 @@ __device__ __forceinline__ void orthonormalize_subspace_vectors(
 
 template <typename BatchMatrixType_entry, typename ValueType>
 __device__ __forceinline__ void initialize(
-    const BatchMatrixType_entry &A_global_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &b_global_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &x_global_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &x_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &r_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &G_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &U_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &M_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType>
-        &Subspace_vectors_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType>
-        &Subspace_vectors_global_entry,
+    const BatchMatrixType_entry& A_global_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& b_global_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& x_global_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& x_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& r_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& G_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& U_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& M_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>&
+        Subspace_vectors_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>&
+        Subspace_vectors_global_entry,
     const bool deterministic,
-    const gko::batch_dense::BatchEntry<ValueType> &xs_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &rs_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& xs_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& rs_shared_entry,
     const bool smoothing,
-    const gko::batch_dense::BatchEntry<ValueType> &omega_shared_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &rhs_norms_shared_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &res_norms_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType>
-        &temp_for_single_rhs_shared_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &tmp_norms_shared_entry)
+    const gko::batch_dense::BatchEntry<ValueType>& omega_shared_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>&
+        rhs_norms_shared_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>&
+        res_norms_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>&
+        temp_for_single_rhs_shared_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>&
+        tmp_norms_shared_entry)
 {
     using real_type = gko::remove_complex<ValueType>();
 
@@ -273,12 +273,12 @@ __device__ __forceinline__ void initialize(
 
 template <typename ValueType>
 __device__ __forceinline__ void update_f(
-    const gko::batch_dense::BatchEntry<const ValueType>
-        &Subspace_vectors_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &r_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>&
+        Subspace_vectors_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& r_shared_entry,
     const size_type subspace_dim,
-    const gko::batch_dense::BatchEntry<ValueType> &f_shared_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<ValueType>& f_shared_entry,
+    const uint32& converged)
 {
     constexpr auto tile_size = config::warp_size;
 
@@ -328,10 +328,10 @@ __device__ __forceinline__ void update_f(
 
 template <typename ValueType>
 __device__ __forceinline__ void update_c(
-    const gko::batch_dense::BatchEntry<const ValueType> &M_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &f_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &c_shared_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& M_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& f_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& c_shared_entry,
+    const uint32& converged)
 {
     const auto subspace_dim = M_shared_entry.num_rows;
     const auto nrhs = f_shared_entry.num_rhs;
@@ -372,11 +372,11 @@ __device__ __forceinline__ void update_c(
 
 template <typename ValueType>
 __device__ __forceinline__ void update_v(
-    const gko::batch_dense::BatchEntry<const ValueType> &G_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &c_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &r_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &v_shared_entry,
-    const size_type k, const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& G_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& c_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& r_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& v_shared_entry,
+    const size_type k, const uint32& converged)
 {
     const auto subspace_dim = c_shared_entry.num_rows;
 
@@ -413,14 +413,14 @@ __device__ __forceinline__ void update_v(
 
 template <typename ValueType>
 __device__ __forceinline__ void update_u_k(
-    const gko::batch_dense::BatchEntry<const ValueType> &omega_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &c_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &v_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &U_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& omega_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& c_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& v_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& U_shared_entry,
     const size_type k,
-    const gko::batch_dense::BatchEntry<ValueType> &helper_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &u_k_shared_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<ValueType>& helper_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& u_k_shared_entry,
+    const uint32& converged)
 {
     const auto subspace_dim = c_shared_entry.num_rows;
     const auto nrows = v_shared_entry.num_rows;
@@ -465,15 +465,15 @@ __device__ __forceinline__ void update_u_k(
 template <typename ValueType>
 __device__ __forceinline__ void update_g_k_and_u_k(
     const size_type k,
-    const gko::batch_dense::BatchEntry<const ValueType> &G_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &U_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType>
-        &Subspace_vectors_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &M_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &alpha_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &g_k_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &u_k_shared_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& G_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& U_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>&
+        Subspace_vectors_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& M_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& alpha_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& g_k_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& u_k_shared_entry,
+    const uint32& converged)
 {
     const auto nrows = g_k_shared_entry.num_rows;
     const auto nrhs = g_k_shared_entry.num_rhs;
@@ -568,11 +568,11 @@ __device__ __forceinline__ void update_g_k_and_u_k(
 
 template <typename ValueType>
 __device__ __forceinline__ void update_M(
-    const gko::batch_dense::BatchEntry<const ValueType> &g_k_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType>
-        &Subspace_vectors_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &M_shared_entry,
-    const size_type k, const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& g_k_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>&
+        Subspace_vectors_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& M_shared_entry,
+    const size_type k, const uint32& converged)
 {
     const auto subspace_dim = M_shared_entry.num_rows;
     const auto nrhs = g_k_shared_entry.num_rhs;
@@ -630,12 +630,12 @@ __device__ __forceinline__ void update_M(
 
 template <typename ValueType>
 __device__ __forceinline__ void update_r_and_x_inner_loop(
-    const gko::batch_dense::BatchEntry<const ValueType> &g_k_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &u_k_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &beta_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &r_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &x_shared_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& g_k_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& u_k_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& beta_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& r_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& x_shared_entry,
+    const uint32& converged)
 {
     for (int li = threadIdx.x;
          li < g_k_shared_entry.num_rows * g_k_shared_entry.num_rhs;
@@ -662,15 +662,15 @@ __device__ __forceinline__ void update_r_and_x_inner_loop(
 
 template <typename ValueType>
 __device__ __forceinline__ void smoothing_operation(
-    const gko::batch_dense::BatchEntry<const ValueType> &x_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &r_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &gamma_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &t_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &xs_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &rs_shared_entry,
-    const gko::batch_dense::BatchEntry<gko::remove_complex<ValueType>>
-        &norms_t_shared_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& x_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& r_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& gamma_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& t_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& xs_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& rs_shared_entry,
+    const gko::batch_dense::BatchEntry<gko::remove_complex<ValueType>>&
+        norms_t_shared_entry,
+    const uint32& converged)
 {
     // t = rs - r
     for (int li = threadIdx.x;
@@ -736,16 +736,16 @@ __device__ __forceinline__ void smoothing_operation(
 
 template <typename ValueType>
 __device__ __forceinline__ void compute_omega(
-    const gko::batch_dense::BatchEntry<const ValueType> &t_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &r_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &rho_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &t_r_dot_shared_entry,
-    const gko::batch_dense::BatchEntry<gko::remove_complex<ValueType>>
-        &norms_t_shared_entry,
-    const gko::batch_dense::BatchEntry<gko::remove_complex<ValueType>>
-        &norms_r_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &omega_shared_entry,
-    const gko::remove_complex<ValueType> kappa, const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& t_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& r_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& rho_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& t_r_dot_shared_entry,
+    const gko::batch_dense::BatchEntry<gko::remove_complex<ValueType>>&
+        norms_t_shared_entry,
+    const gko::batch_dense::BatchEntry<gko::remove_complex<ValueType>>&
+        norms_r_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& omega_shared_entry,
+    const gko::remove_complex<ValueType> kappa, const uint32& converged)
 {
     compute_dot_product(gko::batch::to_const(t_shared_entry),
                         gko::batch::to_const(r_shared_entry),
@@ -806,12 +806,12 @@ __device__ __forceinline__ void compute_omega(
 
 template <typename ValueType>
 __device__ __forceinline__ void update_r_and_x_outer_loop(
-    const gko::batch_dense::BatchEntry<const ValueType> &t_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &v_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &omega_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &r_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &x_shared_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& t_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& v_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& omega_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& r_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& x_shared_entry,
+    const uint32& converged)
 {
     for (int li = threadIdx.x;
          li < t_shared_entry.num_rows * t_shared_entry.num_rhs;
@@ -860,32 +860,32 @@ __global__ void apply_kernel(
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
         extern __shared__ char local_mem_sh[];
-        ValueType *const r_sh = reinterpret_cast<ValueType *>(local_mem_sh);
-        ValueType *const t_sh = r_sh + nrows * nrhs;
-        ValueType *const v_sh = t_sh + nrows * nrhs;
-        ValueType *const x_sh = v_sh + nrows * nrhs;
-        ValueType *const xs_sh = x_sh + nrows * nrhs;
-        ValueType *const rs_sh = xs_sh + nrows * nrhs;
-        ValueType *const helper_sh = rs_sh + nrows * nrhs;
-        ValueType *const f_sh = helper_sh + nrows * nrhs;
-        ValueType *const c_sh = f_sh + subspace_dim * nrhs;
-        ValueType *const Subspace_vectors_sh = c_sh + subspace_dim * nrhs;
-        ValueType *const G_sh = Subspace_vectors_sh + nrows * subspace_dim;
-        ValueType *const U_sh = G_sh + nrows * subspace_dim * nrhs;
-        ValueType *const M_sh = U_sh + nrows * subspace_dim * nrhs;
-        ValueType *const prec_work_sh =
+        ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
+        ValueType* const t_sh = r_sh + nrows * nrhs;
+        ValueType* const v_sh = t_sh + nrows * nrhs;
+        ValueType* const x_sh = v_sh + nrows * nrhs;
+        ValueType* const xs_sh = x_sh + nrows * nrhs;
+        ValueType* const rs_sh = xs_sh + nrows * nrhs;
+        ValueType* const helper_sh = rs_sh + nrows * nrhs;
+        ValueType* const f_sh = helper_sh + nrows * nrhs;
+        ValueType* const c_sh = f_sh + subspace_dim * nrhs;
+        ValueType* const Subspace_vectors_sh = c_sh + subspace_dim * nrhs;
+        ValueType* const G_sh = Subspace_vectors_sh + nrows * subspace_dim;
+        ValueType* const U_sh = G_sh + nrows * subspace_dim * nrhs;
+        ValueType* const M_sh = U_sh + nrows * subspace_dim * nrhs;
+        ValueType* const prec_work_sh =
             M_sh + subspace_dim * subspace_dim * nrhs;
-        ValueType *const temp_for_single_rhs_sh =
+        ValueType* const temp_for_single_rhs_sh =
             prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
-        ValueType *const omega_sh = temp_for_single_rhs_sh + nrows;
-        ValueType *const temp1_sh = omega_sh + nrhs;
-        ValueType *const temp2_sh = temp1_sh + nrhs;
-        real_type *const norms_t_sh =
-            reinterpret_cast<real_type *>(temp2_sh + nrhs);
-        real_type *const norms_r_sh = norms_t_sh + nrhs;
-        real_type *const norms_rhs_sh = norms_r_sh + nrhs;
-        real_type *const norms_res_sh = norms_rhs_sh + nrhs;
-        real_type *const norms_tmp_sh = norms_res_sh + nrhs;
+        ValueType* const omega_sh = temp_for_single_rhs_sh + nrows;
+        ValueType* const temp1_sh = omega_sh + nrhs;
+        ValueType* const temp2_sh = temp1_sh + nrhs;
+        real_type* const norms_t_sh =
+            reinterpret_cast<real_type*>(temp2_sh + nrhs);
+        real_type* const norms_r_sh = norms_t_sh + nrhs;
+        real_type* const norms_rhs_sh = norms_r_sh + nrhs;
+        real_type* const norms_res_sh = norms_rhs_sh + nrhs;
+        real_type* const norms_tmp_sh = norms_res_sh + nrhs;
 
         uint32 converged = 0;
 
@@ -1098,8 +1098,8 @@ __global__ void apply_kernel(
                 //     g_k = g_k - alpha * g_i
                 //     u_k = u_k - alpha * u_i
                 // end
-                const gko::batch_dense::BatchEntry<ValueType>
-                    &alpha_shared_entry = temp1_shared_entry;
+                const gko::batch_dense::BatchEntry<ValueType>&
+                    alpha_shared_entry = temp1_shared_entry;
                 update_g_k_and_u_k(
                     k, gko::batch::to_const(G_shared_entry),
                     gko::batch::to_const(U_shared_entry),
@@ -1115,8 +1115,8 @@ __global__ void apply_kernel(
                 __syncthreads();
 
                 // beta = f(k)/M(k,k)
-                const gko::batch_dense::BatchEntry<ValueType>
-                    &beta_shared_entry = temp1_shared_entry;
+                const gko::batch_dense::BatchEntry<ValueType>&
+                    beta_shared_entry = temp1_shared_entry;
                 for (int rhs = threadIdx.x; rhs < nrhs; rhs += blockDim.x) {
                     const uint32 conv = converged & (1 << rhs);
                     if (conv) {
@@ -1139,8 +1139,8 @@ __global__ void apply_kernel(
                 __syncthreads();
 
                 if (smoothing == true) {
-                    const gko::batch_dense::BatchEntry<ValueType>
-                        &gamma_shared_entry = temp2_shared_entry;
+                    const gko::batch_dense::BatchEntry<ValueType>&
+                        gamma_shared_entry = temp2_shared_entry;
                     smoothing_operation(gko::batch::to_const(x_shared_entry),
                                         gko::batch::to_const(r_shared_entry),
                                         gamma_shared_entry, t_shared_entry,
@@ -1192,9 +1192,9 @@ __global__ void apply_kernel(
             // if |rho| < kappa
             //      omega = omega * kappa / |rho|
             // end if
-            const gko::batch_dense::BatchEntry<ValueType>
-                &t_r_dot_shared_entry = temp1_shared_entry;
-            const gko::batch_dense::BatchEntry<ValueType> &rho_shared_entry =
+            const gko::batch_dense::BatchEntry<ValueType>&
+                t_r_dot_shared_entry = temp1_shared_entry;
+            const gko::batch_dense::BatchEntry<ValueType>& rho_shared_entry =
                 temp2_shared_entry;
             compute_omega(gko::batch::to_const(t_shared_entry),
                           gko::batch::to_const(r_shared_entry),
@@ -1213,8 +1213,8 @@ __global__ void apply_kernel(
             __syncthreads();
 
             if (smoothing == true) {
-                const gko::batch_dense::BatchEntry<ValueType>
-                    &gamma_shared_entry = temp2_shared_entry;
+                const gko::batch_dense::BatchEntry<ValueType>&
+                    gamma_shared_entry = temp2_shared_entry;
                 smoothing_operation(gko::batch::to_const(x_shared_entry),
                                     gko::batch::to_const(r_shared_entry),
                                     gamma_shared_entry, t_shared_entry,

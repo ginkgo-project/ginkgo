@@ -64,7 +64,7 @@ public:
      */
     __device__ __forceinline__ RelResidualMaxIter(
         const int num_rhs, const int max_iters, const real_type rel_res_tol,
-        const real_type *const rhs_b_norms, bitset_type &converge_bitset)
+        const real_type* const rhs_b_norms, bitset_type& converge_bitset)
         : nrhs{num_rhs},
           rel_tol{rel_res_tol},
           max_its{max_iters},
@@ -90,9 +90,9 @@ public:
      * @return  True if all RHS have converged, false otherwise.
      */
     __device__ __forceinline__ bool check_converged(
-        const int iter, const real_type *const residual_norms,
-        const gko::batch_dense::BatchEntry<const ValueType> &residual,
-        bitset_type &converged) const
+        const int iter, const real_type* const residual_norms,
+        const gko::batch_dense::BatchEntry<const ValueType>& residual,
+        bitset_type& converged) const
     {
         if (iter >= max_its - 1) {
             return true;
@@ -119,11 +119,11 @@ private:
     int nrhs;
     int max_its;
     const real_type rel_tol;
-    const real_type *const rhs_norms;
+    const real_type* const rhs_norms;
     static constexpr bitset_type all_true = ~static_cast<bitset_type>(0);
 
     __device__ __forceinline__ void check_norms(
-        const real_type *const res_norms, bitset_type &converged) const
+        const real_type* const res_norms, bitset_type& converged) const
     {
         // All warps in the thread-block do the check redundantly.
         // Only the first nrhs threads of each warp do the check.
@@ -166,7 +166,7 @@ public:
      */
     __device__ __forceinline__ AbsResidualMaxIter(
         const int num_rhs, const int max_iters, const real_type abs_res_tol,
-        const real_type *const rhs_b_norms, bitset_type &converge_bitset)
+        const real_type* const rhs_b_norms, bitset_type& converge_bitset)
         : nrhs{num_rhs},
           abs_tol{abs_res_tol},
           max_its{max_iters},
@@ -192,9 +192,9 @@ public:
      * @return  True if all RHS have converged, false otherwise.
      */
     __device__ __forceinline__ bool check_converged(
-        const int iter, const real_type *const residual_norms,
-        const gko::batch_dense::BatchEntry<const ValueType> &residual,
-        bitset_type &converged) const
+        const int iter, const real_type* const residual_norms,
+        const gko::batch_dense::BatchEntry<const ValueType>& residual,
+        bitset_type& converged) const
     {
         if (iter >= max_its - 1) {
             return true;
@@ -219,11 +219,11 @@ private:
     int nrhs;
     int max_its;
     const real_type abs_tol;
-    const real_type *const rhs_norms;
+    const real_type* const rhs_norms;
     static constexpr bitset_type all_true = ~static_cast<bitset_type>(0);
 
     __device__ __forceinline__ void check_norms(
-        const real_type *const res_norms, bitset_type &converged) const
+        const real_type* const res_norms, bitset_type& converged) const
     {
         const int rhs_index = threadIdx.x % config::warp_size;
         const bitset_type activemask = ~(~static_cast<bitset_type>(0) << nrhs);
@@ -263,7 +263,7 @@ public:
      * @param rhs_b_norms  The reference RHS norms.
      */
     __device__ __forceinline__ SimpleRelResidual(
-        const real_type rel_res_tol, const real_type *const rhs_b_norms)
+        const real_type rel_res_tol, const real_type* const rhs_b_norms)
         : rel_tol_{rel_res_tol}, rhs_norms_{rhs_b_norms}
     {}
 
@@ -275,14 +275,14 @@ public:
      * @return  True if RHS has converged, false otherwise.
      */
     __device__ __forceinline__ bool check_converged(
-        const real_type *const residual_norms) const
+        const real_type* const residual_norms) const
     {
         return (residual_norms[0] / rhs_norms_[0] < rel_tol_);
     }
 
 private:
     const real_type rel_tol_;
-    const real_type *const rhs_norms_;
+    const real_type* const rhs_norms_;
 };
 
 template <typename ValueType>
@@ -297,7 +297,7 @@ public:
      * @param tol  Tolerance on residual norm.
      */
     __device__ __forceinline__ SimpleAbsResidual(const real_type tol,
-                                                 const real_type *)
+                                                 const real_type*)
         : abs_tol_{tol}
     {}
 
@@ -314,7 +314,7 @@ public:
      * @return  True if all RHS have converged, false otherwise.
      */
     __device__ __forceinline__ bool check_converged(
-        const real_type *const residual_norms) const
+        const real_type* const residual_norms) const
     {
         return (residual_norms[0] < abs_tol_);
     }
