@@ -196,11 +196,16 @@ __global__ void apply_kernel(const int num_sh_vecs, const int shared_gap, const 
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
 #if GKO_CUDA_BATCH_HAVE_NO_SHMEM
-        assert(workspace != nullptr);
-        ValueType *const r_sh = workspace + ibatch * (shared_gap * 11);
+        int gmem_offset = ibatch * (shared_gap * 7);
+        extern __shared__ char local_mem_sh[];
+        // ValueType *const r_sh, r_hat_sh, p_sh, p_hat_sh, v_sh, s_sh,
+        // s_hat_sh,
+        //     t_sh, x_sh, prec_work_sh;
+        ValueType *const r_sh = reinterpret_cast<ValueType *>(local_mem_sh);
         ValueType *const r_hat_sh = r_sh + shared_gap;
         ValueType *const p_sh = r_hat_sh + shared_gap;
-        ValueType *const p_hat_sh = p_sh + shared_gap;
+        assert(workspace != nullptr);
+        ValueType *const p_hat_sh = workspace + gmem_offset;
         ValueType *const v_sh = p_hat_sh + shared_gap;
         ValueType *const s_sh = v_sh + shared_gap;
         ValueType *const s_hat_sh = s_sh + shared_gap;
