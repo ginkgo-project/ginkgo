@@ -130,13 +130,11 @@ foreach(source_file IN LISTS GKO_CUDA_COMMON_SOURCES)
     set_source_files_properties(${source_file} PROPERTIES LANGUAGE CUDA)
 endforeach(source_file)
 if(GINKGO_JACOBI_FULL_OPTIMIZATIONS)
-    # keep in sync with jacobi_common.hpp
     set(GKO_CUDA_JACOBI_BLOCK_SIZES)
     foreach(blocksize RANGE 1 32)
         list(APPEND GKO_JACOBI_BLOCK_SIZES ${blocksize})
     endforeach()
 else()
-    # keep in sync with jacobi_common.hpp
     set(GKO_CUDA_JACOBI_BLOCK_SIZES 1 2 4 8 13 16 32)
 endif()
 set(GKO_CUDA_JACOBI_SOURCES)
@@ -156,6 +154,8 @@ foreach(GKO_JACOBI_BLOCK_SIZE IN LISTS GKO_CUDA_JACOBI_BLOCK_SIZES)
         ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
 endforeach()
 target_sources(ginkgo_cuda PRIVATE ${GKO_CUDA_JACOBI_SOURCES})
+string(REPLACE ";" "," GKO_CUDA_JACOBI_BLOCK_SIZES_CODE "${GKO_CUDA_JACOBI_BLOCK_SIZES}")
+configure_file(preconditioner/jacobi_common.hpp.in preconditioner/jacobi_common.hpp)
 
 if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
     # remove false positive CUDA warnings when calling one<T>() and zero<T>()
@@ -204,6 +204,9 @@ ginkgo_compile_features(ginkgo_cuda)
 target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA)
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
+# include path for generated headers like jacobi_common.hpp
+target_include_directories(ginkgo_cuda
+    PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..)
 target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND})
 target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device)
 target_compile_options(ginkgo_cuda
