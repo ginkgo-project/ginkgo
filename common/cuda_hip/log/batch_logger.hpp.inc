@@ -54,7 +54,7 @@ public:
      *                     linear system and each RHS in the batch.
      */
     FinalLogger(const int num_rhs, const int max_iters,
-                real_type *const batch_residuals, int *const batch_iters)
+                real_type* const batch_residuals, int* const batch_iters)
         : nrhs_{num_rhs},
           max_iters_{max_iters},
           final_residuals_{batch_residuals},
@@ -82,7 +82,7 @@ public:
      */
     __device__ __forceinline__ void log_iteration(
         const size_type batch_idx, const int iter,
-        const real_type *const res_norm, const uint32 converged)
+        const real_type* const res_norm, const uint32 converged)
     {
         if (iter == 0) {
             init_converged_ = 0 - (1 << nrhs_);
@@ -108,8 +108,8 @@ public:
 private:
     const int nrhs_;
     const int max_iters_;
-    real_type *const final_residuals_;
-    int *const final_iters_;
+    real_type* const final_residuals_;
+    int* const final_iters_;
     uint32 init_converged_;
 };
 
@@ -132,7 +132,7 @@ public:
      * @param batch_iters  Array of final iteration counts for each
      *                     linear system and each RHS in the batch.
      */
-    SimpleFinalLogger(real_type *const batch_residuals, int *const batch_iters)
+    SimpleFinalLogger(real_type* const batch_residuals, int* const batch_iters)
         : final_residuals_{batch_residuals}, final_iters_{batch_iters}
     {}
 
@@ -152,8 +152,8 @@ public:
     }
 
 private:
-    real_type *const final_residuals_;
-    int *const final_iters_;
+    real_type* const final_residuals_;
+    int* const final_iters_;
 };
 
 }  // namespace batch_log

@@ -38,9 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 template <typename ValueType>
 __device__ __forceinline__ void spmv_kernel(
-    const gko::batch_csr::BatchEntry<const ValueType> &a,
-    const gko::batch_dense::BatchEntry<const ValueType> &b,
-    const gko::batch_dense::BatchEntry<ValueType> &c)
+    const gko::batch_csr::BatchEntry<const ValueType>& a,
+    const gko::batch_dense::BatchEntry<const ValueType>& b,
+    const gko::batch_dense::BatchEntry<ValueType>& c)
 {
     constexpr auto tile_size = config::warp_size;
 
@@ -86,8 +86,8 @@ __device__ __forceinline__ void spmv_kernel(
 
 template <typename ValueType>
 __device__ __forceinline__ void single_spmv_kernel(
-    const gko::batch_csr::BatchEntry<const ValueType> &a,
-    const ValueType *const __restrict__ b, ValueType *const __restrict__ c)
+    const gko::batch_csr::BatchEntry<const ValueType>& a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ c)
 {
     constexpr auto tile_size = config::warp_size;
 
@@ -122,11 +122,11 @@ __device__ __forceinline__ void single_spmv_kernel(
 
 template <typename ValueType>
 __device__ __forceinline__ void csr_spmv_kernel(
-    const int nrows, const ValueType *const __restrict__ avalues,
-    const int *const __restrict__ col_idxs,
-    const int *const __restrict__ row_ptrs, const size_type stride,
-    const int nrhs, const ValueType *const __restrict__ b,
-    ValueType *const __restrict__ c)
+    const int nrows, const ValueType* const __restrict__ avalues,
+    const int* const __restrict__ col_idxs,
+    const int* const __restrict__ row_ptrs, const size_type stride,
+    const int nrhs, const ValueType* const __restrict__ b,
+    ValueType* const __restrict__ c)
 {
     constexpr auto tile_size = config::warp_size;
 
@@ -193,9 +193,9 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void spmv(
  */
 template <typename ValueType>
 __device__ __forceinline__ void advanced_spmv_kernel(
-    const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType> &a,
-    const gko::batch_dense::BatchEntry<const ValueType> &b,
-    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType> &c)
+    const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType>& a,
+    const gko::batch_dense::BatchEntry<const ValueType>& b,
+    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& c)
 {
     constexpr auto tile_size = config::warp_size;
 
@@ -241,9 +241,9 @@ __device__ __forceinline__ void advanced_spmv_kernel(
 
 template <typename ValueType>
 __device__ __forceinline__ void single_advanced_spmv_kernel(
-    const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType> &a,
-    const ValueType *const __restrict__ b, const ValueType beta,
-    ValueType *const __restrict__ c)
+    const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType>& a,
+    const ValueType* const __restrict__ b, const ValueType beta,
+    ValueType* const __restrict__ c)
 {
     constexpr auto tile_size = config::warp_size;
 
@@ -279,11 +279,11 @@ __device__ __forceinline__ void single_advanced_spmv_kernel(
 template <typename ValueType>
 __device__ __forceinline__ void csr_advanced_spmv_kernel(
     const ValueType alpha, const int nrows,
-    const ValueType *const __restrict__ avalues,
-    const int *const __restrict__ col_idxs,
-    const int *const __restrict__ row_ptrs, const size_type stride,
-    const int nrhs, const ValueType *const __restrict__ b, const ValueType beta,
-    ValueType *const __restrict__ c)
+    const ValueType* const __restrict__ avalues,
+    const int* const __restrict__ col_idxs,
+    const int* const __restrict__ row_ptrs, const size_type stride,
+    const int nrhs, const ValueType* const __restrict__ b, const ValueType beta,
+    ValueType* const __restrict__ c)
 {
     constexpr auto tile_size = config::warp_size;
 
@@ -354,9 +354,9 @@ __global__
  */
 template <typename ValueType>
 __device__ __forceinline__ void batch_scale(
-    const gko::batch_dense::BatchEntry<const ValueType> &left_scale,
-    const gko::batch_dense::BatchEntry<const ValueType> &right_scale,
-    const gko::batch_csr::BatchEntry<ValueType> &a)
+    const gko::batch_dense::BatchEntry<const ValueType>& left_scale,
+    const gko::batch_dense::BatchEntry<const ValueType>& right_scale,
+    const gko::batch_csr::BatchEntry<ValueType>& a)
 {
     constexpr auto warp_size = config::warp_size;
     const auto tile =
@@ -375,8 +375,8 @@ __device__ __forceinline__ void batch_scale(
 
 template <typename ValueType>
 __device__ __forceinline__ void batch_scale(
-    const ValueType *const left_scale, const ValueType *const right_scale,
-    const gko::batch_csr::BatchEntry<ValueType> &a)
+    const ValueType* const left_scale, const ValueType* const right_scale,
+    const gko::batch_csr::BatchEntry<ValueType>& a)
 {
     constexpr auto warp_size = config::warp_size;
     const auto tile =
@@ -402,8 +402,8 @@ __device__ __forceinline__ void batch_scale(
  */
 template <typename ValueType>
 __global__ void uniform_batch_scale(
-    const ValueType *const __restrict__ left,
-    const ValueType *const __restrict__ right,
+    const ValueType* const __restrict__ left,
+    const ValueType* const __restrict__ right,
     const gko::batch_csr::UniformBatch<ValueType> a, const int num_cols)
 {
     for (size_type batch_id = blockIdx.x; batch_id < a.num_batch;
@@ -420,12 +420,12 @@ __global__ void uniform_batch_scale(
 
 template <typename ValueType>
 __device__ __forceinline__ void pre_diag_scale_system(
-    const int num_rows, ValueType *const __restrict__ a_values,
-    const int *const __restrict__ col_idxs,
-    const int *const __restrict__ row_ptrs, const int num_rhs,
-    const size_type b_stride, ValueType *const __restrict__ b,
-    const ValueType *const __restrict__ left_scale,
-    const ValueType *const __restrict__ right_scale)
+    const int num_rows, ValueType* const __restrict__ a_values,
+    const int* const __restrict__ col_idxs,
+    const int* const __restrict__ row_ptrs, const int num_rhs,
+    const size_type b_stride, ValueType* const __restrict__ b,
+    const ValueType* const __restrict__ left_scale,
+    const ValueType* const __restrict__ right_scale)
 {
     constexpr auto warp_size = config::warp_size;
     const auto tile =
@@ -450,12 +450,12 @@ __device__ __forceinline__ void pre_diag_scale_system(
 template <typename ValueType>
 __global__ void pre_diag_scale_system(
     const size_type nbatch, const int num_rows, const size_type a_batch_stride,
-    ValueType *const __restrict__ a_values,
-    const int *const __restrict__ col_idxs,
-    const int *const __restrict__ row_ptrs, const int num_rhs,
-    const size_type b_stride, ValueType *const __restrict__ b,
-    const ValueType *const __restrict__ left_scale,
-    const ValueType *const __restrict__ right_scale)
+    ValueType* const __restrict__ a_values,
+    const int* const __restrict__ col_idxs,
+    const int* const __restrict__ row_ptrs, const int num_rhs,
+    const size_type b_stride, ValueType* const __restrict__ b,
+    const ValueType* const __restrict__ left_scale,
+    const ValueType* const __restrict__ right_scale)
 {
     for (size_type ib = blockIdx.x; ib < nbatch; ib += gridDim.x) {
         auto ab = a_values + a_batch_stride * ib;
@@ -472,9 +472,9 @@ __global__ void pre_diag_scale_system(
 
 template <typename ValueType>
 __device__ __forceinline__ void convert_to_batch_dense(
-    const int nrows, const int ncols, const int *const row_ptrs,
-    const int *const col_idxs, const ValueType *const values,
-    const size_type dense_stride, ValueType *const dense)
+    const int nrows, const int ncols, const int* const row_ptrs,
+    const int* const col_idxs, const ValueType* const values,
+    const size_type dense_stride, ValueType* const dense)
 {
     constexpr auto warp_size = config::warp_size;
     const auto tile =
@@ -496,13 +496,13 @@ __device__ __forceinline__ void convert_to_batch_dense(
 template <typename ValueType>
 __global__ void uniform_convert_to_batch_dense(
     const size_type nbatch, const int nrows, const int ncols, const int nnz,
-    const int *const __restrict__ row_ptrs,
-    const int *const __restrict__ col_idxs,
-    const ValueType *const __restrict__ values, const size_type dense_stride,
-    ValueType *const __restrict__ dense)
+    const int* const __restrict__ row_ptrs,
+    const int* const __restrict__ col_idxs,
+    const ValueType* const __restrict__ values, const size_type dense_stride,
+    ValueType* const __restrict__ dense)
 {
-    const ValueType *const bvalues = values + blockIdx.x * nnz;
-    ValueType *const bdense = dense + blockIdx.x * dense_stride * nrows;
+    const ValueType* const bvalues = values + blockIdx.x * nnz;
+    ValueType* const bdense = dense + blockIdx.x * dense_stride * nrows;
     convert_to_batch_dense(nrows, ncols, row_ptrs, col_idxs, bvalues,
                            dense_stride, bdense);
 }

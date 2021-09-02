@@ -32,20 +32,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename BatchMatrixType_entry, typename PrecType, typename ValueType>
 inline void initialize(
-    const BatchMatrixType_entry &A_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &b_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &x_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &r_entry,
-    const PrecType &prec,
-    const gko::batch_dense::BatchEntry<ValueType> &z_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &cs_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &sn_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &V_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &H_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &rhs_norms_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &res_norms_entry)
+    const BatchMatrixType_entry& A_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& b_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& x_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& r_entry,
+    const PrecType& prec,
+    const gko::batch_dense::BatchEntry<ValueType>& z_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& cs_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& sn_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& V_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& H_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>&
+        rhs_norms_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>&
+        res_norms_entry)
 {
     // Compute norms of rhs
     batch_dense::compute_norm2<ValueType>(b_entry, rhs_norms_entry);
@@ -97,10 +97,10 @@ inline void initialize(
 
 
 template <typename ValueType>
-inline void apply_plane_rotation(const ValueType *const cs,
-                                 const ValueType *const sn, const int nrhs,
-                                 ValueType *const x, ValueType *const y,
-                                 const uint32 &converged)
+inline void apply_plane_rotation(const ValueType* const cs,
+                                 const ValueType* const sn, const int nrhs,
+                                 ValueType* const x, ValueType* const y,
+                                 const uint32& converged)
 {
     for (int c = 0; c < nrhs; c++) {
         const uint32 conv = converged & (1 << c);
@@ -118,9 +118,9 @@ inline void apply_plane_rotation(const ValueType *const cs,
 
 template <typename ValueType>
 inline void generate_and_apply_plane_rot_fused(
-    const int nrhs, ValueType *const cs_i, ValueType *const sn_i,
-    ValueType *const H_i_i, ValueType *const H_i_plus_1_i, ValueType *const s_i,
-    ValueType *const s_i_plus_1, const uint32 &converged)
+    const int nrhs, ValueType* const cs_i, ValueType* const sn_i,
+    ValueType* const H_i_i, ValueType* const H_i_plus_1_i, ValueType* const s_i,
+    ValueType* const s_i_plus_1, const uint32& converged)
 {
     for (int c = 0; c < nrhs; c++) {
         const uint32 conv = converged & (1 << c);
@@ -156,19 +156,19 @@ inline void generate_and_apply_plane_rot_fused(
 
 template <typename ValueType>
 inline void update_v_naught_and_s(
-    const gko::batch_dense::BatchEntry<const ValueType> &z_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &V_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &s_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &tmp_norms_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& z_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& V_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& s_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>&
+        tmp_norms_entry,
+    const uint32& converged)
 {
     using real_type = typename gko::remove_complex<ValueType>;
 
     const gko::batch_dense::BatchEntry<ValueType> v_naught_entry{
         V_entry.values, V_entry.stride, z_entry.num_rows, V_entry.num_rhs};
 
-    const gko::batch_dense::BatchEntry<real_type> &z_norms_entry =
+    const gko::batch_dense::BatchEntry<real_type>& z_norms_entry =
         tmp_norms_entry;
 
     batch_dense::compute_norm2(z_entry, z_norms_entry, converged);
@@ -213,17 +213,17 @@ inline void update_v_naught_and_s(
 
 template <typename BatchMatrixEntry, typename ValueType, typename PrecType>
 inline void arnoldi_method(
-    const BatchMatrixEntry &A_entry, const int inner_iter,
-    const gko::batch_dense::BatchEntry<ValueType> &V_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &H_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &w_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &helper_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &tmp_norms_entry,
-    const PrecType &prec, const uint32 &converged)
+    const BatchMatrixEntry& A_entry, const int inner_iter,
+    const gko::batch_dense::BatchEntry<ValueType>& V_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& H_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& w_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& helper_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>&
+        tmp_norms_entry,
+    const PrecType& prec, const uint32& converged)
 {
     using real_type = typename gko::remove_complex<ValueType>;
-    const int &i = inner_iter;
+    const int& i = inner_iter;
     const int num_rows = w_entry.num_rows;
     const int num_rhs = w_entry.num_rhs;
 
@@ -268,7 +268,7 @@ inline void arnoldi_method(
     }
 
 
-    const gko::batch_dense::BatchEntry<real_type> &w_norms_entry =
+    const gko::batch_dense::BatchEntry<real_type>& w_norms_entry =
         tmp_norms_entry;
 
     batch_dense::compute_norm2(gko::batch::to_const(w_entry), w_norms_entry,
@@ -310,12 +310,12 @@ inline void arnoldi_method(
 
 template <typename ValueType>
 inline void update_x(
-    const int m, const gko::batch_dense::BatchEntry<const ValueType> &H_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &s_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &V_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &x_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &y_entry,
-    const uint32 &converged)
+    const int m, const gko::batch_dense::BatchEntry<const ValueType>& H_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& s_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& V_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& x_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& y_entry,
+    const uint32& converged)
 {
     // upper triangular solve
     for (int r = m; r >= 0; r--) {
@@ -361,11 +361,11 @@ template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType, typename byte>
 inline void batch_entry_gmres_impl(
     const gko::kernels::batch_gmres::BatchGmresOptions<
-        remove_complex<ValueType>> &opts,
-    LogType logger, PrecType prec, const BatchMatrixType &a,
-    const gko::batch_dense::UniformBatch<const ValueType> &b,
-    const gko::batch_dense::UniformBatch<ValueType> &x, const size_type ibatch,
-    Array<byte> &local_space)
+        remove_complex<ValueType>>& opts,
+    LogType logger, PrecType prec, const BatchMatrixType& a,
+    const gko::batch_dense::UniformBatch<const ValueType>& b,
+    const gko::batch_dense::UniformBatch<ValueType>& x, const size_type ibatch,
+    Array<byte>& local_space)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
@@ -373,24 +373,24 @@ inline void batch_entry_gmres_impl(
     const auto nrhs = b.num_rhs;
     const auto restart = opts.restart_num;
 
-    byte *const shared_space = local_space.get_data();
-    ValueType *const r = reinterpret_cast<ValueType *>(shared_space);
-    ValueType *const z = r + nrows * nrhs;
-    ValueType *const w = z + nrows * nrhs;
-    ValueType *const helper = w + nrows * nrhs;
-    ValueType *const cs = helper + nrows * nrhs;
-    ValueType *const sn = cs + restart * nrhs;
-    ValueType *const y = sn + restart * nrhs;
-    ValueType *const s = y + restart * nrhs;
-    ValueType *const H = s + (restart + 1) * nrhs;  // Hessenberg matrix
-    ValueType *const V =
+    byte* const shared_space = local_space.get_data();
+    ValueType* const r = reinterpret_cast<ValueType*>(shared_space);
+    ValueType* const z = r + nrows * nrhs;
+    ValueType* const w = z + nrows * nrhs;
+    ValueType* const helper = w + nrows * nrhs;
+    ValueType* const cs = helper + nrows * nrhs;
+    ValueType* const sn = cs + restart * nrhs;
+    ValueType* const y = sn + restart * nrhs;
+    ValueType* const s = y + restart * nrhs;
+    ValueType* const H = s + (restart + 1) * nrhs;  // Hessenberg matrix
+    ValueType* const V =
         H + restart * (restart + 1) * nrhs;  // Krylov subspace basis vectors
-    ValueType *const prec_work = V + nrows * (restart + 1) * nrhs;
+    ValueType* const prec_work = V + nrows * (restart + 1) * nrhs;
 
-    real_type *const norms_rhs = reinterpret_cast<real_type *>(
+    real_type* const norms_rhs = reinterpret_cast<real_type*>(
         prec_work + PrecType::dynamic_work_size(nrows, a.num_nnz));
-    real_type *const norms_res = norms_rhs + nrhs;
-    real_type *const norms_tmp = norms_res + nrhs;
+    real_type* const norms_res = norms_rhs + nrhs;
+    real_type* const norms_tmp = norms_res + nrhs;
 
     uint32 converged = 0;
 

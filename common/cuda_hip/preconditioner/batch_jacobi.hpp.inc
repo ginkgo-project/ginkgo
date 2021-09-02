@@ -63,8 +63,8 @@ public:
      *              of memory given by work_size or dynamic_work_size.
      */
     __device__ __forceinline__ void generate(
-        const gko::batch_csr::BatchEntry<const ValueType> &mat,
-        ValueType *const __restrict__ work)
+        const gko::batch_csr::BatchEntry<const ValueType>& mat,
+        ValueType* const __restrict__ work)
     {
         work_ = work;
         constexpr auto warp_size = config::warp_size;
@@ -85,8 +85,8 @@ public:
     }
 
     __device__ __forceinline__ void apply(
-        const gko::batch_dense::BatchEntry<const ValueType> &r,
-        const gko::batch_dense::BatchEntry<ValueType> &z) const
+        const gko::batch_dense::BatchEntry<const ValueType>& r,
+        const gko::batch_dense::BatchEntry<ValueType>& z) const
     {
         for (int i = threadIdx.x; i < r.num_rows * r.num_rhs; i += blockDim.x) {
             const int row = i / r.num_rhs;
@@ -97,8 +97,8 @@ public:
     }
 
     __device__ __forceinline__ void apply(const int num_rows,
-                                          const ValueType *const r,
-                                          ValueType *const z) const
+                                          const ValueType* const r,
+                                          ValueType* const z) const
     {
         for (int i = threadIdx.x; i < num_rows; i += blockDim.x) {
             z[i] = work_[i] * r[i];
@@ -106,7 +106,7 @@ public:
     }
 
 private:
-    ValueType *__restrict__ work_;
+    ValueType* __restrict__ work_;
 };
 
 
@@ -124,7 +124,7 @@ __global__ void batch_jacobi(
 
         //__shared__ ValueType prec_work[BatchJacobi<ValueType>::work_size];
         extern __shared__ char local_mem[];
-        const auto prec_work = reinterpret_cast<ValueType *>(local_mem);
+        const auto prec_work = reinterpret_cast<ValueType*>(local_mem);
         prec.generate(a_b, prec_work);
         prec.apply(b_b, x_b);
     }
