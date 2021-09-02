@@ -32,20 +32,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename BatchMatrixType_entry, typename ValueType>
 inline void initialize(
-    const BatchMatrixType_entry &A_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &b_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &x_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &rho_old_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &omega_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &alpha_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &r_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &r_hat_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &p_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &v_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &rhs_norms_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &res_norms_entry)
+    const BatchMatrixType_entry& A_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& b_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& x_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& rho_old_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& omega_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& alpha_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& r_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& r_hat_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& p_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& v_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>&
+        rhs_norms_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>&
+        res_norms_entry)
 {
     for (int c = 0; c < rho_old_entry.num_rhs; c++) {
         rho_old_entry.values[c] = one<ValueType>();
@@ -80,14 +80,14 @@ inline void initialize(
 
 template <typename ValueType>
 inline void update_p(
-    const gko::batch_dense::BatchEntry<const ValueType> &rho_new_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &rho_old_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &alpha_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &omega_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &r_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &v_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &p_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& rho_new_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& rho_old_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& alpha_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& omega_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& r_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& v_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& p_entry,
+    const uint32& converged)
 {
     for (int r = 0; r < p_entry.num_rows; r++) {
         for (int c = 0; c < p_entry.num_rhs; c++) {
@@ -113,11 +113,11 @@ inline void update_p(
 
 template <typename ValueType>
 inline void compute_alpha(
-    const gko::batch_dense::BatchEntry<const ValueType> &rho_new_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &r_hat_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &v_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &alpha_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& rho_new_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& r_hat_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& v_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& alpha_entry,
+    const uint32& converged)
 {
     batch_dense::compute_dot_product<ValueType>(r_hat_entry, v_entry,
                                                 alpha_entry, converged);
@@ -135,11 +135,11 @@ inline void compute_alpha(
 
 template <typename ValueType>
 inline void update_s(
-    const gko::batch_dense::BatchEntry<const ValueType> &r_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &alpha_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &v_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &s_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& r_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& alpha_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& v_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& s_entry,
+    const uint32& converged)
 {
     for (int r = 0; r < s_entry.num_rows; r++) {
         for (int c = 0; c < s_entry.num_rhs; c++) {
@@ -158,11 +158,11 @@ inline void update_s(
 
 template <typename ValueType>
 inline void compute_omega(
-    const gko::batch_dense::BatchEntry<const ValueType> &t_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &s_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &temp_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &omega_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& t_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& s_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& temp_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& omega_entry,
+    const uint32& converged)
 {
     batch_dense::compute_dot_product<ValueType>(t_entry, s_entry, omega_entry,
                                                 converged);
@@ -182,15 +182,15 @@ inline void compute_omega(
 
 template <typename ValueType>
 inline void update_x_and_r(
-    const gko::batch_dense::BatchEntry<const ValueType> &p_hat_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &s_hat_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &alpha_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &omega_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &s_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &t_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &x_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &r_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& p_hat_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& s_hat_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& alpha_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& omega_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& s_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& t_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& x_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& r_entry,
+    const uint32& converged)
 {
     for (int r = 0; r < x_entry.num_rows; r++) {
         for (int c = 0; c < x_entry.num_rhs; c++) {
@@ -217,10 +217,10 @@ inline void update_x_and_r(
 
 template <typename ValueType>
 inline void update_x_middle(
-    const gko::batch_dense::BatchEntry<const ValueType> &alpha_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &p_hat_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &x_entry,
-    const uint32 &converged_recent)
+    const gko::batch_dense::BatchEntry<const ValueType>& alpha_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& p_hat_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& x_entry,
+    const uint32& converged_recent)
 {
     for (int r = 0; r < x_entry.num_rows; r++) {
         for (int c = 0; c < x_entry.num_rhs; c++) {
@@ -241,11 +241,11 @@ template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 inline void batch_entry_bicgstab_impl(
     const gko::kernels::batch_bicgstab::BatchBicgstabOptions<
-        remove_complex<ValueType>> &opts,
-    LogType logger, PrecType prec, const BatchMatrixType &a,
-    const gko::batch_dense::UniformBatch<const ValueType> &b,
-    const gko::batch_dense::UniformBatch<ValueType> &x, const size_type ibatch,
-    Array<unsigned char> &local_space)
+        remove_complex<ValueType>>& opts,
+    LogType logger, PrecType prec, const BatchMatrixType& a,
+    const gko::batch_dense::UniformBatch<const ValueType>& b,
+    const gko::batch_dense::UniformBatch<ValueType>& x, const size_type ibatch,
+    Array<unsigned char>& local_space)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
@@ -253,16 +253,16 @@ inline void batch_entry_bicgstab_impl(
     const auto nrhs = b.num_rhs;
     GKO_ASSERT((nrhs <= batch_config<ValueType>::max_num_rhs));
 
-    unsigned char *const shared_space = local_space.get_data();
-    ValueType *const r = reinterpret_cast<ValueType *>(shared_space);
-    ValueType *const r_hat = r + nrows * nrhs;
-    ValueType *const p = r_hat + nrows * nrhs;
-    ValueType *const p_hat = p + nrows * nrhs;
-    ValueType *const v = p_hat + nrows * nrhs;
-    ValueType *const s = v + nrows * nrhs;
-    ValueType *const s_hat = s + nrows * nrhs;
-    ValueType *const t = s_hat + nrows * nrhs;
-    ValueType *const prec_work = t + nrows * nrhs;
+    unsigned char* const shared_space = local_space.get_data();
+    ValueType* const r = reinterpret_cast<ValueType*>(shared_space);
+    ValueType* const r_hat = r + nrows * nrhs;
+    ValueType* const p = r_hat + nrows * nrhs;
+    ValueType* const p_hat = p + nrows * nrhs;
+    ValueType* const v = p_hat + nrows * nrhs;
+    ValueType* const s = v + nrows * nrhs;
+    ValueType* const s_hat = s + nrows * nrhs;
+    ValueType* const t = s_hat + nrows * nrhs;
+    ValueType* const prec_work = t + nrows * nrhs;
     ValueType rho_old[batch_config<ValueType>::max_num_rhs];
     ValueType rho_new[batch_config<ValueType>::max_num_rhs];
     ValueType omega[batch_config<ValueType>::max_num_rhs];
