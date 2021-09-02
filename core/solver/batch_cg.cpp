@@ -60,8 +60,7 @@ std::unique_ptr<BatchLinOp> BatchCg<ValueType>::transpose() const
     return build()
         .with_preconditioner(parameters_.preconditioner)
         .with_max_iterations(parameters_.max_iterations)
-        .with_rel_residual_tol(parameters_.rel_residual_tol)
-        .with_abs_residual_tol(parameters_.abs_residual_tol)
+        .with_residual_tol(parameters_.residual_tol)
         .with_tolerance_type(parameters_.tolerance_type)
         .on(this->get_executor())
         ->generate(share(
@@ -75,8 +74,7 @@ std::unique_ptr<BatchLinOp> BatchCg<ValueType>::conj_transpose() const
     return build()
         .with_preconditioner(parameters_.preconditioner)
         .with_max_iterations(parameters_.max_iterations)
-        .with_rel_residual_tol(parameters_.rel_residual_tol)
-        .with_abs_residual_tol(parameters_.abs_residual_tol)
+        .with_residual_tol(parameters_.residual_tol)
         .with_tolerance_type(parameters_.tolerance_type)
         .on(this->get_executor())
         ->generate(share(as<BatchTransposable>(this->get_system_matrix())
@@ -118,14 +116,9 @@ void BatchCg<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
         b_scaled = dense_b;
     }
 
-    const auto tol =
-        parameters_.tolerance_type == gko::stop::batch::ToleranceType::absolute
-            ? parameters_.abs_residual_tol
-            : parameters_.rel_residual_tol;
-
     const kernels::batch_cg::BatchCgOptions<remove_complex<ValueType>> opts{
-        parameters_.preconditioner, parameters_.max_iterations, tol,
-        parameters_.tolerance_type};
+        parameters_.preconditioner, parameters_.max_iterations,
+        parameters_.residual_tol, parameters_.tolerance_type};
 
     // allocate logging arrays assuming uniform size batch
     log::BatchLogData<ValueType> logdata;
