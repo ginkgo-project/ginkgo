@@ -37,8 +37,8 @@ __global__ void apply_kernel(const int max_iter,
                              const gko::remove_complex<ValueType> relax_factor,
                              LogType logger, PrecType prec,
                              const MatrixType mat,
-                             const ValueType *const __restrict__ b,
-                             ValueType *const __restrict__ x)
+                             const ValueType* const __restrict__ b,
+                             ValueType* const __restrict__ x)
 {
     static_assert(
         std::is_same<typename MatrixType::value_type, const ValueType>::value,
@@ -57,9 +57,9 @@ __global__ void apply_kernel(const int max_iter,
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
 #if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         extern __shared__ char local_mem[];
-        const auto residual = reinterpret_cast<ValueType *>(local_mem);
-        ValueType *const delta_x = residual + num_rows * num_rhs;
-        ValueType *const prec_work = residual + 2 * num_rows * num_rhs;
+        const auto residual = reinterpret_cast<ValueType*>(local_mem);
+        ValueType* const delta_x = residual + num_rows * num_rhs;
+        ValueType* const prec_work = residual + 2 * num_rows * num_rhs;
 #else
         constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
         constexpr int max_nrows = batch_config<ValueType>::max_num_rows;
@@ -79,9 +79,9 @@ __global__ void apply_kernel(const int max_iter,
         __shared__ real_type init_res_norm[1];
 
         const auto a_b = gko::batch::batch_entry(mat, ibatch);
-        const ValueType *const b_b =
+        const ValueType* const b_b =
             gko::batch::batch_entry_ptr(b, 1, num_rows, ibatch);
-        ValueType *const x_b =
+        ValueType* const x_b =
             gko::batch::batch_entry_ptr(x, 1, num_rows, ibatch);
         const auto relax = static_cast<ValueType>(relax_factor);
 
