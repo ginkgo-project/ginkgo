@@ -368,8 +368,8 @@ create_matrix_sin(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
 
 template <typename ValueType, typename RandomEngine>
 std::unique_ptr<batch_vec<ValueType>> create_batch_matrix(
-    std::shared_ptr<const gko::Executor> exec, const gko::batch_dim<2> &size,
-    RandomEngine &engine)
+    std::shared_ptr<const gko::Executor> exec, const gko::batch_dim<2>& size,
+    RandomEngine& engine)
 {
     GKO_ASSERT(size.stores_equal_sizes());
     auto res = batch_vec<ValueType>::create(exec);
@@ -389,7 +389,7 @@ std::unique_ptr<batch_vec<ValueType>> create_batch_matrix(
 
 template <typename ValueType>
 std::unique_ptr<batch_vec<ValueType>> create_batch_matrix(
-    std::shared_ptr<const gko::Executor> exec, const gko::batch_dim<2> &size,
+    std::shared_ptr<const gko::Executor> exec, const gko::batch_dim<2>& size,
     ValueType value)
 {
     GKO_ASSERT(size.stores_equal_sizes());
@@ -454,7 +454,7 @@ std::unique_ptr<vec<ValueType>> create_vector(
 
 // utilities for computing norms and residuals
 template <typename ValueType>
-ValueType get_norm(const batch_vec<ValueType> *norm, size_type batch)
+ValueType get_norm(const batch_vec<ValueType>* norm, size_type batch)
 {
     return clone(norm->get_executor()->get_master(), norm)->at(batch, 0, 0);
 }
@@ -462,7 +462,7 @@ ValueType get_norm(const batch_vec<ValueType> *norm, size_type batch)
 
 // utilities for computing norms and residuals
 template <typename ValueType>
-ValueType get_norm(const vec<ValueType> *norm)
+ValueType get_norm(const vec<ValueType>* norm)
 {
     return clone(norm->get_executor()->get_master(), norm)->at(0, 0);
 }
@@ -470,7 +470,7 @@ ValueType get_norm(const vec<ValueType> *norm)
 
 template <typename ValueType>
 std::vector<gko::remove_complex<ValueType>> compute_norm2(
-    const batch_vec<ValueType> *b)
+    const batch_vec<ValueType>* b)
 {
     auto exec = b->get_executor();
     auto nbatch = b->get_num_batch_entries();
@@ -487,7 +487,7 @@ std::vector<gko::remove_complex<ValueType>> compute_norm2(
 
 
 template <typename ValueType>
-gko::remove_complex<ValueType> compute_norm2(const vec<ValueType> *b)
+gko::remove_complex<ValueType> compute_norm2(const vec<ValueType>* b)
 {
     auto exec = b->get_executor();
     auto b_norm =
@@ -499,8 +499,8 @@ gko::remove_complex<ValueType> compute_norm2(const vec<ValueType> *b)
 
 template <typename ValueType>
 std::vector<gko::remove_complex<ValueType>> compute_batch_residual_norm(
-    const gko::BatchLinOp *system_matrix, const batch_vec<ValueType> *b,
-    const batch_vec<ValueType> *x)
+    const gko::BatchLinOp* system_matrix, const batch_vec<ValueType>* b,
+    const batch_vec<ValueType>* x)
 {
     auto exec = system_matrix->get_executor();
     auto nbatch = b->get_num_batch_entries();
@@ -529,7 +529,7 @@ gko::remove_complex<ValueType> compute_residual_norm(
 
 template <typename ValueType>
 std::vector<gko::remove_complex<ValueType>> compute_batch_max_relative_norm2(
-    batch_vec<ValueType> *result, const batch_vec<ValueType> *answer)
+    batch_vec<ValueType>* result, const batch_vec<ValueType>* answer)
 {
     using rc_vtype = gko::remove_complex<ValueType>;
     auto exec = answer->get_executor();
@@ -588,22 +588,6 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
                      max_relative_norm2);
     }
     return max_relative_norm2;
-}
-
-
-/**
- * Get an integer iteration count from a string, if possible.
- *
- * @throw runtime_error If conversion to integer fails.
- */
-int read_num_repetitions(const std::string &flags_repetitions)
-{
-    std::stringstream sstr(flags_repetitions);
-    int repeats = -1;
-    if (!sstr >> repeats) {
-        throw std::runtime_error("Invalid number of repititions!");
-    }
-    return repeats;
 }
 
 
