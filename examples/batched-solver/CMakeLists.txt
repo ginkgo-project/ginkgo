@@ -8,8 +8,3 @@ endif()
 
 add_executable(batched-solver batched-solver.cpp)
 target_link_libraries(batched-solver Ginkgo::ginkgo)
-add_executable(batch-application-integration batch-application-integration.cpp)
-target_link_libraries(batch-application-integration Ginkgo::ginkgo)
-
-# Copy the data files to the execution directory
-configure_file(data/A.mtx data/A.mtx COPYONLY)
