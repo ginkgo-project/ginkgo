@@ -429,7 +429,7 @@ void Matrix<ValueType, LocalIndexType>::convert_to(
     if (rank != 0 || is_ordered(partition_.get())) {
         tmp->move_to(result);
     } else {
-        auto row_permutation = build_block_gather_permute(partition_.get());
+        auto row_permutation = partition_->get_block_gather_permutation();
         gko::as<GMtx>(tmp->row_permute(&row_permutation))->move_to(result);
     }
 }

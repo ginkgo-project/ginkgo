@@ -167,6 +167,17 @@ public:
     }
 
     /**
+     * Computes a permutation from part-wise locally ordered indices to globally
+     * ordered
+     */
+    void compute_block_gather_permutation(bool recompute = false);
+
+    const Array<local_index_type>& get_block_gather_permutation() const
+    {
+        return block_gather_permutation_;
+    }
+
+    /**
      * Builds a partition from a given mapping global_index -> part_id.
      * @param exec  the Executor on which the partition should be built
      * @param mapping  the mapping from global indices to part IDs.
@@ -205,7 +216,8 @@ public:
           offsets_{exec, num_ranges + 1},
           ranks_{exec, num_ranges},
           part_sizes_{exec, static_cast<size_type>(num_parts)},
-          part_ids_{exec, num_ranges}
+          part_ids_{exec, num_ranges},
+          block_gather_permutation_{exec}
     {
         offsets_.fill(0);
         ranks_.fill(0);
@@ -220,6 +232,7 @@ private:
     Array<local_index_type> ranks_;
     Array<local_index_type> part_sizes_;
     Array<comm_index_type> part_ids_;
+    Array<local_index_type> block_gather_permutation_;
 };
 
 /**
@@ -235,13 +248,6 @@ bool is_connected(const Partition<LocalIndexType>* partition);
 
 template <typename LocalIndexType>
 bool is_ordered(const Partition<LocalIndexType>* partition);
-
-/**
- * Creates a permutation that maps gathered indices to global indices
- */
-template <typename LocalIndexType>
-Array<LocalIndexType> build_block_gather_permute(
-    const Partition<LocalIndexType>* partition);
 
 
 }  // namespace distributed

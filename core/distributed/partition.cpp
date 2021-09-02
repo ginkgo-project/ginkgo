@@ -72,6 +72,7 @@ Partition<LocalIndexType>::build_from_mapping(
     exec->run(
         partition::make_build_from_mapping(*local_mapping.get(), result.get()));
     result->compute_range_ranks();
+    result->compute_block_gather_permutation();
     return result;
 }
 
@@ -89,6 +90,7 @@ Partition<LocalIndexType>::build_from_contiguous(
     exec->run(partition::make_build_from_contiguous(*local_ranges.get(),
                                                     result.get()));
     result->compute_range_ranks();
+    result->compute_block_gather_permutation();
     return result;
 }
 
@@ -133,6 +135,20 @@ void Partition<LocalIndexType>::compute_range_ranks()
     exec->run(partition::make_build_ranks(
         offsets_.get_const_data(), part_ids_.get_const_data(), get_num_ranges(),
         get_num_parts(), ranks_.get_data(), part_sizes_.get_data()));
+}
+
+
+template <typename LocalIndexType>
+void Partition<LocalIndexType>::compute_block_gather_permutation(
+    const bool recompute)
+{
+    if (block_gather_permutation_.get_num_elems() == 0 || recompute) {
+        block_gather_permutation_.resize_and_reset(this->get_size());
+        block_gather_permutation_.fill(-1);
+        auto exec = block_gather_permutation_.get_executor();
+        exec->run(partition::make_build_block_gathered_permute(
+            this, block_gather_permutation_));
+    }
 }
 
 
@@ -219,20 +235,6 @@ bool is_ordered(const Partition<LocalIndexType>* partition)
 #define GKO_DECLARE_IS_ORDERED(_type) \
     bool is_ordered(const Partition<_type>* partition)
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_IS_ORDERED);
-
-
-template <typename LocalIndexType>
-Array<LocalIndexType> build_block_gather_permute(
-    std::shared_ptr<const Partition<LocalIndexType>> partition)
-{
-    auto exec = partition->get_executor();
-    Array<LocalIndexType> permute{exec, partition->get_size()};
-    exec->run(partition::make_build_block_gathered_permute(partition, permute));
-    return permute;
-}
-#define GKO_DECLARE_BUILD_BLOCK_GATHER_PERMUTE(_type) \
-    Array<_type> build_block_gather_permute(const Partition<_type>* partition)
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_BUILD_BLOCK_GATHER_PERMUTE);
 
 
 }  // namespace distributed
