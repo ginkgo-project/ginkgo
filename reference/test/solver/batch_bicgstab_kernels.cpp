@@ -112,7 +112,7 @@ protected:
     {
         return solver_type::build()
             .with_max_iterations(opts.max_its)
-            .with_rel_residual_tol(opts.residual_tol)
+            .with_residual_tol(opts.residual_tol)
             .with_tolerance_type(opts.tol_type)
             .with_preconditioner(opts.preconditioner)
             .on(exec);
@@ -278,7 +278,7 @@ TEST(BatchBicgstab, GoodScalingImprovesConvergence)
     auto factory =
         Solver::build()
             .with_max_iterations(10)
-            .with_rel_residual_tol(10 * eps)
+            .with_residual_tol(10 * eps)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(gko::preconditioner::batch::type::none)
             .on(exec);
@@ -300,7 +300,7 @@ TEST(BatchBicgstab, CoreCanSolveWithoutScaling)
     auto batchbicgstab_factory =
         Solver::build()
             .with_max_iterations(maxits)
-            .with_rel_residual_tol(tol)
+            .with_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .on(exec);
@@ -325,7 +325,7 @@ TEST(BatchBicgstab, CoreCanSolveWithScaling)
     auto batchbicgstab_factory =
         Solver::build()
             .with_max_iterations(maxits)
-            .with_rel_residual_tol(tol)
+            .with_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .on(exec);
