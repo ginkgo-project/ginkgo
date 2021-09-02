@@ -66,12 +66,12 @@ public:
      * preconditioner values are to be stored.
      */
     __device__ __forceinline__ void generate(
-        const gko::batch_csr::BatchEntry<const ValueType> &mat, ValueType *)
+        const gko::batch_csr::BatchEntry<const ValueType>& mat, ValueType*)
     {}
 
     __device__ __forceinline__ void apply(
-        const gko::batch_dense::BatchEntry<const ValueType> &r,
-        const gko::batch_dense::BatchEntry<ValueType> &z) const
+        const gko::batch_dense::BatchEntry<const ValueType>& r,
+        const gko::batch_dense::BatchEntry<ValueType>& z) const
     {
         for (int li = threadIdx.x; li < r.num_rows * r.num_rhs;
              li += blockDim.x) {
@@ -83,8 +83,8 @@ public:
     }
 
     __device__ __forceinline__ void apply(const int num_rows,
-                                          const ValueType *const r,
-                                          ValueType *const z) const
+                                          const ValueType* const r,
+                                          ValueType* const z) const
     {
         for (int li = threadIdx.x; li < num_rows; li += blockDim.x) {
             z[li] = r[li];
@@ -108,7 +108,7 @@ __global__ void batch_identity(
 
         //__shared__ ValueType prec_work[BatchJacobi<ValueType>::work_size];
         extern __shared__ char local_mem[];
-        const auto prec_work = reinterpret_cast<ValueType *>(local_mem);
+        const auto prec_work = reinterpret_cast<ValueType*>(local_mem);
         prec.generate(a_b, prec_work);
         prec.apply(b_b, x_b);
     }

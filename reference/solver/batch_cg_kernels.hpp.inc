@@ -32,16 +32,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename BatchMatrixType_entry, typename PrecType, typename ValueType>
 inline void initialize(
-    const BatchMatrixType_entry &A_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &b_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &x_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &r_entry,
-    const PrecType &prec,
-    const gko::batch_dense::BatchEntry<ValueType> &z_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &rho_old_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &p_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &rhs_norms_entry)
+    const BatchMatrixType_entry& A_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& b_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& x_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& r_entry,
+    const PrecType& prec,
+    const gko::batch_dense::BatchEntry<ValueType>& z_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& rho_old_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& p_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>&
+        rhs_norms_entry)
 {
     // Compute norms of rhs
     batch_dense::compute_norm2<ValueType>(b_entry, rhs_norms_entry);
@@ -70,11 +70,11 @@ inline void initialize(
 
 template <typename ValueType>
 inline void update_p(
-    const gko::batch_dense::BatchEntry<const ValueType> &rho_new_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &rho_old_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &z_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &p_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& rho_new_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& rho_old_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& z_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& p_entry,
+    const uint32& converged)
 {
     for (int r = 0; r < p_entry.num_rows; r++) {
         for (int c = 0; c < p_entry.num_rhs; c++) {
@@ -98,13 +98,13 @@ inline void update_p(
 
 template <typename ValueType>
 inline void update_x_and_r(
-    const gko::batch_dense::BatchEntry<const ValueType> &rho_old_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &p_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &Ap_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &alpha_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &x_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &r_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& rho_old_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& p_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& Ap_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& alpha_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& x_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& r_entry,
+    const uint32& converged)
 {
     batch_dense::compute_dot_product<ValueType>(p_entry, Ap_entry, alpha_entry,
                                                 converged);
@@ -134,10 +134,10 @@ inline void update_x_and_r(
 
 template <typename ValueType>
 inline void use_implicit_norms(
-    const gko::batch_dense::BatchEntry<const ValueType> &rho_old_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &res_norms_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& rho_old_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>&
+        res_norms_entry,
+    const uint32& converged)
 {
     for (int c = 0; c < res_norms_entry.num_rhs; c++) {
         const uint32 conv = converged & (1 << c);
@@ -154,30 +154,30 @@ inline void use_implicit_norms(
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType, typename byte>
 inline void batch_entry_cg_impl(
-    const gko::kernels::batch_cg::BatchCgOptions<remove_complex<ValueType>>
-        &opts,
-    LogType logger, PrecType prec, const BatchMatrixType &a,
-    const gko::batch_dense::UniformBatch<const ValueType> &b,
-    const gko::batch_dense::UniformBatch<ValueType> &x, const size_type ibatch,
-    Array<byte> &local_space)
+    const gko::kernels::batch_cg::BatchCgOptions<remove_complex<ValueType>>&
+        opts,
+    LogType logger, PrecType prec, const BatchMatrixType& a,
+    const gko::batch_dense::UniformBatch<const ValueType>& b,
+    const gko::batch_dense::UniformBatch<ValueType>& x, const size_type ibatch,
+    Array<byte>& local_space)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
 
-    byte *const shared_space = local_space.get_data();
-    ValueType *const r = reinterpret_cast<ValueType *>(shared_space);
-    ValueType *const z = r + nrows * nrhs;
-    ValueType *const p = z + nrows * nrhs;
-    ValueType *const Ap = p + nrows * nrhs;
-    ValueType *const prec_work = Ap + nrows * nrhs;
-    ValueType *const rho_old =
+    byte* const shared_space = local_space.get_data();
+    ValueType* const r = reinterpret_cast<ValueType*>(shared_space);
+    ValueType* const z = r + nrows * nrhs;
+    ValueType* const p = z + nrows * nrhs;
+    ValueType* const Ap = p + nrows * nrhs;
+    ValueType* const prec_work = Ap + nrows * nrhs;
+    ValueType* const rho_old =
         prec_work + PrecType::dynamic_work_size(nrows, a.num_nnz);
-    ValueType *const rho_new = rho_old + nrhs;
-    ValueType *const alpha = rho_new + nrhs;
-    real_type *const norms_rhs = reinterpret_cast<real_type *>(alpha + nrhs);
-    real_type *const norms_res = norms_rhs + nrhs;
+    ValueType* const rho_new = rho_old + nrhs;
+    ValueType* const alpha = rho_new + nrhs;
+    real_type* const norms_rhs = reinterpret_cast<real_type*>(alpha + nrhs);
+    real_type* const norms_res = norms_rhs + nrhs;
 
     uint32 converged = 0;
 
