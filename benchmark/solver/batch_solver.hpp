@@ -299,7 +299,7 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
         using Solver = gko::solver::BatchBicgstab<etype>;
         return Solver::build()
             .with_max_iterations(static_cast<int>(FLAGS_max_iters))
-            .with_rel_residual_tol(
+            .with_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
             .with_preconditioner(prec_type)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
@@ -308,7 +308,7 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
         using Solver = gko::solver::BatchGmres<etype>;
         return Solver::build()
             .with_max_iterations(static_cast<int>(FLAGS_max_iters))
-            .with_rel_residual_tol(
+            .with_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
             .with_preconditioner(prec_type)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
