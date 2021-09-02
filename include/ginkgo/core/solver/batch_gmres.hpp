@@ -129,14 +129,9 @@ public:
         int GKO_FACTORY_PARAMETER_SCALAR(max_iterations, 100);
 
         /**
-         * Absolute residual tolerance.
+         * Residual tolerance.
          */
-        real_type GKO_FACTORY_PARAMETER_SCALAR(abs_residual_tol, 1e-11);
-
-        /**
-         * Relative residual tolerance.
-         */
-        real_type GKO_FACTORY_PARAMETER_SCALAR(rel_residual_tol, 1e-6);
+        real_type GKO_FACTORY_PARAMETER_SCALAR(residual_tol, 1e-6);
 
         /**
          * Restart parameter for Gmres
@@ -144,7 +139,7 @@ public:
         int GKO_FACTORY_PARAMETER_SCALAR(restart, 10);
 
         /**
-         * To specify which tolerance is to be considered.
+         * Specify type of tolerance to be considered.
          */
         ::gko::stop::batch::ToleranceType GKO_FACTORY_PARAMETER_SCALAR(
             tolerance_type, ::gko::stop::batch::ToleranceType::absolute);
