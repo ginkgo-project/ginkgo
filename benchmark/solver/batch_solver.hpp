@@ -518,6 +518,7 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             apply_timer->toc();
 
             if (b->get_size().at(0)[1] == 1 && !FLAGS_overhead &&
+                status.is_finished() &&
                 (FLAGS_print_residuals_and_iters || FLAGS_detailed)) {
                 auto residual = compute_batch_residual_norm(
                     lend(system_matrix), lend(b), lend(x_clone));
