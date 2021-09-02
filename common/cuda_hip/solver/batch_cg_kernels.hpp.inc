@@ -36,17 +36,17 @@ namespace {
 
 template <typename BatchMatrixType_entry, typename PrecType, typename ValueType>
 __device__ __forceinline__ void initialize(
-    const BatchMatrixType_entry &A_global_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &b_global_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &x_global_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &x_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &r_shared_entry,
-    const PrecType &prec_shared,
-    const gko::batch_dense::BatchEntry<ValueType> &z_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &rho_old_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &p_shared_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &rhs_norms_shared_entry)
+    const BatchMatrixType_entry& A_global_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& b_global_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& x_global_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& x_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& r_shared_entry,
+    const PrecType& prec_shared,
+    const gko::batch_dense::BatchEntry<ValueType>& z_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& rho_old_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& p_shared_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>&
+        rhs_norms_shared_entry)
 {
     // Compute norms of rhs
     compute_norm2<ValueType>(b_global_entry, rhs_norms_shared_entry);
@@ -88,11 +88,11 @@ __device__ __forceinline__ void initialize(
 
 template <typename ValueType>
 __device__ __forceinline__ void update_p(
-    const gko::batch_dense::BatchEntry<const ValueType> &rho_new_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &rho_old_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &z_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &p_shared_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& rho_new_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& rho_old_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& z_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& p_shared_entry,
+    const uint32& converged)
 {
     for (int li = threadIdx.x;
          li < p_shared_entry.num_rows * p_shared_entry.num_rhs;
@@ -118,13 +118,13 @@ __device__ __forceinline__ void update_p(
 
 template <typename ValueType>
 __device__ __forceinline__ void update_x_and_r(
-    const gko::batch_dense::BatchEntry<const ValueType> &rho_old_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &p_shared_entry,
-    const gko::batch_dense::BatchEntry<const ValueType> &Ap_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &alpha_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &x_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &r_shared_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& rho_old_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& p_shared_entry,
+    const gko::batch_dense::BatchEntry<const ValueType>& Ap_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& alpha_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& x_shared_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& r_shared_entry,
+    const uint32& converged)
 {
     compute_dot_product<ValueType>(p_shared_entry, Ap_shared_entry,
                                    alpha_shared_entry, converged);
@@ -159,10 +159,10 @@ __device__ __forceinline__ void update_x_and_r(
 
 template <typename ValueType>
 __device__ __forceinline__ void use_implicit_norms(
-    const gko::batch_dense::BatchEntry<const ValueType> &rho_old_shared_entry,
-    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>
-        &res_norms_shared_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& rho_old_shared_entry,
+    const gko::batch_dense::BatchEntry<typename gko::remove_complex<ValueType>>&
+        res_norms_shared_entry,
+    const uint32& converged)
 {
     for (int c = threadIdx.x; c < res_norms_shared_entry.num_rhs;
          c += blockDim.x) {
@@ -200,19 +200,19 @@ __global__ void apply_kernel(
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
         extern __shared__ char local_mem_sh[];
-        ValueType *const r_sh = reinterpret_cast<ValueType *>(local_mem_sh);
-        ValueType *const z_sh = r_sh + nrows * nrhs;
-        ValueType *const p_sh = z_sh + nrows * nrhs;
-        ValueType *const Ap_sh = p_sh + nrows * nrhs;
-        ValueType *const x_sh = Ap_sh + nrows * nrhs;
-        ValueType *const prec_work_sh = x_sh + nrows * nrhs;
-        ValueType *const rho_old_sh =
+        ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
+        ValueType* const z_sh = r_sh + nrows * nrhs;
+        ValueType* const p_sh = z_sh + nrows * nrhs;
+        ValueType* const Ap_sh = p_sh + nrows * nrhs;
+        ValueType* const x_sh = Ap_sh + nrows * nrhs;
+        ValueType* const prec_work_sh = x_sh + nrows * nrhs;
+        ValueType* const rho_old_sh =
             prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
-        ValueType *const rho_new_sh = rho_old_sh + nrhs;
-        ValueType *const alpha_sh = rho_new_sh + nrhs;
-        real_type *const norms_rhs_sh =
-            reinterpret_cast<real_type *>(alpha_sh + nrhs);
-        real_type *const norms_res_sh = norms_rhs_sh + nrhs;
+        ValueType* const rho_new_sh = rho_old_sh + nrhs;
+        ValueType* const alpha_sh = rho_new_sh + nrhs;
+        real_type* const norms_rhs_sh =
+            reinterpret_cast<real_type*>(alpha_sh + nrhs);
+        real_type* const norms_res_sh = norms_rhs_sh + nrhs;
 
 
         uint32 converged = 0;
