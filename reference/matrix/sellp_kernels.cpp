@@ -52,8 +52,8 @@ namespace sellp {
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
-          const matrix::Sellp<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+          const matrix::Sellp<ValueType, IndexType>* a,
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     auto col_idxs = a->get_const_col_idxs();
     auto slice_lengths = a->get_const_slice_lengths();
@@ -85,11 +85,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Sellp<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::Sellp<ValueType, IndexType>* a,
+                   const matrix::Dense<ValueType>* b,
+                   const matrix::Dense<ValueType>* beta,
+                   matrix::Dense<ValueType>* c)
 {
     auto vals = a->get_const_values();
     auto col_idxs = a->get_const_col_idxs();
@@ -125,8 +125,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Sellp<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result)
+                      const matrix::Sellp<ValueType, IndexType>* source,
+                      matrix::Dense<ValueType>* result)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
@@ -161,8 +161,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Sellp<ValueType, IndexType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
+                    const matrix::Sellp<ValueType, IndexType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
 {
     auto num_rows = source->get_size()[0];
     auto slice_size = source->get_slice_size();
@@ -207,8 +207,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Sellp<ValueType, IndexType> *source,
-                    size_type *result)
+                    const matrix::Sellp<ValueType, IndexType>* source,
+                    size_type* result)
 {
     auto num_rows = source->get_size()[0];
     auto slice_size = source->get_slice_size();
@@ -241,8 +241,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Sellp<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
+                      const matrix::Sellp<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag)
 {
     const auto diag_size = diag->get_size()[0];
     const auto slice_size = orig->get_slice_size();

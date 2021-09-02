@@ -68,8 +68,8 @@ namespace detail {
 template <typename CopyType, typename OrigType>
 class convert_back_deleter {
 public:
-    using pointer = CopyType *;
-    using original_pointer = OrigType *;
+    using pointer = CopyType*;
+    using original_pointer = OrigType*;
 
     /**
      * Creates a new deleter object.
@@ -99,8 +99,8 @@ private:
 template <typename CopyType, typename OrigType>
 class convert_back_deleter<const CopyType, const OrigType> {
 public:
-    using pointer = const CopyType *;
-    using original_pointer = const OrigType *;
+    using pointer = const CopyType*;
+    using original_pointer = const OrigType*;
     convert_back_deleter(original_pointer) {}
 
     void operator()(pointer ptr) const { delete ptr; }
@@ -121,8 +121,8 @@ template <typename... ConversionCandidates>
 struct conversion_helper {
     /** Dispatch convert_impl with the ConversionCandidates list */
     template <typename TargetType, typename MaybeConstLinOp>
-    static std::unique_ptr<TargetType, std::function<void(TargetType *)>>
-    convert(MaybeConstLinOp *obj)
+    static std::unique_ptr<TargetType, std::function<void(TargetType*)>>
+    convert(MaybeConstLinOp* obj)
     {
         return convert_impl<TargetType, MaybeConstLinOp,
                             ConversionCandidates...>(obj);
@@ -135,15 +135,15 @@ struct conversion_helper {
      */
     template <typename TargetType, typename MaybeConstLinOp,
               typename FirstCandidate, typename... TrailingCandidates>
-    static std::unique_ptr<TargetType, std::function<void(TargetType *)>>
-    convert_impl(MaybeConstLinOp *obj)
+    static std::unique_ptr<TargetType, std::function<void(TargetType*)>>
+    convert_impl(MaybeConstLinOp* obj)
     {
         // make candidate_type conditionally const based on whether obj is const
         using candidate_type =
             std::conditional_t<std::is_const<MaybeConstLinOp>::value,
                                const FirstCandidate, FirstCandidate>;
-        candidate_type *cast_obj{};
-        if ((cast_obj = dynamic_cast<candidate_type *>(obj))) {
+        candidate_type* cast_obj{};
+        if ((cast_obj = dynamic_cast<candidate_type*>(obj))) {
             // if the cast is successful, obj is of dynamic type candidate_type
             // so we can convert from this type to TargetType
             auto converted = TargetType::create(obj->get_executor());
@@ -169,8 +169,8 @@ struct conversion_helper {
 template <>
 struct conversion_helper<> {
     template <typename T, typename MaybeConstLinOp>
-    static std::unique_ptr<T, std::function<void(T *)>> convert(
-        MaybeConstLinOp *obj)
+    static std::unique_ptr<T, std::function<void(T*)>> convert(
+        MaybeConstLinOp* obj)
     {
         // return nullptr if no previous candidates matched
         return {nullptr, null_deleter<T>{}};
@@ -194,7 +194,7 @@ template <typename T>
 class temporary_conversion {
 public:
     using value_type = T;
-    using pointer = T *;
+    using pointer = T*;
     using lin_op_type =
         std::conditional_t<std::is_const<T>::value, const LinOp, LinOp>;
 
@@ -205,10 +205,10 @@ public:
      *                               try out for converting ptr to type T.
      */
     template <typename... ConversionCandidates>
-    static temporary_conversion create(lin_op_type *ptr)
+    static temporary_conversion create(lin_op_type* ptr)
     {
-        T *cast_ptr{};
-        if ((cast_ptr = dynamic_cast<T *>(ptr))) {
+        T* cast_ptr{};
+        if ((cast_ptr = dynamic_cast<T*>(ptr))) {
             return handle_type{cast_ptr, null_deleter<T>{}};
         } else {
             return conversion_helper<ConversionCandidates...>::template convert<
@@ -221,14 +221,14 @@ public:
      *
      * @return the object held by temporary_conversion
      */
-    T *get() const { return handle_.get(); }
+    T* get() const { return handle_.get(); }
 
     /**
      * Calls a method on the underlying object.
      *
      * @return the underlying object
      */
-    T *operator->() const { return handle_.get(); }
+    T* operator->() const { return handle_.get(); }
 
     /**
      * Returns if the conversion was successful.
@@ -238,7 +238,7 @@ public:
 private:
     // std::function deleter allows to decide the (type of) deleter at
     // runtime
-    using handle_type = std::unique_ptr<T, std::function<void(T *)>>;
+    using handle_type = std::unique_ptr<T, std::function<void(T*)>>;
 
     temporary_conversion(handle_type handle) : handle_{std::move(handle)} {}
 

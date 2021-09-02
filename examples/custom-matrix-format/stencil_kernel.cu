@@ -41,8 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #define STENCIL_KERNEL(_type)                                                 \
-    void stencil_kernel(std::size_t size, const _type *coefs, const _type *b, \
-                        _type *x);
+    void stencil_kernel(std::size_t size, const _type* coefs, const _type* b, \
+                        _type* x);
 
 
 namespace {
@@ -50,8 +50,8 @@ namespace {
 
 // a parallel CUDA kernel that computes the application of a 3 point stencil
 template <typename ValueType>
-__global__ void stencil_kernel_impl(std::size_t size, const ValueType *coefs,
-                                    const ValueType *b, ValueType *x)
+__global__ void stencil_kernel_impl(std::size_t size, const ValueType* coefs,
+                                    const ValueType* b, ValueType* x)
 {
     const auto thread_id = blockIdx.x * blockDim.x + threadIdx.x;
     if (thread_id >= size) {
@@ -72,8 +72,8 @@ __global__ void stencil_kernel_impl(std::size_t size, const ValueType *coefs,
 
 
 template <typename ValueType>
-void stencil_kernel(std::size_t size, const ValueType *coefs,
-                    const ValueType *b, ValueType *x)
+void stencil_kernel(std::size_t size, const ValueType* coefs,
+                    const ValueType* b, ValueType* x)
 {
     constexpr int block_size = 512;
     const auto grid_size = (size + block_size - 1) / block_size;

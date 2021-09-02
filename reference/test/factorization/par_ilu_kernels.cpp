@@ -65,10 +65,10 @@ public:
     {}
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 };
 
@@ -434,7 +434,7 @@ TYPED_TEST(ParIlu, KernelComputeLU)
     // The expected result of U also needs to be transposed
     auto u_expected_lin_op = this->small_u_expected->transpose();
     auto u_expected = std::unique_ptr<Dense>(
-        static_cast<Dense *>(u_expected_lin_op.release()));
+        static_cast<Dense*>(u_expected_lin_op.release()));
 
     gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
         this->ref, iterations, gko::lend(mtx_coo), gko::lend(l_csr),
@@ -510,9 +510,9 @@ TYPED_TEST(ParIlu, LUFactorFunctionsSetProperly)
     auto factors = this->ilu_factory_skip->generate(this->mtx_small);
 
     auto lin_op_l_factor =
-        static_cast<const gko::LinOp *>(gko::lend(factors->get_l_factor()));
+        static_cast<const gko::LinOp*>(gko::lend(factors->get_l_factor()));
     auto lin_op_u_factor =
-        static_cast<const gko::LinOp *>(gko::lend(factors->get_u_factor()));
+        static_cast<const gko::LinOp*>(gko::lend(factors->get_u_factor()));
     auto first_operator = gko::lend(factors->get_operators()[0]);
     auto second_operator = gko::lend(factors->get_operators()[1]);
 

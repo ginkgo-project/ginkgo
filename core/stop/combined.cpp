@@ -38,13 +38,13 @@ namespace stop {
 
 
 bool Combined::check_impl(uint8 stoppingId, bool setFinalized,
-                          Array<stopping_status> *stop_status,
-                          bool *one_changed, const Updater &updater)
+                          Array<stopping_status>* stop_status,
+                          bool* one_changed, const Updater& updater)
 {
     bool one_converged = false;
     gko::uint8 ids{1};
     *one_changed = false;
-    for (auto &c : criteria_) {
+    for (auto& c : criteria_) {
         bool local_one_changed = false;
         one_converged |= c->check(ids, setFinalized, stop_status,
                                   &local_one_changed, updater);

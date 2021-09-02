@@ -110,7 +110,7 @@ struct ParIlutState {
     // use the approximate selection/filter kernels?
     bool use_approx_select;
     // system matrix A
-    const CsrMatrix *system_matrix;
+    const CsrMatrix* system_matrix;
     // current lower factor L
     std::unique_ptr<CsrMatrix> l;
     // current upper factor U
@@ -139,7 +139,7 @@ struct ParIlutState {
     std::shared_ptr<typename CsrMatrix::strategy_type> u_strategy;
 
     ParIlutState(std::shared_ptr<const Executor> exec_in,
-                 const CsrMatrix *system_matrix_in,
+                 const CsrMatrix* system_matrix_in,
                  std::unique_ptr<CsrMatrix> l_in,
                  std::unique_ptr<CsrMatrix> u_in, IndexType l_nnz_limit,
                  IndexType u_nnz_limit, bool use_approx_select,
@@ -183,7 +183,7 @@ struct ParIlutState {
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>>
 ParIlut<ValueType, IndexType>::generate_l_u(
-    const std::shared_ptr<const LinOp> &system_matrix) const
+    const std::shared_ptr<const LinOp>& system_matrix) const
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
@@ -299,7 +299,7 @@ void ParIlutState<ValueType, IndexType>::iterate()
     auto u_filter_rank = std::max<IndexType>(0, u_nnz - u_nnz_limit - 1);
     remove_complex<ValueType> l_threshold{};
     remove_complex<ValueType> u_threshold{};
-    CooMatrix *null_coo = nullptr;
+    CooMatrix* null_coo = nullptr;
     if (use_approx_select) {
         // remove approximately smallest candidates from L' and U'^T
         exec->run(make_threshold_filter_approx(l_new.get(), l_filter_rank,

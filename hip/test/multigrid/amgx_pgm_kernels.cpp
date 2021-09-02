@@ -154,7 +154,7 @@ protected:
         d_system_mtx = gko::clone(hip, system_mtx);
     }
 
-    void make_weight(Mtx *mtx)
+    void make_weight(Mtx* mtx)
     {
         gko::test::make_symmetric(mtx);
         // only works for real value cases

@@ -70,7 +70,7 @@ TEST(Record, CatchesAllocationStarted)
 
     logger->on<gko::log::Logger::allocation_started>(exec.get(), 42);
 
-    auto &data = logger->get().allocation_started.back();
+    auto& data = logger->get().allocation_started.back();
     ASSERT_EQ(data->exec, exec.get());
     ASSERT_EQ(data->num_bytes, 42);
     ASSERT_EQ(data->location, 0);
@@ -87,7 +87,7 @@ TEST(Record, CatchesAllocationCompleted)
 
     logger->on<gko::log::Logger::allocation_completed>(exec.get(), 42, ptr);
 
-    auto &data = logger->get().allocation_completed.back();
+    auto& data = logger->get().allocation_completed.back();
     ASSERT_EQ(data->exec, exec.get());
     ASSERT_EQ(data->num_bytes, 42);
     ASSERT_EQ(data->location, ptr);
@@ -104,7 +104,7 @@ TEST(Record, CatchesFreeStarted)
 
     logger->on<gko::log::Logger::free_started>(exec.get(), ptr);
 
-    auto &data = logger->get().free_started.back();
+    auto& data = logger->get().free_started.back();
     ASSERT_EQ(data->exec, exec.get());
     ASSERT_EQ(data->num_bytes, 0);
     ASSERT_EQ(data->location, ptr);
@@ -121,7 +121,7 @@ TEST(Record, CatchesFreeCompleted)
 
     logger->on<gko::log::Logger::free_completed>(exec.get(), ptr);
 
-    auto &data = logger->get().free_completed.back();
+    auto& data = logger->get().free_completed.back();
     ASSERT_EQ(data->exec, exec.get());
     ASSERT_EQ(data->num_bytes, 0);
     ASSERT_EQ(data->location, ptr);
@@ -141,7 +141,7 @@ TEST(Record, CatchesCopyStarted)
     logger->on<gko::log::Logger::copy_started>(exec.get(), exec.get(), ptr_from,
                                                ptr_to, 42);
 
-    auto &data = logger->get().copy_started.back();
+    auto& data = logger->get().copy_started.back();
     auto data_from = std::get<0>(*data);
     auto data_to = std::get<1>(*data);
     ASSERT_EQ(data_from.exec, exec.get());
@@ -166,7 +166,7 @@ TEST(Record, CatchesCopyCompleted)
     logger->on<gko::log::Logger::copy_completed>(exec.get(), exec.get(),
                                                  ptr_from, ptr_to, 42);
 
-    auto &data = logger->get().copy_completed.back();
+    auto& data = logger->get().copy_completed.back();
     auto data_from = std::get<0>(*data);
     auto data_to = std::get<1>(*data);
     ASSERT_EQ(data_from.exec, exec.get());
@@ -187,7 +187,7 @@ TEST(Record, CatchesOperationLaunched)
 
     logger->on<gko::log::Logger::operation_launched>(exec.get(), &op);
 
-    auto &data = logger->get().operation_launched.back();
+    auto& data = logger->get().operation_launched.back();
     ASSERT_EQ(data->exec, exec.get());
     ASSERT_EQ(data->operation, &op);
 }
@@ -202,7 +202,7 @@ TEST(Record, CatchesOperationCompleted)
 
     logger->on<gko::log::Logger::operation_completed>(exec.get(), &op);
 
-    auto &data = logger->get().operation_completed.back();
+    auto& data = logger->get().operation_completed.back();
     ASSERT_EQ(data->exec, exec.get());
     ASSERT_EQ(data->operation, &op);
 }
@@ -220,7 +220,7 @@ TEST(Record, CatchesPolymorphicObjectCreateStarted)
                                                                     po.get());
 
 
-    auto &data = logger->get().polymorphic_object_create_started.back();
+    auto& data = logger->get().polymorphic_object_create_started.back();
     ASSERT_EQ(data->exec, exec.get());
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po.get(), 0);
     ASSERT_EQ(data->output.get(), nullptr);
@@ -239,7 +239,7 @@ TEST(Record, CatchesPolymorphicObjectCreateCompleted)
     logger->on<gko::log::Logger::polymorphic_object_create_completed>(
         exec.get(), po.get(), output.get());
 
-    auto &data = logger->get().polymorphic_object_create_completed.back();
+    auto& data = logger->get().polymorphic_object_create_completed.back();
     ASSERT_EQ(data->exec, exec.get());
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po.get(), 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), output.get(), 0);
@@ -258,7 +258,7 @@ TEST(Record, CatchesPolymorphicObjectCopyStarted)
     logger->on<gko::log::Logger::polymorphic_object_copy_started>(
         exec.get(), from.get(), to.get());
 
-    auto &data = logger->get().polymorphic_object_copy_started.back();
+    auto& data = logger->get().polymorphic_object_copy_started.back();
     ASSERT_EQ(data->exec, exec.get());
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
@@ -278,7 +278,7 @@ TEST(Record, CatchesPolymorphicObjectCopyCompleted)
         exec.get(), from.get(), to.get());
 
 
-    auto &data = logger->get().polymorphic_object_copy_completed.back();
+    auto& data = logger->get().polymorphic_object_copy_completed.back();
     ASSERT_EQ(data->exec, exec.get());
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
@@ -297,7 +297,7 @@ TEST(Record, CatchesPolymorphicObjectDeleted)
                                                              po.get());
 
 
-    auto &data = logger->get().polymorphic_object_deleted.back();
+    auto& data = logger->get().polymorphic_object_deleted.back();
     ASSERT_EQ(data->exec, exec.get());
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po.get(), 0);
     ASSERT_EQ(data->output, nullptr);
@@ -317,7 +317,7 @@ TEST(Record, CatchesLinOpApplyStarted)
     logger->on<gko::log::Logger::linop_apply_started>(A.get(), b.get(),
                                                       x.get());
 
-    auto &data = logger->get().linop_apply_started.back();
+    auto& data = logger->get().linop_apply_started.back();
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->A.get()), A, 0);
     ASSERT_EQ(data->alpha, nullptr);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->b.get()), b, 0);
@@ -339,7 +339,7 @@ TEST(Record, CatchesLinOpApplyCompleted)
     logger->on<gko::log::Logger::linop_apply_completed>(A.get(), b.get(),
                                                         x.get());
 
-    auto &data = logger->get().linop_apply_completed.back();
+    auto& data = logger->get().linop_apply_completed.back();
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->A.get()), A, 0);
     ASSERT_EQ(data->alpha, nullptr);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->b.get()), b, 0);
@@ -363,7 +363,7 @@ TEST(Record, CatchesLinOpAdvancedApplyStarted)
     logger->on<gko::log::Logger::linop_advanced_apply_started>(
         A.get(), alpha.get(), b.get(), beta.get(), x.get());
 
-    auto &data = logger->get().linop_advanced_apply_started.back();
+    auto& data = logger->get().linop_advanced_apply_started.back();
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->A.get()), A, 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->alpha.get()), alpha, 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->b.get()), b, 0);
@@ -387,7 +387,7 @@ TEST(Record, CatchesLinOpAdvancedApplyCompleted)
     logger->on<gko::log::Logger::linop_advanced_apply_completed>(
         A.get(), alpha.get(), b.get(), beta.get(), x.get());
 
-    auto &data = logger->get().linop_advanced_apply_completed.back();
+    auto& data = logger->get().linop_advanced_apply_completed.back();
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->A.get()), A, 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->alpha.get()), alpha, 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->b.get()), b, 0);
@@ -411,7 +411,7 @@ TEST(Record, CatchesLinopFactoryGenerateStarted)
     logger->on<gko::log::Logger::linop_factory_generate_started>(factory.get(),
                                                                  input.get());
 
-    auto &data = logger->get().linop_factory_generate_started.back();
+    auto& data = logger->get().linop_factory_generate_started.back();
     ASSERT_EQ(data->factory, factory.get());
     ASSERT_NE(data->input.get(), nullptr);
     ASSERT_EQ(data->output.get(), nullptr);
@@ -434,7 +434,7 @@ TEST(Record, CatchesLinopFactoryGenerateCompleted)
     logger->on<gko::log::Logger::linop_factory_generate_completed>(
         factory.get(), input.get(), output.get());
 
-    auto &data = logger->get().linop_factory_generate_completed.back();
+    auto& data = logger->get().linop_factory_generate_completed.back();
     ASSERT_EQ(data->factory, factory.get());
     ASSERT_NE(data->input.get(), nullptr);
     ASSERT_NE(data->output.get(), nullptr);
@@ -455,7 +455,7 @@ TEST(Record, CatchesCriterionCheckStarted)
         criterion.get(), 1, nullptr, nullptr, nullptr, RelativeStoppingId,
         true);
 
-    auto &data = logger->get().criterion_check_started.back();
+    auto& data = logger->get().criterion_check_started.back();
     ASSERT_NE(data->criterion, nullptr);
     ASSERT_EQ(data->stopping_id, RelativeStoppingId);
     ASSERT_EQ(data->set_finalized, true);
@@ -481,7 +481,7 @@ TEST(Record, CatchesCriterionCheckCompletedOld)
 
     stop_status.get_data()->reset();
     stop_status.get_data()->stop(RelativeStoppingId);
-    auto &data = logger->get().criterion_check_completed.back();
+    auto& data = logger->get().criterion_check_completed.back();
     ASSERT_NE(data->criterion, nullptr);
     ASSERT_EQ(data->stopping_id, RelativeStoppingId);
     ASSERT_EQ(data->set_finalized, true);
@@ -511,7 +511,7 @@ TEST(Record, CatchesCriterionCheckCompleted)
 
     stop_status.get_data()->reset();
     stop_status.get_data()->stop(RelativeStoppingId);
-    auto &data = logger->get().criterion_check_completed.back();
+    auto& data = logger->get().criterion_check_completed.back();
     ASSERT_NE(data->criterion, nullptr);
     ASSERT_EQ(data->stopping_id, RelativeStoppingId);
     ASSERT_EQ(data->set_finalized, true);
@@ -546,7 +546,7 @@ TEST(Record, CatchesIterations)
         solver.get(), num_iters, residual.get(), solution.get(),
         residual_norm.get(), implicit_sq_residual_norm.get());
 
-    auto &data = logger->get().iteration_completed.back();
+    auto& data = logger->get().iteration_completed.back();
     ASSERT_NE(data->solver.get(), nullptr);
     ASSERT_EQ(data->num_iterations, num_iters);
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->residual.get()), residual, 0);

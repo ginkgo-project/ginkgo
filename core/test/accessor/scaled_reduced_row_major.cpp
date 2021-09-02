@@ -91,7 +91,7 @@ protected:
 
     template <typename Accessor>
     static void check_accessor_correctness(
-        const Accessor &a,
+        const Accessor& a,
         std::tuple<int, int, int> ignore = std::tuple<int, int, int>(99, 99,
                                                                      99))
     {

@@ -73,8 +73,8 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 template <typename ValueType>
 void initialize_m_kernel(size_type subspace_dim, size_type nrhs,
-                         ValueType *__restrict__ m_values, size_type m_stride,
-                         stopping_status *__restrict__ stop_status,
+                         ValueType* __restrict__ m_values, size_type m_stride,
+                         stopping_status* __restrict__ stop_status,
                          sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
@@ -93,11 +93,11 @@ void initialize_m_kernel(size_type subspace_dim, size_type nrhs,
 
 template <typename ValueType>
 void initialize_m_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                         sycl::queue *stream, size_type subspace_dim,
-                         size_type nrhs, ValueType *m_values,
-                         size_type m_stride, stopping_status *stop_status)
+                         sycl::queue* stream, size_type subspace_dim,
+                         size_type nrhs, ValueType* m_values,
+                         size_type m_stride, stopping_status* stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    stream->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 initialize_m_kernel(subspace_dim, nrhs, m_values, m_stride,
@@ -109,16 +109,16 @@ void initialize_m_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 
 template <size_type block_size, typename ValueType>
 void orthonormalize_subspace_vectors_kernel(
-    size_type num_rows, size_type num_cols, ValueType *__restrict__ values,
+    size_type num_rows, size_type num_cols, ValueType* __restrict__ values,
     size_type stride, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, block_size> &reduction_helper_array)
+    UninitializedArray<ValueType, block_size>& reduction_helper_array)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
 
     // they are not be used in the same time.
-    ValueType *reduction_helper = reduction_helper_array;
+    ValueType* reduction_helper = reduction_helper_array;
     auto reduction_helper_real =
-        reinterpret_cast<remove_complex<ValueType> *>(reduction_helper);
+        reinterpret_cast<remove_complex<ValueType>*>(reduction_helper);
 
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type i = 0; i < row; i++) {
@@ -132,7 +132,7 @@ void orthonormalize_subspace_vectors_kernel(
             reduction_helper[tidx] = dot;
             ::gko::kernels::dpcpp::reduce(
                 group::this_thread_block(item_ct1), reduction_helper,
-                [](const ValueType &a, const ValueType &b) { return a + b; });
+                [](const ValueType& a, const ValueType& b) { return a + b; });
             item_ct1.barrier(sycl::access::fence_space::local_space);
 
             dot = reduction_helper[0];
@@ -151,8 +151,8 @@ void orthonormalize_subspace_vectors_kernel(
         reduction_helper_real[tidx] = norm;
         ::gko::kernels::dpcpp::reduce(
             group::this_thread_block(item_ct1), reduction_helper_real,
-            [](const remove_complex<ValueType> &a,
-               const remove_complex<ValueType> &b) { return a + b; });
+            [](const remove_complex<ValueType>& a,
+               const remove_complex<ValueType>& b) { return a + b; });
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
         norm = std::sqrt(reduction_helper_real[0]);
@@ -164,10 +164,10 @@ void orthonormalize_subspace_vectors_kernel(
 
 template <size_type block_size, typename ValueType>
 void orthonormalize_subspace_vectors_kernel(
-    dim3 grid, dim3 block, size_t dynamic_shared_memory, sycl::queue *stream,
-    size_type num_rows, size_type num_cols, ValueType *values, size_type stride)
+    dim3 grid, dim3 block, size_t dynamic_shared_memory, sycl::queue* stream,
+    size_type num_rows, size_type num_cols, ValueType* values, size_type stride)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    stream->submit([&](sycl::handler& cgh) {
         sycl::accessor<UninitializedArray<ValueType, block_size>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
@@ -186,10 +186,10 @@ void orthonormalize_subspace_vectors_kernel(
 template <typename ValueType>
 void solve_lower_triangular_kernel(
     size_type subspace_dim, size_type nrhs,
-    const ValueType *__restrict__ m_values, size_type m_stride,
-    const ValueType *__restrict__ f_values, size_type f_stride,
-    ValueType *__restrict__ c_values, size_type c_stride,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1)
+    const ValueType* __restrict__ m_values, size_type m_stride,
+    const ValueType* __restrict__ f_values, size_type f_stride,
+    ValueType* __restrict__ c_values, size_type c_stride,
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
 
@@ -212,12 +212,12 @@ void solve_lower_triangular_kernel(
 
 template <typename ValueType>
 void solve_lower_triangular_kernel(
-    dim3 grid, dim3 block, size_t dynamic_shared_memory, sycl::queue *stream,
-    size_type subspace_dim, size_type nrhs, const ValueType *m_values,
-    size_type m_stride, const ValueType *f_values, size_type f_stride,
-    ValueType *c_values, size_type c_stride, const stopping_status *stop_status)
+    dim3 grid, dim3 block, size_t dynamic_shared_memory, sycl::queue* stream,
+    size_type subspace_dim, size_type nrhs, const ValueType* m_values,
+    size_type m_stride, const ValueType* f_values, size_type f_stride,
+    ValueType* c_values, size_type c_stride, const stopping_status* stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    stream->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 solve_lower_triangular_kernel(
@@ -231,12 +231,12 @@ void solve_lower_triangular_kernel(
 template <typename ValueType>
 void step_1_kernel(size_type k, size_type num_rows, size_type subspace_dim,
                    size_type nrhs,
-                   const ValueType *__restrict__ residual_values,
+                   const ValueType* __restrict__ residual_values,
                    size_type residual_stride,
-                   const ValueType *__restrict__ c_values, size_type c_stride,
-                   const ValueType *__restrict__ g_values, size_type g_stride,
-                   ValueType *__restrict__ v_values, size_type v_stride,
-                   const stopping_status *__restrict__ stop_status,
+                   const ValueType* __restrict__ c_values, size_type c_stride,
+                   const ValueType* __restrict__ g_values, size_type g_stride,
+                   ValueType* __restrict__ v_values, size_type v_stride,
+                   const stopping_status* __restrict__ stop_status,
                    sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
@@ -259,15 +259,15 @@ void step_1_kernel(size_type k, size_type num_rows, size_type subspace_dim,
 
 template <typename ValueType>
 void step_1_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                   sycl::queue *stream, size_type k, size_type num_rows,
+                   sycl::queue* stream, size_type k, size_type num_rows,
                    size_type subspace_dim, size_type nrhs,
-                   const ValueType *residual_values, size_type residual_stride,
-                   const ValueType *c_values, size_type c_stride,
-                   const ValueType *g_values, size_type g_stride,
-                   ValueType *v_values, size_type v_stride,
-                   const stopping_status *stop_status)
+                   const ValueType* residual_values, size_type residual_stride,
+                   const ValueType* c_values, size_type c_stride,
+                   const ValueType* g_values, size_type g_stride,
+                   ValueType* v_values, size_type v_stride,
+                   const stopping_status* stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    stream->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 step_1_kernel(k, num_rows, subspace_dim, nrhs, residual_values,
@@ -281,11 +281,11 @@ void step_1_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 
 template <typename ValueType>
 void step_2_kernel(size_type k, size_type num_rows, size_type subspace_dim,
-                   size_type nrhs, const ValueType *__restrict__ omega_values,
-                   const ValueType *__restrict__ v_values, size_type v_stride,
-                   const ValueType *__restrict__ c_values, size_type c_stride,
-                   ValueType *__restrict__ u_values, size_type u_stride,
-                   const stopping_status *__restrict__ stop_status,
+                   size_type nrhs, const ValueType* __restrict__ omega_values,
+                   const ValueType* __restrict__ v_values, size_type v_stride,
+                   const ValueType* __restrict__ c_values, size_type c_stride,
+                   ValueType* __restrict__ u_values, size_type u_stride,
+                   const stopping_status* __restrict__ stop_status,
                    sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
@@ -308,14 +308,14 @@ void step_2_kernel(size_type k, size_type num_rows, size_type subspace_dim,
 
 template <typename ValueType>
 void step_2_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                   sycl::queue *stream, size_type k, size_type num_rows,
+                   sycl::queue* stream, size_type k, size_type num_rows,
                    size_type subspace_dim, size_type nrhs,
-                   const ValueType *omega_values, const ValueType *v_values,
-                   size_type v_stride, const ValueType *c_values,
-                   size_type c_stride, ValueType *u_values, size_type u_stride,
-                   const stopping_status *stop_status)
+                   const ValueType* omega_values, const ValueType* v_values,
+                   size_type v_stride, const ValueType* c_values,
+                   size_type c_stride, ValueType* u_values, size_type u_stride,
+                   const stopping_status* stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    stream->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 step_2_kernel(k, num_rows, subspace_dim, nrhs, omega_values,
@@ -328,12 +328,12 @@ void step_2_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 
 template <typename ValueType>
 void multidot_kernel(
-    size_type num_rows, size_type nrhs, const ValueType *__restrict__ p_i,
-    const ValueType *__restrict__ g_k, size_type g_k_stride,
-    ValueType *__restrict__ alpha,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, default_dot_dim *(default_dot_dim + 1)>
-        &reduction_helper_array)
+    size_type num_rows, size_type nrhs, const ValueType* __restrict__ p_i,
+    const ValueType* __restrict__ g_k, size_type g_k_stride,
+    ValueType* __restrict__ alpha,
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
+    UninitializedArray<ValueType, default_dot_dim*(default_dot_dim + 1)>&
+        reduction_helper_array)
 {
     const auto tidx = item_ct1.get_local_id(2);
     const auto tidy = item_ct1.get_local_id(1);
@@ -345,7 +345,7 @@ void multidot_kernel(
                              : (item_ct1.get_group(1) + 1) * num;
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-    ValueType *__restrict__ reduction_helper = reduction_helper_array;
+    ValueType* __restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();
     if (rhs < nrhs && !stop_status[rhs].has_stopped()) {
@@ -362,7 +362,7 @@ void multidot_kernel(
         group::this_thread_block(item_ct1));
     const auto sum = ::gko::kernels::dpcpp::reduce(
         tile_block, local_res,
-        [](const ValueType &a, const ValueType &b) { return a + b; });
+        [](const ValueType& a, const ValueType& b) { return a + b; });
     const auto new_rhs = item_ct1.get_group(2) * default_dot_dim + tidy;
     if (tidx == 0 && new_rhs < nrhs && !stop_status[new_rhs].has_stopped()) {
         atomic_add(alpha + new_rhs, sum);
@@ -371,13 +371,13 @@ void multidot_kernel(
 
 template <typename ValueType>
 void multidot_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                     sycl::queue *stream, size_type num_rows, size_type nrhs,
-                     const ValueType *p_i, const ValueType *g_k,
-                     size_type g_k_stride, ValueType *alpha,
-                     const stopping_status *stop_status)
+                     sycl::queue* stream, size_type num_rows, size_type nrhs,
+                     const ValueType* p_i, const ValueType* g_k,
+                     size_type g_k_stride, ValueType* alpha,
+                     const stopping_status* stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
-        sycl::accessor<UninitializedArray<ValueType, default_dot_dim *(
+    stream->submit([&](sycl::handler& cgh) {
+        sycl::accessor<UninitializedArray<ValueType, default_dot_dim*(
                                                          default_dot_dim + 1)>,
                        0, sycl::access_mode::read_write,
                        sycl::access::target::local>
@@ -396,11 +396,11 @@ void multidot_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 template <size_type block_size, typename ValueType>
 void update_g_k_and_u_kernel(
     size_type k, size_type i, size_type size, size_type nrhs,
-    const ValueType *__restrict__ alpha, const ValueType *__restrict__ m_values,
-    size_type m_stride, const ValueType *__restrict__ g_values,
-    size_type g_stride, ValueType *__restrict__ g_k_values,
-    size_type g_k_stride, ValueType *__restrict__ u_values, size_type u_stride,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1)
+    const ValueType* __restrict__ alpha, const ValueType* __restrict__ m_values,
+    size_type m_stride, const ValueType* __restrict__ g_values,
+    size_type g_stride, ValueType* __restrict__ g_k_values,
+    size_type g_k_stride, ValueType* __restrict__ u_values, size_type u_stride,
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     const auto row = tidx / g_k_stride;
@@ -421,16 +421,16 @@ void update_g_k_and_u_kernel(
 
 template <size_type block_size, typename ValueType>
 void update_g_k_and_u_kernel(dim3 grid, dim3 block,
-                             size_t dynamic_shared_memory, sycl::queue *stream,
+                             size_t dynamic_shared_memory, sycl::queue* stream,
                              size_type k, size_type i, size_type size,
-                             size_type nrhs, const ValueType *alpha,
-                             const ValueType *m_values, size_type m_stride,
-                             const ValueType *g_values, size_type g_stride,
-                             ValueType *g_k_values, size_type g_k_stride,
-                             ValueType *u_values, size_type u_stride,
-                             const stopping_status *stop_status)
+                             size_type nrhs, const ValueType* alpha,
+                             const ValueType* m_values, size_type m_stride,
+                             const ValueType* g_values, size_type g_stride,
+                             ValueType* g_k_values, size_type g_k_stride,
+                             ValueType* u_values, size_type u_stride,
+                             const stopping_status* stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    stream->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              update_g_k_and_u_kernel<block_size>(
@@ -444,10 +444,10 @@ void update_g_k_and_u_kernel(dim3 grid, dim3 block,
 
 template <size_type block_size, typename ValueType>
 void update_g_kernel(size_type k, size_type size, size_type nrhs,
-                     const ValueType *__restrict__ g_k_values,
-                     size_type g_k_stride, ValueType *__restrict__ g_values,
+                     const ValueType* __restrict__ g_k_values,
+                     size_type g_k_stride, ValueType* __restrict__ g_values,
                      size_type g_stride,
-                     const stopping_status *__restrict__ stop_status,
+                     const stopping_status* __restrict__ stop_status,
                      sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
@@ -466,12 +466,12 @@ void update_g_kernel(size_type k, size_type size, size_type nrhs,
 
 template <size_type block_size, typename ValueType>
 void update_g_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                     sycl::queue *stream, size_type k, size_type size,
-                     size_type nrhs, const ValueType *g_k_values,
-                     size_type g_k_stride, ValueType *g_values,
-                     size_type g_stride, const stopping_status *stop_status)
+                     sycl::queue* stream, size_type k, size_type size,
+                     size_type nrhs, const ValueType* g_k_values,
+                     size_type g_k_stride, ValueType* g_values,
+                     size_type g_stride, const stopping_status* stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    stream->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 update_g_kernel<block_size>(k, size, nrhs, g_k_values,
@@ -485,13 +485,13 @@ void update_g_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 template <typename ValueType>
 void update_x_r_and_f_kernel(
     size_type k, size_type size, size_type subspace_dim, size_type nrhs,
-    const ValueType *__restrict__ m_values, size_type m_stride,
-    const ValueType *__restrict__ g_values, size_type g_stride,
-    const ValueType *__restrict__ u_values, size_type u_stride,
-    ValueType *__restrict__ f_values, size_type f_stride,
-    ValueType *__restrict__ r_values, size_type r_stride,
-    ValueType *__restrict__ x_values, size_type x_stride,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1)
+    const ValueType* __restrict__ m_values, size_type m_stride,
+    const ValueType* __restrict__ g_values, size_type g_stride,
+    const ValueType* __restrict__ u_values, size_type u_stride,
+    ValueType* __restrict__ f_values, size_type f_stride,
+    ValueType* __restrict__ r_values, size_type r_stride,
+    ValueType* __restrict__ x_values, size_type x_stride,
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
     const auto row = global_id / x_stride;
@@ -518,15 +518,15 @@ void update_x_r_and_f_kernel(
 
 template <typename ValueType>
 void update_x_r_and_f_kernel(
-    dim3 grid, dim3 block, size_t dynamic_shared_memory, sycl::queue *stream,
+    dim3 grid, dim3 block, size_t dynamic_shared_memory, sycl::queue* stream,
     size_type k, size_type size, size_type subspace_dim, size_type nrhs,
-    const ValueType *m_values, size_type m_stride, const ValueType *g_values,
-    size_type g_stride, const ValueType *u_values, size_type u_stride,
-    ValueType *f_values, size_type f_stride, ValueType *r_values,
-    size_type r_stride, ValueType *x_values, size_type x_stride,
-    const stopping_status *stop_status)
+    const ValueType* m_values, size_type m_stride, const ValueType* g_values,
+    size_type g_stride, const ValueType* u_values, size_type u_stride,
+    ValueType* f_values, size_type f_stride, ValueType* r_values,
+    size_type r_stride, ValueType* x_values, size_type x_stride,
+    const stopping_status* stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    stream->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 update_x_r_and_f_kernel(
@@ -541,10 +541,10 @@ void update_x_r_and_f_kernel(
 template <typename ValueType>
 void compute_omega_kernel(
     size_type nrhs, const remove_complex<ValueType> kappa,
-    const ValueType *__restrict__ tht,
-    const remove_complex<ValueType> *__restrict__ residual_norm,
-    ValueType *__restrict__ omega,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1)
+    const ValueType* __restrict__ tht,
+    const remove_complex<ValueType>* __restrict__ residual_norm,
+    ValueType* __restrict__ omega,
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
 
@@ -566,13 +566,13 @@ void compute_omega_kernel(
 
 template <typename ValueType>
 void compute_omega_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
-                          sycl::queue *stream, size_type nrhs,
+                          sycl::queue* stream, size_type nrhs,
                           const remove_complex<ValueType> kappa,
-                          const ValueType *tht,
-                          const remove_complex<ValueType> *residual_norm,
-                          ValueType *omega, const stopping_status *stop_status)
+                          const ValueType* tht,
+                          const remove_complex<ValueType>* residual_norm,
+                          ValueType* omega, const stopping_status* stop_status)
 {
-    stream->submit([&](sycl::handler &cgh) {
+    stream->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 compute_omega_kernel(nrhs, kappa, tht, residual_norm, omega,
@@ -587,8 +587,8 @@ namespace {
 
 template <typename ValueType>
 void initialize_m(std::shared_ptr<const DpcppExecutor> exec,
-                  const size_type nrhs, matrix::Dense<ValueType> *m,
-                  Array<stopping_status> *stop_status)
+                  const size_type nrhs, matrix::Dense<ValueType>* m,
+                  Array<stopping_status>* stop_status)
 {
     const auto subspace_dim = m->get_size()[0];
     const auto m_stride = m->get_stride();
@@ -602,7 +602,7 @@ void initialize_m(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename ValueType>
 void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
-                                 matrix::Dense<ValueType> *subspace_vectors,
+                                 matrix::Dense<ValueType>* subspace_vectors,
                                  bool deterministic)
 {
     if (deterministic) {
@@ -613,12 +613,12 @@ void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
         subspace_vectors->read(subspace_vectors_data);
     } else {
         auto seed = time(NULL);
-        auto work = reinterpret_cast<remove_complex<ValueType> *>(
+        auto work = reinterpret_cast<remove_complex<ValueType>*>(
             subspace_vectors->get_values());
         auto n =
             subspace_vectors->get_size()[0] * subspace_vectors->get_stride();
         n = is_complex<ValueType>() ? 2 * n : n;
-        exec->get_queue()->submit([&](sycl::handler &cgh) {
+        exec->get_queue()->submit([&](sycl::handler& cgh) {
             cgh.parallel_for(sycl::range<1>(n), [=](sycl::item<1> idx) {
                 std::uint64_t offset = idx.get_linear_id();
                 oneapi::dpl::minstd_rand engine(seed, offset);
@@ -635,7 +635,7 @@ void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename ValueType>
 void orthonormalize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
-                                     matrix::Dense<ValueType> *subspace_vectors)
+                                     matrix::Dense<ValueType>* subspace_vectors)
 {
     orthonormalize_subspace_vectors_kernel<default_block_size>(
         1, default_block_size, 0, exec->get_queue(),
@@ -647,10 +647,10 @@ void orthonormalize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
 template <typename ValueType>
 void solve_lower_triangular(std::shared_ptr<const DpcppExecutor> exec,
                             const size_type nrhs,
-                            const matrix::Dense<ValueType> *m,
-                            const matrix::Dense<ValueType> *f,
-                            matrix::Dense<ValueType> *c,
-                            const Array<stopping_status> *stop_status)
+                            const matrix::Dense<ValueType>* m,
+                            const matrix::Dense<ValueType>* f,
+                            matrix::Dense<ValueType>* c,
+                            const Array<stopping_status>* stop_status)
 {
     const auto subspace_dim = m->get_size()[0];
 
@@ -666,12 +666,12 @@ void solve_lower_triangular(std::shared_ptr<const DpcppExecutor> exec,
 template <typename ValueType>
 void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
                     const size_type nrhs, const size_type k,
-                    const matrix::Dense<ValueType> *p,
-                    const matrix::Dense<ValueType> *m,
-                    matrix::Dense<ValueType> *alpha,
-                    matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
-                    matrix::Dense<ValueType> *u,
-                    const Array<stopping_status> *stop_status)
+                    const matrix::Dense<ValueType>* p,
+                    const matrix::Dense<ValueType>* m,
+                    matrix::Dense<ValueType>* alpha,
+                    matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
+                    matrix::Dense<ValueType>* u,
+                    const Array<stopping_status>* stop_status)
 {
     const auto size = g->get_size()[0];
     const auto p_stride = p->get_stride();
@@ -710,9 +710,9 @@ void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename ValueType>
 void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
-              const size_type k, const matrix::Dense<ValueType> *p,
-              const matrix::Dense<ValueType> *g_k, matrix::Dense<ValueType> *m,
-              const Array<stopping_status> *stop_status)
+              const size_type k, const matrix::Dense<ValueType>* p,
+              const matrix::Dense<ValueType>* g_k, matrix::Dense<ValueType>* m,
+              const Array<stopping_status>* stop_status)
 {
     const auto size = g_k->get_size()[0];
     const auto subspace_dim = m->get_size()[0];
@@ -743,12 +743,12 @@ void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
 template <typename ValueType>
 void update_x_r_and_f(std::shared_ptr<const DpcppExecutor> exec,
                       const size_type nrhs, const size_type k,
-                      const matrix::Dense<ValueType> *m,
-                      const matrix::Dense<ValueType> *g,
-                      const matrix::Dense<ValueType> *u,
-                      matrix::Dense<ValueType> *f, matrix::Dense<ValueType> *r,
-                      matrix::Dense<ValueType> *x,
-                      const Array<stopping_status> *stop_status)
+                      const matrix::Dense<ValueType>* m,
+                      const matrix::Dense<ValueType>* g,
+                      const matrix::Dense<ValueType>* u,
+                      matrix::Dense<ValueType>* f, matrix::Dense<ValueType>* r,
+                      matrix::Dense<ValueType>* x,
+                      const Array<stopping_status>* stop_status)
 {
     const auto size = x->get_size()[0];
     const auto subspace_dim = m->get_size()[0];
@@ -771,9 +771,9 @@ void update_x_r_and_f(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
-                matrix::Dense<ValueType> *m,
-                matrix::Dense<ValueType> *subspace_vectors, bool deterministic,
-                Array<stopping_status> *stop_status)
+                matrix::Dense<ValueType>* m,
+                matrix::Dense<ValueType>* subspace_vectors, bool deterministic,
+                Array<stopping_status>* stop_status)
 {
     initialize_m(exec, nrhs, m, stop_status);
     initialize_subspace_vectors(exec, subspace_vectors, deterministic);
@@ -785,12 +785,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
-            const size_type k, const matrix::Dense<ValueType> *m,
-            const matrix::Dense<ValueType> *f,
-            const matrix::Dense<ValueType> *residual,
-            const matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *c,
-            matrix::Dense<ValueType> *v,
-            const Array<stopping_status> *stop_status)
+            const size_type k, const matrix::Dense<ValueType>* m,
+            const matrix::Dense<ValueType>* f,
+            const matrix::Dense<ValueType>* residual,
+            const matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* c,
+            matrix::Dense<ValueType>* v,
+            const Array<stopping_status>* stop_status)
 {
     solve_lower_triangular(exec, nrhs, m, f, c, stop_status);
 
@@ -811,10 +811,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
-            const size_type k, const matrix::Dense<ValueType> *omega,
-            const matrix::Dense<ValueType> *preconditioned_vector,
-            const matrix::Dense<ValueType> *c, matrix::Dense<ValueType> *u,
-            const Array<stopping_status> *stop_status)
+            const size_type k, const matrix::Dense<ValueType>* omega,
+            const matrix::Dense<ValueType>* preconditioned_vector,
+            const matrix::Dense<ValueType>* c, matrix::Dense<ValueType>* u,
+            const Array<stopping_status>* stop_status)
 {
     const auto num_rows = preconditioned_vector->get_size()[0];
     const auto subspace_dim = u->get_size()[1] / nrhs;
@@ -833,12 +833,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
 
 template <typename ValueType>
 void step_3(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
-            const size_type k, const matrix::Dense<ValueType> *p,
-            matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *g_k,
-            matrix::Dense<ValueType> *u, matrix::Dense<ValueType> *m,
-            matrix::Dense<ValueType> *f, matrix::Dense<ValueType> *alpha,
-            matrix::Dense<ValueType> *residual, matrix::Dense<ValueType> *x,
-            const Array<stopping_status> *stop_status)
+            const size_type k, const matrix::Dense<ValueType>* p,
+            matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
+            matrix::Dense<ValueType>* u, matrix::Dense<ValueType>* m,
+            matrix::Dense<ValueType>* f, matrix::Dense<ValueType>* alpha,
+            matrix::Dense<ValueType>* residual, matrix::Dense<ValueType>* x,
+            const Array<stopping_status>* stop_status)
 {
     update_g_and_u(exec, nrhs, k, p, m, alpha, g, g_k, u, stop_status);
     update_m(exec, nrhs, k, p, g_k, m, stop_status);
@@ -851,9 +851,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
 template <typename ValueType>
 void compute_omega(
     std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
-    const remove_complex<ValueType> kappa, const matrix::Dense<ValueType> *tht,
-    const matrix::Dense<remove_complex<ValueType>> *residual_norm,
-    matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
+    const remove_complex<ValueType> kappa, const matrix::Dense<ValueType>* tht,
+    const matrix::Dense<remove_complex<ValueType>>* residual_norm,
+    matrix::Dense<ValueType>* omega, const Array<stopping_status>* stop_status)
 {
     const auto grid_dim = ceildiv(nrhs, config::warp_size);
     compute_omega_kernel(grid_dim, config::warp_size, 0, exec->get_queue(),

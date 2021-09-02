@@ -99,11 +99,11 @@ namespace {
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
 void spmv_kernel(const size_type nnz, const size_type num_lines,
-                 const ValueType *__restrict__ val,
-                 const IndexType *__restrict__ col,
-                 const IndexType *__restrict__ row,
-                 const ValueType *__restrict__ b, const size_type b_stride,
-                 ValueType *__restrict__ c, const size_type c_stride,
+                 const ValueType* __restrict__ val,
+                 const IndexType* __restrict__ col,
+                 const IndexType* __restrict__ row,
+                 const ValueType* __restrict__ b, const size_type b_stride,
+                 ValueType* __restrict__ c, const size_type c_stride,
                  Closure scale, sycl::nd_item<3> item_ct1)
 {
     ValueType temp_val = zero<ValueType>();
@@ -155,32 +155,32 @@ void spmv_kernel(const size_type nnz, const size_type num_lines,
 
 template <typename ValueType, typename IndexType>
 void abstract_spmv(const size_type nnz, const size_type num_lines,
-                   const ValueType *__restrict__ val,
-                   const IndexType *__restrict__ col,
-                   const IndexType *__restrict__ row,
-                   const ValueType *__restrict__ b, const size_type b_stride,
-                   ValueType *__restrict__ c, const size_type c_stride,
+                   const ValueType* __restrict__ val,
+                   const IndexType* __restrict__ col,
+                   const IndexType* __restrict__ row,
+                   const ValueType* __restrict__ b, const size_type b_stride,
+                   ValueType* __restrict__ c, const size_type c_stride,
                    sycl::nd_item<3> item_ct1)
 {
     spmv_kernel(
         nnz, num_lines, val, col, row, b, b_stride, c, c_stride,
-        [](const ValueType &x) { return x; }, item_ct1);
+        [](const ValueType& x) { return x; }, item_ct1);
 }
 
 template <typename ValueType, typename IndexType>
 void abstract_spmv(const size_type nnz, const size_type num_lines,
-                   const ValueType *__restrict__ alpha,
-                   const ValueType *__restrict__ val,
-                   const IndexType *__restrict__ col,
-                   const IndexType *__restrict__ row,
-                   const ValueType *__restrict__ b, const size_type b_stride,
-                   ValueType *__restrict__ c, const size_type c_stride,
+                   const ValueType* __restrict__ alpha,
+                   const ValueType* __restrict__ val,
+                   const IndexType* __restrict__ col,
+                   const IndexType* __restrict__ row,
+                   const ValueType* __restrict__ b, const size_type b_stride,
+                   ValueType* __restrict__ c, const size_type c_stride,
                    sycl::nd_item<3> item_ct1)
 {
     ValueType scale_factor = alpha[0];
     spmv_kernel(
         nnz, num_lines, val, col, row, b, b_stride, c, c_stride,
-        [&scale_factor](const ValueType &x) { return scale_factor * x; },
+        [&scale_factor](const ValueType& x) { return scale_factor * x; },
         item_ct1);
 }
 
@@ -208,11 +208,11 @@ GKO_ENABLE_DEFAULT_HOST(abstract_spmv, abstract_spmv);
  */
 template <typename ValueType, typename IndexType, typename Closure>
 void spmm_kernel(const size_type nnz, const size_type num_elems,
-                 const ValueType *__restrict__ val,
-                 const IndexType *__restrict__ col,
-                 const IndexType *__restrict__ row, const size_type num_cols,
-                 const ValueType *__restrict__ b, const size_type b_stride,
-                 ValueType *__restrict__ c, const size_type c_stride,
+                 const ValueType* __restrict__ val,
+                 const IndexType* __restrict__ col,
+                 const IndexType* __restrict__ row, const size_type num_cols,
+                 const ValueType* __restrict__ b, const size_type b_stride,
+                 ValueType* __restrict__ c, const size_type c_stride,
                  Closure scale, sycl::nd_item<3> item_ct1)
 {
     ValueType temp = zero<ValueType>();
@@ -246,32 +246,32 @@ void spmm_kernel(const size_type nnz, const size_type num_elems,
 
 template <typename ValueType, typename IndexType>
 void abstract_spmm(const size_type nnz, const size_type num_elems,
-                   const ValueType *__restrict__ val,
-                   const IndexType *__restrict__ col,
-                   const IndexType *__restrict__ row, const size_type num_cols,
-                   const ValueType *__restrict__ b, const size_type b_stride,
-                   ValueType *__restrict__ c, const size_type c_stride,
+                   const ValueType* __restrict__ val,
+                   const IndexType* __restrict__ col,
+                   const IndexType* __restrict__ row, const size_type num_cols,
+                   const ValueType* __restrict__ b, const size_type b_stride,
+                   ValueType* __restrict__ c, const size_type c_stride,
                    sycl::nd_item<3> item_ct1)
 {
     spmm_kernel(
         nnz, num_elems, val, col, row, num_cols, b, b_stride, c, c_stride,
-        [](const ValueType &x) { return x; }, item_ct1);
+        [](const ValueType& x) { return x; }, item_ct1);
 }
 
 template <typename ValueType, typename IndexType>
 void abstract_spmm(const size_type nnz, const size_type num_elems,
-                   const ValueType *__restrict__ alpha,
-                   const ValueType *__restrict__ val,
-                   const IndexType *__restrict__ col,
-                   const IndexType *__restrict__ row, const size_type num_cols,
-                   const ValueType *__restrict__ b, const size_type b_stride,
-                   ValueType *__restrict__ c, const size_type c_stride,
+                   const ValueType* __restrict__ alpha,
+                   const ValueType* __restrict__ val,
+                   const IndexType* __restrict__ col,
+                   const IndexType* __restrict__ row, const size_type num_cols,
+                   const ValueType* __restrict__ b, const size_type b_stride,
+                   ValueType* __restrict__ c, const size_type c_stride,
                    sycl::nd_item<3> item_ct1)
 {
     ValueType scale_factor = alpha[0];
     spmm_kernel(
         nnz, num_elems, val, col, row, num_cols, b, b_stride, c, c_stride,
-        [&scale_factor](const ValueType &x) { return scale_factor * x; },
+        [&scale_factor](const ValueType& x) { return scale_factor * x; },
         item_ct1);
 }
 
@@ -285,9 +285,9 @@ namespace kernel {
 
 
 template <typename IndexType>
-void convert_row_idxs_to_ptrs(const IndexType *__restrict__ idxs,
+void convert_row_idxs_to_ptrs(const IndexType* __restrict__ idxs,
                               size_type num_nonzeros,
-                              IndexType *__restrict__ ptrs, size_type length,
+                              IndexType* __restrict__ ptrs, size_type length,
                               sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
@@ -310,11 +310,11 @@ void convert_row_idxs_to_ptrs(const IndexType *__restrict__ idxs,
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(dim3 grid, dim3 block,
                               size_type dynamic_shared_memory,
-                              sycl::queue *queue, const IndexType *idxs,
-                              size_type num_nonzeros, IndexType *ptrs,
+                              sycl::queue* queue, const IndexType* idxs,
+                              size_type num_nonzeros, IndexType* ptrs,
                               size_type length)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              convert_row_idxs_to_ptrs(idxs, num_nonzeros, ptrs,
@@ -323,16 +323,16 @@ void convert_row_idxs_to_ptrs(dim3 grid, dim3 block,
     });
 }
 
-template void convert_row_idxs_to_ptrs(dim3, dim3, size_type, sycl::queue *,
-                                       const int32 *idxs, size_type, int32 *,
+template void convert_row_idxs_to_ptrs(dim3, dim3, size_type, sycl::queue*,
+                                       const int32* idxs, size_type, int32*,
                                        size_type);
-template void convert_row_idxs_to_ptrs(dim3, dim3, size_type, sycl::queue *,
-                                       const int64 *idxs, size_type, int64 *,
+template void convert_row_idxs_to_ptrs(dim3, dim3, size_type, sycl::queue*,
+                                       const int64* idxs, size_type, int64*,
                                        size_type);
 
 template <typename ValueType>
 void initialize_zero_dense(size_type num_rows, size_type num_cols,
-                           size_type stride, ValueType *__restrict__ result,
+                           size_type stride, ValueType* __restrict__ result,
                            sycl::nd_item<3> item_ct1)
 {
     const auto tidx_x =
@@ -350,10 +350,10 @@ GKO_ENABLE_DEFAULT_HOST(initialize_zero_dense, initialize_zero_dense);
 
 
 template <typename ValueType, typename IndexType>
-void fill_in_dense(size_type nnz, const IndexType *__restrict__ row_idxs,
-                   const IndexType *__restrict__ col_idxs,
-                   const ValueType *__restrict__ values, size_type stride,
-                   ValueType *__restrict__ result, sycl::nd_item<3> item_ct1)
+void fill_in_dense(size_type nnz, const IndexType* __restrict__ row_idxs,
+                   const IndexType* __restrict__ col_idxs,
+                   const ValueType* __restrict__ values, size_type stride,
+                   ValueType* __restrict__ result, sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     if (tidx < nnz) {
@@ -369,8 +369,8 @@ GKO_ENABLE_DEFAULT_HOST(fill_in_dense, fill_in_dense);
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
-          const matrix::Coo<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+          const matrix::Coo<ValueType, IndexType>* a,
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     dense::fill(exec, c, zero<ValueType>());
     spmv2(exec, a, b, c);
@@ -381,11 +381,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Coo<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::Coo<ValueType, IndexType>* a,
+                   const matrix::Dense<ValueType>* b,
+                   const matrix::Dense<ValueType>* beta,
+                   matrix::Dense<ValueType>* c)
 {
     dense::scale(exec, beta, c);
     advanced_spmv2(exec, alpha, a, b, c);
@@ -397,8 +397,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const DpcppExecutor> exec,
-           const matrix::Coo<ValueType, IndexType> *a,
-           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+           const matrix::Coo<ValueType, IndexType>* a,
+           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     const auto nnz = a->get_num_stored_elements();
     const auto b_ncols = b->get_size()[1];
@@ -433,10 +433,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Dense<ValueType> *alpha,
-                    const matrix::Coo<ValueType, IndexType> *a,
-                    const matrix::Dense<ValueType> *b,
-                    matrix::Dense<ValueType> *c)
+                    const matrix::Dense<ValueType>* alpha,
+                    const matrix::Coo<ValueType, IndexType>* a,
+                    const matrix::Dense<ValueType>* b,
+                    matrix::Dense<ValueType>* c)
 {
     const auto nnz = a->get_num_stored_elements();
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
@@ -473,8 +473,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(std::shared_ptr<const DpcppExecutor> exec,
-                              const IndexType *idxs, size_type num_nonzeros,
-                              IndexType *ptrs, size_type length)
+                              const IndexType* idxs, size_type num_nonzeros,
+                              IndexType* ptrs, size_type length)
 {
     const auto grid_dim = ceildiv(num_nonzeros, default_block_size);
 
@@ -486,8 +486,8 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Coo<ValueType, IndexType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
+                    const matrix::Coo<ValueType, IndexType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
 
@@ -506,8 +506,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result)
+                      const matrix::Coo<ValueType, IndexType>* source,
+                      matrix::Dense<ValueType>* result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];

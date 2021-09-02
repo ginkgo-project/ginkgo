@@ -61,9 +61,9 @@ namespace ell {
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
-          const matrix::Ell<MatrixValueType, IndexType> *a,
-          const matrix::Dense<InputValueType> *b,
-          matrix::Dense<OutputValueType> *c)
+          const matrix::Ell<MatrixValueType, IndexType>* a,
+          const matrix::Dense<InputValueType>* b,
+          matrix::Dense<OutputValueType>* c)
 {
     using a_accessor =
         gko::acc::reduced_row_major<1, OutputValueType, const MatrixValueType>;
@@ -102,11 +102,11 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Dense<MatrixValueType> *alpha,
-                   const matrix::Ell<MatrixValueType, IndexType> *a,
-                   const matrix::Dense<InputValueType> *b,
-                   const matrix::Dense<OutputValueType> *beta,
-                   matrix::Dense<OutputValueType> *c)
+                   const matrix::Dense<MatrixValueType>* alpha,
+                   const matrix::Ell<MatrixValueType, IndexType>* a,
+                   const matrix::Dense<InputValueType>* b,
+                   const matrix::Dense<OutputValueType>* beta,
+                   matrix::Dense<OutputValueType>* c)
 {
     using a_accessor =
         gko::acc::reduced_row_major<1, OutputValueType, const MatrixValueType>;
@@ -146,8 +146,8 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result)
+                      const matrix::Ell<ValueType, IndexType>* source,
+                      matrix::Dense<ValueType>* result)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
@@ -171,8 +171,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Ell<ValueType, IndexType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
+                    const matrix::Ell<ValueType, IndexType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -180,8 +180,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void count_nonzeros(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Ell<ValueType, IndexType> *source,
-                    size_type *result)
+                    const matrix::Ell<ValueType, IndexType>* source,
+                    size_type* result)
 {
     size_type nonzeros = 0;
     const auto num_rows = source->get_size()[0];
@@ -204,8 +204,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
-                                const matrix::Ell<ValueType, IndexType> *source,
-                                Array<size_type> *result) GKO_NOT_IMPLEMENTED;
+                                const matrix::Ell<ValueType, IndexType>* source,
+                                Array<size_type>* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL);
@@ -213,8 +213,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
+                      const matrix::Ell<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag)
 {
     const auto col_idxs = orig->get_const_col_idxs();
     const auto values = orig->get_const_values();

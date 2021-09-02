@@ -67,14 +67,14 @@ public:
     }
 
 protected:
-    void apply_impl(const gko::LinOp *, const gko::LinOp *, const gko::LinOp *,
-                    gko::LinOp *) const override
+    void apply_impl(const gko::LinOp*, const gko::LinOp*, const gko::LinOp*,
+                    gko::LinOp*) const override
     {
         GKO_NOT_IMPLEMENTED;
     }
 
     CuspBase(std::shared_ptr<const gko::Executor> exec,
-             const gko::dim<2> &size = gko::dim<2>{})
+             const gko::dim<2>& size = gko::dim<2>{})
         : gko::LinOp(exec, size)
     {
         gpu_exec_ = std::dynamic_pointer_cast<const gko::CudaExecutor>(exec);
@@ -86,9 +86,9 @@ protected:
 
     ~CuspBase() = default;
 
-    CuspBase(const CuspBase &other) = delete;
+    CuspBase(const CuspBase& other) = delete;
 
-    CuspBase &operator=(const CuspBase &other)
+    CuspBase& operator=(const CuspBase& other)
     {
         if (this != &other) {
             gko::LinOp::operator=(other);
@@ -113,7 +113,7 @@ protected:
 private:
     std::shared_ptr<const gko::CudaExecutor> gpu_exec_;
     template <typename T>
-    using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
+    using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
     handle_manager<cusparseMatDescr> descr_;
 };
 
@@ -134,7 +134,7 @@ public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
 
-    void read(const mat_data &data) override
+    void read(const mat_data& data) override
     {
         csr_->read(data);
         this->set_size(gko::dim<2>{csr_->get_size()});
@@ -146,7 +146,7 @@ public:
     }
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
@@ -165,7 +165,7 @@ protected:
     }
 
     CuspCsrmp(std::shared_ptr<const gko::Executor> exec,
-              const gko::dim<2> &size = gko::dim<2>{})
+              const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<CuspCsrmp, CuspBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
@@ -194,7 +194,7 @@ public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
 
-    void read(const mat_data &data) override
+    void read(const mat_data& data) override
     {
         csr_->read(data);
         this->set_size(gko::dim<2>{csr_->get_size()});
@@ -206,7 +206,7 @@ public:
     }
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
@@ -225,7 +225,7 @@ protected:
     }
 
     CuspCsr(std::shared_ptr<const gko::Executor> exec,
-            const gko::dim<2> &size = gko::dim<2>{})
+            const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<CuspCsr, CuspBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
@@ -254,7 +254,7 @@ public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
 
-    void read(const mat_data &data) override
+    void read(const mat_data& data) override
     {
         csr_->read(data);
         this->set_size(gko::dim<2>{csr_->get_size()});
@@ -266,7 +266,7 @@ public:
     }
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
@@ -286,7 +286,7 @@ protected:
     }
 
     CuspCsrmm(std::shared_ptr<const gko::Executor> exec,
-              const gko::dim<2> &size = gko::dim<2>{})
+              const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<CuspCsrmm, CuspBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
@@ -318,7 +318,7 @@ public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
 
-    void read(const mat_data &data) override
+    void read(const mat_data& data) override
     {
         csr_->read(data);
         this->set_size(gko::dim<2>{csr_->get_size()});
@@ -329,12 +329,12 @@ public:
         return csr_->get_num_stored_elements();
     }
 
-    CuspCsrEx(const CuspCsrEx &other) = delete;
+    CuspCsrEx(const CuspCsrEx& other) = delete;
 
-    CuspCsrEx &operator=(const CuspCsrEx &other) = default;
+    CuspCsrEx& operator=(const CuspCsrEx& other) = default;
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
@@ -370,7 +370,7 @@ protected:
 
 
     CuspCsrEx(std::shared_ptr<const gko::Executor> exec,
-              const gko::dim<2> &size = gko::dim<2>{})
+              const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<CuspCsrEx, CuspBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
@@ -410,7 +410,7 @@ public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
 
-    void read(const mat_data &data) override
+    void read(const mat_data& data) override
     {
         auto t_csr = csr::create(this->get_executor(),
                                  std::make_shared<typename csr::classical>());
@@ -432,18 +432,18 @@ public:
         try {
             gko::cuda::device_guard g{id};
             GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyHybMat(hyb_));
-        } catch (const std::exception &e) {
+        } catch (const std::exception& e) {
             std::cerr << "Error when unallocating CuspHybrid hyb_ matrix: "
                       << e.what() << std::endl;
         }
     }
 
-    CuspHybrid(const CuspHybrid &other) = delete;
+    CuspHybrid(const CuspHybrid& other) = delete;
 
-    CuspHybrid &operator=(const CuspHybrid &other) = default;
+    CuspHybrid& operator=(const CuspHybrid& other) = default;
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
@@ -459,7 +459,7 @@ protected:
     }
 
     CuspHybrid(std::shared_ptr<const gko::Executor> exec,
-               const gko::dim<2> &size = gko::dim<2>{})
+               const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<CuspHybrid, CuspBase>(exec, size),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {
@@ -488,8 +488,8 @@ private:
 template <typename ValueType>
 void cusp_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
                        const cusparseSpMatDescr_t mat,
-                       const gko::Array<ValueType> &scalars,
-                       const gko::LinOp *b, gko::LinOp *x,
+                       const gko::Array<ValueType>& scalars,
+                       const gko::LinOp* b, gko::LinOp* x,
                        cusparseOperation_t trans, cusparseSpMVAlg_t alg)
 {
     cudaDataType_t cu_value = gko::kernels::cuda::cuda_data_type<ValueType>();
@@ -507,7 +507,7 @@ void cusp_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
     // cusparseCreateDnVec only allows non-const pointer
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateDnVec(
         &vecb, dense_b->get_num_stored_elements(),
-        as_culibs_type(const_cast<ValueType *>(db)), cu_value));
+        as_culibs_type(const_cast<ValueType*>(db)), cu_value));
 
     gko::size_type buffer_size = 0;
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV_bufferSize(
@@ -542,7 +542,7 @@ public:
         gko::kernels::cuda::cusparse_index_type<IndexType>();
     cudaDataType_t cu_value = gko::kernels::cuda::cuda_data_type<ValueType>();
 
-    void read(const mat_data &data) override
+    void read(const mat_data& data) override
     {
         using gko::kernels::cuda::as_culibs_type;
         csr_->read(data);
@@ -567,25 +567,25 @@ public:
         try {
             gko::cuda::device_guard g{id};
             GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroySpMat(mat_));
-        } catch (const std::exception &e) {
+        } catch (const std::exception& e) {
             std::cerr << "Error when unallocating CuspGenericCsr mat_ matrix: "
                       << e.what() << std::endl;
         }
     }
 
-    CuspGenericCsr(const CuspGenericCsr &other) = delete;
+    CuspGenericCsr(const CuspGenericCsr& other) = delete;
 
-    CuspGenericCsr &operator=(const CuspGenericCsr &other) = default;
+    CuspGenericCsr& operator=(const CuspGenericCsr& other) = default;
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         cusp_generic_spmv(this->get_gpu_exec(), mat_, scalars, b, x, trans_,
                           Alg);
     }
 
     CuspGenericCsr(std::shared_ptr<const gko::Executor> exec,
-                   const gko::dim<2> &size = gko::dim<2>{})
+                   const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<CuspGenericCsr, CuspBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
@@ -618,7 +618,7 @@ public:
         gko::kernels::cuda::cusparse_index_type<IndexType>();
     cudaDataType_t cu_value = gko::kernels::cuda::cuda_data_type<ValueType>();
 
-    void read(const mat_data &data) override
+    void read(const mat_data& data) override
     {
         using gko::kernels::cuda::as_culibs_type;
         coo_->read(data);
@@ -643,25 +643,25 @@ public:
         try {
             gko::cuda::device_guard g{id};
             GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroySpMat(mat_));
-        } catch (const std::exception &e) {
+        } catch (const std::exception& e) {
             std::cerr << "Error when unallocating CuspGenericCoo mat_ matrix: "
                       << e.what() << std::endl;
         }
     }
 
-    CuspGenericCoo(const CuspGenericCoo &other) = delete;
+    CuspGenericCoo(const CuspGenericCoo& other) = delete;
 
-    CuspGenericCoo &operator=(const CuspGenericCoo &other) = default;
+    CuspGenericCoo& operator=(const CuspGenericCoo& other) = default;
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         cusp_generic_spmv(this->get_gpu_exec(), mat_, scalars, b, x, trans_,
                           CUSPARSE_MV_ALG_DEFAULT);
     }
 
     CuspGenericCoo(std::shared_ptr<const gko::Executor> exec,
-                   const gko::dim<2> &size = gko::dim<2>{})
+                   const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<CuspGenericCoo, CuspBase>(exec, size),
           coo_(std::move(coo::create(exec))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)

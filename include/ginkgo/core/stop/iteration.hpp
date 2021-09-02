@@ -65,14 +65,14 @@ public:
 
 protected:
     bool check_impl(uint8 stoppingId, bool setFinalized,
-                    Array<stopping_status> *stop_status, bool *one_changed,
-                    const Updater &updater) override;
+                    Array<stopping_status>* stop_status, bool* one_changed,
+                    const Updater& updater) override;
 
     explicit Iteration(std::shared_ptr<const gko::Executor> exec)
         : EnablePolymorphicObject<Iteration, Criterion>(std::move(exec))
     {}
 
-    explicit Iteration(const Factory *factory, const CriterionArgs &args)
+    explicit Iteration(const Factory* factory, const CriterionArgs& args)
         : EnablePolymorphicObject<Iteration, Criterion>(
               factory->get_executor()),
           parameters_{factory->get_parameters()}

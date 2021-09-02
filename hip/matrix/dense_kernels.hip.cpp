@@ -75,9 +75,9 @@ constexpr int default_block_size = 512;
 
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const HipExecutor> exec,
-                  const matrix::Dense<ValueType> *a,
-                  const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *c)
+                  const matrix::Dense<ValueType>* a,
+                  const matrix::Dense<ValueType>* b,
+                  matrix::Dense<ValueType>* c)
 {
     if (hipblas::is_supported<ValueType>::value) {
         auto handle = exec->get_hipblas_handle();
@@ -101,9 +101,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 template <typename ValueType>
 void apply(std::shared_ptr<const HipExecutor> exec,
-           const matrix::Dense<ValueType> *alpha,
-           const matrix::Dense<ValueType> *a, const matrix::Dense<ValueType> *b,
-           const matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *c)
+           const matrix::Dense<ValueType>* alpha,
+           const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
+           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
 {
     if (hipblas::is_supported<ValueType>::value) {
         hipblas::gemm(exec->get_hipblas_handle(), HIPBLAS_OP_N, HIPBLAS_OP_N,
@@ -122,9 +122,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 template <typename ValueType>
 void compute_dot(std::shared_ptr<const HipExecutor> exec,
-                 const matrix::Dense<ValueType> *x,
-                 const matrix::Dense<ValueType> *y,
-                 matrix::Dense<ValueType> *result)
+                 const matrix::Dense<ValueType>* x,
+                 const matrix::Dense<ValueType>* y,
+                 matrix::Dense<ValueType>* result)
 {
     if (hipblas::is_supported<ValueType>::value) {
         // TODO: write a custom kernel which does this more efficiently
@@ -169,9 +169,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 
 template <typename ValueType>
 void compute_conj_dot(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Dense<ValueType> *x,
-                      const matrix::Dense<ValueType> *y,
-                      matrix::Dense<ValueType> *result)
+                      const matrix::Dense<ValueType>* x,
+                      const matrix::Dense<ValueType>* y,
+                      matrix::Dense<ValueType>* result)
 {
     if (hipblas::is_supported<ValueType>::value) {
         // TODO: write a custom kernel which does this more efficiently
@@ -216,8 +216,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL);
 
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const HipExecutor> exec,
-                   const matrix::Dense<ValueType> *x,
-                   matrix::Dense<remove_complex<ValueType>> *result)
+                   const matrix::Dense<ValueType>* x,
+                   matrix::Dense<remove_complex<ValueType>>* result)
 {
     if (hipblas::is_supported<ValueType>::value) {
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
@@ -260,8 +260,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Dense<ValueType> *source,
-                    matrix::Coo<ValueType, IndexType> *result)
+                    const matrix::Dense<ValueType>* source,
+                    matrix::Coo<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -293,8 +293,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Dense<ValueType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
+                    const matrix::Dense<ValueType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -329,8 +329,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Dense<ValueType> *source,
-                    matrix::Ell<ValueType, IndexType> *result)
+                    const matrix::Dense<ValueType>* source,
+                    matrix::Ell<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -356,8 +356,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const HipExecutor> exec,
-                       const matrix::Dense<ValueType> *source,
-                       matrix::Hybrid<ValueType, IndexType> *result)
+                       const matrix::Dense<ValueType>* source,
+                       matrix::Hybrid<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -366,8 +366,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Dense<ValueType> *source,
-                      matrix::Sellp<ValueType, IndexType> *result)
+                      const matrix::Dense<ValueType>* source,
+                      matrix::Sellp<ValueType, IndexType>* result)
 {
     const auto stride = source->get_stride();
     const auto num_rows = result->get_size()[0];
@@ -417,8 +417,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sparsity_csr(std::shared_ptr<const HipExecutor> exec,
-                             const matrix::Dense<ValueType> *source,
-                             matrix::SparsityCsr<ValueType, IndexType> *result)
+                             const matrix::Dense<ValueType>* source,
+                             matrix::SparsityCsr<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -427,7 +427,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType>
 void count_nonzeros(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Dense<ValueType> *source, size_type *result)
+                    const matrix::Dense<ValueType>* source, size_type* result)
 {
     const auto num_rows = source->get_size()[0];
     auto nnz_per_row = Array<size_type>(exec, num_rows);
@@ -442,8 +442,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
 
 template <typename ValueType>
 void calculate_max_nnz_per_row(std::shared_ptr<const HipExecutor> exec,
-                               const matrix::Dense<ValueType> *source,
-                               size_type *result)
+                               const matrix::Dense<ValueType>* source,
+                               size_type* result)
 {
     const auto num_rows = source->get_size()[0];
     auto nnz_per_row = Array<size_type>(exec, num_rows);
@@ -479,8 +479,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void calculate_nonzeros_per_row(std::shared_ptr<const HipExecutor> exec,
-                                const matrix::Dense<ValueType> *source,
-                                Array<size_type> *result)
+                                const matrix::Dense<ValueType>* source,
+                                Array<size_type>* result)
 {
     const dim3 block_size(default_block_size, 1, 1);
     auto rows_per_block = ceildiv(default_block_size, config::warp_size);
@@ -501,8 +501,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void calculate_total_cols(std::shared_ptr<const HipExecutor> exec,
-                          const matrix::Dense<ValueType> *source,
-                          size_type *result, size_type stride_factor,
+                          const matrix::Dense<ValueType>* source,
+                          size_type* result, size_type stride_factor,
                           size_type slice_size)
 {
     const auto num_rows = source->get_size()[0];
@@ -554,8 +554,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void transpose(std::shared_ptr<const HipExecutor> exec,
-               const matrix::Dense<ValueType> *orig,
-               matrix::Dense<ValueType> *trans)
+               const matrix::Dense<ValueType>* orig,
+               matrix::Dense<ValueType>* trans)
 {
     if (hipblas::is_supported<ValueType>::value) {
         auto handle = exec->get_hipblas_handle();
@@ -579,8 +579,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_TRANSPOSE_KERNEL);
 
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Dense<ValueType> *orig,
-                    matrix::Dense<ValueType> *trans)
+                    const matrix::Dense<ValueType>* orig,
+                    matrix::Dense<ValueType>* trans)
 {
     if (hipblas::is_supported<ValueType>::value) {
         auto handle = exec->get_hipblas_handle();

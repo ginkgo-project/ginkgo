@@ -55,17 +55,17 @@ public:
     /**
      * Returns the column index array of the CSR matrix.
      */
-    Array<IndexType> &get_col_idx_array() { return matrix_->col_idxs_; }
+    Array<IndexType>& get_col_idx_array() { return matrix_->col_idxs_; }
 
     /**
      * Returns the value array of the CSR matrix.
      */
-    Array<ValueType> &get_value_array() { return matrix_->values_; }
+    Array<ValueType>& get_value_array() { return matrix_->values_; }
 
     /**
      * Initializes a CsrBuilder from an existing CSR matrix.
      */
-    explicit CsrBuilder(Csr<ValueType, IndexType> *matrix) : matrix_{matrix} {}
+    explicit CsrBuilder(Csr<ValueType, IndexType>* matrix) : matrix_{matrix} {}
 
     /**
      * Updates the internal matrix data structures at destruction.
@@ -73,13 +73,13 @@ public:
     ~CsrBuilder() { matrix_->make_srow(); }
 
     // make this type non-movable
-    CsrBuilder(const CsrBuilder &) = delete;
-    CsrBuilder(CsrBuilder &&) = delete;
-    CsrBuilder &operator=(const CsrBuilder &) = delete;
-    CsrBuilder &operator=(CsrBuilder &&) = delete;
+    CsrBuilder(const CsrBuilder&) = delete;
+    CsrBuilder(CsrBuilder&&) = delete;
+    CsrBuilder& operator=(const CsrBuilder&) = delete;
+    CsrBuilder& operator=(CsrBuilder&&) = delete;
 
 private:
-    Csr<ValueType, IndexType> *matrix_;
+    Csr<ValueType, IndexType>* matrix_;
 };
 
 

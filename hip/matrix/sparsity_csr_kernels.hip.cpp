@@ -49,9 +49,9 @@ namespace sparsity_csr {
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const HipExecutor> exec,
-          const matrix::SparsityCsr<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b,
-          matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
+          const matrix::SparsityCsr<ValueType, IndexType>* a,
+          const matrix::Dense<ValueType>* b,
+          matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL);
@@ -59,11 +59,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::SparsityCsr<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::SparsityCsr<ValueType, IndexType>* a,
+                   const matrix::Dense<ValueType>* b,
+                   const matrix::Dense<ValueType>* beta,
+                   matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL);
@@ -72,8 +72,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void count_num_diagonal_elements(
     std::shared_ptr<const HipExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType> *matrix,
-    size_type *num_diagonal_elements) GKO_NOT_IMPLEMENTED;
+    const matrix::SparsityCsr<ValueType, IndexType>* matrix,
+    size_type* num_diagonal_elements) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL);
@@ -81,9 +81,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void remove_diagonal_elements(
-    std::shared_ptr<const HipExecutor> exec, const IndexType *row_ptrs,
-    const IndexType *col_idxs,
-    matrix::SparsityCsr<ValueType, IndexType> *matrix) GKO_NOT_IMPLEMENTED;
+    std::shared_ptr<const HipExecutor> exec, const IndexType* row_ptrs,
+    const IndexType* col_idxs,
+    matrix::SparsityCsr<ValueType, IndexType>* matrix) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
@@ -91,8 +91,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const HipExecutor> exec,
-               const matrix::SparsityCsr<ValueType, IndexType> *orig,
-               matrix::SparsityCsr<ValueType, IndexType> *trans)
+               const matrix::SparsityCsr<ValueType, IndexType>* orig,
+               matrix::SparsityCsr<ValueType, IndexType>* trans)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -101,7 +101,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const HipExecutor> exec,
-                          matrix::SparsityCsr<ValueType, IndexType> *to_sort)
+                          matrix::SparsityCsr<ValueType, IndexType>* to_sort)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -111,8 +111,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const HipExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType> *to_check,
-    bool *is_sorted) GKO_NOT_IMPLEMENTED;
+    const matrix::SparsityCsr<ValueType, IndexType>* to_check,
+    bool* is_sorted) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX);

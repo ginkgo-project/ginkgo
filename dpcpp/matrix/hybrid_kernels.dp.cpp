@@ -87,9 +87,9 @@ namespace kernel {
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
 void count_coo_row_nnz(const size_type nnz, const size_type num_lines,
-                       const ValueType *__restrict__ val,
-                       const IndexType *__restrict__ row,
-                       IndexType *__restrict__ nnz_per_row,
+                       const ValueType* __restrict__ val,
+                       const IndexType* __restrict__ row,
+                       IndexType* __restrict__ nnz_per_row,
                        sycl::nd_item<3> item_ct1)
 {
     IndexType temp_val = 0;
@@ -138,11 +138,11 @@ void count_coo_row_nnz(const size_type nnz, const size_type num_lines,
 template <int subgroup_size = config::warp_size, typename ValueType,
           typename IndexType>
 void count_coo_row_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                       sycl::queue *queue, const size_type nnz,
-                       const size_type num_lines, const ValueType *val,
-                       const IndexType *row, IndexType *nnz_per_row)
+                       sycl::queue* queue, const size_type nnz,
+                       const size_type num_lines, const ValueType* val,
+                       const IndexType* row, IndexType* nnz_per_row)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 count_coo_row_nnz<subgroup_size>(nnz, num_lines, val, row,
@@ -154,14 +154,14 @@ void count_coo_row_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 template <typename ValueType, typename IndexType>
 void fill_in_csr(size_type num_rows, size_type max_nnz_per_row,
-                 size_type stride, const ValueType *__restrict__ ell_val,
-                 const IndexType *__restrict__ ell_col,
-                 const ValueType *__restrict__ coo_val,
-                 const IndexType *__restrict__ coo_col,
-                 const IndexType *__restrict__ coo_offset,
-                 IndexType *__restrict__ result_row_ptrs,
-                 IndexType *__restrict__ result_col_idxs,
-                 ValueType *__restrict__ result_values,
+                 size_type stride, const ValueType* __restrict__ ell_val,
+                 const IndexType* __restrict__ ell_col,
+                 const ValueType* __restrict__ coo_val,
+                 const IndexType* __restrict__ coo_col,
+                 const IndexType* __restrict__ coo_offset,
+                 IndexType* __restrict__ result_row_ptrs,
+                 IndexType* __restrict__ result_col_idxs,
+                 ValueType* __restrict__ result_values,
                  sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
@@ -190,8 +190,8 @@ GKO_ENABLE_DEFAULT_HOST(fill_in_csr, fill_in_csr);
 
 
 template <typename ValueType1, typename ValueType2>
-void add(size_type num, ValueType1 *__restrict__ val1,
-         const ValueType2 *__restrict__ val2, sycl::nd_item<3> item_ct1)
+void add(size_type num, ValueType1* __restrict__ val1,
+         const ValueType2* __restrict__ val2, sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     if (tidx < num) {
@@ -207,8 +207,8 @@ GKO_ENABLE_DEFAULT_HOST(add, add);
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Hybrid<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result) GKO_NOT_IMPLEMENTED;
+                      const matrix::Hybrid<ValueType, IndexType>* source,
+                      matrix::Dense<ValueType>* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL);
@@ -216,8 +216,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Hybrid<ValueType, IndexType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
+                    const matrix::Hybrid<ValueType, IndexType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
 {
     const auto num_rows = source->get_size()[0];
     auto coo_offset = Array<IndexType>(exec, num_rows + 1);
@@ -281,8 +281,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void count_nonzeros(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Hybrid<ValueType, IndexType> *source,
-                    size_type *result)
+                    const matrix::Hybrid<ValueType, IndexType>* source,
+                    size_type* result)
 {
     size_type ell_nnz = 0;
     size_type coo_nnz = 0;

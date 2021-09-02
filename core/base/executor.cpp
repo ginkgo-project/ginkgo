@@ -63,7 +63,7 @@ void Operation::run(std::shared_ptr<const ReferenceExecutor> executor) const
 }
 
 
-const char *Operation::get_name() const noexcept
+const char* Operation::get_name() const noexcept
 {
     static auto name = name_demangling::get_dynamic_type(*this);
     return name.c_str();

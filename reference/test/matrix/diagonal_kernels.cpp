@@ -81,16 +81,16 @@ protected:
         this->create_diag2(diag2.get());
     }
 
-    void create_diag1(Diag *d)
+    void create_diag1(Diag* d)
     {
-        auto *v = d->get_values();
+        auto* v = d->get_values();
         v[0] = 2.0;
         v[1] = 3.0;
     }
 
-    void create_diag2(Diag *d)
+    void create_diag2(Diag* d)
     {
-        auto *v = d->get_values();
+        auto* v = d->get_values();
         v[0] = 2.0;
         v[1] = 3.0;
         v[2] = 4.0;
@@ -649,7 +649,7 @@ TYPED_TEST(DiagonalComplex, MtxIsConjugateTransposable)
     diag_values[2] = value_type{0.0, 1.5};
 
     auto trans = diag->conj_transpose();
-    auto trans_as_diagonal = static_cast<Diag *>(trans.get());
+    auto trans_as_diagonal = static_cast<Diag*>(trans.get());
     auto trans_values = trans_as_diagonal->get_values();
 
     EXPECT_EQ(trans->get_size(), gko::dim<2>(3));

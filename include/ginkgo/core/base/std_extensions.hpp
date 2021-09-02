@@ -86,7 +86,7 @@ using decay_t = std::decay_t<T>;
 
 // Kept for backward compatibility.
 template <typename T>
-constexpr bool greater(const T &&lhs, const T &&rhs)
+constexpr bool greater(const T&& lhs, const T&& rhs)
 {
     return std::greater<void>()(lhs, rhs);
 }
@@ -94,7 +94,7 @@ constexpr bool greater(const T &&lhs, const T &&rhs)
 
 // Kept for backward compatibility.
 template <typename T>
-constexpr bool greater_equal(const T &&lhs, const T &&rhs)
+constexpr bool greater_equal(const T&& lhs, const T&& rhs)
 {
     return std::greater_equal<void>()(lhs, rhs);
 }
@@ -102,7 +102,7 @@ constexpr bool greater_equal(const T &&lhs, const T &&rhs)
 
 // Kept for backward compatibility.
 template <typename T>
-constexpr bool less(const T &&lhs, const T &&rhs)
+constexpr bool less(const T&& lhs, const T&& rhs)
 {
     return std::less<void>()(lhs, rhs);
 }
@@ -110,7 +110,7 @@ constexpr bool less(const T &&lhs, const T &&rhs)
 
 // Kept for backward compatibility.
 template <typename T>
-constexpr bool less_equal(const T &&lhs, const T &&rhs)
+constexpr bool less_equal(const T&& lhs, const T&& rhs)
 {
     return std::less_equal<void>()(lhs, rhs);
 }

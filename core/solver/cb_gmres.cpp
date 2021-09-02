@@ -187,7 +187,7 @@ struct helper<std::complex<T>> {
 
 
 template <typename ValueType>
-void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void CbGmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -199,8 +199,8 @@ void CbGmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 template <typename ValueType>
 void CbGmres<ValueType>::apply_dense_impl(
-    const matrix::Dense<ValueType> *dense_b,
-    matrix::Dense<ValueType> *dense_x) const
+    const matrix::Dense<ValueType>* dense_b,
+    matrix::Dense<ValueType>* dense_x) const
 {
     // Current workaround to get a lambda with a template argument (only
     // the type of `value` matters, the content does not)
@@ -299,8 +299,8 @@ void CbGmres<ValueType>::apply_dense_impl(
 
         auto stop_criterion = stop_criterion_factory_->generate(
             system_matrix_,
-            std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}),
-            dense_x, residual.get());
+            std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
+            residual.get());
 
         int total_iter = -1;
         size_type restart_iter = 0;
@@ -504,8 +504,8 @@ void CbGmres<ValueType>::apply_dense_impl(
 
 
 template <typename ValueType>
-void CbGmres<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                    const LinOp *beta, LinOp *x) const
+void CbGmres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                    const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {

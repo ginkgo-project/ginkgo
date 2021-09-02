@@ -47,7 +47,7 @@ TEST(ExecutorAllocator, Works)
     auto exec = gko::ReferenceExecutor::create();
     auto alloc = gko::ExecutorAllocator<int>(exec);
 
-    int *ptr{};
+    int* ptr{};
     ASSERT_NO_THROW(ptr = alloc.allocate(10));
     // This test can only fail with sanitizers
     ptr[0] = 0;

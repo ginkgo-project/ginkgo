@@ -139,10 +139,10 @@ protected:
         return mtx;
     }
 
-    void initialize_row_ptrs(index_type *l_row_ptrs_ref,
-                             index_type *u_row_ptrs_ref,
-                             index_type *l_row_ptrs_omp,
-                             index_type *u_row_ptrs_omp)
+    void initialize_row_ptrs(index_type* l_row_ptrs_ref,
+                             index_type* u_row_ptrs_ref,
+                             index_type* l_row_ptrs_omp,
+                             index_type* u_row_ptrs_omp)
     {
         gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
             ref, gko::lend(csr_ref), l_row_ptrs_ref, u_row_ptrs_ref);
@@ -150,8 +150,8 @@ protected:
             omp, gko::lend(csr_omp), l_row_ptrs_omp, u_row_ptrs_omp);
     }
 
-    void initialize_lu(std::unique_ptr<Csr> *l_ref, std::unique_ptr<Csr> *u_ref,
-                       std::unique_ptr<Csr> *l_omp, std::unique_ptr<Csr> *u_omp)
+    void initialize_lu(std::unique_ptr<Csr>* l_ref, std::unique_ptr<Csr>* u_ref,
+                       std::unique_ptr<Csr>* l_omp, std::unique_ptr<Csr>* u_omp)
     {
         auto num_row_ptrs = csr_ref->get_size()[0] + 1;
         gko::Array<index_type> l_row_ptrs_ref{ref, num_row_ptrs};
@@ -189,13 +189,13 @@ protected:
 
     template <typename ToType, typename FromType>
     static std::unique_ptr<ToType> static_unique_ptr_cast(
-        std::unique_ptr<FromType> &&from)
+        std::unique_ptr<FromType>&& from)
     {
-        return std::unique_ptr<ToType>{static_cast<ToType *>(from.release())};
+        return std::unique_ptr<ToType>{static_cast<ToType*>(from.release())};
     }
 
-    void compute_lu(std::unique_ptr<Csr> *l_ref, std::unique_ptr<Csr> *u_ref,
-                    std::unique_ptr<Csr> *l_omp, std::unique_ptr<Csr> *u_omp,
+    void compute_lu(std::unique_ptr<Csr>* l_ref, std::unique_ptr<Csr>* u_ref,
+                    std::unique_ptr<Csr>* l_omp, std::unique_ptr<Csr>* u_omp,
                     gko::size_type iterations = 0)
     {
         auto coo_ref = Coo::create(ref);

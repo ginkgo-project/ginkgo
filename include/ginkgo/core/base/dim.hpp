@@ -63,7 +63,7 @@ struct dim {
      *
      * @param size  the size of each dimension
      */
-    constexpr GKO_ATTRIBUTES dim(const dimension_type &size = dimension_type{})
+    constexpr GKO_ATTRIBUTES dim(const dimension_type& size = dimension_type{})
         : first_{size}, rest_{size}
     {}
 
@@ -81,8 +81,8 @@ struct dim {
      * @param rest  other dimensions
      */
     template <typename... Rest>
-    constexpr GKO_ATTRIBUTES dim(const dimension_type &first,
-                                 const Rest &... rest)
+    constexpr GKO_ATTRIBUTES dim(const dimension_type& first,
+                                 const Rest&... rest)
         : first_{first}, rest_{static_cast<dimension_type>(rest)...}
     {}
 
@@ -97,8 +97,8 @@ struct dim {
      *
      * @return the `dimension`-th dimension
      */
-    constexpr GKO_ATTRIBUTES const dimension_type &operator[](
-        const size_type &dimension) const noexcept
+    constexpr GKO_ATTRIBUTES const dimension_type& operator[](
+        const size_type& dimension) const noexcept
     {
         return GKO_ASSERT(dimension < dimensionality),
                dimension == 0 ? first_ : rest_[dimension - 1];
@@ -107,8 +107,8 @@ struct dim {
     /**
      * @copydoc operator[]() const
      */
-    GKO_ATTRIBUTES dimension_type &operator[](
-        const size_type &dimension) noexcept
+    GKO_ATTRIBUTES dimension_type& operator[](
+        const size_type& dimension) noexcept
     {
         return GKO_ASSERT(dimension < dimensionality),
                dimension == 0 ? first_ : rest_[dimension - 1];
@@ -138,7 +138,7 @@ struct dim {
      *
      * @return true if and only if all dimensions of both objects are equal.
      */
-    friend constexpr GKO_ATTRIBUTES bool operator==(const dim &x, const dim &y)
+    friend constexpr GKO_ATTRIBUTES bool operator==(const dim& x, const dim& y)
     {
         return x.first_ == y.first_ && x.rest_ == y.rest_;
     }
@@ -151,7 +151,7 @@ struct dim {
      *
      * @return a dim object representing the size of the tensor product `x * y`
      */
-    friend constexpr GKO_ATTRIBUTES dim operator*(const dim &x, const dim &y)
+    friend constexpr GKO_ATTRIBUTES dim operator*(const dim& x, const dim& y)
     {
         return dim(x.first_ * y.first_, x.rest_ * y.rest_);
     }
@@ -164,7 +164,7 @@ struct dim {
      *
      * @return a stream object appended with the dim output
      */
-    friend std::ostream &operator<<(std::ostream &os, const dim &x)
+    friend std::ostream& operator<<(std::ostream& os, const dim& x)
     {
         os << "(";
         x.print_to(os);
@@ -173,7 +173,7 @@ struct dim {
     }
 
 private:
-    void inline print_to(std::ostream &os) const
+    void inline print_to(std::ostream& os) const
     {
         os << first_ << ", ";
         rest_.print_to(os);
@@ -198,17 +198,17 @@ struct dim<1u, DimensionType> {
 
     using dimension_type = DimensionType;
 
-    constexpr GKO_ATTRIBUTES dim(const dimension_type &size = dimension_type{})
+    constexpr GKO_ATTRIBUTES dim(const dimension_type& size = dimension_type{})
         : first_{size}
     {}
 
-    constexpr GKO_ATTRIBUTES const dimension_type &operator[](
-        const size_type &dimension) const noexcept
+    constexpr GKO_ATTRIBUTES const dimension_type& operator[](
+        const size_type& dimension) const noexcept
     {
         return GKO_ASSERT(dimension == 0), first_;
     }
 
-    GKO_ATTRIBUTES dimension_type &operator[](const size_type &dimension)
+    GKO_ATTRIBUTES dimension_type& operator[](const size_type& dimension)
     {
         return GKO_ASSERT(dimension == 0), first_;
     }
@@ -218,17 +218,17 @@ struct dim<1u, DimensionType> {
         return static_cast<bool>(first_);
     }
 
-    friend constexpr GKO_ATTRIBUTES bool operator==(const dim &x, const dim &y)
+    friend constexpr GKO_ATTRIBUTES bool operator==(const dim& x, const dim& y)
     {
         return x.first_ == y.first_;
     }
 
-    friend constexpr GKO_ATTRIBUTES dim operator*(const dim &x, const dim &y)
+    friend constexpr GKO_ATTRIBUTES dim operator*(const dim& x, const dim& y)
     {
         return dim(x.first_ * y.first_);
     }
 
-    friend std::ostream &operator<<(std::ostream &os, const dim &x)
+    friend std::ostream& operator<<(std::ostream& os, const dim& x)
     {
         os << "(";
         x.print_to(os);
@@ -237,7 +237,7 @@ struct dim<1u, DimensionType> {
     }
 
 private:
-    void inline print_to(std::ostream &os) const { os << first_; }
+    void inline print_to(std::ostream& os) const { os << first_; }
 
     dimension_type first_;
 };
@@ -256,8 +256,8 @@ private:
  */
 template <size_type Dimensionality, typename DimensionType>
 constexpr GKO_ATTRIBUTES GKO_INLINE bool operator!=(
-    const dim<Dimensionality, DimensionType> &x,
-    const dim<Dimensionality, DimensionType> &y)
+    const dim<Dimensionality, DimensionType>& x,
+    const dim<Dimensionality, DimensionType>& y)
 {
     return !(x == y);
 }
@@ -274,7 +274,7 @@ constexpr GKO_ATTRIBUTES GKO_INLINE bool operator!=(
  */
 template <typename DimensionType>
 constexpr GKO_ATTRIBUTES GKO_INLINE dim<2, DimensionType> transpose(
-    const dim<2, DimensionType> &dimensions) noexcept
+    const dim<2, DimensionType>& dimensions) noexcept
 {
     return {dimensions[1], dimensions[0]};
 }

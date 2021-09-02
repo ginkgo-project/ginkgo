@@ -68,7 +68,7 @@ namespace detail {
 
 template <typename SourceType, typename TargetType>
 void convert_data(std::shared_ptr<const Executor> exec, size_type size,
-                  const SourceType *src, TargetType *dst)
+                  const SourceType* src, TargetType* dst)
 {
     exec->run(conversion::make_convert(size, src, dst));
 }
@@ -76,7 +76,7 @@ void convert_data(std::shared_ptr<const Executor> exec, size_type size,
 
 #define GKO_DECLARE_ARRAY_CONVERSION(From, To)                              \
     void convert_data<From, To>(std::shared_ptr<const Executor>, size_type, \
-                                const From *, To *)
+                                const From*, To*)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_ARRAY_CONVERSION);
 

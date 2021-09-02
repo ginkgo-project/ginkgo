@@ -115,7 +115,7 @@ namespace {
 
 template <int dim, typename Type1, typename Type2>
 GKO_INLINE auto as_hip_accessor(
-    const acc::range<acc::reduced_row_major<dim, Type1, Type2>> &acc)
+    const acc::range<acc::reduced_row_major<dim, Type1, Type2>>& acc)
 {
     return acc::range<
         acc::reduced_row_major<dim, hip_type<Type1>, hip_type<Type2>>>(
@@ -128,11 +128,11 @@ GKO_INLINE auto as_hip_accessor(
 template <int info, typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
-                   const matrix::Ell<MatrixValueType, IndexType> *a,
-                   const matrix::Dense<InputValueType> *b,
-                   matrix::Dense<OutputValueType> *c,
-                   const matrix::Dense<MatrixValueType> *alpha = nullptr,
-                   const matrix::Dense<OutputValueType> *beta = nullptr)
+                   const matrix::Ell<MatrixValueType, IndexType>* a,
+                   const matrix::Dense<InputValueType>* b,
+                   matrix::Dense<OutputValueType>* c,
+                   const matrix::Dense<MatrixValueType>* alpha = nullptr,
+                   const matrix::Dense<OutputValueType>* beta = nullptr)
 {
     using a_accessor =
         gko::acc::reduced_row_major<1, OutputValueType, const MatrixValueType>;
@@ -187,7 +187,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_abstract_spmv, abstract_spmv);
 template <typename ValueType, typename IndexType>
 std::array<int, 3> compute_thread_worker_and_atomicity(
     std::shared_ptr<const HipExecutor> exec,
-    const matrix::Ell<ValueType, IndexType> *a)
+    const matrix::Ell<ValueType, IndexType>* a)
 {
     int num_thread_per_worker = 1;
     int atomic = 0;
@@ -231,9 +231,9 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const HipExecutor> exec,
-          const matrix::Ell<MatrixValueType, IndexType> *a,
-          const matrix::Dense<InputValueType> *b,
-          matrix::Dense<OutputValueType> *c)
+          const matrix::Ell<MatrixValueType, IndexType>* a,
+          const matrix::Dense<InputValueType>* b,
+          matrix::Dense<OutputValueType>* c)
 {
     const auto data = compute_thread_worker_and_atomicity(exec, a);
     const int num_thread_per_worker = std::get<0>(data);
@@ -265,11 +265,11 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
-                   const matrix::Dense<MatrixValueType> *alpha,
-                   const matrix::Ell<MatrixValueType, IndexType> *a,
-                   const matrix::Dense<InputValueType> *b,
-                   const matrix::Dense<OutputValueType> *beta,
-                   matrix::Dense<OutputValueType> *c)
+                   const matrix::Dense<MatrixValueType>* alpha,
+                   const matrix::Ell<MatrixValueType, IndexType>* a,
+                   const matrix::Dense<InputValueType>* b,
+                   const matrix::Dense<OutputValueType>* beta,
+                   matrix::Dense<OutputValueType>* c)
 {
     const auto data = compute_thread_worker_and_atomicity(exec, a);
     const int num_thread_per_worker = std::get<0>(data);
@@ -298,8 +298,8 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result)
+                      const matrix::Ell<ValueType, IndexType>* source,
+                      matrix::Dense<ValueType>* result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
@@ -330,8 +330,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Ell<ValueType, IndexType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
+                    const matrix::Ell<ValueType, IndexType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
 
@@ -370,8 +370,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void count_nonzeros(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Ell<ValueType, IndexType> *source,
-                    size_type *result)
+                    const matrix::Ell<ValueType, IndexType>* source,
+                    size_type* result)
 {
     const auto num_rows = source->get_size()[0];
     auto nnz_per_row = Array<size_type>(exec, num_rows);
@@ -387,8 +387,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row(std::shared_ptr<const HipExecutor> exec,
-                                const matrix::Ell<ValueType, IndexType> *source,
-                                Array<size_type> *result)
+                                const matrix::Ell<ValueType, IndexType>* source,
+                                Array<size_type>* result)
 {
     const auto num_rows = source->get_size()[0];
     const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
@@ -410,8 +410,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
+                      const matrix::Ell<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag)
 {
     const auto max_nnz_per_row = orig->get_num_stored_elements_per_row();
     const auto orig_stride = orig->get_stride();

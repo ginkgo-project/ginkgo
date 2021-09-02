@@ -62,7 +62,7 @@ namespace detail {
  */
 template <typename SourceType, typename TargetType>
 void convert_data(std::shared_ptr<const Executor> exec, size_type size,
-                  const SourceType *src, TargetType *dst);
+                  const SourceType* src, TargetType* dst);
 
 
 }  // namespace detail
@@ -165,7 +165,7 @@ public:
      */
     template <typename DeleterType>
     Array(std::shared_ptr<const Executor> exec, size_type num_elems,
-          value_type *data, DeleterType deleter)
+          value_type* data, DeleterType deleter)
         : num_elems_{num_elems}, data_(data, deleter), exec_{exec}
     {}
 
@@ -180,7 +180,7 @@ public:
      * @param data  chunk of memory used to create the array
      */
     Array(std::shared_ptr<const Executor> exec, size_type num_elems,
-          value_type *data)
+          value_type* data)
         : Array(exec, num_elems, data, default_deleter{exec})
     {}
 
@@ -229,7 +229,7 @@ public:
      * @param exec  the executor where the new array will be created
      * @param other  the Array to copy from
      */
-    Array(std::shared_ptr<const Executor> exec, const Array &other)
+    Array(std::shared_ptr<const Executor> exec, const Array& other)
         : Array(exec)
     {
         *this = other;
@@ -243,7 +243,7 @@ public:
      *
      * @param other  the Array to copy from
      */
-    Array(const Array &other) : Array(other.get_executor(), other) {}
+    Array(const Array& other) : Array(other.get_executor(), other) {}
 
     /**
      * Moves another array to a different executor.
@@ -254,7 +254,7 @@ public:
      * @param exec  the executor where the new array will be moved
      * @param other  the Array to move
      */
-    Array(std::shared_ptr<const Executor> exec, Array &&other) : Array(exec)
+    Array(std::shared_ptr<const Executor> exec, Array&& other) : Array(exec)
     {
         *this = std::move(other);
     }
@@ -267,7 +267,7 @@ public:
      *
      * @param other  the Array to move
      */
-    Array(Array &&other) : Array(other.get_executor(), std::move(other)) {}
+    Array(Array&& other) : Array(other.get_executor(), std::move(other)) {}
 
     /**
      * Creates an Array from existing memory.
@@ -283,7 +283,7 @@ public:
      * @return an Array constructed from `data`
      */
     static Array view(std::shared_ptr<const Executor> exec, size_type num_elems,
-                      value_type *data)
+                      value_type* data)
     {
         return Array{exec, num_elems, data, view_deleter{}};
     }
@@ -304,7 +304,7 @@ public:
      *
      * @return this
      */
-    Array &operator=(const Array &other)
+    Array& operator=(const Array& other)
     {
         if (&other == this) {
             return *this;
@@ -358,7 +358,7 @@ public:
      *
      * @return this
      */
-    Array &operator=(Array &&other)
+    Array& operator=(Array&& other)
     {
         if (&other == this) {
             return *this;
@@ -402,8 +402,8 @@ public:
      * @return this
      */
     template <typename OtherValueType>
-    std::enable_if_t<!std::is_same<ValueType, OtherValueType>::value, Array>
-        &operator=(const Array<OtherValueType> &other)
+    std::enable_if_t<!std::is_same<ValueType, OtherValueType>::value, Array>&
+    operator=(const Array<OtherValueType>& other)
     {
         if (this->exec_ == nullptr) {
             this->exec_ = other.get_executor();
@@ -421,7 +421,7 @@ public:
                                          this->num_elems_);
         }
         Array<OtherValueType> tmp{this->exec_};
-        const OtherValueType *source = other.get_const_data();
+        const OtherValueType* source = other.get_const_data();
         // if we are on different executors: copy, then convert
         if (this->exec_ != other.get_executor()) {
             tmp = other;
@@ -500,7 +500,7 @@ public:
      * @return a pointer to the block of memory used to store the elements of
      * the Array
      */
-    value_type *get_data() noexcept { return data_.get(); }
+    value_type* get_data() noexcept { return data_.get(); }
 
     /**
      * Returns a constant pointer to the block of memory used to store the
@@ -509,7 +509,7 @@ public:
      * @return a constant pointer to the block of memory used to store the
      * elements of the Array
      */
-    const value_type *get_const_data() const noexcept { return data_.get(); }
+    const value_type* get_const_data() const noexcept { return data_.get(); }
 
     /**
      * Returns the Executor associated with the array.
@@ -576,7 +576,7 @@ namespace detail {
 template <typename T>
 struct temporary_clone_helper<Array<T>> {
     static std::unique_ptr<Array<T>> create(
-        std::shared_ptr<const Executor> exec, Array<T> *ptr, bool copy_data)
+        std::shared_ptr<const Executor> exec, Array<T>* ptr, bool copy_data)
     {
         if (copy_data) {
             return std::make_unique<Array<T>>(std::move(exec), *ptr);
@@ -590,7 +590,7 @@ struct temporary_clone_helper<Array<T>> {
 template <typename T>
 struct temporary_clone_helper<const Array<T>> {
     static std::unique_ptr<const Array<T>> create(
-        std::shared_ptr<const Executor> exec, const Array<T> *ptr, bool)
+        std::shared_ptr<const Executor> exec, const Array<T>* ptr, bool)
     {
         return std::make_unique<const Array<T>>(std::move(exec), *ptr);
     }
@@ -601,7 +601,7 @@ struct temporary_clone_helper<const Array<T>> {
 template <typename T>
 class copy_back_deleter<Array<T>> {
 public:
-    using pointer = Array<T> *;
+    using pointer = Array<T>*;
 
     /**
      * Creates a new deleter object.

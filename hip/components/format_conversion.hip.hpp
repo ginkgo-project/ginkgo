@@ -65,8 +65,8 @@ namespace kernel {
 template <typename ValueType, typename IndexType>
 __global__ void count_nnz_per_row(size_type num_rows, size_type max_nnz_per_row,
                                   size_type stride,
-                                  const ValueType *__restrict__ values,
-                                  IndexType *__restrict__ result);
+                                  const ValueType* __restrict__ values,
+                                  IndexType* __restrict__ result);
 
 
 }  // namespace kernel
@@ -83,9 +83,9 @@ namespace kernel {
  * It converts the row index of Coo to the row pointer of Csr.
  */
 template <typename IndexType>
-__global__ void convert_row_idxs_to_ptrs(const IndexType *__restrict__ idxs,
+__global__ void convert_row_idxs_to_ptrs(const IndexType* __restrict__ idxs,
                                          size_type num_nonzeros,
-                                         IndexType *__restrict__ ptrs,
+                                         IndexType* __restrict__ ptrs,
                                          size_type length);
 
 

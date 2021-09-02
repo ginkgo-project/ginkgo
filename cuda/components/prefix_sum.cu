@@ -46,7 +46,7 @@ constexpr int prefix_sum_block_size = 512;
 
 
 template <typename IndexType>
-void prefix_sum(std::shared_ptr<const CudaExecutor> exec, IndexType *counts,
+void prefix_sum(std::shared_ptr<const CudaExecutor> exec, IndexType* counts,
                 size_type num_entries)
 {
     // prefix_sum should only be performed on a valid array

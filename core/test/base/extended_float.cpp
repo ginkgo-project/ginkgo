@@ -77,14 +77,15 @@ protected:
     static floating<N - 1> create_from_bits(const char (&s)[N])
     {
         auto bits = std::bitset<N - 1>(s).to_ullong();
-        return reinterpret_cast<floating<N - 1> &>(bits);
+        return reinterpret_cast<floating<N - 1>&>(bits);
     }
 
     template <typename T>
     static std::bitset<sizeof(T) * byte_size> get_bits(T val)
     {
-        auto bits = reinterpret_cast<
-            typename gko::detail::float_traits<T>::bits_type &>(val);
+        auto bits =
+            reinterpret_cast<typename gko::detail::float_traits<T>::bits_type&>(
+                val);
         return std::bitset<sizeof(T) * byte_size>(bits);
     }
 

@@ -273,7 +273,7 @@ public:
      *
      * @return the operation's name
      */
-    virtual const char *get_name() const noexcept;
+    virtual const char* get_name() const noexcept;
 };
 
 
@@ -298,11 +298,11 @@ public:
      * @param name  the name to be used for this operation
      * @param op  a functor object which will be called with the executor.
      */
-    RegisteredOperation(const char *name, int num_params, Closure op)
+    RegisteredOperation(const char* name, int num_params, Closure op)
         : name_(name), num_params_(num_params), op_(std::move(op))
     {}
 
-    const char *get_name() const noexcept override
+    const char* get_name() const noexcept override
     {
         static auto name = [this] {
             std::ostringstream oss;
@@ -338,14 +338,14 @@ public:
     }
 
 private:
-    const char *name_;
+    const char* name_;
     int num_params_;
     Closure op_;
 };
 
 
 template <typename Closure>
-RegisteredOperation<Closure> make_register_operation(const char *name,
+RegisteredOperation<Closure> make_register_operation(const char* name,
                                                      int num_params, Closure op)
 {
     return RegisteredOperation<Closure>{name, num_params, std::move(op)};
@@ -428,7 +428,7 @@ RegisteredOperation<Closure> make_register_operation(const char *name,
  */
 #define GKO_REGISTER_OPERATION(_name, _kernel)                                 \
     template <typename... Args>                                                \
-    auto make_##_name(Args &&... args)                                         \
+    auto make_##_name(Args&&... args)                                          \
     {                                                                          \
         return ::gko::detail::make_register_operation(                         \
             #_name, sizeof...(Args), [&args...](auto exec) {                   \
@@ -583,17 +583,17 @@ public:
     virtual ~Executor() = default;
 
     Executor() = default;
-    Executor(Executor &) = delete;
-    Executor(Executor &&) = default;
-    Executor &operator=(Executor &) = delete;
-    Executor &operator=(Executor &&) = default;
+    Executor(Executor&) = delete;
+    Executor(Executor&&) = default;
+    Executor& operator=(Executor&) = delete;
+    Executor& operator=(Executor&&) = default;
 
     /**
      * Runs the specified Operation using this Executor.
      *
      * @param op  the operation to run
      */
-    virtual void run(const Operation &op) const = 0;
+    virtual void run(const Operation& op) const = 0;
 
     /**
      * Runs one of the passed in functors, depending on the Executor type.
@@ -609,8 +609,8 @@ public:
      */
     template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
               typename ClosureDpcpp>
-    void run(const ClosureOmp &op_omp, const ClosureCuda &op_cuda,
-             const ClosureHip &op_hip, const ClosureDpcpp &op_dpcpp) const
+    void run(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
+             const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp) const
     {
         LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip, ClosureDpcpp> op(
             op_omp, op_cuda, op_hip, op_dpcpp);
@@ -629,11 +629,11 @@ public:
      * @return pointer to allocated memory
      */
     template <typename T>
-    T *alloc(size_type num_elems) const
+    T* alloc(size_type num_elems) const
     {
         this->template log<log::Logger::allocation_started>(
             this, num_elems * sizeof(T));
-        T *allocated = static_cast<T *>(this->raw_alloc(num_elems * sizeof(T)));
+        T* allocated = static_cast<T*>(this->raw_alloc(num_elems * sizeof(T)));
         this->template log<log::Logger::allocation_completed>(
             this, num_elems * sizeof(T), reinterpret_cast<uintptr>(allocated));
         return allocated;
@@ -646,7 +646,7 @@ public:
      *
      * @param ptr  pointer to the allocated memory block
      */
-    void free(void *ptr) const noexcept
+    void free(void* ptr) const noexcept
     {
         this->template log<log::Logger::free_started>(
             this, reinterpret_cast<uintptr>(ptr));
@@ -668,8 +668,8 @@ public:
      *                  where the data will be copied to
      */
     template <typename T>
-    void copy_from(const Executor *src_exec, size_type num_elems,
-                   const T *src_ptr, T *dest_ptr) const
+    void copy_from(const Executor* src_exec, size_type num_elems,
+                   const T* src_ptr, T* dest_ptr) const
     {
         this->template log<log::Logger::copy_started>(
             src_exec, this, reinterpret_cast<uintptr>(src_ptr),
@@ -677,7 +677,7 @@ public:
         try {
             this->raw_copy_from(src_exec, num_elems * sizeof(T), src_ptr,
                                 dest_ptr);
-        } catch (NotSupported &) {
+        } catch (NotSupported&) {
 #if (GKO_VERBOSE_LEVEL >= 1) && !defined(NDEBUG)
             // Unoptimized copy. Try to go through the masters.
             // output to log when verbose >= 1 and debug build
@@ -686,7 +686,7 @@ public:
 #endif
             auto src_master = src_exec->get_master().get();
             if (num_elems > 0 && src_master != src_exec) {
-                auto *master_ptr = src_exec->get_master()->alloc<T>(num_elems);
+                auto* master_ptr = src_exec->get_master()->alloc<T>(num_elems);
                 src_master->copy_from<T>(src_exec, num_elems, src_ptr,
                                          master_ptr);
                 this->copy_from<T>(src_master, num_elems, master_ptr, dest_ptr);
@@ -710,7 +710,7 @@ public:
      *                  where the data will be copied to
      */
     template <typename T>
-    void copy(size_type num_elems, const T *src_ptr, T *dest_ptr) const
+    void copy(size_type num_elems, const T* src_ptr, T* dest_ptr) const
     {
         this->copy_from(this, num_elems, src_ptr, dest_ptr);
     }
@@ -725,7 +725,7 @@ public:
      * @return the value stored at ptr
      */
     template <typename T>
-    T copy_val_to_host(const T *ptr) const
+    T copy_val_to_host(const T* ptr) const
     {
         T out{};
         this->get_master()->copy_from(this, 1, ptr, &out);
@@ -755,7 +755,7 @@ public:
      *
      * @return whether the executors this and other share the same memory.
      */
-    bool memory_accessible(const std::shared_ptr<const Executor> &other) const
+    bool memory_accessible(const std::shared_ptr<const Executor>& other) const
     {
         return this->verify_memory_from(other.get());
     }
@@ -880,7 +880,7 @@ protected:
      *
      * @return  the exec_info struct
      */
-    const exec_info &get_exec_info() const { return this->exec_info_; }
+    const exec_info& get_exec_info() const { return this->exec_info_; }
 
     /**
      * Allocates raw memory in this Executor.
@@ -891,7 +891,7 @@ protected:
      *
      * @return raw pointer to allocated memory
      */
-    virtual void *raw_alloc(size_type size) const = 0;
+    virtual void* raw_alloc(size_type size) const = 0;
 
     /**
      * Frees memory previously allocated with Executor::alloc().
@@ -900,7 +900,7 @@ protected:
      *
      * @param ptr  pointer to the allocated memory block
      */
-    virtual void raw_free(void *ptr) const noexcept = 0;
+    virtual void raw_free(void* ptr) const noexcept = 0;
 
     /**
      * Copies raw data from another Executor.
@@ -912,8 +912,8 @@ protected:
      * @param dest_ptr  pointer to an allocated block of memory where the data
      *                  will be copied to
      */
-    virtual void raw_copy_from(const Executor *src_exec, size_type n_bytes,
-                               const void *src_ptr, void *dest_ptr) const = 0;
+    virtual void raw_copy_from(const Executor* src_exec, size_type n_bytes,
+                               const void* src_ptr, void* dest_ptr) const = 0;
 
 /**
  * @internal
@@ -925,8 +925,8 @@ protected:
  * @param _exec_type  the Executor subclass
  */
 #define GKO_ENABLE_RAW_COPY_TO(_exec_type, ...)                              \
-    virtual void raw_copy_to(const _exec_type *dest_exec, size_type n_bytes, \
-                             const void *src_ptr, void *dest_ptr) const = 0
+    virtual void raw_copy_to(const _exec_type* dest_exec, size_type n_bytes, \
+                             const void* src_ptr, void* dest_ptr) const = 0
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_ENABLE_RAW_COPY_TO);
 
@@ -939,7 +939,7 @@ protected:
      *
      * @return whether this executor and src_exec share the same memory.
      */
-    virtual bool verify_memory_from(const Executor *src_exec) const = 0;
+    virtual bool verify_memory_from(const Executor* src_exec) const = 0;
 
 /**
  * @internal
@@ -951,7 +951,7 @@ protected:
  * @param _exec_type  the Executor subclass
  */
 #define GKO_ENABLE_VERIFY_MEMORY_TO(_exec_type, ...) \
-    virtual bool verify_memory_to(const _exec_type *dest_exec) const = 0
+    virtual bool verify_memory_to(const _exec_type* dest_exec) const = 0
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_ENABLE_VERIFY_MEMORY_TO);
 
@@ -965,14 +965,14 @@ protected:
      *
      * @param mach_topo the machine topology object.
      */
-    virtual void populate_exec_info(const MachineTopology *mach_topo) = 0;
+    virtual void populate_exec_info(const MachineTopology* mach_topo) = 0;
 
     /**
      * Gets the modifiable exec info object
      *
      * @return  the pointer to the exec_info object
      */
-    exec_info &get_exec_info() { return this->exec_info_; }
+    exec_info& get_exec_info() { return this->exec_info_; }
 
     exec_info exec_info_;
 
@@ -1004,8 +1004,8 @@ private:
          * @param op_dpcpp  a functor object which will be called by
          *                  DpcppExecutor
          */
-        LambdaOperation(const ClosureOmp &op_omp, const ClosureCuda &op_cuda,
-                        const ClosureHip &op_hip, const ClosureDpcpp &op_dpcpp)
+        LambdaOperation(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
+                        const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp)
             : op_omp_(op_omp),
               op_cuda_(op_cuda),
               op_hip_(op_hip),
@@ -1052,7 +1052,7 @@ private:
 template <typename T>
 class executor_deleter {
 public:
-    using pointer = T *;
+    using pointer = T*;
 
     /**
      * Creates a new deleter.
@@ -1110,7 +1110,7 @@ class ExecutorBase : public Executor {
     friend class ReferenceExecutor;
 
 public:
-    void run(const Operation &op) const override
+    void run(const Operation& op) const override
     {
         this->template log<log::Logger::operation_launched>(this, &op);
         op.run(self()->shared_from_this());
@@ -1118,26 +1118,26 @@ public:
     }
 
 protected:
-    void raw_copy_from(const Executor *src_exec, size_type n_bytes,
-                       const void *src_ptr, void *dest_ptr) const override
+    void raw_copy_from(const Executor* src_exec, size_type n_bytes,
+                       const void* src_ptr, void* dest_ptr) const override
     {
         src_exec->raw_copy_to(self(), n_bytes, src_ptr, dest_ptr);
     }
 
-    virtual bool verify_memory_from(const Executor *src_exec) const override
+    virtual bool verify_memory_from(const Executor* src_exec) const override
     {
         return src_exec->verify_memory_to(self());
     }
 
 private:
-    ConcreteExecutor *self() noexcept
+    ConcreteExecutor* self() noexcept
     {
-        return static_cast<ConcreteExecutor *>(this);
+        return static_cast<ConcreteExecutor*>(this);
     }
 
-    const ConcreteExecutor *self() const noexcept
+    const ConcreteExecutor* self() const noexcept
     {
-        return static_cast<const ConcreteExecutor *>(this);
+        return static_cast<const ConcreteExecutor*>(this);
     }
 };
 
@@ -1185,12 +1185,12 @@ private:
 
 
 #define GKO_OVERRIDE_RAW_COPY_TO(_executor_type, ...)                    \
-    void raw_copy_to(const _executor_type *dest_exec, size_type n_bytes, \
-                     const void *src_ptr, void *dest_ptr) const override
+    void raw_copy_to(const _executor_type* dest_exec, size_type n_bytes, \
+                     const void* src_ptr, void* dest_ptr) const override
 
 
 #define GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(dest_, bool_)                     \
-    virtual bool verify_memory_to(const dest_ *other) const override         \
+    virtual bool verify_memory_to(const dest_* other) const override         \
     {                                                                        \
         return bool_;                                                        \
     }                                                                        \
@@ -1241,11 +1241,11 @@ protected:
         this->OmpExecutor::populate_exec_info(MachineTopology::get_instance());
     }
 
-    void populate_exec_info(const MachineTopology *mach_topo) override;
+    void populate_exec_info(const MachineTopology* mach_topo) override;
 
-    void *raw_alloc(size_type size) const override;
+    void* raw_alloc(size_type size) const override;
 
-    void raw_free(void *ptr) const noexcept override;
+    void raw_free(void* ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
 
@@ -1257,7 +1257,7 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
 
-    bool verify_memory_to(const DpcppExecutor *dest_exec) const override;
+    bool verify_memory_to(const DpcppExecutor* dest_exec) const override;
 };
 
 
@@ -1282,7 +1282,7 @@ public:
         return std::shared_ptr<ReferenceExecutor>(new ReferenceExecutor());
     }
 
-    void run(const Operation &op) const override
+    void run(const Operation& op) const override
     {
         this->template log<log::Logger::operation_launched>(this, &op);
         op.run(std::static_pointer_cast<const ReferenceExecutor>(
@@ -1297,14 +1297,14 @@ protected:
             MachineTopology::get_instance());
     }
 
-    void populate_exec_info(const MachineTopology *) override
+    void populate_exec_info(const MachineTopology*) override
     {
         this->get_exec_info().device_id = -1;
         this->get_exec_info().num_computing_units = 1;
         this->get_exec_info().num_pu_per_cu = 1;
     }
 
-    bool verify_memory_from(const Executor *src_exec) const override
+    bool verify_memory_from(const Executor* src_exec) const override
     {
         return src_exec->verify_memory_to(this);
     }
@@ -1362,7 +1362,7 @@ public:
 
     void synchronize() const override;
 
-    void run(const Operation &op) const override;
+    void run(const Operation& op) const override;
 
     /**
      * Get the CUDA device id of the device associated to this executor.
@@ -1431,14 +1431,14 @@ public:
      *
      * @return  the cublas handle (cublasContext*) for this executor
      */
-    cublasContext *get_cublas_handle() const { return cublas_handle_.get(); }
+    cublasContext* get_cublas_handle() const { return cublas_handle_.get(); }
 
     /**
      * Get the cusparse handle for this executor
      *
      * @return the cusparse handle (cusparseContext*) for this executor
      */
-    cusparseContext *get_cusparse_handle() const
+    cusparseContext* get_cusparse_handle() const
     {
         return cusparse_handle_.get();
     }
@@ -1489,9 +1489,9 @@ protected:
         this->init_handles();
     }
 
-    void *raw_alloc(size_type size) const override;
+    void* raw_alloc(size_type size) const override;
 
-    void raw_free(void *ptr) const noexcept override;
+    void raw_free(void* ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
 
@@ -1501,9 +1501,9 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
 
-    bool verify_memory_to(const HipExecutor *dest_exec) const override;
+    bool verify_memory_to(const HipExecutor* dest_exec) const override;
 
-    bool verify_memory_to(const CudaExecutor *dest_exec) const override;
+    bool verify_memory_to(const CudaExecutor* dest_exec) const override;
 
     static void increase_num_execs(unsigned device_id);
 
@@ -1511,13 +1511,13 @@ protected:
 
     static unsigned get_num_execs(unsigned device_id);
 
-    void populate_exec_info(const MachineTopology *mach_topo) override;
+    void populate_exec_info(const MachineTopology* mach_topo) override;
 
 private:
     std::shared_ptr<Executor> master_;
 
     template <typename T>
-    using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
+    using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
     handle_manager<cublasContext> cublas_handle_;
     handle_manager<cusparseContext> cusparse_handle_;
 
@@ -1566,7 +1566,7 @@ public:
 
     void synchronize() const override;
 
-    void run(const Operation &op) const override;
+    void run(const Operation& op) const override;
 
     /**
      * Get the HIP device id of the device associated to this executor.
@@ -1635,14 +1635,14 @@ public:
      *
      * @return  the hipblas handle (hipblasContext*) for this executor
      */
-    hipblasContext *get_hipblas_handle() const { return hipblas_handle_.get(); }
+    hipblasContext* get_hipblas_handle() const { return hipblas_handle_.get(); }
 
     /**
      * Get the hipsparse handle for this executor
      *
      * @return the hipsparse handle (hipsparseContext*) for this executor
      */
-    hipsparseContext *get_hipsparse_handle() const
+    hipsparseContext* get_hipsparse_handle() const
     {
         return hipsparse_handle_.get();
     }
@@ -1693,9 +1693,9 @@ protected:
         this->init_handles();
     }
 
-    void *raw_alloc(size_type size) const override;
+    void* raw_alloc(size_type size) const override;
 
-    void raw_free(void *ptr) const noexcept override;
+    void raw_free(void* ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
 
@@ -1705,9 +1705,9 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
 
-    bool verify_memory_to(const CudaExecutor *dest_exec) const override;
+    bool verify_memory_to(const CudaExecutor* dest_exec) const override;
 
-    bool verify_memory_to(const HipExecutor *dest_exec) const override;
+    bool verify_memory_to(const HipExecutor* dest_exec) const override;
 
     static void increase_num_execs(int device_id);
 
@@ -1715,13 +1715,13 @@ protected:
 
     static int get_num_execs(int device_id);
 
-    void populate_exec_info(const MachineTopology *mach_topo) override;
+    void populate_exec_info(const MachineTopology* mach_topo) override;
 
 private:
     std::shared_ptr<Executor> master_;
 
     template <typename T>
-    using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
+    using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
     handle_manager<hipblasContext> hipblas_handle_;
     handle_manager<hipsparseContext> hipsparse_handle_;
 
@@ -1766,7 +1766,7 @@ public:
 
     void synchronize() const override;
 
-    void run(const Operation &op) const override;
+    void run(const Operation& op) const override;
 
     /**
      * Get the DPCPP device id of the device associated to this executor.
@@ -1778,7 +1778,7 @@ public:
         return this->get_exec_info().device_id;
     }
 
-    ::cl::sycl::queue *get_queue() const { return queue_.get(); }
+    ::cl::sycl::queue* get_queue() const { return queue_.get(); }
 
     /**
      * Get the number of devices present on the system.
@@ -1794,7 +1794,7 @@ public:
      *
      * @return the available subgroup sizes for this device
      */
-    const std::vector<int> &get_subgroup_sizes() const noexcept
+    const std::vector<int>& get_subgroup_sizes() const noexcept
     {
         return this->get_exec_info().subgroup_sizes;
     }
@@ -1814,7 +1814,7 @@ public:
      *
      * @return the maximum work item sizes
      */
-    const std::vector<int> &get_max_workitem_sizes() const noexcept
+    const std::vector<int>& get_max_workitem_sizes() const noexcept
     {
         return this->get_exec_info().max_workitem_sizes;
     }
@@ -1857,17 +1857,17 @@ protected:
         : master_(master)
     {
         std::for_each(device_type.begin(), device_type.end(),
-                      [](char &c) { c = std::tolower(c); });
+                      [](char& c) { c = std::tolower(c); });
         this->get_exec_info().device_type = std::string(device_type);
         this->get_exec_info().device_id = device_id;
         this->set_device_property();
     }
 
-    void populate_exec_info(const MachineTopology *mach_topo) override;
+    void populate_exec_info(const MachineTopology* mach_topo) override;
 
-    void *raw_alloc(size_type size) const override;
+    void* raw_alloc(size_type size) const override;
 
-    void raw_free(void *ptr) const noexcept override;
+    void raw_free(void* ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
 
@@ -1877,15 +1877,15 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
 
-    bool verify_memory_to(const OmpExecutor *dest_exec) const override;
+    bool verify_memory_to(const OmpExecutor* dest_exec) const override;
 
-    bool verify_memory_to(const DpcppExecutor *dest_exec) const override;
+    bool verify_memory_to(const DpcppExecutor* dest_exec) const override;
 
 private:
     std::shared_ptr<Executor> master_;
 
     template <typename T>
-    using queue_manager = std::unique_ptr<T, std::function<void(T *)>>;
+    using queue_manager = std::unique_ptr<T, std::function<void(T*)>>;
     queue_manager<::cl::sycl::queue> queue_;
 };
 

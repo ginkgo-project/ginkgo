@@ -55,7 +55,7 @@ namespace ilu_factorization {
 
 template <typename ValueType, typename IndexType>
 void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
-                matrix::Csr<ValueType, IndexType> *m)
+                matrix::Csr<ValueType, IndexType>* m)
 {
     vector<IndexType> diagonals{m->get_size()[0], -1, exec};
     const auto row_ptrs = m->get_const_row_ptrs();

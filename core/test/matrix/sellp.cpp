@@ -63,7 +63,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(const Mtx *m)
+    void assert_equal_to_original_mtx(const Mtx* m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -95,7 +95,7 @@ protected:
     }
 
     void assert_equal_to_original_mtx_with_slice_size_and_stride_factor(
-        const Mtx *m)
+        const Mtx* m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -126,7 +126,7 @@ protected:
         EXPECT_EQ(v[5], value_type{0.0});
     }
 
-    void assert_empty(const Mtx *m)
+    void assert_empty(const Mtx* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
@@ -211,7 +211,7 @@ TYPED_TEST(Sellp, CanBeCloned)
 
     this->assert_equal_to_original_mtx(this->mtx.get());
     this->mtx->get_values()[1] = 5.0;
-    this->assert_equal_to_original_mtx(dynamic_cast<Mtx *>(clone.get()));
+    this->assert_equal_to_original_mtx(dynamic_cast<Mtx*>(clone.get()));
 }
 
 

@@ -89,7 +89,7 @@ protected:
           mtxsq(fbsamplesquare.generate_fbcsr())
     {}
 
-    void assert_equal_to_mtx(const Csr *const m)
+    void assert_equal_to_mtx(const Csr* const m)
     {
         ASSERT_EQ(m->get_size(), refcsrmtx->get_size());
         ASSERT_EQ(m->get_num_stored_elements(),
@@ -105,7 +105,7 @@ protected:
         }
     }
 
-    void assert_equal_to_mtx(const SparCsr *m)
+    void assert_equal_to_mtx(const SparCsr* m)
     {
         ASSERT_EQ(m->get_size(), refspcmtx->get_size());
         ASSERT_EQ(m->get_num_nonzeros(), refspcmtx->get_num_nonzeros());
@@ -162,7 +162,7 @@ TYPED_TEST(Fbcsr, AppliesToDenseVector)
     const index_type nrows = this->mtx2->get_size()[0];
     const index_type ncols = this->mtx2->get_size()[1];
     auto x = Vec::create(this->exec, gko::dim<2>{(gko::size_type)ncols, 1});
-    T *const xvals = x->get_values();
+    T* const xvals = x->get_values();
     for (index_type i = 0; i < ncols; i++) {
         xvals[i] = std::sin(static_cast<T>(static_cast<float>((i + 1) ^ 2)));
     }
@@ -568,9 +568,9 @@ TYPED_TEST(Fbcsr, SquareMtxIsTransposable)
     this->mtxsq->convert_to(csrmtxsq.get());
 
     std::unique_ptr<const gko::LinOp> reftmtx = csrmtxsq->transpose();
-    auto reftmtx_as_csr = static_cast<const Csr *>(reftmtx.get());
+    auto reftmtx_as_csr = static_cast<const Csr*>(reftmtx.get());
     auto trans = this->mtxsq->transpose();
-    auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
+    auto trans_as_fbcsr = static_cast<Fbcsr*>(trans.get());
 
     GKO_ASSERT_MTX_NEAR(trans_as_fbcsr, reftmtx_as_csr, 0.0);
 }
@@ -585,9 +585,9 @@ TYPED_TEST(Fbcsr, NonSquareMtxIsTransposable)
     this->mtx2->convert_to(csrmtx.get());
 
     std::unique_ptr<gko::LinOp> reftmtx = csrmtx->transpose();
-    auto reftmtx_as_csr = static_cast<Csr *>(reftmtx.get());
+    auto reftmtx_as_csr = static_cast<Csr*>(reftmtx.get());
     auto trans = this->mtx2->transpose();
-    auto trans_as_fbcsr = static_cast<Fbcsr *>(trans.get());
+    auto trans_as_fbcsr = static_cast<Fbcsr*>(trans.get());
 
     GKO_ASSERT_MTX_NEAR(trans_as_fbcsr, reftmtx_as_csr, 0.0);
 }
@@ -604,7 +604,7 @@ TYPED_TEST(Fbcsr, RecognizeUnsortedMatrix)
     using Fbcsr = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     auto cpmat = this->mtx->clone();
-    index_type *const colinds = cpmat->get_col_idxs();
+    index_type* const colinds = cpmat->get_col_idxs();
     std::swap(colinds[0], colinds[1]);
 
     ASSERT_FALSE(cpmat->is_sorted_by_column_index());
@@ -723,9 +723,9 @@ TYPED_TEST(FbcsrComplex, MtxIsConjugateTransposable)
     auto mtx = csample.generate_fbcsr();
 
     auto reftranslinop = csrmtx->conj_transpose();
-    auto reftrans = static_cast<const Csr *>(reftranslinop.get());
+    auto reftrans = static_cast<const Csr*>(reftranslinop.get());
     auto trans = mtx->conj_transpose();
-    auto trans_as_fbcsr = static_cast<const Fbcsr *>(trans.get());
+    auto trans_as_fbcsr = static_cast<const Fbcsr*>(trans.get());
 
     GKO_ASSERT_MTX_NEAR(trans_as_fbcsr, reftrans, 0.0);
 }

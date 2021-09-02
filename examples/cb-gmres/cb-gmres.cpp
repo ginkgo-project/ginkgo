@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // To get an accurate result, the solve is repeated multiple times (while
 // ensuring the initial guess is always the same). The result of the solve will
 // be written to x.
-double measure_solve_time_in_s(const gko::Executor *exec, gko::LinOp *solver,
-                               const gko::LinOp *b, gko::LinOp *x)
+double measure_solve_time_in_s(const gko::Executor* exec, gko::LinOp* solver,
+                               const gko::LinOp* b, gko::LinOp* x)
 {
     constexpr int repeats{5};
     double duration{0};
@@ -73,7 +73,7 @@ double measure_solve_time_in_s(const gko::Executor *exec, gko::LinOp *solver,
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
     // with one column/one row. The advantage of this concept is that using

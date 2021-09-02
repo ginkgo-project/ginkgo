@@ -61,20 +61,20 @@ namespace cublas {
  */
 class pointer_mode_guard {
 public:
-    pointer_mode_guard(cublasHandle_t &handle)
+    pointer_mode_guard(cublasHandle_t& handle)
     {
         l_handle = &handle;
         GKO_ASSERT_NO_CUBLAS_ERRORS(
             cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
     }
 
-    pointer_mode_guard(pointer_mode_guard &other) = delete;
+    pointer_mode_guard(pointer_mode_guard& other) = delete;
 
-    pointer_mode_guard &operator=(const pointer_mode_guard &other) = delete;
+    pointer_mode_guard& operator=(const pointer_mode_guard& other) = delete;
 
-    pointer_mode_guard(pointer_mode_guard &&other) = delete;
+    pointer_mode_guard(pointer_mode_guard&& other) = delete;
 
-    pointer_mode_guard const &operator=(pointer_mode_guard &&other) = delete;
+    pointer_mode_guard const& operator=(pointer_mode_guard&& other) = delete;
 
     ~pointer_mode_guard() noexcept(false)
     {
@@ -88,7 +88,7 @@ public:
     }
 
 private:
-    cublasHandle_t *l_handle;
+    cublasHandle_t* l_handle;
 };
 
 
@@ -108,20 +108,20 @@ namespace cusparse {
  */
 class pointer_mode_guard {
 public:
-    pointer_mode_guard(cusparseHandle_t &handle)
+    pointer_mode_guard(cusparseHandle_t& handle)
     {
         l_handle = &handle;
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
     }
 
-    pointer_mode_guard(pointer_mode_guard &other) = delete;
+    pointer_mode_guard(pointer_mode_guard& other) = delete;
 
-    pointer_mode_guard &operator=(const pointer_mode_guard &other) = delete;
+    pointer_mode_guard& operator=(const pointer_mode_guard& other) = delete;
 
-    pointer_mode_guard(pointer_mode_guard &&other) = delete;
+    pointer_mode_guard(pointer_mode_guard&& other) = delete;
 
-    pointer_mode_guard const &operator=(pointer_mode_guard &&other) = delete;
+    pointer_mode_guard const& operator=(pointer_mode_guard&& other) = delete;
 
     ~pointer_mode_guard() noexcept(false)
     {
@@ -135,7 +135,7 @@ public:
     }
 
 private:
-    cusparseHandle_t *l_handle;
+    cusparseHandle_t* l_handle;
 };
 
 

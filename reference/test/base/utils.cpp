@@ -165,7 +165,7 @@ TEST_F(ConvertToWithSorting, DontSortWithRawPtr)
 
 TEST_F(ConvertToWithSorting, SortWithConstRawPtr)
 {
-    const Coo *cptr = unsorted_coo.get();
+    const Coo* cptr = unsorted_coo.get();
 
     auto result = gko::convert_to_with_sorting<Csr>(ref, cptr, false);
 

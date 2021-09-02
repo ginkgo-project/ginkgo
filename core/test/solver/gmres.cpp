@@ -95,7 +95,7 @@ protected:
     std::unique_ptr<Big_solver::Factory> gmres_big_factory;
     std::unique_ptr<gko::LinOp> big_solver;
 
-    static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
+    static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
     {
         ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
         ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
@@ -123,7 +123,7 @@ TYPED_TEST(Gmres, GmresFactoryCreatesCorrectSolver)
 {
     using Solver = typename TestFixture::Solver;
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
-    auto gmres_solver = static_cast<Solver *>(this->solver.get());
+    auto gmres_solver = static_cast<Solver*>(this->solver.get());
     ASSERT_NE(gmres_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(gmres_solver->get_system_matrix(), this->mtx);
 }
@@ -138,8 +138,8 @@ TYPED_TEST(Gmres, CanBeCopied)
     copy->copy_from(this->solver.get());
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
+    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
                                this->mtx.get());
 }
 
@@ -153,8 +153,8 @@ TYPED_TEST(Gmres, CanBeMoved)
     copy->copy_from(std::move(this->solver));
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
+    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
                                this->mtx.get());
 }
 
@@ -166,8 +166,8 @@ TYPED_TEST(Gmres, CanBeCloned)
     auto clone = this->solver->clone();
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
-    auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()),
+    auto clone_mtx = static_cast<Solver*>(clone.get())->get_system_matrix();
+    this->assert_same_matrices(static_cast<const Mtx*>(clone_mtx.get()),
                                this->mtx.get());
 }
 
@@ -179,7 +179,7 @@ TYPED_TEST(Gmres, CanBeCleared)
 
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
     auto solver_mtx =
-        static_cast<Solver *>(this->solver.get())->get_system_matrix();
+        static_cast<Solver*>(this->solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
@@ -209,8 +209,8 @@ TYPED_TEST(Gmres, CanSetPreconditionerGenerator)
                     .on(this->exec))
             .on(this->exec);
     auto solver = gmres_factory->generate(this->mtx);
-    auto precond = dynamic_cast<const gko::solver::Gmres<value_type> *>(
-        static_cast<gko::solver::Gmres<value_type> *>(solver.get())
+    auto precond = dynamic_cast<const gko::solver::Gmres<value_type>*>(
+        static_cast<gko::solver::Gmres<value_type>*>(solver.get())
             ->get_preconditioner()
             .get());
 
@@ -237,7 +237,7 @@ TYPED_TEST(Gmres, CanSetCriteriaAgain)
     solver->set_stop_criterion_factory(new_crit);
     auto new_crit_fac = solver->get_stop_criterion_factory();
     auto niter =
-        static_cast<const gko::stop::Iteration::Factory *>(new_crit_fac.get())
+        static_cast<const gko::stop::Iteration::Factory*>(new_crit_fac.get())
             ->get_parameters()
             .max_iters;
 

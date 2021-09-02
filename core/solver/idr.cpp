@@ -91,8 +91,8 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
 
 template <typename ValueType>
 template <typename SubspaceType>
-void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType> *dense_b,
-                             matrix::Dense<SubspaceType> *dense_x) const
+void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
+                             matrix::Dense<SubspaceType>* dense_x) const
 {
     using std::swap;
     using Vector = matrix::Dense<SubspaceType>;
@@ -167,7 +167,7 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType> *dense_b,
 
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_,
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}), dense_x,
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         residual.get());
 
     int total_iter = -1;
@@ -271,7 +271,7 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType> *dense_b,
 
 
 template <typename ValueType>
-void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Idr<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -282,7 +282,7 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 auto complex_x = dense_x->make_complex();
                 this->iterate(complex_b.get(), complex_x.get());
                 complex_x->get_real(
-                    dynamic_cast<matrix::Dense<remove_complex<ValueType>> *>(
+                    dynamic_cast<matrix::Dense<remove_complex<ValueType>>*>(
                         dense_x));
             } else {
                 this->iterate(dense_b, dense_x);
@@ -293,8 +293,8 @@ void Idr<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Idr<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                const LinOp *beta, LinOp *x) const
+void Idr<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {

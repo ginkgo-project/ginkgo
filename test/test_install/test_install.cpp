@@ -46,8 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
-void assert_similar_matrices(const gko::matrix::Dense<> *m1,
-                             const gko::matrix::Dense<> *m2, double prec)
+void assert_similar_matrices(const gko::matrix::Dense<>* m1,
+                             const gko::matrix::Dense<>* m2, double prec)
 {
     assert(m1->get_size()[0] == m2->get_size()[0]);
     assert(m1->get_size()[1] == m2->get_size()[1]);
@@ -61,8 +61,8 @@ void assert_similar_matrices(const gko::matrix::Dense<> *m1,
 
 template <typename Mtx>
 void check_spmv(std::shared_ptr<gko::Executor> exec,
-                const gko::matrix_data<double> &A_raw,
-                const gko::matrix::Dense<> *b, gko::matrix::Dense<> *x)
+                const gko::matrix_data<double>& A_raw,
+                const gko::matrix::Dense<>* b, gko::matrix::Dense<>* x)
 {
     auto test = Mtx::create(exec);
 #if HAS_REFERENCE
@@ -90,8 +90,8 @@ void check_spmv(std::shared_ptr<gko::Executor> exec,
 
 template <typename Solver>
 void check_solver(std::shared_ptr<gko::Executor> exec,
-                  const gko::matrix_data<double> &A_raw,
-                  const gko::matrix::Dense<> *b, gko::matrix::Dense<> *x)
+                  const gko::matrix_data<double>& A_raw,
+                  const gko::matrix::Dense<>* b, gko::matrix::Dense<>* x)
 {
     using Mtx = gko::matrix::Csr<>;
     auto A = gko::share(Mtx::create(exec, std::make_shared<Mtx::classical>()));
@@ -167,7 +167,7 @@ int main()
         // We also try to to synchronize to ensure we really have an available
         // device
         exec->synchronize();
-    } catch (gko::Error &e) {
+    } catch (gko::Error& e) {
         // Exit gracefully to not trigger CI errors. We only skip the tests in
         // this setting
         std::cerr

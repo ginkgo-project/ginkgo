@@ -82,12 +82,12 @@ namespace {
 template <int subwarp_size, typename ValueType, typename IndexType>
 void compute_l_u_factors(syn::value_list<int, subwarp_size>,
                          std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType> *a,
-                         matrix::Csr<ValueType, IndexType> *l,
-                         const matrix::Coo<ValueType, IndexType> *l_coo,
-                         matrix::Csr<ValueType, IndexType> *u,
-                         const matrix::Coo<ValueType, IndexType> *u_coo,
-                         matrix::Csr<ValueType, IndexType> *u_csc)
+                         const matrix::Csr<ValueType, IndexType>* a,
+                         matrix::Csr<ValueType, IndexType>* l,
+                         const matrix::Coo<ValueType, IndexType>* l_coo,
+                         matrix::Csr<ValueType, IndexType>* u,
+                         const matrix::Coo<ValueType, IndexType>* u_coo,
+                         matrix::Csr<ValueType, IndexType>* u_csc)
 {
     auto total_nnz = static_cast<IndexType>(l->get_num_stored_elements() +
                                             u->get_num_stored_elements());
@@ -114,12 +114,12 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_compute_l_u_factors,
 
 template <typename ValueType, typename IndexType>
 void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType> *a,
-                         matrix::Csr<ValueType, IndexType> *l,
-                         const matrix::Coo<ValueType, IndexType> *l_coo,
-                         matrix::Csr<ValueType, IndexType> *u,
-                         const matrix::Coo<ValueType, IndexType> *u_coo,
-                         matrix::Csr<ValueType, IndexType> *u_csc)
+                         const matrix::Csr<ValueType, IndexType>* a,
+                         matrix::Csr<ValueType, IndexType>* l,
+                         const matrix::Coo<ValueType, IndexType>* l_coo,
+                         matrix::Csr<ValueType, IndexType>* u,
+                         const matrix::Coo<ValueType, IndexType>* u_coo,
+                         matrix::Csr<ValueType, IndexType>* u_csc)
 {
     auto num_rows = a->get_size()[0];
     auto total_nnz =

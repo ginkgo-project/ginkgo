@@ -622,7 +622,7 @@ GKO_INLINE __host__ constexpr T zero()
  *       `zero(x)`.
  */
 template <typename T>
-GKO_INLINE __host__ constexpr T zero(const T &)
+GKO_INLINE __host__ constexpr T zero(const T&)
 {
     return zero<T>();
 }
@@ -650,7 +650,7 @@ GKO_INLINE __host__ constexpr T one()
  *       `one(x)`.
  */
 template <typename T>
-GKO_INLINE __host__ constexpr T one(const T &)
+GKO_INLINE __host__ constexpr T one(const T&)
 {
     return one<T>();
 }
@@ -680,7 +680,7 @@ zero()
  *       `zero(x)`.
  */
 template <typename T>
-GKO_INLINE __device__ constexpr T zero(const T &)
+GKO_INLINE __device__ constexpr T zero(const T&)
 {
     return zero<T>();
 }
@@ -710,7 +710,7 @@ one()
  *       `one(x)`.
  */
 template <typename T>
-GKO_INLINE __device__ constexpr T one(const T &)
+GKO_INLINE __device__ constexpr T one(const T&)
 {
     return one<T>();
 }
@@ -741,7 +741,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T zero()
  *       `zero(x)`.
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T zero(const T &)
+GKO_INLINE GKO_ATTRIBUTES constexpr T zero(const T&)
 {
     return zero<T>();
 }
@@ -769,7 +769,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one()
  *       `one(x)`.
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T &)
+GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T&)
 {
     return one<T>();
 }
@@ -793,7 +793,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T &)
  *
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T max(const T &x, const T &y)
+GKO_INLINE GKO_ATTRIBUTES constexpr T max(const T& x, const T& y)
 {
     return x >= y ? x : y;
 }
@@ -811,7 +811,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T max(const T &x, const T &y)
  *
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T &x, const T &y)
+GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T& x, const T& y)
 {
     return x <= y ? x : y;
 }
@@ -828,7 +828,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T &x, const T &y)
  */
 template <typename T>
 GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
-real(const T &x)
+real(const T& x)
 {
     return x;
 }
@@ -836,7 +836,7 @@ real(const T &x)
 template <typename T>
 GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
                                                      remove_complex<T>>
-real(const T &x)
+real(const T& x)
 {
     return x.real();
 }
@@ -853,7 +853,7 @@ real(const T &x)
  */
 template <typename T>
 GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
-imag(const T &)
+imag(const T&)
 {
     return zero<T>();
 }
@@ -861,7 +861,7 @@ imag(const T &)
 template <typename T>
 GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
                                                      remove_complex<T>>
-imag(const T &x)
+imag(const T& x)
 {
     return x.imag();
 }
@@ -876,14 +876,14 @@ imag(const T &x)
  */
 template <typename T>
 GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<!is_complex_s<T>::value, T> conj(
-    const T &x)
+    const T& x)
 {
     return x;
 }
 
 template <typename T>
 GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<is_complex_s<T>::value, T> conj(
-    const T &x)
+    const T& x)
 {
     return T{x.real(), -x.imag()};
 }
@@ -897,7 +897,7 @@ GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<is_complex_s<T>::value, T> conj(
  * @return  The squared norm of the object.
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr auto squared_norm(const T &x)
+GKO_INLINE GKO_ATTRIBUTES constexpr auto squared_norm(const T& x)
     -> decltype(real(conj(x) * x))
 {
     return real(conj(x) * x);
@@ -916,7 +916,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr auto squared_norm(const T &x)
 template <typename T>
 GKO_INLINE
     GKO_ATTRIBUTES constexpr xstd::enable_if_t<!is_complex_s<T>::value, T>
-    abs(const T &x)
+    abs(const T& x)
 {
     return x >= zero<T>() ? x : -x;
 }
@@ -925,7 +925,7 @@ GKO_INLINE
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr xstd::enable_if_t<is_complex_s<T>::value,
                                                       remove_complex<T>>
-abs(const T &x)
+abs(const T& x)
 {
     return sqrt(squared_norm(x));
 }
@@ -944,7 +944,7 @@ abs(const T &x)
  * @return maximum of `hint` and the significant bit position of `n`
  */
 template <typename T>
-constexpr uint32 get_significant_bit(const T &n, uint32 hint = 0u) noexcept
+constexpr uint32 get_significant_bit(const T& n, uint32 hint = 0u) noexcept
 {
     return (T{1} << (hint + 1)) > n ? hint : get_significant_bit(n, hint + 1u);
 }
@@ -962,8 +962,8 @@ constexpr uint32 get_significant_bit(const T &n, uint32 hint = 0u) noexcept
  * @return the smallest power of `base` not smaller than `limit`
  */
 template <typename T>
-constexpr T get_superior_power(const T &base, const T &limit,
-                               const T &hint = T{1}) noexcept
+constexpr T get_superior_power(const T& base, const T& limit,
+                               const T& hint = T{1}) noexcept
 {
     return hint >= limit ? hint : get_superior_power(base, limit, hint * base);
 }
@@ -982,7 +982,7 @@ constexpr T get_superior_power(const T &base, const T &limit,
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
-is_finite(const T &value)
+is_finite(const T& value)
 {
     constexpr T infinity{detail::infinity_impl<T>::value};
     return abs(value) < infinity;
@@ -1002,7 +1002,7 @@ is_finite(const T &value)
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<is_complex_s<T>::value, bool>
-is_finite(const T &value)
+is_finite(const T& value)
 {
     return is_finite(value.real()) && is_finite(value.imag());
 }

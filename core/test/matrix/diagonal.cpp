@@ -52,7 +52,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           diag(gko::matrix::Diagonal<value_type>::create(exec, 3u))
     {
-        value_type *v = diag->get_values();
+        value_type* v = diag->get_values();
         v[0] = 1.0;
         v[1] = 3.0;
         v[2] = 2.0;
@@ -61,7 +61,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Diag> diag;
 
-    void assert_equal_to_original_mtx(const Diag *m)
+    void assert_equal_to_original_mtx(const Diag* m)
     {
         auto v = m->get_const_values();
         ASSERT_EQ(m->get_size(), gko::dim<2>(3, 3));
@@ -70,7 +70,7 @@ protected:
         EXPECT_EQ(v[2], value_type{2.0});
     }
 
-    void assert_empty(const Diag *m)
+    void assert_empty(const Diag* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_const_values(), nullptr);
@@ -146,7 +146,7 @@ TYPED_TEST(Diagonal, CanBeCloned)
 
     this->assert_equal_to_original_mtx(this->diag.get());
     this->diag->get_values()[1] = 5.0;
-    this->assert_equal_to_original_mtx(dynamic_cast<Diag *>(clone.get()));
+    this->assert_equal_to_original_mtx(dynamic_cast<Diag*>(clone.get()));
 }
 
 

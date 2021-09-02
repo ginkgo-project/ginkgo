@@ -169,14 +169,14 @@ namespace GKO_DEVICE_NAMESPACE {
  */
 template <typename ValueType>
 struct matrix_accessor {
-    ValueType *data;
+    ValueType* data;
     size_type stride;
 
     /**
      * @internal
      * Returns a reference to the element at position (row, col).
      */
-    GKO_INLINE GKO_ATTRIBUTES ValueType &operator()(size_type row,
+    GKO_INLINE GKO_ATTRIBUTES ValueType& operator()(size_type row,
                                                     size_type col)
     {
         return data[row * stride + col];
@@ -187,7 +187,7 @@ struct matrix_accessor {
      * Returns a reference to the element at position idx in the underlying
      * storage.
      */
-    GKO_INLINE GKO_ATTRIBUTES ValueType &operator[](size_type idx)
+    GKO_INLINE GKO_ATTRIBUTES ValueType& operator[](size_type idx)
     {
         return data[idx];
     }
@@ -219,36 +219,36 @@ struct to_device_type_impl {
 };
 
 template <typename ValueType>
-struct to_device_type_impl<matrix::Dense<ValueType> *&> {
+struct to_device_type_impl<matrix::Dense<ValueType>*&> {
     using type = matrix_accessor<device_type<ValueType>>;
-    static type map_to_device(matrix::Dense<ValueType> *mtx)
+    static type map_to_device(matrix::Dense<ValueType>* mtx)
     {
         return {as_device_type(mtx->get_values()), mtx->get_stride()};
     }
 };
 
 template <typename ValueType>
-struct to_device_type_impl<const matrix::Dense<ValueType> *&> {
+struct to_device_type_impl<const matrix::Dense<ValueType>*&> {
     using type = matrix_accessor<const device_type<ValueType>>;
-    static type map_to_device(const matrix::Dense<ValueType> *mtx)
+    static type map_to_device(const matrix::Dense<ValueType>* mtx)
     {
         return {as_device_type(mtx->get_const_values()), mtx->get_stride()};
     }
 };
 
 template <typename ValueType>
-struct to_device_type_impl<Array<ValueType> &> {
-    using type = device_type<ValueType> *;
-    static type map_to_device(Array<ValueType> &array)
+struct to_device_type_impl<Array<ValueType>&> {
+    using type = device_type<ValueType>*;
+    static type map_to_device(Array<ValueType>& array)
     {
         return as_device_type(array.get_data());
     }
 };
 
 template <typename ValueType>
-struct to_device_type_impl<const Array<ValueType> &> {
-    using type = const device_type<ValueType> *;
-    static type map_to_device(const Array<ValueType> &array)
+struct to_device_type_impl<const Array<ValueType>&> {
+    using type = const device_type<ValueType>*;
+    static type map_to_device(const Array<ValueType>& array)
     {
         return as_device_type(array.get_const_data());
     }
@@ -256,7 +256,7 @@ struct to_device_type_impl<const Array<ValueType> &> {
 
 
 template <typename T>
-typename to_device_type_impl<T>::type map_to_device(T &&param)
+typename to_device_type_impl<T>::type map_to_device(T&& param)
 {
     return to_device_type_impl<T>::map_to_device(param);
 }

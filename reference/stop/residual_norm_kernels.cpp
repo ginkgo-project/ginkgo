@@ -55,12 +55,12 @@ namespace residual_norm {
 
 template <typename ValueType>
 void residual_norm(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Dense<ValueType> *tau,
-                   const matrix::Dense<ValueType> *orig_tau,
+                   const matrix::Dense<ValueType>* tau,
+                   const matrix::Dense<ValueType>* orig_tau,
                    ValueType rel_residual_goal, uint8 stoppingId,
-                   bool setFinalized, Array<stopping_status> *stop_status,
-                   Array<bool> *device_storage, bool *all_converged,
-                   bool *one_changed)
+                   bool setFinalized, Array<stopping_status>* stop_status,
+                   Array<bool>* device_storage, bool* all_converged,
+                   bool* one_changed)
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
@@ -98,11 +98,11 @@ namespace implicit_residual_norm {
 template <typename ValueType>
 void implicit_residual_norm(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Dense<ValueType> *tau,
-    const matrix::Dense<remove_complex<ValueType>> *orig_tau,
+    const matrix::Dense<ValueType>* tau,
+    const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
-    bool setFinalized, Array<stopping_status> *stop_status,
-    Array<bool> *device_storage, bool *all_converged, bool *one_changed)
+    bool setFinalized, Array<stopping_status>* stop_status,
+    Array<bool>* device_storage, bool* all_converged, bool* one_changed)
 {
     *all_converged = true;
     *one_changed = false;

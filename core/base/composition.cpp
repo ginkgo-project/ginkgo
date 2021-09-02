@@ -58,8 +58,8 @@ GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 template <typename ValueType>
 std::unique_ptr<LinOp> apply_inner_operators(
-    const std::vector<std::shared_ptr<const LinOp>> &operators,
-    Array<ValueType> &storage, const LinOp *rhs)
+    const std::vector<std::shared_ptr<const LinOp>>& operators,
+    Array<ValueType>& storage, const LinOp* rhs)
 {
     using Dense = matrix::Dense<ValueType>;
     // determine amount of necessary storage:
@@ -140,7 +140,7 @@ std::unique_ptr<LinOp> Composition<ValueType>::transpose() const
     // transpose and reverse operators
     std::transform(this->get_operators().rbegin(), this->get_operators().rend(),
                    std::back_inserter(transposed->operators_),
-                   [](const std::shared_ptr<const LinOp> &op) {
+                   [](const std::shared_ptr<const LinOp>& op) {
                        return share(as<Transposable>(op)->transpose());
                    });
 
@@ -156,7 +156,7 @@ std::unique_ptr<LinOp> Composition<ValueType>::conj_transpose() const
     // conjugate-transpose and reverse operators
     std::transform(this->get_operators().rbegin(), this->get_operators().rend(),
                    std::back_inserter(transposed->operators_),
-                   [](const std::shared_ptr<const LinOp> &op) {
+                   [](const std::shared_ptr<const LinOp>& op) {
                        return share(as<Transposable>(op)->conj_transpose());
                    });
 
@@ -165,7 +165,7 @@ std::unique_ptr<LinOp> Composition<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Composition<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Composition<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -182,8 +182,8 @@ void Composition<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Composition<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                        const LinOp *beta, LinOp *x) const
+void Composition<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                        const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {

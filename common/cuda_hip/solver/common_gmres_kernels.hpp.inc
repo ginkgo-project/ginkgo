@@ -35,11 +35,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void initialize_1_kernel(
     size_type num_rows, size_type num_cols, size_type krylov_dim,
-    const ValueType *__restrict__ b, size_type stride_b,
-    ValueType *__restrict__ residual, size_type stride_residual,
-    ValueType *__restrict__ givens_sin, size_type stride_sin,
-    ValueType *__restrict__ givens_cos, size_type stride_cos,
-    stopping_status *__restrict__ stop_status)
+    const ValueType* __restrict__ b, size_type stride_b,
+    ValueType* __restrict__ residual, size_type stride_residual,
+    ValueType* __restrict__ givens_sin, size_type stride_sin,
+    ValueType* __restrict__ givens_cos, size_type stride_cos,
+    stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
 
@@ -68,9 +68,9 @@ __global__ __launch_bounds__(block_size) void initialize_1_kernel(
 template <typename ValueType>
 __device__ void calculate_sin_and_cos_kernel(
     size_type col_idx, size_type num_cols, size_type iter,
-    const ValueType &this_hess, const ValueType &next_hess,
-    ValueType *givens_sin, size_type stride_sin, ValueType *givens_cos,
-    size_type stride_cos, ValueType &register_sin, ValueType &register_cos)
+    const ValueType& this_hess, const ValueType& next_hess,
+    ValueType* givens_sin, size_type stride_sin, ValueType* givens_cos,
+    size_type stride_cos, ValueType& register_sin, ValueType& register_cos)
 {
     if (this_hess == zero<ValueType>()) {
         register_cos = zero<ValueType>();
@@ -91,9 +91,9 @@ __device__ void calculate_sin_and_cos_kernel(
 template <typename ValueType>
 __device__ void calculate_residual_norm_kernel(
     size_type col_idx, size_type num_cols, size_type iter,
-    const ValueType &register_sin, const ValueType &register_cos,
-    remove_complex<ValueType> *residual_norm,
-    ValueType *residual_norm_collection,
+    const ValueType& register_sin, const ValueType& register_cos,
+    remove_complex<ValueType>* residual_norm,
+    ValueType* residual_norm_collection,
     size_type stride_residual_norm_collection)
 {
     const auto this_rnc =
@@ -112,13 +112,13 @@ __device__ void calculate_residual_norm_kernel(
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     size_type num_rows, size_type num_cols, size_type iter,
-    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    ValueType *__restrict__ givens_sin, size_type stride_sin,
-    ValueType *__restrict__ givens_cos, size_type stride_cos,
-    remove_complex<ValueType> *__restrict__ residual_norm,
-    ValueType *__restrict__ residual_norm_collection,
+    ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    ValueType* __restrict__ givens_sin, size_type stride_sin,
+    ValueType* __restrict__ givens_cos, size_type stride_cos,
+    remove_complex<ValueType>* __restrict__ residual_norm,
+    ValueType* __restrict__ residual_norm_collection,
     size_type stride_residual_norm_collection,
-    const stopping_status *__restrict__ stop_status)
+    const stopping_status* __restrict__ stop_status)
 {
     const auto col_idx = thread::get_thread_id_flat();
 
@@ -170,11 +170,11 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void solve_upper_triangular_kernel(
     size_type num_cols, size_type num_rhs,
-    const ValueType *__restrict__ residual_norm_collection,
+    const ValueType* __restrict__ residual_norm_collection,
     size_type stride_residual_norm_collection,
-    const ValueType *__restrict__ hessenberg, size_type stride_hessenberg,
-    ValueType *__restrict__ y, size_type stride_y,
-    const size_type *__restrict__ final_iter_nums)
+    const ValueType* __restrict__ hessenberg, size_type stride_hessenberg,
+    ValueType* __restrict__ y, size_type stride_y,
+    const size_type* __restrict__ final_iter_nums)
 {
     const auto col_idx = thread::get_thread_id_flat();
 

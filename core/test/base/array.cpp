@@ -57,7 +57,7 @@ protected:
         x.get_data()[1] = 2;
     }
 
-    static void assert_equal_to_original_x(gko::Array<T> &a,
+    static void assert_equal_to_original_x(gko::Array<T>& a,
                                            bool check_zero = true)
     {
         ASSERT_EQ(a.get_num_elems(), 2);
@@ -366,7 +366,7 @@ TYPED_TEST(Array, ViewCannotBeResized)
 template <typename T>
 class my_null_deleter {
 public:
-    using pointer = T *;
+    using pointer = T*;
 
     void operator()(pointer) const noexcept {}
 };

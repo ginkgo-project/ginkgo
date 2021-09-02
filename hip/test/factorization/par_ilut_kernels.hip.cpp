@@ -174,8 +174,8 @@ protected:
     }
 
     template <typename Mtx>
-    void test_select(const std::unique_ptr<Mtx> &mtx,
-                     const std::unique_ptr<Mtx> &dmtx, index_type rank,
+    void test_select(const std::unique_ptr<Mtx>& mtx,
+                     const std::unique_ptr<Mtx>& dmtx, index_type rank,
                      value_type tolerance = 0.0)
     {
         auto size = index_type(mtx->get_num_stored_elements());
@@ -199,8 +199,8 @@ protected:
     template <typename Mtx,
               typename Coo = gko::matrix::Coo<typename Mtx::value_type,
                                               typename Mtx::index_type>>
-    void test_filter(const std::unique_ptr<Mtx> &mtx,
-                     const std::unique_ptr<Mtx> &dmtx, value_type threshold,
+    void test_filter(const std::unique_ptr<Mtx>& mtx,
+                     const std::unique_ptr<Mtx>& dmtx, value_type threshold,
                      bool lower)
     {
         auto res = Mtx::create(ref, mtx_size);
@@ -228,8 +228,8 @@ protected:
     template <typename Mtx,
               typename Coo = gko::matrix::Coo<typename Mtx::value_type,
                                               typename Mtx::index_type>>
-    void test_filter_approx(const std::unique_ptr<Mtx> &mtx,
-                            const std::unique_ptr<Mtx> &dmtx, index_type rank,
+    void test_filter_approx(const std::unique_ptr<Mtx>& mtx,
+                            const std::unique_ptr<Mtx>& dmtx, index_type rank,
                             value_type tolerance = 0.0)
     {
         auto res = Mtx::create(ref, mtx_size);
@@ -335,7 +335,7 @@ TEST_F(ParIlut, KernelThresholdFilterNullptrCooIsEquivalentToRef)
 {
     auto res = Csr::create(ref, mtx_size);
     auto dres = Csr::create(hip, mtx_size);
-    Coo *null_coo = nullptr;
+    Coo* null_coo = nullptr;
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter(
         ref, mtx_l.get(), 0.5, res.get(), null_coo, true);
@@ -428,7 +428,7 @@ TEST_F(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
     test_filter(mtx_l, dmtx_l, 0.5, true);
     auto res = Csr::create(ref, mtx_size);
     auto dres = Csr::create(hip, mtx_size);
-    Coo *null_coo = nullptr;
+    Coo* null_coo = nullptr;
     gko::Array<value_type> tmp(ref);
     gko::Array<value_type> dtmp(hip);
     gko::remove_complex<value_type> threshold{};

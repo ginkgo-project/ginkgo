@@ -100,7 +100,7 @@ public:
      *
      * @return the aggregate group.
      */
-    IndexType *get_agg() noexcept { return agg_.get_data(); }
+    IndexType* get_agg() noexcept { return agg_.get_data(); }
 
     /**
      * @copydoc AmgxPgm::get_agg()
@@ -109,7 +109,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const IndexType *get_const_agg() const noexcept
+    const IndexType* get_const_agg() const noexcept
     {
         return agg_.get_const_data();
     }
@@ -156,13 +156,13 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const LinOp *b, LinOp *x) const override
+    void apply_impl(const LinOp* b, LinOp* x) const override
     {
         this->get_composition()->apply(b, x);
     }
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override
     {
         this->get_composition()->apply(alpha, b, beta, x);
     }
@@ -171,7 +171,7 @@ protected:
         : EnableLinOp<AmgxPgm>(std::move(exec))
     {}
 
-    explicit AmgxPgm(const Factory *factory,
+    explicit AmgxPgm(const Factory* factory,
                      std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<AmgxPgm>(factory->get_executor(),
                                system_matrix->get_size()),

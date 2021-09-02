@@ -83,12 +83,12 @@ inline curandGenerator_t rand_generator(int64 seed,
 
 #define GKO_BIND_CURAND_RANDOM_VECTOR(ValueType, CurandName)                 \
     inline void rand_vector(                                                 \
-        curandGenerator_t &gen, int n, remove_complex<ValueType> mean,       \
-        remove_complex<ValueType> stddev, ValueType *values)                 \
+        curandGenerator_t& gen, int n, remove_complex<ValueType> mean,       \
+        remove_complex<ValueType> stddev, ValueType* values)                 \
     {                                                                        \
         n = is_complex<ValueType>() ? 2 * n : n;                             \
         GKO_ASSERT_NO_CURAND_ERRORS(CurandName(                              \
-            gen, reinterpret_cast<remove_complex<ValueType> *>(values), n,   \
+            gen, reinterpret_cast<remove_complex<ValueType>*>(values), n,    \
             mean, stddev));                                                  \
     }                                                                        \
     static_assert(true,                                                      \

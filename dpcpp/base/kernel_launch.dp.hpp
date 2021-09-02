@@ -45,7 +45,7 @@ namespace dpcpp {
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void generic_kernel_1d(sycl::handler &cgh, size_type size, KernelFunction fn,
+void generic_kernel_1d(sycl::handler& cgh, size_type size, KernelFunction fn,
                        KernelArgs... args)
 {
     cgh.parallel_for(sycl::range<1>{size}, [=](sycl::id<1> idx_id) {
@@ -56,7 +56,7 @@ void generic_kernel_1d(sycl::handler &cgh, size_type size, KernelFunction fn,
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void generic_kernel_2d(sycl::handler &cgh, size_type rows, size_type cols,
+void generic_kernel_2d(sycl::handler& cgh, size_type rows, size_type cols,
                        KernelFunction fn, KernelArgs... args)
 {
     cgh.parallel_for(sycl::range<2>{rows, cols}, [=](sycl::id<2> idx) {
@@ -69,18 +69,18 @@ void generic_kernel_2d(sycl::handler &cgh, size_type rows, size_type cols,
 
 template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const DpcppExecutor> exec, KernelFunction fn,
-                size_type size, KernelArgs &&... args)
+                size_type size, KernelArgs&&... args)
 {
-    exec->get_queue()->submit([&](sycl::handler &cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         generic_kernel_1d(cgh, size, fn, map_to_device(args)...);
     });
 }
 
 template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const DpcppExecutor> exec, KernelFunction fn,
-                dim<2> size, KernelArgs &&... args)
+                dim<2> size, KernelArgs&&... args)
 {
-    exec->get_queue()->submit([&](sycl::handler &cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         generic_kernel_2d(cgh, size[0], size[1], fn, map_to_device(args)...);
     });
 }

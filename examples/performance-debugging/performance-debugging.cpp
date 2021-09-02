@@ -74,14 +74,14 @@ std::unique_ptr<vec<ValueType>> create_vector(
 
 // utilities for computing norms and residuals
 template <typename ValueType>
-ValueType get_first_element(const vec<ValueType> *norm)
+ValueType get_first_element(const vec<ValueType>* norm)
 {
     return norm->get_executor()->copy_val_to_host(norm->get_const_values());
 }
 
 
 template <typename ValueType>
-gko::remove_complex<ValueType> compute_norm(const vec<ValueType> *b)
+gko::remove_complex<ValueType> compute_norm(const vec<ValueType>* b)
 {
     auto exec = b->get_executor();
     auto b_norm = gko::initialize<real_vec<ValueType>>({0.0}, exec);
@@ -92,8 +92,8 @@ gko::remove_complex<ValueType> compute_norm(const vec<ValueType> *b)
 
 template <typename ValueType>
 gko::remove_complex<ValueType> compute_residual_norm(
-    const gko::LinOp *system_matrix, const vec<ValueType> *b,
-    const vec<ValueType> *x)
+    const gko::LinOp* system_matrix, const vec<ValueType>* b,
+    const vec<ValueType>* x)
 {
     auto exec = system_matrix->get_executor();
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
@@ -116,62 +116,62 @@ namespace loggers {
 // taken before and after. This can create significant overhead since to ensure
 // proper timings, calls to `synchronize` are required.
 struct OperationLogger : gko::log::Logger {
-    void on_allocation_started(const gko::Executor *exec,
-                               const gko::size_type &) const override
+    void on_allocation_started(const gko::Executor* exec,
+                               const gko::size_type&) const override
     {
         this->start_operation(exec, "allocate");
     }
 
-    void on_allocation_completed(const gko::Executor *exec,
-                                 const gko::size_type &,
-                                 const gko::uintptr &) const override
+    void on_allocation_completed(const gko::Executor* exec,
+                                 const gko::size_type&,
+                                 const gko::uintptr&) const override
     {
         this->end_operation(exec, "allocate");
     }
 
-    void on_free_started(const gko::Executor *exec,
-                         const gko::uintptr &) const override
+    void on_free_started(const gko::Executor* exec,
+                         const gko::uintptr&) const override
     {
         this->start_operation(exec, "free");
     }
 
-    void on_free_completed(const gko::Executor *exec,
-                           const gko::uintptr &) const override
+    void on_free_completed(const gko::Executor* exec,
+                           const gko::uintptr&) const override
     {
         this->end_operation(exec, "free");
     }
 
-    void on_copy_started(const gko::Executor *from, const gko::Executor *to,
-                         const gko::uintptr &, const gko::uintptr &,
-                         const gko::size_type &) const override
+    void on_copy_started(const gko::Executor* from, const gko::Executor* to,
+                         const gko::uintptr&, const gko::uintptr&,
+                         const gko::size_type&) const override
     {
         from->synchronize();
         this->start_operation(to, "copy");
     }
 
-    void on_copy_completed(const gko::Executor *from, const gko::Executor *to,
-                           const gko::uintptr &, const gko::uintptr &,
-                           const gko::size_type &) const override
+    void on_copy_completed(const gko::Executor* from, const gko::Executor* to,
+                           const gko::uintptr&, const gko::uintptr&,
+                           const gko::size_type&) const override
     {
         from->synchronize();
         this->end_operation(to, "copy");
     }
 
-    void on_operation_launched(const gko::Executor *exec,
-                               const gko::Operation *op) const override
+    void on_operation_launched(const gko::Executor* exec,
+                               const gko::Operation* op) const override
     {
         this->start_operation(exec, op->get_name());
     }
 
-    void on_operation_completed(const gko::Executor *exec,
-                                const gko::Operation *op) const override
+    void on_operation_completed(const gko::Executor* exec,
+                                const gko::Operation* op) const override
     {
         this->end_operation(exec, op->get_name());
     }
 
-    void write_data(std::ostream &ostream)
+    void write_data(std::ostream& ostream)
     {
-        for (const auto &entry : total) {
+        for (const auto& entry : total) {
             ostream << "\t" << entry.first.c_str() << ": "
                     << std::chrono::duration_cast<std::chrono::nanoseconds>(
                            entry.second)
@@ -186,8 +186,8 @@ struct OperationLogger : gko::log::Logger {
 
 private:
     // Helper which synchronizes and starts the time before every operation.
-    void start_operation(const gko::Executor *exec,
-                         const std::string &name) const
+    void start_operation(const gko::Executor* exec,
+                         const std::string& name) const
     {
         nested.emplace_back(0);
         exec->synchronize();
@@ -196,7 +196,7 @@ private:
 
     // Helper to compute the end time and store the operation's time at its
     // end. Also time nested operations.
-    void end_operation(const gko::Executor *exec, const std::string &name) const
+    void end_operation(const gko::Executor* exec, const std::string& name) const
     {
         exec->synchronize();
         const auto end = std::chrono::steady_clock::now();
@@ -220,25 +220,25 @@ private:
 // This logger tracks the persistently allocated data
 struct StorageLogger : gko::log::Logger {
     // Store amount of bytes allocated on every allocation
-    void on_allocation_completed(const gko::Executor *,
-                                 const gko::size_type &num_bytes,
-                                 const gko::uintptr &location) const override
+    void on_allocation_completed(const gko::Executor*,
+                                 const gko::size_type& num_bytes,
+                                 const gko::uintptr& location) const override
     {
         storage[location] = num_bytes;
     }
 
     // Reset the amount of bytes on every free
-    void on_free_completed(const gko::Executor *,
-                           const gko::uintptr &location) const override
+    void on_free_completed(const gko::Executor*,
+                           const gko::uintptr& location) const override
     {
         storage[location] = 0;
     }
 
     // Write the data after summing the total from all allocations
-    void write_data(std::ostream &ostream)
+    void write_data(std::ostream& ostream)
     {
         gko::size_type total{};
-        for (const auto &e : storage) {
+        for (const auto& e : storage) {
             total += e.second;
         }
         ostream << "Storage: " << total << std::endl;
@@ -259,10 +259,10 @@ struct ResidualLogger : gko::log::Logger {
     // Depending on the available information, store the norm or compute it from
     // the residual. If the true residual norm could not be computed, store the
     // value `-1.0`.
-    void on_iteration_complete(const gko::LinOp *, const gko::size_type &,
-                               const gko::LinOp *residual,
-                               const gko::LinOp *solution,
-                               const gko::LinOp *residual_norm) const override
+    void on_iteration_complete(const gko::LinOp*, const gko::size_type&,
+                               const gko::LinOp* residual,
+                               const gko::LinOp* solution,
+                               const gko::LinOp* residual_norm) const override
     {
         if (residual_norm) {
             rec_res_norms.push_back(utils::get_first_element(
@@ -280,32 +280,32 @@ struct ResidualLogger : gko::log::Logger {
     }
 
     ResidualLogger(std::shared_ptr<const gko::Executor> exec,
-                   const gko::LinOp *matrix, const vec<ValueType> *b)
+                   const gko::LinOp* matrix, const vec<ValueType>* b)
         : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask),
           matrix{matrix},
           b{b}
     {}
 
-    void write_data(std::ostream &ostream)
+    void write_data(std::ostream& ostream)
     {
         ostream << "Recurrent Residual Norms: " << std::endl;
         ostream << "[" << std::endl;
-        for (const auto &entry : rec_res_norms) {
+        for (const auto& entry : rec_res_norms) {
             ostream << "\t" << entry << std::endl;
         }
         ostream << "];" << std::endl;
 
         ostream << "True Residual Norms: " << std::endl;
         ostream << "[" << std::endl;
-        for (const auto &entry : true_res_norms) {
+        for (const auto& entry : true_res_norms) {
             ostream << "\t" << entry << std::endl;
         }
         ostream << "];" << std::endl;
     }
 
 private:
-    const gko::LinOp *matrix;
-    const vec<ValueType> *b;
+    const gko::LinOp* matrix;
+    const vec<ValueType>* b;
     mutable std::vector<gko::remove_complex<ValueType>> rec_res_norms;
     mutable std::vector<gko::remove_complex<ValueType>> true_res_norms;
 };
@@ -318,7 +318,7 @@ namespace {
 
 
 // Print usage help
-void print_usage(const char *filename)
+void print_usage(const char* filename)
 {
     std::cerr << "Usage: " << filename << " [executor] [matrix file]"
               << std::endl;
@@ -330,7 +330,7 @@ void print_usage(const char *filename)
 
 
 template <typename ValueType>
-void print_vector(const gko::matrix::Dense<ValueType> *vec)
+void print_vector(const gko::matrix::Dense<ValueType>* vec)
 {
     auto elements_to_print = std::min(gko::size_type(10), vec->get_size()[0]);
     std::cout << "[" << std::endl;
@@ -344,7 +344,7 @@ void print_vector(const gko::matrix::Dense<ValueType> *vec)
 }  // namespace
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Parametrize the benchmark here
     // Pick a value type

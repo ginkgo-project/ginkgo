@@ -63,10 +63,10 @@ public:
     {}
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 };
 
@@ -269,9 +269,9 @@ TYPED_TEST(Ilu, LUFactorFunctionsSetProperly)
     auto factors = this->ilu_factory_skip->generate(this->mtx_small);
 
     auto lin_op_l_factor =
-        static_cast<const gko::LinOp *>(gko::lend(factors->get_l_factor()));
+        static_cast<const gko::LinOp*>(gko::lend(factors->get_l_factor()));
     auto lin_op_u_factor =
-        static_cast<const gko::LinOp *>(gko::lend(factors->get_u_factor()));
+        static_cast<const gko::LinOp*>(gko::lend(factors->get_u_factor()));
     auto first_operator = gko::lend(factors->get_operators()[0]);
     auto second_operator = gko::lend(factors->get_operators()[1]);
 

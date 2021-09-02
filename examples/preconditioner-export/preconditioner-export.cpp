@@ -61,7 +61,7 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
                }}};
 
 
-void output(const gko::WritableToMatrixData<double, int> *mtx, std::string name)
+void output(const gko::WritableToMatrixData<double, int>* mtx, std::string name)
 {
     std::ofstream stream{name};
     std::cerr << "Writing " << name << std::endl;
@@ -75,7 +75,7 @@ auto try_generate(Function fun) -> decltype(fun())
     decltype(fun()) result;
     try {
         result = fun();
-    } catch (const gko::Error &err) {
+    } catch (const gko::Error& err) {
         std::cerr << "Error: " << err.what() << '\n';
         std::exit(-1);
     }
@@ -83,7 +83,7 @@ auto try_generate(Function fun) -> decltype(fun())
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // print usage message
     if (argc < 2 || executors.find(argv[1]) == executors.end()) {

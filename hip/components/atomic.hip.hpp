@@ -55,12 +55,12 @@ namespace hip {
  * @note It is not 'real' complex<float> atomic add operation
  */
 __forceinline__ __device__ thrust::complex<float> atomic_add(
-    thrust::complex<float> *__restrict__ address, thrust::complex<float> val)
+    thrust::complex<float>* __restrict__ address, thrust::complex<float> val)
 {
-    hipComplex *addr = reinterpret_cast<hipComplex *>(address);
+    hipComplex* addr = reinterpret_cast<hipComplex*>(address);
     // Separate to real part and imag part
-    auto real = atomic_add(static_cast<float *>(&(addr->x)), val.real());
-    auto imag = atomic_add(static_cast<float *>(&(addr->y)), val.imag());
+    auto real = atomic_add(static_cast<float*>(&(addr->x)), val.real());
+    auto imag = atomic_add(static_cast<float*>(&(addr->y)), val.imag());
     return {real, imag};
 }
 
@@ -71,12 +71,12 @@ __forceinline__ __device__ thrust::complex<float> atomic_add(
  * @note It is not 'real' complex<double> atomic add operation
  */
 __forceinline__ __device__ thrust::complex<double> atomic_add(
-    thrust::complex<double> *__restrict__ address, thrust::complex<double> val)
+    thrust::complex<double>* __restrict__ address, thrust::complex<double> val)
 {
-    hipDoubleComplex *addr = reinterpret_cast<hipDoubleComplex *>(address);
+    hipDoubleComplex* addr = reinterpret_cast<hipDoubleComplex*>(address);
     // Separate to real part and imag part
-    auto real = atomic_add(static_cast<double *>(&(addr->x)), val.real());
-    auto imag = atomic_add(static_cast<double *>(&(addr->y)), val.imag());
+    auto real = atomic_add(static_cast<double*>(&(addr->x)), val.real());
+    auto imag = atomic_add(static_cast<double*>(&(addr->y)), val.imag());
     return {real, imag};
 }
 

@@ -51,16 +51,16 @@ namespace cgs {
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const ReferenceExecutor> exec,
-                const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
-                matrix::Dense<ValueType> *r_tld, matrix::Dense<ValueType> *p,
-                matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *u,
-                matrix::Dense<ValueType> *u_hat,
-                matrix::Dense<ValueType> *v_hat, matrix::Dense<ValueType> *t,
-                matrix::Dense<ValueType> *alpha, matrix::Dense<ValueType> *beta,
-                matrix::Dense<ValueType> *gamma,
-                matrix::Dense<ValueType> *rho_prev,
-                matrix::Dense<ValueType> *rho,
-                Array<stopping_status> *stop_status)
+                const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* r,
+                matrix::Dense<ValueType>* r_tld, matrix::Dense<ValueType>* p,
+                matrix::Dense<ValueType>* q, matrix::Dense<ValueType>* u,
+                matrix::Dense<ValueType>* u_hat,
+                matrix::Dense<ValueType>* v_hat, matrix::Dense<ValueType>* t,
+                matrix::Dense<ValueType>* alpha, matrix::Dense<ValueType>* beta,
+                matrix::Dense<ValueType>* gamma,
+                matrix::Dense<ValueType>* rho_prev,
+                matrix::Dense<ValueType>* rho,
+                Array<stopping_status>* stop_status)
 {
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         rho->at(j) = zero<ValueType>();
@@ -85,11 +85,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec,
-            const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *u,
-            matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *q,
-            matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *rho_prev,
-            const Array<stopping_status> *stop_status)
+            const matrix::Dense<ValueType>* r, matrix::Dense<ValueType>* u,
+            matrix::Dense<ValueType>* p, const matrix::Dense<ValueType>* q,
+            matrix::Dense<ValueType>* beta, const matrix::Dense<ValueType>* rho,
+            const matrix::Dense<ValueType>* rho_prev,
+            const Array<stopping_status>* stop_status)
 {
     for (size_type j = 0; j < p->get_size()[1]; ++j) {
         if (stop_status->get_const_data()[j].has_stopped()) {
@@ -117,12 +117,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const ReferenceExecutor> exec,
-            const matrix::Dense<ValueType> *u,
-            const matrix::Dense<ValueType> *v_hat, matrix::Dense<ValueType> *q,
-            matrix::Dense<ValueType> *t, matrix::Dense<ValueType> *alpha,
-            const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *gamma,
-            const Array<stopping_status> *stop_status)
+            const matrix::Dense<ValueType>* u,
+            const matrix::Dense<ValueType>* v_hat, matrix::Dense<ValueType>* q,
+            matrix::Dense<ValueType>* t, matrix::Dense<ValueType>* alpha,
+            const matrix::Dense<ValueType>* rho,
+            const matrix::Dense<ValueType>* gamma,
+            const Array<stopping_status>* stop_status)
 {
     for (size_type j = 0; j < u->get_size()[1]; ++j) {
         if (stop_status->get_const_data()[j].has_stopped()) {
@@ -148,10 +148,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_2_KERNEL);
 
 template <typename ValueType>
 void step_3(std::shared_ptr<const ReferenceExecutor> exec,
-            const matrix::Dense<ValueType> *t,
-            const matrix::Dense<ValueType> *u_hat, matrix::Dense<ValueType> *r,
-            matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *alpha,
-            const Array<stopping_status> *stop_status)
+            const matrix::Dense<ValueType>* t,
+            const matrix::Dense<ValueType>* u_hat, matrix::Dense<ValueType>* r,
+            matrix::Dense<ValueType>* x, const matrix::Dense<ValueType>* alpha,
+            const Array<stopping_status>* stop_status)
 {
     for (size_type i = 0; i < x->get_size()[0]; ++i) {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {

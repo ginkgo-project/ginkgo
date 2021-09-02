@@ -155,8 +155,8 @@ protected:
 };
 
 
-__global__ void test_merge_step(const gko::int32 *a, const gko::int32 *b,
-                                gko::int32 *c)
+__global__ void test_merge_step(const gko::int32* a, const gko::int32* b,
+                                gko::int32* c)
 {
     auto warp = tiled_partition<config::warp_size>(this_thread_block());
     auto i = warp.thread_rank();
@@ -178,8 +178,8 @@ TEST_F(Merging, MergeStep)
 }
 
 
-__global__ void test_merge(const gko::int32 *a, const gko::int32 *b, int size,
-                           gko::int32 *c)
+__global__ void test_merge(const gko::int32* a, const gko::int32* b, int size,
+                           gko::int32* c)
 {
     auto warp = tiled_partition<config::warp_size>(this_thread_block());
     group_merge<config::warp_size>(a, size, b, size, warp,
@@ -208,8 +208,8 @@ TEST_F(Merging, FullMerge)
 }
 
 
-__global__ void test_sequential_merge(const gko::int32 *a, const gko::int32 *b,
-                                      int size, gko::int32 *c)
+__global__ void test_sequential_merge(const gko::int32* a, const gko::int32* b,
+                                      int size, gko::int32* c)
 {
     sequential_merge(
         a, size, b, size,
@@ -235,11 +235,11 @@ TEST_F(Merging, SequentialFullMerge)
 }
 
 
-__global__ void test_merge_idxs(const gko::int32 *a, const gko::int32 *b,
-                                int size, gko::int32 *c, gko::int32 *aidxs,
-                                gko::int32 *bidxs, gko::int32 *cidxs,
-                                gko::int32 *refaidxs, gko::int32 *refbidxs,
-                                gko::int32 *refcidxs)
+__global__ void test_merge_idxs(const gko::int32* a, const gko::int32* b,
+                                int size, gko::int32* c, gko::int32* aidxs,
+                                gko::int32* bidxs, gko::int32* cidxs,
+                                gko::int32* refaidxs, gko::int32* refbidxs,
+                                gko::int32* refcidxs)
 {
     if (threadIdx.x == 0) {
         sequential_merge(a, size, b, size,

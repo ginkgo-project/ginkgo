@@ -71,7 +71,7 @@ protected:
         hip = gko::HipExecutor::create(0, ref);
     }
 
-    std::unique_ptr<Csr> clone_allocations(const Csr *csr_mtx)
+    std::unique_ptr<Csr> clone_allocations(const Csr* csr_mtx)
     {
         if (csr_mtx->get_executor() != ref) {
             return {nullptr};
@@ -117,7 +117,7 @@ protected:
         d_inverse = gko::clone(hip, inverse);
     }
 
-    void ensure_diagonal(Dense *mtx)
+    void ensure_diagonal(Dense* mtx)
     {
         for (int i = 0; i < mtx->get_size()[0]; ++i) {
             mtx->at(i, i) = gko::one<Dense::value_type>();

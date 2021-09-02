@@ -59,7 +59,7 @@ constexpr int num_local = 4;
 constexpr auto num_threads = num_elements / num_local;
 
 
-__global__ void test_sort_shared(gko::int32 *data)
+__global__ void test_sort_shared(gko::int32* data)
 {
     gko::int32 local[num_local];
     __shared__ gko::int32 sh_local[num_elements];
@@ -73,14 +73,14 @@ __global__ void test_sort_shared(gko::int32 *data)
 }
 
 
-__global__ void test_sort_warp(gko::int32 *data)
+__global__ void test_sort_warp(gko::int32* data)
 {
     gko::int32 local[num_local];
     for (int i = 0; i < num_local; ++i) {
         local[i] = data[threadIdx.x * num_local + i];
     }
     bitonic_sort<config::warp_size * num_local, num_local>(
-        local, static_cast<gko::int32 *>(nullptr));
+        local, static_cast<gko::int32*>(nullptr));
     for (int i = 0; i < num_local; ++i) {
         data[threadIdx.x * num_local + i] = local[i];
     }

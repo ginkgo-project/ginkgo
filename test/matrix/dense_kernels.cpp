@@ -158,7 +158,7 @@ protected:
         std::shuffle(tmp2.begin(), tmp2.end(), rng);
         std::vector<int> tmp3(x->get_size()[0] / 10);
         std::uniform_int_distribution<int> row_dist(0, x->get_size()[0] - 1);
-        for (auto &i : tmp3) {
+        for (auto& i : tmp3) {
             i = row_dist(rng);
         }
         rpermute_idxs =
@@ -170,7 +170,7 @@ protected:
     }
 
     template <typename ConvertedType, typename InputType>
-    std::unique_ptr<ConvertedType> convert(InputType &&input)
+    std::unique_ptr<ConvertedType> convert(InputType&& input)
     {
         auto result = ConvertedType::create(input->get_executor());
         input->convert_to(result.get());
@@ -728,8 +728,8 @@ TEST_F(Dense, IsPermutable)
     auto permuted = square->permute(rpermute_idxs.get());
     auto dpermuted = dsquare->permute(rpermute_idxs.get());
 
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(permuted.get()),
-                        static_cast<Mtx *>(dpermuted.get()), 0);
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(permuted.get()),
+                        static_cast<Mtx*>(dpermuted.get()), 0);
 }
 
 
@@ -755,8 +755,8 @@ TEST_F(Dense, IsInversePermutable)
     auto permuted = square->inverse_permute(rpermute_idxs.get());
     auto dpermuted = dsquare->inverse_permute(rpermute_idxs.get());
 
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(permuted.get()),
-                        static_cast<Mtx *>(dpermuted.get()), 0);
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(permuted.get()),
+                        static_cast<Mtx*>(dpermuted.get()), 0);
 }
 
 
@@ -782,8 +782,8 @@ TEST_F(Dense, IsRowPermutable)
     auto r_permute = x->row_permute(rpermute_idxs.get());
     auto dr_permute = dx->row_permute(rpermute_idxs.get());
 
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(r_permute.get()),
-                        static_cast<Mtx *>(dr_permute.get()), 0);
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(r_permute.get()),
+                        static_cast<Mtx*>(dr_permute.get()), 0);
 }
 
 
@@ -808,8 +808,8 @@ TEST_F(Dense, IsColPermutable)
     auto c_permute = x->column_permute(cpermute_idxs.get());
     auto dc_permute = dx->column_permute(cpermute_idxs.get());
 
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(c_permute.get()),
-                        static_cast<Mtx *>(dc_permute.get()), 0);
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(c_permute.get()),
+                        static_cast<Mtx*>(dc_permute.get()), 0);
 }
 
 
@@ -834,8 +834,8 @@ TEST_F(Dense, IsInverseRowPermutable)
     auto inverse_r_permute = x->inverse_row_permute(rpermute_idxs.get());
     auto d_inverse_r_permute = dx->inverse_row_permute(rpermute_idxs.get());
 
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(inverse_r_permute.get()),
-                        static_cast<Mtx *>(d_inverse_r_permute.get()), 0);
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(inverse_r_permute.get()),
+                        static_cast<Mtx*>(d_inverse_r_permute.get()), 0);
 }
 
 
@@ -860,8 +860,8 @@ TEST_F(Dense, IsInverseColPermutable)
     auto inverse_c_permute = x->inverse_column_permute(cpermute_idxs.get());
     auto d_inverse_c_permute = dx->inverse_column_permute(cpermute_idxs.get());
 
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(inverse_c_permute.get()),
-                        static_cast<Mtx *>(d_inverse_c_permute.get()), 0);
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(inverse_c_permute.get()),
+                        static_cast<Mtx*>(d_inverse_c_permute.get()), 0);
 }
 
 

@@ -125,10 +125,10 @@ public:
 protected:
     void init_trs_solve_struct();
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
     /**
      * Generates the analysis structure from the system matrix and the right
@@ -140,7 +140,7 @@ protected:
         : EnableLinOp<UpperTrs>(std::move(exec))
     {}
 
-    explicit UpperTrs(const Factory *factory,
+    explicit UpperTrs(const Factory* factory,
                       std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<UpperTrs>(factory->get_executor(),
                                 gko::transpose(system_matrix->get_size())),

@@ -70,8 +70,8 @@ namespace csr {
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
-          const matrix::Csr<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+          const matrix::Csr<ValueType, IndexType>* a,
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
@@ -97,11 +97,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Csr<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::Csr<ValueType, IndexType>* a,
+                   const matrix::Dense<ValueType>* b,
+                   const matrix::Dense<ValueType>* beta,
+                   matrix::Dense<ValueType>* c)
 {
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
@@ -129,8 +129,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void spgemm_insert_row(unordered_set<IndexType> &cols,
-                       const matrix::Csr<ValueType, IndexType> *c,
+void spgemm_insert_row(unordered_set<IndexType>& cols,
+                       const matrix::Csr<ValueType, IndexType>* c,
                        size_type row)
 {
     auto row_ptrs = c->get_const_row_ptrs();
@@ -140,9 +140,9 @@ void spgemm_insert_row(unordered_set<IndexType> &cols,
 
 
 template <typename ValueType, typename IndexType>
-void spgemm_insert_row2(unordered_set<IndexType> &cols,
-                        const matrix::Csr<ValueType, IndexType> *a,
-                        const matrix::Csr<ValueType, IndexType> *b,
+void spgemm_insert_row2(unordered_set<IndexType>& cols,
+                        const matrix::Csr<ValueType, IndexType>* a,
+                        const matrix::Csr<ValueType, IndexType>* b,
                         size_type row)
 {
     auto a_row_ptrs = a->get_const_row_ptrs();
@@ -160,8 +160,8 @@ void spgemm_insert_row2(unordered_set<IndexType> &cols,
 
 
 template <typename ValueType, typename IndexType>
-void spgemm_accumulate_row(map<IndexType, ValueType> &cols,
-                           const matrix::Csr<ValueType, IndexType> *c,
+void spgemm_accumulate_row(map<IndexType, ValueType>& cols,
+                           const matrix::Csr<ValueType, IndexType>* c,
                            ValueType scale, size_type row)
 {
     auto row_ptrs = c->get_const_row_ptrs();
@@ -177,9 +177,9 @@ void spgemm_accumulate_row(map<IndexType, ValueType> &cols,
 
 
 template <typename ValueType, typename IndexType>
-void spgemm_accumulate_row2(map<IndexType, ValueType> &cols,
-                            const matrix::Csr<ValueType, IndexType> *a,
-                            const matrix::Csr<ValueType, IndexType> *b,
+void spgemm_accumulate_row2(map<IndexType, ValueType>& cols,
+                            const matrix::Csr<ValueType, IndexType>* a,
+                            const matrix::Csr<ValueType, IndexType>* b,
                             ValueType scale, size_type row)
 {
     auto a_row_ptrs = a->get_const_row_ptrs();
@@ -205,9 +205,9 @@ void spgemm_accumulate_row2(map<IndexType, ValueType> &cols,
 
 template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
-            const matrix::Csr<ValueType, IndexType> *a,
-            const matrix::Csr<ValueType, IndexType> *b,
-            matrix::Csr<ValueType, IndexType> *c)
+            const matrix::Csr<ValueType, IndexType>* a,
+            const matrix::Csr<ValueType, IndexType>* b,
+            matrix::Csr<ValueType, IndexType>* c)
 {
     auto num_rows = a->get_size()[0];
 
@@ -227,8 +227,8 @@ void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];
     matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto &c_col_idxs_array = c_builder.get_col_idx_array();
-    auto &c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder.get_col_idx_array();
+    auto& c_vals_array = c_builder.get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();
@@ -253,12 +253,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spgemm(std::shared_ptr<const ReferenceExecutor> exec,
-                     const matrix::Dense<ValueType> *alpha,
-                     const matrix::Csr<ValueType, IndexType> *a,
-                     const matrix::Csr<ValueType, IndexType> *b,
-                     const matrix::Dense<ValueType> *beta,
-                     const matrix::Csr<ValueType, IndexType> *d,
-                     matrix::Csr<ValueType, IndexType> *c)
+                     const matrix::Dense<ValueType>* alpha,
+                     const matrix::Csr<ValueType, IndexType>* a,
+                     const matrix::Csr<ValueType, IndexType>* b,
+                     const matrix::Dense<ValueType>* beta,
+                     const matrix::Csr<ValueType, IndexType>* d,
+                     matrix::Csr<ValueType, IndexType>* c)
 {
     auto num_rows = a->get_size()[0];
     auto valpha = alpha->at(0, 0);
@@ -281,8 +281,8 @@ void advanced_spgemm(std::shared_ptr<const ReferenceExecutor> exec,
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];
     matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto &c_col_idxs_array = c_builder.get_col_idx_array();
-    auto &c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder.get_col_idx_array();
+    auto& c_vals_array = c_builder.get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();
@@ -309,11 +309,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void spgeam(std::shared_ptr<const ReferenceExecutor> exec,
-            const matrix::Dense<ValueType> *alpha,
-            const matrix::Csr<ValueType, IndexType> *a,
-            const matrix::Dense<ValueType> *beta,
-            const matrix::Csr<ValueType, IndexType> *b,
-            matrix::Csr<ValueType, IndexType> *c)
+            const matrix::Dense<ValueType>* alpha,
+            const matrix::Csr<ValueType, IndexType>* a,
+            const matrix::Dense<ValueType>* beta,
+            const matrix::Csr<ValueType, IndexType>* b,
+            matrix::Csr<ValueType, IndexType>* c)
 {
     auto num_rows = a->get_size()[0];
     auto valpha = alpha->at(0, 0);
@@ -324,7 +324,7 @@ void spgeam(std::shared_ptr<const ReferenceExecutor> exec,
 
     abstract_spgeam(
         a, b, [](IndexType) { return IndexType{}; },
-        [](IndexType, IndexType, ValueType, ValueType, IndexType &nnz) {
+        [](IndexType, IndexType, ValueType, ValueType, IndexType& nnz) {
             ++nnz;
         },
         [&](IndexType row, IndexType nnz) { c_row_ptrs[row] = nnz; });
@@ -335,8 +335,8 @@ void spgeam(std::shared_ptr<const ReferenceExecutor> exec,
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];
     matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto &c_col_idxs_array = c_builder.get_col_idx_array();
-    auto &c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder.get_col_idx_array();
+    auto& c_vals_array = c_builder.get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();
@@ -345,7 +345,7 @@ void spgeam(std::shared_ptr<const ReferenceExecutor> exec,
     abstract_spgeam(
         a, b, [&](IndexType row) { return c_row_ptrs[row]; },
         [&](IndexType, IndexType col, ValueType a_val, ValueType b_val,
-            IndexType &nz) {
+            IndexType& nz) {
             c_vals[nz] = valpha * a_val + vbeta * b_val;
             c_col_idxs[nz] = col;
             ++nz;
@@ -358,8 +358,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const ReferenceExecutor> exec,
-                              const IndexType *ptrs, size_type num_rows,
-                              IndexType *idxs)
+                              const IndexType* ptrs, size_type num_rows,
+                              IndexType* idxs)
 {
     convert_ptrs_to_idxs(ptrs, num_rows, idxs);
 }
@@ -367,8 +367,8 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const ReferenceExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *source,
-                    matrix::Coo<ValueType, IndexType> *result)
+                    const matrix::Csr<ValueType, IndexType>* source,
+                    matrix::Coo<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
 
@@ -383,8 +383,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result)
+                      const matrix::Csr<ValueType, IndexType>* source,
+                      matrix::Dense<ValueType>* result)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
@@ -409,8 +409,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *source,
-                      matrix::Sellp<ValueType, IndexType> *result)
+                      const matrix::Csr<ValueType, IndexType>* source,
+                      matrix::Sellp<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -484,8 +484,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void calculate_total_cols(std::shared_ptr<const ReferenceExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType> *source,
-                          size_type *result, size_type stride_factor,
+                          const matrix::Csr<ValueType, IndexType>* source,
+                          size_type* result, size_type stride_factor,
                           size_type slice_size)
 {
     size_type total_cols = 0;
@@ -516,8 +516,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *source,
-                    matrix::Ell<ValueType, IndexType> *result)
+                    const matrix::Csr<ValueType, IndexType>* source,
+                    matrix::Ell<ValueType, IndexType>* result)
 {
     const auto num_rows = source->get_size()[0];
     const auto num_cols = source->get_size()[1];
@@ -546,10 +546,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType, typename UnaryOperator>
-inline void convert_csr_to_csc(size_type num_rows, const IndexType *row_ptrs,
-                               const IndexType *col_idxs,
-                               const ValueType *csr_vals, IndexType *row_idxs,
-                               IndexType *col_ptrs, ValueType *csc_vals,
+inline void convert_csr_to_csc(size_type num_rows, const IndexType* row_ptrs,
+                               const IndexType* col_idxs,
+                               const ValueType* csr_vals, IndexType* row_idxs,
+                               IndexType* col_ptrs, ValueType* csc_vals,
                                UnaryOperator op)
 {
     for (size_type row = 0; row < num_rows; ++row) {
@@ -564,8 +564,8 @@ inline void convert_csr_to_csc(size_type num_rows, const IndexType *row_ptrs,
 
 template <typename ValueType, typename IndexType, typename UnaryOperator>
 void transpose_and_transform(std::shared_ptr<const ReferenceExecutor> exec,
-                             matrix::Csr<ValueType, IndexType> *trans,
-                             const matrix::Csr<ValueType, IndexType> *orig,
+                             matrix::Csr<ValueType, IndexType>* trans,
+                             const matrix::Csr<ValueType, IndexType>* orig,
                              UnaryOperator op)
 {
     auto trans_row_ptrs = trans->get_row_ptrs();
@@ -590,8 +590,8 @@ void transpose_and_transform(std::shared_ptr<const ReferenceExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const ReferenceExecutor> exec,
-               const matrix::Csr<ValueType, IndexType> *orig,
-               matrix::Csr<ValueType, IndexType> *trans)
+               const matrix::Csr<ValueType, IndexType>* orig,
+               matrix::Csr<ValueType, IndexType>* trans)
 {
     transpose_and_transform(exec, trans, orig,
                             [](const ValueType x) { return x; });
@@ -602,8 +602,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType> *orig,
-                    matrix::Csr<ValueType, IndexType> *trans)
+                    const matrix::Csr<ValueType, IndexType>* orig,
+                    matrix::Csr<ValueType, IndexType>* trans)
 {
     transpose_and_transform(exec, trans, orig,
                             [](const ValueType x) { return conj(x); });
@@ -615,8 +615,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void calculate_max_nnz_per_row(std::shared_ptr<const ReferenceExecutor> exec,
-                               const matrix::Csr<ValueType, IndexType> *source,
-                               size_type *result)
+                               const matrix::Csr<ValueType, IndexType>* source,
+                               size_type* result)
 {
     const auto num_rows = source->get_size()[0];
     const auto row_ptrs = source->get_const_row_ptrs();
@@ -635,8 +635,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType> *source,
-                       matrix::Hybrid<ValueType, IndexType> *result)
+                       const matrix::Csr<ValueType, IndexType>* source,
+                       matrix::Hybrid<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -691,8 +691,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename IndexType>
 void invert_permutation(std::shared_ptr<const DefaultExecutor> exec,
-                        size_type size, const IndexType *permutation_indices,
-                        IndexType *inv_permutation)
+                        size_type size, const IndexType* permutation_indices,
+                        IndexType* inv_permutation)
 {
     for (IndexType i = 0; i < static_cast<IndexType>(size); ++i) {
         inv_permutation[permutation_indices[i]] = i;
@@ -704,9 +704,9 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVERT_PERMUTATION_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void inv_symm_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                      const IndexType *perm,
-                      const matrix::Csr<ValueType, IndexType> *orig,
-                      matrix::Csr<ValueType, IndexType> *permuted)
+                      const IndexType* perm,
+                      const matrix::Csr<ValueType, IndexType>* orig,
+                      matrix::Csr<ValueType, IndexType>* permuted)
 {
     auto in_row_ptrs = orig->get_const_row_ptrs();
     auto in_col_idxs = orig->get_const_col_idxs();
@@ -741,9 +741,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void row_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                 const IndexType *perm,
-                 const matrix::Csr<ValueType, IndexType> *orig,
-                 matrix::Csr<ValueType, IndexType> *row_permuted)
+                 const IndexType* perm,
+                 const matrix::Csr<ValueType, IndexType>* orig,
+                 matrix::Csr<ValueType, IndexType>* row_permuted)
 {
     auto in_row_ptrs = orig->get_const_row_ptrs();
     auto in_col_idxs = orig->get_const_col_idxs();
@@ -776,9 +776,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                         const IndexType *perm,
-                         const matrix::Csr<ValueType, IndexType> *orig,
-                         matrix::Csr<ValueType, IndexType> *row_permuted)
+                         const IndexType* perm,
+                         const matrix::Csr<ValueType, IndexType>* orig,
+                         matrix::Csr<ValueType, IndexType>* row_permuted)
 {
     auto in_row_ptrs = orig->get_const_row_ptrs();
     auto in_col_idxs = orig->get_const_col_idxs();
@@ -811,9 +811,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_column_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                            const IndexType *perm,
-                            const matrix::Csr<ValueType, IndexType> *orig,
-                            matrix::Csr<ValueType, IndexType> *column_permuted)
+                            const IndexType* perm,
+                            const matrix::Csr<ValueType, IndexType>* orig,
+                            matrix::Csr<ValueType, IndexType>* column_permuted)
 {
     auto in_row_ptrs = orig->get_const_row_ptrs();
     auto in_col_idxs = orig->get_const_col_idxs();
@@ -841,8 +841,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
-                                const matrix::Csr<ValueType, IndexType> *source,
-                                Array<size_type> *result)
+                                const matrix::Csr<ValueType, IndexType>* source,
+                                Array<size_type>* result)
 {
     const auto row_ptrs = source->get_const_row_ptrs();
     auto row_nnz_val = result->get_data();
@@ -857,7 +857,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const ReferenceExecutor> exec,
-                          matrix::Csr<ValueType, IndexType> *to_sort)
+                          matrix::Csr<ValueType, IndexType>* to_sort)
 {
     auto values = to_sort->get_values();
     auto row_ptrs = to_sort->get_row_ptrs();
@@ -879,7 +879,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *to_check, bool *is_sorted)
+    const matrix::Csr<ValueType, IndexType>* to_check, bool* is_sorted)
 {
     const auto row_ptrs = to_check->get_const_row_ptrs();
     const auto col_idxs = to_check->get_const_col_idxs();
@@ -902,8 +902,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
+                      const matrix::Csr<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag)
 {
     const auto row_ptrs = orig->get_const_row_ptrs();
     const auto col_idxs = orig->get_const_col_idxs();

@@ -36,7 +36,7 @@ namespace kernel {
 template <size_type block_size, typename OutType, typename CallableGetValue,
           typename CallableReduce>
 __device__ void compute_partial_reduce(size_type num_rows,
-                                       OutType *__restrict__ work,
+                                       OutType* __restrict__ work,
                                        CallableGetValue get_value,
                                        CallableReduce reduce_op)
 {
@@ -54,7 +54,7 @@ __device__ void compute_partial_reduce(size_type num_rows,
     __shared__ UninitializedArray<OutType, block_size> tmp_work;
     tmp_work[local_id] = tmp;
 
-    reduce(group::this_thread_block(), static_cast<OutType *>(tmp_work),
+    reduce(group::this_thread_block(), static_cast<OutType*>(tmp_work),
            reduce_op);
 
     if (local_id == 0) {
@@ -66,8 +66,8 @@ __device__ void compute_partial_reduce(size_type num_rows,
 template <size_type block_size, typename ValueType, typename CallableReduce,
           typename CallableFinalize>
 __device__ void finalize_reduce_computation(size_type size,
-                                            const ValueType *work,
-                                            ValueType *result,
+                                            const ValueType* work,
+                                            ValueType* result,
                                             CallableReduce reduce_op,
                                             CallableFinalize finalize_op)
 {
@@ -80,7 +80,7 @@ __device__ void finalize_reduce_computation(size_type size,
     __shared__ UninitializedArray<ValueType, block_size> tmp_work;
     tmp_work[local_id] = tmp;
 
-    reduce(group::this_thread_block(), static_cast<ValueType *>(tmp_work),
+    reduce(group::this_thread_block(), static_cast<ValueType*>(tmp_work),
            reduce_op);
 
     if (local_id == 0) {
@@ -91,75 +91,75 @@ __device__ void finalize_reduce_computation(size_type size,
 
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void compute_partial_dot(
-    size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
-    const ValueType *__restrict__ y, size_type stride_y,
-    ValueType *__restrict__ work)
+    size_type num_rows, const ValueType* __restrict__ x, size_type stride_x,
+    const ValueType* __restrict__ y, size_type stride_y,
+    ValueType* __restrict__ work)
 {
     compute_partial_reduce<block_size>(
         num_rows, work,
         [x, stride_x, y, stride_y](size_type i) {
             return x[i * stride_x] * y[i * stride_y];
         },
-        [](const ValueType &x, const ValueType &y) { return x + y; });
+        [](const ValueType& x, const ValueType& y) { return x + y; });
 }
 
 
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void compute_partial_conj_dot(
-    size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
-    const ValueType *__restrict__ y, size_type stride_y,
-    ValueType *__restrict__ work)
+    size_type num_rows, const ValueType* __restrict__ x, size_type stride_x,
+    const ValueType* __restrict__ y, size_type stride_y,
+    ValueType* __restrict__ work)
 {
     compute_partial_reduce<block_size>(
         num_rows, work,
         [x, stride_x, y, stride_y](size_type i) {
             return conj(x[i * stride_x]) * y[i * stride_y];
         },
-        [](const ValueType &x, const ValueType &y) { return x + y; });
+        [](const ValueType& x, const ValueType& y) { return x + y; });
 }
 
 
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void finalize_sum_reduce_computation(
-    size_type size, const ValueType *work, ValueType *result)
+    size_type size, const ValueType* work, ValueType* result)
 {
     finalize_reduce_computation<block_size>(
         size, work, result,
-        [](const ValueType &x, const ValueType &y) { return x + y; },
-        [](const ValueType &x) { return x; });
+        [](const ValueType& x, const ValueType& y) { return x + y; },
+        [](const ValueType& x) { return x; });
 }
 
 
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void compute_partial_norm2(
-    size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
-    remove_complex<ValueType> *__restrict__ work)
+    size_type num_rows, const ValueType* __restrict__ x, size_type stride_x,
+    remove_complex<ValueType>* __restrict__ work)
 {
     using norm_type = remove_complex<ValueType>;
     compute_partial_reduce<block_size>(
         num_rows, work,
         [x, stride_x](size_type i) { return squared_norm(x[i * stride_x]); },
-        [](const norm_type &x, const norm_type &y) { return x + y; });
+        [](const norm_type& x, const norm_type& y) { return x + y; });
 }
 
 
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void finalize_sqrt_reduce_computation(
-    size_type size, const ValueType *work, ValueType *result)
+    size_type size, const ValueType* work, ValueType* result)
 {
     finalize_reduce_computation<block_size>(
         size, work, result,
-        [](const ValueType &x, const ValueType &y) { return x + y; },
-        [](const ValueType &x) { return sqrt(x); });
+        [](const ValueType& x, const ValueType& y) { return x + y; },
+        [](const ValueType& x) { return sqrt(x); });
 }
 
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_coo(
     size_type num_rows, size_type num_cols, size_type stride,
-    const size_type *__restrict__ row_ptrs,
-    const ValueType *__restrict__ source, IndexType *__restrict__ row_idxs,
-    IndexType *__restrict__ col_idxs, ValueType *__restrict__ values)
+    const size_type* __restrict__ row_ptrs,
+    const ValueType* __restrict__ source, IndexType* __restrict__ row_idxs,
+    IndexType* __restrict__ col_idxs, ValueType* __restrict__ values)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_rows) {
@@ -180,7 +180,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_coo(
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
     size_type num_rows, size_type num_cols, size_type stride,
-    const ValueType *__restrict__ work, IndexType *__restrict__ result)
+    const ValueType* __restrict__ work, IndexType* __restrict__ result)
 {
     constexpr auto warp_size = config::warp_size;
     const auto row_idx = thread::get_subwarp_id_flat<warp_size>();
@@ -196,7 +196,7 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
         }
         result[row_idx] = reduce(
             warp_tile, part_result,
-            [](const size_type &a, const size_type &b) { return a + b; });
+            [](const size_type& a, const size_type& b) { return a + b; });
     }
 }
 
@@ -204,8 +204,8 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_csr(
     size_type num_rows, size_type num_cols, size_type stride,
-    const ValueType *__restrict__ source, IndexType *__restrict__ row_ptrs,
-    IndexType *__restrict__ col_idxs, ValueType *__restrict__ values)
+    const ValueType* __restrict__ source, IndexType* __restrict__ row_ptrs,
+    IndexType* __restrict__ col_idxs, ValueType* __restrict__ values)
 {
     const auto tidx = thread::get_thread_id_flat();
 
@@ -225,9 +225,9 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_ell(
     size_type num_rows, size_type num_cols, size_type source_stride,
-    const ValueType *__restrict__ source, size_type max_nnz_per_row,
-    size_type result_stride, IndexType *__restrict__ col_ptrs,
-    ValueType *__restrict__ values)
+    const ValueType* __restrict__ source, size_type max_nnz_per_row,
+    size_type result_stride, IndexType* __restrict__ col_ptrs,
+    ValueType* __restrict__ values)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_rows) {
@@ -255,8 +255,8 @@ __global__ __launch_bounds__(default_block_size) void fill_in_ell(
 
 __global__ __launch_bounds__(config::warp_size) void calculate_slice_lengths(
     size_type num_rows, size_type slice_size, int slice_num,
-    size_type stride_factor, const size_type *__restrict__ nnz_per_row,
-    size_type *__restrict__ slice_lengths, size_type *__restrict__ slice_sets)
+    size_type stride_factor, const size_type* __restrict__ nnz_per_row,
+    size_type* __restrict__ slice_lengths, size_type* __restrict__ slice_sets)
 {
     constexpr auto warp_size = config::warp_size;
     const auto sliceid = blockIdx.x;
@@ -275,7 +275,7 @@ __global__ __launch_bounds__(config::warp_size) void calculate_slice_lengths(
             group::tiled_partition<warp_size>(group::this_thread_block());
         auto warp_result = reduce(
             warp_tile, thread_result,
-            [](const size_type &a, const size_type &b) { return max(a, b); });
+            [](const size_type& a, const size_type& b) { return max(a, b); });
 
         if (tid_in_warp == 0) {
             auto slice_length =
@@ -290,9 +290,9 @@ __global__ __launch_bounds__(config::warp_size) void calculate_slice_lengths(
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_sellp(
     size_type num_rows, size_type num_cols, size_type slice_size,
-    size_type stride, const ValueType *__restrict__ source,
-    size_type *__restrict__ slice_lengths, size_type *__restrict__ slice_sets,
-    IndexType *__restrict__ col_idxs, ValueType *__restrict__ vals)
+    size_type stride, const ValueType* __restrict__ source,
+    size_type* __restrict__ slice_lengths, size_type* __restrict__ slice_sets,
+    IndexType* __restrict__ col_idxs, ValueType* __restrict__ vals)
 {
     const auto global_row = thread::get_thread_id_flat();
     const auto row = global_row % slice_size;
@@ -321,14 +321,14 @@ __global__ __launch_bounds__(default_block_size) void fill_in_sellp(
 
 
 __global__ __launch_bounds__(default_block_size) void reduce_max_nnz(
-    size_type size, const size_type *__restrict__ nnz_per_row,
-    size_type *__restrict__ result)
+    size_type size, const size_type* __restrict__ nnz_per_row,
+    size_type* __restrict__ result)
 {
     extern __shared__ size_type block_max[];
 
     reduce_array(
         size, nnz_per_row, block_max,
-        [](const size_type &x, const size_type &y) { return max(x, y); });
+        [](const size_type& x, const size_type& y) { return max(x, y); });
 
     if (threadIdx.x == 0) {
         result[blockIdx.x] = block_max[0];
@@ -338,7 +338,7 @@ __global__ __launch_bounds__(default_block_size) void reduce_max_nnz(
 
 __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
     size_type num_rows, size_type slice_size, size_type stride_factor,
-    const size_type *__restrict__ nnz_per_row, size_type *__restrict__ result)
+    const size_type* __restrict__ nnz_per_row, size_type* __restrict__ result)
 {
     constexpr auto warp_size = config::warp_size;
     auto warp_tile =
@@ -357,7 +357,7 @@ __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
 
     auto warp_result = reduce(
         warp_tile, thread_result,
-        [](const size_type &a, const size_type &b) { return max(a, b); });
+        [](const size_type& a, const size_type& b) { return max(a, b); });
 
     if (tid_in_warp == 0 && warpid < slice_num) {
         result[warpid] = ceildiv(warp_result, stride_factor) * stride_factor;
@@ -366,13 +366,13 @@ __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
 
 
 __global__ __launch_bounds__(default_block_size) void reduce_total_cols(
-    size_type num_slices, const size_type *__restrict__ max_nnz_per_slice,
-    size_type *__restrict__ result)
+    size_type num_slices, const size_type* __restrict__ max_nnz_per_slice,
+    size_type* __restrict__ result)
 {
     extern __shared__ size_type block_result[];
 
     reduce_array(num_slices, max_nnz_per_slice, block_result,
-                 [](const size_type &x, const size_type &y) { return x + y; });
+                 [](const size_type& x, const size_type& y) { return x + y; });
 
     if (threadIdx.x == 0) {
         result[blockIdx.x] = block_result[0];

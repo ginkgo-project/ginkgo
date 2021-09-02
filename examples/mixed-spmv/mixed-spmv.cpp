@@ -65,7 +65,7 @@ namespace {
  */
 template <typename ValueType, typename ValueDistribution, typename Engine>
 typename std::enable_if<!gko::is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(ValueDistribution &&value_dist, Engine &&gen)
+get_rand_value(ValueDistribution&& value_dist, Engine&& gen)
 {
     return value_dist(gen);
 }
@@ -77,7 +77,7 @@ get_rand_value(ValueDistribution &&value_dist, Engine &&gen)
  */
 template <typename ValueType, typename ValueDistribution, typename Engine>
 typename std::enable_if<gko::is_complex_s<ValueType>::value, ValueType>::type
-get_rand_value(ValueDistribution &&value_dist, Engine &&gen)
+get_rand_value(ValueDistribution&& value_dist, Engine&& gen)
 {
     return ValueType(value_dist(gen), value_dist(gen));
 }
@@ -125,7 +125,7 @@ double timing(std::shared_ptr<const gko::Executor> exec,
 }  // namespace
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
     // with one column/one row. The advantage of this concept is that using

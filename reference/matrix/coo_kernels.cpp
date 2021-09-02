@@ -61,8 +61,8 @@ namespace coo {
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
-          const matrix::Coo<ValueType, IndexType> *a,
-          const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+          const matrix::Coo<ValueType, IndexType>* a,
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     dense::fill(exec, c, zero<ValueType>());
     spmv2(exec, a, b, c);
@@ -73,11 +73,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Coo<ValueType, IndexType> *a,
-                   const matrix::Dense<ValueType> *b,
-                   const matrix::Dense<ValueType> *beta,
-                   matrix::Dense<ValueType> *c)
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::Coo<ValueType, IndexType>* a,
+                   const matrix::Dense<ValueType>* b,
+                   const matrix::Dense<ValueType>* beta,
+                   matrix::Dense<ValueType>* c)
 {
     dense::scale(exec, beta, c);
     advanced_spmv2(exec, alpha, a, b, c);
@@ -89,8 +89,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
-           const matrix::Coo<ValueType, IndexType> *a,
-           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
+           const matrix::Coo<ValueType, IndexType>* a,
+           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     auto coo_val = a->get_const_values();
     auto coo_col = a->get_const_col_idxs();
@@ -108,10 +108,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Dense<ValueType> *alpha,
-                    const matrix::Coo<ValueType, IndexType> *a,
-                    const matrix::Dense<ValueType> *b,
-                    matrix::Dense<ValueType> *c)
+                    const matrix::Dense<ValueType>* alpha,
+                    const matrix::Coo<ValueType, IndexType>* a,
+                    const matrix::Dense<ValueType>* b,
+                    matrix::Dense<ValueType>* c)
 {
     auto coo_val = a->get_const_values();
     auto coo_col = a->get_const_col_idxs();
@@ -132,8 +132,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(std::shared_ptr<const ReferenceExecutor> exec,
-                              const IndexType *idxs, size_type num_nonzeros,
-                              IndexType *ptrs, size_type length)
+                              const IndexType* idxs, size_type num_nonzeros,
+                              IndexType* ptrs, size_type length)
 {
     convert_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
 }
@@ -141,8 +141,8 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const ReferenceExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Coo<ValueType, IndexType> *source,
-                    matrix::Csr<ValueType, IndexType> *result)
+                    const matrix::Coo<ValueType, IndexType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
 
@@ -161,8 +161,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType> *source,
-                      matrix::Dense<ValueType> *result)
+                      const matrix::Coo<ValueType, IndexType>* source,
+                      matrix::Dense<ValueType>* result)
 {
     auto coo_val = source->get_const_values();
     auto coo_col = source->get_const_col_idxs();
@@ -185,8 +185,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType> *orig,
-                      matrix::Diagonal<ValueType> *diag)
+                      const matrix::Coo<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag)
 {
     const auto row_idxs = orig->get_const_row_idxs();
     const auto col_idxs = orig->get_const_col_idxs();

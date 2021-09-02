@@ -85,8 +85,8 @@ protected:
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
     using Vector = matrix::Dense<ValueType>;
     bool check_impl(uint8 stoppingId, bool setFinalized,
-                    Array<stopping_status> *stop_status, bool *one_changed,
-                    const Criterion::Updater &updater) override;
+                    Array<stopping_status>* stop_status, bool* one_changed,
+                    const Criterion::Updater& updater) override;
 
     explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec)
         : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
@@ -94,7 +94,7 @@ protected:
     {}
 
     explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec,
-                              const CriterionArgs &args,
+                              const CriterionArgs& args,
                               remove_complex<ValueType> reduction_factor,
                               mode baseline)
         : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
@@ -133,8 +133,7 @@ protected:
             } else {
                 this->starting_tau_ = NormVector::create(
                     exec, dim<2>{1, args.initial_residual->get_size()[1]});
-                if (dynamic_cast<const ComplexVector *>(
-                        args.initial_residual)) {
+                if (dynamic_cast<const ComplexVector*>(args.initial_residual)) {
                     auto dense_r = as<ComplexVector>(args.initial_residual);
                     dense_r->compute_norm2(this->starting_tau_.get());
                 } else {
@@ -150,7 +149,7 @@ protected:
             }
             this->starting_tau_ =
                 NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
-            if (dynamic_cast<const ComplexVector *>(args.b.get())) {
+            if (dynamic_cast<const ComplexVector*>(args.b.get())) {
                 auto dense_rhs = as<ComplexVector>(args.b);
                 dense_rhs->compute_norm2(this->starting_tau_.get());
             } else {
@@ -239,7 +238,7 @@ protected:
         : ResidualNormBase<ValueType>(exec)
     {}
 
-    explicit ResidualNorm(const Factory *factory, const CriterionArgs &args)
+    explicit ResidualNorm(const Factory* factory, const CriterionArgs& args)
         : ResidualNormBase<ValueType>(
               factory->get_executor(), args,
               factory->get_parameters().reduction_factor,
@@ -295,15 +294,15 @@ protected:
     // check_impl needs to be overwritten again since we focus on the implicit
     // residual here
     bool check_impl(uint8 stoppingId, bool setFinalized,
-                    Array<stopping_status> *stop_status, bool *one_changed,
-                    const Criterion::Updater &updater) override;
+                    Array<stopping_status>* stop_status, bool* one_changed,
+                    const Criterion::Updater& updater) override;
 
     explicit ImplicitResidualNorm(std::shared_ptr<const gko::Executor> exec)
         : ResidualNormBase<ValueType>(exec)
     {}
 
-    explicit ImplicitResidualNorm(const Factory *factory,
-                                  const CriterionArgs &args)
+    explicit ImplicitResidualNorm(const Factory* factory,
+                                  const CriterionArgs& args)
         : ResidualNormBase<ValueType>(
               factory->get_executor(), args,
               factory->get_parameters().reduction_factor,
@@ -356,8 +355,8 @@ protected:
         : ResidualNormBase<ValueType>(exec)
     {}
 
-    explicit ResidualNormReduction(const Factory *factory,
-                                   const CriterionArgs &args)
+    explicit ResidualNormReduction(const Factory* factory,
+                                   const CriterionArgs& args)
         : ResidualNormBase<ValueType>(
               factory->get_executor(), args,
               factory->get_parameters().reduction_factor,
@@ -409,8 +408,8 @@ protected:
         : ResidualNormBase<ValueType>(exec)
     {}
 
-    explicit RelativeResidualNorm(const Factory *factory,
-                                  const CriterionArgs &args)
+    explicit RelativeResidualNorm(const Factory* factory,
+                                  const CriterionArgs& args)
         : ResidualNormBase<ValueType>(factory->get_executor(), args,
                                       factory->get_parameters().tolerance,
                                       mode::rhs_norm),
@@ -459,8 +458,8 @@ protected:
         : ResidualNormBase<ValueType>(exec)
     {}
 
-    explicit AbsoluteResidualNorm(const Factory *factory,
-                                  const CriterionArgs &args)
+    explicit AbsoluteResidualNorm(const Factory* factory,
+                                  const CriterionArgs& args)
         : ResidualNormBase<ValueType>(factory->get_executor(), args,
                                       factory->get_parameters().tolerance,
                                       mode::absolute),

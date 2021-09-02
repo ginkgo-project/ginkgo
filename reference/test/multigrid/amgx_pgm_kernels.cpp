@@ -112,8 +112,8 @@ protected:
         mtx_diag = weight->extract_diagonal();
     }
 
-    void create_mtx(Mtx *fine, WeightMtx *weight, gko::Array<index_type> *agg,
-                    Mtx *coarse)
+    void create_mtx(Mtx* fine, WeightMtx* weight, gko::Array<index_type>* agg,
+                    Mtx* coarse)
     {
         auto agg_val = agg->get_data();
         agg_val[0] = 0;
@@ -177,7 +177,7 @@ protected:
         coarse->read({{2, 2}, {{0, 0, 6}, {0, 1, -5}, {1, 0, -4}, {1, 1, 5}}});
     }
 
-    static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
+    static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
     {
         ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
         ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
@@ -191,7 +191,7 @@ protected:
         }
     }
 
-    static void assert_same_agg(const index_type *m1, const index_type *m2,
+    static void assert_same_agg(const index_type* m1, const index_type* m2,
                                 gko::size_type len)
     {
         for (gko::size_type i = 0; i < len; ++i) {
@@ -229,11 +229,11 @@ TYPED_TEST(AmgxPgm, CanBeCopied)
     auto copy_agg = copy->get_const_agg();
     auto copy_coarse = copy->get_coarse_op();
 
-    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
                                this->mtx.get());
     this->assert_same_agg(copy_agg, this->agg.get_data(),
                           this->agg.get_num_elems());
-    this->assert_same_matrices(static_cast<const Mtx *>(copy_coarse.get()),
+    this->assert_same_matrices(static_cast<const Mtx*>(copy_coarse.get()),
                                this->coarse.get());
 }
 
@@ -249,11 +249,11 @@ TYPED_TEST(AmgxPgm, CanBeMoved)
     auto copy_agg = copy->get_const_agg();
     auto copy_coarse = copy->get_coarse_op();
 
-    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
                                this->mtx.get());
     this->assert_same_agg(copy_agg, this->agg.get_data(),
                           this->agg.get_num_elems());
-    this->assert_same_matrices(static_cast<const Mtx *>(copy_coarse.get()),
+    this->assert_same_matrices(static_cast<const Mtx*>(copy_coarse.get()),
                                this->coarse.get());
 }
 
@@ -267,11 +267,11 @@ TYPED_TEST(AmgxPgm, CanBeCloned)
     auto clone_agg = clone->get_const_agg();
     auto clone_coarse = clone->get_coarse_op();
 
-    this->assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()),
+    this->assert_same_matrices(static_cast<const Mtx*>(clone_mtx.get()),
                                this->mtx.get());
     this->assert_same_agg(clone_agg, this->agg.get_data(),
                           this->agg.get_num_elems());
-    this->assert_same_matrices(static_cast<const Mtx *>(clone_coarse.get()),
+    this->assert_same_matrices(static_cast<const Mtx*>(clone_coarse.get()),
                                this->coarse.get());
 }
 

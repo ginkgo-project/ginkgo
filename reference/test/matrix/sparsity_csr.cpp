@@ -64,8 +64,8 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4))
     {
-        i_type *c = mtx->get_col_idxs();
-        i_type *r = mtx->get_row_ptrs();
+        i_type* c = mtx->get_col_idxs();
+        i_type* r = mtx->get_row_ptrs();
         r[0] = 0;
         r[1] = 3;
         r[2] = 4;

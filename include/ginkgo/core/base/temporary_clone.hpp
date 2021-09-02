@@ -65,7 +65,7 @@ namespace detail {
 template <typename T>
 class copy_back_deleter {
 public:
-    using pointer = T *;
+    using pointer = T*;
 
     /**
      * Creates a new deleter object.
@@ -95,7 +95,7 @@ private:
 template <typename T>
 class copy_back_deleter<const T> {
 public:
-    using pointer = const T *;
+    using pointer = const T*;
     copy_back_deleter(pointer original) : original_{original} {}
 
     void operator()(pointer ptr) const { delete ptr; }
@@ -108,7 +108,7 @@ private:
 template <typename T>
 struct temporary_clone_helper {
     static std::unique_ptr<T> create(std::shared_ptr<const Executor> exec,
-                                     T *ptr, bool)
+                                     T* ptr, bool)
     {
         return gko::clone(std::move(exec), ptr);
     }
@@ -130,7 +130,7 @@ template <typename T>
 class temporary_clone {
 public:
     using value_type = T;
-    using pointer = T *;
+    using pointer = T*;
 
     /**
      * Creates a temporary_clone.
@@ -161,18 +161,18 @@ public:
      *
      * @return the object held by temporary_clone
      */
-    T *get() const { return handle_.get(); }
+    T* get() const { return handle_.get(); }
 
     /**
      * Calls a method on the underlying object.
      *
      * @return the underlying object
      */
-    T *operator->() const { return handle_.get(); }
+    T* operator->() const { return handle_.get(); }
 
 private:
     // std::function deleter allows to decide the (type of) deleter at runtime
-    using handle_type = std::unique_ptr<T, std::function<void(T *)>>;
+    using handle_type = std::unique_ptr<T, std::function<void(T*)>>;
 
     handle_type handle_;
 };
@@ -193,7 +193,7 @@ private:
  */
 template <typename T>
 detail::temporary_clone<T> make_temporary_clone(
-    std::shared_ptr<const Executor> exec, T *ptr)
+    std::shared_ptr<const Executor> exec, T* ptr)
 {
     return detail::temporary_clone<T>(std::move(exec), ptr);
 }
@@ -213,7 +213,7 @@ detail::temporary_clone<T> make_temporary_clone(
  */
 template <typename T>
 detail::temporary_clone<T> make_temporary_output_clone(
-    std::shared_ptr<const Executor> exec, T *ptr)
+    std::shared_ptr<const Executor> exec, T* ptr)
 {
     static_assert(
         !std::is_const<T>::value,

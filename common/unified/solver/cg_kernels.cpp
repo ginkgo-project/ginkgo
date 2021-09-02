@@ -52,11 +52,11 @@ namespace cg {
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
-                matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
-                matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
-                matrix::Dense<ValueType> *rho,
-                Array<stopping_status> *stop_status)
+                const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* r,
+                matrix::Dense<ValueType>* z, matrix::Dense<ValueType>* p,
+                matrix::Dense<ValueType>* q, matrix::Dense<ValueType>* prev_rho,
+                matrix::Dense<ValueType>* rho,
+                Array<stopping_status>* stop_status)
 {
     run_kernel_solver(
         exec,
@@ -80,10 +80,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const DefaultExecutor> exec,
-            matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
-            const matrix::Dense<ValueType> *rho,
-            const matrix::Dense<ValueType> *prev_rho,
-            const Array<stopping_status> *stop_status)
+            matrix::Dense<ValueType>* p, const matrix::Dense<ValueType>* z,
+            const matrix::Dense<ValueType>* rho,
+            const matrix::Dense<ValueType>* prev_rho,
+            const Array<stopping_status>* stop_status)
 {
     run_kernel_solver(
         exec,
@@ -103,12 +103,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const DefaultExecutor> exec,
-            matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
-            const matrix::Dense<ValueType> *p,
-            const matrix::Dense<ValueType> *q,
-            const matrix::Dense<ValueType> *beta,
-            const matrix::Dense<ValueType> *rho,
-            const Array<stopping_status> *stop_status)
+            matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* r,
+            const matrix::Dense<ValueType>* p,
+            const matrix::Dense<ValueType>* q,
+            const matrix::Dense<ValueType>* beta,
+            const matrix::Dense<ValueType>* rho,
+            const Array<stopping_status>* stop_status)
 {
     run_kernel_solver(
         exec,

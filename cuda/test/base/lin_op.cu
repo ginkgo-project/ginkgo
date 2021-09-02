@@ -56,23 +56,23 @@ public:
     mutable std::shared_ptr<const gko::Executor> last_beta_access;
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         this->access();
-        static_cast<const DummyLinOp *>(b)->access();
-        static_cast<const DummyLinOp *>(x)->access();
+        static_cast<const DummyLinOp*>(b)->access();
+        static_cast<const DummyLinOp*>(x)->access();
         last_b_access = b->get_executor();
         last_x_access = x->get_executor();
     }
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {
         this->access();
-        static_cast<const DummyLinOp *>(alpha)->access();
-        static_cast<const DummyLinOp *>(b)->access();
-        static_cast<const DummyLinOp *>(beta)->access();
-        static_cast<const DummyLinOp *>(x)->access();
+        static_cast<const DummyLinOp*>(alpha)->access();
+        static_cast<const DummyLinOp*>(b)->access();
+        static_cast<const DummyLinOp*>(beta)->access();
+        static_cast<const DummyLinOp*>(x)->access();
         last_alpha_access = alpha->get_executor();
         last_b_access = b->get_executor();
         last_beta_access = beta->get_executor();

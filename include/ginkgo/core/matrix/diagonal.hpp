@@ -99,17 +99,17 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
-    void convert_to(Diagonal<next_precision<ValueType>> *result) const override;
+    void convert_to(Diagonal<next_precision<ValueType>>* result) const override;
 
-    void move_to(Diagonal<next_precision<ValueType>> *result) override;
+    void move_to(Diagonal<next_precision<ValueType>>* result) override;
 
-    void convert_to(Csr<ValueType, int32> *result) const override;
+    void convert_to(Csr<ValueType, int32>* result) const override;
 
-    void move_to(Csr<ValueType, int32> *result) override;
+    void move_to(Csr<ValueType, int32>* result) override;
 
-    void convert_to(Csr<ValueType, int64> *result) const override;
+    void convert_to(Csr<ValueType, int64>* result) const override;
 
-    void move_to(Csr<ValueType, int64> *result) override;
+    void move_to(Csr<ValueType, int64>* result) override;
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
@@ -120,7 +120,7 @@ public:
      *
      * @return the pointer to the array of values
      */
-    value_type *get_values() noexcept { return values_.get_data(); }
+    value_type* get_values() noexcept { return values_.get_data(); }
 
     /**
      * @copydoc get_values()
@@ -129,7 +129,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type *get_const_values() const noexcept
+    const value_type* get_const_values() const noexcept
     {
         return values_.get_const_data();
     }
@@ -141,7 +141,7 @@ public:
      * @param b  the input vector(s) on which the diagonal matrix is applied
      * @param x  the output vector(s) where the result is stored
      */
-    void rapply(const LinOp *b, LinOp *x) const
+    void rapply(const LinOp* b, LinOp* x) const
     {
         GKO_ASSERT_REVERSE_CONFORMANT(this, b);
         GKO_ASSERT_EQUAL_ROWS(b, x);
@@ -150,13 +150,13 @@ public:
         this->rapply_impl(b, x);
     }
 
-    void read(const mat_data &data) override;
+    void read(const mat_data& data) override;
 
-    void read(const mat_data32 &data) override;
+    void read(const mat_data32& data) override;
 
-    void write(mat_data &data) const override;
+    void write(mat_data& data) const override;
 
-    void write(mat_data32 &data) const override;
+    void write(mat_data32& data) const override;
 
 
 protected:
@@ -195,19 +195,19 @@ protected:
      */
     template <typename ValuesArray>
     Diagonal(std::shared_ptr<const Executor> exec, const size_type size,
-             ValuesArray &&values)
+             ValuesArray&& values)
         : EnableLinOp<Diagonal>(exec, dim<2>(size)),
           values_{exec, std::forward<ValuesArray>(values)}
     {
         GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_num_elems());
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
-    void rapply_impl(const LinOp *b, LinOp *x) const;
+    void rapply_impl(const LinOp* b, LinOp* x) const;
 
 
 private:

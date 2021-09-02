@@ -87,17 +87,17 @@ public:
          * This is to enforce the use of argument passing and calling check at
          * the same time.
          */
-        Updater(const Updater &) = delete;
-        Updater(Updater &&) = delete;
-        Updater &operator=(const Updater &) = delete;
-        Updater &operator=(Updater &&) = delete;
+        Updater(const Updater&) = delete;
+        Updater(Updater&&) = delete;
+        Updater& operator=(const Updater&) = delete;
+        Updater& operator=(Updater&&) = delete;
 
         /**
          * Calls the parent Criterion object's check method
          * @copydoc Criterion::check(uint8, bool, Array<stopping_status>, bool)
          */
         bool check(uint8 stopping_id, bool set_finalized,
-                   Array<stopping_status> *stop_status, bool *one_changed) const
+                   Array<stopping_status>* stop_status, bool* one_changed) const
         {
             auto converged = parent_->check(stopping_id, set_finalized,
                                             stop_status, one_changed, *this);
@@ -108,7 +108,7 @@ public:
          * Helper macro to add parameters and setters to updater
          */
 #define GKO_UPDATER_REGISTER_PARAMETER(_type, _name) \
-    const Updater &_name(_type const &value) const   \
+    const Updater& _name(_type const& value) const   \
     {                                                \
         _name##_ = value;                            \
         return *this;                                \
@@ -116,18 +116,17 @@ public:
     mutable _type _name##_ {}
 
         GKO_UPDATER_REGISTER_PARAMETER(size_type, num_iterations);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp *, residual);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp *, residual_norm);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp *,
-                                       implicit_sq_residual_norm);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp *, solution);
+        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, residual);
+        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, residual_norm);
+        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, implicit_sq_residual_norm);
+        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, solution);
 
 #undef GKO_UPDATER_REGISTER_PARAMETER
 
     private:
-        Updater(Criterion *parent) : parent_{parent} {}
+        Updater(Criterion* parent) : parent_{parent} {}
 
-        Criterion *parent_;
+        Criterion* parent_;
     };
 
     /**
@@ -151,8 +150,8 @@ public:
      * @returns whether convergence was completely reached
      */
     bool check(uint8 stopping_id, bool set_finalized,
-               Array<stopping_status> *stop_status, bool *one_changed,
-               const Updater &updater)
+               Array<stopping_status>* stop_status, bool* one_changed,
+               const Updater& updater)
     {
         this->template log<log::Logger::criterion_check_started>(
             this, updater.num_iterations_, updater.residual_,
@@ -186,8 +185,8 @@ protected:
      * @returns whether convergence was completely reached
      */
     virtual bool check_impl(uint8 stopping_id, bool set_finalized,
-                            Array<stopping_status> *stop_status,
-                            bool *one_changed, const Updater &updater) = 0;
+                            Array<stopping_status>* stop_status,
+                            bool* one_changed, const Updater& updater) = 0;
 
     /**
      * This is a helper function which properly sets all elements of the
@@ -200,7 +199,7 @@ protected:
      * @param stop_status  status of the stopping criterion
      */
     void set_all_statuses(uint8 stopping_id, bool set_finalized,
-                          Array<stopping_status> *stop_status);
+                          Array<stopping_status>* stop_status);
 
     explicit Criterion(std::shared_ptr<const gko::Executor> exec)
         : EnableAbstractPolymorphicObject<Criterion>(exec)
@@ -221,13 +220,13 @@ protected:
 struct CriterionArgs {
     std::shared_ptr<const LinOp> system_matrix;
     std::shared_ptr<const LinOp> b;
-    const LinOp *x;
-    const LinOp *initial_residual;
+    const LinOp* x;
+    const LinOp* initial_residual;
 
 
     CriterionArgs(std::shared_ptr<const LinOp> system_matrix,
-                  std::shared_ptr<const LinOp> b, const LinOp *x,
-                  const LinOp *initial_residual = nullptr)
+                  std::shared_ptr<const LinOp> b, const LinOp* x,
+                  const LinOp* initial_residual = nullptr)
         : system_matrix{system_matrix},
           b{b},
           x{x},
@@ -291,7 +290,7 @@ using EnableDefaultCriterionFactory =
 #define GKO_ENABLE_CRITERION_FACTORY(_criterion, _parameters_name,           \
                                      _factory_name)                          \
 public:                                                                      \
-    const _parameters_name##_type &get_##_parameters_name() const            \
+    const _parameters_name##_type& get_##_parameters_name() const            \
     {                                                                        \
         return _parameters_name##_;                                          \
     }                                                                        \
@@ -309,7 +308,7 @@ public:                                                                      \
                   std::move(exec))                                           \
         {}                                                                   \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec,  \
-                               const _parameters_name##_type &parameters)    \
+                               const _parameters_name##_type& parameters)    \
             : ::gko::stop::EnableDefaultCriterionFactory<                    \
                   _factory_name, _criterion, _parameters_name##_type>(       \
                   std::move(exec), parameters)                               \

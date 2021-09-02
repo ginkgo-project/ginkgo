@@ -89,7 +89,7 @@ public:
      *
      * @return the pointer to the row permutation array.
      */
-    index_type *get_permutation() noexcept { return permutation_.get_data(); }
+    index_type* get_permutation() noexcept { return permutation_.get_data(); }
 
     /**
      * @copydoc get_permutation()
@@ -98,7 +98,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_permutation() const noexcept
+    const index_type* get_const_permutation() const noexcept
     {
         return permutation_.get_const_data();
     }
@@ -150,8 +150,8 @@ protected:
      * @param size  size of the permutable matrix
      * @param enabled_permute  mask for the type of permutation to apply.
      */
-    Permutation(std::shared_ptr<const Executor> exec, const dim<2> &size,
-                const mask_type &enabled_permute = row_permute)
+    Permutation(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                const mask_type& enabled_permute = row_permute)
         : EnableLinOp<Permutation>(exec, size),
           permutation_(exec, size[0]),
           row_size_(size[0]),
@@ -175,9 +175,9 @@ protected:
      * and the original array data will not be used in the matrix.
      */
     template <typename IndicesArray>
-    Permutation(std::shared_ptr<const Executor> exec, const dim<2> &size,
-                IndicesArray &&permutation_indices,
-                const mask_type &enabled_permute = row_permute)
+    Permutation(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                IndicesArray&& permutation_indices,
+                const mask_type& enabled_permute = row_permute)
         : EnableLinOp<Permutation>(exec, size),
           permutation_{exec, std::forward<IndicesArray>(permutation_indices)},
           row_size_(size[0]),
@@ -192,7 +192,7 @@ protected:
         }
     }
 
-    void apply_impl(const LinOp *in, LinOp *out) const
+    void apply_impl(const LinOp* in, LinOp* out) const
     {
         auto perm = as<Permutable<index_type>>(in);
         std::unique_ptr<gko::LinOp> tmp{};
@@ -225,8 +225,8 @@ protected:
     }
 
 
-    void apply_impl(const LinOp *, const LinOp *in, const LinOp *,
-                    LinOp *out) const
+    void apply_impl(const LinOp*, const LinOp* in, const LinOp*,
+                    LinOp* out) const
     {
         // Ignores alpha and beta and just performs a normal permutation as an
         // advanced apply does not really make sense here.

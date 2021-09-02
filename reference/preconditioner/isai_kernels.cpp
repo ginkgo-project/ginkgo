@@ -58,8 +58,8 @@ namespace isai {
 
 
 template <typename IndexType, typename Callback>
-void forall_matching(const IndexType *fst, IndexType fst_size,
-                     const IndexType *snd, IndexType snd_size, Callback cb)
+void forall_matching(const IndexType* fst, IndexType fst_size,
+                     const IndexType* snd, IndexType snd_size, Callback cb)
 {
     IndexType fst_idx{};
     IndexType snd_idx{};
@@ -78,9 +78,9 @@ void forall_matching(const IndexType *fst, IndexType fst_size,
 
 template <typename ValueType, typename IndexType, typename Callable>
 void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType> *mtx,
-                      matrix::Csr<ValueType, IndexType> *inverse_mtx,
-                      IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs,
+                      const matrix::Csr<ValueType, IndexType>* mtx,
+                      matrix::Csr<ValueType, IndexType>* inverse_mtx,
+                      IndexType* excess_rhs_ptrs, IndexType* excess_nz_ptrs,
                       Callable direct_solve, bool tri)
 {
     /*
@@ -190,14 +190,14 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType> *mtx,
-                          matrix::Csr<ValueType, IndexType> *inverse_mtx,
-                          IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs,
+                          const matrix::Csr<ValueType, IndexType>* mtx,
+                          matrix::Csr<ValueType, IndexType>* inverse_mtx,
+                          IndexType* excess_rhs_ptrs, IndexType* excess_nz_ptrs,
                           bool lower)
 {
     auto trs_solve =
         [lower](const range<accessor::row_major<ValueType, 2>> trisystem,
-                ValueType *rhs, const IndexType) {
+                ValueType* rhs, const IndexType) {
             const IndexType size = trisystem.length(0);
             if (size <= 0) {
                 return;
@@ -240,7 +240,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-inline IndexType choose_pivot(IndexType block_size, const ValueType *block,
+inline IndexType choose_pivot(IndexType block_size, const ValueType* block,
                               size_type stride)
 {
     IndexType cp = 0;
@@ -255,7 +255,7 @@ inline IndexType choose_pivot(IndexType block_size, const ValueType *block,
 
 template <typename ValueType, typename IndexType>
 inline void swap_rows(IndexType row1, IndexType row2, IndexType block_size,
-                      ValueType *block, size_type stride)
+                      ValueType* block, size_type stride)
 {
     using std::swap;
     for (IndexType i = 0; i < block_size; ++i) {
@@ -266,15 +266,15 @@ inline void swap_rows(IndexType row1, IndexType row2, IndexType block_size,
 
 template <typename ValueType, typename IndexType>
 void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
-                              const matrix::Csr<ValueType, IndexType> *mtx,
-                              matrix::Csr<ValueType, IndexType> *inverse_mtx,
-                              IndexType *excess_rhs_ptrs,
-                              IndexType *excess_nz_ptrs, bool spd)
+                              const matrix::Csr<ValueType, IndexType>* mtx,
+                              matrix::Csr<ValueType, IndexType>* inverse_mtx,
+                              IndexType* excess_rhs_ptrs,
+                              IndexType* excess_nz_ptrs, bool spd)
 {
     using std::swap;
     auto general_solve = [spd](const range<accessor::row_major<ValueType, 2>>
                                    transposed_system_range,
-                               ValueType *rhs, const IndexType rhs_one_idx) {
+                               ValueType* rhs, const IndexType rhs_one_idx) {
         const IndexType size = transposed_system_range.length(0);
         if (size <= 0) {
             return;
@@ -336,12 +336,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
-                            const matrix::Csr<ValueType, IndexType> *input,
-                            const matrix::Csr<ValueType, IndexType> *inverse,
-                            const IndexType *excess_rhs_ptrs,
-                            const IndexType *excess_nz_ptrs,
-                            matrix::Csr<ValueType, IndexType> *excess_system,
-                            matrix::Dense<ValueType> *excess_rhs,
+                            const matrix::Csr<ValueType, IndexType>* input,
+                            const matrix::Csr<ValueType, IndexType>* inverse,
+                            const IndexType* excess_rhs_ptrs,
+                            const IndexType* excess_nz_ptrs,
+                            matrix::Csr<ValueType, IndexType>* excess_system,
+                            matrix::Dense<ValueType>* excess_rhs,
                             size_type e_start, size_type e_end)
 {
     const auto num_rows = input->get_size()[0];
@@ -399,8 +399,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void scale_excess_solution(std::shared_ptr<const DefaultExecutor>,
-                           const IndexType *excess_block_ptrs,
-                           matrix::Dense<ValueType> *excess_solution,
+                           const IndexType* excess_block_ptrs,
+                           matrix::Dense<ValueType>* excess_solution,
                            size_type e_start, size_type e_end)
 {
     auto excess_values = excess_solution->get_values();
@@ -427,9 +427,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void scatter_excess_solution(std::shared_ptr<const DefaultExecutor>,
-                             const IndexType *excess_block_ptrs,
-                             const matrix::Dense<ValueType> *excess_solution,
-                             matrix::Csr<ValueType, IndexType> *inverse,
+                             const IndexType* excess_block_ptrs,
+                             const matrix::Dense<ValueType>* excess_solution,
+                             matrix::Csr<ValueType, IndexType>* inverse,
                              size_type e_start, size_type e_end)
 {
     auto excess_values = excess_solution->get_const_values();

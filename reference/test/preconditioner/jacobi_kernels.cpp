@@ -103,7 +103,7 @@ protected:
     }
 
     template <typename T>
-    void init_array(T *arr, std::initializer_list<T> vals)
+    void init_array(T* arr, std::initializer_list<T> vals)
     {
         for (auto elem : vals) {
             *(arr++) = elem;
@@ -309,7 +309,7 @@ TYPED_TEST(Jacobi, InvertsDiagonalBlocksWithAdaptivePrecision)
     const auto b_prec_bj =
         bj->get_parameters().storage_optimization.block_wise.get_const_data();
     using reduced = ::gko::reduce_precision<T>;
-    auto b1 = reinterpret_cast<const reduced *>(
+    auto b1 = reinterpret_cast<const reduced*>(
         bj->get_blocks() + scheme.get_global_block_offset(0));
     GKO_EXPECT_NEAR(b1[0 + 0 * p], reduced{4.0 / 14.0}, half_tol);
     GKO_EXPECT_NEAR(b1[0 + 1 * p], reduced{2.0 / 14.0}, half_tol);
@@ -369,7 +369,7 @@ TYPED_TEST(Jacobi, CanTransposeDiagonalBlocksWithAdaptivePrecision)
     auto scheme = bj->get_storage_scheme();
     auto p = scheme.get_stride();
     using reduced = ::gko::reduce_precision<T>;
-    auto b1 = reinterpret_cast<const reduced *>(
+    auto b1 = reinterpret_cast<const reduced*>(
         bj->get_blocks() + scheme.get_global_block_offset(0));
     GKO_EXPECT_NEAR(b1[0 + 0 * p], reduced{4.0 / 14.0}, half_tol);
     GKO_EXPECT_NEAR(b1[1 + 0 * p], reduced{2.0 / 14.0}, half_tol);
@@ -428,7 +428,7 @@ TYPED_TEST(Jacobi, CanConjTransposeDiagonalBlocksWithAdaptivePrecision)
     auto scheme = bj->get_storage_scheme();
     auto p = scheme.get_stride();
     using reduced = ::gko::reduce_precision<T>;
-    auto b1 = reinterpret_cast<const reduced *>(
+    auto b1 = reinterpret_cast<const reduced*>(
         bj->get_blocks() + scheme.get_global_block_offset(0));
     GKO_EXPECT_NEAR(b1[0 + 0 * p], reduced{4.0 / 14.0}, half_tol);
     GKO_EXPECT_NEAR(b1[1 + 0 * p], reduced{2.0 / 14.0}, half_tol);
@@ -552,7 +552,7 @@ TYPED_TEST(Jacobi, PivotsWhenInvertingBlocksWithiAdaptivePrecision)
     auto scheme = bj->get_storage_scheme();
     auto p = scheme.get_stride();
     using reduced = ::gko::reduce_precision<T>;
-    auto b1 = reinterpret_cast<const reduced *>(
+    auto b1 = reinterpret_cast<const reduced*>(
         bj->get_blocks() + scheme.get_global_block_offset(0));
     GKO_EXPECT_NEAR(b1[0 + 0 * p], reduced{0.0 / 4.0}, half_tol);
     GKO_EXPECT_NEAR(b1[0 + 1 * p], reduced{0.0 / 4.0}, half_tol);

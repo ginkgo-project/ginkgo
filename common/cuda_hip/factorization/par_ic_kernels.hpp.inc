@@ -35,7 +35,7 @@ namespace kernel {
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void ic_init(
-    const IndexType *__restrict__ l_row_ptrs, ValueType *__restrict__ l_vals,
+    const IndexType* __restrict__ l_row_ptrs, ValueType* __restrict__ l_vals,
     size_type num_rows)
 {
     auto row = thread::get_thread_id_flat();
@@ -54,11 +54,11 @@ __global__ __launch_bounds__(default_block_size) void ic_init(
 
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void ic_sweep(
-    const IndexType *__restrict__ a_row_idxs,
-    const IndexType *__restrict__ a_col_idxs,
-    const ValueType *__restrict__ a_vals,
-    const IndexType *__restrict__ l_row_ptrs,
-    const IndexType *__restrict__ l_col_idxs, ValueType *__restrict__ l_vals,
+    const IndexType* __restrict__ a_row_idxs,
+    const IndexType* __restrict__ a_col_idxs,
+    const ValueType* __restrict__ a_vals,
+    const IndexType* __restrict__ l_row_ptrs,
+    const IndexType* __restrict__ l_col_idxs, ValueType* __restrict__ l_vals,
     IndexType l_nnz)
 {
     const auto l_nz = thread::get_thread_id_flat<IndexType>();

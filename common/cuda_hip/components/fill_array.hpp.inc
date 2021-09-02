@@ -36,7 +36,7 @@ namespace kernel {
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void fill_array(
-    size_type n, ValueType *__restrict__ array, ValueType val)
+    size_type n, ValueType* __restrict__ array, ValueType val)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < n) {
@@ -47,7 +47,7 @@ __global__ __launch_bounds__(default_block_size) void fill_array(
 
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void fill_seq_array(
-    size_type n, ValueType *__restrict__ array)
+    size_type n, ValueType* __restrict__ array)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < n) {

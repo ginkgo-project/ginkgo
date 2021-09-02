@@ -55,31 +55,31 @@ public:
     /**
      * Returns the row index array of the COO matrix.
      */
-    Array<IndexType> &get_row_idx_array() { return matrix_->row_idxs_; }
+    Array<IndexType>& get_row_idx_array() { return matrix_->row_idxs_; }
 
     /**
      * Returns the column index array of the COO matrix.
      */
-    Array<IndexType> &get_col_idx_array() { return matrix_->col_idxs_; }
+    Array<IndexType>& get_col_idx_array() { return matrix_->col_idxs_; }
 
     /**
      * Returns the value array of the COO matrix.
      */
-    Array<ValueType> &get_value_array() { return matrix_->values_; }
+    Array<ValueType>& get_value_array() { return matrix_->values_; }
 
     /**
      * Initializes a CooBuilder from an existing COO matrix.
      */
-    explicit CooBuilder(Coo<ValueType, IndexType> *matrix) : matrix_{matrix} {}
+    explicit CooBuilder(Coo<ValueType, IndexType>* matrix) : matrix_{matrix} {}
 
     // make this type non-movable
-    CooBuilder(const CooBuilder &) = delete;
-    CooBuilder(CooBuilder &&) = delete;
-    CooBuilder &operator=(const CooBuilder &) = delete;
-    CooBuilder &operator=(CooBuilder &&) = delete;
+    CooBuilder(const CooBuilder&) = delete;
+    CooBuilder(CooBuilder&&) = delete;
+    CooBuilder& operator=(const CooBuilder&) = delete;
+    CooBuilder& operator=(CooBuilder&&) = delete;
 
 private:
-    Coo<ValueType, IndexType> *matrix_;
+    Coo<ValueType, IndexType>* matrix_;
 };
 
 

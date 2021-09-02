@@ -66,16 +66,16 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Diagonal<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     auto exec = this->get_executor();
 
-    if (dynamic_cast<const Csr<ValueType, int32> *>(b) &&
-        dynamic_cast<Csr<ValueType, int32> *>(x)) {
+    if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
+        dynamic_cast<Csr<ValueType, int32>*>(x)) {
         exec->run(diagonal::make_apply_to_csr(
             this, as<Csr<ValueType, int32>>(b), as<Csr<ValueType, int32>>(x)));
-    } else if (dynamic_cast<const Csr<ValueType, int64> *>(b) &&
-               dynamic_cast<Csr<ValueType, int64> *>(x)) {
+    } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
+               dynamic_cast<Csr<ValueType, int64>*>(x)) {
         exec->run(diagonal::make_apply_to_csr(
             this, as<Csr<ValueType, int64>>(b), as<Csr<ValueType, int64>>(x)));
     } else {
@@ -90,16 +90,16 @@ void Diagonal<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::rapply_impl(const LinOp *b, LinOp *x) const
+void Diagonal<ValueType>::rapply_impl(const LinOp* b, LinOp* x) const
 {
     auto exec = this->get_executor();
 
-    if (dynamic_cast<const Csr<ValueType, int32> *>(b) &&
-        dynamic_cast<Csr<ValueType, int32> *>(x)) {
+    if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
+        dynamic_cast<Csr<ValueType, int32>*>(x)) {
         exec->run(diagonal::make_right_apply_to_csr(
             this, as<Csr<ValueType, int32>>(b), as<Csr<ValueType, int32>>(x)));
-    } else if (dynamic_cast<const Csr<ValueType, int64> *>(b) &&
-               dynamic_cast<Csr<ValueType, int64> *>(x)) {
+    } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
+               dynamic_cast<Csr<ValueType, int64>*>(x)) {
         exec->run(diagonal::make_right_apply_to_csr(
             this, as<Csr<ValueType, int64>>(b), as<Csr<ValueType, int64>>(x)));
     } else {
@@ -116,8 +116,8 @@ void Diagonal<ValueType>::rapply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                     const LinOp *beta, LinOp *x) const
+void Diagonal<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                     const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
@@ -150,7 +150,7 @@ std::unique_ptr<LinOp> Diagonal<ValueType>::conj_transpose() const
 
 template <typename ValueType>
 void Diagonal<ValueType>::convert_to(
-    Diagonal<next_precision<ValueType>> *result) const
+    Diagonal<next_precision<ValueType>>* result) const
 {
     result->values_ = this->values_;
     result->set_size(this->get_size());
@@ -158,14 +158,14 @@ void Diagonal<ValueType>::convert_to(
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::move_to(Diagonal<next_precision<ValueType>> *result)
+void Diagonal<ValueType>::move_to(Diagonal<next_precision<ValueType>>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::convert_to(Csr<ValueType, int32> *result) const
+void Diagonal<ValueType>::convert_to(Csr<ValueType, int32>* result) const
 {
     auto exec = this->get_executor();
     auto tmp = Csr<ValueType, int32>::create(
@@ -176,14 +176,14 @@ void Diagonal<ValueType>::convert_to(Csr<ValueType, int32> *result) const
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::move_to(Csr<ValueType, int32> *result)
+void Diagonal<ValueType>::move_to(Csr<ValueType, int32>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::convert_to(Csr<ValueType, int64> *result) const
+void Diagonal<ValueType>::convert_to(Csr<ValueType, int64>* result) const
 {
     auto exec = this->get_executor();
     auto tmp = Csr<ValueType, int64>::create(
@@ -194,7 +194,7 @@ void Diagonal<ValueType>::convert_to(Csr<ValueType, int64> *result) const
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::move_to(Csr<ValueType, int64> *result)
+void Diagonal<ValueType>::move_to(Csr<ValueType, int64>* result)
 {
     this->convert_to(result);
 }
@@ -204,7 +204,7 @@ namespace {
 
 
 template <typename MatrixType, typename MatrixData>
-inline void read_impl(MatrixType *mtx, const MatrixData &data)
+inline void read_impl(MatrixType* mtx, const MatrixData& data)
 {
     // Diagonal matrices are assumed to be square.
     GKO_ASSERT_EQ(data.size[0], data.size[1]);
@@ -235,14 +235,14 @@ inline void read_impl(MatrixType *mtx, const MatrixData &data)
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::read(const mat_data &data)
+void Diagonal<ValueType>::read(const mat_data& data)
 {
     read_impl(this, data);
 }
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::read(const mat_data32 &data)
+void Diagonal<ValueType>::read(const mat_data32& data)
 {
     read_impl(this, data);
 }
@@ -252,13 +252,13 @@ namespace {
 
 
 template <typename MatrixType, typename MatrixData>
-inline void write_impl(const MatrixType *mtx, MatrixData &data)
+inline void write_impl(const MatrixType* mtx, MatrixData& data)
 {
     std::unique_ptr<const LinOp> op{};
-    const MatrixType *tmp{};
+    const MatrixType* tmp{};
     if (mtx->get_executor()->get_master() != mtx->get_executor()) {
         op = mtx->clone(mtx->get_executor()->get_master());
-        tmp = static_cast<const MatrixType *>(op.get());
+        tmp = static_cast<const MatrixType*>(op.get());
     } else {
         tmp = mtx;
     }
@@ -276,14 +276,14 @@ inline void write_impl(const MatrixType *mtx, MatrixData &data)
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::write(mat_data &data) const
+void Diagonal<ValueType>::write(mat_data& data) const
 {
     write_impl(this, data);
 }
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::write(mat_data32 &data) const
+void Diagonal<ValueType>::write(mat_data32& data) const
 {
     write_impl(this, data);
 }

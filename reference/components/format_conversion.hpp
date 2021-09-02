@@ -43,8 +43,8 @@ namespace reference {
 
 
 template <typename IndexType>
-inline void convert_idxs_to_ptrs(const IndexType *idxs, size_type num_nonzeros,
-                                 IndexType *ptrs, size_type length)
+inline void convert_idxs_to_ptrs(const IndexType* idxs, size_type num_nonzeros,
+                                 IndexType* ptrs, size_type length)
 {
     std::fill(ptrs, ptrs + length, 0);
     std::for_each(idxs, idxs + num_nonzeros, [&](size_type v) {
@@ -57,8 +57,8 @@ inline void convert_idxs_to_ptrs(const IndexType *idxs, size_type num_nonzeros,
 
 
 template <typename IndexType>
-inline void convert_ptrs_to_idxs(const IndexType *ptrs, size_type num_rows,
-                                 IndexType *idxs)
+inline void convert_ptrs_to_idxs(const IndexType* ptrs, size_type num_rows,
+                                 IndexType* idxs)
 {
     size_type ind = 0;
 

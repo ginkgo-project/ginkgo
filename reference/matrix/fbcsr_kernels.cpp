@@ -67,9 +67,9 @@ namespace fbcsr {
 
 template <typename ValueType, typename IndexType>
 void spmv(const std::shared_ptr<const ReferenceExecutor>,
-          const matrix::Fbcsr<ValueType, IndexType> *const a,
-          const matrix::Dense<ValueType> *const b,
-          matrix::Dense<ValueType> *const c)
+          const matrix::Fbcsr<ValueType, IndexType>* const a,
+          const matrix::Dense<ValueType>* const b,
+          matrix::Dense<ValueType>* const c)
 {
     const int bs = a->get_block_size();
     const auto nvecs = static_cast<IndexType>(b->get_size()[1]);
@@ -109,11 +109,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(const std::shared_ptr<const ReferenceExecutor>,
-                   const matrix::Dense<ValueType> *const alpha,
-                   const matrix::Fbcsr<ValueType, IndexType> *const a,
-                   const matrix::Dense<ValueType> *const b,
-                   const matrix::Dense<ValueType> *const beta,
-                   matrix::Dense<ValueType> *const c)
+                   const matrix::Dense<ValueType>* const alpha,
+                   const matrix::Fbcsr<ValueType, IndexType>* const a,
+                   const matrix::Dense<ValueType>* const b,
+                   const matrix::Dense<ValueType>* const beta,
+                   matrix::Dense<ValueType>* const c)
 {
     const int bs = a->get_block_size();
     const auto nvecs = static_cast<IndexType>(b->get_size()[1]);
@@ -155,15 +155,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(const std::shared_ptr<const ReferenceExecutor>,
-                      const matrix::Fbcsr<ValueType, IndexType> *const source,
-                      matrix::Dense<ValueType> *const result)
+                      const matrix::Fbcsr<ValueType, IndexType>* const source,
+                      matrix::Dense<ValueType>* const result)
 {
     const int bs = source->get_block_size();
     const IndexType nbrows = source->get_num_block_rows();
     const IndexType nbcols = source->get_num_block_cols();
-    const IndexType *const row_ptrs = source->get_const_row_ptrs();
-    const IndexType *const col_idxs = source->get_const_col_idxs();
-    const ValueType *const vals = source->get_const_values();
+    const IndexType* const row_ptrs = source->get_const_row_ptrs();
+    const IndexType* const col_idxs = source->get_const_col_idxs();
+    const ValueType* const vals = source->get_const_values();
 
     const acc::range<acc::block_col_major<const ValueType, 3>> values{
         std::array<size_type, 3>{source->get_num_stored_blocks(),
@@ -199,24 +199,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(const std::shared_ptr<const ReferenceExecutor>,
-                    const matrix::Fbcsr<ValueType, IndexType> *const source,
-                    matrix::Csr<ValueType, IndexType> *const result)
+                    const matrix::Fbcsr<ValueType, IndexType>* const source,
+                    matrix::Csr<ValueType, IndexType>* const result)
 {
     const int bs = source->get_block_size();
     const IndexType nbrows = source->get_num_block_rows();
     const IndexType nbcols = source->get_num_block_cols();
-    const IndexType *const browptrs = source->get_const_row_ptrs();
-    const IndexType *const bcolinds = source->get_const_col_idxs();
-    const ValueType *const bvals = source->get_const_values();
+    const IndexType* const browptrs = source->get_const_row_ptrs();
+    const IndexType* const bcolinds = source->get_const_col_idxs();
+    const ValueType* const bvals = source->get_const_values();
 
     assert(nbrows * bs == result->get_size()[0]);
     assert(nbcols * bs == result->get_size()[1]);
     assert(source->get_num_stored_elements() ==
            result->get_num_stored_elements());
 
-    IndexType *const row_ptrs = result->get_row_ptrs();
-    IndexType *const col_idxs = result->get_col_idxs();
-    ValueType *const vals = result->get_values();
+    IndexType* const row_ptrs = result->get_row_ptrs();
+    IndexType* const col_idxs = result->get_col_idxs();
+    ValueType* const vals = result->get_values();
 
     const acc::range<acc::block_col_major<const ValueType, 3>> bvalues{
         std::array<size_type, 3>{source->get_num_stored_blocks(),
@@ -259,12 +259,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType, typename UnaryOperator,
           bool transpose_blocks>
 void convert_fbcsr_to_fbcsc(const IndexType num_blk_rows, const int blksz,
-                            const IndexType *const row_ptrs,
-                            const IndexType *const col_idxs,
-                            const ValueType *const fbcsr_vals,
-                            IndexType *const row_idxs,
-                            IndexType *const col_ptrs,
-                            ValueType *const csc_vals, UnaryOperator op)
+                            const IndexType* const row_ptrs,
+                            const IndexType* const col_idxs,
+                            const ValueType* const fbcsr_vals,
+                            IndexType* const row_idxs,
+                            IndexType* const col_ptrs,
+                            ValueType* const csc_vals, UnaryOperator op)
 {
     const acc::range<acc::block_col_major<const ValueType, 3>> rvalues{
         std::array<size_type, 3>{static_cast<size_type>(row_ptrs[num_blk_rows]),
@@ -295,8 +295,8 @@ void convert_fbcsr_to_fbcsc(const IndexType num_blk_rows, const int blksz,
 
 template <typename ValueType, typename IndexType, typename UnaryOperator>
 void transpose_and_transform(
-    matrix::Fbcsr<ValueType, IndexType> *const trans,
-    const matrix::Fbcsr<ValueType, IndexType> *const orig, UnaryOperator op)
+    matrix::Fbcsr<ValueType, IndexType>* const trans,
+    const matrix::Fbcsr<ValueType, IndexType>* const orig, UnaryOperator op)
 {
     const int bs = orig->get_block_size();
     auto trans_row_ptrs = trans->get_row_ptrs();
@@ -321,8 +321,8 @@ void transpose_and_transform(
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const ReferenceExecutor>,
-               const matrix::Fbcsr<ValueType, IndexType> *const orig,
-               matrix::Fbcsr<ValueType, IndexType> *const trans)
+               const matrix::Fbcsr<ValueType, IndexType>* const orig,
+               matrix::Fbcsr<ValueType, IndexType>* const trans)
 {
     transpose_and_transform(trans, orig, [](const ValueType x) { return x; });
 }
@@ -333,8 +333,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const ReferenceExecutor>,
-                    const matrix::Fbcsr<ValueType, IndexType> *const orig,
-                    matrix::Fbcsr<ValueType, IndexType> *const trans)
+                    const matrix::Fbcsr<ValueType, IndexType>* const orig,
+                    matrix::Fbcsr<ValueType, IndexType>* const trans)
 {
     transpose_and_transform(trans, orig,
                             [](const ValueType x) { return conj(x); });
@@ -347,8 +347,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void calculate_max_nnz_per_row(
     std::shared_ptr<const ReferenceExecutor>,
-    const matrix::Fbcsr<ValueType, IndexType> *const source,
-    size_type *const result)
+    const matrix::Fbcsr<ValueType, IndexType>* const source,
+    size_type* const result)
 {
     const auto num_rows = source->get_size()[0];
     const auto row_ptrs = source->get_const_row_ptrs();
@@ -371,7 +371,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row(
     std::shared_ptr<const ReferenceExecutor>,
-    const matrix::Fbcsr<ValueType, IndexType> *source, Array<size_type> *result)
+    const matrix::Fbcsr<ValueType, IndexType>* source, Array<size_type>* result)
 {
     const auto row_ptrs = source->get_const_row_ptrs();
     auto row_nnz_val = result->get_data();
@@ -391,8 +391,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const ReferenceExecutor>,
-    const matrix::Fbcsr<ValueType, IndexType> *const to_check,
-    bool *const is_sorted)
+    const matrix::Fbcsr<ValueType, IndexType>* const to_check,
+    bool* const is_sorted)
 {
     const auto row_ptrs = to_check->get_const_row_ptrs();
     const auto col_idxs = to_check->get_const_col_idxs();
@@ -416,7 +416,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <int mat_blk_sz, typename ValueType, typename IndexType>
 static void sort_by_column_index_impl(
-    matrix::Fbcsr<ValueType, IndexType> *const to_sort)
+    matrix::Fbcsr<ValueType, IndexType>* const to_sort)
 {
     auto row_ptrs = to_sort->get_const_row_ptrs();
     auto col_idxs = to_sort->get_col_idxs();
@@ -424,8 +424,8 @@ static void sort_by_column_index_impl(
     const auto nbrows = to_sort->get_num_block_rows();
     constexpr int bs2 = mat_blk_sz * mat_blk_sz;
     for (IndexType i = 0; i < nbrows; ++i) {
-        IndexType *const brow_col_idxs = col_idxs + row_ptrs[i];
-        ValueType *const brow_vals = values + row_ptrs[i] * bs2;
+        IndexType* const brow_col_idxs = col_idxs + row_ptrs[i];
+        ValueType* const brow_vals = values + row_ptrs[i] * bs2;
         const IndexType nbnz_brow = row_ptrs[i + 1] - row_ptrs[i];
 
         std::vector<IndexType> col_permute(nbnz_brow);
@@ -447,7 +447,7 @@ static void sort_by_column_index_impl(
 
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(const std::shared_ptr<const ReferenceExecutor> exec,
-                          matrix::Fbcsr<ValueType, IndexType> *const to_sort)
+                          matrix::Fbcsr<ValueType, IndexType>* const to_sort)
 {
     const int bs = to_sort->get_block_size();
     if (bs == 2) {
@@ -467,8 +467,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const ReferenceExecutor>,
-                      const matrix::Fbcsr<ValueType, IndexType> *const orig,
-                      matrix::Diagonal<ValueType> *const diag)
+                      const matrix::Fbcsr<ValueType, IndexType>* const orig,
+                      matrix::Diagonal<ValueType>* const diag)
 {
     const auto row_ptrs = orig->get_const_row_ptrs();
     const auto col_idxs = orig->get_const_col_idxs();

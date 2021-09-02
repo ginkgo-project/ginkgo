@@ -65,7 +65,7 @@ TEST(MtxReader, ReadsDenseDoubleRealMtx)
     auto data = gko::read_raw<double, gko::int32>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-    auto &v = data.nonzeros;
+    auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));
     ASSERT_EQ(v[2], tpl(0, 2, 2.0));
@@ -91,7 +91,7 @@ TEST(MtxReader, ReadsDenseDoubleRealMtxWith64Index)
     auto data = gko::read_raw<double, gko::int64>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-    auto &v = data.nonzeros;
+    auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));
     ASSERT_EQ(v[2], tpl(0, 2, 2.0));
@@ -117,7 +117,7 @@ TEST(MtxReader, ReadsDenseFloatIntegerMtx)
     auto data = gko::read_raw<float, gko::int32>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-    auto &v = data.nonzeros;
+    auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));
     ASSERT_EQ(v[2], tpl(0, 2, 2.0));
@@ -143,7 +143,7 @@ TEST(MtxReader, ReadsDenseFloatIntegerMtxWith64Index)
     auto data = gko::read_raw<float, gko::int64>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-    auto &v = data.nonzeros;
+    auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));
     ASSERT_EQ(v[2], tpl(0, 2, 2.0));
@@ -170,7 +170,7 @@ TEST(MtxReader, ReadsDenseComplexDoubleMtx)
     auto data = gko::read_raw<cpx, gko::int32>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-    auto &v = data.nonzeros;
+    auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, cpx(1.0, 2.0)));
     ASSERT_EQ(v[1], tpl(0, 1, cpx(3.0, 1.0)));
     ASSERT_EQ(v[2], tpl(0, 2, cpx(2.0, 4.0)));
@@ -197,7 +197,7 @@ TEST(MtxReader, ReadsDenseComplexDoubleMtxWith64Index)
     auto data = gko::read_raw<cpx, gko::int64>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-    auto &v = data.nonzeros;
+    auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, cpx(1.0, 2.0)));
     ASSERT_EQ(v[1], tpl(0, 1, cpx(3.0, 1.0)));
     ASSERT_EQ(v[2], tpl(0, 2, cpx(2.0, 4.0)));
@@ -224,7 +224,7 @@ TEST(MtxReader, ReadsDenseComplexFloatMtx)
     auto data = gko::read_raw<cpx, gko::int32>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-    auto &v = data.nonzeros;
+    auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, cpx(1.0, 2.0)));
     ASSERT_EQ(v[1], tpl(0, 1, cpx(3.0, 1.0)));
     ASSERT_EQ(v[2], tpl(0, 2, cpx(2.0, 4.0)));
@@ -251,7 +251,7 @@ TEST(MtxReader, ReadsDenseComplexFloatMtxWith64Index)
     auto data = gko::read_raw<cpx, gko::int64>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-    auto &v = data.nonzeros;
+    auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, cpx(1.0, 2.0)));
     ASSERT_EQ(v[1], tpl(0, 1, cpx(3.0, 1.0)));
     ASSERT_EQ(v[2], tpl(0, 2, cpx(2.0, 4.0)));
@@ -275,7 +275,7 @@ TEST(MtxReader, ReadsSparseRealMtx)
     auto data = gko::read_raw<double, gko::int32>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-    auto &v = data.nonzeros;
+    auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));
     ASSERT_EQ(v[2], tpl(0, 2, 2.0));
@@ -297,7 +297,7 @@ TEST(MtxReader, ReadsSparseRealSymetricMtx)
     auto data = gko::read_raw<double, gko::int32>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(3, 3));
-    auto &v = data.nonzeros;
+    auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 2.0));
     ASSERT_EQ(v[2], tpl(0, 2, 3.0));
@@ -319,7 +319,7 @@ TEST(MtxReader, ReadsSparseRealSkewSymetricMtx)
     auto data = gko::read_raw<double, gko::int32>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(3, 3));
-    auto &v = data.nonzeros;
+    auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 1, -2.0));
     ASSERT_EQ(v[1], tpl(0, 2, -3.0));
     ASSERT_EQ(v[2], tpl(1, 0, 2.0));
@@ -341,7 +341,7 @@ TEST(MtxReader, ReadsSparsePatternMtx)
     auto data = gko::read_raw<double, gko::int32>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-    auto &v = data.nonzeros;
+    auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 1.0));
     ASSERT_EQ(v[2], tpl(0, 2, 1.0));
@@ -364,7 +364,7 @@ TEST(MtxReader, ReadsSparseComplexMtx)
     auto data = gko::read_raw<cpx, gko::int32>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-    auto &v = data.nonzeros;
+    auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, cpx(1.0, 2.0)));
     ASSERT_EQ(v[1], tpl(0, 1, cpx(3.0, 1.0)));
     ASSERT_EQ(v[2], tpl(0, 2, cpx(2.0, 4.0)));
@@ -385,7 +385,7 @@ TEST(MtxReader, ReadsSparseComplexHermitianMtx)
     auto data = gko::read_raw<cpx, gko::int32>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-    auto &v = data.nonzeros;
+    auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 1, cpx(3.0, 1.0)));
     ASSERT_EQ(v[1], tpl(0, 2, cpx(2.0, 4.0)));
     ASSERT_EQ(v[2], tpl(1, 0, cpx(3.0, -1.0)));
@@ -611,15 +611,15 @@ public:
     using index_type = IndexType;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
 
-    void read(const mat_data &data) override { data_ = data; }
+    void read(const mat_data& data) override { data_ = data; }
 
-    void write(mat_data &data) const override { data = data_; }
+    void write(mat_data& data) const override { data = data_; }
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 
     explicit DummyLinOp(std::shared_ptr<const gko::Executor> exec)
@@ -661,9 +661,9 @@ TYPED_TEST(RealDummyLinOpTest, ReadsLinOpFromStream)
     auto lin_op = gko::read<DummyLinOp<value_type, index_type>>(
         iss, gko::ReferenceExecutor::create());
 
-    const auto &data = lin_op->data_;
+    const auto& data = lin_op->data_;
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-    const auto &v = data.nonzeros;
+    const auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, 1.0));
     ASSERT_EQ(v[1], tpl(0, 1, 3.0));
     ASSERT_EQ(v[2], tpl(0, 2, 2.0));
@@ -734,9 +734,9 @@ TYPED_TEST(ComplexDummyLinOpTest, ReadsLinOpFromStream)
     auto lin_op = gko::read<DummyLinOp<value_type, index_type>>(
         iss, gko::ReferenceExecutor::create());
 
-    const auto &data = lin_op->data_;
+    const auto& data = lin_op->data_;
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-    const auto &v = data.nonzeros;
+    const auto& v = data.nonzeros;
     ASSERT_EQ(v[0], tpl(0, 0, value_type{1.0, 2.0}));
     ASSERT_EQ(v[1], tpl(0, 1, value_type{3.0, 4.0}));
     ASSERT_EQ(v[2], tpl(0, 2, value_type{2.0, 3.0}));

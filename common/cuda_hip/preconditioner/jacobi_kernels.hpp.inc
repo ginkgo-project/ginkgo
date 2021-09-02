@@ -32,9 +32,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <int warps_per_block>
 __global__
-__launch_bounds__(warps_per_block *config::warp_size) void duplicate_array(
-    const precision_reduction *__restrict__ source, size_type source_size,
-    precision_reduction *__restrict__ dest, size_type dest_size)
+__launch_bounds__(warps_per_block* config::warp_size) void duplicate_array(
+    const precision_reduction* __restrict__ source, size_type source_size,
+    precision_reduction* __restrict__ dest, size_type dest_size)
 {
     auto grid = group::this_grid();
     if (grid.thread_rank() >= dest_size) {
@@ -48,9 +48,9 @@ __launch_bounds__(warps_per_block *config::warp_size) void duplicate_array(
 
 template <typename IndexType>
 __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
-                                      const IndexType *__restrict__ row_ptrs,
-                                      const IndexType *__restrict__ col_idx,
-                                      bool *__restrict__ matching_next_row)
+                                      const IndexType* __restrict__ row_ptrs,
+                                      const IndexType* __restrict__ col_idx,
+                                      bool* __restrict__ matching_next_row)
 {
     const auto warp =
         group::tiled_partition<config::warp_size>(group::this_thread_block());
@@ -93,8 +93,8 @@ __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
 template <typename IndexType>
 __global__ void generate_natural_block_pointer(
     size_type num_rows, int32 max_block_size,
-    const bool *__restrict__ matching_next_row,
-    IndexType *__restrict__ block_ptrs, size_type *__restrict__ num_blocks_arr)
+    const bool* __restrict__ matching_next_row,
+    IndexType* __restrict__ block_ptrs, size_type* __restrict__ num_blocks_arr)
 {
     block_ptrs[0] = 0;
     if (num_rows == 0) {
@@ -120,7 +120,7 @@ __global__ void generate_natural_block_pointer(
 template <typename IndexType>
 __global__ void agglomerate_supervariables_kernel(
     int32 max_block_size, size_type num_natural_blocks,
-    IndexType *__restrict__ block_ptrs, size_type *__restrict__ num_blocks_arr)
+    IndexType* __restrict__ block_ptrs, size_type* __restrict__ num_blocks_arr)
 {
     num_blocks_arr[0] = 0;
     if (num_natural_blocks == 0) {
@@ -145,12 +145,12 @@ __global__ void agglomerate_supervariables_kernel(
 
 template <bool conjugate, int max_block_size, int subwarp_size,
           int warps_per_block, typename ValueType, typename IndexType>
-__global__ void __launch_bounds__(warps_per_block *config::warp_size)
-    transpose_jacobi(const ValueType *__restrict__ blocks,
+__global__ void __launch_bounds__(warps_per_block* config::warp_size)
+    transpose_jacobi(const ValueType* __restrict__ blocks,
                      preconditioner::block_interleaved_storage_scheme<IndexType>
                          storage_scheme,
-                     const IndexType *__restrict__ block_ptrs,
-                     size_type num_blocks, ValueType *__restrict__ out_blocks)
+                     const IndexType* __restrict__ block_ptrs,
+                     size_type num_blocks, ValueType* __restrict__ out_blocks)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
@@ -177,12 +177,12 @@ __global__ void __launch_bounds__(warps_per_block *config::warp_size)
 template <bool conjugate, int max_block_size, int subwarp_size,
           int warps_per_block, typename ValueType, typename IndexType>
 __global__ void
-__launch_bounds__(warps_per_block *config::warp_size) adaptive_transpose_jacobi(
-    const ValueType *__restrict__ blocks,
+__launch_bounds__(warps_per_block* config::warp_size) adaptive_transpose_jacobi(
+    const ValueType* __restrict__ blocks,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
-    const precision_reduction *__restrict__ block_precisions,
-    const IndexType *__restrict__ block_ptrs, size_type num_blocks,
-    ValueType *__restrict__ out_blocks)
+    const precision_reduction* __restrict__ block_precisions,
+    const IndexType* __restrict__ block_ptrs, size_type num_blocks,
+    ValueType* __restrict__ out_blocks)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
@@ -199,11 +199,11 @@ __launch_bounds__(warps_per_block *config::warp_size) adaptive_transpose_jacobi(
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
             ValueType, block_precisions[block_id],
             auto local_block =
-                reinterpret_cast<const resolved_precision *>(
+                reinterpret_cast<const resolved_precision*>(
                     blocks + storage_scheme.get_group_offset(block_id)) +
                 storage_scheme.get_block_offset(block_id);
             auto local_out_block =
-                reinterpret_cast<resolved_precision *>(
+                reinterpret_cast<resolved_precision*>(
                     out_blocks + storage_scheme.get_group_offset(block_id)) +
                 storage_scheme.get_block_offset(block_id);
             for (IndexType i = 0; i < block_size; ++i) {

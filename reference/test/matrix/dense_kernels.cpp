@@ -4036,7 +4036,7 @@ TYPED_TEST(Dense, MakeTemporaryConversionConstDoesntConvertBack)
 
     {
         auto conversion = gko::make_temporary_conversion<T>(
-            static_cast<const MixedMtx *>(alpha.get()));
+            static_cast<const MixedMtx*>(alpha.get()));
         alpha->at(0, 0) = MixedT{7.0};
     }
 

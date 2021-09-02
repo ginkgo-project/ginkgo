@@ -95,7 +95,7 @@ protected:
     Range3dHelper generate_krylov_helper(gko::dim<3> size)
     {
         auto helper = Range3dHelper{ref, size};
-        auto &bases = helper.get_bases();
+        auto& bases = helper.get_bases();
         const auto num_rows = size[0] * size[1];
         const auto num_cols = size[2];
         auto temp_krylov_bases = gko::test::generate_random_matrix<Dense>(
@@ -191,7 +191,7 @@ protected:
     void assert_krylov_bases_near()
     {
         gko::Array<storage_type> d_to_host{ref};
-        auto &krylov_bases = range_helper.get_bases();
+        auto& krylov_bases = range_helper.get_bases();
         d_to_host = d_range_helper.get_bases();
         const auto tolerance = r<storage_type>::value;
         using std::abs;

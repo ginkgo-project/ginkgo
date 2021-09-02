@@ -35,11 +35,11 @@ namespace kernel {
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
-__global__ void __launch_bounds__(warps_per_block *config::warp_size) apply(
-    const ValueType *__restrict__ blocks,
+__global__ void __launch_bounds__(warps_per_block* config::warp_size) apply(
+    const ValueType* __restrict__ blocks,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
-    const IndexType *__restrict__ block_ptrs, size_type num_blocks,
-    const ValueType *__restrict__ b, int32 b_stride, ValueType *__restrict__ x,
+    const IndexType* __restrict__ block_ptrs, size_type num_blocks,
+    const ValueType* __restrict__ b, int32 b_stride, ValueType* __restrict__ x,
     int32 x_stride)
 {
     const auto block_id =
@@ -60,20 +60,20 @@ __global__ void __launch_bounds__(warps_per_block *config::warp_size) apply(
             subwarp.thread_rank(),
         storage_scheme.get_stride(), x + block_ptrs[block_id] * x_stride,
         x_stride,
-        [](ValueType &result, const ValueType &out) { result = out; });
+        [](ValueType& result, const ValueType& out) { result = out; });
 }
 
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
-__global__ void __launch_bounds__(warps_per_block *config::warp_size)
-    adaptive_apply(const ValueType *__restrict__ blocks,
+__global__ void __launch_bounds__(warps_per_block* config::warp_size)
+    adaptive_apply(const ValueType* __restrict__ blocks,
                    preconditioner::block_interleaved_storage_scheme<IndexType>
                        storage_scheme,
-                   const precision_reduction *__restrict__ block_precisions,
-                   const IndexType *__restrict__ block_ptrs,
-                   size_type num_blocks, const ValueType *__restrict__ b,
-                   int32 b_stride, ValueType *__restrict__ x, int32 x_stride)
+                   const precision_reduction* __restrict__ block_precisions,
+                   const IndexType* __restrict__ block_ptrs,
+                   size_type num_blocks, const ValueType* __restrict__ b,
+                   int32 b_stride, ValueType* __restrict__ x, int32 x_stride)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
@@ -91,13 +91,13 @@ __global__ void __launch_bounds__(warps_per_block *config::warp_size)
         ValueType, block_precisions[block_id],
         multiply_vec<max_block_size>(
             subwarp, block_size, v,
-            reinterpret_cast<const resolved_precision *>(
+            reinterpret_cast<const resolved_precision*>(
                 blocks + storage_scheme.get_group_offset(block_id)) +
                 storage_scheme.get_block_offset(block_id) +
                 subwarp.thread_rank(),
             storage_scheme.get_stride(), x + block_ptrs[block_id] * x_stride,
             x_stride,
-            [](ValueType &result, const ValueType &out) { result = out; }));
+            [](ValueType& result, const ValueType& out) { result = out; }));
 }
 
 

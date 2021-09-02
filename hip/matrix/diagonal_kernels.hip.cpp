@@ -65,9 +65,9 @@ constexpr int default_block_size = 512;
 
 template <typename ValueType, typename IndexType>
 void apply_to_csr(std::shared_ptr<const HipExecutor> exec,
-                  const matrix::Diagonal<ValueType> *a,
-                  const matrix::Csr<ValueType, IndexType> *b,
-                  matrix::Csr<ValueType, IndexType> *c)
+                  const matrix::Diagonal<ValueType>* a,
+                  const matrix::Csr<ValueType, IndexType>* b,
+                  matrix::Csr<ValueType, IndexType>* c)
 {
     const auto num_rows = b->get_size()[0];
     const auto diag_values = a->get_const_values();

@@ -52,9 +52,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // See en.wikipedia.org/wiki/Five-number_summary
 // Quartile computation uses Method 3 from en.wikipedia.org/wiki/Quartile
-void compute_summary(const std::vector<gko::size_type> &dist,
-                     rapidjson::Value &out,
-                     rapidjson::MemoryPoolAllocator<> &allocator)
+void compute_summary(const std::vector<gko::size_type>& dist,
+                     rapidjson::Value& out,
+                     rapidjson::MemoryPoolAllocator<>& allocator)
 {
     const auto q = dist.size() / 4;
     const auto r = dist.size() % 4;
@@ -93,14 +93,14 @@ void compute_summary(const std::vector<gko::size_type> &dist,
 }
 
 
-double compute_moment(int degree, const std::vector<gko::size_type> &dist,
+double compute_moment(int degree, const std::vector<gko::size_type>& dist,
                       double center = 0.0, double normalization = 1.0)
 {
     if (normalization == 0.0) {
         return 0.0;
     }
     double moment = 0.0;
-    for (const auto &x : dist) {
+    for (const auto& x : dist) {
         moment += std::pow(static_cast<double>(x) - center, degree);
     }
     return moment / static_cast<double>(dist.size()) /
@@ -109,9 +109,9 @@ double compute_moment(int degree, const std::vector<gko::size_type> &dist,
 
 
 // See en.wikipedia.org/wiki/Moment_(mathematics)
-void compute_moments(const std::vector<gko::size_type> &dist,
-                     rapidjson::Value &out,
-                     rapidjson::MemoryPoolAllocator<> &allocator)
+void compute_moments(const std::vector<gko::size_type>& dist,
+                     rapidjson::Value& out,
+                     rapidjson::MemoryPoolAllocator<>& allocator)
 {
     const auto mean = compute_moment(1, dist);
     add_or_set_member(out, "mean", mean, allocator);
@@ -130,9 +130,9 @@ void compute_moments(const std::vector<gko::size_type> &dist,
 
 
 template <typename Allocator>
-void compute_distribution_properties(const std::vector<gko::size_type> &dist,
-                                     rapidjson::Value &out,
-                                     Allocator &allocator)
+void compute_distribution_properties(const std::vector<gko::size_type>& dist,
+                                     rapidjson::Value& out,
+                                     Allocator& allocator)
 {
     compute_summary(dist, out, allocator);
     compute_moments(dist, out, allocator);
@@ -140,12 +140,12 @@ void compute_distribution_properties(const std::vector<gko::size_type> &dist,
 
 
 template <typename Allocator>
-void extract_matrix_statistics(gko::matrix_data<etype, gko::int64> &data,
-                               rapidjson::Value &problem, Allocator &allocator)
+void extract_matrix_statistics(gko::matrix_data<etype, gko::int64>& data,
+                               rapidjson::Value& problem, Allocator& allocator)
 {
     std::vector<gko::size_type> row_dist(data.size[0]);
     std::vector<gko::size_type> col_dist(data.size[1]);
-    for (const auto &v : data.nonzeros) {
+    for (const auto& v : data.nonzeros) {
         ++row_dist[v.row];
         ++col_dist[v.column];
     }
@@ -168,7 +168,7 @@ void extract_matrix_statistics(gko::matrix_data<etype, gko::int64> &data,
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     std::string header =
         "A utility that collects additional statistical properties of the "
@@ -187,9 +187,9 @@ int main(int argc, char *argv[])
         print_config_error_and_exit();
     }
 
-    auto &allocator = test_cases.GetAllocator();
+    auto& allocator = test_cases.GetAllocator();
 
-    for (auto &test_case : test_cases.GetArray()) {
+    for (auto& test_case : test_cases.GetArray()) {
         try {
             // set up benchmark
             validate_option_object(test_case);
@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
                                     rapidjson::Value(rapidjson::kObjectType),
                                     allocator);
             }
-            auto &problem = test_case["problem"];
+            auto& problem = test_case["problem"];
 
             std::clog << "Running test case: " << test_case << std::endl;
 
@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
             extract_matrix_statistics(matrix, test_case["problem"], allocator);
 
             backup_results(test_cases);
-        } catch (const std::exception &e) {
+        } catch (const std::exception& e) {
             std::cerr << "Error extracting statistics, what(): " << e.what()
                       << std::endl;
         }

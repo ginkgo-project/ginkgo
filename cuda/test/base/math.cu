@@ -95,7 +95,7 @@ __device__ bool test_complex_is_finite_function(FuncType isfin)
 
 
 template <typename T>
-__global__ void test_real_is_finite(bool *result)
+__global__ void test_real_is_finite(bool* result)
 {
     *result = kernel::test_real_is_finite_function<T>(
         [](T val) { return gko::is_finite(val); });
@@ -103,7 +103,7 @@ __global__ void test_real_is_finite(bool *result)
 
 
 template <typename ComplexType>
-__global__ void test_complex_is_finite(bool *result)
+__global__ void test_complex_is_finite(bool* result)
 {
     *result = kernel::test_complex_is_finite_function<ComplexType>(
         [](ComplexType val) { return gko::is_finite(val); });

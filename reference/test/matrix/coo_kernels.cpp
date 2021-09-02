@@ -79,7 +79,7 @@ protected:
         std::swap(vals[0], vals[1]);
     }
 
-    void assert_equal_to_mtx_in_csr_format(const Csr *m)
+    void assert_equal_to_mtx_in_csr_format(const Csr* m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();

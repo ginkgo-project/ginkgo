@@ -72,7 +72,7 @@ namespace detail {
 
 
 template <typename ValueType = default_precision, typename IndexType = int32>
-void strategy_rebuild_helper(Csr<ValueType, IndexType> *result);
+void strategy_rebuild_helper(Csr<ValueType, IndexType>* result);
 
 
 }  // namespace detail
@@ -185,8 +185,8 @@ public:
          * @param mtx_row_ptrs  the row pointers of the matrix
          * @param mtx_srow  the srow of the matrix
          */
-        virtual void process(const Array<index_type> &mtx_row_ptrs,
-                             Array<index_type> *mtx_srow) = 0;
+        virtual void process(const Array<index_type>& mtx_row_ptrs,
+                             Array<index_type>* mtx_srow) = 0;
 
         /**
          * Computes the srow size according to the number of nonzeros.
@@ -223,14 +223,14 @@ public:
          */
         classical() : strategy_type("classical"), max_length_per_row_(0) {}
 
-        void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow) override
+        void process(const Array<index_type>& mtx_row_ptrs,
+                     Array<index_type>* mtx_srow) override
         {
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
             Array<index_type> row_ptrs_host(host_mtx_exec);
             const bool is_mtx_on_host{host_mtx_exec ==
                                       mtx_row_ptrs.get_executor()};
-            const index_type *row_ptrs{};
+            const index_type* row_ptrs{};
             if (is_mtx_on_host) {
                 row_ptrs = mtx_row_ptrs.get_const_data();
             } else {
@@ -273,8 +273,8 @@ public:
          */
         merge_path() : strategy_type("merge_path") {}
 
-        void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow) override
+        void process(const Array<index_type>& mtx_row_ptrs,
+                     Array<index_type>* mtx_srow) override
         {}
 
         int64_t clac_size(const int64_t nnz) override { return 0; }
@@ -298,8 +298,8 @@ public:
          */
         cusparse() : strategy_type("cusparse") {}
 
-        void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow) override
+        void process(const Array<index_type>& mtx_row_ptrs,
+                     Array<index_type>* mtx_srow) override
         {}
 
         int64_t clac_size(const int64_t nnz) override { return 0; }
@@ -322,8 +322,8 @@ public:
          */
         sparselib() : strategy_type("sparselib") {}
 
-        void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow) override
+        void process(const Array<index_type>& mtx_row_ptrs,
+                     Array<index_type>* mtx_srow) override
         {}
 
         int64_t clac_size(const int64_t nnz) override { return 0; }
@@ -399,8 +399,8 @@ public:
               strategy_name_(strategy_name)
         {}
 
-        void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow) override
+        void process(const Array<index_type>& mtx_row_ptrs,
+                     Array<index_type>* mtx_srow) override
         {
             auto nwarps = mtx_srow->get_num_elems();
 
@@ -413,8 +413,8 @@ public:
                                           mtx_row_ptrs.get_executor()};
                 Array<index_type> row_ptrs_host(host_mtx_exec);
                 Array<index_type> srow_host(host_srow_exec);
-                const index_type *row_ptrs{};
-                index_type *srow{};
+                const index_type* row_ptrs{};
+                index_type* srow{};
                 if (is_srow_on_host) {
                     srow = mtx_srow->get_data();
                 } else {
@@ -579,8 +579,8 @@ public:
               max_length_per_row_(0)
         {}
 
-        void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow) override
+        void process(const Array<index_type>& mtx_row_ptrs,
+                     Array<index_type>* mtx_srow) override
         {
             // if the number of stored elements is larger than <nnz_limit> or
             // the maximum number of stored elements per row is larger than
@@ -605,7 +605,7 @@ public:
             const bool is_mtx_on_host{host_mtx_exec ==
                                       mtx_row_ptrs.get_executor()};
             Array<index_type> row_ptrs_host(host_mtx_exec);
-            const index_type *row_ptrs{};
+            const index_type* row_ptrs{};
             if (is_mtx_on_host) {
                 row_ptrs = mtx_row_ptrs.get_const_data();
             } else {
@@ -678,7 +678,7 @@ public:
         index_type max_length_per_row_;
     };
 
-    void convert_to(Csr<ValueType, IndexType> *result) const override
+    void convert_to(Csr<ValueType, IndexType>* result) const override
     {
         bool same_executor = this->get_executor() == result->get_executor();
         // NOTE: as soon as strategies are improved, this can be reverted
@@ -695,7 +695,7 @@ public:
         // END NOTE
     }
 
-    void move_to(Csr<ValueType, IndexType> *result) override
+    void move_to(Csr<ValueType, IndexType>* result) override
     {
         bool same_executor = this->get_executor() == result->get_executor();
         EnableLinOp<Csr>::move_to(result);
@@ -707,59 +707,59 @@ public:
     friend class Csr<next_precision<ValueType>, IndexType>;
 
     void convert_to(
-        Csr<next_precision<ValueType>, IndexType> *result) const override;
+        Csr<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(Csr<next_precision<ValueType>, IndexType> *result) override;
+    void move_to(Csr<next_precision<ValueType>, IndexType>* result) override;
 
-    void convert_to(Dense<ValueType> *other) const override;
+    void convert_to(Dense<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType> *other) override;
+    void move_to(Dense<ValueType>* other) override;
 
-    void convert_to(Coo<ValueType, IndexType> *result) const override;
+    void convert_to(Coo<ValueType, IndexType>* result) const override;
 
-    void move_to(Coo<ValueType, IndexType> *result) override;
+    void move_to(Coo<ValueType, IndexType>* result) override;
 
-    void convert_to(Ell<ValueType, IndexType> *result) const override;
+    void convert_to(Ell<ValueType, IndexType>* result) const override;
 
-    void move_to(Ell<ValueType, IndexType> *result) override;
+    void move_to(Ell<ValueType, IndexType>* result) override;
 
-    void convert_to(Hybrid<ValueType, IndexType> *result) const override;
+    void convert_to(Hybrid<ValueType, IndexType>* result) const override;
 
-    void move_to(Hybrid<ValueType, IndexType> *result) override;
+    void move_to(Hybrid<ValueType, IndexType>* result) override;
 
-    void convert_to(Sellp<ValueType, IndexType> *result) const override;
+    void convert_to(Sellp<ValueType, IndexType>* result) const override;
 
-    void move_to(Sellp<ValueType, IndexType> *result) override;
+    void move_to(Sellp<ValueType, IndexType>* result) override;
 
-    void convert_to(SparsityCsr<ValueType, IndexType> *result) const override;
+    void convert_to(SparsityCsr<ValueType, IndexType>* result) const override;
 
-    void move_to(SparsityCsr<ValueType, IndexType> *result) override;
+    void move_to(SparsityCsr<ValueType, IndexType>* result) override;
 
-    void read(const mat_data &data) override;
+    void read(const mat_data& data) override;
 
-    void write(mat_data &data) const override;
+    void write(mat_data& data) const override;
 
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
     std::unique_ptr<LinOp> permute(
-        const Array<IndexType> *permutation_indices) const override;
+        const Array<IndexType>* permutation_indices) const override;
 
     std::unique_ptr<LinOp> inverse_permute(
-        const Array<IndexType> *inverse_permutation_indices) const override;
+        const Array<IndexType>* inverse_permutation_indices) const override;
 
     std::unique_ptr<LinOp> row_permute(
-        const Array<IndexType> *permutation_indices) const override;
+        const Array<IndexType>* permutation_indices) const override;
 
     std::unique_ptr<LinOp> column_permute(
-        const Array<IndexType> *permutation_indices) const override;
+        const Array<IndexType>* permutation_indices) const override;
 
     std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<IndexType> *inverse_permutation_indices) const override;
+        const Array<IndexType>* inverse_permutation_indices) const override;
 
     std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<IndexType> *inverse_permutation_indices) const override;
+        const Array<IndexType>* inverse_permutation_indices) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
@@ -785,7 +785,7 @@ public:
      *
      * @return the values of the matrix.
      */
-    value_type *get_values() noexcept { return values_.get_data(); }
+    value_type* get_values() noexcept { return values_.get_data(); }
 
     /**
      * @copydoc Csr::get_values()
@@ -794,7 +794,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type *get_const_values() const noexcept
+    const value_type* get_const_values() const noexcept
     {
         return values_.get_const_data();
     }
@@ -804,7 +804,7 @@ public:
      *
      * @return the column indexes of the matrix.
      */
-    index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type* get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
     /**
      * @copydoc Csr::get_col_idxs()
@@ -813,7 +813,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_col_idxs() const noexcept
+    const index_type* get_const_col_idxs() const noexcept
     {
         return col_idxs_.get_const_data();
     }
@@ -823,7 +823,7 @@ public:
      *
      * @return the row pointers of the matrix.
      */
-    index_type *get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
+    index_type* get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
 
     /**
      * @copydoc Csr::get_row_ptrs()
@@ -832,7 +832,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_row_ptrs() const noexcept
+    const index_type* get_const_row_ptrs() const noexcept
     {
         return row_ptrs_.get_const_data();
     }
@@ -842,7 +842,7 @@ public:
      *
      * @return the starting rows.
      */
-    index_type *get_srow() noexcept { return srow_.get_data(); }
+    index_type* get_srow() noexcept { return srow_.get_data(); }
 
     /**
      * @copydoc Csr::get_srow()
@@ -851,7 +851,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_srow() const noexcept
+    const index_type* get_const_srow() const noexcept
     {
         return srow_.get_const_data();
     }
@@ -916,7 +916,7 @@ protected:
      * @param num_nonzeros  number of nonzeros
      * @param strategy  the strategy of CSR
      */
-    Csr(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
+    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
         size_type num_nonzeros = {},
         std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
         : EnableLinOp<Csr>(exec, size),
@@ -949,8 +949,8 @@ protected:
      */
     template <typename ValuesArray, typename ColIdxsArray,
               typename RowPtrsArray>
-    Csr(std::shared_ptr<const Executor> exec, const dim<2> &size,
-        ValuesArray &&values, ColIdxsArray &&col_idxs, RowPtrsArray &&row_ptrs,
+    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
+        ValuesArray&& values, ColIdxsArray&& col_idxs, RowPtrsArray&& row_ptrs,
         std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
         : EnableLinOp<Csr>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
@@ -964,24 +964,24 @@ protected:
         this->make_srow();
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
     // TODO clean this up as soon as we improve strategy_type
     template <typename CsrType>
-    void convert_strategy_helper(CsrType *result) const
+    void convert_strategy_helper(CsrType* result) const
     {
         auto strat = this->get_strategy().get();
         std::shared_ptr<typename CsrType::strategy_type> new_strat;
-        if (dynamic_cast<classical *>(strat)) {
+        if (dynamic_cast<classical*>(strat)) {
             new_strat = std::make_shared<typename CsrType::classical>();
-        } else if (dynamic_cast<merge_path *>(strat)) {
+        } else if (dynamic_cast<merge_path*>(strat)) {
             new_strat = std::make_shared<typename CsrType::merge_path>();
-        } else if (dynamic_cast<cusparse *>(strat)) {
+        } else if (dynamic_cast<cusparse*>(strat)) {
             new_strat = std::make_shared<typename CsrType::cusparse>();
-        } else if (dynamic_cast<sparselib *>(strat)) {
+        } else if (dynamic_cast<sparselib*>(strat)) {
             new_strat = std::make_shared<typename CsrType::sparselib>();
         } else {
             auto rexec = result->get_executor();
@@ -990,7 +990,7 @@ protected:
             auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(rexec);
             auto dpcpp_exec =
                 std::dynamic_pointer_cast<const DpcppExecutor>(rexec);
-            auto lb = dynamic_cast<load_balance *>(strat);
+            auto lb = dynamic_cast<load_balance*>(strat);
             if (cuda_exec) {
                 if (lb) {
                     new_strat =
@@ -1105,7 +1105,7 @@ namespace detail {
  * @param result  the csr matrix.
  */
 template <typename ValueType, typename IndexType>
-void strategy_rebuild_helper(Csr<ValueType, IndexType> *result)
+void strategy_rebuild_helper(Csr<ValueType, IndexType>* result)
 {
     using load_balance = typename Csr<ValueType, IndexType>::load_balance;
     using automatical = typename Csr<ValueType, IndexType>::automatical;

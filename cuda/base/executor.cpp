@@ -63,12 +63,12 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
     return std::shared_ptr<CudaExecutor>(
         new CudaExecutor(device_id, std::move(master), device_reset,
                          alloc_mode),
-        [device_id](CudaExecutor *exec) {
+        [device_id](CudaExecutor* exec) {
             auto device_reset = exec->get_device_reset();
             std::lock_guard<std::mutex> guard(
                 nvidia_device::get_mutex(device_id));
             delete exec;
-            auto &num_execs = nvidia_device::get_num_execs(device_id);
+            auto& num_execs = nvidia_device::get_num_execs(device_id);
             num_execs--;
             if (!num_execs && device_reset) {
                 cuda::device_guard g(device_id);
@@ -78,7 +78,7 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 }
 
 
-void CudaExecutor::populate_exec_info(const MachineTopology *mach_topo)
+void CudaExecutor::populate_exec_info(const MachineTopology* mach_topo)
 {
     if (this->get_device_id() < this->get_num_devices() &&
         this->get_device_id() >= 0) {
@@ -98,8 +98,8 @@ void CudaExecutor::populate_exec_info(const MachineTopology *mach_topo)
 }
 
 
-void OmpExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void OmpExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
 {
     if (num_bytes > 0) {
         cuda::device_guard g(dest->get_device_id());
@@ -109,7 +109,7 @@ void OmpExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
 }
 
 
-void CudaExecutor::raw_free(void *ptr) const noexcept
+void CudaExecutor::raw_free(void* ptr) const noexcept
 {
     cuda::device_guard g(this->get_device_id());
     auto error_code = cudaFree(ptr);
@@ -127,9 +127,9 @@ void CudaExecutor::raw_free(void *ptr) const noexcept
 }
 
 
-void *CudaExecutor::raw_alloc(size_type num_bytes) const
+void* CudaExecutor::raw_alloc(size_type num_bytes) const
 {
-    void *dev_ptr = nullptr;
+    void* dev_ptr = nullptr;
     cuda::device_guard g(this->get_device_id());
     int error_code = 0;
     if (this->alloc_mode_ == allocation_mode::unified_host) {
@@ -150,8 +150,8 @@ void *CudaExecutor::raw_alloc(size_type num_bytes) const
 }
 
 
-void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
+void CudaExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
 {
     if (num_bytes > 0) {
         cuda::device_guard g(this->get_device_id());
@@ -161,8 +161,8 @@ void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
 }
 
 
-void CudaExecutor::raw_copy_to(const HipExecutor *dest, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
+void CudaExecutor::raw_copy_to(const HipExecutor* dest, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
 {
 #if GINKGO_HIP_PLATFORM_NVCC == 1
     if (num_bytes > 0) {
@@ -177,15 +177,15 @@ void CudaExecutor::raw_copy_to(const HipExecutor *dest, size_type num_bytes,
 }
 
 
-void CudaExecutor::raw_copy_to(const DpcppExecutor *dest, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
+void CudaExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
 {
     GKO_NOT_SUPPORTED(dest);
 }
 
 
-void CudaExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
+void CudaExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
 {
     if (num_bytes > 0) {
         cuda::device_guard g(this->get_device_id());
@@ -203,7 +203,7 @@ void CudaExecutor::synchronize() const
 }
 
 
-void CudaExecutor::run(const Operation &op) const
+void CudaExecutor::run(const Operation& op) const
 {
     this->template log<log::Logger::operation_launched>(this, &op);
     cuda::device_guard g(this->get_device_id());
