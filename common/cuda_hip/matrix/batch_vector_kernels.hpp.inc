@@ -40,8 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 template <typename ValueType>
 __device__ __forceinline__ void single_copy(const int num_rows,
-                                            const ValueType *const in,
-                                            ValueType *const out)
+                                            const ValueType* const in,
+                                            ValueType* const out)
 {
     for (int iz = threadIdx.x; iz < num_rows; iz += blockDim.x) {
         out[iz] = in[iz];
@@ -51,7 +51,7 @@ __device__ __forceinline__ void single_copy(const int num_rows,
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void single_copy(
     const size_type num_batch, const int num_rows,
-    const ValueType *const __restrict__ in, ValueType *const __restrict__ out)
+    const ValueType* const __restrict__ in, ValueType* const __restrict__ out)
 {
     for (size_type ibatch = blockIdx.x; ibatch < num_batch;
          ibatch += gridDim.x) {
@@ -74,8 +74,8 @@ __global__ __launch_bounds__(default_block_size) void single_copy(
 template <typename ValueType>
 __device__ __forceinline__ void single_add_scaled(const int num_rows,
                                                   const ValueType alpha,
-                                                  const ValueType *const x,
-                                                  ValueType *const y)
+                                                  const ValueType* const x,
+                                                  ValueType* const y)
 {
     for (int li = threadIdx.x; li < num_rows; li += blockDim.x) {
         y[li] += alpha * x[li];
@@ -85,8 +85,8 @@ __device__ __forceinline__ void single_add_scaled(const int num_rows,
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void single_add_scaled(
     const size_type num_batch, const int num_rows,
-    const ValueType *const __restrict__ alpha,
-    const ValueType *const __restrict__ x, ValueType *const __restrict__ y)
+    const ValueType* const __restrict__ alpha,
+    const ValueType* const __restrict__ x, ValueType* const __restrict__ y)
 {
     for (size_type ibatch = blockIdx.x; ibatch < num_batch;
          ibatch += gridDim.x) {
@@ -105,8 +105,8 @@ __global__ __launch_bounds__(default_block_size) void single_add_scaled(
  */
 template <typename ValueType>
 __device__ __forceinline__ void single_compute_norm2(
-    group::thread_block_tile<config::warp_size> &warp_grp, const int num_rows,
-    const ValueType *const x, remove_complex<ValueType> &result)
+    group::thread_block_tile<config::warp_size>& warp_grp, const int num_rows,
+    const ValueType* const x, remove_complex<ValueType>& result)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     real_type val = zero<real_type>();
@@ -130,8 +130,8 @@ __device__ __forceinline__ void single_compute_norm2(
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void single_compute_norm2(
     const size_type num_batch, const int num_rows,
-    const ValueType *const __restrict__ x,
-    remove_complex<ValueType> *const __restrict__ result)
+    const ValueType* const __restrict__ x,
+    remove_complex<ValueType>* const __restrict__ result)
 {
     auto warp_grp =
         group::tiled_partition<config::warp_size>(group::this_thread_block());
@@ -153,8 +153,8 @@ __global__ __launch_bounds__(default_block_size) void single_compute_norm2(
  */
 template <typename ValueType>
 __device__ __forceinline__ void single_compute_dot_product(
-    group::thread_block_tile<config::warp_size> &warp_grp, const int num_rows,
-    const ValueType *const x, const ValueType *const y, ValueType &result)
+    group::thread_block_tile<config::warp_size>& warp_grp, const int num_rows,
+    const ValueType* const x, const ValueType* const y, ValueType& result)
 {
     ValueType val = zero<ValueType>();
 

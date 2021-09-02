@@ -36,15 +36,15 @@ namespace {
 
 template <typename BatchMatrixType_entry, typename ValueType>
 __device__ __forceinline__ void initialize(
-    group::thread_block_tile<config::warp_size> &warp_grp, const int num_rows,
-    const BatchMatrixType_entry &a_global_entry,
-    const ValueType *const b_global_entry,
-    const ValueType *const x_global_entry, ValueType &rho_old, ValueType &omega,
-    ValueType &alpha, ValueType *const x_shared_entry,
-    ValueType *const r_shared_entry, ValueType *const r_hat_shared_entry,
-    ValueType *const p_shared_entry, ValueType *const v_shared_entry,
-    typename gko::remove_complex<ValueType> &rhs_norm,
-    typename gko::remove_complex<ValueType> &res_norm)
+    group::thread_block_tile<config::warp_size>& warp_grp, const int num_rows,
+    const BatchMatrixType_entry& a_global_entry,
+    const ValueType* const b_global_entry,
+    const ValueType* const x_global_entry, ValueType& rho_old, ValueType& omega,
+    ValueType& alpha, ValueType* const x_shared_entry,
+    ValueType* const r_shared_entry, ValueType* const r_hat_shared_entry,
+    ValueType* const p_shared_entry, ValueType* const v_shared_entry,
+    typename gko::remove_complex<ValueType>& rhs_norm,
+    typename gko::remove_complex<ValueType>& res_norm)
 {
     rho_old = one<ValueType>();
     omega = one<ValueType>();
@@ -81,10 +81,10 @@ __device__ __forceinline__ void initialize(
 
 template <typename ValueType>
 __device__ __forceinline__ void update_p(
-    const int num_rows, const ValueType &rho_new, const ValueType &rho_old,
-    const ValueType &alpha, const ValueType &omega,
-    const ValueType *const r_shared_entry,
-    const ValueType *const v_shared_entry, ValueType *const p_shared_entry)
+    const int num_rows, const ValueType& rho_new, const ValueType& rho_old,
+    const ValueType& alpha, const ValueType& omega,
+    const ValueType* const r_shared_entry,
+    const ValueType* const v_shared_entry, ValueType* const p_shared_entry)
 {
     for (int r = threadIdx.x; r < num_rows; r += blockDim.x) {
         const ValueType beta = (rho_new / rho_old) * (alpha / omega);
@@ -96,9 +96,9 @@ __device__ __forceinline__ void update_p(
 
 template <typename ValueType>
 __device__ __forceinline__ void compute_alpha(
-    group::thread_block_tile<config::warp_size> &warp_grp, const int num_rows,
-    const ValueType &rho_new, const ValueType *const r_hat_shared_entry,
-    const ValueType *const v_shared_entry, ValueType &alpha)
+    group::thread_block_tile<config::warp_size>& warp_grp, const int num_rows,
+    const ValueType& rho_new, const ValueType* const r_hat_shared_entry,
+    const ValueType* const v_shared_entry, ValueType& alpha)
 {
     if (threadIdx.x / config::warp_size == 0) {
         single_compute_dot_product(warp_grp, num_rows, r_hat_shared_entry,
@@ -113,10 +113,10 @@ __device__ __forceinline__ void compute_alpha(
 
 template <typename ValueType>
 __device__ __forceinline__ void update_s(const int num_rows,
-                                         const ValueType *const r_shared_entry,
-                                         const ValueType &alpha,
-                                         const ValueType *const v_shared_entry,
-                                         ValueType *const s_shared_entry)
+                                         const ValueType* const r_shared_entry,
+                                         const ValueType& alpha,
+                                         const ValueType* const v_shared_entry,
+                                         ValueType* const s_shared_entry)
 {
     for (int r = threadIdx.x; r < num_rows; r += blockDim.x) {
         s_shared_entry[r] = r_shared_entry[r] - alpha * v_shared_entry[r];
@@ -126,9 +126,9 @@ __device__ __forceinline__ void update_s(const int num_rows,
 
 template <typename ValueType>
 __device__ __forceinline__ void compute_omega(
-    group::thread_block_tile<config::warp_size> &warp_grp, const int num_rows,
-    const ValueType *const t_shared_entry,
-    const ValueType *const s_shared_entry, ValueType &temp, ValueType &omega)
+    group::thread_block_tile<config::warp_size>& warp_grp, const int num_rows,
+    const ValueType* const t_shared_entry,
+    const ValueType* const s_shared_entry, ValueType& temp, ValueType& omega)
 {
     if (threadIdx.x / config::warp_size == 0) {
         single_compute_dot_product(warp_grp, num_rows, t_shared_entry,
@@ -146,11 +146,11 @@ __device__ __forceinline__ void compute_omega(
 
 template <typename ValueType>
 __device__ __forceinline__ void update_x_and_r(
-    const int num_rows, const ValueType *const p_hat_shared_entry,
-    const ValueType *const s_hat_shared_entry, const ValueType &alpha,
-    const ValueType &omega, const ValueType *const s_shared_entry,
-    const ValueType *const t_shared_entry, ValueType *const x_shared_entry,
-    ValueType *const r_shared_entry)
+    const int num_rows, const ValueType* const p_hat_shared_entry,
+    const ValueType* const s_hat_shared_entry, const ValueType& alpha,
+    const ValueType& omega, const ValueType* const s_shared_entry,
+    const ValueType* const t_shared_entry, ValueType* const x_shared_entry,
+    ValueType* const r_shared_entry)
 {
     for (int r = threadIdx.x; r < num_rows; r += blockDim.x) {
         x_shared_entry[r] = x_shared_entry[r] + alpha * p_hat_shared_entry[r] +
@@ -162,8 +162,8 @@ __device__ __forceinline__ void update_x_and_r(
 
 template <typename ValueType>
 __device__ __forceinline__ void update_x_middle(
-    const int num_rows, const ValueType &alpha,
-    const ValueType *const p_hat_shared_entry, ValueType *const x_shared_entry)
+    const int num_rows, const ValueType& alpha,
+    const ValueType* const p_hat_shared_entry, ValueType* const x_shared_entry)
 {
     for (int r = threadIdx.x; r < num_rows; r += blockDim.x) {
         x_shared_entry[r] = x_shared_entry[r] + alpha * p_hat_shared_entry[r];
@@ -183,8 +183,8 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
                              LogType logger, PrecType prec_shared,
                              const BatchMatrixType a, const size_type stride,
                              const int nrhs,
-                             const ValueType *const __restrict__ b,
-                             ValueType *const __restrict__ x)
+                             const ValueType* const __restrict__ b,
+                             ValueType* const __restrict__ x)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const auto nbatch = a.num_batch;
@@ -200,16 +200,16 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
 #ifdef GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         extern __shared__ char local_mem_sh[];
-        ValueType *const r_sh = reinterpret_cast<ValueType *>(local_mem_sh);
-        ValueType *const r_hat_sh = r_sh + shared_gap;
-        ValueType *const p_sh = r_hat_sh + shared_gap;
-        ValueType *const p_hat_sh = p_sh + shared_gap;
-        ValueType *const v_sh = p_hat_sh + shared_gap;
-        ValueType *const s_sh = v_sh + shared_gap;
-        ValueType *const s_hat_sh = s_sh + shared_gap;
-        ValueType *const t_sh = s_hat_sh + shared_gap;
-        ValueType *const x_sh = t_sh + shared_gap;
-        ValueType *const prec_work_sh = x_sh + shared_gap;
+        ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
+        ValueType* const r_hat_sh = r_sh + shared_gap;
+        ValueType* const p_sh = r_hat_sh + shared_gap;
+        ValueType* const p_hat_sh = p_sh + shared_gap;
+        ValueType* const v_sh = p_hat_sh + shared_gap;
+        ValueType* const s_sh = v_sh + shared_gap;
+        ValueType* const s_hat_sh = s_sh + shared_gap;
+        ValueType* const t_sh = s_hat_sh + shared_gap;
+        ValueType* const x_sh = t_sh + shared_gap;
+        ValueType* const prec_work_sh = x_sh + shared_gap;
 #else
         __shared__ ValueType r_sh[batch_config<ValueType>::max_num_rows];
         __shared__ ValueType r_hat_sh[batch_config<ValueType>::max_num_rows];
@@ -232,9 +232,9 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
         __shared__ real_type norms_res_sh[1];
 
         const auto a_global_entry = gko::batch::batch_entry(a, ibatch);
-        const ValueType *const b_entry_ptr =
+        const ValueType* const b_entry_ptr =
             gko::batch::batch_entry_ptr(b, 1, nrows, ibatch);
-        ValueType *const x_gl_entry_ptr =
+        ValueType* const x_gl_entry_ptr =
             gko::batch::batch_entry_ptr(x, 1, nrows, ibatch);
 
         // generate preconditioner
