@@ -84,14 +84,14 @@ using size_type = gko::size_type;
 // calling it
 //
 // Overload for the Suitesparse matrices
-void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
-                const gko::matrix_data<etype> &data, const batch_vec<etype> *b,
-                const batch_vec<etype> *x, const batch_vec<etype> *answer,
-                rapidjson::Value &test_case,
-                rapidjson::MemoryPoolAllocator<> &allocator)
+void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
+                const gko::matrix_data<etype>& data, const batch_vec<etype>* b,
+                const batch_vec<etype>* x, const batch_vec<etype>* answer,
+                rapidjson::Value& test_case,
+                rapidjson::MemoryPoolAllocator<>& allocator)
 {
     try {
-        auto &spmv_case = test_case["spmv"];
+        auto& spmv_case = test_case["spmv"];
         add_or_set_member(spmv_case, format_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
@@ -132,16 +132,16 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             exec->synchronize();
         }
 
-        const int num_repeats = read_num_repetitions(FLAGS_repetitions);
+        IterationControl ic{get_timer(exec, FLAGS_gpu_timer)};
 
         // tuning run
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
-        auto &format_case = spmv_case[format_name];
+        auto& format_case = spmv_case[format_name];
         if (!format_case.HasMember("tuning")) {
             format_case.AddMember(
                 "tuning", rapidjson::Value(rapidjson::kObjectType), allocator);
         }
-        auto &tuning_case = format_case["tuning"];
+        auto& tuning_case = format_case["tuning"];
         add_or_set_member(tuning_case, "time",
                           rapidjson::Value(rapidjson::kArrayType), allocator);
         add_or_set_member(tuning_case, "values",
@@ -158,7 +158,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             // variable is used.
             gko::_tuned_value = val;
             auto tuning_timer = get_timer(exec, FLAGS_gpu_timer);
-            for (int i = 0; i < num_repeats; i++) {
+            for (auto status : ic.run(false)) {
                 auto x_clone = clone(x);
                 exec->synchronize();
                 tuning_timer->tic();
@@ -176,7 +176,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
 
         // timed run
         auto timer = get_timer(exec, FLAGS_gpu_timer);
-        for (int i = 0; i < num_repeats; i++) {
+        for (auto status : ic.run(false)) {
             auto x_clone = clone(x);
             exec->synchronize();
             timer->tic();
@@ -190,7 +190,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
 
         // compute and write benchmark data
         add_or_set_member(spmv_case[format_name], "completed", true, allocator);
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
         add_or_set_member(test_case["spmv"][format_name], "completed", false,
                           allocator);
         std::cerr << "Error when processing test case " << test_case << "\n"
@@ -202,14 +202,14 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
 // calling it
 //
 // Overload with the reading a batch matrix with std::vector<matrix_data>
-void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
-                const std::vector<gko::matrix_data<etype>> &data,
-                const batch_vec<etype> *b, const batch_vec<etype> *x,
-                const batch_vec<etype> *answer, rapidjson::Value &test_case,
-                rapidjson::MemoryPoolAllocator<> &allocator)
+void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
+                const std::vector<gko::matrix_data<etype>>& data,
+                const batch_vec<etype>* b, const batch_vec<etype>* x,
+                const batch_vec<etype>* answer, rapidjson::Value& test_case,
+                rapidjson::MemoryPoolAllocator<>& allocator)
 {
     try {
-        auto &spmv_case = test_case["spmv"];
+        auto& spmv_case = test_case["spmv"];
         add_or_set_member(spmv_case, format_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
@@ -238,16 +238,16 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             exec->synchronize();
         }
 
-        const int num_repeats = read_num_repetitions(FLAGS_repetitions);
+        IterationControl ic{get_timer(exec, FLAGS_gpu_timer)};
 
         // tuning run
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
-        auto &format_case = spmv_case[format_name];
+        auto& format_case = spmv_case[format_name];
         if (!format_case.HasMember("tuning")) {
             format_case.AddMember(
                 "tuning", rapidjson::Value(rapidjson::kObjectType), allocator);
         }
-        auto &tuning_case = format_case["tuning"];
+        auto& tuning_case = format_case["tuning"];
         add_or_set_member(tuning_case, "time",
                           rapidjson::Value(rapidjson::kArrayType), allocator);
         add_or_set_member(tuning_case, "values",
@@ -264,7 +264,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
             // variable is used.
             gko::_tuned_value = val;
             auto tuning_timer = get_timer(exec, FLAGS_gpu_timer);
-            for (int i = 0; i < num_repeats; i++) {
+            for (auto status : ic.run(false)) {
                 auto x_clone = clone(x);
                 exec->synchronize();
                 tuning_timer->tic();
@@ -282,7 +282,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
 
         // timed run
         auto timer = get_timer(exec, FLAGS_gpu_timer);
-        for (int i = 0; i < num_repeats; i++) {
+        for (auto status : ic.run(false)) {
             auto x_clone = clone(x);
             exec->synchronize();
             timer->tic();
@@ -296,7 +296,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
 
         // compute and write benchmark data
         add_or_set_member(spmv_case[format_name], "completed", true, allocator);
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
         add_or_set_member(test_case["spmv"][format_name], "completed", false,
                           allocator);
         std::cerr << "Error when processing test case " << test_case << "\n"
@@ -305,7 +305,7 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     std::string header =
         "A benchmark for measuring performance of Ginkgo's spmv.\n";
@@ -334,9 +334,9 @@ int main(int argc, char *argv[])
         }
     }
 
-    auto &allocator = test_cases.GetAllocator();
+    auto& allocator = test_cases.GetAllocator();
 
-    for (auto &test_case : test_cases.GetArray()) {
+    for (auto& test_case : test_cases.GetArray()) {
         try {
             // set up benchmark
             if (FLAGS_using_suite_sparse) {
@@ -349,10 +349,10 @@ int main(int argc, char *argv[])
                                     rapidjson::Value(rapidjson::kObjectType),
                                     allocator);
             }
-            auto &spmv_case = test_case["spmv"];
+            auto& spmv_case = test_case["spmv"];
             if (!FLAGS_overwrite &&
                 all_of(begin(formats), end(formats),
-                       [&spmv_case](const std::string &s) {
+                       [&spmv_case](const std::string& s) {
                            return spmv_case.HasMember(s.c_str());
                        })) {
                 continue;
@@ -452,7 +452,7 @@ int main(int argc, char *argv[])
                 system_matrix->apply(lend(b), lend(answer));
                 exec->synchronize();
             }
-            for (const auto &format_name : formats) {
+            for (const auto& format_name : formats) {
                 if (FLAGS_using_suite_sparse) {
                     apply_spmv(format_name.c_str(), exec, data[0], lend(b),
                                lend(x), lend(answer), test_case, allocator);
@@ -464,7 +464,7 @@ int main(int argc, char *argv[])
                           << test_cases << std::endl;
                 backup_results(test_cases);
             }
-        } catch (const std::exception &e) {
+        } catch (const std::exception& e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
         }
