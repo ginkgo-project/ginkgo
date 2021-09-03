@@ -131,16 +131,16 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const BatchLinOp *b, BatchLinOp *x) const override;
+    void apply_impl(const BatchLinOp* b, BatchLinOp* x) const override;
 
-    void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
-                    const BatchLinOp *beta, BatchLinOp *x) const override;
+    void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
+                    const BatchLinOp* beta, BatchLinOp* x) const override;
 
     explicit BatchCg(std::shared_ptr<const Executor> exec)
         : EnableBatchLinOp<BatchCg>(std::move(exec))
     {}
 
-    explicit BatchCg(const Factory *factory,
+    explicit BatchCg(const Factory* factory,
                      std::shared_ptr<const BatchLinOp> system_matrix)
         : EnableBatchLinOp<BatchCg>(factory->get_executor(),
                                     gko::transpose(system_matrix->get_size())),
