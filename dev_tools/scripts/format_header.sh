@@ -4,6 +4,7 @@ CLANG_FORMAT=${CLANG_FORMAT:="clang-format"}
 
 convert_header () {
     local regex="^(#include )(<|\")(.*)(\"|>)$"
+    local jacobi_regex="^(cuda|hip)\/preconditioner\/jacobi_common(\.hip)?\.hpp"
     if [[ $@ =~ ${regex} ]]; then
         header_file="${BASH_REMATCH[3]}"
         if [ -f "${header_file}" ]; then
@@ -13,6 +14,8 @@ convert_header () {
                 echo "#include \"${header_file}\""
             fi
         elif [ "${header_file}" = "matrices/config.hpp" ]; then
+            echo "#include \"${header_file}\""
+	elif [[ "${header_file}" =~ ${jacobi_regex} ]]; then
             echo "#include \"${header_file}\""
         else
             echo "#include <${header_file}>"
