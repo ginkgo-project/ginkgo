@@ -319,9 +319,9 @@ double get_relative_error(const MatrixData1& first, const MatrixData2& second)
 
 template <typename MatrixData1, typename MatrixData2>
 ::testing::AssertionResult batch_matrices_near_impl(
-    const std::string &first_expression, const std::string &second_expression,
-    const std::string &tolerance_expression, const MatrixData1 &first,
-    const MatrixData2 &second, double tolerance)
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression, const MatrixData1& first,
+    const MatrixData2& second, double tolerance)
 {
     std::vector<double> err;
     std::vector<bool> err_flag;
@@ -342,7 +342,7 @@ template <typename MatrixData1, typename MatrixData2>
     }
 
     auto bat = std::find_if(err.begin(), err.end(),
-                            [&](double &e) { return !(e <= tolerance); });
+                            [&](double& e) { return !(e <= tolerance); });
     if (bat == err.end()) {
         return ::testing::AssertionSuccess();
     } else {
@@ -711,9 +711,9 @@ template <>
  */
 template <typename LinOp1, typename LinOp2>
 ::testing::AssertionResult batch_matrices_near(
-    const std::string &first_expression, const std::string &second_expression,
-    const std::string &tolerance_expression, const LinOp1 *first,
-    const LinOp2 *second, double tolerance)
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression, const LinOp1* first,
+    const LinOp2* second, double tolerance)
 {
     auto exec = first->get_executor()->get_master();
     std::vector<
@@ -749,8 +749,8 @@ template <typename LinOp1, typename LinOp2>
 
 template <typename LinOp1, typename T>
 ::testing::AssertionResult batch_matrices_near(
-    const std::string &first_expression, const std::string &second_expression,
-    const std::string &tolerance_expression, const LinOp1 *first,
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression, const LinOp1* first,
     std::initializer_list<std::initializer_list<T>> second, double tolerance)
 {
     auto second_mtx =
@@ -1019,17 +1019,17 @@ namespace detail {
 
 
 template <typename T>
-const std::initializer_list<std::initializer_list<std::initializer_list<T>>> &l(
-    const std::initializer_list<std::initializer_list<std::initializer_list<T>>>
-        &list)
+const std::initializer_list<std::initializer_list<std::initializer_list<T>>>&
+l(const std::initializer_list<std::initializer_list<std::initializer_list<T>>>&
+      list)
 {
     return list;
 }
 
 
 template <typename T>
-const std::initializer_list<std::initializer_list<T>> &l(
-    const std::initializer_list<std::initializer_list<T>> &list)
+const std::initializer_list<std::initializer_list<T>>& l(
+    const std::initializer_list<std::initializer_list<T>>& list)
 {
     return list;
 }
