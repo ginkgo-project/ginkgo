@@ -100,7 +100,7 @@ TYPED_TEST(BatchCg, FactoryCreatesCorrectSolver)
         ASSERT_EQ(this->solver->get_size().at(i),
                   gko::dim<2>(this->nrows, this->nrows));
     }
-    auto batchcg_solver = static_cast<Solver *>(this->solver.get());
+    auto batchcg_solver = static_cast<Solver*>(this->solver.get());
     ASSERT_NE(batchcg_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(batchcg_solver->get_system_matrix(), this->mtx);
 }
@@ -118,8 +118,8 @@ TYPED_TEST(BatchCg, CanBeCopied)
         ASSERT_EQ(copy->get_size().at(i),
                   gko::dim<2>(this->nrows, this->nrows));
     }
-    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    const auto copy_batch_mtx = static_cast<const Mtx *>(copy_mtx.get());
+    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
+    const auto copy_batch_mtx = static_cast<const Mtx*>(copy_mtx.get());
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
 }
 
@@ -136,8 +136,8 @@ TYPED_TEST(BatchCg, CanBeMoved)
         ASSERT_EQ(copy->get_size().at(i),
                   gko::dim<2>(this->nrows, this->nrows));
     }
-    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    const auto copy_batch_mtx = static_cast<const Mtx *>(copy_mtx.get());
+    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
+    const auto copy_batch_mtx = static_cast<const Mtx*>(copy_mtx.get());
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
 }
 
@@ -152,8 +152,8 @@ TYPED_TEST(BatchCg, CanBeCloned)
         ASSERT_EQ(clone->get_size().at(i),
                   gko::dim<2>(this->nrows, this->nrows));
     }
-    auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
-    const auto clone_batch_mtx = static_cast<const Mtx *>(clone_mtx.get());
+    auto clone_mtx = static_cast<Solver*>(clone.get())->get_system_matrix();
+    const auto clone_batch_mtx = static_cast<const Mtx*>(clone_mtx.get());
     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), clone_batch_mtx, 0.0);
 }
 
@@ -167,7 +167,7 @@ TYPED_TEST(BatchCg, CanBeCleared)
     ASSERT_EQ(this->solver->get_num_batch_entries(), 0);
     ASSERT_EQ(this->solver->get_size().get_num_batch_entries(), 0);
     auto solver_mtx =
-        static_cast<Solver *>(this->solver.get())->get_system_matrix();
+        static_cast<Solver*>(this->solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
@@ -243,7 +243,7 @@ TYPED_TEST(BatchCg, CanSetScalingVectors)
     solver->batch_scale(left_scale.get(), right_scale.get());
 
     auto s_solver =
-        dynamic_cast<gko::EnableBatchScaledSolver<value_type> *>(solver.get());
+        dynamic_cast<gko::EnableBatchScaledSolver<value_type>*>(solver.get());
     ASSERT_TRUE(s_solver);
     ASSERT_EQ(s_solver->get_left_scaling_vector(), left_scale.get());
     ASSERT_EQ(s_solver->get_right_scaling_vector(), right_scale.get());
