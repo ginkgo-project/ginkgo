@@ -60,8 +60,7 @@ std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::transpose() const
     return build()
         .with_preconditioner(parameters_.preconditioner)
         .with_max_iterations(parameters_.max_iterations)
-        .with_rel_residual_tol(parameters_.rel_residual_tol)
-        .with_abs_residual_tol(parameters_.abs_residual_tol)
+        .with_residual_tol(parameters_.residual_tol)
         .with_restart(parameters_.restart)
         .with_tolerance_type(parameters_.tolerance_type)
         .on(this->get_executor())
@@ -76,8 +75,7 @@ std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::conj_transpose() const
     return build()
         .with_preconditioner(parameters_.preconditioner)
         .with_max_iterations(parameters_.max_iterations)
-        .with_rel_residual_tol(parameters_.rel_residual_tol)
-        .with_abs_residual_tol(parameters_.abs_residual_tol)
+        .with_residual_tol(parameters_.residual_tol)
         .with_restart(parameters_.restart)
         .with_tolerance_type(parameters_.tolerance_type)
         .on(this->get_executor())
@@ -87,7 +85,7 @@ std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void BatchGmres<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
+void BatchGmres<ValueType>::apply_impl(const BatchLinOp* b, BatchLinOp* x) const
 {
     using Mtx = matrix::BatchCsr<ValueType>;
     using Vector = matrix::BatchDense<ValueType>;
@@ -96,15 +94,15 @@ void BatchGmres<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
     auto exec = this->get_executor();
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
-    const auto acsr = dynamic_cast<const Mtx *>(system_matrix_.get());
+    const auto acsr = dynamic_cast<const Mtx*>(system_matrix_.get());
     if (!acsr) {
         GKO_NOT_SUPPORTED(system_matrix_);
     }
 
     auto a_scaled_smart = Mtx::create(exec);
     auto b_scaled_smart = Vector::create(exec);
-    const Mtx *a_scaled{};
-    const Vector *b_scaled{};
+    const Mtx* a_scaled{};
+    const Vector* b_scaled{};
     const bool to_scale =
         this->get_left_scaling_vector() && this->get_right_scaling_vector();
     if (to_scale) {
@@ -120,14 +118,10 @@ void BatchGmres<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
         b_scaled = dense_b;
     }
 
-    const auto tol =
-        parameters_.tolerance_type == gko::stop::batch::ToleranceType::absolute
-            ? parameters_.abs_residual_tol
-            : parameters_.rel_residual_tol;
-
     const kernels::batch_gmres::BatchGmresOptions<remove_complex<ValueType>>
-        opts{parameters_.preconditioner, parameters_.max_iterations, tol,
-             parameters_.restart, parameters_.tolerance_type};
+        opts{parameters_.preconditioner, parameters_.max_iterations,
+             parameters_.residual_tol, parameters_.restart,
+             parameters_.tolerance_type};
 
     log::BatchLogData<ValueType> logdata;
     // allocate logging arrays assuming uniform size batch
@@ -154,10 +148,10 @@ void BatchGmres<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
 
 
 template <typename ValueType>
-void BatchGmres<ValueType>::apply_impl(const BatchLinOp *alpha,
-                                       const BatchLinOp *b,
-                                       const BatchLinOp *beta,
-                                       BatchLinOp *x) const
+void BatchGmres<ValueType>::apply_impl(const BatchLinOp* alpha,
+                                       const BatchLinOp* b,
+                                       const BatchLinOp* beta,
+                                       BatchLinOp* x) const
 
 {
     auto dense_x = as<matrix::BatchDense<ValueType>>(x);

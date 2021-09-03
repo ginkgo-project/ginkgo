@@ -115,14 +115,9 @@ public:
 
 
         /**
-         * Absolute residual tolerance.
+         * Residual tolerance.
          */
-        real_type GKO_FACTORY_PARAMETER_SCALAR(abs_residual_tol, 1e-11);
-
-        /**
-         * Relative residual tolerance.
-         */
-        real_type GKO_FACTORY_PARAMETER_SCALAR(rel_residual_tol, 1e-6);
+        real_type GKO_FACTORY_PARAMETER_SCALAR(residual_tol, 1e-11);
 
 
         /**
@@ -135,16 +130,16 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const BatchLinOp *b, BatchLinOp *x) const override;
+    void apply_impl(const BatchLinOp* b, BatchLinOp* x) const override;
 
-    void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
-                    const BatchLinOp *beta, BatchLinOp *x) const override;
+    void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
+                    const BatchLinOp* beta, BatchLinOp* x) const override;
 
     explicit BatchBicgstab(std::shared_ptr<const Executor> exec)
         : EnableBatchLinOp<BatchBicgstab>(std::move(exec))
     {}
 
-    explicit BatchBicgstab(const Factory *factory,
+    explicit BatchBicgstab(const Factory* factory,
                            std::shared_ptr<const BatchLinOp> system_matrix)
         : EnableBatchLinOp<BatchBicgstab>(
               factory->get_executor(),

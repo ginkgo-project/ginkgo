@@ -116,16 +116,10 @@ public:
          */
         int GKO_FACTORY_PARAMETER_SCALAR(max_iterations, 100);
 
-
         /**
-         * Absolute residual tolerance.
+         * Residual tolerance.
          */
-        real_type GKO_FACTORY_PARAMETER_SCALAR(abs_residual_tol, 1e-11);
-
-        /**
-         * Relative residual tolerance.
-         */
-        real_type GKO_FACTORY_PARAMETER_SCALAR(rel_residual_tol, 1e-6);
+        real_type GKO_FACTORY_PARAMETER_SCALAR(residual_tol, 1e-6);
 
         /**
          * To specify which tolerance is to be considered.
@@ -137,16 +131,16 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const BatchLinOp *b, BatchLinOp *x) const override;
+    void apply_impl(const BatchLinOp* b, BatchLinOp* x) const override;
 
-    void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
-                    const BatchLinOp *beta, BatchLinOp *x) const override;
+    void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
+                    const BatchLinOp* beta, BatchLinOp* x) const override;
 
     explicit BatchCg(std::shared_ptr<const Executor> exec)
         : EnableBatchLinOp<BatchCg>(std::move(exec))
     {}
 
-    explicit BatchCg(const Factory *factory,
+    explicit BatchCg(const Factory* factory,
                      std::shared_ptr<const BatchLinOp> system_matrix)
         : EnableBatchLinOp<BatchCg>(factory->get_executor(),
                                     gko::transpose(system_matrix->get_size())),

@@ -112,7 +112,7 @@ public:
      *
      * @param other  the new restart number
      */
-    void set_restart_number(const int &other) { parameters_.restart = other; }
+    void set_restart_number(const int& other) { parameters_.restart = other; }
 
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -129,14 +129,9 @@ public:
         int GKO_FACTORY_PARAMETER_SCALAR(max_iterations, 100);
 
         /**
-         * Absolute residual tolerance.
+         * Residual tolerance.
          */
-        real_type GKO_FACTORY_PARAMETER_SCALAR(abs_residual_tol, 1e-11);
-
-        /**
-         * Relative residual tolerance.
-         */
-        real_type GKO_FACTORY_PARAMETER_SCALAR(rel_residual_tol, 1e-6);
+        real_type GKO_FACTORY_PARAMETER_SCALAR(residual_tol, 1e-6);
 
         /**
          * Restart parameter for Gmres
@@ -144,7 +139,7 @@ public:
         int GKO_FACTORY_PARAMETER_SCALAR(restart, 10);
 
         /**
-         * To specify which tolerance is to be considered.
+         * Specify type of tolerance to be considered.
          */
         ::gko::stop::batch::ToleranceType GKO_FACTORY_PARAMETER_SCALAR(
             tolerance_type, ::gko::stop::batch::ToleranceType::absolute);
@@ -153,16 +148,16 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const BatchLinOp *b, BatchLinOp *x) const override;
+    void apply_impl(const BatchLinOp* b, BatchLinOp* x) const override;
 
-    void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
-                    const BatchLinOp *beta, BatchLinOp *x) const override;
+    void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
+                    const BatchLinOp* beta, BatchLinOp* x) const override;
 
     explicit BatchGmres(std::shared_ptr<const Executor> exec)
         : EnableBatchLinOp<BatchGmres>(std::move(exec))
     {}
 
-    explicit BatchGmres(const Factory *factory,
+    explicit BatchGmres(const Factory* factory,
                         std::shared_ptr<const BatchLinOp> system_matrix)
         : EnableBatchLinOp<BatchGmres>(
               factory->get_executor(),

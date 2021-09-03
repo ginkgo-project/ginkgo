@@ -68,17 +68,17 @@ protected:
           sys_m(gko::test::get_poisson_problem<T>(exec, nrhs, nbatch))
     {
         auto execp = this->ompexec;
-        solve_fn = [execp](const Options opts, const Mtx *mtx, const BDense *b,
-                           BDense *x, LogData &logdata) {
+        solve_fn = [execp](const Options opts, const Mtx* mtx, const BDense* b,
+                           BDense* x, LogData& logdata) {
             gko::kernels::omp::batch_cg::apply<value_type>(execp, opts, mtx, b,
                                                            x, logdata);
         };
-        scale_mat = [execp](const BDense *const left, const BDense *const right,
-                            Mtx *const mat, BDense *const b) {
+        scale_mat = [execp](const BDense* const left, const BDense* const right,
+                            Mtx* const mat, BDense* const b) {
             gko::kernels::omp::batch_csr::pre_diag_scale_system<value_type>(
                 execp, left, right, mat, b);
         };
-        scale_vecs = [execp](const BDense *const scale, BDense *const mat) {
+        scale_vecs = [execp](const BDense* const scale, BDense* const mat) {
             gko::kernels::omp::batch_dense::batch_scale<value_type>(execp,
                                                                     scale, mat);
         };
@@ -107,22 +107,20 @@ protected:
     const Options opts_m{gko::preconditioner::batch::type::none, 500, eps,
                          gko::stop::batch::ToleranceType::absolute};
 
-    std::function<void(Options, const Mtx *, const BDense *, BDense *,
-                       LogData &)>
+    std::function<void(Options, const Mtx*, const BDense*, BDense*, LogData&)>
         solve_fn;
-    std::function<void(const BDense *, const BDense *, Mtx *, BDense *)>
-        scale_mat;
-    std::function<void(const BDense *, BDense *)> scale_vecs;
+    std::function<void(const BDense*, const BDense*, Mtx*, BDense*)> scale_mat;
+    std::function<void(const BDense*, BDense*)> scale_vecs;
 
     gko::test::LinSys<value_type> sys_1;
     gko::test::LinSys<value_type> sys_m;
 
     std::unique_ptr<typename solver_type::Factory> create_factory(
-        std::shared_ptr<const gko::Executor> exec, const Options &opts)
+        std::shared_ptr<const gko::Executor> exec, const Options& opts)
     {
         return solver_type::build()
             .with_max_iterations(opts.max_its)
-            .with_rel_residual_tol(opts.residual_tol)
+            .with_residual_tol(opts.residual_tol)
             .with_tolerance_type(opts.tol_type)
             .with_preconditioner(opts.preconditioner)
             .on(exec);
@@ -184,8 +182,8 @@ TYPED_TEST(BatchCg, StencilSystemLoggerIsCorrect)
         this->opts_1, this->sys_1, 1);
 
     const int ref_iters = this->single_iters_regression();
-    const int *const iter_array = r_1.logdata.iter_counts.get_const_data();
-    const real_type *const res_log_array =
+    const int* const iter_array = r_1.logdata.iter_counts.get_const_data();
+    const real_type* const res_log_array =
         r_1.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
         GKO_ASSERT((iter_array[i] <= ref_iters + 1) &&
@@ -218,8 +216,8 @@ TYPED_TEST(BatchCg, StencilMultipleSystemLoggerIsCorrect)
         this->opts_m, this->sys_m, this->nrhs);
 
     const std::vector<int> ref_iters = this->multiple_iters_regression();
-    const int *const iter_array = r_m.logdata.iter_counts.get_const_data();
-    const real_type *const res_log_array =
+    const int* const iter_array = r_m.logdata.iter_counts.get_const_data();
+    const real_type* const res_log_array =
         r_m.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
         for (size_t j = 0; j < this->nrhs; j++) {
@@ -245,7 +243,7 @@ TYPED_TEST(BatchCg, CoreSolvesSystemJacobi)
     std::unique_ptr<typename Solver::Factory> batchcg_factory =
         Solver::build()
             .with_max_iterations(100)
-            .with_rel_residual_tol(1e-6f)
+            .with_residual_tol(1e-6f)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(useexec);
@@ -320,7 +318,7 @@ TEST(BatchCg, GoodScalingImprovesConvergence)
     auto factory =
         Solver::build()
             .with_max_iterations(20)
-            .with_rel_residual_tol(10 * eps)
+            .with_residual_tol(10 * eps)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(gko::preconditioner::batch::type::none)
             .on(ompexec);
@@ -343,7 +341,7 @@ TEST(BatchCg, CanSolveWithoutScaling)
     auto factory =
         Solver::build()
             .with_max_iterations(maxits)
-            .with_rel_residual_tol(tol)
+            .with_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .on(exec);
