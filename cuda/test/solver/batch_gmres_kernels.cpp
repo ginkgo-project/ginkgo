@@ -68,17 +68,17 @@ protected:
           sys_1(gko::test::get_poisson_problem<T>(exec, 1, nbatch))
     {
         auto execp = cuexec;
-        solve_fn = [execp](const Options opts, const Mtx *mtx, const BDense *b,
-                           BDense *x, LogData &logdata) {
+        solve_fn = [execp](const Options opts, const Mtx* mtx, const BDense* b,
+                           BDense* x, LogData& logdata) {
             gko::kernels::cuda::batch_gmres::apply<value_type>(execp, opts, mtx,
                                                                b, x, logdata);
         };
-        scale_mat = [execp](const BDense *const left, const BDense *const right,
-                            Mtx *const mat, BDense *const b) {
+        scale_mat = [execp](const BDense* const left, const BDense* const right,
+                            Mtx* const mat, BDense* const b) {
             gko::kernels::cuda::batch_csr::pre_diag_scale_system<value_type>(
                 execp, left, right, mat, b);
         };
-        scale_vecs = [execp](const BDense *const scale, BDense *const mat) {
+        scale_vecs = [execp](const BDense* const scale, BDense* const mat) {
             gko::kernels::cuda::batch_dense::batch_scale<value_type>(
                 execp, scale, mat);
         };
@@ -105,15 +105,13 @@ protected:
 
     gko::test::LinSys<T> sys_1;
 
-    std::function<void(Options, const Mtx *, const BDense *, BDense *,
-                       LogData &)>
+    std::function<void(Options, const Mtx*, const BDense*, BDense*, LogData&)>
         solve_fn;
-    std::function<void(const BDense *, const BDense *, Mtx *, BDense *)>
-        scale_mat;
-    std::function<void(const BDense *, BDense *)> scale_vecs;
+    std::function<void(const BDense*, const BDense*, Mtx*, BDense*)> scale_mat;
+    std::function<void(const BDense*, BDense*)> scale_vecs;
 
     std::unique_ptr<typename solver_type::Factory> create_factory(
-        std::shared_ptr<const gko::Executor> exec, const Options &opts)
+        std::shared_ptr<const gko::Executor> exec, const Options& opts)
     {
         return solver_type::build()
             .with_max_iterations(opts.max_its)
@@ -163,8 +161,8 @@ TYPED_TEST(BatchGmres, StencilSystemLoggerIsCorrect)
         this->opts_1, this->sys_1, 1);
 
     const int ref_iters = this->single_iters_regression();
-    const int *const iter_array = r_1.logdata.iter_counts.get_const_data();
-    const real_type *const res_log_array =
+    const int* const iter_array = r_1.logdata.iter_counts.get_const_data();
+    const real_type* const res_log_array =
         r_1.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
         GKO_ASSERT((iter_array[i] <= ref_iters + 1) &&

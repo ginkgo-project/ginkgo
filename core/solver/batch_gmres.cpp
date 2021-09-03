@@ -85,7 +85,7 @@ std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void BatchGmres<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
+void BatchGmres<ValueType>::apply_impl(const BatchLinOp* b, BatchLinOp* x) const
 {
     using Mtx = matrix::BatchCsr<ValueType>;
     using Vector = matrix::BatchDense<ValueType>;
@@ -94,15 +94,15 @@ void BatchGmres<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
     auto exec = this->get_executor();
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
-    const auto acsr = dynamic_cast<const Mtx *>(system_matrix_.get());
+    const auto acsr = dynamic_cast<const Mtx*>(system_matrix_.get());
     if (!acsr) {
         GKO_NOT_SUPPORTED(system_matrix_);
     }
 
     auto a_scaled_smart = Mtx::create(exec);
     auto b_scaled_smart = Vector::create(exec);
-    const Mtx *a_scaled{};
-    const Vector *b_scaled{};
+    const Mtx* a_scaled{};
+    const Vector* b_scaled{};
     const bool to_scale =
         this->get_left_scaling_vector() && this->get_right_scaling_vector();
     if (to_scale) {
@@ -148,10 +148,10 @@ void BatchGmres<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
 
 
 template <typename ValueType>
-void BatchGmres<ValueType>::apply_impl(const BatchLinOp *alpha,
-                                       const BatchLinOp *b,
-                                       const BatchLinOp *beta,
-                                       BatchLinOp *x) const
+void BatchGmres<ValueType>::apply_impl(const BatchLinOp* alpha,
+                                       const BatchLinOp* b,
+                                       const BatchLinOp* beta,
+                                       BatchLinOp* x) const
 
 {
     auto dense_x = as<matrix::BatchDense<ValueType>>(x);
