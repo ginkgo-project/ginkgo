@@ -75,13 +75,13 @@ struct ApplSysData {
     /// Number of non-zeros in each system matrix.
     int nnz;
     /// Row pointers for one matrix
-    index_type *row_ptrs;
+    index_type* row_ptrs;
     /// Column indices of non-zeros for one matrix
-    index_type *col_idxs;
+    index_type* col_idxs;
     /// Nonzero values for all matrices in the batch, concatenated
-    value_type *all_values;
+    value_type* all_values;
     /// RHS vectors for all systems in the batch, concatenated
-    value_type *all_rhs;
+    value_type* all_rhs;
 };
 
 
@@ -102,10 +102,10 @@ ApplSysData appl_generate_system(const int nrows, const size_type nsystems,
 /**
  * Deallocate application data.
  */
-void appl_clean_up(ApplSysData &appl_data, std::shared_ptr<gko::Executor> exec);
+void appl_clean_up(ApplSysData& appl_data, std::shared_ptr<gko::Executor> exec);
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     using solver_type = gko::solver::BatchBicgstab<value_type>;
 
@@ -327,22 +327,22 @@ ApplSysData appl_generate_system(const int nrows, const size_type nsystems,
                   allb.begin() + (isys + 1) * nrows, bval);
     }
 
-    index_type *const row_ptrs = exec->alloc<index_type>(nrows + 1);
+    index_type* const row_ptrs = exec->alloc<index_type>(nrows + 1);
     exec->copy_from(exec->get_master().get(), static_cast<size_type>(nrows + 1),
                     rowptrs.data(), row_ptrs);
-    index_type *const col_idxs = exec->alloc<index_type>(nnz);
+    index_type* const col_idxs = exec->alloc<index_type>(nnz);
     exec->copy_from(exec->get_master().get(), static_cast<size_type>(nnz),
                     colidxs.data(), col_idxs);
-    value_type *const all_values = exec->alloc<value_type>(nsystems * nnz);
+    value_type* const all_values = exec->alloc<value_type>(nsystems * nnz);
     exec->copy_from(exec->get_master().get(), nsystems * nnz, allvalues.data(),
                     all_values);
-    value_type *const all_b = exec->alloc<value_type>(nsystems * nrows);
+    value_type* const all_b = exec->alloc<value_type>(nsystems * nrows);
     exec->copy_from(exec->get_master().get(), nsystems * nrows, allb.data(),
                     all_b);
     return {nsystems, nrows, nnz, row_ptrs, col_idxs, all_values, all_b};
 }
 
-void appl_clean_up(ApplSysData &appl_data, std::shared_ptr<gko::Executor> exec)
+void appl_clean_up(ApplSysData& appl_data, std::shared_ptr<gko::Executor> exec)
 {
     exec->free(appl_data.row_ptrs);
     exec->free(appl_data.col_idxs);
