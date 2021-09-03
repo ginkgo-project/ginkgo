@@ -35,13 +35,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // This is the main ginkgo header file.
 #include <ginkgo/ginkgo.hpp>
 
-// Add the fstream header to read from data from files.
 #include <fstream>
-// Add the C++ iostream header to output information to the console.
 #include <iostream>
-// Add the STL map header for the executor selection
 #include <map>
-// Add the string manipulation header to handle strings.
 #include <random>
 #include <string>
 
@@ -168,6 +164,8 @@ int main(int argc, char* argv[])
     //  Because our pointers are not const, we can just 'wrap' the given
     //  pointers into Ginkgo Array views so that we can create a Ginkgo matrix
     //  out of them.
+    // Ginkgo expects the nonzero values for all the small matrices to be
+    //  allocated contiguously, one matrix after the other.
     auto vals_view = gko::Array<value_type>::view(
         exec, num_systems * appl_sys.nnz, appl_sys.all_values);
     auto rowptrs_view =
