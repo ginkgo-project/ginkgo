@@ -179,43 +179,6 @@ TYPED_TEST(BatchIdr, StencilSystemLoggerIsCorrect)
 }
 
 
-TYPED_TEST(BatchIdr, CoreSolvesSystemJacobi)
-{
-    using value_type = typename TestFixture::value_type;
-    using Mtx = typename TestFixture::Mtx;
-    using BDense = typename TestFixture::BDense;
-    using Solver = gko::solver::BatchIdr<value_type>;
-    auto useexec = this->cuexec;
-    std::unique_ptr<typename Solver::Factory> batchidr_factory =
-        Solver::build()
-            .with_max_iterations(100)
-            .with_residual_tol(1e-6f)
-            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
-            .with_deterministic(true)
-            .with_subspace_dim(static_cast<gko::size_type>(2))
-            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .on(useexec);
-    const int nrhs_1 = 1;
-    const size_t nbatch = 3;
-    auto sys =
-        gko::test::get_poisson_problem<value_type>(this->exec, nrhs_1, nbatch);
-    auto rx =
-        gko::batch_initialize<BDense>(nbatch, {0.0, 0.0, 0.0}, this->exec);
-    std::unique_ptr<Mtx> mtx = Mtx::create(useexec);
-    auto b = BDense::create(useexec);
-    auto x = BDense::create(useexec);
-    mtx->copy_from(gko::lend(sys.mtx));
-    b->copy_from(gko::lend(sys.b));
-    x->copy_from(gko::lend(rx));
-
-    std::unique_ptr<Solver> solver = batchidr_factory->generate(gko::give(mtx));
-    solver->apply(b.get(), x.get());
-    rx->copy_from(gko::lend(x));
-
-    GKO_ASSERT_BATCH_MTX_NEAR(rx, sys.xex, 1e-5);
-}
-
-
 TYPED_TEST(BatchIdr, UnitScalingDoesNotChangeResult)
 {
     using BDense = typename TestFixture::BDense;
@@ -251,7 +214,7 @@ TYPED_TEST(BatchIdr, GeneralScalingDoesNotChangeResult)
 
     double tol = this->eps;
     if (std::is_same<real_type, double>::value) {
-        tol *= 3;
+        tol *= 5;
     }
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, tol);
 }
@@ -284,6 +247,46 @@ TEST(BatchIdr, CanSolveWithoutScaling)
     const int nrhs = 1;
     gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
                                   batchidr_factory.get(), 1.1);
+}
+
+
+TEST(BatchIdr, CoreSolvesSystemJacobi)
+{
+    using value_type = std::complex<float>;
+    using Mtx = gko::matrix::BatchCsr<value_type>;
+    using BDense = gko::matrix::BatchDense<value_type>;
+    using Solver = gko::solver::BatchIdr<value_type>;
+    std::shared_ptr<gko::ReferenceExecutor> refexec =
+        gko::ReferenceExecutor::create();
+    std::shared_ptr<const gko::CudaExecutor> exec =
+        gko::CudaExecutor::create(0, refexec);
+    const float eps = r<value_type>::value;
+    std::unique_ptr<typename Solver::Factory> batchidr_factory =
+        Solver::build()
+            .with_max_iterations(100)
+            .with_residual_tol(eps * 100)
+            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
+            .with_deterministic(true)
+            .with_subspace_dim(static_cast<gko::size_type>(2))
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .on(exec);
+    const int nrhs_1 = 1;
+    const size_t nbatch = 3;
+    auto sys =
+        gko::test::get_poisson_problem<value_type>(refexec, nrhs_1, nbatch);
+    auto rx = gko::batch_initialize<BDense>(nbatch, {0.0, 0.0, 0.0}, refexec);
+    std::unique_ptr<Mtx> mtx = Mtx::create(exec);
+    auto b = BDense::create(exec);
+    auto x = BDense::create(exec);
+    mtx->copy_from(gko::lend(sys.mtx));
+    b->copy_from(gko::lend(sys.b));
+    x->copy_from(gko::lend(rx));
+
+    std::unique_ptr<Solver> solver = batchidr_factory->generate(gko::give(mtx));
+    solver->apply(b.get(), x.get());
+    rx->copy_from(gko::lend(x));
+
+    GKO_ASSERT_BATCH_MTX_NEAR(rx, sys.xex, eps * 1000);
 }
 
 }  // namespace
