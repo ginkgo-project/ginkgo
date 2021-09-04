@@ -34,11 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/synthesizer/containers.hpp>
 
 
-#include "cuda/base/config.hpp"
+#include "hip/base/config.hip.hpp"
+
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace hip {
 namespace jacobi {
 
 
@@ -46,12 +47,16 @@ namespace jacobi {
  * A compile-time list of block sizes for which dedicated generate and apply
  * kernels should be compiled.
  */
-#ifdef GINKGO_JACOBI_FULL_OPTIMIZATIONS
-using compiled_kernels = syn::as_list<syn::range<1, config::warp_size + 1, 1>>;
-#else
-using compiled_kernels =
-    syn::value_list<int, 1, 2, 4, 8, 13, 16, 32, config::warp_size>;
+// clang-format off
+#cmakedefine GKO_HIP_JACOBI_BLOCK_SIZES_CODE @GKO_HIP_JACOBI_BLOCK_SIZES_CODE@
+// clang-format on
+// make things easier for IDEs
+#ifndef GKO_HIP_JACOBI_BLOCK_SIZES_CODE
+#define GKO_HIP_JACOBI_BLOCK_SIZES_CODE 1
 #endif
+
+
+using compiled_kernels = syn::value_list<int, GKO_HIP_JACOBI_BLOCK_SIZES_CODE>;
 
 
 constexpr int get_larger_power(int value, int guess = 1)
@@ -61,6 +66,6 @@ constexpr int get_larger_power(int value, int guess = 1)
 
 
 }  // namespace jacobi
-}  // namespace cuda
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko

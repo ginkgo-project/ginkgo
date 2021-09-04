@@ -200,6 +200,38 @@ set(GINKGO_HIP_SOURCES
     ../common/unified/solver/ir_kernels.cpp
     )
 
+if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
+    set(GKO_HIP_JACOBI_MAX_BLOCK_SIZE 32)
+else()
+    set(GKO_HIP_JACOBI_MAX_BLOCK_SIZE 64)
+endif()
+if(GINKGO_JACOBI_FULL_OPTIMIZATIONS)
+    set(GKO_HIP_JACOBI_BLOCK_SIZES)
+    foreach(blocksize RANGE 1 ${GKO_HIP_JACOBI_MAX_BLOCK_SIZE})
+        list(APPEND GKO_HIP_JACOBI_BLOCK_SIZES ${blocksize})
+    endforeach()
+else()
+    set(GKO_HIP_JACOBI_BLOCK_SIZES 1 2 4 8 13 16 32 ${GKO_HIP_JACOBI_MAX_BLOCK_SIZE})
+    list(REMOVE_DUPLICATES GKO_HIP_JACOBI_BLOCK_SIZES)
+endif()
+foreach(GKO_JACOBI_BLOCK_SIZE IN LISTS GKO_HIP_JACOBI_BLOCK_SIZES)
+    configure_file(
+        preconditioner/jacobi_generate_instantiate.inc.hip.cpp
+        preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
+    configure_file(
+        preconditioner/jacobi_simple_apply_instantiate.inc.hip.cpp
+        preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
+    configure_file(
+        preconditioner/jacobi_advanced_apply_instantiate.inc.hip.cpp
+        preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
+    list(APPEND GINKGO_HIP_SOURCES
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
+endforeach()
+string(REPLACE ";" "," GKO_HIP_JACOBI_BLOCK_SIZES_CODE "${GKO_HIP_JACOBI_BLOCK_SIZES}")
+configure_file(preconditioner/jacobi_common.hip.hpp.in preconditioner/jacobi_common.hip.hpp)
+
 set(GINKGO_HIP_NVCC_ARCH "")
 if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
     if (NOT CMAKE_CUDA_HOST_COMPILER AND NOT GINKGO_CUDA_DEFAULT_HOST_COMPILER)
@@ -254,6 +286,7 @@ target_include_directories(ginkgo_hip
     PUBLIC
         ${HIP_INCLUDE_DIRS}
     PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}/.. # for generated headers like jacobi_common.hip.hpp
         ${GINKGO_HIP_THRUST_PATH}
         ${HIPBLAS_INCLUDE_DIRS}
         ${hiprand_INCLUDE_DIRS}

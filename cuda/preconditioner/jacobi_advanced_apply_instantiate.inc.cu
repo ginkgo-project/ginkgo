@@ -36,20 +36,40 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "core/base/extended_float.hpp"
 #include "core/matrix/dense_kernels.hpp"
+#include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/preconditioner/jacobi_common.hip.hpp"
+#include "cuda/base/config.hpp"
+#include "cuda/base/math.hpp"
+#include "cuda/base/types.hpp"
+#include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/thread_ids.cuh"
+#include "cuda/components/warp_blas.cuh"
+#include "cuda/preconditioner/jacobi_common.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace cuda {
 /**
  * @brief The Jacobi preconditioner namespace.
  * @ref Jacobi
  * @ingroup jacobi
  */
 namespace jacobi {
+
+
+#include "common/cuda_hip/preconditioner/jacobi_advanced_apply_kernel.hpp.inc"
+
+
+// clang-format off
+#cmakedefine GKO_JACOBI_BLOCK_SIZE @GKO_JACOBI_BLOCK_SIZE@
+// clang-format on
+// make things easier for IDEs
+#ifndef GKO_JACOBI_BLOCK_SIZE
+#define GKO_JACOBI_BLOCK_SIZE 1
+#endif
 
 
 template <int warps_per_block, int max_block_size, typename ValueType,
@@ -61,44 +81,45 @@ void advanced_apply(
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,
     const ValueType* alpha, const ValueType* b, size_type b_stride,
-    ValueType* x, size_type x_stride);
-
-GKO_ENABLE_IMPLEMENTATION_SELECTION(select_advanced_apply, advanced_apply);
-
-
-template <typename ValueType, typename IndexType>
-void apply(std::shared_ptr<const HipExecutor> exec, size_type num_blocks,
-           uint32 max_block_size,
-           const preconditioner::block_interleaved_storage_scheme<IndexType>&
-               storage_scheme,
-           const Array<precision_reduction>& block_precisions,
-           const Array<IndexType>& block_pointers,
-           const Array<ValueType>& blocks,
-           const matrix::Dense<ValueType>* alpha,
-           const matrix::Dense<ValueType>* b,
-           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* x)
+    ValueType* x, size_type x_stride)
 {
-    // TODO: write a special kernel for multiple RHS
-    dense::scale(exec, beta, x);
-    for (size_type col = 0; col < b->get_size()[1]; ++col) {
-        select_advanced_apply(
-            compiled_kernels(),
-            [&](int compiled_block_size) {
-                return max_block_size <= compiled_block_size;
-            },
-            syn::value_list<int, config::min_warps_per_block>(),
-            syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
-            block_pointers.get_const_data(), blocks.get_const_data(),
-            storage_scheme, alpha->get_const_values(),
-            b->get_const_values() + col, b->get_stride(), x->get_values() + col,
-            x->get_stride());
+    constexpr int subwarp_size = get_larger_power(max_block_size);
+    constexpr int blocks_per_warp = config::warp_size / subwarp_size;
+    const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
+                         1, 1);
+    const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
+
+    if (block_precisions) {
+        kernel::advanced_adaptive_apply<max_block_size, subwarp_size,
+                                        warps_per_block>
+            <<<grid_size, block_size, 0, 0>>>(
+                as_cuda_type(blocks), storage_scheme, block_precisions,
+                block_pointers, num_blocks, as_cuda_type(alpha),
+                as_cuda_type(b), b_stride, as_cuda_type(x), x_stride);
+    } else {
+        kernel::advanced_apply<max_block_size, subwarp_size, warps_per_block>
+            <<<grid_size, block_size, 0, 0>>>(
+                as_cuda_type(blocks), storage_scheme, block_pointers,
+                num_blocks, as_cuda_type(alpha), as_cuda_type(b), b_stride,
+                as_cuda_type(x), x_stride);
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_JACOBI_APPLY_KERNEL);
+
+#define DECLARE_JACOBI_ADVANCED_APPLY_INSTANTIATION(ValueType, IndexType)   \
+    void advanced_apply<config::min_warps_per_block, GKO_JACOBI_BLOCK_SIZE, \
+                        ValueType, IndexType>(                              \
+        syn::value_list<int, GKO_JACOBI_BLOCK_SIZE>, size_type,             \
+        const precision_reduction*, const IndexType* block_pointers,        \
+        const ValueType*,                                                   \
+        const preconditioner::block_interleaved_storage_scheme<IndexType>&, \
+        const ValueType*, const ValueType*, size_type, ValueType*, size_type)
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    DECLARE_JACOBI_ADVANCED_APPLY_INSTANTIATION);
 
 
 }  // namespace jacobi
-}  // namespace hip
+}  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

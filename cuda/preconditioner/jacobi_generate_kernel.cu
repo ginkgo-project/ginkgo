@@ -37,18 +37,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
-#include "core/base/extended_float.hpp"
 #include "core/components/fill_array.hpp"
-#include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/diagonal_block_manipulation.cuh"
-#include "cuda/components/thread_ids.cuh"
-#include "cuda/components/uninitialized_array.hpp"
-#include "cuda/components/warp_blas.cuh"
 #include "cuda/preconditioner/jacobi_common.hpp"
 
 
@@ -63,12 +53,6 @@ namespace cuda {
 namespace jacobi {
 
 
-#include "common/cuda_hip/preconditioner/jacobi_generate_kernel.hpp.inc"
-
-
-namespace {
-
-
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void generate(syn::value_list<int, max_block_size>,
@@ -78,37 +62,9 @@ void generate(syn::value_list<int, max_block_size>,
                   storage_scheme,
               remove_complex<ValueType>* conditioning,
               precision_reduction* block_precisions,
-              const IndexType* block_ptrs, size_type num_blocks)
-{
-    constexpr int subwarp_size = get_larger_power(max_block_size);
-    constexpr int blocks_per_warp = config::warp_size / subwarp_size;
-    const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
-                         1, 1);
-    const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
-
-    if (block_precisions) {
-        kernel::adaptive_generate<max_block_size, subwarp_size, warps_per_block>
-            <<<grid_size, block_size, 0, 0>>>(
-                mtx->get_size()[0], mtx->get_const_row_ptrs(),
-                mtx->get_const_col_idxs(),
-                as_cuda_type(mtx->get_const_values()), as_cuda_type(accuracy),
-                as_cuda_type(block_data), storage_scheme,
-                as_cuda_type(conditioning), block_precisions, block_ptrs,
-                num_blocks);
-    } else {
-        kernel::generate<max_block_size, subwarp_size, warps_per_block>
-            <<<grid_size, block_size, 0, 0>>>(
-                mtx->get_size()[0], mtx->get_const_row_ptrs(),
-                mtx->get_const_col_idxs(),
-                as_cuda_type(mtx->get_const_values()), as_cuda_type(block_data),
-                storage_scheme, block_ptrs, num_blocks);
-    }
-}
+              const IndexType* block_ptrs, size_type num_blocks);
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
-
-
-}  // namespace
 
 
 template <typename ValueType, typename IndexType>

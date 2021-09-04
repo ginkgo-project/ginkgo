@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/jacobi_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 
@@ -69,6 +66,15 @@ namespace jacobi {
 #include "common/cuda_hip/preconditioner/jacobi_generate_kernel.hpp.inc"
 
 
+// clang-format off
+#cmakedefine GKO_JACOBI_BLOCK_SIZE @GKO_JACOBI_BLOCK_SIZE@
+// clang-format on
+// make things easier for IDEs
+#ifndef GKO_JACOBI_BLOCK_SIZE
+#define GKO_JACOBI_BLOCK_SIZE 1
+#endif
+
+
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void generate(syn::value_list<int, max_block_size>,
@@ -78,37 +84,48 @@ void generate(syn::value_list<int, max_block_size>,
                   storage_scheme,
               remove_complex<ValueType>* conditioning,
               precision_reduction* block_precisions,
-              const IndexType* block_ptrs, size_type num_blocks);
-
-GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
-
-
-template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const HipExecutor> exec,
-              const matrix::Csr<ValueType, IndexType>* system_matrix,
-              size_type num_blocks, uint32 max_block_size,
-              remove_complex<ValueType> accuracy,
-              const preconditioner::block_interleaved_storage_scheme<IndexType>&
-                  storage_scheme,
-              Array<remove_complex<ValueType>>& conditioning,
-              Array<precision_reduction>& block_precisions,
-              const Array<IndexType>& block_pointers, Array<ValueType>& blocks)
+              const IndexType* block_ptrs, size_type num_blocks)
 {
-    components::fill_array(exec, blocks.get_data(), blocks.get_num_elems(),
-                           zero<ValueType>());
-    select_generate(
-        compiled_kernels(),
-        [&](int compiled_block_size) {
-            return max_block_size <= compiled_block_size;
-        },
-        syn::value_list<int, config::min_warps_per_block>(), syn::type_list<>(),
-        system_matrix, accuracy, blocks.get_data(), storage_scheme,
-        conditioning.get_data(), block_precisions.get_data(),
-        block_pointers.get_const_data(), num_blocks);
+    constexpr int subwarp_size = get_larger_power(max_block_size);
+    constexpr int blocks_per_warp = config::warp_size / subwarp_size;
+    const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
+                         1, 1);
+    const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
+
+    if (block_precisions) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(
+                kernel::adaptive_generate<max_block_size, subwarp_size,
+                                          warps_per_block>),
+            dim3(grid_size), dim3(block_size), 0, 0, mtx->get_size()[0],
+            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+            as_hip_type(mtx->get_const_values()), as_hip_type(accuracy),
+            as_hip_type(block_data), storage_scheme, as_hip_type(conditioning),
+            block_precisions, block_ptrs, num_blocks);
+    } else {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::generate<max_block_size, subwarp_size,
+                                             warps_per_block>),
+            dim3(grid_size), dim3(block_size), 0, 0, mtx->get_size()[0],
+            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+            as_hip_type(mtx->get_const_values()), as_hip_type(block_data),
+            storage_scheme, block_ptrs, num_blocks);
+    }
 }
 
+
+#define DECLARE_JACOBI_GENERATE_INSTANTIATION(ValueType, IndexType)          \
+    void generate<config::min_warps_per_block, GKO_JACOBI_BLOCK_SIZE,        \
+                  ValueType, IndexType>(                                     \
+        syn::value_list<int, GKO_JACOBI_BLOCK_SIZE>,                         \
+        const matrix::Csr<ValueType, IndexType>*, remove_complex<ValueType>, \
+        ValueType*,                                                          \
+        const preconditioner::block_interleaved_storage_scheme<IndexType>&,  \
+        remove_complex<ValueType>*, precision_reduction*, const IndexType*,  \
+        size_type)
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_JACOBI_GENERATE_KERNEL);
+    DECLARE_JACOBI_GENERATE_INSTANTIATION);
 
 
 }  // namespace jacobi
