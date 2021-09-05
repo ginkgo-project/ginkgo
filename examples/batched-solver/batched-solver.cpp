@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
+// @sect3{Type aliases for convenience}
 // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
 // with one column/one row. The advantage of this concept is that using
 // multiple vectors is a now a natural extension of adding columns/rows are
@@ -53,6 +54,7 @@ using size_type = gko::size_type;
 using vec_type = gko::matrix::BatchDense<value_type>;
 using real_vec_type = gko::matrix::BatchDense<real_type>;
 using mtx_type = gko::matrix::BatchCsr<value_type, index_type>;
+using solver_type = gko::solver::BatchBicgstab<value_type>;
 
 
 /**
@@ -103,8 +105,6 @@ void appl_clean_up(ApplSysData& appl_data, std::shared_ptr<gko::Executor> exec);
 
 int main(int argc, char* argv[])
 {
-    using solver_type = gko::solver::BatchBicgstab<value_type>;
-
     // Print the ginkgo version information.
     std::cout << gko::version_info::get() << std::endl;
 
@@ -124,9 +124,6 @@ int main(int argc, char* argv[])
     // executor and all the other functions/ routines within Ginkgo should
     // automatically work and run on the executor with any other changes.
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
-    const size_type num_systems = argc >= 3 ? std::atoi(argv[2]) : 2;
-    const gko::remove_complex<value_type> relax_factor =
-        argc >= 4 ? std::atof(argv[3]) : 0.95;
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
@@ -150,14 +147,16 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
+    const size_type num_systems = argc >= 3 ? std::atoi(argv[2]) : 2;
     const int num_rows = 35;  // per system
     // The "application" generates the batch of linear systems on the device
     auto appl_sys = appl_generate_system(num_rows, num_systems, exec);
-    // batch_dim object to describe the dimensions of the batch matrix.
+    // Create batch_dim object to describe the dimensions of the batch matrix.
     auto batch_mat_size =
         gko::batch_dim<>(num_systems, gko::dim<2>(num_rows, num_rows));
     auto batch_vec_size =
         gko::batch_dim<>(num_systems, gko::dim<2>(num_rows, 1));
+    // @sect3{Use of application-allocated memory}
     // We can either work on the existing memory allocated in the application,
     //  or we can copy it for the linear solve.
     //  Note: it is not possible to use data through a const pointer directly.
@@ -174,11 +173,12 @@ int main(int argc, char* argv[])
         gko::Array<index_type>::view(exec, appl_sys.nnz, appl_sys.col_idxs);
     auto A = gko::share(mtx_type::create(exec, batch_mat_size, vals_view,
                                          colidxs_view, rowptrs_view));
+    // @sect3{Batch stride}
     // batch_stride object specifies the access stride within the individual
     //  matrices (vectors) in the batch. In this case, we specify a stride of 1
     //  as the common value for all the matrices.
     auto batch_vec_stride = gko::batch_stride(num_systems, 1);
-    // Create RHS
+    // Create RHS, again reusing application allocation
     auto b_view = gko::Array<value_type>::view(exec, num_systems * num_rows,
                                                appl_sys.all_rhs);
     auto b = vec_type::create(exec, batch_vec_size, b_view, batch_vec_stride);
@@ -195,7 +195,8 @@ int main(int argc, char* argv[])
 
     const real_type reduction_factor{1e-6};
 
-    // Create the batch solver factory
+    // @sect3{Create the batch solver factory}
+    // Create a batched solver factory with relevant parameters.
     auto solver_gen =
         solver_type::build()
             .with_max_iterations(500)
@@ -204,6 +205,7 @@ int main(int argc, char* argv[])
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .on(exec);
 
+    // @sect3{Batch logger}
     // Create a logger to obtain the iteration counts and "implicit" residual
     //  norms for every system after the solve.
     std::shared_ptr<const gko::log::BatchConvergence<value_type>> logger =
