@@ -79,6 +79,7 @@ GET_STRING_PARTIAL(double, "double");
 GET_STRING_PARTIAL(float, "float");
 GET_STRING_PARTIAL(gko::int32, "int");
 GET_STRING_PARTIAL(gko::int64, "int64");
+GET_STRING_PARTIAL(gko::uint32, "uint32");
 using isai_lower =
     std::integral_constant<gko::preconditioner::isai_type,
                            gko::preconditioner::isai_type::lower>;
