@@ -345,10 +345,11 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
         add_or_set_member(solver_case, solver_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
         auto& solver_json = solver_case[solver_name];
+        const size_type nbatch = system_matrix->get_num_batch_entries();
+        add_or_set_member(solver_json, "num_batch_entries", nbatch, allocator);
         add_or_set_member(solver_json, "scaling",
                           rapidjson::StringRef(FLAGS_batch_scaling.c_str()),
                           allocator);
-        const size_type nbatch = system_matrix->get_num_batch_entries();
         if (FLAGS_detailed && b->get_size().at(0)[1] == 1 && !FLAGS_overhead) {
             add_or_set_member(solver_json, "rhs_norm",
                               rapidjson::Value(rapidjson::kObjectType),
