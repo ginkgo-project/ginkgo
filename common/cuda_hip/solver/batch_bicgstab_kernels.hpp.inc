@@ -196,61 +196,59 @@ __global__ void apply_kernel(const int num_sh_vecs, const int shared_gap,
     auto warp_grp = group::tiled_partition<tile_size>(thread_block);
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
-#if GKO_CUDA_BATCH_HAVE_NO_SHMEM
         int gmem_offset = ibatch * (shared_gap * (10 - num_sh_vecs));
-        assert(workspace != nullptr);
         extern __shared__ char local_mem_sh[];
 
+        ValueType* p_hat_sh;
+        ValueType* s_hat_sh;
+        ValueType* p_sh;
+        ValueType* s_sh;
         ValueType* r_sh;
         ValueType* r_hat_sh;
-        ValueType* p_sh;
-        ValueType* p_hat_sh;
         ValueType* v_sh;
-        ValueType* s_sh;
-        ValueType* s_hat_sh;
         ValueType* t_sh;
         ValueType* x_sh;
         ValueType* prec_work_sh;
 
         if (num_sh_vecs >= 1) {
-            r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
+            p_hat_sh = reinterpret_cast<ValueType*>(local_mem_sh);
         } else {
-            r_sh = workspace + gmem_offset;
+            p_hat_sh = workspace + gmem_offset;
         }
         if (num_sh_vecs == 1) {
-            r_hat_sh = workspace + gmem_offset;
+            s_hat_sh = workspace + gmem_offset;
         } else {
-            r_hat_sh = r_sh + shared_gap;
+            s_hat_sh = p_hat_sh + shared_gap;
         }
         if (num_sh_vecs == 2) {
             p_sh = workspace + gmem_offset;
         } else {
-            p_sh = r_hat_sh + shared_gap;
+            p_sh = s_hat_sh + shared_gap;
         }
         if (num_sh_vecs == 3) {
-            p_hat_sh = workspace + gmem_offset;
-        } else {
-            p_hat_sh = p_sh + shared_gap;
-        }
-        if (num_sh_vecs == 4) {
-            v_sh = workspace + gmem_offset;
-        } else {
-            v_sh = p_hat_sh + shared_gap;
-        }
-        if (num_sh_vecs == 5) {
             s_sh = workspace + gmem_offset;
         } else {
-            s_sh = v_sh + shared_gap;
+            s_sh = p_sh + shared_gap;
+        }
+        if (num_sh_vecs == 4) {
+            r_sh = workspace + gmem_offset;
+        } else {
+            r_sh = s_sh + shared_gap;
+        }
+        if (num_sh_vecs == 5) {
+            r_hat_sh = workspace + gmem_offset;
+        } else {
+            r_hat_sh = r_sh + shared_gap;
         }
         if (num_sh_vecs == 6) {
-            s_hat_sh = workspace + gmem_offset;
+            v_sh = workspace + gmem_offset;
         } else {
-            s_hat_sh = s_sh + shared_gap;
+            v_sh = r_hat_sh + shared_gap;
         }
         if (num_sh_vecs == 7) {
             t_sh = workspace + gmem_offset;
         } else {
-            t_sh = s_hat_sh + shared_gap;
+            t_sh = v_sh + shared_gap;
         }
         if (num_sh_vecs == 8) {
             x_sh = workspace + gmem_offset;
@@ -262,19 +260,7 @@ __global__ void apply_kernel(const int num_sh_vecs, const int shared_gap,
         } else {
             prec_work_sh = x_sh + shared_gap;
         }
-#else
-        extern __shared__ char local_mem_sh[];
-        ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
-        ValueType* const r_hat_sh = r_sh + shared_gap;
-        ValueType* const p_sh = r_hat_sh + shared_gap;
-        ValueType* const p_hat_sh = p_sh + shared_gap;
-        ValueType* const v_sh = p_hat_sh + shared_gap;
-        ValueType* const s_sh = v_sh + shared_gap;
-        ValueType* const s_hat_sh = s_sh + shared_gap;
-        ValueType* const t_sh = s_hat_sh + shared_gap;
-        ValueType* const x_sh = t_sh + shared_gap;
-        ValueType* const prec_work_sh = x_sh + shared_gap;
-#endif
+
         __shared__ UninitializedArray<ValueType, 1> rho_old_sh;
         __shared__ UninitializedArray<ValueType, 1> rho_new_sh;
         __shared__ UninitializedArray<ValueType, 1> omega_sh;
