@@ -89,12 +89,12 @@ using BatchBicgstabOptions =
             workspace.get_data())
 #else
 
-#define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)                 \
-    apply_kernel<stop::_stoppertype<ValueType>>                               \
-        <<<nbatch, default_block_size, aux_size>>>(                           \
-            opts.num_sh_vecs, shared_gap, opts.max_its, opts.residual_tol,    \
-            logger, _prectype<ValueType>(), a, b.stride, b.num_rhs, b.values, \
-            x.values)
+#define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)              \
+    apply_kernel<stop::_stoppertype<ValueType>>                            \
+        <<<nbatch, default_block_size, aux_size>>>(                        \
+            opts.num_sh_vecs, shared_gap, opts.max_its, opts.residual_tol, \
+            logger, _prectype<ValueType>(), a, b.values, x.values,         \
+            workspace.get_data())
 #endif
 
 template <typename BatchMatrixType, typename LogType, typename ValueType>
@@ -110,7 +110,7 @@ static void apply_impl(
     const int shared_gap = ((a.num_rows - 1) / 32 + 1) * 32;
     static_assert(default_block_size >= 2 * config::warp_size,
                   "Need at least two warps!");
-    int shared_size = 3 * shared_gap * sizeof(ValueType);
+    int shared_size = opts.num_sh_vecs * shared_gap * sizeof(ValueType);
 
     int aux_size =
         gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
