@@ -464,7 +464,7 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             err->add_scaled(neg_one.get(), x_clone.get());
             err->compute_norm2(err_nrm.get());
             exec->synchronize();
-            add_or_set_member(solver_json["apply"], "l2_error",
+            add_or_set_member(solver_json["apply"], "error_norm",
                               rapidjson::Value(rapidjson::kObjectType),
                               allocator);
             for (size_type i = 0; i < nbatch; ++i) {

@@ -185,7 +185,7 @@ __global__ void apply_kernel(const int num_sh_vecs, const int shared_gap,
                              const BatchMatrixType a,
                              const ValueType* const __restrict__ b,
                              ValueType* const __restrict__ x,
-                             ValueType* const workspace = nullptr)
+                             ValueType* const __restrict__ workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const auto nbatch = a.num_batch;
