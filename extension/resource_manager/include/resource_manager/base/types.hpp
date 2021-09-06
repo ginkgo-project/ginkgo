@@ -134,14 +134,15 @@ ENUM_CLASS(RM_Executor, int, ENUM_EXECUTER);
 #define ENUM_LINOP(_expand)                                                   \
     _expand(LinOp, 0), _expand(LinOpWithFactory), _expand(Cg), _expand(Isai), \
         _expand(Jacobi), _expand(LinOpWithOutFactory), _expand(Csr),          \
-        _expand(Dense)
+        _expand(Dense), _expand(Ilu), _expand(LowerTrs), _expand(UpperTrs)
 
 ENUM_CLASS(RM_LinOp, int, ENUM_LINOP);
 
 
-#define ENUM_LINOPFACTORY(_expand)                                      \
-    _expand(LinOpFactory, 0), _expand(CgFactory), _expand(IsaiFactory), \
-        _expand(JacobiFactory)
+#define ENUM_LINOPFACTORY(_expand)                                             \
+    _expand(LinOpFactory, 0), _expand(CgFactory), _expand(IsaiFactory),        \
+        _expand(JacobiFactory), _expand(IluFactory), _expand(LowerTrsFactory), \
+        _expand(UpperTrsFactory)
 
 ENUM_CLASS(RM_LinOpFactory, int, ENUM_LINOPFACTORY);
 

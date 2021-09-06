@@ -231,13 +231,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *       `_type` factory, `exec_alias` from `_exec` and `_item` and alias name
  *       `*_alias_` from `_manager`, `_item`, `_linop`.
  */
-#define BUILD_FACTORY(_type, _manager, _item, _exec, _linop) \
-    auto factory_alias_ = _type::build();                    \
-    auto &manager_alias_ = _manager;                         \
-    auto &item_alias_ = _item;                               \
-    auto &linop_alias_ = _linop;                             \
-    auto exec_alias_ =                                       \
-        get_pointer_check<Executor>(_item, "exec", _exec, _linop, _manager)
+#define BUILD_FACTORY(_type, _manager, _item, _exec, _linop)                   \
+    auto factory_alias_ = _type::build();                                      \
+    auto &manager_alias_ = _manager;                                           \
+    auto &item_alias_ = _item;                                                 \
+    auto &linop_alias_ = _linop;                                               \
+    auto exec_alias_ = get_pointer_check<const Executor>(_item, "exec", _exec, \
+                                                         _linop, _manager)
 
 /**
  * SET_POINTER is to set one pointer for the factory. It is for the
@@ -249,6 +249,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define SET_POINTER(_param_type, _param_name)                                \
     if (item_alias_.HasMember(#_param_name)) {                               \
+        factory_alias_.with_##_param_name(get_pointer<const _param_type>(    \
+            item_alias_[#_param_name], exec_alias_, linop_alias_,            \
+            manager_alias_));                                                \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+#define SET_NON_CONST_POINTER(_param_type, _param_name)                      \
+    if (item_alias_.HasMember(#_param_name)) {                               \
         factory_alias_.with_##_param_name(                                   \
             get_pointer<_param_type>(item_alias_[#_param_name], exec_alias_, \
                                      linop_alias_, manager_alias_));         \
@@ -256,7 +266,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
-
 
 /**
  * SET_POINTER_VECTOR is to set pointer array for the factory. It is for the
@@ -362,23 +371,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * @note Use PACK to pack more than one args for `_template` and `_type`.
  */
-#define SIMPLE_LINOP_WITH_FACTORY_IMPL(_base, _template, _type)             \
-    template <_template>                                                    \
-    struct Generic<_base<_type>> {                                          \
-        using type = std::shared_ptr<_base<_type>>;                         \
-        static type build(rapidjson::Value &item,                           \
-                          std::shared_ptr<const Executor> exec,             \
-                          std::shared_ptr<const LinOp> linop,               \
-                          ResourceManager *manager)                         \
-        {                                                                   \
-            std::cout << #_base << exec.get() << std::endl;                 \
-            auto factory = get_pointer<typename _base<_type>::Factory>(     \
-                item["factory"], exec, linop, manager);                     \
-            auto mtx =                                                      \
-                get_pointer<LinOp>(item["generate"], exec, linop, manager); \
-            auto ptr = factory->generate(mtx);                              \
-            return std::move(ptr);                                          \
-        }                                                                   \
+#define SIMPLE_LINOP_WITH_FACTORY_IMPL(_base, _template, _type)                \
+    template <_template>                                                       \
+    struct Generic<_base<_type>> {                                             \
+        using type = std::shared_ptr<_base<_type>>;                            \
+        static type build(rapidjson::Value &item,                              \
+                          std::shared_ptr<const Executor> exec,                \
+                          std::shared_ptr<const LinOp> linop,                  \
+                          ResourceManager *manager)                            \
+        {                                                                      \
+            std::cout << #_base << exec.get() << std::endl;                    \
+            auto factory = get_pointer<typename _base<_type>::Factory>(        \
+                item["factory"], exec, linop, manager);                        \
+            auto mtx = get_pointer<const LinOp>(item["generate"], exec, linop, \
+                                                manager);                      \
+            auto ptr = factory->generate(mtx);                                 \
+            return std::move(ptr);                                             \
+        }                                                                      \
     }
 
 

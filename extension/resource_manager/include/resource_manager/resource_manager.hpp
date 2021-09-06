@@ -43,9 +43,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_manager/executor/executor.hpp"
 #include "resource_manager/matrix/csr.hpp"
 #include "resource_manager/matrix/dense.hpp"
+#include "resource_manager/preconditioner/ilu.hpp"
 #include "resource_manager/preconditioner/isai.hpp"
 #include "resource_manager/preconditioner/jacobi.hpp"
 #include "resource_manager/solver/cg.hpp"
+#include "resource_manager/solver/triangular.hpp"
 #include "resource_manager/stop/iteration.hpp"
 #include "resource_manager/stop/residual_norm.hpp"
 
