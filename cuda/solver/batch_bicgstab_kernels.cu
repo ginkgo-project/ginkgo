@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_bicgstab_kernels.hpp"
 
 
-#include <ginkgo/batch_config.hpp>
 #include <ginkgo/core/base/math.hpp>
 
 
@@ -79,23 +78,12 @@ template <typename T>
 using BatchBicgstabOptions =
     gko::kernels::batch_bicgstab::BatchBicgstabOptions<T>;
 
-#if GKO_CUDA_BATCH_HAVE_NO_SHMEM
-
 #define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)              \
     apply_kernel<stop::_stoppertype<ValueType>>                            \
         <<<nbatch, default_block_size, shared_size>>>(                     \
             opts.num_sh_vecs, shared_gap, opts.max_its, opts.residual_tol, \
             logger, _prectype<ValueType>(), a, b.values, x.values,         \
             workspace.get_data())
-#else
-
-#define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)              \
-    apply_kernel<stop::_stoppertype<ValueType>>                            \
-        <<<nbatch, default_block_size, aux_size>>>(                        \
-            opts.num_sh_vecs, shared_gap, opts.max_its, opts.residual_tol, \
-            logger, _prectype<ValueType>(), a, b.values, x.values,         \
-            workspace.get_data())
-#endif
 
 template <typename BatchMatrixType, typename LogType, typename ValueType>
 static void apply_impl(
@@ -122,11 +110,11 @@ static void apply_impl(
             BatchIdentity<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
             sizeof(ValueType);
 
-#if GKO_CUDA_BATCH_HAVE_NO_SHMEM
-        workspace = gko::Array<ValueType>(
-            exec, static_cast<size_type>(std::abs(aux_size - shared_size) *
-                                         nbatch / sizeof(ValueType)));
-#endif
+        if (opts.num_sh_vecs > 0) {
+            workspace = gko::Array<ValueType>(
+                exec, static_cast<size_type>(std::abs(aux_size - shared_size) *
+                                             nbatch / sizeof(ValueType)));
+        }
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleAbsResidual, BatchIdentity);
         } else {
@@ -137,11 +125,11 @@ static void apply_impl(
         aux_size +=
             BatchJacobi<ValueType>::dynamic_work_size(shared_gap, a.num_nnz) *
             sizeof(ValueType);
-#if GKO_CUDA_BATCH_HAVE_NO_SHMEM
-        workspace = gko::Array<ValueType>(
-            exec, static_cast<size_type>(std::abs(aux_size - shared_size) *
-                                         nbatch / sizeof(ValueType)));
-#endif
+        if (opts.num_sh_vecs > 0) {
+            workspace = gko::Array<ValueType>(
+                exec, static_cast<size_type>(std::abs(aux_size - shared_size) *
+                                             nbatch / sizeof(ValueType)));
+        }
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleAbsResidual, BatchJacobi);
         } else {
