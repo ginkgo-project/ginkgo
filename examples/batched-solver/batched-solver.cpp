@@ -211,9 +211,9 @@ int main(int argc, char* argv[])
     std::shared_ptr<const gko::log::BatchConvergence<value_type>> logger =
         gko::log::BatchConvergence<value_type>::create(exec);
 
+    // @sec3{Generate and solve}
     // Generate the batch solver from the batch matrix
     auto solver = solver_gen->generate(A);
-
     // add the logger to the solver
     solver->add_logger(logger);
     // Solve the batch system
@@ -222,12 +222,11 @@ int main(int argc, char* argv[])
     //  the next solve using the same solver object.
     // solver->remove_logger(logger.get());
 
-    // Compute norms of RHS and final residual to check the result
-    auto b_norm =
-        gko::batch_initialize<real_vec_type>(num_systems, {0.0}, exec);
+    // @sec3{Check result}
+    // Compute norm of RHS on the device and automatically copy to host
+    auto b_norm = gko::batch_initialize<real_vec_type>(num_systems, {0.0},
+                                                       exec->get_master());
     b->compute_norm2(lend(b_norm));
-    auto host_b_norm = real_vec_type::create(exec->get_master());
-    host_b_norm->copy_from(lend(b_norm));
     // we need constants on the device
     auto one = gko::batch_initialize<vec_type>(num_systems, {1.0}, exec);
     auto neg_one = gko::batch_initialize<vec_type>(num_systems, {-1.0}, exec);
@@ -235,19 +234,16 @@ int main(int argc, char* argv[])
     auto res = vec_type::create(exec, batch_vec_size);
     res->copy_from(lend(b));
     A->apply(lend(one), lend(x), lend(neg_one), lend(res));
-    // allocate and compute residual norm on the device
-    auto res_norm =
-        gko::batch_initialize<real_vec_type>(num_systems, {0.0}, exec);
+    // allocate and compute residual norm
+    auto res_norm = gko::batch_initialize<real_vec_type>(num_systems, {0.0},
+                                                         exec->get_master());
     res->compute_norm2(lend(res_norm));
-    // transfer residual norm to the host
-    auto host_res_norm = real_vec_type::create(exec->get_master());
-    host_res_norm->copy_from(lend(res_norm));
 
     std::cout << "Residual norm sqrt(r^T r):\n";
     // "unbatch" converts a batch object into a vector of objects of the
     //   corresponding single type, eg. BatchDense --> vector<Dense>.
-    auto unb_res = host_res_norm->unbatch();
-    auto unb_bnorm = host_b_norm->unbatch();
+    auto unb_res = res_norm->unbatch();
+    auto unb_bnorm = b_norm->unbatch();
     for (size_type i = 0; i < num_systems; ++i) {
         std::cout << " System no. " << i
                   << ": residual norm = " << unb_res[i]->at(0, 0)
