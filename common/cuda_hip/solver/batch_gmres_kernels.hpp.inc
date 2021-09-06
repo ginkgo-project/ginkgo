@@ -249,7 +249,7 @@ __device__ __forceinline__ void update_x(
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
-__global__ void apply_kernel(const int shared_gap, const int max_iter,
+__global__ void apply_kernel(const int global_gap, const int max_iter,
                              const gko::remove_complex<ValueType> tol,
                              const int restart, LogType logger,
                              PrecType prec_shared, const BatchMatrixType a,
@@ -272,24 +272,11 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
 #if GKO_CUDA_BATCH_GMRES_HAVE_NO_SHMEM
         assert(workspace != nullptr);
-        ValueType* const r_sh = workspace + ibatch * (shared_gap);
-        ValueType* const z_sh = r_sh + nrows * nrhs;
-        ValueType* const w_sh = z_sh + nrows * nrhs;
-        ValueType* const x_sh = w_sh + nrows * nrhs;
-        ValueType* const helper_sh = x_sh + nrows * nrhs;
-        ValueType* const cs_sh = helper_sh + nrows * nrhs;
-        ValueType* const sn_sh = cs_sh + restart * nrhs;
-        ValueType* const y_sh = sn_sh + restart * nrhs;
-        ValueType* const s_sh = y_sh + restart * nrhs;
-
-        ValueType* const H_sh = s_sh + (restart + 1) * nrhs;
-
-        ValueType* const V_sh = H_sh + restart * (restart + 1) * nrhs;
-
-        ValueType* const prec_work_sh = V_sh + nrows * (restart + 1) * nrhs;
+        ValueType* const r_sh = workspace + ibatch * (global_gap);
 #else
         extern __shared__ char local_mem_sh[];
         ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
+#endif
         ValueType* const z_sh = r_sh + nrows * nrhs;
         ValueType* const w_sh = z_sh + nrows * nrhs;
         ValueType* const x_sh = w_sh + nrows * nrhs;
@@ -321,7 +308,6 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
         ValueType* const V_sh = H_sh + restart * (restart + 1) * nrhs;
 
         ValueType* const prec_work_sh = V_sh + nrows * (restart + 1) * nrhs;
-#endif
 
         // real_type *const norms_rhs_sh = reinterpret_cast<real_type *>(
         //     prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz));
