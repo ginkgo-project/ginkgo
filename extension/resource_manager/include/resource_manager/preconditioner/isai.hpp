@@ -102,7 +102,7 @@ std::shared_ptr<gko::LinOpFactory> create_from_config<
     std::cout << "build_isai_factory" << std::endl;
     // go though the type
     auto vt = get_value_with_default(item, "ValueType", default_valuetype);
-    auto it = get_value_with_default(item, "ValueType", default_indextype);
+    auto it = get_value_with_default(item, "IndexType", default_indextype);
     auto isai_type = get_value_with_default(item, "IsaiType", std::string{});
     assert(isai_type != std::string{});
     auto type_string = isai_type + "+" + vt + "+" + it;
@@ -122,7 +122,7 @@ create_from_config<RM_LinOp, RM_LinOp::Isai, gko::LinOp>(
     std::cout << "build_isai" << std::endl;
     // go though the type
     auto vt = get_value_with_default(item, "ValueType", default_valuetype);
-    auto it = get_value_with_default(item, "ValueType", default_indextype);
+    auto it = get_value_with_default(item, "IndexType", default_indextype);
     auto isai_type = get_value_with_default(item, "IsaiType", std::string{});
     assert(isai_type != std::string{});
     auto type_string = isai_type + "+" + vt + "+" + it;

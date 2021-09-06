@@ -98,7 +98,7 @@ std::shared_ptr<gko::LinOpFactory> create_from_config<
     std::cout << "jacobi_factory" << std::endl;
     // go though the type
     auto vt = get_value_with_default(item, "ValueType", default_valuetype);
-    auto it = get_value_with_default(item, "ValueType", default_indextype);
+    auto it = get_value_with_default(item, "IndexType", default_indextype);
     auto type_string = vt + "+" + it;
     auto ptr = jacobifactory_select<gko::preconditioner::Jacobi>(
         jacobi_list, [=](std::string key) { return key == type_string; }, item,
@@ -116,7 +116,7 @@ create_from_config<RM_LinOp, RM_LinOp::Jacobi, gko::LinOp>(
     std::cout << "build_jacobi" << std::endl;
     // go though the type
     auto vt = get_value_with_default(item, "ValueType", default_valuetype);
-    auto it = get_value_with_default(item, "ValueType", default_indextype);
+    auto it = get_value_with_default(item, "IndexType", default_indextype);
     auto type_string = vt + "+" + it;
     auto ptr = jacobi_select<gko::preconditioner::Jacobi>(
         jacobi_list, [=](std::string key) { return key == vt; }, item, exec,
