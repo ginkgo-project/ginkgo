@@ -270,7 +270,7 @@ __global__ void apply_kernel(const int shared_gap, const int max_iter,
     auto warp_grp = group::tiled_partition<tile_size>(thread_block);
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
-#if GKO_CUDA_BATCH_HAVE_NO_SHMEM
+#if GKO_CUDA_BATCH_GMRES_HAVE_NO_SHMEM
         assert(workspace != nullptr);
         ValueType* const r_sh = workspace + ibatch * (shared_gap);
         ValueType* const z_sh = r_sh + nrows * nrhs;
