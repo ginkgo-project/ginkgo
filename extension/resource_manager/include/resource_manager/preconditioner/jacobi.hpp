@@ -64,8 +64,8 @@ struct Generic<
                 PACK(gko::preconditioner::Jacobi<ValueType, IndexType>),
                 manager, item, exec, linop);
             SET_VALUE(bool, skip_sorting);
-            SET_VALUE(size_type, max_block_size);
-            SET_VALUE(size_type, max_block_stride);
+            SET_VALUE(gko::uint32, max_block_size);
+            SET_VALUE(gko::uint32, max_block_stride);
             SET_EXECUTOR;
         }();
 
