@@ -95,6 +95,11 @@ GET_STRING_PARTIAL(isai_lower, "isai_lower");
 GET_STRING_PARTIAL(isai_upper, "isai_upper");
 GET_STRING_PARTIAL(isai_general, "isai_general");
 GET_STRING_PARTIAL(isai_spd, "isai_spd");
+GET_STRING_PARTIAL(gko::solver::LowerTrs<>, "LowerTrs");
+GET_STRING_PARTIAL(gko::solver::UpperTrs<>, "UpperTrs");
+GET_STRING_PARTIAL(std::true_type, "true");
+GET_STRING_PARTIAL(std::false_type, "false");
+GET_STRING_PARTIAL(bool, "bool");
 
 
 /**
@@ -123,6 +128,15 @@ std::string get_string(type_list<K>)
 {
     return get_string<K>();
 }
+
+
+std::string create_type_name(const std::string &arg) { return arg; }
+template <typename... Rest>
+std::string create_type_name(const std::string &arg, Rest &&... rest)
+{
+    return arg + "+" + create_type_name(std::forward<Rest>(rest)...);
+}
+
 
 /**
  * get_string for the type_list general case. it will return the first item's
@@ -217,6 +231,14 @@ struct actual_type<type_list<
     using type = gko::preconditioner::Isai<isai_value, Rest...>;
 };
 
+template <typename LSolverType, typename USolverType, bool ReverseApply,
+          typename IndexType>
+struct actual_type<
+    type_list<LSolverType, USolverType,
+              std::integral_constant<bool, ReverseApply>, IndexType>> {
+    using type = gko::preconditioner::Ilu<LSolverType, USolverType,
+                                          ReverseApply, IndexType>;
+};
 /**
  * get_actual_type uses `actual_type<get_the_type<base, T>::type>::type` to
  * handle those classes with value template.
