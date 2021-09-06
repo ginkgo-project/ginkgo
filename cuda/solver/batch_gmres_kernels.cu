@@ -81,7 +81,7 @@ using BatchGmresOptions = gko::kernels::batch_gmres::BatchGmresOptions<T>;
 
 #define BATCH_GMRES_KERNEL_LAUNCH(_stoppertype, _prectype)                    \
     apply_kernel<stop::_stoppertype<ValueType>>                               \
-        <<<nbatch, default_block_size>>>(shared_gap, opts.max_its,            \
+        <<<nbatch, default_block_size>>>(global_gap, opts.max_its,            \
                                          opts.residual_tol, opts.restart_num, \
                                          logger, _prectype<ValueType>(), a,   \
                                          bptr, xptr, workspace.get_data())
@@ -91,7 +91,7 @@ using BatchGmresOptions = gko::kernels::batch_gmres::BatchGmresOptions<T>;
 #define BATCH_GMRES_KERNEL_LAUNCH(_stoppertype, _prectype)                 \
     apply_kernel<stop::_stoppertype<ValueType>>                            \
         <<<nbatch, default_block_size, shared_size>>>(                     \
-            shared_gap, opts.max_its, opts.residual_tol, opts.restart_num, \
+            global_gap, opts.max_its, opts.residual_tol, opts.restart_num, \
             logger, _prectype<ValueType>(), a, bptr, xptr)
 
 #endif
@@ -117,7 +117,7 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
     auto nrhs = b.num_rhs;
     auto nrows = a.num_rows;
     auto restart = opts.restart_num;
-    int shared_gap = 6 * nrows * nrhs + 3 * restart * nrhs +
+    int global_gap = 6 * nrows * nrhs + 3 * restart * nrhs +
                      (restart + 1) * nrhs + restart * (restart + 1) * nrhs +
                      nrows * (restart + 1) * nrhs;
     auto workspace = gko::Array<ValueType>(exec);
