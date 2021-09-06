@@ -77,6 +77,12 @@ size_type get_value<size_type>(rapidjson::Value &item, std::string &key)
 }
 
 template <>
+gko::uint32 get_value<gko::uint32>(rapidjson::Value &item, std::string &key)
+{
+    return item[key.c_str()].GetUint();
+}
+
+template <>
 dim<2> get_value<dim<2>>(rapidjson::Value &item, std::string &key)
 {
     if (item[key.c_str()].IsArray()) {
