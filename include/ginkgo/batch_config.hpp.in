@@ -34,9 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_INCLUDE_BATCH_CONFIG_H
 
 
-/* Should we compile with shared_memory for Batched Ginkgo? */
+/* Should we compile with shared_memory for Batched GMRES in Ginkgo? */
 // clang-format off
-#define GKO_CUDA_BATCH_HAVE_NO_SHMEM @GINKGO_CUDA_BATCH_HAVE_NO_SHMEM@
+#define GKO_CUDA_BATCH_GMRES_HAVE_NO_SHMEM @GINKGO_CUDA_BATCH_GMRES_HAVE_NO_SHMEM@
 // clang-format on
 
 
