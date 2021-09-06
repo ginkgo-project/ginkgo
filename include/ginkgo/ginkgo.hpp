@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_GINKGO_HPP_
 
 
+#include <ginkgo/batch_config.hpp>
 #include <ginkgo/config.hpp>
 
 
