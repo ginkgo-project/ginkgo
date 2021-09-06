@@ -80,6 +80,9 @@ function(ginkgo_install)
     install(FILES "${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp"
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/ginkgo"
         )
+    install(FILES "${Ginkgo_BINARY_DIR}/include/ginkgo/batch_config.hpp"
+        DESTINATION "${GINKGO_INSTALL_INCLUDE_DIR}/ginkgo"
+        )
     if (GINKGO_HAVE_PAPI_SDE)
         install(FILES "${Ginkgo_SOURCE_DIR}/third_party/papi_sde/papi_sde_interface.h"
             DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/third_party/papi_sde"
