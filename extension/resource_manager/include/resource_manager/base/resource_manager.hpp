@@ -83,8 +83,8 @@ public:
     template <typename T>
     std::shared_ptr<T> search_data(std::string key)
     {
-        auto it = this->get_map<T>().find(key);
-        return std::dynamic_pointer_cast<T>(it->second);
+        auto &val = this->get_map<T>().at(key);
+        return std::dynamic_pointer_cast<T>(val);
     }
 
     /**
