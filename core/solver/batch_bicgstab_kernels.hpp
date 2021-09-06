@@ -56,7 +56,7 @@ struct BatchBicgstabOptions {
     int max_its;
     RealType residual_tol;
     ::gko::stop::batch::ToleranceType tol_type;
-    int num_sh_vecs = 0;
+    int num_sh_vecs = 10;
 };
 
 

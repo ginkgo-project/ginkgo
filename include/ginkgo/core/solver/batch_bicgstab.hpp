@@ -110,8 +110,9 @@ public:
 
         /**
          * Number of shared vectors.
+         * TODO: Remove this
          */
-        int GKO_FACTORY_PARAMETER_SCALAR(num_shared_vectors, 0);
+        int GKO_FACTORY_PARAMETER_SCALAR(num_shared_vectors, 10);
 
         /**
          * Maximum number iterations allowed.

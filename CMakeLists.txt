@@ -99,11 +99,11 @@ option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) 
 option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
 
 #Batch Ginkgo options:
-option(GINKGO_CUDA_BATCH_USE_NO_SHMEM "Use no shared memory in the batch solver kernels (Might be necessary for large matrices)" OFF)
-if(GINKGO_CUDA_BATCH_USE_NO_SHMEM)
-    set(GINKGO_CUDA_BATCH_HAVE_NO_SHMEM 1)
+option(GINKGO_CUDA_BATCH_GMRES_USE_NO_SHMEM "Use no shared memory in the batch gmres solver kernels (Might be necessary for large matrices)" OFF)
+if(GINKGO_CUDA_BATCH_GMRES_USE_NO_SHMEM)
+    set(GINKGO_CUDA_BATCH_GMRES_HAVE_NO_SHMEM 1)
 else()
-    set(GINKGO_CUDA_BATCH_HAVE_NO_SHMEM 0)
+    set(GINKGO_CUDA_BATCH_GMRES_HAVE_NO_SHMEM 0)
 endif()
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
