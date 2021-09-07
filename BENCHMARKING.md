@@ -211,7 +211,7 @@ In a similar fashion to the above usual Ginkgo benchmarking, you can set the fol
 * `SOLVERS_MAX_ITERATIONS=<int>` - The maximum number of iterations to perform for each of the systems. Each system is independent and will iterate for these many iterations if it has not reached the convergence level.
 * `PRINT_RES_ITERS=<0 or 1>` - Whether to print the residuals, norms and errors.
 * `DETAILED=<0 or 1>` - Whether to run and gather detailed information. This prints the timings for some individual kernel timings.
-* `BATCH_SCALING=<option>` - Whether to use a pre-scaling to improve the conditioning of the matrix for the solve. Options include `explicit` (read from file), `implicit` or `none`.
+* `BATCH_SCALING=<option>` - Whether to use a pre-scaling to improve the conditioning of the matrix for the solve. Options include `explicit` (read from file), `implicit` (look for `A_scaled.mtx`) or `none`.
 * `BATCH_MATRIX_LIST=<filepath>` - A text file containing the class names to be benchmarked.
 * `BATCH_MATRIX_FOLDER=<foldername>` - The folder containing the matrix classes arranged in a structure as shown above.
 * `NUM_BATCH_DUP=<int>` - Number of times to duplicate the provided batch systems. For example, if the `BATCH_MATRIX_FOLDER` contained 20 matrices, and `NUM_BATCH_DUP` was set to 3, then the total number of matrices would be equal to 60. This allows for performing scaling tests.
