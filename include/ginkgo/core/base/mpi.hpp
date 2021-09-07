@@ -194,7 +194,7 @@ public:
 
     ~request()
     {
-        if (req_) delete req_;
+        if (req_) delete[] req_;
     }
 
     MPI_Request* get_requests() const { return req_; }
@@ -217,7 +217,7 @@ public:
 
     ~status()
     {
-        if (status_) delete status_;
+        if (status_) delete[] status_;
     }
 
     MPI_Status* get_statuses() const { return status_; }
