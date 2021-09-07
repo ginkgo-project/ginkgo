@@ -30,6 +30,7 @@ while (my $line = <EXAMPLE>)
 # List of additional node attributes to highlight purpose and state of the example
 my %style = (
     "basic"          => ',height=.8,width=.8,shape="octagon",fillcolor="forestgreen",peripheries=3',
+    "batched-functionality"          => ',height=.8,width=.8,fillcolor="forestgreen"',
     "techniques"     => ',height=.35,width=.35,fillcolor="coral"',
     "logging"         => ',height=.25,width=.25,fillcolor="gold"',
     "stopping-criteria"         => ',height=.25,width=.25,fillcolor="deepskyblue"',
