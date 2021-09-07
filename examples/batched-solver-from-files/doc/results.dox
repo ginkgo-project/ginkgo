@@ -1,0 +1,15 @@
+<h1>Results</h1>
+The following is the expected result on the reference executor:
+
+@code{.cpp}
+
+Residual norm sqrt(r^T r):
+ System no. 0: residual norm = 2.69282e-06, internal residual norm = 2.69281e-06, iterations = 94
+ System no. 1: residual norm = 2.35024e-07, internal residual norm = 2.3492e-07, iterations = 91
+ System no. 2: residual norm = 2.69282e-06, internal residual norm = 2.69281e-06, iterations = 94
+ System no. 3: residual norm = 2.35024e-07, internal residual norm = 2.3492e-07, iterations = 91
+Entire solve took 0.00708691 seconds.
+
+@endcode
+
+<h3> Comments about programming and debugging </h3>
