@@ -249,12 +249,13 @@ __device__ __forceinline__ void update_x(
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
-__global__ void apply_kernel(const int max_iter,
+__global__ void apply_kernel(const int global_gap, const int max_iter,
                              const gko::remove_complex<ValueType> tol,
                              const int restart, LogType logger,
                              PrecType prec_shared, const BatchMatrixType a,
                              const ValueType* const __restrict__ b,
-                             ValueType* const __restrict__ x)
+                             ValueType* const __restrict__ x,
+                             ValueType* const workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const auto nbatch = a.num_batch;
@@ -269,8 +270,13 @@ __global__ void apply_kernel(const int max_iter,
     auto warp_grp = group::tiled_partition<tile_size>(thread_block);
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
+#if GKO_CUDA_BATCH_GMRES_HAVE_NO_SHMEM
+        assert(workspace != nullptr);
+        ValueType* const r_sh = workspace + ibatch * (global_gap);
+#else
         extern __shared__ char local_mem_sh[];
         ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
+#endif
         ValueType* const z_sh = r_sh + nrows * nrhs;
         ValueType* const w_sh = z_sh + nrows * nrhs;
         ValueType* const x_sh = w_sh + nrows * nrhs;
