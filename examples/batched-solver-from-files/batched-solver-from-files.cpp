@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // This is the main ginkgo header file.
 #include <ginkgo/ginkgo.hpp>
 
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -100,11 +101,17 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    const std::string problem_descr_str = argc >= 3 ? argv[2] : "pores_1";
-    const size_type num_systems = argc >= 4 ? std::atoi(argv[3]) : 2;
-    const size_type num_duplications = argc >= 5 ? std::atoi(argv[4]) : 2;
-    const std::string batch_scaling = argc >= 6 ? argv[5] : "none";
     // @sect3{Read batch from files}
+    // Name of the problem, which is also the directory under which all
+    //  matrices are stored.
+    const std::string problem_descr_str = argc >= 3 ? argv[2] : "pores_1";
+    // Number of linear systems to read from files.
+    const size_type num_systems = argc >= 4 ? std::atoi(argv[3]) : 2;
+    // Number of times to duplicate whatever systems are read from files.
+    const size_type num_duplications = argc >= 5 ? std::atoi(argv[4]) : 2;
+    // Whether to enable diagonal scaling of the matrices before solving.
+    //  The scaling vectors need to be available in a 'S.mtx' file.
+    const std::string batch_scaling = argc >= 6 ? argv[5] : "none";
     auto data = std::vector<gko::matrix_data<value_type>>(num_systems);
     std::vector<gko::matrix_data<value_type>> bdata(num_systems);
     auto scale_data = std::vector<gko::matrix_data<value_type>>(num_systems);
@@ -162,6 +169,13 @@ int main(int argc, char* argv[])
             .with_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
+            // Set the number of intermediate vectors to store in GPU shared
+            //  memory rather than global memory. Lower values will enable
+            //  problems with larger individual systems to be solved, while
+            //  larger values will speed up the solve but will only work for
+            //  smaller systems.
+            // For BiCGStab, 10 is the maximum required.
+            .with_num_shared_vectors(10)
             .on(exec);
 
     // @sect3{Batch logger}
@@ -175,8 +189,11 @@ int main(int argc, char* argv[])
 
     // add the logger to the solver
     solver->add_logger(logger);
+
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     // Solve the batch system
     solver->apply(lend(b), lend(x));
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     // This is not necessary, but one might want to remove the logger before
     //  the next solve using the same solver object.
     solver->remove_logger(logger.get());
@@ -218,6 +235,11 @@ int main(int argc, char* argv[])
                       << " relative residual." << std::endl;
         }
     }
+
+    auto time_span =
+        std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+    std::cout << "Entire solve took " << time_span.count() << " seconds."
+              << std::endl;
 
     return 0;
 }
