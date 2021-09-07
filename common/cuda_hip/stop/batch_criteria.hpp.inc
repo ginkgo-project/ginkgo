@@ -34,9 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // to include "cuda|hip/matrix/batch_struct.hpp"
 // to include "cuda|hip/matrix/batch_dense_kernels.hpp"
 
-//#include <ginkgo/core/stop/batch_stop_enum.hpp>
-
 namespace stop {
+
+#ifdef __CUDACC__
 
 /**
  * A stopping criterion for batch solvers that comprises a
@@ -230,24 +230,22 @@ private:
 
         if (rhs_index < nrhs) {
             int ichk = 0;
-
-            if (converged &
-                (1 << rhs_index)) {  // don't check for convergence again for
-                                     // RHSs which have already converged.
+            // don't check for convergence again for
+            // RHSs which have already converged.
+            if (converged & (1 << rhs_index)) {
                 ichk = 1;
             }
-
             ichk = (res_norms[rhs_index] < abs_tol);
-
             const bitset_type wchk = __ballot_sync(activemask, ichk);
             converged |= wchk;
         }
-
         // copy the converged value to all threads in the warp
         converged = __shfl_sync(all_true, converged, 0);
         // note that every warp does all this redundantly
     }
 };
+
+#endif
 
 
 template <typename ValueType>
