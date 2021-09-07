@@ -47,7 +47,7 @@ std::unique_ptr<matrix::Dense<ValueType>> create_with_same_size(
     const matrix::Dense<ValueType>* mtx)
 {
     return matrix::Dense<ValueType>::create(mtx->get_executor(),
-                                            mtx->get_size());
+                                            mtx->get_size(), mtx->get_stride());
 }
 
 
