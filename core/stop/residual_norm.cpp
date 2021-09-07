@@ -72,14 +72,14 @@ bool ResidualNormBase<ValueType>::check_impl(
 {
     using DistributedComplex = distributed::Vector<gko::to_complex<ValueType>>;
     using DistributedVector = distributed::Vector<ValueType>;
-    const NormVector *dense_tau;
+    const NormVector* dense_tau;
     if (updater.residual_norm_ != nullptr) {
         dense_tau = as<NormVector>(updater.residual_norm_);
     } else if (updater.residual_ != nullptr) {
-        if (dynamic_cast<const distributed::DistributedBase *>(
+        if (dynamic_cast<const distributed::DistributedBase*>(
                 updater.residual_)) {
             // the vector is distributed
-            if (dynamic_cast<const DistributedComplex *>(updater.residual_)) {
+            if (dynamic_cast<const DistributedComplex*>(updater.residual_)) {
                 // handle solvers that use complex vectors even for real systems
                 auto dense_r = as<DistributedComplex>(updater.residual_);
                 dense_r->compute_norm2(u_dense_tau_.get());
@@ -89,7 +89,7 @@ bool ResidualNormBase<ValueType>::check_impl(
             }
         } else {
             // the vector is non-distributed
-            if (dynamic_cast<const ComplexVector *>(updater.residual_)) {
+            if (dynamic_cast<const ComplexVector*>(updater.residual_)) {
                 // handle solvers that use complex vectors even for real systems
                 auto dense_r = as<ComplexVector>(updater.residual_);
                 dense_r->compute_norm2(u_dense_tau_.get());

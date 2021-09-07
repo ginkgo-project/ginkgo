@@ -102,10 +102,10 @@ protected:
           reduction_factor_{reduction_factor},
           baseline_{baseline},
           system_matrix_{args.system_matrix},
-          b_{args.b},
-          one_{gko::initialize<Vector>({1}, exec)},
-          neg_one_{gko::initialize<Vector>({-1}, exec)}
+          b_{args.b}
     {
+        one_ = initialize<Vector>({one<ValueType>()}, exec);
+        neg_one_ = initialize<Vector>({-one<ValueType>()}, exec);
         switch (baseline_) {
         case mode::initial_resnorm: {
             if (args.initial_residual == nullptr) {
