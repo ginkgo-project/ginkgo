@@ -34,14 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_DISTRIBUTED_MATRIX_HPP_
 
 
-#include <ginkgo/config.hpp>
-
-
 #include <numeric>
 #include <unordered_map>
 #include <unordered_set>
 
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/cache.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
@@ -71,25 +69,25 @@ public:
     using LocalMtx = matrix::Csr<value_type, local_index_type>;
 
     void read_distributed(
-        const matrix_data<ValueType, global_index_type> &data,
+        const matrix_data<ValueType, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type>> partition);
 
     void read_distributed(
-        const Array<matrix_data_entry<ValueType, global_index_type>> &data,
+        const Array<matrix_data_entry<ValueType, global_index_type>>& data,
         dim<2> size,
         std::shared_ptr<const Partition<local_index_type>> partition);
 
     void validate_data() const override;
 
-    LocalMtx *get_local_diag() { return &diag_mtx_; }
+    LocalMtx* get_local_diag() { return &diag_mtx_; }
 
-    LocalMtx *get_local_offdiag() { return &offdiag_mtx_; }
+    LocalMtx* get_local_offdiag() { return &offdiag_mtx_; }
 
-    const LocalMtx *get_local_diag() const { return &diag_mtx_; }
+    const LocalMtx* get_local_diag() const { return &diag_mtx_; }
 
-    const LocalMtx *get_local_offdiag() const { return &offdiag_mtx_; }
+    const LocalMtx* get_local_offdiag() const { return &offdiag_mtx_; }
 
-    const Partition<local_index_type> *get_partition() const
+    const Partition<local_index_type>* get_partition() const
     {
         return partition_.get();
     }
@@ -99,12 +97,12 @@ protected:
            std::shared_ptr<mpi::communicator> comm =
                std::make_shared<mpi::communicator>());
 
-    void communicate(const LocalVec *local_b) const;
+    void communicate(const LocalVec* local_b) const;
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
 private:
     std::vector<comm_index_type> send_offsets_;

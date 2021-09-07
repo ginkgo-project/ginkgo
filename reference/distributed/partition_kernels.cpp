@@ -40,7 +40,7 @@ namespace partition {
 
 
 void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
-                  const Array<comm_index_type> &mapping, size_type &num_ranges)
+                  const Array<comm_index_type>& mapping, size_type& num_ranges)
 {
     num_ranges = 0;
     comm_index_type prev_part{-1};
@@ -54,8 +54,8 @@ void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
 
 template <typename LocalIndexType>
 void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,
-                           const Array<global_index_type> &ranges,
-                           distributed::Partition<LocalIndexType> *partition)
+                           const Array<global_index_type>& ranges,
+                           distributed::Partition<LocalIndexType>* partition)
 {
     partition->get_range_bounds()[0] = 0;
     for (comm_index_type i = 0; i < ranges.get_num_elems() - 1; i++) {
@@ -71,8 +71,8 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 template <typename LocalIndexType>
 void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
-                        const Array<comm_index_type> &mapping,
-                        distributed::Partition<LocalIndexType> *partition)
+                        const Array<comm_index_type>& mapping,
+                        distributed::Partition<LocalIndexType>* partition)
 {
     size_type range_idx{};
     comm_index_type range_part{-1};
@@ -94,9 +94,9 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING);
 
 template <typename LocalIndexType>
 void build_ranks(std::shared_ptr<const DefaultExecutor> exec,
-                 const global_index_type *range_offsets, const int *range_parts,
-                 size_type num_ranges, int num_parts, LocalIndexType *ranks,
-                 LocalIndexType *sizes)
+                 const global_index_type* range_offsets, const int* range_parts,
+                 size_type num_ranges, int num_parts, LocalIndexType* ranks,
+                 LocalIndexType* sizes)
 {
     std::fill_n(sizes, num_parts, 0);
     for (size_type range = 0; range < num_ranges; ++range) {
@@ -113,8 +113,8 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_RANKS);
 
 template <typename LocalIndexType>
 void is_ordered(std::shared_ptr<const DefaultExecutor> exec,
-                const distributed::Partition<LocalIndexType> *partition,
-                bool *result)
+                const distributed::Partition<LocalIndexType>* partition,
+                bool* result)
 {
     *result = true;
     auto part_ids = partition->get_const_part_ids();

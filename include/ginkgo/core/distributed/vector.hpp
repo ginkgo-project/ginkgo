@@ -35,8 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
-
-
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
@@ -70,11 +68,11 @@ public:
     using complex_type = to_complex<Vector>;
     using local_mtx_type = matrix::Dense<value_type>;
 
-    void convert_to(Vector<next_precision<ValueType>, LocalIndexType> *result)
+    void convert_to(Vector<next_precision<ValueType>, LocalIndexType>* result)
         const override;
 
     void move_to(
-        Vector<next_precision<ValueType>, LocalIndexType> *result) override;
+        Vector<next_precision<ValueType>, LocalIndexType>* result) override;
 
     /**
      * Fill the distributed vector with a given value.
@@ -84,7 +82,7 @@ public:
     void fill(const ValueType value);
 
     void read_distributed(
-        const matrix_data<ValueType, global_index_type> &data,
+        const matrix_data<ValueType, global_index_type>& data,
         std::shared_ptr<const Partition<LocalIndexType>> partition);
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
@@ -100,7 +98,7 @@ public:
      *               element of alpha (the number of columns of alpha has to
      *               match the number of columns of the matrix).
      */
-    void scale(const LinOp *alpha);
+    void scale(const LinOp* alpha);
 
     /**
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
@@ -112,7 +110,7 @@ public:
      *               match the number of columns of the matrix).
      * @param b  a matrix of the same dimension as this
      */
-    void add_scaled(const LinOp *alpha, const LinOp *b);
+    void add_scaled(const LinOp* alpha, const LinOp* b);
 
     /**
      * Computes the column-wise dot product of this matrix and `b`.
@@ -122,7 +120,7 @@ public:
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
-    void compute_dot(const LinOp *b, LinOp *result) const;
+    void compute_dot(const LinOp* b, LinOp* result) const;
 
     /**
      * Computes the column-wise dot product of this matrix and `conj(b)`.
@@ -132,7 +130,7 @@ public:
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
-    void compute_conj_dot(const LinOp *b, LinOp *result) const;
+    void compute_conj_dot(const LinOp* b, LinOp* result) const;
 
     /**
      * Computes the Euclidian (L^2) norm of this matrix.
@@ -141,12 +139,12 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_norm2(LinOp *result) const;
+    void compute_norm2(LinOp* result) const;
 
-    const local_mtx_type *get_local() const;
+    const local_mtx_type* get_local() const;
 
     // Promise not to break things? :)
-    local_mtx_type *get_local();
+    local_mtx_type* get_local();
 
     std::shared_ptr<const Partition<LocalIndexType>> get_partition() const
     {
@@ -168,10 +166,10 @@ protected:
         std::shared_ptr<const Partition<LocalIndexType>> partition = nullptr,
         dim<2> global_size = {}, dim<2> local_size = {});
 
-    void apply_impl(const LinOp *, LinOp *) const override;
+    void apply_impl(const LinOp*, LinOp*) const override;
 
-    void apply_impl(const LinOp *, const LinOp *, const LinOp *,
-                    LinOp *) const override;
+    void apply_impl(const LinOp*, const LinOp*, const LinOp*,
+                    LinOp*) const override;
 
 private:
     std::shared_ptr<const Partition<LocalIndexType>> partition_;

@@ -52,14 +52,14 @@ namespace distributed_matrix {
 template <typename ValueType, typename LocalIndexType>
 void build_diag_offdiag(
     std::shared_ptr<const DefaultExecutor> exec,
-    const Array<matrix_data_entry<ValueType, global_index_type>> &input,
-    const distributed::Partition<LocalIndexType> *partition,
+    const Array<matrix_data_entry<ValueType, global_index_type>>& input,
+    const distributed::Partition<LocalIndexType>* partition,
     comm_index_type local_part,
-    Array<matrix_data_entry<ValueType, LocalIndexType>> &diag_data,
-    Array<matrix_data_entry<ValueType, LocalIndexType>> &offdiag_data,
-    Array<LocalIndexType> &local_gather_idxs, comm_index_type *recv_offsets,
-    Array<global_index_type> &local_row_to_global,
-    Array<global_index_type> &local_offdiag_col_to_global,
+    Array<matrix_data_entry<ValueType, LocalIndexType>>& diag_data,
+    Array<matrix_data_entry<ValueType, LocalIndexType>>& offdiag_data,
+    Array<LocalIndexType>& local_gather_idxs, comm_index_type* recv_offsets,
+    Array<global_index_type>& local_row_to_global,
+    Array<global_index_type>& local_offdiag_col_to_global,
     ValueType deduction_help)
 {
     using range_index_type = global_index_type;
@@ -89,7 +89,7 @@ void build_diag_offdiag(
                                    range_bounds + num_ranges + 1, idx);
         return std::distance(range_bounds + 1, it);
     };
-    auto update_range = [&](global_index_type idx, range_info &info) {
+    auto update_range = [&](global_index_type idx, range_info& info) {
         if (idx < info.begin || idx >= info.end) {
             info.index = find_range(idx);
             info.begin = range_bounds[info.index];
@@ -179,11 +179,11 @@ void build_diag_offdiag(
         // write back the local data to the output ranges
         auto diag = diag_entry_offsets[thread_id];
         auto offdiag = offdiag_entry_offsets[thread_id];
-        for (auto &entry : thread_diag_entries) {
+        for (auto& entry : thread_diag_entries) {
             diag_entries[diag] = entry;
             diag++;
         }
-        for (auto &entry : thread_offdiag_entries) {
+        for (auto& entry : thread_offdiag_entries) {
             global_offdiag_entries[offdiag] = entry;
             offdiag++;
         }
@@ -234,8 +234,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BUILD_DIAG_OFFDIAG);
 
 template <typename SourceType, typename TargetType>
 void map_to_global_idxs(std::shared_ptr<const DefaultExecutor> exec,
-                        const SourceType *input, size_t n, TargetType *output,
-                        const TargetType *map) GKO_NOT_IMPLEMENTED;
+                        const SourceType* input, size_t n, TargetType* output,
+                        const TargetType* map) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_MAP_TO_GLOBAL_IDXS);

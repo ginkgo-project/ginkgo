@@ -45,14 +45,14 @@ namespace distributed_matrix {
 template <typename ValueType, typename LocalIndexType>
 void build_diag_offdiag(
     std::shared_ptr<const DefaultExecutor> exec,
-    const Array<matrix_data_entry<ValueType, global_index_type>> &input,
-    const distributed::Partition<LocalIndexType> *partition,
+    const Array<matrix_data_entry<ValueType, global_index_type>>& input,
+    const distributed::Partition<LocalIndexType>* partition,
     comm_index_type local_part,
-    Array<matrix_data_entry<ValueType, LocalIndexType>> &diag_data,
-    Array<matrix_data_entry<ValueType, LocalIndexType>> &offdiag_data,
-    Array<LocalIndexType> &local_gather_idxs, comm_index_type *recv_offsets,
-    Array<global_index_type> &local_row_to_global,
-    Array<global_index_type> &local_offdiag_col_to_global,
+    Array<matrix_data_entry<ValueType, LocalIndexType>>& diag_data,
+    Array<matrix_data_entry<ValueType, LocalIndexType>>& offdiag_data,
+    Array<LocalIndexType>& local_gather_idxs, comm_index_type* recv_offsets,
+    Array<global_index_type>& local_row_to_global,
+    Array<global_index_type>& local_offdiag_col_to_global,
     ValueType deduction_help) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BUILD_DIAG_OFFDIAG);
@@ -60,8 +60,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BUILD_DIAG_OFFDIAG);
 
 template <typename SourceType, typename TargetType>
 void map_to_global_idxs(std::shared_ptr<const DefaultExecutor> exec,
-                        const SourceType *input, size_t n, TargetType *output,
-                        const TargetType *map) GKO_NOT_IMPLEMENTED;
+                        const SourceType* input, size_t n, TargetType* output,
+                        const TargetType* map) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_MAP_TO_GLOBAL_IDXS);

@@ -52,18 +52,18 @@ GKO_REGISTER_OPERATION(build_local, distributed_vector::build_local);
 
 
 template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::apply_impl(const LinOp *b,
-                                                   LinOp *x) const
+void Vector<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
+                                                   LinOp* x) const
 {
     GKO_NOT_SUPPORTED(this);
 }
 
 
 template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::apply_impl(const LinOp *alpha,
-                                                   const LinOp *b,
-                                                   const LinOp *beta,
-                                                   LinOp *x) const
+void Vector<ValueType, LocalIndexType>::apply_impl(const LinOp* alpha,
+                                                   const LinOp* b,
+                                                   const LinOp* beta,
+                                                   LinOp* x) const
 {
     GKO_NOT_SUPPORTED(this);
 }
@@ -78,7 +78,7 @@ void Vector<ValueType, LocalIndexType>::fill(const ValueType value)
 
 template <typename ValueType, typename LocalIndexType>
 void Vector<ValueType, LocalIndexType>::convert_to(
-    Vector<next_precision<ValueType>, LocalIndexType> *result) const
+    Vector<next_precision<ValueType>, LocalIndexType>* result) const
 {
     result->set_size(this->get_size());
     this->get_local()->convert_to(result->get_local());
@@ -87,7 +87,7 @@ void Vector<ValueType, LocalIndexType>::convert_to(
 
 template <typename ValueType, typename LocalIndexType>
 void Vector<ValueType, LocalIndexType>::move_to(
-    Vector<next_precision<ValueType>, LocalIndexType> *result)
+    Vector<next_precision<ValueType>, LocalIndexType>* result)
 {
     this->convert_to(result);
 }
@@ -118,7 +118,7 @@ void Vector<ValueType, LocalIndexType>::compute_absolute_inplace()
 
 
 template <typename ValueType, typename LocalIndexType>
-const typename Vector<ValueType, LocalIndexType>::local_mtx_type *
+const typename Vector<ValueType, LocalIndexType>::local_mtx_type*
 Vector<ValueType, LocalIndexType>::get_local() const
 {
     return &local_;
@@ -126,7 +126,7 @@ Vector<ValueType, LocalIndexType>::get_local() const
 
 
 template <typename ValueType, typename LocalIndexType>
-typename Vector<ValueType, LocalIndexType>::local_mtx_type *
+typename Vector<ValueType, LocalIndexType>::local_mtx_type*
 Vector<ValueType, LocalIndexType>::get_local()
 {
     return &local_;
@@ -159,7 +159,7 @@ Vector<ValueType, LocalIndexType>::Vector(
 
 template <typename ValueType, typename LocalIndexType>
 void Vector<ValueType, LocalIndexType>::read_distributed(
-    const matrix_data<ValueType, global_index_type> &data,
+    const matrix_data<ValueType, global_index_type>& data,
     std::shared_ptr<const Partition<LocalIndexType>> partition)
 {
     this->partition_ = partition;
@@ -180,15 +180,15 @@ void Vector<ValueType, LocalIndexType>::read_distributed(
 
 
 template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::scale(const LinOp *alpha)
+void Vector<ValueType, LocalIndexType>::scale(const LinOp* alpha)
 {
     this->get_local()->scale(alpha);
 }
 
 
 template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::add_scaled(const LinOp *alpha,
-                                                   const LinOp *b)
+void Vector<ValueType, LocalIndexType>::add_scaled(const LinOp* alpha,
+                                                   const LinOp* b)
 {
     auto dense_b = as<Vector<ValueType, LocalIndexType>>(b);
     this->get_local()->add_scaled(alpha, dense_b->get_local());
@@ -196,8 +196,8 @@ void Vector<ValueType, LocalIndexType>::add_scaled(const LinOp *alpha,
 
 
 template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::compute_dot(const LinOp *b,
-                                                    LinOp *result) const
+void Vector<ValueType, LocalIndexType>::compute_dot(const LinOp* b,
+                                                    LinOp* result) const
 {
     auto exec = this->get_executor();
     auto dense_res =
@@ -214,8 +214,8 @@ void Vector<ValueType, LocalIndexType>::compute_dot(const LinOp *b,
 
 
 template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::compute_conj_dot(const LinOp *b,
-                                                         LinOp *result) const
+void Vector<ValueType, LocalIndexType>::compute_conj_dot(const LinOp* b,
+                                                         LinOp* result) const
 {
     auto exec = this->get_executor();
     auto dense_res =
@@ -230,7 +230,7 @@ void Vector<ValueType, LocalIndexType>::compute_conj_dot(const LinOp *b,
 
 
 template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::compute_norm2(LinOp *result) const
+void Vector<ValueType, LocalIndexType>::compute_norm2(LinOp* result) const
 {
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));

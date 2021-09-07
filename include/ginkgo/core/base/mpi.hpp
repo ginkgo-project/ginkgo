@@ -64,8 +64,8 @@ using MPI_Status = int;
 using MPI_Request = int;
 using MPI_Datatype = int;
 using MPI_Op = int;
-using MPI_Win = int *;
-using MPI_Info = int *;
+using MPI_Win = int*;
+using MPI_Info = int*;
 
 #ifndef MPI_COMM_WORLD
 #define MPI_COMM_WORLD 0
@@ -98,7 +98,7 @@ using MPI_Info = int *;
 
 
 template <typename T>
-using array_manager = std::unique_ptr<T, std::function<void(T *)>>;
+using array_manager = std::unique_ptr<T, std::function<void(T*)>>;
 
 
 namespace gko {
@@ -128,17 +128,17 @@ enum class op_type {
  */
 class init_finalize {
 public:
-    init_finalize(int &argc, char **&argv, const size_type num_threads = 1);
+    init_finalize(int& argc, char**& argv, const size_type num_threads = 1);
 
     init_finalize() = delete;
 
-    init_finalize(init_finalize &other) = default;
+    init_finalize(init_finalize& other) = default;
 
-    init_finalize &operator=(const init_finalize &other) = default;
+    init_finalize& operator=(const init_finalize& other) = default;
 
-    init_finalize(init_finalize &&other) = default;
+    init_finalize(init_finalize&& other) = default;
 
-    init_finalize &operator=(init_finalize &&other) = default;
+    init_finalize& operator=(init_finalize&& other) = default;
 
     static bool is_finalized();
 
@@ -150,7 +150,7 @@ private:
     int num_args_;
     int required_thread_support_;
     int provided_thread_support_;
-    char **args_;
+    char** args_;
 };
 
 
@@ -167,7 +167,7 @@ public:
 
     void remove(std::string key);
 
-    std::string &at(std::string &key) { return this->key_value_.at(key); }
+    std::string& at(std::string& key) { return this->key_value_.at(key); }
 
     void add(std::string key, std::string value);
 
@@ -197,10 +197,10 @@ public:
         if (req_) delete req_;
     }
 
-    MPI_Request *get_requests() const { return req_; }
+    MPI_Request* get_requests() const { return req_; }
 
 private:
-    MPI_Request *req_;
+    MPI_Request* req_;
 };
 
 
@@ -220,10 +220,10 @@ public:
         if (status_) delete status_;
     }
 
-    MPI_Status *get_statuses() const { return status_; }
+    MPI_Status* get_statuses() const { return status_; }
 
 private:
-    MPI_Status *status_;
+    MPI_Status* status_;
 };
 
 
@@ -234,19 +234,19 @@ private:
  */
 class communicator : public EnableSharedCreateMethod<communicator> {
 public:
-    communicator(const MPI_Comm &comm);
+    communicator(const MPI_Comm& comm);
 
-    communicator(const MPI_Comm &comm, int color, int key);
+    communicator(const MPI_Comm& comm, int color, int key);
 
     communicator();
 
-    communicator(communicator &other);
+    communicator(communicator& other);
 
-    communicator &operator=(const communicator &other);
+    communicator& operator=(const communicator& other);
 
-    communicator(communicator &&other);
+    communicator(communicator&& other);
 
-    communicator &operator=(communicator &&other);
+    communicator& operator=(communicator&& other);
 
     static MPI_Comm get_comm_world() { return MPI_COMM_WORLD; }
 
@@ -263,9 +263,9 @@ public:
 
     int local_rank() const { return local_rank_; };
 
-    bool compare(const MPI_Comm &other) const;
+    bool compare(const MPI_Comm& other) const;
 
-    bool operator==(const communicator &rhs) { return compare(rhs.get()); }
+    bool operator==(const communicator& rhs) { return compare(rhs.get()); }
 
     ~communicator();
 
@@ -279,9 +279,9 @@ private:
 
 class mpi_type {
 public:
-    mpi_type(const int count, MPI_Datatype &old);
+    mpi_type(const int count, MPI_Datatype& old);
     ~mpi_type();
-    const MPI_Datatype &get() const { return this->type_; }
+    const MPI_Datatype& get() const { return this->type_; }
 
 private:
     MPI_Datatype type_{};
@@ -295,12 +295,12 @@ public:
     enum class lock_type { shared = 1, exclusive = 2 };
 
     window() : window_(MPI_WIN_NULL) {}
-    window(window &other) = default;
-    window &operator=(const window &other) = default;
-    window(window &&other) = default;
-    window &operator=(window &&other) = default;
+    window(window& other) = default;
+    window& operator=(const window& other) = default;
+    window(window&& other) = default;
+    window& operator=(window&& other) = default;
 
-    window(ValueType *base, unsigned int size,
+    window(ValueType* base, unsigned int size,
            std::shared_ptr<const communicator> comm,
            const int disp_unit = sizeof(ValueType),
            info input_info = info(MPI_INFO_NULL),
@@ -333,7 +333,7 @@ private:
 };
 
 
-void synchronize(const communicator &comm = communicator::get_comm_world());
+void synchronize(const communicator& comm = communicator::get_comm_world());
 
 
 void wait(std::shared_ptr<request> req, std::shared_ptr<status> status = {});
@@ -342,124 +342,124 @@ void wait(std::shared_ptr<request> req, std::shared_ptr<status> status = {});
 double get_walltime();
 
 
-int get_my_rank(const communicator &comm = communicator::get_comm_world());
+int get_my_rank(const communicator& comm = communicator::get_comm_world());
 
 
-int get_local_rank(const communicator &comm = communicator::get_comm_world());
+int get_local_rank(const communicator& comm = communicator::get_comm_world());
 
 
-int get_num_ranks(const communicator &comm = communicator::get_comm_world());
+int get_num_ranks(const communicator& comm = communicator::get_comm_world());
 
 
 template <typename SendType>
-void send(const SendType *send_buffer, const int send_count,
+void send(const SendType* send_buffer, const int send_count,
           const int destination_rank, const int send_tag,
           std::shared_ptr<request> req = {},
           std::shared_ptr<const communicator> comm = {});
 
 
 template <typename RecvType>
-void recv(RecvType *recv_buffer, const int recv_count, const int source_rank,
+void recv(RecvType* recv_buffer, const int recv_count, const int source_rank,
           const int recv_tag, std::shared_ptr<request> req = {},
           std::shared_ptr<status> status = {},
           std::shared_ptr<const communicator> comm = {});
 
 
 template <typename PutType>
-void put(const PutType *origin_buffer, const int origin_count,
+void put(const PutType* origin_buffer, const int origin_count,
          const int target_rank, const unsigned int target_disp,
-         const int target_count, window<PutType> &window,
+         const int target_count, window<PutType>& window,
          std::shared_ptr<request> req = {});
 
 
 template <typename GetType>
-void get(GetType *origin_buffer, const int origin_count, const int target_rank,
+void get(GetType* origin_buffer, const int origin_count, const int target_rank,
          const unsigned int target_disp, const int target_count,
-         window<GetType> &window, std::shared_ptr<request> req = {});
+         window<GetType>& window, std::shared_ptr<request> req = {});
 
 
 template <typename BroadcastType>
-void broadcast(BroadcastType *buffer, int count, int root_rank,
+void broadcast(BroadcastType* buffer, int count, int root_rank,
                std::shared_ptr<const communicator> comm = {});
 
 
 template <typename ReduceType>
-void reduce(const ReduceType *send_buffer, ReduceType *recv_buffer, int count,
+void reduce(const ReduceType* send_buffer, ReduceType* recv_buffer, int count,
             op_type op_enum, int root_rank,
             std::shared_ptr<const communicator> comm = {},
             std::shared_ptr<request> req = {});
 
 
 template <typename ReduceType>
-void all_reduce(ReduceType *recv_buffer, int count,
+void all_reduce(ReduceType* recv_buffer, int count,
                 op_type op_enum = op_type::sum,
                 std::shared_ptr<const communicator> comm = {},
                 std::shared_ptr<request> req = {});
 
 
 template <typename ReduceType>
-void all_reduce(const ReduceType *send_buffer, ReduceType *recv_buffer,
+void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
                 int count, op_type op_enum = op_type::sum,
                 std::shared_ptr<const communicator> comm = {},
                 std::shared_ptr<request> req = {});
 
 
 template <typename SendType, typename RecvType>
-void gather(const SendType *send_buffer, const int send_count,
-            RecvType *recv_buffer, const int recv_count, int root_rank,
+void gather(const SendType* send_buffer, const int send_count,
+            RecvType* recv_buffer, const int recv_count, int root_rank,
             std::shared_ptr<const communicator> comm = {});
 
 
 template <typename SendType, typename RecvType>
-void gather(const SendType *send_buffer, const int send_count,
-            RecvType *recv_buffer, const int *recv_counts,
-            const int *displacements, int root_rank,
+void gather(const SendType* send_buffer, const int send_count,
+            RecvType* recv_buffer, const int* recv_counts,
+            const int* displacements, int root_rank,
             std::shared_ptr<const communicator> comm = {});
 
 
 template <typename SendType, typename RecvType>
-void all_gather(const SendType *send_buffer, const int send_count,
-                RecvType *recv_buffer, const int recv_count,
+void all_gather(const SendType* send_buffer, const int send_count,
+                RecvType* recv_buffer, const int recv_count,
                 std::shared_ptr<const communicator> comm = {});
 
 
 template <typename SendType, typename RecvType>
-void scatter(const SendType *send_buffer, const int send_count,
-             RecvType *recv_buffer, const int recv_count, int root_rank,
+void scatter(const SendType* send_buffer, const int send_count,
+             RecvType* recv_buffer, const int recv_count, int root_rank,
              std::shared_ptr<const communicator> comm = {});
 
 
 template <typename SendType, typename RecvType>
-void scatter(const SendType *send_buffer, const int *send_counts,
-             const int *displacements, RecvType *recv_buffer,
+void scatter(const SendType* send_buffer, const int* send_counts,
+             const int* displacements, RecvType* recv_buffer,
              const int recv_count, int root_rank,
              std::shared_ptr<const communicator> comm = {});
 
 
 template <typename RecvType>
-void all_to_all(RecvType *recv_buffer, const int recv_count,
+void all_to_all(RecvType* recv_buffer, const int recv_count,
                 std::shared_ptr<const communicator> comm = {},
                 std::shared_ptr<request> req = {});
 
 
 template <typename SendType, typename RecvType>
-void all_to_all(const SendType *send_buffer, const int send_count,
-                RecvType *recv_buffer, const int recv_count = {},
+void all_to_all(const SendType* send_buffer, const int send_count,
+                RecvType* recv_buffer, const int recv_count = {},
                 std::shared_ptr<const communicator> comm = {},
                 std::shared_ptr<request> req = {});
 
 
 template <typename SendType, typename RecvType>
-void all_to_all(const SendType *send_buffer, const int *send_counts,
-                const int *send_offsets, RecvType *recv_buffer,
-                const int *recv_counts, const int *recv_offsets,
+void all_to_all(const SendType* send_buffer, const int* send_counts,
+                const int* send_offsets, RecvType* recv_buffer,
+                const int* recv_counts, const int* recv_offsets,
                 const int stride = 1,
                 std::shared_ptr<const communicator> comm = {},
                 std::shared_ptr<request> req = {});
 
 
 template <typename ReduceType>
-void scan(const ReduceType *send_buffer, ReduceType *recv_buffer, int count,
+void scan(const ReduceType* send_buffer, ReduceType* recv_buffer, int count,
           op_type op_enum = op_type::sum,
           std::shared_ptr<const communicator> comm = {});
 
