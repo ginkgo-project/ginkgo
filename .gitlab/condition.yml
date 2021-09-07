@@ -26,6 +26,7 @@
 .deploy_condition:
   only:
     refs:
+      - batch-develop
       - develop
       - master
       - tags
