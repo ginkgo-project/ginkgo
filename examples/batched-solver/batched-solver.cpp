@@ -66,19 +66,19 @@ using solver_type = gko::solver::BatchBicgstab<value_type>;
  * Ginkgo's \ref Array class here.
  */
 struct ApplSysData {
-    /// Number of small systems in the batch.
+    // Number of small systems in the batch.
     size_type nsystems;
-    /// Number of rows in each system.
+    // Number of rows in each system.
     int nrows;
-    /// Number of non-zeros in each system matrix.
+    // Number of non-zeros in each system matrix.
     int nnz;
-    /// Row pointers for one matrix
+    // Row pointers for one matrix
     index_type* row_ptrs;
-    /// Column indices of non-zeros for one matrix
+    // Column indices of non-zeros for one matrix
     index_type* col_idxs;
-    /// Nonzero values for all matrices in the batch, concatenated
+    // Nonzero values for all matrices in the batch, concatenated
     value_type* all_values;
-    /// RHS vectors for all systems in the batch, concatenated
+    // RHS vectors for all systems in the batch, concatenated
     value_type* all_rhs;
 };
 
