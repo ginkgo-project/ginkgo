@@ -47,22 +47,22 @@ namespace kernels {
 #define GKO_DECLARE_BUILD_DIAG_OFFDIAG(ValueType, LocalIndexType)            \
     void build_diag_offdiag(                                                 \
         std::shared_ptr<const DefaultExecutor> exec,                         \
-        const Array<matrix_data_entry<ValueType, global_index_type>> &input, \
-        const distributed::Partition<LocalIndexType> *partition,             \
+        const Array<matrix_data_entry<ValueType, global_index_type>>& input, \
+        const distributed::Partition<LocalIndexType>* partition,             \
         comm_index_type local_part,                                          \
-        Array<matrix_data_entry<ValueType, LocalIndexType>> &diag_data,      \
-        Array<matrix_data_entry<ValueType, LocalIndexType>> &offdiag_data,   \
-        Array<LocalIndexType> &local_gather_idxs,                            \
-        comm_index_type *recv_offsets,                                       \
-        Array<global_index_type> &local_row_to_global,                       \
-        Array<global_index_type> &local_offdiag_col_to_global,               \
+        Array<matrix_data_entry<ValueType, LocalIndexType>>& diag_data,      \
+        Array<matrix_data_entry<ValueType, LocalIndexType>>& offdiag_data,   \
+        Array<LocalIndexType>& local_gather_idxs,                            \
+        comm_index_type* recv_offsets,                                       \
+        Array<global_index_type>& local_row_to_global,                       \
+        Array<global_index_type>& local_offdiag_col_to_global,               \
         ValueType deduction_help)
 
 
 #define GKO_DECLARE_MAP_TO_GLOBAL_IDXS(SourceType, TargetType)           \
     void map_to_global_idxs(std::shared_ptr<const DefaultExecutor> exec, \
-                            const SourceType *input, size_t n,           \
-                            TargetType *output, const TargetType *map)
+                            const SourceType* input, size_t n,           \
+                            TargetType* output, const TargetType* map)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                           \
     using global_index_type = distributed::global_index_type;  \

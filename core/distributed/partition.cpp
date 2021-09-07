@@ -30,9 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
+
+
 #include <numeric>
+
+
+#include <ginkgo/core/base/mpi.hpp>
 
 
 #include "core/distributed/partition_kernels.hpp"
@@ -56,7 +60,7 @@ GKO_REGISTER_OPERATION(is_ordered, partition::is_ordered);
 template <typename LocalIndexType>
 std::unique_ptr<Partition<LocalIndexType>>
 Partition<LocalIndexType>::build_from_mapping(
-    std::shared_ptr<const Executor> exec, const Array<comm_index_type> &mapping,
+    std::shared_ptr<const Executor> exec, const Array<comm_index_type>& mapping,
     comm_index_type num_parts)
 {
     auto local_mapping = make_temporary_clone(exec, &mapping);
@@ -74,7 +78,7 @@ template <typename LocalIndexType>
 std::unique_ptr<Partition<LocalIndexType>>
 Partition<LocalIndexType>::build_from_contiguous(
     std::shared_ptr<const Executor> exec,
-    const Array<global_index_type> &ranges)
+    const Array<global_index_type>& ranges)
 {
     auto local_ranges = make_temporary_clone(exec, &ranges);
     auto result = Partition::create(
@@ -187,18 +191,18 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION);
 
 
 template <typename LocalIndexType>
-bool is_connected(const Partition<LocalIndexType> *partition)
+bool is_connected(const Partition<LocalIndexType>* partition)
 {
     return partition->get_num_parts() == partition->get_num_ranges();
 }
 
 #define GKO_DECLARE_IS_CONNECTED(_type) \
-    bool is_connected(const Partition<_type> *partition)
+    bool is_connected(const Partition<_type>* partition)
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_IS_CONNECTED);
 
 
 template <typename LocalIndexType>
-bool is_ordered(const Partition<LocalIndexType> *partition)
+bool is_ordered(const Partition<LocalIndexType>* partition)
 {
     if (is_connected(partition)) {
         auto exec = partition->get_executor();
@@ -211,7 +215,7 @@ bool is_ordered(const Partition<LocalIndexType> *partition)
 }
 
 #define GKO_DECLARE_IS_ORDERED(_type) \
-    bool is_ordered(const Partition<_type> *partition)
+    bool is_ordered(const Partition<_type>* partition)
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_IS_ORDERED);
 
 

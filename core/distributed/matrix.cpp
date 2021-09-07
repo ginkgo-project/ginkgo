@@ -74,13 +74,13 @@ Matrix<ValueType, LocalIndexType>::Matrix(
 
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::read_distributed(
-    const matrix_data<ValueType, global_index_type> &data,
+    const matrix_data<ValueType, global_index_type>& data,
     std::shared_ptr<const Partition<LocalIndexType>> partition)
 {
     this->read_distributed(
         Array<matrix_data_entry<ValueType, global_index_type>>::view(
             this->get_executor()->get_master(), data.nonzeros.size(),
-            const_cast<matrix_data_entry<ValueType, global_index_type> *>(
+            const_cast<matrix_data_entry<ValueType, global_index_type>*>(
                 data.nonzeros.data())),
         data.size, partition);
 }
@@ -88,7 +88,7 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
 
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::read_distributed(
-    const Array<matrix_data_entry<ValueType, global_index_type>> &data,
+    const Array<matrix_data_entry<ValueType, global_index_type>>& data,
     dim<2> size, std::shared_ptr<const Partition<LocalIndexType>> partition)
 {
     this->partition_ = partition;
@@ -161,7 +161,7 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
 
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::communicate(
-    const LocalVec *local_b) const
+    const LocalVec* local_b) const
 {
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
@@ -197,8 +197,8 @@ void Matrix<ValueType, LocalIndexType>::communicate(
 
 
 template <typename ValueType, typename LocalIndexType>
-void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp *b,
-                                                   LinOp *x) const
+void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
+                                                   LinOp* x) const
 {
     auto dense_b = as<GlobalVec>(b);
     auto dense_x = as<GlobalVec>(x);
@@ -210,10 +210,10 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp *b,
 
 
 template <typename ValueType, typename LocalIndexType>
-void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp *alpha,
-                                                   const LinOp *b,
-                                                   const LinOp *beta,
-                                                   LinOp *x) const
+void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* alpha,
+                                                   const LinOp* b,
+                                                   const LinOp* beta,
+                                                   LinOp* x) const
 {
     auto vec_b = as<GlobalVec>(b);
     auto vec_x = as<GlobalVec>(x);

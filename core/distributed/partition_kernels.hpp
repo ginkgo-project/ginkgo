@@ -43,31 +43,31 @@ namespace kernels {
 
 #define GKO_PARTITION_COUNT_RANGES                                 \
     void count_ranges(std::shared_ptr<const DefaultExecutor> exec, \
-                      const Array<comm_index_type> &mapping,       \
-                      size_type &num_ranges)
+                      const Array<comm_index_type>& mapping,       \
+                      size_type& num_ranges)
 
 #define GKO_DECLARE_PARTITION_BUILD_FROM_CONTIGUOUS(LocalIndexType) \
     void build_from_contiguous(                                     \
         std::shared_ptr<const DefaultExecutor> exec,                \
-        const Array<global_index_type> &ranges,                     \
-        distributed::Partition<LocalIndexType> *partition)
+        const Array<global_index_type>& ranges,                     \
+        distributed::Partition<LocalIndexType>* partition)
 
 #define GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING(LocalIndexType)         \
     void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec, \
-                            const Array<comm_index_type> &mapping,       \
-                            distributed::Partition<LocalIndexType> *partition)
+                            const Array<comm_index_type>& mapping,       \
+                            distributed::Partition<LocalIndexType>* partition)
 
 #define GKO_DECLARE_PARTITION_BUILD_RANKS(LocalIndexType)          \
     void build_ranks(std::shared_ptr<const DefaultExecutor> exec,  \
-                     const global_index_type *range_offsets,       \
-                     const int *range_parts, size_type num_ranges, \
-                     int num_parts, LocalIndexType *ranks,         \
-                     LocalIndexType *sizes)
+                     const global_index_type* range_offsets,       \
+                     const int* range_parts, size_type num_ranges, \
+                     int num_parts, LocalIndexType* ranks,         \
+                     LocalIndexType* sizes)
 
 #define GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType)                     \
     void is_ordered(std::shared_ptr<const DefaultExecutor> exec,             \
-                    const distributed::Partition<LocalIndexType> *partition, \
-                    bool *result)
+                    const distributed::Partition<LocalIndexType>* partition, \
+                    bool* result)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                             \

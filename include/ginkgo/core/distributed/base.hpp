@@ -35,8 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
-
-
 #include <ginkgo/core/base/mpi.hpp>
 
 
@@ -66,4 +64,4 @@ private:
 }  // namespace distributed
 }  // namespace gko
 
-#endif  // GKO_PUBLIC_CORE_DISTRIBUTED_MATRIX_HPP_
+#endif  // GKO_PUBLIC_CORE_DISTRIBUTED_BASE_HPP_

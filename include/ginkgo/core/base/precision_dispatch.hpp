@@ -336,7 +336,7 @@ void mixed_precision_dispatch_real_complex(Function fn, const LinOp* in,
 
 template <typename ValueType>
 detail::temporary_conversion<distributed::Vector<ValueType>>
-make_temporary_conversion_distributed(LinOp *matrix)
+make_temporary_conversion_distributed(LinOp* matrix)
 {
     auto result = detail::temporary_conversion<distributed::Vector<ValueType>>::
         template create<distributed::Vector<next_precision<ValueType>>>(matrix);
@@ -349,7 +349,7 @@ make_temporary_conversion_distributed(LinOp *matrix)
 
 template <typename ValueType>
 detail::temporary_conversion<const distributed::Vector<ValueType>>
-make_temporary_conversion_distributed(const LinOp *matrix)
+make_temporary_conversion_distributed(const LinOp* matrix)
 {
     auto result =
         detail::temporary_conversion<const distributed::Vector<ValueType>>::
@@ -363,17 +363,17 @@ make_temporary_conversion_distributed(const LinOp *matrix)
 
 
 template <typename ValueType, typename Function, typename... Args>
-void precision_dispatch_distributed(Function fn, Args *... linops)
+void precision_dispatch_distributed(Function fn, Args*... linops)
 {
     fn(make_temporary_conversion_distributed<ValueType>(linops).get()...);
 }
 
 
 template <typename ValueType, typename Function>
-void precision_dispatch_real_complex_distributed(Function fn, const LinOp *in,
-                                                 LinOp *out)
+void precision_dispatch_real_complex_distributed(Function fn, const LinOp* in,
+                                                 LinOp* out)
 {
-    if (!dynamic_cast<const distributed::DistributedBase *>(in)) {
+    if (!dynamic_cast<const distributed::DistributedBase*>(in)) {
         precision_dispatch_real_complex<ValueType>(fn, in, out);
         return;
     }
@@ -383,11 +383,11 @@ void precision_dispatch_real_complex_distributed(Function fn, const LinOp *in,
 
 template <typename ValueType, typename Function>
 void precision_dispatch_real_complex_distributed(Function fn,
-                                                 const LinOp *alpha,
-                                                 const LinOp *in,
-                                                 const LinOp *beta, LinOp *out)
+                                                 const LinOp* alpha,
+                                                 const LinOp* in,
+                                                 const LinOp* beta, LinOp* out)
 {
-    if (!dynamic_cast<const distributed::DistributedBase *>(in)) {
+    if (!dynamic_cast<const distributed::DistributedBase*>(in)) {
         precision_dispatch_real_complex<ValueType>(fn, alpha, in, beta, out);
         return;
     }
@@ -402,8 +402,8 @@ void precision_dispatch_real_complex_distributed(Function fn,
 
 
 template <typename ValueType, typename Function>
-void precision_dispatch_real_complex_distributed(Function fn, const LinOp *in,
-                                                 LinOp *out)
+void precision_dispatch_real_complex_distributed(Function fn, const LinOp* in,
+                                                 LinOp* out)
 {
     precision_dispatch_real_complex<ValueType>(fn, in, out);
 }
@@ -411,9 +411,9 @@ void precision_dispatch_real_complex_distributed(Function fn, const LinOp *in,
 
 template <typename ValueType, typename Function>
 void precision_dispatch_real_complex_distributed(Function fn,
-                                                 const LinOp *alpha,
-                                                 const LinOp *in,
-                                                 const LinOp *beta, LinOp *out)
+                                                 const LinOp* alpha,
+                                                 const LinOp* in,
+                                                 const LinOp* beta, LinOp* out)
 {
     precision_dispatch_real_complex<ValueType>(fn, alpha, in, beta, out);
 }

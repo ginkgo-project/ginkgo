@@ -40,14 +40,14 @@ namespace partition {
 
 
 void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
-                  const Array<comm_index_type> &mapping,
-                  size_type &num_ranges) GKO_NOT_IMPLEMENTED;
+                  const Array<comm_index_type>& mapping,
+                  size_type& num_ranges) GKO_NOT_IMPLEMENTED;
 
 
 template <typename LocalIndexType>
 void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,
-                           const Array<global_index_type> &ranges,
-                           distributed::Partition<LocalIndexType> *partition)
+                           const Array<global_index_type>& ranges,
+                           distributed::Partition<LocalIndexType>* partition)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
@@ -56,8 +56,8 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 template <typename LocalIndexType>
 void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
-                        const Array<comm_index_type> &mapping,
-                        distributed::Partition<LocalIndexType> *partition)
+                        const Array<comm_index_type>& mapping,
+                        distributed::Partition<LocalIndexType>* partition)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING);
@@ -65,17 +65,17 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING);
 
 template <typename LocalIndexType>
 void build_ranks(std::shared_ptr<const DefaultExecutor> exec,
-                 const global_index_type *range_offsets, const int *range_parts,
-                 size_type num_ranges, int num_parts, LocalIndexType *ranks,
-                 LocalIndexType *sizes) GKO_NOT_IMPLEMENTED;
+                 const global_index_type* range_offsets, const int* range_parts,
+                 size_type num_ranges, int num_parts, LocalIndexType* ranks,
+                 LocalIndexType* sizes) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_RANKS);
 
 
 template <typename LocalIndexType>
 void is_ordered(std::shared_ptr<const DefaultExecutor> exec,
-                const distributed::Partition<LocalIndexType> *partition,
-                bool *result) GKO_NOT_IMPLEMENTED;
+                const distributed::Partition<LocalIndexType>* partition,
+                bool* result) GKO_NOT_IMPLEMENTED;
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_IS_ORDERED);
 
 

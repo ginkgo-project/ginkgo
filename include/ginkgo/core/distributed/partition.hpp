@@ -106,7 +106,7 @@ public:
      * `range_bounds[i]` is the beginning (inclusive) and
      * `range_bounds[i + 1]` is the end (exclusive) of the ith range.
      */
-    const global_index_type *get_const_range_bounds() const
+    const global_index_type* get_const_range_bounds() const
     {
         return offsets_.get_const_data();
     }
@@ -114,14 +114,14 @@ public:
     /**
      * @copydoc get_const_range_bounds()
      */
-    global_index_type *get_range_bounds() { return offsets_.get_data(); }
+    global_index_type* get_range_bounds() { return offsets_.get_data(); }
 
     /**
      * Returns the part ID array stored by this partition.
      * For each range from get_range_bounds(), it stores the part ID in the
      * range [0, get_num_parts() - 1].
      */
-    const comm_index_type *get_const_part_ids() const
+    const comm_index_type* get_const_part_ids() const
     {
         return part_ids_.get_const_data();
     }
@@ -129,7 +129,7 @@ public:
     /**
      * @copydoc get_const_part_ids()
      */
-    comm_index_type *get_part_ids() { return part_ids_.get_data(); }
+    comm_index_type* get_part_ids() { return part_ids_.get_data(); }
 
     /**
      * Compute the range_ranks and part_sizes based on the current range_bounds
@@ -142,7 +142,7 @@ public:
      * range_ranks[i]
      * These values can only be used after compute_range_ranks() was executed.
      */
-    const local_index_type *get_range_ranks() const
+    const local_index_type* get_range_ranks() const
     {
         return ranks_.get_const_data();
     }
@@ -151,7 +151,7 @@ public:
      * Returns the part size array.
      * part_sizes[p] stores the number of elements in part `p`.
      */
-    const local_index_type *get_part_sizes() const
+    const local_index_type* get_part_sizes() const
     {
         return part_sizes_.get_const_data();
     }
@@ -175,7 +175,7 @@ public:
      */
     static std::unique_ptr<Partition> build_from_mapping(
         std::shared_ptr<const Executor> exec,
-        const Array<comm_index_type> &mapping, comm_index_type num_parts);
+        const Array<comm_index_type>& mapping, comm_index_type num_parts);
 
     /**
      * Builds a partition consisting of contiguous ranges, one for each part.
@@ -186,7 +186,7 @@ public:
      */
     static std::unique_ptr<Partition> build_from_contiguous(
         std::shared_ptr<const Executor> exec,
-        const Array<global_index_type> &ranges);
+        const Array<global_index_type>& ranges);
 
     // assumes that local_end(rank_i) <= local_start(rank_j) for i<j
     // and that local_end(rank_i) == local_start(rank_i+1)
@@ -224,10 +224,10 @@ private:
 
 
 template <typename LocalIndexType>
-bool is_connected(const Partition<LocalIndexType> *partition);
+bool is_connected(const Partition<LocalIndexType>* partition);
 
 template <typename LocalIndexType>
-bool is_ordered(const Partition<LocalIndexType> *partition);
+bool is_ordered(const Partition<LocalIndexType>* partition);
 
 
 }  // namespace distributed
