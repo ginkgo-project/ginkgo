@@ -169,6 +169,56 @@ benchmark options). Here are the most important options:
     thermal2
     ```
 
+
+#### 3.1: Benchmarking experimental batched functionality
+
+##### Arranging your matrices.
+
+To allow for benchmarking of the batched functionality in Ginkgo, you need to arrange the matrix in the following fashion:
+
+Store path to matrices in ${BATCH_MATRIX_FOLDER}
+
+```bash
+matrix_class_name
+\
+ \---0
+      \---A.mtx
+      \---b.mtx
+      \---S.mtx
+ \---1
+      \---A.mtx
+      \---b.mtx
+      \---S.mtx
+ \---2
+      \---A.mtx
+      \---b.mtx
+      \---S.mtx
+  .
+  .
+  .
+```
+
+In a similar fashion to the above usual Ginkgo benchmarking, you can set the following variables:
+
+* `EXECUTOR=<option>` - Select the executor to benchmark, Current supported options are: `cuda` and `reference`.
+* `BENCHMARK=batch_solver` - Benchmark the batch solvers.
+* `FORMATS=batch_csr` - Benchmark with the `BatchCsr` sparse matrix format.
+* `BATCH_SOLVERS=<solvers>` - The names of the batch solvers to benchmark, Options include: `bicgstab`, `gmres`, `direct`(Uses CUBLAS Dense direct). Separated by commas.
+* `PRECONDS=<preconditioner>` - The preconditioner to use. Only `jacobi` or `none` are currently supported.
+* `NUM_SHARED_VECS=<I>`- The number of vectors in shared memory for the batch BiCGSTAB solver. This can be reduced to allow for solution of larger system matrices and may be requried for them.
+* `SOLVERS_RHS=<option>` - The RHS to use for the benchmarking. Options include `file` (Read from file, see folder structure above) and `1` (all ones), `random` (use random values).
+* `SOLVERS_PRECISION=<double>` - The tolerance to solve for the batched iterative solvers.
+* `SOLVERS_MAX_ITERATIONS=<int>` - The maximum number of iterations to perform for each of the systems. Each system is independent and will iterate for these many iterations if it has not reached the convergence level.
+* `PRINT_RES_ITERS=<0 or 1>` - Whether to print the residuals, norms and errors.
+* `DETAILED=<0 or 1>` - Whether to run and gather detailed information. This prints the timings for some individual kernel timings.
+* `BATCH_SCALING=<option>` - Whether to use a pre-scaling to improve the conditioning of the matrix for the solve. Options include `explicit` (read from file), `implicit` (look for `A_scaled.mtx`) or `none`.
+* `BATCH_MATRIX_LIST=<filepath>` - A text file containing the class names to be benchmarked.
+* `BATCH_MATRIX_FOLDER=<foldername>` - The folder containing the matrix classes arranged in a structure as shown above.
+* `NUM_BATCH_DUP=<int>` - Number of times to duplicate the provided batch systems. For example, if the `BATCH_MATRIX_FOLDER` contained 20 matrices, and `NUM_BATCH_DUP` was set to 3, then the total number of matrices would be equal to 60. This allows for performing scaling tests.
+* `USE_SUITE_SPARSE=<0 or 1>` - Whether to use matrices from SuiteSparse instead. In this case, the suite sparse matrix will be downloaded (ssget must be available) and used for individual batches (if duplication is set.)
+
+
+
 ### 4: Publishing the results on Github and analyze the results with the GPE (optional)
 
 The previous experiments generated json files for each matrices, each containing
