@@ -57,14 +57,13 @@ using mtx_type = gko::matrix::BatchCsr<value_type, index_type>;
 using solver_type = gko::solver::BatchBicgstab<value_type>;
 
 
-/**
- * Structure to simulate application data related to the linear systems
- * to be solved.
- *
- * We use raw pointers below to demonstrate how to handle the situation when
- * the application only gives us raw pointers. Ideally, one should use
- * Ginkgo's \ref Array class here.
- */
+// @sect3{'Application' structures and functions}
+// Structure to simulate application data related to the linear systems
+// to be solved.
+//
+// We use raw pointers below to demonstrate how to handle the situation when
+// the application only gives us raw pointers. Ideally, one should use
+// Ginkgo's gko::Array class here.
 struct ApplSysData {
     // Number of small systems in the batch.
     size_type nsystems;
@@ -83,23 +82,19 @@ struct ApplSysData {
 };
 
 
-/**
- * Generates a batch of tridiagonal systems.
- *
- * @param nrows  Number of rows in each system.
- * @param nsystems  Number of systems in the batch.
- * @param exec  The device executor to use for the solver.
- *   Normally, the application may not deal with Ginkgo executors, nor do we
- *   need it to. Here, we use the executor for backend-independent device
- *   memory allocation. The application, for example, might assume Hip
- *   (for AMD GPUs) and use `hipMalloc` directly.
- */
+// Generates a batch of tridiagonal systems.
+//
+// @param nrows  Number of rows in each system.
+// @param nsystems  Number of systems in the batch.
+// @param exec  The device executor to use for the solver.
+//   Normally, the application may not deal with Ginkgo executors, nor do we
+//   need it to. Here, we use the executor for backend-independent device
+//   memory allocation. The application, for example, might assume Hip
+//   (for AMD GPUs) and use `hipMalloc` directly.
 ApplSysData appl_generate_system(const int nrows, const size_type nsystems,
                                  std::shared_ptr<gko::Executor> exec);
 
-/**
- * Deallocate application data.
- */
+// Deallocate application data.
 void appl_clean_up(ApplSysData& appl_data, std::shared_ptr<gko::Executor> exec);
 
 
@@ -149,6 +144,7 @@ int main(int argc, char* argv[])
 
     const size_type num_systems = argc >= 3 ? std::atoi(argv[2]) : 2;
     const int num_rows = 35;  // per system
+    // @sect3{Generate data}
     // The "application" generates the batch of linear systems on the device
     auto appl_sys = appl_generate_system(num_rows, num_systems, exec);
     // Create batch_dim object to describe the dimensions of the batch matrix.
@@ -173,7 +169,7 @@ int main(int argc, char* argv[])
         gko::Array<index_type>::view(exec, appl_sys.nnz, appl_sys.col_idxs);
     auto A = gko::share(mtx_type::create(exec, batch_mat_size, vals_view,
                                          colidxs_view, rowptrs_view));
-    // @sect3{Batch stride}
+    // @sect3{RHS and solution vectors}
     // batch_stride object specifies the access stride within the individual
     //  matrices (vectors) in the batch. In this case, we specify a stride of 1
     //  as the common value for all the matrices.
@@ -193,9 +189,8 @@ int main(int argc, char* argv[])
     }
     x->copy_from(host_x.get());
 
-    const real_type reduction_factor{1e-6};
-
     // @sect3{Create the batch solver factory}
+    const real_type reduction_factor{1e-6};
     // Create a batched solver factory with relevant parameters.
     auto solver_gen =
         solver_type::build()
@@ -211,7 +206,7 @@ int main(int argc, char* argv[])
     std::shared_ptr<const gko::log::BatchConvergence<value_type>> logger =
         gko::log::BatchConvergence<value_type>::create(exec);
 
-    // @sec3{Generate and solve}
+    // @sect3{Generate and solve}
     // Generate the batch solver from the batch matrix
     auto solver = solver_gen->generate(A);
     // add the logger to the solver
@@ -222,7 +217,7 @@ int main(int argc, char* argv[])
     //  the next solve using the same solver object.
     // solver->remove_logger(logger.get());
 
-    // @sec3{Check result}
+    // @sect3{Check result}
     // Compute norm of RHS on the device and automatically copy to host
     auto b_norm = gko::batch_initialize<real_vec_type>(num_systems, {0.0},
                                                        exec->get_master());
@@ -270,9 +265,7 @@ ApplSysData appl_generate_system(const int nrows, const size_type nsystems,
                                  std::shared_ptr<gko::Executor> exec)
 {
     const int nnz = nrows * 3 - 2;
-    // Random number generator
     std::ranlux48 rgen(15);
-    // std::uniform_real_distribution<real_type> distb(0.75, 1.0);
     std::normal_distribution<real_type> distb(0.5, 0.1);
     std::vector<real_type> spacings(nsystems * nrows);
     std::generate(spacings.begin(), spacings.end(),
