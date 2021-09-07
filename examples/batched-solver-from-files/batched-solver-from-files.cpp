@@ -159,9 +159,8 @@ int main(int argc, char* argv[])
     }
     x->copy_from(host_x.get());
 
-    const real_type reduction_factor{1e-6};
-
     // @sect3{Create the batch solver factory}
+    const real_type reduction_factor{1e-6};
     // Create a batched solver factory with relevant parameters.
     auto solver_gen =
         solver_type::build()
@@ -184,6 +183,7 @@ int main(int argc, char* argv[])
     std::shared_ptr<const gko::log::BatchConvergence<value_type>> logger =
         gko::log::BatchConvergence<value_type>::create(exec);
 
+    // @sect3{Generate and solve}
     // Generate the batch solver from the batch matrix
     auto solver = solver_gen->generate(A);
 
@@ -198,6 +198,7 @@ int main(int argc, char* argv[])
     //  the next solve using the same solver object.
     solver->remove_logger(logger.get());
 
+    // @sect3{Check result}
     // Compute norms of RHS and final residual to check the result
     auto b_norm = gko::batch_initialize<real_vec_type>(num_total_systems, {0.0},
                                                        exec->get_master());
