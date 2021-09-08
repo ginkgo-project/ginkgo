@@ -12,8 +12,9 @@ target_sources(ginkgo
     base/mtx_io.cpp
     base/perturbation.cpp
     base/version.cpp
+    distributed/matrix.cpp
     distributed/partition.cpp
-    # distributed/errors.cpp
+    distributed/vector.cpp
     factorization/ic.cpp
     factorization/ilu.cpp
     factorization/par_ic.cpp
@@ -63,9 +64,6 @@ if(GINKGO_HAVE_PAPI_SDE)
 endif()
 
 if (GINKGO_BUILD_MPI)
-    target_sources(ginkgo PRIVATE
-        distributed/matrix.cpp
-        distributed/vector.cpp)
     target_link_libraries(ginkgo PUBLIC "${MPI_C_LIBRARIES}" "${MPI_CXX_LIBRARIES}")
     target_include_directories(ginkgo SYSTEM PUBLIC ${MPI_INCLUDE_PATH})
 endif()

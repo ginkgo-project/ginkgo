@@ -72,6 +72,9 @@ init_finalize::~init_finalize() {}
 communicator::communicator(const MPI_Comm& comm) GKO_NOT_COMPILED(mpi);
 
 
+communicator::communicator() GKO_NOT_COMPILED(mpi);
+
+
 communicator::communicator(const MPI_Comm& comm_in, int color, int key)
     GKO_NOT_COMPILED(mpi);
 
