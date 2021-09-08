@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     const auto fin = gko::mpi::init_finalize(argc, argv);
     // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     using GlobalIndexType = gko::distributed::global_index_type;
     using LocalIndexType = int;  // GlobalIndexType;
     using dist_mtx = gko::distributed::Matrix<ValueType, LocalIndexType>;
-    using dist_vec = gko::distributed::Vector<ValueType>;
+    using dist_vec = gko::distributed::Vector<ValueType, LocalIndexType>;
     using vec = gko::matrix::Dense<ValueType>;
     using part_type = gko::distributed::Partition<LocalIndexType>;
     using solver = gko::solver::Bicgstab<ValueType>;
@@ -82,7 +82,8 @@ int main(int argc, char *argv[])
     // automatically work and run on the executor with any other changes.
     ValueType t_init = MPI_Wtime();
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
-    const auto grid_dim = argc >= 3 ? std::atoi(argv[2]) : 100;
+    const auto grid_dim =
+        static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);
     const auto comm = gko::mpi::communicator::create();
     const auto rank = comm->rank();
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
