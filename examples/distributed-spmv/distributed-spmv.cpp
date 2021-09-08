@@ -84,18 +84,18 @@ int main(int argc, char* argv[])
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
              [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
+                 return gko::CudaExecutor::create(
+                     0, gko::ReferenceExecutor::create(), true);
              }},
             {"hip",
              [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
+                 return gko::HipExecutor::create(
+                     0, gko::ReferenceExecutor::create(), true);
              }},
             {"dpcpp",
              [] {
-                 return gko::DpcppExecutor::create(0,
-                                                   gko::OmpExecutor::create());
+                 return gko::DpcppExecutor::create(
+                     0, gko::ReferenceExecutor::create());
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
