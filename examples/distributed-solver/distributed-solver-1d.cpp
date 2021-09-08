@@ -90,21 +90,21 @@ int main(int argc, char* argv[])
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
-             [] {
-                 const auto comm = gko::mpi::communicator::create();
+             [&] {
                  return gko::CudaExecutor::create(
                      gko::mpi::get_local_rank(comm->get()),
                      gko::ReferenceExecutor::create(), true);
              }},
             {"hip",
-             [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
+             [&] {
+                 return gko::HipExecutor::create(
+                     gko::mpi::get_local_rank(comm->get()),
+                     gko::ReferenceExecutor::create(), true);
              }},
             {"dpcpp",
              [] {
-                 return gko::DpcppExecutor::create(0,
-                                                   gko::OmpExecutor::create());
+                 return gko::DpcppExecutor::create(
+                     0, gko::ReferenceExecutor::create());
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
