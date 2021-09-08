@@ -208,9 +208,16 @@ void reduce(const ReduceType* send_buffer, ReduceType* recv_buffer, int count,
 
 
 template <typename ReduceType>
+void all_reduce(ReduceType* recv_buffer, int count, op_type op_enum,
+                std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req) GKO_NOT_COMPILED(mpi);
+
+
+template <typename ReduceType>
 void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
-                int count, op_type op_enum, std::shared_ptr<request> req,
-                std::shared_ptr<const communicator> comm) GKO_NOT_COMPILED(mpi);
+                int count, op_type op_enum,
+                std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req) GKO_NOT_COMPILED(mpi);
 
 
 template <typename SendType, typename RecvType>
@@ -308,13 +315,20 @@ GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_BCAST);
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_REDUCE);
 
 
-#define GKO_DECLARE_ALLREDUCE(ReduceType)                                   \
+#define GKO_DECLARE_ALLREDUCE1(ReduceType)                               \
+    void all_reduce(ReduceType* recv_buffer, int count, op_type op_enum, \
+                    std::shared_ptr<const communicator> comm,            \
+                    std::shared_ptr<request> req)
+
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ALLREDUCE1);
+
+#define GKO_DECLARE_ALLREDUCE2(ReduceType)                                  \
     void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer, \
                     int count, op_type operation,                           \
-                    std::shared_ptr<request> req,                           \
-                    std::shared_ptr<const communicator> comm)
+                    std::shared_ptr<const communicator> comm,               \
+                    std::shared_ptr<request> req)
 
-GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ALLREDUCE);
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ALLREDUCE2);
 
 
 #define GKO_DECLARE_GATHER1(SendType, RecvType)                             \
