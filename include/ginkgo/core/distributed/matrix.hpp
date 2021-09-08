@@ -65,8 +65,8 @@ public:
     using local_index_type = LocalIndexType;
 
     using GlobalVec = Vector<value_type, LocalIndexType>;
-    using LocalVec = matrix::Dense<value_type>;
-    using LocalMtx = matrix::Csr<value_type, local_index_type>;
+    using LocalVec = gko::matrix::Dense<value_type>;
+    using LocalMtx = gko::matrix::Csr<value_type, local_index_type>;
 
     void read_distributed(
         const matrix_data<ValueType, global_index_type>& data,

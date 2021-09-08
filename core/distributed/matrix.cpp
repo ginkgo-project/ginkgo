@@ -31,7 +31,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/distributed/matrix.hpp>
+
+
 #include <ginkgo/core/distributed/vector.hpp>
+
 
 #include "core/distributed/matrix_kernels.hpp"
 

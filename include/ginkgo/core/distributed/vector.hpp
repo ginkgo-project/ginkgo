@@ -66,7 +66,7 @@ public:
     using index_type = int64;
     using absolute_type = remove_complex<Vector>;
     using complex_type = to_complex<Vector>;
-    using local_mtx_type = matrix::Dense<value_type>;
+    using local_mtx_type = gko::matrix::Dense<value_type>;
 
     void convert_to(Vector<next_precision<ValueType>, LocalIndexType>* result)
         const override;
@@ -173,7 +173,7 @@ protected:
 
 private:
     std::shared_ptr<const Partition<LocalIndexType>> partition_;
-    matrix::Dense<ValueType> local_;
+    local_mtx_type local_;
 };
 
 
