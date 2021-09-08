@@ -47,7 +47,7 @@ void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
 template <typename LocalIndexType>
 void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,
                            const Array<global_index_type>& ranges,
-                           distributed::Partition<LocalIndexType>& partition)
+                           distributed::Partition<LocalIndexType>* partition)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
@@ -57,7 +57,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename LocalIndexType>
 void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
                         const Array<comm_index_type>& mapping,
-                        distributed::Partition<LocalIndexType>& partition)
+                        distributed::Partition<LocalIndexType>* partition)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING);
