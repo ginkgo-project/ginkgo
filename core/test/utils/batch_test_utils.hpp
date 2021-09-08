@@ -50,9 +50,9 @@ namespace test {
 
 template <typename ValueType>
 std::unique_ptr<matrix::BatchDense<remove_complex<ValueType>>>
-compute_residual_norm(const matrix::BatchCsr<ValueType, int> *const rmtx,
-                      const matrix::BatchDense<ValueType> *const x,
-                      const matrix::BatchDense<ValueType> *const b)
+compute_residual_norm(const matrix::BatchCsr<ValueType, int>* const rmtx,
+                      const matrix::BatchDense<ValueType>* const x,
+                      const matrix::BatchDense<ValueType>* const b)
 {
     using BDense = matrix::BatchDense<ValueType>;
     using RBDense = matrix::BatchDense<remove_complex<ValueType>>;
@@ -135,9 +135,9 @@ template <typename ValueType, typename SolveFunction, typename PreScaleFunction,
 Result<ValueType> solve_poisson_uniform(
     std::shared_ptr<const Executor> d_exec, SolveFunction solve_function,
     PreScaleFunction msf, VecScaleFunction vsf, const Options opts,
-    const LinSys<ValueType> &sys, const int nrhs,
-    const matrix::BatchDense<ValueType> *const left_scale = nullptr,
-    const matrix::BatchDense<ValueType> *const right_scale = nullptr)
+    const LinSys<ValueType>& sys, const int nrhs,
+    const matrix::BatchDense<ValueType>* const left_scale = nullptr,
+    const matrix::BatchDense<ValueType>* const right_scale = nullptr)
 {
     using real_type = remove_complex<ValueType>;
     using BDense = typename Result<ValueType>::BDense;
@@ -155,7 +155,7 @@ Result<ValueType> solve_poisson_uniform(
     Result<ValueType> result;
     // Initialize r to the original unscaled b
     result.x = BDense::create(exec, sizes);
-    ValueType *const xvalsinit = result.x->get_values();
+    ValueType* const xvalsinit = result.x->get_values();
     for (size_t i = 0; i < nbatch * nrows * nrhs; i++) {
         xvalsinit[i] = gko::zero<ValueType>();
     }
@@ -212,10 +212,10 @@ Result<ValueType> solve_poisson_uniform(
 template <typename SolverType, typename ValueType>
 Result<ValueType> solve_poisson_uniform_core(
     std::shared_ptr<const Executor> d_exec,
-    const typename SolverType::Factory *const factory,
-    const LinSys<ValueType> &sys, const int nrhs,
-    const matrix::BatchDense<ValueType> *const left_scale = nullptr,
-    const matrix::BatchDense<ValueType> *const right_scale = nullptr)
+    const typename SolverType::Factory* const factory,
+    const LinSys<ValueType>& sys, const int nrhs,
+    const matrix::BatchDense<ValueType>* const left_scale = nullptr,
+    const matrix::BatchDense<ValueType>* const right_scale = nullptr)
 {
     using real_type = remove_complex<ValueType>;
     using BDense = typename Result<ValueType>::BDense;
@@ -233,7 +233,7 @@ Result<ValueType> solve_poisson_uniform_core(
     Result<ValueType> result;
     // Initialize r to the original unscaled b
     result.x = BDense::create(exec, sizes);
-    ValueType *const xvalsinit = result.x->get_values();
+    ValueType* const xvalsinit = result.x->get_values();
     for (size_t i = 0; i < nbatch * nrows * nrhs; i++) {
         xvalsinit[i] = gko::zero<ValueType>();
     }
@@ -259,7 +259,7 @@ Result<ValueType> solve_poisson_uniform_core(
         }
         d_left->copy_from(left_scale);
         d_right->copy_from(right_scale);
-        dynamic_cast<gko::EnableBatchScaledSolver<ValueType> *>(solver.get())
+        dynamic_cast<gko::EnableBatchScaledSolver<ValueType>*>(solver.get())
             ->batch_scale(lend(d_left), lend(d_right));
     }
 
@@ -286,7 +286,7 @@ void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
                 const int nrows, const int nrhs,
                 const remove_complex<typename SolverType::value_type> res_tol,
                 const int maxits,
-                const typename SolverType::Factory *const factory,
+                const typename SolverType::Factory* const factory,
                 const double true_res_norm_slack_factor = 1.0,
                 const bool use_scaling = false, const bool test_logger = true)
 {
@@ -317,7 +317,7 @@ void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
     auto right_scale = Dense::create(exec, s_vec_sz);
     right_scale->copy_from(ref_right_scale.get());
     if (use_scaling) {
-        dynamic_cast<gko::EnableBatchScaledSolver<T> *>(solver.get())
+        dynamic_cast<gko::EnableBatchScaledSolver<T>*>(solver.get())
             ->batch_scale(lend(left_scale), lend(right_scale));
     }
     std::shared_ptr<const gko::log::BatchConvergence<T>> logger =
@@ -381,7 +381,7 @@ void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
 template <typename SolverType>
 void test_solve_iterations_with_scaling(
     std::shared_ptr<const Executor> exec, const size_t nbatch, const int nrows,
-    const int nrhs, const typename SolverType::Factory *const factory)
+    const int nrhs, const typename SolverType::Factory* const factory)
 {
     using value_type = typename SolverType::value_type;
     using BDense = gko::matrix::BatchDense<value_type>;
@@ -394,7 +394,7 @@ void test_solve_iterations_with_scaling(
         gko::test::create_poisson1d_batch<value_type>(refexec, nrows, nbatch);
     const int nnz = mtx->get_const_row_ptrs()[nrows];
     for (size_t ib = 0; ib < nbatch; ib++) {
-        value_type *const values = mtx->get_values() + nnz * ib;
+        value_type* const values = mtx->get_values() + nnz * ib;
         for (int irow = 0; irow < nrows; irow++) {
             for (int idx = mtx->get_const_row_ptrs()[irow];
                  idx < mtx->get_const_row_ptrs()[irow + 1]; idx++) {
@@ -436,7 +436,7 @@ void test_solve_iterations_with_scaling(
     std::shared_ptr<const gko::log::BatchConvergence<value_type>> logger_s =
         gko::log::BatchConvergence<value_type>::create(exec);
     auto solver_s = factory->generate(d_mtx);
-    dynamic_cast<gko::EnableBatchScaledSolver<value_type> *>(solver_s.get())
+    dynamic_cast<gko::EnableBatchScaledSolver<value_type>*>(solver_s.get())
         ->batch_scale(lend(d_left_scale), lend(d_right_scale));
 
     solver->add_logger(logger);
@@ -458,8 +458,8 @@ void test_solve_iterations_with_scaling(
 
 
 template <typename ValueType>
-void check_relative_diff(const matrix::BatchCsr<ValueType> *const a_ref,
-                         const matrix::BatchCsr<ValueType> *const b,
+void check_relative_diff(const matrix::BatchCsr<ValueType>* const a_ref,
+                         const matrix::BatchCsr<ValueType>* const b,
                          const double tolerance)
 {
     using real_type = typename gko::remove_complex<ValueType>;
@@ -482,6 +482,80 @@ void check_relative_diff(const matrix::BatchCsr<ValueType> *const a_ref,
         }
         ASSERT_LE(relerr / refnorm, tolerance);
     }
+}
+
+
+template <typename ValueType, typename SolverType>
+void compare_with_reference(std::shared_ptr<const Executor> d_exec,
+                            BatchSystem<ValueType>& bsys,
+                            typename SolverType::Factory* const ref_factory,
+                            const bool symmetric, const double iter_tol,
+                            const double res_tol, const double sol_tol)
+{
+    using value_type = ValueType;
+    using BDense = matrix::BatchDense<ValueType>;
+    using Mtx = matrix::BatchCsr<ValueType, int>;
+    auto exec = d_exec->get_master();
+    const auto nbatch = bsys.A->get_num_batch_entries();
+    const auto nrows = bsys.A->get_size().at(0)[0];
+    const auto nrhs = bsys.b->get_size().at(0)[1];
+    auto d_A = Mtx::create(d_exec);
+    d_A->copy_from(bsys.A.get());
+    auto d_b = BDense::create(d_exec);
+    d_b->copy_from(bsys.b.get());
+    auto r_x = BDense::create(exec, bsys.b->get_size());
+    for (size_type isys = 0; isys < nbatch; isys++) {
+        for (int i = 0; i < nrows; i++) {
+            r_x->at(isys, i, 0) = zero<ValueType>();
+        }
+    }
+    auto d_x = BDense::create(d_exec);
+    d_x->copy_from(r_x.get());
+    auto d_factory = SolverType::build().on(d_exec);
+    d_factory->copy_from(ref_factory);
+    std::shared_ptr<const gko::log::BatchConvergence<value_type>> r_logger =
+        gko::log::BatchConvergence<value_type>::create(exec);
+    std::shared_ptr<const gko::log::BatchConvergence<value_type>> d_logger =
+        gko::log::BatchConvergence<value_type>::create(d_exec);
+    auto r_solver = ref_factory->generate(gko::give(bsys.A));
+    auto d_solver = d_factory->generate(gko::give(d_A));
+    r_solver->add_logger(r_logger);
+    d_solver->add_logger(d_logger);
+
+    r_solver->apply(bsys.b.get(), r_x.get());
+    d_solver->apply(d_b.get(), d_x.get());
+    r_solver->remove_logger(r_logger.get());
+    d_solver->remove_logger(d_logger.get());
+
+    auto r_iter_array = r_logger->get_num_iterations();
+    auto r_logged_res = r_logger->get_residual_norm();
+    auto d_iter_array = d_logger->get_num_iterations();
+    auto d_logged_res = d_logger->get_residual_norm();
+    for (size_t ib = 0; ib < nbatch; ib++) {
+        for (int j = 0; j < nrhs; j++) {
+            ASSERT_GT(r_iter_array.get_const_data()[ib * nrhs + j], 0);
+            ASSERT_LE(r_iter_array.get_const_data()[ib * nrhs + j], 100000);
+            if (r_logged_res->at(ib, 0, j) > r<value_type>::value) {
+                ASSERT_LE(std::abs(r_logged_res->at(ib, 0, j) -
+                                   d_logged_res->at(ib, 0, j)) /
+                              r_logged_res->at(ib, 0, j),
+                          res_tol);
+            } else {
+                ASSERT_LE(d_logged_res->at(ib, 0, j), r<value_type>::value);
+            }
+            if (r_iter_array.get_const_data()[ib * nrhs + j] > 0) {
+                ASSERT_LE(
+                    std::abs(r_iter_array.get_const_data()[ib * nrhs + j] -
+                             d_iter_array.get_const_data()[ib * nrhs + j]) /
+                        r_iter_array.get_const_data()[ib * nrhs + j],
+                    iter_tol);
+            } else {
+                ASSERT_TRUE(d_iter_array.get_const_data()[ib * nrhs + j] == 0 ||
+                            d_iter_array.get_const_data()[ib * nrhs + j] == 1);
+            }
+        }
+    }
+    GKO_ASSERT_BATCH_MTX_NEAR(r_x, d_x, sol_tol);
 }
 
 
