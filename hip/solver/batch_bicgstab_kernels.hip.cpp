@@ -39,11 +39,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-//#include "hip/base/config.hip.hpp"
+#include "hip/base/config.hip.hpp"
+#include "hip/base/exception.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
-//#include "hip/matrix/batch_struct.hip.hpp"
+#include "hip/matrix/batch_struct.hip.hpp"
 
 
 namespace gko {
@@ -79,20 +80,18 @@ using BatchBicgstabOptions =
     gko::kernels::batch_bicgstab::BatchBicgstabOptions<T>;
 
 #define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)                  \
-    hipLaunchKernelGGL(apply_kernel<stop::_stoppertype<ValueType>>,            \
-                       dim3(nbatch), dim3(default_block_size), shared_size, 0, \
-                       opts.num_sh_vecs, shared_gap, opts.max_its,             \
-                       opts.residual_tol, logger, _prectype<ValueType>(), a,   \
-                       b.values, x.values, workspace.get_data())
+    hipLaunchKernelGGL(                                                        \
+        HIP_KERNEL_NAME(apply_kernel<stop::_stoppertype<ValueType>>),          \
+        dim3(nbatch), dim3(default_block_size), shared_size, 0,                \
+        opts.num_sh_vecs, shared_gap, opts.max_its, opts.residual_tol, logger, \
+        _prectype<ValueType>(), a, b.values, x.values, workspace.get_data())
 
 template <typename BatchMatrixType, typename LogType, typename ValueType>
 static void apply_impl(
     std::shared_ptr<const HipExecutor> exec,
     const BatchBicgstabOptions<remove_complex<ValueType>> opts, LogType logger,
     const BatchMatrixType& a,
-    const gko::batch_dense::UniformBatch<const ValueType>& left,
-    const gko::batch_dense::UniformBatch<const ValueType>& right,
-    const gko::batch_dense::UniformBatch<ValueType>& b,
+    const gko::batch_dense::UniformBatch<const ValueType>& b,
     const gko::batch_dense::UniformBatch<ValueType>& x)
 {
     using real_type = gko::remove_complex<ValueType>;
@@ -140,7 +139,7 @@ static void apply_impl(
     } else {
         GKO_NOT_IMPLEMENTED;
     }
-    GKO_CUDA_LAST_IF_ERROR_THROW;
+    GKO_HIP_LAST_IF_ERROR_THROW;
 }
 
 
@@ -150,7 +149,7 @@ void apply(std::shared_ptr<const HipExecutor> exec,
            const BatchLinOp* const a,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x,
-           log::BatchLogData<ValueType>& logdata) GKO_NOT_IMPLEMENTED;
+           log::BatchLogData<ValueType>& logdata)
 {
     using hip_value_type = hip_type<ValueType>;
 
