@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto grid_dim =
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);
-    const auto comm = gko::mpi::communicator::create();
+    const auto comm = gko::mpi::communicator::create_world();
     const auto rank = comm->rank();
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{

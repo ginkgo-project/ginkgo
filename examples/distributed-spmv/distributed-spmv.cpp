@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
 
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
-    const auto comm = gko::mpi::communicator::create();
+    const auto comm = gko::mpi::communicator::create_world();
 
     std::ifstream a_stream{"data/A.mtx"};
     std::ifstream x_stream{"data/x.mtx"};
