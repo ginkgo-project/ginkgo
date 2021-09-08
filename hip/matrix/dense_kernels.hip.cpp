@@ -260,8 +260,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 
 template <typename ValueType>
 void compute_norm2_sqr(std::shared_ptr<const HipExecutor> exec,
-                       const matrix::Dense<ValueType> *x,
-                       matrix::Dense<remove_complex<ValueType>> *result)
+                       const matrix::Dense<ValueType>* x,
+                       matrix::Dense<remove_complex<ValueType>>* result)
 {
     using norm_type = remove_complex<ValueType>;
     // TODO: these are tuning parameters obtained experimentally, once
@@ -295,12 +295,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_SQR_KERNEL);
 
 template <typename ValueType>
 void compute_sqrt(std::shared_ptr<const HipExecutor> exec,
-                  matrix::Dense<ValueType> *data)
+                  matrix::Dense<ValueType>* data)
 {
     auto size = data->get_size()[0] * data->get_size()[1];
     auto num_blocks = ceildiv(size, default_block_size);
     hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::compute_sqrt), num_blocks,
-                       default_block_size, 0, 0 data->get_size()[0],
+                       default_block_size, 0, 0, data->get_size()[0],
                        data->get_size()[1], data->get_stride(),
                        as_hip_type(data->get_values()));
 }
