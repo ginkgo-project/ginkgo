@@ -258,6 +258,27 @@ void scan(const ScanType* send_buffer, ScanType* recv_buffer, int count,
     GKO_NOT_COMPILED(mpi);
 
 
+template <typename RecvType>
+void all_to_all(RecvType* recv_buffer, const int recv_count,
+                std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req) GKO_NOT_COMPILED(mpi);
+
+
+template <typename SendType, typename RecvType>
+void all_to_all(const SendType* send_buffer, const int send_count,
+                RecvType* recv_buffer, const int recv_count,
+                std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req) GKO_NOT_COMPILED(mpi);
+
+
+template <typename SendType, typename RecvType>
+void all_to_all(const SendType* send_buffer, const int* send_counts,
+                const int* send_offsets, RecvType* recv_buffer,
+                const int* recv_counts, const int* recv_offsets,
+                const int stride, std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req) GKO_NOT_COMPILED(mpi);
+
+
 #define GKO_DECLARE_WINDOW(ValueType) class window<ValueType>
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_WINDOW);
@@ -378,6 +399,35 @@ GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCATTER2);
               op_type op_enum, std::shared_ptr<const communicator> comm)
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_SCAN);
+
+
+#define GKO_DECLARE_ALL_TO_ALL1(RecvType)                        \
+    void all_to_all(RecvType* recv_buffer, const int recv_count, \
+                    std::shared_ptr<const communicator> comm,    \
+                    std::shared_ptr<request> req)
+
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ALL_TO_ALL1);
+
+
+#define GKO_DECLARE_ALL_TO_ALL2(SendType, RecvType)                    \
+    void all_to_all(const SendType* send_buffer, const int send_count, \
+                    RecvType* recv_buffer, const int recv_count,       \
+                    std::shared_ptr<const communicator> comm,          \
+                    std::shared_ptr<request> req)
+
+GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ALL_TO_ALL2);
+
+
+#define GKO_DECLARE_ALL_TO_ALL_V(SendType, RecvType)                     \
+    void all_to_all(const SendType* send_buffer, const int* send_counts, \
+                    const int* send_offsets, RecvType* recv_buffer,      \
+                    const int* recv_counts, const int* recv_offsets,     \
+                    const int stride,                                    \
+                    std::shared_ptr<const communicator> comm,            \
+                    std::shared_ptr<request> req)
+
+GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ALL_TO_ALL_V);
 
 
 }  // namespace mpi
