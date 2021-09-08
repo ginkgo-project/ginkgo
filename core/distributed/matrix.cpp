@@ -33,10 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 
-
-#if GKO_HAVE_MPI
-
-
 #include "core/distributed/matrix_kernels.hpp"
 
 
@@ -288,61 +284,6 @@ void Matrix<ValueType, LocalIndexType>::validate_data() const
             host_gather_idx_ptr, host_gather_idx_ptr + num_gather_rows,
             [&](auto row) { return row >= 0 && row < num_local_rows; }));
 }
-
-#else
-
-namespace gko {
-namespace distributed {
-
-
-template <typename ValueType, typename LocalIndexType>
-Matrix<ValueType, LocalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec,
-    std::shared_ptr<mpi::communicator> comm)
-    : EnableLinOp<Matrix<value_type, local_index_type>>{exec},
-      DistributedBase{comm},
-      send_offsets_(comm->size() + 1),
-      send_sizes_(comm->size()),
-      recv_offsets_(comm->size() + 1),
-      recv_sizes_(comm->size()),
-      gather_idxs_{exec},
-      local_to_global_row{exec},
-      local_to_global_offdiag_col{exec},
-      one_scalar_{exec, dim<2>{1, 1}},
-      diag_mtx_{exec},
-      offdiag_mtx_{exec} GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Matrix<ValueType, LocalIndexType>::read_distributed(
-    const matrix_data<ValueType, global_index_type>& data,
-    std::shared_ptr<const Partition<LocalIndexType>> partition)
-    GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Matrix<ValueType, LocalIndexType>::read_distributed(
-    const Array<matrix_data_entry<ValueType, global_index_type>>& data,
-    dim<2> size, std::shared_ptr<const Partition<LocalIndexType>> partition)
-    GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Matrix<ValueType, LocalIndexType>::communicate(
-    const LocalVec* local_b) const GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Matrix<ValueType, LocalIndexType>::apply_impl(
-    const LinOp* b, LinOp* x) const GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Matrix<ValueType, LocalIndexType>::apply_impl(
-    const LinOp* alpha, const LinOp* b, const LinOp* beta,
-    LinOp* x) const GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Matrix<ValueType, LocalIndexType>::validate_data() const
-    GKO_NOT_IMPLEMENTED;
-
-
-#endif
 
 
 #define GKO_DECLARE_DISTRIBUTED_MATRIX(ValueType, LocalIndexType) \

@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/vector.hpp>
 
 
-#if GKO_HAVE_MPI
-
-
 #include "core/distributed/vector_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 
@@ -275,107 +272,6 @@ void Vector<ValueType, LocalIndexType>::validate_data() const
     GKO_VALIDATION_CHECK_NAMED("local and global number of columns must match",
                                num_local_cols_max == this->get_size()[0]);
 }
-
-
-#else
-
-
-namespace gko {
-namespace distributed {
-
-
-template <typename ValueType, typename LocalIndexType>
-Vector<ValueType, LocalIndexType>::Vector(
-    std::shared_ptr<const Executor> exec,
-    std::shared_ptr<mpi::communicator> comm,
-    std::shared_ptr<const Partition<LocalIndexType>> partition,
-    dim<2> global_size, dim<2> local_size, size_type stride)
-    : EnableLinOp<Vector<ValueType, LocalIndexType>>{exec, global_size},
-      DistributedBase{comm},
-      partition_{std::move(partition)},
-      local_{exec, local_size, stride} GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename LocalIndexType>
-Vector<ValueType, LocalIndexType>::Vector(
-    std::shared_ptr<const Executor> exec,
-    std::shared_ptr<mpi::communicator> comm,
-    std::shared_ptr<const Partition<LocalIndexType>> partition,
-    dim<2> global_size, dim<2> local_size)
-    : Vector{std::move(exec),      std::move(comm),
-             std::move(partition), global_size,
-             local_size,           local_size[1]} GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::apply_impl(
-    const LinOp* b, LinOp* x) const GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::apply_impl(
-    const LinOp* alpha, const LinOp* b, const LinOp* beta,
-    LinOp* x) const GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::fill(const ValueType value)
-    GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::convert_to(
-    Vector<next_precision<ValueType>, LocalIndexType>* result) const
-    GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::move_to(
-    Vector<next_precision<ValueType>, LocalIndexType>* result)
-    GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-std::unique_ptr<typename Vector<ValueType, LocalIndexType>::absolute_type>
-Vector<ValueType, LocalIndexType>::compute_absolute() const GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::compute_absolute_inplace()
-    GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-const typename Vector<ValueType, LocalIndexType>::local_mtx_type*
-Vector<ValueType, LocalIndexType>::get_local() const GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-typename Vector<ValueType, LocalIndexType>::local_mtx_type*
-Vector<ValueType, LocalIndexType>::get_local() GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::read_distributed(
-    const matrix_data<ValueType, global_index_type>& data,
-    std::shared_ptr<const Partition<LocalIndexType>> partition)
-    GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::scale(const LinOp* alpha)
-    GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::add_scaled(
-    const LinOp* alpha, const LinOp* b) GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::compute_dot(
-    const LinOp* b, LinOp* result) const GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::compute_conj_dot(
-    const LinOp* b, LinOp* result) const GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::compute_norm2(LinOp* result) const
-    GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType, typename LocalIndexType>
-void Vector<ValueType, LocalIndexType>::validate_data() const
-    GKO_NOT_IMPLEMENTED;
-
-#endif
 
 
 #define GKO_DECLARE_DISTRIBUTED_VECTOR(ValueType, LocalIndexType) \
