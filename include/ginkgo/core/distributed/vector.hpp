@@ -35,11 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
-
-
-#if GKO_HAVE_MPI
-
-
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
@@ -50,17 +45,18 @@ namespace gko {
 namespace distributed {
 
 
-template <typename ValueType = double>
+template <typename ValueType = double, typename LocalIndexType = int32>
 class Vector
-    : public EnableLinOp<Vector<ValueType>>,
-      public EnableCreateMethod<Vector<ValueType>>,
-      public ConvertibleTo<Vector<next_precision<ValueType>>>,
-      public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
+    : public EnableLinOp<Vector<ValueType, LocalIndexType>>,
+      public EnableCreateMethod<Vector<ValueType, LocalIndexType>>,
+      public ConvertibleTo<Vector<next_precision<ValueType>, LocalIndexType>>,
+      public EnableAbsoluteComputation<
+          remove_complex<Vector<ValueType, LocalIndexType>>>,
       public DistributedBase {
-    friend class EnableCreateMethod<Vector<ValueType>>;
+    friend class EnableCreateMethod<Vector<ValueType, LocalIndexType>>;
     friend class EnablePolymorphicObject<Vector, LinOp>;
-    friend class Vector<to_complex<ValueType>>;
-    friend class Vector<next_precision<ValueType>>;
+    friend class Vector<to_complex<ValueType>, LocalIndexType>;
+    friend class Vector<next_precision<ValueType>, LocalIndexType>;
 
 public:
     using EnableLinOp<Vector>::convert_to;
@@ -70,11 +66,13 @@ public:
     using index_type = int64;
     using absolute_type = remove_complex<Vector>;
     using complex_type = to_complex<Vector>;
-    using local_mtx_type = matrix::Dense<value_type>;
+    using local_mtx_type = gko::matrix::Dense<value_type>;
 
-    void convert_to(Vector<next_precision<ValueType>> *result) const override;
+    void convert_to(Vector<next_precision<ValueType>, LocalIndexType>* result)
+        const override;
 
-    void move_to(Vector<next_precision<ValueType>> *result) override;
+    void move_to(
+        Vector<next_precision<ValueType>, LocalIndexType>* result) override;
 
     /**
      * Fill the distributed vector with a given value.
@@ -83,11 +81,9 @@ public:
      */
     void fill(const ValueType value);
 
-    void read_distributed(const matrix_data<ValueType, global_index_type> &data,
-                          std::shared_ptr<const Partition<int64>> partition);
-
-    void read_distributed(const matrix_data<ValueType, global_index_type> &data,
-                          std::shared_ptr<const Partition<int32>> partition);
+    void read_distributed(
+        const matrix_data<ValueType, global_index_type>& data,
+        std::shared_ptr<const Partition<LocalIndexType>> partition);
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
@@ -102,7 +98,7 @@ public:
      *               element of alpha (the number of columns of alpha has to
      *               match the number of columns of the matrix).
      */
-    void scale(const LinOp *alpha);
+    void scale(const LinOp* alpha);
 
     /**
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
@@ -114,7 +110,7 @@ public:
      *               match the number of columns of the matrix).
      * @param b  a matrix of the same dimension as this
      */
-    void add_scaled(const LinOp *alpha, const LinOp *b);
+    void add_scaled(const LinOp* alpha, const LinOp* b);
 
     /**
      * Computes the column-wise dot product of this matrix and `b`.
@@ -124,7 +120,7 @@ public:
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
-    void compute_dot(const LinOp *b, LinOp *result) const;
+    void compute_dot(const LinOp* b, LinOp* result) const;
 
     /**
      * Computes the column-wise dot product of this matrix and `conj(b)`.
@@ -134,7 +130,7 @@ public:
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
-    void compute_conj_dot(const LinOp *b, LinOp *result) const;
+    void compute_conj_dot(const LinOp* b, LinOp* result) const;
 
     /**
      * Computes the Euclidian (L^2) norm of this matrix.
@@ -143,33 +139,41 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_norm2(LinOp *result) const;
+    void compute_norm2(LinOp* result) const;
 
-    const local_mtx_type *get_local() const;
+    const local_mtx_type* get_local() const;
 
     // Promise not to break things? :)
-    local_mtx_type *get_local();
+    local_mtx_type* get_local();
+
+    std::shared_ptr<const Partition<LocalIndexType>> get_partition() const
+    {
+        return partition_;
+    }
 
     void validate_data() const override;
 
 protected:
     Vector(std::shared_ptr<const Executor> exec,
-           std::shared_ptr<mpi::communicator> comm, dim<2> global_size,
-           dim<2> local_size, size_type stride);
+           std::shared_ptr<mpi::communicator> comm,
+           std::shared_ptr<const Partition<LocalIndexType>> partition,
+           dim<2> global_size, dim<2> local_size, size_type stride);
 
-    Vector(std::shared_ptr<const Executor> exec,
-           std::shared_ptr<mpi::communicator> comm =
-               std::make_shared<mpi::communicator>(),
-           dim<2> global_size = {}, dim<2> local_size = {});
+    explicit Vector(
+        std::shared_ptr<const Executor> exec,
+        std::shared_ptr<mpi::communicator> comm =
+            std::make_shared<mpi::communicator>(),
+        std::shared_ptr<const Partition<LocalIndexType>> partition = nullptr,
+        dim<2> global_size = {}, dim<2> local_size = {});
 
-    void apply_impl(const LinOp *, LinOp *) const override;
+    void apply_impl(const LinOp*, LinOp*) const override;
 
-    void apply_impl(const LinOp *, const LinOp *, const LinOp *,
-                    LinOp *) const override;
+    void apply_impl(const LinOp*, const LinOp*, const LinOp*,
+                    LinOp*) const override;
 
 private:
-    // std::shared_ptr<mpi::communicator> comm_;
-    matrix::Dense<ValueType> local_;
+    std::shared_ptr<const Partition<LocalIndexType>> partition_;
+    local_mtx_type local_;
 };
 
 
@@ -177,5 +181,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_HAVE_MPI
 #endif  // GKO_PUBLIC_CORE_DISTRIBUTED_VECTOR_HPP_

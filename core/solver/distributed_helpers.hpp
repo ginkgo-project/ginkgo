@@ -44,47 +44,48 @@ namespace detail {
 
 template <typename ValueType>
 std::unique_ptr<matrix::Dense<ValueType>> create_with_same_size(
-    const matrix::Dense<ValueType> *mtx)
+    const matrix::Dense<ValueType>* mtx)
 {
     return matrix::Dense<ValueType>::create(mtx->get_executor(),
-                                            mtx->get_size());
+                                            mtx->get_size(), mtx->get_stride());
 }
 
 
-template <typename ValueType>
-std::unique_ptr<distributed::Vector<ValueType>> create_with_same_size(
-    const distributed::Vector<ValueType> *mtx)
+template <typename ValueType, typename LocalIndexType>
+std::unique_ptr<distributed::Vector<ValueType, LocalIndexType>>
+create_with_same_size(const distributed::Vector<ValueType, LocalIndexType>* mtx)
 {
-    return distributed::Vector<ValueType>::create(
-        mtx->get_executor(), mtx->get_communicator(), mtx->get_size(),
-        mtx->get_local()->get_size());
+    return distributed::Vector<ValueType, LocalIndexType>::create(
+        mtx->get_executor(), mtx->get_communicator(), mtx->get_partition(),
+        mtx->get_size(), mtx->get_local()->get_size());
 }
 
 
 template <typename ValueType>
-const matrix::Dense<ValueType> *get_local(const matrix::Dense<ValueType> *mtx)
-{
-    return mtx;
-}
-
-
-template <typename ValueType>
-matrix::Dense<ValueType> *get_local(matrix::Dense<ValueType> *mtx)
+const matrix::Dense<ValueType>* get_local(const matrix::Dense<ValueType>* mtx)
 {
     return mtx;
 }
 
 
 template <typename ValueType>
-matrix::Dense<ValueType> *get_local(distributed::Vector<ValueType> *mtx)
+matrix::Dense<ValueType>* get_local(matrix::Dense<ValueType>* mtx)
+{
+    return mtx;
+}
+
+
+template <typename ValueType, typename LocalIndexType>
+matrix::Dense<ValueType>* get_local(
+    distributed::Vector<ValueType, LocalIndexType>* mtx)
 {
     return mtx->get_local();
 }
 
 
-template <typename ValueType>
-const matrix::Dense<ValueType> *get_local(
-    const distributed::Vector<ValueType> *mtx)
+template <typename ValueType, typename LocalIndexType>
+const matrix::Dense<ValueType>* get_local(
+    const distributed::Vector<ValueType, LocalIndexType>* mtx)
 {
     return mtx->get_local();
 }

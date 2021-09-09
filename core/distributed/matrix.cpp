@@ -44,7 +44,9 @@ namespace distributed {
 namespace matrix {
 GKO_REGISTER_OPERATION(build_diag_offdiag,
                        distributed_matrix::build_diag_offdiag);
-}
+GKO_REGISTER_OPERATION(map_to_global_idxs,
+                       distributed_matrix::map_to_global_idxs);
+}  // namespace matrix
 
 
 template <typename ValueType, typename LocalIndexType>
@@ -58,6 +60,8 @@ Matrix<ValueType, LocalIndexType>::Matrix(
       recv_offsets_(comm->size() + 1),
       recv_sizes_(comm->size()),
       gather_idxs_{exec},
+      local_to_global_row{exec},
+      local_to_global_offdiag_col{exec},
       one_scalar_{exec, dim<2>{1, 1}},
       diag_mtx_{exec},
       offdiag_mtx_{exec}
@@ -70,13 +74,13 @@ Matrix<ValueType, LocalIndexType>::Matrix(
 
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::read_distributed(
-    const matrix_data<ValueType, global_index_type> &data,
+    const matrix_data<ValueType, global_index_type>& data,
     std::shared_ptr<const Partition<LocalIndexType>> partition)
 {
     this->read_distributed(
         Array<matrix_data_entry<ValueType, global_index_type>>::view(
             this->get_executor()->get_master(), data.nonzeros.size(),
-            const_cast<matrix_data_entry<ValueType, global_index_type> *>(
+            const_cast<matrix_data_entry<ValueType, global_index_type>*>(
                 data.nonzeros.data())),
         data.size, partition);
 }
@@ -84,9 +88,10 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
 
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::read_distributed(
-    const Array<matrix_data_entry<ValueType, global_index_type>> &data,
+    const Array<matrix_data_entry<ValueType, global_index_type>>& data,
     dim<2> size, std::shared_ptr<const Partition<LocalIndexType>> partition)
 {
+    this->partition_ = partition;
     const auto comm = this->get_communicator();
     GKO_ASSERT_IS_SQUARE_MATRIX(size);
     GKO_ASSERT_EQ(size[0], partition->get_size());
@@ -114,7 +119,8 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
     // build diagonal, off-diagonal matrix and communication structures
     exec->run(matrix::make_build_diag_offdiag(
         *local_data, partition.get(), local_part, diag_data, offdiag_data,
-        recv_gather_idxs, recv_offsets_array.get_data(), ValueType{}));
+        recv_gather_idxs, recv_offsets_array.get_data(), local_to_global_row,
+        local_to_global_offdiag_col, ValueType{}));
 
     dim<2> offdiag_dim{local_size, recv_gather_idxs.get_num_elems()};
     this->diag_mtx_.read(diag_data, diag_dim);
@@ -155,7 +161,7 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
 
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::communicate(
-    const LocalVec *local_b) const
+    const LocalVec* local_b) const
 {
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
@@ -191,8 +197,8 @@ void Matrix<ValueType, LocalIndexType>::communicate(
 
 
 template <typename ValueType, typename LocalIndexType>
-void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp *b,
-                                                   LinOp *x) const
+void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
+                                                   LinOp* x) const
 {
     auto dense_b = as<GlobalVec>(b);
     auto dense_x = as<GlobalVec>(x);
@@ -204,10 +210,10 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp *b,
 
 
 template <typename ValueType, typename LocalIndexType>
-void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp *alpha,
-                                                   const LinOp *b,
-                                                   const LinOp *beta,
-                                                   LinOp *x) const
+void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* alpha,
+                                                   const LinOp* b,
+                                                   const LinOp* beta,
+                                                   LinOp* x) const
 {
     auto vec_b = as<GlobalVec>(b);
     auto vec_x = as<GlobalVec>(x);

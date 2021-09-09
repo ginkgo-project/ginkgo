@@ -118,9 +118,9 @@ communicator::communicator(const MPI_Comm &comm_in, int color, int key)
 
 communicator::communicator()
 {
-    this->comm_ = bindings::duplicate_comm(MPI_COMM_WORLD);
-    this->size_ = bindings::get_comm_size(this->comm_);
-    this->rank_ = bindings::get_comm_rank(this->comm_);
+    this->comm_ = MPI_COMM_NULL;
+    this->size_ = 0;
+    this->rank_ = -1;
 }
 
 
@@ -149,6 +149,7 @@ communicator::communicator(communicator &&other)
     this->size_ = bindings::get_comm_size(this->comm_);
     this->rank_ = bindings::get_comm_rank(this->comm_);
     this->local_rank_ = bindings::get_local_rank(this->comm_);
+    other.comm_ = MPI_COMM_NULL;
     other.size_ = 0;
     other.rank_ = -1;
 }
@@ -290,7 +291,7 @@ void window<ValueType>::flush_all_local()
 template <typename ValueType>
 window<ValueType>::~window()
 {
-    if (this->window_) {
+    if (this->window_ && this->window_ != MPI_WIN_NULL) {
         bindings::free_window(&this->window_);
     }
 }
@@ -518,6 +519,19 @@ void gather(const SendType *send_buffer, const int send_count,
 
 
 template <typename SendType, typename RecvType>
+void all_gather(const SendType *send_buffer, const int send_count,
+                RecvType *recv_buffer, const int recv_count,
+                std::shared_ptr<const communicator> comm)
+{
+    auto send_type = helpers::get_mpi_type(send_buffer[0]);
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    bindings::all_gather(send_buffer, send_count, send_type, recv_buffer,
+                         recv_count, recv_type,
+                         comm ? comm->get() : communicator::get_comm_world());
+}
+
+
+template <typename SendType, typename RecvType>
 void scatter(const SendType *send_buffer, const int send_count,
              RecvType *recv_buffer, const int recv_count, int root_rank,
              std::shared_ptr<const communicator> comm)
@@ -603,15 +617,26 @@ void all_to_all(const SendType *send_buffer, const int *send_counts,
     if (!req.get()) {
         bindings::all_to_all_v(
             send_buffer, send_counts, send_offsets, send_type, recv_buffer,
-            recv_counts, recv_offsets, send_type,
+            recv_counts, recv_offsets, recv_type,
             comm ? comm->get() : communicator::get_comm_world());
     } else {
         bindings::i_all_to_all_v(
             send_buffer, send_counts, send_offsets, send_type, recv_buffer,
-            recv_counts, recv_offsets, send_type,
+            recv_counts, recv_offsets, recv_type,
             comm ? comm->get() : communicator::get_comm_world(),
             req->get_requests());
     }
+}
+
+
+template <typename ScanType>
+void scan(const ScanType *send_buffer, ScanType *recv_buffer, int count,
+          op_type op_enum, std::shared_ptr<const communicator> comm)
+{
+    auto operation = helpers::get_operation<ScanType>(op_enum);
+    auto scan_type = helpers::get_mpi_type(recv_buffer[0]);
+    bindings::scan(send_buffer, recv_buffer, count, scan_type, operation,
+                   comm ? comm->get() : communicator::get_comm_world());
 }
 
 
@@ -706,6 +731,14 @@ GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GATHER1);
 GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GATHER2);
 
 
+#define GKO_DECLARE_ALLGATHER(SendType, RecvType)                      \
+    void all_gather(const SendType *send_buffer, const int send_count, \
+                    RecvType *recv_buffer, const int recv_count,       \
+                    std::shared_ptr<const communicator> comm)
+
+GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ALLGATHER);
+
+
 #define GKO_DECLARE_SCATTER1(SendType, RecvType)                             \
     void scatter(const SendType *send_buffer, const int send_count,          \
                  RecvType *recv_buffer, const int recv_count, int root_rank, \
@@ -750,6 +783,12 @@ GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ALL_TO_ALL2);
 
 GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ALL_TO_ALL_V);
+
+
+#define GKO_DECLARE_SCAN(ScanType)                                           \
+    void scan(const ScanType *send_buffer, ScanType *recv_buffer, int count, \
+              op_type op_enum, std::shared_ptr<const communicator> comm)
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_SCAN);
 
 
 }  // namespace mpi

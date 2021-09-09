@@ -34,17 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_DISTRIBUTED_MATRIX_HPP_
 
 
-#include <ginkgo/config.hpp>
-
-
-#if GKO_HAVE_MPI
-
-
 #include <numeric>
 #include <unordered_map>
 #include <unordered_set>
 
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/cache.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
@@ -69,32 +64,45 @@ public:
     using index_type = global_index_type;
     using local_index_type = LocalIndexType;
 
+    using GlobalVec = Vector<value_type, LocalIndexType>;
+    using LocalVec = gko::matrix::Dense<value_type>;
+    using LocalMtx = gko::matrix::Csr<value_type, local_index_type>;
+
     void read_distributed(
-        const matrix_data<ValueType, global_index_type> &data,
+        const matrix_data<ValueType, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type>> partition);
 
     void read_distributed(
-        const Array<matrix_data_entry<ValueType, global_index_type>> &data,
+        const Array<matrix_data_entry<ValueType, global_index_type>>& data,
         dim<2> size,
         std::shared_ptr<const Partition<local_index_type>> partition);
 
     void validate_data() const override;
 
-protected:
-    using GlobalVec = Vector<value_type>;
-    using LocalVec = matrix::Dense<value_type>;
-    using LocalMtx = matrix::Csr<value_type, local_index_type>;
+    LocalMtx* get_local_diag() { return &diag_mtx_; }
 
+    LocalMtx* get_local_offdiag() { return &offdiag_mtx_; }
+
+    const LocalMtx* get_local_diag() const { return &diag_mtx_; }
+
+    const LocalMtx* get_local_offdiag() const { return &offdiag_mtx_; }
+
+    const Partition<local_index_type>* get_partition() const
+    {
+        return partition_.get();
+    }
+
+protected:
     Matrix(std::shared_ptr<const Executor> exec,
            std::shared_ptr<mpi::communicator> comm =
                std::make_shared<mpi::communicator>());
 
-    void communicate(const LocalVec *local_b) const;
+    void communicate(const LocalVec* local_b) const;
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
 private:
     std::vector<comm_index_type> send_offsets_;
@@ -102,6 +110,8 @@ private:
     std::vector<comm_index_type> recv_offsets_;
     std::vector<comm_index_type> recv_sizes_;
     Array<local_index_type> gather_idxs_;
+    Array<global_index_type> local_to_global_row;
+    Array<global_index_type> local_to_global_offdiag_col;
     LocalVec one_scalar_;
     mutable DenseCache<value_type> host_send_buffer_;
     mutable DenseCache<value_type> host_recv_buffer_;
@@ -109,11 +119,11 @@ private:
     mutable DenseCache<value_type> recv_buffer_;
     LocalMtx diag_mtx_;
     LocalMtx offdiag_mtx_;
+    std::shared_ptr<const Partition<local_index_type>> partition_;
 };
 
 
 }  // namespace distributed
 }  // namespace gko
 
-#endif  // GKO_HAVE_MPI
 #endif  // GKO_PUBLIC_CORE_DISTRIBUTED_MATRIX_HPP_

@@ -950,6 +950,22 @@ void compute_norm2(std::shared_ptr<const DpcppExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 
 
+template <typename ValueType>
+void compute_norm2_sqr(std::shared_ptr<const DpcppExecutor> exec,
+                       const matrix::Dense<ValueType>* x,
+                       matrix::Dense<remove_complex<ValueType>>* result)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_SQR_KERNEL);
+
+
+template <typename ValueType>
+void compute_sqrt(std::shared_ptr<const DefaultExecutor> exec,
+                  matrix::Dense<ValueType>* data) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Dense<ValueType>* source,

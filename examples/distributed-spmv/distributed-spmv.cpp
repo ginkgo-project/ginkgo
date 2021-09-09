@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     const auto fin = gko::mpi::init_finalize(argc, argv);
     // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
     using GlobalIndexType = gko::distributed::global_index_type;
     using LocalIndexType = GlobalIndexType;
     using dist_mtx = gko::distributed::Matrix<ValueType, LocalIndexType>;
-    using dist_vec = gko::distributed::Vector<ValueType>;
+    using dist_vec = gko::distributed::Vector<ValueType, LocalIndexType>;
     using vec = gko::matrix::Dense<ValueType>;
     using part_type = gko::distributed::Partition<LocalIndexType>;
 
@@ -84,24 +84,24 @@ int main(int argc, char *argv[])
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
              [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
+                 return gko::CudaExecutor::create(
+                     0, gko::ReferenceExecutor::create(), true);
              }},
             {"hip",
              [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
+                 return gko::HipExecutor::create(
+                     0, gko::ReferenceExecutor::create(), true);
              }},
             {"dpcpp",
              [] {
-                 return gko::DpcppExecutor::create(0,
-                                                   gko::OmpExecutor::create());
+                 return gko::DpcppExecutor::create(
+                     0, gko::ReferenceExecutor::create());
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
-    const auto comm = gko::mpi::communicator::create();
+    const auto comm = gko::mpi::communicator::create_world();
 
     std::ifstream a_stream{"data/A.mtx"};
     std::ifstream x_stream{"data/x.mtx"};
