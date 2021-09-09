@@ -1,4 +1,6 @@
 ginkgo_create_test(batch_bicgstab_kernels)
+ginkgo_create_test(batch_gmres_kernels)
+ginkgo_create_test(batch_richardson_kernels)
 ginkgo_create_test(gmres_kernels)
 ginkgo_create_test(cb_gmres_kernels)
 ginkgo_create_test(idr_kernels)
