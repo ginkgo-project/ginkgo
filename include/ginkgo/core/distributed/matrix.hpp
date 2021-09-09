@@ -55,6 +55,7 @@ namespace distributed {
 template <typename ValueType = double, typename LocalIndexType = int32>
 class Matrix : public EnableLinOp<Matrix<ValueType, LocalIndexType>>,
                public EnableCreateMethod<Matrix<ValueType, LocalIndexType>>,
+               public DiagonalExtractable<ValueType>,
                public DistributedBase {
     friend class EnableCreateMethod<Matrix>;
     friend class EnablePolymorphicObject<Matrix, LinOp>;
@@ -78,6 +79,9 @@ public:
         std::shared_ptr<const Partition<local_index_type>> partition);
 
     void validate_data() const override;
+
+    std::unique_ptr<matrix::Diagonal<ValueType>> extract_diagonal()
+        const override;
 
     LocalMtx* get_local_diag() { return &diag_mtx_; }
 

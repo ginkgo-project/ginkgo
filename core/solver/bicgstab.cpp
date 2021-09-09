@@ -41,8 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "core/distributed/helpers.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
-#include "core/solver/distributed_helpers.hpp"
 
 
 namespace gko {
@@ -89,7 +89,7 @@ std::unique_ptr<LinOp> Bicgstab<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Bicgstab<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -101,8 +101,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 template <typename ValueType>
 template <typename VectorType>
-void Bicgstab<ValueType>::apply_dense_impl(const VectorType *dense_b,
-                                           VectorType *dense_x) const
+void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                           VectorType* dense_x) const
 {
     using std::swap;
     using LocalVector = matrix::Dense<ValueType>;
@@ -114,14 +114,14 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType *dense_b,
     auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
 
-    auto r = detail::create_with_same_size(dense_b);
-    auto z = detail::create_with_same_size(dense_b);
-    auto y = detail::create_with_same_size(dense_b);
-    auto v = detail::create_with_same_size(dense_b);
-    auto s = detail::create_with_same_size(dense_b);
-    auto t = detail::create_with_same_size(dense_b);
-    auto p = detail::create_with_same_size(dense_b);
-    auto rr = detail::create_with_same_size(dense_b);
+    auto r = distributed::detail::create_with_same_size(dense_b);
+    auto z = distributed::detail::create_with_same_size(dense_b);
+    auto y = distributed::detail::create_with_same_size(dense_b);
+    auto v = distributed::detail::create_with_same_size(dense_b);
+    auto s = distributed::detail::create_with_same_size(dense_b);
+    auto t = distributed::detail::create_with_same_size(dense_b);
+    auto p = distributed::detail::create_with_same_size(dense_b);
+    auto rr = distributed::detail::create_with_same_size(dense_b);
 
     auto alpha = LocalVector::create(exec, dim<2>{1, dense_b->get_size()[1]});
     auto beta = LocalVector::create_with_config_of(alpha.get());
@@ -136,12 +136,16 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType *dense_b,
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(bicgstab::make_initialize(
-        detail::get_local(dense_b), detail::get_local(r.get()),
-        detail::get_local(rr.get()), detail::get_local(y.get()),
-        detail::get_local(s.get()), detail::get_local(t.get()),
-        detail::get_local(z.get()), detail::get_local(v.get()),
-        detail::get_local(p.get()), prev_rho.get(), rho.get(), alpha.get(),
-        beta.get(), gamma.get(), omega.get(), &stop_status));
+        distributed::detail::get_local(dense_b),
+        distributed::detail::get_local(r.get()),
+        distributed::detail::get_local(rr.get()),
+        distributed::detail::get_local(y.get()),
+        distributed::detail::get_local(s.get()),
+        distributed::detail::get_local(t.get()),
+        distributed::detail::get_local(z.get()),
+        distributed::detail::get_local(v.get()),
+        distributed::detail::get_local(p.get()), prev_rho.get(), rho.get(),
+        alpha.get(), beta.get(), gamma.get(), omega.get(), &stop_status));
     // r = dense_b
     // prev_rho = rho = omega = alpha = beta = gamma = 1.0
     // rr = v = s = t = z = y = p = 0
@@ -184,20 +188,22 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType *dense_b,
 
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
-        exec->run(bicgstab::make_step_1(
-            detail::get_local(r.get()), detail::get_local(p.get()),
-            detail::get_local(v.get()), rho.get(), prev_rho.get(), alpha.get(),
-            omega.get(), &stop_status));
+        exec->run(bicgstab::make_step_1(distributed::detail::get_local(r.get()),
+                                        distributed::detail::get_local(p.get()),
+                                        distributed::detail::get_local(v.get()),
+                                        rho.get(), prev_rho.get(), alpha.get(),
+                                        omega.get(), &stop_status));
 
         get_preconditioner()->apply(p.get(), y.get());
         system_matrix_->apply(y.get(), v.get());
         rr->compute_conj_dot(v.get(), beta.get());
         // alpha = rho / beta
         // s = r - alpha * v
-        exec->run(bicgstab::make_step_2(detail::get_local(r.get()),
-                                        detail::get_local(s.get()),
-                                        detail::get_local(v.get()), rho.get(),
-                                        alpha.get(), beta.get(), &stop_status));
+        exec->run(bicgstab::make_step_2(distributed::detail::get_local(r.get()),
+                                        distributed::detail::get_local(s.get()),
+                                        distributed::detail::get_local(v.get()),
+                                        rho.get(), alpha.get(), beta.get(),
+                                        &stop_status));
 
         auto all_converged =
             stop_criterion->update()
@@ -207,9 +213,10 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType *dense_b,
                 // .solution(dense_x) // outdated at this point
                 .check(RelativeStoppingId, false, &stop_status, &one_changed);
         if (one_changed) {
-            exec->run(bicgstab::make_finalize(detail::get_local(dense_x),
-                                              detail::get_local(y.get()),
-                                              alpha.get(), &stop_status));
+            exec->run(
+                bicgstab::make_finalize(distributed::detail::get_local(dense_x),
+                                        distributed::detail::get_local(y.get()),
+                                        alpha.get(), &stop_status));
         }
         if (all_converged) {
             break;
@@ -222,11 +229,14 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType *dense_b,
         // omega = gamma / beta
         // x = x + alpha * y + omega * z
         // r = s - omega * t
-        exec->run(bicgstab::make_step_3(
-            detail::get_local(dense_x), detail::get_local(r.get()),
-            detail::get_local(s.get()), detail::get_local(t.get()),
-            detail::get_local(y.get()), detail::get_local(z.get()), alpha.get(),
-            beta.get(), gamma.get(), omega.get(), &stop_status));
+        exec->run(bicgstab::make_step_3(distributed::detail::get_local(dense_x),
+                                        distributed::detail::get_local(r.get()),
+                                        distributed::detail::get_local(s.get()),
+                                        distributed::detail::get_local(t.get()),
+                                        distributed::detail::get_local(y.get()),
+                                        distributed::detail::get_local(z.get()),
+                                        alpha.get(), beta.get(), gamma.get(),
+                                        omega.get(), &stop_status));
         swap(prev_rho, rho);
     }
 }

@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/extended_float.hpp"
 #include "core/base/utils.hpp"
+#include "core/distributed/helpers.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 
@@ -81,16 +82,18 @@ GKO_REGISTER_OPERATION(initialize_precisions, jacobi::initialize_precisions);
 template <typename ValueType, typename IndexType>
 void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
+            auto local_b = gko::distributed::detail::get_local(dense_b);
+            auto local_x = gko::distributed::detail::get_local(dense_x);
             if (parameters_.max_block_size == 1) {
                 this->get_executor()->run(jacobi::make_simple_scalar_apply(
-                    this->blocks_, dense_b, dense_x));
+                    this->blocks_, local_b, local_x));
             } else {
                 this->get_executor()->run(jacobi::make_simple_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,
                     parameters_.storage_optimization.block_wise,
-                    parameters_.block_pointers, blocks_, dense_b, dense_x));
+                    parameters_.block_pointers, blocks_, local_b, local_x));
             }
         },
         b, x);
@@ -102,17 +105,19 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* alpha,
                                               const LinOp* b, const LinOp* beta,
                                               LinOp* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+            auto local_b = gko::distributed::detail::get_local(dense_b);
+            auto local_x = gko::distributed::detail::get_local(dense_x);
             if (parameters_.max_block_size == 1) {
                 this->get_executor()->run(jacobi::make_scalar_apply(
-                    this->blocks_, dense_alpha, dense_b, dense_beta, dense_x));
+                    this->blocks_, dense_alpha, local_b, dense_beta, local_x));
             } else {
                 this->get_executor()->run(jacobi::make_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,
                     parameters_.storage_optimization.block_wise,
-                    parameters_.block_pointers, blocks_, dense_alpha, dense_b,
-                    dense_beta, dense_x));
+                    parameters_.block_pointers, blocks_, dense_alpha, local_b,
+                    dense_beta, local_x));
             }
         },
         alpha, b, beta, x);

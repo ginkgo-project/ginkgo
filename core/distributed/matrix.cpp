@@ -35,6 +35,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/distributed/vector.hpp>
 
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
+
 
 #include "core/distributed/matrix_kernels.hpp"
 
@@ -286,6 +289,14 @@ void Matrix<ValueType, LocalIndexType>::validate_data() const
         std::all_of(
             host_gather_idx_ptr, host_gather_idx_ptr + num_gather_rows,
             [&](auto row) { return row >= 0 && row < num_local_rows; }));
+}
+
+
+template <typename ValueType, typename LocalIndexType>
+std::unique_ptr<gko::matrix::Diagonal<ValueType>>
+Matrix<ValueType, LocalIndexType>::extract_diagonal() const
+{
+    return diag_mtx_.extract_diagonal();
 }
 
 
