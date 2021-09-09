@@ -1,7 +1,8 @@
 #!/bin/bash
 
-HIPIFY=/opt/rocm/hip/bin/hipify-perl
+HIPIFY=hipify-perl
 # For some reasons, hipify from apt does not add HIP_KERNEL_NAME.
+# For newer ROCm versions (eg. 4.2), HIP_KERNEL_NAME seems typically unnnecessary.
 
 if [ "$0" != "dev_tools/scripts/cuda2hip.sh" ]; then
     echo "You are only allowed to run dev_tools/scripts/cuda2hip.sh in the ginkgo source folder."
@@ -40,3 +41,8 @@ sed -i -E "${REG}" "${NEW_FILE}"
 sed -i -E "s/(.*)::hipLaunchKernelGGL\(/hipLaunchKernelGGL\(\1::/g" "${NEW_FILE}"
 # {namespace}::HIP_KERNEL_NAME( to HIP_KERNEL_NAME({namespace}::
 sed -i -E "s/(.*)::HIP_KERNEL_NAME\(/HIP_KERNEL_NAME\(\1::/g" "${NEW_FILE}"
+# Because sed does not really support substring negation:
+# Rename back to cuda_hip where required
+sed -i -E "s/hip_hip/cuda_hip/g" "${NEW_FILE}"
+# Rename common kernel files back
+sed -i -E "s/hip.hpp.inc/hpp.inc/g" "${NEW_FILE}"
