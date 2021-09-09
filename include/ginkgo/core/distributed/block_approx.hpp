@@ -37,9 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/config.hpp>
 
 
-#if GKO_HAVE_MPI
-
-
 #include <vector>
 
 
@@ -75,9 +72,9 @@ public:
 
     std::vector<size_type> get_block_nonzeros() const { return block_nnzs_; }
 
-    const Overlap<size_type> &get_overlaps() const { return block_overlaps_; }
+    const Overlap<size_type>& get_overlaps() const { return block_overlaps_; }
 
-    std::vector<std::shared_ptr<MatrixType>> get_block_mtxs() const
+    std::vector<std::shared_ptr<const MatrixType>> get_block_mtxs() const
     {
         return diagonal_blocks_;
     }
@@ -86,8 +83,8 @@ protected:
     BlockApprox(std::shared_ptr<const Executor> exec,
                 std::shared_ptr<mpi::communicator> comm =
                     std::make_shared<mpi::communicator>(),
-                const Array<size_type> &num_blocks = {},
-                const Overlap<size_type> &block_overlaps = {})
+                const Array<size_type>& num_blocks = {},
+                const Overlap<size_type>& block_overlaps = {})
         : EnableLinOp<BlockApprox<value_type, local_index_type>>{exec,
                                                                  dim<2>{}},
           DistributedBase{comm},
@@ -96,10 +93,10 @@ protected:
     {}
 
     BlockApprox(std::shared_ptr<const Executor> exec,
-                const Matrix<value_type, local_index_type> *matrix,
+                const Matrix<value_type, local_index_type>* matrix,
                 std::shared_ptr<mpi::communicator> comm,
-                const Array<size_type> &num_blocks = {},
-                const Overlap<size_type> &block_overlaps = {})
+                const Array<size_type>& num_blocks = {},
+                const Overlap<size_type>& block_overlaps = {})
         : EnableLinOp<
               BlockApprox<value_type, local_index_type>>{exec,
                                                          matrix->get_size()},
@@ -110,20 +107,20 @@ protected:
         this->generate(num_blocks, block_overlaps, matrix);
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
-    void generate(const Array<size_type> &num_blocks,
-                  const Overlap<size_type> &block_overlaps,
-                  const Matrix<value_type, local_index_type> *matrix);
+    void generate(const Array<size_type>& num_blocks,
+                  const Overlap<size_type>& block_overlaps,
+                  const Matrix<value_type, local_index_type>* matrix);
 
 private:
     Overlap<size_type> block_overlaps_;
     std::vector<dim<2>> block_dims_;
     std::vector<size_type> block_nnzs_;
-    std::vector<std::shared_ptr<MatrixType>> diagonal_blocks_;
+    std::vector<std::shared_ptr<const MatrixType>> diagonal_blocks_;
 };
 
 
@@ -131,16 +128,4 @@ private:
 }  // namespace gko
 
 
-#else
-
-
-namespace gko {
-namespace distributed {
-template <typename ValueType, typename IndexType>
-class BlockApprox;
-}
-}  // namespace gko
-
-
-#endif  // GKO_HAVE_MPI
 #endif

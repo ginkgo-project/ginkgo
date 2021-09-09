@@ -236,7 +236,8 @@ void gather(const SendType* send_buffer, const int send_count,
 template <typename SendType, typename RecvType>
 void all_gather(const SendType* send_buffer, const int send_count,
                 RecvType* recv_buffer, const int recv_count,
-                std::shared_ptr<const communicator> comm) GKO_NOT_COMPILED(mpi);
+                std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req) GKO_NOT_COMPILED(mpi);
 
 
 template <typename SendType, typename RecvType>
@@ -372,7 +373,8 @@ GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GATHER2);
 #define GKO_DECLARE_ALLGATHER(SendType, RecvType)                      \
     void all_gather(const SendType* send_buffer, const int send_count, \
                     RecvType* recv_buffer, const int recv_count,       \
-                    std::shared_ptr<const communicator> comm)
+                    std::shared_ptr<const communicator> comm,          \
+                    std::shared_ptr<request> req)
 
 GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ALLGATHER);
 

@@ -65,9 +65,6 @@ public:
     using value_type = ValueType;
     using index_type = global_index_type;
     using local_index_type = LocalIndexType;
-    using GlobalVec = Vector<value_type>;
-    using LocalVec = matrix::Dense<value_type>;
-    using LocalMtx = matrix::Csr<value_type, local_index_type>;
 
     using GlobalVec = Vector<value_type, LocalIndexType>;
     using LocalVec = gko::matrix::Dense<value_type>;
@@ -75,7 +72,6 @@ public:
 
     void convert_to(Matrix<value_type, local_index_type>* result) const override
     {
-        bool same_executor = this->get_executor() == result->get_executor();
         result->diag_mtx_->copy_from(this->diag_mtx_.get());
         result->offdiag_mtx_->copy_from(this->offdiag_mtx_.get());
         result->gather_idxs_ = this->gather_idxs_;
@@ -88,7 +84,6 @@ public:
 
     void move_to(Matrix<value_type, local_index_type>* result) override
     {
-        bool same_executor = this->get_executor() == result->get_executor();
         EnableLinOp<Matrix>::move_to(result);
     }
 
@@ -103,13 +98,16 @@ public:
 
     void validate_data() const override;
 
-    LocalMtx* get_local_diag() { return &diag_mtx_; }
+    std::shared_ptr<LocalMtx> get_local_diag() { return diag_mtx_; }
 
-    LocalMtx* get_local_offdiag() { return &offdiag_mtx_; }
+    std::shared_ptr<LocalMtx> get_local_offdiag() { return offdiag_mtx_; }
 
-    const LocalMtx* get_local_diag() const { return &diag_mtx_; }
+    std::shared_ptr<const LocalMtx> get_local_diag() const { return diag_mtx_; }
 
-    const LocalMtx* get_local_offdiag() const { return &offdiag_mtx_; }
+    std::shared_ptr<const LocalMtx> get_local_offdiag() const
+    {
+        return offdiag_mtx_;
+    }
 
     const Partition<local_index_type>* get_partition() const
     {
@@ -117,6 +115,10 @@ public:
     }
 
     std::vector<std::shared_ptr<LocalMtx>> get_block_approx(
+        const Overlap<size_type>& block_overlaps,
+        const Array<size_type>& block_sizes);
+
+    std::vector<std::shared_ptr<const LocalMtx>> get_block_approx(
         const Overlap<size_type>& block_overlaps,
         const Array<size_type>& block_sizes) const;
 
@@ -145,8 +147,8 @@ private:
     mutable DenseCache<value_type> host_recv_buffer_;
     mutable DenseCache<value_type> send_buffer_;
     mutable DenseCache<value_type> recv_buffer_;
-    LocalMtx diag_mtx_;
-    LocalMtx offdiag_mtx_;
+    std::shared_ptr<LocalMtx> diag_mtx_;
+    std::shared_ptr<LocalMtx> offdiag_mtx_;
     std::shared_ptr<const Partition<local_index_type>> partition_;
 };
 

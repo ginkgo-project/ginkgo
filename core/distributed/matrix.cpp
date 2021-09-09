@@ -163,10 +163,21 @@ template <typename ValueType, typename LocalIndexType>
 std::vector<
     std::shared_ptr<typename Matrix<ValueType, LocalIndexType>::LocalMtx>>
 Matrix<ValueType, LocalIndexType>::get_block_approx(
-    const Overlap<size_type> &block_overlaps,
-    const Array<size_type> &block_sizes) const
+    const Overlap<size_type>& block_overlaps,
+    const Array<size_type>& block_sizes)
 {
-    return std::vector<std::shared_ptr<LocalMtx>>{this->get_local_matrix()};
+    return std::vector<std::shared_ptr<LocalMtx>>{this->get_local_diag()};
+}
+
+
+template <typename ValueType, typename LocalIndexType>
+std::vector<
+    std::shared_ptr<const typename Matrix<ValueType, LocalIndexType>::LocalMtx>>
+Matrix<ValueType, LocalIndexType>::get_block_approx(
+    const Overlap<size_type>& block_overlaps,
+    const Array<size_type>& block_sizes) const
+{
+    return std::vector<std::shared_ptr<const LocalMtx>>{this->get_local_diag()};
 }
 
 

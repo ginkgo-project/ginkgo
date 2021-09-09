@@ -22,9 +22,6 @@ set(EXAMPLES_EXEC_LIST
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
     custom-stopping-criterion
-    distributed-spmv
-    distributed-solver
-    distributed-ras-ir
     ginkgo-overhead
     minimal-cuda-solver
     mixed-spmv
@@ -44,7 +41,7 @@ if(GINKGO_BUILD_EXTLIB_EXAMPLE)
 endif()
 
 if(GINKGO_BUILD_MPI)
-    list(APPEND EXAMPLES_LIST distributed-spmv distributed-solver)
+    list(APPEND EXAMPLES_LIST distributed-spmv distributed-solver distributed-ras-ir)
 endif()
 
 find_package(OpenCV QUIET)

@@ -277,7 +277,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
             GKO_NOT_IMPLEMENTED;
         }
         auto dist_mat = dynamic_cast<const dist_type*>(system_matrix);
-        diag_ = dist_mat->get_local_matrix()->extract_diagonal();
+        diag_ = dist_mat->get_local_diag()->extract_diagonal();
         is_distributed_ = true;
 
     } else {

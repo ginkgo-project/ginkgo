@@ -128,6 +128,15 @@ using ValueIndexTypes =
 #endif
 
 
+using RealValueSingleIndexTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<std::tuple<float, gko::int32>>;
+#else
+    ::testing::Types<std::tuple<float, gko::int32>,
+                     std::tuple<double, gko::int32>>;
+#endif
+
+
 using RealValueIndexTypes =
 #if GINKGO_DPCPP_SINGLE_MODE
     ::testing::Types<std::tuple<float, gko::int32>,

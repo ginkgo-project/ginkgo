@@ -11,6 +11,7 @@ target_sources(ginkgo
     base/perturbation.cpp
     # base/overlap.cpp
     base/version.cpp
+    distributed/block_approx.cpp
     distributed/matrix.cpp
     distributed/partition.cpp
     distributed/vector.cpp
