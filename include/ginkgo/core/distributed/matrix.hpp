@@ -57,7 +57,8 @@ class Matrix
     : public EnableLinOp<Matrix<ValueType, LocalIndexType>>,
       public EnableCreateMethod<Matrix<ValueType, LocalIndexType>>,
       public ConvertibleTo<gko::matrix::Csr<ValueType, LocalIndexType>>,
-      public DistributedBase {
+      public DiagonalExtractable<ValueType>,
+               public DistributedBase {
     friend class EnableCreateMethod<Matrix>;
     friend class EnablePolymorphicObject<Matrix, LinOp>;
 
@@ -85,6 +86,9 @@ public:
         gko::matrix::Csr<ValueType, LocalIndexType>* result) const override;
 
     void move_to(gko::matrix::Csr<ValueType, LocalIndexType>* result) override;
+
+    std::unique_ptr<gko::matrix::Diagonal<ValueType>> extract_diagonal()
+        const override;
 
     LocalMtx* get_local_diag() { return &diag_mtx_; }
 

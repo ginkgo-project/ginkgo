@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
-#include "core/solver/distributed_helpers.hpp"
+#include "core/distributed/helpers.hpp"
 #include "core/solver/fcg_kernels.hpp"
 
 
@@ -87,7 +87,7 @@ std::unique_ptr<LinOp> Fcg<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Fcg<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -99,8 +99,8 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 template <typename ValueType>
 template <typename VectorType>
-void Fcg<ValueType>::apply_dense_impl(const VectorType *dense_b,
-                                      VectorType *dense_x) const
+void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                      VectorType* dense_x) const
 {
     using std::swap;
     using LocalVector = matrix::Dense<ValueType>;
@@ -112,11 +112,11 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType *dense_b,
     auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
 
-    auto r = detail::create_with_same_size(dense_b);
-    auto z = detail::create_with_same_size(dense_b);
-    auto p = detail::create_with_same_size(dense_b);
-    auto q = detail::create_with_same_size(dense_b);
-    auto t = detail::create_with_same_size(dense_b);
+    auto r = distributed::detail::create_with_same_size(dense_b);
+    auto z = distributed::detail::create_with_same_size(dense_b);
+    auto p = distributed::detail::create_with_same_size(dense_b);
+    auto q = distributed::detail::create_with_same_size(dense_b);
+    auto t = distributed::detail::create_with_same_size(dense_b);
 
     auto alpha = LocalVector::create(exec, dim<2>{1, dense_b->get_size()[1]});
     auto beta = LocalVector::create_with_config_of(alpha.get());
@@ -129,11 +129,14 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType *dense_b,
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
-    exec->run(fcg::make_initialize(
-        detail::get_local(dense_b), detail::get_local(r.get()),
-        detail::get_local(z.get()), detail::get_local(p.get()),
-        detail::get_local(q.get()), detail::get_local(t.get()), prev_rho.get(),
-        rho.get(), rho_t.get(), &stop_status));
+    exec->run(fcg::make_initialize(distributed::detail::get_local(dense_b),
+                                   distributed::detail::get_local(r.get()),
+                                   distributed::detail::get_local(z.get()),
+                                   distributed::detail::get_local(p.get()),
+                                   distributed::detail::get_local(q.get()),
+                                   distributed::detail::get_local(t.get()),
+                                   prev_rho.get(), rho.get(), rho_t.get(),
+                                   &stop_status));
     // r = dense_b
     // t = r
     // rho = 0.0
@@ -176,9 +179,10 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType *dense_b,
 
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
-        exec->run(fcg::make_step_1(
-            detail::get_local(p.get()), detail::get_local(z.get()),
-            detail::get_local(rho_t.get()), prev_rho.get(), &stop_status));
+        exec->run(fcg::make_step_1(distributed::detail::get_local(p.get()),
+                                   distributed::detail::get_local(z.get()),
+                                   distributed::detail::get_local(rho_t.get()),
+                                   prev_rho.get(), &stop_status));
         system_matrix_->apply(p.get(), q.get());
         p->compute_conj_dot(q.get(), beta.get());
         // tmp = rho / beta
@@ -186,10 +190,12 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType *dense_b,
         // x = x + tmp * p
         // r = r - tmp * q
         // t = r - [prev_r]
-        exec->run(fcg::make_step_2(
-            detail::get_local(dense_x), detail::get_local(r.get()),
-            detail::get_local(t.get()), detail::get_local(p.get()),
-            detail::get_local(q.get()), beta.get(), rho.get(), &stop_status));
+        exec->run(fcg::make_step_2(distributed::detail::get_local(dense_x),
+                                   distributed::detail::get_local(r.get()),
+                                   distributed::detail::get_local(t.get()),
+                                   distributed::detail::get_local(p.get()),
+                                   distributed::detail::get_local(q.get()),
+                                   beta.get(), rho.get(), &stop_status));
         swap(prev_rho, rho);
     }
 }

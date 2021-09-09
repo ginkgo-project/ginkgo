@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/distributed/vector.hpp>
-
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
 
 #include "core/distributed/matrix_kernels.hpp"
@@ -437,6 +437,14 @@ void Matrix<ValueType, LocalIndexType>::convert_to(
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::move_to(
     gko::matrix::Csr<ValueType, LocalIndexType>* result) GKO_NOT_IMPLEMENTED;
+
+
+template <typename ValueType, typename LocalIndexType>
+std::unique_ptr<gko::matrix::Diagonal<ValueType>>
+Matrix<ValueType, LocalIndexType>::extract_diagonal() const
+{
+    return diag_mtx_.extract_diagonal();
+}
 
 
 #define GKO_DECLARE_DISTRIBUTED_MATRIX(ValueType, LocalIndexType) \

@@ -41,8 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "core/distributed/helpers.hpp"
 #include "core/solver/cgs_kernels.hpp"
-#include "core/solver/distributed_helpers.hpp"
 
 
 namespace gko {
@@ -88,7 +88,7 @@ std::unique_ptr<LinOp> Cgs<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Cgs<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -100,8 +100,8 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 template <typename ValueType>
 template <typename VectorType>
-void Cgs<ValueType>::apply_dense_impl(const VectorType *dense_b,
-                                      VectorType *dense_x) const
+void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                      VectorType* dense_x) const
 {
     using std::swap;
     using LocalVector = matrix::Dense<ValueType>;
@@ -114,14 +114,14 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType *dense_b,
     auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
 
-    auto r = detail::create_with_same_size(dense_b);
-    auto r_tld = detail::create_with_same_size(dense_b);
-    auto p = detail::create_with_same_size(dense_b);
-    auto q = detail::create_with_same_size(dense_b);
-    auto u = detail::create_with_same_size(dense_b);
-    auto u_hat = detail::create_with_same_size(dense_b);
-    auto v_hat = detail::create_with_same_size(dense_b);
-    auto t = detail::create_with_same_size(dense_b);
+    auto r = distributed::detail::create_with_same_size(dense_b);
+    auto r_tld = distributed::detail::create_with_same_size(dense_b);
+    auto p = distributed::detail::create_with_same_size(dense_b);
+    auto q = distributed::detail::create_with_same_size(dense_b);
+    auto u = distributed::detail::create_with_same_size(dense_b);
+    auto u_hat = distributed::detail::create_with_same_size(dense_b);
+    auto v_hat = distributed::detail::create_with_same_size(dense_b);
+    auto t = distributed::detail::create_with_same_size(dense_b);
 
     auto alpha = LocalVector::create(exec, dim<2>{1, dense_b->get_size()[1]});
     auto beta = LocalVector::create_with_config_of(alpha.get());
@@ -134,13 +134,17 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType *dense_b,
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
-    exec->run(cgs::make_initialize(
-        detail::get_local(dense_b), detail::get_local(r.get()),
-        detail::get_local(r_tld.get()), detail::get_local(p.get()),
-        detail::get_local(q.get()), detail::get_local(u.get()),
-        detail::get_local(u_hat.get()), detail::get_local(v_hat.get()),
-        detail::get_local(t.get()), alpha.get(), beta.get(), gamma.get(),
-        rho_prev.get(), rho.get(), &stop_status));
+    exec->run(cgs::make_initialize(distributed::detail::get_local(dense_b),
+                                   distributed::detail::get_local(r.get()),
+                                   distributed::detail::get_local(r_tld.get()),
+                                   distributed::detail::get_local(p.get()),
+                                   distributed::detail::get_local(q.get()),
+                                   distributed::detail::get_local(u.get()),
+                                   distributed::detail::get_local(u_hat.get()),
+                                   distributed::detail::get_local(v_hat.get()),
+                                   distributed::detail::get_local(t.get()),
+                                   alpha.get(), beta.get(), gamma.get(),
+                                   rho_prev.get(), rho.get(), &stop_status));
     // r = dense_b
     // r_tld = r
     // rho = 0.0
@@ -183,29 +187,34 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType *dense_b,
         // beta = rho / rho_prev
         // u = r + beta * q
         // p = u + beta * ( q + beta * p )
-        exec->run(cgs::make_step_1(
-            detail::get_local(r.get()), detail::get_local(u.get()),
-            detail::get_local(p.get()), detail::get_local(q.get()), beta.get(),
-            rho.get(), rho_prev.get(), &stop_status));
+        exec->run(cgs::make_step_1(distributed::detail::get_local(r.get()),
+                                   distributed::detail::get_local(u.get()),
+                                   distributed::detail::get_local(p.get()),
+                                   distributed::detail::get_local(q.get()),
+                                   beta.get(), rho.get(), rho_prev.get(),
+                                   &stop_status));
         get_preconditioner()->apply(p.get(), t.get());
         system_matrix_->apply(t.get(), v_hat.get());
         r_tld->compute_conj_dot(v_hat.get(), gamma.get());
         // alpha = rho / gamma
         // q = u - alpha * v_hat
         // t = u + q
-        exec->run(cgs::make_step_2(
-            detail::get_local(u.get()), detail::get_local(v_hat.get()),
-            detail::get_local(q.get()), detail::get_local(t.get()), alpha.get(),
-            rho.get(), gamma.get(), &stop_status));
+        exec->run(cgs::make_step_2(distributed::detail::get_local(u.get()),
+                                   distributed::detail::get_local(v_hat.get()),
+                                   distributed::detail::get_local(q.get()),
+                                   distributed::detail::get_local(t.get()),
+                                   alpha.get(), rho.get(), gamma.get(),
+                                   &stop_status));
 
         get_preconditioner()->apply(t.get(), u_hat.get());
         system_matrix_->apply(u_hat.get(), t.get());
         // r = r - alpha * t
         // x = x + alpha * u_hat
-        exec->run(cgs::make_step_3(
-            detail::get_local(t.get()), detail::get_local(u_hat.get()),
-            detail::get_local(r.get()), detail::get_local(dense_x), alpha.get(),
-            &stop_status));
+        exec->run(cgs::make_step_3(distributed::detail::get_local(t.get()),
+                                   distributed::detail::get_local(u_hat.get()),
+                                   distributed::detail::get_local(r.get()),
+                                   distributed::detail::get_local(dense_x),
+                                   alpha.get(), &stop_status));
 
         swap(rho_prev, rho);
     }

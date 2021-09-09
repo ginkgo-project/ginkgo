@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-namespace solver {
+namespace distributed {
 namespace detail {
 
 
@@ -92,5 +92,5 @@ const matrix::Dense<ValueType>* get_local(
 
 
 }  // namespace detail
-}  // namespace solver
+}  // namespace distributed
 }  // namespace gko
