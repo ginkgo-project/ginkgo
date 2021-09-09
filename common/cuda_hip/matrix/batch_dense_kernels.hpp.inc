@@ -195,8 +195,7 @@ template <typename ValueType>
 __device__ __forceinline__ void one_norm2(
     const gko::batch_dense::BatchEntry<const ValueType>& x, const int rhs_index,
     const gko::batch_dense::BatchEntry<remove_complex<ValueType>>& result,
-    gko::kernels::cuda::group::thread_block_tile<config::warp_size>&
-        subwarp_grp)
+    group::thread_block_tile<config::warp_size>& subwarp_grp)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     real_type val = zero<real_type>();
@@ -430,8 +429,7 @@ template <typename ValueType>
 __device__ __forceinline__ void one_dot(
     const BatchEntry<const ValueType>& x, const BatchEntry<const ValueType>& y,
     const int rhs_index, const BatchEntry<ValueType>& result,
-    gko::kernels::cuda::group::thread_block_tile<config::warp_size>&
-        subwarp_grp)
+    group::thread_block_tile<config::warp_size>& subwarp_grp)
 {
     ValueType val = zero<ValueType>();
 
