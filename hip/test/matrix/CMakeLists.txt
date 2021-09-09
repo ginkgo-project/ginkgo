@@ -1,3 +1,4 @@
+ginkgo_create_hip_test(batch_dense_kernels)
 ginkgo_create_hip_test(coo_kernels)
 ginkgo_create_hip_test(csr_kernels)
 ginkgo_create_hip_test(dense_kernels)
