@@ -80,7 +80,7 @@ public:
 
     void validate_data() const override;
 
-    std::unique_ptr<matrix::Diagonal<ValueType>> extract_diagonal()
+    std::unique_ptr<gko::matrix::Diagonal<ValueType>> extract_diagonal()
         const override;
 
     LocalMtx* get_local_diag() { return &diag_mtx_; }
