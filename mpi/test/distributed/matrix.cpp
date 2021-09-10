@@ -286,7 +286,7 @@ TYPED_TEST(Matrix, ConvertToCsrScatteredRanges)
         gko::distributed::Partition<local_index_type>::build_from_mapping(
             this->ref, gko::Array<comm_index_type>{this->ref, {0, 1, 2, 0, 1}},
             3));
-    dist_mat->read_distributed(this->mat_input, part);                               gko::distributed::data_placement::local);
+    dist_mat->read_distributed(this->mat_input, part);
     global_mat->read(this->global_mat_input);
 
     dist_mat->convert_to(converted.get());
