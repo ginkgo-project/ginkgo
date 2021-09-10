@@ -63,3 +63,18 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
       run: cp .github/rebase.sh /tmp && /tmp/rebase.sh
+  format-rebase:
+    name: format-rebase
+    if: github.event.issue.pull_request != '' && github.event.comment.body == 'format-rebase!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout the latest code
+      uses: actions/checkout@v2
+      with:
+        ref: develop
+        fetch-depth: 0
+        persist-credentials: false
+    - name: Automatic Formatting Rebase
+      env:
+        GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+      run: cp .github/format-rebase.sh /tmp && /tmp/format-rebase.sh
