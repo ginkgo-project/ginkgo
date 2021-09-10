@@ -86,9 +86,15 @@ protected:
           fft(Mtx::create(exec, n)),
           fft2(Mtx2::create(exec, n1 * n2, n3)),
           fft3(Mtx3::create(exec, n1, n2, n3)),
+          dense_fft(Vec::create(exec, gko::dim<2>{n, n})),
+          dense_fft2(Vec::create(exec, gko::dim<2>{n, n})),
+          dense_fft3(Vec::create(exec, gko::dim<2>{n, n})),
           ifft(Mtx::create(exec, n, true)),
           ifft2(Mtx2::create(exec, n1 * n2, n3, true)),
-          ifft3(Mtx3::create(exec, n1, n2, n3, true))
+          ifft3(Mtx3::create(exec, n1, n2, n3, true)),
+          dense_ifft(Vec::create(exec, gko::dim<2>{n, n})),
+          dense_ifft2(Vec::create(exec, gko::dim<2>{n, n})),
+          dense_ifft3(Vec::create(exec, gko::dim<2>{n, n}))
     {
         std::uniform_int_distribution<gko::size_type> nz_dist(nrhs - 2, nrhs);
         std::uniform_real_distribution<gko::remove_complex<value_type>>
@@ -96,54 +102,52 @@ protected:
         amplitude = gko::test::generate_random_matrix<Vec>(n, nrhs, nz_dist,
                                                            val_dist, rng, exec);
         for (gko::size_type i = 0; i < n; i++) {
-            for (gko::size_type rhs = 0; rhs < nrhs; rhs++) {
-                frequency1->at(i, rhs) = gko::zero<value_type>();
-                for (gko::size_type j = 0; j < n; j++) {
-                    frequency1->at(i, rhs) +=
-                        amplitude->at(j, rhs) * root(n, i, j);
-                }
+            for (gko::size_type j = 0; j < n; j++) {
+                dense_fft->at(i, j) = root(n, i, j);
+                dense_ifft->at(i, j) = conj(dense_fft->at(i, j));
             }
         }
+        dense_fft->apply(amplitude.get(), frequency1.get());
         auto idx2 = [&](gko::size_type x, gko::size_type y) {
             return x * n3 + y;
         };
         for (gko::size_type i1 = 0; i1 < n1 * n2; i1++) {
             for (gko::size_type i2 = 0; i2 < n3; i2++) {
-                for (gko::size_type rhs = 0; rhs < nrhs; rhs++) {
-                    frequency2->at(idx2(i1, i2), rhs) = gko::zero<value_type>();
-                    for (gko::size_type j1 = 0; j1 < n1 * n2; j1++) {
-                        for (gko::size_type j2 = 0; j2 < n3; j2++) {
-                            frequency2->at(idx2(i1, i2), rhs) +=
-                                amplitude->at(idx2(j1, j2), rhs) *
-                                root(n1 * n2, i1, j1) * root(n3, i2, j2);
-                        }
+                for (gko::size_type j1 = 0; j1 < n1 * n2; j1++) {
+                    for (gko::size_type j2 = 0; j2 < n3; j2++) {
+                        const auto i = idx2(i1, i2);
+                        const auto j = idx2(j1, j2);
+                        dense_fft2->at(i, j) =
+                            root(n1 * n2, i1, j1) * root(n3, i2, j2);
+                        dense_ifft2->at(i, j) = conj(dense_fft2->at(i, j));
                     }
                 }
             }
         }
+        dense_fft2->apply(amplitude.get(), frequency2.get());
         auto idx3 = [&](gko::size_type x, gko::size_type y, gko::size_type z) {
             return x * n2 * n3 + y * n3 + z;
         };
         for (gko::size_type i1 = 0; i1 < n1; i1++) {
             for (gko::size_type i2 = 0; i2 < n2; i2++) {
                 for (gko::size_type i3 = 0; i3 < n3; i3++) {
-                    for (gko::size_type rhs = 0; rhs < nrhs; rhs++) {
-                        frequency3->at(idx3(i1, i2, i3), rhs) =
-                            gko::zero<value_type>();
-                        for (gko::size_type j1 = 0; j1 < n1; j1++) {
-                            for (gko::size_type j2 = 0; j2 < n2; j2++) {
-                                for (gko::size_type j3 = 0; j3 < n3; j3++) {
-                                    frequency3->at(idx3(i1, i2, i3), rhs) +=
-                                        amplitude->at(idx3(j1, j2, j3), rhs) *
-                                        root(n1, i1, j1) * root(n2, i2, j2) *
-                                        root(n3, i3, j3);
-                                }
+                    for (gko::size_type j1 = 0; j1 < n1; j1++) {
+                        for (gko::size_type j2 = 0; j2 < n2; j2++) {
+                            for (gko::size_type j3 = 0; j3 < n3; j3++) {
+                                const auto i = idx3(i1, i2, i3);
+                                const auto j = idx3(j1, j2, j3);
+                                dense_fft3->at(i, j) = root(n1, i1, j1) *
+                                                       root(n2, i2, j2) *
+                                                       root(n3, i3, j3);
+                                dense_ifft3->at(i, j) =
+                                    conj(dense_fft3->at(i, j));
                             }
                         }
                     }
                 }
             }
         }
+        dense_fft3->apply(amplitude.get(), frequency3.get());
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -164,9 +168,15 @@ protected:
     std::unique_ptr<Mtx> fft;
     std::unique_ptr<Mtx2> fft2;
     std::unique_ptr<Mtx3> fft3;
+    std::unique_ptr<Vec> dense_fft;
+    std::unique_ptr<Vec> dense_fft2;
+    std::unique_ptr<Vec> dense_fft3;
     std::unique_ptr<Mtx> ifft;
     std::unique_ptr<Mtx2> ifft2;
     std::unique_ptr<Mtx3> ifft3;
+    std::unique_ptr<Vec> dense_ifft;
+    std::unique_ptr<Vec> dense_ifft2;
+    std::unique_ptr<Vec> dense_ifft3;
 };
 
 TYPED_TEST_SUITE(Fft, gko::test::ComplexValueTypes);
@@ -492,6 +502,162 @@ TYPED_TEST(Fft, AppliesStridedInverse3DToDense)
     out->scale(this->inv_n_scalar.get());
 
     GKO_ASSERT_MTX_NEAR(out, ref_view, r<T>::value);
+}
+
+
+TYPED_TEST(Fft, Writes1DFFTToMatrixData32)
+{
+    using T = typename TestFixture::value_type;
+    gko::matrix_data<T, gko::int32> data;
+    auto output = gko::matrix::Dense<T>::create(this->exec);
+
+    this->fft->write(data);
+    output->read(data);
+
+    GKO_ASSERT_MTX_NEAR(output, this->dense_fft, r<T>::value);
+}
+
+
+TYPED_TEST(Fft, Writes1DFFTToMatrixData64)
+{
+    using T = typename TestFixture::value_type;
+    gko::matrix_data<T, gko::int64> data;
+    auto output = gko::matrix::Dense<T>::create(this->exec);
+
+    this->fft->write(data);
+    output->read(data);
+
+    GKO_ASSERT_MTX_NEAR(output, this->dense_fft, r<T>::value);
+}
+
+
+TYPED_TEST(Fft, Writes2DFFTToMatrixData32)
+{
+    using T = typename TestFixture::value_type;
+    gko::matrix_data<T, gko::int32> data;
+    auto output = gko::matrix::Dense<T>::create(this->exec);
+
+    this->fft2->write(data);
+    output->read(data);
+
+    GKO_ASSERT_MTX_NEAR(output, this->dense_fft2, r<T>::value);
+}
+
+
+TYPED_TEST(Fft, Writes2DFFTToMatrixData64)
+{
+    using T = typename TestFixture::value_type;
+    gko::matrix_data<T, gko::int64> data;
+    auto output = gko::matrix::Dense<T>::create(this->exec);
+
+    this->fft2->write(data);
+    output->read(data);
+
+    GKO_ASSERT_MTX_NEAR(output, this->dense_fft2, r<T>::value);
+}
+
+
+TYPED_TEST(Fft, Writes3DFFTToMatrixData32)
+{
+    using T = typename TestFixture::value_type;
+    gko::matrix_data<T, gko::int32> data;
+    auto output = gko::matrix::Dense<T>::create(this->exec);
+
+    this->fft3->write(data);
+    output->read(data);
+
+    GKO_ASSERT_MTX_NEAR(output, this->dense_fft3, r<T>::value);
+}
+
+
+TYPED_TEST(Fft, Writes3DFFTToMatrixData64)
+{
+    using T = typename TestFixture::value_type;
+    gko::matrix_data<T, gko::int64> data;
+    auto output = gko::matrix::Dense<T>::create(this->exec);
+
+    this->fft3->write(data);
+    output->read(data);
+
+    GKO_ASSERT_MTX_NEAR(output, this->dense_fft3, r<T>::value);
+}
+
+
+TYPED_TEST(Fft, Writes1DInvFFTToMatrixData32)
+{
+    using T = typename TestFixture::value_type;
+    gko::matrix_data<T, gko::int32> data;
+    auto output = gko::matrix::Dense<T>::create(this->exec);
+
+    this->ifft->write(data);
+    output->read(data);
+
+    GKO_ASSERT_MTX_NEAR(output, this->dense_ifft, r<T>::value);
+}
+
+
+TYPED_TEST(Fft, Writes1DInvFFTToMatrixData64)
+{
+    using T = typename TestFixture::value_type;
+    gko::matrix_data<T, gko::int64> data;
+    auto output = gko::matrix::Dense<T>::create(this->exec);
+
+    this->ifft->write(data);
+    output->read(data);
+
+    GKO_ASSERT_MTX_NEAR(output, this->dense_ifft, r<T>::value);
+}
+
+
+TYPED_TEST(Fft, Writes2DInvFFTToMatrixData32)
+{
+    using T = typename TestFixture::value_type;
+    gko::matrix_data<T, gko::int32> data;
+    auto output = gko::matrix::Dense<T>::create(this->exec);
+
+    this->ifft2->write(data);
+    output->read(data);
+
+    GKO_ASSERT_MTX_NEAR(output, this->dense_ifft2, r<T>::value);
+}
+
+
+TYPED_TEST(Fft, Writes2DInvFFTToMatrixData64)
+{
+    using T = typename TestFixture::value_type;
+    gko::matrix_data<T, gko::int64> data;
+    auto output = gko::matrix::Dense<T>::create(this->exec);
+
+    this->ifft2->write(data);
+    output->read(data);
+
+    GKO_ASSERT_MTX_NEAR(output, this->dense_ifft2, r<T>::value);
+}
+
+
+TYPED_TEST(Fft, Writes3DInvFFTToMatrixData32)
+{
+    using T = typename TestFixture::value_type;
+    gko::matrix_data<T, gko::int32> data;
+    auto output = gko::matrix::Dense<T>::create(this->exec);
+
+    this->ifft3->write(data);
+    output->read(data);
+
+    GKO_ASSERT_MTX_NEAR(output, this->dense_ifft3, r<T>::value);
+}
+
+
+TYPED_TEST(Fft, Writes3DInvFFTToMatrixData64)
+{
+    using T = typename TestFixture::value_type;
+    gko::matrix_data<T, gko::int64> data;
+    auto output = gko::matrix::Dense<T>::create(this->exec);
+
+    this->ifft3->write(data);
+    output->read(data);
+
+    GKO_ASSERT_MTX_NEAR(output, this->dense_ifft3, r<T>::value);
 }
 
 
