@@ -70,6 +70,10 @@ namespace matrix {
  */
 class Fft : public EnableLinOp<Fft>,
             public EnableCreateMethod<Fft>,
+            public WritableToMatrixData<std::complex<float>, int32>,
+            public WritableToMatrixData<std::complex<float>, int64>,
+            public WritableToMatrixData<std::complex<double>, int32>,
+            public WritableToMatrixData<std::complex<double>, int64>,
             public Transposable {
     friend class EnablePolymorphicObject<Fft, LinOp>;
     friend class EnableCreateMethod<Fft>;
@@ -79,11 +83,22 @@ public:
     using EnableLinOp<Fft>::move_to;
 
     using value_type = std::complex<double>;
+    using index_type = int64;
     using transposed_type = Fft;
 
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    void write(matrix_data<std::complex<float>, int32>& data) const override;
+
+    void write(matrix_data<std::complex<float>, int64>& data) const override;
+
+    void write(matrix_data<std::complex<double>, int32>& data) const override;
+
+    void write(matrix_data<std::complex<double>, int64>& data) const override;
+
+    dim<1> get_fft_size() const;
 
     bool is_inverse() const;
 
@@ -149,6 +164,10 @@ private:
  */
 class Fft2 : public EnableLinOp<Fft2>,
              public EnableCreateMethod<Fft2>,
+             public WritableToMatrixData<std::complex<float>, int32>,
+             public WritableToMatrixData<std::complex<float>, int64>,
+             public WritableToMatrixData<std::complex<double>, int32>,
+             public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
     friend class EnablePolymorphicObject<Fft2, LinOp>;
     friend class EnableCreateMethod<Fft2>;
@@ -158,11 +177,22 @@ public:
     using EnableLinOp<Fft2>::move_to;
 
     using value_type = std::complex<double>;
+    using index_type = int64;
     using transposed_type = Fft2;
 
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    void write(matrix_data<std::complex<float>, int32>& data) const override;
+
+    void write(matrix_data<std::complex<float>, int64>& data) const override;
+
+    void write(matrix_data<std::complex<double>, int32>& data) const override;
+
+    void write(matrix_data<std::complex<double>, int64>& data) const override;
+
+    dim<2> get_fft_size() const;
 
     bool is_inverse() const;
 
@@ -173,7 +203,7 @@ protected:
      * @param exec  Executor associated to the matrix
      */
     explicit Fft2(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Fft2>(exec), buffer_{exec}, size1_{}, size2_{}, inverse_{}
+        : EnableLinOp<Fft2>(exec), buffer_{exec}, fft_size_{}, inverse_{}
     {}
 
     /**
@@ -196,8 +226,7 @@ protected:
          bool inverse = false)
         : EnableLinOp<Fft2>(exec, dim<2>{size1 * size2}),
           buffer_{exec},
-          size1_{size1},
-          size2_{size2},
+          fft_size_{size1, size2},
           inverse_{inverse}
     {}
 
@@ -208,8 +237,7 @@ protected:
 
 private:
     mutable Array<char> buffer_;
-    size_type size1_;
-    size_type size2_;
+    dim<2> fft_size_;
     bool inverse_;
 };
 
@@ -246,6 +274,10 @@ private:
  */
 class Fft3 : public EnableLinOp<Fft3>,
              public EnableCreateMethod<Fft3>,
+             public WritableToMatrixData<std::complex<float>, int32>,
+             public WritableToMatrixData<std::complex<float>, int64>,
+             public WritableToMatrixData<std::complex<double>, int32>,
+             public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
     friend class EnablePolymorphicObject<Fft3, LinOp>;
     friend class EnableCreateMethod<Fft3>;
@@ -255,11 +287,22 @@ public:
     using EnableLinOp<Fft3>::move_to;
 
     using value_type = std::complex<double>;
+    using index_type = int64;
     using transposed_type = Fft3;
 
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    void write(matrix_data<std::complex<float>, int32>& data) const override;
+
+    void write(matrix_data<std::complex<float>, int64>& data) const override;
+
+    void write(matrix_data<std::complex<double>, int32>& data) const override;
+
+    void write(matrix_data<std::complex<double>, int64>& data) const override;
+
+    dim<3> get_fft_size() const;
 
     bool is_inverse() const;
 
@@ -270,12 +313,7 @@ protected:
      * @param exec  Executor associated to the matrix
      */
     explicit Fft3(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Fft3>(exec),
-          buffer_{exec},
-          size1_{},
-          size2_{},
-          size3_{},
-          inverse_{}
+        : EnableLinOp<Fft3>(exec), buffer_{exec}, fft_size_{}, inverse_{}
     {}
 
     /**
@@ -299,9 +337,7 @@ protected:
          size_type size3, bool inverse = false)
         : EnableLinOp<Fft3>(exec, dim<2>{size1 * size2 * size3}),
           buffer_{exec},
-          size1_{size1},
-          size2_{size2},
-          size3_{size3},
+          fft_size_{size1, size2, size3},
           inverse_{inverse}
     {}
 
@@ -312,9 +348,7 @@ protected:
 
 private:
     mutable Array<char> buffer_;
-    size_type size1_;
-    size_type size2_;
-    size_type size3_;
+    dim<3> fft_size_;
     bool inverse_;
 };
 
