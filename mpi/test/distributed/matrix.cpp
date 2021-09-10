@@ -231,7 +231,7 @@ TYPED_TEST(Matrix, ReadsDistributedLocalData)
 TYPED_TEST(Matrix, ConvertToCsrContiguousRanges)
 {
     using value_type = typename TestFixture::value_type;
-    auto dist_mat = TestFixture::Mtx::create(this->ref);
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
     auto global_mat = TestFixture::GMtx::create(this->ref);
     auto converted = TestFixture::GMtx::create(this->ref);
     this->global_y->fill(gko::zero<value_type>());
@@ -252,7 +252,7 @@ TYPED_TEST(Matrix, ConvertToCsrContiguousRangesPermuted)
 {
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
-    auto dist_mat = TestFixture::Mtx::create(this->ref);
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
     auto global_mat = TestFixture::GMtx::create(this->ref);
     auto converted = TestFixture::GMtx::create(this->ref);
     this->global_y->fill(gko::zero<value_type>());
@@ -277,7 +277,7 @@ TYPED_TEST(Matrix, ConvertToCsrScatteredRanges)
 {
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
-    auto dist_mat = TestFixture::Mtx::create(this->ref);
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
     auto converted = TestFixture::GMtx::create(this->ref);
     auto global_mat = TestFixture::GMtx::create(this->ref);
     this->global_y->fill(gko::zero<value_type>());
