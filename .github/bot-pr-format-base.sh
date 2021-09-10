@@ -2,10 +2,6 @@
 
 source .github/bot-pr-base.sh
 
-EXTENSION_REGEX='\.(cuh?|hpp|hpp\.inc?|cpp)$'
-FORMAT_HEADER_REGEX='^(benchmark|core|cuda|hip|include/ginkgo/core|omp|reference|dpcpp|common/unified)/'
-FORMAT_REGEX='^(common/cuda_hip|examples|test)/'
-
 echo "Retrieving PR file list"
 PR_FILES=$(bot_get_all_changed_files ${PR_URL})
 NUM=$(echo "${PR_FILES}" | wc -l)
@@ -34,7 +30,6 @@ cp /tmp/format_header.sh dev_tools/scripts/
 cp /tmp/update_ginkgo_header.sh dev_tools/scripts/
 
 # format files
-CLANG_FORMAT=clang-format-9
 dev_tools/scripts/add_license.sh
 dev_tools/scripts/update_ginkgo_header.sh
 for f in $(echo "$TO_FORMAT" | grep -E $FORMAT_HEADER_REGEX); do dev_tools/scripts/format_header.sh "$f"; done
