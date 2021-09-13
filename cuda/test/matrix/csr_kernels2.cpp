@@ -62,8 +62,6 @@ protected:
     using Arr = gko::Array<int>;
     using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
-    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
-    using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
 
     Csr()
 #ifdef GINKGO_FAST_TESTS
@@ -77,13 +75,13 @@ protected:
     void SetUp()
     {
         ref = gko::ReferenceExecutor::create();
-        omp = gko::OmpExecutor::create();
+        cuda = gko::CudaExecutor::create(0, ref);
     }
 
     void TearDown()
     {
-        if (omp != nullptr) {
-            ASSERT_NO_THROW(omp->synchronize());
+        if (cuda != nullptr) {
+            ASSERT_NO_THROW(cuda->synchronize());
         }
     }
 
@@ -108,12 +106,12 @@ protected:
     {
         mtx = Mtx::create(ref);
         mtx->copy_from(gen_mtx<Vec>(mtx_size[0], mtx_size[1], 1));
-        dmtx = Mtx::create(omp);
+        dmtx = Mtx::create(cuda);
         dmtx->copy_from(mtx.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::OmpExecutor> omp;
+    std::shared_ptr<const gko::CudaExecutor> cuda;
 
     const gko::dim<2> mtx_size;
     std::ranlux48 rand_engine;
@@ -124,14 +122,17 @@ protected:
 
 TEST_F(Csr, CreateSubMatrixIsEquivalentToRef)
 {
+    using Mtx = gko::matrix::Csr<>;
     set_up_apply_data();
 
     gko::span rspan{36, 98};
     gko::span cspan{26, 104};
     auto smat1 = this->mtx->create_submatrix(rspan, cspan);
     auto sdmat1 = this->dmtx->create_submatrix(rspan, cspan);
+    auto hmat = Mtx::create(this->ref);
+    hmat->copy_from(sdmat1.get());
 
-    GKO_ASSERT_MTX_NEAR(sdmat1, smat1, 1e-14);
+    GKO_ASSERT_MTX_NEAR(hmat, smat1, 1e-14);
 }
 
 

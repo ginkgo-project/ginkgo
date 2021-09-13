@@ -795,27 +795,6 @@ void calculate_nnz_per_row(size_type num_rows,
 GKO_ENABLE_DEFAULT_HOST(calculate_nnz_per_row, calculate_nnz_per_row);
 
 
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row_in_span(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
-    const span& col_span, Array<size_type>* row_nnz) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void compute_submatrix(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* source,
-    const Array<size_type>* row_nnz, gko::span row_span, gko::span col_span,
-    matrix::Csr<ValueType, IndexType>* result) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL);
-
-
 void calculate_slice_lengths(size_type num_rows, size_type slice_size,
                              size_type stride_factor,
                              const size_type* __restrict__ nnz_per_row,
@@ -1644,6 +1623,27 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void calculate_nonzeros_per_row_in_span(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
+    const span& col_span, Array<size_type>* row_nnz) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_submatrix(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* source,
+    const Array<size_type>* row_nnz, gko::span row_span, gko::span col_span,
+    matrix::Csr<ValueType, IndexType>* result) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL);
 
 
 namespace {
