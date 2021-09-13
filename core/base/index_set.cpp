@@ -59,7 +59,7 @@ GKO_REGISTER_OPERATION(local_to_global, index_set::local_to_global);
 
 
 template <typename IndexType>
-void IndexSet<IndexType>::populate_subsets(const gko::Array<IndexType> &indices,
+void IndexSet<IndexType>::populate_subsets(const gko::Array<IndexType>& indices,
                                            const bool is_sorted)
 {
     auto exec = this->get_executor();
@@ -106,7 +106,7 @@ IndexType IndexSet<IndexType>::get_local_index(const IndexType index) const
 
 template <typename IndexType>
 Array<IndexType> IndexSet<IndexType>::get_global_indices(
-    const Array<IndexType> &local_indices, const bool is_sorted) const
+    const Array<IndexType>& local_indices, const bool is_sorted) const
 {
     auto exec = this->get_executor();
     auto global_indices =
@@ -123,7 +123,7 @@ Array<IndexType> IndexSet<IndexType>::get_global_indices(
 
 template <typename IndexType>
 Array<IndexType> IndexSet<IndexType>::get_local_indices(
-    const Array<IndexType> &global_indices, const bool is_sorted) const
+    const Array<IndexType>& global_indices, const bool is_sorted) const
 {
     auto exec = this->get_executor();
     auto local_indices =

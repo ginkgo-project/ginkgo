@@ -530,9 +530,9 @@ public:
      * @param cond  The condition that was not satisfied.
      * @param clarification  An additional message further describing the error
      */
-    ConditionUnsatisfied(const std::string &file, int line,
-                         const std::string &func, const std::string &cond,
-                         const std::string &clarification)
+    ConditionUnsatisfied(const std::string& file, int line,
+                         const std::string& func, const std::string& cond,
+                         const std::string& clarification)
         : Error(file, line,
                 func + ": Condition not satisfied : " + cond + " : " +
                     clarification)

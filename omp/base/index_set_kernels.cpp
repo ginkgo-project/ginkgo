@@ -64,10 +64,10 @@ namespace index_set {
 template <typename IndexType>
 void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
                       const IndexType index_space_size,
-                      const Array<IndexType> *indices,
-                      Array<IndexType> *subset_begin,
-                      Array<IndexType> *subset_end,
-                      Array<IndexType> *superset_indices, const bool is_sorted)
+                      const Array<IndexType>* indices,
+                      Array<IndexType>* subset_begin,
+                      Array<IndexType>* subset_end,
+                      Array<IndexType>* superset_indices, const bool is_sorted)
 {
     auto num_indices = indices->get_num_elems();
     auto tmp_indices = gko::Array<IndexType>(*indices);
@@ -125,11 +125,11 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INDEX_SET_POPULATE_KERNEL);
 template <typename IndexType>
 void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
                      const IndexType index_space_size,
-                     const Array<IndexType> *subset_begin,
-                     const Array<IndexType> *subset_end,
-                     const Array<IndexType> *superset_indices,
-                     const Array<IndexType> *global_indices,
-                     Array<IndexType> *local_indices, const bool is_sorted)
+                     const Array<IndexType>* subset_begin,
+                     const Array<IndexType>* subset_end,
+                     const Array<IndexType>* superset_indices,
+                     const Array<IndexType>* global_indices,
+                     Array<IndexType>* local_indices, const bool is_sorted)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < global_indices->get_num_elems(); ++i) {
@@ -159,11 +159,11 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename IndexType>
 void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
                      const IndexType index_space_size,
-                     const Array<IndexType> *subset_begin,
-                     const Array<IndexType> *subset_end,
-                     const Array<IndexType> *superset_indices,
-                     const Array<IndexType> *local_indices,
-                     Array<IndexType> *global_indices, const bool is_sorted)
+                     const Array<IndexType>* subset_begin,
+                     const Array<IndexType>* subset_end,
+                     const Array<IndexType>* superset_indices,
+                     const Array<IndexType>* local_indices,
+                     Array<IndexType>* global_indices, const bool is_sorted)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < local_indices->get_num_elems(); ++i) {

@@ -33,10 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/ic_kernels.hpp"
 
 
+#include <ginkgo/core/base/allocator.hpp>
 #include <ginkgo/core/base/math.hpp>
-
-
-#include "core/base/allocator.hpp"
 
 
 namespace gko {

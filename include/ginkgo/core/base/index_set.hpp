@@ -131,7 +131,7 @@ public:
      *                   sorted or not. `true` if sorted.
      */
     IndexSet(std::shared_ptr<const gko::Executor> executor,
-             const index_type size, const gko::Array<index_type> &indices,
+             const index_type size, const gko::Array<index_type>& indices,
              const bool is_sorted = false)
         : index_set_id_(0),
           index_space_size_(size),
@@ -156,7 +156,7 @@ public:
      *                   sorted or not. `true` if sorted.
      */
     IndexSet(std::shared_ptr<const gko::Executor> executor, const index_type id,
-             const index_type size, const gko::Array<index_type> &indices,
+             const index_type size, const gko::Array<index_type>& indices,
              const bool is_sorted = false)
         : index_set_id_(id),
           index_space_size_(size),
@@ -258,7 +258,7 @@ public:
      * @note Whenever possible, passing a sorted array is preferred as the
      * queries can be significantly faster.
      */
-    Array<index_type> get_global_indices(const Array<index_type> &local_indices,
+    Array<index_type> get_global_indices(const Array<index_type>& local_indices,
                                          const bool is_sorted = false) const;
 
     /**
@@ -272,7 +272,7 @@ public:
      * @note Whenever possible, passing a sorted array is preferred as the
      * queries can be significantly faster.
      */
-    Array<index_type> get_local_indices(const Array<index_type> &global_indices,
+    Array<index_type> get_local_indices(const Array<index_type>& global_indices,
                                         const bool is_sorted = false) const;
 
     /**
@@ -298,7 +298,7 @@ public:
      *
      * @return  a pointer to the beginning indices of the subsets.
      */
-    const index_type *get_subsets_begin() const
+    const index_type* get_subsets_begin() const
     {
         return this->subsets_begin_.get_const_data();
     }
@@ -308,7 +308,7 @@ public:
      *
      * @return  a pointer to the end indices of the subsets.
      */
-    const index_type *get_subsets_end() const
+    const index_type* get_subsets_end() const
     {
         return this->subsets_end_.get_const_data();
     }
@@ -320,13 +320,13 @@ public:
      * @return  a pointer to the cumulative indices of the superset of the
      *          subsets.
      */
-    const index_type *get_superset_indices() const
+    const index_type* get_superset_indices() const
     {
         return this->superset_cumulative_indices_.get_const_data();
     }
 
 private:
-    void populate_subsets(const gko::Array<index_type> &indices,
+    void populate_subsets(const gko::Array<index_type>& indices,
                           const bool is_sorted);
 
     std::shared_ptr<const gko::Executor> exec_;

@@ -58,8 +58,8 @@ protected:
         }
     }
 
-    static void assert_equal_index_sets(gko::IndexSet<T> &a,
-                                        gko::IndexSet<T> &b)
+    static void assert_equal_index_sets(gko::IndexSet<T>& a,
+                                        gko::IndexSet<T>& b)
     {
         ASSERT_EQ(a.get_size(), b.get_size());
         ASSERT_EQ(a.get_num_subsets(), b.get_num_subsets());

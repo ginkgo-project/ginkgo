@@ -59,13 +59,13 @@ protected:
         }
     }
 
-    static void assert_equal_to_original(gko::IndexSet<T> &a)
+    static void assert_equal_to_original(gko::IndexSet<T>& a)
     {
         ASSERT_EQ(a.get_size(), 10);
     }
 
-    static void assert_equal_index_sets(gko::IndexSet<T> &a,
-                                        gko::IndexSet<T> &b)
+    static void assert_equal_index_sets(gko::IndexSet<T>& a,
+                                        gko::IndexSet<T>& b)
     {
         ASSERT_EQ(a.get_size(), b.get_size());
         ASSERT_EQ(a.get_num_subsets(), b.get_num_subsets());
@@ -79,7 +79,7 @@ protected:
         }
     }
 
-    static void assert_equal_arrays(const T num_elems, const T *a, const T *b)
+    static void assert_equal_arrays(const T num_elems, const T* a, const T* b)
     {
         if (num_elems > 0) {
             for (auto i = 0; i < num_elems; ++i) {
