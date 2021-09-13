@@ -655,6 +655,20 @@ private:
 
 
 /**
+ * A submatrix of the LinOp implementing this interface can be extracted.
+ * The row and column spans must be in range of the size of the matrix.
+ *
+ * @ingroup LinOp
+ */
+template <typename ConcreteType>
+class SubMatrixExtractable {
+public:
+    virtual std::unique_ptr<ConcreteType> create_submatrix(
+        const gko::span& row_span, const gko::span& column_span) const = 0;
+};
+
+
+/**
  * The diagonal of a LinOp can be extracted. It will be implemented by
  * DiagonalExtractable<ValueType>, so the class does not need to implement it.
  * extract_diagonal_linop returns a linop which extracts the elements whose col
