@@ -174,6 +174,19 @@ namespace kernels {
         const matrix::Csr<ValueType, IndexType>* source,             \
         Array<size_type>* result)
 
+#define GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL(ValueType, IndexType)  \
+    void calculate_nonzeros_per_row_in_span(                                   \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const matrix::Csr<ValueType, IndexType>* source, const span& row_span, \
+        const span& col_span, Array<size_type>* row_nnz)
+
+#define GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL(ValueType, IndexType)     \
+    void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,     \
+                           const matrix::Csr<ValueType, IndexType>* source, \
+                           const Array<size_type>* row_nnz,                 \
+                           gko::span row_span, gko::span col_span,          \
+                           matrix::Csr<ValueType, IndexType>* result)
+
 #define GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType)         \
     void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec, \
                               matrix::Csr<ValueType, IndexType>* to_sort)
@@ -239,6 +252,10 @@ namespace kernels {
     GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, IndexType);  \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL(ValueType, IndexType);         \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType);              \
     template <typename ValueType, typename IndexType>                        \
