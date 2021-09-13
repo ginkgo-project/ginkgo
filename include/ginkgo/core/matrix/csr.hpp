@@ -127,6 +127,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Sellp<ValueType, IndexType>>,
             public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
             public DiagonalExtractable<ValueType>,
+            public SubMatrixExtractable<Csr<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable,
@@ -762,6 +763,9 @@ public:
         const Array<IndexType>* inverse_permutation_indices) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+
+    std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
+        const gko::span& row_span, const gko::span& column_span) const override;
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
