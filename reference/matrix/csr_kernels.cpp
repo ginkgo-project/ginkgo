@@ -634,6 +634,62 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void calculate_nonzeros_per_row_in_span(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
+    const span& col_span, Array<size_type>* row_nnz)
+{
+    size_type res_row = 0;
+    for (size_type row = row_span.begin; row < row_span.end; ++row) {
+        for (size_type col = source->get_const_row_ptrs()[row];
+             col < source->get_const_row_ptrs()[row + 1]; ++col) {
+            if (source->get_const_col_idxs()[col] >= col_span.begin &&
+                source->get_const_col_idxs()[col] < col_span.end) {
+                row_nnz->get_data()[res_row]++;
+            }
+        }
+        res_row++;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
+                       const matrix::Csr<ValueType, IndexType>* source,
+                       const Array<size_type>* row_nnz, gko::span row_span,
+                       gko::span col_span,
+                       matrix::Csr<ValueType, IndexType>* result)
+{
+    auto row_offset = row_span.begin;
+    auto col_offset = col_span.begin;
+    auto num_rows = result->get_size()[0];
+    auto num_cols = result->get_size()[1];
+    for (size_type row = 0; row < num_rows; ++row) {
+        result->get_row_ptrs()[row] = row_nnz->get_const_data()[row];
+    }
+    components::prefix_sum(exec, result->get_row_ptrs(), num_rows + 1);
+    size_type res_nnz = 0;
+    for (size_type nnz = 0; nnz < source->get_num_stored_elements(); ++nnz) {
+        if (nnz >= source->get_const_row_ptrs()[row_offset] &&
+            nnz < source->get_const_row_ptrs()[row_offset + num_rows] &&
+            (source->get_const_col_idxs()[nnz] < (col_offset + num_cols) &&
+             source->get_const_col_idxs()[nnz] >= col_offset)) {
+            result->get_col_idxs()[res_nnz] =
+                source->get_const_col_idxs()[nnz] - col_offset;
+            result->get_values()[res_nnz] = source->get_const_values()[nnz];
+            res_nnz++;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
                        const matrix::Csr<ValueType, IndexType>* source,
                        matrix::Hybrid<ValueType, IndexType>* result)
