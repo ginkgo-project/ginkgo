@@ -95,20 +95,23 @@ void Array<ValueType>::fill(const ValueType value)
 
 
 template <typename ValueType>
-void Array<ValueType>::reduce(ValueType *value) const
+void reduce(const Array<ValueType>& input_arr, ValueType* value)
 {
-    this->get_executor()->run(array::make_reduce_array(
-        this->get_const_data(), this->get_num_elems(), value));
+    auto exec = input_arr.get_executor();
+    exec->run(array::make_reduce_array(input_arr.get_const_data(),
+                                       input_arr.get_num_elems(), value));
 }
 
 
 template <typename ValueType>
-ValueType Array<ValueType>::reduce(ValueType init_value) const
+ValueType reduce(const Array<ValueType>& input_arr, const ValueType init_value)
 {
-    auto value = Array<ValueType>(this->get_executor(), {init_value});
-    this->get_executor()->run(array::make_reduce_array(
-        this->get_const_data(), this->get_num_elems(), value.get_data()));
-    return this->get_executor()->copy_val_to_host(value.get_data());
+    auto exec = input_arr.get_executor();
+    auto value = Array<ValueType>(exec, {init_value});
+    exec->run(array::make_reduce_array(input_arr.get_const_data(),
+                                       input_arr.get_num_elems(),
+                                       value.get_data()));
+    return exec->copy_val_to_host(value.get_data());
 }
 
 
@@ -118,13 +121,13 @@ GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_FILL);
 
 
 #define GKO_DECLARE_ARRAY_REDUCE(_type) \
-    void Array<_type>::reduce(_type *value) const
+    void reduce(const Array<_type>& arr, _type* value)
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_REDUCE);
 
 
 #define GKO_DECLARE_ARRAY_REDUCE2(_type) \
-    _type Array<_type>::reduce(_type val) const
+    _type reduce(const Array<_type>& arr, const _type val)
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_REDUCE2);
 
