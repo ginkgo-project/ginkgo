@@ -44,15 +44,8 @@ namespace components {
 
 template <typename ValueType>
 void reduce_array(std::shared_ptr<const DefaultExecutor> exec,
-                  const ValueType *array, size_type n, ValueType *val)
-{
-    // exec->get_queue()->submit([&](sycl::handler &cgh) {
-    //     cgh.parallel_for(sycl::range<1>{n}, [=](sycl::id<1> idx_id) {
-    //         const auto idx = idx_id[0];
-    //         array[idx] = val;
-    //     });
-    // });
-}
+                  const ValueType* array, size_type n,
+                  ValueType* val) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ARRAY_KERNEL);
 

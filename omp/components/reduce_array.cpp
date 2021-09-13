@@ -41,7 +41,7 @@ namespace components {
 
 template <typename ValueType>
 void reduce_array(std::shared_ptr<const DefaultExecutor> exec,
-                  const ValueType *array, size_type n, ValueType *val)
+                  const ValueType* array, size_type n, ValueType* val)
 {
     ValueType out = *val;
 #pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)

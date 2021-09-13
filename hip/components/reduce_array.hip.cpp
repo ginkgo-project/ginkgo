@@ -58,12 +58,12 @@ namespace components {
 constexpr int default_block_size = 512;
 
 
-#include "common/components/reduction.hpp.inc"
+#include "common/cuda_hip/components/reduction.hpp.inc"
 
 
 template <typename ValueType>
 void reduce_array(std::shared_ptr<const DefaultExecutor> exec,
-                  const ValueType *array, size_type size, ValueType *val)
+                  const ValueType* array, size_type size, ValueType* val)
 {
     auto block_results_val = array;
     size_type grid_dim = size;

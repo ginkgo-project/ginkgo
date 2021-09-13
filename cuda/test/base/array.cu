@@ -92,3 +92,27 @@ TYPED_TEST(Array, CanCopyBackTemporaryCloneOnDifferentExecutor)
 
     this->assert_equal_to_original_x(this->x);
 }
+
+
+TYPED_TEST(Array, CanBeReduced)
+{
+    using T = TypeParam;
+    auto cuda = gko::CudaExecutor::create(0, this->exec);
+    auto arr = gko::Array<TypeParam>(cuda, I<T>{T(4), T(6)});
+    auto out = gko::Array<TypeParam>(cuda, I<T>{T(2)});
+    gko::reduce(arr, out.get_data());
+
+    out.set_executor(cuda->get_master());
+    ASSERT_EQ(out.get_data()[0], TypeParam{12});
+}
+
+
+TYPED_TEST(Array, CanBeReduced2)
+{
+    using T = TypeParam;
+    auto cuda = gko::CudaExecutor::create(0, this->exec);
+    auto arr = gko::Array<TypeParam>(cuda, I<T>{T(4), T(6)});
+    auto out = gko::reduce(arr, TypeParam{T(3)});
+
+    ASSERT_EQ(out, TypeParam{13});
+}
