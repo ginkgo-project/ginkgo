@@ -50,12 +50,12 @@ namespace kernels {
 namespace lower_trs {
 
 
-#define GKO_DECLARE_LOWER_TRS_SHOULD_PERFORM_TRANSPOSE_KERNEL()                \
+#define GKO_DECLARE_LOWER_TRS_SHOULD_PERFORM_TRANSPOSE_KERNEL                  \
     void should_perform_transpose(std::shared_ptr<const DefaultExecutor> exec, \
                                   bool& do_transpose)
 
 
-#define GKO_DECLARE_LOWER_TRS_INIT_STRUCT_KERNEL()                \
+#define GKO_DECLARE_LOWER_TRS_INIT_STRUCT_KERNEL                  \
     void init_struct(std::shared_ptr<const DefaultExecutor> exec, \
                      std::shared_ptr<solver::SolveStruct>& solve_struct)
 
@@ -76,8 +76,8 @@ namespace lower_trs {
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                          \
-    GKO_DECLARE_LOWER_TRS_SHOULD_PERFORM_TRANSPOSE_KERNEL();  \
-    GKO_DECLARE_LOWER_TRS_INIT_STRUCT_KERNEL();               \
+    GKO_DECLARE_LOWER_TRS_SHOULD_PERFORM_TRANSPOSE_KERNEL;    \
+    GKO_DECLARE_LOWER_TRS_INIT_STRUCT_KERNEL;                 \
     template <typename ValueType, typename IndexType>         \
     GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>         \

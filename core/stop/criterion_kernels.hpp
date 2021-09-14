@@ -44,7 +44,7 @@ namespace kernels {
 namespace set_all_statuses {
 
 
-#define GKO_DECLARE_SET_ALL_STATUSES_KERNEL()                          \
+#define GKO_DECLARE_SET_ALL_STATUSES_KERNEL                            \
     void set_all_statuses(std::shared_ptr<const DefaultExecutor> exec, \
                           uint8 stoppingId, bool setFinalized,         \
                           Array<stopping_status>* stop_status)
@@ -56,7 +56,7 @@ namespace set_all_statuses {
 namespace omp {
 namespace set_all_statuses {
 
-GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
+GKO_DECLARE_SET_ALL_STATUSES_KERNEL;
 
 }  // namespace set_all_statuses
 }  // namespace omp
@@ -65,7 +65,7 @@ GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
 namespace cuda {
 namespace set_all_statuses {
 
-GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
+GKO_DECLARE_SET_ALL_STATUSES_KERNEL;
 
 }  // namespace set_all_statuses
 }  // namespace cuda
@@ -74,7 +74,7 @@ GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
 namespace reference {
 namespace set_all_statuses {
 
-GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
+GKO_DECLARE_SET_ALL_STATUSES_KERNEL;
 
 }  // namespace set_all_statuses
 }  // namespace reference
@@ -83,7 +83,7 @@ GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
 namespace hip {
 namespace set_all_statuses {
 
-GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
+GKO_DECLARE_SET_ALL_STATUSES_KERNEL;
 
 }  // namespace set_all_statuses
 }  // namespace hip
@@ -92,7 +92,7 @@ GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
 namespace dpcpp {
 namespace set_all_statuses {
 
-GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
+GKO_DECLARE_SET_ALL_STATUSES_KERNEL;
 
 }  // namespace set_all_statuses
 }  // namespace dpcpp
