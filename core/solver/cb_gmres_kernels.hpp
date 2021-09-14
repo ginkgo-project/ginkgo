@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/scaled_reduced_row_major.hpp"
 #include "core/base/extended_float.hpp"
+#include "core/base/kernel_declaration.hpp"
 
 
 // TODO Find way around using it!
@@ -177,49 +178,7 @@ namespace kernels {
     GKO_DECLARE_CB_GMRES_STEP_2_KERNEL(ValueType, Accessor3d)
 
 
-namespace omp {
-namespace cb_gmres {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cb_gmres
-}  // namespace omp
-
-
-namespace cuda {
-namespace cb_gmres {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cb_gmres
-}  // namespace cuda
-
-
-namespace reference {
-namespace cb_gmres {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cb_gmres
-}  // namespace reference
-
-
-namespace hip {
-namespace cb_gmres {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cb_gmres
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace cb_gmres {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cb_gmres
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(cb_gmres, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

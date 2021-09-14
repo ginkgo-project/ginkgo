@@ -41,6 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace gmres {
@@ -99,49 +102,7 @@ namespace gmres {
 }  // namespace gmres
 
 
-namespace omp {
-namespace gmres {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace gmres
-}  // namespace omp
-
-
-namespace cuda {
-namespace gmres {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace gmres
-}  // namespace cuda
-
-
-namespace reference {
-namespace gmres {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace gmres
-}  // namespace reference
-
-
-namespace hip {
-namespace gmres {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace gmres
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace gmres {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace gmres
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(gmres, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

@@ -42,6 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -110,49 +113,7 @@ namespace kernels {
     GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)
 
 
-namespace omp {
-namespace ell {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ell
-}  // namespace omp
-
-
-namespace cuda {
-namespace ell {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ell
-}  // namespace cuda
-
-
-namespace reference {
-namespace ell {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ell
-}  // namespace reference
-
-
-namespace hip {
-namespace ell {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ell
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace ell {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ell
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(ell, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

@@ -46,6 +46,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -67,49 +70,8 @@ namespace kernels {
     GKO_DECLARE_PAR_IC_COMPUTE_FACTOR_KERNEL(ValueType, IndexType)
 
 
-namespace omp {
-namespace par_ic_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace par_ic_factorization
-}  // namespace omp
-
-
-namespace cuda {
-namespace par_ic_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace par_ic_factorization
-}  // namespace cuda
-
-
-namespace reference {
-namespace par_ic_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace par_ic_factorization
-}  // namespace reference
-
-
-namespace hip {
-namespace par_ic_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace par_ic_factorization
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace par_ic_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace par_ic_factorization
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(par_ic_factorization,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

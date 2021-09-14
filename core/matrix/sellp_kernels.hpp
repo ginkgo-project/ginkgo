@@ -42,6 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -94,49 +97,7 @@ namespace kernels {
     GKO_DECLARE_SELLP_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)
 
 
-namespace omp {
-namespace sellp {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace sellp
-}  // namespace omp
-
-
-namespace cuda {
-namespace sellp {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace sellp
-}  // namespace cuda
-
-
-namespace reference {
-namespace sellp {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace sellp
-}  // namespace reference
-
-
-namespace hip {
-namespace sellp {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace sellp
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace sellp {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace sellp
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(sellp, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

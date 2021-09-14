@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -68,49 +71,7 @@ namespace kernels {
     GKO_DECLARE_HYBRID_COUNT_NONZEROS_KERNEL(ValueType, IndexType)
 
 
-namespace omp {
-namespace hybrid {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace hybrid
-}  // namespace omp
-
-
-namespace cuda {
-namespace hybrid {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace hybrid
-}  // namespace cuda
-
-
-namespace reference {
-namespace hybrid {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace hybrid
-}  // namespace reference
-
-
-namespace hip {
-namespace hybrid {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace hybrid
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace hybrid {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace hybrid
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(hybrid, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

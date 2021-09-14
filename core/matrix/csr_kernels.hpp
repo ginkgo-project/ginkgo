@@ -48,6 +48,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -234,49 +237,7 @@ namespace kernels {
     GKO_DECLARE_CSR_EXTRACT_DIAGONAL(ValueType, IndexType)
 
 
-namespace omp {
-namespace csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace csr
-}  // namespace omp
-
-
-namespace cuda {
-namespace csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace csr
-}  // namespace cuda
-
-
-namespace reference {
-namespace csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace csr
-}  // namespace reference
-
-
-namespace hip {
-namespace csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace csr
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace csr
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(csr, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

@@ -45,6 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -59,49 +62,8 @@ namespace kernels {
     GKO_DECLARE_ILU_COMPUTE_LU_KERNEL(ValueType, IndexType)
 
 
-namespace omp {
-namespace ilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ilu_factorization
-}  // namespace omp
-
-
-namespace cuda {
-namespace ilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ilu_factorization
-}  // namespace cuda
-
-
-namespace reference {
-namespace ilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ilu_factorization
-}  // namespace reference
-
-
-namespace hip {
-namespace ilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ilu_factorization
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace ilu_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ilu_factorization
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(ilu_factorization,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
