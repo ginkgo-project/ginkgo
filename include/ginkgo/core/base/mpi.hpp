@@ -266,6 +266,7 @@ public:
     bool compare(const MPI_Comm& other) const;
 
     bool operator==(const communicator& rhs) { return compare(rhs.get()); }
+    bool operator!=(const communicator& rhs) { return !(*this == rhs); }
 
     ~communicator();
 

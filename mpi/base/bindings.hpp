@@ -123,7 +123,7 @@ inline bool compare_comm(const MPI_Comm& comm1, const MPI_Comm comm2)
 {
     int flag;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_compare(comm1, comm2, &flag));
-    return flag;
+    return flag != MPI_UNEQUAL;
 }
 
 
