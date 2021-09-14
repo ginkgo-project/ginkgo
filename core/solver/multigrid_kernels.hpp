@@ -40,6 +40,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
+
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace multigrid {
@@ -47,24 +51,24 @@ namespace multigrid {
 
 #define GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL(_type)                      \
     void kcycle_step_1(std::shared_ptr<const DefaultExecutor> exec,            \
-                       const matrix::Dense<_type> *alpha,                      \
-                       const matrix::Dense<_type> *rho,                        \
-                       const matrix::Dense<_type> *v, matrix::Dense<_type> *g, \
-                       matrix::Dense<_type> *d, matrix::Dense<_type> *e)
+                       const matrix::Dense<_type>* alpha,                      \
+                       const matrix::Dense<_type>* rho,                        \
+                       const matrix::Dense<_type>* v, matrix::Dense<_type>* g, \
+                       matrix::Dense<_type>* d, matrix::Dense<_type>* e)
 
 #define GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL(_type)                    \
     void kcycle_step_2(                                                      \
         std::shared_ptr<const DefaultExecutor> exec,                         \
-        const matrix::Dense<_type> *alpha, const matrix::Dense<_type> *rho,  \
-        const matrix::Dense<_type> *gamma, const matrix::Dense<_type> *beta, \
-        const matrix::Dense<_type> *zeta, const matrix::Dense<_type> *d,     \
-        matrix::Dense<_type> *e)
+        const matrix::Dense<_type>* alpha, const matrix::Dense<_type>* rho,  \
+        const matrix::Dense<_type>* gamma, const matrix::Dense<_type>* beta, \
+        const matrix::Dense<_type>* zeta, const matrix::Dense<_type>* d,     \
+        matrix::Dense<_type>* e)
 
 #define GKO_DECLARE_MULTIGRID_KCYCLE_CHECK_STOP_KERNEL(_type)           \
     void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec, \
-                           const matrix::Dense<_type> *old_norm,        \
-                           const matrix::Dense<_type> *new_norm,        \
-                           const _type rel_tol, bool &is_stop)
+                           const matrix::Dense<_type>* old_norm,        \
+                           const matrix::Dense<_type>* new_norm,        \
+                           const _type rel_tol, bool& is_stop)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                       \
@@ -79,49 +83,8 @@ namespace multigrid {
 }  // namespace multigrid
 
 
-namespace omp {
-namespace multigrid {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace multigrid
-}  // namespace omp
-
-
-namespace cuda {
-namespace multigrid {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace multigrid
-}  // namespace cuda
-
-
-namespace reference {
-namespace multigrid {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace multigrid
-}  // namespace reference
-
-
-namespace hip {
-namespace multigrid {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace multigrid
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace multigrid {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace multigrid
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(multigrid,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

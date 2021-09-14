@@ -41,6 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -108,49 +111,8 @@ namespace kernels {
     GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType)
 
 
-namespace omp {
-namespace sparsity_csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace sparsity_csr
-}  // namespace omp
-
-
-namespace cuda {
-namespace sparsity_csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace sparsity_csr
-}  // namespace cuda
-
-
-namespace reference {
-namespace sparsity_csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace sparsity_csr
-}  // namespace reference
-
-
-namespace hip {
-namespace sparsity_csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace sparsity_csr
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace sparsity_csr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace sparsity_csr
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(sparsity_csr,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

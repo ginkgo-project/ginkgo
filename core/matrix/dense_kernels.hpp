@@ -45,6 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -322,49 +325,7 @@ namespace kernels {
     GKO_DECLARE_GET_IMAG_KERNEL(ValueType)
 
 
-namespace omp {
-namespace dense {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace dense
-}  // namespace omp
-
-
-namespace cuda {
-namespace dense {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace dense
-}  // namespace cuda
-
-
-namespace reference {
-namespace dense {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace dense
-}  // namespace reference
-
-
-namespace hip {
-namespace dense {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace dense
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace dense {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace dense
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(dense, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

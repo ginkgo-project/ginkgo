@@ -41,6 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -61,49 +64,8 @@ namespace kernels {
     GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL(ValueType)
 
 
-namespace omp {
-namespace components {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace components
-}  // namespace omp
-
-
-namespace cuda {
-namespace components {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace components
-}  // namespace cuda
-
-
-namespace reference {
-namespace components {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace components
-}  // namespace reference
-
-
-namespace hip {
-namespace components {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace components
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace components {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace components
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(components,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

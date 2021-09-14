@@ -44,6 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace bicgstab {
@@ -115,49 +118,7 @@ namespace bicgstab {
 }  // namespace bicgstab
 
 
-namespace omp {
-namespace bicgstab {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace bicgstab
-}  // namespace omp
-
-
-namespace cuda {
-namespace bicgstab {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace bicgstab
-}  // namespace cuda
-
-
-namespace reference {
-namespace bicgstab {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace bicgstab
-}  // namespace reference
-
-
-namespace hip {
-namespace bicgstab {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace bicgstab
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace bicgstab {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace bicgstab
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(bicgstab, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

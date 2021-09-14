@@ -41,6 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace idr {
@@ -107,49 +110,7 @@ namespace idr {
 }  // namespace idr
 
 
-namespace omp {
-namespace idr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace idr
-}  // namespace omp
-
-
-namespace cuda {
-namespace idr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace idr
-}  // namespace cuda
-
-
-namespace reference {
-namespace idr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace idr
-}  // namespace reference
-
-
-namespace hip {
-namespace idr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace idr
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace idr {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace idr
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(idr, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

@@ -43,6 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
+
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace cg {
@@ -86,49 +90,7 @@ namespace cg {
 }  // namespace cg
 
 
-namespace omp {
-namespace cg {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cg
-}  // namespace omp
-
-
-namespace cuda {
-namespace cg {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cg
-}  // namespace cuda
-
-
-namespace reference {
-namespace cg {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cg
-}  // namespace reference
-
-
-namespace hip {
-namespace cg {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cg
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace cg {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cg
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(cg, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

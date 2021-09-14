@@ -45,6 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace lower_trs {
@@ -87,49 +90,8 @@ namespace lower_trs {
 }  // namespace lower_trs
 
 
-namespace omp {
-namespace lower_trs {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace lower_trs
-}  // namespace omp
-
-
-namespace cuda {
-namespace lower_trs {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace lower_trs
-}  // namespace cuda
-
-
-namespace reference {
-namespace lower_trs {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace lower_trs
-}  // namespace reference
-
-
-namespace hip {
-namespace lower_trs {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace lower_trs
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace lower_trs {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace lower_trs
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(lower_trs,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
