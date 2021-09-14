@@ -44,6 +44,9 @@ class communicator;
 }
 namespace distributed {
 
+template <typename ValueType, typename LocalIndexType>
+class Vector;
+
 
 using global_index_type = int64;
 using comm_index_type = int;
@@ -233,6 +236,63 @@ private:
     Array<local_index_type> part_sizes_;
     Array<comm_index_type> part_ids_;
     Array<local_index_type> block_gather_permutation_;
+};
+
+
+template <typename LocalIndexType = int32>
+class Repartitioner
+    : public EnableSharedCreateMethod<Repartitioner<LocalIndexType>> {
+    friend class EnableSharedCreateMethod<Repartitioner>;
+    friend class EnablePolymorphicObject<Repartitioner>;
+
+public:
+    template <typename ValueType>
+    void gather(const Vector<ValueType, LocalIndexType>* from,
+                Vector<ValueType, LocalIndexType>* to);
+
+    template <typename ValueType>
+    void scatter(const Vector<ValueType, LocalIndexType>* to,
+                 Vector<ValueType, LocalIndexType>* from);
+
+    std::shared_ptr<mpi::communicator> get_to_communicator() const
+    {
+        return to_comm_;
+    }
+
+    std::shared_ptr<const Partition<LocalIndexType>> get_from_partition() const
+    {
+        return std::const_pointer_cast<Partition<LocalIndexType>>(
+            from_partition_);
+    }
+
+    std::shared_ptr<const Partition<LocalIndexType>> get_to_partition() const
+    {
+        return std::const_pointer_cast<Partition<LocalIndexType>>(
+            to_partition_);
+    }
+
+    bool to_has_data() const { return to_has_data_; }
+
+protected:
+    Repartitioner(std::shared_ptr<const Executor> exec,
+                  std::shared_ptr<mpi::communicator> from_communicator,
+                  std::shared_ptr<Partition<LocalIndexType>> from_partition,
+                  std::shared_ptr<Partition<LocalIndexType>> to_partition);
+
+private:
+    std::shared_ptr<const Executor> exec_;
+    std::shared_ptr<Partition<LocalIndexType>> from_partition_;
+    std::shared_ptr<Partition<LocalIndexType>> to_partition_;
+    std::shared_ptr<mpi::communicator> from_comm_;
+    std::shared_ptr<mpi::communicator> to_comm_;
+
+    std::shared_ptr<std::vector<comm_index_type>> default_send_sizes_;
+    std::shared_ptr<std::vector<comm_index_type>> default_send_offsets_;
+
+    std::shared_ptr<std::vector<comm_index_type>> default_recv_sizes_;
+    std::shared_ptr<std::vector<comm_index_type>> default_recv_offsets_;
+
+    bool to_has_data_;
 };
 
 

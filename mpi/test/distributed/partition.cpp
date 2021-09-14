@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 
 
 #include <algorithm>
@@ -107,6 +108,189 @@ TYPED_TEST(Partition, ThrowsBuildFromUnsortedLocalRanges)
         gko::ValueMismatch);
 }
 
+
+template <typename LocalIndexType>
+class Repartitioner : public ::testing::Test {
+protected:
+    using local_index_type = LocalIndexType;
+    using Partition = gko::distributed::Partition<local_index_type>;
+    using Vector = gko::distributed::Vector<double, local_index_type>;
+    Repartitioner()
+        : ref(gko::ReferenceExecutor::create()),
+          from_comm(gko::mpi::communicator::create_world()),
+          from_part(gko::share(
+              gko::distributed::Partition<local_index_type>::build_from_mapping(
+                  this->ref,
+                  gko::Array<comm_index_type>(this->ref, {0, 0, 1, 1, 2, 2, 3}),
+                  4))),
+          to_part(gko::share(
+              gko::distributed::Partition<local_index_type>::build_from_mapping(
+                  this->ref,
+                  gko::Array<comm_index_type>(this->ref, {0, 0, 0, 0, 1, 1, 1}),
+                  2))),
+          input{gko::dim<2>{7, 1},
+                {{0, 0, 0},
+                 {1, 0, 1},
+                 {2, 0, 2},
+                 {3, 0, 3},
+                 {4, 0, 4},
+                 {5, 0, 5},
+                 {6, 0, 6}}},
+          from_vec(Vector::create(ref, from_comm))
+    {}
+
+    std::shared_ptr<const gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::mpi::communicator> from_comm;
+
+    std::shared_ptr<Partition> from_part;
+    std::shared_ptr<Partition> to_part;
+
+    gko::matrix_data<double, gko::distributed::global_index_type> input;
+    std::shared_ptr<Vector> from_vec;
+
+    std::shared_ptr<gko::distributed::Repartitioner<local_index_type>>
+        repartitioner;
+};
+
+
+TYPED_TEST_SUITE(Repartitioner, gko::test::IndexTypes);
+
+TYPED_TEST(Repartitioner, CanCreateWithDifferentPartitions)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    auto rank = this->from_comm->rank();
+
+    auto repartitioner =
+        gko::distributed::Repartitioner<local_index_type>::create(
+            this->ref, this->from_comm, this->from_part, this->to_part);
+
+    auto to_comm = repartitioner->get_to_communicator();
+    GKO_ASSERT(this->from_comm->get() != to_comm->get());
+    GKO_ASSERT(to_comm->size() == 2);
+    GKO_ASSERT(to_comm->size() - to_comm->local_rank() >= 0);
+    if (rank < 2) {
+        ASSERT_TRUE(repartitioner->to_has_data());
+        GKO_ASSERT(rank == to_comm->local_rank());
+    } else {
+        ASSERT_FALSE(repartitioner->to_has_data());
+        GKO_ASSERT(rank - 2 == to_comm->local_rank());
+    }
+}
+
+TYPED_TEST(Repartitioner, CanCreateWithSameNumberOfParts)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    auto to_part = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref,
+            gko::Array<comm_index_type>(this->ref, {3, 2, 2, 1, 1, 0, 0}), 4));
+
+    auto repartitioner =
+        gko::distributed::Repartitioner<local_index_type>::create(
+            this->ref, this->from_comm, this->from_part, to_part);
+
+    auto to_comm = repartitioner->get_to_communicator();
+    GKO_ASSERT(this->from_comm->get() == to_comm->get());
+}
+
+
+TYPED_TEST(Repartitioner, GatherToSmallerPartition)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    using Vector = typename TestFixture::Vector;
+    auto repartitioner =
+        gko::distributed::Repartitioner<local_index_type>::create(
+            this->ref, this->from_comm, this->from_part, this->to_part);
+    auto to_comm = repartitioner->get_to_communicator();
+    auto to_vec = Vector::create(
+        this->ref, to_comm, this->to_part, gko::dim<2>{7, 1},
+        gko::dim<2>{this->to_part->get_part_size(to_comm->rank()), 1});
+    auto to_vec_clone = Vector::create(this->ref, to_comm);
+    to_vec_clone->read_distributed(this->input, this->to_part);
+    this->from_vec->read_distributed(this->input, this->from_part);
+
+    repartitioner->gather(this->from_vec.get(), to_vec.get());
+
+    if (repartitioner->to_has_data()) {
+        GKO_ASSERT_MTX_NEAR(to_vec->get_local(), to_vec_clone->get_local(), 0);
+    } else {
+        GKO_ASSERT_EQUAL_DIMENSIONS(to_vec, gko::dim<2>(0, 0));
+    }
+}
+
+TYPED_TEST(Repartitioner, ThrowGatherToLargerPartition)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    using Vector = typename TestFixture::Vector;
+    auto repartitioner =
+        gko::distributed::Repartitioner<local_index_type>::create(
+            this->ref, this->from_comm, this->from_part, this->to_part);
+    auto to_comm = repartitioner->get_to_communicator();
+    auto to_vec = Vector::create(this->ref, to_comm);
+    to_vec->read_distributed(this->input, this->to_part);
+    this->from_vec->read_distributed(this->input, this->from_part);
+
+    ASSERT_THROW(repartitioner->gather(to_vec.get(), this->from_vec.get()),
+                 gko::MpiError);
+}
+
+TYPED_TEST(Repartitioner, ScatterToLargerPartition)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    using Vector = typename TestFixture::Vector;
+    auto repartitioner =
+        gko::distributed::Repartitioner<local_index_type>::create(
+            this->ref, this->from_comm, this->from_part, this->to_part);
+    auto to_comm = repartitioner->get_to_communicator();
+    auto to_vec = Vector::create(this->ref, to_comm);
+    to_vec->read_distributed(this->input, this->to_part);
+    auto from_vec = Vector::create(
+        this->ref, this->from_comm, this->from_part, gko::dim<2>{7, 1},
+        gko::dim<2>{this->from_part->get_part_size(this->from_comm->rank()),
+                    1});
+    auto from_vec_clone = Vector::create(this->ref, this->from_comm);
+    from_vec_clone->read_distributed(this->input, this->from_part);
+
+    repartitioner->scatter(to_vec.get(), from_vec.get());
+
+    GKO_ASSERT_MTX_NEAR(from_vec->get_local(), from_vec->get_local(), 0);
+}
+
+TYPED_TEST(Repartitioner, ThrowScatterToSmallerPartition)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    using Vector = typename TestFixture::Vector;
+    auto repartitioner =
+        gko::distributed::Repartitioner<local_index_type>::create(
+            this->ref, this->from_comm, this->from_part, this->to_part);
+    auto to_comm = repartitioner->get_to_communicator();
+    auto to_vec = Vector::create(this->ref, to_comm, this->to_part);
+    auto from_vec = Vector::create(this->ref, this->from_comm, this->from_part);
+
+    ASSERT_THROW(repartitioner->scatter(from_vec.get(), to_vec.get()),
+                 gko::MpiError);
+}
+
+TYPED_TEST(Repartitioner, GatherScatterIdentity)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    using Vector = typename TestFixture::Vector;
+    auto repartitioner =
+        gko::distributed::Repartitioner<local_index_type>::create(
+            this->ref, this->from_comm, this->from_part, this->to_part);
+    auto to_comm = repartitioner->get_to_communicator();
+    auto to_vec = Vector::create(
+        this->ref, to_comm, this->to_part, gko::dim<2>{7, 1},
+        gko::dim<2>{this->to_part->get_part_size(to_comm->rank()), 1});
+    auto from_vec = Vector::create(this->ref, this->from_comm);
+    from_vec->read_distributed(this->input, this->from_part);
+    auto ref_vec = gko::clone(from_vec);
+
+    repartitioner->gather(from_vec.get(), to_vec.get());
+    repartitioner->scatter(to_vec.get(), from_vec.get());
+
+    GKO_ASSERT_MTX_NEAR(ref_vec->get_local(), from_vec->get_local(), 0);
+}
 
 }  // namespace
 

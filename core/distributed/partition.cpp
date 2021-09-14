@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/distributed/partition.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 
 
 #include <numeric>
@@ -206,6 +207,181 @@ void Partition<LocalIndexType>::validate_data() const
 
 #define GKO_DECLARE_PARTITION(_type) class Partition<_type>
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION);
+
+
+template <typename LocalIndexType>
+Repartitioner<LocalIndexType>::Repartitioner(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<mpi::communicator> from_communicator,
+    std::shared_ptr<Partition<LocalIndexType>> from_partition,
+    std::shared_ptr<Partition<LocalIndexType>> to_partition)
+    : exec_(exec),
+      from_partition_(std::move(from_partition)),
+      to_partition_(std::move(to_partition)),
+      from_comm_(std::move(from_communicator)),
+      to_has_data_(false)
+{
+    const auto* old_ranges = from_partition_->get_const_range_bounds();
+    const auto* old_pid = from_partition_->get_const_part_ids();
+    const auto old_n_ranges = from_partition_->get_num_ranges();
+    const auto old_n_parts = from_partition_->get_num_parts();
+
+    const auto* new_ranges = to_partition_->get_const_range_bounds();
+    const auto* new_pid = to_partition_->get_const_part_ids();
+    const auto new_n_ranges = to_partition_->get_num_ranges();
+    const auto new_n_parts = to_partition_->get_num_parts();
+
+    GKO_ASSERT(new_n_parts <= old_n_parts);
+    GKO_ASSERT(from_partition_->get_size() == to_partition_->get_size());
+
+    const auto rank = from_comm_->rank();
+    to_has_data_ = rank < new_n_parts;
+
+    if (new_n_parts < old_n_parts) {
+        to_comm_ = mpi::communicator::create(from_comm_->get(), to_has_data_,
+                                             from_comm_->rank());
+    } else {
+        to_comm_ = from_comm_;
+    }
+
+    auto find_new_range = [&](global_index_type idx) {
+        auto it = std::upper_bound(new_ranges + 1,
+                                   new_ranges + new_n_ranges + 1, idx);
+        return std::distance(new_ranges + 1, it);
+    };
+    default_send_sizes_ =
+        std::make_shared<std::vector<comm_index_type>>(old_n_parts);
+    default_send_offsets_ =
+        std::make_shared<std::vector<comm_index_type>>(old_n_parts + 1);
+    for (size_type range_idx = 0; range_idx < old_n_ranges; ++range_idx) {
+        if (old_pid[range_idx] == rank) {
+            for (size_type i = old_ranges[range_idx];
+                 i < old_ranges[range_idx + 1]; ++i) {
+                auto new_range = find_new_range(i);
+                auto recv_pid = new_pid[new_range];
+                (*default_send_sizes_)[recv_pid]++;
+            }
+        }
+    }
+    std::partial_sum(default_send_sizes_->cbegin(), default_send_sizes_->cend(),
+                     default_send_offsets_->begin() + 1);
+
+    default_recv_sizes_ =
+        std::make_shared<std::vector<comm_index_type>>(old_n_parts);
+    default_recv_offsets_ =
+        std::make_shared<std::vector<comm_index_type>>(old_n_parts + 1);
+    mpi::all_to_all(default_send_sizes_->data(), 1, default_recv_sizes_->data(),
+                    1, from_comm_);
+    std::partial_sum(default_recv_sizes_->cbegin(), default_recv_sizes_->cend(),
+                     default_recv_offsets_->begin() + 1);
+}
+
+template <typename LocalIndexType>
+template <typename ValueType>
+void Repartitioner<LocalIndexType>::gather(
+    const Vector<ValueType, LocalIndexType>* from,
+    Vector<ValueType, LocalIndexType>* to)
+{
+    if (*(from->get_communicator()) != *from_comm_ ||
+        *(to->get_communicator()) != *to_comm_) {
+        throw GKO_MPI_ERROR(MPI_ERR_COMM);
+    }
+    // Todo: figure out if necessary to test parts for equality
+
+    if (!is_ordered(from_partition_.get()) ||
+        !is_ordered(to_partition_.get())) {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    const auto* send_buffer = from->get_local()->get_const_values();
+    auto* recv_buffer = to->get_local()->get_values();
+
+    std::shared_ptr<std::vector<comm_index_type>> send_sizes;
+    std::shared_ptr<std::vector<comm_index_type>> send_offsets;
+    std::shared_ptr<std::vector<comm_index_type>> recv_sizes;
+    std::shared_ptr<std::vector<comm_index_type>> recv_offsets;
+
+    if (from->get_size()[1] == 1) {
+        send_sizes = default_send_sizes_;
+        send_offsets = default_send_offsets_;
+        recv_sizes = default_recv_sizes_;
+        recv_offsets = default_recv_offsets_;
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    mpi::all_to_all(send_buffer, send_sizes->data(), send_offsets->data(),
+                    recv_buffer, recv_sizes->data(), recv_offsets->data(), 1,
+                    from_comm_);
+
+    if (!to_has_data()) {
+        *to = *Vector<ValueType, LocalIndexType>::create(
+            to->get_executor(), to->get_communicator(), to->get_partition());
+    }
+}
+
+#define GKO_DECLARE_REPETITIONER_GATHER(_value_type, _index_type) \
+    void Repartitioner<_index_type>::gather<_value_type>(         \
+        const Vector<_value_type, _index_type>* from,             \
+        Vector<_value_type, _index_type>* to)
+#define GKO_INSTANTIATE_REPETITIONER_GATHER_FOR_GIVEN_VALUE_TYPE(_value_type) \
+    GKO_DECLARE_REPETITIONER_GATHER(_value_type, int32);                      \
+    template GKO_DECLARE_REPETITIONER_GATHER(_value_type, int64)
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_INSTANTIATE_REPETITIONER_GATHER_FOR_GIVEN_VALUE_TYPE);
+
+
+template <typename LocalIndexType>
+template <typename ValueType>
+void Repartitioner<LocalIndexType>::scatter(
+    const Vector<ValueType, LocalIndexType>* to,
+    Vector<ValueType, LocalIndexType>* from)
+{
+    if (*(from->get_communicator()) != *from_comm_ ||
+        *(to->get_communicator()) != *to_comm_) {
+        throw GKO_MPI_ERROR(MPI_ERR_COMM);
+    }
+
+    if (!is_ordered(from_partition_.get()) ||
+        !is_ordered(to_partition_.get())) {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    const auto* send_buffer = to->get_local()->get_const_values();
+    auto* recv_buffer = from->get_local()->get_values();
+
+    std::shared_ptr<std::vector<comm_index_type>> send_sizes;
+    std::shared_ptr<std::vector<comm_index_type>> send_offsets;
+    std::shared_ptr<std::vector<comm_index_type>> recv_sizes;
+    std::shared_ptr<std::vector<comm_index_type>> recv_offsets;
+
+    if (from->get_size()[1] == 1) {
+        send_sizes = default_recv_sizes_;
+        send_offsets = default_recv_offsets_;
+        recv_sizes = default_send_sizes_;
+        recv_offsets = default_send_offsets_;
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    mpi::all_to_all(send_buffer, send_sizes->data(), send_offsets->data(),
+                    recv_buffer, recv_sizes->data(), recv_offsets->data(), 1,
+                    from_comm_);
+}
+
+#define GKO_DECLARE_REPETITIONER_SCATTER(_value_type, _index_type) \
+    void Repartitioner<_index_type>::scatter<_value_type>(         \
+        const Vector<_value_type, _index_type>* to,                \
+        Vector<_value_type, _index_type>* from)
+#define GKO_INSTANTIATE_REPETITIONER_SCATTER_FOR_GIVEN_VALUE_TYPE(_value_type) \
+    GKO_DECLARE_REPETITIONER_SCATTER(_value_type, int32);                      \
+    template GKO_DECLARE_REPETITIONER_SCATTER(_value_type, int64)
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_INSTANTIATE_REPETITIONER_SCATTER_FOR_GIVEN_VALUE_TYPE);
+
+
+#define GKO_DECLARE_REPARTITIONER(_type) class Repartitioner<_type>
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_REPARTITIONER);
 
 
 template <typename LocalIndexType>
