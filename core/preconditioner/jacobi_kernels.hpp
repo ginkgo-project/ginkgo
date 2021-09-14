@@ -145,7 +145,7 @@ namespace kernels {
             storage_scheme,                                                \
         ValueType* result_values, size_type result_stride)
 
-#define GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL()                   \
+#define GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL                     \
     void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec, \
                                const Array<precision_reduction>& source,    \
                                Array<precision_reduction>& precisions)
@@ -175,7 +175,7 @@ namespace kernels {
     GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL(ValueType);     \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
-    GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL()
+    GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL
 
 
 namespace omp {
