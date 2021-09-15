@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_KERNEL_DECLARATION_HPP_
 
 
+// clang-format off
 #define GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(_kernel_namespace, ...)      \
                                                                              \
     namespace omp {                                                          \
@@ -64,6 +65,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
+// clang-format on
 
 
 #endif  // GKO_CORE_BASE_KERNEL_DECLARATION_HPP_
