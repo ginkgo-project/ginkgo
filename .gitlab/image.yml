@@ -66,8 +66,8 @@
     - private_ci
     - nvidia-gpu
 
-.use_gko_cuda114-gnu11-llvm12-intel2020:
-  image: localhost:5000/cuda_114_8bbf535a_gko-cuda114-gnu11-llvm12-intel2020
+.use_gko_cuda114-gnu11-llvm12:
+  image: localhost:5000/cuda_114_bdc58a80_gko-cuda114-gnu11-llvm12
   tags:
     - private_ci
     - nvidia-gpu
