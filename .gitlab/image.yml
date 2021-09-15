@@ -66,6 +66,12 @@
     - private_ci
     - nvidia-gpu
 
+.use_gko_cuda114-gnu11-llvm12-intel2020:
+  image: localhost:5000/cuda_114_8bbf535a_gko-cuda114-gnu11-llvm12-intel2020
+  tags:
+    - private_ci
+    - nvidia-gpu
+
 .use_gko-amd-gnu8-llvm7:
   image: ginkgohub/rocm:gnu8-llvm7
   tags:

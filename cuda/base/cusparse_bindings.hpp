@@ -850,10 +850,6 @@ inline void destroy(cusparseSpMatDescr_t descr)
 #endif
 
 
-// CUDA versions 9.2 and above have csrsm2.
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
-
-
 inline csrsm2Info_t create_solve_info()
 {
     csrsm2Info_t info{};
@@ -866,27 +862,6 @@ inline void destroy(csrsm2Info_t info)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyCsrsm2Info(info));
 }
-
-
-// CUDA_VERSION<=9.1 do not support csrsm2.
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-
-
-inline cusparseSolveAnalysisInfo_t create_solve_info()
-{
-    cusparseSolveAnalysisInfo_t info{};
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateSolveAnalysisInfo(&info));
-    return info;
-}
-
-
-inline void destroy(cusparseSolveAnalysisInfo_t info)
-{
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroySolveAnalysisInfo(info));
-}
-
-
-#endif
 
 
 inline csrilu02Info_t create_ilu0_info()
@@ -915,10 +890,6 @@ inline void destroy(csric02Info_t info)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyCsric02Info(info));
 }
-
-
-// CUDA versions 9.2 and above have csrsm2.
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
 
 
 #define GKO_BIND_CUSPARSE32_BUFFERSIZEEXT(ValueType, CusparseName)            \
@@ -1074,106 +1045,6 @@ template <typename ValueType>
 GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE32_CSRSM2_SOLVE
 #undef GKO_BIND_CUSPARSE64_CSRSM2_SOLVE
-
-
-// CUDA_VERSION<=9.1 do not support csrsm2.
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-
-
-#define GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(ValueType, CusparseName)            \
-    inline void csrsm_analysis(                                                \
-        cusparseHandle_t handle, cusparseOperation_t trans, size_type m,       \
-        size_type nnz, const cusparseMatDescr_t descr,                         \
-        const ValueType* csrVal, const int32* csrRowPtr,                       \
-        const int32* csrColInd, cusparseSolveAnalysisInfo_t factor_info)       \
-    {                                                                          \
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
-            CusparseName(handle, trans, m, nnz, descr, as_culibs_type(csrVal), \
-                         csrRowPtr, csrColInd, factor_info));                  \
-    }                                                                          \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
-                  "semi-colon warnings")
-
-#define GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(ValueType, CusparseName)      \
-    inline void csrsm_analysis(                                          \
-        cusparseHandle_t handle, cusparseOperation_t trans, size_type m, \
-        size_type nnz, const cusparseMatDescr_t descr,                   \
-        const ValueType* csrVal, const int64* csrRowPtr,                 \
-        const int64* csrColInd, cusparseSolveAnalysisInfo_t factor_info) \
-        GKO_NOT_IMPLEMENTED;                                             \
-    static_assert(true,                                                  \
-                  "This assert is used to counter the "                  \
-                  "false positive extra "                                \
-                  "semi-colon warnings")
-
-GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(float, cusparseScsrsm_analysis);
-GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(double, cusparseDcsrsm_analysis);
-GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(std::complex<float>,
-                                   cusparseCcsrsm_analysis);
-GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(std::complex<double>,
-                                   cusparseZcsrsm_analysis);
-GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(float, cusparseScsrsm_analysis);
-GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(double, cusparseDcsrsm_analysis);
-GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(std::complex<float>,
-                                   cusparseCcsrsm_analysis);
-GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(std::complex<double>,
-                                   cusparseZcsrsm_analysis);
-template <typename ValueType>
-GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(ValueType, detail::not_implemented);
-template <typename ValueType>
-GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(ValueType, detail::not_implemented);
-#undef GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS
-#undef GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS
-
-#define GKO_BIND_CUSPARSE32_CSRSM_SOLVE(ValueType, CusparseName)             \
-    inline void csrsm_solve(                                                 \
-        cusparseHandle_t handle, cusparseOperation_t trans, size_type m,     \
-        size_type n, const ValueType* one, const cusparseMatDescr_t descr,   \
-        const ValueType* csrVal, const int32* csrRowPtr,                     \
-        const int32* csrColInd, cusparseSolveAnalysisInfo_t factor_info,     \
-        const ValueType* rhs, int32 rhs_stride, ValueType* sol,              \
-        int32 sol_stride)                                                    \
-    {                                                                        \
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                       \
-            CusparseName(handle, trans, m, n, as_culibs_type(one), descr,    \
-                         as_culibs_type(csrVal), csrRowPtr, csrColInd,       \
-                         factor_info, as_culibs_type(rhs), rhs_stride,       \
-                         as_culibs_type(sol), sol_stride));                  \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-#define GKO_BIND_CUSPARSE64_CSRSM_SOLVE(ValueType, CusparseName)             \
-    inline void csrsm_solve(                                                 \
-        cusparseHandle_t handle, cusparseOperation_t trans1, size_type m,    \
-        size_type n, const ValueType* one, const cusparseMatDescr_t descr,   \
-        const ValueType* csrVal, const int64* csrRowPtr,                     \
-        const int64* csrColInd, cusparseSolveAnalysisInfo_t factor_info,     \
-        const ValueType* rhs, int64 rhs_stride, ValueType* sol,              \
-        int64 sol_stride) GKO_NOT_IMPLEMENTED;                               \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-GKO_BIND_CUSPARSE32_CSRSM_SOLVE(float, cusparseScsrsm_solve);
-GKO_BIND_CUSPARSE32_CSRSM_SOLVE(double, cusparseDcsrsm_solve);
-GKO_BIND_CUSPARSE32_CSRSM_SOLVE(std::complex<float>, cusparseCcsrsm_solve);
-GKO_BIND_CUSPARSE32_CSRSM_SOLVE(std::complex<double>, cusparseZcsrsm_solve);
-GKO_BIND_CUSPARSE64_CSRSM_SOLVE(float, cusparseScsrsm_solve);
-GKO_BIND_CUSPARSE64_CSRSM_SOLVE(double, cusparseDcsrsm_solve);
-GKO_BIND_CUSPARSE64_CSRSM_SOLVE(std::complex<float>, cusparseCcsrsm_solve);
-GKO_BIND_CUSPARSE64_CSRSM_SOLVE(std::complex<double>, cusparseZcsrsm_solve);
-template <typename ValueType>
-GKO_BIND_CUSPARSE32_CSRSM_SOLVE(ValueType, detail::not_implemented);
-template <typename ValueType>
-GKO_BIND_CUSPARSE64_CSRSM_SOLVE(ValueType, detail::not_implemented);
-#undef GKO_BIND_CUSPARSE32_CSRSM_SOLVE
-#undef GKO_BIND_CUSPARSE64_CSRSM_SOLVE
-
-
-#endif
 
 
 template <typename IndexType>
