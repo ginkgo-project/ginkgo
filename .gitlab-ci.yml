@@ -498,45 +498,18 @@ build/cuda110/intel/cuda/debug/static:
 build/cuda114/gcc/cuda/debug/shared:
   <<: *default_build_with_test
   extends:
-    - .full_test_condition
-    - .use_gko_cuda114-gnu11-llvm12-intel2020
-  variables:
-    <<: *default_variables
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    CUDA_ARCH: 61
-
-build/cuda114/clang/cuda/release/static:
-  <<: *default_build_with_test
-  extends:
-    - .full_test_condition
-    - .use_gko_cuda114-gnu11-llvm12-intel2020
-  variables:
-    <<: *default_variables
-    C_COMPILER: "clang"
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 61
-
-build/cuda114/intel/cuda/debug/static:
-  <<: *default_build_with_test
-  extends:
     - .quick_test_condition
-    - .use_gko_cuda114-gnu11-llvm12-intel2020
+    - .use_gko_cuda114-gnu11-llvm12
   variables:
     <<: *default_variables
-    C_COMPILER: "icc"
-    CXX_COMPILER: "icpc"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
-    BUILD_SHARED_LIBS: "OFF"
+    # fix gtest issue https://github.com/google/googletest/issues/3514
+    CXX_FLAGS: "-Wno-error=maybe-uninitialized"
+    # disable spurious unused argument warning
+    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
     CUDA_ARCH: 61
 
 # HIP AMD
