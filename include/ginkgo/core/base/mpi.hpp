@@ -263,10 +263,16 @@ public:
 
     int local_rank() const { return local_rank_; };
 
-    bool compare(const MPI_Comm& other) const;
+    int compare(const MPI_Comm& other) const;
 
-    bool operator==(const communicator& rhs) { return compare(rhs.get()); }
-    bool operator!=(const communicator& rhs) { return !(*this == rhs); }
+    bool operator==(const communicator& rhs)
+    {
+        return compare(rhs.get()) != MPI_UNEQUAL;
+    }
+    bool operator!=(const communicator& rhs)
+    {
+        return compare(rhs.get()) == MPI_UNEQUAL;
+    }
 
     ~communicator();
 
