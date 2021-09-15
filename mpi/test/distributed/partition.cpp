@@ -128,6 +128,16 @@ protected:
                   this->ref,
                   gko::Array<comm_index_type>(this->ref, {0, 0, 0, 0, 1, 1, 1}),
                   2))),
+          from_part_unordered(gko::share(
+              gko::distributed::Partition<local_index_type>::build_from_mapping(
+                  this->ref,
+                  gko::Array<comm_index_type>(this->ref, {1, 1, 0, 2, 3, 0, 2}),
+                  4))),
+          to_part_unordered(gko::share(
+              gko::distributed::Partition<local_index_type>::build_from_mapping(
+                  this->ref,
+                  gko::Array<comm_index_type>(this->ref, {1, 1, 0, 1, 0, 0, 0}),
+                  2))),
           input{gko::dim<2>{7, 1},
                 {{0, 0, 0},
                  {1, 0, 1},
@@ -144,6 +154,9 @@ protected:
 
     std::shared_ptr<Partition> from_part;
     std::shared_ptr<Partition> to_part;
+
+    std::shared_ptr<Partition> from_part_unordered;
+    std::shared_ptr<Partition> to_part_unordered;
 
     gko::matrix_data<double, gko::distributed::global_index_type> input;
     std::shared_ptr<Vector> from_vec;
@@ -216,6 +229,23 @@ TYPED_TEST(Repartitioner, GatherToSmallerPartition)
     } else {
         GKO_ASSERT_EQUAL_DIMENSIONS(to_vec, gko::dim<2>(0, 0));
     }
+}
+
+TYPED_TEST(Repartitioner, GatherToSmallerPartitionUnordered)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    using Vector = typename TestFixture::Vector;
+    auto repartitioner =
+        gko::distributed::Repartitioner<local_index_type>::create(
+            this->ref, this->from_comm, this->from_part_unordered,
+            this->to_part_unordered);
+    auto to_comm = repartitioner->get_to_communicator();
+    auto to_vec = Vector::create(this->ref, to_comm, this->to_part_unordered);
+    auto from_vec =
+        Vector::create(this->ref, this->from_comm, this->from_part_unordered);
+
+    ASSERT_THROW(repartitioner->gather(from_vec.get(), to_vec.get()),
+                 gko::NotImplemented);
 }
 
 TYPED_TEST(Repartitioner, ThrowGatherToLargerPartition)
