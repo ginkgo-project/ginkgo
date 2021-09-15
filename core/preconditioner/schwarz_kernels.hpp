@@ -43,139 +43,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 
-
-#define GKO_DECLARE_SCHWARZ_FIND_BLOCKS_KERNEL(ValueType, IndexType)         \
-    void find_blocks(std::shared_ptr<const DefaultExecutor> exec,            \
-                     const matrix::Csr<ValueType, IndexType>* system_matrix, \
-                     uint32 max_block_size, size_type& num_blocks,           \
-                     Array<IndexType>& block_pointers)
-
-#define GKO_DECLARE_SCHWARZ_GENERATE_KERNEL(ValueType, IndexType)          \
-    void generate(                                                         \
-        std::shared_ptr<const DefaultExecutor> exec,                       \
-        const matrix::Csr<ValueType, IndexType>* system_matrix,            \
-        size_type num_blocks, uint32 max_block_size,                       \
-        remove_complex<ValueType> accuracy,                                \
-        const preconditioner::block_interleaved_storage_scheme<IndexType>& \
-            storage_scheme,                                                \
-        Array<remove_complex<ValueType>>& conditioning,                    \
-        Array<precision_reduction>& block_precisions,                      \
-        const Array<IndexType>& block_pointers, Array<ValueType>& blocks)
-
-#define GKO_DECLARE_SCHWARZ_SCALAR_CONJ_KERNEL(ValueType)         \
-    void scalar_conj(std::shared_ptr<const DefaultExecutor> exec, \
-                     const Array<ValueType>& diag,                \
-                     Array<ValueType>& conj_diag)
-
-#define GKO_DECLARE_SCHWARZ_INVERT_DIAGONAL_KERNEL(ValueType)         \
-    void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec, \
-                         const Array<ValueType>& diag,                \
-                         Array<ValueType>& inv_diag)
-
 #define GKO_DECLARE_SCHWARZ_APPLY_KERNEL(ValueType, IndexType)                 \
     void apply(                                                                \
-        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,     \
-        uint32 max_block_size,                                                 \
-        const preconditioner::block_interleaved_storage_scheme<IndexType>&     \
-            storage_scheme,                                                    \
-        const Array<precision_reduction>& block_precisions,                    \
-        const Array<IndexType>& block_pointers,                                \
-        const Array<ValueType>& blocks, const matrix::Dense<ValueType>* alpha, \
+        std::shared_ptr<const DefaultExecutor> exec, IndexType num_subdomains, \
+        const matrix::Dense<ValueType>* alpha,                                 \
         const matrix::Dense<ValueType>* b,                                     \
         const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* x)
 
-#define GKO_DECLARE_SCHWARZ_SIMPLE_SCALAR_APPLY_KERNEL(ValueType)         \
-    void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec, \
-                             const Array<ValueType>& diag,                \
-                             const matrix::Dense<ValueType>* b,           \
-                             matrix::Dense<ValueType>* x)
 
-#define GKO_DECLARE_SCHWARZ_SIMPLE_APPLY_KERNEL(ValueType, IndexType)      \
-    void simple_apply(                                                     \
-        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
-        uint32 max_block_size,                                             \
-        const preconditioner::block_interleaved_storage_scheme<IndexType>& \
-            storage_scheme,                                                \
-        const Array<precision_reduction>& block_precisions,                \
-        const Array<IndexType>& block_pointers,                            \
-        const Array<ValueType>& blocks, const matrix::Dense<ValueType>* b, \
-        matrix::Dense<ValueType>* x)
-
-#define GKO_DECLARE_SCHWARZ_SCALAR_APPLY_KERNEL(ValueType)                   \
-    void scalar_apply(                                                       \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
-        const Array<ValueType>& diag, const matrix::Dense<ValueType>* alpha, \
-        const matrix::Dense<ValueType>* b,                                   \
-        const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* x)
-
-#define GKO_DECLARE_SCHWARZ_TRANSPOSE_KERNEL(ValueType, IndexType)         \
-    void transpose_schwarz(                                                \
-        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
-        uint32 max_block_size,                                             \
-        const Array<precision_reduction>& block_precisions,                \
-        const Array<IndexType>& block_pointers,                            \
-        const Array<ValueType>& blocks,                                    \
-        const preconditioner::block_interleaved_storage_scheme<IndexType>& \
-            storage_scheme,                                                \
-        Array<ValueType>& out_blocks)
-
-#define GKO_DECLARE_SCHWARZ_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)    \
-    void conj_transpose_schwarz(                                           \
-        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
-        uint32 max_block_size,                                             \
-        const Array<precision_reduction>& block_precisions,                \
-        const Array<IndexType>& block_pointers,                            \
-        const Array<ValueType>& blocks,                                    \
-        const preconditioner::block_interleaved_storage_scheme<IndexType>& \
-            storage_scheme,                                                \
-        Array<ValueType>& out_blocks)
-
-#define GKO_DECLARE_SCHWARZ_SCALAR_CONVERT_TO_DENSE_KERNEL(ValueType)         \
-    void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
-                                 const Array<ValueType>& blocks,              \
-                                 matrix::Dense<ValueType>* result)
-
-#define GKO_DECLARE_SCHWARZ_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)  \
-    void convert_to_dense(                                                 \
-        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
-        const Array<precision_reduction>& block_precisions,                \
-        const Array<IndexType>& block_pointers,                            \
-        const Array<ValueType>& blocks,                                    \
-        const preconditioner::block_interleaved_storage_scheme<IndexType>& \
-            storage_scheme,                                                \
-        ValueType* result_values, size_type result_stride)
-
-#define GKO_DECLARE_SCHWARZ_INITIALIZE_PRECISIONS_KERNEL()                  \
-    void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec, \
-                               const Array<precision_reduction>& source,    \
-                               Array<precision_reduction>& precisions)
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                   \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_SCHWARZ_FIND_BLOCKS_KERNEL(ValueType, IndexType);      \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_SCHWARZ_GENERATE_KERNEL(ValueType, IndexType);         \
-    template <typename ValueType>                                      \
-    GKO_DECLARE_SCHWARZ_SCALAR_CONJ_KERNEL(ValueType);                 \
-    template <typename ValueType>                                      \
-    GKO_DECLARE_SCHWARZ_INVERT_DIAGONAL_KERNEL(ValueType);             \
-    template <typename ValueType>                                      \
-    GKO_DECLARE_SCHWARZ_SCALAR_APPLY_KERNEL(ValueType);                \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_SCHWARZ_APPLY_KERNEL(ValueType, IndexType);            \
-    template <typename ValueType>                                      \
-    GKO_DECLARE_SCHWARZ_SIMPLE_SCALAR_APPLY_KERNEL(ValueType);         \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_SCHWARZ_SIMPLE_APPLY_KERNEL(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_SCHWARZ_TRANSPOSE_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_SCHWARZ_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType>                                      \
-    GKO_DECLARE_SCHWARZ_SCALAR_CONVERT_TO_DENSE_KERNEL(ValueType);     \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_SCHWARZ_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
-    GKO_DECLARE_SCHWARZ_INITIALIZE_PRECISIONS_KERNEL()
+#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
+    template <typename ValueType, typename IndexType> \
+    GKO_DECLARE_SCHWARZ_APPLY_KERNEL(ValueType, IndexType)
 
 
 namespace omp {

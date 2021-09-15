@@ -37,10 +37,7 @@ target_sources(ginkgo_cuda
     preconditioner/jacobi_generate_kernel.cu
     preconditioner/jacobi_kernels.cu
     preconditioner/jacobi_simple_apply_kernel.cu
-    preconditioner/schwarz_advanced_apply_kernel.cu
-    preconditioner/schwarz_generate_kernel.cu
     preconditioner/schwarz_kernels.cu
-    preconditioner/schwarz_simple_apply_kernel.cu
     reorder/rcm_kernels.cu
     solver/gmres_kernels.cu
     solver/cb_gmres_kernels.cu
@@ -83,7 +80,6 @@ endforeach()
 target_sources(ginkgo_cuda PRIVATE ${GKO_CUDA_JACOBI_SOURCES})
 string(REPLACE ";" "," GKO_CUDA_JACOBI_BLOCK_SIZES_CODE "${GKO_CUDA_JACOBI_BLOCK_SIZES}")
 configure_file(preconditioner/jacobi_common.hpp.in preconditioner/jacobi_common.hpp)
-configure_file(preconditioner/schwarz_common.hpp.in preconditioner/schwarz_common.hpp)
 
 if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
     # remove false positive CUDA warnings when calling one<T>() and zero<T>()

@@ -37,14 +37,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/extended_float.hpp"
-#include "core/preconditioner/schwarz_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/thread_ids.cuh"
-#include "cuda/preconditioner/schwarz_common.hpp"
 
 
 namespace gko {
@@ -56,203 +54,16 @@ namespace cuda {
  * @ingroup schwarz
  */
 namespace schwarz {
-namespace {
-
-
-// a total of 32 warps (1024 threads)
-constexpr int default_num_warps = 32;
-// with current architectures, at most 32 warps can be scheduled per SM (and
-// current GPUs have at most 84 SMs)
-constexpr int default_grid_size = 32 * 32 * 128;
 
 
 template <typename ValueType, typename IndexType>
-size_type find_natural_blocks(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* mtx, int32 max_block_size,
-    IndexType* __restrict__ block_ptrs) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    Array<size_type> nums(exec, 1);
-//
-//    Array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
-//
-//    const dim3 block_size(config::warp_size, 1, 1);
-//    const dim3 grid_size(
-//        ceildiv(mtx->get_size()[0] * config::warp_size, block_size.x), 1, 1);
-//    compare_adjacent_rows<<<grid_size, block_size, 0, 0>>>(
-//        mtx->get_size()[0], max_block_size, mtx->get_const_row_ptrs(),
-//        mtx->get_const_col_idxs(), matching_next_row.get_data());
-//    generate_natural_block_pointer<<<1, 1, 0, 0>>>(
-//        mtx->get_size()[0], max_block_size,
-//        matching_next_row.get_const_data(), block_ptrs, nums.get_data());
-//    nums.set_executor(exec->get_master());
-//    return nums.get_const_data()[0];
-//}
+void apply(std::shared_ptr<const DefaultExecutor> exec,
+           IndexType num_subdomains, const matrix::Dense<ValueType>* alpha,
+           const matrix::Dense<ValueType>* b,
+           const matrix::Dense<ValueType>* beta,
+           matrix::Dense<ValueType>* x) GKO_NOT_IMPLEMENTED;
 
-
-template <typename IndexType>
-inline size_type agglomerate_supervariables(
-    std::shared_ptr<const DefaultExecutor> exec, int32 max_block_size,
-    size_type num_natural_blocks, IndexType* block_ptrs) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    Array<size_type> nums(exec, 1);
-//
-//    agglomerate_supervariables_kernel<<<1, 1, 0, 0>>>(
-//        max_block_size, num_natural_blocks, block_ptrs, nums.get_data());
-//
-//    nums.set_executor(exec->get_master());
-//    return nums.get_const_data()[0];
-//}
-
-
-}  // namespace
-
-
-void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec,
-                           const Array<precision_reduction>& source,
-                           Array<precision_reduction>& precisions)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    const auto block_size = default_num_warps * config::warp_size;
-//    const auto grid_size = min(
-//        default_grid_size,
-//        static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));
-//    duplicate_array<default_num_warps><<<grid_size, block_size>>>(
-//        source.get_const_data(), source.get_num_elems(),
-//        precisions.get_data(), precisions.get_num_elems());
-//}
-
-
-template <typename ValueType, typename IndexType>
-void find_blocks(std::shared_ptr<const DefaultExecutor> exec,
-                 const matrix::Csr<ValueType, IndexType>* system_matrix,
-                 uint32 max_block_size, size_type& num_blocks,
-                 Array<IndexType>& block_pointers) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    auto num_natural_blocks = find_natural_blocks(
-//        exec, system_matrix, max_block_size, block_pointers.get_data());
-//    num_blocks = agglomerate_supervariables(
-//        exec, max_block_size, num_natural_blocks, block_pointers.get_data());
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SCHWARZ_FIND_BLOCKS_KERNEL);
-
-
-namespace {
-
-
-template <bool conjugate, int warps_per_block, int max_block_size,
-          typename ValueType, typename IndexType>
-void transpose_schwarz(
-    syn::value_list<int, max_block_size>, size_type num_blocks,
-    const precision_reduction* block_precisions,
-    const IndexType* block_pointers, const ValueType* blocks,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>&
-        storage_scheme,
-    ValueType* out_blocks) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    constexpr int subwarp_size = get_larger_power(max_block_size);
-//    constexpr int blocks_per_warp = config::warp_size / subwarp_size;
-//    const dim3 grid_size(ceildiv(num_blocks, warps_per_block *
-//    blocks_per_warp),
-//                         1, 1);
-//    const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
-//
-//    if (block_precisions) {
-//        adaptive_transpose_schwarz<conjugate, max_block_size, subwarp_size,
-//                                  warps_per_block>
-//            <<<grid_size, block_size, 0, 0>>>(
-//                as_cuda_type(blocks), storage_scheme, block_precisions,
-//                block_pointers, num_blocks, as_cuda_type(out_blocks));
-//    } else {
-//        transpose_schwarz<conjugate, max_block_size, subwarp_size,
-//                         warps_per_block><<<grid_size, block_size, 0, 0>>>(
-//            as_cuda_type(blocks), storage_scheme, block_pointers, num_blocks,
-//            as_cuda_type(out_blocks));
-//    }
-//}
-
-GKO_ENABLE_IMPLEMENTATION_SELECTION(select_transpose_schwarz,
-                                    transpose_schwarz);
-
-
-}  // namespace
-
-
-template <typename ValueType, typename IndexType>
-void transpose_schwarz(
-    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
-    uint32 max_block_size, const Array<precision_reduction>& block_precisions,
-    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>&
-        storage_scheme,
-    Array<ValueType>& out_blocks) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    select_transpose_schwarz(
-//        compiled_kernels(),
-//        [&](int compiled_block_size) {
-//            return max_block_size <= compiled_block_size;
-//        },
-//        syn::value_list<int, false, config::min_warps_per_block>(),
-//        syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
-//        block_pointers.get_const_data(), blocks.get_const_data(),
-//        storage_scheme, out_blocks.get_data());
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SCHWARZ_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void conj_transpose_schwarz(
-    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
-    uint32 max_block_size, const Array<precision_reduction>& block_precisions,
-    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>&
-        storage_scheme,
-    Array<ValueType>& out_blocks) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    select_transpose_schwarz(
-//        compiled_kernels(),
-//        [&](int compiled_block_size) {
-//            return max_block_size <= compiled_block_size;
-//        },
-//        syn::value_list<int, true, config::min_warps_per_block>(),
-//        syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
-//        block_pointers.get_const_data(), blocks.get_const_data(),
-//        storage_scheme, out_blocks.get_data());
-//}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SCHWARZ_CONJ_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_dense(
-    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
-    const Array<precision_reduction>& block_precisions,
-    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>&
-        storage_scheme,
-    ValueType* result_values, size_type result_stride) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SCHWARZ_CONVERT_TO_DENSE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCHWARZ_APPLY_KERNEL);
 
 
 }  // namespace schwarz

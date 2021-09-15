@@ -52,26 +52,17 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Bj = gko::preconditioner::Schwarz<value_type, index_type>;
+    using Schwarz = gko::preconditioner::Schwarz<value_type, index_type>;
 
     SchwarzFactory()
         : exec(gko::ReferenceExecutor::create()),
-          bj_factory(Bj::build().with_max_block_size(3u).on(exec)),
-          block_pointers(exec, 2),
-          block_precisions(exec, 2),
+          schwarz_factory(Schwarz::build().with_num_subdomains(3u).on(exec)),
           mtx(gko::matrix::Csr<value_type, index_type>::create(
               exec, gko::dim<2>{5, 5}, 13))
-    {
-        block_pointers.get_data()[0] = 2;
-        block_pointers.get_data()[1] = 3;
-        block_precisions.get_data()[0] = gko::precision_reduction(0, 1);
-        block_precisions.get_data()[1] = gko::precision_reduction(0, 0);
-    }
+    {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<typename Bj::Factory> bj_factory;
-    gko::Array<index_type> block_pointers;
-    gko::Array<gko::precision_reduction> block_precisions;
+    std::unique_ptr<typename Schwarz::Factory> schwarz_factory;
     std::shared_ptr<gko::matrix::Csr<value_type, index_type>> mtx;
 };
 
@@ -79,148 +70,15 @@ TYPED_TEST_SUITE(SchwarzFactory, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(SchwarzFactory, KnowsItsExecutor)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    ASSERT_EQ(this->bj_factory->get_executor(), this->exec);
-//}
+{
+    ASSERT_EQ(this->schwarz_factory->get_executor(), this->exec);
+}
 
 
-TYPED_TEST(SchwarzFactory, SavesMaximumBlockSize)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    ASSERT_EQ(this->bj_factory->get_parameters().max_block_size, 3);
-//}
-
-
-TYPED_TEST(SchwarzFactory, CanSetBlockPointers)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    using Bj = typename TestFixture::Bj;
-//    auto bj_factory = Bj::build()
-//                          .with_max_block_size(3u)
-//                          .with_block_pointers(this->block_pointers)
-//                          .on(this->exec);
-//
-//    auto ptrs = bj_factory->get_parameters().block_pointers;
-//    EXPECT_EQ(ptrs.get_data()[0], 2);
-//    EXPECT_EQ(ptrs.get_data()[1], 3);
-//}
-
-
-TYPED_TEST(SchwarzFactory, CanMoveBlockPointers)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    using Bj = typename TestFixture::Bj;
-//    auto bj_factory = Bj::build()
-//                          .with_max_block_size(3u)
-//                          .with_block_pointers(std::move(this->block_pointers))
-//                          .on(this->exec);
-//
-//    auto ptrs = bj_factory->get_parameters().block_pointers;
-//    EXPECT_EQ(ptrs.get_data()[0], 2);
-//    EXPECT_EQ(ptrs.get_data()[1], 3);
-//}
-
-
-TYPED_TEST(SchwarzFactory, CanSetBlockPrecisions)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    using Bj = typename TestFixture::Bj;
-//    auto bj_factory = Bj::build()
-//                          .with_max_block_size(3u)
-//                          .with_storage_optimization(this->block_precisions)
-//                          .on(this->exec);
-//
-//    auto prec = bj_factory->get_parameters().storage_optimization.block_wise;
-//    EXPECT_EQ(prec.get_data()[0], gko::precision_reduction(0, 1));
-//    EXPECT_EQ(prec.get_data()[1], gko::precision_reduction(0, 0));
-//}
-
-
-TYPED_TEST(SchwarzFactory, CanMoveBlockPrecisions)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    using Bj = typename TestFixture::Bj;
-//    auto bj_factory =
-//        Bj::build()
-//            .with_max_block_size(3u)
-//            .with_storage_optimization(std::move(this->block_precisions))
-//            .on(this->exec);
-//
-//    auto prec = bj_factory->get_parameters().storage_optimization.block_wise;
-//    EXPECT_EQ(prec.get_data()[0], gko::precision_reduction(0, 1));
-//    EXPECT_EQ(prec.get_data()[1], gko::precision_reduction(0, 0));
-//}
-
-
-template <typename T>
-class BlockInterleavedStorageScheme : public ::testing::Test {
-protected:
-    using index_type = T;
-    // groups of 4 blocks, offset of 3 within the group and 16 between groups
-    gko::preconditioner::block_interleaved_storage_scheme<index_type> s{3, 16,
-                                                                        2};
-};
-
-TYPED_TEST_SUITE(BlockInterleavedStorageScheme, gko::test::IndexTypes);
-
-
-TYPED_TEST(BlockInterleavedStorageScheme, ComputesStorageSpace)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    ASSERT_EQ(this->s.compute_storage_space(10),
-//              16 * 3);  // 3 groups of 16 elements
-//}
-
-
-TYPED_TEST(BlockInterleavedStorageScheme, ComputesGroupOffset)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    ASSERT_EQ(this->s.get_group_offset(17), 16 * 4);  // 5th group
-//}
-
-
-TYPED_TEST(BlockInterleavedStorageScheme, ComputesBlockOffset)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    ASSERT_EQ(this->s.get_block_offset(17), 1 * 3);  // 2nd in group
-//}
-
-
-TYPED_TEST(BlockInterleavedStorageScheme, ComputesGlobalBlockOffset)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    ASSERT_EQ(this->s.get_global_block_offset(17), 16 * 4 + 1 * 3);
-//}
-
-
-TYPED_TEST(BlockInterleavedStorageScheme, ComputesStride)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:schwarz): change the code imported from preconditioner/jacobi if
-// needed
-//    ASSERT_EQ(this->s.get_stride(), 4 * 3);  // 4 offsets of 3
-//}
+TYPED_TEST(SchwarzFactory, KnowsNumSubdomains)
+{
+    ASSERT_EQ(this->schwarz_factory->get_parameters().num_subdomains, 3);
+}
 
 
 }  // namespace
