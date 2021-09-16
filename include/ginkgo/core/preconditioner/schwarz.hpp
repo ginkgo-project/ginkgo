@@ -145,6 +145,18 @@ public:
          * incorrect.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
+
+        /**
+         * Inner solver factory.
+         */
+        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+            inner_solver, nullptr);
+
+        /**
+         * Generated Inner solvers.
+         */
+        std::vector<std::shared_ptr<const LinOp>> GKO_FACTORY_PARAMETER_VECTOR(
+            generated_inner_solvers, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -194,6 +206,8 @@ protected:
 
 private:
     size_type num_subdomains_;
+    std::vector<std::shared_ptr<LinOp>> subdomain_matrices_;
+    std::vector<std::shared_ptr<LinOp>> subdomain_solvers_;
 };
 
 

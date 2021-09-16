@@ -67,46 +67,65 @@ GKO_REGISTER_OPERATION(apply, schwarz::apply);
 
 template <typename ValueType, typename IndexType>
 void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
-    GKO_NOT_IMPLEMENTED;
-//{
-//    precision_dispatch_real_complex<ValueType>(
-//        [this](auto dense_b, auto dense_x) {
-//            if (parameters_.max_block_size == 1) {
-//                this->get_executor()->run(schwarz::make_simple_scalar_apply(
-//                    this->blocks_, dense_b, dense_x));
-//            } else {
-//                this->get_executor()->run(schwarz::make_simple_apply(
-//                    num_blocks_, parameters_.max_block_size, storage_scheme_,
-//                    parameters_.storage_optimization.block_wise,
-//                    parameters_.block_pointers, blocks_, dense_b, dense_x));
-//            }
-//        },
-//        b, x);
-//}
+{
+    precision_dispatch_real_complex<ValueType>(
+        [this](const auto dense_b, auto dense_x) {
+            size_type offset = 0;
+            size_type num_rows_per_subd =
+                dense_b->get_size()[0] / this->num_subdomains_;
+            size_type l_num_rows = 0;
+            // TODO Replace with BlockApprox
+            for (size_type i = 0; i < this->num_subdomains_; ++i) {
+                if (i != this->num_subdomains_ - 1) {
+                    l_num_rows = num_rows_per_subd;
+                } else {
+                    l_num_rows =
+                        dense_b->get_size()[0] - (i * num_rows_per_subd);
+                }
+                auto rspan = gko::span(offset, offset + l_num_rows);
+                const auto b_view = dense_b->create_submatrix(
+                    rspan, gko::span(0, dense_b->get_size()[1]));
+                auto x_view = dense_x->create_submatrix(
+                    rspan, gko::span(0, dense_x->get_size()[1]));
+                this->subdomain_solvers_[i]->apply(b_view.get(), x_view.get());
+            }
+        },
+        b, x);
+}
 
 
 template <typename ValueType, typename IndexType>
-void Schwarz<ValueType, IndexType>::apply_impl(
-    const LinOp* alpha, const LinOp* b, const LinOp* beta,
-    LinOp* x) const GKO_NOT_IMPLEMENTED;
-//{
-//    precision_dispatch_real_complex<ValueType>(
-//        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x)
-//        {
-//            if (parameters_.max_block_size == 1) {
-//                this->get_executor()->run(schwarz::make_scalar_apply(
-//                    this->blocks_, dense_alpha, dense_b, dense_beta,
-//                    dense_x));
-//            } else {
-//                this->get_executor()->run(schwarz::make_apply(
-//                    num_blocks_, parameters_.max_block_size, storage_scheme_,
-//                    parameters_.storage_optimization.block_wise,
-//                    parameters_.block_pointers, blocks_, dense_alpha, dense_b,
-//                    dense_beta, dense_x));
-//            }
-//        },
-//        alpha, b, beta, x);
-//}
+void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* alpha,
+                                               const LinOp* b,
+                                               const LinOp* beta,
+                                               LinOp* x) const
+{
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, const auto dense_b, auto dense_beta,
+               auto dense_x) {
+            size_type offset = 0;
+            size_type num_rows_per_subd =
+                dense_b->get_size()[0] / this->num_subdomains_;
+            size_type l_num_rows = 0;
+            // TODO Replace with BlockApprox
+            for (size_type i = 0; i < this->num_subdomains_; ++i) {
+                if (i != this->num_subdomains_ - 1) {
+                    l_num_rows = num_rows_per_subd;
+                } else {
+                    l_num_rows =
+                        dense_b->get_size()[0] - (i * num_rows_per_subd);
+                }
+                auto rspan = gko::span(offset, offset + l_num_rows);
+                const auto b_view = dense_b->create_submatrix(
+                    rspan, gko::span(0, dense_b->get_size()[1]));
+                auto x_view = dense_x->create_submatrix(
+                    rspan, gko::span(0, dense_x->get_size()[1]));
+                this->subdomain_solvers_[i]->apply(dense_alpha, b_view.get(),
+                                                   dense_beta, x_view.get());
+            }
+        },
+        alpha, b, beta, x);
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -125,8 +144,43 @@ std::unique_ptr<LinOp> Schwarz<ValueType, IndexType>::conj_transpose() const
 
 
 template <typename ValueType, typename IndexType>
-void Schwarz<ValueType, IndexType>::generate(
-    const LinOp* system_matrix, bool skip_sorting) GKO_NOT_IMPLEMENTED;
+void Schwarz<ValueType, IndexType>::generate(const LinOp* system_matrix,
+                                             bool skip_sorting)
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
+    using csr_type = matrix::Csr<ValueType, IndexType>;
+    const auto exec = this->get_executor();
+    auto csr_mtx =
+        convert_to_with_sorting<csr_type>(exec, system_matrix, skip_sorting);
+    size_type offset = 0;
+    size_type num_rows_per_subd =
+        system_matrix->get_size()[0] / num_subdomains_;
+    size_type l_num_rows = 0;
+    // TODO Replace with BlockApprox
+    for (size_type i = 0; i < num_subdomains_; ++i) {
+        if (i != num_subdomains_ - 1) {
+            l_num_rows = num_rows_per_subd;
+        } else {
+            l_num_rows = system_matrix->get_size()[0] - (i * num_rows_per_subd);
+        }
+        auto rspan = gko::span(offset, offset + l_num_rows);
+        auto cspan = gko::span(offset, offset + l_num_rows);
+        subdomain_matrices_.emplace_back(
+            gko::share(csr_mtx->create_submatrix(rspan, cspan)));
+        offset += l_num_rows;
+    }
+    if (parameters_.generated_inner_solvers.size() > 0) {
+        GKO_ASSERT(parameters_.generated_inner_solvers.size() ==
+                   num_subdomains_);
+    } else if (parameters_.inner_solver) {
+        for (size_type i = 0; i < num_subdomains_; ++i) {
+            subdomain_solvers_.emplace_back(
+                parameters_.inner_solver->generate(subdomain_matrices_[i]));
+        }
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
 
 
 #define GKO_DECLARE_SCHWARZ(ValueType, IndexType) \
