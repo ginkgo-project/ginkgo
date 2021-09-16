@@ -186,8 +186,8 @@ void Fft::apply_impl(const LinOp* b, LinOp* x) const
         auto dense_x = as<Dense<std::complex<float>>>(x);
         get_executor()->run(fft::make_fft(float_b, dense_x, inverse_, buffer_));
     } else {
-        auto dense_b = as<Dense<value_type>>(b);
-        auto dense_x = as<Dense<value_type>>(x);
+        auto dense_b = as<Dense<std::complex<double>>>(b);
+        auto dense_x = as<Dense<std::complex<double>>>(x);
         get_executor()->run(fft::make_fft(dense_b, dense_x, inverse_, buffer_));
     }
 }
@@ -202,7 +202,7 @@ void Fft::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
         float_x->scale(beta);
         float_x->add_scaled(alpha, lend(clone_x));
     } else {
-        auto dense_x = as<Dense<value_type>>(x);
+        auto dense_x = as<Dense<std::complex<double>>>(x);
         auto clone_x = x->clone();
         this->apply_impl(b, lend(clone_x));
         dense_x->scale(beta);
@@ -262,8 +262,8 @@ void Fft2::apply_impl(const LinOp* b, LinOp* x) const
         get_executor()->run(fft::make_fft2(float_b, dense_x, fft_size_[0],
                                            fft_size_[1], inverse_, buffer_));
     } else {
-        auto dense_b = as<Dense<value_type>>(b);
-        auto dense_x = as<Dense<value_type>>(x);
+        auto dense_b = as<Dense<std::complex<double>>>(b);
+        auto dense_x = as<Dense<std::complex<double>>>(x);
         get_executor()->run(fft::make_fft2(dense_b, dense_x, fft_size_[0],
                                            fft_size_[1], inverse_, buffer_));
     }
@@ -279,7 +279,7 @@ void Fft2::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
         float_x->scale(beta);
         float_x->add_scaled(alpha, lend(clone_x));
     } else {
-        auto dense_x = as<Dense<value_type>>(x);
+        auto dense_x = as<Dense<std::complex<double>>>(x);
         auto clone_x = x->clone();
         this->apply_impl(b, lend(clone_x));
         dense_x->scale(beta);
@@ -344,8 +344,8 @@ void Fft3::apply_impl(const LinOp* b, LinOp* x) const
                                            fft_size_[1], fft_size_[2], inverse_,
                                            buffer_));
     } else {
-        auto dense_b = as<Dense<value_type>>(b);
-        auto dense_x = as<Dense<value_type>>(x);
+        auto dense_b = as<Dense<std::complex<double>>>(b);
+        auto dense_x = as<Dense<std::complex<double>>>(x);
         get_executor()->run(fft::make_fft3(dense_b, dense_x, fft_size_[0],
                                            fft_size_[1], fft_size_[2], inverse_,
                                            buffer_));
@@ -362,7 +362,7 @@ void Fft3::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
         float_x->scale(beta);
         float_x->add_scaled(alpha, lend(clone_x));
     } else {
-        auto dense_x = as<Dense<value_type>>(x);
+        auto dense_x = as<Dense<std::complex<double>>>(x);
         auto clone_x = x->clone();
         this->apply_impl(b, lend(clone_x));
         dense_x->scale(beta);

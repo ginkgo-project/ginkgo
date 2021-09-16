@@ -59,28 +59,8 @@ template <typename InValueType, typename OutValueType>
 struct cufft_type_impl {};
 
 template <>
-struct cufft_type_impl<float, std::complex<float>> {
-    constexpr static auto value = CUFFT_R2C;
-};
-
-template <>
-struct cufft_type_impl<std::complex<float>, float> {
-    constexpr static auto value = CUFFT_C2R;
-};
-
-template <>
 struct cufft_type_impl<std::complex<float>, std::complex<float>> {
     constexpr static auto value = CUFFT_C2C;
-};
-
-template <>
-struct cufft_type_impl<double, std::complex<double>> {
-    constexpr static auto value = CUFFT_D2Z;
-};
-
-template <>
-struct cufft_type_impl<std::complex<double>, double> {
-    constexpr static auto value = CUFFT_Z2D;
 };
 
 template <>
@@ -108,21 +88,21 @@ public:
     }
 
     template <int d, typename InValueType, typename OutValueType>
-    void setup(std::array<size_type, d> n, size_type in_batch_stride,
+    void setup(std::array<size_type, d> fft_size, size_type in_batch_stride,
                size_type out_batch_stride, size_type batch_count,
                Array<char>& work_area)
     {
         static_assert(d == 1 || d == 2 || d == 3,
                       "Only 1D, 2D or 3D FFT supported");
-        std::array<long long, d> cast_n;
+        std::array<long long, d> cast_fft_size;
         for (int i = 0; i < d; i++) {
-            cast_n[i] = static_cast<long long>(n[i]);
+            cast_fft_size[i] = static_cast<long long>(fft_size[i]);
         }
         size_type work_size{};
         GKO_ASSERT_NO_CUFFT_ERRORS(cufftSetAutoAllocation(*handle_, false));
         GKO_ASSERT_NO_CUFFT_ERRORS(cufftMakePlanMany64(
-            *handle_, d, cast_n.data(), cast_n.data(),
-            static_cast<int64>(in_batch_stride), 1, cast_n.data(),
+            *handle_, d, cast_fft_size.data(), cast_fft_size.data(),
+            static_cast<int64>(in_batch_stride), 1, cast_fft_size.data(),
             static_cast<int64>(out_batch_stride), 1,
             cufft_type_impl<InValueType, OutValueType>::value,
             static_cast<int64>(batch_count), &work_size));
@@ -150,38 +130,6 @@ public:
                          reinterpret_cast<const cufftDoubleComplex*>(in)),
                      reinterpret_cast<cufftDoubleComplex*>(out),
                      inverse ? CUFFT_INVERSE : CUFFT_FORWARD);
-    }
-
-    void execute(const float* in, std::complex<float>* out)
-    {
-        cufftExecR2C(
-            *handle_,
-            const_cast<cufftReal*>(reinterpret_cast<const cufftReal*>(in)),
-            reinterpret_cast<cufftComplex*>(out));
-    }
-
-    void execute(const double* in, std::complex<double>* out)
-    {
-        cufftExecD2Z(*handle_,
-                     const_cast<cufftDoubleReal*>(
-                         reinterpret_cast<const cufftDoubleReal*>(in)),
-                     reinterpret_cast<cufftDoubleComplex*>(out));
-    }
-
-    void execute(const std::complex<float>* in, float* out, bool inverse)
-    {
-        cufftExecC2R(*handle_,
-                     const_cast<cufftComplex*>(
-                         reinterpret_cast<const cufftComplex*>(in)),
-                     reinterpret_cast<cufftReal*>(out));
-    }
-
-    void execute(const std::complex<double>* in, double* out, bool inverse)
-    {
-        cufftExecZ2D(*handle_,
-                     const_cast<cufftDoubleComplex*>(
-                         reinterpret_cast<const cufftDoubleComplex*>(in)),
-                     reinterpret_cast<cufftDoubleReal*>(out));
     }
 
 private:
