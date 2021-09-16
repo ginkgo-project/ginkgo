@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 #include "core/base/mixed_precision_types.hpp"
@@ -90,7 +91,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_STUB_NON_COMPLEX_VALUE_TYPE(_macro)          \
     template <typename ValueType>                        \
     _macro(ValueType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro)
 
 #define GKO_STUB_VALUE_TYPE(_macro)                      \
     template <typename ValueType>                        \
