@@ -947,7 +947,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T pi()
  * Returns the value of exp(2 * pi * i * k / n), i.e. an nth root of unity.
  *
  * @param n  the denominator of the argument
- * @param i  the numerator of the argument. Defaults to 1.
+ * @param k  the numerator of the argument. Defaults to 1.
  *
  * @tparam T  the corresponding real value type.
  */

@@ -51,7 +51,9 @@ namespace matrix {
  * $\omega = e^{-2\pi i / n}$ for forward DFT and $\omega = e^{2 \pi i / n}$
  * for inverse DFT it computes
  *
- *     $$ x_k = \sum_{j=0}^{n-1} \omega^{jk} b_j $$
+ * \f[
+ *     x_k = \sum_{j=0}^{n-1} \omega^{jk} b_j
+ * \f]
  *
  * without normalization factors.
  *
@@ -144,8 +146,10 @@ private:
  * $\omega = e^{-2\pi i / (n_1 n_2)}$ for forward DFT and
  * $\omega = e^{2 \pi i / (n_1 n_2)}$ for inverse DFT it computes
  *
- *     $$ x_{k_1 n_2 + k_2} = \sum_{i_1=0}^{n_1-1} \sum_{i_2=0}^{n_2-1}
- *                           \omega^{i_1 k_1 + i_2 k_2} b_{i_1 n_2 + i_2} $$
+ * \f[
+ *     x_{k_1 n_2 + k_2} = \sum_{i_1=0}^{n_1-1} \sum_{i_2=0}^{n_2-1}
+ *                           \omega^{i_1 k_1 + i_2 k_2} b_{i_1 n_2 + i_2}
+ * \f]
  *
  * without normalization factors.
  *
@@ -252,10 +256,12 @@ private:
  * $\omega = e^{-2\pi i / (n_1 n_2 n_3)}$ for forward DFT and
  * $\omega = e^{2 \pi i / (n_1 n_2 n_3)}$ for inverse DFT it computes
  *
- *     $$ x_{k_1 n_2 n_3 + k_2 n_3 + k_3} = \sum_{i_1=0}^{n_1-1}
+ * \f[
+ *     x_{k_1 n_2 n_3 + k_2 n_3 + k_3} = \sum_{i_1=0}^{n_1-1}
  *                     \sum_{i_2=0}^{n_2-1} \sum_{i_3=0}^{n_3-1}
  *                     \omega^{i_1 k_1 + i_2 k_2 + i_3 k_3}
- *                     b_{i_1 n_2 n_3 + i_2 n_3 + i_3} $$
+ *                     b_{i_1 n_2 n_3 + i_2 n_3 + i_3}
+ * \f]
  *
  * without normalization factors.
  *

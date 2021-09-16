@@ -55,32 +55,9 @@ namespace hip {
 namespace fft {
 
 
-template <typename InValueType, typename OutValueType>
-struct hipfft_type_impl {};
-
-template <>
-struct hipfft_type_impl<float, std::complex<float>> {
-    constexpr static auto value = HIPFFT_R2C;
-};
-
-template <>
-struct hipfft_type_impl<std::complex<float>, float> {
-    constexpr static auto value = HIPFFT_C2R;
-};
-
 template <>
 struct hipfft_type_impl<std::complex<float>, std::complex<float>> {
     constexpr static auto value = HIPFFT_C2C;
-};
-
-template <>
-struct hipfft_type_impl<double, std::complex<double>> {
-    constexpr static auto value = HIPFFT_D2Z;
-};
-
-template <>
-struct hipfft_type_impl<std::complex<double>, double> {
-    constexpr static auto value = HIPFFT_Z2D;
 };
 
 template <>
@@ -108,25 +85,25 @@ public:
     }
 
     template <int d, typename InValueType, typename OutValueType>
-    void setup(std::array<size_type, d> n, size_type in_batch_stride,
+    void setup(std::array<size_type, d> fft_size, size_type in_batch_stride,
                size_type out_batch_stride, size_type batch_count,
                Array<char>& work_area)
     {
         static_assert(d == 1 || d == 2 || d == 3,
                       "Only 1D, 2D or 3D FFT supported");
-        std::array<int, d> cast_n;
+        std::array<int, d> cast_fft_size;
         for (int i = 0; i < d; i++) {
             // hipFFT only has 32bit index support
-            if (n[i] > std::numeric_limits<int>::max()) {
+            if (fft_size[i] > std::numeric_limits<int>::max()) {
                 GKO_NOT_IMPLEMENTED;
             }
-            cast_n[i] = static_cast<int>(n[i]);
+            cast_fft_size[i] = static_cast<int>(fft_size[i]);
         }
         size_type work_size{};
         GKO_ASSERT_NO_HIPFFT_ERRORS(hipfftSetAutoAllocation(*handle_, false));
         GKO_ASSERT_NO_HIPFFT_ERRORS(hipfftMakePlanMany(
-            *handle_, d, cast_n.data(), cast_n.data(),
-            static_cast<int64>(in_batch_stride), 1, cast_n.data(),
+            *handle_, d, cast_fft_size.data(), cast_fft_size.data(),
+            static_cast<int64>(in_batch_stride), 1, cast_fft_size.data(),
             static_cast<int64>(out_batch_stride), 1,
             hipfft_type_impl<InValueType, OutValueType>::value,
             static_cast<int64>(batch_count), &work_size));
@@ -154,38 +131,6 @@ public:
                           reinterpret_cast<const hipfftDoubleComplex*>(in)),
                       reinterpret_cast<hipfftDoubleComplex*>(out),
                       inverse ? HIPFFT_BACKWARD : HIPFFT_FORWARD);
-    }
-
-    void execute(const float* in, std::complex<float>* out)
-    {
-        hipfftExecR2C(
-            *handle_,
-            const_cast<hipfftReal*>(reinterpret_cast<const hipfftReal*>(in)),
-            reinterpret_cast<hipfftComplex*>(out));
-    }
-
-    void execute(const double* in, std::complex<double>* out)
-    {
-        hipfftExecD2Z(*handle_,
-                      const_cast<hipfftDoubleReal*>(
-                          reinterpret_cast<const hipfftDoubleReal*>(in)),
-                      reinterpret_cast<hipfftDoubleComplex*>(out));
-    }
-
-    void execute(const std::complex<float>* in, float* out, bool inverse)
-    {
-        hipfftExecC2R(*handle_,
-                      const_cast<hipfftComplex*>(
-                          reinterpret_cast<const hipfftComplex*>(in)),
-                      reinterpret_cast<hipfftReal*>(out));
-    }
-
-    void execute(const std::complex<double>* in, double* out, bool inverse)
-    {
-        hipfftExecZ2D(*handle_,
-                      const_cast<hipfftDoubleComplex*>(
-                          reinterpret_cast<const hipfftDoubleComplex*>(in)),
-                      reinterpret_cast<hipfftDoubleReal*>(out));
     }
 
 private:

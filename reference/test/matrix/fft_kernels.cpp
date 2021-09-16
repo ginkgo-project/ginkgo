@@ -62,7 +62,8 @@ protected:
     using Mtx2 = gko::matrix::Fft2;
     using Mtx3 = gko::matrix::Fft3;
 
-    value_type root(gko::size_type n, gko::size_type i, gko::size_type j)
+    static value_type fourier_coef(gko::size_type n, gko::size_type i,
+                                   gko::size_type j)
     {
         return gko::unit_root<value_type>(static_cast<int>(n),
                                           -static_cast<int>((i * j) % n));
@@ -103,7 +104,7 @@ protected:
                                                            val_dist, rng, exec);
         for (gko::size_type i = 0; i < n; i++) {
             for (gko::size_type j = 0; j < n; j++) {
-                dense_fft->at(i, j) = root(n, i, j);
+                dense_fft->at(i, j) = fourier_coef(n, i, j);
                 dense_ifft->at(i, j) = conj(dense_fft->at(i, j));
             }
         }
@@ -117,8 +118,8 @@ protected:
                     for (gko::size_type j2 = 0; j2 < n3; j2++) {
                         const auto i = idx2(i1, i2);
                         const auto j = idx2(j1, j2);
-                        dense_fft2->at(i, j) =
-                            root(n1 * n2, i1, j1) * root(n3, i2, j2);
+                        dense_fft2->at(i, j) = fourier_coef(n1 * n2, i1, j1) *
+                                               fourier_coef(n3, i2, j2);
                         dense_ifft2->at(i, j) = conj(dense_fft2->at(i, j));
                     }
                 }
@@ -136,9 +137,10 @@ protected:
                             for (gko::size_type j3 = 0; j3 < n3; j3++) {
                                 const auto i = idx3(i1, i2, i3);
                                 const auto j = idx3(j1, j2, j3);
-                                dense_fft3->at(i, j) = root(n1, i1, j1) *
-                                                       root(n2, i2, j2) *
-                                                       root(n3, i3, j3);
+                                dense_fft3->at(i, j) =
+                                    fourier_coef(n1, i1, j1) *
+                                    fourier_coef(n2, i2, j2) *
+                                    fourier_coef(n3, i3, j3);
                                 dense_ifft3->at(i, j) =
                                     conj(dense_fft3->at(i, j));
                             }
