@@ -61,6 +61,7 @@ class Matrix
                public DistributedBase {
     friend class EnableCreateMethod<Matrix>;
     friend class EnablePolymorphicObject<Matrix, LinOp>;
+    friend class Repartitioner<LocalIndexType>;
 
 public:
     using value_type = ValueType;
@@ -70,6 +71,11 @@ public:
     using GlobalVec = Vector<value_type, LocalIndexType>;
     using LocalVec = gko::matrix::Dense<value_type>;
     using LocalMtx = gko::matrix::Csr<value_type, local_index_type>;
+
+    using EnablePolymorphicAssignment<
+        Matrix<ValueType, LocalIndexType>>::convert_to;
+    using EnablePolymorphicAssignment<
+        Matrix<ValueType, LocalIndexType>>::move_to;
 
     void read_distributed(
         const matrix_data<ValueType, global_index_type>& data,
@@ -95,9 +101,7 @@ public:
 
     LocalMtx* get_local_diag() { return &diag_mtx_; }
 
-
     LocalMtx* get_local_offdiag() { return &offdiag_mtx_; }
-
 
     const LocalMtx* get_local_diag() const { return &diag_mtx_; }
 
@@ -120,7 +124,7 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    void write_local(matrix_data<ValueType, global_index_type>& data);
+    void write_local(matrix_data<ValueType, global_index_type>& data) const;
 
 private:
     std::vector<comm_index_type> send_offsets_;

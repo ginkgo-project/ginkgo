@@ -46,6 +46,8 @@ namespace distributed {
 
 template <typename ValueType, typename LocalIndexType>
 class Vector;
+template <typename ValueType, typename LocalIndexType>
+class Matrix;
 
 
 using global_index_type = int64;
@@ -246,6 +248,10 @@ class Repartitioner
     friend class EnablePolymorphicObject<Repartitioner>;
 
 public:
+    template <typename ValueType>
+    void gather(const Matrix<ValueType, LocalIndexType>* from,
+                Matrix<ValueType, LocalIndexType>* to);
+
     template <typename ValueType>
     void gather(const Vector<ValueType, LocalIndexType>* from,
                 Vector<ValueType, LocalIndexType>* to);

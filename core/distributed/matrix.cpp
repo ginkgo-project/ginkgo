@@ -467,7 +467,7 @@ void merge_sorted(FirstIt begin_first, FirstIt end_first, SecondIt begin_second,
 
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::write_local(
-    matrix_data<ValueType, global_index_type>& data)
+    matrix_data<ValueType, global_index_type>& data) const
 {
     using md_local = matrix_data<ValueType, LocalIndexType>;
     using md_global = matrix_data<ValueType, global_index_type>;

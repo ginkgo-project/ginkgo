@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/base/mpi.hpp>
+#include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 
@@ -146,6 +147,21 @@ protected:
                  {4, 0, 4},
                  {5, 0, 5},
                  {6, 0, 6}}},
+          mtx_input{gko::dim<2>{7, 7},
+                    {{0, 1, 1},
+                     {0, 3, 2},
+                     {1, 1, 3},
+                     {1, 2, 4},
+                     {2, 2, 5},
+                     {2, 4, 6},
+                     {3, 1, 7},
+                     {3, 3, 8},
+                     {4, 0, 9},
+                     {4, 4, 10},
+                     {5, 1, 11},
+                     {5, 6, 12},
+                     {6, 5, 13},
+                     {6, 6, 14}}},
           from_vec(Vector::create(ref, from_comm))
     {}
 
@@ -159,6 +175,7 @@ protected:
     std::shared_ptr<Partition> to_part_unordered;
 
     gko::matrix_data<double, gko::distributed::global_index_type> input;
+    gko::matrix_data<double, gko::distributed::global_index_type> mtx_input;
     std::shared_ptr<Vector> from_vec;
 
     std::shared_ptr<gko::distributed::Repartitioner<local_index_type>>
@@ -321,6 +338,34 @@ TYPED_TEST(Repartitioner, GatherScatterIdentity)
 
     GKO_ASSERT_MTX_NEAR(ref_vec->get_local(), from_vec->get_local(), 0);
 }
+
+TYPED_TEST(Repartitioner, GatherMatrix)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    using Partition = typename TestFixture::Partition;
+    using Mtx = gko::distributed::Matrix<double, local_index_type>;
+    auto repartitioner =
+        gko::distributed::Repartitioner<local_index_type>::create(
+            this->ref, this->from_comm, this->from_part, this->to_part);
+    auto to_comm = repartitioner->get_to_communicator();
+    auto from_mat = Mtx::create(this->ref, this->from_comm);
+    from_mat->read_distributed(this->mtx_input, this->from_part);
+    auto result_mat = Mtx::create(this->ref, to_comm);
+    result_mat->read_distributed(this->mtx_input, this->to_part);
+    auto to_mat = Mtx::create(this->ref, to_comm);
+
+    repartitioner->gather(from_mat.get(), to_mat.get());
+
+    if (repartitioner->to_has_data()) {
+        GKO_ASSERT_MTX_NEAR(to_mat->get_local_diag(),
+                            result_mat->get_local_diag(), 0);
+        GKO_ASSERT_MTX_NEAR(to_mat->get_local_offdiag(),
+                            result_mat->get_local_offdiag(), 0);
+    } else {
+        GKO_ASSERT_EQUAL_DIMENSIONS(to_mat->get_size(), gko::dim<2>{});
+    }
+}
+
 
 }  // namespace
 
