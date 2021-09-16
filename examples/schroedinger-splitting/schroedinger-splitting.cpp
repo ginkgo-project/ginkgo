@@ -40,31 +40,38 @@ $
     i \partial_t \theta = -\delta \theta + |\theta|^2 \theta
 $
 
+Here $\theta$ is the wave function of a single particle in two dimensions.
+Its magnitude $|\theta|^2$ describes the probability distribution of the
+particle's position.
+
 This equation can be split in to its linear (1) and non-linear (2) part
 
-$
-    (1) \quad i \partial_t \theta = -\delta \theta\\
-    (2) \quad i \partial_t \theta = |\theta|^2 \theta
-$
+\f{align*}{
+    (1) \quad i \partial_t \theta &= -\delta \theta\\
+    (2) \quad i \partial_t \theta &= |\theta|^2 \theta
+\f}
 
 For both of these equations, we can compute exact solutions, assuming periodic
 boundary conditions and using the Fourier series expansion for (1) and using the
 fact that $| \theta |^2$ is constant in (2):
 
-$
-    (\hat 1) \quad \partial_t \hat\theta_k = -i |k|^2 \theta
-    (2') \quad \partial_t |\theta|^2 = i |\theta|^2 (\theta - \theta) = 0
-$
+\f{align*}{
+    (\hat 1) \quad \quad \partial_t \hat\theta_k &= -i |k|^2 \theta \\
+    (2') \quad \partial_t |\theta|^2 &= i |\theta|^2 (\theta - \theta) = 0
+\f}
 
 The exact solutions are then given by
 
-$
-    (\hat 1) \hat\theta(t) = e^{-i |k|^2 t} \hat\theta(0)\\
-    (2) \theta(t) = e^{i\delta t} \theta(0)
-$
+\f{align*}{
+    (\hat 1) \quad \hat\theta(t) &= e^{-i |k|^2 t} \hat\theta(0)\\
+    (2') \quad \theta(t) &= e^{-i |\theta|^2 t} \theta(0)
+\f}
 
 These partial solutions can be used to approximate a solution to the full NLS
 by alternating between small time steps for (1) and (2).
+
+For nicer visual results, we add another constant potential term V(x) \theta
+to the non-linear part, which turns it into the Gross–Pitaevskii equation.
 
 *****************************<DESCRIPTION>**********************************/
 
@@ -195,7 +202,8 @@ int main(int argc, char* argv[])
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 amplitude->at(idx(i, j)) *= std::polar(
-                    1.0, -(nonlinear_scale * abs(amplitude->at(idx(i, j))) +
+                    1.0, -(nonlinear_scale *
+                               gko::squared_norm(amplitude->at(idx(i, j))) +
                            potential_scale * potential->at(idx(i, j))) *
                              tau * time_scale);
             }
