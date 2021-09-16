@@ -298,35 +298,6 @@ TYPED_TEST(Matrix, ConvertToCsrScatteredRanges)
     }
 }
 
-TYPED_TEST(Matrix, Redistribute_3_2)
-{
-    using value_type = typename TestFixture::value_type;
-    using Partition = typename TestFixture::Partition;
-    auto dist_mat3 = TestFixture::Mtx::create(this->ref, this->comm);
-    dist_mat3->read_distributed(
-        this->mat_input,
-        gko::share(Partition::build_from_mapping(
-            this->ref, gko::Array<comm_index_type>{this->ref, {0, 1, 2, 0, 1}},
-            3)));
-    auto part2 = gko::share(Partition::build_from_mapping(
-        this->ref, gko::Array<comm_index_type>{this->ref, {0, 1, 1, 0, 1}}, 2));
-    auto comm2 = gko::mpi::communicator::create(
-        this->comm->get(), this->comm->rank() < 2, this->comm->rank());
-    auto dist_mat2 = TestFixture::Mtx::create(this->ref, comm2);
-    if (this->comm->rank() < 2) {
-        dist_mat2->read_distributed(this->mat_input, part2);
-    }
-
-    dist_mat3->redistribute(part2);
-
-    if (this->comm->rank() < 2) {
-        GKO_ASSERT_MTX_NEAR(dist_mat3->get_local_diag(),
-                            dist_mat2->get_local_diag(), 0);
-        GKO_ASSERT_MTX_NEAR(dist_mat3->get_local_offdiag(),
-                            dist_mat2->get_local_offdiag(), 0);
-    }
-}
-
 
 }  // namespace
 

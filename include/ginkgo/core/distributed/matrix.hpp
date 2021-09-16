@@ -86,9 +86,6 @@ public:
         dim<2> size,
         std::shared_ptr<const Partition<local_index_type>> partition);
 
-    void redistribute(
-        std::shared_ptr<const Partition<local_index_type>> new_partition);
-
     void validate_data() const override;
 
     void convert_to(
@@ -113,9 +110,9 @@ public:
     }
 
 protected:
-    Matrix(std::shared_ptr<const Executor> exec,
-           std::shared_ptr<mpi::communicator> comm =
-               std::make_shared<mpi::communicator>());
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    std::shared_ptr<mpi::communicator> comm =
+                        std::make_shared<mpi::communicator>());
 
     void communicate(const LocalVec* local_b) const;
 
