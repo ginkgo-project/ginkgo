@@ -30,6 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 
@@ -209,13 +210,64 @@ void Partition<LocalIndexType>::validate_data() const
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION);
 
 
+struct all_to_all_pattern {
+    using comm_vector = std::vector<comm_index_type>;
+    comm_vector send_sizes;
+    comm_vector send_offsets;
+    comm_vector recv_sizes;
+    comm_vector recv_offsets;
+};
+
+
+template <typename LocalIndexType>
+all_to_all_pattern build_communication_pattern(
+    std::shared_ptr<mpi::communicator> from_comm,
+    std::shared_ptr<Partition<LocalIndexType>> from_part,
+    std::shared_ptr<Partition<LocalIndexType>> to_part,
+    global_index_type* indices, size_type n)
+{
+    const auto from_n_parts = from_part->get_num_parts();
+
+    const auto* to_ranges = to_part->get_const_range_bounds();
+    const auto* to_pid = to_part->get_const_part_ids();
+    const auto to_n_ranges = to_part->get_num_ranges();
+
+    using comm_vector = std::vector<comm_index_type>;
+    comm_vector send_sizes(from_n_parts);
+    comm_vector send_offsets(from_n_parts + 1);
+    comm_vector recv_sizes(from_n_parts);
+    comm_vector recv_offsets(from_n_parts + 1);
+
+    auto find_to_range = [&](global_index_type idx) {
+        auto it =
+            std::upper_bound(to_ranges + 1, to_ranges + to_n_ranges + 1, idx);
+        return std::distance(to_ranges + 1, it);
+    };
+
+    for (size_type i = 0; i < n; ++i) {
+        auto to_range = find_to_range(indices[i]);
+        auto recv_pid = to_pid[to_range];
+        send_sizes[recv_pid]++;
+    }
+    std::partial_sum(send_sizes.cbegin(), send_sizes.cend(),
+                     send_offsets.begin() + 1);
+
+    mpi::all_to_all(send_sizes.data(), 1, recv_sizes.data(), 1, from_comm);
+    std::partial_sum(recv_sizes.cbegin(), recv_sizes.cend(),
+                     recv_offsets.begin() + 1);
+
+    return all_to_all_pattern{send_sizes, send_offsets, recv_sizes,
+                              recv_offsets};
+}
+
+
 template <typename LocalIndexType>
 Repartitioner<LocalIndexType>::Repartitioner(
     std::shared_ptr<const Executor> exec,
     std::shared_ptr<mpi::communicator> from_communicator,
     std::shared_ptr<Partition<LocalIndexType>> from_partition,
     std::shared_ptr<Partition<LocalIndexType>> to_partition)
-    : exec_(exec),
+    : exec_(std::move(exec)),
       from_partition_(std::move(from_partition)),
       to_partition_(std::move(to_partition)),
       from_comm_(std::move(from_communicator)),
@@ -226,9 +278,6 @@ Repartitioner<LocalIndexType>::Repartitioner(
     const auto old_n_ranges = from_partition_->get_num_ranges();
     const auto old_n_parts = from_partition_->get_num_parts();
 
-    const auto* new_ranges = to_partition_->get_const_range_bounds();
-    const auto* new_pid = to_partition_->get_const_part_ids();
-    const auto new_n_ranges = to_partition_->get_num_ranges();
     const auto new_n_parts = to_partition_->get_num_parts();
 
     GKO_ASSERT(new_n_parts <= old_n_parts);
@@ -244,36 +293,31 @@ Repartitioner<LocalIndexType>::Repartitioner(
         to_comm_ = from_comm_;
     }
 
-    auto find_new_range = [&](global_index_type idx) {
-        auto it = std::upper_bound(new_ranges + 1,
-                                   new_ranges + new_n_ranges + 1, idx);
-        return std::distance(new_ranges + 1, it);
-    };
-    default_send_sizes_ =
-        std::make_shared<std::vector<comm_index_type>>(old_n_parts);
-    default_send_offsets_ =
-        std::make_shared<std::vector<comm_index_type>>(old_n_parts + 1);
-    for (size_type range_idx = 0; range_idx < old_n_ranges; ++range_idx) {
-        if (old_pid[range_idx] == rank) {
-            for (size_type i = old_ranges[range_idx];
-                 i < old_ranges[range_idx + 1]; ++i) {
-                auto new_range = find_new_range(i);
-                auto recv_pid = new_pid[new_range];
-                (*default_send_sizes_)[recv_pid]++;
+    std::vector<global_index_type> owned_global_idxs(
+        from_partition_->get_part_size(rank));
+    {
+        size_type local_idx = 0;
+        for (size_type range_idx = 0; range_idx < old_n_ranges; ++range_idx) {
+            if (old_pid[range_idx] == rank) {
+                for (global_index_type global_idx = old_ranges[range_idx];
+                     global_idx < old_ranges[range_idx + 1]; ++global_idx) {
+                    owned_global_idxs[local_idx++] = global_idx;
+                }
             }
         }
     }
-    std::partial_sum(default_send_sizes_->cbegin(), default_send_sizes_->cend(),
-                     default_send_offsets_->begin() + 1);
+    auto pattern = build_communication_pattern(
+        from_comm_, from_partition_, to_partition_, owned_global_idxs.data(),
+        owned_global_idxs.size());
 
+    default_send_sizes_ =
+        std::make_shared<std::vector<comm_index_type>>(pattern.send_sizes);
+    default_send_offsets_ =
+        std::make_shared<std::vector<comm_index_type>>(pattern.send_offsets);
     default_recv_sizes_ =
-        std::make_shared<std::vector<comm_index_type>>(old_n_parts);
+        std::make_shared<std::vector<comm_index_type>>(pattern.recv_sizes);
     default_recv_offsets_ =
-        std::make_shared<std::vector<comm_index_type>>(old_n_parts + 1);
-    mpi::all_to_all(default_send_sizes_->data(), 1, default_recv_sizes_->data(),
-                    1, from_comm_);
-    std::partial_sum(default_recv_sizes_->cbegin(), default_recv_sizes_->cend(),
-                     default_recv_offsets_->begin() + 1);
+        std::make_shared<std::vector<comm_index_type>>(pattern.recv_offsets);
 }
 
 template <typename LocalIndexType>
@@ -379,6 +423,73 @@ void Repartitioner<LocalIndexType>::scatter(
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_INSTANTIATE_REPETITIONER_SCATTER_FOR_GIVEN_VALUE_TYPE);
 
+
+template <typename LocalIndexType>
+template <typename ValueType>
+void Repartitioner<LocalIndexType>::gather(
+    const Matrix<ValueType, LocalIndexType>* from,
+    Matrix<ValueType, LocalIndexType>* to)
+{
+    if (*(from->get_communicator()) != *from_comm_ ||
+        *(to->get_communicator()) != *to_comm_) {
+        throw GKO_MPI_ERROR(MPI_ERR_COMM);
+    }
+
+    using md_global = matrix_data<ValueType, global_index_type>;
+    md_global local_data;
+    from->write_local(local_data);
+
+    const auto cur_local_nnz = local_data.nonzeros.size();
+    std::vector<global_index_type> send_rows(cur_local_nnz);
+    std::vector<global_index_type> send_cols(cur_local_nnz);
+    std::vector<ValueType> send_values(cur_local_nnz);
+    unpack_nonzeros(local_data.nonzeros.data(), local_data.nonzeros.size(),
+                    send_rows.data(), send_cols.data(), send_values.data());
+
+    auto pattern =
+        build_communication_pattern(from_comm_, from_partition_, to_partition_,
+                                    send_rows.data(), send_rows.size());
+
+    const auto new_local_nnz = pattern.recv_offsets.back();
+    std::vector<global_index_type> recv_rows(new_local_nnz);
+    std::vector<global_index_type> recv_cols(new_local_nnz);
+    std::vector<ValueType> recv_values(new_local_nnz);
+
+    auto communicate = [&](const auto* send_buffer, auto* recv_buffer) {
+        mpi::all_to_all(send_buffer, pattern.send_sizes.data(),
+                        pattern.send_offsets.data(), recv_buffer,
+                        pattern.recv_sizes.data(), pattern.recv_offsets.data(),
+                        1, from_comm_);
+    };
+    communicate(send_rows.data(), recv_rows.data());
+    communicate(send_cols.data(), recv_cols.data());
+    communicate(send_values.data(), recv_values.data());
+
+
+    md_global new_local_data(from->get_size());
+    new_local_data.nonzeros.resize(new_local_nnz);
+    pack_nonzeros(recv_rows.data(), recv_cols.data(), recv_values.data(),
+                  new_local_nnz, new_local_data.nonzeros.data());
+    new_local_data.ensure_row_major_order();
+
+    auto tmp =
+        Matrix<ValueType, LocalIndexType>::create(to->get_executor(), to_comm_);
+    if (to_has_data_) {
+        tmp->read_distributed(new_local_data, to_partition_);
+    }
+    tmp->move_to(to);
+}
+
+#define GKO_DECLARE_REPETITIONER_GATHER_MATRIX(_value_type, _index_type) \
+    void Repartitioner<_index_type>::gather<_value_type>(                \
+        const Matrix<_value_type, _index_type>* to,                      \
+        Matrix<_value_type, _index_type>* from)
+#define GKO_INSTANTIATE_REPETITIONER_GATHER_MATRIX_FOR_GIVEN_VALUE_TYPE( \
+    _value_type)                                                         \
+    GKO_DECLARE_REPETITIONER_GATHER_MATRIX(_value_type, int32);          \
+    template GKO_DECLARE_REPETITIONER_GATHER_MATRIX(_value_type, int64)
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_INSTANTIATE_REPETITIONER_GATHER_MATRIX_FOR_GIVEN_VALUE_TYPE);
 
 #define GKO_DECLARE_REPARTITIONER(_type) class Repartitioner<_type>
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_REPARTITIONER);
