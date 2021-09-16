@@ -131,6 +131,27 @@ Partition<LocalIndexType>::build_from_local_range(
 
 
 template <typename LocalIndexType>
+std::unique_ptr<Partition<LocalIndexType>>
+Partition<LocalIndexType>::build_uniformly(std::shared_ptr<const Executor> exec,
+                                           comm_index_type num_parts,
+                                           global_index_type global_size)
+{
+    global_index_type size_per_part = global_size / num_parts;
+    global_index_type rest = global_size - (num_parts * size_per_part);
+
+    Array<global_index_type> ranges(exec->get_master(), num_parts + 1);
+    ranges.get_data()[0] = 0;
+    for (comm_index_type pid = 0; pid < num_parts; ++pid) {
+        ranges.get_data()[pid + 1] =
+            ranges.get_data()[pid] + size_per_part + (rest-- > 0);
+    }
+    ranges.set_executor(exec);
+
+    return Partition<LocalIndexType>::build_from_contiguous(exec, ranges);
+}
+
+
+template <typename LocalIndexType>
 void Partition<LocalIndexType>::compute_range_ranks()
 {
     auto exec = offsets_.get_executor();

@@ -211,6 +211,10 @@ public:
         local_index_type local_end,
         std::shared_ptr<const mpi::communicator> comm);
 
+    static std::unique_ptr<Partition> build_uniformly(
+        std::shared_ptr<const Executor> exec, comm_index_type num_parts,
+        global_index_type global_size);
+
     /**
      * Creates a partition stored on the given executor with the given number of
      * consecutive ranges and parts.
@@ -284,6 +288,11 @@ protected:
                   std::shared_ptr<mpi::communicator> from_communicator,
                   std::shared_ptr<Partition<LocalIndexType>> from_partition,
                   std::shared_ptr<Partition<LocalIndexType>> to_partition);
+
+    Repartitioner(std::shared_ptr<const Executor> exec,
+                  std::shared_ptr<mpi::communicator> from_communicator,
+                  std::shared_ptr<Partition<LocalIndexType>> from_partition,
+                  comm_index_type num_to_parts);
 
 private:
     std::shared_ptr<const Executor> exec_;

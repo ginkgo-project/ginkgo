@@ -110,6 +110,36 @@ TYPED_TEST(Partition, ThrowsBuildFromUnsortedLocalRanges)
 }
 
 
+TYPED_TEST(Partition, BuildsUniformly)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+
+    auto part = gko::distributed::Partition<local_index_type>::build_uniformly(
+        this->ref, 4, 12);
+
+    ASSERT_TRUE(is_ordered(part.get()));
+    for (int i = 0; i < 4; ++i) {
+        ASSERT_EQ(part->get_part_size(i), 3);
+    }
+}
+
+
+TYPED_TEST(Partition, BuildsUniformlyOddSize)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+
+    auto part = gko::distributed::Partition<local_index_type>::build_uniformly(
+        this->ref, 5, 17);
+
+    ASSERT_TRUE(is_ordered(part.get()));
+    for (int i = 0; i < 2; ++i) {
+        ASSERT_EQ(part->get_part_size(i), 4);
+    }
+    for (int i = 2; i < 5; ++i) {
+        ASSERT_EQ(part->get_part_size(i), 3);
+    }
+}
+
 template <typename LocalIndexType>
 class Repartitioner : public ::testing::Test {
 protected:
