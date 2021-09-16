@@ -284,12 +284,10 @@ all_to_all_pattern build_communication_pattern(
 
 template <typename LocalIndexType>
 Repartitioner<LocalIndexType>::Repartitioner(
-    std::shared_ptr<const Executor> exec,
     std::shared_ptr<mpi::communicator> from_communicator,
     std::shared_ptr<Partition<LocalIndexType>> from_partition,
     std::shared_ptr<Partition<LocalIndexType>> to_partition)
-    : exec_(std::move(exec)),
-      from_partition_(std::move(from_partition)),
+    : from_partition_(std::move(from_partition)),
       to_partition_(std::move(to_partition)),
       from_comm_(std::move(from_communicator)),
       to_has_data_(false)
@@ -347,20 +345,14 @@ void Repartitioner<LocalIndexType>::gather(
     const Vector<ValueType, LocalIndexType>* from,
     Vector<ValueType, LocalIndexType>* to)
 {
-    if (*(from->get_communicator()) != *from_comm_ ||
-        *(to->get_communicator()) != *to_comm_) {
+    if (*(from->get_communicator()) != *from_comm_) {
         throw GKO_MPI_ERROR(MPI_ERR_COMM);
     }
     // Todo: figure out if necessary to test parts for equality
 
-    if (!is_ordered(from_partition_.get()) ||
-        !is_ordered(to_partition_.get())) {
+    if (!is_ordered(from_partition_.get())) {
         GKO_NOT_IMPLEMENTED;
     }
-
-    const auto* send_buffer = from->get_local()->get_const_values();
-    auto* recv_buffer = to->get_local()->get_values();
-
     std::shared_ptr<std::vector<comm_index_type>> send_sizes;
     std::shared_ptr<std::vector<comm_index_type>> send_offsets;
     std::shared_ptr<std::vector<comm_index_type>> recv_sizes;
@@ -375,13 +367,22 @@ void Repartitioner<LocalIndexType>::gather(
         GKO_NOT_IMPLEMENTED;
     }
 
+    auto tmp = Vector<ValueType, LocalIndexType>::create(
+        to->get_executor(), to_comm_, to_partition_, from->get_size(),
+        gko::dim<2>{static_cast<size_type>(recv_offsets->back()), 1});
+
+    const auto* send_buffer = from->get_local()->get_const_values();
+    auto* recv_buffer = tmp->get_local()->get_values();
+
     mpi::all_to_all(send_buffer, send_sizes->data(), send_offsets->data(),
                     recv_buffer, recv_sizes->data(), recv_offsets->data(), 1,
                     from_comm_);
 
-    if (!to_has_data()) {
+    if (to_has_data()) {
+        tmp->move_to(to);
+    } else {
         *to = *Vector<ValueType, LocalIndexType>::create(
-            to->get_executor(), to->get_communicator(), to->get_partition());
+            to->get_executor(), to_comm_, to_partition_);
     }
 }
 
@@ -402,25 +403,20 @@ void Repartitioner<LocalIndexType>::scatter(
     const Vector<ValueType, LocalIndexType>* to,
     Vector<ValueType, LocalIndexType>* from)
 {
-    if (*(from->get_communicator()) != *from_comm_ ||
-        *(to->get_communicator()) != *to_comm_) {
+    if (*(to->get_communicator()) != *to_comm_) {
         throw GKO_MPI_ERROR(MPI_ERR_COMM);
     }
 
-    if (!is_ordered(from_partition_.get()) ||
-        !is_ordered(to_partition_.get())) {
+    if (!is_ordered(to_partition_.get())) {
         GKO_NOT_IMPLEMENTED;
     }
-
-    const auto* send_buffer = to->get_local()->get_const_values();
-    auto* recv_buffer = from->get_local()->get_values();
 
     std::shared_ptr<std::vector<comm_index_type>> send_sizes;
     std::shared_ptr<std::vector<comm_index_type>> send_offsets;
     std::shared_ptr<std::vector<comm_index_type>> recv_sizes;
     std::shared_ptr<std::vector<comm_index_type>> recv_offsets;
 
-    if (from->get_size()[1] == 1) {
+    if (to->get_size()[1] == 1 || !to_has_data()) {
         send_sizes = default_recv_sizes_;
         send_offsets = default_recv_offsets_;
         recv_sizes = default_send_sizes_;
@@ -429,9 +425,18 @@ void Repartitioner<LocalIndexType>::scatter(
         GKO_NOT_IMPLEMENTED;
     }
 
+    auto tmp = Vector<ValueType, LocalIndexType>::create(
+        from->get_executor(), from_comm_, from_partition_, to->get_size(),
+        gko::dim<2>{static_cast<size_type>(recv_offsets->back()), 1});
+
+    const auto* send_buffer = to->get_local()->get_const_values();
+    auto* recv_buffer = tmp->get_local()->get_values();
+
     mpi::all_to_all(send_buffer, send_sizes->data(), send_offsets->data(),
                     recv_buffer, recv_sizes->data(), recv_offsets->data(), 1,
                     from_comm_);
+
+    tmp->move_to(from);
 }
 
 #define GKO_DECLARE_REPETITIONER_SCATTER(_value_type, _index_type) \

@@ -249,7 +249,6 @@ template <typename LocalIndexType = int32>
 class Repartitioner
     : public EnableSharedCreateMethod<Repartitioner<LocalIndexType>> {
     friend class EnableSharedCreateMethod<Repartitioner>;
-    friend class EnablePolymorphicObject<Repartitioner>;
 
 public:
     template <typename ValueType>
@@ -284,18 +283,11 @@ public:
     bool to_has_data() const { return to_has_data_; }
 
 protected:
-    Repartitioner(std::shared_ptr<const Executor> exec,
-                  std::shared_ptr<mpi::communicator> from_communicator,
+    Repartitioner(std::shared_ptr<mpi::communicator> from_communicator,
                   std::shared_ptr<Partition<LocalIndexType>> from_partition,
                   std::shared_ptr<Partition<LocalIndexType>> to_partition);
 
-    Repartitioner(std::shared_ptr<const Executor> exec,
-                  std::shared_ptr<mpi::communicator> from_communicator,
-                  std::shared_ptr<Partition<LocalIndexType>> from_partition,
-                  comm_index_type num_to_parts);
-
 private:
-    std::shared_ptr<const Executor> exec_;
     std::shared_ptr<Partition<LocalIndexType>> from_partition_;
     std::shared_ptr<Partition<LocalIndexType>> to_partition_;
     std::shared_ptr<mpi::communicator> from_comm_;
