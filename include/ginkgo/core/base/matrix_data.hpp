@@ -565,6 +565,32 @@ using matrix_data_entry =
     typename matrix_data<ValueType, IndexType>::nonzero_type;
 
 
+template <typename ValueType, typename IndexType>
+void unpack_nonzeros(const matrix_data_entry<ValueType, IndexType>* data,
+                     size_type nnz, IndexType* rows, IndexType* cols,
+                     ValueType* values)
+{
+    for (size_type i = 0; i < nnz; ++i) {
+        rows[i] = data[i].row;
+        cols[i] = data[i].column;
+        values[i] = data[i].value;
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void pack_nonzeros(const IndexType* rows, const IndexType* cols,
+                   const ValueType* values, size_type nnz,
+                   matrix_data_entry<ValueType, IndexType>* data)
+{
+    for (size_type i = 0; i < nnz; ++i) {
+        data[i].row = rows[i];
+        data[i].column = cols[i];
+        data[i].value = values[i];
+    }
+}
+
+
 }  // namespace gko
 
 
