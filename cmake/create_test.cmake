@@ -131,6 +131,7 @@ ginkgo_build_test_name(${test_name} test_target_name)
         # Only `exception_helpers` requires these so far, but it's much easier
         # to put these this way.
         ${HIPBLAS_INCLUDE_DIRS}
+        ${HIPFFT_INCLUDE_DIRS}
         ${hiprand_INCLUDE_DIRS}
         ${HIPSPARSE_INCLUDE_DIRS}
         )

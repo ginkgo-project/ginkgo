@@ -28,6 +28,7 @@ set(EXAMPLES_LIST
     par-ilu-convergence
     performance-debugging
     preconditioner-export
+    schroedinger-splitting
     simple-solver-logging)
 
 if(GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP)

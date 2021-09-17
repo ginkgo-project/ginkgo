@@ -1,0 +1,1 @@
+Build an FFT and iFFT LinOp. Use them to implement a splitting method to solve the Schroedinger equation.

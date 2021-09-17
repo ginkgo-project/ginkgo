@@ -167,6 +167,8 @@ imposed by the `HIP` tool suite. The variables are the following:
   `hipBLAS` installation path. The default value is `${ROCM_PATH}/hipblas`.
 + CMake `-DHIPSPARSE_PATH=` or environment `export HIPSPARSE_PATH=`: sets the
   `hipSPARSE` installation path. The default value is `${ROCM_PATH}/hipsparse`.
++ CMake `-DHIPFFT_PATH=` or environment `export HIPFFT_PATH=`: sets the
+  `hipFFT` installation path. The default value is `${ROCM_PATH}/hipfft`.
 + CMake `-DROCRAND_PATH=` or environment `export ROCRAND_PATH=`: sets the
   `rocRAND` installation path. The default value is `${ROCM_PATH}/rocrand`.
 + CMake `-DHIPRAND_PATH=` or environment `export HIPRAND_PATH=`: sets the

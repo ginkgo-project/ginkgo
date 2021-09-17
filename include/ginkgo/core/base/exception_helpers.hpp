@@ -195,6 +195,21 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
 
 
 /**
+ *Asserts that _val is a power of two.
+ *
+ *@throw BadDimension  if _val is not a power of two.
+ */
+#define GKO_ASSERT_IS_POWER_OF_TWO(_val)                                   \
+    do {                                                                   \
+        if (_val == 0 || (_val & (_val - 1)) != 0) {                       \
+            throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_val, \
+                                      _val, _val,                          \
+                                      "expected power-of-two dimension");  \
+        }                                                                  \
+    } while (false)
+
+
+/**
  * Asserts that _op1 can be applied to _op2.
  *
  * @throw DimensionMismatch  if _op1 cannot be applied to _op2.
@@ -320,6 +335,15 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
 
 
 /**
+ * Instantiates a CufftError.
+ *
+ * @param errcode  The error code returned from the cuFFT routine.
+ */
+#define GKO_CUFFT_ERROR(_errcode) \
+    ::gko::CufftError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
  * Asserts that a CUDA library call completed without errors.
  *
  * @param _cuda_call  a library call expression
@@ -376,6 +400,20 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
 
 
 /**
+ * Asserts that a cuFFT library call completed without errors.
+ *
+ * @param _cufft_call  a library call expression
+ */
+#define GKO_ASSERT_NO_CUFFT_ERRORS(_cufft_call) \
+    do {                                        \
+        auto _errcode = _cufft_call;            \
+        if (_errcode != CUFFT_SUCCESS) {        \
+            throw GKO_CUFFT_ERROR(_errcode);    \
+        }                                       \
+    } while (false)
+
+
+/**
  * Instantiates a HipError.
  *
  * @param errcode  The error code returned from a HIP runtime API routine.
@@ -409,6 +447,15 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
  */
 #define GKO_HIPSPARSE_ERROR(_errcode) \
     ::gko::HipsparseError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Instantiates a HipfftError.
+ *
+ * @param errcode  The error code returned from the hipFFT routine.
+ */
+#define GKO_HIPFFT_ERROR(_errcode) \
+    ::gko::HipfftError(__FILE__, __LINE__, __func__, _errcode)
 
 
 /**
@@ -464,6 +511,20 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
         if (_errcode != HIPSPARSE_STATUS_SUCCESS) {     \
             throw GKO_HIPSPARSE_ERROR(_errcode);        \
         }                                               \
+    } while (false)
+
+
+/**
+ * Asserts that a hipFFT library call completed without errors.
+ *
+ * @param _hipfft_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIPFFT_ERRORS(_hipfft_call) \
+    do {                                          \
+        auto _errcode = _hipfft_call;             \
+        if (_errcode != HIPFFT_SUCCESS) {         \
+            throw GKO_HIPFFT_ERROR(_errcode);     \
+        }                                         \
     } while (false)
 
 

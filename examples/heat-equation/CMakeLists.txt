@@ -11,5 +11,5 @@ add_executable(heat-equation heat-equation.cpp)
 target_link_libraries(heat-equation Ginkgo::ginkgo ${OpenCV_LIBS})
 
 # Copy the data files to the execution directory
-configure_file(data/initial.mtx data/initial.mtx COPYONLY)
-configure_file(data/source.mtx data/source.mtx COPYONLY)
+configure_file(../../matrices/examples/gko_logo_2d.mtx data/gko_logo_2d.mtx COPYONLY)
+configure_file(../../matrices/examples/gko_text_2d.mtx data/gko_text_2d.mtx COPYONLY)
