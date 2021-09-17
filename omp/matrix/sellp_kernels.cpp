@@ -82,7 +82,10 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
                 }
 #pragma unroll
                 for (size_type j = 0; j < num_rhs; j++) {
-                    c->at(global_row, j) = out(global_row, j, partial_sum[j]);
+                    [&] {
+                        c->at(global_row, j) =
+                            out(global_row, j, partial_sum[j]);
+                    }();
                 }
             }
         }
@@ -123,8 +126,10 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
                     }
 #pragma unroll
                     for (size_type j = 0; j < block_size; j++) {
-                        c->at(global_row, j + rhs_base) =
-                            out(global_row, j + rhs_base, partial_sum[j]);
+                        [&] {
+                            c->at(global_row, j + rhs_base) =
+                                out(global_row, j + rhs_base, partial_sum[j]);
+                        }();
                     }
                 }
                 partial_sum.fill(zero<ValueType>());
@@ -136,8 +141,10 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
                     }
                 }
                 for (size_type j = rounded_rhs; j < num_rhs; j++) {
-                    c->at(global_row, j) =
-                        out(global_row, j, partial_sum[j - rounded_rhs]);
+                    [&] {
+                        c->at(global_row, j) =
+                            out(global_row, j, partial_sum[j - rounded_rhs]);
+                    }();
                 }
             }
         }
