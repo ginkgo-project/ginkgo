@@ -500,7 +500,8 @@ void Matrix<ValueType, LocalIndexType>::write_local(
                    });
 
     std::transform(offdiag_md.nonzeros.cbegin(), offdiag_md.nonzeros.cend(),
-                   std::back_inserter(global_diag_md.nonzeros), [&](auto nnz) {
+                   std::back_inserter(global_offdiag_md.nonzeros),
+                   [&](auto nnz) {
                        return typename md_global::nonzero_type{
                            map_row(nnz.row), map_col(nnz.column), nnz.value};
                    });
