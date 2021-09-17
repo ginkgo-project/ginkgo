@@ -209,9 +209,11 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
     auto dense_b = as<GlobalVec>(b);
     auto dense_x = as<GlobalVec>(x);
     diag_mtx_.apply(dense_b->get_local(), dense_x->get_local());
-    this->communicate(dense_b->get_local());
-    offdiag_mtx_.apply(&one_scalar_, recv_buffer_.get(), &one_scalar_,
-                       dense_x->get_local());
+    if (offdiag_mtx_.get_size()) {
+        this->communicate(dense_b->get_local());
+        offdiag_mtx_.apply(&one_scalar_, recv_buffer_.get(), &one_scalar_,
+                           dense_x->get_local());
+    }
 }
 
 
@@ -227,9 +229,11 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* alpha,
     auto local_beta = as<LocalVec>(beta);
     diag_mtx_.apply(local_alpha, vec_b->get_local(), local_beta,
                     vec_x->get_local());
-    this->communicate(vec_b->get_local());
-    offdiag_mtx_.apply(local_alpha, recv_buffer_.get(), &one_scalar_,
-                       vec_x->get_local());
+    if (offdiag_mtx_.get_size()) {
+        this->communicate(vec_b->get_local());
+        offdiag_mtx_.apply(local_alpha, recv_buffer_.get(), &one_scalar_,
+                           vec_x->get_local());
+    }
 }
 
 
