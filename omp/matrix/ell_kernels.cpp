@@ -100,7 +100,7 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
         }
 #pragma unroll
         for (size_type j = 0; j < num_rhs; j++) {
-            c->at(row, j) = out(row, j, partial_sum[j]);
+            [&] { c->at(row, j) = out(row, j, partial_sum[j]); }();
         }
     }
 }
@@ -151,7 +151,7 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
 #pragma unroll
             for (size_type j = 0; j < block_size; j++) {
                 const auto col = j + rhs_base;
-                c->at(row, col) = out(row, col, partial_sum[j]);
+                [&] { c->at(row, col) = out(row, col, partial_sum[j]); }();
             }
         }
         partial_sum.fill(zero<arithmetic_type>());
@@ -163,7 +163,9 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
             }
         }
         for (size_type j = rounded_rhs; j < num_rhs; j++) {
-            c->at(row, j) = out(row, j, partial_sum[j - rounded_rhs]);
+            [&] {
+                c->at(row, j) = out(row, j, partial_sum[j - rounded_rhs]);
+            }();
         }
     }
 }
