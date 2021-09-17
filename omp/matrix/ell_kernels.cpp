@@ -70,11 +70,11 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
 {
     GKO_ASSERT(b->get_size()[1] == num_rhs);
     using arithmetic_type =
-        decltype(InputValueType{} + OutputValueType{} + MatrixValueType{});
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using a_accessor =
-        gko::acc::reduced_row_major<1, OutputValueType, const MatrixValueType>;
+        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
     using b_accessor =
-        gko::acc::reduced_row_major<2, OutputValueType, const InputValueType>;
+        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 
     const auto num_stored_elements_per_row =
         a->get_num_stored_elements_per_row();
@@ -115,11 +115,11 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
 {
     GKO_ASSERT(b->get_size()[1] > block_size);
     using arithmetic_type =
-        decltype(InputValueType{} + OutputValueType{} + MatrixValueType{});
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using a_accessor =
-        gko::acc::reduced_row_major<1, OutputValueType, const MatrixValueType>;
+        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
     using b_accessor =
-        gko::acc::reduced_row_major<2, OutputValueType, const InputValueType>;
+        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 
     const auto num_stored_elements_per_row =
         a->get_num_stored_elements_per_row();
@@ -213,14 +213,16 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Dense<OutputValueType>* beta,
                    matrix::Dense<OutputValueType>* c)
 {
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     const auto num_rhs = b->get_size()[1];
     if (num_rhs <= 0) {
         return;
     }
-    const auto alpha_val = alpha->at(0, 0);
-    const auto beta_val = beta->at(0, 0);
+    const auto alpha_val = arithmetic_type{alpha->at(0, 0)};
+    const auto beta_val = arithmetic_type{beta->at(0, 0)};
     auto out = [&](auto i, auto j, auto value) {
-        return alpha_val * value + beta_val * c->at(i, j);
+        return alpha_val * value + beta_val * arithmetic_type{c->at(i, j)};
     };
     if (num_rhs == 1) {
         spmv_small_rhs<1>(exec, a, b, c, out);
