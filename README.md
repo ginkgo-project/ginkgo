@@ -57,6 +57,7 @@ The Ginkgo HIP module has the following __additional__ requirements:
 *    the HIP, hipBLAS, hipSPARSE, hip/rocRAND and rocThrust packages compiled with either:
     * _AMD_ backend (using the `clang` compiler)
     * _9.2 <= CUDA < 11_ backend
+* if the hipFFT package is available, it is used to implement the FFT LinOps.
 
 The Ginkgo DPC++ module has the following __additional__ requirements:
 
