@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 
 
+#include <hipfft.h>
+
+
 #include <gtest/gtest.h>
 
 
@@ -274,6 +277,19 @@ TYPED_TEST(Fft, ApplyStrided3DInverseIsEqualToReference)
     this->difft3->apply(this->ddata_strided.get(), this->dout_strided.get());
 
     GKO_ASSERT_MTX_NEAR(this->out_strided, this->dout_strided, r<T>::value);
+}
+
+
+// since hipFFT is optional, we test the exception behavior here
+TEST(AssertNoHipfftErrors, ThrowsOnError)
+{
+    ASSERT_THROW(GKO_ASSERT_NO_HIPFFT_ERRORS(1), gko::HipfftError);
+}
+
+
+TEST(AssertNoHipfftErrors, DoesNotThrowOnSuccess)
+{
+    ASSERT_NO_THROW(GKO_ASSERT_NO_HIPFFT_ERRORS(HIPFFT_SUCCESS));
 }
 
 

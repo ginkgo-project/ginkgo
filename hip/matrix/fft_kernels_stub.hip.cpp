@@ -30,67 +30,55 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "core/matrix/fft_kernels.hpp"
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
-#include <hip/hip_runtime.h>
-#include <hipblas.h>
-#include <hiprand.h>
-#include <hipsparse.h>
+namespace gko {
+namespace kernels {
+namespace hip {
+/**
+ * @brief The FFT matrix format namespace.
+ * @ref Fft
+ * @ingroup fft
+ */
+namespace fft {
 
 
-#include <gtest/gtest.h>
+template <typename ValueType>
+void fft(std::shared_ptr<const DefaultExecutor> exec,
+         const matrix::Dense<std::complex<ValueType>>* b,
+         matrix::Dense<std::complex<ValueType>>* x, bool inverse,
+         Array<char>& buffer) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT_KERNEL);
 
 
-namespace {
+template <typename ValueType>
+void fft2(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::Dense<std::complex<ValueType>>* b,
+          matrix::Dense<std::complex<ValueType>>* x, size_type size1,
+          size_type size2, bool inverse,
+          Array<char>& buffer) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT2_KERNEL);
 
 
-TEST(AssertNoHipErrors, ThrowsOnError)
-{
-    ASSERT_THROW(GKO_ASSERT_NO_HIP_ERRORS(1), gko::HipError);
-}
+template <typename ValueType>
+void fft3(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::Dense<std::complex<ValueType>>* b,
+          matrix::Dense<std::complex<ValueType>>* x, size_type size1,
+          size_type size2, size_type size3, bool inverse,
+          Array<char>& buffer) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT3_KERNEL);
 
 
-TEST(AssertNoHipErrors, DoesNotThrowOnSuccess)
-{
-    ASSERT_NO_THROW(GKO_ASSERT_NO_HIP_ERRORS(hipSuccess));
-}
-
-
-TEST(AssertNoHipblasErrors, ThrowsOnError)
-{
-    ASSERT_THROW(GKO_ASSERT_NO_HIPBLAS_ERRORS(1), gko::HipblasError);
-}
-
-
-TEST(AssertNoHipblasErrors, DoesNotThrowOnSuccess)
-{
-    ASSERT_NO_THROW(GKO_ASSERT_NO_HIPBLAS_ERRORS(HIPBLAS_STATUS_SUCCESS));
-}
-
-
-TEST(AssertNoHiprandErrors, ThrowsOnError)
-{
-    ASSERT_THROW(GKO_ASSERT_NO_HIPRAND_ERRORS(1), gko::HiprandError);
-}
-
-
-TEST(AssertNoHiprandErrors, DoesNotThrowOnSuccess)
-{
-    ASSERT_NO_THROW(GKO_ASSERT_NO_HIPRAND_ERRORS(HIPRAND_STATUS_SUCCESS));
-}
-
-
-TEST(AssertNoHipsparseErrors, ThrowsOnError)
-{
-    ASSERT_THROW(GKO_ASSERT_NO_HIPSPARSE_ERRORS(1), gko::HipsparseError);
-}
-
-
-TEST(AssertNoHipsparseErrors, DoesNotThrowOnSuccess)
-{
-    ASSERT_NO_THROW(GKO_ASSERT_NO_HIPSPARSE_ERRORS(HIPSPARSE_STATUS_SUCCESS));
-}
-
-
-}  // namespace
+}  // namespace fft
+}  // namespace hip
+}  // namespace kernels
+}  // namespace gko

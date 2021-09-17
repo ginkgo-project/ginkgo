@@ -141,7 +141,7 @@ set(HIP_HIPCC_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}" CACHE STR
 
 find_package(HIP REQUIRED)
 find_package(hipblas REQUIRED)
-find_package(hipfft REQUIRED)
+find_package(hipfft) # optional dependency
 find_package(hiprand REQUIRED)
 find_package(hipsparse REQUIRED)
 # At the moment, for hiprand to work also rocrand is required.
@@ -178,7 +178,6 @@ set(GINKGO_HIP_SOURCES
     matrix/diagonal_kernels.hip.cpp
     matrix/ell_kernels.hip.cpp
     matrix/fbcsr_kernels.hip.cpp
-    matrix/fft_kernels.hip.cpp
     matrix/hybrid_kernels.hip.cpp
     matrix/sellp_kernels.hip.cpp
     matrix/sparsity_csr_kernels.hip.cpp
@@ -210,6 +209,12 @@ set(GINKGO_HIP_SOURCES
     ../common/unified/solver/fcg_kernels.cpp
     ../common/unified/solver/ir_kernels.cpp
     )
+
+if(hipfft_FOUND)
+    list(APPEND GINKGO_HIP_SOURCES matrix/fft_kernels.hip.cpp)
+else()
+    list(APPEND GINKGO_HIP_SOURCES matrix/fft_kernels_stub.hip.cpp)
+endif()
 
 if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
     set(GKO_HIP_JACOBI_MAX_BLOCK_SIZE 32)
@@ -306,7 +311,10 @@ target_include_directories(ginkgo_hip
         $<BUILD_INTERFACE:${ROCPRIM_INCLUDE_DIRS}>)
 
 target_link_libraries(ginkgo_hip PUBLIC ginkgo_device)
-target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand hip::hipfft)
+target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
+if (hipfft_FOUND)
+    target_link_libraries(ginkgo_hip PRIVATE hip::hipfft)
+endif()
 
 target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 

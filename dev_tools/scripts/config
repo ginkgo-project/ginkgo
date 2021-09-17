@@ -4,6 +4,8 @@
     - FixInclude: "ginkgo/core/base/executor.hpp"
 - "hip/base/config.hip.hpp"
     - FixInclude: "hip/hip_runtime.h"
+- "hip/matrix/fft_kernels_stub"
+    - FixInclude: "core/matrix/fft_kernels.hpp"
 - "(cuda|hip|omp|dpcpp)/test/factorization/par_ilu_kernels"
     - FixInclude: "core/factorization/par_ilu_kernels.hpp"
 - "(cuda|hip|omp|dpcpp)/test/factorization/par_ilut_kernels"
