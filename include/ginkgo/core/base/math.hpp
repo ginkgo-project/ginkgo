@@ -459,6 +459,31 @@ struct infinity_impl {
 };
 
 
+/**
+ * Computes the highest-precision type from a list of types
+ */
+template <typename T1, typename T2>
+struct highest_precision_impl {
+    using type = decltype(T1{} + T2{});
+};
+
+template <typename T1, typename T2>
+struct highest_precision_impl<std::complex<T1>, std::complex<T2>> {
+    using type = std::complex<typename highest_precision_impl<T1, T2>::type>;
+};
+
+template <typename Head, typename... Tail>
+struct highest_precision_variadic {
+    using type = typename highest_precision_impl<
+        Head, typename highest_precision_variadic<Tail...>::type>::type;
+};
+
+template <typename Head>
+struct highest_precision_variadic<Head> {
+    using type = Head;
+};
+
+
 }  // namespace detail
 
 
@@ -481,6 +506,11 @@ using reduce_precision = typename detail::reduce_precision_impl<T>::type;
  */
 template <typename T>
 using increase_precision = typename detail::increase_precision_impl<T>::type;
+
+
+template <typename... Ts>
+using highest_precision =
+    typename detail::highest_precision_variadic<Ts...>::type;
 
 
 /**
