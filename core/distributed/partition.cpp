@@ -374,9 +374,15 @@ void Repartitioner<LocalIndexType>::gather(
     const auto* send_buffer = from->get_local()->get_const_values();
     auto* recv_buffer = tmp->get_local()->get_values();
 
-    mpi::all_to_all(send_buffer, send_sizes->data(), send_offsets->data(),
-                    recv_buffer, recv_sizes->data(), recv_offsets->data(), 1,
-                    from_comm_);
+    if (to_partition_->get_num_parts() > 1) {
+        mpi::all_to_all(send_buffer, send_sizes->data(), send_offsets->data(),
+                        recv_buffer, recv_sizes->data(), recv_offsets->data(),
+                        1, from_comm_);
+    } else {
+        const comm_index_type root = 0;
+        mpi::gather(send_buffer, (*send_sizes)[root], recv_buffer,
+                    recv_sizes->data(), recv_offsets->data(), root, from_comm_);
+    }
 
     if (to_has_data()) {
         tmp->move_to(to);
@@ -432,9 +438,15 @@ void Repartitioner<LocalIndexType>::scatter(
     const auto* send_buffer = to->get_local()->get_const_values();
     auto* recv_buffer = tmp->get_local()->get_values();
 
-    mpi::all_to_all(send_buffer, send_sizes->data(), send_offsets->data(),
-                    recv_buffer, recv_sizes->data(), recv_offsets->data(), 1,
-                    from_comm_);
+    if (to_partition_->get_num_parts() > 1) {
+        mpi::all_to_all(send_buffer, send_sizes->data(), send_offsets->data(),
+                        recv_buffer, recv_sizes->data(), recv_offsets->data(),
+                        1, from_comm_);
+    } else {
+        const comm_index_type root = 0;
+        mpi::scatter(send_buffer, send_sizes->data(), send_offsets->data(),
+                     recv_buffer, (*recv_sizes)[root], root, from_comm_);
+    }
 
     tmp->move_to(from);
 }
@@ -482,10 +494,17 @@ void Repartitioner<LocalIndexType>::gather(
     std::vector<ValueType> recv_values(new_local_nnz);
 
     auto communicate = [&](const auto* send_buffer, auto* recv_buffer) {
-        mpi::all_to_all(send_buffer, pattern.send_sizes.data(),
-                        pattern.send_offsets.data(), recv_buffer,
+        if (to_partition_->get_num_parts() > 1) {
+            mpi::all_to_all(send_buffer, pattern.send_sizes.data(),
+                            pattern.send_offsets.data(), recv_buffer,
+                            pattern.recv_sizes.data(),
+                            pattern.recv_offsets.data(), 1, from_comm_);
+        } else {
+            const comm_index_type root = 0;
+            mpi::gather(send_buffer, pattern.send_sizes[root], recv_buffer,
                         pattern.recv_sizes.data(), pattern.recv_offsets.data(),
-                        1, from_comm_);
+                        root, from_comm_);
+        }
     };
     communicate(send_rows.data(), recv_rows.data());
     communicate(send_cols.data(), recv_cols.data());
