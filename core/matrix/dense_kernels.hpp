@@ -280,7 +280,7 @@ namespace kernels {
     GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL(ValueType);                   \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(ValueType);                      \
-    template <typename ValueType, typename IndexType>                       \
+    template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL(ValueType);                      \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(ValueType, IndexType);          \

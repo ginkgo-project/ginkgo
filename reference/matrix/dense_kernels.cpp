@@ -329,6 +329,25 @@ void compute_norm2(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 
+template <typename ValueType>
+void compute_norm1(std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::Dense<ValueType> *x,
+                   matrix::Dense<remove_complex<ValueType>> *result)
+{
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        result->at(0, j) = zero<remove_complex<ValueType>>();
+    }
+    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+        for (size_type j = 0; j < x->get_size()[1]; ++j) {
+            result->at(0, j) += abs(x->at(i, j));
+        }
+    }
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        result->at(0, j) = abs(result->at(0, j));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
