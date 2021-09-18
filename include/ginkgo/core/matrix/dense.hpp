@@ -976,6 +976,14 @@ protected:
     virtual void compute_norm2_impl(LinOp* result) const;
 
     /**
+     * @copydoc compute_norm1(LinOp *) const
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of compute_norm1(LinOp *result).
+     */
+    virtual void compute_norm1_impl(LinOp *result) const;
+
+    /**
      * @copydoc create_submatrix(const span, const span, const size_type)
      *
      * @note  Other implementations of dense should override this function
