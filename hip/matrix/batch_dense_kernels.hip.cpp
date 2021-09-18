@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
@@ -32,6 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/matrix/batch_dense_kernels.hpp"
+
+
+#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/math.hpp>
