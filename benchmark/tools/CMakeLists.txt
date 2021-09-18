@@ -1,0 +1,5 @@
+add_executable(matrix matrix.cpp)
+add_executable(matrix_complex matrix.cpp)
+target_compile_definitions(matrix_complex PRIVATE GKO_TOOL_COMPLEX)
+target_link_libraries(matrix Ginkgo::ginkgo)
+target_link_libraries(matrix_complex Ginkgo::ginkgo)
