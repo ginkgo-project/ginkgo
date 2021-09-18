@@ -73,44 +73,6 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void scale(
     }
 }
 
-
-template <typename ValueType>
-__device__ __forceinline__ void scale(const BatchEntry<const ValueType>& alpha,
-                                      const BatchEntry<ValueType>& x,
-                                      const uint32& converged)
-{
-    const int max_li = x.num_rows * x.num_rhs;
-    for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
-        const int row = li / x.num_rhs;
-        const int col = li % x.num_rhs;
-
-        const uint32 conv = converged & (1 << col);
-        if (conv) {
-            continue;
-        }
-        if (alpha.num_rhs == 1) {
-            x.values[row * x.stride + col] =
-                alpha.values[0] * x.values[row * x.stride + col];
-        } else {
-            x.values[row * x.stride + col] =
-                alpha.values[col] * x.values[row * x.stride + col];
-        }
-    }
-}
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size, sm_multiplier) void scale(
-    const gko::batch_dense::UniformBatch<const ValueType> alpha,
-    const gko::batch_dense::UniformBatch<ValueType> x, const uint32 converged)
-{
-    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
-         ibatch += gridDim.x) {
-        const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
-        const auto x_b = gko::batch::batch_entry(x, ibatch);
-        scale(alpha_b, x_b, converged);
-    }
-}
-
 template <typename ValueType>
 __device__ __forceinline__ void add_scaled(
     const gko::batch_dense::BatchEntry<const ValueType>& alpha,
@@ -144,47 +106,6 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void add_scaled(
         const auto x_b = gko::batch::batch_entry(x, ibatch);
         const auto y_b = gko::batch::batch_entry(y, ibatch);
         add_scaled(alpha_b, x_b, y_b);
-    }
-}
-
-
-template <typename ValueType>
-__device__ __forceinline__ void add_scaled(
-    const gko::batch_dense::BatchEntry<const ValueType>& alpha,
-    const gko::batch_dense::BatchEntry<const ValueType>& x,
-    const gko::batch_dense::BatchEntry<ValueType>& y, const uint32& converged)
-{
-    const int max_li = x.num_rows * x.num_rhs;
-    for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
-        const int row = li / x.num_rhs;
-        const int col = li % x.num_rhs;
-        const uint32 conv = converged & (1 << col);
-        if (conv) {
-            continue;
-        }
-        if (alpha.num_rhs == 1) {
-            y.values[row * y.stride + col] +=
-                alpha.values[0] * x.values[row * x.stride + col];
-        } else {
-            y.values[row * y.stride + col] +=
-                alpha.values[col] * x.values[row * x.stride + col];
-        }
-    }
-}
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size, sm_multiplier) void add_scaled(
-    const gko::batch_dense::UniformBatch<const ValueType> alpha,
-    const gko::batch_dense::UniformBatch<const ValueType> x,
-    const gko::batch_dense::UniformBatch<ValueType> y, const uint32 converged)
-{
-    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
-         ibatch += gridDim.x) {
-        const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
-        const auto x_b = gko::batch::batch_entry(x, ibatch);
-        const auto y_b = gko::batch::batch_entry(y, ibatch);
-        add_scaled(alpha_b, x_b, y_b, converged);
     }
 }
 
@@ -242,37 +163,6 @@ __device__ __forceinline__ void compute_norm2(
 }
 
 
-/**
- * Computes the 2-norms of some column vectors in global or shared memory.
- *
- * @param x  A row-major multivector with nrhs columns.
- * @param result  Holds norm value for each vector in x.
- * @param converged  A bitset with the first nrhs bits corresponding to the
- *   different vectors in x. A set bit indicates that RHS should be skipped.
- */
-template <typename ValueType>
-__device__ __forceinline__ void compute_norm2(
-    const gko::batch_dense::BatchEntry<const ValueType>& x,
-    const gko::batch_dense::BatchEntry<remove_complex<ValueType>>& result,
-    const uint32& converged)
-{
-    constexpr auto tile_size = config::warp_size;
-    auto thread_block = group::this_thread_block();
-    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
-    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
-
-    for (int rhs_index = subwarp_grp_id; rhs_index < x.num_rhs;
-         rhs_index += num_subwarp_grps_per_block) {
-        const uint32 conv = converged & (1 << rhs_index);
-        if (conv) {
-            continue;
-        }
-        one_norm2(x, rhs_index, result, subwarp_grp);
-    }
-}
-
-
 template <typename ValueType>
 __global__
     __launch_bounds__(default_block_size, sm_multiplier) void compute_norm2(
@@ -284,22 +174,6 @@ __global__
         const auto x_b = gko::batch::batch_entry(x, ibatch);
         const auto r_b = gko::batch::batch_entry(result, ibatch);
         compute_norm2(x_b, r_b);
-    }
-}
-
-
-template <typename ValueType>
-__global__
-    __launch_bounds__(default_block_size, sm_multiplier) void compute_norm2(
-        const gko::batch_dense::UniformBatch<const ValueType> x,
-        const gko::batch_dense::UniformBatch<remove_complex<ValueType>> result,
-        const uint32 converged)
-{
-    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
-         ibatch += gridDim.x) {
-        const auto x_b = gko::batch::batch_entry(x, ibatch);
-        const auto r_b = gko::batch::batch_entry(result, ibatch);
-        compute_norm2(x_b, r_b, converged);
     }
 }
 
@@ -389,40 +263,6 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void copy(
 }
 
 
-template <typename ValueType>
-__device__ __forceinline__ void copy(
-    const gko::batch_dense::BatchEntry<const ValueType>& src_shared_entry,
-    const gko::batch_dense::BatchEntry<ValueType>& dest_shared_entry,
-    const uint32& converged)
-{
-    for (int li = threadIdx.x;
-         li < dest_shared_entry.num_rhs * dest_shared_entry.num_rows;
-         li += blockDim.x) {
-        const int r = li / dest_shared_entry.num_rhs;
-        const int c = li % dest_shared_entry.num_rhs;
-        const uint32 conv = converged & (1 << c);
-        if (conv) {
-            continue;
-        }
-        dest_shared_entry.values[r * dest_shared_entry.stride + c] =
-            src_shared_entry.values[r * src_shared_entry.stride + c];
-    }
-}
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size, sm_multiplier) void copy(
-    const gko::batch_dense::UniformBatch<const ValueType> src,
-    const gko::batch_dense::UniformBatch<ValueType> dst, const uint32 converged)
-{
-    for (size_type ibatch = blockIdx.x; ibatch < src.num_batch;
-         ibatch += gridDim.x) {
-        const auto dst_b = gko::batch::batch_entry(dst, ibatch);
-        const auto src_b = gko::batch::batch_entry(src, ibatch);
-        copy(src_b, dst_b, converged);
-    }
-}
-
 namespace {
 
 template <typename ValueType>
@@ -475,37 +315,6 @@ __device__ __forceinline__ void compute_dot_product(
 }
 
 
-/**
- * Computes the dot product of respective column vectors from two multivectors.
- *
- * @param x  A row-major multivector with nrhs columns.
- * @param y  A row-major multivector with nrhs columns.
- * @param result  Holds dot product value for each vector in x or y.
- * @param converged  A bitset with the first nrhs bits corresponding to the
- *   different vectors in x. A set bit indicates that RHS should be skipped.
- */
-template <typename ValueType>
-__device__ __forceinline__ void compute_dot_product(
-    const BatchEntry<const ValueType>& x, const BatchEntry<const ValueType>& y,
-    const BatchEntry<ValueType>& result, const uint32& converged)
-{
-    constexpr auto tile_size = config::warp_size;
-    auto thread_block = group::this_thread_block();
-    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
-    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
-
-    for (int rhs_index = subwarp_grp_id; rhs_index < x.num_rhs;
-         rhs_index += num_subwarp_grps_per_block) {
-        const uint32 conv = converged & (1 << rhs_index);
-        if (conv) {
-            continue;
-        }
-        one_dot(x, y, rhs_index, result, subwarp_grp);
-    }
-}
-
-
 // clang-format off
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size, sm_multiplier)
@@ -521,26 +330,6 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier)
         const auto y_b = gko::batch::batch_entry(y, ibatch);
         const auto r_b = gko::batch::batch_entry(result, ibatch);
         compute_dot_product(x_b, y_b, r_b);
-    }
-}
-
-
-// clang-format off
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size, sm_multiplier)
-    // clang-format on
-    void compute_dot_product(
-        const gko::batch_dense::UniformBatch<const ValueType> x,
-        const gko::batch_dense::UniformBatch<const ValueType> y,
-        const gko::batch_dense::UniformBatch<ValueType> result,
-        const uint32 converged)
-{
-    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
-         ibatch += gridDim.x) {
-        const auto x_b = gko::batch::batch_entry(x, ibatch);
-        const auto y_b = gko::batch::batch_entry(y, ibatch);
-        const auto r_b = gko::batch::batch_entry(result, ibatch);
-        compute_dot_product(x_b, y_b, r_b, converged);
     }
 }
 
