@@ -142,16 +142,37 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(BatchIdr, gko::test::ValueTypes);
+using DblValueTypes = ::testing::Types<double, std::complex<double>>;
+TYPED_TEST_SUITE(BatchIdr, DblValueTypes);
 
 
-TYPED_TEST(BatchIdr, SolvesStencilSystem)
+TYPED_TEST(BatchIdr, SolveIsEquivalentToReference)
 {
-    auto r_1 = gko::test::solve_poisson_uniform(
-        this->cuexec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts_1, this->sys_1, 1);
+    using value_type = typename TestFixture::value_type;
+    using solver_type = gko::solver::BatchIdr<value_type>;
+    using opts_type = typename TestFixture::Options;
+    constexpr bool issingle =
+        std::is_same<gko::remove_complex<value_type>, float>::value;
+    const float solver_restol = this->eps;
+    const opts_type opts{gko::preconditioner::batch::type::none,
+                         500,
+                         solver_restol,
+                         2,
+                         false,
+                         0.7,
+                         true,
+                         true,
+                         gko::stop::batch::ToleranceType::relative};
+    auto r_sys = gko::test::generate_solvable_batch_system<value_type>(
+        this->exec, this->nbatch, 11, 1, false);
+    auto r_factory = this->create_factory(this->exec, opts);
+    const double iter_tol = 0.01;
+    const double res_tol = 10 * r<value_type>::value;
+    const double sol_tol = 10 * solver_restol;
 
-    GKO_ASSERT_BATCH_MTX_NEAR(r_1.x, this->sys_1.xex, 10 * this->eps);
+    gko::test::compare_with_reference<value_type, solver_type>(
+        this->cuexec, r_sys, r_factory.get(), false, iter_tol, res_tol,
+        sol_tol);
 }
 
 
