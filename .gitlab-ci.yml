@@ -601,7 +601,6 @@ build/nocuda/gcc/core/debug/static:
     - .use_gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
-    BUILD_REFERENCE: "OFF"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
@@ -616,7 +615,6 @@ build/nocuda/clang/core/release/shared:
     <<: *default_variables
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
-    BUILD_REFERENCE: "OFF"
     BUILD_TYPE: "Release"
 
 build/nocuda/intel/core/debug/shared:
@@ -628,7 +626,6 @@ build/nocuda/intel/core/debug/shared:
     <<: *default_variables
     C_COMPILER: "icc"
     CXX_COMPILER: "icpc"
-    BUILD_REFERENCE: "OFF"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
 
