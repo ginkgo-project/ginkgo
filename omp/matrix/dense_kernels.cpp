@@ -126,6 +126,25 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
+template <typename ValueType>
+void compute_norm1(std::shared_ptr<const OmpExecutor> exec,
+                   const matrix::Dense<ValueType>* x,
+                   matrix::Dense<remove_complex<ValueType>>* result)
+{
+    using norm_type = remove_complex<ValueType>;
+#pragma omp parallel for
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        result->at(0, j) = zero<norm_type>();
+    }
+#pragma omp parallel for
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        for (size_type i = 0; i < x->get_size()[0]; ++i) {
+            result->at(0, j) += abs(x->at(i, j));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
