@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_MATRIX_BATCH_STRUCT_HPP_
-#define GKO_HIP_MATRIX_BATCH_STRUCT_HPP_
+#ifndef GKO_HIP_MATRIX_BATCH_STRUCT_HIP_HPP_
+#define GKO_HIP_MATRIX_BATCH_STRUCT_HIP_HPP_
 
 
 #include "core/matrix/batch_struct.hpp"
@@ -141,4 +141,4 @@ maybe_null_batch_struct(const matrix::BatchDense<ValueType>* const op)
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
-#endif  // GKO_CUDA_MATRIX_BATCH_STRUCT_HPP_
+#endif  // GKO_HIP_MATRIX_BATCH_STRUCT_HIP_HPP_
