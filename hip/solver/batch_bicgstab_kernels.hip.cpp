@@ -69,10 +69,8 @@ namespace batch_bicgstab {
 #include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_identity.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_jacobi.hpp.inc"
-#include "common/cuda_hip/stop/batch_criteria.hpp.inc"
-
-
 #include "common/cuda_hip/solver/batch_bicgstab_kernels.hpp.inc"
+#include "common/cuda_hip/stop/batch_criteria.hpp.inc"
 
 
 template <typename T>

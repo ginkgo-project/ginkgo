@@ -34,12 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_TEST_UTILS_BATCH_HPP_
 
 
+#include <random>
+
+
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-
-
-#include <random>
 
 
 namespace gko {
