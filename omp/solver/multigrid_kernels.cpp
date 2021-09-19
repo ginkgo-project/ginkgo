@@ -52,11 +52,11 @@ namespace multigrid {
 
 template <typename ValueType>
 void kcycle_step_1(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Dense<ValueType> *rho,
-                   const matrix::Dense<ValueType> *v,
-                   matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *d,
-                   matrix::Dense<ValueType> *e)
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::Dense<ValueType>* rho,
+                   const matrix::Dense<ValueType>* v,
+                   matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* d,
+                   matrix::Dense<ValueType>* e)
 {
     const auto nrows = g->get_size()[0];
     const auto nrhs = g->get_size()[1];
@@ -78,13 +78,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL);
 
 template <typename ValueType>
 void kcycle_step_2(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::Dense<ValueType> *alpha,
-                   const matrix::Dense<ValueType> *rho,
-                   const matrix::Dense<ValueType> *gamma,
-                   const matrix::Dense<ValueType> *beta,
-                   const matrix::Dense<ValueType> *zeta,
-                   const matrix::Dense<ValueType> *d,
-                   matrix::Dense<ValueType> *e)
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::Dense<ValueType>* rho,
+                   const matrix::Dense<ValueType>* gamma,
+                   const matrix::Dense<ValueType>* beta,
+                   const matrix::Dense<ValueType>* zeta,
+                   const matrix::Dense<ValueType>* d,
+                   matrix::Dense<ValueType>* e)
 {
     const auto nrows = e->get_size()[0];
     const auto nrhs = e->get_size()[1];
@@ -108,9 +108,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL);
 
 template <typename ValueType>
 void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
-                       const matrix::Dense<ValueType> *old_norm,
-                       const matrix::Dense<ValueType> *new_norm,
-                       const ValueType rel_tol, bool &is_stop)
+                       const matrix::Dense<ValueType>* old_norm,
+                       const matrix::Dense<ValueType>* new_norm,
+                       const ValueType rel_tol, bool& is_stop)
 {
     is_stop = true;
 #pragma omp parallel for

@@ -122,8 +122,8 @@ protected:
         d_new_norm->copy_from(new_norm.get());
     }
 
-    void modify_norm(std::unique_ptr<Mtx> &old_norm,
-                     std::unique_ptr<Mtx> &new_norm)
+    void modify_norm(std::unique_ptr<Mtx>& old_norm,
+                     std::unique_ptr<Mtx>& new_norm)
     {
         double ratio = 0.7;
         for (gko::size_type i = 0; i < old_norm->get_size()[1]; i++) {
@@ -132,9 +132,9 @@ protected:
         }
     }
 
-    void modify_scalar(std::unique_ptr<Mtx> &alpha, std::unique_ptr<Mtx> &rho,
-                       std::unique_ptr<Mtx> &beta, std::unique_ptr<Mtx> &gamma,
-                       std::unique_ptr<Mtx> &zeta)
+    void modify_scalar(std::unique_ptr<Mtx>& alpha, std::unique_ptr<Mtx>& rho,
+                       std::unique_ptr<Mtx>& beta, std::unique_ptr<Mtx>& gamma,
+                       std::unique_ptr<Mtx>& zeta)
     {
         // modify the first three element such that the isfinite condition can
         // be reached, which are checked in the last three group in reference

@@ -82,8 +82,8 @@ void AmgxPgm<ValueType, IndexType>::generate()
     Array<IndexType> intermediate_agg(this->get_executor(),
                                       parameters_.deterministic * num_rows);
     // Only support csr matrix currently.
-    const matrix_type *amgxpgm_op =
-        dynamic_cast<const matrix_type *>(system_matrix_.get());
+    const matrix_type* amgxpgm_op =
+        dynamic_cast<const matrix_type*>(system_matrix_.get());
     std::shared_ptr<const matrix_type> amgxpgm_op_unique_ptr{};
     // If system matrix is not csr or need sorting, generate the csr.
     if (!parameters_.skip_sorting || !amgxpgm_op) {

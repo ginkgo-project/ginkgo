@@ -63,10 +63,10 @@ public:
     {}
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 };
 
@@ -93,7 +93,7 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(DummyLinOpWithFactory, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    DummyLinOpWithFactory(const Factory *factory,
+    DummyLinOpWithFactory(const Factory* factory,
                           std::shared_ptr<const gko::LinOp> op)
         : gko::EnableLinOp<DummyLinOpWithFactory>(factory->get_executor(),
                                                   op->get_size()),
@@ -115,10 +115,10 @@ public:
     gko::size_type n_;
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 };
 
@@ -177,7 +177,7 @@ protected:
     std::shared_ptr<typename DummyFactory::Factory> lo_factory2;
     std::shared_ptr<const gko::stop::CriterionFactory> criterion;
 
-    static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
+    static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
     {
         ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
         ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
@@ -188,14 +188,14 @@ protected:
         }
     }
 
-    static int get_value(const gko::multigrid::MultigridLevel *rp)
+    static int get_value(const gko::multigrid::MultigridLevel* rp)
     {
-        return dynamic_cast<const DummyRPFactory *>(rp)->get_parameters().value;
+        return dynamic_cast<const DummyRPFactory*>(rp)->get_parameters().value;
     }
 
-    static int get_value(const gko::LinOp *lo)
+    static int get_value(const gko::LinOp* lo)
     {
-        return dynamic_cast<const DummyFactory *>(lo)->get_parameters().value;
+        return dynamic_cast<const DummyFactory*>(lo)->get_parameters().value;
     }
 };
 
@@ -213,7 +213,7 @@ TYPED_TEST(Multigrid, MultigridFactoryCreatesCorrectSolver)
     using Solver = typename TestFixture::Solver;
 
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(4, 4));
-    auto multigrid_solver = static_cast<Solver *>(this->solver.get());
+    auto multigrid_solver = static_cast<Solver*>(this->solver.get());
     ASSERT_NE(multigrid_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(multigrid_solver->get_system_matrix(), this->mtx);
 }
@@ -228,8 +228,8 @@ TYPED_TEST(Multigrid, CanBeCopied)
     copy->copy_from(this->solver.get());
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(4, 4));
-    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
+    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
                                this->mtx.get());
 }
 
@@ -243,8 +243,8 @@ TYPED_TEST(Multigrid, CanBeMoved)
     copy->copy_from(std::move(this->solver));
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(4, 4));
-    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
+    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
                                this->mtx.get());
 }
 
@@ -256,8 +256,8 @@ TYPED_TEST(Multigrid, CanBeCloned)
     auto clone = this->solver->clone();
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(4, 4));
-    auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()),
+    auto clone_mtx = static_cast<Solver*>(clone.get())->get_system_matrix();
+    this->assert_same_matrices(static_cast<const Mtx*>(clone_mtx.get()),
                                this->mtx.get());
 }
 
@@ -270,10 +270,10 @@ TYPED_TEST(Multigrid, CanBeCleared)
 
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
     auto solver_mtx =
-        static_cast<Solver *>(this->solver.get())->get_system_matrix();
+        static_cast<Solver*>(this->solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
     auto mg_level =
-        static_cast<Solver *>(this->solver.get())->get_mg_level_list();
+        static_cast<Solver*>(this->solver.get())->get_mg_level_list();
     ASSERT_EQ(mg_level.size(), 0);
 }
 
@@ -308,7 +308,7 @@ TYPED_TEST(Multigrid, ApplyUsesInitialGuessReturnsFalseWhenZeroGuess)
 TYPED_TEST(Multigrid, CanChangeCycle)
 {
     using Solver = typename TestFixture::Solver;
-    auto solver = static_cast<Solver *>(this->solver.get());
+    auto solver = static_cast<Solver*>(this->solver.get());
     auto original = solver->get_cycle();
 
     solver->set_cycle(gko::solver::multigrid::cycle::w);
@@ -324,7 +324,7 @@ TYPED_TEST(Multigrid, EachLevelAreDistinct)
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
     using DummyFactory = typename TestFixture::DummyFactory;
     using value_type = typename TestFixture::value_type;
-    auto solver = static_cast<Solver *>(this->solver.get());
+    auto solver = static_cast<Solver*>(this->solver.get());
     auto mg_level = solver->get_mg_level_list();
     auto pre_smoother = solver->get_pre_smoother_list();
     auto mid_smoother = solver->get_mid_smoother_list();
@@ -364,7 +364,7 @@ TYPED_TEST(Multigrid, DefaultBehavior)
                       .on(this->exec)
                       ->generate(this->mtx);
     auto coarsest_solver = solver->get_coarsest_solver();
-    auto identity = dynamic_cast<const gko::matrix::Identity<value_type> *>(
+    auto identity = dynamic_cast<const gko::matrix::Identity<value_type>*>(
         coarsest_solver.get());
     auto pre_smoother = solver->get_pre_smoother_list();
     auto mid_smoother = solver->get_mid_smoother_list();
@@ -401,7 +401,7 @@ TYPED_TEST(Multigrid, DefaultBehaviorGivenEmptyList)
             .on(this->exec)
             ->generate(this->mtx);
     auto coarsest_solver = solver->get_coarsest_solver();
-    auto identity = dynamic_cast<const gko::matrix::Identity<value_type> *>(
+    auto identity = dynamic_cast<const gko::matrix::Identity<value_type>*>(
         coarsest_solver.get());
     auto pre_smoother = solver->get_pre_smoother_list();
     auto mid_smoother = solver->get_mid_smoother_list();
@@ -609,7 +609,7 @@ TYPED_TEST(Multigrid, TwoMgLevel)
     auto mid_smoother = solver->get_mid_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
     auto coarsest_solver = solver->get_coarsest_solver();
-    auto identity = dynamic_cast<const gko::matrix::Identity<value_type> *>(
+    auto identity = dynamic_cast<const gko::matrix::Identity<value_type>*>(
         coarsest_solver.get());
 
     ASSERT_EQ(mg_level.size(), 2);
@@ -651,7 +651,7 @@ TYPED_TEST(Multigrid, TwoMgLevelWithOneSmootherRelaxation)
     auto mid_smoother = solver->get_mid_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
     auto coarsest_solver = solver->get_coarsest_solver();
-    auto identity = dynamic_cast<const gko::matrix::Identity<value_type> *>(
+    auto identity = dynamic_cast<const gko::matrix::Identity<value_type>*>(
         coarsest_solver.get());
 
     ASSERT_EQ(mg_level.size(), 2);
@@ -673,7 +673,7 @@ TYPED_TEST(Multigrid, CustomSelectorWithSameSize)
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
-    auto selector = [](const gko::size_type level, const gko::LinOp *matrix) {
+    auto selector = [](const gko::size_type level, const gko::LinOp* matrix) {
         return (level == 1) ? 0 : 1;
     };
     auto solver =
@@ -718,7 +718,7 @@ TYPED_TEST(Multigrid, CustomSelectorWithOneSmootherRelaxation)
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
-    auto selector = [](const gko::size_type level, const gko::LinOp *matrix) {
+    auto selector = [](const gko::size_type level, const gko::LinOp* matrix) {
         return (level == 1) ? 0 : 1;
     };
     auto solver =
@@ -763,7 +763,7 @@ TYPED_TEST(Multigrid, CustomSelectorWithMix)
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
-    auto selector = [](const gko::size_type level, const gko::LinOp *matrix) {
+    auto selector = [](const gko::size_type level, const gko::LinOp* matrix) {
         return (level == 1) ? 0 : 1;
     };
     auto solver =
@@ -986,7 +986,7 @@ TYPED_TEST(Multigrid, CustomCoarsestSolverSelector)
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
-    auto selector = [](const gko::size_type level, const gko::LinOp *matrix) {
+    auto selector = [](const gko::size_type level, const gko::LinOp* matrix) {
         return (level == 2) ? 1 : 0;
     };
     auto solver = Solver::build()
