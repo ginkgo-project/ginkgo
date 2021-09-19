@@ -272,7 +272,7 @@ public:
          *     use the first factory when mg_level size = 1
          *     use the level as the index when mg_level size > 1
          */
-        std::function<size_type(const size_type, const LinOp *)>
+        std::function<size_type(const size_type, const LinOp*)>
             GKO_FACTORY_PARAMETER_SCALAR(level_selector, nullptr);
 
         /**
@@ -366,7 +366,7 @@ public:
          *
          * default selector: use the first factory
          */
-        std::function<size_type(const size_type, const LinOp *)>
+        std::function<size_type(const size_type, const LinOp*)>
             GKO_FACTORY_PARAMETER_SCALAR(solver_selector, nullptr);
 
         /**
@@ -419,10 +419,10 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const LinOp *b, LinOp *x) const override;
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
 
     /**
      * Generates the analysis structure from the system matrix and the right
@@ -434,7 +434,7 @@ protected:
         : EnableLinOp<Multigrid>(exec)
     {}
 
-    explicit Multigrid(const Factory *factory,
+    explicit Multigrid(const Factory* factory,
                        std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Multigrid>(factory->get_executor(),
                                  transpose(system_matrix->get_size())),
@@ -447,11 +447,11 @@ protected:
             stop::combine(std::move(parameters_.criteria));
         if (!parameters_.level_selector) {
             if (parameters_.mg_level.size() == 1) {
-                level_selector_ = [](const size_type, const LinOp *) {
+                level_selector_ = [](const size_type, const LinOp*) {
                     return size_type{0};
                 };
             } else if (parameters_.mg_level.size() > 1) {
-                level_selector_ = [](const size_type level, const LinOp *) {
+                level_selector_ = [](const size_type level, const LinOp*) {
                     return level;
                 };
             }
@@ -460,7 +460,7 @@ protected:
         }
         if (!parameters_.solver_selector) {
             if (parameters_.coarsest_solver.size() >= 1) {
-                solver_selector_ = [](const size_type, const LinOp *) {
+                solver_selector_ = [](const size_type, const LinOp*) {
                     return size_type{0};
                 };
             }
@@ -535,8 +535,8 @@ private:
     std::vector<std::shared_ptr<const LinOp>> mid_smoother_list_{};
     std::vector<std::shared_ptr<const LinOp>> post_smoother_list_{};
     std::shared_ptr<const LinOp> coarsest_solver_{};
-    std::function<size_type(const size_type, const LinOp *)> level_selector_;
-    std::function<size_type(const size_type, const LinOp *)> solver_selector_;
+    std::function<size_type(const size_type, const LinOp*)> level_selector_;
+    std::function<size_type(const size_type, const LinOp*)> solver_selector_;
 };
 
 
