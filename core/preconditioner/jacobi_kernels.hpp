@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -145,7 +148,7 @@ namespace kernels {
             storage_scheme,                                                \
         ValueType* result_values, size_type result_stride)
 
-#define GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL()                   \
+#define GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL                     \
     void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec, \
                                const Array<precision_reduction>& source,    \
                                Array<precision_reduction>& precisions)
@@ -175,52 +178,10 @@ namespace kernels {
     GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL(ValueType);     \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
-    GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL()
+    GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL
 
 
-namespace omp {
-namespace jacobi {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace jacobi
-}  // namespace omp
-
-
-namespace cuda {
-namespace jacobi {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace jacobi
-}  // namespace cuda
-
-
-namespace reference {
-namespace jacobi {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace jacobi
-}  // namespace reference
-
-
-namespace hip {
-namespace jacobi {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace jacobi
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace jacobi {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace jacobi
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(jacobi, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

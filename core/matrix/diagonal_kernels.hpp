@@ -42,6 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -99,49 +102,7 @@ namespace kernels {
     GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL(ValueType)
 
 
-namespace omp {
-namespace diagonal {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace diagonal
-}  // namespace omp
-
-
-namespace cuda {
-namespace diagonal {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace diagonal
-}  // namespace cuda
-
-
-namespace reference {
-namespace diagonal {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace diagonal
-}  // namespace reference
-
-
-namespace hip {
-namespace diagonal {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace diagonal
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace diagonal {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace diagonal
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(diagonal, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

@@ -39,12 +39,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace set_all_statuses {
 
 
-#define GKO_DECLARE_SET_ALL_STATUSES_KERNEL()                          \
+#define GKO_DECLARE_SET_ALL_STATUSES_KERNEL                            \
     void set_all_statuses(std::shared_ptr<const DefaultExecutor> exec, \
                           uint8 stoppingId, bool setFinalized,         \
                           Array<stopping_status>* stop_status)
@@ -53,49 +56,8 @@ namespace set_all_statuses {
 }  // namespace set_all_statuses
 
 
-namespace omp {
-namespace set_all_statuses {
-
-GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
-
-}  // namespace set_all_statuses
-}  // namespace omp
-
-
-namespace cuda {
-namespace set_all_statuses {
-
-GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
-
-}  // namespace set_all_statuses
-}  // namespace cuda
-
-
-namespace reference {
-namespace set_all_statuses {
-
-GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
-
-}  // namespace set_all_statuses
-}  // namespace reference
-
-
-namespace hip {
-namespace set_all_statuses {
-
-GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
-
-}  // namespace set_all_statuses
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace set_all_statuses {
-
-GKO_DECLARE_SET_ALL_STATUSES_KERNEL();
-
-}  // namespace set_all_statuses
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(set_all_statuses,
+                                        GKO_DECLARE_SET_ALL_STATUSES_KERNEL);
 }  // namespace kernels
 }  // namespace gko
 
