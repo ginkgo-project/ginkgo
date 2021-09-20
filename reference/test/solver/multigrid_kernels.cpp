@@ -86,13 +86,13 @@ public:
     bool apply_uses_initial_guess() const override { return true; }
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         global_step++;
     }
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 };
 
@@ -109,14 +109,14 @@ public:
     bool apply_uses_initial_guess() const override { return true; }
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         rstr_step.push_back(global_step);
         global_step++;
     }
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 
     mutable std::vector<int> rstr_step;
@@ -136,10 +136,10 @@ public:
     bool apply_uses_initial_guess() const override { return true; }
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {
         prlg_step.push_back(global_step);
         global_step++;
@@ -165,7 +165,7 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(DummyLinOpWithFactory, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    DummyLinOpWithFactory(const Factory *factory,
+    DummyLinOpWithFactory(const Factory* factory,
                           std::shared_ptr<const gko::LinOp> op)
         : gko::EnableLinOp<DummyLinOpWithFactory>(factory->get_executor(),
                                                   transpose(op->get_size())),
@@ -176,14 +176,14 @@ public:
     std::shared_ptr<const gko::LinOp> op_;
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         step.push_back(global_step);
         global_step++;
     }
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {
         auto alpha_value =
             gko::as<gko::matrix::Dense<ValueType>>(alpha)->at(0, 0);
@@ -222,7 +222,7 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    DummyMultigridLevelWithFactory(const Factory *factory,
+    DummyMultigridLevelWithFactory(const Factory* factory,
                                    std::shared_ptr<const gko::LinOp> op)
         : gko::EnableLinOp<DummyMultigridLevelWithFactory>(
               factory->get_executor(), op->get_size()),
@@ -243,10 +243,10 @@ protected:
     std::shared_ptr<const DummyRestrictOp> restrict_;
     std::shared_ptr<const DummyProlongOp> prolong_;
 
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
-    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
-                    const gko::LinOp *beta, gko::LinOp *x) const override
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
     {}
 };
 
@@ -313,23 +313,23 @@ protected:
           x2(gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec))
     {}
 
-    static void assert_same_step(const gko::LinOp *lo, std::vector<int> v2)
+    static void assert_same_step(const gko::LinOp* lo, std::vector<int> v2)
     {
-        auto v1 = dynamic_cast<const DummyFactory *>(lo)->get_step();
+        auto v1 = dynamic_cast<const DummyFactory*>(lo)->get_step();
         assert_same_vector(v1, v2);
     }
 
-    static void assert_same_step(const gko::multigrid::MultigridLevel *rp,
+    static void assert_same_step(const gko::multigrid::MultigridLevel* rp,
                                  std::vector<int> rstr, std::vector<int> prlg)
     {
-        auto dummy = dynamic_cast<const DummyRPFactory *>(rp);
+        auto dummy = dynamic_cast<const DummyRPFactory*>(rp);
         auto v = dummy->get_rstr_step();
         assert_same_vector(v, rstr);
         v = dummy->get_prlg_step();
         assert_same_vector(v, prlg);
     }
 
-    static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
+    static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
     {
         ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
         ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
