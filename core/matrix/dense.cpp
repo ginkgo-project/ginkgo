@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/matrix/bccoo_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 
 
@@ -72,6 +73,8 @@ GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot);
 GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot);
 GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2);
 GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros);
+GKO_REGISTER_OPERATION(memsize_bccoo, dense::memsize_bccoo);
+GKO_REGISTER_OPERATION(copy_to_bccoo, dense::copy_to_bccoo);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        dense::calculate_max_nnz_per_row);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
@@ -99,9 +102,14 @@ GKO_REGISTER_OPERATION(make_complex, dense::make_complex);
 GKO_REGISTER_OPERATION(get_real, dense::get_real);
 GKO_REGISTER_OPERATION(get_imag, dense::get_imag);
 
-
 }  // namespace dense
 
+/* */
+namespace bccoo {
+GKO_REGISTER_OPERATION(get_default_block_size, bccoo::get_default_block_size);
+
+}  // namespace bccoo
+/* */
 
 namespace {
 
@@ -109,19 +117,23 @@ template <typename ValueType, typename IndexType, typename MatrixType,
           typename OperationType>
 inline void conversion_helper(Bccoo<ValueType, IndexType> *result,
                               MatrixType *source,
-                              const OperationType &op) GKO_NOT_IMPLEMENTED;
-/*
+                              const OperationType &op)  // GKO_NOT_IMPLEMENTED;
+/**/
 {
     auto exec = source->get_executor();
 
+    size_type block_size = 10;
+    exec->run(bccoo::make_get_default_block_size(&block_size));
     size_type num_stored_nonzeros = 0;
     exec->run(dense::make_count_nonzeros(source, &num_stored_nonzeros));
-    auto tmp = Bccoo<ValueType, IndexType>::create(exec, source->get_size(),
-                                                 num_stored_nonzeros);
+    size_type memsize = 0;
+    exec->run(dense::make_memsize_bccoo(source, block_size, &memsize));
+    auto tmp = Bccoo<ValueType, IndexType>::create(
+        exec, source->get_size(), num_stored_nonzeros, block_size, memsize);
     exec->run(op(source, tmp.get()));
     tmp->move_to(result);
 }
-*/
+/* */
 
 template <typename ValueType, typename IndexType, typename MatrixType,
           typename OperationType>
