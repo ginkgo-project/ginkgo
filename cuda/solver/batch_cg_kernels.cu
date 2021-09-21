@@ -48,7 +48,6 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 
-#define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 1
 constexpr int default_block_size = 256;
 constexpr int sm_multiplier = 4;
 
@@ -94,19 +93,13 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
     const size_type nbatch = a.num_batch;
 
     int shared_size =
-#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         gko::kernels::batch_cg::local_memory_requirement<ValueType>(a.num_rows,
                                                                     b.num_rhs);
-#else
-        0;
-#endif
 
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         shared_size +=
             BatchIdentity<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
             sizeof(ValueType);
-#endif
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             BATCH_CG_KERNEL_LAUNCH(SimpleAbsResidual, BatchIdentity);
         } else {
@@ -115,11 +108,9 @@ static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
 
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
-#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
         shared_size +=
             BatchJacobi<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
             sizeof(ValueType);
-#endif
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
             BATCH_CG_KERNEL_LAUNCH(SimpleAbsResidual, BatchJacobi);
         } else {
