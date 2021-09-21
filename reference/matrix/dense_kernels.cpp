@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "accessor/block_col_major.hpp"
 #include "accessor/range.hpp"
 #include "core/base/mixed_precision_types.hpp"
+#include "core/base/unaligned_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
 
@@ -453,30 +454,151 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Dense<ValueType>* source,
                       matrix::Bccoo<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;
+
+    
 /*
+void memsize_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::Dense<ValueType>* source,
+                   const size_type block_size, size_type* result)
 {
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    auto num_nonzeros = result->get_num_stored_elements();
-
-    auto row_idxs = result->get_row_idxs();
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
-
-    auto idxs = 0;
+    // Computation of rows, offsets and m (mem_size)
+    auto num_rows = source->get_size()[0];
+    auto num_cols = source->get_size()[1];
+    auto num_nonzeros = 0;
+    size_type nblk = 0, rrr = 0, ccc = 0, shf = 0;
     for (size_type row = 0; row < num_rows; ++row) {
         for (size_type col = 0; col < num_cols; ++col) {
-            auto val = source->at(row, col);
-            if (val != zero<ValueType>()) {
-                row_idxs[idxs] = row;
-                col_idxs[idxs] = col;
-                values[idxs] = val;
-                ++idxs;
+            if (source->at(row, col) != zero<ValueType>()) {
+                if (nblk == 0) {
+                    rrr = row;
+                    ccc = 0;
+                }
+                if (row != rrr) {  // new row
+                    rrr = row;
+                    ccc = 0;
+                    shf++;
+                }
+                size_type d = col - ccc;
+                if (d < 0xFD) {
+                    shf++;
+                } else if (d < 0xFFFF) {
+                    shf += 3;
+                } else {
+                    shf += 5;
+                }
+                ccc = col;
+                shf += sizeof(ValueType);
+                //            }
+                if (++nblk == block_size) {
+                    nblk = 0;
+                    ccc = 0;
+                }
+            }
+        }
+    }
+
+    *result = shf;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MEMSIZE_BCCOO_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void copy_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::Dense<ValueType>* source,
+                   matrix::Bccoo<ValueType, IndexType>* result)
+{
+    size_type block_size = result->get_block_size();
+    IndexType* rows_data = result->get_rows();
+    IndexType* offsets_data = result->get_offsets();
+    uint8* chunk_data = result->get_chunk();
+
+    // Computation of chunk
+    auto num_rows = source->get_size()[0];
+    auto num_cols = source->get_size()[1];
+    auto num_nonzeros = 0;
+    size_type nblk = 0, blk = 0, rrr = 0, ccc = 0, shf = 0;
+    offsets_data[0] = 0;
+    for (size_type row = 0; row < num_rows; ++row) {
+        for (size_type col = 0; col < num_cols; ++col) {
+            if (source->at(row, col) != zero<ValueType>()) {
+                if (nblk == 0) {
+                    rrr = row;
+                    ccc = 0;
+                    rows_data[blk] = row;
+                }
+                if (row != rrr) {  // new row
+                    rrr = row;
+                    ccc = 0;
+                    set_value_chunk<uint8>(chunk_data, shf, 0xFF);
+                    shf++;
+                }
+                size_type d = col - ccc;
+                if (d < 0xFD) {
+                    set_value_chunk<uint8>(chunk_data, shf, d);
+                    shf++;
+                } else if (d < 0xFFFF) {
+                    set_value_chunk<uint8>(chunk_data, shf, 0xFD);
+                    shf++;
+                    set_value_chunk<uint16>(chunk_data, shf, d);
+                    shf += 2;
+                } else {
+                    set_value_chunk<uint8>(chunk_data, shf, 0xFE);
+                    shf++;
+                    set_value_chunk<uint32>(chunk_data, shf, d);
+                    shf += 4;
+                }
+                ccc = col;
+                set_value_chunk<ValueType>(chunk_data, shf,
+                                           source->at(row, col));
+                shf += sizeof(ValueType);
+                //            }
+                if (++nblk == block_size) {
+                    nblk = 0;
+                    blk++;
+                    offsets_data[blk] = shf;
+                    ccc = 0;
+                }
             }
         }
     }
 }
-*/
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_COPY_TO_BCCOO_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
+                      const matrix::Dense<ValueType>* source,
+                      matrix::Bccoo<ValueType, IndexType>* result)
+//    GKO_NOT_IMPLEMENTED;
+{
+    copy_to_bccoo(exec, source, result);
+    /*
+        auto num_rows = result->get_size()[0];
+        auto num_cols = result->get_size()[1];
+        auto num_nonzeros = result->get_num_stored_elements();
+
+        auto row_idxs = result->get_row_idxs();
+        auto col_idxs = result->get_col_idxs();
+        auto values = result->get_values();
+
+        auto idxs = 0;
+        for (size_type row = 0; row < num_rows; ++row) {
+            for (size_type col = 0; col < num_cols; ++col) {
+                auto val = source->at(row, col);
+                if (val != zero<ValueType>()) {
+                    row_idxs[idxs] = row;
+                    col_idxs[idxs] = col;
+                    values[idxs] = val;
+                    ++idxs;
+                }
+            }
+        }
+    */
+// }
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_BCCOO_KERNEL);
 

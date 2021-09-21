@@ -57,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/matrix/bccoo_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
 
@@ -91,6 +92,8 @@ GKO_REGISTER_OPERATION(count_nonzero_blocks_per_row,
                        dense::count_nonzero_blocks_per_row);
 GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
 GKO_REGISTER_OPERATION(compute_slice_sets, dense::compute_slice_sets);
+GKO_REGISTER_OPERATION(memsize_bccoo, dense::memsize_bccoo);
+GKO_REGISTER_OPERATION(copy_to_bccoo, dense::copy_to_bccoo);
 GKO_REGISTER_OPERATION(transpose, dense::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose);
 GKO_REGISTER_OPERATION(symm_permute, dense::symm_permute);
@@ -133,23 +136,41 @@ void Dense<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
         b, x);
 }
 
+
+/* */
+namespace bccoo {
+GKO_REGISTER_OPERATION(get_default_block_size, bccoo::get_default_block_size);
+
+}  // namespace bccoo
+/* */
+
+
 template <typename ValueType, typename IndexType, typename MatrixType,
           typename OperationType>
 inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
                               MatrixType* source,
-                              const OperationType& op) GKO_NOT_IMPLEMENTED;
-/*
+                              const OperationType& op)  // GKO_NOT_IMPLEMENTED;
+/**/
 {
     auto exec = source->get_executor();
 
-    size_type num_stored_nonzeros = 0;
-    exec->run(dense::make_count_nonzeros(source, &num_stored_nonzeros));
-    auto tmp = Bccoo<ValueType, IndexType>::create(exec, source->get_size(),
-                                                 num_stored_nonzeros);
+    const auto num_rows = source->get_size()[0];
+
+    array<int64> row_ptrs{exec, num_rows + 1};
+    size_type block_size = 10;
+    exec->run(bccoo::make_get_default_block_size(&block_size));
+    exec->run(dense::make_count_nonzeros_per_row(source, row_ptrs.get_data()));
+    exec->run(dense::make_prefix_sum(row_ptrs.get_data(), num_rows + 1));
+    const auto num_stored_nonzeros =
+        exec->copy_val_to_host(row_ptrs.get_const_data() + num_rows);
+    size_type memsize = 0;
+    exec->run(dense::make_memsize_bccoo(source, block_size, &memsize));
+    auto tmp = Bccoo<ValueType, IndexType>::create(
+        exec, source->get_size(), num_stored_nonzeros, block_size, memsize);
     exec->run(op(source, tmp.get()));
     tmp->move_to(result);
 }
-*/
+/* */
 
 template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
