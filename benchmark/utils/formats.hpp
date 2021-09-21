@@ -90,6 +90,7 @@ std::string format_description =
     "csrc: Ginkgo's CSR implementation with automatic stategy.\n"
     "csri: Ginkgo's CSR implementation with inbalance strategy.\n"
     "csrm: Ginkgo's CSR implementation with merge_path strategy.\n"
+    "csrs: Ginkgo's CSR implementation with sparselib strategy.\n"
     "ell: Ellpack format according to Bell and Garland: Efficient Sparse "
     "Matrix-Vector Multiplication on CUDA.\n"
     "ell-mixed: Mixed Precision Ellpack format according to Bell and Garland: "
@@ -270,6 +271,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
          }},
         {"csrm", READ_MATRIX(csr, std::make_shared<csr::merge_path>())},
         {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
+        {"csrs", READ_MATRIX(csr, std::make_shared<csr::sparselib>())},
         {"coo", read_matrix_from_data<gko::matrix::Coo<etype, itype>>},
         {"ell", [](std::shared_ptr<const gko::Executor> exec,
             const gko::matrix_data<etype, itype> &data) {

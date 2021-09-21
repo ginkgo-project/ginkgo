@@ -123,7 +123,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
               typename OutputValueType, typename IndexType>             \
     _macro(InputValueType, MatrixValueType, OutputValueType, IndexType) \
         GKO_NOT_COMPILED(GKO_HOOK_MODULE);                              \
-    GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(_macro);
+    GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(_macro)
 
 #define GKO_STUB_TEMPLATE_TYPE(_macro)                   \
     template <typename IndexType>                        \
