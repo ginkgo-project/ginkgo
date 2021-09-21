@@ -75,10 +75,10 @@ constexpr int spmv_block_size = warps_in_block * config::warp_size;
 
 
 void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec,
-                            size_type& block_size) GKO_NOT_IMPLEMENTED;
+                            size_type* block_size) GKO_NOT_IMPLEMENTED;
 // {
 // 	get_default_block_size_kernel(exec, block_size);
-//	block_size = 10;
+//	*block_size = 10;
 // }
 
 
@@ -198,6 +198,37 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_ADVANCED_SPMV2_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_next_precision(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Bccoo<ValueType, IndexType>* source,
+    matrix::Bccoo<next_precision<ValueType>, IndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+/*
+{
+
+}
+*/
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BCCOO_CONVERT_TO_NEXT_PRECISION_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Bccoo<ValueType, IndexType>* source,
+                    matrix::Coo<ValueType, IndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+/*
+{
+
+}
+*/
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BCCOO_CONVERT_TO_COO_KERNEL);
+
+
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(std::shared_ptr<const CudaExecutor> exec,
                               const IndexType* idxs, size_type num_nonzeros,
@@ -210,7 +241,6 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const CudaExecutor> exec,
 //    kernel::convert_row_idxs_to_ptrs<<<grid_dim, default_block_size>>>(
 //        as_cuda_type(idxs), num_nonzeros, as_cuda_type(ptrs), length);
 //}
-
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
@@ -287,6 +317,31 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_EXTRACT_DIAGONAL_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_absolute_inplace(std::shared_ptr<const DefaultExecutor> exec,
+                              matrix::Bccoo<ValueType, IndexType>* matrix)
+    GKO_NOT_IMPLEMENTED;
+// {
+//
+// }
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BCCOO_COMPUTE_ABSOLUTE_INPLACE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_absolute(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Bccoo<ValueType, IndexType>* source,
+                      matrix::Bccoo<ValueType, IndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+// {
+//
+// }
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BCCOO_COMPUTE_ABSOLUTE_KERNEL);
 
 
 }  // namespace bccoo
