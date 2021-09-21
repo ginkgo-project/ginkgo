@@ -208,6 +208,35 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
+template <typename ValueType>
+void memsize_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::Dense<ValueType>* source,
+                   const size_type block_size,
+                   size_type* result) GKO_NOT_IMPLEMENTED;
+/*
+{
+
+}
+*/
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MEMSIZE_BCCOO_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void copy_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::Dense<ValueType>* source,
+                   matrix::Bccoo<ValueType, IndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+/*
+{
+
+}
+*/
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_COPY_TO_BCCOO_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void convert_to_bccoo(std::shared_ptr<const HipExecutor> exec,
                       const matrix::Dense<ValueType>* source,

@@ -50,7 +50,7 @@ namespace kernels {
 
 #define GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL()                          \
     void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec, \
-                                size_type& block_size)
+                                size_type* block_size)
 
 #define GKO_DECLARE_BCCOO_SPMV_KERNEL(ValueType, IndexType) \
     void spmv(std::shared_ptr<const DefaultExecutor> exec,  \
@@ -77,6 +77,13 @@ namespace kernels {
                         const matrix::Dense<ValueType>* b,            \
                         matrix::Dense<ValueType>* c)
 
+#define GKO_DECLARE_BCCOO_CONVERT_TO_NEXT_PRECISION_KERNEL(ValueType, \
+                                                           IndexType) \
+    void convert_to_next_precision(                                   \
+        std::shared_ptr<const DefaultExecutor> exec,                  \
+        const matrix::Bccoo<ValueType, IndexType>* source,            \
+        matrix::Bccoo<next_precision<ValueType>, IndexType>* result)
+
 #define GKO_DECLARE_BCCOO_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
     void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,       \
                           const matrix::Bccoo<ValueType, IndexType>* source, \
@@ -97,24 +104,41 @@ namespace kernels {
                           const matrix::Bccoo<ValueType, IndexType>* orig, \
                           matrix::Diagonal<ValueType>* diag)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
-    GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL();                     \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_BCCOO_SPMV_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_BCCOO_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_BCCOO_SPMV2_KERNEL(ValueType, IndexType);            \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_BCCOO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_BCCOO_CONVERT_TO_COO_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_BCCOO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_BCCOO_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_BCCOO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_BCCOO_COMPUTE_ABSOLUTE_INPLACE_KERNEL(ValueType,           \
+                                                          IndexType)           \
+    void compute_absolute_inplace(std::shared_ptr<const DefaultExecutor> exec, \
+                                  matrix::Bccoo<ValueType, IndexType>* matrix)
+
+#define GKO_DECLARE_BCCOO_COMPUTE_ABSOLUTE_KERNEL(ValueType, IndexType) \
+    void compute_absolute(                                              \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::Bccoo<ValueType, IndexType>* source,              \
+        remove_complex<matrix::Bccoo<ValueType, IndexType>>* result)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
+    GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL();                              \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BCCOO_SPMV_KERNEL(ValueType, IndexType);                      \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BCCOO_ADVANCED_SPMV_KERNEL(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BCCOO_SPMV2_KERNEL(ValueType, IndexType);                     \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BCCOO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BCCOO_CONVERT_TO_NEXT_PRECISION_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BCCOO_CONVERT_TO_COO_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BCCOO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BCCOO_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BCCOO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BCCOO_COMPUTE_ABSOLUTE_INPLACE_KERNEL(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BCCOO_COMPUTE_ABSOLUTE_KERNEL(ValueType, IndexType)
 
 
 namespace omp {
