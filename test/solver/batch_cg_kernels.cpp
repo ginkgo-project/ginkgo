@@ -157,18 +157,20 @@ protected:
 TYPED_TEST_SUITE(BatchCg, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchCg, SolvesStencilSystem)
+TYPED_TEST(BatchCg, SolveIsEquivalentToReference)
 {
-    auto r_1 = gko::test::solve_poisson_uniform(
-        this->ompexec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts_1, this->sys_1, 1);
+    using value_type = typename TestFixture::value_type;
+    using solver_type = gko::solver::BatchCg<value_type>;
+    auto r_sys = gko::test::generate_solvable_batch_system<value_type>(
+        this->exec, this->nbatch, this->nrows, 1, true);
+    auto r_factory = this->create_factory(this->exec, this->opts_1);
+    const double iter_tol = 0.01;
+    const double res_tol = 10 * r<value_type>::value;
+    const double sol_tol = 100 * res_tol;
 
-    for (size_t i = 0; i < this->nbatch; i++) {
-        ASSERT_LE(r_1.resnorm->get_const_values()[i] /
-                      this->sys_1.bnorm->get_const_values()[i],
-                  this->opts_1.residual_tol);
-    }
-    GKO_ASSERT_BATCH_MTX_NEAR(r_1.x, this->sys_1.xex, this->eps);
+    gko::test::compare_with_reference<value_type, solver_type>(
+        this->ompexec, r_sys, r_factory.get(), false, iter_tol, res_tol,
+        sol_tol);
 }
 
 
