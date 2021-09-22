@@ -50,7 +50,6 @@ namespace kernels {
 namespace hip {
 
 
-#define GKO_HIP_BATCH_USE_DYNAMIC_SHARED_MEM 1
 constexpr int default_block_size = 256;
 constexpr int sm_multiplier = 4;
 
