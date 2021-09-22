@@ -91,7 +91,8 @@ get_rand_value(Distribution&& dist, Generator&& gen)
  * @note All Ginkgo functions returning such a structure will return the
  *       nonzeros sorted in row-major order.
  * @note All Ginkgo functions that take this structure as input expect that the
- *       nonzeros are sorted in row-major order.
+ *       nonzeros are sorted in row-major order and that the index pair
+ *       (row_index, column_index) of each nonzero is unique.
  * @note This structure is not optimized for usual access patterns and it can
  *       only exist on the CPU. Thus, it should only be used for utility
  *       functions which do not have to be optimized for performance.
