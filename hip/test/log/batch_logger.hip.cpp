@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
@@ -30,6 +29,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
+
+#include <hip/hip_runtime.h>
+
 
 #include <gtest/gtest.h>
 
