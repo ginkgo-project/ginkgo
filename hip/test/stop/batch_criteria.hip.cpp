@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <hip/hip_runtime.h>
+
+
 #include <gtest/gtest.h>
 
 
@@ -43,15 +46,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/batch_struct.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/thread_ids.cuh"
+#include "hip/base/config.hip.hpp"
+#include "hip/base/types.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace hip {
 
 constexpr int default_block_size = 128;
 constexpr int sm_multiplier = 4;
@@ -63,7 +66,7 @@ constexpr int sm_multiplier = 4;
 #include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
 #include "common/cuda_hip/stop/batch_criteria.hpp.inc"
 
-}  // namespace cuda
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko
 
@@ -76,7 +79,7 @@ __global__ void simple_rel_conv_check(
     const int nrows, const gko::remove_complex<T>* const bnorms,
     const gko::remove_complex<T>* const res_norms, bool* const all_conv)
 {
-    using BatchStop = gko::kernels::cuda::stop::SimpleRelResidual<T>;
+    using BatchStop = gko::kernels::hip::stop::SimpleRelResidual<T>;
     const gko::remove_complex<T> tol = 1e-5;
     BatchStop bstop(tol, bnorms);
     *all_conv = bstop.check_converged(res_norms);
@@ -88,7 +91,7 @@ __global__ void simple_abs_conv_check(
     const int nrows, const gko::remove_complex<T>* const res_norms,
     bool* const all_conv)
 {
-    using BatchStop = gko::kernels::cuda::stop::SimpleAbsResidual<T>;
+    using BatchStop = gko::kernels::hip::stop::SimpleAbsResidual<T>;
     const gko::remove_complex<T> tol = 1e-5;
     BatchStop bstop(tol, nullptr);
     *all_conv = bstop.check_converged(res_norms);
@@ -102,17 +105,17 @@ protected:
 
     SimpleRes()
         : exec(gko::ReferenceExecutor::create()),
-          cuexec(gko::CudaExecutor::create(0, exec))
+          cuexec(gko::HipExecutor::create(0, exec))
     {}
 
     std::shared_ptr<gko::ReferenceExecutor> exec;
-    std::shared_ptr<const gko::CudaExecutor> cuexec;
+    std::shared_ptr<const gko::HipExecutor> cuexec;
     const int nrows = 100;
     const real_type tol = 1e-5;
 
     void check_helper(const bool relative, const bool check_converged)
     {
-        const auto dbs = gko::kernels::cuda::default_block_size;
+        const auto dbs = gko::kernels::hip::default_block_size;
         gko::Array<real_type> h_resnorms(this->exec, 1);
         gko::Array<real_type> h_bnorms(this->exec, 1);
         if (check_converged) {
@@ -136,12 +139,15 @@ protected:
         gko::Array<bool> all_conv(this->cuexec, 1);
 
         if (relative) {
-            simple_rel_conv_check<value_type>
-                <<<1, dbs>>>(nrows, bnorms.get_const_data(),
-                             resnorms.get_const_data(), all_conv.get_data());
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(simple_rel_conv_check<value_type>), dim3(1),
+                dim3(dbs), 0, 0, nrows, bnorms.get_const_data(),
+                resnorms.get_const_data(), all_conv.get_data());
         } else {
-            simple_abs_conv_check<value_type><<<1, dbs>>>(
-                nrows, resnorms.get_const_data(), all_conv.get_data());
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(simple_abs_conv_check<value_type>), dim3(1),
+                dim3(dbs), 0, 0, nrows, resnorms.get_const_data(),
+                all_conv.get_data());
         }
 
         gko::Array<bool> h_all_conv(this->exec, all_conv);
