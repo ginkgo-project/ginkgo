@@ -104,8 +104,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void scale(std::shared_ptr<const DefaultExecutor> exec,
-           const matrix::Dense<ValueType> *alpha,
-           matrix::Csr<ValueType, IndexType> *x)
+           const matrix::Dense<ValueType>* alpha,
+           matrix::Csr<ValueType, IndexType>* x)
 {
     run_kernel(
         exec,
@@ -119,8 +119,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SCALE_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
-               const matrix::Dense<ValueType> *alpha,
-               matrix::Csr<ValueType, IndexType> *x)
+               const matrix::Dense<ValueType>* alpha,
+               matrix::Csr<ValueType, IndexType>* x)
 {
     run_kernel(
         exec,

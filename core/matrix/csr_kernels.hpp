@@ -190,13 +190,13 @@ namespace kernels {
 
 #define GKO_DECLARE_CSR_SCALE_KERNEL(ValueType, IndexType)  \
     void scale(std::shared_ptr<const DefaultExecutor> exec, \
-               const matrix::Dense<ValueType> *alpha,       \
-               matrix::Csr<ValueType, IndexType> *to_scale)
+               const matrix::Dense<ValueType>* alpha,       \
+               matrix::Csr<ValueType, IndexType>* to_scale)
 
 #define GKO_DECLARE_CSR_INV_SCALE_KERNEL(ValueType, IndexType)  \
     void inv_scale(std::shared_ptr<const DefaultExecutor> exec, \
-                   const matrix::Dense<ValueType> *alpha,       \
-                   matrix::Csr<ValueType, IndexType> *to_scale)
+                   const matrix::Dense<ValueType>* alpha,       \
+                   matrix::Csr<ValueType, IndexType>* to_scale)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
     template <typename ValueType, typename IndexType>                        \
