@@ -152,6 +152,18 @@ protected:
         this->set_composition(prolong_op, coarse_op, restrict_op);
     }
 
+    /**
+     * Sets the multigrid level fine operator, which is used to update fine
+     * operator when the MultigridLevel changes the precision of the operator.
+     *
+     * @param fine_op  the fine operator
+     */
+    void set_fine_op(std::shared_ptr<const LinOp> fine_op)
+    {
+        GKO_ASSERT_EQUAL_DIMENSIONS(fine_op_->get_size(), fine_op->get_size());
+        fine_op_ = fine_op;
+    }
+
     explicit EnableMultigridLevel() {}
 
     /**
