@@ -582,7 +582,7 @@ Csr<ValueType, IndexType>::compute_absolute() const
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::scale_impl(const LinOp *alpha)
+void Csr<ValueType, IndexType>::scale_impl(const LinOp* alpha)
 {
     auto exec = this->get_executor();
     exec->run(csr::make_scale(make_temporary_conversion<ValueType>(alpha).get(),
@@ -591,7 +591,7 @@ void Csr<ValueType, IndexType>::scale_impl(const LinOp *alpha)
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::inv_scale_impl(const LinOp *alpha)
+void Csr<ValueType, IndexType>::inv_scale_impl(const LinOp* alpha)
 {
     auto exec = this->get_executor();
     exec->run(csr::make_inv_scale(

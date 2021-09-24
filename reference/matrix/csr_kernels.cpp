@@ -926,8 +926,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 template <typename ValueType, typename IndexType>
 void scale(std::shared_ptr<const ReferenceExecutor> exec,
-           const matrix::Dense<ValueType> *alpha,
-           matrix::Csr<ValueType, IndexType> *to_scale)
+           const matrix::Dense<ValueType>* alpha,
+           matrix::Csr<ValueType, IndexType>* to_scale)
 {
     const auto nnz = to_scale->get_num_stored_elements();
     auto values = to_scale->get_values();
@@ -942,8 +942,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SCALE_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void inv_scale(std::shared_ptr<const ReferenceExecutor> exec,
-               const matrix::Dense<ValueType> *alpha,
-               matrix::Csr<ValueType, IndexType> *to_scale)
+               const matrix::Dense<ValueType>* alpha,
+               matrix::Csr<ValueType, IndexType>* to_scale)
 {
     const auto nnz = to_scale->get_num_stored_elements();
     auto values = to_scale->get_values();

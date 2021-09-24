@@ -902,7 +902,7 @@ public:
      * @param alpha  The entire matrix is scaled by alpha. alpha has to be a 1x1
      * Dense matrix.
      */
-    void scale(const LinOp *alpha)
+    void scale(const LinOp* alpha)
     {
         auto exec = this->get_executor();
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -915,7 +915,7 @@ public:
      * @param alpha  The entire matrix is scaled by 1 / alpha. alpha has to be a
      * 1x1 Dense matrix.
      */
-    void inv_scale(const LinOp *alpha)
+    void inv_scale(const LinOp* alpha)
     {
         auto exec = this->get_executor();
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -1118,7 +1118,7 @@ protected:
      * @note  Other implementations of Csr should override this function
      *        instead of scale(const LinOp *alpha).
      */
-    virtual void scale_impl(const LinOp *alpha);
+    virtual void scale_impl(const LinOp* alpha);
 
     /**
      * @copydoc inv_scale(const LinOp *)
@@ -1126,7 +1126,7 @@ protected:
      * @note  Other implementations of Csr should override this function
      *        instead of inv_scale(const LinOp *alpha).
      */
-    virtual void inv_scale_impl(const LinOp *alpha);
+    virtual void inv_scale_impl(const LinOp* alpha);
 
 private:
     Array<value_type> values_;
