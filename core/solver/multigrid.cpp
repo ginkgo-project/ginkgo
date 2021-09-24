@@ -560,7 +560,7 @@ void Multigrid::generate()
                         parameters_.smoother_relax);
                 }
             },
-            index, matrix);
+            index, mg_level->get_fine_op());
 
         mg_level_list_.emplace_back(mg_level);
         matrix = mg_level_list_.back()->get_coarse_op();
