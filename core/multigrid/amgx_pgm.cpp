@@ -90,9 +90,9 @@ void AmgxPgm<ValueType, IndexType>::generate()
         amgxpgm_op_shared_ptr = convert_to_with_sorting<matrix_type>(
             exec, system_matrix_, parameters_.skip_sorting);
         amgxpgm_op = amgxpgm_op_shared_ptr.get();
+        // keep the same precision data in fine_op
+        this->set_fine_op(amgxpgm_op_shared_ptr);
     }
-    // keep the same precision data in fine_op
-    this->set_fine_op(amgxpgm_op_shared_ptr);
     // Initial agg = -1
     exec->run(amgx_pgm::make_fill_array(agg_.get_data(), agg_.get_num_elems(),
                                         -one<IndexType>()));
