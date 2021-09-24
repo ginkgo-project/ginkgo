@@ -118,9 +118,7 @@ TEST_F(Csr, ScaleIsEquivalentToRef)
     x->scale(alpha.get());
     dx->scale(dalpha.get());
 
-    auto result = Mtx::create(ref);
-    result->copy_from(dx.get());
-    GKO_ASSERT_MTX_NEAR(result, x, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
 
@@ -131,9 +129,7 @@ TEST_F(Csr, InvScaleIsEquivalentToRef)
     x->inv_scale(alpha.get());
     dx->inv_scale(dalpha.get());
 
-    auto result = Mtx::create(ref);
-    result->copy_from(dx.get());
-    GKO_ASSERT_MTX_NEAR(result, x, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
 
