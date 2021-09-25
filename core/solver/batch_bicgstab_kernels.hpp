@@ -91,6 +91,114 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs)
 }
 
 
+struct StorageConfig {
+    // vectors used in spmvs - whether to store in shared memory
+    bool p_hat_shared;
+    bool s_hat_shared;
+    bool v_shared;
+    bool t_shared;
+    // preconditioner storage
+    bool prec_shared;
+
+    // total number of other shared vectors
+    int n_shared;
+
+    // number of vectors in global memory
+    int n_global;
+};
+
+
+/**
+ * Calculates the amount of in-solver storage needed by batch-Bicgstab and
+ * the split between shared and global memory.
+ *
+ * The calculation includes multivectors for
+ * - r
+ * - r_hat
+ * - p
+ * - p_hat
+ * - v
+ * - s
+ * - s_hat
+ * - t
+ * - x
+ * In addition, small arrays are needed for
+ * - rho_old
+ * - rho_new
+ * - omega
+ * - alpha
+ * - temp
+ * - rhs_norms
+ * - res_norms
+ */
+template <typename Prectype, typename ValueType>
+StorageConfig compute_shared_storage(const int shared_mem_per_sm,
+                                     const int num_rows, const int num_nz,
+                                     const int num_rhs)
+{
+    using real_type = remove_complex<ValueType>;
+    const int vec_size = num_rows * num_rhs * sizeof(ValueType);
+    const int num_value_scalars = 5;
+    const int num_real_scalars = 2;
+    const int prec_storage =
+        Prectype::dynamic_work_size(num_rows, num_nz) * sizeof(ValueType);
+    // for now, this is hard-coded for CSR
+    // TODO: add functions to batch matrix formats to return storage per batch
+    const int matrix_storage = (num_rows + 1) * sizeof(int) +
+                               num_nz * (sizeof(int) + sizeof(ValueType));
+    // Prioritize caching of matrix in L1 cache
+    int rem_shared = shared_mem_per_sm - matrix_storage -
+                     num_value_scalars * sizeof(ValueType) -
+                     num_real_scalars * sizeof(real_type);
+    StorageConfig sconf{false, false, false, false, false, 0, 9};
+    if (rem_shared >= vec_size) {
+        sconf.p_hat_shared = true;
+        sconf.n_global--;
+        sconf.n_shared++;
+        rem_shared -= vec_size;
+    } else {
+        return sconf;
+    }
+    if (rem_shared >= vec_size) {
+        sconf.s_hat_shared = true;
+        sconf.n_global--;
+        sconf.n_shared++;
+        rem_shared -= vec_size;
+    } else {
+        return sconf;
+    }
+    if (rem_shared >= vec_size) {
+        sconf.v_shared = true;
+        sconf.n_global--;
+        sconf.n_shared++;
+        rem_shared -= vec_size;
+    } else {
+        return sconf;
+    }
+    if (rem_shared >= vec_size) {
+        sconf.t_shared = true;
+        sconf.n_global--;
+        sconf.n_shared++;
+        rem_shared -= vec_size;
+    } else {
+        return sconf;
+    }
+    if (rem_shared >= prec_storage) {
+        sconf.prec_shared = true;
+        rem_shared -= prec_storage;
+    }
+    sconf.n_shared += rem_shared / vec_size;
+    if (sconf.n_shared > 9) {
+        sconf.n_shared = 9;
+    }
+    sconf.n_global -= rem_shared / vec_size;
+    if (sconf.n_global < 0) {
+        sconf.n_global = 0;
+    }
+    return sconf;
+}
+
+
 #define GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL(_type)                   \
     void apply(std::shared_ptr<const DefaultExecutor> exec,              \
                const gko::kernels::batch_bicgstab::BatchBicgstabOptions< \
