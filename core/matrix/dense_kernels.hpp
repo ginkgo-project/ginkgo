@@ -281,6 +281,8 @@ namespace kernels {
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(ValueType);                      \
     template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL(ValueType);                      \
+    template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);          \
