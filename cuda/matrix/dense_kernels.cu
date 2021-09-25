@@ -136,16 +136,13 @@ void compute_norm1(std::shared_ptr<const CudaExecutor> exec,
 
     // TODO: write a kernel which does this more efficiently
     for (size_type col = 0; col < x->get_size()[1]; ++col) {
-        for (size_type col = 0; col < x->get_size()[1]; ++col) {
-            kernel::compute_partial_norm1<block_size><<<grid_dim, block_dim>>>(
-                x->get_size()[0], as_cuda_type(x->get_const_values() + col),
-                x->get_stride(), as_cuda_type(work.get_data()));
+        kernel::compute_partial_norm1<block_size><<<grid_dim, block_dim>>>(
+            x->get_size()[0], as_cuda_type(x->get_const_values() + col),
+            x->get_stride(), as_cuda_type(work.get_data()));
 
-            kernel::finalize_sum_reduce_computation<block_size>
-                <<<1, block_dim>>>(grid_dim.x,
-                                   as_cuda_type(work.get_const_data()),
-                                   as_cuda_type(result->get_values() + col));
-        }
+        kernel::finalize_sum_reduce_computation<block_size>
+            <<<1, block_dim>>>(grid_dim.x, as_cuda_type(work.get_const_data()),
+                               as_cuda_type(result->get_values() + col));
     }
 }
 
