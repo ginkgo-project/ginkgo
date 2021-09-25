@@ -234,6 +234,18 @@ TEST_F(Dense, HipComputeNorm2IsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, 1e-14);
 }
 
+TEST_F(Dense, HipComputeNorm1IsEquivalentToRef)
+{
+    set_up_vector_data(20);
+    auto norm_size = gko::dim<2>{1, x->get_size()[1]};
+    auto norm_expected = NormVector::create(this->ref, norm_size);
+    auto dnorm = NormVector::create(this->hip, norm_size);
+
+    x->compute_norm1(norm_expected.get());
+    dx->compute_norm1(dnorm.get());
+
+    GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, 1e-14);
+}
 
 TEST_F(Dense, SimpleApplyIsEquivalentToRef)
 {
