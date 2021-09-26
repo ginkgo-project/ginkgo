@@ -58,17 +58,16 @@ TEST(BatchBicgstab, CanAssignVectorsToGlobalMemory)
     const int nrhs = 1;
     const int nnz = 16;
     size_t shmem_per_sm = 64;
+    const int batch_storage = 10 * nrows * sizeof(T);
 
-    auto conf = gko::kernels::batch_bicgstab::compute_shared_storage<PC, T>(
-        shmem_per_sm, nrows, nnz, nrhs);
+    const auto conf =
+        gko::kernels::batch_bicgstab::compute_shared_storage<PC, T>(
+            shmem_per_sm, nrows, nnz, nrhs);
 
-    ASSERT_FALSE(conf.p_hat_shared);
-    ASSERT_FALSE(conf.s_hat_shared);
-    ASSERT_FALSE(conf.v_shared);
-    ASSERT_FALSE(conf.t_shared);
     ASSERT_FALSE(conf.prec_shared);
     ASSERT_EQ(conf.n_shared, 0);
     ASSERT_EQ(conf.n_global, 9);
+    ASSERT_EQ(conf.gmem_stride_bytes, ((batch_storage - 1) / 32 + 1) * 32);
 }
 
 TEST(BatchBicgstab, AssignsPriorityVectorsToSharedMemoryFirst)
@@ -81,17 +80,16 @@ TEST(BatchBicgstab, AssignsPriorityVectorsToSharedMemoryFirst)
     const int matrix_storage =
         6 * sizeof(int) + nnz * (sizeof(int) + sizeof(T));
     int shmem_per_sm = (2 * nrows + 7) * sizeof(T) + matrix_storage;
+    const int gmem_batch_storage = 8 * nrows * sizeof(T);
 
-    auto conf = gko::kernels::batch_bicgstab::compute_shared_storage<PC, T>(
-        shmem_per_sm, nrows, nnz, nrhs);
+    const auto conf =
+        gko::kernels::batch_bicgstab::compute_shared_storage<PC, T>(
+            shmem_per_sm, nrows, nnz, nrhs);
 
-    ASSERT_TRUE(conf.p_hat_shared);
-    ASSERT_TRUE(conf.s_hat_shared);
-    ASSERT_FALSE(conf.v_shared);
-    ASSERT_FALSE(conf.t_shared);
     ASSERT_FALSE(conf.prec_shared);
     ASSERT_EQ(conf.n_shared, 2);
     ASSERT_EQ(conf.n_global, 7);
+    ASSERT_EQ(conf.gmem_stride_bytes, ((gmem_batch_storage - 1) / 32 + 1) * 32);
 }
 
 TEST(BatchBicgstab, CanAssignAllVectorsToSharedMemory)
@@ -105,16 +103,14 @@ TEST(BatchBicgstab, CanAssignAllVectorsToSharedMemory)
         6 * sizeof(int) + nnz * (sizeof(int) + sizeof(T));
     const int shmem_per_sm = (10 * nrows + 7) * sizeof(T) + matrix_storage;
 
-    auto conf = gko::kernels::batch_bicgstab::compute_shared_storage<PC, T>(
-        shmem_per_sm, nrows, nnz, nrhs);
+    const auto conf =
+        gko::kernels::batch_bicgstab::compute_shared_storage<PC, T>(
+            shmem_per_sm, nrows, nnz, nrhs);
 
-    ASSERT_TRUE(conf.p_hat_shared);
-    ASSERT_TRUE(conf.s_hat_shared);
-    ASSERT_TRUE(conf.v_shared);
-    ASSERT_TRUE(conf.t_shared);
-    ASSERT_TRUE(conf.prec_shared);
     ASSERT_EQ(conf.n_shared, 9);
     ASSERT_EQ(conf.n_global, 0);
+    ASSERT_EQ(conf.gmem_stride_bytes, 0);
+    ASSERT_TRUE(conf.prec_shared);
 }
 
 TEST(BatchBicgstab, AssignsMultipleRHSCorrectly)
@@ -128,14 +124,13 @@ TEST(BatchBicgstab, AssignsMultipleRHSCorrectly)
         6 * sizeof(int) + nnz * (sizeof(int) + sizeof(T));
     int shmem_per_sm = 3 * nrhs * nrows * sizeof(T) + matrix_storage;
 
-    auto conf = gko::kernels::batch_bicgstab::compute_shared_storage<PC, T>(
-        shmem_per_sm, nrows, nnz, nrhs);
+    const auto conf =
+        gko::kernels::batch_bicgstab::compute_shared_storage<PC, T>(
+            shmem_per_sm, nrows, nnz, nrhs);
 
-    ASSERT_TRUE(conf.p_hat_shared);
-    ASSERT_TRUE(conf.s_hat_shared);
-    ASSERT_FALSE(conf.v_shared);
-    ASSERT_FALSE(conf.t_shared);
+    ASSERT_EQ(conf.n_shared, 1);
+    ASSERT_EQ(conf.n_global, 8);
     ASSERT_FALSE(conf.prec_shared);
-    ASSERT_EQ(conf.n_shared, 2);
-    ASSERT_EQ(conf.n_global, 7);
+    ASSERT_EQ(conf.gmem_stride_bytes,
+              (((8 * nrows * nrhs + nrows) * sizeof(T) - 1) / 32 + 1) * 32);
 }
