@@ -178,14 +178,13 @@ __device__ __forceinline__ void update_x_middle(
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
-__global__ void apply_kernel(const int num_sh_vecs, const int shared_gap,
-                             const int max_iter,
-                             const gko::remove_complex<ValueType> tol,
-                             LogType logger, PrecType prec_shared,
-                             const BatchMatrixType a,
-                             const ValueType* const __restrict__ b,
-                             ValueType* const __restrict__ x,
-                             ValueType* const __restrict__ workspace = nullptr)
+__global__ void apply_kernel(
+    const int shared_gap,
+    const gko::kernels::batch_bicgstab::StorageConfig sconf, const int max_iter,
+    const gko::remove_complex<ValueType> tol, LogType logger,
+    PrecType prec_shared, const BatchMatrixType a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ x,
+    ValueType* const __restrict__ workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const auto nbatch = a.num_batch;
@@ -196,7 +195,9 @@ __global__ void apply_kernel(const int num_sh_vecs, const int shared_gap,
     auto warp_grp = group::tiled_partition<tile_size>(thread_block);
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
-        int gmem_offset = ibatch * (shared_gap * (10 - num_sh_vecs));
+        // int gmem_offset = ibatch * (shared_gap * (10 - num_sh_vecs));
+        const int gmem_offset =
+            ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
         extern __shared__ char local_mem_sh[];
 
         ValueType* p_hat_sh;
@@ -210,55 +211,55 @@ __global__ void apply_kernel(const int num_sh_vecs, const int shared_gap,
         ValueType* x_sh;
         ValueType* prec_work_sh;
 
-        if (num_sh_vecs >= 1) {
+        if (sconf.n_shared >= 1) {
             p_hat_sh = reinterpret_cast<ValueType*>(local_mem_sh);
         } else {
             p_hat_sh = workspace + gmem_offset;
         }
-        if (num_sh_vecs == 1) {
+        if (sconf.n_shared == 1) {
             s_hat_sh = workspace + gmem_offset;
         } else {
             s_hat_sh = p_hat_sh + shared_gap;
         }
-        if (num_sh_vecs == 2) {
-            p_sh = workspace + gmem_offset;
-        } else {
-            p_sh = s_hat_sh + shared_gap;
-        }
-        if (num_sh_vecs == 3) {
-            s_sh = workspace + gmem_offset;
-        } else {
-            s_sh = p_sh + shared_gap;
-        }
-        if (num_sh_vecs == 4) {
-            r_sh = workspace + gmem_offset;
-        } else {
-            r_sh = s_sh + shared_gap;
-        }
-        if (num_sh_vecs == 5) {
-            r_hat_sh = workspace + gmem_offset;
-        } else {
-            r_hat_sh = r_sh + shared_gap;
-        }
-        if (num_sh_vecs == 6) {
+        if (sconf.n_shared == 2) {
             v_sh = workspace + gmem_offset;
         } else {
-            v_sh = r_hat_sh + shared_gap;
+            v_sh = s_hat_sh + shared_gap;
         }
-        if (num_sh_vecs == 7) {
+        if (sconf.n_shared == 3) {
             t_sh = workspace + gmem_offset;
         } else {
             t_sh = v_sh + shared_gap;
         }
-        if (num_sh_vecs == 8) {
+        if (sconf.prec_shared) {
+            prec_work_sh = t_sh + shared_gap;
+        } else {
+            prec_work_sh = workspace + gmem_offset;
+        }
+        if (sconf.n_shared == 4) {
+            p_sh = workspace + gmem_offset;
+        } else {
+            p_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
+        }
+        if (sconf.n_shared == 5) {
+            s_sh = workspace + gmem_offset;
+        } else {
+            s_sh = p_sh + shared_gap;
+        }
+        if (sconf.n_shared == 6) {
+            r_sh = workspace + gmem_offset;
+        } else {
+            r_sh = s_sh + shared_gap;
+        }
+        if (sconf.n_shared == 7) {
+            r_hat_sh = workspace + gmem_offset;
+        } else {
+            r_hat_sh = r_sh + shared_gap;
+        }
+        if (sconf.n_shared == 8) {
             x_sh = workspace + gmem_offset;
         } else {
-            x_sh = t_sh + shared_gap;
-        }
-        if (num_sh_vecs == 9) {
-            prec_work_sh = workspace + gmem_offset;
-        } else {
-            prec_work_sh = x_sh + shared_gap;
+            x_sh = r_hat_sh + shared_gap;
         }
 
         __shared__ UninitializedArray<ValueType, 1> rho_old_sh;
