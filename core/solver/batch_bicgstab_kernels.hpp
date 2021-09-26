@@ -92,20 +92,38 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs)
 
 
 struct StorageConfig {
-    // vectors used in spmvs - whether to store in shared memory
-    bool p_hat_shared;
-    bool s_hat_shared;
-    bool v_shared;
-    bool t_shared;
     // preconditioner storage
     bool prec_shared;
 
-    // total number of other shared vectors
+    // total number of shared vectors
     int n_shared;
 
     // number of vectors in global memory
     int n_global;
+
+    // global stride from one batch entry to the next
+    int gmem_stride_bytes;
 };
+
+
+namespace {
+
+template <typename ValueType, int align_bytes>
+void set_gmem_stride_bytes(StorageConfig& sconf,
+                           const int multi_vector_size_bytes,
+                           const int prec_storage_bytes)
+{
+    int gmem_stride = sconf.n_global * multi_vector_size_bytes;
+    if (!sconf.prec_shared) {
+        gmem_stride += prec_storage_bytes;
+    }
+    // align global memory chunks
+    sconf.gmem_stride_bytes =
+        gmem_stride > 0 ? ((gmem_stride - 1) / align_bytes + 1) * align_bytes
+                        : 0;
+}
+
+}  // namespace
 
 
 /**
@@ -131,15 +149,19 @@ struct StorageConfig {
  * - rhs_norms
  * - res_norms
  */
-template <typename Prectype, typename ValueType>
+template <typename Prectype, typename ValueType, int align_bytes = 32>
 StorageConfig compute_shared_storage(const int shared_mem_per_sm,
                                      const int num_rows, const int num_nz,
                                      const int num_rhs)
 {
     using real_type = remove_complex<ValueType>;
     const int vec_size = num_rows * num_rhs * sizeof(ValueType);
-    const int num_value_scalars = 5;
-    const int num_real_scalars = 2;
+    // const int padded_vec_size = ((vec_size - 1) / align_bytes + 1) *
+    // align_bytes; const int padded_multivec_len = padded_vec_size /
+    // sizeof(ValueType); assert(padded_multivec_len % sizeof(ValueType) == 0);
+    const int num_value_scalars = 5 * num_rhs;
+    const int num_real_scalars = 2 * num_rhs;
+    const int num_priority_vecs = 4;
     const int prec_storage =
         Prectype::dynamic_work_size(num_rows, num_nz) * sizeof(ValueType);
     // for now, this is hard-coded for CSR
@@ -150,51 +172,42 @@ StorageConfig compute_shared_storage(const int shared_mem_per_sm,
     int rem_shared = shared_mem_per_sm - matrix_storage -
                      num_value_scalars * sizeof(ValueType) -
                      num_real_scalars * sizeof(real_type);
-    StorageConfig sconf{false, false, false, false, false, 0, 9};
-    if (rem_shared >= vec_size) {
-        sconf.p_hat_shared = true;
-        sconf.n_global--;
-        sconf.n_shared++;
-        rem_shared -= vec_size;
-    } else {
+    StorageConfig sconf{false, 0, 9, 0};
+    if (rem_shared <= 0) {
+        set_gmem_stride_bytes<ValueType, align_bytes>(sconf, vec_size,
+                                                      prec_storage);
         return sconf;
     }
-    if (rem_shared >= vec_size) {
-        sconf.s_hat_shared = true;
-        sconf.n_global--;
-        sconf.n_shared++;
-        rem_shared -= vec_size;
-    } else {
+    const int initial_vecs_available = rem_shared / vec_size;
+    const int priority_available = initial_vecs_available >= num_priority_vecs
+                                       ? num_priority_vecs
+                                       : initial_vecs_available;
+    sconf.n_shared += priority_available;
+    sconf.n_global -= priority_available;
+    // for simplicity, we don't allocate anything else in shared
+    //  if all the spmv vectors were not.
+    if (priority_available < num_priority_vecs) {
+        set_gmem_stride_bytes<ValueType, align_bytes>(sconf, vec_size,
+                                                      prec_storage);
         return sconf;
     }
-    if (rem_shared >= vec_size) {
-        sconf.v_shared = true;
-        sconf.n_global--;
-        sconf.n_shared++;
-        rem_shared -= vec_size;
-    } else {
-        return sconf;
-    }
-    if (rem_shared >= vec_size) {
-        sconf.t_shared = true;
-        sconf.n_global--;
-        sconf.n_shared++;
-        rem_shared -= vec_size;
-    } else {
-        return sconf;
-    }
+    rem_shared -= priority_available * vec_size;
     if (rem_shared >= prec_storage) {
         sconf.prec_shared = true;
         rem_shared -= prec_storage;
     }
-    sconf.n_shared += rem_shared / vec_size;
+    const int shared_other_vecs =
+        rem_shared / vec_size >= 0 ? rem_shared / vec_size : 0;
+    sconf.n_shared += shared_other_vecs;
     if (sconf.n_shared > 9) {
         sconf.n_shared = 9;
     }
-    sconf.n_global -= rem_shared / vec_size;
+    sconf.n_global -= shared_other_vecs;
     if (sconf.n_global < 0) {
         sconf.n_global = 0;
     }
+    set_gmem_stride_bytes<ValueType, align_bytes>(sconf, vec_size,
+                                                  prec_storage);
     return sconf;
 }
 
