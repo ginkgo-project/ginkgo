@@ -164,12 +164,12 @@ StorageConfig compute_shared_storage(const int shared_mem_per_sm,
     const int num_priority_vecs = 4;
     const int prec_storage =
         Prectype::dynamic_work_size(num_rows, num_nz) * sizeof(ValueType);
+    // Prioritize caching of matrix in L1 cache
     // for now, this is hard-coded for CSR
     // TODO: add functions to batch matrix formats to return storage per batch
-    const int matrix_storage = (num_rows + 1) * sizeof(int) +
-                               num_nz * (sizeof(int) + sizeof(ValueType));
-    // Prioritize caching of matrix in L1 cache
-    int rem_shared = shared_mem_per_sm - matrix_storage -
+    // const int matrix_storage = (num_rows + 1) * sizeof(int) +
+    //                           num_nz * (sizeof(int) + sizeof(ValueType));
+    int rem_shared = shared_mem_per_sm - /*matrix_storage -*/
                      num_value_scalars * sizeof(ValueType) -
                      num_real_scalars * sizeof(real_type);
     StorageConfig sconf{false, 0, 9, 0};
