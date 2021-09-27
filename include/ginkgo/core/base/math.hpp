@@ -862,70 +862,74 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T& x, const T& y)
 namespace detail {
 
 
-template <typename T, typename Dummy = void>
-struct arithmetic_type_extractor_s {
+/**
+ * @internal
+ * Tests if a member function `Ref::to_arithmetic_type` exists
+ */
+template <typename Ref, typename Dummy = xstd::void_t<>>
+struct has_to_arithmetic_type : std::false_type {
     static_assert(std::is_same<Dummy, void>::value,
-                  "Dummy type must not be touched!");
-    using type = T;
+                  "Do not modify the Dummy value!");
+    using type = Ref;
 };
 
-template <typename T>
-struct arithmetic_type_extractor_s<T,
-                                   xstd::void_t<typename T::arithmetic_type>> {
-    using type = typename T::arithmetic_type;
+template <typename Ref>
+struct has_to_arithmetic_type<
+    Ref, xstd::void_t<decltype(std::declval<Ref>().to_arithmetic_type())>>
+    : std::true_type {
+    using type = decltype(std::declval<Ref>().to_arithmetic_type());
 };
-
-template <typename T>
-using arithmetic_type_extractor = typename arithmetic_type_extractor_s<T>::type;
 
 
 /**
  * @internal
- * Tests if a function `to_arithmetic_type` exists, and if it results in
- * `ArType`
- *
- * @note Testing the presence of `operator ArType()` results in a segmentation
- *       fault when compiling with nvcc
+ * Tests if the type `Ref::arithmetic_type` exists
  */
+template <typename Ref, typename Dummy = xstd::void_t<>>
+struct has_arithmetic_type : std::false_type {
+    static_assert(std::is_same<Dummy, void>::value,
+                  "Do not modify the Dummy value!");
+};
 
-template <typename Ref, typename ArType, typename = xstd::void_t<>>
-struct has_to_arithmetic_type : std::false_type {};
-
-template <typename Ref, typename ArType>
-struct has_to_arithmetic_type<
-    Ref, ArType,
-    std::enable_if_t<std::is_same<
-        ArType, decltype(std::declval<Ref>().to_arithmetic_type())>::value>>
-    // xstd::void_t<decltype(std::declval<Ref>().operator ArType())>>
+template <typename Ref>
+struct has_arithmetic_type<Ref, xstd::void_t<typename Ref::arithmetic_type>>
     : std::true_type {};
 
 
 /**
  * @internal
- * converts `ref` to ArType while preferring the cast operator overload
- * from class `Ref` before falling back to a simple
- * `static_cast<ArType>`.
- *
- * This function is only needed for CUDA TOOLKIT < 11 because
- * thrust::complex has a constructor call: `template<T> complex(const T
- * &other) : real(other), imag()`, which is always preferred over the
- * overloaded `operator value_type()`.
+ * converts `ref` to an arithmetic type. It performs the following three steps:
+ * 1. If a function `to_arithmetic_type()` is available, it will return the
+ *    result of that function
+ * 2. Otherwise, if the type `Ref::arithmetic_type` exists, it will return the
+ *    result of `static_cast<Ref::arithmetic_type>(ref)`
+ * 3. Otherwise, it will return `ref` itself.
  */
-template <typename ArType, typename Ref>
-constexpr GKO_ATTRIBUTES GKO_INLINE
-    std::enable_if_t<has_to_arithmetic_type<Ref, ArType>::value, ArType>
-    to_arithmetic_type(const Ref &ref)
+template <typename Ref>
+constexpr GKO_ATTRIBUTES
+    std::enable_if_t<has_to_arithmetic_type<Ref>::value,
+                     typename has_to_arithmetic_type<Ref>::type>
+    to_arithmetic_type(const Ref& ref)
 {
     return ref.to_arithmetic_type();
-    // return ref.operator ArType();
 }
 
-template <typename ArType, typename Ref>
-constexpr GKO_ATTRIBUTES GKO_INLINE
-    std::enable_if_t<!has_to_arithmetic_type<Ref, ArType>::value, ArType>
-    to_arithmetic_type(const Ref &ref)
+template <typename Ref>
+constexpr GKO_ATTRIBUTES std::enable_if_t<!has_to_arithmetic_type<Ref>::value &&
+                                              has_arithmetic_type<Ref>::value,
+                                          typename Ref::arithmetic_type>
+to_arithmetic_type(const Ref& ref)
 {
-    return static_cast<ArType>(ref);
+    return static_cast<typename Ref::arithmetic_type>(ref);
+}
+
+template <typename Ref>
+constexpr GKO_ATTRIBUTES std::enable_if_t<!has_to_arithmetic_type<Ref>::value &&
+                                              !has_arithmetic_type<Ref>::value,
+                                          Ref>
+to_arithmetic_type(const Ref& ref)
+{
+    return ref;
 }
 
 
@@ -992,12 +996,9 @@ conj_impl(const T& x)
  * @return real part of the object (by default, the object itself)
  */
 template <typename T>
-GKO_ATTRIBUTES
-    GKO_INLINE constexpr remove_complex<detail::arithmetic_type_extractor<T>>
-    real(const T& x)
+GKO_ATTRIBUTES GKO_INLINE constexpr auto real(const T& x)
 {
-    using atype = detail::arithmetic_type_extractor<T>;
-    return detail::real_impl(detail::to_arithmetic_type<atype>(x));
+    return detail::real_impl(detail::to_arithmetic_type(x));
 }
 
 
@@ -1011,12 +1012,9 @@ GKO_ATTRIBUTES
  * @return imaginary part of the object (by default, zero<T>())
  */
 template <typename T>
-GKO_ATTRIBUTES
-    GKO_INLINE constexpr remove_complex<detail::arithmetic_type_extractor<T>>
-    imag(const T& x)
+GKO_ATTRIBUTES GKO_INLINE constexpr auto imag(const T& x)
 {
-    using atype = detail::arithmetic_type_extractor<T>;
-    return detail::imag_impl(detail::to_arithmetic_type<atype>(x));
+    return detail::imag_impl(detail::to_arithmetic_type(x));
 }
 
 
@@ -1028,11 +1026,9 @@ GKO_ATTRIBUTES
  * @return  conjugate of the object (by default, the object itself)
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr detail::arithmetic_type_extractor<T> conj(
-    const T& x)
+GKO_ATTRIBUTES GKO_INLINE constexpr auto conj(const T& x)
 {
-    using atype = detail::arithmetic_type_extractor<T>;
-    return detail::conj_impl(detail::to_arithmetic_type<atype>(x));
+    return detail::conj_impl(detail::to_arithmetic_type(x));
 }
 
 

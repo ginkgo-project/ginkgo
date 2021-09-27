@@ -72,8 +72,8 @@ namespace detail {
  * the Reference class in order to prevent copying the Reference object.
  *
  * @tparam Reference  The reference class this mixin provides operator overloads
- *                    for. The reference class needs to overload the cast
- *                    operator to ValueType
+ *                    for. The reference class must overload the cast
+ *                    operator to ArithmeticType
  *
  * @tparam ArithmeticType  arithmetic type the Reference class is supposed
  *         to represent.
