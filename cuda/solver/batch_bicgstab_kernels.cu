@@ -76,14 +76,11 @@ namespace batch_bicgstab {
 
 int get_shared_memory_per_sm(std::shared_ptr<const CudaExecutor> exec)
 {
-    // cudaDeviceProp prop;
-    // // find the initial amount of shared memory
-    // auto err = cudaGetDeviceProperties(&prop, exec->get_device_id());
-    // assert(err == cudaSuccess);
-    // const size_t shmem_per_blk = prop.sharedMemPerBlock;
     int shmem_per_sm = 0;
-    cudaDeviceGetAttribute(&shmem_per_sm,
-                           cudaDevAttrMaxSharedMemoryPerMultiprocessor,
+    // cudaDeviceGetAttribute(&shmem_per_sm,
+    //                       cudaDevAttrMaxSharedMemoryPerMultiprocessor,
+    //                       exec->get_device_id());
+    cudaDeviceGetAttribute(&shmem_per_sm, cudaDevAttrMaxSharedMemoryPerBlock,
                            exec->get_device_id());
     return shmem_per_sm;
 }
@@ -114,7 +111,7 @@ static void apply_impl(
     static_assert(default_block_size >= 2 * config::warp_size,
                   "Need at least two warps!");
 
-    const size_t shmem_per_sm = get_shared_memory_per_sm(exec);
+    const int shmem_per_sm = get_shared_memory_per_sm(exec);
 
     const size_t prec_size =
         PrecType::dynamic_work_size(shared_gap, a.num_nnz) * sizeof(ValueType);
@@ -126,14 +123,7 @@ static void apply_impl(
                                (sconf.prec_shared ? prec_size : 0);
     auto workspace = gko::Array<ValueType>(
         exec, sconf.gmem_stride_bytes * nbatch / sizeof(ValueType));
-
-    printf(" Shared vectors = %d, global vectors = %d.\n", sconf.n_shared,
-           sconf.n_global);
-    if (sconf.prec_shared) {
-        printf(" Preconditioner in shared\n");
-    }
-    printf(" Global size for each batch entry = %d.\n",
-           sconf.gmem_stride_bytes);
+    assert(sconf.gmem_stride_bytes % sizeof(ValueType) == 0);
 
     if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
         BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleAbsResidual, PrecType);
