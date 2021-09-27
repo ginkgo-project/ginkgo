@@ -124,6 +124,7 @@ endif()
 
 add_subdirectory(blas)
 add_subdirectory(conversions)
+add_subdirectory(distributed)
 add_subdirectory(matrix_generator)
 add_subdirectory(matrix_statistics)
 add_subdirectory(preconditioner)
