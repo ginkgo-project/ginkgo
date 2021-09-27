@@ -77,9 +77,9 @@ TEST(BatchBicgstab, AssignsPriorityVectorsToSharedMemoryFirst)
     const int nrows = 5;
     const int nrhs = 1;
     const int nnz = 16;
-    const int matrix_storage =
-        6 * sizeof(int) + nnz * (sizeof(int) + sizeof(T));
-    int shmem_per_sm = (2 * nrows + 7) * sizeof(T) + matrix_storage;
+    // const int matrix_storage =
+    //    6 * sizeof(int) + nnz * (sizeof(int) + sizeof(T));
+    int shmem_per_sm = (2 * nrows + 7) * sizeof(T) /*+ matrix_storage*/;
     const int gmem_batch_storage = 8 * nrows * sizeof(T);
 
     const auto conf =
@@ -99,9 +99,9 @@ TEST(BatchBicgstab, CanAssignAllVectorsToSharedMemory)
     const int nrows = 5;
     const int nrhs = 1;
     const int nnz = 16;
-    const int matrix_storage =
-        6 * sizeof(int) + nnz * (sizeof(int) + sizeof(T));
-    const int shmem_per_sm = (10 * nrows + 7) * sizeof(T) + matrix_storage;
+    // const int matrix_storage =
+    //    6 * sizeof(int) + nnz * (sizeof(int) + sizeof(T));
+    const int shmem_per_sm = (10 * nrows + 7) * sizeof(T) /*+ matrix_storage*/;
 
     const auto conf =
         gko::kernels::batch_bicgstab::compute_shared_storage<PC, T>(
@@ -120,9 +120,9 @@ TEST(BatchBicgstab, AssignsMultipleRHSCorrectly)
     const int nrows = 5;
     const int nrhs = 3;
     const int nnz = 16;
-    const int matrix_storage =
-        6 * sizeof(int) + nnz * (sizeof(int) + sizeof(T));
-    int shmem_per_sm = 3 * nrhs * nrows * sizeof(T) + matrix_storage;
+    // const int matrix_storage =
+    //    6 * sizeof(int) + nnz * (sizeof(int) + sizeof(T));
+    int shmem_per_sm = 3 * nrhs * nrows * sizeof(T) /*+ matrix_storage*/;
 
     const auto conf =
         gko::kernels::batch_bicgstab::compute_shared_storage<PC, T>(
