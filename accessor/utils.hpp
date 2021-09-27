@@ -171,50 +171,72 @@ namespace detail {
 
 /**
  * @internal
- * Tests if a function `to_arithmetic_type` exists, and if it results in
- * `ArType`
- *
- * @note Testing the presence of `operator ArType()` results in a segmentation
- *       fault when compiling with nvcc
+ * Tests if a member function `Ref::to_arithmetic_type` exists
  */
-template <typename Ref, typename ArType, typename = xstd::void_t<>>
-struct has_to_arithmetic_type : std::false_type {};
+template <typename Ref, typename Dummy = xstd::void_t<>>
+struct has_to_arithmetic_type : std::false_type {
+    static_assert(std::is_same<Dummy, void>::value,
+                  "Do not modify the Dummy value!");
+    using type = Ref;
+};
 
-template <typename Ref, typename ArType>
+template <typename Ref>
 struct has_to_arithmetic_type<
-    Ref, ArType,
-    std::enable_if_t<std::is_same<
-        ArType, decltype(std::declval<Ref>().to_arithmetic_type())>::value>>
-    // xstd::void_t<decltype(std::declval<Ref>().operator ArType())>>
+    Ref, xstd::void_t<decltype(std::declval<Ref>().to_arithmetic_type())>>
+    : std::true_type {
+    using type = decltype(std::declval<Ref>().to_arithmetic_type());
+};
+
+
+/**
+ * @internal
+ * Tests if the type `Ref::arithmetic_type` exists
+ */
+template <typename Ref, typename Dummy = xstd::void_t<>>
+struct has_arithmetic_type : std::false_type {
+    static_assert(std::is_same<Dummy, void>::value,
+                  "Do not modify the Dummy value!");
+};
+
+template <typename Ref>
+struct has_arithmetic_type<Ref, xstd::void_t<typename Ref::arithmetic_type>>
     : std::true_type {};
 
 
 /**
  * @internal
- * converts `ref` to ArType while preferring the cast operator overload
- * from class `Ref` before falling back to a simple
- * `static_cast<ArType>`.
- *
- * This function is only needed for CUDA TOOLKIT < 11 because
- * thrust::complex has a constructor call: `template<T> complex(const T
- * &other) : real(other), imag()`, which is always preferred over the
- * overloaded `operator value_type()`.
+ * converts `ref` to an arithmetic type. It performs the following three steps:
+ * 1. If a function `to_arithmetic_type()` is available, it will return the
+ *    result of that function
+ * 2. Otherwise, if the type `Ref::arithmetic_type` exists, it will return the
+ *    result of `static_cast<Ref::arithmetic_type>(ref)`
+ * 3. Otherwise, it will return `ref` itself.
  */
-template <typename ArType, typename Ref>
+template <typename Ref>
 constexpr GKO_ACC_ATTRIBUTES
-    std::enable_if_t<has_to_arithmetic_type<Ref, ArType>::value, ArType>
-    to_arithmetic_type(const Ref &ref)
+    std::enable_if_t<has_to_arithmetic_type<Ref>::value,
+                     typename has_to_arithmetic_type<Ref>::type>
+    to_arithmetic_type(const Ref& ref)
 {
-    // return ref.operator ArType();
     return ref.to_arithmetic_type();
 }
 
-template <typename ArType, typename Ref>
-constexpr GKO_ACC_ATTRIBUTES
-    std::enable_if_t<!has_to_arithmetic_type<Ref, ArType>::value, ArType>
-    to_arithmetic_type(const Ref &ref)
+template <typename Ref>
+constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<
+    !has_to_arithmetic_type<Ref>::value && has_arithmetic_type<Ref>::value,
+    typename Ref::arithmetic_type>
+to_arithmetic_type(const Ref& ref)
 {
-    return static_cast<ArType>(ref);
+    return static_cast<typename Ref::arithmetic_type>(ref);
+}
+
+template <typename Ref>
+constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<
+    !has_to_arithmetic_type<Ref>::value && !has_arithmetic_type<Ref>::value,
+    Ref>
+to_arithmetic_type(const Ref& ref)
+{
+    return ref;
 }
 
 
