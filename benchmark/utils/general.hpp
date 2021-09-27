@@ -839,6 +839,11 @@ private:
                    (cur_it >= max_it ||
                     managed_timer.get_total_time() >= max_runtime);
         }
+
+        bool is_last_iteration() const
+        {
+            return cur_it >= min_it && cur_it == max_it - 1;
+        }
     };
 
     /**
