@@ -179,7 +179,7 @@ __device__ __forceinline__ void update_x_middle(
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 __global__ void apply_kernel(
-    const int shared_gap,
+    const int padded_vec_len,
     const gko::kernels::batch_bicgstab::StorageConfig sconf, const int max_iter,
     const gko::remove_complex<ValueType> tol, LogType logger,
     PrecType prec_shared, const BatchMatrixType a,
@@ -195,7 +195,7 @@ __global__ void apply_kernel(
     auto warp_grp = group::tiled_partition<tile_size>(thread_block);
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
-        // int gmem_offset = ibatch * (shared_gap * (10 - num_sh_vecs));
+        // int gmem_offset = ibatch * (padded_vec_len * (10 - num_sh_vecs));
         const int gmem_offset =
             ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
         extern __shared__ char local_mem_sh[];
@@ -219,24 +219,24 @@ __global__ void apply_kernel(
         if (sconf.n_shared == 1) {
             s_hat_sh = workspace + gmem_offset;
         } else {
-            s_hat_sh = p_hat_sh + shared_gap;
+            s_hat_sh = p_hat_sh + padded_vec_len;
         }
         if (sconf.n_shared == 2) {
             v_sh = workspace + gmem_offset;
         } else {
-            v_sh = s_hat_sh + shared_gap;
+            v_sh = s_hat_sh + padded_vec_len;
         }
         if (sconf.n_shared == 3) {
             t_sh = workspace + gmem_offset;
         } else {
-            t_sh = v_sh + shared_gap;
+            t_sh = v_sh + padded_vec_len;
         }
-        if (sconf.prec_shared) {
-            prec_work_sh = t_sh + shared_gap;
-        } else {
+        if (!sconf.prec_shared && sconf.n_shared == 4) {
             prec_work_sh = workspace + gmem_offset;
+        } else {
+            prec_work_sh = t_sh + padded_vec_len;
         }
-        if (sconf.n_shared == 4) {
+        if (sconf.n_shared == 4 && sconf.prec_shared) {
             p_sh = workspace + gmem_offset;
         } else {
             p_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
@@ -244,22 +244,22 @@ __global__ void apply_kernel(
         if (sconf.n_shared == 5) {
             s_sh = workspace + gmem_offset;
         } else {
-            s_sh = p_sh + shared_gap;
+            s_sh = p_sh + padded_vec_len;
         }
         if (sconf.n_shared == 6) {
             r_sh = workspace + gmem_offset;
         } else {
-            r_sh = s_sh + shared_gap;
+            r_sh = s_sh + padded_vec_len;
         }
         if (sconf.n_shared == 7) {
             r_hat_sh = workspace + gmem_offset;
         } else {
-            r_hat_sh = r_sh + shared_gap;
+            r_hat_sh = r_sh + padded_vec_len;
         }
         if (sconf.n_shared == 8) {
             x_sh = workspace + gmem_offset;
         } else {
-            x_sh = r_hat_sh + shared_gap;
+            x_sh = r_hat_sh + padded_vec_len;
         }
 
         __shared__ UninitializedArray<ValueType, 1> rho_old_sh;
