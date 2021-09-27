@@ -188,6 +188,13 @@ else
     PRINT_RES_ITER_STR="--print_residuals_and_iters=true"
 fi
 
+# Control whether to run dense direct solver in addition, in order to compute 'exact' solution
+if  [ ! "${COMPUTE_BATCH_ERRORS}" ] || [ "${COMPUTE_BATCH_ERRORS}" -eq 0 ]; then
+    COMPUTE_BATCH_ERRORS_STR="--compute_errors=false"
+else
+    COMPUTE_BATCH_ERRORS_STR="--compute_errors=true"
+fi
+
 if  [ ! "${BATCH_SCALING}" ] ; then
     BATCH_SCALING_STR="--batch_scaling=none"
     echo "BATCH_SCALING environment variable not set - assuming \"none\"" 1>&2
@@ -404,7 +411,7 @@ run_batch_solver_benchmarks() {
                     --executor="${EXECUTOR}" --batch_solvers="${BATCH_SOLVERS}" \
                     --preconditioners="${PRECONDS}" \
                     --num_duplications="${NUM_BATCH_DUP}" "${BATCH_SCALING_STR}" \
-                    "${PRINT_RES_ITER_STR}" \
+                    "${PRINT_RES_ITER_STR}" "${COMPUTE_BATCH_ERRORS_STR}" \
                     --num_batches="${NUM_BATCH_ENTRIES}" "${SS_STR}" \
                     --num_shared_vecs="${NUM_SHARED_VECS}" \
                     --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
