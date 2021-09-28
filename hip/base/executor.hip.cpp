@@ -272,6 +272,9 @@ void HipExecutor::set_gpu_property()
 #endif  // GINKGO_HIP_PLATFORM_NVCC
         this->get_exec_info().max_subgroup_size =
             kernels::hip::config::warp_size;
+        GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
+            &this->get_exec_info().max_shared_memory_per_workgroup,
+            hipDeviceAttributeMaxSharedMemoryPerBlock, this->get_device_id()));
     }
 }
 

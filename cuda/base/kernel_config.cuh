@@ -48,7 +48,7 @@ namespace cuda {
  * \tparam ValueType  The scalar type used for computations.
  */
 template <typename ValueType>
-inline void configure_shared_memory()
+inline void configure_shared_memory_banks()
 {
     if (sizeof(ValueType) == 4) {
         cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte);

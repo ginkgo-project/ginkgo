@@ -257,6 +257,9 @@ void CudaExecutor::set_gpu_property()
             kernels::cuda::config::warp_size;
         this->get_exec_info().max_subgroup_size =
             kernels::cuda::config::warp_size;
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+            &this->get_exec_info().max_shared_memory_per_workgroup,
+            cudaDevAttrMaxSharedMemoryPerBlock, this->get_device_id()));
     }
 }
 
