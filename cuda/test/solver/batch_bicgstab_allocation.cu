@@ -56,7 +56,7 @@ TEST(BatchBicgstab, CanAssignVectorsToGlobalMemory)
     const int nrows = 5;
     const int nrhs = 1;
     const int nnz = 16;
-    size_t shmem_per_sm = 64;
+    size_t shmem_per_sm = 4;
     const int batch_storage = 10 * nrows * sizeof(T);
 
     const auto conf =
@@ -76,9 +76,7 @@ TEST(BatchBicgstab, AssignsPriorityVectorsToSharedMemoryFirst)
     const int nrows = 5;
     const int nrhs = 1;
     const int nnz = 16;
-    // const int matrix_storage =
-    //    6 * sizeof(int) + nnz * (sizeof(int) + sizeof(T));
-    int shmem_per_sm = (2 * nrows + 7) * sizeof(T) /*+ matrix_storage*/;
+    int shmem_per_sm = (2 * nrows) * sizeof(T);
     const int gmem_batch_storage = 8 * nrows * sizeof(T);
 
     const auto conf =
@@ -98,9 +96,7 @@ TEST(BatchBicgstab, CanAssignAllVectorsToSharedMemory)
     const int nrows = 5;
     const int nrhs = 1;
     const int nnz = 16;
-    // const int matrix_storage =
-    //    6 * sizeof(int) + nnz * (sizeof(int) + sizeof(T));
-    const int shmem_per_sm = (10 * nrows + 7) * sizeof(T) /*+ matrix_storage*/;
+    const int shmem_per_sm = (10 * nrows) * sizeof(T);
 
     const auto conf =
         gko::kernels::batch_bicgstab::compute_shared_storage<PC, T>(
@@ -119,17 +115,15 @@ TEST(BatchBicgstab, AssignsMultipleRHSCorrectly)
     const int nrows = 5;
     const int nrhs = 3;
     const int nnz = 16;
-    // const int matrix_storage =
-    //    6 * sizeof(int) + nnz * (sizeof(int) + sizeof(T));
-    int shmem_per_sm = 3 * nrhs * nrows * sizeof(T) /*+ matrix_storage*/;
+    int shmem_per_sm = 3 * nrhs * nrows * sizeof(T);
 
     const auto conf =
         gko::kernels::batch_bicgstab::compute_shared_storage<PC, T>(
             shmem_per_sm, nrows, nnz, nrhs);
 
-    ASSERT_EQ(conf.n_shared, 1);
-    ASSERT_EQ(conf.n_global, 8);
+    ASSERT_EQ(conf.n_shared, 3);
+    ASSERT_EQ(conf.n_global, 6);
     ASSERT_FALSE(conf.prec_shared);
     ASSERT_EQ(conf.gmem_stride_bytes,
-              (((8 * nrows * nrhs + nrows) * sizeof(T) - 1) / 32 + 1) * 32);
+              (((6 * nrows * nrhs + nrows) * sizeof(T) - 1) / 32 + 1) * 32);
 }

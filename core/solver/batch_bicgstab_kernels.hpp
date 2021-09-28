@@ -148,9 +148,19 @@ void set_gmem_stride_bytes(StorageConfig& sconf,
  * - temp
  * - rhs_norms
  * - res_norms
+ *
+ * @param shared_mem_per_blk  The amount of shared memory per block to use for
+ *   keeping intermediate vectors. In case keeping the matrix in L1 cache etc.
+ *   should be prioritized, the cache configuration must be updated separately
+ *   and the needed space should be subtracted before passing to this
+ *   function.
+ * @param num_rows  Size of the matrix.
+ * @param num_nz  Number of nonzeros in the matrix
+ * @param num_rhs  Number of right-hand-sides in the vectors.
+ * @return  A struct containing allocation information specific to Bicgstab.
  */
 template <typename Prectype, typename ValueType, int align_bytes = 32>
-StorageConfig compute_shared_storage(const int shared_mem_per_sm,
+StorageConfig compute_shared_storage(const int shared_mem_per_blk,
                                      const int num_rows, const int num_nz,
                                      const int num_rhs)
 {
@@ -159,19 +169,15 @@ StorageConfig compute_shared_storage(const int shared_mem_per_sm,
     // const int padded_vec_size = ((vec_size - 1) / align_bytes + 1) *
     // align_bytes; const int padded_multivec_len = padded_vec_size /
     // sizeof(ValueType); assert(padded_multivec_len % sizeof(ValueType) == 0);
-    const int num_value_scalars = 5 * num_rhs;
-    const int num_real_scalars = 2 * num_rhs;
+    // const int num_value_scalars = 5 * num_rhs;
+    // const int num_real_scalars = 2 * num_rhs;
     const int num_priority_vecs = 4;
     const int prec_storage =
         Prectype::dynamic_work_size(num_rows, num_nz) * sizeof(ValueType);
-    // Prioritize caching of matrix in L1 cache
-    // for now, this is hard-coded for CSR
-    // TODO: add functions to batch matrix formats to return storage per batch
-    // const int matrix_storage = (num_rows + 1) * sizeof(int) +
-    //                           num_nz * (sizeof(int) + sizeof(ValueType));
-    int rem_shared = shared_mem_per_sm - /*matrix_storage -*/
-                     num_value_scalars * sizeof(ValueType) -
-                     num_real_scalars * sizeof(real_type);
+    // int rem_shared = shared_mem_per_blk -
+    //                 num_value_scalars * sizeof(ValueType) -
+    //                 num_real_scalars * sizeof(real_type);
+    int rem_shared = shared_mem_per_blk;
     StorageConfig sconf{false, 0, 9, 0};
     if (rem_shared <= 0) {
         set_gmem_stride_bytes<ValueType, align_bytes>(sconf, vec_size,
