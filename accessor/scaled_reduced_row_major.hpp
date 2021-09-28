@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
+#include <cinttypes>
 #include <type_traits>
 #include <utility>
 
@@ -202,6 +203,10 @@ protected:
     using reference_type =
         reference_class::scaled_reduced_storage<arithmetic_type, StorageType>;
 
+private:
+    using index_type = std::int64_t;
+
+protected:
     /**
      * Creates the accessor for an already allocated storage space with a
      * stride. The first stride is used for computing the index for the first
@@ -242,8 +247,7 @@ protected:
         : scaled_reduced_row_major{
               size, storage, stride, scalar,
               helper::compute_default_masked_row_major_stride_array<
-                  typename scalar_stride_type::value_type, scalar_mask,
-                  scalar_stride_dim, dimensionality>(size)}
+                  scalar_mask, scalar_stride_dim, dimensionality>(size)}
     {}
 
     /**
@@ -260,9 +264,7 @@ protected:
                                                           scalar_type* scalar)
         : scaled_reduced_row_major{
               size, storage,
-              helper::compute_default_row_major_stride_array<
-                  typename storage_stride_type::value_type>(size),
-              scalar}
+              helper::compute_default_row_major_stride_array(size), scalar}
     {}
 
     /**
@@ -453,7 +455,7 @@ protected:
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
-        return helper::compute_row_major_index<size_type, dimensionality>(
+        return helper::compute_row_major_index<index_type, dimensionality>(
             size_, storage_stride_, std::forward<Indices>(indices)...);
     }
 
@@ -463,7 +465,7 @@ protected:
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
-        return helper::compute_masked_index<size_type, scalar_mask,
+        return helper::compute_masked_index<index_type, scalar_mask,
                                             scalar_stride_dim>(
             size_, scalar_stride_, std::forward<Indices>(indices)...);
     }
@@ -475,7 +477,7 @@ protected:
         static_assert(
             sizeof...(Indices) == scalar_dim,
             "Number of indices must match number of set bits in scalar mask!");
-        return helper::compute_masked_index_direct<size_type, scalar_mask,
+        return helper::compute_masked_index_direct<index_type, scalar_mask,
                                                    scalar_stride_dim>(
             size_, scalar_stride_, std::forward<Indices>(indices)...);
     }
