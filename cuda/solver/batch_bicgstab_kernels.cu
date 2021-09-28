@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_bicgstab_kernels.hpp"
 
 
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 
 
@@ -75,26 +76,56 @@ namespace batch_bicgstab {
 #include "common/cuda_hip/stop/batch_criteria.hpp.inc"
 
 
-int get_shared_memory_per_sm(std::shared_ptr<const CudaExecutor> exec)
-{
-    int shmem_per_sm = 0;
-    // cudaDeviceGetAttribute(&shmem_per_sm,
-    //                       cudaDevAttrMaxSharedMemoryPerMultiprocessor,
-    //                       exec->get_device_id());
-    cudaDeviceGetAttribute(&shmem_per_sm, cudaDevAttrMaxSharedMemoryPerBlock,
-                           exec->get_device_id());
-    return shmem_per_sm;
-}
-
-
-int get_num_threads_per_block(const int num_rows)
+template <typename StopType, typename PrecType, typename LogType,
+          typename BatchMatrixType, typename ValueType>
+int get_num_threads_per_block(std::shared_ptr<const CudaExecutor> exec,
+                              const int num_rows)
 {
     int nwarps = num_rows / 4;
     if (nwarps < 2) {
         nwarps = 2;
     }
-    return nwarps * config::warp_size > 1024 ? 1024
-                                             : nwarps * config::warp_size;
+    constexpr int device_max_threads = 1024;
+    cudaFuncAttributes funcattr;
+    cudaFuncGetAttributes(
+        &funcattr,
+        apply_kernel<StopType, PrecType, LogType, BatchMatrixType, ValueType>);
+    const int num_regs_used = funcattr.numRegs;
+    int max_regs_blk = 0;
+    cudaDeviceGetAttribute(&max_regs_blk, cudaDevAttrMaxRegistersPerBlock,
+                           exec->get_device_id());
+    const int max_threads_regs =
+        ((max_regs_blk / num_regs_used) / config::warp_size) *
+        config::warp_size;
+    const int max_threads = std::min(max_threads_regs, device_max_threads);
+    return std::min(nwarps * static_cast<int>(config::warp_size), max_threads);
+}
+
+
+template <typename StopType, typename PrecType, typename LogType,
+          typename BatchMatrixType, typename ValueType>
+int get_max_dynamic_shared_memory(std::shared_ptr<const CudaExecutor> exec,
+                                  const int required_cache_storage)
+{
+    int shmem_per_sm = 0;
+    cudaDeviceGetAttribute(&shmem_per_sm,
+                           cudaDevAttrMaxSharedMemoryPerMultiprocessor,
+                           exec->get_device_id());
+    printf(" Max shared mem per SM = %d.\n", shmem_per_sm);
+    const int max_shared_pc =
+        100 - static_cast<int>(static_cast<double>(required_cache_storage) /
+                               shmem_per_sm * 100);
+    printf(" Max shared pc required = %d.\n", max_shared_pc);
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaFuncSetAttribute(
+        apply_kernel<StopType, PrecType, LogType, BatchMatrixType, ValueType>,
+        cudaFuncAttributePreferredSharedMemoryCarveout, max_shared_pc - 1));
+    cudaFuncAttributes funcattr;
+    cudaFuncGetAttributes(
+        &funcattr,
+        apply_kernel<StopType, PrecType, LogType, BatchMatrixType, ValueType>);
+    printf(" Max dyn. shared memory for batch bcgs = %d.\n",
+           funcattr.maxDynamicSharedSizeBytes);
+    return funcattr.maxDynamicSharedSizeBytes;
 }
 
 
@@ -120,17 +151,39 @@ static void apply_impl(
     using real_type = gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
     const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
-    const int block_size = get_num_threads_per_block(a.num_rows);
-    assert(block_size >= 2 * config::warp_size);
 
-    const int shmem_per_sm = get_shared_memory_per_sm(exec);
+    // TODO: Add function to BatchCSR to return storage needed per matrix
+    const int matrix_storage = (a.num_rows + 1) * sizeof(int) +
+                               a.num_nnz * (sizeof(int) + sizeof(ValueType));
+    int shmem_per_blk = 0;
+    int block_size = 256;
+    if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
+        shmem_per_blk =
+            get_max_dynamic_shared_memory<stop::SimpleAbsResidual<ValueType>,
+                                          PrecType, LogType, BatchMatrixType,
+                                          ValueType>(exec, matrix_storage);
+        block_size =
+            get_num_threads_per_block<stop::SimpleAbsResidual<ValueType>,
+                                      PrecType, LogType, BatchMatrixType,
+                                      ValueType>(exec, a.num_rows);
+    } else {
+        shmem_per_blk =
+            get_max_dynamic_shared_memory<stop::SimpleRelResidual<ValueType>,
+                                          PrecType, LogType, BatchMatrixType,
+                                          ValueType>(exec, matrix_storage);
+        block_size =
+            get_num_threads_per_block<stop::SimpleRelResidual<ValueType>,
+                                      PrecType, LogType, BatchMatrixType,
+                                      ValueType>(exec, a.num_rows);
+    }
+    assert(block_size >= 2 * config::warp_size);
 
     const size_t prec_size =
         PrecType::dynamic_work_size(shared_gap, a.num_nnz) * sizeof(ValueType);
     const auto sconf =
         gko::kernels::batch_bicgstab::compute_shared_storage<PrecType,
                                                              ValueType>(
-            shmem_per_sm, shared_gap, a.num_nnz, b.num_rhs);
+            shmem_per_blk, shared_gap, a.num_nnz, b.num_rhs);
     const size_t shared_size = sconf.n_shared * shared_gap * sizeof(ValueType) +
                                (sconf.prec_shared ? prec_size : 0);
     auto workspace = gko::Array<ValueType>(

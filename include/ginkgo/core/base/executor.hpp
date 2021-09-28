@@ -1023,6 +1023,11 @@ protected:
         int max_workgroup_size;
 
         /**
+         * Maximum available local shared memory per workgroup.
+         */
+        int max_shared_memory_per_workgroup;
+
+        /**
          * The major version for CUDA/HIP device.
          */
         int major = -1;
@@ -1606,6 +1611,14 @@ public:
     int get_warp_size() const noexcept
     {
         return this->get_exec_info().max_subgroup_size;
+    }
+
+    /**
+     * Get maximum shared memory per block.
+     */
+    int get_max_shared_memory_per_block() const noexcept
+    {
+        return this->get_exec_info().max_shared_memory_per_workgroup;
     }
 
     /**
