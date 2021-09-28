@@ -982,6 +982,11 @@ protected:
         int max_workgroup_size;
 
         /**
+         * Maximum available local shared memory per workgroup.
+         */
+        int max_shared_memory_per_workgroup;
+
+        /**
          * The major version for CUDA/HIP device.
          */
         int major = -1;
@@ -1307,9 +1312,9 @@ public:
      *
      * @param device_reset  whether to allow a device reset or not
      */
-    [[deprecated(
-        "device_reset is no longer supported, call "
-        "cudaDeviceReset/hipDeviceReset manually")]] void
+    [
+        [deprecated("device_reset is no longer supported, call "
+                    "cudaDeviceReset/hipDeviceReset manually")]] void
     set_device_reset(bool device_reset)
     {}
 
@@ -1318,9 +1323,9 @@ public:
      *
      * @return the current status of the device reset boolean for this executor.
      */
-    [[deprecated(
-        "device_reset is no longer supported, call "
-        "cudaDeviceReset/hipDeviceReset manually")]] bool
+    [
+        [deprecated("device_reset is no longer supported, call "
+                    "cudaDeviceReset/hipDeviceReset manually")]] bool
     get_device_reset()
     {
         return false;
@@ -1334,10 +1339,10 @@ protected:
      */
     EnableDeviceReset() {}
 
-    [[deprecated(
-        "device_reset is no longer supported, call "
-        "cudaDeviceReset/hipDeviceReset manually")]] EnableDeviceReset(bool
-                                                                           device_reset)
+    [
+        [deprecated("device_reset is no longer supported, call "
+                    "cudaDeviceReset/hipDeviceReset "
+                    "manually")]] EnableDeviceReset(bool device_reset)
     {}
 };
 
@@ -1606,7 +1611,15 @@ public:
     }
 
     /**
-     * Get the major version of compute capability.
+     * Get maximum shared memory per block.
+     */
+    int get_max_shared_memory_per_block() const noexcept
+    {
+        return this->get_exec_info().max_shared_memory_per_workgroup;
+    }
+
+    /**
+     * Get the major verion of compute capability.
      */
     int get_major_version() const noexcept
     {
