@@ -49,6 +49,7 @@ namespace kernels {
 namespace cuda {
 
 
+// NOTE: this default block size is not used for the main solver kernel.
 constexpr int default_block_size = 256;
 constexpr int sm_multiplier = 4;
 
@@ -86,13 +87,24 @@ int get_shared_memory_per_sm(std::shared_ptr<const CudaExecutor> exec)
 }
 
 
+int get_num_threads_per_block(const int num_rows)
+{
+    int nwarps = num_rows / 4;
+    if (nwarps < 2) {
+        nwarps = 2;
+    }
+    return nwarps * config::warp_size > 1024 ? 1024
+                                             : nwarps * config::warp_size;
+}
+
+
 template <typename T>
 using BatchBicgstabOptions =
     gko::kernels::batch_bicgstab::BatchBicgstabOptions<T>;
 
 #define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)           \
     apply_kernel<stop::_stoppertype<ValueType>>                         \
-        <<<nbatch, default_block_size, shared_size>>>(                  \
+        <<<nbatch, block_size, shared_size>>>(                          \
             shared_gap, sconf, opts.max_its, opts.residual_tol, logger, \
             _prectype(), a, b.values, x.values, workspace.get_data())
 
@@ -108,8 +120,8 @@ static void apply_impl(
     using real_type = gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
     const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
-    static_assert(default_block_size >= 2 * config::warp_size,
-                  "Need at least two warps!");
+    const int block_size = get_num_threads_per_block(a.num_rows);
+    assert(block_size >= 2 * config::warp_size);
 
     const int shmem_per_sm = get_shared_memory_per_sm(exec);
 
@@ -124,6 +136,13 @@ static void apply_impl(
     auto workspace = gko::Array<ValueType>(
         exec, sconf.gmem_stride_bytes * nbatch / sizeof(ValueType));
     assert(sconf.gmem_stride_bytes % sizeof(ValueType) == 0);
+
+    printf(" Bicgstab: vectors in shared memory = %d\n", sconf.n_shared);
+    if (sconf.prec_shared) {
+        printf(" Bicgstab: precondiioner is in shared memory.\n");
+    }
+    printf(" Bicgstab: vectors in global memory = %d\n", sconf.n_global);
+    printf(" Bicgstab: number of threads per block = %d.\n", block_size);
 
     if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
         BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleAbsResidual, PrecType);
