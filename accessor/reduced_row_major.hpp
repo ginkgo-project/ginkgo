@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
+#include <cinttypes>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -95,6 +96,10 @@ protected:
     using reference_type =
         reference_class::reduced_storage<arithmetic_type, storage_type>;
 
+private:
+    using index_type = std::int64_t;
+
+protected:
     /**
      * Creates the accessor for an already allocated storage space with a
      * stride. The first stride is used for computing the index for the first
@@ -142,7 +147,7 @@ protected:
                                                    storage_type* storage)
         : reduced_row_major{
               size, storage,
-              helper::compute_default_row_major_stride_array<size_type>(size)}
+              helper::compute_default_row_major_stride_array(size)}
     {}
 
     /**
@@ -253,12 +258,12 @@ public:
 
 protected:
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES size_type
+    constexpr GKO_ACC_ATTRIBUTES index_type
     compute_index(Indices&&... indices) const
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
-        return helper::compute_row_major_index<size_type, dimensionality>(
+        return helper::compute_row_major_index<index_type, dimensionality>(
             size_, stride_, std::forward<Indices>(indices)...);
     }
 
