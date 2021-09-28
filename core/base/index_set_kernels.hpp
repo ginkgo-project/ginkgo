@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -81,49 +84,8 @@ namespace kernels {
     GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL(IndexType)
 
 
-namespace omp {
-namespace index_set {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace index_set
-}  // namespace omp
-
-
-namespace cuda {
-namespace index_set {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace index_set
-}  // namespace cuda
-
-
-namespace reference {
-namespace index_set {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace index_set
-}  // namespace reference
-
-
-namespace hip {
-namespace index_set {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace index_set
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace index_set {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace index_set
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(index_set,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
