@@ -112,9 +112,12 @@ int get_max_dynamic_shared_memory(std::shared_ptr<const CudaExecutor> exec,
                            cudaDevAttrMaxSharedMemoryPerMultiprocessor,
                            exec->get_device_id());
     printf(" Max shared mem per SM = %d.\n", shmem_per_sm);
-    const int max_shared_pc =
+    int max_shared_pc =
         100 - static_cast<int>(static_cast<double>(required_cache_storage) /
                                shmem_per_sm * 100);
+    if (max_shared_pc <= 0) {
+        max_shared_pc = 1;
+    }
     printf(" Max shared pc required = %d.\n", max_shared_pc);
     GKO_ASSERT_NO_CUDA_ERRORS(cudaFuncSetAttribute(
         apply_kernel<StopType, PrecType, LogType, BatchMatrixType, ValueType>,
