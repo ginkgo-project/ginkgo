@@ -77,14 +77,15 @@ template <typename T>
 using BatchBicgstabOptions =
     gko::kernels::batch_bicgstab::BatchBicgstabOptions<T>;
 
-#define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)                  \
-    hipLaunchKernelGGL(                                                        \
-        HIP_KERNEL_NAME(apply_kernel<stop::_stoppertype<ValueType>>),          \
-        dim3(nbatch), dim3(default_block_size), shared_size, 0,                \
-        opts.num_sh_vecs, shared_gap, opts.max_its, opts.residual_tol, logger, \
-        _prectype<ValueType>(), a, b.values, x.values, workspace.get_data())
+#define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)               \
+    hipLaunchKernelGGL(                                                     \
+        HIP_KERNEL_NAME(apply_kernel<stop::_stoppertype<ValueType>>),       \
+        dim3(nbatch), dim3(default_block_size), shared_size, 0, shared_gap, \
+        sconf, opts.max_its, opts.residual_tol, logger, _prectype(), a,     \
+        b.values, x.values, workspace.get_data())
 
-template <typename BatchMatrixType, typename LogType, typename ValueType>
+template <typename PrecType, typename BatchMatrixType, typename LogType,
+          typename ValueType>
 static void apply_impl(
     std::shared_ptr<const HipExecutor> exec,
     const BatchBicgstabOptions<remove_complex<ValueType>> opts, LogType logger,
@@ -94,48 +95,27 @@ static void apply_impl(
 {
     using real_type = gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
-    const int shared_gap = ((a.num_rows - 1) / 32 + 1) * 32;
+    const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
     static_assert(default_block_size >= 2 * config::warp_size,
                   "Need at least two warps!");
-    int shared_size = opts.num_sh_vecs * shared_gap * sizeof(ValueType);
 
-    int aux_size =
-        gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
-            shared_gap, b.num_rhs);
-    auto workspace = gko::Array<ValueType>(exec);
-
-    if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-        aux_size +=
-            BatchIdentity<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
-            sizeof(ValueType);
-
-        if (opts.num_sh_vecs > 0) {
-            workspace = gko::Array<ValueType>(
-                exec, static_cast<size_type>(std::abs(aux_size - shared_size) *
-                                             nbatch / sizeof(ValueType)));
-        }
-        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleAbsResidual, BatchIdentity);
-        } else {
-            BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleRelResidual, BatchIdentity);
-        }
-    } else if (opts.preconditioner ==
-               gko::preconditioner::batch::type::jacobi) {
-        aux_size +=
-            BatchJacobi<ValueType>::dynamic_work_size(shared_gap, a.num_nnz) *
-            sizeof(ValueType);
-        if (opts.num_sh_vecs > 0) {
-            workspace = gko::Array<ValueType>(
-                exec, static_cast<size_type>(std::abs(aux_size - shared_size) *
-                                             nbatch / sizeof(ValueType)));
-        }
-        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleAbsResidual, BatchJacobi);
-        } else {
-            BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleRelResidual, BatchJacobi);
-        }
+    const size_t prec_size =
+        PrecType::dynamic_work_size(shared_gap, a.num_nnz) * sizeof(ValueType);
+    // TODO: Query this from runtime
+    const int shmem_per_blk = 48000;
+    const auto sconf =
+        gko::kernels::batch_bicgstab::compute_shared_storage<PrecType,
+                                                             ValueType>(
+            shmem_per_blk, shared_gap, a.num_nnz, b.num_rhs);
+    const size_t shared_size = sconf.n_shared * shared_gap * sizeof(ValueType) +
+                               (sconf.prec_shared ? prec_size : 0);
+    auto workspace = gko::Array<ValueType>(
+        exec, sconf.gmem_stride_bytes * nbatch / sizeof(ValueType));
+    assert(sconf.gmem_stride_bytes % sizeof(ValueType) == 0);
+    if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
+        BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleAbsResidual, PrecType);
     } else {
-        GKO_NOT_IMPLEMENTED;
+        BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleRelResidual, PrecType);
     }
     GKO_HIP_LAST_IF_ERROR_THROW;
 }
@@ -160,7 +140,16 @@ void apply(std::shared_ptr<const HipExecutor> exec,
     if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a)) {
         auto m_b = get_batch_struct(amat);
         auto b_b = get_batch_struct(b);
-        apply_impl(exec, opts, logger, m_b, b_b, x_b);
+        if (opts.preconditioner == gko::preconditioner::batch::type::none) {
+            apply_impl<BatchIdentity<cu_value_type>>(exec, opts, logger, m_b,
+                                                     b_b, x_b);
+        } else if (opts.preconditioner ==
+                   gko::preconditioner::batch::type::jacobi) {
+            apply_impl<BatchJacobi<cu_value_type>>(exec, opts, logger, m_b, b_b,
+                                                   x_b);
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
     } else {
         GKO_NOT_SUPPORTED(a);
     }
