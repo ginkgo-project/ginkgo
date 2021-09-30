@@ -59,13 +59,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
-    const IndexType dp, const gko::distributed::communicator &comm,
+    const IndexType dp, std::shared_ptr<gko::mpi::communicator> comm,
     bool restricted, bool strong_scaling)
 {
-    const auto mat_size = strong_scaling ? dp * dp : dp * dp * comm.size();
-    const auto rows_per_rank = gko::ceildiv(mat_size, comm.size());
-    const auto start = rows_per_rank * comm.rank();
-    const auto end = gko::min(rows_per_rank * (comm.rank() + 1), mat_size);
+    const auto mat_size = strong_scaling ? dp * dp : dp * dp * comm->size();
+    const auto rows_per_rank = gko::ceildiv(mat_size, comm->size());
+    const auto start = rows_per_rank * comm->rank();
+    const auto end = gko::min(rows_per_rank * (comm->rank() + 1), mat_size);
 
     auto A_data =
         gko::matrix_data<ValueType, IndexType>(gko::dim<2>{mat_size, mat_size});
@@ -99,14 +99,14 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
  */
 template <typename ValueType, typename IndexType>
 gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
-    const IndexType dp, const gko::distributed::communicator &comm,
+    const IndexType dp, std::shared_ptr<gko::mpi::communicator> comm,
     bool restricted, bool strong_scaling)
 {
     const auto mat_size =
-        strong_scaling ? dp * dp * dp : dp * dp * dp * comm.size();
-    const auto rows_per_rank = gko::ceildiv(mat_size, comm.size());
-    const auto start = rows_per_rank * comm.rank();
-    const auto end = gko::min(rows_per_rank * (comm.rank() + 1), mat_size);
+        strong_scaling ? dp * dp * dp : dp * dp * dp * comm->size();
+    const auto rows_per_rank = gko::ceildiv(mat_size, comm->size());
+    const auto start = rows_per_rank * comm->rank();
+    const auto end = gko::min(rows_per_rank * (comm->rank() + 1), mat_size);
 
     auto A_data =
         gko::matrix_data<ValueType, IndexType>(gko::dim<2>{mat_size, mat_size});
@@ -137,9 +137,9 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
-    MPI_Init(&argc, &argv);
+    const auto fin = gko::mpi::init_finalize(argc, argv);
     // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
     // with one column/one row. The advantage of this concept is that using
     // multiple vectors is a now a natural extension of adding columns/rows are
@@ -152,8 +152,8 @@ int main(int argc, char *argv[])
     using vec = gko::matrix::Dense<ValueType>;
     using part_type = gko::distributed::Partition<gko::int32>;
 
-    const auto comm = gko::distributed::communicator{};
-    const auto rank = comm.rank();
+    const auto comm = gko::mpi::communicator::create_world();
+    const auto rank = comm->rank();
 
     // Print the ginkgo version information.
     if (rank == 0) {
@@ -214,15 +214,15 @@ int main(int argc, char *argv[])
                           : generate_3d_stencil<ValueType, GlobalIndexType>(
                                 dp, comm, restricted, strong_scaling);
     const auto mat_size = A_data.size[0];
-    const auto rows_per_rank = mat_size / comm.size();
+    const auto rows_per_rank = mat_size / comm->size();
 
     // build partition: uniform number of rows per rank
     gko::Array<gko::int64> ranges_array{
-        exec->get_master(), static_cast<gko::size_type>(comm.size() + 1)};
-    for (int i = 0; i < comm.size(); i++) {
+        exec->get_master(), static_cast<gko::size_type>(comm->size() + 1)};
+    for (int i = 0; i < comm->size(); i++) {
         ranges_array.get_data()[i] = i * rows_per_rank;
     }
-    ranges_array.get_data()[comm.size()] = mat_size;
+    ranges_array.get_data()[comm->size()] = mat_size;
     auto partition = gko::share(
         part_type::build_from_contiguous(exec->get_master(), ranges_array));
 
@@ -238,10 +238,10 @@ int main(int argc, char *argv[])
     }
     const auto local_size =
         ranges_array.get_data()[rank + 1] - ranges_array.get_data()[rank];
-    auto x = dist_vec::create(exec, comm, gko::dim<2>{mat_size, 1},
+    auto x = dist_vec::create(exec, comm, partition, gko::dim<2>{mat_size, 1},
                               gko::dim<2>{local_size, 1});
     x->fill(gko::one<ValueType>());
-    auto b = dist_vec::create(exec, comm, gko::dim<2>{mat_size, 1},
+    auto b = dist_vec::create(exec, comm, partition, gko::dim<2>{mat_size, 1},
                               gko::dim<2>{local_size, 1});
     b->fill(gko::one<ValueType>());
 
@@ -266,6 +266,4 @@ int main(int argc, char *argv[])
         std::chrono::duration<double> duration = toc - tic;
         std::cout << "DURATION: " << duration.count() << "s" << std::endl;
     }
-
-    MPI_Finalize();
 }
