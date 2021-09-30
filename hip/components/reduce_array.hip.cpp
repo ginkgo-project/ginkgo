@@ -55,6 +55,7 @@ namespace kernels {
 namespace hip {
 namespace components {
 
+
 constexpr int default_block_size = 512;
 
 
@@ -83,7 +84,7 @@ void reduce_array(std::shared_ptr<const DefaultExecutor> exec,
 
     auto d_result = Array<ValueType>::view(exec, 1, val);
 
-    hipLaunchKernelGGL(reduce_add_array_with_existing_value, dim3(1),
+    hipLaunchKernelGGL(reduce_add_array_with_initial_value, dim3(1),
                        dim3(default_block_size), 0, 0, grid_dim,
                        as_hip_type(block_results_val),
                        as_hip_type(d_result.get_data()));

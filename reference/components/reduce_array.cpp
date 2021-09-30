@@ -46,7 +46,7 @@ template <typename ValueType>
 void reduce_array(std::shared_ptr<const DefaultExecutor> exec,
                   const ValueType* array, size_type n, ValueType* val)
 {
-    *val = std::accumulate(array, array + n, ValueType(*val));
+    *val = std::accumulate(array, array + n, *val);
 }
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ARRAY_KERNEL);

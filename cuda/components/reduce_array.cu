@@ -80,7 +80,7 @@ void reduce_array(std::shared_ptr<const DefaultExecutor> exec,
 
     auto d_result = Array<ValueType>::view(exec, 1, val);
 
-    reduce_add_array_with_existing_value<<<1, default_block_size>>>(
+    reduce_add_array_with_initial_value<<<1, default_block_size>>>(
         grid_dim, as_cuda_type(block_results_val),
         as_cuda_type(d_result.get_data()));
 }
