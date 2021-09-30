@@ -41,6 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -48,7 +51,7 @@ namespace kernels {
 #define GKO_DECLARE_REDUCE_ARRAY_KERNEL(ValueType)                  \
     void reduce_array(std::shared_ptr<const DefaultExecutor> exec,  \
                       const ValueType* data, size_type num_entries, \
-                      ValueType* val)
+                      ValueType* result)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \
@@ -56,49 +59,8 @@ namespace kernels {
     GKO_DECLARE_REDUCE_ARRAY_KERNEL(ValueType)
 
 
-namespace omp {
-namespace components {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace components
-}  // namespace omp
-
-
-namespace cuda {
-namespace components {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace components
-}  // namespace cuda
-
-
-namespace reference {
-namespace components {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace components
-}  // namespace reference
-
-
-namespace hip {
-namespace components {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace components
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace components {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace components
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(components,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

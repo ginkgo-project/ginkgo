@@ -79,6 +79,7 @@ TYPED_TEST(Array, CanBeFilledWithValue)
 TYPED_TEST(Array, CanBeReduced)
 {
     TypeParam out = 1;
+
     gko::reduce(this->x, &out);
 
     ASSERT_EQ(out, TypeParam{8});

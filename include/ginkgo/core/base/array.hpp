@@ -717,10 +717,12 @@ ValueType reduce(const Array<ValueType>& input_arr,
  * @tparam The type of the input data
  *
  * @param [in] input_arr the input array to be reduced
- * @param [out,in] value the reduced value
+ * @param [out,in] result the reduced value. The result is written into the
+ *                 first entry and the value in the first entry is used as the
+ *                 initial value for the reduce.
  */
 template <typename ValueType>
-void reduce(const Array<ValueType>& input_arr, ValueType* value);
+void reduce(const Array<ValueType>& input_arr, ValueType* result);
 
 
 namespace detail {

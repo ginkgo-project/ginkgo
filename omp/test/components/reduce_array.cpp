@@ -58,13 +58,12 @@ protected:
         : ref(gko::ReferenceExecutor::create()),
           exec(gko::OmpExecutor::create()),
           total_size(6355),
+          out(T(2)),
           vals(ref, total_size),
           dvals(exec, total_size)
     {
         std::fill_n(vals.get_data(), total_size, 3);
         dvals = vals;
-        out = std::accumulate(vals.get_data(), vals.get_data() + total_size,
-                              T(2));
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -82,6 +81,9 @@ TYPED_TEST(ReduceArray, EqualsReference)
 {
     using T = typename TestFixture::value_type;
     auto val = T(2);
+
+    gko::kernels::reference::components::reduce_array(
+        this->ref, this->vals.get_data(), this->total_size, &this->out);
     gko::kernels::omp::components::reduce_array(
         this->exec, this->dvals.get_data(), this->total_size, &val);
 

@@ -65,8 +65,6 @@ protected:
         std::fill_n(vals.get_data(), total_size, 3);
         dvals = vals;
         out = T(2);
-        gko::kernels::reference::components::reduce_array(
-            ref, vals.get_const_data(), total_size, &out);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -85,11 +83,14 @@ TYPED_TEST(ReduceArray, EqualsReference)
     using T = typename TestFixture::value_type;
     auto dval = gko::Array<T>(this->exec, I<T>{2});
     auto val = gko::Array<T>(this->ref, 1);
+
+    gko::kernels::reference::components::reduce_array(
+        this->ref, this->vals.get_const_data(), this->total_size, &(this->out));
     gko::kernels::cuda::components::reduce_array(
         this->exec, this->dvals.get_data(), this->total_size, dval.get_data());
-    val = dval;
 
-    ASSERT_EQ(T(this->out), T(val.get_data()[0]));
+    val = dval;
+    ASSERT_EQ(this->out, val.get_data()[0]);
 }
 
 
