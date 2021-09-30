@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
 
 
 namespace gko {
@@ -65,7 +66,7 @@ namespace host {
  */
 template <typename ValueType>
 inline gko::batch_dense::UniformBatch<const ValueType> get_batch_struct(
-    const matrix::BatchDense<ValueType> *const op)
+    const matrix::BatchDense<ValueType>* const op)
 {
     return {op->get_const_values(), op->get_num_batch_entries(),
             op->get_stride().at(0), static_cast<int>(op->get_size().at(0)[0]),
@@ -78,7 +79,7 @@ inline gko::batch_dense::UniformBatch<const ValueType> get_batch_struct(
  */
 template <typename ValueType>
 inline gko::batch_dense::UniformBatch<ValueType> get_batch_struct(
-    matrix::BatchDense<ValueType> *const op)
+    matrix::BatchDense<ValueType>* const op)
 {
     return {op->get_values(), op->get_num_batch_entries(),
             op->get_stride().at(0), static_cast<int>(op->get_size().at(0)[0]),
@@ -91,7 +92,7 @@ inline gko::batch_dense::UniformBatch<ValueType> get_batch_struct(
  */
 template <typename ValueType>
 inline gko::batch_csr::UniformBatch<const ValueType> get_batch_struct(
-    const matrix::BatchCsr<ValueType, int32> *const op)
+    const matrix::BatchCsr<ValueType, int32>* const op)
 {
     return {op->get_const_values(),
             op->get_const_col_idxs(),
@@ -107,7 +108,40 @@ inline gko::batch_csr::UniformBatch<const ValueType> get_batch_struct(
  */
 template <typename ValueType>
 inline gko::batch_csr::UniformBatch<ValueType> get_batch_struct(
-    matrix::BatchCsr<ValueType, int32> *const op)
+    matrix::BatchCsr<ValueType, int32>* const op)
+{
+    return {op->get_values(),
+            op->get_const_col_idxs(),
+            op->get_const_row_ptrs(),
+            op->get_num_batch_entries(),
+            static_cast<int>(op->get_size().at(0)[0]),
+            static_cast<int>(op->get_num_stored_elements() /
+                             op->get_num_batch_entries())};
+}
+
+
+/**
+ * Generates an immutable uniform batch struct from a batch of CSR matrices.
+ */
+template <typename ValueType>
+inline gko::batch_ell::UniformBatch<const ValueType> get_batch_struct(
+    const matrix::BatchEll<ValueType, int32>* const op)
+{
+    return {op->get_const_values(),
+            op->get_const_col_idxs(),
+            op->get_const_row_ptrs(),
+            op->get_num_batch_entries(),
+            static_cast<int>(op->get_size().at(0)[0]),
+            static_cast<int>(op->get_num_stored_elements() /
+                             op->get_num_batch_entries())};
+}
+
+/**
+ * Generates a mutable uniform batch struct from a batch of CSR matrices.
+ */
+template <typename ValueType>
+inline gko::batch_ell::UniformBatch<ValueType> get_batch_struct(
+    matrix::BatchEll<ValueType, int32>* const op)
 {
     return {op->get_values(),
             op->get_const_col_idxs(),
@@ -125,7 +159,7 @@ inline gko::batch_csr::UniformBatch<ValueType> get_batch_struct(
  */
 template <typename ValueType>
 inline gko::batch_dense::UniformBatch<const ValueType> maybe_null_batch_struct(
-    const matrix::BatchDense<ValueType> *const op)
+    const matrix::BatchDense<ValueType>* const op)
 {
     if (op) {
         return {op->get_const_values(), op->get_num_batch_entries(),
