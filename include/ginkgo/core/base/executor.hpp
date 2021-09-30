@@ -1839,6 +1839,14 @@ public:
     }
 
     /**
+     * Get maximum shared memory per block.
+     */
+    int get_max_shared_memory_per_block() const noexcept
+    {
+        return this->get_exec_info().max_shared_memory_per_workgroup;
+    }
+
+    /**
      * Get the hipblas handle for this executor
      *
      * @return  the hipblas handle (hipblasContext*) for this executor

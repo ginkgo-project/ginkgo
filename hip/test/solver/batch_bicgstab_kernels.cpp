@@ -233,4 +233,32 @@ TEST(BatchBicgstab, GoodScalingImprovesConvergence)
                                                           nrhs, factory.get());
 }
 
+
+TEST(BatchBicgstab, SolvesLargeSystemEquivalentToReference)
+{
+    using value_type = double;
+    using real_type = double;
+    using solver_type = gko::solver::BatchBicgstab<value_type>;
+    std::shared_ptr<gko::ReferenceExecutor> refexec =
+        gko::ReferenceExecutor::create();
+    std::shared_ptr<const gko::HipExecutor> d_exec =
+        gko::HipExecutor::create(0, refexec);
+    const float solver_restol = 1e-4;
+    auto r_sys = gko::test::generate_solvable_batch_system<value_type>(
+        refexec, 2, 1090, 1, false);
+    auto r_factory =
+        solver_type::build()
+            .with_max_iterations(500)
+            .with_residual_tol(solver_restol)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
+            .on(refexec);
+    const double iter_tol = 0.01;
+    const double res_tol = 1e-9;
+    const double sol_tol = 10 * solver_restol;
+
+    gko::test::compare_with_reference<value_type, solver_type>(
+        d_exec, r_sys, r_factory.get(), false, iter_tol, res_tol, sol_tol);
+}
+
 }  // namespace
