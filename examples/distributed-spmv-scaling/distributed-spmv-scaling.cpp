@@ -154,6 +154,7 @@ int main(int argc, char* argv[])
 
     const auto comm = gko::mpi::communicator::create_world();
     const auto rank = comm->rank();
+    const auto local_rank = comm->local_rank();
 
     // Print the ginkgo version information.
     if (rank == 0) {
@@ -181,19 +182,19 @@ int main(int argc, char* argv[])
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
-             [rank] {
+             [local_rank] {
                  return gko::CudaExecutor::create(
-                     rank, gko::ReferenceExecutor::create(), true);
+                     local_rank, gko::ReferenceExecutor::create(), true);
              }},
             {"hip",
-             [rank] {
+             [local_rank] {
                  return gko::HipExecutor::create(
-                     rank, gko::ReferenceExecutor::create(), true);
+                     local_rank, gko::ReferenceExecutor::create(), true);
              }},
             {"dpcpp",
-             [rank] {
+             [local_rank] {
                  return gko::DpcppExecutor::create(
-                     rank, gko::ReferenceExecutor::create());
+                     local_rank, gko::ReferenceExecutor::create());
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
