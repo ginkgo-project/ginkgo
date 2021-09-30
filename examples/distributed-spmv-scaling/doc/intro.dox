@@ -1,0 +1,6 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+This example should help you to inspect the scaling behaviour of the distributed sparse matrix-vector product in Ginkgo.
+You can select the hardware architecture you want to run the example on via the executor, choose if you want to run with
+a 2D five point, a 2D nine point, a 3D seven point or a 3D 27 point stencil matrix, control the problem size and select 
+if you want to inspect weak or strong scaling.

@@ -1,0 +1,14 @@
+<h1>Results</h1>
+The following is the expected result:
+
+@code{.cpp}
+
+Generating stencil matrix...
+Setting up vectors...
+Warming up...
+Running benchmark...
+DURATION: 0.0114743s
+
+@endcode
+
+<h3> Comments about programming and debugging </h3>
