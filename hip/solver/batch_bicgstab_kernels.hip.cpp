@@ -101,8 +101,7 @@ static void apply_impl(
 
     const size_t prec_size =
         PrecType::dynamic_work_size(shared_gap, a.num_nnz) * sizeof(ValueType);
-    // TODO: Query this from runtime
-    const int shmem_per_blk = 48000;
+    const int shmem_per_blk = exec->get_max_shared_memory_per_block();
     const auto sconf =
         gko::kernels::batch_bicgstab::compute_shared_storage<PrecType,
                                                              ValueType>(
@@ -141,12 +140,12 @@ void apply(std::shared_ptr<const HipExecutor> exec,
         auto m_b = get_batch_struct(amat);
         auto b_b = get_batch_struct(b);
         if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-            apply_impl<BatchIdentity<cu_value_type>>(exec, opts, logger, m_b,
-                                                     b_b, x_b);
+            apply_impl<BatchIdentity<hip_value_type>>(exec, opts, logger, m_b,
+                                                      b_b, x_b);
         } else if (opts.preconditioner ==
                    gko::preconditioner::batch::type::jacobi) {
-            apply_impl<BatchJacobi<cu_value_type>>(exec, opts, logger, m_b, b_b,
-                                                   x_b);
+            apply_impl<BatchJacobi<hip_value_type>>(exec, opts, logger, m_b,
+                                                    b_b, x_b);
         } else {
             GKO_NOT_IMPLEMENTED;
         }
