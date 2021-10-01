@@ -66,8 +66,29 @@ void copy_subset(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
+
+template <typename ValueType, typename IndexType>
+void set_unit_rows(std::shared_ptr<const DefaultExecutor> exec,
+                   const Array<IndexType>& subset, const IndexType* row_ptrs,
+                   const IndexType* col_idxs, ValueType* values)
+{
+    const auto* map = subset.get_const_data();
+    for (IndexType i = 0; i < subset.get_num_elems(); ++i) {
+        for (IndexType idx = row_ptrs[map[i]]; idx < row_ptrs[map[i] + 1];
+             ++idx) {
+            if (col_idxs[idx] != idx) {
+                values[idx] = gko::zero<ValueType>();
+            } else {
+                values[idx] = gko::one<ValueType>();
+            }
+        }
+    }
+}
+
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_FILL_SUBSET);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_COPY_SUBSET);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_SET_UNIT_ROWS);
 
 
 }  // namespace cons

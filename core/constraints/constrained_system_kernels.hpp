@@ -55,11 +55,20 @@ namespace kernels {
                      const Array<IndexType>& subset, const ValueType* src, \
                      ValueType* dst)
 
+
+#define GKO_DECLARE_CONS_SET_UNIT_ROWS(ValueType, IndexType)                 \
+    void set_unit_rows(std::shared_ptr<const DefaultExecutor> exec,          \
+                       const Array<IndexType>& subset,                       \
+                       const IndexType* row_ptrs, const IndexType* col_idxs, \
+                       ValueType* values)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                    \
     template <typename ValueType, typename IndexType>   \
     GKO_DECLARE_CONS_FILL_SUBSET(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>   \
-    GKO_DECLARE_CONS_COPY_SUBSET(ValueType, IndexType)
+    GKO_DECLARE_CONS_COPY_SUBSET(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>   \
+    GKO_DECLARE_CONS_SET_UNIT_ROWS(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(cons, GKO_DECLARE_ALL_AS_TEMPLATES);
