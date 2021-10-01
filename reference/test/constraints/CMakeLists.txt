@@ -1,0 +1,1 @@
+ginkgo_create_test(constrained_system_kernels)

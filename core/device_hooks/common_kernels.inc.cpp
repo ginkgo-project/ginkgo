@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fill_array.hpp"
 #include "core/components/precision_conversion.hpp"
 #include "core/components/prefix_sum.hpp"
+#include "core/constraints/constrained_system_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
@@ -172,6 +173,15 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL);
 
 }  // namespace components
 
+
+namespace cons {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_FILL_SUBSET);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_COPY_SUBSET);
+
+
+}  // namespace cons
 
 namespace dense {
 

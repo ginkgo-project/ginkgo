@@ -7,7 +7,8 @@ target_sources(ginkgo_omp
     components/absolute_array.cpp
     components/fill_array.cpp
     components/prefix_sum.cpp
-    factorization/factorization_kernels.cpp
+  constraints/constrained_system_kernels.cpp
+  factorization/factorization_kernels.cpp
     factorization/ic_kernels.cpp
     factorization/ilu_kernels.cpp
     factorization/par_ic_kernels.cpp
