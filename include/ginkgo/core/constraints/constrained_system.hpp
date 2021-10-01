@@ -50,7 +50,7 @@ class ApplyConstraintsStrategy
     : public EnableCreateMethod<ApplyConstraintsStrategy> {
 public:
     virtual std::unique_ptr<LinOp> construct_operator(const Array<int32>& idxs,
-                                                      const LinOp* op) = 0;
+                                                      LinOp* op) = 0;
 
     virtual std::unique_ptr<LinOp> construct_right_hand_side(
         const Array<int32>& idxs, const LinOp* op, const LinOp* init_guess,
@@ -66,7 +66,28 @@ public:
 };
 
 
-class ZeroRowsStrategy : public ApplyConstraintsStrategy {};
+class ZeroRowsStrategy : public ApplyConstraintsStrategy {
+public:
+    std::unique_ptr<LinOp> construct_operator(const Array<int32>& idxs,
+                                              LinOp* op) override;
+
+    std::unique_ptr<LinOp> construct_right_hand_side(const Array<int32>& idxs,
+                                                     const LinOp* op,
+                                                     const LinOp* init_guess,
+                                                     const LinOp* rhs) override;
+
+    std::unique_ptr<LinOp> construct_initial_guess(
+        const Array<int32>& idxs, const LinOp* op,
+        const LinOp* constrained_values) override;
+
+    void correct_solution(const Array<int32>& idxs,
+                          const LinOp* orig_init_guess,
+                          LinOp* solution) override;
+
+private:
+    std::unique_ptr<LinOp> one;
+    std::unique_ptr<LinOp> neg_one;
+};
 
 
 class ConstrainedHandler {
@@ -87,7 +108,7 @@ public:
      * @param strategy  the implementation strategy of the constraints
      */
     ConstrainedHandler(
-        Array<int32> idxs, std::shared_ptr<const LinOp> system_operator,
+        Array<int32> idxs, std::shared_ptr<LinOp> system_operator,
         std::shared_ptr<const matrix::Dense<double>> values,
         std::shared_ptr<const matrix::Dense<double>> right_hand_side,
         std::shared_ptr<const matrix::Dense<double>> initial_guess = nullptr,
@@ -147,7 +168,7 @@ public:
      * @return *this
      */
     ConstrainedHandler& with_constrained_values(
-        std::shared_ptr<const matrix::Dense<double>> values)
+        std::shared_ptr<const LinOp> values)
     {
         values_ = std::move(values);
 
@@ -268,13 +289,13 @@ public:
 private:
     Array<int32> idxs_;
 
-    std::shared_ptr<const LinOp> orig_operator_;
+    std::shared_ptr<LinOp> orig_operator_;
     std::unique_ptr<LinOp> cons_operator_;
 
     std::unique_ptr<ApplyConstraintsStrategy> strategy_;
 
-    std::shared_ptr<const matrix::Dense<double>> values_;
-
+    // TODO: should these stay generic linop or should dense be used
+    std::shared_ptr<const LinOp> values_;
     std::shared_ptr<const LinOp> orig_rhs_;
     std::unique_ptr<LinOp> cons_rhs_;
     std::shared_ptr<const LinOp> orig_init_guess_;
