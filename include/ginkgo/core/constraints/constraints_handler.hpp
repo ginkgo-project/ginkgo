@@ -305,6 +305,19 @@ public:
                                     lend(orig_init_guess_), solution);
     }
 
+    LinOp* get_orig_operator() { return lend(orig_operator_); }
+
+    const Array<IndexType>* get_constrained_indices() const { return &idxs_; }
+
+    const Dense* get_constrained_values() const { return lend(values_); }
+
+    const Dense* get_orig_right_hand_side() const { return lend(orig_rhs_); }
+
+    const Dense* get_orig_initial_guess() const
+    {
+        return lend(orig_init_guess_);
+    }
+
 private:
     Array<IndexType> idxs_;
 
