@@ -74,9 +74,9 @@ void set_unit_rows(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto* map = subset.get_const_data();
     for (IndexType i = 0; i < subset.get_num_elems(); ++i) {
-        for (IndexType idx = row_ptrs[map[i]]; idx < row_ptrs[map[i] + 1];
-             ++idx) {
-            if (col_idxs[idx] != idx) {
+        const auto row = map[i];
+        for (IndexType idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
+            if (col_idxs[idx] != row) {
                 values[idx] = gko::zero<ValueType>();
             } else {
                 values[idx] = gko::one<ValueType>();
