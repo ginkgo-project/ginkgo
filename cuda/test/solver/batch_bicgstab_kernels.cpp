@@ -136,17 +136,27 @@ protected:
 TYPED_TEST_SUITE(BatchBicgstab, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchBicgstab, SolvesStencilSystem)
+TYPED_TEST(BatchBicgstab, SolveIsEquivalentToReference)
 {
-    auto r_1 = gko::test::solve_poisson_uniform(
-        this->cuexec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts_1, this->sys_1, 1);
+    using value_type = typename TestFixture::value_type;
+    using solver_type = gko::solver::BatchBicgstab<value_type>;
+    using opts_type = typename TestFixture::Options;
+    constexpr bool issingle =
+        std::is_same<gko::remove_complex<value_type>, float>::value;
+    const float solver_restol = issingle ? 50 * this->eps : this->eps;
+    const opts_type opts{gko::preconditioner::batch::type::none, 500,
+                         solver_restol,
+                         gko::stop::batch::ToleranceType::relative};
+    auto r_sys = gko::test::generate_solvable_batch_system<value_type>(
+        this->exec, this->nbatch, 11, 1, false);
+    auto r_factory = this->create_factory(this->exec, opts);
+    const double iter_tol = 0.01;
+    const double res_tol = 10 * r<value_type>::value;
+    const double sol_tol = 10 * solver_restol;
 
-    GKO_ASSERT_BATCH_MTX_NEAR(r_1.x, this->sys_1.xex, this->eps);
-    for (size_t ib = 0; ib < this->nbatch; ib++) {
-        ASSERT_LE(r_1.resnorm->at(ib, 0, 0) / this->sys_1.bnorm->at(ib, 0, 0),
-                  this->opts_1.residual_tol);
-    }
+    gko::test::compare_with_reference<value_type, solver_type>(
+        this->cuexec, r_sys, r_factory.get(), false, iter_tol, res_tol,
+        sol_tol);
 }
 
 
@@ -297,6 +307,34 @@ TEST(BatchBicgstab, CanSolveWithoutScaling)
 
     gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
                                   batchbicgstab_factory.get(), 5);
+}
+
+
+TEST(BatchBicgstab, SolvesLargeSystemEquivalentToReference)
+{
+    using value_type = double;
+    using real_type = double;
+    using solver_type = gko::solver::BatchBicgstab<value_type>;
+    std::shared_ptr<gko::ReferenceExecutor> refexec =
+        gko::ReferenceExecutor::create();
+    std::shared_ptr<const gko::CudaExecutor> d_exec =
+        gko::CudaExecutor::create(0, refexec);
+    const float solver_restol = 1e-4;
+    auto r_sys = gko::test::generate_solvable_batch_system<value_type>(
+        refexec, 2, 990, 1, false);
+    auto r_factory =
+        solver_type::build()
+            .with_max_iterations(500)
+            .with_residual_tol(solver_restol)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
+            .on(refexec);
+    const double iter_tol = 0.01;
+    const double res_tol = 1e-9;
+    const double sol_tol = 10 * solver_restol;
+
+    gko::test::compare_with_reference<value_type, solver_type>(
+        d_exec, r_sys, r_factory.get(), false, iter_tol, res_tol, sol_tol);
 }
 
 }  // namespace
