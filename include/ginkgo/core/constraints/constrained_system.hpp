@@ -66,6 +66,7 @@ public:
 
     virtual void correct_solution(
         const Array<IndexType>& idxs,
+        const matrix::Dense<ValueType>* constrained_values,
         const matrix::Dense<ValueType>* orig_init_guess,
         matrix::Dense<ValueType>* solution) = 0;
 };
@@ -88,8 +89,13 @@ public:
         const matrix::Dense<ValueType>* constrained_values) override;
 
     void correct_solution(const Array<IndexType>& idxs,
+                          const matrix::Dense<ValueType>* constrained_values,
                           const matrix::Dense<ValueType>* orig_init_guess,
                           matrix::Dense<ValueType>* solution) override;
+
+private:
+    std::unique_ptr<matrix::Dense<ValueType>> one;
+    std::unique_ptr<matrix::Dense<ValueType>> neg_one;
 };
 
 
