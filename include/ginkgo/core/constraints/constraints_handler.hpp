@@ -142,14 +142,14 @@ public:
           strategy_(std::move(strategy))
     {
         if (orig_init_guess_ && values_) {
-            cons_init_guess_ = strategy_->construct_initial_guess(
+            cons_init_guess_ = as<Dense>(strategy_->construct_initial_guess(
                 idxs, lend(cons_operator_), lend(orig_init_guess_),
-                lend(values_));
+                lend(values_)));
         }
         if (orig_rhs_ && cons_init_guess_) {
-            cons_rhs_ = strategy_->construct_right_hand_side(
+            cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
                 idxs, lend(cons_operator_), lend(cons_init_guess_),
-                lend(values_));
+                lend(values_)));
         }
     }
 
@@ -251,13 +251,12 @@ public:
     {
         if (!cons_rhs_) {
             if (!cons_init_guess_) {
-                cons_init_guess_ = strategy_->construct_initial_guess(
-                    idxs_, lend(cons_operator_), lend(orig_init_guess_),
-                    lend(values_));
+                reconstruct_system();
+            } else {
+                cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
+                    idxs_, lend(cons_operator_), lend(cons_init_guess_),
+                    lend(values_)));
             }
-            cons_rhs_ = strategy_->construct_right_hand_side(
-                idxs_, lend(cons_operator_), lend(cons_init_guess_),
-                lend(values_));
         }
         return cons_rhs_.get();
     }
@@ -274,9 +273,9 @@ public:
     LinOp* get_initial_guess()
     {
         if (!cons_init_guess_) {
-            cons_init_guess_ = strategy_->construct_initial_guess(
+            cons_init_guess_ = as<Dense>(strategy_->construct_initial_guess(
                 idxs_, lend(cons_operator_), lend(orig_init_guess_),
-                lend(values_));
+                lend(values_)));
         }
         return cons_init_guess_.get();
     }
@@ -290,10 +289,12 @@ public:
      */
     void reconstruct_system()
     {
-        cons_init_guess_ = strategy_->construct_initial_guess(
-            idxs_, lend(cons_operator_), lend(orig_init_guess_), lend(values_));
-        cons_rhs_ = strategy_->construct_right_hand_side(
-            idxs_, lend(cons_operator_), lend(cons_init_guess_), lend(values_));
+        cons_init_guess_ = as<Dense>(strategy_->construct_initial_guess(
+            idxs_, lend(cons_operator_), lend(orig_init_guess_),
+            lend(values_)));
+        cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
+            idxs_, lend(cons_operator_), lend(cons_init_guess_),
+            lend(values_)));
     }
 
     /**
