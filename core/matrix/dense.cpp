@@ -1712,4 +1712,46 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MATRIX);
 
 
 }  // namespace matrix
+
+
+#define GKO_DECLARE_CONCATENATE_DENSE_MATRIX(ValueType)                   \
+    std::unique_ptr<matrix::Dense<ValueType>> concatenate_dense_matrices( \
+        std::shared_ptr<const Executor> exec,                             \
+        const std::vector<std::unique_ptr<matrix::Dense<ValueType>>>&     \
+            matrices)
+
+template <typename ValueType>
+GKO_DECLARE_CONCATENATE_DENSE_MATRIX(ValueType)
+{
+    using mtx_type = matrix::Dense<ValueType>;
+    if (matrices.size() == 0) {
+        return mtx_type::create(exec);
+    }
+    size_type total_rows = 0;
+    const size_type ncols = matrices[0]->get_size()[1];
+    for (size_type imat = 0; imat < matrices.size(); imat++) {
+        GKO_ASSERT_EQUAL_COLS(matrices[0], matrices[imat]);
+        total_rows += matrices[imat]->get_size()[0];
+    }
+    auto temp = mtx_type::create(exec->get_master(), dim<2>(total_rows, ncols));
+    size_type roffset = 0;
+    for (size_type im = 0; im < matrices.size(); im++) {
+        auto imatrix = mtx_type::create(exec->get_master());
+        imatrix->copy_from(matrices[im].get());
+        for (size_type irow = 0; irow < imatrix->get_size()[0]; irow++) {
+            for (size_type icol = 0; icol < ncols; icol++) {
+                temp->at(irow + roffset, icol) = imatrix->at(irow, icol);
+            }
+        }
+        roffset += imatrix->get_size()[0];
+    }
+    assert(roffset == total_rows);
+    auto outm = mtx_type::create(exec);
+    outm->copy_from(temp.get());
+    return outm;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONCATENATE_DENSE_MATRIX);
+
+
 }  // namespace gko
