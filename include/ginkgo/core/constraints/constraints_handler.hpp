@@ -131,6 +131,8 @@ public:
                 std::make_unique<ZeroRowsStrategy<ValueType, IndexType>>())
         : idxs_(std::move(idxs)),
           orig_operator_(std::move(system_operator)),
+          cons_operator_(
+              strategy->construct_operator(idxs_, lend(orig_operator_))),
           values_(std::move(values)),
           orig_rhs_(std::move(right_hand_side)),
           orig_init_guess_(initial_guess ? std::move(initial_guess)
@@ -139,10 +141,6 @@ public:
                                                orig_rhs_->get_executor()))),
           strategy_(std::move(strategy))
     {
-        GKO_ASSERT(values && right_hand_side);
-
-        cons_operator_ =
-            strategy->construct_operator(idxs_, lend(orig_operator_));
         if (orig_init_guess_ && values_) {
             cons_init_guess_ = strategy_->construct_initial_guess(
                 idxs, lend(cons_operator_), lend(orig_init_guess_),
@@ -171,8 +169,11 @@ public:
         std::unique_ptr<ApplyConstraintsStrategy<ValueType, IndexType>>
             strategy =
                 std::make_unique<ZeroRowsStrategy<ValueType, IndexType>>())
-        : ConstraintsHandler(std::move(idxs), std::move(system_operator),
-                             nullptr, nullptr, nullptr, std::move(strategy))
+        : idxs_(std::move(idxs)),
+          orig_operator_(std::move(system_operator)),
+          cons_operator_(
+              strategy->construct_operator(idxs_, lend(orig_operator_))),
+          strategy_(std::move(strategy))
     {}
 
     /**
