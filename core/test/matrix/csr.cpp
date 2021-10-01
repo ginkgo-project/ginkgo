@@ -399,7 +399,7 @@ TEST_F(CsrBlockDiagonal, GeneratesCorrectBlockDiagonalMatrix)
 {
     auto matset = generate_csr_matrices();
 
-    auto bdcsr = gko::matrix::block_diagonal_csr_matrix(exec, matset);
+    auto bdcsr = gko::block_diagonal_csr_matrix(exec, matset);
     auto check = get_big_matrix();
 
     ASSERT_EQ(bdcsr->get_size(), check->get_size());
@@ -422,7 +422,7 @@ TEST_F(CsrBlockDiagonal, ThrowsOnRectangularInput)
     auto mtx = Mtx::create(exec, gko::dim<2>(3, 6), 10);
     matrices.emplace_back(std::move(mtx));
 
-    ASSERT_THROW(gko::matrix::block_diagonal_csr_matrix(exec, matrices),
+    ASSERT_THROW(gko::block_diagonal_csr_matrix(exec, matrices),
                  gko::DimensionMismatch);
 }
 
