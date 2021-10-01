@@ -100,7 +100,7 @@ private:
 
 
 template <typename ValueType, typename IndexType>
-class ConstrainedHandler {
+class ConstraintsHandler {
 public:
     using value_type = ValueType;
     using index_type = IndexType;
@@ -121,7 +121,7 @@ public:
      *                       null, then zero will be used as initial guess
      * @param strategy  the implementation strategy of the constraints
      */
-    ConstrainedHandler(
+    ConstraintsHandler(
         Array<IndexType> idxs, std::shared_ptr<LinOp> system_operator,
         std::shared_ptr<const Dense> values,
         std::shared_ptr<const Dense> right_hand_side,
@@ -166,12 +166,12 @@ public:
      * @param system_operator  the original system operator
      * @param strategy  the implementation strategy of the constraints
      */
-    ConstrainedHandler(
+    ConstraintsHandler(
         Array<IndexType> idxs, std::shared_ptr<LinOp> system_operator,
         std::unique_ptr<ApplyConstraintsStrategy<ValueType, IndexType>>
             strategy =
                 std::make_unique<ZeroRowsStrategy<ValueType, IndexType>>())
-        : ConstrainedHandler(std::move(idxs), std::move(system_operator),
+        : ConstraintsHandler(std::move(idxs), std::move(system_operator),
                              nullptr, nullptr, nullptr, std::move(strategy))
     {}
 
@@ -183,7 +183,7 @@ public:
      *
      * @return *this
      */
-    ConstrainedHandler& with_constrained_values(
+    ConstraintsHandler& with_constrained_values(
         std::shared_ptr<const Dense> values)
     {
         values_ = std::move(values);
@@ -202,7 +202,7 @@ public:
      *
      * @return *this
      */
-    ConstrainedHandler& with_right_hand_side(
+    ConstraintsHandler& with_right_hand_side(
         std::shared_ptr<const Dense> right_hand_side)
     {
         orig_rhs_ = std::move(right_hand_side);
@@ -221,7 +221,7 @@ public:
      *
      * @return *this
      */
-    ConstrainedHandler& with_initial_guess(
+    ConstraintsHandler& with_initial_guess(
         std::shared_ptr<const Dense> initial_guess)
     {
         orig_init_guess_ = std::move(initial_guess);

@@ -160,8 +160,8 @@ set(GINKGO_HIP_SOURCES
     components/absolute_array.hip.cpp
     components/fill_array.hip.cpp
     components/prefix_sum.hip.cpp
-  constraints/constrained_system_kernels.hip.cpp
-  factorization/factorization_kernels.hip.cpp
+    constraints/constraints_handler_kernels.hip.cpp
+    factorization/factorization_kernels.hip.cpp
     factorization/ic_kernels.hip.cpp
     factorization/ilu_kernels.hip.cpp
     factorization/par_ic_kernels.hip.cpp

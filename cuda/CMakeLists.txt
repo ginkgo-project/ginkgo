@@ -89,8 +89,8 @@ target_sources(ginkgo_cuda
     components/absolute_array.cu
     components/fill_array.cu
     components/prefix_sum.cu
-  constraints/constrained_system_kernels.cu
-  factorization/factorization_kernels.cu
+    constraints/constraints_handler_kernels.cu
+    factorization/factorization_kernels.cu
     factorization/ic_kernels.cu
     factorization/ilu_kernels.cu
     factorization/par_ic_kernels.cu
