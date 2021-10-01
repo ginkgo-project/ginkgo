@@ -57,7 +57,16 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp>
 ZeroRowsStrategy<ValueType, IndexType>::construct_operator(
     const gko::Array<IndexType>& idxs, gko::LinOp* op)
-{}
+{
+    auto exec = op->get_executor();
+    if (auto* csr = dynamic_cast<matrix::Csr<ValueType, IndexType>*>(op)) {
+        exec->run(cons::make_set_unit_rows(idxs, csr->get_const_row_ptrs(),
+                                           csr->get_const_col_idxs(),
+                                           csr->get_values()));
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
 
 
 template <typename ValueType, typename IndexType>
