@@ -1,1 +1,1 @@
-ginkgo_create_test(constrained_system_kernels)
+ginkgo_create_test(constraints_handler_kernels)

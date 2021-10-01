@@ -30,12 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/constraints/constrained_system.hpp>
+#include <ginkgo/core/constraints/constraints_handler.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/constraints/constrained_system_kernels.hpp"
+#include "core/constraints/constraints_handler_kernels.hpp"
 
 
 namespace gko {

@@ -30,55 +30,45 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_CONSTRAINTS_CONSTRAINED_SYSTEM_KERNELS_HPP_
-#define GKO_CORE_CONSTRAINTS_CONSTRAINED_SYSTEM_KERNELS_HPP_
 
+#include "core/constraints/constraints_handler_kernels.hpp"
 
-#include <ginkgo/core/constraints/constrained_system.hpp>
+#include <memory>
 
-
-#include "core/base/kernel_declaration.hpp"
+#include <ginkgo/core/base/array.hpp>
 
 
 namespace gko {
 namespace kernels {
+namespace omp {
+namespace cons {
 
 
-#define GKO_DECLARE_CONS_FILL_SUBSET(ValueType, IndexType)            \
-    void fill_subset(std::shared_ptr<const DefaultExecutor> exec,     \
-                     const Array<IndexType>& subset, ValueType* data, \
-                     ValueType val)
+template <typename ValueType, typename IndexType>
+void fill_subset(std::shared_ptr<const DefaultExecutor> exec,
+                 const Array<IndexType>& subset, ValueType* data,
+                 ValueType val) GKO_NOT_IMPLEMENTED;
 
 
-#define GKO_DECLARE_CONS_COPY_SUBSET(ValueType, IndexType)                 \
-    void copy_subset(std::shared_ptr<const DefaultExecutor> exec,          \
-                     const Array<IndexType>& subset, const ValueType* src, \
-                     ValueType* dst)
+template <typename ValueType, typename IndexType>
+void copy_subset(std::shared_ptr<const DefaultExecutor> exec,
+                 const Array<IndexType>& subset, const ValueType* src,
+                 ValueType* dst) GKO_NOT_IMPLEMENTED;
 
 
-#define GKO_DECLARE_CONS_SET_UNIT_ROWS(ValueType, IndexType)                 \
-    void set_unit_rows(std::shared_ptr<const DefaultExecutor> exec,          \
-                       const Array<IndexType>& subset,                       \
-                       const IndexType* row_ptrs, const IndexType* col_idxs, \
-                       ValueType* values)
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES                    \
-    template <typename ValueType, typename IndexType>   \
-    GKO_DECLARE_CONS_FILL_SUBSET(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>   \
-    GKO_DECLARE_CONS_COPY_SUBSET(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>   \
-    GKO_DECLARE_CONS_SET_UNIT_ROWS(ValueType, IndexType)
+template <typename ValueType, typename IndexType>
+void set_unit_rows(std::shared_ptr<const DefaultExecutor> exec,
+                   const Array<IndexType>& subset, const IndexType* row_ptrs,
+                   const IndexType* col_idxs,
+                   ValueType* values) GKO_NOT_IMPLEMENTED;
 
 
-GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(cons, GKO_DECLARE_ALL_AS_TEMPLATES);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_FILL_SUBSET);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_COPY_SUBSET);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_SET_UNIT_ROWS);
 
 
-#undef GKO_DECLARE_ALL_AS_TEMPLATES
-
-
+}  // namespace cons
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_CORE_CONSTRAINTS_CONSTRAINED_SYSTEM_KERNELS_HPP_

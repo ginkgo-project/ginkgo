@@ -12,7 +12,7 @@ target_sources(ginkgo
     base/mtx_io.cpp
     base/perturbation.cpp
     base/version.cpp
-    constraints/constrained_system.cpp
+    constraints/constraints_handler.cpp
     distributed/partition.cpp
     factorization/ic.cpp
     factorization/ic.cpp

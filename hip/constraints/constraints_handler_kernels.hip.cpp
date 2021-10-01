@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/constraints/constrained_system_kernels.hpp"
+#include "core/constraints/constraints_handler_kernels.hpp"
 
 #include <memory>
 

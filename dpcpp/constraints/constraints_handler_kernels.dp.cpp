@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/constraints/constrained_system_kernels.hpp"
+#include "core/constraints/constraints_handler_kernels.hpp"
 
 #include <memory>
 
@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace omp {
+namespace dpcpp {
 namespace cons {
 
 
@@ -69,6 +69,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_SET_UNIT_ROWS);
 
 
 }  // namespace cons
-}  // namespace omp
+}  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
