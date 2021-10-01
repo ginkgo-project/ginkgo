@@ -60,7 +60,6 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
                     matrix::Dense<ValueType>* c, OutFn out)
 {
     GKO_ASSERT(b->get_size()[1] == num_rhs);
-    auto col_idxs = a->get_const_col_idxs();
     auto slice_lengths = a->get_const_slice_lengths();
     auto slice_sets = a->get_const_slice_sets();
     auto slice_size = a->get_slice_size();
@@ -100,7 +99,6 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
                   const matrix::Dense<ValueType>* b,
                   matrix::Dense<ValueType>* c, OutFn out)
 {
-    auto col_idxs = a->get_const_col_idxs();
     auto slice_lengths = a->get_const_slice_lengths();
     auto slice_sets = a->get_const_slice_sets();
     auto slice_size = a->get_slice_size();

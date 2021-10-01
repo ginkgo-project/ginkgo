@@ -131,7 +131,6 @@ void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
                     for (auto local_nz = nz;
                          local_nz < end && coo_row[local_nz] == first;
                          local_nz++) {
-                        const auto row = first;
                         const auto col = coo_col[local_nz];
 #pragma unroll
                         for (size_type i = 0; i < block_size; i++) {
@@ -190,7 +189,6 @@ void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
                     // sums
                     partial_sum.fill(zero<ValueType>());
                     for (auto local_nz = nz; local_nz < end; local_nz++) {
-                        const auto row = last;
                         const auto col = coo_col[local_nz];
 #pragma unroll
                         for (size_type i = 0; i < block_size; i++) {
@@ -205,13 +203,12 @@ void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
                     for (size_type i = 0; i < block_size; i++) {
                         const auto rhs = i + rhs_base;
                         const auto row = last;
-                        atomic_add(c->at(last, rhs), partial_sum[i]);
+                        atomic_add(c->at(row, rhs), partial_sum[i]);
                     }
                 }
                 // handle row overlap with following thread: block partial sums
                 partial_sum.fill(zero<ValueType>());
                 for (; nz < end; nz++) {
-                    const auto row = last;
                     const auto col = coo_col[nz];
                     for (size_type rhs = rounded_rhs; rhs < num_rhs; rhs++) {
                         partial_sum[rhs - rounded_rhs] +=
@@ -221,8 +218,7 @@ void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
                 // handle row overlap with following thread: block add to memory
                 for (size_type rhs = rounded_rhs; rhs < num_rhs; rhs++) {
                     const auto row = last;
-                    atomic_add(c->at(last, rhs),
-                               partial_sum[rhs - rounded_rhs]);
+                    atomic_add(c->at(row, rhs), partial_sum[rhs - rounded_rhs]);
                 }
             }
         }
@@ -260,7 +256,6 @@ void spmv2_small_rhs(std::shared_ptr<const OmpExecutor> exec,
                 // handle row overlap with previous thread: partial sums
                 partial_sum.fill(zero<ValueType>());
                 for (; nz < end && coo_row[nz] == first; nz++) {
-                    const auto row = first;
                     const auto col = coo_col[nz];
 #pragma unroll
                     for (size_type rhs = 0; rhs < num_rhs; rhs++) {
@@ -287,7 +282,6 @@ void spmv2_small_rhs(std::shared_ptr<const OmpExecutor> exec,
                 // handle row overlap with following thread: partial sums
                 partial_sum.fill(zero<ValueType>());
                 for (; nz < end; nz++) {
-                    const auto row = last;
                     const auto col = coo_col[nz];
 #pragma unroll
                     for (size_type rhs = 0; rhs < num_rhs; rhs++) {
@@ -299,7 +293,7 @@ void spmv2_small_rhs(std::shared_ptr<const OmpExecutor> exec,
 #pragma unroll
                 for (size_type rhs = 0; rhs < num_rhs; rhs++) {
                     const auto row = last;
-                    atomic_add(c->at(last, rhs), partial_sum[rhs]);
+                    atomic_add(c->at(row, rhs), partial_sum[rhs]);
                 }
             }
         }

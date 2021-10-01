@@ -508,6 +508,17 @@ template <typename T>
 using increase_precision = typename detail::increase_precision_impl<T>::type;
 
 
+/**
+ * Obtains the smallest arithmetic type that is able to store elements of all
+ * template parameter types exactly. All template type parameters need to be
+ * either real or complex types, mixing them is not possible.
+ *
+ * Formally, it computes a right-fold over the type list, with the highest
+ * precision of a pair of real arithmetic types T1, T2 computed as
+ * `decltype(T1{} + T2{})`, or
+ * `std::complex<highest_precision<remove_complex<T1>, remove_complex<T2>>>` for
+ * complex types.
+ */
 template <typename... Ts>
 using highest_precision =
     typename detail::highest_precision_variadic<Ts...>::type;
