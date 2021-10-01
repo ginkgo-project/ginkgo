@@ -1,1 +1,2 @@
+ginkgo_create_test(constraints_handler)
 ginkgo_create_test(constraints_handler_kernels)
