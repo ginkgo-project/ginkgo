@@ -51,7 +51,9 @@ class ApplyConstraintsStrategy
     : public EnableCreateMethod<
           ApplyConstraintsStrategy<ValueType, ValueType>> {
 public:
-    virtual std::unique_ptr<LinOp> construct_operator(
+    using operator_delete = std::function<void(LinOp*)>;
+
+    virtual std::unique_ptr<LinOp, operator_delete> construct_operator(
         const Array<IndexType>& idxs, LinOp* op) = 0;
 
     virtual std::unique_ptr<LinOp> construct_right_hand_side(
@@ -74,9 +76,14 @@ public:
 
 template <typename ValueType, typename IndexType>
 class ZeroRowsStrategy : public ApplyConstraintsStrategy<ValueType, IndexType> {
+    using Dense = matrix::Dense<ValueType>;
+
 public:
-    std::unique_ptr<LinOp> construct_operator(const Array<IndexType>& idxs,
-                                              LinOp* op) override;
+    using typename ApplyConstraintsStrategy<ValueType,
+                                            IndexType>::operator_delete;
+
+    std::unique_ptr<LinOp, operator_delete> construct_operator(
+        const Array<IndexType>& idxs, LinOp* op) override;
 
     std::unique_ptr<LinOp> construct_right_hand_side(
         const Array<IndexType>& idxs, const LinOp* op,
@@ -94,8 +101,8 @@ public:
                           matrix::Dense<ValueType>* solution) override;
 
 private:
-    std::unique_ptr<matrix::Dense<ValueType>> one;
-    std::unique_ptr<matrix::Dense<ValueType>> neg_one;
+    std::unique_ptr<Dense> one;
+    std::unique_ptr<Dense> neg_one;
 };
 
 
@@ -321,10 +328,14 @@ public:
     }
 
 private:
+    using operator_delete =
+        typename ApplyConstraintsStrategy<ValueType,
+                                          IndexType>::operator_delete;
+
     Array<IndexType> idxs_;
 
     std::shared_ptr<LinOp> orig_operator_;
-    std::unique_ptr<LinOp> cons_operator_;
+    std::unique_ptr<LinOp, operator_delete> cons_operator_;
 
     std::unique_ptr<ApplyConstraintsStrategy<ValueType, IndexType>> strategy_;
 
