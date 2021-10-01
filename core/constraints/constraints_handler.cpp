@@ -78,10 +78,10 @@ ZeroRowsStrategy<ValueType, IndexType>::construct_right_hand_side(
 {
     auto exec = rhs->get_executor();
     if (!one) {
-        one = initialize<ValueType>({gko::one<ValueType>()}, exec);
+        one = initialize<Dense>({gko::one<ValueType>()}, exec);
     }
     if (!neg_one) {
-        neg_one = initialize<ValueType>({-gko::one<ValueType>()}, exec);
+        neg_one = initialize<Dense>({-gko::one<ValueType>()}, exec);
     }
 
     auto cons_rhs = gko::clone(rhs);
@@ -95,7 +95,7 @@ ZeroRowsStrategy<ValueType, IndexType>::construct_right_hand_side(
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp>
 ZeroRowsStrategy<ValueType, IndexType>::construct_initial_guess(
-    const gko::Array<gko::int32>& idxs, const gko::LinOp* op,
+    const gko::Array<IndexType>& idxs, const gko::LinOp* op,
     const matrix::Dense<ValueType>* init_guess,
     const matrix::Dense<ValueType>* constrained_values)
 {
@@ -116,13 +116,24 @@ void ZeroRowsStrategy<ValueType, IndexType>::correct_solution(
 {
     auto exec = solution->get_executor();
     if (!one) {
-        one = initialize<ValueType>({gko::one<ValueType>()},
-                                    solution->get_executor());
+        one = initialize<Dense>({gko::one<ValueType>()},
+                                solution->get_executor());
     }
     solution->add_scaled(one.get(), orig_init_guess);
-    exec->run(cons::make_copy_subset(idxs, constrained_values->get_values(),
-                                     solution->get_values()));
+    exec->run(cons::make_copy_subset(
+        idxs, constrained_values->get_const_values(), solution->get_values()));
 }
+
+
+#define GKO_DECLARE_ZERO_ROWS_STRATEGY(ValueType, IndexType) \
+    class ZeroRowsStrategy<ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ZERO_ROWS_STRATEGY);
+
+
+#define GKO_DECLARE_CONSTRAINTS_HANDLER(ValueType, IndexType) \
+    class ConstraintsHandler<ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONSTRAINTS_HANDLER);
+
 
 }  // namespace constraints
 }  // namespace gko
