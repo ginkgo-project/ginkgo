@@ -76,7 +76,7 @@ public:
           empty_rhs(gko::share(dense::create(ref))),
           empty_init(gko::share(dense::create(ref))),
           def_idxs(ref, {0, 2}),
-          def_csr(gko::share(gko::initialize<mtx>(
+          def_mtx(gko::share(gko::initialize<mtx>(
               {{1, 0, 2, 3}, {0, 4, 0, 0}, {0, 5, 6, 0}, {7, 0, 0, 8}},
               this->ref)))
     {}
@@ -92,10 +92,21 @@ public:
     std::shared_ptr<dense> empty_init;
 
     gko::Array<index_type> def_idxs;
-    std::shared_ptr<mtx> def_csr;
+    std::shared_ptr<mtx> def_mtx;
 };
 
 TYPED_TEST_SUITE(ZeroRowsStrategy, gko::test::ValueIndexTypes);
+
+
+TYPED_TEST(ZeroRowsStrategy, DoesNotOwnOriginalOperator)
+{
+    {
+        this->strategy.construct_operator(this->empty_idxs,
+                                          this->empty_mtx.get());
+    }
+
+    ASSERT_NO_FATAL_FAILURE(this->empty_mtx->get_size());
+}
 
 
 TYPED_TEST(ZeroRowsStrategy, ConstructOperatorFromEmptyIndicesAndMatrix)
@@ -141,7 +152,7 @@ TYPED_TEST(ZeroRowsStrategy, ConstructRhs)
     auto result = gko::initialize<dense>({0, -8, 0, -23}, this->ref);
 
     auto rhs = this->strategy.construct_right_hand_side(
-        this->def_idxs, this->def_csr.get(), orig_init.get(), orig_rhs.get());
+        this->def_idxs, this->def_mtx.get(), orig_init.get(), orig_rhs.get());
 
     GKO_ASSERT_MTX_NEAR(result.get(), gko::as<dense>(rhs.get()), 0);
 }
@@ -164,7 +175,7 @@ TYPED_TEST(ZeroRowsStrategy, ConstructInit)
     auto result = gko::initialize<dense>({0, 2, 0, 2}, this->ref);
 
     auto init = this->strategy.construct_initial_guess(
-        this->def_idxs, this->def_csr.get(), orig_init.get(), values.get());
+        this->def_idxs, this->def_mtx.get(), orig_init.get(), values.get());
 
     GKO_ASSERT_MTX_NEAR(result.get(), gko::as<dense>(init.get()), 0);
 }
@@ -199,6 +210,64 @@ TYPED_TEST(ZeroRowsStrategy, UpdateSolutionFromInitWithoutValues)
     GKO_ASSERT_MTX_NEAR(result.get(), solution.get(), 0);
 }
 
+struct apply_counter {
+    int op = 0;
+    int rhs = 0;
+    int init = 0;
+    int sol = 0;
+};
+
+
+template <typename ValueType, typename IndexType>
+class StrategyWithCounter
+    : public gko::constraints::ZeroRowsStrategy<ValueType, IndexType> {
+public:
+    using typename gko::constraints::ApplyConstraintsStrategy<
+        ValueType, IndexType>::operator_delete;
+
+    StrategyWithCounter(std::shared_ptr<apply_counter> c_) : c(std::move(c_)) {}
+
+    std::unique_ptr<gko::LinOp, operator_delete> construct_operator(
+        const gko::Array<IndexType>& idxs, gko::LinOp* op) override
+    {
+        c->op++;
+        return gko::constraints::ZeroRowsStrategy<
+            ValueType, IndexType>::construct_operator(idxs, op);
+    }
+    std::unique_ptr<gko::LinOp> construct_right_hand_side(
+        const gko::Array<IndexType>& idxs, const gko::LinOp* op,
+        const gko::matrix::Dense<ValueType>* init_guess,
+        const gko::matrix::Dense<ValueType>* rhs) override
+    {
+        c->rhs++;
+        return gko::constraints::ZeroRowsStrategy<
+            ValueType, IndexType>::construct_right_hand_side(idxs, op,
+                                                             init_guess, rhs);
+    }
+    std::unique_ptr<gko::LinOp> construct_initial_guess(
+        const gko::Array<IndexType>& idxs, const gko::LinOp* op,
+        const gko::matrix::Dense<ValueType>* init_guess,
+        const gko::matrix::Dense<ValueType>* constrained_values) override
+    {
+        c->init++;
+        return gko::constraints::ZeroRowsStrategy<
+            ValueType, IndexType>::construct_initial_guess(idxs, op, init_guess,
+                                                           constrained_values);
+    }
+    void correct_solution(
+        const gko::Array<IndexType>& idxs,
+        const gko::matrix::Dense<ValueType>* constrained_values,
+        const gko::matrix::Dense<ValueType>* orig_init_guess,
+        gko::matrix::Dense<ValueType>* solution) override
+    {
+        c->sol++;
+        gko::constraints::ZeroRowsStrategy<
+            ValueType, IndexType>::correct_solution(idxs, constrained_values,
+                                                    orig_init_guess, solution);
+    }
+
+    std::shared_ptr<apply_counter> c;
+};
 
 template <typename ValueIndexType>
 class ConstrainedSystem : public ::testing::Test {
@@ -212,26 +281,248 @@ public:
     using handler =
         gko::constraints::ConstraintsHandler<value_type, index_type>;
 
-    ConstrainedSystem() : ref(gko::ReferenceExecutor::create()) {}
+
+    ConstrainedSystem()
+        : ref(gko::ReferenceExecutor::create()),
+          strategy(),
+          empty_idxs(ref),
+          empty_mtx(gko::share(mtx::create(ref))),
+          empty_values(gko::share(dense::create(ref))),
+          empty_rhs(gko::share(dense::create(ref))),
+          empty_init(gko::share(dense::create(ref))),
+          def_idxs(ref, {0, 2}),
+          def_mtx(gko::share(gko::initialize<mtx>(
+              {{1, 0, 2, 3}, {0, 4, 0, 0}, {0, 5, 6, 0}, {7, 0, 0, 8}},
+              this->ref))),
+          empty_handler(this->empty_idxs, this->empty_mtx),
+          counter(std::make_shared<apply_counter>()),
+          counted_handler(
+              this->empty_idxs, this->empty_mtx, this->empty_values,
+              this->empty_rhs, this->empty_init,
+              std::make_unique<StrategyWithCounter<value_type, index_type>>(
+                  counter))
+    {}
 
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
+    gko::constraints::ZeroRowsStrategy<value_type, index_type> strategy;
+
+    gko::Array<index_type> empty_idxs;
+    std::shared_ptr<mtx> empty_mtx;
+    std::shared_ptr<dense> empty_values;
+    std::shared_ptr<dense> empty_rhs;
+    std::shared_ptr<dense> empty_init;
+
+    gko::Array<index_type> def_idxs;
+    std::shared_ptr<mtx> def_mtx;
+
+    handler empty_handler;
+
+    std::shared_ptr<apply_counter> counter;
+    handler counted_handler;
 };
+
 
 TYPED_TEST_SUITE(ConstrainedSystem, gko::test::ValueIndexTypes);
 
 TYPED_TEST(ConstrainedSystem, CanCreateWithIdxsMatrix)
 {
-    using index_type = typename TestFixture::index_type;
-    using mtx = typename TestFixture::mtx;
     using handler = typename TestFixture::handler;
-    gko::Array<index_type> idxs{this->ref};
-    auto csr = gko::share(mtx::create(this->ref));
+    handler ch(this->empty_idxs, this->empty_mtx);
 
-    handler ch(idxs, csr);
+    GKO_ASSERT_ARRAY_EQ(*ch.get_constrained_indices(), this->empty_idxs);
+    ASSERT_EQ(ch.get_orig_operator(), this->empty_mtx.get());
+}
 
-    GKO_ASSERT_ARRAY_EQ(*ch.get_constrained_indices(), idxs);
-    ASSERT_EQ(ch.get_orig_operator(), csr.get());
+TYPED_TEST(ConstrainedSystem, CanCreateWithFullSystem)
+{
+    using handler = typename TestFixture::handler;
+
+    handler ch(this->empty_idxs, this->empty_mtx, this->empty_values,
+               this->empty_rhs, this->empty_init);
+
+    GKO_ASSERT_ARRAY_EQ(*ch.get_constrained_indices(), this->empty_idxs);
+    ASSERT_EQ(ch.get_orig_operator(), this->empty_mtx.get());
+    ASSERT_EQ(ch.get_constrained_values(), this->empty_values.get());
+    ASSERT_EQ(ch.get_orig_right_hand_side(), this->empty_rhs.get());
+    ASSERT_EQ(ch.get_orig_initial_guess(), this->empty_init.get());
+}
+
+TYPED_TEST(ConstrainedSystem, CanCreateWithoutInitialGuess)
+{
+    using handler = typename TestFixture::handler;
+
+    handler ch(this->empty_idxs, this->empty_mtx, this->empty_values,
+               this->empty_rhs);
+
+    GKO_ASSERT_ARRAY_EQ(*ch.get_constrained_indices(), this->empty_idxs);
+    ASSERT_EQ(ch.get_orig_operator(), this->empty_mtx.get());
+    ASSERT_EQ(ch.get_constrained_values(), this->empty_values.get());
+    ASSERT_EQ(ch.get_orig_right_hand_side(), this->empty_rhs.get());
+    ASSERT_TRUE(ch.get_orig_initial_guess());
+}
+
+TYPED_TEST(ConstrainedSystem, UpdateEmptyHandlerWithValues)
+{
+    this->empty_handler.with_constrained_values(this->empty_values);
+
+    ASSERT_EQ(this->empty_handler.get_constrained_values(),
+              this->empty_values.get());
+    ASSERT_FALSE(this->empty_handler.get_orig_right_hand_side());
+    ASSERT_FALSE(this->empty_handler.get_orig_initial_guess());
+}
+
+TYPED_TEST(ConstrainedSystem, UpdateEmptyHandlerWithRhs)
+{
+    this->empty_handler.with_right_hand_side(this->empty_rhs);
+
+    ASSERT_FALSE(this->empty_handler.get_constrained_values());
+    ASSERT_EQ(this->empty_handler.get_orig_right_hand_side(),
+              this->empty_rhs.get());
+    ASSERT_FALSE(this->empty_handler.get_orig_initial_guess());
+}
+
+
+TYPED_TEST(ConstrainedSystem, UpdateEmptyHandlerWithInit)
+{
+    this->empty_handler.with_initial_guess(this->empty_init);
+
+    ASSERT_FALSE(this->empty_handler.get_constrained_values());
+    ASSERT_FALSE(this->empty_handler.get_orig_right_hand_side());
+    ASSERT_EQ(this->empty_handler.get_orig_initial_guess(),
+              this->empty_init.get());
+}
+
+TYPED_TEST(ConstrainedSystem, UpdateEmptyHandlerChain)
+{
+    this->empty_handler.with_constrained_values(this->empty_values)
+        .with_initial_guess(this->empty_init)
+        .with_right_hand_side(this->empty_rhs);
+
+
+    ASSERT_EQ(this->empty_handler.get_constrained_values(),
+              this->empty_values.get());
+    ASSERT_EQ(this->empty_handler.get_orig_right_hand_side(),
+              this->empty_rhs.get());
+    ASSERT_EQ(this->empty_handler.get_orig_initial_guess(),
+              this->empty_init.get());
+}
+
+TYPED_TEST(ConstrainedSystem, ReconstructsLazily)
+{
+    auto prev_counter = *this->counter;
+
+    this->counted_handler.get_initial_guess();
+    this->counted_handler.get_right_hand_side();
+    this->counted_handler.get_operator();
+
+    ASSERT_EQ(this->counter->rhs, prev_counter.rhs);
+    ASSERT_EQ(this->counter->init, prev_counter.init);
+    ASSERT_EQ(this->counter->op, prev_counter.op);
+}
+
+
+TYPED_TEST(ConstrainedSystem, CanReconstructConstrainedSystem)
+{
+    auto prev_counter = *this->counter;
+
+    this->counted_handler.reconstruct_system();
+
+    ASSERT_EQ(this->counter->rhs - prev_counter.rhs, 1);
+    ASSERT_EQ(this->counter->init - prev_counter.init, 1);
+    ASSERT_EQ(this->counter->op - prev_counter.op, 0);
+}
+
+
+TYPED_TEST(ConstrainedSystem, ReconstructsRhsAndInitAfterWithValues)
+{
+    auto prev_counter = *this->counter;
+    auto cloned_values = gko::share(gko::clone(this->empty_values));
+
+    this->counted_handler.with_constrained_values(cloned_values);
+    this->counted_handler.get_initial_guess();
+    this->counted_handler.get_right_hand_side();
+    this->counted_handler.get_operator();
+
+    ASSERT_EQ(this->counter->rhs - prev_counter.rhs, 1);
+    ASSERT_EQ(this->counter->init - prev_counter.init, 1);
+    ASSERT_EQ(this->counter->op - prev_counter.op, 0);
+}
+
+
+TYPED_TEST(ConstrainedSystem, ReconstructsOnlyRhsAfterWithRhs)
+{
+    auto prev_counter = *this->counter;
+    auto cloned_rhs = gko::share(gko::clone(this->empty_rhs));
+
+    this->counted_handler.with_right_hand_side(cloned_rhs);
+    this->counted_handler.get_initial_guess();
+    this->counted_handler.get_right_hand_side();
+    this->counted_handler.get_operator();
+
+    ASSERT_EQ(this->counter->rhs - prev_counter.rhs, 1);
+    ASSERT_EQ(this->counter->init - prev_counter.init, 0);
+    ASSERT_EQ(this->counter->op - prev_counter.op, 0);
+}
+
+
+TYPED_TEST(ConstrainedSystem, ReconstructsRhsAndInitAfterWithInit)
+{
+    auto prev_counter = *this->counter;
+    auto cloned_init = gko::share(gko::clone(this->empty_init));
+
+    this->counted_handler.with_initial_guess(cloned_init);
+    this->counted_handler.get_initial_guess();
+    this->counted_handler.get_right_hand_side();
+    this->counted_handler.get_operator();
+
+    ASSERT_EQ(this->counter->rhs - prev_counter.rhs, 1);
+    ASSERT_EQ(this->counter->init - prev_counter.init, 1);
+    ASSERT_EQ(this->counter->op - prev_counter.op, 0);
+}
+
+
+TYPED_TEST(ConstrainedSystem, ReconstructsRhsAndInitForGetRhs)
+{
+    auto prev_counter = *this->counter;
+    auto cloned_init = gko::share(gko::clone(this->empty_init));
+    auto cloned_rhs = gko::share(gko::clone(this->empty_rhs));
+
+    this->counted_handler.with_right_hand_side(cloned_rhs);
+    this->counted_handler.with_initial_guess(cloned_init);
+    this->counted_handler.get_right_hand_side();
+
+    ASSERT_EQ(this->counter->rhs - prev_counter.rhs, 1);
+    ASSERT_EQ(this->counter->init - prev_counter.init, 1);
+}
+
+
+TYPED_TEST(ConstrainedSystem, ReconstructsOnlyRhsForGetRhs)
+{
+    auto prev_counter = *this->counter;
+    auto cloned_init = gko::share(gko::clone(this->empty_init));
+    auto cloned_rhs = gko::share(gko::clone(this->empty_rhs));
+
+    this->counted_handler.with_right_hand_side(cloned_rhs);
+    this->counted_handler.get_right_hand_side();
+
+    ASSERT_EQ(this->counter->rhs - prev_counter.rhs, 1);
+    ASSERT_EQ(this->counter->init - prev_counter.init, 0);
+}
+
+
+TYPED_TEST(ConstrainedSystem, ReconstructsOnlyInitForGetInit)
+{
+    auto prev_counter = *this->counter;
+    auto cloned_init = gko::share(gko::clone(this->empty_init));
+    auto cloned_rhs = gko::share(gko::clone(this->empty_rhs));
+
+    this->counted_handler.with_right_hand_side(cloned_rhs);
+    this->counted_handler.with_initial_guess(cloned_init);
+    this->counted_handler.get_initial_guess();
+
+    ASSERT_EQ(this->counter->rhs - prev_counter.rhs, 0);
+    ASSERT_EQ(this->counter->init - prev_counter.init, 1);
 }
 
 
