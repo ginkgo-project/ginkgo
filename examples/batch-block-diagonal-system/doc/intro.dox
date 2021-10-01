@@ -1,0 +1,8 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+
+<h3> About the example </h3>
+This example shows how to use incomplete factors generated via the ParILU 
+algorithm to generate an incomplete factorization (ILU) preconditioner, how to
+specify the sparse triangular solves in the ILU preconditioner application, and
+how to generate an ILU-preconditioned solver and apply it to a specific problem.
