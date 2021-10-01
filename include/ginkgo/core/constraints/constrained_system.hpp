@@ -51,41 +51,45 @@ class ApplyConstraintsStrategy
     : public EnableCreateMethod<
           ApplyConstraintsStrategy<ValueType, ValueType>> {
 public:
-    virtual std::unique_ptr<LinOp> construct_operator(const Array<int32>& idxs,
-                                                      LinOp* op) = 0;
+    virtual std::unique_ptr<LinOp> construct_operator(
+        const Array<IndexType>& idxs, LinOp* op) = 0;
 
     virtual std::unique_ptr<LinOp> construct_right_hand_side(
-        const Array<int32>& idxs, const LinOp* op, const LinOp* init_guess,
-        const LinOp* rhs) = 0;
+        const Array<IndexType>& idxs, const LinOp* op,
+        const matrix::Dense<ValueType>* init_guess,
+        const matrix::Dense<ValueType>* rhs) = 0;
 
     virtual std::unique_ptr<LinOp> construct_initial_guess(
-        const Array<int32>& idxs, const LinOp* op, const LinOp* init_guess,
-        const LinOp* constrained_values) = 0;
+        const Array<IndexType>& idxs, const LinOp* op,
+        const matrix::Dense<ValueType>* init_guess,
+        const matrix::Dense<ValueType>* constrained_values) = 0;
 
-    virtual void correct_solution(const Array<int32>& idxs,
-                                  const LinOp* orig_init_guess,
-                                  LinOp* solution) = 0;
+    virtual void correct_solution(
+        const Array<IndexType>& idxs,
+        const matrix::Dense<ValueType>* orig_init_guess,
+        matrix::Dense<ValueType>* solution) = 0;
 };
 
 
 template <typename ValueType, typename IndexType>
 class ZeroRowsStrategy : public ApplyConstraintsStrategy<ValueType, IndexType> {
 public:
-    std::unique_ptr<LinOp> construct_operator(const Array<int32>& idxs,
+    std::unique_ptr<LinOp> construct_operator(const Array<IndexType>& idxs,
                                               LinOp* op) override;
 
-    std::unique_ptr<LinOp> construct_right_hand_side(const Array<int32>& idxs,
-                                                     const LinOp* op,
-                                                     const LinOp* init_guess,
-                                                     const LinOp* rhs) override;
+    std::unique_ptr<LinOp> construct_right_hand_side(
+        const Array<IndexType>& idxs, const LinOp* op,
+        const matrix::Dense<ValueType>* init_guess,
+        const matrix::Dense<ValueType>* rhs) override;
 
     std::unique_ptr<LinOp> construct_initial_guess(
-        const Array<int32>& idxs, const LinOp* op, const LinOp* init_guess,
-        const LinOp* constrained_values) override;
+        const Array<IndexType>& idxs, const LinOp* op,
+        const matrix::Dense<ValueType>* init_guess,
+        const matrix::Dense<ValueType>* constrained_values) override;
 
-    void correct_solution(const Array<int32>& idxs,
-                          const LinOp* orig_init_guess,
-                          LinOp* solution) override;
+    void correct_solution(const Array<IndexType>& idxs,
+                          const matrix::Dense<ValueType>* orig_init_guess,
+                          matrix::Dense<ValueType>* solution) override;
 };
 
 
@@ -289,9 +293,10 @@ public:
      * Obtains the solution to the original constrained system from the solution
      * of the modified system
      */
-    void correct_solution(LinOp* solution)
+    void correct_solution(Dense* solution)
     {
-        strategy_->correct_solution(idxs_, lend(orig_init_guess_), solution);
+        strategy_->correct_solution(idxs_, lend(values_),
+                                    lend(orig_init_guess_), solution);
     }
 
 private:
