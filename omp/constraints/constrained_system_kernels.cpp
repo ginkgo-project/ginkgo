@@ -55,8 +55,17 @@ void copy_subset(std::shared_ptr<const DefaultExecutor> exec,
                  const Array<IndexType>& subset, const ValueType* src,
                  ValueType* dst) GKO_NOT_IMPLEMENTED;
 
+
+template <typename ValueType, typename IndexType>
+void set_unit_rows(std::shared_ptr<const DefaultExecutor> exec,
+                   const Array<IndexType>& subset, const IndexType* row_ptrs,
+                   const IndexType* col_idxs,
+                   ValueType* values) GKO_NOT_IMPLEMENTED;
+
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_FILL_SUBSET);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_COPY_SUBSET);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_SET_UNIT_ROWS);
 
 
 }  // namespace cons

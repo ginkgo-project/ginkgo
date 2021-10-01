@@ -44,6 +44,7 @@ namespace {
 
 GKO_REGISTER_OPERATION(fill_subset, cons::fill_subset);
 GKO_REGISTER_OPERATION(copy_subset, cons::copy_subset);
+GKO_REGISTER_OPERATION(set_unit_rows, cons::set_unit_rows);
 
 
 }  // namespace
