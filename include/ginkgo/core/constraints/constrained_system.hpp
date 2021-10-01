@@ -57,7 +57,7 @@ public:
         const LinOp* rhs) = 0;
 
     virtual std::unique_ptr<LinOp> construct_initial_guess(
-        const Array<int32>& idxs, const LinOp* op,
+        const Array<int32>& idxs, const LinOp* op, const LinOp* init_guess,
         const LinOp* constrained_values) = 0;
 
     virtual void correct_solution(const Array<int32>& idxs,
@@ -77,16 +77,12 @@ public:
                                                      const LinOp* rhs) override;
 
     std::unique_ptr<LinOp> construct_initial_guess(
-        const Array<int32>& idxs, const LinOp* op,
+        const Array<int32>& idxs, const LinOp* op, const LinOp* init_guess,
         const LinOp* constrained_values) override;
 
     void correct_solution(const Array<int32>& idxs,
                           const LinOp* orig_init_guess,
                           LinOp* solution) override;
-
-private:
-    std::unique_ptr<LinOp> one;
-    std::unique_ptr<LinOp> neg_one;
 };
 
 
@@ -131,7 +127,8 @@ public:
             strategy->construct_operator(idxs_, lend(orig_operator_));
         if (orig_init_guess_ && values_) {
             cons_init_guess_ = strategy_->construct_initial_guess(
-                idxs, lend(cons_operator_), lend(values_));
+                idxs, lend(cons_operator_), lend(orig_init_guess_),
+                lend(values_));
         }
         if (orig_rhs_ && cons_init_guess_) {
             cons_rhs_ = strategy_->construct_right_hand_side(
@@ -235,7 +232,8 @@ public:
         if (!cons_rhs_) {
             if (!cons_init_guess_) {
                 cons_init_guess_ = strategy_->construct_initial_guess(
-                    idxs_, lend(cons_operator_), lend(values_));
+                    idxs_, lend(cons_operator_), lend(orig_init_guess_),
+                    lend(values_));
             }
             cons_rhs_ = strategy_->construct_right_hand_side(
                 idxs_, lend(cons_operator_), lend(cons_init_guess_),
@@ -257,7 +255,8 @@ public:
     {
         if (!cons_init_guess_) {
             cons_init_guess_ = strategy_->construct_initial_guess(
-                idxs_, lend(cons_operator_), lend(values_));
+                idxs_, lend(cons_operator_), lend(orig_init_guess_),
+                lend(values_));
         }
         return cons_init_guess_.get();
     }
@@ -272,7 +271,7 @@ public:
     void reconstruct_system()
     {
         cons_init_guess_ = strategy_->construct_initial_guess(
-            idxs_, lend(cons_operator_), lend(values_));
+            idxs_, lend(cons_operator_), lend(orig_init_guess_), lend(values_));
         cons_rhs_ = strategy_->construct_right_hand_side(
             idxs_, lend(cons_operator_), lend(cons_init_guess_), lend(values_));
     }
