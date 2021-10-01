@@ -54,7 +54,8 @@ GKO_REGISTER_OPERATION(set_unit_rows, cons::set_unit_rows);
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp>
+std::unique_ptr<
+    LinOp, typename ZeroRowsStrategy<ValueType, IndexType>::operator_delete>
 ZeroRowsStrategy<ValueType, IndexType>::construct_operator(
     const gko::Array<IndexType>& idxs, gko::LinOp* op)
 {
@@ -63,6 +64,7 @@ ZeroRowsStrategy<ValueType, IndexType>::construct_operator(
         exec->run(cons::make_set_unit_rows(idxs, csr->get_const_row_ptrs(),
                                            csr->get_const_col_idxs(),
                                            csr->get_values()));
+        return {csr, null_deleter<LinOp>{}};
     } else {
         GKO_NOT_IMPLEMENTED;
     }
