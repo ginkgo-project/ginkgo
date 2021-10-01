@@ -46,8 +46,10 @@ namespace constraints {
 namespace detail {}
 
 
+template <typename ValueType, typename IndexType>
 class ApplyConstraintsStrategy
-    : public EnableCreateMethod<ApplyConstraintsStrategy> {
+    : public EnableCreateMethod<
+          ApplyConstraintsStrategy<ValueType, ValueType>> {
 public:
     virtual std::unique_ptr<LinOp> construct_operator(const Array<int32>& idxs,
                                                       LinOp* op) = 0;
@@ -66,7 +68,8 @@ public:
 };
 
 
-class ZeroRowsStrategy : public ApplyConstraintsStrategy {
+template <typename ValueType, typename IndexType>
+class ZeroRowsStrategy : public ApplyConstraintsStrategy<ValueType, IndexType> {
 public:
     std::unique_ptr<LinOp> construct_operator(const Array<int32>& idxs,
                                               LinOp* op) override;
@@ -86,8 +89,13 @@ public:
 };
 
 
+template <typename ValueType, typename IndexType>
 class ConstrainedHandler {
 public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+    using Dense = matrix::Dense<value_type>;
+
     /**
      * Initializes the constrained system.
      *
@@ -104,21 +112,21 @@ public:
      * @param strategy  the implementation strategy of the constraints
      */
     ConstrainedHandler(
-        Array<int32> idxs, std::shared_ptr<LinOp> system_operator,
-        std::shared_ptr<const matrix::Dense<double>> values,
-        std::shared_ptr<const matrix::Dense<double>> right_hand_side,
-        std::shared_ptr<const matrix::Dense<double>> initial_guess = nullptr,
-        std::unique_ptr<ApplyConstraintsStrategy> strategy =
-            std::make_unique<ZeroRowsStrategy>())
+        Array<IndexType> idxs, std::shared_ptr<LinOp> system_operator,
+        std::shared_ptr<const Dense> values,
+        std::shared_ptr<const Dense> right_hand_side,
+        std::shared_ptr<const Dense> initial_guess = nullptr,
+        std::unique_ptr<ApplyConstraintsStrategy<ValueType, IndexType>>
+            strategy =
+                std::make_unique<ZeroRowsStrategy<ValueType, IndexType>>())
         : idxs_(std::move(idxs)),
           orig_operator_(std::move(system_operator)),
           values_(std::move(values)),
           orig_rhs_(std::move(right_hand_side)),
-          orig_init_guess_(
-              initial_guess
-                  ? std::move(initial_guess)
-                  : share(initialize<matrix::Dense<double>>(
-                        0., orig_rhs_->get_size(), orig_rhs_->get_executor()))),
+          orig_init_guess_(initial_guess ? std::move(initial_guess)
+                                         : share(initialize<Dense>(
+                                               0., orig_rhs_->get_size(),
+                                               orig_rhs_->get_executor()))),
           strategy_(std::move(strategy))
     {
         GKO_ASSERT(values && right_hand_side);
@@ -148,10 +156,11 @@ public:
      * @param system_operator  the original system operator
      * @param strategy  the implementation strategy of the constraints
      */
-    ConstrainedHandler(Array<int32> idxs,
-                       std::shared_ptr<LinOp> system_operator,
-                       std::unique_ptr<ApplyConstraintsStrategy> strategy =
-                           std::make_unique<ZeroRowsStrategy>())
+    ConstrainedHandler(
+        Array<IndexType> idxs, std::shared_ptr<LinOp> system_operator,
+        std::unique_ptr<ApplyConstraintsStrategy<ValueType, IndexType>>
+            strategy =
+                std::make_unique<ZeroRowsStrategy<ValueType, IndexType>>())
         : ConstrainedHandler(std::move(idxs), std::move(system_operator),
                              nullptr, nullptr, nullptr, std::move(strategy))
     {}
@@ -165,7 +174,7 @@ public:
      * @return *this
      */
     ConstrainedHandler& with_constrained_values(
-        std::shared_ptr<const LinOp> values)
+        std::shared_ptr<const Dense> values)
     {
         values_ = std::move(values);
 
@@ -184,7 +193,7 @@ public:
      * @return *this
      */
     ConstrainedHandler& with_right_hand_side(
-        std::shared_ptr<const LinOp> right_hand_side)
+        std::shared_ptr<const Dense> right_hand_side)
     {
         orig_rhs_ = std::move(right_hand_side);
 
@@ -203,7 +212,7 @@ public:
      * @return *this
      */
     ConstrainedHandler& with_initial_guess(
-        std::shared_ptr<const LinOp> initial_guess)
+        std::shared_ptr<const Dense> initial_guess)
     {
         orig_init_guess_ = std::move(initial_guess);
 
@@ -286,19 +295,18 @@ public:
     }
 
 private:
-    Array<int32> idxs_;
+    Array<IndexType> idxs_;
 
     std::shared_ptr<LinOp> orig_operator_;
     std::unique_ptr<LinOp> cons_operator_;
 
-    std::unique_ptr<ApplyConstraintsStrategy> strategy_;
+    std::unique_ptr<ApplyConstraintsStrategy<ValueType, IndexType>> strategy_;
 
-    // TODO: should these stay generic linop or should dense be used
-    std::shared_ptr<const LinOp> values_;
-    std::shared_ptr<const LinOp> orig_rhs_;
-    std::unique_ptr<LinOp> cons_rhs_;
-    std::shared_ptr<const LinOp> orig_init_guess_;
-    std::unique_ptr<LinOp> cons_init_guess_;
+    std::shared_ptr<const Dense> values_;
+    std::shared_ptr<const Dense> orig_rhs_;
+    std::unique_ptr<Dense> cons_rhs_;
+    std::shared_ptr<const Dense> orig_init_guess_;
+    std::unique_ptr<Dense> cons_init_guess_;
 };
 
 
