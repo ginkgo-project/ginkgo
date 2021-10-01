@@ -1442,6 +1442,12 @@ std::unique_ptr<Matrix> initialize(
 }
 
 
+template <typename ValueType>
+std::unique_ptr<matrix::Dense<ValueType>> concatenate_dense_matrices(
+    std::shared_ptr<const Executor> exec,
+    const std::vector<std::unique_ptr<matrix::Dense<ValueType>>>& matrices);
+
+
 }  // namespace gko
 
 

@@ -1293,23 +1293,6 @@ private:
 };
 
 
-/**
- * Generates a single large block-diagonal CSR matrix from the given CSR
- * matrices.
- *
- * @param exec  Executor on which both the input and output reside
- * @param matrices  List of matrices to be concatenated in to one
- *   block-diagonal matrix.
- *
- * @warning Not for use in performance-critical code! The operation currently
- *   happens on the host and copies are performed.
- */
-template <typename ValueType, typename IndexType>
-std::unique_ptr<Csr<ValueType, IndexType>> block_diagonal_csr_matrix(
-    std::shared_ptr<const Executor> exec,
-    const std::vector<std::unique_ptr<Csr<ValueType, IndexType>>>& matrices);
-
-
 namespace detail {
 
 
@@ -1348,6 +1331,26 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType>* result)
 
 }  // namespace detail
 }  // namespace matrix
+
+
+/**
+ * Generates a single large block-diagonal CSR matrix from the given CSR
+ * matrices.
+ *
+ * @param exec  Executor on which both the input and output reside
+ * @param matrices  List of matrices to be concatenated in to one
+ *   block-diagonal matrix.
+ *
+ * @warning Not for use in performance-critical code! The operation currently
+ *   happens on the host and copies are performed.
+ */
+template <typename ValueType, typename IndexType>
+std::unique_ptr<matrix::Csr<ValueType, IndexType>> block_diagonal_csr_matrix(
+    std::shared_ptr<const Executor> exec,
+    const std::vector<std::unique_ptr<matrix::Csr<ValueType, IndexType>>>&
+        matrices);
+
+
 }  // namespace gko
 
 

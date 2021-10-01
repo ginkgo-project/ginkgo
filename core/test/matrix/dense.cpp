@@ -407,69 +407,75 @@ TYPED_TEST(Dense, CanCreateRealView)
 }
 
 
-TYPED_TEST(Dense, CanMakeMutableView)
-{
-    auto view = gko::make_dense_view(this->mtx.get());
+class DenseConcatenation : public ::testing::Test {
+protected:
+    using value_type = std::complex<float>;
+    using mtx_type = gko::matrix::Dense<value_type>;
 
-    ASSERT_EQ(view->get_values(), this->mtx->get_values());
-    ASSERT_EQ(view->get_executor(), this->mtx->get_executor());
-    GKO_ASSERT_MTX_NEAR(view, this->mtx, 0.0);
-}
+    DenseConcatenation() : exec(gko::ReferenceExecutor::create()) {}
 
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
 
-TYPED_TEST(Dense, CanMakeConstView)
-{
-    auto view = gko::make_const_dense_view(this->mtx.get());
-
-    ASSERT_EQ(view->get_const_values(), this->mtx->get_const_values());
-    ASSERT_EQ(view->get_executor(), this->mtx->get_executor());
-    GKO_ASSERT_MTX_NEAR(view, this->mtx, 0.0);
-}
-
-
-class CustomDense : public gko::EnableLinOp<CustomDense, gko::matrix::Dense<>> {
-    friend class gko::EnablePolymorphicObject<CustomDense,
-                                              gko::matrix::Dense<>>;
-
-public:
-    static std::unique_ptr<CustomDense> create(
-        std::shared_ptr<const gko::Executor> exec, gko::dim<2> size, int data)
+    std::vector<std::unique_ptr<mtx_type>> generate_matrices()
     {
-        return std::unique_ptr<CustomDense>(
-            new CustomDense(std::move(exec), size, data));
+        std::vector<std::unique_ptr<mtx_type>> matrices;
+        auto dense1 = mtx_type::create(exec, gko::dim<2>(3, 3));
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                dense1->at(i, j) = i / 2.0 + j / 2.0;
+            }
+        }
+        matrices.emplace_back(std::move(dense1));
+        auto dense2 = mtx_type::create(exec, gko::dim<2>(2, 3));
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 3; j++) {
+                dense2->at(i, j) = value_type(1.0 * i, -1.0 * j);
+            }
+        }
+        matrices.emplace_back(std::move(dense2));
+        auto dense3 = mtx_type::create(exec, gko::dim<2>(1, 3));
+        for (int j = 0; j < 3; j++) {
+            dense3->at(0, j) = 10 - 2.0 * j;
+        }
+        matrices.emplace_back(std::move(dense3));
+        return matrices;
     }
 
-    int get_data() const { return data_; }
-
-private:
-    explicit CustomDense(std::shared_ptr<const gko::Executor> exec,
-                         gko::dim<2> size = {}, int data = 0)
-        : gko::EnableLinOp<CustomDense, gko::matrix::Dense<>>(std::move(exec),
-                                                              size),
-          data_(data)
-    {}
-
-    std::unique_ptr<gko::matrix::Dense<>> create_view_of_impl() override
+    std::unique_ptr<mtx_type> result_matrix()
     {
-        auto view = create(this->get_executor(), {}, this->get_data());
-        gko::matrix::Dense<>::create_view_of_impl()->move_to(view.get());
-        return view;
+        auto mtx = mtx_type::create(exec, gko::dim<2>(6, 3));
+        for (int j = 0; j < 3; j++) {
+            for (int i = 0; i < 3; i++) {
+                mtx->at(i, j) = i / 2.0 + j / 2.0;
+            }
+            for (int i = 3; i < 5; i++) {
+                mtx->at(i, j) = value_type(i - 3.0, -1.0 * j);
+            }
+            mtx->at(5, j) = 10 - 2.0 * j;
+        }
+        return mtx;
     }
-
-    int data_;
 };
 
 
-TEST(DenseView, CustomViewKeepsRuntimeType)
+TEST_F(DenseConcatenation, ConcatenatesCorrectly)
 {
-    auto vector = CustomDense::create(gko::ReferenceExecutor::create(),
-                                      gko::dim<2>{3, 4}, 2);
+    auto matrices = generate_matrices();
+    auto result = result_matrix();
 
-    auto view = gko::make_dense_view(vector.get());
+    auto concatenation = gko::concatenate_dense_matrices(exec, matrices);
 
-    ASSERT_EQ(view->get_values(), vector->get_values());
-    EXPECT_TRUE(dynamic_cast<CustomDense*>(view.get()));
-    ASSERT_EQ(dynamic_cast<CustomDense*>(view.get())->get_data(), 2);
+    GKO_ASSERT_MTX_NEAR(result, concatenation, 0.0);
+}
+
+TEST_F(DenseConcatenation, ThrowsOnMismatchedColumns)
+{
+    std::vector<std::unique_ptr<mtx_type>> matrices;
+    matrices.emplace_back(mtx_type::create(exec, gko::dim<2>(4, 2)));
+    matrices.emplace_back(mtx_type::create(exec, gko::dim<2>(4, 5)));
+
+    ASSERT_THROW(gko::concatenate_dense_matrices(exec, matrices),
+                 gko::DimensionMismatch);
 }
 
 
