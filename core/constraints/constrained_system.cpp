@@ -53,123 +53,11 @@ GKO_REGISTER_OPERATION(set_unit_rows, cons::set_unit_rows);
 }  // namespace cons
 
 
-template <typename ValueType>
-std::unique_ptr<LinOp> create_scalar(std::shared_ptr<const Executor> exec,
-                                     ValueType v)
-{
-    return gko::initialize<matrix::Dense<ValueType>>({v}, exec);
-}
-
-
-template <template <typename, typename...> class ConcreteOp, typename Fn,
-          typename... Args>
-void value_type_dispatch(const LinOp* d, Fn&& fn, Args&&... args)
-{
-    if (dynamic_cast<const ConcreteOp<float>*>(d)) {
-        fn(float{}, std::forward<Args>(args)...);
-    } else if (dynamic_cast<const ConcreteOp<double>*>(d)) {
-        fn(double{}, std::forward<Args>(args)...);
-    } else if (dynamic_cast<const ConcreteOp<std::complex<float>>*>(d)) {
-        fn(std::complex<float>{}, std::forward<Args>(args)...);
-    } else if (dynamic_cast<const ConcreteOp<std::complex<double>>*>(d)) {
-        fn(std::complex<double>{}, std::forward<Args>(args)...);
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
-}
-
-
-template <template <typename, typename...> class ConcreteOp, typename Fn,
-          typename... Args>
-void index_type_dispatch(const LinOp* d, Fn&& fn, Args&&... args)
-{
-    if (dynamic_cast<const ConcreteOp<int32>*>(d)) {
-        fn(int32{}, std::forward<Args>(args)...);
-    } else if (dynamic_cast<const ConcreteOp<int64>*>(d)) {
-        fn(int64{}, std::forward<Args>(args)...);
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
-}
-
-struct empty {};
-template <typename value_type = empty, typename index_type = empty>
-struct type_match {
-    type_match() = default;
-    type_match(value_type, index_type) : found(true) {}
-
-    operator bool() const { return found; }
-
-    value_type vt = {};
-    index_type it = {};
-    bool found = false;
-};
-
-
-template <template <typename, typename, typename...> class ConcreteOp,
-          typename Fn, typename... Args>
-void value_index_type_dispatch(const LinOp* d, Fn&& fn, Args&&... args)
-{
-    auto check_index_type = [](auto vt, const auto* d) {
-        using value_type = decltype(vt);
-        if (dynamic_cast<const ConcreteOp<value_type, int32>*>(d)) {
-            return type_match(vt, int32{});
-        } else if (dynamic_cast<const ConcreteOp<value_type, int64>*>(d)) {
-            return type_match(vt, int64{});
-        } else {
-            return type_match();
-        }
-    };
-    if (auto match = check_index_type(float{}, d)) {
-        fn(match.vt, match.it, std::forward<Args>(args)...);
-    } else if (dynamic_cast<const ConcreteOp<double>*>(d)) {
-        index_type_dispatch<ConcreteOp<float>>(
-            d, [&](auto it) { fn(double{}, it, std::forward<Args>(args)...); });
-    } else if (dynamic_cast<const ConcreteOp<std::complex<float>>*>(d)) {
-        index_type_dispatch<ConcreteOp<float>>(d, [&](auto it) {
-            fn(std::complex<float>{}, it, std::forward<Args>(args)...);
-        });
-    } else if (dynamic_cast<const ConcreteOp<std::complex<double>>*>(d)) {
-        index_type_dispatch<ConcreteOp<float>>(d, [&](auto it) {
-            fn(std::complex<double>{}, it, std::forward<Args>(args)...);
-        });
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
-}
-
-std::unique_ptr<LinOp> create_one_with_same_value_type(const LinOp* v)
-{
-    auto exec = v->get_executor();
-    auto one = v->create_default();
-    value_type_dispatch<matrix::Dense>(
-        v, [&](auto vt) { one = create_scalar(exec, gko::one(vt)); });
-    return one;
-}
-
-
-std::unique_ptr<LinOp> create_neg_one_with_same_value_type(const LinOp* v)
-{
-    auto exec = v->get_executor();
-    auto one = v->create_default();
-    value_type_dispatch<matrix::Dense>(
-        v, [&](auto vt) { one = create_scalar(exec, -gko::one(vt)); });
-    return one;
-}
-
-
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp>
 ZeroRowsStrategy<ValueType, IndexType>::construct_operator(
     const gko::Array<IndexType>& idxs, gko::LinOp* op)
-{
-    value_index_type_dispatch<matrix::Csr>(op, [&](auto vt, auto it) {
-        using value_type = decltype(vt);
-        using index_type = decltype(it);
-        auto csr = as<matrix::Csr<value_type, index_type>>(op);
-    });
-    return std::unique_ptr<LinOp>();
-}
+{}
 
 
 template <typename ValueType, typename IndexType>
@@ -180,17 +68,17 @@ ZeroRowsStrategy<ValueType, IndexType>::construct_right_hand_side(
     const matrix::Dense<ValueType>* rhs)
 {
     auto exec = rhs->get_executor();
-    auto one = create_one_with_same_value_type(init_guess);
-    auto neg_one = create_neg_one_with_same_value_type(init_guess);
+    if (!one) {
+        one = initialize<ValueType>({gko::one<ValueType>()}, exec);
+    }
+    if (!neg_one) {
+        neg_one = initialize<ValueType>({-gko::one<ValueType>()}, exec);
+    }
 
     auto cons_rhs = gko::clone(rhs);
     op->apply(neg_one.get(), init_guess, one.get(), cons_rhs.get());
-    value_type_dispatch<matrix::Dense>(cons_rhs.get(), [&](auto vt) {
-        exec->run(cons::make_fill_subset(
-            idxs,
-            gko::as<matrix::Dense<decltype(vt)>>(cons_rhs.get())->get_values(),
-            gko::zero(vt)));
-    });
+    exec->run(cons::make_fill_subset(idxs, cons_rhs.get()->get_values(),
+                                     gko::zero<ValueType>()));
     return cons_rhs;
 }
 
@@ -204,13 +92,8 @@ ZeroRowsStrategy<ValueType, IndexType>::construct_initial_guess(
 {
     auto exec = init_guess->get_executor();
     auto cons_init_guess = gko::clone(init_guess);
-    value_type_dispatch<matrix::Dense>(cons_init_guess.get(), [&](auto vt) {
-        exec->run(cons::make_fill_subset(
-            idxs,
-            gko::as<matrix::Dense<decltype(vt)>>(cons_init_guess.get())
-                ->get_values(),
-            gko::zero(vt)));
-    });
+    exec->run(cons::make_fill_subset(idxs, cons_init_guess.get()->get_values(),
+                                     gko::zero<ValueType>()));
     return cons_init_guess;
 }
 
@@ -218,15 +101,18 @@ ZeroRowsStrategy<ValueType, IndexType>::construct_initial_guess(
 template <typename ValueType, typename IndexType>
 void ZeroRowsStrategy<ValueType, IndexType>::correct_solution(
     const gko::Array<IndexType>& idxs,
+    const matrix::Dense<ValueType>* constrained_values,
     const matrix::Dense<ValueType>* orig_init_guess,
     matrix::Dense<ValueType>* solution)
 {
-    auto one = create_one_with_same_value_type(solution);
-    value_type_dispatch<matrix::Dense>(solution, [&](auto vt) {
-        using value_type = decltype(vt);
-        auto* dense_solution = as<matrix::Dense<value_type>>(solution);
-        dense_solution->add_scaled(one.get(), orig_init_guess);
-    });
+    auto exec = solution->get_executor();
+    if (!one) {
+        one = initialize<ValueType>({gko::one<ValueType>()},
+                                    solution->get_executor());
+    }
+    solution->add_scaled(one.get(), orig_init_guess);
+    exec->run(cons::make_copy_subset(idxs, constrained_values->get_values(),
+                                     solution->get_values()));
 }
 
 }  // namespace constraints
