@@ -158,8 +158,10 @@ std::unique_ptr<LinOp> create_neg_one_with_same_value_type(const LinOp* v)
 }
 
 
-std::unique_ptr<LinOp> ZeroRowsStrategy::construct_operator(
-    const gko::Array<gko::int32>& idxs, gko::LinOp* op)
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp>
+ZeroRowsStrategy<ValueType, IndexType>::construct_operator(
+    const gko::Array<IndexType>& idxs, gko::LinOp* op)
 {
     value_index_type_dispatch<matrix::Csr>(op, [&](auto vt, auto it) {
         using value_type = decltype(vt);
@@ -170,9 +172,12 @@ std::unique_ptr<LinOp> ZeroRowsStrategy::construct_operator(
 }
 
 
-std::unique_ptr<LinOp> ZeroRowsStrategy::construct_right_hand_side(
-    const gko::Array<gko::int32>& idxs, const gko::LinOp* op,
-    const gko::LinOp* init_guess, const gko::LinOp* rhs)
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp>
+ZeroRowsStrategy<ValueType, IndexType>::construct_right_hand_side(
+    const gko::Array<IndexType>& idxs, const gko::LinOp* op,
+    const matrix::Dense<ValueType>* init_guess,
+    const matrix::Dense<ValueType>* rhs)
 {
     auto exec = rhs->get_executor();
     auto one = create_one_with_same_value_type(init_guess);
@@ -190,9 +195,12 @@ std::unique_ptr<LinOp> ZeroRowsStrategy::construct_right_hand_side(
 }
 
 
-std::unique_ptr<LinOp> ZeroRowsStrategy::construct_initial_guess(
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp>
+ZeroRowsStrategy<ValueType, IndexType>::construct_initial_guess(
     const gko::Array<gko::int32>& idxs, const gko::LinOp* op,
-    const LinOp* init_guess, const gko::LinOp* constrained_values)
+    const matrix::Dense<ValueType>* init_guess,
+    const matrix::Dense<ValueType>* constrained_values)
 {
     auto exec = init_guess->get_executor();
     auto cons_init_guess = gko::clone(init_guess);
@@ -207,9 +215,11 @@ std::unique_ptr<LinOp> ZeroRowsStrategy::construct_initial_guess(
 }
 
 
-void ZeroRowsStrategy::correct_solution(const gko::Array<gko::int32>& idxs,
-                                        const gko::LinOp* orig_init_guess,
-                                        gko::LinOp* solution)
+template <typename ValueType, typename IndexType>
+void ZeroRowsStrategy<ValueType, IndexType>::correct_solution(
+    const gko::Array<IndexType>& idxs,
+    const matrix::Dense<ValueType>* orig_init_guess,
+    matrix::Dense<ValueType>* solution)
 {
     auto one = create_one_with_same_value_type(solution);
     value_type_dispatch<matrix::Dense>(solution, [&](auto vt) {
