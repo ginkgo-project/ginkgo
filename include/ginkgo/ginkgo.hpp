@@ -69,6 +69,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/base/version.hpp>
 
+#include <ginkgo/core/constraints/constrained_system.hpp>
+
 #include <ginkgo/core/distributed/partition.hpp>
 
 #include <ginkgo/core/factorization/ic.hpp>
