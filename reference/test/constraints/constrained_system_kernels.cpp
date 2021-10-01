@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -98,7 +99,6 @@ TYPED_TEST(ConstrainedSystem, FillSubsetFull)
     }
 }
 
-
 TYPED_TEST(ConstrainedSystem, FillSubset)
 {
     using value_type = typename TestFixture::value_type;
@@ -116,7 +116,6 @@ TYPED_TEST(ConstrainedSystem, FillSubset)
 
     GKO_ASSERT_MTX_NEAR(ones, result, 0);
 }
-
 
 TYPED_TEST(ConstrainedSystem, CopySubsetEmpty)
 {
@@ -156,7 +155,6 @@ TYPED_TEST(ConstrainedSystem, CopySubsetFull)
     GKO_ASSERT_MTX_NEAR(dst, result, 0);
 }
 
-
 TYPED_TEST(ConstrainedSystem, CopySubset)
 {
     using value_type = typename TestFixture::value_type;
@@ -177,5 +175,58 @@ TYPED_TEST(ConstrainedSystem, CopySubset)
     GKO_ASSERT_MTX_NEAR(dst, result, 0);
 }
 
+TYPED_TEST(ConstrainedSystem, SetUnitRowEmptySubset)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using mtx = gko::matrix::Csr<value_type, index_type>;
+    auto csr = gko::initialize<mtx>(
+        {{1, 0, 2, 3}, {0, 0, 4, 0}, {5, 6, 0, 0}, {7, 0, 0, 8}}, this->ref);
+    auto result = gko::clone(csr);
+    gko::Array<index_type> empty_subset{this->ref};
+
+    gko::kernels::reference::cons::set_unit_rows(
+        this->ref, empty_subset, csr->get_const_row_ptrs(),
+        csr->get_const_col_idxs(), csr->get_values());
+
+    GKO_ASSERT_MTX_NEAR(csr, result, 0);
+}
+
+TYPED_TEST(ConstrainedSystem, SetUnitRowFullSubset)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using mtx = gko::matrix::Csr<value_type, index_type>;
+    auto csr = gko::initialize<mtx>(
+        {{1, 0, 2, 3}, {0, 4, 0, 0}, {0, 5, 6, 0}, {7, 0, 0, 8}}, this->ref);
+    auto result = gko::initialize<mtx>(
+        {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}}, this->ref);
+    ;
+    gko::Array<index_type> full_subset{this->ref, {0, 1, 2, 3}};
+
+    gko::kernels::reference::cons::set_unit_rows(
+        this->ref, full_subset, csr->get_const_row_ptrs(),
+        csr->get_const_col_idxs(), csr->get_values());
+
+    GKO_ASSERT_MTX_NEAR(csr, result, 0);
+}
+
+TYPED_TEST(ConstrainedSystem, SetUnitRowSubset)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using mtx = gko::matrix::Csr<value_type, index_type>;
+    auto csr = gko::initialize<mtx>(
+        {{1, 0, 2, 3}, {0, 4, 0, 0}, {0, 5, 6, 0}, {7, 0, 0, 8}}, this->ref);
+    auto result = gko::initialize<mtx>(
+        {{1, 0, 0, 0}, {0, 4, 0, 0}, {0, 0, 1, 0}, {7, 0, 0, 8}}, this->ref);
+    gko::Array<index_type> subset{this->ref, {0, 2}};
+
+    gko::kernels::reference::cons::set_unit_rows(
+        this->ref, subset, csr->get_const_row_ptrs(), csr->get_const_col_idxs(),
+        csr->get_values());
+
+    GKO_ASSERT_MTX_NEAR(csr, result, 0);
+}
 
 }  // namespace
