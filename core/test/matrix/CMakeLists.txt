@@ -1,5 +1,6 @@
 ginkgo_create_test(batch_dense)
 ginkgo_create_test(batch_csr)
+ginkgo_create_test(batch_ell)
 ginkgo_create_test(coo)
 ginkgo_create_test(coo_builder)
 ginkgo_create_test(csr)
