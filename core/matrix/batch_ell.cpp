@@ -74,6 +74,32 @@ GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 }  // namespace batch_ell
 
 
+namespace {
+
+
+template <typename ValueType, typename IndexType>
+size_type calculate_max_nnz_per_row(
+    const matrix_data<ValueType, IndexType>& data)
+{
+    size_type nnz = 0;
+    IndexType current_row = 0;
+    size_type num_stored_elements_per_row = 0;
+    for (const auto& elem : data.nonzeros) {
+        if (elem.row != current_row) {
+            current_row = elem.row;
+            num_stored_elements_per_row =
+                std::max(num_stored_elements_per_row, nnz);
+            nnz = 0;
+        }
+        nnz += (elem.value != zero<ValueType>());
+    }
+    return std::max(num_stored_elements_per_row, nnz);
+}
+
+
+}  // namespace
+
+
 template <typename ValueType, typename IndexType>
 void BatchEll<ValueType, IndexType>::apply_impl(const BatchLinOp* b,
                                                 BatchLinOp* x) const
@@ -101,8 +127,9 @@ void BatchEll<ValueType, IndexType>::convert_to(
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
-    result->row_ptrs_ = this->row_ptrs_;
     result->set_size(this->get_size());
+    result->stride_ = this->get_stride();
+    result->num_stored_elems_per_row_ = this->get_num_stored_elements_per_row();
 }
 
 
@@ -137,6 +164,8 @@ void BatchEll<ValueType, IndexType>::move_to(
 template <typename ValueType, typename IndexType>
 void BatchEll<ValueType, IndexType>::read(const std::vector<mat_data>& data)
 {
+    // Get the number of stored elements of every row.
+    auto num_stored_elements_per_row = calculate_max_nnz_per_row(data[0]);
     size_type num_batch_entries = data.size();
     std::vector<size_type> nnz(num_batch_entries, 0);
     size_type ind = 0;
@@ -147,33 +176,34 @@ void BatchEll<ValueType, IndexType>::read(const std::vector<mat_data>& data)
         ++ind;
     }
     GKO_ASSERT(std::equal(nnz.begin() + 1, nnz.end(), nnz.begin()));
-    auto tmp = BatchEll::create(this->get_executor()->get_master(),
-                                num_batch_entries, data[0].size, nnz[0]);
-
+    auto tmp =
+        BatchEll::create(this->get_executor()->get_master(), num_batch_entries,
+                         data[0].size, num_stored_elements_per_row);
+    // Get values and column indexes.
     size_type id = 0;
-    size_type nnz_offset = 0;
     for (const auto& batch_data : data) {
         ind = 0;
-        size_type cur_ptr = 0;
-        tmp->get_row_ptrs()[0] = cur_ptr;
-        for (size_type row = 0; row < batch_data.size[0]; ++row) {
-            for (; ind < batch_data.nonzeros.size(); ++ind) {
-                if (batch_data.nonzeros[ind].row > row) {
-                    break;
-                }
+        size_type n = batch_data.nonzeros.size();
+        for (size_type row = 0; row < batch_data.size[0]; row++) {
+            size_type col = 0;
+            while (ind < n && batch_data.nonzeros[ind].row == row) {
                 auto val = batch_data.nonzeros[ind].value;
                 if (val != zero<ValueType>()) {
-                    tmp->get_values()[nnz_offset + cur_ptr] = val;
-                    tmp->get_col_idxs()[cur_ptr] =
-                        batch_data.nonzeros[ind].column;
-                    ++cur_ptr;
+                    tmp->val_at(id, row, col) = val;
+                    tmp->col_at(row, col) = batch_data.nonzeros[ind].column;
+                    col++;
                 }
+                ind++;
             }
-            tmp->get_row_ptrs()[row + 1] = cur_ptr;
+            for (auto i = col; i < num_stored_elements_per_row; i++) {
+                tmp->val_at(id, row, i) = zero<ValueType>();
+                tmp->col_at(row, i) = 0;
+            }
         }
-        nnz_offset += nnz[id];
         ++id;
     }
+
+    // Return the matrix
     tmp->move_to(this);
 }
 
@@ -191,22 +221,19 @@ void BatchEll<ValueType, IndexType>::write(std::vector<mat_data>& data) const
     }
     data = std::vector<mat_data>(tmp->get_num_batch_entries());
 
-    size_type num_nnz_per_batch =
-        tmp->get_num_stored_elements() / tmp->get_num_batch_entries();
-    size_type offset = 0;
     for (size_type batch = 0; batch < tmp->get_num_batch_entries(); ++batch) {
         data[batch] = {tmp->get_size().at(batch), {}};
 
         for (size_type row = 0; row < tmp->get_size().at(0)[0]; ++row) {
-            const auto start = tmp->row_ptrs_.get_const_data()[row];
-            const auto end = tmp->row_ptrs_.get_const_data()[row + 1];
-            for (auto i = start; i < end; ++i) {
-                const auto col = tmp->col_idxs_.get_const_data()[i];
-                const auto val = tmp->values_.get_const_data()[offset + i];
-                data[batch].nonzeros.emplace_back(row, col, val);
+            for (size_type i = 0; i < tmp->num_stored_elems_per_row_.at(batch);
+                 ++i) {
+                const auto val = tmp->val_at(batch, row, i);
+                if (val != zero<ValueType>()) {
+                    const auto col = tmp->col_at(row, i);
+                    data[batch].nonzeros.emplace_back(row, col, val);
+                }
             }
         }
-        offset += num_nnz_per_batch;
     }
 }
 
@@ -238,25 +265,6 @@ std::unique_ptr<BatchLinOp> BatchEll<ValueType, IndexType>::conj_transpose()
 //    exec->run(batch_ell::make_conj_transpose(this, trans_cpy.get()));
 //    trans_cpy->make_srow();
 //    return std::move(trans_cpy);
-//}
-
-
-template <typename ValueType, typename IndexType>
-void BatchEll<ValueType, IndexType>::sort_by_column_index() GKO_NOT_IMPLEMENTED;
-//{
-//    auto exec = this->get_executor();
-//    exec->run(batch_ell::make_sort_by_column_index(this));
-//}
-
-
-template <typename ValueType, typename IndexType>
-bool BatchEll<ValueType, IndexType>::is_sorted_by_column_index() const
-    GKO_NOT_IMPLEMENTED;
-//{
-//    auto exec = this->get_executor();
-//    bool is_sorted;
-//    exec->run(batch_ell::make_is_sorted_by_column_index(this, &is_sorted));
-//    return is_sorted;
 //}
 
 
