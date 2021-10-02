@@ -60,9 +60,9 @@ inline void spmv_kernel(const gko::batch_ell::BatchEntry<const ValueType>& a,
         for (int j = 0; j < b.num_rhs; ++j) {
             c.values[row * c.stride + j] = zero<ValueType>();
         }
-        for (auto k = a.row_ptrs[row]; k < a.row_ptrs[row + 1]; ++k) {
-            auto val = a.values[k];
-            auto col = a.col_idxs[k];
+        for (auto k = 0; k < a.num_stored_elems_per_row; ++k) {
+            auto val = a.values[row + k * a.stride];
+            auto col = a.col_idxs[row + k * a.stride];
             for (int j = 0; j < b.num_rhs; ++j) {
                 c.values[row * c.stride + j] +=
                     val * b.values[col * b.stride + j];
@@ -87,85 +87,13 @@ inline void advanced_spmv_kernel(
         for (int j = 0; j < c.num_rhs; ++j) {
             c.values[row * c.stride + j] *= beta;
         }
-        for (int k = a.row_ptrs[row]; k < a.row_ptrs[row + 1]; ++k) {
-            const auto val = a.values[k];
-            const auto col = a.col_idxs[k];
-            for (int j = 0; j < c.num_rhs; ++j) {
+        for (auto k = 0; k < a.num_stored_elems_per_row; ++k) {
+            auto val = a.values[row + k * a.stride];
+            auto col = a.col_idxs[row + k * a.stride];
+            for (int j = 0; j < b.num_rhs; ++j) {
                 c.values[row * c.stride + j] +=
                     alpha * val * b.values[col * b.stride + j];
             }
-        }
-    }
-}
-
-
-/**
- * Scales a uniform CSR matrix with dense vectors for row and column scaling.
- *
- * One warp is assigned to each row.
- */
-template <typename ValueType>
-inline void batch_scale(
-    const gko::batch_dense::BatchEntry<const ValueType>& left_scale,
-    const gko::batch_dense::BatchEntry<const ValueType>& right_scale,
-    const gko::batch_ell::BatchEntry<ValueType>& a)
-{
-    for (int i_row = 0; i_row < a.num_rows; i_row++) {
-        const ValueType rowscale = left_scale.values[i_row];
-        for (int iz = a.row_ptrs[i_row]; iz < a.row_ptrs[i_row + 1]; iz++) {
-            a.values[iz] *= rowscale * right_scale.values[a.col_idxs[iz]];
-        }
-    }
-}
-
-
-/**
- * Scales a matrix from the left and right, and a vector from the right.
- */
-template <typename ValueType>
-inline void pre_diag_scale_system(const size_type batch_id,
-                                  const size_type a_batch_stride,
-                                  const int num_rows, ValueType* const a_values,
-                                  const int* const col_idxs,
-                                  const int* const row_ptrs, const int num_rhs,
-                                  const size_type b_stride, ValueType* const b,
-                                  const ValueType* const left_scale,
-                                  const ValueType* const right_scale)
-{
-    auto ab = a_values + a_batch_stride * batch_id;
-    auto bb = gko::batch::batch_entry_ptr(b, b_stride, num_rows, batch_id);
-    auto left_scaleb =
-        gko::batch::batch_entry_ptr(left_scale, 1, num_rows, batch_id);
-    auto right_scaleb =
-        gko::batch::batch_entry_ptr(right_scale, 1, num_rows, batch_id);
-    for (int irow = 0; irow < num_rows; irow++) {
-        const ValueType left_scale_value = left_scaleb[irow];
-        for (int iz = row_ptrs[irow]; iz < row_ptrs[irow + 1]; iz++) {
-            const int jcol = col_idxs[iz];
-            ab[iz] *= left_scale_value * right_scaleb[jcol];
-        }
-        for (int irhs = 0; irhs < num_rhs; irhs++) {
-            bb[irow * b_stride + irhs] *= left_scale_value;
-        }
-    }
-}
-
-
-template <typename ValueType>
-inline void convert_csr_to_dense(const int num_rows, const int num_cols,
-                                 const int* const row_ptrs,
-                                 const int* const col_idxs,
-                                 const ValueType* const values,
-                                 const size_type dense_stride,
-                                 ValueType* const dense_vals)
-{
-    for (int i_row = 0; i_row < num_rows; i_row++) {
-        for (int j = 0; j < num_cols; j++) {
-            dense_vals[i_row * dense_stride + j] = zero<ValueType>();
-        }
-        for (int iz = row_ptrs[i_row]; iz < row_ptrs[i_row + 1]; iz++) {
-            const int colidx = col_idxs[iz];
-            dense_vals[i_row * dense_stride + colidx] = values[iz];
         }
     }
 }
