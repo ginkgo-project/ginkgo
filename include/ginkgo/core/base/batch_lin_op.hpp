@@ -55,6 +55,127 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+class batch_stride {
+public:
+    /**
+     * Checks if the batch_stride object stores equal sizes.
+     *
+     * @return bool representing whether equal strides are being stored
+     */
+    bool stores_equal_strides() const { return equal_strides_; }
+
+    /**
+     * Get the number of batche entries stored
+     *
+     * @return num_batch_entries
+     */
+    size_type get_num_batch_entries() const { return num_batch_entries_; }
+
+    /**
+     * Get the batch strides as a std::vector.
+     *
+     * @return  the std::vector of batch strides
+     */
+    std::vector<size_type> get_batch_strides() const
+    {
+        if (!equal_strides_) {
+            return strides_;
+        } else {
+            return std::vector<size_type>(num_batch_entries_, common_stride_);
+        }
+    }
+
+    /**
+     * Get the batch size of a particular entry in the batch.
+     *
+     * @param batch_entry the entry whose size is needed
+     *
+     * @return  the size of the batch entry at the requested index
+     */
+    const size_type& at(const size_type batch_entry = 0) const
+    {
+        if (equal_strides_) {
+            return common_stride_;
+        } else {
+            GKO_ASSERT(batch_entry < num_batch_entries_);
+            return strides_[batch_entry];
+        }
+    }
+
+    /**
+     * Checks if two batch_stride objects are equal.
+     *
+     * @param x  first object
+     * @param y  second object
+     *
+     * @return true if and only if all dimensions of both objects are equal.
+     */
+    friend bool operator==(const batch_stride& x, const batch_stride& y)
+    {
+        if (x.equal_strides_ && y.equal_strides_) {
+            return x.num_batch_entries_ == y.num_batch_entries_ &&
+                   x.common_stride_ == y.common_stride_;
+        } else {
+            return x.strides_ == y.strides_;
+        }
+    }
+
+    /**
+     * Creates a batch_stride object which stores uniform batch strides.
+     *
+     * @param num_batch_entries  number of batche entries to be stored
+     * @param common_stride  the common stride of all the batch entries to be
+     * stored
+     *
+     * @note  Use this constructor when uniform batches need to be stored.
+     */
+    batch_stride(const size_type num_batch_entries = 0,
+                 const size_type& common_stride = 0)
+        : equal_strides_(true),
+          common_stride_(common_stride),
+          num_batch_entries_(num_batch_entries),
+          strides_()
+    {}
+
+    /**
+     * Creates a batch_stride object which stores possibly non-uniform batch
+     * strides.
+     *
+     * @param batch_strides  the std::vector object that stores the
+     * batch_strides
+     *
+     * @note  Use this constructor when non-uniform batches need to be stored.
+     */
+    batch_stride(const std::vector<size_type>& batch_strides)
+        : equal_strides_(false),
+          common_stride_(size_type{}),
+          num_batch_entries_(batch_strides.size()),
+          strides_(batch_strides)
+    {
+        check_equal_strides();
+    }
+
+private:
+    inline void check_equal_strides()
+    {
+        for (size_type b = 1; b < num_batch_entries_; ++b) {
+            if (strides_[0] != strides_[b]) {
+                equal_strides_ = false;
+                common_stride_ = 0;
+                return;
+            }
+        }
+        equal_strides_ = true;
+        common_stride_ = strides_[0];
+    }
+
+    bool equal_strides_{};
+    size_type num_batch_entries_{};
+    size_type common_stride_{};
+    std::vector<size_type> strides_{};
+};
+
+
 /**
  * @addtogroup BatchLinOp
  *
@@ -102,7 +223,7 @@ public:
      *
      * @return this
      */
-    BatchLinOp *apply(const BatchLinOp *b, BatchLinOp *x)
+    BatchLinOp* apply(const BatchLinOp* b, BatchLinOp* x)
     {
         this->template log<log::Logger::batch_linop_apply_started>(this, b, x);
         this->validate_application_parameters(b, x);
@@ -117,7 +238,7 @@ public:
     /**
      * @copydoc apply(const BatchLinOp *, BatchLinOp *)
      */
-    const BatchLinOp *apply(const BatchLinOp *b, BatchLinOp *x) const
+    const BatchLinOp* apply(const BatchLinOp* b, BatchLinOp* x) const
     {
         this->template log<log::Logger::batch_linop_apply_started>(this, b, x);
         this->validate_application_parameters(b, x);
@@ -139,8 +260,8 @@ public:
      *
      * @return this
      */
-    BatchLinOp *apply(const BatchLinOp *alpha, const BatchLinOp *b,
-                      const BatchLinOp *beta, BatchLinOp *x)
+    BatchLinOp* apply(const BatchLinOp* alpha, const BatchLinOp* b,
+                      const BatchLinOp* beta, BatchLinOp* x)
     {
         this->template log<log::Logger::batch_linop_advanced_apply_started>(
             this, alpha, b, beta, x);
@@ -159,8 +280,8 @@ public:
      * @copydoc apply(const BatchLinOp *, const BatchLinOp *, const BatchLinOp
      * *, BatchLinOp *)
      */
-    const BatchLinOp *apply(const BatchLinOp *alpha, const BatchLinOp *b,
-                            const BatchLinOp *beta, BatchLinOp *x) const
+    const BatchLinOp* apply(const BatchLinOp* alpha, const BatchLinOp* b,
+                            const BatchLinOp* beta, BatchLinOp* x) const
     {
         this->template log<log::Logger::batch_linop_advanced_apply_started>(
             this, alpha, b, beta, x);
@@ -190,14 +311,14 @@ public:
      *
      * @param size to be set
      */
-    void set_size(const batch_dim<2> &size) { size_ = size; }
+    void set_size(const batch_dim<2>& size) { size_ = size; }
 
     /**
      * Returns the size of the batch operator.
      *
      * @return size of the batch operator
      */
-    const batch_dim<2> &get_size() const noexcept { return size_; }
+    const batch_dim<2>& get_size() const noexcept { return size_; }
 
     /**
      * Returns true if the batch operator uses the data given in x as
@@ -219,7 +340,7 @@ protected:
      */
     explicit BatchLinOp(std::shared_ptr<const Executor> exec,
                         const size_type num_batch_entries = 0,
-                        const dim<2> &size = dim<2>{})
+                        const dim<2>& size = dim<2>{})
         : EnableAbstractPolymorphicObject<BatchLinOp>(exec),
           size_{num_batch_entries > 0 ? batch_dim<2>(num_batch_entries, size)
                                       : batch_dim<2>{}}
@@ -237,7 +358,7 @@ protected:
      * significantly faster
      */
     explicit BatchLinOp(std::shared_ptr<const Executor> exec,
-                        const std::vector<dim<2>> &batch_sizes)
+                        const std::vector<dim<2>>& batch_sizes)
         : EnableAbstractPolymorphicObject<BatchLinOp>(exec),
           size_{batch_dim<2>(batch_sizes)}
     {}
@@ -249,7 +370,7 @@ protected:
      * @param batch_sizes  the sizes of the batch operator stored as a batch_dim
      */
     explicit BatchLinOp(std::shared_ptr<const Executor> exec,
-                        const batch_dim<2> &batch_sizes)
+                        const batch_dim<2>& batch_sizes)
         : EnableAbstractPolymorphicObject<BatchLinOp>(exec), size_{batch_sizes}
     {}
 
@@ -262,7 +383,7 @@ protected:
      * @param b  the input batch vector(s) on which the operator is applied
      * @param x  the output batch vector(s) where the result is stored
      */
-    virtual void apply_impl(const BatchLinOp *b, BatchLinOp *x) const = 0;
+    virtual void apply_impl(const BatchLinOp* b, BatchLinOp* x) const = 0;
 
     /**
      * Implementers of BatchLinOp should override this function instead
@@ -274,8 +395,8 @@ protected:
      * @param beta  scaling of the input x
      * @param x  output vector(s)
      */
-    virtual void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
-                            const BatchLinOp *beta, BatchLinOp *x) const = 0;
+    virtual void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
+                            const BatchLinOp* beta, BatchLinOp* x) const = 0;
 
     /**
      * Throws a DimensionMismatch exception if the parameters to `apply` are of
@@ -284,8 +405,8 @@ protected:
      * @param b  batch vector(s) on which the operator is applied
      * @param x  output batch vector(s)
      */
-    void validate_application_parameters(const BatchLinOp *b,
-                                         const BatchLinOp *x) const
+    void validate_application_parameters(const BatchLinOp* b,
+                                         const BatchLinOp* x) const
     {
         GKO_ASSERT_BATCH_CONFORMANT(this, b);
         GKO_ASSERT_BATCH_EQUAL_ROWS(this, x);
@@ -301,10 +422,10 @@ protected:
      * @param beta  scaling of the input x
      * @param x  output batch vector(s)
      */
-    void validate_application_parameters(const BatchLinOp *alpha,
-                                         const BatchLinOp *b,
-                                         const BatchLinOp *beta,
-                                         const BatchLinOp *x) const
+    void validate_application_parameters(const BatchLinOp* alpha,
+                                         const BatchLinOp* b,
+                                         const BatchLinOp* beta,
+                                         const BatchLinOp* x) const
     {
         this->validate_application_parameters(b, x);
         GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
@@ -405,7 +526,7 @@ public:
     using EnablePolymorphicObject<ConcreteBatchLinOp,
                                   PolymorphicBase>::EnablePolymorphicObject;
 
-    const ConcreteBatchLinOp *apply(const BatchLinOp *b, BatchLinOp *x) const
+    const ConcreteBatchLinOp* apply(const BatchLinOp* b, BatchLinOp* x) const
     {
         this->template log<log::Logger::batch_linop_apply_started>(this, b, x);
         this->validate_application_parameters(b, x);
@@ -417,7 +538,7 @@ public:
         return self();
     }
 
-    ConcreteBatchLinOp *apply(const BatchLinOp *b, BatchLinOp *x)
+    ConcreteBatchLinOp* apply(const BatchLinOp* b, BatchLinOp* x)
     {
         this->template log<log::Logger::batch_linop_apply_started>(this, b, x);
         this->validate_application_parameters(b, x);
@@ -429,9 +550,9 @@ public:
         return self();
     }
 
-    const ConcreteBatchLinOp *apply(const BatchLinOp *alpha,
-                                    const BatchLinOp *b, const BatchLinOp *beta,
-                                    BatchLinOp *x) const
+    const ConcreteBatchLinOp* apply(const BatchLinOp* alpha,
+                                    const BatchLinOp* b, const BatchLinOp* beta,
+                                    BatchLinOp* x) const
     {
         this->template log<log::Logger::batch_linop_advanced_apply_started>(
             this, alpha, b, beta, x);
@@ -446,8 +567,8 @@ public:
         return self();
     }
 
-    ConcreteBatchLinOp *apply(const BatchLinOp *alpha, const BatchLinOp *b,
-                              const BatchLinOp *beta, BatchLinOp *x)
+    ConcreteBatchLinOp* apply(const BatchLinOp* alpha, const BatchLinOp* b,
+                              const BatchLinOp* beta, BatchLinOp* x)
     {
         this->template log<log::Logger::batch_linop_advanced_apply_started>(
             this, alpha, b, beta, x);
@@ -530,8 +651,8 @@ public:
      * @param right_scale  The right scaling batch vector.
      *                     In case of matrices, this scales the columns.
      */
-    virtual void batch_scale(const BatchLinOp *left_scale,
-                             const BatchLinOp *right_scale) = 0;
+    virtual void batch_scale(const BatchLinOp* left_scale,
+                             const BatchLinOp* right_scale) = 0;
 };
 
 
@@ -562,20 +683,19 @@ public:
      * @throw gko::NotSupported  If the arguments do not point to BatchDense
      * objects.
      */
-    void batch_scale(const BatchLinOp *const left_scale,
-                     const BatchLinOp *const right_scale) override
+    void batch_scale(const BatchLinOp* const left_scale,
+                     const BatchLinOp* const right_scale) override
     {
         if (!left_scale && !right_scale) {
             return;
         }
 
         if (left_scale) {
-            if (!dynamic_cast<const matrix::BatchDense<ValueType> *>(
-                    left_scale))
+            if (!dynamic_cast<const matrix::BatchDense<ValueType>*>(left_scale))
                 GKO_NOT_SUPPORTED(left_scale);
         }
         if (right_scale) {
-            if (!dynamic_cast<const matrix::BatchDense<ValueType> *>(
+            if (!dynamic_cast<const matrix::BatchDense<ValueType>*>(
                     right_scale))
                 GKO_NOT_SUPPORTED(right_scale);
         }
@@ -583,7 +703,7 @@ public:
         /* TODO: Somehow restrict BatchScalable and EnableBatchScaling to
          * BatchLinOp so that the following dynamic_cast is not needed.
          */
-        if (auto blp = dynamic_cast<BatchLinOp *>(this)) {
+        if (auto blp = dynamic_cast<BatchLinOp*>(this)) {
             GKO_ASSERT_BATCH_SCALABLE_TWO_SIDED(blp, left_scale, right_scale);
         } else {
             GKO_NOT_SUPPORTED(this);
@@ -593,8 +713,8 @@ public:
     }
 
 private:
-    virtual void batch_scale_impl(const BatchLinOp *left_scale,
-                                  const BatchLinOp *right_scale) = 0;
+    virtual void batch_scale_impl(const BatchLinOp* left_scale,
+                                  const BatchLinOp* right_scale) = 0;
 };
 
 
@@ -612,12 +732,12 @@ class EnableBatchScaledSolver : public EnableBatchScaling<ValueType> {
 public:
     using value_type = ValueType;
 
-    const matrix::BatchDense<value_type> *get_left_scaling_vector() const
+    const matrix::BatchDense<value_type>* get_left_scaling_vector() const
     {
         return left_scale_;
     }
 
-    const matrix::BatchDense<value_type> *get_right_scaling_vector() const
+    const matrix::BatchDense<value_type>* get_right_scaling_vector() const
     {
         return right_scale_;
     }
@@ -634,17 +754,17 @@ private:
      * @param left_scale_op  Left scaling batch Dense vector.
      * @param right_scale_op  Right scaling batch Dense vector.
      */
-    void batch_scale_impl(const BatchLinOp *const left_scale_op,
-                          const BatchLinOp *const right_scale_op) override
+    void batch_scale_impl(const BatchLinOp* const left_scale_op,
+                          const BatchLinOp* const right_scale_op) override
     {
         left_scale_ =
-            static_cast<const matrix::BatchDense<ValueType> *>(left_scale_op);
+            static_cast<const matrix::BatchDense<ValueType>*>(left_scale_op);
         right_scale_ =
-            static_cast<const matrix::BatchDense<ValueType> *>(right_scale_op);
+            static_cast<const matrix::BatchDense<ValueType>*>(right_scale_op);
     }
 
-    const matrix::BatchDense<value_type> *left_scale_ = nullptr;
-    const matrix::BatchDense<value_type> *right_scale_ = nullptr;
+    const matrix::BatchDense<value_type>* left_scale_ = nullptr;
+    const matrix::BatchDense<value_type>* right_scale_ = nullptr;
 };
 
 
@@ -668,20 +788,20 @@ public:
      * @param data  the std::vector of matrix_data objects
      */
     virtual void read(
-        const std::vector<matrix_data<ValueType, IndexType>> &data) = 0;
+        const std::vector<matrix_data<ValueType, IndexType>>& data) = 0;
 
     /**
      * Reads a matrix from a std::vector of matrix_assembly_data objects.
      *
      * @param data  the std::vector of matrix_assembly_data objects
      */
-    void read(const std::vector<matrix_assembly_data<ValueType, IndexType>>
-                  &assembly_data)
+    void read(const std::vector<matrix_assembly_data<ValueType, IndexType>>&
+                  assembly_data)
     {
         auto mat_data = std::vector<matrix_data<ValueType, IndexType>>(
             assembly_data.size());
         size_type ind = 0;
-        for (const auto &i : assembly_data) {
+        for (const auto& i : assembly_data) {
             mat_data[ind] = i.get_ordered_data();
             ++ind;
         }
@@ -710,7 +830,7 @@ public:
      * @param data  the matrix_data structure
      */
     virtual void write(
-        std::vector<matrix_data<ValueType, IndexType>> &data) const = 0;
+        std::vector<matrix_data<ValueType, IndexType>>& data) const = 0;
 };
 
 
