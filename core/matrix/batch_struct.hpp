@@ -53,13 +53,14 @@ struct BatchEntry {
     using index_type = int;
     ValueType* values;
     const int* col_idxs;
-    const int* row_ptrs;
+    int num_stored_elems_per_row;
+    int stride;
     int num_rows;
     int num_nnz;
 };
 
 /**
- * A 'simple' structure to store a global uniform batch of CSR matrices.
+ * A 'simple' structure to store a global uniform batch of ELL matrices.
  *
  * It is uniform in the sense that all matrices in the batch have a common
  * sparsity pattern.
@@ -72,10 +73,11 @@ struct UniformBatch {
 
     ValueType* values;    ///< Concatenated values array of all matrices
     const int* col_idxs;  ///< (common) column indices
-    const int* row_ptrs;  ///< (common) row pointers
     size_type num_batch;  ///< Number of matrices in the batch
-    int num_rows;         ///< (common) number of rows in each matrix
-    int num_nnz;          ///< (common) number of nonzeros in each matrix
+    size_type num_stored_elems_per_row;  ///< Number of matrices in the batch
+    size_type stride;                    ///< Number of matrices in the batch
+    int num_rows;  ///< (common) number of rows in each matrix
+    int num_nnz;   ///< (common) number of nonzeros in each matrix
 };
 
 
@@ -269,7 +271,7 @@ GKO_ATTRIBUTES GKO_INLINE batch_csr::BatchEntry<ValueType> batch_entry(
 /**
  * Extract one object (matrix, vector etc.) from a batch of objects
  *
- * This overload is for batch CSR matrices.
+ * This overload is for batch ELL matrices.
  * These overloads are intended to be called from within a kernel.
  *
  * @param batch  The batch of objects to extract from
@@ -279,8 +281,12 @@ template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE batch_ell::BatchEntry<ValueType> batch_entry(
     const batch_ell::UniformBatch<ValueType>& batch, const size_type batch_idx)
 {
-    return {batch.values + batch_idx * batch.num_nnz, batch.col_idxs,
-            batch.row_ptrs, batch.num_rows, batch.num_nnz};
+    return {batch.values + batch_idx * batch.num_nnz,
+            batch.col_idxs,
+            batch.num_stored_elems_per_row,
+            batch.stride,
+            batch.num_rows,
+            batch.num_nnz};
 }
 
 

@@ -116,22 +116,7 @@ void batch_scale(std::shared_ptr<const ReferenceExecutor>,
                  const matrix::BatchDense<ValueType>* const left_scale,
                  const matrix::BatchDense<ValueType>* const right_scale,
                  matrix::BatchEll<ValueType, IndexType>* const mat)
-{
-    if (!left_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
-    if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
-
-    const size_type nbatches = mat->get_num_batch_entries();
-    const auto a_ub = host::get_batch_struct(mat);
-    const auto left_ub = host::get_batch_struct(left_scale);
-    const auto right_ub = host::get_batch_struct(right_scale);
-
-    for (size_type ibatch = 0; ibatch < nbatches; ibatch++) {
-        auto a_b = gko::batch::batch_entry(a_ub, ibatch);
-        auto left_b = gko::batch::batch_entry(left_ub, ibatch);
-        auto right_b = gko::batch::batch_entry(right_ub, ibatch);
-        batch_scale(left_b, right_b, a_b);
-    }
-}
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_SCALE);
@@ -143,20 +128,7 @@ void pre_diag_scale_system(
     const matrix::BatchDense<ValueType>* const left_scale,
     const matrix::BatchDense<ValueType>* const right_scale,
     matrix::BatchEll<ValueType, IndexType>* const a,
-    matrix::BatchDense<ValueType>* const b)
-{
-    const size_type nbatch = a->get_num_batch_entries();
-    const int nrows = static_cast<int>(a->get_size().at()[0]);
-    const size_type nnz = a->get_num_stored_elements() / nbatch;
-    const int nrhs = static_cast<int>(b->get_size().at()[1]);
-    const size_type b_stride = b->get_stride().at();
-    for (size_type ib = 0; ib < nbatch; ib++) {
-        pre_diag_scale_system(
-            ib, nnz, nrows, a->get_values(), a->get_const_col_idxs(),
-            a->get_const_row_ptrs(), nrhs, b_stride, b->get_values(),
-            left_scale->get_const_values(), right_scale->get_const_values());
-    }
-}
+    matrix::BatchDense<ValueType>* const b) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_PRE_DIAG_SCALE_SYSTEM);
@@ -268,15 +240,20 @@ void convert_to_batch_dense(
     matrix::BatchDense<ValueType>* const dest)
 {
     const size_type nbatches = src->get_num_batch_entries();
-    const int nrows = src->get_size().at()[0];
-    const int ncols = src->get_size().at()[1];
-    const int nnz = src->get_const_row_ptrs()[nrows];
-    const size_type dstride = dest->get_stride().at();
+    const int num_rows = src->get_size().at(0)[0];
+    const int num_cols = src->get_size().at(0)[1];
+    const int num_stored_elements_per_row =
+        src->get_num_stored_elements() / src->get_num_batch_entries();
     for (size_type ibatch = 0; ibatch < nbatches; ibatch++) {
-        convert_csr_to_dense(nrows, ncols, src->get_const_row_ptrs(),
-                             src->get_const_col_idxs(),
-                             src->get_const_values() + ibatch * nnz, dstride,
-                             dest->get_values() + ibatch * dstride * nrows);
+        for (size_type row = 0; row < num_rows; row++) {
+            for (size_type col = 0; col < num_cols; col++) {
+                dest->at(ibatch, row, col) = zero<ValueType>();
+            }
+            for (size_type i = 0; i < num_stored_elements_per_row; i++) {
+                dest->at(ibatch, row, src->col_at(row, i)) +=
+                    src->val_at(ibatch, row, i);
+            }
+        }
     }
 }
 
