@@ -326,7 +326,7 @@ TEST_F(Ell, SimpleApplyToDenseMatrixIsEquivalentToRef)
 
 TEST_F(Ell, MixedSimpleApplyToDenseMatrixIsEquivalentToRef1)
 {
-    set_up_apply_data(0, 0, 3);
+    set_up_apply_data(0, 0, 4);
 
     mtx->apply(y2.get(), expected2.get());
     dmtx->apply(dy2.get(), dresult2.get());
@@ -337,7 +337,7 @@ TEST_F(Ell, MixedSimpleApplyToDenseMatrixIsEquivalentToRef1)
 
 TEST_F(Ell, MixedSimpleApplyToDenseMatrixIsEquivalentToRef2)
 {
-    set_up_apply_data(0, 0, 3);
+    set_up_apply_data(0, 0, 5);
 
     mtx->apply(y2.get(), expected.get());
     dmtx->apply(dy2.get(), dresult.get());
@@ -348,7 +348,7 @@ TEST_F(Ell, MixedSimpleApplyToDenseMatrixIsEquivalentToRef2)
 
 TEST_F(Ell, MixedSimpleApplyToDenseMatrixIsEquivalentToRef3)
 {
-    set_up_apply_data(0, 0, 3);
+    set_up_apply_data(0, 0, 6);
 
     mtx->apply(y.get(), expected2.get());
     dmtx->apply(dy.get(), dresult2.get());
@@ -370,7 +370,7 @@ TEST_F(Ell, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 
 TEST_F(Ell, MixedAdvancedApplyToDenseMatrixIsEquivalentToRef1)
 {
-    set_up_apply_data(0, 0, 3);
+    set_up_apply_data(0, 0, 4);
 
     mtx->apply(alpha2.get(), y2.get(), beta2.get(), expected2.get());
     dmtx->apply(dalpha2.get(), dy2.get(), dbeta2.get(), dresult2.get());
@@ -381,7 +381,7 @@ TEST_F(Ell, MixedAdvancedApplyToDenseMatrixIsEquivalentToRef1)
 
 TEST_F(Ell, MixedAdvancedApplyToDenseMatrixIsEquivalentToRef2)
 {
-    set_up_apply_data(0, 0, 3);
+    set_up_apply_data(0, 0, 5);
 
     mtx->apply(alpha2.get(), y2.get(), beta.get(), expected.get());
     dmtx->apply(dalpha2.get(), dy2.get(), dbeta.get(), dresult.get());
@@ -392,7 +392,7 @@ TEST_F(Ell, MixedAdvancedApplyToDenseMatrixIsEquivalentToRef2)
 
 TEST_F(Ell, MixedAdvancedApplyToDenseMatrixIsEquivalentToRef3)
 {
-    set_up_apply_data(0, 0, 3);
+    set_up_apply_data(0, 0, 6);
 
     mtx->apply(alpha.get(), y.get(), beta2.get(), expected2.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta2.get(), dresult2.get());
