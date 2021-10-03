@@ -35,11 +35,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cstring>
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 
 
 namespace gko {
+
+
 /**
  * @brief The matrix namespace.
  *

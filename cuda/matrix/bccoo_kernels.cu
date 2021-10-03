@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/bccoo_kernels.hpp"
 
 
+#include <cuda/components/bccooperative_groups.cuh>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -47,7 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
-#include "cuda/components/bccooperative_groups.cuh"
 #include "cuda/components/format_conversion.cuh"
 #include "cuda/components/segment_scan.cuh"
 #include "cuda/components/thread_ids.cuh"
