@@ -53,10 +53,12 @@ using solver_type = gko::solver::Bicgstab<ValueType>;
 
 
 std::unique_ptr<mtx_type> read_mtx(std::shared_ptr<const gko::Executor> exec,
-                                   std::string mat_path, int num_systems);
+                                   std::string mat_path, int num_systems,
+                                   int num_duplications);
 
 std::unique_ptr<vec_type> read_vec(std::shared_ptr<const gko::Executor> exec,
-                                   std::string mat_path, int num_systems);
+                                   std::string mat_path, int num_systems,
+                                   int num_duplications);
 
 
 int main(int argc, char* argv[])
@@ -101,8 +103,12 @@ int main(int argc, char* argv[])
     const int num_duplications = argc >= 5 ? std::atoi(argv[4]) : 1;
 
     // Read data
-    std::shared_ptr<mtx_type> A = read_mtx(exec, mat_path, num_systems);
-    auto b = read_vec(exec, mat_path, num_systems);
+    std::shared_ptr<mtx_type> A =
+        read_mtx(exec, mat_path, num_systems, num_duplications);
+    auto b = read_vec(exec, mat_path, num_systems, num_duplications);
+    std::cout << "Done reading data." << std::endl;
+    std::cout << "System has " << A->get_size()[0] << " rows and "
+              << A->get_num_stored_elements() << " non-zeros." << std::endl;
 
     // Initialize solution vector
     auto h_x = vec_type::create(exec->get_master(), b->get_size());
@@ -113,48 +119,61 @@ int main(int argc, char* argv[])
     }
     auto x = vec_type::create(exec);
     x->copy_from(gko::lend(h_x));
+    std::cout << "Copied x to device" << std::endl;
 
-    // // Generate incomplete factors using ParILU
+    //// Generate incomplete factors using ParILU
     // auto par_ilu_fact =
-    //     gko::factorization::ParIlu<ValueType, IndexType>::build().on(exec);
-    // // Generate concrete factorization for input matrix
+    //    gko::factorization::ParIlu<ValueType, IndexType>::build()
+    //        .with_iterations(10u)
+    //        .on(exec);
+    //// Generate concrete factorization for input matrix
     // auto par_ilu = par_ilu_fact->generate(A);
 
-    // // Generate an ILU preconditioner factory by setting lower and upper
-    // // triangular solver - in this case the exact triangular solves
+    //// Generate an ILU preconditioner factory by setting lower and upper
+    //// triangular solver - in this case the exact triangular solves
     // auto ilu_pre_factory =
-    //     gko::preconditioner::Ilu<gko::solver::LowerTrs<ValueType, IndexType>,
-    //                              gko::solver::UpperTrs<ValueType, IndexType>,
-    //                              false>::build()
-    //         .on(exec);
+    //    gko::preconditioner::Ilu<
+    //        gko::preconditioner::Isai<gko::preconditioner::isai_type::lower,
+    //                                  ValueType, IndexType>,
+    //        gko::preconditioner::Isai<gko::preconditioner::isai_type::upper,
+    //                                  ValueType, IndexType>,
+    //        false>::build()
+    //        .on(exec);
 
-    // // Use incomplete factors to generate ILU preconditioner
-    // auto ilu_preconditioner = ilu_pre_factory->generate(gko::share(par_ilu));
+    //// Use incomplete factors to generate ILU preconditioner
+    // auto preconditioner = ilu_pre_factory->generate(gko::share(par_ilu));
 
     // Jacobi preconditioner
     using prec_type = gko::preconditioner::Jacobi<ValueType, IndexType>;
     auto jacobi_factory = prec_type::build().with_max_block_size(1u).on(exec);
-    auto jac_preconditioner = jacobi_factory->generate(A);
+    auto preconditioner = jacobi_factory->generate(A);
+    std::cout << "Created preconditioner" << std::endl;
 
     // Use preconditioner inside GMRES solver factory
     // Generating a solver factory tied to a specific preconditioner makes sense
     // if there are several very similar systems to solve, and the same
     // solver+preconditioner combination is expected to be effective.
-    const RealValueType reduction_factor{1e-10};
+    auto iter_stop =
+        gko::stop::Iteration::build().with_max_iters(1000u).on(exec);
+    const RealValueType reduction_factor{1e-8};
+    auto tol_stop = gko::stop::ResidualNorm<ValueType>::build()
+                        .with_reduction_factor(reduction_factor)
+                        .on(exec);
+    std::shared_ptr<gko::log::Convergence<ValueType>> clog =
+        gko::log::Convergence<ValueType>::create(exec);
+    std::cout << " created logger" << std::endl;
+    iter_stop->add_logger(clog);
+    tol_stop->add_logger(clog);
+    std::cout << " added logger" << std::endl;
+
     auto solver_factory =
         solver_type::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec))
-            .with_generated_preconditioner(gko::share(jac_preconditioner))
+            .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
+            .with_generated_preconditioner(gko::share(preconditioner))
             .on(exec);
     auto solver = solver_factory->generate(A);
 
-    std::shared_ptr<gko::log::Convergence<ValueType>> clog =
-        gko::log::Convergence<ValueType>::create(exec);
-    solver->add_logger(clog);
+    std::cout << "Starting solve.." << std::endl;
 
     // Solve system
     auto start = std::chrono::steady_clock::now();
@@ -162,11 +181,6 @@ int main(int argc, char* argv[])
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = end - start;
 
-    solver->remove_logger(clog.get());
-
-    // Print solution
-    // std::cout << "Solution (x):\n";
-    // write(std::cout, gko::lend(x));
     std::cout << "Time taken for solve = " << elapsed.count() << " s"
               << std::endl;
     std::cout << "Number of iterations = " << clog->get_num_iterations()
@@ -175,15 +189,18 @@ int main(int argc, char* argv[])
     // Calculate residual
     auto one = gko::initialize<vec_type>({1.0}, exec);
     auto neg_one = gko::initialize<vec_type>({-1.0}, exec);
-    auto res = gko::initialize<real_vec_type>({0.0}, exec);
+    auto res = gko::initialize<real_vec_type>({0.0}, exec->get_master());
     A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
     b->compute_norm2(gko::lend(res));
 
     std::cout << "Residual norm sqrt(r^T r):\n" << res->at(0, 0) << std::endl;
+
+    return 0;
 }
 
 std::unique_ptr<mtx_type> read_mtx(std::shared_ptr<const gko::Executor> exec,
-                                   std::string mat_path, const int num_systems)
+                                   std::string mat_path, const int num_systems,
+                                   const int num_duplications)
 {
     std::vector<std::unique_ptr<mtx_type>> batchentries;
     for (int i = 0; i < num_systems; ++i) {
@@ -196,11 +213,19 @@ std::unique_ptr<mtx_type> read_mtx(std::shared_ptr<const gko::Executor> exec,
         mat->read(data);
         batchentries.emplace_back(std::move(mat));
     }
+    for (int id = 0; id < num_duplications - 1; id++) {
+        for (int i = 0; i < num_systems; ++i) {
+            auto mat = mtx_type::create(exec);
+            mat->copy_from(batchentries[i].get());
+            batchentries.emplace_back(std::move(mat));
+        }
+    }
     return gko::block_diagonal_csr_matrix(exec, batchentries);
 }
 
 std::unique_ptr<vec_type> read_vec(std::shared_ptr<const gko::Executor> exec,
-                                   std::string mat_path, const int num_systems)
+                                   std::string mat_path, const int num_systems,
+                                   const int num_duplications)
 {
     std::vector<std::unique_ptr<vec_type>> batchentries;
     for (int i = 0; i < num_systems; ++i) {
@@ -212,6 +237,13 @@ std::unique_ptr<vec_type> read_vec(std::shared_ptr<const gko::Executor> exec,
         auto mat = vec_type::create(exec);
         mat->read(data);
         batchentries.emplace_back(std::move(mat));
+    }
+    for (int id = 0; id < num_duplications - 1; id++) {
+        for (int i = 0; i < num_systems; ++i) {
+            auto mat = vec_type::create(exec);
+            mat->copy_from(batchentries[i].get());
+            batchentries.emplace_back(std::move(mat));
+        }
     }
     return gko::concatenate_dense_matrices(exec, batchentries);
 }
