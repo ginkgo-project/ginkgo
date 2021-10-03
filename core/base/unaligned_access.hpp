@@ -30,12 +30,18 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_CORE_BASE_UNALIGNED_ACCESS_HPP_
+#define GKO_CORE_BASE_UNALIGNED_ACCESS_HPP_
+
+
 #include <cstring>
 
 
 #include <ginkgo/core/base/types.hpp>
 
+
 namespace gko {
+
 
 /**
  * Copies the value in the m-th byte of chunk.
@@ -61,4 +67,193 @@ T get_value_chunk(const uint8* ptr, std::size_t start)
     return val;
 }
 
+
+/* */
+// template <typename T>
+inline void update_bccoo_position(
+    const uint8* chunk_data, size_type& shf,
+    // void update_bccoo_position(const T *chunk_data, size_type &shf,
+    size_type& row, size_type& col)
+{
+    //    T val{};
+
+    uint8 ind = (chunk_data[shf]);
+    //    T ind = (chunk_data[shf]);
+    while (ind == 0xFF) {
+        row++;
+        shf++;
+        col = 0;
+        ind = chunk_data[shf];
+    }
+    if (ind < 0xFD) {
+        col += ind;
+        shf++;
+    } else if (ind == 0xFD) {
+        shf++;
+        col += get_value_chunk<uint16>(chunk_data, shf);
+        //        col += *(uint16 *)(chunk_data + shf);
+        shf += 2;
+    } else {
+        shf++;
+        col += get_value_chunk<uint32>(chunk_data, shf);
+        //        col += *(uint32 *)(chunk_data + *shf);
+        shf += 4;
+    }
+}
+/* */
+
+
+template <typename T>
+inline void update_bccoo_position_copy(const uint8* chunk_dataS,
+                                       size_type& shfS, size_type& rowS,
+                                       size_type& colS, T* rows_dataR,
+                                       size_type& nblkR, size_type& blkR,
+                                       uint8* chunk_dataR, size_type& shfR,
+                                       size_type& rowR, size_type& colR)
+{
+    uint8 indS = (chunk_dataS[shfS]);
+    while (indS == 0xFF) {
+        rowS++;
+        colS = 0;
+        shfS++;
+        indS = chunk_dataS[shfS];
+        rowR++;
+        colR = 0;
+        if (nblkR == 0) {
+            rows_dataR[blkR] = rowR;
+        } else {
+            set_value_chunk<uint8>(chunk_dataR, shfR, 0xFF);
+            shfR++;
+        }
+    }
+
+    if (indS < 0xFD) {
+        colS += indS;
+        shfS++;
+        set_value_chunk<uint8>(chunk_dataR, shfR, indS);
+        shfR++;
+    } else if (indS == 0xFD) {
+        shfS++;
+        colS += get_value_chunk<uint16>(chunk_dataS, shfS);
+        shfS += 2;
+        set_value_chunk<uint8>(chunk_dataR, shfR, 0xFD);
+        shfR++;
+        set_value_chunk<uint16>(chunk_dataR, shfR, colS - colR);
+        colR = colS;
+        shfR += 2;
+    } else {
+        shfS++;
+        colS += *(uint32*)(chunk_dataS + shfS);
+        shfS += 4;
+        set_value_chunk<uint8>(chunk_dataR, shfR, 0xFE);
+        shfR++;
+        set_value_chunk<uint32>(chunk_dataR, shfR, colS - colR);
+        colR = colS;
+        shfR += 4;
+    }
+}
+
+/* */
+template <typename T>
+// void update_bccoo_position(const uint8 *chunk_data, size_type &shf,
+void update_bccoo_position_val(const uint8* chunk_data, size_type& shf,
+                               size_type& row, size_type& col, T& val)
+{
+    //    T val{};
+
+    uint8 ind = (chunk_data[shf]);
+    while (ind == 0xFF) {
+        row++;
+        shf++;
+        col = 0;
+        ind = chunk_data[shf];
+    }
+    if (ind < 0xFD) {
+        col += ind;
+        shf++;
+    } else if (ind == 0xFD) {
+        shf++;
+        col += get_value_chunk<uint16>(chunk_data, shf);
+        //        col += *(uint16 *)(chunk_data + shf);
+        shf += 2;
+    } else {
+        shf++;
+        col += get_value_chunk<uint32>(chunk_data, shf);
+        //        col += *(uint32 *)(chunk_data + *shf);
+        shf += 4;
+    }
+    val = get_value_chunk<T>(chunk_data, shf);
+    shf += sizeof(T);
+}
+/* */
+
+
+/*
+template <typename T>
+void update_bccoo_position(const uint8 *chunk_data, size_type &shf,
+                                                                                                                size_type &row, size_type &col)
+{
+    T val{};
+
+    uint8 ind = (chunk_data[shf]);
+    while (ind == 0xFF) {
+        row++;
+        shf++;
+        col = 0;
+        ind = chunk_data[shf];
+    }
+    if (ind < 0xFD) {
+        col += ind;
+        shf++;
+    } else if (ind == 0xFD) {
+        shf++;
+        col += get_value_chunk<uint16>(chunk_data, shf);
+//        col += *(uint16 *)(chunk_data + shf);
+        shf += 2;
+    } else {
+        shf++;
+        col += get_value_chunk<uint32>(chunk_data, shf);
+//        col += *(uint32 *)(chunk_data + *shf);
+        shf += 4;
+    }
+}
+*/
+
+
+/* */
+template <typename T>
+// template <>
+// void update_bccoo_position2(const uint8 *chunk_data, size_type *shf,
+void update_bccoo_position2(const T* chunk_data, size_type* shf, size_type* row,
+                            size_type* col)
+{
+    //    T val{};
+
+    T ind = (chunk_data[*shf]);
+    while (ind == 0xFF) {
+        (*row)++;
+        (*shf)++;
+        (*col) = 0;
+        ind = chunk_data[*shf];
+    }
+    if (ind < 0xFD) {
+        (*col) += ind;
+        (*shf)++;
+    } else if (ind == 0xFD) {
+        (*shf)++;
+        (*col) += get_value_chunk<uint16>(chunk_data, *shf);
+        //        *(col) += *(uint16 *)(chunk_data + *shf);
+        (*shf) += 2;
+    } else {
+        (*shf)++;
+        (*col) += get_value_chunk<uint32>(chunk_data, *shf);
+        //        *(col) += *(uint32 *)(chunk_data + *shf);
+        (*shf) += 4;
+    }
+}
+/* */
+
+
 }  // namespace gko
+
+#endif  // GKO_CORE_BASE_UNALIGNED_ACCESS_HPP_
