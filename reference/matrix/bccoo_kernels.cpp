@@ -145,6 +145,7 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     //        tmp = this;
     //    }
 
+    std::cout << "spmv2 <=> " << num_stored_elements << std::endl;
     // Computation of chunk
     size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
     ValueType val;
@@ -154,42 +155,48 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
             col = 0;
             shf = offsets_data[blk];
         }
-        // uint8 ind =
-        // a->get_value_chunk<gko::uint8>(chunk_data, shf);
-        // uint8_t ind = a->get_value_chunk<uint8_t>(chunk_data, shf);
-        // uint8_t ind = a->get_value_chunk(chunk_data, shf);
-        // uint8 ind =
-        // a->get_value_chunk<uint8>(chunk_data, shf);
-        // uint8 ind = * (chunk_data + shf);
-        uint8 ind = (chunk_data[shf]);
-        while (ind == 0xFF) {
-            row++;
-            shf++;
-            col = 0;
-            ind = chunk_data[shf];
-        }
-        if (ind < 0xFD) {
-            col += ind;
-            shf++;
-        } else if (ind == 0xFD) {
-            shf++;
-            col += get_value_chunk<uint16>(chunk_data, shf);
-            //            col += *(uint16 *)(chunk_data + shf);
-            shf += 2;
-        } else {
-            shf++;
-            //            col += get_value_chunk<uint32>(chunk_data, shf);
-            col += *(uint32*)(chunk_data + shf);
-            shf += 4;
-        }
-        //				val =
-        // get_value_chunk<ValueType>(chunk_data, shf);
-        val = *(ValueType*)(chunk_data + shf);
-        //        data.nonzeros.emplace_back(row, col, val);
+
+        //        update_bccoo_position(chunk_data, shf, row, col);
+        //        update_bccoo_position2(chunk_data, &shf, &row, &col);
+        /*
+                // uint8 ind =
+                // a->get_value_chunk<gko::uint8>(chunk_data, shf);
+                // uint8_t ind = a->get_value_chunk<uint8_t>(chunk_data, shf);
+                // uint8_t ind = a->get_value_chunk(chunk_data, shf);
+                // uint8 ind =
+                // a->get_value_chunk<uint8>(chunk_data, shf);
+                // uint8 ind = * (chunk_data + shf);
+                uint8 ind = (chunk_data[shf]);
+                while (ind == 0xFF) {
+                    row++;
+                    shf++;
+                    col = 0;
+                    ind = chunk_data[shf];
+                }
+                if (ind < 0xFD) {
+                    col += ind;
+                    shf++;
+                } else if (ind == 0xFD) {
+                    shf++;
+                    col += get_value_chunk<uint16>(chunk_data, shf);
+                    //  col += *(uint16 *)(chunk_data + shf);
+                    shf += 2;
+                } else {
+                    shf++;
+                    col += get_value_chunk<uint32>(chunk_data, shf);
+                    //  col += *(uint32 *)(chunk_data + shf);
+                    shf += 4;
+                }
+                //				val =
+                // get_value_chunk<ValueType>(chunk_data, shf);
+                val = *(ValueType *)(chunk_data + shf);
+                shf += sizeof(ValueType);
+                //        data.nonzeros.emplace_back(row, col, val);
+        */
+        update_bccoo_position_val(chunk_data, shf, row, col, val);
         for (size_type j = 0; j < num_cols; j++) {
             c->at(row, j) += val * b->at(col, j);
         }
-        shf += sizeof(ValueType);
         if (++nblk == block_size) {
             nblk = 0;
             blk++;
@@ -259,35 +266,39 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
         // uint8 ind =
         // a->get_value_chunk<uint8>(chunk_data, shf);
         // uint8 ind = * (chunk_data + shf);
-        uint8 ind = (chunk_data[shf]);
-        while (ind == 0xFF) {
-            row++;
-            shf++;
-            col = 0;
-            ind = chunk_data[shf];
-        }
-        if (ind < 0xFD) {
-            col += ind;
-            shf++;
-        } else if (ind == 0xFD) {
-            shf++;
-            col += get_value_chunk<uint16>(chunk_data, shf);
-            //            col += *(uint16 *)(chunk_data + shf);
-            shf += 2;
-        } else {
-            shf++;
-            //            col += get_value_chunk<uint32>(chunk_data, shf);
-            col += *(uint32*)(chunk_data + shf);
-            shf += 4;
-        }
-        //				val =
-        // get_value_chunk<ValueType>(chunk_data, shf);
-        val = *(ValueType*)(chunk_data + shf);
-        //        data.nonzeros.emplace_back(row, col, val);
+        //        update_bccoo_position(chunk_data, shf, row, col);
+        /*
+                uint8 ind = (chunk_data[shf]);
+                while (ind == 0xFF) {
+                    row++;
+                    shf++;
+                    col = 0;
+                    ind = chunk_data[shf];
+                }
+                if (ind < 0xFD) {
+                    col += ind;
+                    shf++;
+                } else if (ind == 0xFD) {
+                    shf++;
+                    col += get_value_chunk<uint16>(chunk_data, shf);
+                    //  col += *(uint16 *)(chunk_data + shf);
+                    shf += 2;
+                } else {
+                    shf++;
+                    col += get_value_chunk<uint32>(chunk_data, shf);
+                    //  col += *(uint32 *)(chunk_data + shf);
+                    shf += 4;
+                }
+                //				val =
+                // get_value_chunk<ValueType>(chunk_data, shf);
+                val = *(ValueType *)(chunk_data + shf);
+                shf += sizeof(ValueType);
+                //        data.nonzeros.emplace_back(row, col, val);
+        */
+        update_bccoo_position_val(chunk_data, shf, row, col, val);
         for (size_type j = 0; j < num_cols; j++) {
             c->at(row, j) += alpha_val * val * b->at(col, j);
         }
-        shf += sizeof(ValueType);
         if (++nblk == block_size) {
             nblk = 0;
             blk++;
@@ -313,7 +324,7 @@ void convert_to_next_precision(
 
     size_type nblkS = 0, blkS = 0, rowS = 0, colS = 0, shfS = 0;
     size_type num_bytesS = source->get_num_bytes();
-    ;
+
     auto* rows_dataS = source->get_const_rows();
     auto* offsets_dataS = source->get_const_offsets();
     auto* chunk_dataS = source->get_const_chunk();
@@ -321,7 +332,7 @@ void convert_to_next_precision(
 
     size_type nblkR = 0, blkR = 0, rowR = 0, colR = 0, shfR = 0;
     size_type num_bytesR = result->get_num_bytes();
-    ;
+
     auto* rows_dataR = result->get_rows();
     auto* offsets_dataR = result->get_offsets();
     auto* chunk_dataR = result->get_chunk();
@@ -357,84 +368,62 @@ void convert_to_next_precision(
             colR = 0;
             rows_dataR[blkR] = rowR;
         }
-        if (rowS !=
-            rowR) {  // new row
-                     //						std::cout <<
-                     //"rowS
-                     //=
-                     //"
-                     //<< rowS
-                     //<<
-                     //"
-                     //,
-                     //"
-                     //						          <<
-                     //"rowR
-                     //=
-                     //"
-                     //<< rowR
-                     //<< std::endl;
+        if (rowS != rowR) {  // new row
             rowR = rowS;
             colR = 0;
             set_value_chunk<uint8>(chunk_dataR, shfR, 0xFF);
             shfR++;
         }
 
-        uint8 indS = (chunk_dataS[shfS]);
-        while (indS == 0xFF) {
-            rowS++;
-            colS = 0;
-            //						std::cout << "N -> rowS
-            //=
-            //"
-            //<< rowS
-            //<< std::endl;
-            shfS++;
-            indS = chunk_dataS[shfS];
-            rowR++;
-            colR = 0;
-            //						std::cout << "N -> rowR
-            //=
-            //"
-            //<< rowR
-            //<< std::endl;
-            if (nblkR == 0) {
-                rows_dataR[blkR] = rowR;
-            } else {
-                set_value_chunk<uint8>(chunk_dataR, shfR, 0xFF);
-                shfR++;
-            }
-        }
+        update_bccoo_position_copy(chunk_dataS, shfS, rowS, colS, rows_dataR,
+                                   nblkR, blkR, chunk_dataR, shfR, rowR, colR);
+        /*
+                uint8 indS = (chunk_dataS[shfS]);
+                while (indS == 0xFF) {
+                    rowS++;
+                    colS = 0;
+                    shfS++;
+                    indS = chunk_dataS[shfS];
+                    rowR++;
+                    colR = 0;
+                    if (nblkR == 0) {
+                        rows_dataR[blkR] = rowR;
+                    } else {
+                        set_value_chunk<uint8>(chunk_dataR, shfR, 0xFF);
+                        shfR++;
+                    }
+                }
 
-        if (indS < 0xFD) {
-            colS += indS;
-            shfS++;
-            set_value_chunk<uint8>(chunk_dataR, shfR, indS);
-            shfR++;
-        } else if (indS == 0xFD) {
-            shfS++;
-            colS += get_value_chunk<uint16>(chunk_dataS, shfS);
-            shfS += 2;
-            set_value_chunk<uint8>(chunk_dataR, shfR, 0xFD);
-            shfR++;
-            set_value_chunk<uint16>(chunk_dataR, shfR, colS - colR);
-            colR = colS;
-            shfR += 2;
-        } else {
-            shfS++;
-            colS += *(uint32*)(chunk_dataS + shfS);
-            shfS += 4;
-            set_value_chunk<uint8>(chunk_dataR, shfR, 0xFE);
-            shfR++;
-            set_value_chunk<uint32>(chunk_dataR, shfR, colS - colR);
-            colR = colS;
-            shfR += 4;
-        }
+                if (indS < 0xFD) {
+                    colS += indS;
+                    shfS++;
+                    set_value_chunk<uint8>(chunk_dataR, shfR, indS);
+                    shfR++;
+                } else if (indS == 0xFD) {
+                    shfS++;
+                    colS += get_value_chunk<uint16>(chunk_dataS, shfS);
+                    shfS += 2;
+                    set_value_chunk<uint8>(chunk_dataR, shfR, 0xFD);
+                    shfR++;
+                    set_value_chunk<uint16>(chunk_dataR, shfR, colS - colR);
+                    colR = colS;
+                    shfR += 2;
+                } else {
+                    shfS++;
+                    colS += *(uint32 *)(chunk_dataS + shfS);
+                    shfS += 4;
+                    set_value_chunk<uint8>(chunk_dataR, shfR, 0xFE);
+                    shfR++;
+                    set_value_chunk<uint32>(chunk_dataR, shfR, colS - colR);
+                    colR = colS;
+                    shfR += 4;
+                }
+        */
         valS = get_value_chunk<ValueType>(chunk_dataS, shfS);
         // valS = *(ValueType *)(chunk_dataS + shfS);
         //        std::cout << valS << std::endl;
-        valR = valS;
         shfS += sizeof(ValueType);
+        valR = valS;
         set_value_chunk<new_precision>(chunk_dataR, shfR, valR);
         shfR += sizeof(new_precision);
 
@@ -467,7 +456,7 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
     //    std::cout << "Convert_Coo_B" << std::endl;
     size_type nblk = 0, blk = 0, row = 0, col = 0, shf = 0;
     size_type num_bytes = source->get_num_bytes();
-    ;
+
     auto* rows_data = source->get_const_rows();
     auto* offsets_data = source->get_const_offsets();
     auto* chunk_data = source->get_const_chunk();
@@ -486,31 +475,33 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
             shf = offsets_data[blk];
         }
 
+        //        update_bccoo_position(chunk_data, shf, row, col);
+        /*
+                uint8 ind = (chunk_data[shf]);
+                while (ind == 0xFF) {
+                    row++;
+                    col = 0;
+                    shf++;
+                    ind = chunk_data[shf];
+                }
 
-        uint8 ind = (chunk_data[shf]);
-        while (ind == 0xFF) {
-            row++;
-            col = 0;
-            shf++;
-            ind = chunk_data[shf];
-        }
-
-
-        if (ind < 0xFD) {
-            col += ind;
-            shf++;
-        } else if (ind == 0xFD) {
-            shf++;
-            col += get_value_chunk<uint16>(chunk_data, shf);
-            shf += 2;
-        } else {
-            shf++;
-            col += *(uint32*)(chunk_data + shf);
-            shf += 4;
-        }
-        val = get_value_chunk<ValueType>(chunk_data, shf);
-        // val = *(ValueType *)(chunk_data + shf);
-        shf += sizeof(ValueType);
+                if (ind < 0xFD) {
+                    col += ind;
+                    shf++;
+                } else if (ind == 0xFD) {
+                    shf++;
+                    col += get_value_chunk<uint16>(chunk_data, shf);
+                    shf += 2;
+                } else {
+                    shf++;
+                    col += *(uint32 *)(chunk_data + shf);
+                    shf += 4;
+                }
+                val = get_value_chunk<ValueType>(chunk_data, shf);
+                // val = *(ValueType *)(chunk_data + shf);
+                shf += sizeof(ValueType);
+        */
+        update_bccoo_position_val(chunk_data, shf, row, col, val);
 
         row_idxs[i] = row;
         col_idxs[i] = col;
@@ -551,7 +542,7 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
 
     size_type nblk = 0, blk = 0, row = 0, col = 0, shf = 0;
     size_type num_bytes = source->get_num_bytes();
-    ;
+
     auto* rows_data = source->get_const_rows();
     auto* offsets_data = source->get_const_offsets();
     auto* chunk_data = source->get_const_chunk();
@@ -572,6 +563,8 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
             shf = offsets_data[blk];
         }
 
+        //        update_bccoo_position(chunk_data, shf, row, col);
+        /* */
         uint8 ind = (chunk_data[shf]);
         while (ind == 0xFF) {
             row++;
@@ -593,6 +586,7 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
             col += *(uint32*)(chunk_data + shf);
             shf += 4;
         }
+        /* */
         val = get_value_chunk<ValueType>(chunk_data, shf);
         // val = *(ValueType *)(chunk_data + shf);
         shf += sizeof(ValueType);
@@ -624,7 +618,7 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
 
     size_type nblk = 0, blk = 0, row = 0, col = 0, shf = 0;
     size_type num_bytes = source->get_num_bytes();
-    ;
+
     auto* rows_data = source->get_const_rows();
     auto* offsets_data = source->get_const_offsets();
     auto* chunk_data = source->get_const_chunk();
@@ -646,29 +640,33 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
             shf = offsets_data[blk];
         }
 
-        uint8 ind = (chunk_data[shf]);
-        while (ind == 0xFF) {
-            row++;
-            col = 0;
-            shf++;
-            ind = chunk_data[shf];
-        }
+        //        update_bccoo_position(chunk_data, shf, row, col);
+        /*
+                uint8 ind = (chunk_data[shf]);
+                while (ind == 0xFF) {
+                    row++;
+                    col = 0;
+                    shf++;
+                    ind = chunk_data[shf];
+                }
 
-        if (ind < 0xFD) {
-            col += ind;
-            shf++;
-        } else if (ind == 0xFD) {
-            shf++;
-            col += get_value_chunk<uint16>(chunk_data, shf);
-            shf += 2;
-        } else {
-            shf++;
-            col += *(uint32*)(chunk_data + shf);
-            shf += 4;
-        }
-        val = get_value_chunk<ValueType>(chunk_data, shf);
-        // val = *(ValueType *)(chunk_data + shf);
-        shf += sizeof(ValueType);
+                if (ind < 0xFD) {
+                    col += ind;
+                    shf++;
+                } else if (ind == 0xFD) {
+                    shf++;
+                    col += get_value_chunk<uint16>(chunk_data, shf);
+                    shf += 2;
+                } else {
+                    shf++;
+                    col += *(uint32 *)(chunk_data + shf);
+                    shf += 4;
+                }
+                val = get_value_chunk<ValueType>(chunk_data, shf);
+                // val = *(ValueType *)(chunk_data + shf);
+                shf += sizeof(ValueType);
+        */
+        update_bccoo_position_val(chunk_data, shf, row, col, val);
 
         result->at(row, col) += val;
 
@@ -710,7 +708,7 @@ void extract_diagonal(
 
     size_type nblk = 0, blk = 0, row = 0, col = 0, shf = 0;
     size_type num_bytes = orig->get_num_bytes();
-    ;
+
     auto* rows_data = orig->get_const_rows();
     auto* offsets_data = orig->get_const_offsets();
     auto* chunk_data = orig->get_const_chunk();
@@ -730,29 +728,33 @@ void extract_diagonal(
             shf = offsets_data[blk];
         }
 
-        uint8 ind = (chunk_data[shf]);
-        while (ind == 0xFF) {
-            row++;
-            col = 0;
-            shf++;
-            ind = chunk_data[shf];
-        }
+        //        update_bccoo_position(chunk_data, shf, row, col);
+        /*
+                uint8 ind = (chunk_data[shf]);
+                while (ind == 0xFF) {
+                    row++;
+                    col = 0;
+                    shf++;
+                    ind = chunk_data[shf];
+                }
 
-        if (ind < 0xFD) {
-            col += ind;
-            shf++;
-        } else if (ind == 0xFD) {
-            shf++;
-            col += get_value_chunk<uint16>(chunk_data, shf);
-            shf += 2;
-        } else {
-            shf++;
-            col += *(uint32*)(chunk_data + shf);
-            shf += 4;
-        }
-        val = get_value_chunk<ValueType>(chunk_data, shf);
-        // val = *(ValueType *)(chunk_data + shf);
-        shf += sizeof(ValueType);
+                if (ind < 0xFD) {
+                    col += ind;
+                    shf++;
+                } else if (ind == 0xFD) {
+                    shf++;
+                    col += get_value_chunk<uint16>(chunk_data, shf);
+                    shf += 2;
+                } else {
+                    shf++;
+                    col += *(uint32 *)(chunk_data + shf);
+                    shf += 4;
+                }
+                val = get_value_chunk<ValueType>(chunk_data, shf);
+                // val = *(ValueType *)(chunk_data + shf);
+                shf += sizeof(ValueType);
+        */
+        update_bccoo_position_val(chunk_data, shf, row, col, val);
 
         if (row == col) {
             diag_values[row] = val;
@@ -780,7 +782,7 @@ void compute_absolute_inplace(
 
     size_type nblk = 0, blk = 0, row = 0, col = 0, shf = 0;
     size_type num_bytes = matrix->get_num_bytes();
-    ;
+
     auto* rows_data = matrix->get_const_rows();
     auto* offsets_data = matrix->get_const_offsets();
     auto* chunk_data = matrix->get_chunk();
@@ -794,26 +796,29 @@ void compute_absolute_inplace(
             shf = offsets_data[blk];
         }
 
-        uint8 ind = (chunk_data[shf]);
-        while (ind == 0xFF) {
-            row++;
-            col = 0;
-            shf++;
-            ind = chunk_data[shf];
-        }
+        update_bccoo_position(chunk_data, shf, row, col);
+        /*
+                uint8 ind = (chunk_data[shf]);
+                while (ind == 0xFF) {
+                    row++;
+                    col = 0;
+                    shf++;
+                    ind = chunk_data[shf];
+                }
 
-        if (ind < 0xFD) {
-            col += ind;
-            shf++;
-        } else if (ind == 0xFD) {
-            shf++;
-            col += get_value_chunk<uint16>(chunk_data, shf);
-            shf += 2;
-        } else {
-            shf++;
-            col += *(uint32*)(chunk_data + shf);
-            shf += 4;
-        }
+                if (ind < 0xFD) {
+                    col += ind;
+                    shf++;
+                } else if (ind == 0xFD) {
+                    shf++;
+                    col += get_value_chunk<uint16>(chunk_data, shf);
+                    shf += 2;
+                } else {
+                    shf++;
+                    col += *(uint32 *)(chunk_data + shf);
+                    shf += 4;
+                }
+        */
         val = get_value_chunk<ValueType>(chunk_data, shf);
         //        std::cout << val << " - " << abs(val) << std::endl;
         val = abs(val);
@@ -844,7 +849,7 @@ void compute_absolute(std::shared_ptr<const DefaultExecutor> exec,
 
     size_type nblkS = 0, blkS = 0, rowS = 0, colS = 0, shfS = 0;
     size_type num_bytesS = source->get_num_bytes();
-    ;
+
     auto* rows_dataS = source->get_const_rows();
     auto* offsets_dataS = source->get_const_offsets();
     auto* chunk_dataS = source->get_const_chunk();
@@ -852,7 +857,7 @@ void compute_absolute(std::shared_ptr<const DefaultExecutor> exec,
 
     size_type nblkR = 0, blkR = 0, rowR = 0, colR = 0, shfR = 0;
     size_type num_bytesR = result->get_num_bytes();
-    ;
+
     auto* rows_dataR = result->get_rows();
     auto* offsets_dataR = result->get_offsets();
     auto* chunk_dataR = result->get_chunk();
@@ -880,49 +885,53 @@ void compute_absolute(std::shared_ptr<const DefaultExecutor> exec,
             shfR++;
         }
 
-        uint8 indS = (chunk_dataS[shfS]);
-        while (indS == 0xFF) {
-            rowS++;
-            colS = 0;
-            shfS++;
-            indS = chunk_dataS[shfS];
-            rowR++;
-            colR = 0;
-            if (nblkR == 0) {
-                rows_dataR[blkR] = rowR;
-            } else {
-                set_value_chunk<uint8>(chunk_dataR, shfR, 0xFF);
-                shfR++;
-            }
-        }
+        update_bccoo_position_copy(chunk_dataS, shfS, rowS, colS, rows_dataR,
+                                   nblkR, blkR, chunk_dataR, shfR, rowR, colR);
+        /*
+                uint8 indS = (chunk_dataS[shfS]);
+                while (indS == 0xFF) {
+                    rowS++;
+                    colS = 0;
+                    shfS++;
+                    indS = chunk_dataS[shfS];
+                    rowR++;
+                    colR = 0;
+                    if (nblkR == 0) {
+                        rows_dataR[blkR] = rowR;
+                    } else {
+                        set_value_chunk<uint8>(chunk_dataR, shfR, 0xFF);
+                        shfR++;
+                    }
+                }
 
-        if (indS < 0xFD) {
-            colS += indS;
-            shfS++;
-            set_value_chunk<uint8>(chunk_dataR, shfR, indS);
-            shfR++;
-        } else if (indS == 0xFD) {
-            shfS++;
-            colS += get_value_chunk<uint16>(chunk_dataS, shfS);
-            shfS += 2;
-            set_value_chunk<uint8>(chunk_dataR, shfR, 0xFD);
-            shfR++;
-            set_value_chunk<uint16>(chunk_dataR, shfR, colS - colR);
-            colR = colS;
-            shfR += 2;
-        } else {
-            shfS++;
-            colS += *(uint32*)(chunk_dataS + shfS);
-            shfS += 4;
-            set_value_chunk<uint8>(chunk_dataR, shfR, 0xFE);
-            shfR++;
-            set_value_chunk<uint32>(chunk_dataR, shfR, colS - colR);
-            colR = colS;
-            shfR += 4;
-        }
+                if (indS < 0xFD) {
+                    colS += indS;
+                    shfS++;
+                    set_value_chunk<uint8>(chunk_dataR, shfR, indS);
+                    shfR++;
+                } else if (indS == 0xFD) {
+                    shfS++;
+                    colS += get_value_chunk<uint16>(chunk_dataS, shfS);
+                    shfS += 2;
+                    set_value_chunk<uint8>(chunk_dataR, shfR, 0xFD);
+                    shfR++;
+                    set_value_chunk<uint16>(chunk_dataR, shfR, colS - colR);
+                    colR = colS;
+                    shfR += 2;
+                } else {
+                    shfS++;
+                    colS += *(uint32 *)(chunk_dataS + shfS);
+                    shfS += 4;
+                    set_value_chunk<uint8>(chunk_dataR, shfR, 0xFE);
+                    shfR++;
+                    set_value_chunk<uint32>(chunk_dataR, shfR, colS - colR);
+                    colR = colS;
+                    shfR += 4;
+                }
+        */
         valS = get_value_chunk<ValueType>(chunk_dataS, shfS);
-        valR = abs(valS);
         shfS += sizeof(ValueType);
+        valR = abs(valS);
         set_value_chunk<ValueType>(chunk_dataR, shfR, valR);
         shfR += sizeof(remove_complex<ValueType>);
 
