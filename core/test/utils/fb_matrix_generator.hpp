@@ -78,9 +78,9 @@ namespace test {
 template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
           typename ValueDistribution, typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> generate_random_matrix_with_diag(
-    size_type num_rows, size_type num_cols, NonzeroDistribution &&nonzero_dist,
-    ValueDistribution &&value_dist, Engine &&engine,
-    std::shared_ptr<const Executor> exec, MatrixArgs &&... args)
+    size_type num_rows, size_type num_cols, NonzeroDistribution&& nonzero_dist,
+    ValueDistribution&& value_dist, Engine&& engine,
+    std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
 {
     using value_type = typename MatrixType::value_type;
     using index_type = typename MatrixType::index_type;
@@ -155,8 +155,8 @@ complexify_if_possible(const ValueType x)
 template <typename ValueType, typename IndexType, typename RandEngine>
 std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
     const std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *const csrmat, const int block_size,
-    const bool row_diag_dominant, RandEngine &&rand_engine)
+    const matrix::Csr<ValueType, IndexType>* const csrmat, const int block_size,
+    const bool row_diag_dominant, RandEngine&& rand_engine)
 {
     const auto nbrows = static_cast<IndexType>(csrmat->get_size()[0]);
     const auto nbcols = static_cast<IndexType>(csrmat->get_size()[1]);
@@ -176,10 +176,10 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
 
     const IndexType nbnz = fmtx->get_num_stored_elements() / bs2;
 
-    const IndexType *const row_ptrs = fmtx->get_const_row_ptrs();
-    const IndexType *const col_idxs = fmtx->get_const_col_idxs();
+    const IndexType* const row_ptrs = fmtx->get_const_row_ptrs();
+    const IndexType* const col_idxs = fmtx->get_const_col_idxs();
     const IndexType nnz = nbnz * bs2;
-    ValueType *const vals = fmtx->get_values();
+    ValueType* const vals = fmtx->get_values();
 
     std::normal_distribution<gko::remove_complex<ValueType>> norm_dist(0.0,
                                                                        2.0);

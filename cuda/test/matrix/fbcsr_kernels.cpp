@@ -86,9 +86,9 @@ protected:
 
     std::unique_ptr<const Mtx> rsorted_ref;
 
-    void generate_sin(Dense *const x)
+    void generate_sin(Dense* const x)
     {
-        value_type *const xarr = x->get_values();
+        value_type* const xarr = x->get_values();
         for (index_type i = 0; i < x->get_size()[0] * x->get_size()[1]; i++) {
             xarr[i] = static_cast<value_type>(
                 static_cast<real_type>(2.0) *
@@ -273,7 +273,7 @@ TYPED_TEST(Fbcsr, RecognizeUnsortedMatrix)
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     auto mat = this->rsorted_ref->clone();
-    index_type *const colinds = mat->get_col_idxs();
+    index_type* const colinds = mat->get_col_idxs();
     std::swap(colinds[0], colinds[1]);
     auto unsrt_cuda = Mtx::create(this->cuda);
     unsrt_cuda->copy_from(gko::lend(mat));
