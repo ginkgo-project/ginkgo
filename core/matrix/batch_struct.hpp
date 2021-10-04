@@ -201,7 +201,8 @@ template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE gko::batch_ell::BatchEntry<const ValueType> to_const(
     const gko::batch_ell::BatchEntry<ValueType>& b)
 {
-    return {b.values, b.col_idxs, b.row_ptrs, b.num_rows, b.num_nnz};
+    return {b.values, b.col_idxs, b.num_stored_elems_per_row,
+            b.stride, b.num_rows, b.num_nnz};
 }
 
 
@@ -209,8 +210,8 @@ template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE gko::batch_ell::UniformBatch<const ValueType>
 to_const(const gko::batch_ell::UniformBatch<ValueType>& ub)
 {
-    return {ub.values,    ub.col_idxs, ub.row_ptrs,
-            ub.num_batch, ub.num_rows, ub.num_nnz};
+    return {ub.values, ub.col_idxs, ub.num_batch, ub.num_stored_elems_per_row,
+            ub.stride, ub.num_rows, ub.num_nnz};
 }
 
 
