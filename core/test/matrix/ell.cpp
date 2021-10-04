@@ -261,3 +261,133 @@ TYPED_TEST(Ell, CanBeReadFromMatrixAssemblyData)
 
     this->assert_equal_to_original_mtx(m.get());
 }
+
+
+class EllBlockDiagonal : public ::testing::Test {
+protected:
+    using value_type = double;
+    using index_type = int;
+    using Mtx = gko::matrix::Ell<value_type, index_type>;
+
+    EllBlockDiagonal() : exec(gko::ReferenceExecutor::create()) {}
+
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
+
+    std::vector<std::unique_ptr<Mtx>> generate_matrices()
+    {
+        std::vector<std::unique_ptr<Mtx>> matset;
+        auto mat1 = Mtx::create(exec, gko::dim<2>(4, 4), 3, 5);
+        value_type* v = mat1->get_values();
+        index_type* c = mat1->get_col_idxs();
+        c[0] = 0;
+        c[1] = 2;
+        c[2] = 2;
+        c[3] = 1;
+        c[4] = 2;
+        c[5] = 3;
+        c[6] = 0;
+        c[7] = 2;
+        c[8] = 2;
+        c[9] = 2;
+        c[10] = 3;
+        c[11] = 3;
+        for (int i = 0; i < 3 * 5; i++) {
+            v[i] = i;
+        }
+        v[2] = 0.0;
+        v[8] = 0.0;
+        v[11] = 0.0;
+        matset.emplace_back(std::move(mat1));
+
+        auto mat2 = Mtx::create(exec, gko::dim<2>(2, 2), 1, 3);
+        v = mat2->get_values();
+        c = mat2->get_col_idxs();
+        c[0] = 1;
+        c[1] = 0;
+        v[0] = 300.0;
+        v[1] = -301.0;
+        v[2] = -1234.4;
+        matset.emplace_back(std::move(mat2));
+
+        auto mat3 = Mtx::create(exec, gko::dim<2>(3, 3), 2, 3);
+        v = mat3->get_values();
+        c = mat3->get_col_idxs();
+        c[0] = 1;
+        c[1] = 1;
+        c[2] = 0;
+        c[3] = 1;
+        c[4] = 1;
+        c[5] = 2;
+        for (int i = 0; i < 2 * 3; i++) {
+            v[i] = 1.0 + 2 * i;
+        }
+        v[1] = 0.0;
+        matset.emplace_back(std::move(mat3));
+        return matset;
+    }
+
+    std::unique_ptr<Mtx> get_big_matrix()
+    {
+        auto mat = Mtx::create(exec, gko::dim<2>(9, 9), 3, 9);
+        value_type* v = mat->get_values();
+        index_type* c = mat->get_col_idxs();
+        // clang-format off
+		c[0] = 0; c[1] = 2; c[2] = 2;
+		c[3] = 1; c[4] = 2; c[5] = 3;
+		c[6] = 0; c[7] = 2; c[8] = 2;
+		c[9] = 2; c[10] = 3; c[11] = 3;
+		for(int i = 0; i < 3*4; i++) {
+			v[i] = i;
+		}
+		v[2] = 0.0; v[8] = 0.0; v[11] = 0.0;
+
+		c[12] = 1; c[13] = 1; c[14] = 1;
+		c[15] = 0; c[16] = 0; c[17] = 0;
+		v[12] = 300.0; v[13] = 0.0; v[14] = 0.0;
+		v[15] = -301.0; v[16] = 0.0; v[17] = 0.0;
+
+		c[18] = 1; c[19] = 1; c[20] = 1;
+		c[21] = 0; c[22] = 1; c[23] = 1;
+		c[24] = 1; c[25] = 2; c[26] = 2;
+		for(int i = 18; i < 27; i++) {
+			v[i] = 1.0 + 2*(i-27);
+		}
+		v[19] = 0.0; v[20] = 0.0;
+		v[23] = 0.0; v[26] = 0.0;
+        // clang-format on
+        return mat;
+    }
+};
+
+
+TEST_F(EllBlockDiagonal, GeneratesCorrectBlockDiagonalMatrix)
+{
+    auto matset = generate_matrices();
+
+    auto bdcsr = gko::create_block_diagonal_matrix(exec, matset);
+    auto check = get_big_matrix();
+    const auto nnz_per_row = bdcsr->get_num_stored_elements_per_row();
+
+    ASSERT_EQ(bdcsr->get_size(), check->get_size());
+    ASSERT_EQ(bdcsr->get_stride(), check->get_stride());
+    ASSERT_EQ(nnz_per_row, check->get_num_stored_elements_per_row());
+    for (size_t j = 0; j < nnz_per_row; j++) {
+        for (size_t irow = 0; irow < bdcsr->get_stride(); irow++) {
+            const size_t inz = j * bdcsr->get_stride() + irow;
+            ASSERT_EQ(bdcsr->get_const_col_idxs()[inz],
+                      check->get_const_col_idxs()[inz]);
+            ASSERT_EQ(bdcsr->get_const_values()[inz],
+                      check->get_const_values()[inz]);
+        }
+    }
+}
+
+TEST_F(EllBlockDiagonal, ThrowsOnRectangularInput)
+{
+    std::vector<std::unique_ptr<Mtx>> matrices;
+    auto mtx = Mtx::create(exec, gko::dim<2>(3, 6), 10);
+    matrices.emplace_back(std::move(mtx));
+
+    ASSERT_THROW(gko::create_block_diagonal_matrix(exec, matrices),
+                 gko::DimensionMismatch);
+}
