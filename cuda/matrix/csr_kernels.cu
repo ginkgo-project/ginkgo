@@ -1244,12 +1244,12 @@ template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
-    const span& col_span, Array<size_type>* row_nnz)
+    const span& col_span, Array<IndexType>* row_nnz)
 {
     const auto num_rows = source->get_size()[0];
     auto row_ptrs = source->get_const_row_ptrs();
     auto col_idxs = source->get_const_col_idxs();
-    auto grid_dim = ceildiv(num_rows, default_block_size);
+    auto grid_dim = ceildiv(row_span.length(), default_block_size);
 
     kernel::calculate_nnz_per_row_in_span<<<grid_dim, default_block_size>>>(
         row_span, col_span, as_cuda_type(row_ptrs), as_cuda_type(col_idxs),
@@ -1263,8 +1263,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
                        const matrix::Csr<ValueType, IndexType>* source,
-                       const Array<size_type>* row_nnz, gko::span row_span,
-                       gko::span col_span,
+                       gko::span row_span, gko::span col_span,
                        matrix::Csr<ValueType, IndexType>* result)
 {
     auto row_offset = row_span.begin;
@@ -1273,10 +1272,6 @@ void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
     auto num_cols = result->get_size()[1];
     auto row_ptrs = source->get_const_row_ptrs();
     auto grid_dim = ceildiv(num_rows, default_block_size);
-    kernel::get_row_nnz_data<<<grid_dim, default_block_size>>>(
-        num_rows, as_cuda_type(row_nnz->get_const_data()),
-        as_cuda_type(result->get_row_ptrs()));
-    components::prefix_sum(exec, result->get_row_ptrs(), num_rows + 1);
 
     auto num_nnz = source->get_num_stored_elements();
     grid_dim = ceildiv(num_nnz, default_block_size);

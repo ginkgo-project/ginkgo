@@ -178,12 +178,11 @@ namespace kernels {
     void calculate_nonzeros_per_row_in_span(                                   \
         std::shared_ptr<const DefaultExecutor> exec,                           \
         const matrix::Csr<ValueType, IndexType>* source, const span& row_span, \
-        const span& col_span, Array<size_type>* row_nnz)
+        const span& col_span, Array<IndexType>* row_nnz)
 
 #define GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL(ValueType, IndexType)     \
     void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,     \
                            const matrix::Csr<ValueType, IndexType>* source, \
-                           const Array<size_type>* row_nnz,                 \
                            gko::span row_span, gko::span col_span,          \
                            matrix::Csr<ValueType, IndexType>* result)
 
