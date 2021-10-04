@@ -72,6 +72,11 @@ if [ ! "${BATCH_SOLVERS}" ]; then
     echo "BATCH_SOLVERS    environment variable not set - assuming \"${BATCH_SOLVERS}\"" 1>&2
 fi
 
+if [ ! "${BATCH_SOLVER_MATRIX_FORMAT}" ]; then
+    BATCH_SOLVER_MATRIX_FORMAT="batch_csr"
+    echo "BATCH_SOLVER_MATRIX_FORMAT    environment variable not set - assuming \"${BATCH_SOLVER_MATRIX_FORMAT}\"" 1>&2
+fi
+
 if [ ! "${SOLVERS}" ]; then
     SOLVERS="bicgstab,cg,cgs,fcg,gmres,cb_gmres_reduce1,idr"
     print_default SOLVERS
@@ -410,6 +415,7 @@ run_batch_solver_benchmarks() {
     ./solver/batch_solver${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
                     --executor="${EXECUTOR}" --batch_solvers="${BATCH_SOLVERS}" \
                     --preconditioners="${PRECONDS}" \
+                    --batch_solver_mat_format="${BATCH_SOLVER_MATRIX_FORMAT}" \
                     --num_duplications="${NUM_BATCH_DUP}" "${BATCH_SCALING_STR}" \
                     "${PRINT_RES_ITER_STR}" "${COMPUTE_BATCH_ERRORS_STR}" \
                     --num_batches="${NUM_BATCH_ENTRIES}" "${SS_STR}" \
