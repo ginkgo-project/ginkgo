@@ -133,7 +133,6 @@ TEST_F(BlockMatrixGenerator, ComplexOutputIsRowDiagonalDominantWhenRequested)
     const int* const row_ptrs = cbmtx->get_const_row_ptrs();
     const int* const col_idxs = cbmtx->get_const_col_idxs();
 
-    real_type min_diag_dom{1000.0}, avg_diag_dom{};
     for (int irow = 0; irow < nbrows; irow++) {
         std::vector<real_type> row_del_sum(blk_sz, 0.0);
         std::vector<real_type> diag_val(blk_sz, 0.0);
@@ -156,11 +155,6 @@ TEST_F(BlockMatrixGenerator, ComplexOutputIsRowDiagonalDominantWhenRequested)
         std::vector<real_type> diag_dom(blk_sz);
         for (int i = 0; i < blk_sz; i++) {
             diag_dom[i] = diag_val[i] - row_del_sum[i];
-            avg_diag_dom += diag_dom[i];
-        }
-        auto min_it = std::min_element(diag_dom.begin(), diag_dom.end());
-        if (*min_it < min_diag_dom) {
-            min_diag_dom = *min_it;
         }
 
         ASSERT_TRUE(diagfound);
@@ -168,9 +162,6 @@ TEST_F(BlockMatrixGenerator, ComplexOutputIsRowDiagonalDominantWhenRequested)
             ASSERT_GT(diag_val[i], row_del_sum[i]);
         }
     }
-    avg_diag_dom /= (nbrows * blk_sz);
-    ASSERT_GT(min_diag_dom, 0);
-    ASSERT_GT(avg_diag_dom, 0);
 }
 
 

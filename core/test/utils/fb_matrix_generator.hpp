@@ -118,26 +118,6 @@ std::unique_ptr<MatrixType> generate_random_matrix_with_diag(
     return result;
 }
 
-template <typename ValueType>
-inline std::enable_if_t<!gko::is_complex<ValueType>(), std::complex<ValueType>>
-complexify_if_possible(const std::complex<ValueType> x)
-{
-    using namespace std::complex_literals;
-    std::complex<ValueType> y{x};
-    constexpr ValueType eps = std::numeric_limits<ValueType>::epsilon();
-    constexpr ValueType minval = std::numeric_limits<ValueType>::min();
-    const ValueType absval = abs(x);
-    if (absval > minval && abs(y.imag / absval) < eps) y.imag = abs(x);
-    return y;
-}
-
-template <typename ValueType>
-inline std::enable_if_t<!gko::is_complex<ValueType>(), ValueType>
-complexify_if_possible(const ValueType x)
-{
-    return x;
-}
-
 
 /**
  * Generates a block CSR matrix having the same sparsity pattern as
@@ -198,13 +178,15 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
                  ibz++) {
                 for (int i = 0; i < block_size * block_size; i++) {
                     vals[ibz * bs2 + i] =
-                        complexify_if_possible(off_diag_dist(rand_engine));
+                        gko::test::detail::get_rand_value<ValueType>(
+                            off_diag_dist, rand_engine);
                 }
                 if (col_idxs[ibz] == ibrow) {
                     for (int i = 0; i < block_size; i++)
                         vals[ibz * bs2 + i * block_size + i] =
-                            pow(-1, i) *
-                            complexify_if_possible(diag_dist(rand_engine));
+                            static_cast<ValueType>(pow(-1, i)) *
+                            gko::test::detail::get_rand_value<ValueType>(
+                                diag_dist, rand_engine);
                 }
             }
         } else {
@@ -212,7 +194,8 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
                  ibz++) {
                 for (int i = 0; i < bs2; i++) {
                     vals[ibz * bs2 + i] =
-                        complexify_if_possible(norm_dist(rand_engine));
+                        gko::test::detail::get_rand_value<ValueType>(
+                            norm_dist, rand_engine);
                 }
             }
         }
