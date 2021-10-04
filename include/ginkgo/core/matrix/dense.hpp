@@ -1217,7 +1217,7 @@ std::unique_ptr<Matrix> initialize(size_type stride,
                                    typename Matrix::value_type val,
                                    const dim<2> size,
                                    std::shared_ptr<const Executor> exec,
-                                   TArgs &&... create_args)
+                                   TArgs&&... create_args)
 {
     using dense = matrix::Dense<typename Matrix::value_type>;
     auto tmp = dense::create(exec->get_master(), size, stride);
@@ -1254,7 +1254,7 @@ template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(typename Matrix::value_type val,
                                    const dim<2> size,
                                    std::shared_ptr<const Executor> exec,
-                                   TArgs &&... create_args)
+                                   TArgs&&... create_args)
 {
     return initialize<Matrix>(1, val, std::move(size), std::move(exec),
                               std::forward<TArgs>(create_args)...);

@@ -30,15 +30,17 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_CONSTRAINTS_CONSTRAINED_SYSTEM_HPP_
-#define GKO_PUBLIC_CORE_CONSTRAINTS_CONSTRAINED_SYSTEM_HPP_
+#ifndef GKO_PUBLIC_CORE_CONSTRAINTS_CONSTRAINTS_HANDLER_HPP_
+#define GKO_PUBLIC_CORE_CONSTRAINTS_CONSTRAINTS_HANDLER_HPP_
+
+
+#include <memory>
+
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
-#include <memory>
 
 namespace gko {
 namespace constraints {
@@ -350,4 +352,4 @@ private:
 }  // namespace constraints
 }  // namespace gko
 
-#endif  // GKO_PUBLIC_CORE_CONSTRAINTS_CONSTRAINED_SYSTEM_HPP_
+#endif  // GKO_PUBLIC_CORE_CONSTRAINTS_CONSTRAINTS_HANDLER_HPP_

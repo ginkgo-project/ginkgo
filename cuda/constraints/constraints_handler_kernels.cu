@@ -32,7 +32,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/constraints/constraints_handler_kernels.hpp"
 
+
 #include <memory>
+
 
 #include <ginkgo/core/base/array.hpp>
 
