@@ -334,7 +334,7 @@ namespace {
 template <int mat_blk_sz, typename ValueType, typename IndexType>
 void sort_by_column_index_impl(
     syn::value_list<int, mat_blk_sz>,
-    matrix::Fbcsr<ValueType, IndexType> *const to_sort)
+    matrix::Fbcsr<ValueType, IndexType>* const to_sort)
 {
     auto row_ptrs = to_sort->get_const_row_ptrs();
     auto col_idxs = to_sort->get_col_idxs();
@@ -343,8 +343,8 @@ void sort_by_column_index_impl(
     constexpr int bs2 = mat_blk_sz * mat_blk_sz;
 #pragma omp parallel for
     for (IndexType i = 0; i < nbrows; ++i) {
-        IndexType *const brow_col_idxs = col_idxs + row_ptrs[i];
-        ValueType *const brow_vals = values + row_ptrs[i] * bs2;
+        IndexType* const brow_col_idxs = col_idxs + row_ptrs[i];
+        ValueType* const brow_vals = values + row_ptrs[i] * bs2;
         const IndexType nbnz_brow = row_ptrs[i + 1] - row_ptrs[i];
 
         std::vector<IndexType> col_permute(nbnz_brow);

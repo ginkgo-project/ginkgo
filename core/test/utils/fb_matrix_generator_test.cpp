@@ -130,8 +130,8 @@ TEST_F(BlockMatrixGenerator, ComplexOutputIsRowDiagonalDominantWhenRequested)
     const auto nbnz = cbmtx->get_num_stored_blocks();
     const Dbv_t vals(gko::to_array<gko::size_type>(nbnz, blk_sz, blk_sz),
                      cbmtx->get_const_values());
-    const int *const row_ptrs = cbmtx->get_const_row_ptrs();
-    const int *const col_idxs = cbmtx->get_const_col_idxs();
+    const int* const row_ptrs = cbmtx->get_const_row_ptrs();
+    const int* const col_idxs = cbmtx->get_const_col_idxs();
 
     real_type min_diag_dom{1000.0}, avg_diag_dom{};
     for (int irow = 0; irow < nbrows; irow++) {
