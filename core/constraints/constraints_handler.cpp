@@ -154,6 +154,148 @@ void ZeroRowsStrategy<ValueType, IndexType>::correct_solution(
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ZERO_ROWS_STRATEGY);
 
 
+template <typename ValueType, typename IndexType>
+ConstraintsHandler<ValueType, IndexType>::ConstraintsHandler(
+    Array<IndexType> idxs, std::shared_ptr<LinOp> system_operator,
+    std::shared_ptr<const Dense> values,
+    std::shared_ptr<const Dense> right_hand_side,
+    std::shared_ptr<const Dense> initial_guess,
+    std::unique_ptr<ApplyConstraintsStrategy<ValueType, IndexType>> strategy)
+    : idxs_(std::move(idxs)),
+      orig_operator_(std::move(system_operator)),
+      cons_operator_(strategy->construct_operator(idxs_, orig_operator_)),
+      strategy_(std::move(strategy))
+{
+    // the order of the with_* calls matters.
+    // with_initial_guess depends on the rhs
+    // with_constrained_values depends on the initial guess
+    this->with_right_hand_side(std::move(right_hand_side));
+    if (initial_guess) {
+        this->with_initial_guess(std::move(initial_guess));
+    }
+    this->with_constrained_values(std::move(values));
+    reconstruct_system();
+}
+
+
+template <typename ValueType, typename IndexType>
+ConstraintsHandler<ValueType, IndexType>::ConstraintsHandler(
+    Array<IndexType> idxs, std::shared_ptr<LinOp> system_operator,
+    std::unique_ptr<ApplyConstraintsStrategy<ValueType, IndexType>> strategy)
+    : idxs_(std::move(idxs)),
+      orig_operator_(std::move(system_operator)),
+      cons_operator_(strategy->construct_operator(idxs_, orig_operator_)),
+      strategy_(std::move(strategy))
+{}
+
+
+template <typename ValueType, typename IndexType>
+ConstraintsHandler<ValueType, IndexType>&
+ConstraintsHandler<ValueType, IndexType>::with_constrained_values(
+    std::shared_ptr<const Dense> values)
+{
+    values_ = std::move(values);
+
+    if (!cons_init_guess_) {
+        auto exec = orig_rhs_ ? orig_rhs_->get_executor()
+                              : orig_operator_->get_executor();
+        auto size = orig_rhs_ ? orig_rhs_->get_size()
+                              : dim<2>{orig_operator_->get_size()[0], 1};
+        zero_init_guess_ = detail::zero_guess_with_constrained_values(
+            exec, size, idxs_, values_.get());
+    }
+
+    // invalidate previous pointers
+    cons_init_guess_.reset();
+    cons_rhs_.reset();
+
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+ConstraintsHandler<ValueType, IndexType>&
+ConstraintsHandler<ValueType, IndexType>::with_right_hand_side(
+    std::shared_ptr<const Dense> right_hand_side)
+{
+    orig_rhs_ = std::move(right_hand_side);
+
+    // invalidate previous pointer
+    cons_rhs_.reset();
+
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+ConstraintsHandler<ValueType, IndexType>&
+ConstraintsHandler<ValueType, IndexType>::with_initial_guess(
+    std::shared_ptr<const Dense> initial_guess)
+{
+    orig_init_guess_ = std::move(initial_guess);
+
+    // invalidate previous pointers
+    cons_init_guess_.reset();
+    cons_rhs_.reset();
+
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<const LinOp>
+ConstraintsHandler<ValueType, IndexType>::get_operator()
+{
+    return cons_operator_;
+}
+
+
+template <typename ValueType, typename IndexType>
+const LinOp* ConstraintsHandler<ValueType, IndexType>::get_right_hand_side()
+{
+    if (!cons_rhs_) {
+        if (!cons_init_guess_) {
+            reconstruct_system();
+        } else {
+            cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
+                idxs_, lend(cons_operator_), lend(used_init_guess()),
+                lend(orig_rhs_)));
+        }
+    }
+    return cons_rhs_.get();
+}
+
+
+template <typename ValueType, typename IndexType>
+LinOp* ConstraintsHandler<ValueType, IndexType>::get_initial_guess()
+{
+    if (!cons_init_guess_) {
+        cons_init_guess_ = as<Dense>(strategy_->construct_initial_guess(
+            idxs_, lend(cons_operator_), lend(used_init_guess()),
+            lend(values_)));
+    }
+    return cons_init_guess_.get();
+}
+
+
+template <typename ValueType, typename IndexType>
+void ConstraintsHandler<ValueType, IndexType>::reconstruct_system()
+{
+    cons_init_guess_ = as<Dense>(strategy_->construct_initial_guess(
+        idxs_, lend(cons_operator_), lend(used_init_guess()), lend(values_)));
+    cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
+        idxs_, lend(cons_operator_), lend(used_init_guess()), lend(orig_rhs_)));
+}
+
+
+template <typename ValueType, typename IndexType>
+void ConstraintsHandler<ValueType, IndexType>::correct_solution(Dense* solution)
+{
+    strategy_->correct_solution(idxs_, lend(values_), lend(used_init_guess()),
+                                solution);
+}
+
+
 #define GKO_DECLARE_CONSTRAINTS_HANDLER(ValueType, IndexType) \
     class ConstraintsHandler<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONSTRAINTS_HANDLER);

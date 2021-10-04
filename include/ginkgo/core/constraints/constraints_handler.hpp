@@ -142,18 +142,7 @@ public:
         std::shared_ptr<const Dense> initial_guess = nullptr,
         std::unique_ptr<ApplyConstraintsStrategy<ValueType, IndexType>>
             strategy =
-                std::make_unique<ZeroRowsStrategy<ValueType, IndexType>>())
-        : idxs_(std::move(idxs)),
-          orig_operator_(std::move(system_operator)),
-          cons_operator_(strategy->construct_operator(idxs_, orig_operator_)),
-          strategy_(std::move(strategy))
-    {
-        if (initial_guess) {
-            this->with_initial_guess(std::move(initial_guess));
-        }
-        this->with_constrained_values(std::move(values));
-        this->with_right_hand_side(std::move(right_hand_side));
-    }
+                std::make_unique<ZeroRowsStrategy<ValueType, IndexType>>());
 
     /**
      * Initializes the constrained system.
@@ -170,12 +159,7 @@ public:
         Array<IndexType> idxs, std::shared_ptr<LinOp> system_operator,
         std::unique_ptr<ApplyConstraintsStrategy<ValueType, IndexType>>
             strategy =
-                std::make_unique<ZeroRowsStrategy<ValueType, IndexType>>())
-        : idxs_(std::move(idxs)),
-          orig_operator_(std::move(system_operator)),
-          cons_operator_(strategy->construct_operator(idxs_, orig_operator_)),
-          strategy_(std::move(strategy))
-    {}
+                std::make_unique<ZeroRowsStrategy<ValueType, IndexType>>());
 
     /**
      * Sets new contrained values, the corresponding indices are not changed.
@@ -186,25 +170,7 @@ public:
      * @return *this
      */
     ConstraintsHandler& with_constrained_values(
-        std::shared_ptr<const Dense> values)
-    {
-        values_ = std::move(values);
-
-        if (!cons_init_guess_) {
-            auto exec = orig_rhs_ ? orig_rhs_->get_executor()
-                                  : orig_operator_->get_executor();
-            auto size = orig_rhs_ ? orig_rhs_->get_size()
-                                  : dim<2>{orig_operator_->get_size()[0], 1};
-            zero_init_guess_ = detail::zero_guess_with_constrained_values(
-                exec, size, idxs_, values_.get());
-        }
-
-        // invalidate previous pointers
-        cons_init_guess_.reset();
-        cons_rhs_.reset();
-
-        return *this;
-    }
+        std::shared_ptr<const Dense> values);
 
     /**
      * Set a new right hand side for the linear system.
@@ -214,15 +180,7 @@ public:
      * @return *this
      */
     ConstraintsHandler& with_right_hand_side(
-        std::shared_ptr<const Dense> right_hand_side)
-    {
-        orig_rhs_ = std::move(right_hand_side);
-
-        // invalidate previous pointer
-        cons_rhs_.reset();
-
-        return *this;
-    }
+        std::shared_ptr<const Dense> right_hand_side);
 
     /**
      * Set a new initial guess for the linear system. The guess must contain
@@ -234,21 +192,12 @@ public:
      * @return *this
      */
     ConstraintsHandler& with_initial_guess(
-        std::shared_ptr<const Dense> initial_guess)
-    {
-        orig_init_guess_ = std::move(initial_guess);
-
-        // invalidate previous pointers
-        cons_init_guess_.reset();
-        cons_rhs_.reset();
-
-        return *this;
-    }
+        std::shared_ptr<const Dense> initial_guess);
 
     /**
      * Read access to the constrained operator
      */
-    std::shared_ptr<const LinOp> get_operator() { return cons_operator_; }
+    std::shared_ptr<const LinOp> get_operator();
 
     /**
      * Read access to the right hand side of the constrained system.
@@ -258,19 +207,7 @@ public:
      * initial guess if necessary. Without further with_* calls, this function
      * does not recompute the right-hand-side.
      */
-    const LinOp* get_right_hand_side()
-    {
-        if (!cons_rhs_) {
-            if (!cons_init_guess_) {
-                reconstruct_system();
-            } else {
-                cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
-                    idxs_, lend(cons_operator_), lend(used_init_guess()),
-                    lend(orig_rhs_)));
-            }
-        }
-        return cons_rhs_.get();
-    }
+    const LinOp* get_right_hand_side();
 
     /**
      * Read/write access to the initial guess for the constrained system
@@ -281,15 +218,7 @@ public:
      *
      * @note Reconstructs the initial guess at every call.
      */
-    LinOp* get_initial_guess()
-    {
-        if (!cons_init_guess_) {
-            cons_init_guess_ = as<Dense>(strategy_->construct_initial_guess(
-                idxs_, lend(cons_operator_), lend(used_init_guess()),
-                lend(values_)));
-        }
-        return cons_init_guess_.get();
-    }
+    LinOp* get_initial_guess();
 
     /**
      * Forces the reconstruction of the constrained system.
@@ -298,25 +227,13 @@ public:
      * get_right_hand_side, and get_initial_guess. If no initial guess was
      * provided, the guess will be set to zero.
      */
-    void reconstruct_system()
-    {
-        cons_init_guess_ = as<Dense>(strategy_->construct_initial_guess(
-            idxs_, lend(cons_operator_), lend(used_init_guess()),
-            lend(values_)));
-        cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
-            idxs_, lend(cons_operator_), lend(used_init_guess()),
-            lend(orig_rhs_)));
-    }
+    void reconstruct_system();
 
     /**
      * Obtains the solution to the original constrained system from the solution
      * of the modified system
      */
-    void correct_solution(Dense* solution)
-    {
-        strategy_->correct_solution(idxs_, lend(values_),
-                                    lend(used_init_guess()), solution);
-    }
+    void correct_solution(Dense* solution);
 
     LinOp* get_orig_operator() { return lend(orig_operator_); }
 
