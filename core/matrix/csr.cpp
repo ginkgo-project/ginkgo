@@ -814,7 +814,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_MATRIX);
 
 #define GKO_DECLARE_BLOCK_DIAG_CSR_MATRIX(ValueType, IndexType)                \
     std::unique_ptr<matrix::Csr<ValueType, IndexType>>                         \
-    block_diagonal_csr_matrix(                                                 \
+    create_block_diagonal_matrix(                                              \
         std::shared_ptr<const Executor> exec,                                  \
         const std::vector<std::unique_ptr<matrix::Csr<ValueType, IndexType>>>& \
             matrices)
