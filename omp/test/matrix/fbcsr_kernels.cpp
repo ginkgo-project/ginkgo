@@ -270,7 +270,7 @@ TEST_F(Fbcsr, TransposeIsEquivalentToRef)
     auto d_trans = gko::as<Mtx>(dmtx->transpose());
 
     GKO_ASSERT_MTX_NEAR(d_trans, trans, 0.0);
-    // ASSERT_TRUE(d_trans->is_sorted_by_column_index());
+    ASSERT_TRUE(d_trans->is_sorted_by_column_index());
 }
 
 
@@ -282,7 +282,7 @@ TEST_F(Fbcsr, ConjugateTransposeIsEquivalentToRef)
     auto d_trans = gko::as<ComplexMtx>(complex_dmtx->conj_transpose());
 
     GKO_ASSERT_MTX_NEAR(d_trans, trans, 0.0);
-    // ASSERT_TRUE(d_trans->is_sorted_by_column_index());
+    ASSERT_TRUE(d_trans->is_sorted_by_column_index());
 }
 
 

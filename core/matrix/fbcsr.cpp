@@ -156,8 +156,6 @@ template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* const b,
                                              LinOp* const x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
-    using Dense = Dense<ValueType>;
     if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType>*>(b)) {
         // if b is a FBCSR matrix, we need an SpGeMM
         GKO_NOT_SUPPORTED(b_fbcsr);
@@ -179,8 +177,6 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* const alpha,
                                              const LinOp* const beta,
                                              LinOp* const x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
-    using Dense = Dense<ValueType>;
     if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType>*>(b)) {
         // if b is a FBCSR matrix, we need an SpGeMM
         GKO_NOT_SUPPORTED(b_fbcsr);

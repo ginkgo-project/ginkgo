@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/fbcsr_kernels.hpp"
 #include "core/test/matrix/fbcsr_sample.hpp"
 #include "core/test/utils.hpp"
+#include "core/test/utils/value_generator.hpp"
 
 
 namespace {
@@ -139,18 +140,19 @@ TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 template <typename T>
-constexpr typename std::enable_if_t<!gko::is_complex_s<T>::value, T>
-get_some_number()
-{
-    return static_cast<T>(1.2);
-}
-
-template <typename T>
-constexpr typename std::enable_if_t<gko::is_complex_s<T>::value, T>
-get_some_number()
+std::unique_ptr<gko::matrix::Dense<T>> get_some_vectors(
+    std::shared_ptr<const gko::Executor> exec, const size_t nrows,
+    const size_t nrhs)
 {
     using RT = gko::remove_complex<T>;
-    return {static_cast<RT>(1.2), static_cast<RT>(3.4)};
+    std::ranlux48 engine(39);
+    std::normal_distribution<RT> dist(0.0, 5.0);
+    auto x = gko::matrix::Dense<T>::create(exec, gko::dim<2>{nrows, nrhs});
+    T* const xvals = x->get_values();
+    for (int i = 0; i < nrows * nrhs; i++) {
+        xvals[i] = gko::test::detail::get_rand_value<T>(dist, engine);
+    }
+    return x;
 }
 
 
@@ -161,11 +163,7 @@ TYPED_TEST(Fbcsr, AppliesToDenseVector)
     using index_type = typename TestFixture::index_type;
     const index_type nrows = this->mtx2->get_size()[0];
     const index_type ncols = this->mtx2->get_size()[1];
-    auto x = Vec::create(this->exec, gko::dim<2>{(gko::size_type)ncols, 1});
-    T* const xvals = x->get_values();
-    for (index_type i = 0; i < ncols; i++) {
-        xvals[i] = std::sin(static_cast<T>(static_cast<float>((i + 1) ^ 2)));
-    }
+    auto x = get_some_vectors<T>(this->exec, ncols, 1);
     auto y = Vec::create(this->exec, gko::dim<2>{(gko::size_type)nrows, 1});
     auto yref = Vec::create(this->exec, gko::dim<2>{(gko::size_type)nrows, 1});
     using Csr = typename TestFixture::Csr;
@@ -190,13 +188,7 @@ TYPED_TEST(Fbcsr, AppliesToDenseMatrix)
     const gko::size_type nrows = this->mtx2->get_size()[0];
     const gko::size_type ncols = this->mtx2->get_size()[1];
     const gko::size_type nvecs = 3;
-    auto x = Vec::create(this->exec, gko::dim<2>{ncols, nvecs});
-    for (index_type i = 0; i < ncols; i++) {
-        for (index_type j = 0; j < nvecs; j++) {
-            x->at(i, j) = (static_cast<T>(3.0 * i) + get_some_number<T>()) /
-                          static_cast<T>(j + 1.0);
-        }
-    }
+    auto x = get_some_vectors<T>(this->exec, ncols, nvecs);
     auto y = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
     auto yref = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
 
@@ -218,13 +210,7 @@ TYPED_TEST(Fbcsr, AppliesToDenseComplexMatrix)
     const gko::size_type nrows = this->mtx2->get_size()[0];
     const gko::size_type ncols = this->mtx2->get_size()[1];
     const gko::size_type nvecs = 3;
-    auto x = CVec::create(this->exec, gko::dim<2>{ncols, nvecs});
-    for (index_type i = 0; i < ncols; i++) {
-        for (index_type j = 0; j < nvecs; j++) {
-            x->at(i, j) = (static_cast<CT>(3.0 * i) + get_some_number<CT>()) /
-                          CT{j + 1.0f, 2.0f * j};
-        }
-    }
+    auto x = get_some_vectors<CT>(this->exec, ncols, nvecs);
     auto y = CVec::create(this->exec, gko::dim<2>{nrows, nvecs});
     auto yref = CVec::create(this->exec, gko::dim<2>{nrows, nvecs});
 
@@ -248,15 +234,8 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseVector)
     auto beta = gko::initialize<Vec>({betav}, this->exec);
     const gko::size_type nrows = this->mtx2->get_size()[0];
     const gko::size_type ncols = this->mtx2->get_size()[1];
-    auto x = Vec::create(this->exec, gko::dim<2>{ncols, 1});
-    auto y = Vec::create(this->exec, gko::dim<2>{nrows, 1});
-    for (index_type i = 0; i < ncols; i++) {
-        x->at(i, 0) = (i + 1.0) * (i + 1.0);
-    }
-    for (index_type i = 0; i < nrows; i++) {
-        y->at(i, 0) = static_cast<T>(std::sin(2 * 3.14 * (i + 0.1) / nrows)) +
-                      get_some_number<T>();
-    }
+    auto x = get_some_vectors<T>(this->exec, ncols, 1);
+    auto y = get_some_vectors<T>(this->exec, nrows, 1);
     auto yref = y->clone();
 
     this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());
@@ -280,21 +259,8 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseMatrix)
     const gko::size_type nrows = this->mtx2->get_size()[0];
     const gko::size_type ncols = this->mtx2->get_size()[1];
     const gko::size_type nvecs = 3;
-    auto x = Vec::create(this->exec, gko::dim<2>{ncols, nvecs});
-    auto y = Vec::create(this->exec, gko::dim<2>{nrows, nvecs});
-    for (index_type i = 0; i < ncols; i++) {
-        for (index_type j = 0; j < nvecs; j++) {
-            x->at(i, j) =
-                std::log(static_cast<T>(0.1 + static_cast<float>((i + 1) ^ 2)));
-        }
-    }
-    for (index_type i = 0; i < nrows; i++) {
-        for (index_type j = 0; j < nvecs; j++) {
-            y->at(i, j) =
-                static_cast<T>(std::sin(2 * 3.14 * (i + j + 0.1) / nrows)) +
-                get_some_number<T>();
-        }
-    }
+    auto x = get_some_vectors<T>(this->exec, ncols, nvecs);
+    auto y = get_some_vectors<T>(this->exec, nrows, nvecs);
     auto yref = y->clone();
 
     this->mtx2->apply(alpha.get(), x.get(), beta.get(), y.get());

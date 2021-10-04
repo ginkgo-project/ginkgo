@@ -90,10 +90,9 @@ protected:
     {
         value_type* const xarr = x->get_values();
         for (index_type i = 0; i < x->get_size()[0] * x->get_size()[1]; i++) {
-            xarr[i] = static_cast<value_type>(
-                static_cast<real_type>(2.0) *
-                std::sin(static_cast<real_type>(i / 2.0) +
-                         gko::test::get_some_number<value_type>()));
+            xarr[i] = static_cast<real_type>(2.0) *
+                      std::sin(static_cast<real_type>(i / 2.0) +
+                               gko::test::get_some_number<value_type>());
         }
     }
 };
@@ -230,7 +229,7 @@ TYPED_TEST(Fbcsr, ConjTransposeIsEquivalentToRefSortedBS3)
     using index_type = typename Mtx::index_type;
     auto rand_cuda = Mtx::create(this->cuda);
     rand_cuda->copy_from(gko::lend(this->rsorted_ref));
-    auto trans_ref_linop = this->rsorted_ref->transpose();
+    auto trans_ref_linop = this->rsorted_ref->conj_transpose();
     std::unique_ptr<const Mtx> trans_ref =
         gko::as<const Mtx>(std::move(trans_ref_linop));
 

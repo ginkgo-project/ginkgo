@@ -119,12 +119,6 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                                 c->get_values());
             } else {
                 GKO_NOT_IMPLEMENTED;
-                // cusparse::bsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                //                 CUSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb,
-                //                 nnzb, &alpha, descr, values, row_ptrs,
-                //                 col_idxs, bs, b->get_const_values(),
-                //                 b->get_stride(), &beta, c->get_values(),
-                //                 c->get_stride());
             }
 
             cusparse::destroy(descr);
