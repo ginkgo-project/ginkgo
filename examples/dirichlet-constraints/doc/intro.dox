@@ -1,0 +1,31 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+This example introduces the handling of Dirichlet constraints on a linear
+system. To this end, a 1D Poisson equation:
+
+\f{align*}{
+    u : &[0, 1] \rightarrow R\\
+    u'' &= f, \quad f\in R\\
+    u(0) &= u0\\
+    u(1) &= u1
+\f}
+
+discretized with linear finite elements on an equidistant grid with `E` line
+segments (`E` can be controlled with a command line parameter) is considered.
+The corresponding stiffness matrix and right-hand-side are first assembled
+without regarding the dirichlet constraints at all. In a second step, the
+constraints are added, using the `ConstraintsHandler` class. The constrained
+system is then solved using Ginkgo's implementation of the CG method
+preconditioned with block-Jacobi.
+
+The value $`f` $is set to $`f = 1`$ and the solution is chosen as
+$u(x) = -\frac{1}{2}x^2+\frac{3}{2}x+1$, but that can be changed in the `main`
+function. It is also possible to specify on which executor Ginkgo will solve
+the system via the command line.
+
+The intention of the example is to show how Dirichlet conditions, or more
+generally constraints of the form $u_i = g_i, \forall i \in I_c$, can be set
+from Ginkgo.
+
+<h3> About the example </h3>
+
