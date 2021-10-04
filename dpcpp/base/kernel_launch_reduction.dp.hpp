@@ -386,12 +386,6 @@ void generic_kernel_col_reduction_2d_small(sycl::handler& cgh, int64 rows,
             const auto ssg_num =
                 thread::get_subwarp_num_flat<ssg_size, int64>(id);
             const auto workgroup = group::this_thread_block(id);
-            // TODO remove
-            if (id.get_local_id(2) < shared_storage) {
-                block_partial[id.get_local_id(2)] = init;
-            }
-            workgroup.sync();
-            // TODO end
             const auto subgroup = group::tiled_partition<sg_size>(workgroup);
             const auto sg_rank = subgroup.thread_rank();
             const auto ssg_rank = sg_rank % ssg_size;

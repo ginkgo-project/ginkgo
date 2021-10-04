@@ -279,7 +279,8 @@ TEST_F(KernelLaunch, Reduction1D)
         },
         int64{}, output.get_data(), size_type{100000}, output);
 
-    EXPECT_EQ(exec->copy_val_to_host(output.get_const_data()), 10000100000ll);
+    // 2 * sum i=0...99999 (i+1)
+    EXPECT_EQ(exec->copy_val_to_host(output.get_const_data()), 10000100000LL);
 
     gko::kernels::dpcpp::run_kernel_reduction(
         exec,
@@ -299,7 +300,8 @@ TEST_F(KernelLaunch, Reduction1D)
         },
         int64{}, output.get_data(), size_type{100}, output);
 
-    EXPECT_EQ(exec->copy_val_to_host(output.get_const_data()), 10100ll);
+    // 2 * sum i=0...99 (i+1)
+    EXPECT_EQ(exec->copy_val_to_host(output.get_const_data()), 10100LL);
 }
 
 
@@ -325,7 +327,8 @@ TEST_F(KernelLaunch, Reduction2D)
         },
         int64{}, output.get_data(), gko::dim<2>{1000, 100}, output);
 
-    EXPECT_EQ(exec->copy_val_to_host(output.get_const_data()), 10110100000ll);
+    // 4 * sum i=0...999 sum j=0...99 of (i+1)*(j+1)
+    EXPECT_EQ(exec->copy_val_to_host(output.get_const_data()), 10110100000LL);
 
     gko::kernels::dpcpp::run_kernel_reduction(
         exec,
@@ -345,7 +348,8 @@ TEST_F(KernelLaunch, Reduction2D)
         },
         int64{}, output.get_data(), gko::dim<2>{10, 10}, output);
 
-    ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), 12100ll);
+    // 4 * sum i=0...9 sum j=0...9 of (i+1)*(j+1)
+    ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), 12100LL);
 }
 
 
@@ -360,6 +364,8 @@ TEST_F(KernelLaunch, ReductionRow2D)
             std::fill_n(host_ref.get_data(), 2 * num_rows, 1234);
             gko::Array<int64> output{exec, host_ref};
             for (int i = 0; i < num_rows; i++) {
+                // we are computing 2 * sum {j=0, j<cols} (i+1)*(j+1) for each
+                // row i and storing it with stride 2
                 host_ref.get_data()[2 * i] =
                     static_cast<int64>(num_cols) * (num_cols + 1) * (i + 1);
             }
@@ -395,6 +401,8 @@ TEST_F(KernelLaunch, ReductionCol2D)
                                        static_cast<size_type>(num_cols)};
             gko::Array<int64> output{exec, static_cast<size_type>(num_cols)};
             for (int i = 0; i < num_cols; i++) {
+                // we are computing 2 * sum {j=0, j<row} (i+1)*(j+1) for each
+                // column i
                 host_ref.get_data()[i] =
                     static_cast<int64>(num_rows) * (num_rows + 1) * (i + 1);
             }

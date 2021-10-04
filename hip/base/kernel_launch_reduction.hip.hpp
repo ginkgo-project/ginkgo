@@ -257,12 +257,6 @@ __global__
     const auto subwarp_num =
         thread::get_subwarp_num_flat<subwarp_size, int64>();
     const auto block = group::this_thread_block();
-    //
-    if (threadIdx.x < shared_storage) {
-        block_partial[threadIdx.x] = init;
-    }
-    block.sync();
-    //
     const auto warp = group::tiled_partition<warp_size>(block);
     const auto warp_rank = warp.thread_rank();
     const auto subwarp_rank = warp_rank % subwarp_size;
