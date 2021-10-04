@@ -131,7 +131,7 @@ TEST_F(Csr, CreateSubMatrixIsEquivalentToRef)
     auto smat1 = this->mtx->create_submatrix(rspan, cspan);
     auto sdmat1 = this->dmtx->create_submatrix(rspan, cspan);
 
-    GKO_ASSERT_MTX_NEAR(sdmat1, smat1, 1e-14);
+    GKO_ASSERT_MTX_NEAR(sdmat1, smat1, 0.0);
 }
 
 

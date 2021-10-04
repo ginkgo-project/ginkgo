@@ -132,7 +132,7 @@ TEST_F(Csr, CreateSubMatrixIsEquivalentToRef)
     auto hmat = Mtx::create(this->ref);
     hmat->copy_from(sdmat1.get());
 
-    GKO_ASSERT_MTX_NEAR(hmat, smat1, 1e-14);
+    GKO_ASSERT_MTX_NEAR(hmat, smat1, 0.0);
 }
 
 

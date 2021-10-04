@@ -1100,8 +1100,8 @@ __global__
         const IndexType* __restrict__ col_idxs,
         size_type* __restrict__ nnz_per_row)
 {
-    const auto tidx = thread::get_thread_id_flat();
-    if (tidx >= row_span.begin && tidx < row_span.end) {
+    const auto tidx = thread::get_thread_id_flat() + row_span.begin;
+    if (tidx < row_span.end) {
         for (size_type col = row_ptrs[tidx]; col < row_ptrs[tidx + 1]; ++col) {
             if (col_idxs[col] >= col_span.begin &&
                 col_idxs[col] < col_span.end) {

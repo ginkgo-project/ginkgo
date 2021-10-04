@@ -637,7 +637,7 @@ template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
-    const span& col_span, Array<size_type>* row_nnz)
+    const span& col_span, Array<IndexType>* row_nnz)
 {
     size_type res_row = 0;
     for (size_type row = row_span.begin; row < row_span.end; ++row) {
@@ -659,27 +659,28 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
                        const matrix::Csr<ValueType, IndexType>* source,
-                       const Array<size_type>* row_nnz, gko::span row_span,
-                       gko::span col_span,
+                       gko::span row_span, gko::span col_span,
                        matrix::Csr<ValueType, IndexType>* result)
 {
     auto row_offset = row_span.begin;
     auto col_offset = col_span.begin;
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
-    for (size_type row = 0; row < num_rows; ++row) {
-        result->get_row_ptrs()[row] = row_nnz->get_const_data()[row];
-    }
-    components::prefix_sum(exec, result->get_row_ptrs(), num_rows + 1);
+    auto res_row_ptrs = result->get_row_ptrs();
+    auto res_col_idxs = result->get_col_idxs();
+    auto res_values = result->get_values();
+    const auto src_row_ptrs = source->get_const_row_ptrs();
+    const auto src_col_idxs = source->get_const_col_idxs();
+    const auto src_values = source->get_const_values();
+
     size_type res_nnz = 0;
     for (size_type nnz = 0; nnz < source->get_num_stored_elements(); ++nnz) {
-        if (nnz >= source->get_const_row_ptrs()[row_offset] &&
-            nnz < source->get_const_row_ptrs()[row_offset + num_rows] &&
-            (source->get_const_col_idxs()[nnz] < (col_offset + num_cols) &&
-             source->get_const_col_idxs()[nnz] >= col_offset)) {
-            result->get_col_idxs()[res_nnz] =
-                source->get_const_col_idxs()[nnz] - col_offset;
-            result->get_values()[res_nnz] = source->get_const_values()[nnz];
+        if (nnz >= src_row_ptrs[row_offset] &&
+            nnz < src_row_ptrs[row_offset + num_rows] &&
+            (src_col_idxs[nnz] < (col_offset + num_cols) &&
+             src_col_idxs[nnz] >= col_offset)) {
+            res_col_idxs[res_nnz] = src_col_idxs[nnz] - col_offset;
+            res_values[res_nnz] = src_values[nnz];
             res_nnz++;
         }
     }
