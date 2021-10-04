@@ -54,6 +54,7 @@ using size_type = gko::size_type;
 using vec_type = gko::matrix::BatchDense<value_type>;
 using real_vec_type = gko::matrix::BatchDense<real_type>;
 using mtx_type = gko::matrix::BatchCsr<value_type, index_type>;
+// using mtx_type = gko::matrix::BatchEll<value_type, index_type>;
 using solver_type = gko::solver::BatchBicgstab<value_type>;
 
 
@@ -167,14 +168,7 @@ int main(int argc, char* argv[])
             .with_max_iterations(500)
             .with_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
-            // Set the number of intermediate vectors to store in GPU shared
-            //  memory rather than global memory. Lower values will enable
-            //  problems with larger individual systems to be solved, while
-            //  larger values will speed up the solve but will only work for
-            //  smaller systems.
-            // For BiCGStab, 10 is the maximum required.
-            .with_num_shared_vectors(10)
+            // .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .on(exec);
 
     // @sect3{Batch logger}
