@@ -40,6 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 
 #include "core/constraints/constraints_handler_kernels.hpp"
@@ -290,7 +292,18 @@ public:
               this->empty_idxs, this->empty_mtx, this->empty_values,
               this->empty_rhs, this->empty_init,
               std::make_unique<StrategyWithCounter<value_type, index_type>>(
-                  counter))
+                  counter)),
+          system_idxs(ref, {0, 3}),
+          system_mtx(gko::share(gko::initialize<mtx>(
+              {{2, -1, 0, 0}, {-1, 2, -1, 0}, {0, -1, 2, -1}, {0, 0, -1, 2}},
+              ref))),
+          system_values(
+              gko::share(gko::initialize<dense>({1, -11, -11, 1}, ref))),
+          system_rhs(gko::share(
+              gko::initialize<dense>({1. / 9, 1. / 9, 1. / 9, 1. / 9}, ref))),
+          system_init(gko::share(gko::initialize<dense>({1, 4, 5, 1}, ref))),
+          system_solution(gko::share(
+              gko::initialize<dense>({1, 1 + 1. / 9, 1 + 1. / 9, 1}, ref)))
     {}
 
 
@@ -305,6 +318,13 @@ public:
 
     gko::Array<index_type> def_idxs;
     std::shared_ptr<mtx> def_mtx;
+
+    gko::Array<index_type> system_idxs;
+    std::shared_ptr<mtx> system_mtx;
+    std::shared_ptr<dense> system_values;
+    std::shared_ptr<dense> system_rhs;
+    std::shared_ptr<dense> system_init;
+    std::shared_ptr<dense> system_solution;
 
     handler empty_handler;
 
@@ -513,6 +533,73 @@ TYPED_TEST(ConstrainedSystem, ReconstructsOnlyInitForGetInit)
 
     ASSERT_EQ(this->counter->rhs - prev_counter.rhs, 0);
     ASSERT_EQ(this->counter->init - prev_counter.init, 1);
+}
+
+TYPED_TEST(ConstrainedSystem, SolveConstrainedSystemWithoutInit)
+{
+    using value_type = typename TestFixture::value_type;
+    using dense = typename TestFixture::dense;
+    using handler = typename TestFixture::handler;
+    using cg = gko::solver::Cg<value_type>;
+    handler system_handler(this->system_idxs, this->system_mtx,
+                           this->system_values, this->system_rhs);
+    auto u = gko::as<dense>(system_handler.get_initial_guess());
+
+    cg::build()
+        .with_criteria(
+            gko::stop::Iteration::build().with_max_iters(4u).on(this->ref))
+        .on(this->ref)
+        ->generate(system_handler.get_operator())
+        ->apply(system_handler.get_right_hand_side(), u);
+    system_handler.correct_solution(u);
+
+    GKO_ASSERT_MTX_NEAR(u, this->system_solution.get(), r<value_type>::value);
+}
+
+
+TYPED_TEST(ConstrainedSystem, SolveConstrainedSystemWithInit)
+{
+    using value_type = typename TestFixture::value_type;
+    using dense = typename TestFixture::dense;
+    using handler = typename TestFixture::handler;
+    using cg = gko::solver::Cg<value_type>;
+    handler system_handler(this->system_idxs, this->system_mtx,
+                           this->system_values, this->system_rhs,
+                           this->system_init);
+    auto u = gko::as<dense>(system_handler.get_initial_guess());
+
+    cg::build()
+        .with_criteria(
+            gko::stop::Iteration::build().with_max_iters(4u).on(this->ref))
+        .on(this->ref)
+        ->generate(system_handler.get_operator())
+        ->apply(system_handler.get_right_hand_side(), u);
+    system_handler.correct_solution(u);
+
+    GKO_ASSERT_MTX_NEAR(u, this->system_solution.get(), r<value_type>::value);
+}
+
+
+TYPED_TEST(ConstrainedSystem, SolveConstrainedSystemLazy)
+{
+    using value_type = typename TestFixture::value_type;
+    using dense = typename TestFixture::dense;
+    using handler = typename TestFixture::handler;
+    using cg = gko::solver::Cg<value_type>;
+    handler system_handler(this->system_idxs, this->system_mtx);
+    system_handler.with_right_hand_side(this->system_rhs)
+        .with_constrained_values(this->system_values);
+    auto u = gko::as<dense>(system_handler.get_initial_guess());
+
+    cg::build()
+        .with_criteria(
+            gko::stop::Iteration::build().with_max_iters(4u).on(this->ref))
+        .on(this->ref)
+        ->generate(system_handler.get_operator())
+        ->apply(system_handler.get_right_hand_side(), u);
+    system_handler.correct_solution(u);
+
+    GKO_ASSERT_MTX_NEAR(u, this->system_solution.get(), r<value_type>::value);
 }
 
 
