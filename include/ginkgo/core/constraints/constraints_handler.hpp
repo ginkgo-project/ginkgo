@@ -53,10 +53,8 @@ class ApplyConstraintsStrategy
     : public EnableCreateMethod<
           ApplyConstraintsStrategy<ValueType, ValueType>> {
 public:
-    using operator_delete = std::function<void(LinOp*)>;
-
-    virtual std::unique_ptr<LinOp, operator_delete> construct_operator(
-        const Array<IndexType>& idxs, LinOp* op) = 0;
+    virtual std::shared_ptr<LinOp> construct_operator(
+        const Array<IndexType>& idxs, std::shared_ptr<LinOp> op) = 0;
 
     virtual std::unique_ptr<LinOp> construct_right_hand_side(
         const Array<IndexType>& idxs, const LinOp* op,
@@ -81,11 +79,8 @@ class ZeroRowsStrategy : public ApplyConstraintsStrategy<ValueType, IndexType> {
     using Dense = matrix::Dense<ValueType>;
 
 public:
-    using typename ApplyConstraintsStrategy<ValueType,
-                                            IndexType>::operator_delete;
-
-    std::unique_ptr<LinOp, operator_delete> construct_operator(
-        const Array<IndexType>& idxs, LinOp* op) override;
+    std::shared_ptr<LinOp> construct_operator(
+        const Array<IndexType>& idxs, std::shared_ptr<LinOp> op) override;
 
     std::unique_ptr<LinOp> construct_right_hand_side(
         const Array<IndexType>& idxs, const LinOp* op,
@@ -140,8 +135,7 @@ public:
                 std::make_unique<ZeroRowsStrategy<ValueType, IndexType>>())
         : idxs_(std::move(idxs)),
           orig_operator_(std::move(system_operator)),
-          cons_operator_(
-              strategy->construct_operator(idxs_, lend(orig_operator_))),
+          cons_operator_(strategy->construct_operator(idxs_, orig_operator_)),
           values_(std::move(values)),
           orig_rhs_(std::move(right_hand_side)),
           orig_init_guess_(initial_guess ? std::move(initial_guess)
@@ -180,8 +174,7 @@ public:
                 std::make_unique<ZeroRowsStrategy<ValueType, IndexType>>())
         : idxs_(std::move(idxs)),
           orig_operator_(std::move(system_operator)),
-          cons_operator_(
-              strategy->construct_operator(idxs_, lend(orig_operator_))),
+          cons_operator_(strategy->construct_operator(idxs_, orig_operator_)),
           strategy_(std::move(strategy))
     {}
 
@@ -246,7 +239,7 @@ public:
     /**
      * Read access to the constrained operator
      */
-    const LinOp* get_operator() { return cons_operator_.get(); }
+    std::shared_ptr<const LinOp> get_operator() { return cons_operator_; }
 
     /**
      * Read access to the right hand side of the constrained system.
@@ -330,14 +323,10 @@ public:
     }
 
 private:
-    using operator_delete =
-        typename ApplyConstraintsStrategy<ValueType,
-                                          IndexType>::operator_delete;
-
     Array<IndexType> idxs_;
 
     std::shared_ptr<LinOp> orig_operator_;
-    std::unique_ptr<LinOp, operator_delete> cons_operator_;
+    std::shared_ptr<LinOp> cons_operator_;
 
     std::unique_ptr<ApplyConstraintsStrategy<ValueType, IndexType>> strategy_;
 

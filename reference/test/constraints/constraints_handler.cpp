@@ -94,8 +94,7 @@ TYPED_TEST_SUITE(ZeroRowsStrategy, gko::test::ValueIndexTypes);
 TYPED_TEST(ZeroRowsStrategy, DoesNotOwnOriginalOperator)
 {
     {
-        this->strategy.construct_operator(this->empty_idxs,
-                                          this->empty_mtx.get());
+        this->strategy.construct_operator(this->empty_idxs, this->empty_mtx);
     }
 
     ASSERT_NO_FATAL_FAILURE(this->empty_mtx->get_size());
@@ -104,8 +103,8 @@ TYPED_TEST(ZeroRowsStrategy, DoesNotOwnOriginalOperator)
 
 TYPED_TEST(ZeroRowsStrategy, ConstructOperatorFromEmptyIndicesAndMatrix)
 {
-    auto result = this->strategy.construct_operator(this->empty_idxs,
-                                                    this->empty_mtx.get());
+    auto result =
+        this->strategy.construct_operator(this->empty_idxs, this->empty_mtx);
 
     ASSERT_EQ(result.get(), this->empty_mtx.get());
 }
@@ -115,13 +114,13 @@ TYPED_TEST(ZeroRowsStrategy, ConstructOperator)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using mtx = typename TestFixture::mtx;
-    auto csr = gko::initialize<mtx>(
-        {{1, 0, 2, 3}, {0, 4, 0, 0}, {0, 5, 6, 0}, {7, 0, 0, 8}}, this->ref);
+    auto csr = gko::share(gko::initialize<mtx>(
+        {{1, 0, 2, 3}, {0, 4, 0, 0}, {0, 5, 6, 0}, {7, 0, 0, 8}}, this->ref));
     auto result = gko::initialize<mtx>(
         {{1, 0, 0, 0}, {0, 4, 0, 0}, {0, 0, 1, 0}, {7, 0, 0, 8}}, this->ref);
     gko::Array<index_type> subset{this->ref, {0, 2}};
 
-    auto cons = this->strategy.construct_operator(subset, csr.get());
+    auto cons = this->strategy.construct_operator(subset, csr);
 
     GKO_ASSERT_MTX_NEAR(gko::as<mtx>(cons.get()), result.get(), 0);
 }
@@ -215,13 +214,11 @@ template <typename ValueType, typename IndexType>
 class StrategyWithCounter
     : public gko::constraints::ZeroRowsStrategy<ValueType, IndexType> {
 public:
-    using typename gko::constraints::ApplyConstraintsStrategy<
-        ValueType, IndexType>::operator_delete;
-
     StrategyWithCounter(std::shared_ptr<apply_counter> c_) : c(std::move(c_)) {}
 
-    std::unique_ptr<gko::LinOp, operator_delete> construct_operator(
-        const gko::Array<IndexType>& idxs, gko::LinOp* op) override
+    std::shared_ptr<gko::LinOp> construct_operator(
+        const gko::Array<IndexType>& idxs,
+        std::shared_ptr<gko::LinOp> op) override
     {
         c->op++;
         return gko::constraints::ZeroRowsStrategy<
