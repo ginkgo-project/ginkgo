@@ -36,7 +36,7 @@ namespace kernel {
 template <int mat_blk_sz, int subwarp_size, typename ValueType,
           typename IndexType>
 __global__ __launch_bounds__(default_block_size) void transpose_blocks(
-    const IndexType nbnz, ValueType *const values)
+    const IndexType nbnz, ValueType* const values)
 {
     constexpr int warps_in_block{default_block_size / subwarp_size};
     const auto total_subwarp_count =
