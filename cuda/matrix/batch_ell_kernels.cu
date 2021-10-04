@@ -90,6 +90,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     const auto a_ub = get_batch_struct(a);
     const auto b_ub = get_batch_struct(b);
     const auto c_ub = get_batch_struct(c);
+    const auto num_rows = a_ub.num_rows;
+    const auto nbatches = a_ub.num_batch;
     spmv<<<num_blocks, default_block_size>>>(a_ub, b_ub, c_ub);
 }
 
@@ -209,18 +211,7 @@ void batch_scale(std::shared_ptr<const CudaExecutor> exec,
                  const matrix::BatchDense<ValueType>* const left_scale,
                  const matrix::BatchDense<ValueType>* const right_scale,
                  matrix::BatchEll<ValueType, IndexType>* const mat)
-{
-    if (!left_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
-    if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
-
-    const auto m_ub = get_batch_struct(mat);
-
-    const int num_blocks = mat->get_num_batch_entries();
-    uniform_batch_scale<<<num_blocks, default_block_size>>>(
-        as_cuda_type(left_scale->get_const_values()),
-        as_cuda_type(right_scale->get_const_values()), m_ub,
-        mat->get_size().at()[1]);
-}
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_SCALE);
@@ -232,20 +223,7 @@ void pre_diag_scale_system(
     const matrix::BatchDense<ValueType>* const left_scale,
     const matrix::BatchDense<ValueType>* const right_scale,
     matrix::BatchEll<ValueType, IndexType>* const a,
-    matrix::BatchDense<ValueType>* const b)
-{
-    const size_type nbatch = a->get_num_batch_entries();
-    const int nrows = static_cast<int>(a->get_size().at()[0]);
-    const size_type nnz = a->get_num_stored_elements() / nbatch;
-    const int nrhs = static_cast<int>(b->get_size().at()[1]);
-    const size_type b_stride = b->get_stride().at();
-    pre_diag_scale_system<<<nbatch, default_block_size>>>(
-        nbatch, nrows, nnz, as_cuda_type(a->get_values()),
-        a->get_const_col_idxs(), a->get_const_row_ptrs(), nrhs, b_stride,
-        as_cuda_type(b->get_values()),
-        as_cuda_type(left_scale->get_const_values()),
-        as_cuda_type(right_scale->get_const_values()));
-}
+    matrix::BatchDense<ValueType>* const b) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_PRE_DIAG_SCALE_SYSTEM);
@@ -258,14 +236,27 @@ void convert_to_batch_dense(
     matrix::BatchDense<ValueType>* const dest)
 {
     const size_type nbatches = src->get_num_batch_entries();
-    const int nrows = src->get_size().at()[0];
-    const int ncols = src->get_size().at()[1];
+    const int num_rows = src->get_size().at(0)[0];
+    const int num_cols = src->get_size().at(0)[1];
     const int nnz = static_cast<int>(src->get_num_stored_elements() / nbatches);
-    const size_type dstride = dest->get_stride().at();
-    uniform_convert_to_batch_dense<<<nbatches, default_block_size>>>(
-        nbatches, nrows, ncols, nnz, src->get_const_row_ptrs(),
-        src->get_const_col_idxs(), as_cuda_type(src->get_const_values()),
-        dstride, as_cuda_type(dest->get_values()));
+    const size_type dstride = dest->get_stride().at(0);
+    const size_type estride = src->get_stride().at(0);
+    const auto col_idxs = src->get_const_col_idxs();
+    const auto vals = src->get_const_values();
+
+    const dim3 block_size(config::warp_size,
+                          config::max_block_size / config::warp_size, 1);
+    const dim3 init_grid_dim(ceildiv(num_cols * nbatches, block_size.x),
+                             ceildiv(num_rows * nbatches, block_size.y), 1);
+    initialize_zero_dense<<<init_grid_dim, block_size>>>(
+        nbatches, num_rows, num_cols, dstride,
+        as_cuda_type(dest->get_values()));
+
+    const auto grid_dim = ceildiv(num_rows * nbatches, default_block_size);
+    fill_in_dense<<<grid_dim, default_block_size>>>(
+        nbatches, num_rows, src->get_num_stored_elements_per_row().at(0),
+        estride, as_cuda_type(col_idxs), as_cuda_type(vals), dstride,
+        as_cuda_type(dest->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
