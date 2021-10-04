@@ -366,4 +366,69 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_MATRIX);
 
 
 }  // namespace matrix
+
+
+#define GKO_DECLARE_MAKE_BLOCK_DIAGONAL_ELL(ValueType, IndexType)              \
+    std::unique_ptr<matrix::Ell<ValueType, IndexType>>                         \
+    create_block_diagonal_matrix(                                              \
+        std::shared_ptr<const Executor> exec,                                  \
+        const std::vector<std::unique_ptr<matrix::Ell<ValueType, IndexType>>>& \
+            matrices)
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_MAKE_BLOCK_DIAGONAL_ELL(ValueType, IndexType)
+{
+    using mtx_type = matrix::Ell<ValueType, IndexType>;
+    size_type total_rows = 0;
+    size_type overall_elems_per_row = 0;
+    for (size_type imat = 0; imat < matrices.size(); imat++) {
+        GKO_ASSERT_IS_SQUARE_MATRIX(matrices[imat]);
+        total_rows += matrices[imat]->get_size()[0];
+        const auto nsepr = matrices[imat]->get_num_stored_elements_per_row();
+        if (nsepr > overall_elems_per_row) {
+            overall_elems_per_row = nsepr;
+        }
+    }
+    const size_type stride = total_rows;
+    Array<IndexType> h_col_idxs(exec->get_master(),
+                                stride * overall_elems_per_row);
+    Array<ValueType> h_values(exec->get_master(),
+                              stride * overall_elems_per_row);
+    size_type roffset = 0;
+    for (size_type im = 0; im < matrices.size(); im++) {
+        auto imatrix = mtx_type::create(exec->get_master());
+        imatrix->copy_from(matrices[im].get());
+        const auto icolidxs = imatrix->get_const_col_idxs();
+        const auto ivalues = imatrix->get_const_values();
+        const auto insepr = imatrix->get_num_stored_elements_per_row();
+        const auto istride = imatrix->get_stride();
+        const size_type nzoffset = roffset * overall_elems_per_row;
+        for (size_type j = 0; j < insepr; j++) {
+            for (size_type irow = 0; irow < imatrix->get_size()[0]; irow++) {
+                h_col_idxs.get_data()[nzoffset + irow + j * stride] =
+                    icolidxs[irow + j * istride] + roffset;
+                h_values.get_data()[nzoffset + irow + j * stride] =
+                    ivalues[irow + j * istride];
+            }
+        }
+        for (size_type j = insepr; j < overall_elems_per_row; j++) {
+            for (size_type irow = 0; irow < imatrix->get_size()[0]; irow++) {
+                h_col_idxs.get_data()[nzoffset + irow + j * stride] =
+                    h_col_idxs
+                        .get_data()[nzoffset + irow + (insepr - 1) * stride];
+                h_values.get_data()[nzoffset + irow + j * stride] = 0.0;
+            }
+        }
+        roffset += imatrix->get_size()[0];
+    }
+    assert(roffset == total_rows);
+    auto outm = mtx_type::create(exec, dim<2>(total_rows, total_rows), h_values,
+                                 h_col_idxs, overall_elems_per_row, stride);
+    return outm;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_MAKE_BLOCK_DIAGONAL_ELL);
+
+
 }  // namespace gko

@@ -1357,7 +1357,7 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType>* result)
  *   happens on the host and copies are performed.
  */
 template <typename ValueType, typename IndexType>
-std::unique_ptr<matrix::Csr<ValueType, IndexType>> block_diagonal_csr_matrix(
+std::unique_ptr<matrix::Csr<ValueType, IndexType>> create_block_diagonal_matrix(
     std::shared_ptr<const Executor> exec,
     const std::vector<std::unique_ptr<matrix::Csr<ValueType, IndexType>>>&
         matrices);
