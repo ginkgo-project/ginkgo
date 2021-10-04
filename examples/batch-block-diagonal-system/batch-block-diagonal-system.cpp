@@ -101,12 +101,12 @@ int main(int argc, char* argv[])
     const std::string mat_path = argv[2];
     const int num_systems = std::atoi(argv[3]);
     const int num_duplications = argc >= 5 ? std::atoi(argv[4]) : 1;
+    const bool benchmark = argc >= 6 ? std::atoi(argv[5]) : 0;
 
     // Read data
     std::shared_ptr<mtx_type> A =
         read_mtx(exec, mat_path, num_systems, num_duplications);
     auto b = read_vec(exec, mat_path, num_systems, num_duplications);
-    std::cout << "Done reading data." << std::endl;
     std::cout << "System has " << A->get_size()[0] << " rows and "
               << A->get_num_stored_elements() << " non-zeros." << std::endl;
 
@@ -119,7 +119,6 @@ int main(int argc, char* argv[])
     }
     auto x = vec_type::create(exec);
     x->copy_from(gko::lend(h_x));
-    std::cout << "Copied x to device" << std::endl;
 
     //// Generate incomplete factors using ParILU
     // auto par_ilu_fact =
@@ -147,7 +146,6 @@ int main(int argc, char* argv[])
     using prec_type = gko::preconditioner::Jacobi<ValueType, IndexType>;
     auto jacobi_factory = prec_type::build().with_max_block_size(1u).on(exec);
     auto preconditioner = jacobi_factory->generate(A);
-    std::cout << "Created preconditioner" << std::endl;
 
     // Use preconditioner inside GMRES solver factory
     // Generating a solver factory tied to a specific preconditioner makes sense
@@ -161,10 +159,8 @@ int main(int argc, char* argv[])
                         .on(exec);
     std::shared_ptr<gko::log::Convergence<ValueType>> clog =
         gko::log::Convergence<ValueType>::create(exec);
-    std::cout << " created logger" << std::endl;
     iter_stop->add_logger(clog);
     tol_stop->add_logger(clog);
-    std::cout << " added logger" << std::endl;
 
     auto solver_factory =
         solver_type::build()
@@ -172,8 +168,6 @@ int main(int argc, char* argv[])
             .with_generated_preconditioner(gko::share(preconditioner))
             .on(exec);
     auto solver = solver_factory->generate(A);
-
-    std::cout << "Starting solve.." << std::endl;
 
     // Solve system
     auto start = std::chrono::steady_clock::now();
