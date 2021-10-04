@@ -34,6 +34,72 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * Device kernel for SpMV of one ELL matrix in a batch.
  */
+template <typename ValueType>
+__device__ __forceinline__ void single_spmv_kernel(
+    const gko::batch_ell::BatchEntry<const ValueType>& a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ c)
+{
+    const auto num_rows = a.num_rows;
+    const auto num_stored_elements_per_row = a.num_stored_elems_per_row;
+    const auto stride = a.stride;
+    const auto val = a.values;
+    const auto col = a.col_idxs;
+    const auto tidx = threadIdx.x;  // thread::get_thread_id_flat();
+    // Specialize the num_thread_per_worker = 1. It doesn't need the shared
+    // memory, __syncthreads, and atomic_add
+    if (tidx < num_rows) {
+        auto temp = zero<ValueType>();
+        for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
+            const auto ind = tidx + idx * stride;
+            const auto col_idx = col[ind];
+            if (col_idx < idx) {
+                break;
+            } else {
+                temp += val[ind] * b[col_idx];
+            }
+        }
+        // const auto c_ind = tidx ;// * c_stride;
+        c[tidx] = temp;
+    }
+}
+
+
+/**
+ * Device kernel for SpMV of one ELL matrix in a batch.
+ */
+template <typename ValueType>
+__device__ __forceinline__ void single_advanced_spmv_kernel(
+    const ValueType alpha, const gko::batch_ell::BatchEntry<const ValueType>& a,
+    const ValueType* const __restrict__ b, const ValueType beta,
+    ValueType* const __restrict__ c)
+{
+    const auto num_rows = a.num_rows;
+    const auto num_stored_elements_per_row = a.num_stored_elems_per_row;
+    const auto stride = a.stride;
+    const auto val = a.values;
+    const auto col = a.col_idxs;
+    const auto tidx = threadIdx.x;  // thread::get_thread_id_flat();
+    // Specialize the num_thread_per_worker = 1. It doesn't need the shared
+    // memory, __syncthreads, and atomic_add
+    if (tidx < num_rows) {
+        auto temp = zero<ValueType>();
+        for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
+            const auto ind = tidx + idx * stride;
+            const auto col_idx = col[ind];
+            if (col_idx < idx) {
+                break;
+            } else {
+                temp += val[ind] * b[col_idx];
+            }
+        }
+        c[tidx] = alpha * temp + beta * c[tidx];
+    }
+}
+
+
+/**
+ * Device kernel for SpMV of one ELL matrix in a batch.
+ */
 template <typename ValueType, typename Closure>
 __device__ __forceinline__ void spmv_kernel(
     const gko::batch_ell::BatchEntry<const ValueType>& a,
