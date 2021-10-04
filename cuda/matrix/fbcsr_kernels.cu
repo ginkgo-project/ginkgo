@@ -69,7 +69,7 @@ constexpr int spmv_block_size = warps_in_block * config::warp_size;
 constexpr int wsize = config::warp_size;
 
 
-#include "common/matrix/csr_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/csr_kernels.hpp.inc"
 
 
 }  // namespace csr_reuse
@@ -86,8 +86,8 @@ namespace fbcsr {
 constexpr int default_block_size{512};
 
 
-#include "common/components/uninitialized_array.hpp.inc"
-#include "common/matrix/fbcsr_kernels.hpp.inc"
+#include "common/cuda_hip/components/uninitialized_array.hpp.inc"
+#include "common/cuda_hip/matrix/fbcsr_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
@@ -209,7 +209,7 @@ namespace {
 
 template <int mat_blk_sz, typename ValueType, typename IndexType>
 void transpose_blocks_impl(syn::value_list<int, mat_blk_sz>,
-                           matrix::Fbcsr<ValueType, IndexType> *const mat)
+                           matrix::Fbcsr<ValueType, IndexType>* const mat)
 {
     constexpr int subwarp_size = config::warp_size;
     const size_type nbnz = mat->get_num_stored_blocks();
