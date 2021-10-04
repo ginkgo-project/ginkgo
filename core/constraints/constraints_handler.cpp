@@ -55,6 +55,26 @@ GKO_REGISTER_OPERATION(set_unit_rows, cons::set_unit_rows);
 }  // namespace cons
 
 
+namespace detail {
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<gko::matrix::Dense<ValueType>>
+zero_guess_with_constrained_values(std::shared_ptr<const Executor> exec,
+                                   dim<2> size, const Array<IndexType>& idxs,
+                                   const matrix::Dense<ValueType>* values)
+{
+    using Dense = matrix::Dense<ValueType>;
+    auto init = share(initialize<Dense>(0., size, exec));
+    exec->run(cons::make_copy_subset(idxs, values->get_const_values(),
+                                     init->get_values()));
+    return init;
+}
+
+
+}  // namespace detail
+
+
 template <typename ValueType, typename IndexType>
 std::shared_ptr<LinOp>
 ZeroRowsStrategy<ValueType, IndexType>::construct_operator(
