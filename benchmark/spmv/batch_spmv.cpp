@@ -105,10 +105,7 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
                   << system_matrix->get_num_batch_entries()
                   << " batches, each of size ("
                   << system_matrix->get_size().at(0)[0] << ", "
-                  << system_matrix->get_size().at(0)[1] << ") , with total nnz "
-                  << gko::as<gko::matrix::BatchCsr<etype>>(system_matrix.get())
-                         ->get_num_stored_elements()
-                  << std::endl;
+                  << system_matrix->get_size().at(0)[1] << ")" << std::endl;
 
         exec->remove_logger(gko::lend(storage_logger));
         storage_logger->write_data(spmv_case[format_name], allocator);
@@ -223,10 +220,7 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
                   << system_matrix->get_num_batch_entries()
                   << " batches, each of size ("
                   << system_matrix->get_size().at(0)[0] << ", "
-                  << system_matrix->get_size().at(0)[1] << ") , with total nnz "
-                  << gko::as<gko::matrix::BatchCsr<etype>>(system_matrix.get())
-                         ->get_num_stored_elements()
-                  << std::endl;
+                  << system_matrix->get_size().at(0)[1] << ") " << std::endl;
 
         exec->remove_logger(gko::lend(storage_logger));
         storage_logger->write_data(spmv_case[format_name], allocator);
