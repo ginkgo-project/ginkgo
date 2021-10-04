@@ -578,7 +578,7 @@ std::unique_ptr<gko::LinOp> read_mtx(std::shared_ptr<const gko::Executor> exec,
     }
     std::clog << "Batch matrix has " << num_systems * num_duplications
               << " systems to solve." << std::endl;
-    return gko::block_diagonal_csr_matrix(exec, batchentries);
+    return gko::create_block_diagonal_matrix(exec, batchentries);
 }
 
 int main(int argc, char* argv[])
