@@ -411,6 +411,26 @@ private:
 
 
 }  // namespace matrix
+
+
+/**
+ * Generates a single large block-diagonal ELL matrix from the given ELL
+ * matrices.
+ *
+ * @param exec  Executor on which both the input and output reside
+ * @param matrices  List of matrices to be concatenated in to one
+ *   block-diagonal matrix.
+ *
+ * @warning Not for use in performance-critical code! The operation currently
+ *   happens on the host and copies are performed.
+ */
+template <typename ValueType, typename IndexType>
+std::unique_ptr<matrix::Ell<ValueType, IndexType>> create_block_diagonal_matrix(
+    std::shared_ptr<const Executor> exec,
+    const std::vector<std::unique_ptr<matrix::Ell<ValueType, IndexType>>>&
+        matrices);
+
+
 }  // namespace gko
 
 
