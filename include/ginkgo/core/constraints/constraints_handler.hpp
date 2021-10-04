@@ -44,8 +44,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace constraints {
+namespace detail {
 
-namespace detail {}
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<gko::matrix::Dense<ValueType>>
+zero_guess_with_constrained_values(std::shared_ptr<const Executor> exec,
+                                   dim<2> size, const Array<IndexType>& idxs,
+                                   const matrix::Dense<ValueType>* values);
+
+
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -121,8 +130,9 @@ public:
      * @param system_operator  the original system operator
      * @param values  the values of the constrained defrees of freedom
      * @param right_hand_side  the original right-hand-side of the system
-     * @param initial_guess  the initial guess for the original system, if it is
-     *                       null, then zero will be used as initial guess
+     * @param initial_guess  the initial guess for the original system, has to
+     * contain the constrained values. If it is null, then zero will be used as
+     * initial guess
      * @param strategy  the implementation strategy of the constraints
      */
     ConstraintsHandler(
@@ -138,21 +148,22 @@ public:
           cons_operator_(strategy->construct_operator(idxs_, orig_operator_)),
           values_(std::move(values)),
           orig_rhs_(std::move(right_hand_side)),
-          orig_init_guess_(initial_guess ? std::move(initial_guess)
-                                         : share(initialize<Dense>(
-                                               0., orig_rhs_->get_size(),
-                                               orig_rhs_->get_executor()))),
+          orig_init_guess_(
+              initial_guess ? std::move(initial_guess)
+                            : detail::zero_guess_with_constrained_values(
+                                  orig_rhs_->get_executor(),
+                                  orig_rhs_->get_size(), idxs_, values_.get())),
           strategy_(std::move(strategy))
     {
         if (orig_init_guess_ && values_) {
             cons_init_guess_ = as<Dense>(strategy_->construct_initial_guess(
-                idxs, lend(cons_operator_), lend(orig_init_guess_),
+                idxs_, lend(cons_operator_), lend(orig_init_guess_),
                 lend(values_)));
         }
         if (orig_rhs_ && cons_init_guess_) {
             cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
-                idxs, lend(cons_operator_), lend(cons_init_guess_),
-                lend(values_)));
+                idxs_, lend(cons_operator_), lend(orig_init_guess_),
+                lend(orig_rhs_)));
         }
     }
 
@@ -256,8 +267,8 @@ public:
                 reconstruct_system();
             } else {
                 cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
-                    idxs_, lend(cons_operator_), lend(cons_init_guess_),
-                    lend(values_)));
+                    idxs_, lend(cons_operator_), lend(orig_init_guess_),
+                    lend(orig_rhs_)));
             }
         }
         return cons_rhs_.get();
@@ -295,8 +306,8 @@ public:
             idxs_, lend(cons_operator_), lend(orig_init_guess_),
             lend(values_)));
         cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
-            idxs_, lend(cons_operator_), lend(cons_init_guess_),
-            lend(values_)));
+            idxs_, lend(cons_operator_), lend(orig_init_guess_),
+            lend(orig_rhs_)));
     }
 
     /**
