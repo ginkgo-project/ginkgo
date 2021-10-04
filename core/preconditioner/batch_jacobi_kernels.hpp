@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
 
 
 namespace gko {
@@ -58,13 +59,21 @@ namespace kernels {
  */
 #define GKO_DECLARE_BATCH_JACOBI_KERNEL(_type)                           \
     void batch_jacobi_apply(std::shared_ptr<const DefaultExecutor> exec, \
-                            const matrix::BatchCsr<_type> *a,            \
-                            const matrix::BatchDense<_type> *b,          \
-                            matrix::BatchDense<_type> *x)
+                            const matrix::BatchCsr<_type>* a,            \
+                            const matrix::BatchDense<_type>* b,          \
+                            matrix::BatchDense<_type>* x)
+
+#define GKO_DECLARE_BATCH_JACOBI_ELL_KERNEL(_type)                       \
+    void batch_jacobi_apply(std::shared_ptr<const DefaultExecutor> exec, \
+                            const matrix::BatchEll<_type>* a,            \
+                            const matrix::BatchDense<_type>* b,          \
+                            matrix::BatchDense<_type>* x)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename ValueType>    \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                \
+    template <typename ValueType>                   \
+    GKO_DECLARE_BATCH_JACOBI_ELL_KERNEL(ValueType); \
+    template <typename ValueType>                   \
     GKO_DECLARE_BATCH_JACOBI_KERNEL(ValueType)
 
 

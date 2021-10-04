@@ -68,8 +68,32 @@ public:
      *              entries. It must be allocated with at least the amount
      *              of memory given by work_size or dynamic_work_size.
      */
-    void generate(const gko::batch_csr::BatchEntry<const ValueType> &mat,
-                  ValueType *const work)
+    void generate(const gko::batch_ell::BatchEntry<const ValueType>& mat,
+                  ValueType* const work)
+    {
+        work_ = work;
+        for (int i = 0; i < mat.num_rows; i++) {
+            for (int j = 0; j < mat.num_stored_elems_per_row; j++) {
+                if (mat.col_idxs[j] == i &&
+                    mat.values[j] != zero<ValueType>()) {
+                    work_[i] = one<ValueType>() / mat.values[j];
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Sets the input and generates the preconditioner by storing the inverse
+     * diagonal entries in the work vector.
+     *
+     * @param mat  Matrix for which to build a Jacobi preconditioner.
+     * @param work  A 'work-vector', used here to store the inverse diagonal
+     *              entries. It must be allocated with at least the amount
+     *              of memory given by work_size or dynamic_work_size.
+     */
+    void generate(const gko::batch_csr::BatchEntry<const ValueType>& mat,
+                  ValueType* const work)
     {
         work_ = work;
         for (int i = 0; i < mat.num_rows; i++) {
@@ -82,8 +106,8 @@ public:
         }
     }
 
-    void apply(const gko::batch_dense::BatchEntry<const ValueType> &r,
-               const gko::batch_dense::BatchEntry<ValueType> &z) const
+    void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
+               const gko::batch_dense::BatchEntry<ValueType>& z) const
     {
         for (int i = 0; i < r.num_rows; i++) {
             for (int j = 0; j < r.num_rhs; j++) {
@@ -94,7 +118,7 @@ public:
     }
 
 private:
-    ValueType *work_ = nullptr;
+    ValueType* work_ = nullptr;
 };
 
 
