@@ -67,6 +67,7 @@ namespace batch_bicgstab {
 #include "common/cuda_hip/components/reduction.hpp.inc"
 #include "common/cuda_hip/log/batch_logger.hpp.inc"
 #include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
 // TODO: remove batch dense include
 #include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
@@ -226,6 +227,20 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
         get_batch_struct(x);
 
     if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a)) {
+        auto m_b = get_batch_struct(amat);
+        auto b_b = get_batch_struct(b);
+        if (opts.preconditioner == gko::preconditioner::batch::type::none) {
+            apply_impl<BatchIdentity<cu_value_type>>(exec, opts, logger, m_b,
+                                                     b_b, x_b);
+        } else if (opts.preconditioner ==
+                   gko::preconditioner::batch::type::jacobi) {
+            apply_impl<BatchJacobi<cu_value_type>>(exec, opts, logger, m_b, b_b,
+                                                   x_b);
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
+    } else if (auto amat =
+                   dynamic_cast<const matrix::BatchEll<ValueType>*>(a)) {
         auto m_b = get_batch_struct(amat);
         auto b_b = get_batch_struct(b);
         if (opts.preconditioner == gko::preconditioner::batch::type::none) {
