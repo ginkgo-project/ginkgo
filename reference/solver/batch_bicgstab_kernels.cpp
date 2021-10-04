@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reference/log/batch_logger.hpp"
 #include "reference/matrix/batch_csr_kernels.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
+#include "reference/matrix/batch_ell_kernels.hpp"
 #include "reference/matrix/batch_struct.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
@@ -64,6 +65,9 @@ using gko::kernels::reference::batch_csr::advanced_spmv_kernel;
 using gko::kernels::reference::batch_csr::batch_scale;
 using gko::kernels::reference::batch_csr::spmv_kernel;
 
+using gko::kernels::reference::batch_ell::advanced_spmv_kernel;
+using gko::kernels::reference::batch_ell::spmv_kernel;
+
 
 #include "reference/solver/batch_bicgstab_kernels.hpp.inc"
 
@@ -79,10 +83,10 @@ template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 static void apply_impl(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const BatchBicgstabOptions<remove_complex<ValueType>> &opts, LogType logger,
-    PrecType prec, const BatchMatrixType &a,
-    const gko::batch_dense::UniformBatch<const ValueType> &b,
-    const gko::batch_dense::UniformBatch<ValueType> &x)
+    const BatchBicgstabOptions<remove_complex<ValueType>>& opts, LogType logger,
+    PrecType prec, const BatchMatrixType& a,
+    const gko::batch_dense::UniformBatch<const ValueType>& b,
+    const gko::batch_dense::UniformBatch<ValueType>& x)
 {
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
@@ -107,10 +111,10 @@ static void apply_impl(
 template <typename BatchType, typename LoggerType, typename ValueType>
 void apply_select_prec(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const BatchBicgstabOptions<remove_complex<ValueType>> &opts,
-    const LoggerType logger, const BatchType &a,
-    const gko::batch_dense::UniformBatch<const ValueType> &b,
-    const gko::batch_dense::UniformBatch<ValueType> &x)
+    const BatchBicgstabOptions<remove_complex<ValueType>>& opts,
+    const LoggerType logger, const BatchType& a,
+    const gko::batch_dense::UniformBatch<const ValueType>& b,
+    const gko::batch_dense::UniformBatch<ValueType>& x)
 {
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
         BatchIdentity<ValueType> prec{};
@@ -139,11 +143,11 @@ void apply_select_prec(
 
 template <typename ValueType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec,
-           const BatchBicgstabOptions<remove_complex<ValueType>> &opts,
-           const BatchLinOp *const a,
-           const matrix::BatchDense<ValueType> *const b,
-           matrix::BatchDense<ValueType> *const x,
-           gko::log::BatchLogData<ValueType> &logdata)
+           const BatchBicgstabOptions<remove_complex<ValueType>>& opts,
+           const BatchLinOp* const a,
+           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchDense<ValueType>* const x,
+           gko::log::BatchLogData<ValueType>& logdata)
 {
     batch_log::FinalLogger<remove_complex<ValueType>> logger(
         static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
@@ -151,8 +155,15 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
 
     const gko::batch_dense::UniformBatch<ValueType> x_b =
         host::get_batch_struct(x);
-    if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
+    if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a)) {
         const gko::batch_csr::UniformBatch<const ValueType> a_b =
+            host::get_batch_struct(a_mat);
+        const gko::batch_dense::UniformBatch<const ValueType> b_b =
+            host::get_batch_struct(b);
+        apply_select_prec(exec, opts, logger, a_b, b_b, x_b);
+    } else if (auto a_mat =
+                   dynamic_cast<const matrix::BatchEll<ValueType>*>(a)) {
+        const gko::batch_ell::UniformBatch<const ValueType> a_b =
             host::get_batch_struct(a_mat);
         const gko::batch_dense::UniformBatch<const ValueType> b_b =
             host::get_batch_struct(b);
