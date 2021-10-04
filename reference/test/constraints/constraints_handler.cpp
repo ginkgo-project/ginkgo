@@ -349,7 +349,7 @@ TYPED_TEST(ConstrainedSystem, CanCreateWithoutInitialGuess)
     ASSERT_EQ(ch.get_orig_operator(), this->empty_mtx.get());
     ASSERT_EQ(ch.get_constrained_values(), this->empty_values.get());
     ASSERT_EQ(ch.get_orig_right_hand_side(), this->empty_rhs.get());
-    ASSERT_TRUE(ch.get_orig_initial_guess());
+    ASSERT_FALSE(ch.get_orig_initial_guess());
 }
 
 TYPED_TEST(ConstrainedSystem, UpdateEmptyHandlerWithValues)

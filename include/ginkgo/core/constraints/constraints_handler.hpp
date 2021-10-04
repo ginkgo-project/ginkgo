@@ -146,25 +146,13 @@ public:
         : idxs_(std::move(idxs)),
           orig_operator_(std::move(system_operator)),
           cons_operator_(strategy->construct_operator(idxs_, orig_operator_)),
-          values_(std::move(values)),
-          orig_rhs_(std::move(right_hand_side)),
-          orig_init_guess_(
-              initial_guess ? std::move(initial_guess)
-                            : detail::zero_guess_with_constrained_values(
-                                  orig_rhs_->get_executor(),
-                                  orig_rhs_->get_size(), idxs_, values_.get())),
           strategy_(std::move(strategy))
     {
-        if (orig_init_guess_ && values_) {
-            cons_init_guess_ = as<Dense>(strategy_->construct_initial_guess(
-                idxs_, lend(cons_operator_), lend(orig_init_guess_),
-                lend(values_)));
+        if (initial_guess) {
+            this->with_initial_guess(std::move(initial_guess));
         }
-        if (orig_rhs_ && cons_init_guess_) {
-            cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
-                idxs_, lend(cons_operator_), lend(orig_init_guess_),
-                lend(orig_rhs_)));
-        }
+        this->with_constrained_values(std::move(values));
+        this->with_right_hand_side(std::move(right_hand_side));
     }
 
     /**
@@ -202,6 +190,15 @@ public:
     {
         values_ = std::move(values);
 
+        if (!cons_init_guess_) {
+            auto exec = orig_rhs_ ? orig_rhs_->get_executor()
+                                  : orig_operator_->get_executor();
+            auto size = orig_rhs_ ? orig_rhs_->get_size()
+                                  : dim<2>{orig_operator_->get_size()[0], 1};
+            zero_init_guess_ = detail::zero_guess_with_constrained_values(
+                exec, size, idxs_, values_.get());
+        }
+
         // invalidate previous pointers
         cons_init_guess_.reset();
         cons_rhs_.reset();
@@ -228,7 +225,8 @@ public:
     }
 
     /**
-     * Set a new initial guess for the linear system.
+     * Set a new initial guess for the linear system. The guess must contain
+     * the constrained values.
      *
      * @note Invalidates previous pointers from get_right_hand_side and
      * get_initial_guess
@@ -267,7 +265,7 @@ public:
                 reconstruct_system();
             } else {
                 cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
-                    idxs_, lend(cons_operator_), lend(orig_init_guess_),
+                    idxs_, lend(cons_operator_), lend(used_init_guess()),
                     lend(orig_rhs_)));
             }
         }
@@ -287,7 +285,7 @@ public:
     {
         if (!cons_init_guess_) {
             cons_init_guess_ = as<Dense>(strategy_->construct_initial_guess(
-                idxs_, lend(cons_operator_), lend(orig_init_guess_),
+                idxs_, lend(cons_operator_), lend(used_init_guess()),
                 lend(values_)));
         }
         return cons_init_guess_.get();
@@ -303,10 +301,10 @@ public:
     void reconstruct_system()
     {
         cons_init_guess_ = as<Dense>(strategy_->construct_initial_guess(
-            idxs_, lend(cons_operator_), lend(orig_init_guess_),
+            idxs_, lend(cons_operator_), lend(used_init_guess()),
             lend(values_)));
         cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
-            idxs_, lend(cons_operator_), lend(orig_init_guess_),
+            idxs_, lend(cons_operator_), lend(used_init_guess()),
             lend(orig_rhs_)));
     }
 
@@ -317,7 +315,7 @@ public:
     void correct_solution(Dense* solution)
     {
         strategy_->correct_solution(idxs_, lend(values_),
-                                    lend(orig_init_guess_), solution);
+                                    lend(used_init_guess()), solution);
     }
 
     LinOp* get_orig_operator() { return lend(orig_operator_); }
@@ -334,6 +332,11 @@ public:
     }
 
 private:
+    std::shared_ptr<const Dense> used_init_guess()
+    {
+        return orig_init_guess_ ? orig_init_guess_ : zero_init_guess_;
+    }
+
     Array<IndexType> idxs_;
 
     std::shared_ptr<LinOp> orig_operator_;
@@ -346,6 +349,7 @@ private:
     std::unique_ptr<Dense> cons_rhs_;
     std::shared_ptr<const Dense> orig_init_guess_;
     std::unique_ptr<Dense> cons_init_guess_;
+    std::shared_ptr<const Dense> zero_init_guess_;
 };
 
 
