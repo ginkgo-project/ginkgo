@@ -105,6 +105,9 @@ DEFINE_string(
     "s(idx) = sin(2*idx) + i * sin(2*idx+1) and `file` read the rhs from a "
     "file.");
 
+DEFINE_string(batch_solver_mat_format, "batch_csr",
+              "The matrix format to be used for the solver.");
+
 DEFINE_string(
     initial_guess_generation, "rhs",
     "Method used to generate the initial guess. Supported values are: "
@@ -709,10 +712,10 @@ int read_data_and_launch_benchmark(int argc, char* argv[],
 
             if (FLAGS_using_suite_sparse) {
                 system_matrix = share(formats::batch_matrix_factory.at(
-                    "batch_csr")(exec, ndup, data[0]));
+                    FLAGS_batch_solver_mat_format)(exec, ndup, data[0]));
             } else {
                 system_matrix = share(formats::batch_matrix_factory2.at(
-                    "batch_csr")(exec, ndup, data));
+                    FLAGS_batch_solver_mat_format)(exec, ndup, data));
                 if (FLAGS_batch_scaling == "explicit") {
                     auto temp_scaling_op = formats::batch_matrix_factory2.at(
                         "batch_dense")(exec, ndup, scale_data);
@@ -750,14 +753,8 @@ int read_data_and_launch_benchmark(int argc, char* argv[],
 
             std::clog << "Batch Matrix has: "
                       << system_matrix->get_num_batch_entries()
-                      << " batches, each of size ("
-                      << system_matrix->get_size().at(0)[0] << ", "
-                      << system_matrix->get_size().at(0)[1]
-                      << ") , with total nnz "
-                      << gko::as<gko::matrix::BatchCsr<etype>>(
-                             system_matrix.get())
-                             ->get_num_stored_elements()
-                      << std::endl;
+                      << " batches, each of size "
+                      << system_matrix->get_size().at(0) << std::endl;
 
             auto sol_name = begin(solvers);
             for (const auto& solver_name : solvers) {
