@@ -63,6 +63,40 @@ public:
      *              of memory given by work_size or dynamic_work_size.
      */
     __device__ __forceinline__ void generate(
+        const gko::batch_ell::BatchEntry<const ValueType>& mat,
+        ValueType* const __restrict__ work)
+    {
+        const auto tidx = threadIdx.x;  // thread::get_thread_id_flat();
+        work_ = work;
+        if (tidx < mat.num_rows) {
+            auto temp = one<ValueType>();
+            for (size_type idx = 0; idx < mat.num_stored_elems_per_row; idx++) {
+                const auto ind = tidx + idx * mat.stride;
+                const auto col_idx = mat.col_idxs[ind];
+                if (col_idx < idx) {
+                    break;
+                } else {
+                    const int found = (col_idx == tidx);
+                    const int valid = mat.values[col_idx] != zero<ValueType>();
+                    if (found && valid) {
+                        temp = one<ValueType>() / mat.values[tidx];
+                    }
+                }
+            }
+            work_[tidx] = temp;
+        }
+    }
+
+    /**
+     * Sets the input and generates the preconditioner by storing the inverse
+     * diagonal entries in the work vector.
+     *
+     * @param mat  Matrix for which to build a Jacobi preconditioner.
+     * @param work  A 'work-vector', used here to store the inverse diagonal
+     *              entries. It must be allocated with at least the amount
+     *              of memory given by work_size or dynamic_work_size.
+     */
+    __device__ __forceinline__ void generate(
         const gko::batch_csr::BatchEntry<const ValueType>& mat,
         ValueType* const __restrict__ work)
     {
@@ -108,6 +142,27 @@ public:
 private:
     ValueType* __restrict__ work_;
 };
+
+
+template <typename ValueType>
+__global__ void batch_jacobi(
+    BatchJacobi<ValueType> prec,
+    const gko::batch_ell::UniformBatch<const ValueType> a,
+    const gko::batch_dense::UniformBatch<const ValueType> b,
+    const gko::batch_dense::UniformBatch<ValueType> x)
+{
+    for (size_type batch = 0; batch < a.num_batch; ++batch) {
+        const auto a_b = gko::batch::batch_entry(a, batch);
+        const auto b_b = gko::batch::batch_entry(b, batch);
+        const auto x_b = gko::batch::batch_entry(x, batch);
+
+        //__shared__ ValueType prec_work[BatchJacobi<ValueType>::work_size];
+        extern __shared__ char local_mem[];
+        const auto prec_work = reinterpret_cast<ValueType*>(local_mem);
+        prec.generate(a_b, prec_work);
+        prec.apply(b_b, x_b);
+    }
+}
 
 
 template <typename ValueType>
