@@ -214,7 +214,7 @@ std::unique_ptr<mtx_type> read_mtx(std::shared_ptr<const gko::Executor> exec,
             batchentries.emplace_back(std::move(mat));
         }
     }
-    return gko::block_diagonal_csr_matrix(exec, batchentries);
+    return gko::create_block_diagonal_matrix(exec, batchentries);
 }
 
 std::unique_ptr<vec_type> read_vec(std::shared_ptr<const gko::Executor> exec,
