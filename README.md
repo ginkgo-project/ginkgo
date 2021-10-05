@@ -45,7 +45,7 @@ For Ginkgo core library:
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
-*   _CUDA 9.0+_
+*   _CUDA 9.2+_
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the
     [CUDA installation guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)
@@ -87,7 +87,7 @@ __NOTE:__ Need to add `--autocrlf=input` after `git clone` in _Cygwin_.
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
-*   _CUDA 9.0+_
+*   _CUDA 9.2+_
 *   _Microsoft Visual Studio_
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the
