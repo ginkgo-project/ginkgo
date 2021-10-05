@@ -285,7 +285,7 @@ void run1d_reduction(std::shared_ptr<gko::CudaExecutor> exec)
         exec,
         [] GKO_KERNEL(auto i, auto a) {
             static_assert(is_same<decltype(i), int64>::value, "index");
-            static_assert(is_same<decltype(a), int64 *>::value, "value");
+            static_assert(is_same<decltype(a), int64*>::value, "value");
             return i + 1;
         },
         [] GKO_KERNEL(auto i, auto j) { return i + j; },
@@ -299,7 +299,7 @@ void run1d_reduction(std::shared_ptr<gko::CudaExecutor> exec)
         exec,
         [] GKO_KERNEL(auto i, auto a) {
             static_assert(is_same<decltype(i), int64>::value, "index");
-            static_assert(is_same<decltype(a), int64 *>::value, "value");
+            static_assert(is_same<decltype(a), int64*>::value, "value");
             return i + 1;
         },
         [] GKO_KERNEL(auto i, auto j) {
@@ -329,7 +329,7 @@ void run2d_reduction(std::shared_ptr<gko::CudaExecutor> exec)
         [] GKO_KERNEL(auto i, auto j, auto a) {
             static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(j), int64>::value, "index");
-            static_assert(is_same<decltype(a), int64 *>::value, "value");
+            static_assert(is_same<decltype(a), int64*>::value, "value");
             return (i + 1) * (j + 1);
         },
         [] GKO_KERNEL(auto i, auto j) {
@@ -351,7 +351,7 @@ void run2d_reduction(std::shared_ptr<gko::CudaExecutor> exec)
         [] GKO_KERNEL(auto i, auto j, auto a) {
             static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(j), int64>::value, "index");
-            static_assert(is_same<decltype(a), int64 *>::value, "value");
+            static_assert(is_same<decltype(a), int64*>::value, "value");
             return (i + 1) * (j + 1);
         },
         [] GKO_KERNEL(auto i, auto j) {
@@ -394,8 +394,7 @@ void run2d_row_reduction(std::shared_ptr<gko::CudaExecutor> exec)
                 [] GKO_KERNEL(auto i, auto j, auto a) {
                     static_assert(is_same<decltype(i), int64>::value, "index");
                     static_assert(is_same<decltype(j), int64>::value, "index");
-                    static_assert(is_same<decltype(a), int64 *>::value,
-                                  "value");
+                    static_assert(is_same<decltype(a), int64*>::value, "value");
                     return (i + 1) * (j + 1);
                 },
                 [] GKO_KERNEL(auto i, auto j) {
@@ -444,8 +443,7 @@ void run2d_col_reduction(std::shared_ptr<gko::CudaExecutor> exec)
                 [] GKO_KERNEL(auto i, auto j, auto a) {
                     static_assert(is_same<decltype(i), int64>::value, "index");
                     static_assert(is_same<decltype(j), int64>::value, "index");
-                    static_assert(is_same<decltype(a), int64 *>::value,
-                                  "value");
+                    static_assert(is_same<decltype(a), int64*>::value, "value");
                     return (i + 1) * (j + 1);
                 },
                 [] GKO_KERNEL(auto i, auto j) {
