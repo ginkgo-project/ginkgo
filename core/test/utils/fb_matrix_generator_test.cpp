@@ -67,7 +67,7 @@ protected:
           rbmtx_dd(gko::test::generate_fbcsr_from_csr(exec, mtx.get(), blk_sz,
                                                       true, std::ranlux48(42))),
           cbmtx(gko::test::generate_random_fbcsr<value_type>(
-              exec, std::ranlux48(42), nbrows, nbcols, blk_sz, true, false))
+              exec, nbrows, nbcols, blk_sz, true, false, std::ranlux48(42)))
     {}
 
     const int nbrows = 100;
@@ -106,6 +106,7 @@ TEST_F(BlockMatrixGenerator, OutputHasCorrectSize)
     ASSERT_EQ(rbmtx_dd->get_block_size(), blk_sz);
     ASSERT_EQ(cbmtx->get_block_size(), blk_sz);
 }
+
 
 TEST_F(BlockMatrixGenerator, OutputHasCorrectSparsityPattern)
 {
