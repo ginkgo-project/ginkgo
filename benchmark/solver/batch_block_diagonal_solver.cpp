@@ -551,27 +551,26 @@ void solve_system(const std::string& solver_name,
     }
 }
 
-std::unique_ptr<gko::LinOp> read_mtx(std::shared_ptr<const gko::Executor> exec,
+template <typename MatrixType>
+std::unique_ptr<MatrixType> read_mtx(std::shared_ptr<const gko::Executor> exec,
                                      std::string mat_path,
                                      const int num_systems,
                                      const int num_duplications)
 {
-    using mtx_type = gko::matrix::Csr<etype, itype>;
-
-    std::vector<std::unique_ptr<mtx_type>> batchentries;
+    std::vector<std::unique_ptr<MatrixType>> batchentries;
     for (int i = 0; i < num_systems; ++i) {
         const std::string mat_str = "A.mtx";
         const std::string fbase = mat_path + "/" + std::to_string(i) + "/";
         const std::string fname = fbase + mat_str;
         std::ifstream mtx_fd(fname);
         auto data = gko::read_raw<etype>(mtx_fd);
-        auto mat = mtx_type::create(exec);
+        auto mat = MatrixType::create(exec);
         mat->read(data);
         batchentries.emplace_back(std::move(mat));
     }
     for (int id = 0; id < num_duplications - 1; id++) {
         for (int i = 0; i < num_systems; ++i) {
-            auto mat = mtx_type::create(exec);
+            auto mat = MatrixType::create(exec);
             mat->copy_from(batchentries[i].get());
             batchentries.emplace_back(std::move(mat));
         }
@@ -579,6 +578,22 @@ std::unique_ptr<gko::LinOp> read_mtx(std::shared_ptr<const gko::Executor> exec,
     std::clog << "Batch matrix has " << num_systems * num_duplications
               << " systems to solve." << std::endl;
     return gko::create_block_diagonal_matrix(exec, batchentries);
+}
+
+std::unique_ptr<gko::LinOp> read_matrix(
+    std::shared_ptr<const gko::Executor> exec, const std::string mat_format,
+    const std::string mat_path, const int num_systems,
+    const int num_duplications)
+{
+    if (mat_format == "csr") {
+        return read_mtx<gko::matrix::Csr<etype, itype>>(
+            exec, mat_path, num_systems, num_duplications);
+    } else if (mat_format == "ell") {
+        return read_mtx<gko::matrix::Ell<etype, itype>>(
+            exec, mat_path, num_systems, num_duplications);
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
 }
 
 int main(int argc, char* argv[])
@@ -677,8 +692,9 @@ int main(int argc, char* argv[])
                     test_case["optimal"]["spmv"].GetString();
                 const std::string fbase =
                     std::string(test_case["problem"].GetString());
-                system_matrix = read_mtx(exec, fbase, FLAGS_num_batches,
-                                         FLAGS_num_duplications);
+                system_matrix =
+                    read_matrix(exec, mat_format, fbase, FLAGS_num_batches,
+                                FLAGS_num_duplications);
                 b = generate_rhs(exec, system_matrix, engine, fbase);
                 GKO_ASSERT_EQUAL_ROWS(system_matrix, b);
                 x = generate_initial_guess(exec, system_matrix, b.get(),
@@ -699,6 +715,10 @@ int main(int argc, char* argv[])
                                  allocator);
                     backup_results(test_cases);
                     ++precond_solver_name;
+                    add_or_set_member(
+                        test_case["solver"][precond_solver_name->c_str()],
+                        "num_batch_entries",
+                        FLAGS_num_batches * FLAGS_num_duplications, allocator);
                 }
             }
         } catch (const std::exception& e) {
