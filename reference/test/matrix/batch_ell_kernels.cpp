@@ -133,6 +133,24 @@ protected:
         v[11] = 0.0;
     }
 
+    void assert_equal_batch_ell_matrices(const Mtx* mat1, const Mtx* mat2)
+    {
+        ASSERT_EQ(mat1->get_num_batch_entries(), mat2->get_num_batch_entries());
+        ASSERT_EQ(mat1->get_num_stored_elements(),
+                  mat2->get_num_stored_elements());
+        ASSERT_EQ(mat1->get_stride(), mat2->get_stride());
+        ASSERT_EQ(mat1->get_size(), mat2->get_size());
+        for (auto i = 0; i < mat1->get_num_stored_elements(); ++i) {
+            EXPECT_EQ(mat1->get_const_values()[i], mat2->get_const_values()[i]);
+        }
+        for (auto i = 0; i < mat1->get_num_stored_elements() /
+                                 mat1->get_num_batch_entries();
+             ++i) {
+            EXPECT_EQ(mat1->get_const_col_idxs()[i],
+                      mat2->get_const_col_idxs()[i]);
+        }
+    }
+
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> mtx2;
@@ -159,6 +177,45 @@ TYPED_TEST(BatchEll, CanBeUnbatchedIntoEllMatrices)
 
     GKO_ASSERT_MTX_NEAR(unbatch_mats[0].get(), mat1.get(), 0.);
     GKO_ASSERT_MTX_NEAR(unbatch_mats[1].get(), mat2.get(), 0.);
+}
+
+
+TYPED_TEST(BatchEll, CanBeCreatedFromExistingCscData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    /**
+     * 1 2
+     * 0 3
+     * 4 0
+     *
+     * -1 12
+     * 0 13
+     * 14 0
+     */
+    value_type csc_values[] = {1.0, 4.0, 2.0, 3.0, -1.0, 14.0, 12.0, 13.0};
+    index_type row_idxs[] = {0, 2, 0, 1};
+    index_type col_ptrs[] = {0, 2, 4};
+    value_type ell_values[] = {1.0,  0.0, 4.0,  2.0,  3.0,  0.0,
+                               -1.0, 0.0, 14.0, 12.0, 13.0, 0.0};
+    index_type col_idxs[] = {0, 0, 0, 1, 1, 1};
+
+    auto mtx =
+        gko::matrix::BatchEll<value_type, index_type>::create_from_batch_csc(
+            this->exec, 2, gko::dim<2>{3, 2}, 2,
+            gko::Array<value_type>::view(this->exec, 8, csc_values),
+            gko::Array<index_type>::view(this->exec, 4, row_idxs),
+            gko::Array<index_type>::view(this->exec, 3, col_ptrs));
+
+    auto comp = gko::matrix::BatchEll<value_type, index_type>::create(
+        this->exec, 2, gko::dim<2>{3, 2}, 2, 3,
+        gko::Array<value_type>::view(this->exec, 12, ell_values),
+        gko::Array<index_type>::view(this->exec, 6, col_idxs));
+
+    // this->assert_equal_batch_ell_matrices(mtx.get(), comp.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx.get(), comp.get(), 0.0);
 }
 
 
