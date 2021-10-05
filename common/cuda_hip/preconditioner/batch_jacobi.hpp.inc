@@ -66,20 +66,21 @@ public:
         const gko::batch_ell::BatchEntry<const ValueType>& mat,
         ValueType* const __restrict__ work)
     {
-        const auto tidx = threadIdx.x;  // thread::get_thread_id_flat();
+        const auto tidx = threadIdx.x;
+        const auto col = mat.col_idxs;
+        const auto val = mat.values;
         work_ = work;
         if (tidx < mat.num_rows) {
             auto temp = one<ValueType>();
             for (size_type idx = 0; idx < mat.num_stored_elems_per_row; idx++) {
                 const auto ind = tidx + idx * mat.stride;
-                const auto col_idx = mat.col_idxs[ind];
+                const auto col_idx = col[ind];
                 if (col_idx < idx) {
                     break;
                 } else {
-                    const int found = (col_idx == tidx);
-                    const int valid = mat.values[col_idx] != zero<ValueType>();
-                    if (found && valid) {
-                        temp = one<ValueType>() / mat.values[tidx];
+                    const bool found = (col_idx == tidx);
+                    if (found) {
+                        temp = one<ValueType>() / val[ind];
                     }
                 }
             }
@@ -111,7 +112,9 @@ public:
                  j < mat.row_ptrs[irow + 1]; j += warp_size) {
                 const int found = (mat.col_idxs[j] == irow);
                 if (found) {
-                    work_[irow] = one<ValueType>() / mat.values[j];
+                    work_[irow] = (mat.values[j] != zero<ValueType>())
+                                      ? one<ValueType>() / mat.values[j]
+                                      : one<ValueType>();
                 }
             }
         }
