@@ -261,6 +261,62 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_CONVERT_TO_BATCH_DENSE);
 
 
+template <typename ValueType, typename IndexType>
+void convert_from_batch_csc(std::shared_ptr<const DefaultExecutor> exec,
+                            matrix::BatchEll<ValueType, IndexType>* ell,
+                            const Array<ValueType>& values_arr,
+                            const Array<IndexType>& row_idxs_arr,
+                            const Array<IndexType>& col_ptrs_arr)
+{
+    const size_type nbatches = ell->get_num_batch_entries();
+    const int num_rows = ell->get_size().at(0)[0];
+    const int num_cols = ell->get_size().at(0)[1];
+    const int num_stored_elements_per_row =
+        ell->get_num_stored_elements_per_row().at(0);
+    const auto values = values_arr.get_const_data();
+    const auto row_idxs = row_idxs_arr.get_const_data();
+    const auto col_ptrs = col_ptrs_arr.get_const_data();
+    const auto nnz_per_batch =
+        static_cast<size_type>(values_arr.get_num_elems() / nbatches);
+    std::vector<ValueType> csr_vals(values_arr.get_num_elems());
+    std::vector<IndexType> row_ptrs(num_rows + 1, 0);
+    std::vector<IndexType> col_idxs(row_idxs_arr.get_num_elems());
+    size_type num_nnz = col_ptrs[num_cols];
+    row_ptrs[0] = 0;
+    convert_idxs_to_ptrs(row_idxs, num_nnz, row_ptrs.data() + 1, num_rows);
+    for (size_type col = 0; col < num_cols; ++col) {
+        for (auto i = col_ptrs[col]; i < col_ptrs[col + 1]; ++i) {
+            const auto dest_idx = (row_ptrs.data() + 1)[row_idxs[i]]++;
+            col_idxs[dest_idx] = col;
+            size_type offset = 0;
+            for (size_type b = 0; b < nbatches; ++b) {
+                offset = b * num_nnz;
+                csr_vals[offset + dest_idx] = values[offset + i];
+            }
+        }
+    }
+    size_type offset = 0;
+    for (size_type ibatch = 0; ibatch < nbatches; ibatch++) {
+        for (size_type row = 0; row < num_rows; row++) {
+            for (size_type i = 0; i < num_stored_elements_per_row; i++) {
+                ell->val_at(ibatch, row, i) = zero<ValueType>();
+                ell->col_at(row, i) = 0;
+            }
+            for (size_type col_idx = 0;
+                 col_idx < row_ptrs[row + 1] - row_ptrs[row]; col_idx++) {
+                ell->val_at(ibatch, row, col_idx) =
+                    csr_vals[offset + row_ptrs[row] + col_idx];
+                ell->col_at(row, col_idx) = col_idxs[row_ptrs[row] + col_idx];
+            }
+        }
+        offset += nnz_per_batch;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_ELL_CONVERT_FROM_BATCH_CSC);
+
+
 }  // namespace batch_ell
 }  // namespace reference
 }  // namespace kernels

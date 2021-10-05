@@ -53,8 +53,8 @@ using index_type = int;
 using size_type = gko::size_type;
 using vec_type = gko::matrix::BatchDense<value_type>;
 using real_vec_type = gko::matrix::BatchDense<real_type>;
-using mtx_type = gko::matrix::BatchCsr<value_type, index_type>;
-// using mtx_type = gko::matrix::BatchEll<value_type, index_type>;
+// using mtx_type = gko::matrix::BatchCsr<value_type, index_type>;
+using mtx_type = gko::matrix::BatchEll<value_type, index_type>;
 using solver_type = gko::solver::BatchBicgstab<value_type>;
 
 
