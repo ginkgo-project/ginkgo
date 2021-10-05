@@ -120,6 +120,13 @@ namespace kernels {
         matrix::BatchEll<ValueType, IndexType>* a,                        \
         matrix::BatchDense<ValueType>* b)
 
+#define GKO_DECLARE_BATCH_ELL_CONVERT_FROM_BATCH_CSC(ValueType, IndexType)   \
+    void convert_from_batch_csc(std::shared_ptr<const DefaultExecutor> exec, \
+                                matrix::BatchEll<ValueType, IndexType>* ell, \
+                                const Array<ValueType>& values,              \
+                                const Array<IndexType>& row_idxs,            \
+                                const Array<IndexType>& col_ptrs)
+
 #define GKO_DECLARE_BATCH_ELL_CONVERT_TO_BATCH_DENSE(ValueType, IndexType) \
     void convert_to_batch_dense(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                       \
@@ -153,6 +160,8 @@ namespace kernels {
     GKO_DECLARE_BATCH_ELL_SCALE(ValueType, IndexType);                       \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_BATCH_ELL_PRE_DIAG_SCALE_SYSTEM(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_BATCH_ELL_CONVERT_FROM_BATCH_CSC(ValueType, IndexType);      \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_BATCH_ELL_CONVERT_TO_BATCH_DENSE(ValueType, IndexType)
 

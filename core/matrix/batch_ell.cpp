@@ -59,6 +59,8 @@ GKO_REGISTER_OPERATION(calculate_total_cols, batch_ell::calculate_total_cols);
 GKO_REGISTER_OPERATION(transpose, batch_ell::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, batch_ell::conj_transpose);
 GKO_REGISTER_OPERATION(batch_scale, batch_ell::batch_scale);
+GKO_REGISTER_OPERATION(convert_from_batch_csc,
+                       batch_ell::convert_from_batch_csc);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        batch_ell::calculate_max_nnz_per_row);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
@@ -98,6 +100,16 @@ size_type calculate_max_nnz_per_row(
 
 
 }  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void BatchEll<ValueType, IndexType>::create_from_batch_csc_impl(
+    const gko::Array<ValueType>& values, const gko::Array<IndexType>& row_idxs,
+    const gko::Array<IndexType>& col_ptrs)
+{
+    this->get_executor()->run(batch_ell::make_convert_from_batch_csc(
+        this, values, row_idxs, col_ptrs));
+}
 
 
 template <typename ValueType, typename IndexType>
