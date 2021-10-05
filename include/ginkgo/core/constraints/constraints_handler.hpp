@@ -254,6 +254,8 @@ private:
         return orig_init_guess_ ? orig_init_guess_ : zero_init_guess_;
     }
 
+    void reconstruct_system_impl(bool force);
+
     Array<IndexType> idxs_;
 
     std::shared_ptr<LinOp> orig_operator_;

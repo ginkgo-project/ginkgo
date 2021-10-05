@@ -521,19 +521,35 @@ TYPED_TEST(ConstrainedSystem, ReconstructsOnlyRhsForGetRhs)
 }
 
 
-TYPED_TEST(ConstrainedSystem, ReconstructsOnlyInitForGetInit)
+TYPED_TEST(ConstrainedSystem, ReconstructsRhsAndInitForGetInit)
 {
     auto prev_counter = *this->counter;
     auto cloned_init = gko::share(gko::clone(this->empty_init));
     auto cloned_rhs = gko::share(gko::clone(this->empty_rhs));
 
-    this->counted_handler.with_right_hand_side(cloned_rhs);
     this->counted_handler.with_initial_guess(cloned_init);
     this->counted_handler.get_initial_guess();
 
-    ASSERT_EQ(this->counter->rhs - prev_counter.rhs, 0);
+    ASSERT_EQ(this->counter->rhs - prev_counter.rhs, 1);
     ASSERT_EQ(this->counter->init - prev_counter.init, 1);
 }
+
+
+TYPED_TEST(ConstrainedSystem, ThrowsIfNoValues)
+{
+    ASSERT_THROW(this->empty_handler.get_initial_guess(), gko::NotSupported);
+    ASSERT_THROW(this->empty_handler.get_right_hand_side(), gko::NotSupported);
+}
+
+
+TYPED_TEST(ConstrainedSystem, ThrowsIfNoRhs)
+{
+    this->empty_handler.with_constrained_values(this->empty_values);
+
+    ASSERT_THROW(this->empty_handler.get_initial_guess(), gko::NotSupported);
+    ASSERT_THROW(this->empty_handler.get_right_hand_side(), gko::NotSupported);
+}
+
 
 TYPED_TEST(ConstrainedSystem, SolveConstrainedSystemWithoutInit)
 {
