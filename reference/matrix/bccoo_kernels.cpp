@@ -63,21 +63,16 @@ namespace bccoo {
 void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec,
                             size_type* block_size)
 {
-    *block_size = 10;
-    //	block_size = 1;
+    // *block_size = 10;
     *block_size = 2;
-    //	block_size = 3;
-    //	block_size = 4;
 }
 
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
           const matrix::Bccoo<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b,
-          matrix::Dense<ValueType>* c)  // GKO_NOT_IMPLEMENTED;
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
         c->at(i) = zero<ValueType>();
     }
@@ -93,9 +88,8 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Bccoo<ValueType, IndexType>* a,
                    const matrix::Dense<ValueType>* b,
                    const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)  // GKO_NOT_IMPLEMENTED;
+                   matrix::Dense<ValueType>* c)
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     auto beta_val = beta->at(0, 0);
     for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
         c->at(i) *= beta_val;
@@ -110,20 +104,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::Bccoo<ValueType, IndexType>* a,
-           const matrix::Dense<ValueType>* b,
-           matrix::Dense<ValueType>* c)  // GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
-//    auto bccoo_val = a->get_const_values();
-//    auto bccoo_col = a->get_const_col_idxs();
-//    auto bccoo_row = a->get_const_row_idxs();
-//    auto num_cols = b->get_size()[1];
-//    for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
-//        for (size_type j = 0; j < num_cols; j++) {
-//            c->at(bccoo_row[i], j) += bccoo_val[i] * b->at(bccoo_col[i], j);
-//        }
-//    }
-//}
+           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     auto* rows_data = a->get_const_rows();
     auto* offsets_data = a->get_const_offsets();
@@ -131,69 +112,13 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     auto num_stored_elements = a->get_num_stored_elements();
     auto block_size = a->get_block_size();
     auto num_cols = b->get_size()[1];
-    //    auto exec = this->get_executor();
-    //    auto exec_master = exec->get_master();
 
-    //    std::unique_ptr<const LinOp> op{};
-    //    const Bccoo *tmp{};
-    //    if (this->get_executor()->get_master() != this->get_executor()) {
-    //    if (exec_master != exec) {
-    //        //        op = this->clone(this->get_executor()->get_master());
-    //        op = this->clone(exec_master);
-    //        tmp = static_cast<const Bccoo *>(op.get());
-    //    } else {
-    //        tmp = this;
-    //    }
-
-    std::cout << "spmv2 <=> " << num_stored_elements << std::endl;
     // Computation of chunk
     size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
     ValueType val;
     for (size_type i = 0; i < num_stored_elements; i++) {
-        if (nblk == 0) {
-            row = rows_data[blk];
-            col = 0;
-            shf = offsets_data[blk];
-        }
-
-        //        update_bccoo_position(chunk_data, shf, row, col);
-        //        update_bccoo_position2(chunk_data, &shf, &row, &col);
-        /*
-                // uint8 ind =
-                // a->get_value_chunk<gko::uint8>(chunk_data, shf);
-                // uint8_t ind = a->get_value_chunk<uint8_t>(chunk_data, shf);
-                // uint8_t ind = a->get_value_chunk(chunk_data, shf);
-                // uint8 ind =
-                // a->get_value_chunk<uint8>(chunk_data, shf);
-                // uint8 ind = * (chunk_data + shf);
-                uint8 ind = (chunk_data[shf]);
-                while (ind == 0xFF) {
-                    row++;
-                    shf++;
-                    col = 0;
-                    ind = chunk_data[shf];
-                }
-                if (ind < 0xFD) {
-                    col += ind;
-                    shf++;
-                } else if (ind == 0xFD) {
-                    shf++;
-                    col += get_value_chunk<uint16>(chunk_data, shf);
-                    //  col += *(uint16 *)(chunk_data + shf);
-                    shf += 2;
-                } else {
-                    shf++;
-                    col += get_value_chunk<uint32>(chunk_data, shf);
-                    //  col += *(uint32 *)(chunk_data + shf);
-                    shf += 4;
-                }
-                //				val =
-                // get_value_chunk<ValueType>(chunk_data, shf);
-                val = *(ValueType *)(chunk_data + shf);
-                shf += sizeof(ValueType);
-                //        data.nonzeros.emplace_back(row, col, val);
-        */
-        update_bccoo_position_val(chunk_data, shf, row, col, val);
+        update_bccoo_position_val(rows_data, offsets_data, chunk_data, nblk,
+                                  blk, shf, row, col, val);
         for (size_type j = 0; j < num_cols; j++) {
             c->at(row, j) += val * b->at(col, j);
         }
@@ -213,21 +138,7 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Dense<ValueType>* alpha,
                     const matrix::Bccoo<ValueType, IndexType>* a,
                     const matrix::Dense<ValueType>* b,
-                    matrix::Dense<ValueType>* c)  // GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
-//    auto bccoo_val = a->get_const_values();
-//    auto bccoo_col = a->get_const_col_idxs();
-//    auto bccoo_row = a->get_const_row_idxs();
-//    auto alpha_val = alpha->at(0, 0);
-//    auto num_cols = b->get_size()[1];
-//    for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
-//        for (size_type j = 0; j < num_cols; j++) {
-//            c->at(bccoo_row[i], j) +=
-//                alpha_val * bccoo_val[i] * b->at(bccoo_col[i], j);
-//        }
-//    }
-//}
+                    matrix::Dense<ValueType>* c)
 {
     auto* rows_data = a->get_const_rows();
     auto* offsets_data = a->get_const_offsets();
@@ -236,66 +147,13 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     auto block_size = a->get_block_size();
     auto alpha_val = alpha->at(0, 0);
     auto num_cols = b->get_size()[1];
-    //    auto exec = this->get_executor();
-    //    auto exec_master = exec->get_master();
-
-    //    std::unique_ptr<const LinOp> op{};
-    //    const Bccoo *tmp{};
-    //    if (this->get_executor()->get_master() != this->get_executor()) {
-    //    if (exec_master != exec) {
-    //        //        op = this->clone(this->get_executor()->get_master());
-    //        op = this->clone(exec_master);
-    //        tmp = static_cast<const Bccoo *>(op.get());
-    //    } else {
-    //        tmp = this;
-    //    }
 
     // Computation of chunk
     size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
     ValueType val;
     for (size_type i = 0; i < num_stored_elements; i++) {
-        if (nblk == 0) {
-            row = rows_data[blk];
-            col = 0;
-            shf = offsets_data[blk];
-        }
-        // uint8 ind =
-        // a->get_value_chunk<gko::uint8>(chunk_data, shf);
-        // uint8_t ind = a->get_value_chunk<uint8_t>(chunk_data, shf);
-        // uint8_t ind = a->get_value_chunk(chunk_data, shf);
-        // uint8 ind =
-        // a->get_value_chunk<uint8>(chunk_data, shf);
-        // uint8 ind = * (chunk_data + shf);
-        //        update_bccoo_position(chunk_data, shf, row, col);
-        /*
-                uint8 ind = (chunk_data[shf]);
-                while (ind == 0xFF) {
-                    row++;
-                    shf++;
-                    col = 0;
-                    ind = chunk_data[shf];
-                }
-                if (ind < 0xFD) {
-                    col += ind;
-                    shf++;
-                } else if (ind == 0xFD) {
-                    shf++;
-                    col += get_value_chunk<uint16>(chunk_data, shf);
-                    //  col += *(uint16 *)(chunk_data + shf);
-                    shf += 2;
-                } else {
-                    shf++;
-                    col += get_value_chunk<uint32>(chunk_data, shf);
-                    //  col += *(uint32 *)(chunk_data + shf);
-                    shf += 4;
-                }
-                //				val =
-                // get_value_chunk<ValueType>(chunk_data, shf);
-                val = *(ValueType *)(chunk_data + shf);
-                shf += sizeof(ValueType);
-                //        data.nonzeros.emplace_back(row, col, val);
-        */
-        update_bccoo_position_val(chunk_data, shf, row, col, val);
+        update_bccoo_position_val(rows_data, offsets_data, chunk_data, nblk,
+                                  blk, shf, row, col, val);
         for (size_type j = 0; j < num_cols; j++) {
             c->at(row, j) += alpha_val * val * b->at(col, j);
         }
@@ -315,7 +173,6 @@ void convert_to_next_precision(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Bccoo<ValueType, IndexType>* source,
     matrix::Bccoo<next_precision<ValueType>, IndexType>* result)
-// GKO_NOT_IMPLEMENTED;
 {
     using new_precision = next_precision<ValueType>;
 
@@ -338,33 +195,15 @@ void convert_to_next_precision(
     auto* chunk_dataR = result->get_chunk();
     new_precision valR;
 
-    //		std::cout << "NNZ_A = " << num_stored_elements << std::endl;
-    //		std::cout << "NNZ_B = " << result->get_num_stored_elements() <<
-    // std::endl; 		std::cout << "NNZ_B1 = " <<
-    // offsets_dataS->get_size()
-    // << std::endl; 		std::cout << "NNZ_B2 = " <<
-    // offsets_dataR->get_size() << std::endl;
-    //  JIAE: This if is required to avoid problems with empty matrices
-    //    if (num_stored_elements > 0) offsets_dataR[0] = 0;
     offsets_dataR[0] = 0;
-    //		std::cout << "NNZ_C = " << result->get_num_stored_elements() -
-    //																num_stored_elements
-    //<< std::endl;
     for (size_type i = 0; i < num_stored_elements; i++) {
-        //		    std::cout << "i = " << i << std::endl;
         if (nblkS == 0) {
             rowS = rows_dataS[blkS];
-            // 						std::cout << "rowS = "
-            // << rowS
-            // << std::endl;
             colS = 0;
             shfS = offsets_dataS[blkS];
         }
         if (nblkR == 0) {
             rowR = rowS;
-            //						std::cout << "rowR = "
-            //<< rowR
-            //<< std::endl;
             colR = 0;
             rows_dataR[blkR] = rowR;
         }
@@ -377,51 +216,7 @@ void convert_to_next_precision(
 
         update_bccoo_position_copy(chunk_dataS, shfS, rowS, colS, rows_dataR,
                                    nblkR, blkR, chunk_dataR, shfR, rowR, colR);
-        /*
-                uint8 indS = (chunk_dataS[shfS]);
-                while (indS == 0xFF) {
-                    rowS++;
-                    colS = 0;
-                    shfS++;
-                    indS = chunk_dataS[shfS];
-                    rowR++;
-                    colR = 0;
-                    if (nblkR == 0) {
-                        rows_dataR[blkR] = rowR;
-                    } else {
-                        set_value_chunk<uint8>(chunk_dataR, shfR, 0xFF);
-                        shfR++;
-                    }
-                }
-
-                if (indS < 0xFD) {
-                    colS += indS;
-                    shfS++;
-                    set_value_chunk<uint8>(chunk_dataR, shfR, indS);
-                    shfR++;
-                } else if (indS == 0xFD) {
-                    shfS++;
-                    colS += get_value_chunk<uint16>(chunk_dataS, shfS);
-                    shfS += 2;
-                    set_value_chunk<uint8>(chunk_dataR, shfR, 0xFD);
-                    shfR++;
-                    set_value_chunk<uint16>(chunk_dataR, shfR, colS - colR);
-                    colR = colS;
-                    shfR += 2;
-                } else {
-                    shfS++;
-                    colS += *(uint32 *)(chunk_dataS + shfS);
-                    shfS += 4;
-                    set_value_chunk<uint8>(chunk_dataR, shfR, 0xFE);
-                    shfR++;
-                    set_value_chunk<uint32>(chunk_dataR, shfR, colS - colR);
-                    colR = colS;
-                    shfR += 4;
-                }
-        */
         valS = get_value_chunk<ValueType>(chunk_dataS, shfS);
-        // valS = *(ValueType *)(chunk_dataS + shfS);
-        //        std::cout << valS << std::endl;
         shfS += sizeof(ValueType);
         valR = valS;
         set_value_chunk<new_precision>(chunk_dataR, shfR, valR);
@@ -447,13 +242,10 @@ template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
                     matrix::Coo<ValueType, IndexType>* result)
-// GKO_NOT_IMPLEMENTED;
 {
-    //    std::cout << "Convert_Coo_A" << std::endl;
     size_type block_size = source->get_block_size();
     size_type num_stored_elements = source->get_num_stored_elements();
 
-    //    std::cout << "Convert_Coo_B" << std::endl;
     size_type nblk = 0, blk = 0, row = 0, col = 0, shf = 0;
     size_type num_bytes = source->get_num_bytes();
 
@@ -462,57 +254,21 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
     auto* chunk_data = source->get_const_chunk();
     ValueType val;
 
-    //    std::cout << "Convert_Coo_C" << std::endl;
     auto row_idxs = result->get_row_idxs();
     auto col_idxs = result->get_col_idxs();
     auto values = result->get_values();
 
-    //    std::cout << "Convert_Coo_D" << std::endl;
     for (size_type i = 0; i < num_stored_elements; i++) {
-        if (nblk == 0) {
-            row = rows_data[blk];
-            col = 0;
-            shf = offsets_data[blk];
-        }
-
-        //        update_bccoo_position(chunk_data, shf, row, col);
-        /*
-                uint8 ind = (chunk_data[shf]);
-                while (ind == 0xFF) {
-                    row++;
-                    col = 0;
-                    shf++;
-                    ind = chunk_data[shf];
-                }
-
-                if (ind < 0xFD) {
-                    col += ind;
-                    shf++;
-                } else if (ind == 0xFD) {
-                    shf++;
-                    col += get_value_chunk<uint16>(chunk_data, shf);
-                    shf += 2;
-                } else {
-                    shf++;
-                    col += *(uint32 *)(chunk_data + shf);
-                    shf += 4;
-                }
-                val = get_value_chunk<ValueType>(chunk_data, shf);
-                // val = *(ValueType *)(chunk_data + shf);
-                shf += sizeof(ValueType);
-        */
-        update_bccoo_position_val(chunk_data, shf, row, col, val);
-
+        update_bccoo_position_val(rows_data, offsets_data, chunk_data, nblk,
+                                  blk, shf, row, col, val);
         row_idxs[i] = row;
         col_idxs[i] = col;
         values[i] = val;
-
         if (++nblk == block_size) {
             nblk = 0;
             blk++;
         }
     }
-    //    std::cout << "Convert_Coo_E" << std::endl;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -534,9 +290,7 @@ template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
                     matrix::Csr<ValueType, IndexType>* result)
-//    GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     size_type block_size = source->get_block_size();
     size_type num_stored_elements = source->get_num_stored_elements();
 
@@ -588,10 +342,8 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
         }
         /* */
         val = get_value_chunk<ValueType>(chunk_data, shf);
-        // val = *(ValueType *)(chunk_data + shf);
         shf += sizeof(ValueType);
 
-        //        row_idxs[i] = row;
         col_idxs[i] = col;
         values[i] = val;
 
@@ -610,9 +362,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Bccoo<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)  // GKO_NOT_IMPLEMENTED;
+                      matrix::Dense<ValueType>* result)
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     size_type block_size = source->get_block_size();
     size_type num_stored_elements = source->get_num_stored_elements();
 
@@ -634,42 +385,9 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
     }
 
     for (size_type i = 0; i < num_stored_elements; i++) {
-        if (nblk == 0) {
-            row = rows_data[blk];
-            col = 0;
-            shf = offsets_data[blk];
-        }
-
-        //        update_bccoo_position(chunk_data, shf, row, col);
-        /*
-                uint8 ind = (chunk_data[shf]);
-                while (ind == 0xFF) {
-                    row++;
-                    col = 0;
-                    shf++;
-                    ind = chunk_data[shf];
-                }
-
-                if (ind < 0xFD) {
-                    col += ind;
-                    shf++;
-                } else if (ind == 0xFD) {
-                    shf++;
-                    col += get_value_chunk<uint16>(chunk_data, shf);
-                    shf += 2;
-                } else {
-                    shf++;
-                    col += *(uint32 *)(chunk_data + shf);
-                    shf += 4;
-                }
-                val = get_value_chunk<ValueType>(chunk_data, shf);
-                // val = *(ValueType *)(chunk_data + shf);
-                shf += sizeof(ValueType);
-        */
-        update_bccoo_position_val(chunk_data, shf, row, col, val);
-
+        update_bccoo_position_val(rows_data, offsets_data, chunk_data, nblk,
+                                  blk, shf, row, col, val);
         result->at(row, col) += val;
-
         if (++nblk == block_size) {
             nblk = 0;
             blk++;
@@ -682,27 +400,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void extract_diagonal(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Bccoo<ValueType, IndexType>* orig,
-    matrix::Diagonal<ValueType>* diag)  // GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
-//    const auto row_idxs = orig->get_const_row_idxs();
-//    const auto col_idxs = orig->get_const_col_idxs();
-//    const auto values = orig->get_const_values();
-//    const auto diag_size = diag->get_size()[0];
-//    const auto nnz = orig->get_num_stored_elements();
-//    auto diag_values = diag->get_values();
-//
-//    for (size_type idx = 0; idx < nnz; idx++) {
-//        if (row_idxs[idx] == col_idxs[idx]) {
-//            diag_values[row_idxs[idx]] = values[idx];
-//        }
-//    }
-//}
+void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
+                      const matrix::Bccoo<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag)
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     size_type block_size = orig->get_block_size();
     size_type num_stored_elements = orig->get_num_stored_elements();
 
@@ -722,44 +423,11 @@ void extract_diagonal(
     }
 
     for (size_type i = 0; i < num_stored_elements; i++) {
-        if (nblk == 0) {
-            row = rows_data[blk];
-            col = 0;
-            shf = offsets_data[blk];
-        }
-
-        //        update_bccoo_position(chunk_data, shf, row, col);
-        /*
-                uint8 ind = (chunk_data[shf]);
-                while (ind == 0xFF) {
-                    row++;
-                    col = 0;
-                    shf++;
-                    ind = chunk_data[shf];
-                }
-
-                if (ind < 0xFD) {
-                    col += ind;
-                    shf++;
-                } else if (ind == 0xFD) {
-                    shf++;
-                    col += get_value_chunk<uint16>(chunk_data, shf);
-                    shf += 2;
-                } else {
-                    shf++;
-                    col += *(uint32 *)(chunk_data + shf);
-                    shf += 4;
-                }
-                val = get_value_chunk<ValueType>(chunk_data, shf);
-                // val = *(ValueType *)(chunk_data + shf);
-                shf += sizeof(ValueType);
-        */
-        update_bccoo_position_val(chunk_data, shf, row, col, val);
-
+        update_bccoo_position_val(rows_data, offsets_data, chunk_data, nblk,
+                                  blk, shf, row, col, val);
         if (row == col) {
             diag_values[row] = val;
         }
-
         if (++nblk == block_size) {
             nblk = 0;
             blk++;
@@ -772,11 +440,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_absolute_inplace(
-    std::shared_ptr<const DefaultExecutor> exec,
-    matrix::Bccoo<ValueType, IndexType>* matrix)  // GKO_NOT_IMPLEMENTED;
+void compute_absolute_inplace(std::shared_ptr<const DefaultExecutor> exec,
+                              matrix::Bccoo<ValueType, IndexType>* matrix)
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     size_type block_size = matrix->get_block_size();
     size_type num_stored_elements = matrix->get_num_stored_elements();
 
@@ -788,44 +454,18 @@ void compute_absolute_inplace(
     auto* chunk_data = matrix->get_chunk();
     ValueType val;
 
-    //    std::cout << " compute_absolute_inplace " << std::endl;
     for (size_type i = 0; i < num_stored_elements; i++) {
-        if (nblk == 0) {
-            row = rows_data[blk];
-            col = 0;
-            shf = offsets_data[blk];
-        }
-
-        update_bccoo_position(chunk_data, shf, row, col);
-        /*
-                uint8 ind = (chunk_data[shf]);
-                while (ind == 0xFF) {
-                    row++;
-                    col = 0;
-                    shf++;
-                    ind = chunk_data[shf];
-                }
-
-                if (ind < 0xFD) {
-                    col += ind;
-                    shf++;
-                } else if (ind == 0xFD) {
-                    shf++;
-                    col += get_value_chunk<uint16>(chunk_data, shf);
-                    shf += 2;
-                } else {
-                    shf++;
-                    col += *(uint32 *)(chunk_data + shf);
-                    shf += 4;
-                }
-        */
+#if UPDATE < 2
+        update_bccoo_position(rows_data, offsets_data, chunk_data, nblk, blk,
+                              shf, row, col);
         val = get_value_chunk<ValueType>(chunk_data, shf);
-        //        std::cout << val << " - " << abs(val) << std::endl;
         val = abs(val);
-        // val = *(ValueType *)(chunk_data + shf);
         set_value_chunk<ValueType>(chunk_data, shf, val);
         shf += sizeof(ValueType);
-
+#else
+        update_bccoo_position_val(rows_data, offsets_data, chunk_data, nblk,
+                                  blk, shf, row, col, val, &std::abs);
+#endif
         if (++nblk == block_size) {
             nblk = 0;
             blk++;
@@ -838,12 +478,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_absolute(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Bccoo<ValueType, IndexType>* source,
-                      remove_complex<matrix::Bccoo<ValueType, IndexType>>*
-                          result)  // GKO_NOT_IMPLEMENTED;
+void compute_absolute(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Bccoo<ValueType, IndexType>* source,
+    remove_complex<matrix::Bccoo<ValueType, IndexType>>* result)
 {
-    //    std::cout << " compute_absolute" << std::endl;
     size_type block_size = source->get_block_size();
     size_type num_stored_elements = source->get_num_stored_elements();
 
@@ -863,9 +502,6 @@ void compute_absolute(std::shared_ptr<const DefaultExecutor> exec,
     auto* chunk_dataR = result->get_chunk();
     ValueType valR;
 
-    //  JIAE: This if is required to avoid problems with empty matrices
-    //    if (num_stored_elements > 0) offsets_dataR[0] = 0;
-    //		std::cout << "NNZ_A = " << num_stored_elements << std::endl;
     offsets_dataR[0] = 0;
     for (size_type i = 0; i < num_stored_elements; i++) {
         if (nblkS == 0) {
@@ -887,48 +523,6 @@ void compute_absolute(std::shared_ptr<const DefaultExecutor> exec,
 
         update_bccoo_position_copy(chunk_dataS, shfS, rowS, colS, rows_dataR,
                                    nblkR, blkR, chunk_dataR, shfR, rowR, colR);
-        /*
-                uint8 indS = (chunk_dataS[shfS]);
-                while (indS == 0xFF) {
-                    rowS++;
-                    colS = 0;
-                    shfS++;
-                    indS = chunk_dataS[shfS];
-                    rowR++;
-                    colR = 0;
-                    if (nblkR == 0) {
-                        rows_dataR[blkR] = rowR;
-                    } else {
-                        set_value_chunk<uint8>(chunk_dataR, shfR, 0xFF);
-                        shfR++;
-                    }
-                }
-
-                if (indS < 0xFD) {
-                    colS += indS;
-                    shfS++;
-                    set_value_chunk<uint8>(chunk_dataR, shfR, indS);
-                    shfR++;
-                } else if (indS == 0xFD) {
-                    shfS++;
-                    colS += get_value_chunk<uint16>(chunk_dataS, shfS);
-                    shfS += 2;
-                    set_value_chunk<uint8>(chunk_dataR, shfR, 0xFD);
-                    shfR++;
-                    set_value_chunk<uint16>(chunk_dataR, shfR, colS - colR);
-                    colR = colS;
-                    shfR += 2;
-                } else {
-                    shfS++;
-                    colS += *(uint32 *)(chunk_dataS + shfS);
-                    shfS += 4;
-                    set_value_chunk<uint8>(chunk_dataR, shfR, 0xFE);
-                    shfR++;
-                    set_value_chunk<uint32>(chunk_dataR, shfR, colS - colR);
-                    colR = colS;
-                    shfR += 4;
-                }
-        */
         valS = get_value_chunk<ValueType>(chunk_dataS, shfS);
         shfS += sizeof(ValueType);
         valR = abs(valS);

@@ -125,10 +125,6 @@ class Bccoo : public EnableLinOp<Bccoo<ValueType, IndexType>>,
                   remove_complex<Bccoo<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Bccoo>;
     friend class EnablePolymorphicObject<Bccoo, LinOp>;
-    // friend class Coo<ValueType, IndexType>; // JIAE & TG
-    // friend class Csr<ValueType, IndexType>; // JIAE & TG
-    // friend class Dense<ValueType>;          // JIAE & TG
-    // friend class BccooBuilder<ValueType, IndexType>; // JIAE
     friend class Bccoo<to_complex<ValueType>, IndexType>;
 
 public:
@@ -216,7 +212,7 @@ public:
     uint8* get_chunk() noexcept { return chunk_.get_data(); }
 
     /**
-     * @copydoc Bccoo::get_data()
+     * @copydoc Bccoo::get_chunk()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -255,31 +251,6 @@ public:
      */
     size_type get_num_bytes() const noexcept { return chunk_.get_num_elems(); }
 
-    /**
-     * Copies the value in the m-th byte of chunk.
-     *
-     * @copy the value in the m-th byte of chunk.
-     */
-    /*
-                    template <typename T>
-                    void set_value_chunk(void *ptr, std::size_t start, T value)
-       { std::memcpy(static_cast<std::int8_t *>(ptr) + start, &value,
-       sizeof(T));
-                    }
-    */
-    /**
-     * Returns the value in the m-th byte of chunk, which is adjusting to T
-     * class.
-     *
-     * @return the value in the m-th byte of chunk, which is adjusting to T
-     * class.
-     */
-    /*
-                    template <typename T>
-                    T get_value_chunk(const uint8 *ptr, std::size_t start) const
-       { T val{}; std::memcpy(&val, ptr + start, sizeof(T)); return val;
-                    }
-    */
     /**
      * Applies Bccoo matrix axpy to a vector (or a sequence of vectors).
      *
@@ -355,17 +326,11 @@ protected:
     Bccoo(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Bccoo>(exec, dim<2>{}),
           rows_(exec, 0),
-          //          offsets_(exec, 0),
           offsets_(exec, 1),
           chunk_(exec, 0),
           num_nonzeros_{0},
           block_size_{0}
-    {
-        //				std::cout << "A -> " <<
-        // offsets_.get_size()
-        //<< std::endl; 				std::cout << "A -> " <<
-        // std::endl;
-    }
+    {}
 
     /**
      * Creates an uninitialized BCCOO matrix of the specified size.
@@ -382,42 +347,15 @@ protected:
           rows_(exec,
                 (block_size <= 0) ? 0 : ceildiv(num_nonzeros, block_size)),
           offsets_(exec, (block_size <= 0)
-                             //                             ? 0
                              ? 1
                              : ceildiv(num_nonzeros, block_size) + 1),
           chunk_(exec, num_bytes),
           num_nonzeros_{num_nonzeros},
           block_size_{block_size}
     {
-        //				std::cout << "BCCOO from sizes" <<
-        // std::endl;
         GKO_ASSERT(block_size_ >= 0);
-        //				std::cout << "B -> " <<
-        // offsets_.get_size()
-        //<< std::endl; 				std::cout << "B -> " <<
-        // std::endl;
     }
 
-    /*
-        Bccoo(std::shared_ptr<const Executor> exec, const dim<2> &size =
-    dim<2>{}, size_type num_nonzeros = {}, size_type block_size = {}, size_type
-    num_bytes = {})
-    //          size_type num_nonzeros = {}, size_type block_size = {1},
-            : EnableLinOp<Bccoo>(exec, size),
-    //          rows_(exec, (num_nonzeros - 1) / block_size + 1),
-    //          rows_(exec, ceildiv(num_nonzeros, block_size)),
-              rows_(exec, (block_size <= 0)? 0 : ceildiv(num_nonzeros,
-    block_size)),
-    //          offsets_(exec, (num_nonzeros - 1) / block_size + 2),
-    //          offsets_(exec, ceildiv(num_nonzeros, block_size) + 1),
-              offsets_(exec, (block_size <= 0)? 0 : ceildiv(num_nonzeros,
-    block_size) + 1), chunk_(exec, num_bytes), num_nonzeros_{num_nonzeros},
-              block_size_{block_size}
-        {
-    //				std::cout << "BCCOO from sizes" << std::endl;
-            GKO_ASSERT(block_size_ >= 0);
-                    }
-    */
     /**
      * Creates a BCCOO matrix from already allocated (and initialized) rows
      * offsets and chunk arrays.
@@ -442,27 +380,16 @@ protected:
      *       created, and the original array chunk will not be used in the
      *       matrix.
      */
-    //    template <typename ChunkArray, typename OffIdxsArray, typename
-    //    RowIdxsArray> template <typename OffIdxsArray, typename RowIdxsArray>
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          //          ChunkArray &&chunk, OffIdxsArray &&offsets, RowIdxsArray
-          //          &&rows, array<uint8> &&chunk, OffIdxsArray &&offsets,
-          //          RowIdxsArray &&rows,
           array<uint8>&& chunk, array<IndexType>&& offsets,
           array<IndexType>&& rows, size_type num_nonzeros, size_type block_size)
-        //          size_type num_nonzeros = {}, size_type block_size = {})
         : EnableLinOp<Bccoo>(exec, size),
-          //          chunk_{exec, std::forward<ChunkArray>(chunk)},
           chunk_{exec, std::move(chunk)},
-          //          offsets_{exec, std::forward<OffIdxsArray>(offsets)},
           offsets_{exec, std::move(offsets)},
-          //          rows_{exec, std::forward<RowIdxsArray>(rows)},
           rows_{exec, std::move(rows)},
           num_nonzeros_{num_nonzeros},
           block_size_{block_size}
     {
-        //				std::cout << "BCCOO from vectors" <<
-        // std::endl;
         GKO_ASSERT_EQ(rows_.get_num_elems() + 1, offsets_.get_num_elems());
     }
 
@@ -476,10 +403,6 @@ protected:
     void apply2_impl(const LinOp* alpha, const LinOp* b, LinOp* x) const;
 
 private:
-    // array<value_type> values_;
-    // array<index_type> col_idxs_;
-    // array<index_type> row_idxs_;
-
     array<index_type> rows_;
     array<index_type> offsets_;  // To fix to int64 should be a better option
     array<uint8> chunk_;

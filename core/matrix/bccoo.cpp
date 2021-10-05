@@ -84,9 +84,7 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
-//     GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->get_executor()->run(bccoo::make_spmv(this, dense_b, dense_x));
@@ -98,9 +96,7 @@ void Bccoo<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                              const LinOp* beta, LinOp* x) const
-//    GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             this->get_executor()->run(bccoo::make_advanced_spmv(
@@ -112,9 +108,7 @@ void Bccoo<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::apply2_impl(const LinOp* b, LinOp* x) const
-//    GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->get_executor()->run(
@@ -125,10 +119,9 @@ void Bccoo<ValueType, IndexType>::apply2_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType, typename IndexType>
-void Bccoo<ValueType, IndexType>::apply2_impl(
-    const LinOp* alpha, const LinOp* b, LinOp* x) const  // GKO_NOT_IMPLEMENTED;
+void Bccoo<ValueType, IndexType>::apply2_impl(const LinOp* alpha,
+                                              const LinOp* b, LinOp* x) const
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_x) {
             this->get_executor()->run(bccoo::make_advanced_spmv2(
@@ -141,86 +134,56 @@ void Bccoo<ValueType, IndexType>::apply2_impl(
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::convert_to(
     Bccoo<next_precision<ValueType>, IndexType>* result) const
-// GKO_NOT_IMPLEMENTED;
-/* */
 {
-    /* */
     using new_precision = next_precision<ValueType>;
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
+
     auto exec = this->get_executor();
     size_type block_size = this->get_block_size();
     size_type num_nonzeros = this->get_num_stored_elements();
-    ;
     size_type num_bytes = this->get_num_bytes();
-    ;
-    //    std::cout << "A " << num_nonzeros << " , " << num_bytes << std::endl;
     num_bytes += num_nonzeros * (sizeof(new_precision) - sizeof(ValueType));
-    //    std::cout << "B " << num_nonzeros << " , " << num_bytes << std::endl;
     auto tmp = Bccoo<new_precision, IndexType>::create(
         exec, this->get_size(), num_nonzeros, block_size, num_bytes);
-    //    std::cout << "C " << tmp->get_num_stored_elements()
-    //						  << " , " << num_bytes <<
-    // std::endl;
     exec->run(bccoo::make_convert_to_next_precision(this, tmp.get()));
     tmp->move_to(result);
-    /* */
-    /*
-        result->chunk_ = this->chunk_;
-        result->rows_ = this->rows_;
-        result->offsets_ = this->offsets_;
-        result->set_size(this->get_size());
-    */
 }
-/* */
 
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::move_to(
-    Bccoo<next_precision<ValueType>, IndexType>*
-        result)  // GKO_NOT_IMPLEMENTED;
+    Bccoo<next_precision<ValueType>, IndexType>* result)
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     this->convert_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::convert_to(
-    Coo<ValueType, IndexType>* result) const  // GKO_NOT_IMPLEMENTED;
-/* */
+    Coo<ValueType, IndexType>* result) const
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     auto exec = this->get_executor();
     auto tmp = Coo<ValueType, IndexType>::create(
         exec, this->get_size(), this->get_num_stored_elements());
     exec->run(bccoo::make_convert_to_coo(this, tmp.get()));
     tmp->move_to(result);
 }
-/* */
 
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::move_to(Coo<ValueType, IndexType>* result)
-//    GKO_NOT_IMPLEMENTED;
-/* */
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     this->convert_to(result);
 }
-/* */
 
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::convert_to(
-    Csr<ValueType, IndexType>* result) const  // GKO_NOT_IMPLEMENTED;
+    Csr<ValueType, IndexType>* result) const
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     auto exec = this->get_executor();
     auto tmp = Csr<ValueType, IndexType>::create(
         exec, this->get_size(), this->get_num_stored_elements(),
         result->get_strategy());
-    //    tmp->values_ = this->values_;
-    //    tmp->col_idxs_ = this->col_idxs_;
     exec->run(bccoo::make_convert_to_csr(this, tmp.get()));
     tmp->make_srow();
     tmp->move_to(result);
@@ -229,18 +192,14 @@ void Bccoo<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType>* result)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     this->convert_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
-//    GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
     exec->run(bccoo::make_convert_to_dense(this, tmp.get()));
@@ -250,16 +209,13 @@ void Bccoo<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::move_to(Dense<ValueType>* result)
-//    GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     this->convert_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::read(const mat_data& data)
-//    GKO_NOT_IMPLEMENTED;
 {
     // Computation of nnz
     size_type nnz = 0;
@@ -272,11 +228,8 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     auto exec_master = exec->get_master();
 
     // Block partitioning
-    //		const size_type block_size = 1024;
-    size_type block_size = 10;
-    size_type num_blocks = ceildiv(nnz, block_size);
-
-    //		exec->run(bccoo::make_get_default_block_size(this, block_size));
+    size_type block_size = 0;
+    size_type num_blocks = 0;
     exec->run(bccoo::make_get_default_block_size(&block_size));
     num_blocks = ceildiv(nnz, block_size);
 
@@ -297,19 +250,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                 c = 0;
                 m++;
             }
-            //						} else { // a new value
-            // is stored
             size_type d = elem.column - c;
-            //						std::cout << k << "->"
-            //<<
-            // c
-            //<<
-            //"
-            //-
-            //"
-            //<<
-            // d
-            //<< std::endl;
             if (d < 0xFD) {
                 m++;
             } else if (d < 0xFFFF) {
@@ -319,7 +260,6 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
             }
             c = elem.column;
             m += sizeof(ValueType);
-            //						}
             if (++k == block_size) {
                 k = 0;
                 b++;
@@ -343,52 +283,26 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                 r++;
                 c = 0;
                 set_value_chunk<uint8>(chunk_data, m, 0xFF);
-                //                chunk_data[m] = 0xFF;
                 m++;
-                // std::cout
-                //<< " M0 = " << m << std::endl;
             }
-            //						} else  {// a new value
-            // is stored
             size_type d = elem.column - c;
             if (d < 0xFD) {
                 set_value_chunk<uint8>(chunk_data, m, d);
-                //                chunk_data[m] = d;
                 m++;
             } else if (d < 0xFFFF) {
                 set_value_chunk<uint8>(chunk_data, m, 0xFD);
-                //                chunk_data[m] = 0xFD;
                 m++;
                 set_value_chunk<uint16>(chunk_data, m, d);
-                //                *(uint16 *)(chunk_data + m) = d;
                 m += 2;
             } else {
                 set_value_chunk<uint8>(chunk_data, m, 0xFE);
-                //                chunk_data[m] = 0xFE;
                 m++;
                 set_value_chunk<uint32>(chunk_data, m, d);
-                //                *(uint32 *)(chunk_data + m) = d;
                 m += 4;
             }
-            //								std::cout
-            //<< " M1
-            //=
-            //"
-            //<<
-            // m
-            //<< std::endl;
             c = elem.column;
             set_value_chunk<ValueType>(chunk_data, m, elem.value);
-            //            *(ValueType *)(chunk_data + m) = elem.value;
             m += sizeof(ValueType);
-            //								std::cout
-            //<< " M2
-            //=
-            //"
-            //<<
-            // m
-            //<< std::endl;
-            //						}
             if (++k == block_size) {
                 k = 0;
                 b++;
@@ -397,7 +311,8 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
             }
         }
     }
-    //    Bccoo(exec, size, data, offsets, rows, num_nonzeros, block_size)
+
+    // Creation of the Bccoo object
     auto tmp =
         Bccoo::create(exec_master, data.size, std::move(chunk),
                       std::move(offsets), std::move(rows), nnz, block_size);
@@ -407,9 +322,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::write(mat_data& data) const
-//    GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     const IndexType* rows_data = this->get_const_rows();
     const IndexType* offsets_data = this->get_const_offsets();
     const uint8* chunk_data = this->get_const_chunk();
@@ -420,9 +333,7 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
 
     std::unique_ptr<const LinOp> op{};
     const Bccoo* tmp{};
-    //    if (this->get_executor()->get_master() != this->get_executor()) {
     if (exec_master != exec) {
-        //        op = this->clone(this->get_executor()->get_master());
         op = this->clone(exec_master);
         tmp = static_cast<const Bccoo*>(op.get());
     } else {
@@ -431,57 +342,36 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
 
     // Creation of the data vector
     data = {this->get_size(), {}};
-    //    data = {num_stored_elements, {}};
-    //		std::cout << " data.nonzeros = " << data.nonzeros.size() <<
-    // std::endl;
+
     // Computation of chunk
     size_type k = 0, b = 0, c = 0, r = 0, m = 0;
     ValueType val;
-    //    std::cout << " block_size = " << block_size << std::endl;
-    //    std::cout << " num_bytes = " << this->get_num_bytes() << std::endl;
     for (size_type i = 0; i < num_stored_elements; i++) {
-        //        std::cout << " i = " << i << " , k = " << k << std::endl;
         if (k == 0) {
             r = rows_data[b];
             c = 0;
             m = offsets_data[b];
         }
-        //        std::cout << " m0 = " << m << std::endl;
         uint8 d = get_value_chunk<uint8>(chunk_data, m);
-        //				uint8 d = get_value_chunk(chunk_data,
-        // m);
-        //        size_type d = chunk_data[m];
         while (d == 0xFF) {
             r++;
             m++;
             c = 0;
             d = get_value_chunk<uint8>(chunk_data, m);
-            //            d = chunk_data[m];
         }
-        //        std::cout << " m1 = " << m << std::endl;
         if (d < 0xFD) {
             c += d;
             m++;
         } else if (d == 0xFD) {
             m++;
             c += get_value_chunk<uint16>(chunk_data, m);
-            //            c += *(uint16 *)(chunk_data + m);
             m += 2;
         } else {
             m++;
             c += get_value_chunk<uint32>(chunk_data, m);
-            //            c += *(uint32 *)(chunk_data + m);
             m += 4;
         }
-        //        std::cout << " m2 = " << m << std::endl;
         val = get_value_chunk<ValueType>(chunk_data, m);
-        //        val = *(ValueType *)(chunk_data + m);
-        //        std::cout << " (r,c,val) = (" << r << ", " << c
-        //									<<
-        //",
-        //"
-        //<< val
-        //<< std::endl;
         data.nonzeros.emplace_back(r, c, val);
         m += sizeof(ValueType);
         if (++k == block_size) {
@@ -489,22 +379,13 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
             b++;
         }
     }
-    //    data = {this->get_size(), {}};
-    //    for (size_type i = 0; i < tmp->get_num_stored_elements(); ++i) {
-    //        const auto row = tmp->row_idxs_.get_const_data()[i];
-    //        const auto col = tmp->col_idxs_.get_const_data()[i];
-    //        const auto val = tmp->values_.get_const_data()[i];
-    //        data.nonzeros.emplace_back(row, col, val);
-    //    }
 }
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Diagonal<ValueType>>
-Bccoo<ValueType, IndexType>::extract_diagonal() const  // GKO_NOT_IMPLEMENTED;
+Bccoo<ValueType, IndexType>::extract_diagonal() const
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     auto exec = this->get_executor();
-
     const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(bccoo::make_fill_array(diag->get_values(), diag->get_size()[0],
@@ -516,47 +397,23 @@ Bccoo<ValueType, IndexType>::extract_diagonal() const  // GKO_NOT_IMPLEMENTED;
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::compute_absolute_inplace()
-//    GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     auto exec = this->get_executor();
-
     exec->run(bccoo::make_compute_absolute_inplace(this));
 }
 
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<typename Bccoo<ValueType, IndexType>::absolute_type>
-Bccoo<ValueType, IndexType>::compute_absolute() const  // GKO_NOT_IMPLEMENTED;
+Bccoo<ValueType, IndexType>::compute_absolute() const
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     size_type block_size = this->get_block_size();
     size_type num_nonzeros = this->get_num_stored_elements();
-    ;
     size_type num_bytes = this->get_num_bytes();
-    ;
-
     auto exec = this->get_executor();
-
-    //    auto abs_bccoo = absolute_type::create(exec, this->get_size(),
-    //                                         this->get_num_stored_elements());
-    //    auto tmp = Bccoo<new_precision, IndexType>::create(
-    //        exec, this->get_size(), num_nonzeros, block_size, num_bytes);
-
-    //		std::cout << "XXX" << std::endl;
     auto abs_bccoo = absolute_type::create(exec, this->get_size(), num_nonzeros,
                                            block_size, num_bytes);
-    //		std::cout << "YYY" << std::endl;
-
-    //    exec->run(bccoo::make_compute_absolute(this, abs_bccoo));
     exec->run(bccoo::make_compute_absolute(this, abs_bccoo.get()));
-    //     tmp->move_to(result);
-    //    abs_bccoo->col_idxs_ = col_idxs_;
-    //    abs_bccoo->row_idxs_ = row_idxs_;
-    //    exec->run(bccoo::make_outplace_absolute_array(this->get_const_values(),
-    //                                                this->get_num_stored_elements(),
-    //                                                abs_bccoo->get_values()));
-    //
     return abs_bccoo;
 }
 
