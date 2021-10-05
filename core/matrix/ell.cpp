@@ -401,21 +401,20 @@ GKO_DECLARE_MAKE_BLOCK_DIAGONAL_ELL(ValueType, IndexType)
         const auto ivalues = imatrix->get_const_values();
         const auto insepr = imatrix->get_num_stored_elements_per_row();
         const auto istride = imatrix->get_stride();
-        const size_type nzoffset = roffset * overall_elems_per_row;
         for (size_type j = 0; j < insepr; j++) {
             for (size_type irow = 0; irow < imatrix->get_size()[0]; irow++) {
-                h_col_idxs.get_data()[nzoffset + irow + j * stride] =
+                h_col_idxs.get_data()[j * stride + roffset + irow] =
                     icolidxs[irow + j * istride] + roffset;
-                h_values.get_data()[nzoffset + irow + j * stride] =
+                h_values.get_data()[roffset + irow + j * stride] =
                     ivalues[irow + j * istride];
             }
         }
         for (size_type j = insepr; j < overall_elems_per_row; j++) {
             for (size_type irow = 0; irow < imatrix->get_size()[0]; irow++) {
-                h_col_idxs.get_data()[nzoffset + irow + j * stride] =
+                h_col_idxs.get_data()[roffset + irow + j * stride] =
                     h_col_idxs
-                        .get_data()[nzoffset + irow + (insepr - 1) * stride];
-                h_values.get_data()[nzoffset + irow + j * stride] = 0.0;
+                        .get_data()[roffset + irow + (insepr - 1) * stride];
+                h_values.get_data()[roffset + irow + j * stride] = 0.0;
             }
         }
         roffset += imatrix->get_size()[0];
