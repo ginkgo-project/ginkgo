@@ -253,15 +253,7 @@ ConstraintsHandler<ValueType, IndexType>::get_operator()
 template <typename ValueType, typename IndexType>
 const LinOp* ConstraintsHandler<ValueType, IndexType>::get_right_hand_side()
 {
-    if (!cons_rhs_) {
-        if (!cons_init_guess_) {
-            reconstruct_system();
-        } else {
-            cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
-                idxs_, lend(cons_operator_), lend(used_init_guess()),
-                lend(orig_rhs_)));
-        }
-    }
+    reconstruct_system_impl(false);
     return cons_rhs_.get();
 }
 
@@ -269,11 +261,7 @@ const LinOp* ConstraintsHandler<ValueType, IndexType>::get_right_hand_side()
 template <typename ValueType, typename IndexType>
 LinOp* ConstraintsHandler<ValueType, IndexType>::get_initial_guess()
 {
-    if (!cons_init_guess_) {
-        cons_init_guess_ = as<Dense>(strategy_->construct_initial_guess(
-            idxs_, lend(cons_operator_), lend(used_init_guess()),
-            lend(values_)));
-    }
+    reconstruct_system_impl(false);
     return cons_init_guess_.get();
 }
 
@@ -281,12 +269,45 @@ LinOp* ConstraintsHandler<ValueType, IndexType>::get_initial_guess()
 template <typename ValueType, typename IndexType>
 void ConstraintsHandler<ValueType, IndexType>::reconstruct_system()
 {
-    cons_init_guess_ = as<Dense>(strategy_->construct_initial_guess(
-        idxs_, lend(cons_operator_), lend(used_init_guess()), lend(values_)));
-    cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
-        idxs_, lend(cons_operator_), lend(used_init_guess()), lend(orig_rhs_)));
+    reconstruct_system_impl(true);
 }
 
+
+template <typename ValueType, typename IndexType>
+void ConstraintsHandler<ValueType, IndexType>::reconstruct_system_impl(
+    bool force)
+{
+    if (!used_init_guess()) {
+        if (values_) {
+            auto exec = orig_rhs_ ? orig_rhs_->get_executor()
+                                  : orig_operator_->get_executor();
+            auto size = orig_rhs_ ? orig_rhs_->get_size()
+                                  : dim<2>{orig_operator_->get_size()[0], 1};
+            zero_init_guess_ = detail::zero_guess_with_constrained_values(
+                exec, size, idxs_, values_.get());
+        } else {
+            GKO_NOT_SUPPORTED(values_);
+        }
+    }
+    if (force || !cons_init_guess_) {
+        if (values_) {
+            cons_init_guess_ = as<Dense>(strategy_->construct_initial_guess(
+                idxs_, lend(cons_operator_), lend(used_init_guess()),
+                lend(values_)));
+        } else {
+            GKO_NOT_SUPPORTED(values_);
+        }
+    }
+    if (force || !cons_rhs_) {
+        if (orig_rhs_) {
+            cons_rhs_ = as<Dense>(strategy_->construct_right_hand_side(
+                idxs_, lend(cons_operator_), lend(used_init_guess()),
+                lend(orig_rhs_)));
+        } else {
+            GKO_NOT_SUPPORTED(orig_rhs_);
+        }
+    }
+}
 
 template <typename ValueType, typename IndexType>
 void ConstraintsHandler<ValueType, IndexType>::correct_solution(Dense* solution)
