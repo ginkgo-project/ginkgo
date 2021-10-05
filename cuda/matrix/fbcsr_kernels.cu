@@ -201,6 +201,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 namespace {
 
+
 template <int mat_blk_sz, typename ValueType, typename IndexType>
 void transpose_blocks_impl(syn::value_list<int, mat_blk_sz>,
                            matrix::Fbcsr<ValueType, IndexType>* const mat)
@@ -208,7 +209,8 @@ void transpose_blocks_impl(syn::value_list<int, mat_blk_sz>,
     constexpr int subwarp_size = config::warp_size;
     const size_type nbnz = mat->get_num_stored_blocks();
     const size_type numthreads = nbnz * subwarp_size;
-    const size_type numblocks = (numthreads - 1) / default_block_size + 1;
+    // const size_type numblocks = (numthreads - 1) / default_block_size + 1;
+    const size_type numblocks = ceildiv(numthreads, default_block_size);
     const dim3 block_size{static_cast<unsigned>(default_block_size), 1, 1};
     const dim3 grid_dim{static_cast<unsigned>(numblocks), 1, 1};
     kernel::transpose_blocks<mat_blk_sz, subwarp_size>
@@ -217,6 +219,7 @@ void transpose_blocks_impl(syn::value_list<int, mat_blk_sz>,
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_transpose_blocks,
                                     transpose_blocks_impl);
+
 
 }  // namespace
 

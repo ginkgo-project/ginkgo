@@ -70,8 +70,8 @@ protected:
         const index_type rand_bcols = 70;
         const int block_size = 3;
         rsorted_ref = gko::test::generate_random_fbcsr<value_type, index_type>(
-            ref, std::ranlux48(43), rand_brows, rand_bcols, block_size, false,
-            false);
+            ref, rand_brows, rand_bcols, block_size, false, false,
+            std::ranlux48(43));
     }
 
     void TearDown()
@@ -148,13 +148,13 @@ TYPED_TEST(Fbcsr, TransposeIsEquivalentToRefSortedBS7)
     const int block_size = 7;
     auto rsorted_ref2 =
         gko::test::generate_random_fbcsr<value_type, index_type>(
-            this->ref, std::ranlux48(43), rand_brows, rand_bcols, block_size,
-            false, false);
+            this->ref, rand_brows, rand_bcols, block_size, false, false,
+            std::ranlux48(43));
     rand_cuda->copy_from(gko::lend(rsorted_ref2));
+
     auto trans_ref_linop = rsorted_ref2->transpose();
     std::unique_ptr<const Mtx> trans_ref =
         gko::as<const Mtx>(std::move(trans_ref_linop));
-
     auto trans_cuda_linop = rand_cuda->transpose();
     std::unique_ptr<const Mtx> trans_cuda =
         gko::as<const Mtx>(std::move(trans_cuda_linop));
@@ -309,5 +309,6 @@ TYPED_TEST(Fbcsr, OutplaceAbsoluteMatrixIsEquivalentToRef)
     const double tol = r<value_type>::value;
     GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 5 * tol);
 }
+
 
 }  // namespace

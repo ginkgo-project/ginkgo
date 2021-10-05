@@ -412,6 +412,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 namespace {
 
+
 template <int mat_blk_sz, typename ValueType, typename IndexType>
 void sort_by_column_index_impl(
     syn::value_list<int, mat_blk_sz>,
@@ -447,7 +448,9 @@ void sort_by_column_index_impl(
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_sort_col_idx,
                                     sort_by_column_index_impl);
 
+
 }  // namespace
+
 
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(const std::shared_ptr<const ReferenceExecutor> exec,

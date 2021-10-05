@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 namespace kernel {
+
 
 template <int mat_blk_sz, int subwarp_size, typename ValueType,
           typename IndexType>
@@ -50,10 +50,10 @@ __global__ __launch_bounds__(default_block_size) void transpose_blocks(
     const unsigned sw_id_in_threadblock{threadIdx.x / subwarp_size};
 
     constexpr int mat_blk_sz_2{mat_blk_sz * mat_blk_sz};
+    __shared__ UninitializedArray<ValueType, warps_in_block * mat_blk_sz_2>
+        origblocks;
 
     for (auto ibz = begin_blk; ibz < nbnz; ibz += total_subwarp_count) {
-        __shared__ UninitializedArray<ValueType, warps_in_block * mat_blk_sz_2>
-            origblocks;
         for (int i = sw_threadidx; i < mat_blk_sz_2; i += subwarp_size) {
             origblocks[sw_id_in_threadblock * mat_blk_sz_2 + i] =
                 values[ibz * mat_blk_sz_2 + i];
@@ -69,5 +69,6 @@ __global__ __launch_bounds__(default_block_size) void transpose_blocks(
         }
     }
 }
+
 
 }  // namespace kernel

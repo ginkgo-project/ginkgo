@@ -97,11 +97,11 @@ protected:
     void set_up_apply_data(int num_vectors = 1)
     {
         mtx = gko::test::generate_random_fbcsr<real_type>(
-            ref, rand_engine, num_brows, num_bcols, blk_sz, false, false);
+            ref, num_brows, num_bcols, blk_sz, false, false, rand_engine);
         complex_mtx = gko::test::generate_random_fbcsr<std::complex<real_type>>(
-            ref, rand_engine, num_brows, num_bcols, blk_sz, false, false);
+            ref, num_brows, num_bcols, blk_sz, false, false, rand_engine);
         square_mtx = gko::test::generate_random_fbcsr<real_type>(
-            ref, rand_engine, num_brows, num_brows, blk_sz, false, false);
+            ref, num_brows, num_brows, blk_sz, false, false, rand_engine);
         dmtx = Mtx::create(omp);
         dmtx->copy_from(mtx.get());
         complex_dmtx = ComplexMtx::create(omp);
@@ -131,7 +131,7 @@ protected:
     {
         constexpr int min_nnz_per_row{2};
         auto local_mtx_ref = gko::test::generate_random_fbcsr<real_type>(
-            ref, rand_engine, num_brows, num_bcols, blk_sz, false, true);
+            ref, num_brows, num_bcols, blk_sz, false, true, rand_engine);
 
         auto local_mtx_omp = Mtx::create(omp);
         local_mtx_omp->copy_from(local_mtx_ref.get());
@@ -404,7 +404,7 @@ TEST_F(Fbcsr, OutplaceAbsoluteComplexMatrixIsEquivalentToRef)
 TEST_F(Fbcsr, MaxNnzPerRowIsEquivalentToRefSortedBS3)
 {
     auto mtx_ref = gko::test::generate_random_fbcsr<real_type>(
-        ref, rand_engine, num_brows, num_bcols, blk_sz, false, false);
+        ref, num_brows, num_bcols, blk_sz, false, false, rand_engine);
     auto rand_omp = Mtx::create(omp);
     rand_omp->copy_from(gko::lend(mtx_ref));
     gko::size_type ref_max_nnz{}, omp_max_nnz{};

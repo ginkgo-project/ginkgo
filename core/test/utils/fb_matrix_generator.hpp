@@ -78,22 +78,23 @@ namespace test {
 template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
           typename ValueDistribution, typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> generate_random_matrix_with_diag(
-    size_type num_rows, size_type num_cols, NonzeroDistribution&& nonzero_dist,
-    ValueDistribution&& value_dist, Engine&& engine,
-    std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
+    typename MatrixType::index_type num_rows,
+    typename MatrixType::index_type num_cols,
+    NonzeroDistribution&& nonzero_dist, ValueDistribution&& value_dist,
+    Engine&& engine, std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
 {
     using value_type = typename MatrixType::value_type;
     using index_type = typename MatrixType::index_type;
 
-    matrix_data<value_type, index_type> data{gko::dim<2>{num_rows, num_cols},
+    matrix_data<value_type, index_type> data{gko::dim<2>(num_rows, num_cols),
                                              {}};
 
-    for (size_type row = 0; row < num_rows; ++row) {
-        std::vector<size_type> col_idx(num_cols);
+    for (index_type row = 0; row < num_rows; ++row) {
+        std::vector<index_type> col_idx(num_cols);
         std::iota(col_idx.begin(), col_idx.end(), size_type(0));
         // randomly generate number of nonzeros in this row
-        auto nnz_in_row = static_cast<size_type>(nonzero_dist(engine));
-        nnz_in_row = std::max(size_type(1), std::min(nnz_in_row, num_cols));
+        auto nnz_in_row = static_cast<index_type>(nonzero_dist(engine));
+        nnz_in_row = std::max(1, std::min(nnz_in_row, num_cols));
         // select a subset of `nnz_in_row` column indexes, and fill these
         // locations with random values
         std::shuffle(col_idx.begin(), col_idx.end(), engine);
@@ -103,7 +104,7 @@ std::unique_ptr<MatrixType> generate_random_matrix_with_diag(
             col_idx[nnz_in_row - 1] = row;
         }
         std::for_each(
-            begin(col_idx), begin(col_idx) + nnz_in_row, [&](size_type col) {
+            begin(col_idx), begin(col_idx) + nnz_in_row, [&](index_type col) {
                 data.nonzeros.emplace_back(
                     row, col,
                     detail::get_rand_value<value_type>(value_dist, engine));
@@ -211,7 +212,6 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
  * entry in each block-row.
  *
  * @param exec  Reference executor.
- * @param engine  Random number engine to use, such as std::ranlux48.
  * @param nbrows  The number of block-rows in the generated matrix.
  * @param nbcols  The number of block-columns in the generated matrix.
  * @param mat_blk_sz  Block size of the generated matrix.
@@ -220,12 +220,13 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
  * @param unsort  If true, the blocks of the generated matrix within each
  *                block-row are ordered randomly. Otherwise, blocks in each row
  *                are ordered by block-column index.
+ * @param engine  Random number engine to use, such as std::ranlux48.
  */
 template <typename ValueType, typename IndexType, typename RandEngine>
 std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_random_fbcsr(
-    std::shared_ptr<const ReferenceExecutor> ref, RandEngine engine,
-    const IndexType nbrows, const IndexType nbcols, const int mat_blk_sz,
-    const bool diag_dominant, const bool unsort)
+    std::shared_ptr<const ReferenceExecutor> ref, const IndexType nbrows,
+    const IndexType nbcols, const int mat_blk_sz, const bool diag_dominant,
+    const bool unsort, RandEngine&& engine)
 {
     using real_type = gko::remove_complex<ValueType>;
     std::unique_ptr<matrix::Csr<ValueType, IndexType>> rand_csr_ref =
