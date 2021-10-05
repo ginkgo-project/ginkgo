@@ -281,6 +281,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_CONVERT_TO_BATCH_DENSE);
 
 
+template <typename ValueType, typename IndexType>
+void convert_from_batch_csc(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::BatchEll<ValueType, IndexType>* ell, const Array<ValueType>& values,
+    const Array<IndexType>& row_idxs,
+    const Array<IndexType>& col_ptrs) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_ELL_CONVERT_FROM_BATCH_CSC);
+
+
 }  // namespace batch_ell
 }  // namespace hip
 }  // namespace kernels
