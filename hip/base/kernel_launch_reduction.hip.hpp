@@ -56,7 +56,7 @@ __global__ __launch_bounds__(
                                                          KernelFunction fn,
                                                          ReductionOp op,
                                                          FinalizeOp finalize,
-                                                         ValueType init,
+                                                         ValueType identity,
                                                          ValueType* storage,
                                                          KernelArgs... args)
 {
@@ -69,7 +69,7 @@ __global__ __launch_bounds__(
     auto grid_size = thread::get_thread_num_flat<int64>();
     auto warp =
         group::tiled_partition<config::warp_size>(group::this_thread_block());
-    auto partial = init;
+    auto partial = identity;
     for (int64 i = tidx; i < size; i += grid_size) {
         partial = op(partial, fn(i, args...));
     }
@@ -82,7 +82,7 @@ __global__ __launch_bounds__(
         partial = reduce(warp,
                          threadIdx.x < default_block_size / config::warp_size
                              ? warp_partial[threadIdx.x]
-                             : init,
+                             : identity,
                          op);
         if (threadIdx.x == 0) {
             storage[blockIdx.x] = finalize(partial);
@@ -98,7 +98,7 @@ __global__ __launch_bounds__(
                                                          KernelFunction fn,
                                                          ReductionOp op,
                                                          FinalizeOp finalize,
-                                                         ValueType init,
+                                                         ValueType identity,
                                                          ValueType* storage,
                                                          KernelArgs... args)
 {
@@ -111,7 +111,7 @@ __global__ __launch_bounds__(
     auto grid_size = thread::get_thread_num_flat<int64>();
     auto warp =
         group::tiled_partition<config::warp_size>(group::this_thread_block());
-    auto partial = init;
+    auto partial = identity;
     for (int64 i = tidx; i < rows * cols; i += grid_size) {
         const auto row = i / cols;
         const auto col = i % cols;
@@ -126,7 +126,7 @@ __global__ __launch_bounds__(
         partial = reduce(warp,
                          threadIdx.x < default_block_size / config::warp_size
                              ? warp_partial[threadIdx.x]
-                             : init,
+                             : identity,
                          op);
         if (threadIdx.x == 0) {
             storage[blockIdx.x] = finalize(partial);
@@ -139,7 +139,7 @@ template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
 void run_kernel_reduction(std::shared_ptr<const HipExecutor> exec,
                           KernelFunction fn, ReductionOp op,
-                          FinalizeOp finalize, ValueType init,
+                          FinalizeOp finalize, ValueType identity,
                           ValueType* result, size_type size,
                           KernelArgs&&... args)
 {
@@ -153,18 +153,18 @@ void run_kernel_reduction(std::shared_ptr<const HipExecutor> exec,
         hipLaunchKernelGGL(
             generic_kernel_reduction_1d, num_blocks, block_size, 0, 0,
             static_cast<int64>(size), fn, op,
-            [] __device__(auto v) { return v; }, as_hip_type(init),
+            [] __device__(auto v) { return v; }, as_hip_type(identity),
             as_hip_type(partial.get_data()), map_to_device(args)...);
         hipLaunchKernelGGL(
             generic_kernel_reduction_1d, 1, block_size, 0, 0,
             static_cast<int64>(num_blocks),
             [] __device__(auto i, auto v) { return v[i]; }, op, finalize,
-            as_hip_type(init), as_hip_type(result),
+            as_hip_type(identity), as_hip_type(result),
             as_hip_type(partial.get_const_data()));
     } else {
         hipLaunchKernelGGL(generic_kernel_reduction_1d, 1, block_size, 0, 0,
                            static_cast<int64>(size), fn, op, finalize,
-                           as_hip_type(init), as_hip_type(result),
+                           as_hip_type(identity), as_hip_type(result),
                            map_to_device(args)...);
     }
 }
@@ -174,7 +174,7 @@ template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
 void run_kernel_reduction(std::shared_ptr<const HipExecutor> exec,
                           KernelFunction fn, ReductionOp op,
-                          FinalizeOp finalize, ValueType init,
+                          FinalizeOp finalize, ValueType identity,
                           ValueType* result, dim<2> size, KernelArgs&&... args)
 {
     constexpr int oversubscription = 16;
@@ -190,17 +190,17 @@ void run_kernel_reduction(std::shared_ptr<const HipExecutor> exec,
         hipLaunchKernelGGL(
             generic_kernel_reduction_2d, num_blocks, block_size, 0, 0, rows,
             cols, fn, op, [] __device__(auto v) { return v; },
-            as_hip_type(init), as_hip_type(partial.get_data()),
+            as_hip_type(identity), as_hip_type(partial.get_data()),
             map_to_device(args)...);
         hipLaunchKernelGGL(
             generic_kernel_reduction_1d, 1, block_size, 0, 0,
             static_cast<int64>(num_blocks),
             [] __device__(auto i, auto v) { return v[i]; }, op, finalize,
-            as_hip_type(init), as_hip_type(result),
+            as_hip_type(identity), as_hip_type(result),
             as_hip_type(partial.get_const_data()));
     } else {
         hipLaunchKernelGGL(generic_kernel_reduction_2d, 1, block_size, 0, 0,
-                           rows, cols, fn, op, finalize, as_hip_type(init),
+                           rows, cols, fn, op, finalize, as_hip_type(identity),
                            as_hip_type(result), map_to_device(args)...);
     }
 }
@@ -211,8 +211,8 @@ template <int subwarp_size, typename ValueType, typename KernelFunction,
 __global__
     __launch_bounds__(default_block_size) void generic_kernel_row_reduction_2d(
         int64 rows, int64 cols, int64 col_blocks, KernelFunction fn,
-        ReductionOp op, FinalizeOp finalize, ValueType init, ValueType* result,
-        int64 result_stride, KernelArgs... args)
+        ReductionOp op, FinalizeOp finalize, ValueType identity,
+        ValueType* result, int64 result_stride, KernelArgs... args)
 {
     const auto idx = thread::get_subwarp_id_flat<subwarp_size, int64>();
     const auto row = idx % rows;
@@ -226,7 +226,7 @@ __global__
     const auto end = min(begin + cols_per_part, cols);
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
-    auto partial = init;
+    auto partial = identity;
     for (auto col = begin + subwarp.thread_rank(); col < end;
          col += subwarp_size) {
         partial = op(partial, fn(row, col, args...));
@@ -243,7 +243,7 @@ template <int subwarp_size, typename ValueType, typename KernelFunction,
 __global__
     __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_small(
         int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
-        FinalizeOp finalize, ValueType init, ValueType* result,
+        FinalizeOp finalize, ValueType identity, ValueType* result,
         KernelArgs... args)
 {
     constexpr auto warp_size = config::warp_size;
@@ -261,7 +261,7 @@ __global__
     const auto warp_rank = warp.thread_rank();
     const auto subwarp_rank = warp_rank % subwarp_size;
     const auto col = static_cast<int64>(subwarp_rank);
-    auto partial = init;
+    auto partial = identity;
     // accumulate within a thread
     if (col < cols) {
         for (auto row = subwarp_id; row < rows; row += subwarp_num) {
@@ -279,7 +279,7 @@ __global__
     block.sync();
     // in a single thread: accumulate the results
     if (local_warp_id == 0) {
-        partial = init;
+        partial = identity;
         // accumulate the partial results within a thread
         if (shared_storage >= warp_size) {
 #pragma unroll
@@ -306,7 +306,7 @@ template <typename ValueType, typename KernelFunction, typename ReductionOp,
 __global__
     __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_blocked(
         int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
-        FinalizeOp finalize, ValueType init, ValueType* result,
+        FinalizeOp finalize, ValueType identity, ValueType* result,
         KernelArgs... args)
 {
     constexpr auto warp_size = config::warp_size;
@@ -317,7 +317,7 @@ __global__
     const auto warp = group::tiled_partition<warp_size>(block);
     const auto warp_rank = warp.thread_rank();
     const auto col = warp_rank + static_cast<int64>(blockIdx.y) * warp_size;
-    auto partial = init;
+    auto partial = identity;
     // accumulate within a thread
     if (col < cols) {
         for (auto row = warp_id; row < rows; row += warp_num) {
@@ -328,7 +328,7 @@ __global__
     block.sync();
     // in a single warp: accumulate the results
     if (threadIdx.x < warp_size) {
-        partial = init;
+        partial = identity;
         // accumulate the partial results within a thread
 #pragma unroll
         for (int i = 0; i < default_block_size; i += warp_size) {
@@ -345,14 +345,14 @@ template <typename ValueType, typename ReductionOp, typename FinalizeOp>
 __global__
     __launch_bounds__(default_block_size) void generic_kernel_reduction_finalize_2d(
         int64 num_results, int64 num_blocks, ReductionOp op,
-        FinalizeOp finalize, ValueType init, const ValueType* input,
+        FinalizeOp finalize, ValueType identity, const ValueType* input,
         int64 result_stride, ValueType* result)
 {
     const auto idx = thread::get_thread_id_flat<int64>();
     if (idx >= num_results) {
         return;
     }
-    auto partial = init;
+    auto partial = identity;
     for (int64 block = 0; block < num_blocks; block++) {
         partial = op(partial, input[idx + block * num_results]);
     }
@@ -368,7 +368,7 @@ template <int subwarp_size, typename ValueType, typename KernelFunction,
 void run_generic_kernel_row_reduction(syn::value_list<int, subwarp_size>,
                                       int64 rows, int64 cols, int64 col_blocks,
                                       KernelFunction fn, ReductionOp op,
-                                      FinalizeOp finalize, ValueType init,
+                                      FinalizeOp finalize, ValueType identity,
                                       ValueType* result, int64 result_stride,
                                       KernelArgs... args)
 {
@@ -377,7 +377,7 @@ void run_generic_kernel_row_reduction(syn::value_list<int, subwarp_size>,
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(generic_kernel_row_reduction_2d<subwarp_size>),
         num_blocks, default_block_size, 0, 0, rows, cols, col_blocks, fn, op,
-        finalize, as_hip_type(init), as_hip_type(result), result_stride,
+        finalize, as_hip_type(identity), as_hip_type(result), result_stride,
         args...);
 }
 
@@ -392,7 +392,7 @@ void run_generic_col_reduction_small(syn::value_list<int, subwarp_size>,
                                      int64 max_blocks,
                                      std::shared_ptr<const HipExecutor> exec,
                                      KernelFunction fn, ReductionOp op,
-                                     FinalizeOp finalize, ValueType init,
+                                     FinalizeOp finalize, ValueType identity,
                                      ValueType* result, dim<2> size,
                                      MappedKernelArgs... args)
 {
@@ -405,7 +405,7 @@ void run_generic_col_reduction_small(syn::value_list<int, subwarp_size>,
             HIP_KERNEL_NAME(
                 generic_kernel_col_reduction_2d_small<subwarp_size>),
             1, default_block_size, 0, 0, rows, cols, fn, op, finalize,
-            as_hip_type(init), as_hip_type(result), args...);
+            as_hip_type(identity), as_hip_type(result), args...);
     } else {
         Array<ValueType> tmp_storage{exec,
                                      static_cast<size_type>(num_blocks * cols)};
@@ -413,12 +413,12 @@ void run_generic_col_reduction_small(syn::value_list<int, subwarp_size>,
             HIP_KERNEL_NAME(
                 generic_kernel_col_reduction_2d_small<subwarp_size>),
             num_blocks, default_block_size, 0, 0, rows, cols, fn, op,
-            [] __device__(auto v) { return v; }, as_hip_type(init),
+            [] __device__(auto v) { return v; }, as_hip_type(identity),
             as_hip_type(tmp_storage.get_data()), args...);
         hipLaunchKernelGGL(
             generic_kernel_reduction_finalize_2d,
             ceildiv(cols, default_block_size), default_block_size, 0, 0, cols,
-            num_blocks, op, finalize, as_hip_type(init),
+            num_blocks, op, finalize, as_hip_type(identity),
             as_hip_type(tmp_storage.get_const_data()), 1, as_hip_type(result));
     }
 }
@@ -434,7 +434,7 @@ template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
 void run_kernel_row_reduction(std::shared_ptr<const HipExecutor> exec,
                               KernelFunction fn, ReductionOp op,
-                              FinalizeOp finalize, ValueType init,
+                              FinalizeOp finalize, ValueType identity,
                               ValueType* result, size_type result_stride,
                               dim<2> size, KernelArgs&&... args)
 {
@@ -455,13 +455,13 @@ void run_kernel_row_reduction(std::shared_ptr<const HipExecutor> exec,
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(generic_kernel_row_reduction_2d<config::warp_size>),
             num_blocks, default_block_size, 0, 0, rows, cols, col_blocks, fn,
-            op, [] __device__(auto v) { return v; }, as_hip_type(init),
+            op, [] __device__(auto v) { return v; }, as_hip_type(identity),
             as_hip_type(partial.get_data()), 1, map_to_device(args)...);
         const auto num_finalize_blocks = ceildiv(rows, default_block_size);
         hipLaunchKernelGGL(
             generic_kernel_reduction_finalize_2d, num_finalize_blocks,
             default_block_size, 0, 0, rows, col_blocks, op, finalize,
-            as_hip_type(init), as_hip_type(partial.get_const_data()),
+            as_hip_type(identity), as_hip_type(partial.get_const_data()),
             static_cast<int64>(result_stride), as_hip_type(result));
     } else {
         select_run_generic_kernel_row_reduction(
@@ -471,7 +471,7 @@ void run_kernel_row_reduction(std::shared_ptr<const HipExecutor> exec,
                        compiled_subwarp_size == config::warp_size;
             },
             syn::value_list<int>(), syn::type_list<>(), rows, cols, 1, fn, op,
-            finalize, init, result, static_cast<int64>(result_stride),
+            finalize, identity, result, static_cast<int64>(result_stride),
             map_to_device(args)...);
     }
 }
@@ -481,7 +481,7 @@ template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
 void run_kernel_col_reduction(std::shared_ptr<const HipExecutor> exec,
                               KernelFunction fn, ReductionOp op,
-                              FinalizeOp finalize, ValueType init,
+                              FinalizeOp finalize, ValueType identity,
                               ValueType* result, dim<2> size,
                               KernelArgs&&... args)
 {
@@ -501,7 +501,7 @@ void run_kernel_col_reduction(std::shared_ptr<const HipExecutor> exec,
                        compiled_subwarp_size == config::warp_size;
             },
             syn::value_list<int>(), syn::type_list<>(), max_blocks, exec, fn,
-            op, finalize, init, result, size, map_to_device(args)...);
+            op, finalize, identity, result, size, map_to_device(args)...);
     } else {
         const auto col_blocks = ceildiv(cols, config::warp_size);
         const auto row_blocks =
@@ -512,8 +512,9 @@ void run_kernel_col_reduction(std::shared_ptr<const HipExecutor> exec,
         if (row_blocks <= 1) {
             hipLaunchKernelGGL(generic_kernel_col_reduction_2d_blocked,
                                dim3(1, col_blocks), default_block_size, 0, 0,
-                               rows, cols, fn, op, finalize, as_hip_type(init),
-                               as_hip_type(result), map_to_device(args)...);
+                               rows, cols, fn, op, finalize,
+                               as_hip_type(identity), as_hip_type(result),
+                               map_to_device(args)...);
         } else {
             Array<ValueType> tmp_storage{
                 exec, static_cast<size_type>(row_blocks * cols)};
@@ -521,12 +522,12 @@ void run_kernel_col_reduction(std::shared_ptr<const HipExecutor> exec,
                 generic_kernel_col_reduction_2d_blocked,
                 dim3(row_blocks, col_blocks), default_block_size, 0, 0, rows,
                 cols, fn, op, [] __device__(auto v) { return v; },
-                as_hip_type(init), as_hip_type(tmp_storage.get_data()),
+                as_hip_type(identity), as_hip_type(tmp_storage.get_data()),
                 map_to_device(args)...);
             hipLaunchKernelGGL(generic_kernel_reduction_finalize_2d,
                                ceildiv(cols, default_block_size),
                                default_block_size, 0, 0, cols, row_blocks, op,
-                               finalize, as_hip_type(init),
+                               finalize, as_hip_type(identity),
                                as_hip_type(tmp_storage.get_const_data()), 1,
                                as_hip_type(result));
         }
