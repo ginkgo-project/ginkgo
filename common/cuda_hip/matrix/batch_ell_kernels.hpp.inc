@@ -78,7 +78,7 @@ __device__ __forceinline__ void single_advanced_spmv_kernel(
     const auto stride = a.stride;
     const auto val = a.values;
     const auto col = a.col_idxs;
-    const auto tidx = threadIdx.x;  // thread::get_thread_id_flat();
+    const auto tidx = threadIdx.x;
     // Specialize the num_thread_per_worker = 1. It doesn't need the shared
     // memory, __syncthreads, and atomic_add
     if (tidx < num_rows) {
@@ -89,10 +89,10 @@ __device__ __forceinline__ void single_advanced_spmv_kernel(
             if (col_idx < idx) {
                 break;
             } else {
-                temp += val[ind] * b[col_idx];
+                temp += alpha * val[ind] * b[col_idx];
             }
         }
-        c[tidx] = alpha * temp + beta * c[tidx];
+        c[tidx] = temp + beta * c[tidx];
     }
 }
 
@@ -100,11 +100,11 @@ __device__ __forceinline__ void single_advanced_spmv_kernel(
 /**
  * Device kernel for SpMV of one ELL matrix in a batch.
  */
-template <typename ValueType, typename Closure>
+template <typename ValueType>
 __device__ __forceinline__ void spmv_kernel(
     const gko::batch_ell::BatchEntry<const ValueType>& a,
     const gko::batch_dense::BatchEntry<const ValueType>& bobj,
-    const gko::batch_dense::BatchEntry<ValueType>& cobj, Closure op)
+    const gko::batch_dense::BatchEntry<ValueType>& cobj)
 {
     const auto num_rows = a.num_rows;
     const auto num_stored_elements_per_row = a.num_stored_elems_per_row;
@@ -129,7 +129,44 @@ __device__ __forceinline__ void spmv_kernel(
             }
         }
         const auto c_ind = tidx * c_stride;
-        c[c_ind] = op(temp, c[c_ind]);
+        c[c_ind] = temp;
+    }
+}
+
+
+/**
+ * Device kernel for SpMV of one ELL matrix in a batch.
+ */
+template <typename ValueType>
+__device__ __forceinline__ void advanced_spmv_kernel(
+    const ValueType alpha, const gko::batch_ell::BatchEntry<const ValueType>& a,
+    const gko::batch_dense::BatchEntry<const ValueType>& bobj,
+    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& cobj)
+{
+    const auto num_rows = a.num_rows;
+    const auto num_stored_elements_per_row = a.num_stored_elems_per_row;
+    const auto stride = a.stride;
+    const auto b = bobj.values;
+    const auto val = a.values;
+    const auto col = a.col_idxs;
+    const auto c_stride = cobj.stride;
+    auto c = cobj.values;
+    const auto tidx = threadIdx.x;  // thread::get_thread_id_flat();
+    // Specialize the num_thread_per_worker = 1. It doesn't need the shared
+    // memory, __syncthreads, and atomic_add
+    if (tidx < num_rows) {
+        auto temp = zero<ValueType>();
+        for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
+            const auto ind = tidx + idx * stride;
+            const auto col_idx = col[ind];
+            if (col_idx < idx) {
+                break;
+            } else {
+                temp += alpha * val[ind] * b[col_idx * bobj.stride];
+            }
+        }
+        const auto c_ind = tidx * c_stride;
+        c[c_ind] = temp + beta * c[c_ind];
     }
 }
 
@@ -145,8 +182,7 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void spmv(
         const auto a_b = gko::batch::batch_entry(a, ibatch);
         const auto b_b = gko::batch::batch_entry(b, ibatch);
         const auto c_b = gko::batch::batch_entry(c, ibatch);
-        spmv_kernel(a_b, b_b, c_b,
-                    [](const ValueType& x, const ValueType& y) { return x; });
+        spmv_kernel(a_b, b_b, c_b);
     }
 }
 
@@ -166,12 +202,9 @@ __global__
         const auto c_b = gko::batch::batch_entry(c, ibatch);
         const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
         const auto beta_b = gko::batch::batch_entry(beta, ibatch);
-        const auto alphav = alpha_b.values[0];
-        const auto betav = beta_b.values[0];
-        spmv_kernel(a_b, b_b, c_b,
-                    [&alphav, &betav](const ValueType& x, const ValueType& y) {
-                        return alphav * x + betav * y;
-                    });
+        const ValueType alphav = alpha_b.values[0];
+        const ValueType betav = beta_b.values[0];
+        advanced_spmv_kernel(alphav, a_b, b_b, betav, c_b);
     }
 }
 

@@ -73,7 +73,7 @@ namespace cuda {
 namespace batch_ell {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 1024;
 constexpr int sm_multiplier = 4;
 
 
