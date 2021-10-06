@@ -404,6 +404,32 @@ TYPED_TEST(Fbcsr, CanBeCreatedFromExistingData)
 }
 
 
+TYPED_TEST(Fbcsr, CanBeCreatedFromExistingConstData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using size_type = gko::size_type;
+    const int bs = this->fbsample.bs;
+    const size_type nbrows = this->fbsample.nbrows;
+    const size_type nbcols = this->fbsample.nbcols;
+    const size_type bnnz = this->fbsample.nbnz;
+    auto refmat = this->fbsample.generate_fbcsr();
+    value_type* const values = refmat->get_values();
+    index_type* const col_idxs = refmat->get_col_idxs();
+    index_type* const row_ptrs = refmat->get_row_ptrs();
+
+    auto mtx = gko::matrix::Fbcsr<value_type, index_type>::create_const(
+        this->exec, gko::dim<2>{nbrows * bs, nbcols * bs}, bs,
+        gko::Array<value_type>::const_view(this->exec, bnnz * bs * bs, values),
+        gko::Array<index_type>::const_view(this->exec, bnnz, col_idxs),
+        gko::Array<index_type>::const_view(this->exec, nbrows + 1, row_ptrs));
+
+    ASSERT_EQ(mtx->get_const_values(), values);
+    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
+    ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
+}
+
+
 TYPED_TEST(Fbcsr, CanBeCopied)
 {
     using Mtx = typename TestFixture::Mtx;

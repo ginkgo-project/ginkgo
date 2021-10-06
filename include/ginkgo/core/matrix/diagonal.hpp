@@ -158,6 +158,25 @@ public:
 
     void write(mat_data32& data) const override;
 
+    /**
+     * Creates a constant (immutable) Diagonal matrix from a constant array.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the size of the square matrix
+     * @param values  the value array of the matrix
+     * @returns A smart pointer to the constant matrix wrapping the input array
+     *          (if it resides on the same executor as the matrix) or a copy of
+     *          the array on the correct executor.
+     */
+    static std::unique_ptr<const Diagonal> create_const(
+        std::shared_ptr<const Executor> exec, size_type size,
+        gko::detail::ConstArrayView<ValueType> values)
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const Diagonal>(
+            new Diagonal{exec, size, gko::detail::array_const_cast(values)});
+    }
 
 protected:
     /**
