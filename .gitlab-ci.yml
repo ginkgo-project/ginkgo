@@ -233,10 +233,10 @@ trigger_pipeline:
     - |
       if [[ "${PR_ID}" != "null" ]]; then
         echo "Finding the corresponding Pull Request - ${PR_ID}"
-        echo "Checking whether the PR contains ST:ready-to-merge or ST:run-full-test labels"
+        echo "Checking whether the PR contains 1:ST:ready-to-merge or 1:ST:run-full-test labels"
         ENABLE_FULL_PIPELINE=$(curl -X GET -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
           "https://api.github.com/repos/ginkgo-project/ginkgo/issues/${PR_ID}" | jq -r \
-          'any( [.labels | .[] | .name ] | .[] ; . == "ST:ready-to-merge" or . == "ST:run-full-test")')
+          'any( [.labels | .[] | .name ] | .[] ; . == "1:ST:ready-to-merge" or . == "1:ST:run-full-test")')
         if [[ "${ENABLE_FULL_PIPELINE}" == "true" ]]; then
           echo "trigger full pipeline"
           curl -X POST -F token=${CI_JOB_TOKEN} -F "ref=${CI_COMMIT_REF_NAME}" -F "variables[STATUS_CONTEXT]=full" \
