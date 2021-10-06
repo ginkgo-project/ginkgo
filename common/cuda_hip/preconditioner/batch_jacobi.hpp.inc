@@ -66,11 +66,10 @@ public:
         const gko::batch_ell::BatchEntry<const ValueType>& mat,
         ValueType* const __restrict__ work)
     {
-        const auto tidx = threadIdx.x;
         const auto col = mat.col_idxs;
         const auto val = mat.values;
         work_ = work;
-        if (tidx < mat.num_rows) {
+        for (int tidx = threadIdx.x; tidx < mat.num_rows; tidx += blockDim.x) {
             auto temp = one<ValueType>();
             for (size_type idx = 0; idx < mat.num_stored_elems_per_row; idx++) {
                 const auto ind = tidx + idx * mat.stride;

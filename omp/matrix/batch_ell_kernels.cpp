@@ -286,17 +286,15 @@ void convert_from_batch_csc(std::shared_ptr<const DefaultExecutor> exec,
         for (auto i = col_ptrs[col]; i < col_ptrs[col + 1]; ++i) {
             const auto dest_idx = (row_ptrs.data() + 1)[row_idxs[i]]++;
             col_idxs[dest_idx] = col;
-            size_type offset = 0;
             for (size_type b = 0; b < nbatches; ++b) {
-                offset = b * num_nnz;
+                auto offset = b * num_nnz;
                 csr_vals[offset + dest_idx] = values[offset + i];
             }
         }
     }
-    size_type offset = 0;
 #pragma omp parallel for
     for (size_type ibatch = 0; ibatch < nbatches; ++ibatch) {
-        offset = ibatch * nnz_per_batch;
+        const auto offset = ibatch * nnz_per_batch;
         for (size_type row = 0; row < num_rows; row++) {
             for (size_type i = 0; i < num_stored_elements_per_row; i++) {
                 ell->val_at(ibatch, row, i) = zero<ValueType>();
