@@ -51,6 +51,7 @@ template <typename ValueType, typename IndexType>
 class BatchEll;
 
 
+// TODO: Combine with batch_stride by using a macro to create both classes.
 class batch_num_stored_elems_per_row {
 public:
     /**
