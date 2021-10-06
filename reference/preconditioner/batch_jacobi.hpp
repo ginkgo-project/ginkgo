@@ -98,7 +98,8 @@ public:
         work_ = work;
         for (int i = 0; i < mat.num_rows; i++) {
             for (int j = mat.row_ptrs[i]; j < mat.row_ptrs[i + 1]; j++) {
-                if (mat.col_idxs[j] == i) {
+                if (mat.col_idxs[j] == i &&
+                    mat.values[j] != zero<ValueType>()) {
                     work_[i] = one<ValueType>() / mat.values[j];
                     break;
                 }

@@ -86,8 +86,8 @@ std::string available_format =
 std::string format_description =
     "batch_csr: An optimized storage format for batch matrices with the same "
     "sparsity pattern\n"
-    "batch_ell: An optimized storage format for batch matrices with the same "
-    "sparsity pattern\n"
+    "batch_ell: An ELLPACK storage format optimized for batch matrices with "
+    "the same sparsity pattern\n"
     "coo: Coordinate storage. The CUDA kernel uses the load-balancing approach "
     "suggested in Flegar et al.: Overcoming Load Imbalance for Irregular "
     "Sparse Matrices.\n"
