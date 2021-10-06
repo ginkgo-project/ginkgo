@@ -142,6 +142,8 @@ int main(int argc, char* argv[])
     // We can duplicate the batch a few times if we wish.
     std::shared_ptr<mtx_type> A =
         mtx_type::create(exec, num_duplications, single_batch.get());
+    std::cout << "Num elems per row in mat "
+              << A->get_num_stored_elements_per_row().at(0) << std::endl;
     // Create RHS
     auto temp_b = vec_type::create(exec);
     temp_b->read(bdata);
