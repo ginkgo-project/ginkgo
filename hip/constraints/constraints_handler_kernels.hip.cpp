@@ -57,56 +57,7 @@ namespace cons {
 constexpr int default_block_size = 512;
 
 
-namespace kernel {
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void fill_subset(
-    size_type n, const IndexType* __restrict__ map,
-    ValueType* __restrict__ array, ValueType val)
-{
-    const auto tidx = thread::get_thread_id_flat();
-    if (tidx < n) {
-        array[map[tidx]] = val;
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void copy_subset(
-    size_type n, const IndexType* __restrict__ map,
-    const ValueType* __restrict__ src, ValueType* __restrict__ dst)
-{
-    const auto tidx = thread::get_thread_id_flat();
-    if (tidx < n) {
-        const auto mapped_idx = map[tidx];
-        dst[mapped_idx] = src[mapped_idx];
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void set_unit_rows(
-    size_type n, const IndexType* __restrict__ map,
-    const IndexType* __restrict__ row_ptrs,
-    const IndexType* __restrict__ col_idxs, ValueType* __restrict__ values)
-{
-    constexpr auto warp_size = config::warp_size;
-    const auto subset_idx = thread::get_subwarp_id_flat<warp_size>();
-    const auto local_tidx = threadIdx.x % warp_size;
-
-    if (subset_idx < n) {
-        const auto row = map[subset_idx];
-        for (size_type i = local_tidx; i < row_ptrs[row + 1] - row_ptrs[row];
-             i += warp_size) {
-            const auto orig_idx = i + row_ptrs[row];
-            values[orig_idx] = col_idxs[orig_idx] == row;
-        }
-    }
-}
-
-
-}  // namespace kernel
+#include "common/cuda_hip/constraints/constraints_handler_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>

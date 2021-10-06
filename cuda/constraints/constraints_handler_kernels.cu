@@ -39,29 +39,62 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 
 
+#include "cuda/base/types.hpp"
+#include "cuda/components/thread_ids.cuh"
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {
 namespace cons {
 
 
+constexpr int default_block_size = 512;
+
+
+#include "common/cuda_hip/constraints/constraints_handler_kernels.hpp.inc"
+
+
 template <typename ValueType, typename IndexType>
 void fill_subset(std::shared_ptr<const DefaultExecutor> exec,
-                 const Array<IndexType>& subset, ValueType* data,
-                 ValueType val) GKO_NOT_IMPLEMENTED;
+                 const Array<IndexType>& subset, ValueType* data, ValueType val)
+{
+    const auto n = subset.get_num_elems();
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
+    kernel::fill_subset<<<grid_size, block_size, 0, 0>>>(
+        n, as_cuda_type(subset.get_const_data()), as_cuda_type(data),
+        as_cuda_type(val));
+}
 
 
 template <typename ValueType, typename IndexType>
 void copy_subset(std::shared_ptr<const DefaultExecutor> exec,
                  const Array<IndexType>& subset, const ValueType* src,
-                 ValueType* dst) GKO_NOT_IMPLEMENTED;
+                 ValueType* dst)
+{
+    const auto n = subset.get_num_elems();
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
+    kernel::copy_subset<<<grid_size, block_size, 0, 0>>>(
+        n, as_cuda_type(subset.get_const_data()), as_cuda_type(src),
+        as_cuda_type(dst));
+}
 
 
 template <typename ValueType, typename IndexType>
 void set_unit_rows(std::shared_ptr<const DefaultExecutor> exec,
                    const Array<IndexType>& subset, const IndexType* row_ptrs,
-                   const IndexType* col_idxs,
-                   ValueType* values) GKO_NOT_IMPLEMENTED;
+                   const IndexType* col_idxs, ValueType* values)
+{
+    const auto subset_rows = subset.get_num_elems();
+    const auto num_blocks =
+        ceildiv(config::warp_size * subset_rows, default_block_size);
+
+    kernel::set_unit_rows<<<num_blocks, default_block_size>>>(
+        subset_rows, as_cuda_type(subset.get_const_data()),
+        as_cuda_type(row_ptrs), as_cuda_type(col_idxs), as_cuda_type(values));
+}
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_FILL_SUBSET);
