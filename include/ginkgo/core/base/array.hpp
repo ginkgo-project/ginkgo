@@ -37,7 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <iterator>
 #include <memory>
-#include <numeric>
 #include <type_traits>
 #include <utility>
 
