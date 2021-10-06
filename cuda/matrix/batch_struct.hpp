@@ -129,8 +129,8 @@ get_batch_struct(const matrix::BatchEll<ValueType, int32>* const op)
     return {as_cuda_type(op->get_const_values()),
             op->get_const_col_idxs(),
             op->get_num_batch_entries(),
-            static_cast<int>(op->get_num_stored_elements_per_row().at(0)),
-            static_cast<int>(op->get_stride().at(0)),
+            op->get_num_stored_elements_per_row().at(0),
+            op->get_stride().at(0),
             static_cast<int>(op->get_size().at(0)[0]),
             static_cast<int>(op->get_num_stored_elements() /
                              op->get_num_batch_entries())};
@@ -147,8 +147,8 @@ inline gko::batch_ell::UniformBatch<cuda_type<ValueType>> get_batch_struct(
     return {as_cuda_type(op->get_values()),
             op->get_const_col_idxs(),
             op->get_num_batch_entries(),
-            static_cast<int>(op->get_num_stored_elements_per_row().at(0)),
-            static_cast<int>(op->get_stride().at(0)),
+            op->get_num_stored_elements_per_row().at(0),
+            op->get_stride().at(0),
             static_cast<int>(op->get_size().at(0)[0]),
             static_cast<int>(op->get_num_stored_elements() /
                              op->get_num_batch_entries())};
