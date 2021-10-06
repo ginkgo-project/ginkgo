@@ -90,8 +90,6 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     const auto a_ub = get_batch_struct(a);
     const auto b_ub = get_batch_struct(b);
     const auto c_ub = get_batch_struct(c);
-    const auto num_rows = a_ub.num_rows;
-    const auto nbatches = a_ub.num_batch;
     spmv<<<num_blocks, default_block_size>>>(a_ub, b_ub, c_ub);
 }
 

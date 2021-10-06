@@ -53,8 +53,8 @@ struct BatchEntry {
     using index_type = int;
     ValueType* values;
     const int* col_idxs;
-    int num_stored_elems_per_row;
-    int stride;
+    size_type num_stored_elems_per_row;
+    size_type stride;
     int num_rows;
     int num_nnz;
 };

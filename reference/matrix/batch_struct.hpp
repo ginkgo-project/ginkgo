@@ -130,8 +130,8 @@ inline gko::batch_ell::UniformBatch<const ValueType> get_batch_struct(
     return {op->get_const_values(),
             op->get_const_col_idxs(),
             op->get_num_batch_entries(),
-            static_cast<int>(op->get_num_stored_elements_per_row().at(0)),
-            static_cast<int>(op->get_stride().at(0)),
+            op->get_num_stored_elements_per_row().at(0),
+            op->get_stride().at(0),
             static_cast<int>(op->get_size().at(0)[0]),
             static_cast<int>(op->get_num_stored_elements() /
                              op->get_num_batch_entries())};
@@ -147,8 +147,8 @@ inline gko::batch_ell::UniformBatch<ValueType> get_batch_struct(
     return {op->get_values(),
             op->get_const_col_idxs(),
             op->get_num_batch_entries(),
-            static_cast<int>(op->get_num_stored_elements_per_row().at(0)),
-            static_cast<int>(op->get_stride().at(0)),
+            op->get_num_stored_elements_per_row().at(0),
+            op->get_stride().at(0),
             static_cast<int>(op->get_size().at(0)[0]),
             static_cast<int>(op->get_num_stored_elements() /
                              op->get_num_batch_entries())};
