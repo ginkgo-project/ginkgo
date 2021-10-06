@@ -152,6 +152,8 @@ TYPED_TEST(BatchEll, KnowsItsSize)
     ASSERT_EQ(this->mtx->get_size().at(0), gko::dim<2>(3, 3));
     ASSERT_EQ(this->mtx->get_size().at(1), gko::dim<2>(3, 3));
     ASSERT_EQ(this->mtx->get_num_stored_elements(), 12);
+    ASSERT_EQ(this->mtx->get_stride().at(0), 3);
+    ASSERT_EQ(this->mtx->get_stride().at(1), 3);
 }
 
 
