@@ -77,8 +77,9 @@ void generate_rhs(const ValueType f, gko::matrix::Dense<ValueType>* rhs)
 template <typename ValueType>
 void print_solution(const gko::matrix::Dense<ValueType>* u)
 {
+    auto u_ = gko::clone(u->get_executor()->get_master(), u);
     for (int i = 0; i < u->get_size()[0]; ++i) {
-        std::cout << u->get_const_values()[i] << '\n';
+        std::cout << u_->get_const_values()[i] << '\n';
     }
 }
 
@@ -90,12 +91,13 @@ gko::remove_complex<ValueType> calculate_error(
     gko::size_type num_elements, const gko::matrix::Dense<ValueType>* u,
     Closure correct_u)
 {
+    auto u_ = gko::clone(u->get_executor()->get_master(), u);
     const ValueType h = 1.0 / static_cast<ValueType>(num_elements + 1);
     gko::remove_complex<ValueType> error = 0.0;
     for (int i = 0; i < num_elements; ++i) {
         using std::abs;
         const auto xi = static_cast<ValueType>(i) * h;
-        error += abs(u->get_const_values()[i] - correct_u(xi)) /
+        error += abs(u_->get_const_values()[i] - correct_u(xi)) /
                  abs(correct_u(xi) + 1e-14);
     }
     return error;
