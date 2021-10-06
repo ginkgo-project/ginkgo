@@ -328,15 +328,15 @@ void run_kernel_col_reduction_sized_impl(
             const auto begin = row_block * rows_per_thread;
             const auto end = std::min(begin + rows_per_thread, rows);
             const auto base_col = col_block * block_size;
-            const auto identity = [](auto i) { return i; };
+            const auto identity_fn = [](auto i) { return i; };
             if (base_col + block_size <= cols) {
                 run_kernel_col_reduction_sized_block_impl<block_size>(
-                    fn, op, identity, identity,
+                    fn, op, identity_fn, identity,
                     partial.get_data() + cols * row_block, begin, end, base_col,
                     args...);
             } else {
                 run_kernel_col_reduction_sized_block_impl<remainder_cols>(
-                    fn, op, identity, identity,
+                    fn, op, identity_fn, identity,
                     partial.get_data() + cols * row_block, begin, end, base_col,
                     args...);
             }
