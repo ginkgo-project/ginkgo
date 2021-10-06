@@ -58,7 +58,7 @@ protected:
         : ref(gko::ReferenceExecutor::create()),
           exec(gko::OmpExecutor::create()),
           total_size(6355),
-          out(T(2)),
+          out(T{2}),
           vals(ref, total_size),
           dvals(exec, total_size)
     {
@@ -80,14 +80,14 @@ TYPED_TEST_SUITE(ReduceArray, gko::test::ValueAndIndexTypes);
 TYPED_TEST(ReduceArray, EqualsReference)
 {
     using T = typename TestFixture::value_type;
-    auto val = T(2);
+    auto val = T{2};
 
     gko::kernels::reference::components::reduce_array(
         this->ref, this->vals.get_data(), this->total_size, &this->out);
     gko::kernels::omp::components::reduce_array(
         this->exec, this->dvals.get_data(), this->total_size, &val);
 
-    ASSERT_EQ(T(this->out), T(val));
+    ASSERT_EQ(this->out, val);
 }
 
 

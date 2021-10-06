@@ -64,7 +64,7 @@ protected:
     {
         std::fill_n(vals.get_data(), total_size, 3);
         dvals = vals;
-        out = T(2);
+        out = T{2};
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
