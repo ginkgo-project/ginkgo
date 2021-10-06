@@ -233,31 +233,31 @@ template <typename ValueType, typename IndexType>
 void convert_to_batch_dense(
     std::shared_ptr<const CudaExecutor> exec,
     const matrix::BatchEll<ValueType, IndexType>* const src,
-    matrix::BatchDense<ValueType>* const dest)
-{
-    const size_type nbatches = src->get_num_batch_entries();
-    const int num_rows = src->get_size().at(0)[0];
-    const int num_cols = src->get_size().at(0)[1];
-    const int nnz = static_cast<int>(src->get_num_stored_elements() / nbatches);
-    const size_type dstride = dest->get_stride().at(0);
-    const size_type estride = src->get_stride().at(0);
-    const auto col_idxs = src->get_const_col_idxs();
-    const auto vals = src->get_const_values();
+    matrix::BatchDense<ValueType>* const dest) GKO_NOT_IMPLEMENTED;
+// TODO
+// {
+//     const size_type nbatches = src->get_num_batch_entries();
+//     const int num_rows = src->get_size().at(0)[0];
+//     const int num_cols = src->get_size().at(0)[1];
+//     const int nnz = static_cast<int>(src->get_num_stored_elements() /
+//     nbatches); const size_type dstride = dest->get_stride().at(0); const
+//     size_type estride = src->get_stride().at(0); const auto col_idxs =
+//     src->get_const_col_idxs(); const auto vals = src->get_const_values();
 
-    const dim3 block_size(config::warp_size,
-                          config::max_block_size / config::warp_size, 1);
-    const dim3 init_grid_dim(ceildiv(num_cols * nbatches, block_size.x),
-                             ceildiv(num_rows * nbatches, block_size.y), 1);
-    initialize_zero_dense<<<init_grid_dim, block_size>>>(
-        nbatches, num_rows, num_cols, dstride,
-        as_cuda_type(dest->get_values()));
+//     const dim3 block_size(config::warp_size,
+//                           config::max_block_size / config::warp_size, 1);
+//     const dim3 init_grid_dim(ceildiv(num_cols * nbatches, block_size.x),
+//                              ceildiv(num_rows * nbatches, block_size.y), 1);
+//     initialize_zero_dense<<<init_grid_dim, block_size>>>(
+//         nbatches, num_rows, num_cols, dstride,
+//         as_cuda_type(dest->get_values()));
 
-    const auto grid_dim = ceildiv(num_rows * nbatches, default_block_size);
-    fill_in_dense<<<grid_dim, default_block_size>>>(
-        nbatches, num_rows, src->get_num_stored_elements_per_row().at(0),
-        estride, as_cuda_type(col_idxs), as_cuda_type(vals), dstride,
-        as_cuda_type(dest->get_values()));
-}
+//     const auto grid_dim = ceildiv(num_rows * nbatches, default_block_size);
+//     fill_in_dense<<<grid_dim, default_block_size>>>(
+//         nbatches, num_rows, src->get_num_stored_elements_per_row().at(0),
+//         estride, as_cuda_type(col_idxs), as_cuda_type(vals), dstride,
+//         as_cuda_type(dest->get_values()));
+// }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_CONVERT_TO_BATCH_DENSE);
