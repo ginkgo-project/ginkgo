@@ -76,7 +76,7 @@ namespace hip {
 namespace batch_ell {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 1024;
 constexpr int sm_multiplier = 4;
 
 
@@ -214,19 +214,7 @@ void batch_scale(std::shared_ptr<const HipExecutor> exec,
                  const matrix::BatchDense<ValueType>* const left_scale,
                  const matrix::BatchDense<ValueType>* const right_scale,
                  matrix::BatchEll<ValueType, IndexType>* const mat)
-{
-    if (!left_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
-    if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
-
-    const auto m_ub = get_batch_struct(mat);
-
-    const int num_blocks = mat->get_num_batch_entries();
-    hipLaunchKernelGGL(uniform_batch_scale, dim3(num_blocks),
-                       dim3(default_block_size), 0, 0,
-                       as_hip_type(left_scale->get_const_values()),
-                       as_hip_type(right_scale->get_const_values()), m_ub,
-                       mat->get_size().at()[1]);
-}
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_SCALE);
@@ -238,21 +226,7 @@ void pre_diag_scale_system(
     const matrix::BatchDense<ValueType>* const left_scale,
     const matrix::BatchDense<ValueType>* const right_scale,
     matrix::BatchEll<ValueType, IndexType>* const a,
-    matrix::BatchDense<ValueType>* const b)
-{
-    const size_type nbatch = a->get_num_batch_entries();
-    const int nrows = static_cast<int>(a->get_size().at()[0]);
-    const size_type nnz = a->get_num_stored_elements() / nbatch;
-    const int nrhs = static_cast<int>(b->get_size().at()[1]);
-    const size_type b_stride = b->get_stride().at();
-    hipLaunchKernelGGL(pre_diag_scale_system, dim3(nbatch),
-                       dim3(default_block_size), 0, 0, nbatch, nrows, nnz,
-                       as_hip_type(a->get_values()), a->get_const_col_idxs(),
-                       a->get_const_row_ptrs(), nrhs, b_stride,
-                       as_hip_type(b->get_values()),
-                       as_hip_type(left_scale->get_const_values()),
-                       as_hip_type(right_scale->get_const_values()));
-}
+    matrix::BatchDense<ValueType>* const b) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_PRE_DIAG_SCALE_SYSTEM);
@@ -262,20 +236,7 @@ template <typename ValueType, typename IndexType>
 void convert_to_batch_dense(
     std::shared_ptr<const HipExecutor> exec,
     const matrix::BatchEll<ValueType, IndexType>* const src,
-    matrix::BatchDense<ValueType>* const dest)
-{
-    const size_type nbatches = src->get_num_batch_entries();
-    const int nrows = src->get_size().at()[0];
-    const int ncols = src->get_size().at()[1];
-    const int nnz = static_cast<int>(src->get_num_stored_elements() / nbatches);
-    const size_type dstride = dest->get_stride().at();
-    hipLaunchKernelGGL(uniform_convert_to_batch_dense, dim3(nbatches),
-                       dim3(default_block_size), 0, 0, nbatches, nrows, ncols,
-                       nnz, src->get_const_row_ptrs(),
-                       src->get_const_col_idxs(),
-                       as_hip_type(src->get_const_values()), dstride,
-                       as_hip_type(dest->get_values()));
-}
+    matrix::BatchDense<ValueType>* const dest) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_CONVERT_TO_BATCH_DENSE);
