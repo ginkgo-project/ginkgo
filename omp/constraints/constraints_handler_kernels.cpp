@@ -47,21 +47,47 @@ namespace cons {
 
 template <typename ValueType, typename IndexType>
 void fill_subset(std::shared_ptr<const DefaultExecutor> exec,
-                 const Array<IndexType>& subset, ValueType* data,
-                 ValueType val) GKO_NOT_IMPLEMENTED;
+                 const Array<IndexType>& subset, ValueType* data, ValueType val)
+{
+    const auto* idxs = subset.get_const_data();
+#pragma omp parallel for
+    for (int i = 0; i < subset.get_num_elems(); ++i) {
+        data[idxs[i]] = val;
+    }
+}
 
 
 template <typename ValueType, typename IndexType>
 void copy_subset(std::shared_ptr<const DefaultExecutor> exec,
                  const Array<IndexType>& subset, const ValueType* src,
-                 ValueType* dst) GKO_NOT_IMPLEMENTED;
+                 ValueType* dst)
+{
+    const auto* idxs = subset.get_const_data();
+#pragma omp parallel for
+    for (int i = 0; i < subset.get_num_elems(); ++i) {
+        dst[idxs[i]] = src[idxs[i]];
+    }
+}
 
 
 template <typename ValueType, typename IndexType>
 void set_unit_rows(std::shared_ptr<const DefaultExecutor> exec,
                    const Array<IndexType>& subset, const IndexType* row_ptrs,
-                   const IndexType* col_idxs,
-                   ValueType* values) GKO_NOT_IMPLEMENTED;
+                   const IndexType* col_idxs, ValueType* values)
+{
+    const auto* map = subset.get_const_data();
+#pragma omp parallel for
+    for (IndexType i = 0; i < subset.get_num_elems(); ++i) {
+        const auto row = map[i];
+        for (IndexType idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
+            if (col_idxs[idx] != row) {
+                values[idx] = gko::zero<ValueType>();
+            } else {
+                values[idx] = gko::one<ValueType>();
+            }
+        }
+    }
+}
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_FILL_SUBSET);
