@@ -731,7 +731,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_norm1(LinOp *result) const
+    void compute_norm1(LinOp* result) const
     {
         auto exec = this->get_executor();
         this->compute_norm1_impl(
@@ -981,7 +981,7 @@ protected:
      * @note  Other implementations of dense should override this function
      *        instead of compute_norm1(LinOp *result).
      */
-    virtual void compute_norm1_impl(LinOp *result) const;
+    virtual void compute_norm1_impl(LinOp* result) const;
 
     /**
      * @copydoc create_submatrix(const span, const span, const size_type)

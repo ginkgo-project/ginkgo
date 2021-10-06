@@ -144,14 +144,14 @@ __global__ __launch_bounds__(block_size) void compute_partial_norm2(
 
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void compute_partial_norm1(
-    size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
-    remove_complex<ValueType> *__restrict__ work)
+    size_type num_rows, const ValueType* __restrict__ x, size_type stride_x,
+    remove_complex<ValueType>* __restrict__ work)
 {
     using norm_type = remove_complex<ValueType>;
     compute_partial_reduce<block_size>(
         num_rows, work,
         [x, stride_x](size_type i) { return abs(x[i * stride_x]); },
-        [](const norm_type &x, const norm_type &y) { return x + y; });
+        [](const norm_type& x, const norm_type& y) { return x + y; });
 }
 
 template <size_type block_size, typename ValueType>
