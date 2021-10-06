@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "accessor/block_col_major.hpp"
 #include "accessor/range.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/base/mixed_precision_types.hpp"
 
 
 namespace gko {
@@ -805,11 +806,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_INV_SYMM_PERMUTE_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename OutputType, typename IndexType>
 void row_gather(std::shared_ptr<const ReferenceExecutor> exec,
                 const Array<IndexType>* row_indices,
                 const matrix::Dense<ValueType>* orig,
-                matrix::Dense<ValueType>* row_gathered)
+                matrix::Dense<OutputType>* row_gathered)
 {
     auto rows = row_indices->get_const_data();
     for (size_type i = 0; i < row_indices->get_num_elems(); ++i) {
@@ -819,7 +820,7 @@ void row_gather(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
     GKO_DECLARE_DENSE_ROW_GATHER_KERNEL);
 
 
