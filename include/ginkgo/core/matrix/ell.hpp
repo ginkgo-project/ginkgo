@@ -230,6 +230,33 @@ public:
         return this->get_const_col_idxs()[this->linearize_index(row, idx)];
     }
 
+    /**
+     * Creates a constant (immutable) Ell matrix from a set of constant arrays.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the dimensions of the matrix
+     * @param values  the value array of the matrix
+     * @param col_idxs  the column index array of the matrix
+     * @param num_stored_elements_per_row  the number of stored nonzeros per row
+     * @param stride  the column-stride of the value and column index array
+     * @returns A smart pointer to the constant matrix wrapping the input arrays
+     *          (if they reside on the same executor as the matrix) or a copy of
+     *          the arrays on the correct executor.
+     */
+    static std::unique_ptr<const Ell> create_const(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        gko::detail::ConstArrayView<ValueType> values,
+        gko::detail::ConstArrayView<IndexType> col_idxs,
+        size_type num_stored_elements_per_row, size_type stride)
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const Ell>(
+            new Ell{exec, size, gko::detail::array_const_cast(values),
+                    gko::detail::array_const_cast(col_idxs),
+                    num_stored_elements_per_row, stride});
+    }
+
 protected:
     /**
      * Creates an uninitialized Ell matrix of the specified size.
