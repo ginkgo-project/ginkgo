@@ -119,8 +119,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 template <typename ValueType>
 void compute_norm1(std::shared_ptr<const CudaExecutor> exec,
-                   const matrix::Dense<ValueType> *x,
-                   matrix::Dense<remove_complex<ValueType>> *result)
+                   const matrix::Dense<ValueType>* x,
+                   matrix::Dense<remove_complex<ValueType>>* result)
 {
     using norm_type = remove_complex<ValueType>;
     // TODO: these are tuning parameters obtained experimentally, once
