@@ -45,7 +45,7 @@ namespace batch_ell {
 
 
 /**
- * Encapsulates (refers to) one matrix from a batch of CSR matrices
+ * Encapsulates (refers to) one matrix from a batch of ELL matrices
  */
 template <typename ValueType>
 struct BatchEntry {
