@@ -161,13 +161,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 
 template <typename ValueType, typename IndexType, typename UnaryOperator>
-inline void convert_batch_ell_to_csc(
-    size_type num_rows, const IndexType* row_ptrs, const IndexType* col_idxs,
-    const ValueType* batch_ell_vals, IndexType* row_idxs, IndexType* col_ptrs,
-    ValueType* csc_vals, UnaryOperator op) GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType, typename UnaryOperator>
 void transpose_and_transform(std::shared_ptr<const ReferenceExecutor> exec,
                              matrix::BatchEll<ValueType, IndexType>* trans,
                              const matrix::BatchEll<ValueType, IndexType>* orig,

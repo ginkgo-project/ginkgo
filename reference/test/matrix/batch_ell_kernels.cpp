@@ -430,40 +430,4 @@ TYPED_TEST(BatchEll, MovesToPrecision)
 }
 
 
-TYPED_TEST(BatchEll, ConvertibleToBatchDense)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    using Mtx = typename TestFixture::Mtx;
-    using Dense = gko::matrix::BatchDense<value_type>;
-    const size_t nbatch = 2;
-    const int nrows = 3;
-    const int nnz = 7;
-    auto mtx = gko::test::create_poisson1d_batch<value_type, index_type>(
-        this->exec, nrows, nbatch);
-    auto ans = Dense::create(
-        this->exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows)));
-    for (size_t ib = 0; ib < nbatch; ib++) {
-        for (int i = 0; i < nrows; i++) {
-            for (int j = 0; j < nrows; j++) {
-                ans->at(ib, i, j) = gko::zero<value_type>();
-            }
-            ans->at(ib, i, i) = 2.0;
-        }
-        ans->at(ib, 0, 1) = -1;
-        ans->at(ib, 1, 0) = -1;
-        ans->at(ib, 1, 2) = -1;
-        ans->at(ib, 2, 1) = -1;
-    }
-    ans->at(1, 0, 1) = -0.5;
-    mtx->get_values()[nnz + 1] = -0.5;
-    auto test = Dense::create(
-        this->exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows)));
-
-    mtx->convert_to(test.get());
-
-    GKO_ASSERT_BATCH_MTX_NEAR(test, ans, 0.0);
-}
-
-
 }  // namespace
