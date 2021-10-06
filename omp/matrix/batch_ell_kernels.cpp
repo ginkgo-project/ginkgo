@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/components/prefix_sum.hpp"
+#include "omp/components/format_conversion.hpp"
 #include "reference/matrix/batch_ell_kernels.hpp"
 #include "reference/matrix/batch_struct.hpp"
 
@@ -118,23 +119,7 @@ void batch_scale(std::shared_ptr<const OmpExecutor> exec,
                  const matrix::BatchDense<ValueType>* left_scale,
                  const matrix::BatchDense<ValueType>* right_scale,
                  matrix::BatchEll<ValueType, IndexType>* mat)
-{
-    if (!left_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
-    if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
-
-    const size_type nbatches = mat->get_num_batch_entries();
-    const auto a_ub = host::get_batch_struct(mat);
-    const auto left_ub = host::get_batch_struct(left_scale);
-    const auto right_ub = host::get_batch_struct(right_scale);
-
-#pragma omp parallel for
-    for (size_type ibatch = 0; ibatch < nbatches; ibatch++) {
-        auto a_b = gko::batch::batch_entry(a_ub, ibatch);
-        auto left_b = gko::batch::batch_entry(left_ub, ibatch);
-        auto right_b = gko::batch::batch_entry(right_ub, ibatch);
-        gko::kernels::reference::batch_ell::batch_scale(left_b, right_b, a_b);
-    }
-}
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_SCALE);
@@ -146,21 +131,7 @@ void pre_diag_scale_system(
     const matrix::BatchDense<ValueType>* const left_scale,
     const matrix::BatchDense<ValueType>* const right_scale,
     matrix::BatchEll<ValueType, IndexType>* const a,
-    matrix::BatchDense<ValueType>* const b)
-{
-    const size_type nbatch = a->get_num_batch_entries();
-    const int nrows = static_cast<int>(a->get_size().at()[0]);
-    const size_type nnz = a->get_num_stored_elements() / nbatch;
-    const int nrhs = static_cast<int>(b->get_size().at()[1]);
-    const size_type b_stride = b->get_stride().at();
-#pragma omp parallel for
-    for (size_type ib = 0; ib < nbatch; ib++) {
-        gko::kernels::reference::batch_ell::pre_diag_scale_system(
-            ib, nnz, nrows, a->get_values(), a->get_const_col_idxs(),
-            a->get_const_row_ptrs(), nrhs, b_stride, b->get_values(),
-            left_scale->get_const_values(), right_scale->get_const_values());
-    }
-}
+    matrix::BatchDense<ValueType>* const b) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_PRE_DIAG_SCALE_SYSTEM);
@@ -180,13 +151,6 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType, typename UnaryOperator>
-inline void convert_batch_ell_to_csc(
-    size_type num_rows, const IndexType* row_ptrs, const IndexType* col_idxs,
-    const ValueType* batch_ell_vals, IndexType* row_idxs, IndexType* col_ptrs,
-    ValueType* csc_vals, UnaryOperator op) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType, typename UnaryOperator>
@@ -272,16 +236,21 @@ void convert_to_batch_dense(
     matrix::BatchDense<ValueType>* const dest)
 {
     const size_type nbatches = src->get_num_batch_entries();
-    const int nrows = src->get_size().at()[0];
-    const int ncols = src->get_size().at()[1];
-    const int nnz = src->get_const_row_ptrs()[nrows];
-    const size_type dstride = dest->get_stride().at();
+    const int num_rows = src->get_size().at(0)[0];
+    const int num_cols = src->get_size().at(0)[1];
+    const int num_stored_elements_per_row =
+        src->get_num_stored_elements() / src->get_num_batch_entries();
 #pragma omp parallel for
     for (size_type ibatch = 0; ibatch < nbatches; ibatch++) {
-        gko::kernels::reference::batch_ell::convert_csr_to_dense(
-            nrows, ncols, src->get_const_row_ptrs(), src->get_const_col_idxs(),
-            src->get_const_values() + ibatch * nnz, dstride,
-            dest->get_values() + ibatch * dstride * nrows);
+        for (size_type row = 0; row < num_rows; row++) {
+            for (size_type col = 0; col < num_cols; col++) {
+                dest->at(ibatch, row, col) = zero<ValueType>();
+            }
+            for (size_type i = 0; i < num_stored_elements_per_row; i++) {
+                dest->at(ibatch, row, src->col_at(row, i)) +=
+                    src->val_at(ibatch, row, i);
+            }
+        }
     }
 }
 
@@ -290,11 +259,58 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 
 template <typename ValueType, typename IndexType>
-void convert_from_batch_csc(
-    std::shared_ptr<const DefaultExecutor> exec,
-    matrix::BatchEll<ValueType, IndexType>* ell, const Array<ValueType>& values,
-    const Array<IndexType>& row_idxs,
-    const Array<IndexType>& col_ptrs) GKO_NOT_IMPLEMENTED;
+void convert_from_batch_csc(std::shared_ptr<const DefaultExecutor> exec,
+                            matrix::BatchEll<ValueType, IndexType>* ell,
+                            const Array<ValueType>& values_arr,
+                            const Array<IndexType>& row_idxs_arr,
+                            const Array<IndexType>& col_ptrs_arr)
+{
+    const size_type nbatches = ell->get_num_batch_entries();
+    const int num_rows = ell->get_size().at(0)[0];
+    const int num_cols = ell->get_size().at(0)[1];
+    const int num_stored_elements_per_row =
+        ell->get_num_stored_elements_per_row().at(0);
+    const auto values = values_arr.get_const_data();
+    const auto row_idxs = row_idxs_arr.get_const_data();
+    const auto col_ptrs = col_ptrs_arr.get_const_data();
+    const auto nnz_per_batch =
+        static_cast<size_type>(values_arr.get_num_elems() / nbatches);
+    std::vector<ValueType> csr_vals(values_arr.get_num_elems());
+    std::vector<IndexType> row_ptrs(num_rows + 1, 0);
+    std::vector<IndexType> col_idxs(row_idxs_arr.get_num_elems());
+    size_type num_nnz = col_ptrs[num_cols];
+    row_ptrs[0] = 0;
+    convert_unsorted_idxs_to_ptrs(row_idxs, num_nnz, row_ptrs.data() + 1,
+                                  num_rows);
+    for (size_type col = 0; col < num_cols; ++col) {
+        for (auto i = col_ptrs[col]; i < col_ptrs[col + 1]; ++i) {
+            const auto dest_idx = (row_ptrs.data() + 1)[row_idxs[i]]++;
+            col_idxs[dest_idx] = col;
+            size_type offset = 0;
+            for (size_type b = 0; b < nbatches; ++b) {
+                offset = b * num_nnz;
+                csr_vals[offset + dest_idx] = values[offset + i];
+            }
+        }
+    }
+    size_type offset = 0;
+#pragma omp parallel for
+    for (size_type ibatch = 0; ibatch < nbatches; ++ibatch) {
+        offset = ibatch * nnz_per_batch;
+        for (size_type row = 0; row < num_rows; row++) {
+            for (size_type i = 0; i < num_stored_elements_per_row; i++) {
+                ell->val_at(ibatch, row, i) = zero<ValueType>();
+                ell->col_at(row, i) = 0;
+            }
+            for (size_type col_idx = 0;
+                 col_idx < row_ptrs[row + 1] - row_ptrs[row]; col_idx++) {
+                ell->val_at(ibatch, row, col_idx) =
+                    csr_vals[offset + row_ptrs[row] + col_idx];
+                ell->col_at(row, col_idx) = col_idxs[row_ptrs[row] + col_idx];
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_CONVERT_FROM_BATCH_CSC);
