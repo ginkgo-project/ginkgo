@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
+#include "core/base/mixed_precision_types.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
 
@@ -413,11 +414,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_INV_SYMM_PERMUTE_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename OutputType, typename IndexType>
 void row_gather(std::shared_ptr<const DefaultExecutor> exec,
                 const Array<IndexType>* row_indices,
                 const matrix::Dense<ValueType>* orig,
-                matrix::Dense<ValueType>* row_gathered)
+                matrix::Dense<OutputType>* row_gathered)
 {
     run_kernel(
         exec,
@@ -428,7 +429,7 @@ void row_gather(std::shared_ptr<const DefaultExecutor> exec,
         *row_indices, row_gathered);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
     GKO_DECLARE_DENSE_ROW_GATHER_KERNEL);
 
 

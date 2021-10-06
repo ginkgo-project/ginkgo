@@ -70,14 +70,16 @@ protected:
 #else
     using vtype = double;
 #endif
+    // in single mode, mixedtype will be the same as vtype
+    using mixedtype = float;
     using Mtx = gko::matrix::Dense<vtype>;
-    using MixedMtx = gko::matrix::Dense<gko::next_precision<vtype>>;
+    using MixedMtx = gko::matrix::Dense<mixedtype>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<vtype>>;
     using Arr = gko::Array<itype>;
     using ComplexMtx = gko::matrix::Dense<std::complex<vtype>>;
     using Diagonal = gko::matrix::Diagonal<vtype>;
     using MixedComplexMtx =
-        gko::matrix::Dense<gko::next_precision<std::complex<vtype>>>;
+        gko::matrix::Dense<std::complex<mixedtype>>;
 
     Dense() : rand_engine(15) {}
 
@@ -713,6 +715,26 @@ TEST_F(Dense, CanGatherRowsIntoDenseCrossExecutor)
     auto r_gather = Mtx::create(ref, gather_size);
     // test make_temporary_clone and non-default stride
     auto dr_gather = Mtx::create(ref, gather_size, sub_x->get_size()[1] + 2);
+
+    sub_x->row_gather(rgather_idxs.get(), r_gather.get());
+    sub_dx->row_gather(rgather_idxs.get(), dr_gather.get());
+
+    GKO_ASSERT_MTX_NEAR(r_gather.get(), dr_gather.get(), 0);
+}
+
+
+TEST_F(Dense, CanGatherRowsIntoMixedDenseCrossExecutor)
+{
+    set_up_apply_data();
+    auto row_span = gko::span{0, x->get_size()[0]};
+    auto col_span = gko::span{0, x->get_size()[1] - 2};
+    auto sub_x = x->create_submatrix(row_span, col_span);
+    auto sub_dx = dx->create_submatrix(row_span, col_span);
+    auto gather_size =
+        gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
+    auto r_gather = MixedMtx::create(ref, gather_size);
+    // test make_temporary_clone and non-default stride
+    auto dr_gather = MixedMtx::create(ref, gather_size, sub_x->get_size()[1] + 2);
 
     sub_x->row_gather(rgather_idxs.get(), r_gather.get());
     sub_dx->row_gather(rgather_idxs.get(), dr_gather.get());

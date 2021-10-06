@@ -1,0 +1,219 @@
+/*******************************<GINKGO LICENSE>******************************
+Copyright (c) 2017-2021, the Ginkgo authors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
+#include <ginkgo/core/matrix/row_gatherer.hpp>
+
+
+#include <gtest/gtest.h>
+
+
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/range.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/test/utils.hpp"
+#include "core/test/utils/assertions.hpp"
+
+
+namespace {
+
+using TestType = ::testing::Types<
+    std::tuple<float, float, gko::int32>, std::tuple<float, double, gko::int32>,
+    std::tuple<double, double, gko::int32>,
+    std::tuple<double, float, gko::int32>,
+    std::tuple<std::complex<float>, std::complex<float>, gko::int32>,
+    std::tuple<std::complex<float>, std::complex<double>, gko::int32>,
+    std::tuple<std::complex<double>, std::complex<double>, gko::int32>,
+    std::tuple<std::complex<double>, std::complex<float>, gko::int32>>;
+
+template <typename ValueIndexType>
+class RowGatherer : public ::testing::Test {
+protected:
+    using v_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using o_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using i_type =
+        typename std::tuple_element<2, decltype(ValueIndexType())>::type;
+    using Vec = gko::matrix::Dense<v_type>;
+    using OutVec = gko::matrix::Dense<o_type>;
+    RowGatherer()
+        : exec(gko::ReferenceExecutor::create()),
+          mtx(gko::matrix::RowGatherer<i_type>::create(
+              exec, gko::dim<2>{4, 3}, gko::Array<i_type>{exec, {1, 0, 2, 1}})),
+          in(gko::initialize<Vec>(
+              {{1.0, -1.0, 3.0}, {0.0, -2.0, 1.0}, {2.0, 0.0, -2.0}}, exec)),
+          out(gko::initialize<OutVec>({{0.0, -1.0, 1.0},
+                                       {1.0, -1.0, 1.0},
+                                       {-1.0, 0.0, -1.0},
+                                       {1.0, -1.0, 3.0}},
+                                      exec))
+    {}
+
+
+    static void assert_equal_to_original_mtx(
+        gko::matrix::RowGatherer<i_type>* m)
+    {
+        auto gather = m->get_row_gather_index();
+        ASSERT_EQ(m->get_size(), gko::dim<2>(4, 3));
+        ASSERT_EQ(m->get_row_gather_index_size(), 4);
+        ASSERT_EQ(gather[0], 1);
+        ASSERT_EQ(gather[1], 0);
+        ASSERT_EQ(gather[2], 2);
+        ASSERT_EQ(gather[3], 1);
+    }
+
+    static void assert_empty(gko::matrix::RowGatherer<i_type>* m)
+    {
+        ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
+        ASSERT_EQ(m->get_row_gather_index_size(), 0);
+    }
+
+    std::shared_ptr<const gko::Executor> exec;
+    std::unique_ptr<gko::matrix::RowGatherer<i_type>> mtx;
+    std::unique_ptr<Vec> in;
+    std::unique_ptr<OutVec> out;
+};
+
+TYPED_TEST_SUITE(RowGatherer, TestType);
+
+
+TYPED_TEST(RowGatherer, CanBeEmpty)
+{
+    using i_type = typename TestFixture::i_type;
+    auto empty = gko::matrix::RowGatherer<i_type>::create(this->exec);
+
+    this->assert_empty(empty.get());
+    ASSERT_EQ(empty->get_const_row_gather_index(), nullptr);
+}
+
+
+TYPED_TEST(RowGatherer, CanBeConstructedWithSize)
+{
+    using i_type = typename TestFixture::i_type;
+    auto m =
+        gko::matrix::RowGatherer<i_type>::create(this->exec, gko::dim<2>{2, 3});
+
+    ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(m->get_row_gather_index_size(), 2);
+}
+
+
+TYPED_TEST(RowGatherer, RowGathererCanBeConstructedFromExistingData)
+{
+    using i_type = typename TestFixture::i_type;
+    i_type data[] = {1, 0, 2};
+
+    auto m = gko::matrix::RowGatherer<i_type>::create(
+        this->exec, gko::dim<2>{3, 5},
+        gko::Array<i_type>::view(this->exec, 3, data));
+
+    ASSERT_EQ(m->get_const_row_gather_index(), data);
+}
+
+
+TYPED_TEST(RowGatherer, RowGathererThrowsforWrongRowPermDimensions)
+{
+    using i_type = typename TestFixture::i_type;
+    i_type data[] = {0, 2, 1};
+
+    ASSERT_THROW(gko::matrix::RowGatherer<i_type>::create(
+                     this->exec, gko::dim<2>{4, 2},
+                     gko::Array<i_type>::view(this->exec, 3, data)),
+                 gko::ValueMismatch);
+}
+
+
+TYPED_TEST(RowGatherer, KnowsItsSizeAndValues)
+{
+    this->assert_equal_to_original_mtx(this->mtx.get());
+}
+
+
+TYPED_TEST(RowGatherer, CanBeCopied)
+{
+    using i_type = typename TestFixture::i_type;
+    auto mtx_copy = gko::matrix::RowGatherer<i_type>::create(this->exec);
+
+    mtx_copy->copy_from(this->mtx.get());
+
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->mtx->get_row_gather_index()[0] = 3;
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
+
+
+TYPED_TEST(RowGatherer, CanBeMoved)
+{
+    using i_type = typename TestFixture::i_type;
+    auto mtx_copy = gko::matrix::RowGatherer<i_type>::create(this->exec);
+
+    mtx_copy->copy_from(std::move(this->mtx));
+
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
+
+
+TYPED_TEST(RowGatherer, CanBeCloned)
+{
+    auto mtx_clone = this->mtx->clone();
+
+    this->assert_equal_to_original_mtx(
+        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
+}
+
+
+TYPED_TEST(RowGatherer, CanBeCleared)
+{
+    this->mtx->clear();
+
+    this->assert_empty(this->mtx.get());
+}
+
+
+TYPED_TEST(RowGatherer, CanRowGather)
+{
+    using o_type = typename TestFixture::o_type;
+    this->mtx->apply(this->in.get(), this->out.get());
+
+    GKO_ASSERT_MTX_NEAR(this->out,
+                        l<o_type>({{0.0, -2.0, 1.0},
+                                   {1.0, -1.0, 3.0},
+                                   {2.0, 0.0, -2.0},
+                                   {0.0, -2.0, 1.0}}),
+                        0.0);
+}
+
+
+}  // namespace

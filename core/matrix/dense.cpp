@@ -898,9 +898,9 @@ void Dense<ValueType>::row_permute_impl(
 
 
 template <typename ValueType>
-template <typename IndexType>
+template <typename OutputType, typename IndexType>
 void Dense<ValueType>::row_gather_impl(const Array<IndexType>* row_indices,
-                                       Dense<ValueType>* row_gathered) const
+                                       Dense<OutputType>* row_gathered) const
 {
     auto exec = this->get_executor();
     dim<2> expected_dim{row_indices->get_num_elems(), this->get_size()[1]};
@@ -1102,6 +1102,78 @@ void Dense<ValueType>::row_gather(const Array<int64>* row_indices,
                                   Dense<ValueType>* row_gathered) const
 {
     this->row_gather_impl(row_indices, row_gathered);
+}
+
+namespace {
+
+/**
+ * run uses template to go through the list and select the valid
+ * tempalate and run it.
+ *
+ * @tparam T  the object type
+ * @tparam func  the validation
+ * @tparam ...Args  the variadic arguments.
+ */
+template <typename T, typename func, typename... Args>
+void run(T obj, func, Args... args)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+/**
+ * run uses template to go through the list and select the valid
+ * tempalate and run it.
+ *
+ * @tparam K  the template type
+ * @tparam ...Types  other types in the list.
+ * @tparam T  the object type
+ * @tparam func  the validation
+ * @tparam ...Args  the variadic arguments.
+ */
+template <typename K, typename... Types, typename T, typename func,
+          typename... Args>
+void run(T obj, func f, Args... args)
+{
+    if (auto dobj = dynamic_cast<K>(obj)) {
+        f(dobj, args...);
+    } else {
+        run<Types...>(obj, f, args...);
+    }
+}
+
+template <typename ValueType, typename Function>
+void gather_mixed_real_complex(Function fn, LinOp* out)
+{
+#ifdef GINKGO_MIXED_PRECISION
+    using fst_type = matrix::Dense<ValueType>;
+    using snd_type = matrix::Dense<next_precision<ValueType>>;
+    run<fst_type*, snd_type*>(out, fn);
+#else
+    precision_dispatch<ValueType>(fn, out);
+#endif
+}
+
+
+}  // namespace
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_gather(const Array<int32>* row_indices,
+                                  LinOp* row_gathered) const
+{
+    gather_mixed_real_complex<ValueType>(
+        [&](auto dense) { this->row_gather_impl(row_indices, dense); },
+        row_gathered);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_gather(const Array<int64>* row_indices,
+                                  LinOp* row_gathered) const
+{
+    gather_mixed_real_complex<ValueType>(
+        [&](auto dense) { this->row_gather_impl(row_indices, dense); },
+        row_gathered);
 }
 
 

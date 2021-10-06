@@ -118,6 +118,8 @@ class Dense
       public Transposable,
       public Permutable<int32>,
       public Permutable<int64>,
+      public EnableRowGatherer<Dense<ValueType>, int32>,
+      public EnableRowGatherer<Dense<ValueType>, int64>,
       public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>> {
     friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
@@ -385,42 +387,23 @@ public:
     void row_permute(const Array<int64>* permutation_indices,
                      Dense* output) const;
 
-    /**
-     * Create a Dense matrix consisting of the given rows from this matrix.
-     *
-     * @param gather_indices  pointer to an array containing row indices
-     *                        from this matrix. It may contain duplicates.
-     * @return  Dense matrix on the same executor with the same number of
-     *          columns and `gather_indices->get_num_elems()` rows containing
-     *          the gathered rows from this matrix:
-     *          `output(i,j) = input(gather_indices(i), j)`
-     */
-    std::unique_ptr<Dense> row_gather(const Array<int32>* gather_indices) const;
+    std::unique_ptr<Dense> row_gather(
+        const Array<int32>* gather_indices) const override;
 
-    /**
-     * @copydoc row_gather(const Array<int32>*) const
-     */
-    std::unique_ptr<Dense> row_gather(const Array<int64>* gather_indices) const;
+    std::unique_ptr<Dense> row_gather(
+        const Array<int64>* gather_indices) const override;
 
-    /**
-     * Copies the given rows from this matrix into `row_gathered`
-     *
-     * @param gather_indices  pointer to an array containing row indices
-     *                        from this matrix. It may contain duplicates.
-     * @param row_gathered  pointer to a Dense matrix that will store the
-     *                      gathered rows:
-     *                      `output(i,j) = input(gather_indices(i), j)`
-     *                      It must have the same number of columns as this
-     *                      matrix and `gather_indices->get_num_elems()` rows.
-     */
     void row_gather(const Array<int32>* gather_indices,
-                    Dense* row_gathered) const;
+                    LinOp* out) const override;
 
-    /**
-     * @copydoc row_gather(const Array<int32>*, Dense*) const
-     */
     void row_gather(const Array<int64>* gather_indices,
-                    Dense* row_gathered) const;
+                    LinOp* out) const override;
+
+    void row_gather(const Array<int32>* gather_indices,
+                    Dense* row_gathered) const override;
+
+    void row_gather(const Array<int64>* gather_indices,
+                    Dense* row_gathered) const override;
 
     std::unique_ptr<LinOp> column_permute(
         const Array<int32>* permutation_indices) const override;
@@ -1096,9 +1079,9 @@ protected:
     void inverse_row_permute_impl(const Array<IndexType>* permutation,
                                   Dense* output) const;
 
-    template <typename IndexType>
+    template <typename OutputType, typename IndexType>
     void row_gather_impl(const Array<IndexType>* row_indices,
-                         Dense* output) const;
+                         Dense<OutputType>* output) const;
 
     template <typename IndexType>
     void column_permute_impl(const Array<IndexType>* permutation,

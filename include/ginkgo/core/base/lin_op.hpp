@@ -564,6 +564,91 @@ public:
 
 
 /**
+ * The AbsoluteComputable is an interface that allows to get the component wise
+ * absolute of a LinOp. Use EnableAbsoluteComputation<AbsoluteLinOp> to
+ * implement this interface.
+ */
+template <typename IndexType>
+class RowGatherable {
+public:
+    /**
+     * Gets the LinOp after row gather
+     *
+     * @param gather_indeces  the row gather index
+     *
+     * @return a pointer to the new LinOp after row gather
+     */
+    virtual std::unique_ptr<LinOp> row_gather_linop(
+        const Array<IndexType>* gather_indices) const = 0;
+
+    /**
+     * Copies the given rows from this matrix into `row_gathered`
+     *
+     * @param gather_indices  pointer to an array containing row indices
+     *                        from this matrix. It may contain duplicates.
+     * @param out  pointer to a LinOp that will store the
+     *                      gathered rows:
+     *                      `output(i,j) = input(gather_indices(i), j)`
+     *                      It must have the same number of columns as this
+     *                      matrix and `gather_indices->get_num_elems()` rows.
+     */
+    virtual void row_gather(const Array<IndexType>* gather_indices,
+                            LinOp* out) const = 0;
+};
+
+
+/**
+ * The EnableAbsoluteComputation mixin provides the default implementations of
+ * `compute_absolute_linop` and the absolute interface. `compute_absolute` gets
+ * a new AbsoluteLinOp. `compute_absolute_inplace` applies absolute
+ * inplace, so it still keeps the value_type of the class.
+ *
+ * @tparam AbsoluteLinOp  the absolute LinOp which is being returned
+ *                        [CRTP parameter]
+ *
+ * @ingroup LinOp
+ */
+template <typename OutputType, typename IndexType>
+class EnableRowGatherer : public RowGatherable<IndexType> {
+public:
+    using output_type = OutputType;
+    // linop version
+    using RowGatherable<IndexType>::row_gather;
+
+    virtual ~EnableRowGatherer() = default;
+
+    std::unique_ptr<LinOp> row_gather_linop(
+        const Array<IndexType>* gather_indices) const override
+    {
+        return this->row_gather(gather_indices);
+    }
+
+    /**
+     * Gets the AbsoluteLinOp
+     *
+     * @return a pointer to the new absolute object
+     */
+    virtual std::unique_ptr<output_type> row_gather(
+        const Array<IndexType>* gather_indices) const = 0;
+
+
+    /**
+     * Copies the given rows from this matrix into `row_gathered`
+     *
+     * @param gather_indices  pointer to an array containing row indices
+     *                        from this matrix. It may contain duplicates.
+     * @param out  pointer to a LinOp that will store the
+     *                      gathered rows:
+     *                      `output(i,j) = input(gather_indices(i), j)`
+     *                      It must have the same number of columns as this
+     *                      matrix and `gather_indices->get_num_elems()` rows.
+     */
+    virtual void row_gather(const Array<IndexType>* gather_indices,
+                            OutputType* out) const = 0;
+};
+
+
+/**
  * A LinOp implementing this interface can read its data from a matrix_data
  * structure.
  *
