@@ -47,7 +47,7 @@ __device__ __forceinline__ void single_spmv_kernel(
     const auto tidx = threadIdx.x;  // thread::get_thread_id_flat();
     // Specialize the num_thread_per_worker = 1. It doesn't need the shared
     // memory, __syncthreads, and atomic_add
-    if (tidx < num_rows) {
+    for (int tidx = threadIdx.x; tidx < num_rows; tidx += blockDim.x) {
         auto temp = zero<ValueType>();
         for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
             const auto ind = tidx + idx * stride;
@@ -81,7 +81,7 @@ __device__ __forceinline__ void single_advanced_spmv_kernel(
     const auto tidx = threadIdx.x;
     // Specialize the num_thread_per_worker = 1. It doesn't need the shared
     // memory, __syncthreads, and atomic_add
-    if (tidx < num_rows) {
+    for (int tidx = threadIdx.x; tidx < num_rows; tidx += blockDim.x) {
         auto temp = zero<ValueType>();
         for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
             const auto ind = tidx + idx * stride;
@@ -117,7 +117,7 @@ __device__ __forceinline__ void spmv_kernel(
     const auto tidx = threadIdx.x;  // thread::get_thread_id_flat();
     // Specialize the num_thread_per_worker = 1. It doesn't need the shared
     // memory, __syncthreads, and atomic_add
-    if (tidx < num_rows) {
+    for (int tidx = threadIdx.x; tidx < num_rows; tidx += blockDim.x) {
         auto temp = zero<ValueType>();
         for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
             const auto ind = tidx + idx * stride;
@@ -151,10 +151,9 @@ __device__ __forceinline__ void advanced_spmv_kernel(
     const auto col = a.col_idxs;
     const auto c_stride = cobj.stride;
     auto c = cobj.values;
-    const auto tidx = threadIdx.x;  // thread::get_thread_id_flat();
     // Specialize the num_thread_per_worker = 1. It doesn't need the shared
     // memory, __syncthreads, and atomic_add
-    if (tidx < num_rows) {
+    for (int tidx = threadIdx.x; tidx < num_rows; tidx += blockDim.x) {
         auto temp = zero<ValueType>();
         for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
             const auto ind = tidx + idx * stride;
