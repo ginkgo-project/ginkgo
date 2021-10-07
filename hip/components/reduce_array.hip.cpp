@@ -63,8 +63,8 @@ constexpr int default_block_size = 512;
 
 
 template <typename ValueType>
-void reduce_array(std::shared_ptr<const DefaultExecutor> exec,
-                  const ValueType* array, size_type size, ValueType* val)
+void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,
+                      const ValueType* array, size_type size, ValueType* val)
 {
     auto block_results_val = array;
     size_type grid_dim = size;
@@ -90,7 +90,7 @@ void reduce_array(std::shared_ptr<const DefaultExecutor> exec,
                        as_hip_type(d_result.get_data()));
 }
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);
 
 
 }  // namespace components

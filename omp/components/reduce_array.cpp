@@ -40,8 +40,8 @@ namespace components {
 
 
 template <typename ValueType>
-void reduce_array(std::shared_ptr<const DefaultExecutor> exec,
-                  const ValueType* array, size_type n, ValueType* val)
+void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,
+                      const ValueType* array, size_type n, ValueType* val)
 {
     ValueType out = *val;
 #pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
@@ -53,7 +53,7 @@ void reduce_array(std::shared_ptr<const DefaultExecutor> exec,
     *val = out;
 }
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);
 
 
 }  // namespace components

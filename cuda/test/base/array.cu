@@ -101,7 +101,7 @@ TYPED_TEST(Array, CanBeReduced)
     auto arr = gko::Array<TypeParam>(cuda, I<T>{4, 6});
     auto out = gko::Array<TypeParam>(cuda, I<T>{2});
 
-    gko::reduce(arr, out.get_data());
+    gko::reduce_add(arr, out);
 
     out.set_executor(cuda->get_master());
     ASSERT_EQ(out.get_data()[0], T{12});
@@ -114,7 +114,7 @@ TYPED_TEST(Array, CanBeReduced2)
     auto cuda = gko::CudaExecutor::create(0, this->exec);
     auto arr = gko::Array<TypeParam>(cuda, I<T>{4, 6});
 
-    auto out = gko::reduce(arr, T{3});
+    auto out = gko::reduce_add(arr, T{3});
 
     ASSERT_EQ(out, T{13});
 }
