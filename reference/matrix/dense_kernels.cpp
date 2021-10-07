@@ -342,9 +342,6 @@ void compute_norm1(std::shared_ptr<const ReferenceExecutor> exec,
             result->at(0, j) += abs(x->at(i, j));
         }
     }
-    for (size_type j = 0; j < x->get_size()[1]; ++j) {
-        result->at(0, j) = abs(result->at(0, j));
-    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL);
