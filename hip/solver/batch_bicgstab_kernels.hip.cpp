@@ -73,16 +73,36 @@ namespace batch_bicgstab {
 #include "common/cuda_hip/stop/batch_criteria.hpp.inc"
 
 
+template <typename BatchMatrixType>
+int get_num_threads_per_block(std::shared_ptr<const HipExecutor> exec,
+                              const int num_rows)
+{
+    int nwarps = num_rows / 4;
+    if (nwarps < 2) {
+        nwarps = 2;
+    }
+    constexpr int device_max_threads = 1024;
+    const int num_regs_used_per_thread = 64;
+    int max_regs_blk = 0;
+    hipDeviceGetAttribute(&max_regs_blk, hipDeviceAttributeMaxRegistersPerBlock,
+                          exec->get_device_id());
+    const int max_threads_regs =
+        ((max_regs_blk / num_regs_used_per_thread) / config::warp_size) *
+        config::warp_size;
+    const int max_threads = std::min(max_threads_regs, device_max_threads);
+    return std::min(nwarps * static_cast<int>(config::warp_size), max_threads);
+}
+
 template <typename T>
 using BatchBicgstabOptions =
     gko::kernels::batch_bicgstab::BatchBicgstabOptions<T>;
 
-#define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)               \
-    hipLaunchKernelGGL(                                                     \
-        HIP_KERNEL_NAME(apply_kernel<stop::_stoppertype<ValueType>>),       \
-        dim3(nbatch), dim3(default_block_size), shared_size, 0, shared_gap, \
-        sconf, opts.max_its, opts.residual_tol, logger, _prectype(), a,     \
-        b.values, x.values, workspace.get_data())
+#define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)              \
+    hipLaunchKernelGGL(                                                    \
+        HIP_KERNEL_NAME(apply_kernel<stop::_stoppertype<ValueType>>),      \
+        dim3(nbatch), dim3(block_size), shared_size, 0, shared_gap, sconf, \
+        opts.max_its, opts.residual_tol, logger, _prectype(), a, b.values, \
+        x.values, workspace.get_data())
 
 template <typename PrecType, typename BatchMatrixType, typename LogType,
           typename ValueType>
@@ -99,6 +119,16 @@ static void apply_impl(
     static_assert(default_block_size >= 2 * config::warp_size,
                   "Need at least two warps!");
 
+    int block_size = 256;
+    if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
+        block_size =
+            get_num_threads_per_block<BatchMatrixType>(exec, a.num_rows);
+    } else {
+        block_size =
+            get_num_threads_per_block<BatchMatrixType>(exec, a.num_rows);
+    }
+    assert(block_size >= 2 * config::warp_size);
+
     const size_t prec_size =
         PrecType::dynamic_work_size(shared_gap, a.num_nnz) * sizeof(ValueType);
     const int shmem_per_blk = exec->get_max_shared_memory_per_block();
@@ -111,6 +141,14 @@ static void apply_impl(
     auto workspace = gko::Array<ValueType>(
         exec, sconf.gmem_stride_bytes * nbatch / sizeof(ValueType));
     assert(sconf.gmem_stride_bytes % sizeof(ValueType) == 0);
+
+    printf(" Bicgstab: vectors in shared memory = %d\n", sconf.n_shared);
+    if (sconf.prec_shared) {
+        printf(" Bicgstab: precondiioner is in shared memory.\n");
+    }
+    printf(" Bicgstab: vectors in global memory = %d\n", sconf.n_global);
+    printf(" Hip: number of threads per warp = %d.\n", config::warp_size);
+    printf(" Bicgstab: number of threads per block = %d.\n", block_size);
     if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
         BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleAbsResidual, PrecType);
     } else {
