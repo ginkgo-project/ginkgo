@@ -698,7 +698,7 @@ private:
 
 
 /**
- * Reduce the values in the array
+ * Reduce (sum) the values in the array
  *
  * @tparam The type of the input data
  *
@@ -707,11 +707,11 @@ private:
  * @return the reduced value
  */
 template <typename ValueType>
-ValueType reduce(const Array<ValueType>& input_arr,
-                 const ValueType init_val = 0);
+ValueType reduce_add(const Array<ValueType>& input_arr,
+                     const ValueType init_val = 0);
 
 /**
- * Reduce the values in the array
+ * Reduce (sum) the values in the array
  *
  * @tparam The type of the input data
  *
@@ -721,7 +721,7 @@ ValueType reduce(const Array<ValueType>& input_arr,
  *                 initial value for the reduce.
  */
 template <typename ValueType>
-void reduce(const Array<ValueType>& input_arr, ValueType* result);
+void reduce_add(const Array<ValueType>& input_arr, Array<ValueType>& result);
 
 
 namespace detail {

@@ -48,15 +48,15 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_REDUCE_ARRAY_KERNEL(ValueType)                  \
-    void reduce_array(std::shared_ptr<const DefaultExecutor> exec,  \
-                      const ValueType* data, size_type num_entries, \
-                      ValueType* result)
+#define GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL(ValueType)                  \
+    void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,  \
+                          const ValueType* data, size_type num_entries, \
+                          ValueType* result)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \
     template <typename ValueType>    \
-    GKO_DECLARE_REDUCE_ARRAY_KERNEL(ValueType)
+    GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL(ValueType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(components,

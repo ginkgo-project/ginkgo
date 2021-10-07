@@ -58,7 +58,7 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(reduce_array, components::reduce_array);
+GKO_REGISTER_OPERATION(reduce_add_array, components::reduce_add_array);
 
 
 }  // anonymous namespace
@@ -95,23 +95,27 @@ void Array<ValueType>::fill(const ValueType value)
 
 
 template <typename ValueType>
-void reduce(const Array<ValueType>& input_arr, ValueType* value)
+void reduce_add(const Array<ValueType>& input_arr, Array<ValueType>& result)
 {
+    GKO_ASSERT(result.get_num_elems() == 1);
     auto exec = input_arr.get_executor();
-    exec->run(array::make_reduce_array(input_arr.get_const_data(),
-                                       input_arr.get_num_elems(), value));
+    exec->run(array::make_reduce_add_array(input_arr.get_const_data(),
+                                           input_arr.get_num_elems(),
+                                           result.get_data()));
 }
 
 
 template <typename ValueType>
-ValueType reduce(const Array<ValueType>& input_arr, const ValueType init_value)
+ValueType reduce_add(const Array<ValueType>& input_arr,
+                     const ValueType init_value)
 {
     auto exec = input_arr.get_executor();
     auto value = Array<ValueType>(exec, {init_value});
-    exec->run(array::make_reduce_array(input_arr.get_const_data(),
-                                       input_arr.get_num_elems(),
-                                       value.get_data()));
-    return exec->copy_val_to_host(value.get_data());
+    exec->run(array::make_reduce_add_array(input_arr.get_const_data(),
+                                           input_arr.get_num_elems(),
+                                           value.get_data()));
+    auto host_val = exec->copy_val_to_host(value.get_data());
+    return host_val;
 }
 
 
@@ -120,16 +124,16 @@ ValueType reduce(const Array<ValueType>& input_arr, const ValueType init_value)
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_FILL);
 
 
-#define GKO_DECLARE_ARRAY_REDUCE(_type) \
-    void reduce(const Array<_type>& arr, _type* value)
+#define GKO_DECLARE_ARRAY_REDUCE_ADD(_type) \
+    void reduce_add(const Array<_type>& arr, Array<_type>& value)
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_REDUCE);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_REDUCE_ADD);
 
 
-#define GKO_DECLARE_ARRAY_REDUCE2(_type) \
-    _type reduce(const Array<_type>& arr, const _type val)
+#define GKO_DECLARE_ARRAY_REDUCE_ADD2(_type) \
+    _type reduce_add(const Array<_type>& arr, const _type val)
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_REDUCE2);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_REDUCE_ADD2);
 
 
 }  // namespace gko

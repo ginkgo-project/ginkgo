@@ -64,13 +64,13 @@ protected:
     {
         std::fill_n(vals.get_data(), total_size, 3);
         dvals = vals;
-        out = T(2);
+        out = gko::Array<value_type>(this->ref, I<T>{2});
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::HipExecutor> exec;
     gko::size_type total_size;
-    value_type out;
+    gko::Array<value_type> out;
     gko::Array<value_type> vals;
     gko::Array<value_type> dvals;
 };
@@ -84,13 +84,14 @@ TYPED_TEST(ReduceArray, EqualsReference)
     auto dval = gko::Array<T>(this->exec, I<T>{2});
     auto val = gko::Array<T>(this->ref, 1);
 
-    gko::kernels::reference::components::reduce_array(
-        this->ref, this->vals.get_const_data(), this->total_size, &(this->out));
-    gko::kernels::hip::components::reduce_array(
+    gko::kernels::reference::components::reduce_add_array(
+        this->ref, this->vals.get_const_data(), this->total_size,
+        this->out.get_data());
+    gko::kernels::hip::components::reduce_add_array(
         this->exec, this->dvals.get_data(), this->total_size, dval.get_data());
 
     val = dval;
-    ASSERT_EQ(T(this->out), T(val.get_data()[0]));
+    ASSERT_EQ(this->out.get_data()[0], val.get_data()[0]);
 }
 
 

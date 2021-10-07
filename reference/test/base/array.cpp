@@ -78,17 +78,17 @@ TYPED_TEST(Array, CanBeFilledWithValue)
 
 TYPED_TEST(Array, CanBeReduced)
 {
-    TypeParam out = 1;
+    auto out = gko::Array<TypeParam>(this->exec, I<TypeParam>{1});
 
-    gko::reduce(this->x, &out);
+    gko::reduce_add(this->x, out);
 
-    ASSERT_EQ(out, TypeParam{8});
+    ASSERT_EQ(out.get_data()[0], TypeParam{8});
 }
 
 
 TYPED_TEST(Array, CanBeReduced2)
 {
-    auto out = gko::reduce(this->x, TypeParam{2});
+    auto out = gko::reduce_add(this->x, TypeParam{2});
 
     ASSERT_EQ(out, TypeParam{9});
 }

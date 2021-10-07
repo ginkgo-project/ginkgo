@@ -43,13 +43,13 @@ namespace components {
 
 
 template <typename ValueType>
-void reduce_array(std::shared_ptr<const DefaultExecutor> exec,
-                  const ValueType* array, size_type n, ValueType* val)
+void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,
+                      const ValueType* array, size_type n, ValueType* val)
 {
     *val = std::accumulate(array, array + n, *val);
 }
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);
 
 
 }  // namespace components
