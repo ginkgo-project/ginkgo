@@ -169,8 +169,8 @@ TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingConstData)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    index_type col_idxs[] = {0, 1, 1, 0};
-    index_type row_ptrs[] = {0, 2, 3, 4};
+    const index_type col_idxs[] = {0, 1, 1, 0};
+    const index_type row_ptrs[] = {0, 2, 3, 4};
 
     auto mtx = gko::matrix::SparsityCsr<value_type, index_type>::create_const(
         this->exec, gko::dim<2>{3, 2},

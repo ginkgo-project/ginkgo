@@ -117,7 +117,7 @@ TYPED_TEST(Diagonal, CanBeCreatedFromExistingData)
 TYPED_TEST(Diagonal, CanBeCreatedFromExistingConstData)
 {
     using value_type = typename TestFixture::value_type;
-    value_type values[] = {1.0, 2.0, 3.0};
+    const value_type values[] = {1.0, 2.0, 3.0};
 
     auto diag = gko::matrix::Diagonal<value_type>::create_const(
         this->exec, 3,

@@ -142,7 +142,7 @@ TYPED_TEST(Dense, CanBeConstructedFromExistingConstData)
 {
     using value_type = typename TestFixture::value_type;
     // clang-format off
-    value_type data[] = {
+    const value_type data[] = {
         1.0, 2.0, -1.0,
         3.0, 4.0, -1.0,
         5.0, 6.0, -1.0};

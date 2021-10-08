@@ -158,8 +158,8 @@ TYPED_TEST(Ell, CanBeCreatedFromExistingConstData)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    value_type values[] = {1.0, 3.0, 4.0, -1.0, 2.0, 0.0, 0.0, -1.0};
-    index_type col_idxs[] = {0, 1, 0, -1, 1, 0, 0, -1};
+    const value_type values[] = {1.0, 3.0, 4.0, -1.0, 2.0, 0.0, 0.0, -1.0};
+    const index_type col_idxs[] = {0, 1, 0, -1, 1, 0, 0, -1};
 
     auto mtx = gko::matrix::Ell<value_type, index_type>::create_const(
         this->exec, gko::dim<2>{3, 2},
