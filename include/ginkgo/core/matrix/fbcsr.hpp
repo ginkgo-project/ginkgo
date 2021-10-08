@@ -335,16 +335,17 @@ public:
      */
     static std::unique_ptr<const Fbcsr> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size, int blocksize,
-        gko::detail::ConstArrayView<ValueType> values,
-        gko::detail::ConstArrayView<IndexType> col_idxs,
-        gko::detail::ConstArrayView<IndexType> row_ptrs)
+        gko::detail::ConstArrayView<ValueType>&& values,
+        gko::detail::ConstArrayView<IndexType>&& col_idxs,
+        gko::detail::ConstArrayView<IndexType>&& row_ptrs)
     {
         // cast const-ness away, but return a const object afterwards,
         // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Fbcsr>(new Fbcsr{
-            exec, size, blocksize, gko::detail::array_const_cast(values),
-            gko::detail::array_const_cast(col_idxs),
-            gko::detail::array_const_cast(row_ptrs)});
+        return std::unique_ptr<const Fbcsr>(
+            new Fbcsr{exec, size, blocksize,
+                      gko::detail::array_const_cast(std::move(values)),
+                      gko::detail::array_const_cast(std::move(col_idxs)),
+                      gko::detail::array_const_cast(std::move(row_ptrs))});
     }
 
 protected:

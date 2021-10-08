@@ -96,14 +96,21 @@ public:
 
     /*
      * To avoid any collisions with the value semantics of normal arrays,
-     * disable assignment altogether.
+     * disable assignment and copy-construction altogether.
      */
     ConstArrayView& operator=(const ConstArrayView&) = delete;
     ConstArrayView& operator=(ConstArrayView&&) = delete;
-
-    ConstArrayView(const ConstArrayView&) = default;
-    /* Move-construction uses copy-construction to preserve executors. */
-    ConstArrayView(ConstArrayView&& other) : ConstArrayView{other} {}
+    ConstArrayView(const ConstArrayView&) = delete;
+    /*
+     * TODO C++17: delete this overload as well, it is no longer necessary due
+     * to guaranteed RVO.
+     */
+    ConstArrayView(ConstArrayView&& other)
+        : ConstArrayView{other.exec_, other.num_elems_, other.data_}
+    {
+        other.num_elems_ = 0;
+        other.data_ = nullptr;
+    }
 
     /**
      * Returns the number of elements in the array view.
