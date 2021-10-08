@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
 
 
 #include "core/matrix/batch_struct.hpp"
@@ -46,9 +47,19 @@ namespace dpcpp {
 
 template <typename ValueType>
 void batch_jacobi_apply(std::shared_ptr<const gko::DpcppExecutor> exec,
-                        const matrix::BatchCsr<ValueType> *const a,
-                        const matrix::BatchDense<ValueType> *const b,
-                        matrix::BatchDense<ValueType> *const x)
+                        const matrix::BatchEll<ValueType>* const a,
+                        const matrix::BatchDense<ValueType>* const b,
+                        matrix::BatchDense<ValueType>* const x)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_ELL_KERNEL);
+
+
+template <typename ValueType>
+void batch_jacobi_apply(std::shared_ptr<const gko::DpcppExecutor> exec,
+                        const matrix::BatchCsr<ValueType>* const a,
+                        const matrix::BatchDense<ValueType>* const b,
+                        matrix::BatchDense<ValueType>* const x)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_KERNEL);

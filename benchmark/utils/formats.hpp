@@ -60,7 +60,8 @@ namespace formats {
 
 
 std::string available_format =
-    "batch_csr,coo, csr, ell, ell-mixed, sellp, hybrid, hybrid0, hybrid25, "
+    "batch_csr,batch_ell,coo, csr, ell, ell-mixed, sellp, hybrid, hybrid0, "
+    "hybrid25, "
     "hybrid33, "
     "hybrid40, "
     "hybrid60, hybrid80, hybridlimit0, hybridlimit25, hybridlimit33, "
@@ -85,6 +86,8 @@ std::string available_format =
 std::string format_description =
     "batch_csr: An optimized storage format for batch matrices with the same "
     "sparsity pattern\n"
+    "batch_ell: An ELLPACK storage format optimized for batch matrices with "
+    "the same sparsity pattern\n"
     "coo: Coordinate storage. The CUDA kernel uses the load-balancing approach "
     "suggested in Flegar et al.: Overcoming Load Imbalance for Irregular "
     "Sparse Matrices.\n"
@@ -168,6 +171,7 @@ namespace formats {
 using hybrid = gko::matrix::Hybrid<etype, itype>;
 using csr = gko::matrix::Csr<etype, itype>;
 using batch_csr = gko::matrix::BatchCsr<etype>;
+using batch_ell = gko::matrix::BatchEll<etype>;
 
 /**
  * Creates a Ginkgo matrix from the intermediate data representation format
@@ -183,11 +187,12 @@ using batch_csr = gko::matrix::BatchCsr<etype>;
 template <typename MatrixType>
 std::unique_ptr<MatrixType> read_batch_matrix_from_data(
     std::shared_ptr<const gko::Executor> exec, const int num_duplications,
-    const gko::matrix_data<etype> &data)
+    const gko::matrix_data<etype>& data)
 {
-    auto csr_mat = csr::create(exec);
-    csr_mat->read(data);
-    auto mat = MatrixType::create(exec, num_duplications, csr_mat.get());
+    using FormatBaseType = typename MatrixType::unbatch_type;
+    auto out_mat = FormatBaseType::create(exec);
+    out_mat->read(data);
+    auto mat = MatrixType::create(exec, num_duplications, out_mat.get());
     return mat;
 }
 
@@ -205,7 +210,7 @@ std::unique_ptr<MatrixType> read_batch_matrix_from_data(
 template <typename MatrixType>
 std::unique_ptr<MatrixType> read_batch_matrix_from_batch_data(
     std::shared_ptr<const gko::Executor> exec, const int num_duplications,
-    const std::vector<gko::matrix_data<etype>> &data)
+    const std::vector<gko::matrix_data<etype>>& data)
 {
     auto single_batch = MatrixType::create(exec);
     single_batch->read(data);
@@ -297,18 +302,22 @@ void check_ell_admissibility(const gko::matrix_data<etype, itype>& data)
 
 const std::map<std::string, std::function<std::unique_ptr<gko::BatchLinOp>(
                                 std::shared_ptr<const gko::Executor>, const int,
-                                const std::vector<gko::matrix_data<etype>> &)>>
+                                const std::vector<gko::matrix_data<etype>>&)>>
     batch_matrix_factory2{
         {"batch_csr",
          read_batch_matrix_from_batch_data<gko::matrix::BatchCsr<etype>>},
+        {"batch_ell",
+         read_batch_matrix_from_batch_data<gko::matrix::BatchEll<etype>>},
         {"batch_dense",
          read_batch_matrix_from_batch_data<gko::matrix::BatchDense<etype>>}};
 
 
 const std::map<std::string, std::function<std::unique_ptr<gko::BatchLinOp>(
                                 std::shared_ptr<const gko::Executor>, const int,
-                                const gko::matrix_data<etype> &)>>
+                                const gko::matrix_data<etype>&)>>
     batch_matrix_factory{
+        {"batch_ell",
+         read_batch_matrix_from_data<gko::matrix::BatchEll<etype>>},
         {"batch_csr",
          read_batch_matrix_from_data<gko::matrix::BatchCsr<etype>>}};
 
