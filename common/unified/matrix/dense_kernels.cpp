@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/unified/base/kernel_launch_reduction.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/matrix/dense_kernels.hpp"
 
 
 namespace gko {
@@ -431,6 +432,33 @@ void row_gather(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
     GKO_DECLARE_DENSE_ROW_GATHER_KERNEL);
+
+
+template <typename ValueType, typename OutputType, typename IndexType>
+void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,
+                         const matrix::Dense<ValueType>* alpha,
+                         const Array<IndexType>* row_indices,
+                         const matrix::Dense<ValueType>* orig,
+                         const matrix::Dense<ValueType>* beta,
+                         matrix::Dense<OutputType>* row_gathered)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto alpha, auto orig, auto rows,
+                      auto beta, auto gathered) {
+            using type = device_type<highest_precision<ValueType, OutputType>>;
+            gathered(row, col) =
+                static_cast<type>(alpha[0] * orig(rows[row], col)) +
+                static_cast<type>(beta[0]) *
+                    static_cast<type>(gathered(row, col));
+        },
+        dim<2>{row_indices->get_num_elems(), orig->get_size()[1]},
+        alpha->get_const_values(), orig, *row_indices, beta->get_const_values(),
+        row_gathered);
+}
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
+    GKO_DECLARE_DENSE_ADVANCED_ROW_GATHER_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

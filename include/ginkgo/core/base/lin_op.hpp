@@ -594,6 +594,24 @@ public:
      */
     virtual void row_gather(const Array<IndexType>* gather_indices,
                             LinOp* out) const = 0;
+
+
+    /**
+     * Copies the given rows from this matrix into `row_gathered` with scaling
+     *
+     * @param alpha  scaling the result of row gathering
+     * @param gather_indices  pointer to an array containing row indices
+     *                        from this matrix. It may contain duplicates.
+     * @param beta  scaling the input out
+     * @param out  pointer to a LinOp that will store the
+     *                      gathered rows:
+     *                      `output(i,j) = input(gather_indices(i), j)`
+     *                      It must have the same number of columns as this
+     *                      matrix and `gather_indices->get_num_elems()` rows.
+     */
+    virtual void row_gather(const LinOp* alpha,
+                            const Array<IndexType>* gather_indices,
+                            const LinOp* beta, LinOp* out) const = 0;
 };
 
 

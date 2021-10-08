@@ -399,6 +399,12 @@ public:
     void row_gather(const Array<int64>* gather_indices,
                     LinOp* out) const override;
 
+    void row_gather(const LinOp* alpha, const Array<int32>* gather_indices,
+                    const LinOp* beta, LinOp* out) const override;
+
+    void row_gather(const LinOp* alpha, const Array<int64>* gather_indices,
+                    const LinOp* beta, LinOp* out) const override;
+
     void row_gather(const Array<int32>* gather_indices,
                     Dense* row_gathered) const override;
 
@@ -1081,6 +1087,12 @@ protected:
 
     template <typename OutputType, typename IndexType>
     void row_gather_impl(const Array<IndexType>* row_indices,
+                         Dense<OutputType>* output) const;
+
+    template <typename OutputType, typename IndexType>
+    void row_gather_impl(const Dense<ValueType>* alpha,
+                         const Array<IndexType>* row_indices,
+                         const Dense<ValueType>* beta,
                          Dense<OutputType>* output) const;
 
     template <typename IndexType>

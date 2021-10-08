@@ -166,7 +166,7 @@ protected:
                     LinOp* out) const
     {
         auto gather = gko::as<RowGatherable<index_type>>(in);
-        // gather->row_gather(alpha, &row_gather_index_, beta, out);
+        gather->row_gather(alpha, &row_gather_index_, beta, out);
     }
 
 private:
