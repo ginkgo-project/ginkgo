@@ -634,12 +634,12 @@ TYPED_TEST(Array, ArrayConstCastWorksOnView)
     auto size = this->x.get_num_elems();
     auto exec = this->x.get_executor();
     auto const_view = this->x.as_const_view();
-    auto view = gko::detail::array_const_cast(const_view);
+    auto view = gko::detail::array_const_cast(std::move(const_view));
     static_assert(std::is_same<decltype(view), decltype(this->x)>::value,
                   "wrong return type");
 
-    ASSERT_EQ(ptr, const_view.get_const_data());
-    ASSERT_EQ(size, const_view.get_num_elems());
+    ASSERT_EQ(nullptr, const_view.get_const_data());
+    ASSERT_EQ(0, const_view.get_num_elems());
     ASSERT_EQ(exec, const_view.get_executor());
     ASSERT_EQ(ptr, this->x.get_data());
     ASSERT_EQ(ptr, view.get_const_data());

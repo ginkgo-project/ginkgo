@@ -814,12 +814,13 @@ public:
      */
     static std::unique_ptr<const Dense> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::ConstArrayView<ValueType> values, size_type stride)
+        gko::detail::ConstArrayView<ValueType>&& values, size_type stride)
     {
         // cast const-ness away, but return a const object afterwards,
         // so we can ensure that no modifications take place.
         return std::unique_ptr<const Dense>(new Dense{
-            exec, size, gko::detail::array_const_cast(values), stride});
+            exec, size, gko::detail::array_const_cast(std::move(values)),
+            stride});
     }
 
 protected:
