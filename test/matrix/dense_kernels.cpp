@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/dense.hpp>
+#include "core/matrix/dense_kernels.hpp"
 
 
 #include <algorithm>
@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
@@ -78,8 +79,7 @@ protected:
     using Arr = gko::Array<itype>;
     using ComplexMtx = gko::matrix::Dense<std::complex<vtype>>;
     using Diagonal = gko::matrix::Diagonal<vtype>;
-    using MixedComplexMtx =
-        gko::matrix::Dense<std::complex<mixedtype>>;
+    using MixedComplexMtx = gko::matrix::Dense<std::complex<mixedtype>>;
 
     Dense() : rand_engine(15) {}
 
@@ -723,6 +723,29 @@ TEST_F(Dense, CanGatherRowsIntoDenseCrossExecutor)
 }
 
 
+TEST_F(Dense, CanAdvancedGatherRowsIntoDenseCrossExecutor)
+{
+    set_up_apply_data();
+    auto row_span = gko::span{0, x->get_size()[0]};
+    auto col_span = gko::span{0, x->get_size()[1] - 2};
+    auto sub_x = x->create_submatrix(row_span, col_span);
+    auto sub_dx = dx->create_submatrix(row_span, col_span);
+    auto gather_size =
+        gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
+    auto r_gather = gen_mtx<Mtx>(gather_size[0], gather_size[1]);
+    // test make_temporary_clone and non-default stride
+    auto dr_gather = Mtx::create(ref, gather_size, sub_x->get_size()[1] + 2);
+    dr_gather->copy_from(r_gather.get());
+
+    sub_x->row_gather(alpha.get(), rgather_idxs.get(), beta.get(),
+                      r_gather.get());
+    sub_dx->row_gather(dalpha.get(), rgather_idxs.get(), dbeta.get(),
+                       dr_gather.get());
+
+    GKO_ASSERT_MTX_NEAR(r_gather.get(), dr_gather.get(), 0);
+}
+
+
 TEST_F(Dense, CanGatherRowsIntoMixedDenseCrossExecutor)
 {
     set_up_apply_data();
@@ -734,10 +757,35 @@ TEST_F(Dense, CanGatherRowsIntoMixedDenseCrossExecutor)
         gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
     auto r_gather = MixedMtx::create(ref, gather_size);
     // test make_temporary_clone and non-default stride
-    auto dr_gather = MixedMtx::create(ref, gather_size, sub_x->get_size()[1] + 2);
+    auto dr_gather =
+        MixedMtx::create(ref, gather_size, sub_x->get_size()[1] + 2);
 
     sub_x->row_gather(rgather_idxs.get(), r_gather.get());
     sub_dx->row_gather(rgather_idxs.get(), dr_gather.get());
+
+    GKO_ASSERT_MTX_NEAR(r_gather.get(), dr_gather.get(), 0);
+}
+
+
+TEST_F(Dense, CanAdvancedGatherRowsIntoMixedDenseCrossExecutor)
+{
+    set_up_apply_data();
+    auto row_span = gko::span{0, x->get_size()[0]};
+    auto col_span = gko::span{0, x->get_size()[1] - 2};
+    auto sub_x = x->create_submatrix(row_span, col_span);
+    auto sub_dx = dx->create_submatrix(row_span, col_span);
+    auto gather_size =
+        gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
+    auto r_gather = gen_mtx<MixedMtx>(gather_size[0], gather_size[1]);
+    // test make_temporary_clone and non-default stride
+    auto dr_gather =
+        MixedMtx::create(ref, gather_size, sub_x->get_size()[1] + 2);
+    dr_gather->copy_from(r_gather.get());
+
+    sub_x->row_gather(alpha.get(), rgather_idxs.get(), beta.get(),
+                      r_gather.get());
+    sub_dx->row_gather(alpha.get(), rgather_idxs.get(), beta.get(),
+                       dr_gather.get());
 
     GKO_ASSERT_MTX_NEAR(r_gather.get(), dr_gather.get(), 0);
 }

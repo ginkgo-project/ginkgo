@@ -220,6 +220,15 @@ namespace kernels {
                     const matrix::Dense<_vtype>* orig,              \
                     matrix::Dense<_otype>* row_gathered)
 
+
+#define GKO_DECLARE_DENSE_ADVANCED_ROW_GATHER_KERNEL(_vtype, _otype, _itype) \
+    void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,    \
+                             const matrix::Dense<_vtype>* alpha,             \
+                             const Array<_itype>* gather_indices,            \
+                             const matrix::Dense<_vtype>* orig,              \
+                             const matrix::Dense<_vtype>* beta,              \
+                             matrix::Dense<_otype>* row_gathered)
+
 #define GKO_DECLARE_DENSE_COLUMN_PERMUTE_KERNEL(_vtype, _itype)      \
     void column_permute(std::shared_ptr<const DefaultExecutor> exec, \
                         const Array<_itype>* permutation_indices,    \
@@ -333,6 +342,9 @@ namespace kernels {
     GKO_DECLARE_DENSE_INV_SYMM_PERMUTE_KERNEL(ValueType, IndexType);        \
     template <typename ValueType, typename OutputType, typename IndexType>  \
     GKO_DECLARE_DENSE_ROW_GATHER_KERNEL(ValueType, OutputType, IndexType);  \
+    template <typename ValueType, typename OutputType, typename IndexType>  \
+    GKO_DECLARE_DENSE_ADVANCED_ROW_GATHER_KERNEL(ValueType, OutputType,     \
+                                                 IndexType);                \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>                       \

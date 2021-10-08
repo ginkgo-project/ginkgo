@@ -202,7 +202,7 @@ TYPED_TEST(RowGatherer, CanBeCleared)
 }
 
 
-TYPED_TEST(RowGatherer, CanRowGather)
+TYPED_TEST(RowGatherer, CanRowGatherMixed)
 {
     using o_type = typename TestFixture::o_type;
     this->mtx->apply(this->in.get(), this->out.get());
@@ -212,6 +212,26 @@ TYPED_TEST(RowGatherer, CanRowGather)
                                    {1.0, -1.0, 3.0},
                                    {2.0, 0.0, -2.0},
                                    {0.0, -2.0, 1.0}}),
+                        0.0);
+}
+
+
+TYPED_TEST(RowGatherer, CanAdvancedRowGatherMixed)
+{
+    using o_type = typename TestFixture::o_type;
+    using v_type = typename TestFixture::v_type;
+    using Vec = typename TestFixture::Vec;
+    using OutVec = typename TestFixture::OutVec;
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+
+    this->mtx->apply(alpha.get(), this->in.get(), beta.get(), this->out.get());
+
+    GKO_ASSERT_MTX_NEAR(this->out,
+                        l<o_type>({{0.0, -3.0, 1.0},
+                                   {1.0, -1.0, 5.0},
+                                   {5.0, 0.0, -3.0},
+                                   {-1.0, -3.0, -1.0}}),
                         0.0);
 }
 
