@@ -213,8 +213,6 @@ TYPED_TEST(BatchEll, CanBeCreatedFromExistingCscData)
         gko::Array<value_type>::view(this->exec, 12, ell_values),
         gko::Array<index_type>::view(this->exec, 6, col_idxs));
 
-    // this->assert_equal_batch_ell_matrices(mtx.get(), comp.get());
-
     GKO_ASSERT_BATCH_MTX_NEAR(mtx.get(), comp.get(), 0.0);
 }
 
