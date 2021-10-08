@@ -414,9 +414,9 @@ TYPED_TEST(Fbcsr, CanBeCreatedFromExistingConstData)
     const size_type nbcols = this->fbsample.nbcols;
     const size_type bnnz = this->fbsample.nbnz;
     auto refmat = this->fbsample.generate_fbcsr();
-    value_type* const values = refmat->get_values();
-    index_type* const col_idxs = refmat->get_col_idxs();
-    index_type* const row_ptrs = refmat->get_row_ptrs();
+    auto values = refmat->get_const_values();
+    auto col_idxs = refmat->get_const_col_idxs();
+    auto row_ptrs = refmat->get_const_row_ptrs();
 
     auto mtx = gko::matrix::Fbcsr<value_type, index_type>::create_const(
         this->exec, gko::dim<2>{nbrows * bs, nbcols * bs}, bs,

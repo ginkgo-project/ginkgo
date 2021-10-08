@@ -146,7 +146,7 @@ TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingConstData)
 {
     using i_type = typename TestFixture::i_type;
     using i_type = typename TestFixture::i_type;
-    i_type data[] = {1, 0, 2};
+    const i_type data[] = {1, 0, 2};
 
     auto m = gko::matrix::Permutation<i_type>::create_const(
         this->exec, 3, gko::Array<i_type>::const_view(this->exec, 3, data));
