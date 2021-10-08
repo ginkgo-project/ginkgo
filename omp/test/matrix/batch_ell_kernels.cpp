@@ -163,20 +163,40 @@ using valuetypes =
 TYPED_TEST_SUITE(BatchEll, valuetypes);
 
 
-TYPED_TEST(BatchEll, CanBeUnbatchedIntoEllMatrices)
+TYPED_TEST(BatchEll, CanBeCreatedFromExistingCscData)
 {
+    using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
-    using EllMtx = typename TestFixture::EllMtx;
-    using size_type = gko::size_type;
-    auto mat1 =
-        gko::initialize<EllMtx>({{1.0, 0.0, 2.0}, {0.0, 5.0, 0.0}}, this->exec);
-    auto mat2 =
-        gko::initialize<EllMtx>({{2.0, 0.0, 1.0}, {0.0, 8.0, 0.0}}, this->exec);
+    using index_type = typename TestFixture::index_type;
+    /**
+     * 1 2
+     * 0 3
+     * 4 0
+     *
+     * -1 12
+     * 0 13
+     * 14 0
+     */
+    value_type csc_values[] = {1.0, 4.0, 2.0, 3.0, -1.0, 14.0, 12.0, 13.0};
+    index_type row_idxs[] = {0, 2, 0, 1};
+    index_type col_ptrs[] = {0, 2, 4};
+    value_type ell_values[] = {1.0,  0.0, 4.0,  2.0,  3.0,  0.0,
+                               -1.0, 0.0, 14.0, 12.0, 13.0, 0.0};
+    index_type col_idxs[] = {0, 0, 0, 1, 1, 1};
 
-    auto unbatch_mats = this->mtx->unbatch();
+    auto mtx =
+        gko::matrix::BatchEll<value_type, index_type>::create_from_batch_csc(
+            this->exec, 2, gko::dim<2>{3, 2}, 2,
+            gko::Array<value_type>::view(this->exec, 8, csc_values),
+            gko::Array<index_type>::view(this->exec, 4, row_idxs),
+            gko::Array<index_type>::view(this->exec, 3, col_ptrs));
 
-    GKO_ASSERT_MTX_NEAR(unbatch_mats[0].get(), mat1.get(), 0.);
-    GKO_ASSERT_MTX_NEAR(unbatch_mats[1].get(), mat2.get(), 0.);
+    auto comp = gko::matrix::BatchEll<value_type, index_type>::create(
+        this->exec, 2, gko::dim<2>{3, 2}, 2, 3,
+        gko::Array<value_type>::view(this->exec, 12, ell_values),
+        gko::Array<index_type>::view(this->exec, 6, col_idxs));
+
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx.get(), comp.get(), 0.0);
 }
 
 
@@ -301,93 +321,6 @@ TYPED_TEST(BatchEll, AppliesLinearCombinationToDenseMatrix)
     EXPECT_EQ(y->at(1, 1, 0), uy1->at(1, 0));
     EXPECT_EQ(y->at(1, 0, 1), uy1->at(0, 1));
     EXPECT_EQ(y->at(1, 1, 1), uy1->at(1, 1));
-}
-
-
-TYPED_TEST(BatchEll, ApplyFailsOnWrongInnerDimension)
-{
-    using Vec = typename TestFixture::Vec;
-    auto x = Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                         gko::dim<2>{2}, gko::dim<2>{2}}));
-    auto y = Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                         gko::dim<2>{2}, gko::dim<2>{2}}));
-
-    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(BatchEll, ApplyFailsOnWrongNumberOfRows)
-{
-    using Vec = typename TestFixture::Vec;
-    auto x =
-        Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                    gko::dim<2>{3, 2}, gko::dim<2>{3, 2}}));
-    auto y =
-        Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                    gko::dim<2>{3, 2}, gko::dim<2>{3, 2}}));
-
-    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(BatchEll, ApplyFailsOnWrongNumberOfCols)
-{
-    using Vec = typename TestFixture::Vec;
-    auto x = Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                         gko::dim<2>{3}, gko::dim<2>{3}}));
-    auto y = Vec::create(this->exec, gko::batch_dim<2>(std::vector<gko::dim<2>>{
-                                         gko::dim<2>{2}, gko::dim<2>{2}}));
-
-    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(BatchEll, ConvertsToPrecision)
-{
-    using ValueType = typename TestFixture::value_type;
-    using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
-    using BatchEll = typename TestFixture::Mtx;
-    using OtherBatchEll = gko::matrix::BatchEll<OtherType, IndexType>;
-    auto tmp = OtherBatchEll::create(this->exec);
-    auto res = BatchEll::create(this->exec);
-    // If OtherType is more precise: 0, otherwise r
-    auto residual = r<OtherType>::value < r<ValueType>::value
-                        ? gko::remove_complex<ValueType>{0}
-                        : gko::remove_complex<ValueType>{r<OtherType>::value};
-
-    this->mtx2->convert_to(tmp.get());
-    tmp->convert_to(res.get());
-
-    auto umtx2 = this->mtx2->unbatch();
-    auto ures = res->unbatch();
-    GKO_ASSERT_MTX_NEAR(umtx2[0].get(), ures[0].get(), residual);
-    GKO_ASSERT_MTX_NEAR(umtx2[1].get(), ures[1].get(), residual);
-}
-
-
-TYPED_TEST(BatchEll, MovesToPrecision)
-{
-    using ValueType = typename TestFixture::value_type;
-    using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
-    using BatchEll = typename TestFixture::Mtx;
-    using OtherBatchEll = gko::matrix::BatchEll<OtherType, IndexType>;
-    auto tmp = OtherBatchEll::create(this->exec);
-    auto res = BatchEll::create(this->exec);
-    // If OtherType is more precise: 0, otherwise r
-    auto residual = r<OtherType>::value < r<ValueType>::value
-                        ? gko::remove_complex<ValueType>{0}
-                        : gko::remove_complex<ValueType>{r<OtherType>::value};
-
-    // use mtx2 as mtx's strategy would involve creating a CudaExecutor
-    this->mtx2->move_to(tmp.get());
-    tmp->move_to(res.get());
-
-    auto umtx2 = this->mtx2->unbatch();
-    auto ures = res->unbatch();
-    GKO_ASSERT_MTX_NEAR(umtx2[0].get(), ures[0].get(), residual);
-    GKO_ASSERT_MTX_NEAR(umtx2[1].get(), ures[1].get(), residual);
 }
 
 
