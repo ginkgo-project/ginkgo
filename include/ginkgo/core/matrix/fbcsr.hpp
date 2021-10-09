@@ -320,6 +320,34 @@ public:
      */
     index_type get_num_block_cols() const noexcept { return nbcols_; }
 
+    /**
+     * Creates a constant (immutable) Fbcsr matrix from a constant array.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the dimensions of the matrix
+     * @param blocksize  the block size of the matrix
+     * @param values  the value array of the matrix
+     * @param col_idxs  the block column index array of the matrix
+     * @param row_ptrs  the block row pointer array of the matrix
+     * @returns A smart pointer to the constant matrix wrapping the input arrays
+     *          (if they reside on the same executor as the matrix) or a copy of
+     *          the arrays on the correct executor.
+     */
+    static std::unique_ptr<const Fbcsr> create_const(
+        std::shared_ptr<const Executor> exec, const dim<2>& size, int blocksize,
+        gko::detail::ConstArrayView<ValueType>&& values,
+        gko::detail::ConstArrayView<IndexType>&& col_idxs,
+        gko::detail::ConstArrayView<IndexType>&& row_ptrs)
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const Fbcsr>(
+            new Fbcsr{exec, size, blocksize,
+                      gko::detail::array_const_cast(std::move(values)),
+                      gko::detail::array_const_cast(std::move(col_idxs)),
+                      gko::detail::array_const_cast(std::move(row_ptrs))});
+    }
+
 protected:
     /**
      * Creates an uninitialized FBCSR matrix with the given block size.

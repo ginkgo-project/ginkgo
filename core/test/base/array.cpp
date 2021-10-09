@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <type_traits>
 
 
 #include <gtest/gtest.h>
@@ -588,6 +589,66 @@ TYPED_TEST(Array, MoveArrayToView)
     EXPECT_EQ(view.get_data(), size4_ptr);
     EXPECT_EQ(array_size2.get_data(), nullptr);
     ASSERT_EQ(array_size2.get_num_elems(), 0);
+}
+
+
+TYPED_TEST(Array, AsView)
+{
+    auto ptr = this->x.get_data();
+    auto size = this->x.get_num_elems();
+    auto exec = this->x.get_executor();
+    auto view = this->x.as_view();
+
+    ASSERT_EQ(ptr, this->x.get_data());
+    ASSERT_EQ(ptr, view.get_data());
+    ASSERT_EQ(size, this->x.get_num_elems());
+    ASSERT_EQ(size, view.get_num_elems());
+    ASSERT_EQ(exec, this->x.get_executor());
+    ASSERT_EQ(exec, view.get_executor());
+    ASSERT_TRUE(this->x.is_owning());
+    ASSERT_FALSE(view.is_owning());
+}
+
+
+TYPED_TEST(Array, AsConstView)
+{
+    auto ptr = this->x.get_data();
+    auto size = this->x.get_num_elems();
+    auto exec = this->x.get_executor();
+    auto view = this->x.as_const_view();
+
+    ASSERT_EQ(ptr, this->x.get_data());
+    ASSERT_EQ(ptr, view.get_const_data());
+    ASSERT_EQ(size, this->x.get_num_elems());
+    ASSERT_EQ(size, view.get_num_elems());
+    ASSERT_EQ(exec, this->x.get_executor());
+    ASSERT_EQ(exec, view.get_executor());
+    ASSERT_TRUE(this->x.is_owning());
+    ASSERT_FALSE(view.is_owning());
+}
+
+
+TYPED_TEST(Array, ArrayConstCastWorksOnView)
+{
+    auto ptr = this->x.get_data();
+    auto size = this->x.get_num_elems();
+    auto exec = this->x.get_executor();
+    auto const_view = this->x.as_const_view();
+    auto view = gko::detail::array_const_cast(std::move(const_view));
+    static_assert(std::is_same<decltype(view), decltype(this->x)>::value,
+                  "wrong return type");
+
+    ASSERT_EQ(nullptr, const_view.get_const_data());
+    ASSERT_EQ(0, const_view.get_num_elems());
+    ASSERT_EQ(exec, const_view.get_executor());
+    ASSERT_EQ(ptr, this->x.get_data());
+    ASSERT_EQ(ptr, view.get_const_data());
+    ASSERT_EQ(size, this->x.get_num_elems());
+    ASSERT_EQ(size, view.get_num_elems());
+    ASSERT_EQ(exec, this->x.get_executor());
+    ASSERT_EQ(exec, view.get_executor());
+    ASSERT_TRUE(this->x.is_owning());
+    ASSERT_FALSE(view.is_owning());
 }
 
 

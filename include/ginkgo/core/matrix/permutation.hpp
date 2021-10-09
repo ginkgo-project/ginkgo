@@ -132,6 +132,28 @@ public:
         enabled_permute_ = permute_mask;
     }
 
+    /**
+     * Creates a constant (immutable) Permutation matrix from a constant array.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the size of the square matrix
+     * @param perm_idxs  the permutation index array of the matrix
+     * @param enabled_permute  the mask describing the type of permutation
+     * @returns A smart pointer to the constant matrix wrapping the input array
+     *          (if it resides on the same executor as the matrix) or a copy of
+     *          the array on the correct executor.
+     */
+    static std::unique_ptr<const Permutation> create_const(
+        std::shared_ptr<const Executor> exec, size_type size,
+        gko::detail::ConstArrayView<IndexType>&& perm_idxs,
+        mask_type enabled_permute = row_permute)
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const Permutation>(new Permutation{
+            exec, size, gko::detail::array_const_cast(std::move(perm_idxs)),
+            enabled_permute});
+    }
 
 protected:
     /**

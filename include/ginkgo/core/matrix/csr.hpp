@@ -922,6 +922,34 @@ public:
         this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
     }
 
+    /*
+     * Creates a constant (immutable) Csr matrix from a set of constant arrays.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the dimensions of the matrix
+     * @param values  the value array of the matrix
+     * @param col_idxs  the column index array of the matrix
+     * @param row_ptrs  the row pointer array of the matrix
+     * @param strategy  the strategy the matrix uses for SpMV operations
+     * @returns A smart pointer to the constant matrix wrapping the input arrays
+     *          (if they reside on the same executor as the matrix) or a copy of
+     *          these arrays on the correct executor.
+     */
+    static std::unique_ptr<const Csr> create_const(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        gko::detail::ConstArrayView<ValueType>&& values,
+        gko::detail::ConstArrayView<IndexType>&& col_idxs,
+        gko::detail::ConstArrayView<IndexType>&& row_ptrs,
+        std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const Csr>(new Csr{
+            exec, size, gko::detail::array_const_cast(std::move(values)),
+            gko::detail::array_const_cast(std::move(col_idxs)),
+            gko::detail::array_const_cast(std::move(row_ptrs)), strategy});
+    }
+
 protected:
     /**
      * Creates an uninitialized CSR matrix of the specified size.

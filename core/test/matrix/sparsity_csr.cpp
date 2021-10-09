@@ -165,6 +165,24 @@ TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingData)
 }
 
 
+TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingConstData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    const index_type col_idxs[] = {0, 1, 1, 0};
+    const index_type row_ptrs[] = {0, 2, 3, 4};
+
+    auto mtx = gko::matrix::SparsityCsr<value_type, index_type>::create_const(
+        this->exec, gko::dim<2>{3, 2},
+        gko::Array<index_type>::const_view(this->exec, 4, col_idxs),
+        gko::Array<index_type>::const_view(this->exec, 4, row_ptrs), 2.0);
+
+    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
+    ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
+    ASSERT_EQ(mtx->get_const_value()[0], value_type{2.0});
+}
+
+
 TYPED_TEST(SparsityCsr, CanBeCopied)
 {
     using Mtx = typename TestFixture::Mtx;

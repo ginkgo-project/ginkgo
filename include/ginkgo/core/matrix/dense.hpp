@@ -801,6 +801,28 @@ public:
             stride);
     }
 
+    /**
+     * Creates a constant (immutable) Dense matrix from a constant array.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the dimensions of the matrix
+     * @param values  the value array of the matrix
+     * @param stride  the row-stride of the matrix
+     * @returns A smart pointer to the constant matrix wrapping the input array
+     *          (if it resides on the same executor as the matrix) or a copy of
+     *          the array on the correct executor.
+     */
+    static std::unique_ptr<const Dense> create_const(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        gko::detail::ConstArrayView<ValueType>&& values, size_type stride)
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const Dense>(new Dense{
+            exec, size, gko::detail::array_const_cast(std::move(values)),
+            stride});
+    }
+
 protected:
     /**
      * Creates an uninitialized Dense matrix of the specified size.
