@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <curand.h>
+#include <cusolverSp.h>
 #include <cusparse.h>
 
 
@@ -122,6 +123,27 @@ std::string CusparseError::get_error(int64 error_code)
     return "Unknown error";
 
 #undef GKO_REGISTER_CUSPARSE_ERROR
+}
+
+
+std::string CusolverError::get_error(int64 error_code)
+{
+#define GKO_REGISTER_CUSOLVER_ERROR(error_name) \
+    if (error_code == int64(error_name)) {      \
+        return #error_name;                     \
+    }
+    GKO_REGISTER_CUSOLVER_ERROR(CUSOLVER_STATUS_SUCCESS);
+    GKO_REGISTER_CUSOLVER_ERROR(CUSOLVER_STATUS_NOT_INITIALIZED);
+    GKO_REGISTER_CUSOLVER_ERROR(CUSOLVER_STATUS_ALLOC_FAILED);
+    GKO_REGISTER_CUSOLVER_ERROR(CUSOLVER_STATUS_INVALID_VALUE);
+    GKO_REGISTER_CUSOLVER_ERROR(CUSOLVER_STATUS_ARCH_MISMATCH);
+    GKO_REGISTER_CUSOLVER_ERROR(CUSOLVER_STATUS_MAPPING_ERROR);
+    GKO_REGISTER_CUSOLVER_ERROR(CUSOLVER_STATUS_EXECUTION_FAILED);
+    GKO_REGISTER_CUSOLVER_ERROR(CUSOLVER_STATUS_INTERNAL_ERROR);
+    GKO_REGISTER_CUSOLVER_ERROR(CUSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED);
+    return "Unknown error";
+
+#undef GKO_REGISTER_CUSOLVER_ERROR
 }
 
 

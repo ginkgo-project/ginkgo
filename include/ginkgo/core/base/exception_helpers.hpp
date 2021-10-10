@@ -150,17 +150,17 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
 
 
 template <typename T>
-inline batch_dim<2> get_batch_size(const T &op)
+inline batch_dim<2> get_batch_size(const T& op)
 {
     return op->get_size();
 }
 
 
-inline batch_dim<2> get_batch_size(const batch_dim<2> &size) { return size; }
+inline batch_dim<2> get_batch_size(const batch_dim<2>& size) { return size; }
 
 
-inline std::tuple<bool, int> compare_batch_inner(const batch_dim<2> &size1,
-                                                 const batch_dim<2> &size2)
+inline std::tuple<bool, int> compare_batch_inner(const batch_dim<2>& size1,
+                                                 const batch_dim<2>& size2)
 {
     if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
@@ -183,8 +183,8 @@ inline std::tuple<bool, int> compare_batch_inner(const batch_dim<2> &size1,
 }
 
 
-inline std::tuple<bool, int> compare_batch_outer(const batch_dim<2> &size1,
-                                                 const batch_dim<2> &size2)
+inline std::tuple<bool, int> compare_batch_outer(const batch_dim<2>& size1,
+                                                 const batch_dim<2>& size2)
 {
     if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
@@ -207,8 +207,8 @@ inline std::tuple<bool, int> compare_batch_outer(const batch_dim<2> &size1,
 }
 
 
-inline std::tuple<bool, int> compare_batch_rows(const batch_dim<2> &size1,
-                                                const batch_dim<2> &size2)
+inline std::tuple<bool, int> compare_batch_rows(const batch_dim<2>& size1,
+                                                const batch_dim<2>& size2)
 {
     if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
@@ -231,8 +231,8 @@ inline std::tuple<bool, int> compare_batch_rows(const batch_dim<2> &size1,
 }
 
 
-inline std::tuple<bool, int> compare_batch_cols(const batch_dim<2> &size1,
-                                                const batch_dim<2> &size2)
+inline std::tuple<bool, int> compare_batch_cols(const batch_dim<2>& size1,
+                                                const batch_dim<2>& size2)
 {
     if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
@@ -255,7 +255,7 @@ inline std::tuple<bool, int> compare_batch_cols(const batch_dim<2> &size1,
 }
 
 
-inline std::tuple<bool, int> check_batch_square(const batch_dim<> &size)
+inline std::tuple<bool, int> check_batch_square(const batch_dim<>& size)
 {
     if (size.stores_equal_sizes()) {
         if (size.at(0)[0] != size.at(0)[1]) {
@@ -275,7 +275,7 @@ inline std::tuple<bool, int> check_batch_square(const batch_dim<> &size)
 
 
 inline std::tuple<bool, int> check_batch_left_scalable(
-    const batch_dim<> &mat_size, const batch_dim<> &left_size)
+    const batch_dim<>& mat_size, const batch_dim<>& left_size)
 {
     if (mat_size.stores_equal_sizes() && left_size.stores_equal_sizes()) {
         if (mat_size.at(0)[0] == left_size.at(0)[0] &&
@@ -291,7 +291,7 @@ inline std::tuple<bool, int> check_batch_left_scalable(
 
 
 inline std::tuple<bool, int> check_batch_right_scalable(
-    const batch_dim<> &mat_size, const batch_dim<> &right_size)
+    const batch_dim<>& mat_size, const batch_dim<>& right_size)
 {
     if (mat_size.stores_equal_sizes() && right_size.stores_equal_sizes()) {
         if (mat_size.at(0)[1] == right_size.at(0)[0] &&
@@ -622,6 +622,15 @@ inline std::tuple<bool, int> check_batch_right_scalable(
 
 
 /**
+ * Macro for throwing a CuSolverError.
+ *
+ * @param errcode  The error code returned from the cuSolver routine.
+ */
+#define GKO_CUSOLVER_ERROR(_errcode) \
+    ::gko::CusolverError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
  * Asserts that a CUDA library call completed without errors.
  *
  * @param _cuda_call  a library call expression
@@ -673,6 +682,20 @@ inline std::tuple<bool, int> check_batch_right_scalable(
         auto _errcode = _cusparse_call;               \
         if (_errcode != CUSPARSE_STATUS_SUCCESS) {    \
             throw GKO_CUSPARSE_ERROR(_errcode);       \
+        }                                             \
+    } while (false)
+
+
+/**
+ * Asserts that a cuSolver library call completed without errors.
+ *
+ * @param _cusolver_call  a library call expression
+ */
+#define GKO_ASSERT_NO_CUSOLVER_ERRORS(_cusolver_call) \
+    do {                                              \
+        auto _errcode = _cusolver_call;               \
+        if (_errcode != CUSOLVER_STATUS_SUCCESS) {    \
+            throw GKO_CUSOLVER_ERROR(_errcode);       \
         }                                             \
     } while (false)
 
