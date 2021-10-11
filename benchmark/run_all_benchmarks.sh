@@ -413,6 +413,7 @@ run_batch_solver_benchmarks() {
                     --gpu_timer=${GPU_TIMER} \
                     --jacobi_max_block_size=${SOLVERS_JACOBI_MAX_BS} --device_id="${DEVICE_ID}" \
                     --gmres_restart="${SOLVERS_GMRES_RESTART}" \
+                    --repetitions="${SOLVER_REPETITIONS}" \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }

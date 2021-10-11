@@ -126,6 +126,19 @@ public:
     }
 
     /**
+     * Get the std. deviation in the measured timings.
+     */
+    double compute_std_deviation() const
+    {
+        double var = 0.;
+        const double avg = compute_average_time();
+        for (auto entry : duration_sec_) {
+            var += (avg - entry) * (avg - entry);
+        }
+        return std::sqrt(var / duration_sec_.size());
+    }
+
+    /**
      * Get the vector containing the time of each repetition in seconds.
      *
      * @return the vector of time for each repetition in seconds

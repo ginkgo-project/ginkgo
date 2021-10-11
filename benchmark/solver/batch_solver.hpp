@@ -325,6 +325,9 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
     } else if (description == "direct") {
         using Solver = gko::solver::BatchDirect<etype>;
         return Solver::build().on(exec);
+    } else if (description == "sparse_direct") {
+        using Solver = gko::solver::BatchSparseDirect<etype>;
+        return Solver::build().on(exec);
     }
     throw std::range_error(std::string("The provided string <") + description +
                            "> does not match any solver!");
@@ -532,6 +535,22 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
                         }
                     }
                 }
+                if (!FLAGS_overhead &&
+                    (FLAGS_print_residuals_and_iters || FLAGS_detailed)) {
+                    auto residual = compute_batch_residual_norm(
+                        lend(system_matrix), lend(b), lend(x_clone));
+                    add_or_set_member(solver_json, "residual_norm",
+                                      rapidjson::Value(rapidjson::kObjectType),
+                                      allocator);
+                    for (size_type i = 0; i < nbatch; ++i) {
+                        add_or_set_member(
+                            solver_json["residual_norm"],
+                            std::to_string(i).c_str(),
+                            rapidjson::Value(rapidjson::kArrayType), allocator);
+                        solver_json["residual_norm"][std::to_string(i).c_str()]
+                            .PushBack(residual[i], allocator);
+                    }
+                }
             }
             exec->synchronize();
         }
@@ -559,28 +578,15 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             apply_timer->tic();
             solver->apply(lend(b_clone), lend(x_clone));
             apply_timer->toc();
-
-            if (b->get_size().at(0)[1] == 1 && !FLAGS_overhead &&
-                status.is_finished() &&
-                (FLAGS_print_residuals_and_iters || FLAGS_detailed)) {
-                auto residual = compute_batch_residual_norm(
-                    lend(system_matrix), lend(b), lend(x_clone));
-                add_or_set_member(solver_json, "residual_norm",
-                                  rapidjson::Value(rapidjson::kObjectType),
-                                  allocator);
-                for (size_type i = 0; i < nbatch; ++i) {
-                    add_or_set_member(
-                        solver_json["residual_norm"], std::to_string(i).c_str(),
-                        rapidjson::Value(rapidjson::kArrayType), allocator);
-                    solver_json["residual_norm"][std::to_string(i).c_str()]
-                        .PushBack(residual[i], allocator);
-                }
-            }
         }
         add_or_set_member(solver_json["generate"], "time",
                           generate_timer->compute_average_time(), allocator);
+        add_or_set_member(solver_json["generate"], "time_stddev",
+                          generate_timer->compute_std_deviation(), allocator);
         add_or_set_member(solver_json["apply"], "time",
                           apply_timer->compute_average_time(), allocator);
+        add_or_set_member(solver_json["apply"], "time_stddev",
+                          apply_timer->compute_std_deviation(), allocator);
 
         // compute and write benchmark data
         add_or_set_member(solver_json, "completed", true, allocator);
