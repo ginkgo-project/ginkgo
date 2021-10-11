@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
+#include "cuda/base/cusolver_bindings.hpp"
 #include "cuda/base/cusparse_handle.hpp"
 #include "cuda/base/device_guard.hpp"
 
@@ -283,6 +284,12 @@ void CudaExecutor::init_handles()
             kernels::cuda::cusparse::init(), [id](cusparseHandle_t handle) {
                 cuda::device_guard g(id);
                 kernels::cuda::cusparse::destroy(handle);
+            });
+        this->cusolver_sp_handle_ = handle_manager<cusolverSpContext>(
+            kernels::cuda::cusolver::init_sp(),
+            [id](cusolverSpHandle_t handle) {
+                cuda::device_guard g(id);
+                kernels::cuda::cusolver::destroy(handle);
             });
     }
 }

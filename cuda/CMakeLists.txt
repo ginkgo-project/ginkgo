@@ -63,6 +63,8 @@ find_library(CUSPARSE cusparse
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 find_library(CURAND curand
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+find_library(CUSOLVER cusolver
+    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
 if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
 	if(GINKGO_CUDA_BATCH_SOLVERS_MAXREGCOUNT)
@@ -141,6 +143,7 @@ target_sources(ginkgo_cuda
     solver/batch_gmres_kernels.cu
     solver/batch_idr_kernels.cu
     solver/batch_richardson_kernels.cu
+    solver/batch_sparse_direct_kernels.cu
     solver/cb_gmres_kernels.cu
     solver/gmres_kernels.cu
     solver/idr_kernels.cu
@@ -203,7 +206,7 @@ ginkgo_compile_features(ginkgo_cuda)
 target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA)
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
-target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND})
+target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND} ${CUSOLVER})
 target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device)
 target_compile_options(ginkgo_cuda
         PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")

@@ -77,7 +77,6 @@ __device__ __forceinline__ void single_advanced_spmv_kernel(
     const auto stride = a.stride;
     const auto val = a.values;
     const auto col = a.col_idxs;
-    const auto tidx = threadIdx.x;
     // Specialize the num_thread_per_worker = 1. It doesn't need the shared
     // memory, __syncthreads, and atomic_add
     for (int tidx = threadIdx.x; tidx < num_rows; tidx += blockDim.x) {

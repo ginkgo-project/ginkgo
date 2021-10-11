@@ -37,10 +37,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda.h>
 #include <cusolverSp.h>
 
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
-#include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/types.hpp"
 
 
@@ -87,7 +87,7 @@ template <>
 struct is_supported<std::complex<double>, int32> : std::true_type {};
 
 
-inline cusolverSpHandle_t init()
+inline cusolverSpHandle_t init_sp()
 {
     cusolverSpHandle_t handle{};
     GKO_ASSERT_NO_CUSOLVER_ERRORS(cusolverSpCreate(&handle));
@@ -120,9 +120,8 @@ inline void csrqr_batched_analysis(cusolverSpHandle_t handle, int m, int n,
                                    const int* csrRowPtrA, const int* csrColIndA,
                                    csrqrInfo_t info)
 {
-    GKO_ASSERT_NO_CUSOLVER_ERRORS(
-        cusolverSpXcsrqrAnalysisBatched(cusolverSpHandle_t handle, m, n, nnzA,
-                                        descrA, csrRowPtrA, csrColIndA, info));
+    GKO_ASSERT_NO_CUSOLVER_ERRORS(cusolverSpXcsrqrAnalysisBatched(
+        handle, m, n, nnzA, descrA, csrRowPtrA, csrColIndA, info));
 }
 
 
@@ -183,7 +182,7 @@ GKO_BIND_CUSOLVER64_CSRQR_BATCHED_BUFFERINFO(ValueType);
 
 
 #define GKO_BIND_CUSOLVER32_CSRQR_BATCHED_SOLVE(ValueType, CusparseName)      \
-    inline void csrqr_batch_solve(                                            \
+    inline void csrqr_batched_solve(                                          \
         cusolverSpHandle_t handle, size_type m, size_type n, size_type nnz,   \
         const cusparseMatDescr_t descr, const ValueType* csrVal,              \
         const int32* csrRowPtr, const int32* csrColInd, const ValueType* rhs, \
@@ -199,8 +198,8 @@ GKO_BIND_CUSOLVER64_CSRQR_BATCHED_BUFFERINFO(ValueType);
                   "semi-colon warnings")
 
 #define GKO_BIND_CUSOLVER64_CSRQR_BATCHED_SOLVE(ValueType, CusparseName)      \
-    inline void csrqr_batch_solve(                                            \
-        cusparseHandle_t handle, size_type m, size_type n, size_type nnz,     \
+    inline void csrqr_batched_solve(                                          \
+        cusolverSpHandle_t handle, size_type m, size_type n, size_type nnz,   \
         const cusparseMatDescr_t descr, const ValueType* csrVal,              \
         const int64* csrRowPtr, const int64* csrColInd, const ValueType* rhs, \
         ValueType* x, size_type batch_size, csrqrInfo_t info, void* work_vec) \

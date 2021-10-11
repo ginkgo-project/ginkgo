@@ -30,88 +30,27 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_SOLVER_BATCH_SPARSE_DIRECT_KERNELS_HPP_
-#define GKO_CORE_SOLVER_BATCH_SPARSE_DIRECT_KERNELS_HPP_
-
-
-#include <ginkgo/core/matrix/batch_csr.hpp>
-#include <ginkgo/core/matrix/batch_dense.hpp>
-
-
-#include "core/log/batch_logging.hpp"
+#include "core/solver/batch_sparse_direct_kernels.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace batch_sparse_direct {
-
-
-#define GKO_DECLARE_BATCH_SPARSE_DIRECT_APPLY_KERNEL(_type) \
-    void apply(std::shared_ptr<const DefaultExecutor> exec, \
-               const matrix::BatchCsr<_type, int>* const a, \
-               const matrix::BatchDense<_type>* const b,    \
-               matrix::BatchDense<_type>* const x,          \
-               gko::log::BatchLogData<_type>& logdata)
-
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename ValueType>    \
-    GKO_DECLARE_BATCH_SPARSE_DIRECT_APPLY_KERNEL(ValueType)
-
-
-}  // namespace batch_sparse_direct
-
-
-namespace omp {
-namespace batch_sparse_direct {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_sparse_direct
-}  // namespace omp
-
-
-namespace cuda {
-namespace batch_sparse_direct {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_sparse_direct
-}  // namespace cuda
-
-
-namespace reference {
-namespace batch_sparse_direct {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_sparse_direct
-}  // namespace reference
-
-
 namespace hip {
 namespace batch_sparse_direct {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+
+template <typename ValueType>
+void apply(std::shared_ptr<const HipExecutor> exec,
+           const matrix::BatchCsr<ValueType>* const a,
+           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchDense<ValueType>* const x,
+           gko::log::BatchLogData<ValueType>& logdata) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_SPARSE_DIRECT_APPLY_KERNEL);
+
 
 }  // namespace batch_sparse_direct
 }  // namespace hip
-
-
-namespace dpcpp {
-namespace batch_sparse_direct {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_sparse_direct
-}  // namespace dpcpp
-
-
-#undef GKO_DECLARE_ALL_AS_TEMPLATES
-
-
 }  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_CORE_SOLVER_BATCH_DIRECT_KERNELS_HPP_

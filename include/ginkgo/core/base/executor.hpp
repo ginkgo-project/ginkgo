@@ -114,6 +114,8 @@ struct cublasContext;
 
 struct cusparseContext;
 
+struct cusolverSpContext;
+
 struct hipblasContext;
 
 struct hipsparseContext;
@@ -1457,6 +1459,16 @@ public:
     }
 
     /**
+     * Get the sparse cusolver handle for this executor
+     *
+     * @return the sparse cusolver handle for this executor
+     */
+    cusolverSpContext* get_cusolver_sp_handle() const
+    {
+        return cusolver_sp_handle_.get();
+    }
+
+    /**
      * Get the closest PUs
      *
      * @return  the array of PUs closest to this device
@@ -1533,6 +1545,7 @@ private:
     using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
     handle_manager<cublasContext> cublas_handle_;
     handle_manager<cusparseContext> cusparse_handle_;
+    handle_manager<cusolverSpContext> cusolver_sp_handle_;
 
     allocation_mode alloc_mode_;
 };
