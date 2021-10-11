@@ -248,7 +248,7 @@ TEST_F(Dense, CudaComputeNorm1IsEquivalentToRef)
     x->compute_norm1(norm_expected.get());
     dx->compute_norm1(dnorm.get());
 
-    GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, 1e-14);
+    GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, r<vtype>::value);
 }
 
 
