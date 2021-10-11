@@ -281,6 +281,27 @@ Result<ValueType> solve_poisson_uniform_core(
 }
 
 
+/**
+ * Tests a batch solver through its core interface, mainly by the residual.
+ *
+ * The given residual tolerance is used as a limit for the implicit (logged)
+ * residual, while the true residual limit is increased by the slack factor.
+ * Uses a 1D Poisson problem for the test.
+ *
+ * @param exec  The executor on which to run the solver
+ * @param nbatch  The number of systems to solve in the batch
+ * @param nrows  Size of the individual matrices
+ * @param nrhs  The number of right-hand sides
+ * @param res_tol  Tolerance for the implicit residual
+ * @param maxits  Maximum number of iterations
+ * @param factory  Factory to build the solver to test
+ * @param true_res_norm_slack_factor  Factor by which to multiply res_tol to
+ *   get the test limit for the true residual
+ * @param use_scaling  Whether to scale each system before solving by an
+ *   arbitrary but simple diagonal matrix.
+ * @param test_logger  Whether to test the logged residual and whether the
+ *   logged iteration counts have save values.
+ */
 template <typename SolverType>
 void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
                 const int nrows, const int nrhs,
