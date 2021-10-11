@@ -105,7 +105,7 @@ protected:
     std::unique_ptr<Dense> dense2;
 };
 
-TYPED_TEST_SUITE(Diagonal, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Diagonal, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Diagonal, ConvertsToPrecision)
@@ -634,7 +634,8 @@ protected:
     using Diag = gko::matrix::Diagonal<value_type>;
 };
 
-TYPED_TEST_SUITE(DiagonalComplex, gko::test::ComplexValueTypes);
+TYPED_TEST_SUITE(DiagonalComplex, gko::test::ComplexValueTypes,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(DiagonalComplex, MtxIsConjugateTransposable)

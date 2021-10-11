@@ -69,7 +69,7 @@ protected:
     std::unique_ptr<mtx_type> unsquare_mtx;
 };
 
-TYPED_TEST_SUITE(MatrixUtils, gko::test::ValueTypes);
+TYPED_TEST_SUITE(MatrixUtils, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(MatrixUtils, MakeSymmetricThrowsError)

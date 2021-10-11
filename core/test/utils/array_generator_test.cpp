@@ -93,7 +93,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(ArrayGenerator, gko::test::ValueTypes);
+TYPED_TEST_SUITE(ArrayGenerator, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(ArrayGenerator, OutputHasCorrectSize)

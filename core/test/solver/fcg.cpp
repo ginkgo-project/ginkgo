@@ -77,7 +77,7 @@ protected:
     std::unique_ptr<gko::LinOp> solver;
 };
 
-TYPED_TEST_SUITE(Fcg, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Fcg, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Fcg, FcgFactoryKnowsItsExecutor)

@@ -48,7 +48,7 @@ namespace {
 template <typename T>
 class MatricesNear : public ::testing::Test {};
 
-TYPED_TEST_SUITE(MatricesNear, gko::test::ValueTypes);
+TYPED_TEST_SUITE(MatricesNear, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(MatricesNear, CanPassAnyMatrixType)

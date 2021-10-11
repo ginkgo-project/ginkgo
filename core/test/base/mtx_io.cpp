@@ -640,7 +640,8 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
 };
 
-TYPED_TEST_SUITE(RealDummyLinOpTest, gko::test::RealValueIndexTypes);
+TYPED_TEST_SUITE(RealDummyLinOpTest, gko::test::RealValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(RealDummyLinOpTest, ReadsLinOpFromStream)
@@ -713,7 +714,8 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
 };
 
-TYPED_TEST_SUITE(ComplexDummyLinOpTest, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(ComplexDummyLinOpTest, gko::test::ComplexValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(ComplexDummyLinOpTest, ReadsLinOpFromStream)

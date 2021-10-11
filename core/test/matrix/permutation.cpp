@@ -86,7 +86,8 @@ protected:
     std::unique_ptr<gko::matrix::Permutation<i_type>> mtx;
 };
 
-TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Permutation, CanBeEmpty)

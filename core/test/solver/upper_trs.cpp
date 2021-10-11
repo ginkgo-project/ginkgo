@@ -66,7 +66,8 @@ protected:
     std::unique_ptr<typename Solver::Factory> upper_trs_factory;
 };
 
-TYPED_TEST_SUITE(UpperTrs, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(UpperTrs, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(UpperTrs, UpperTrsFactoryKnowsItsExecutor)

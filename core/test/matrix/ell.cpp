@@ -110,7 +110,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Ell, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Ell, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Ell, KnowsItsSize)

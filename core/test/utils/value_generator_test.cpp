@@ -87,7 +87,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(ValueGenerator, gko::test::ValueTypes);
+TYPED_TEST_SUITE(ValueGenerator, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(ValueGenerator, OutputHasCorrectAverageAndDeviation)

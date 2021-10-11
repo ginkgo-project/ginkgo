@@ -157,7 +157,8 @@ protected:
     std::unique_ptr<Mtx> mtx3_unsorted;
 };
 
-TYPED_TEST_SUITE(SparsityCsr, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(SparsityCsr, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(SparsityCsr, AppliesToDenseVector)

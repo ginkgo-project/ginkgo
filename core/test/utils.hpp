@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <complex>
 #include <initializer_list>
 #include <limits>
+#include <tuple>
 #include <type_traits>
 
 
@@ -44,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -166,6 +168,31 @@ constexpr double r_mixed()
 
 template <typename T>
 using I = std::initializer_list<T>;
+
+
+struct TypenameNameGenerator {
+    template <typename T>
+    static std::string GetName(int i)
+    {
+        return gko::name_demangling::get_type_name(typeid(T));
+    }
+};
+
+
+struct PairTypenameNameGenerator {
+    template <typename T>
+    static std::string GetName(int i)
+    {
+        static_assert(std::tuple_size<T>::value == 2, "expected a pair");
+        return "<" +
+               gko::name_demangling::get_type_name(
+                   typeid(typename std::tuple_element<0, T>::type)) +
+               ", " +
+               gko::name_demangling::get_type_name(
+                   typeid(typename std::tuple_element<1, T>::type)) +
+               ">";
+    }
+};
 
 
 #endif  // GKO_CORE_TEST_UTILS_HPP_

@@ -61,7 +61,7 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(Identity, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Identity, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Identity, AppliesToVector)

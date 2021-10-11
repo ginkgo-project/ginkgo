@@ -169,7 +169,7 @@ protected:
     gko::remove_complex<value_type> tol;
 };
 
-TYPED_TEST_SUITE(ParIct, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(ParIct, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(ParIct, KernelInitializeRowPtrsL)

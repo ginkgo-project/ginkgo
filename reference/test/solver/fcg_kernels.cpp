@@ -151,7 +151,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> fcg_factory_big2;
 };
 
-TYPED_TEST_SUITE(Fcg, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Fcg, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Fcg, KernelInitialize)

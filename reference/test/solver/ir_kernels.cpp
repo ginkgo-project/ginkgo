@@ -81,7 +81,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> ir_factory;
 };
 
-TYPED_TEST_SUITE(Ir, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Ir, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Ir, KernelInitialize)

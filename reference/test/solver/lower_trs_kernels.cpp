@@ -93,7 +93,8 @@ protected:
     std::unique_ptr<typename Solver::Factory> lower_trs_factory_big;
 };
 
-TYPED_TEST_SUITE(LowerTrs, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(LowerTrs, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(LowerTrs, RefLowerTrsFlagCheckIsCorrect)

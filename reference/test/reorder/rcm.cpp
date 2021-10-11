@@ -87,7 +87,7 @@ protected:
     std::unique_ptr<reorder_type> reorder_op;
 };
 
-TYPED_TEST_SUITE(Rcm, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Rcm, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Rcm, CanBeCleared)
