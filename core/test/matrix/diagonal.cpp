@@ -77,7 +77,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Diagonal, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Diagonal, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Diagonal, KnowsItsSize)

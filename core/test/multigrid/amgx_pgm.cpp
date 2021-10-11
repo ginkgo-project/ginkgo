@@ -73,7 +73,8 @@ protected:
     std::unique_ptr<typename MgLevel::Factory> amgxpgm_factory;
 };
 
-TYPED_TEST_SUITE(AmgxPgmFactory, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(AmgxPgmFactory, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(AmgxPgmFactory, FactoryKnowsItsExecutor)

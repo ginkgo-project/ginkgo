@@ -80,7 +80,7 @@ protected:
     std::unique_ptr<gko::matrix::Dense<value_type>> mtx;
 };
 
-TYPED_TEST_SUITE(Dense, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Dense, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Dense, CanBeEmpty)

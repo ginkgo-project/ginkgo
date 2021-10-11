@@ -73,7 +73,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec_;
 };
 
-TYPED_TEST_SUITE(ResidualNorm, gko::test::ValueTypes);
+TYPED_TEST_SUITE(ResidualNorm, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(ResidualNorm, WaitsTillResidualGoal)
@@ -307,7 +307,8 @@ protected:
     std::shared_ptr<const gko::OmpExecutor> exec_;
 };
 
-TYPED_TEST_SUITE(ResidualNormReduction, gko::test::ValueTypes);
+TYPED_TEST_SUITE(ResidualNormReduction, gko::test::ValueTypes,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
@@ -407,7 +408,8 @@ protected:
     std::shared_ptr<const gko::OmpExecutor> exec_;
 };
 
-TYPED_TEST_SUITE(RelativeResidualNorm, gko::test::ValueTypes);
+TYPED_TEST_SUITE(RelativeResidualNorm, gko::test::ValueTypes,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoal)
@@ -514,7 +516,8 @@ protected:
     std::shared_ptr<const gko::Executor> exec_;
 };
 
-TYPED_TEST_SUITE(ImplicitResidualNorm, gko::test::ValueTypes);
+TYPED_TEST_SUITE(ImplicitResidualNorm, gko::test::ValueTypes,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(ImplicitResidualNorm, WaitsTillResidualGoal)
@@ -622,7 +625,8 @@ protected:
     std::shared_ptr<const gko::OmpExecutor> exec_;
 };
 
-TYPED_TEST_SUITE(AbsoluteResidualNorm, gko::test::ValueTypes);
+TYPED_TEST_SUITE(AbsoluteResidualNorm, gko::test::ValueTypes,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(AbsoluteResidualNorm, WaitsTillResidualGoal)

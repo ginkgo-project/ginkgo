@@ -160,7 +160,8 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(FbcsrSample, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(FbcsrSample, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(FbcsrSample, SampleGeneratorsAreCorrect)
@@ -221,7 +222,8 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(FbcsrSampleComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(FbcsrSampleComplex, gko::test::ComplexValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(FbcsrSampleComplex, ComplexSampleGeneratorIsCorrect)
@@ -319,7 +321,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Fbcsr, GetNumBlocksCorrectlyThrows)

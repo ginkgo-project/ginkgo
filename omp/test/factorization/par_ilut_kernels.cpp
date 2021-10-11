@@ -277,7 +277,8 @@ protected:
     std::unique_ptr<Csr> dmtx_u;
 };
 
-TYPED_TEST_SUITE(ParIlut, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(ParIlut, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(ParIlut, KernelThresholdSelectIsEquivalentToRef)

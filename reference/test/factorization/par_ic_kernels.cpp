@@ -136,7 +136,7 @@ protected:
     gko::remove_complex<value_type> tol;
 };
 
-TYPED_TEST_SUITE(ParIc, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(ParIc, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(ParIc, KernelCompute)

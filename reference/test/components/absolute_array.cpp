@@ -75,7 +75,7 @@ protected:
     gko::Array<value_type> vals;
 };
 
-TYPED_TEST_SUITE(AbsoluteArray, gko::test::ValueTypes);
+TYPED_TEST_SUITE(AbsoluteArray, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(AbsoluteArray, InplaceEqualsExpected)
