@@ -65,7 +65,7 @@ zero_guess_with_constrained_values(std::shared_ptr<const Executor> exec,
                                    const matrix::Dense<ValueType>* values)
 {
     using Dense = matrix::Dense<ValueType>;
-    auto init = share(initialize<Dense>(0., size, exec));
+    auto init = share(initialize<Dense>(gko::zero<ValueType>(), size, exec));
     exec->run(cons::make_copy_subset(idxs, values->get_const_values(),
                                      init->get_values()));
     return init;
@@ -244,7 +244,7 @@ ConstraintsHandler<ValueType, IndexType>::with_initial_guess(
 
 template <typename ValueType, typename IndexType>
 std::shared_ptr<const LinOp>
-ConstraintsHandler<ValueType, IndexType>::get_operator()
+ConstraintsHandler<ValueType, IndexType>::get_operator() const
 {
     return cons_operator_;
 }

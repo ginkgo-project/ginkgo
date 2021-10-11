@@ -1283,7 +1283,7 @@ std::unique_ptr<Matrix> initialize(size_type stride,
  *
  * This function first creates a temporary Dense matrix, fills it with the
  * passed in value, and then converts the matrix to the requested type. The
- * stride of the intermediate Dense matrix is set to 1.
+ * stride of the intermediate Dense matrix is set to the number of columns.
  *
  * @tparam Matrix  matrix type to initialize
  *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
@@ -1306,7 +1306,7 @@ std::unique_ptr<Matrix> initialize(typename Matrix::value_type val,
                                    std::shared_ptr<const Executor> exec,
                                    TArgs&&... create_args)
 {
-    return initialize<Matrix>(1, val, std::move(size), std::move(exec),
+    return initialize<Matrix>(size[1], val, size, std::move(exec),
                               std::forward<TArgs>(create_args)...);
 }
 

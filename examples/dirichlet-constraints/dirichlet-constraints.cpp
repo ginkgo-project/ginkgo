@@ -96,7 +96,7 @@ gko::remove_complex<ValueType> calculate_error(
         using std::abs;
         const auto xi = static_cast<ValueType>(i) * h;
         error += abs(u->get_const_values()[i] - correct_u(xi)) /
-                 abs(correct_u(xi) + 1e-14);
+                 (abs(correct_u(xi)) + 1e-14);
     }
     return error;
 }
@@ -180,7 +180,8 @@ int main(int argc, char* argv[])
     // Alternatively the handler could be created with
     // ```cpp
     // gko::constraints::ConstraintsHandler<ValueType, IndexType>
-    // handler(dir_indices, matrix); handler.with_constrained_values(dir_vals)
+    // handler(dir_indices, matrix);
+    // handler.with_constrained_values(dir_vals)
     //        .with_right_hand_side(rhs)
     //        .with_initial_value(...);
     // ```
