@@ -74,14 +74,13 @@ protected:
     st_type storage;
 };
 
-// using ReferenceTypes = ::testing::Types<std::tuple<char, short>>;
+
 using ReferenceTypes =
     ::testing::Types<std::tuple<short, char>, std::tuple<int, short>,
                      std::tuple<long long, short>,
                      std::tuple<unsigned short, unsigned short>,
                      std::tuple<double, int>, std::tuple<double, double>,
                      std::tuple<double, float>, std::tuple<float, float>>;
-
 
 TYPED_TEST_SUITE(ScaledReducedRowMajorReference, ReferenceTypes);
 

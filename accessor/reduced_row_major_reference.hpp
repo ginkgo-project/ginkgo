@@ -79,50 +79,50 @@ public:
 
     // Allow move construction, so perfect forwarding is possible (required
     // for `range` support)
-    reduced_storage(reduced_storage &&) noexcept = default;
+    reduced_storage(reduced_storage&&) noexcept = default;
 
     reduced_storage() = delete;
 
     ~reduced_storage() = default;
 
     // Forbid copy construction
-    reduced_storage(const reduced_storage &) = delete;
+    reduced_storage(const reduced_storage&) = delete;
 
     constexpr explicit GKO_ACC_ATTRIBUTES reduced_storage(
-        storage_type *const GKO_ACC_RESTRICT ptr)
+        storage_type* const GKO_ACC_RESTRICT ptr)
         : ptr_{ptr}
     {}
 
     constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
     {
-        const storage_type *const GKO_ACC_RESTRICT r_ptr = ptr_;
+        const storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr);
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
     operator=(arithmetic_type val) &&
     {
-        storage_type *const GKO_ACC_RESTRICT r_ptr = ptr_;
+        storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
         *r_ptr = static_cast<storage_type>(val);
         return val;
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
-    operator=(const reduced_storage &ref) &&
+    operator=(const reduced_storage& ref) &&
     {
         std::move(*this) = static_cast<arithmetic_type>(ref);
         return static_cast<arithmetic_type>(*this);
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
-    operator=(reduced_storage &&ref) &&noexcept
+    operator=(reduced_storage&& ref) && noexcept
     {
         std::move(*this) = static_cast<arithmetic_type>(ref);
         return static_cast<arithmetic_type>(*this);
     }
 
 private:
-    storage_type *const GKO_ACC_RESTRICT ptr_;
+    storage_type* const GKO_ACC_RESTRICT ptr_;
 };
 
 // Specialization for const storage_type to prevent `operator=`
@@ -135,36 +135,36 @@ public:
     using storage_type = const StorageType;
 
     // Allow move construction, so perfect forwarding is possible
-    reduced_storage(reduced_storage &&) noexcept = default;
+    reduced_storage(reduced_storage&&) noexcept = default;
 
     reduced_storage() = delete;
 
     ~reduced_storage() = default;
 
     // Forbid copy construction and move assignment
-    reduced_storage(const reduced_storage &) = delete;
+    reduced_storage(const reduced_storage&) = delete;
 
-    reduced_storage &operator=(reduced_storage &&) = delete;
+    reduced_storage& operator=(reduced_storage&&) = delete;
 
     constexpr explicit GKO_ACC_ATTRIBUTES reduced_storage(
-        const storage_type *const GKO_ACC_RESTRICT ptr)
+        const storage_type* const GKO_ACC_RESTRICT ptr)
         : ptr_{ptr}
     {}
 
     constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
     {
-        const storage_type *const GKO_ACC_RESTRICT r_ptr = ptr_;
+        const storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr);
     }
 
 private:
-    const storage_type *const GKO_ACC_RESTRICT ptr_;
+    const storage_type* const GKO_ACC_RESTRICT ptr_;
 };
 
 
 template <typename ArithmeticType, typename StorageType>
 constexpr GKO_ACC_ATTRIBUTES remove_complex_t<ArithmeticType> abs(
-    const reduced_storage<ArithmeticType, StorageType> &ref)
+    const reduced_storage<ArithmeticType, StorageType>& ref)
 {
     using std::abs;
     return abs(static_cast<ArithmeticType>(ref));

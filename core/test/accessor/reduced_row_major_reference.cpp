@@ -65,12 +65,14 @@ protected:
     // writing only works on rvalue reference
     // and reading is only guaranteed to work on rvalue references
     auto get_ref() { return ref_type{&storage}; }
+
     auto get_const_ref() { return const_ref_type{&storage}; }
 
     auto get_conv_storage() { return static_cast<ar_type>(storage); }
 
     st_type storage;
 };
+
 
 using ReferenceTypes =
     ::testing::Types<std::tuple<short, char>, std::tuple<int, short>,
@@ -81,7 +83,6 @@ using ReferenceTypes =
                      std::tuple<std::complex<double>, std::complex<double>>,
                      std::tuple<std::complex<double>, std::complex<float>>,
                      std::tuple<std::complex<float>, std::complex<float>>>;
-
 
 TYPED_TEST_SUITE(ReducedRowMajorReference, ReferenceTypes);
 
@@ -489,12 +490,15 @@ protected:
     // writing only works on rvalue reference
     // and reading is only guaranteed to work on rvalue references
     auto get_ref() { return ref_type{&storage}; }
+
     auto get_const_ref() { return const_ref_type{&storage}; }
 
     auto get_conv_storage() { return static_cast<ar_type>(storage); }
 
     st_type storage;
 };
+
+
 using ComplexReferenceTypes =
     ::testing::Types<std::tuple<std::complex<double>, std::complex<double>>,
                      std::tuple<std::complex<double>, std::complex<float>>,

@@ -80,50 +80,50 @@ public:
     using storage_type = StorageType;
 
     // Allow move construction, so perfect forwarding is possible
-    scaled_reduced_storage(scaled_reduced_storage &&) noexcept = default;
+    scaled_reduced_storage(scaled_reduced_storage&&) noexcept = default;
 
     scaled_reduced_storage() = delete;
 
     ~scaled_reduced_storage() = default;
 
     // Forbid copy construction
-    scaled_reduced_storage(const scaled_reduced_storage &) = delete;
+    scaled_reduced_storage(const scaled_reduced_storage&) = delete;
 
     constexpr explicit GKO_ACC_ATTRIBUTES scaled_reduced_storage(
-        storage_type *const GKO_ACC_RESTRICT ptr, arithmetic_type scalar)
+        storage_type* const GKO_ACC_RESTRICT ptr, arithmetic_type scalar)
         : ptr_{ptr}, scalar_{scalar}
     {}
 
     constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
     {
-        const storage_type *const GKO_ACC_RESTRICT r_ptr = ptr_;
+        const storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr) * scalar_;
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
     operator=(arithmetic_type val) &&
     {
-        storage_type *const GKO_ACC_RESTRICT r_ptr = ptr_;
+        storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
         *r_ptr = static_cast<storage_type>(val / scalar_);
         return val;
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
-    operator=(const scaled_reduced_storage &ref) &&
+    operator=(const scaled_reduced_storage& ref) &&
     {
         std::move(*this) = static_cast<arithmetic_type>(ref);
         return static_cast<arithmetic_type>(*this);
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
-    operator=(scaled_reduced_storage &&ref) &&noexcept
+    operator=(scaled_reduced_storage&& ref) && noexcept
     {
         std::move(*this) = static_cast<arithmetic_type>(ref);
         return static_cast<arithmetic_type>(*this);
     }
 
 private:
-    storage_type *const GKO_ACC_RESTRICT ptr_;
+    storage_type* const GKO_ACC_RESTRICT ptr_;
     const arithmetic_type scalar_;
 };
 
@@ -138,37 +138,37 @@ public:
     using storage_type = const StorageType;
 
     // Allow move construction, so perfect forwarding is possible
-    scaled_reduced_storage(scaled_reduced_storage &&) noexcept = default;
+    scaled_reduced_storage(scaled_reduced_storage&&) noexcept = default;
 
     scaled_reduced_storage() = delete;
 
     ~scaled_reduced_storage() = default;
 
     // Forbid copy construction and move assignment
-    scaled_reduced_storage(const scaled_reduced_storage &) = delete;
+    scaled_reduced_storage(const scaled_reduced_storage&) = delete;
 
-    scaled_reduced_storage &operator=(scaled_reduced_storage &&) = delete;
+    scaled_reduced_storage& operator=(scaled_reduced_storage&&) = delete;
 
     constexpr explicit GKO_ACC_ATTRIBUTES scaled_reduced_storage(
-        const storage_type *const GKO_ACC_RESTRICT ptr, arithmetic_type scalar)
+        const storage_type* const GKO_ACC_RESTRICT ptr, arithmetic_type scalar)
         : ptr_{ptr}, scalar_{scalar}
     {}
 
     constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
     {
-        const storage_type *const GKO_ACC_RESTRICT r_ptr = ptr_;
+        const storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
         return static_cast<arithmetic_type>(*r_ptr) * scalar_;
     }
 
 private:
-    const storage_type *const GKO_ACC_RESTRICT ptr_;
+    const storage_type* const GKO_ACC_RESTRICT ptr_;
     const arithmetic_type scalar_;
 };
 
 
 template <typename ArithmeticType, typename StorageType>
 constexpr remove_complex_t<ArithmeticType> abs(
-    const scaled_reduced_storage<ArithmeticType, StorageType> &ref)
+    const scaled_reduced_storage<ArithmeticType, StorageType>& ref)
 {
     using std::abs;
     return abs(static_cast<ArithmeticType>(ref));

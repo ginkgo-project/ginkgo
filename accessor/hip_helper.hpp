@@ -51,8 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace acc {
-
-
 namespace detail {
 
 
@@ -73,18 +71,18 @@ struct hip_type<volatile T> {
 };
 
 template <typename T>
-struct hip_type<T *> {
-    using type = typename hip_type<T>::type *;
+struct hip_type<T*> {
+    using type = typename hip_type<T>::type*;
 };
 
 template <typename T>
-struct hip_type<T &> {
-    using type = typename hip_type<T>::type &;
+struct hip_type<T&> {
+    using type = typename hip_type<T>::type&;
 };
 
 template <typename T>
-struct hip_type<T &&> {
-    using type = typename hip_type<T>::type &&;
+struct hip_type<T&&> {
+    using type = typename hip_type<T>::type&&;
 };
 
 
@@ -133,7 +131,7 @@ std::enable_if_t<!std::is_pointer<T>::value && !std::is_reference<T>::value,
                  hip_type_t<T>>
 as_hip_type(T val)
 {
-    return *reinterpret_cast<hip_type_t<T> *>(&val);
+    return *reinterpret_cast<hip_type_t<T>*>(&val);
 }
 
 
@@ -147,7 +145,7 @@ as_hip_type(T val)
  */
 template <int dim, typename Type1, typename Type2>
 GKO_ACC_INLINE auto as_hip_range(
-    const range<reduced_row_major<dim, Type1, Type2>> &r)
+    const range<reduced_row_major<dim, Type1, Type2>>& r)
 {
     return range<reduced_row_major<dim, hip_type_t<Type1>, hip_type_t<Type2>>>(
         r.get_accessor().get_size(),
@@ -161,7 +159,7 @@ GKO_ACC_INLINE auto as_hip_range(
  */
 template <int dim, typename Type1, typename Type2, size_type mask>
 GKO_ACC_INLINE auto as_hip_range(
-    const range<scaled_reduced_row_major<dim, Type1, Type2, mask>> &r)
+    const range<scaled_reduced_row_major<dim, Type1, Type2, mask>>& r)
 {
     return range<scaled_reduced_row_major<dim, hip_type_t<Type1>,
                                           hip_type_t<Type2>, mask>>(
@@ -177,7 +175,7 @@ GKO_ACC_INLINE auto as_hip_range(
  * @copydoc as_hip_range()
  */
 template <typename T, size_type dim>
-GKO_ACC_INLINE auto as_hip_range(const range<block_col_major<T, dim>> &r)
+GKO_ACC_INLINE auto as_hip_range(const range<block_col_major<T, dim>>& r)
 {
     return range<block_col_major<hip_type_t<T>, dim>>(
         r.get_accessor().lengths, as_hip_type(r.get_accessor().data),
@@ -189,7 +187,7 @@ GKO_ACC_INLINE auto as_hip_range(const range<block_col_major<T, dim>> &r)
  * @copydoc as_hip_range()
  */
 template <typename T, size_type dim>
-GKO_ACC_INLINE auto as_hip_range(const range<row_major<T, dim>> &r)
+GKO_ACC_INLINE auto as_hip_range(const range<row_major<T, dim>>& r)
 {
     return range<block_col_major<hip_type_t<T>, dim>>(
         r.get_accessor().lengths, as_hip_type(r.get_accessor().data),
