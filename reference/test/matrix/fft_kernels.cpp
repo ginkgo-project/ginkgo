@@ -181,7 +181,7 @@ protected:
     std::unique_ptr<Vec> dense_ifft3;
 };
 
-TYPED_TEST_SUITE(Fft, gko::test::ComplexValueTypes);
+TYPED_TEST_SUITE(Fft, gko::test::ComplexValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Fft, ThrowsOnNonPowerOfTwo1D)

@@ -182,7 +182,7 @@ using TestTypes =
                      std::tuple<std::complex<double>, st_r2>,
                      std::tuple<std::complex<float>, st_keep>>;
 
-TYPED_TEST_SUITE(CbGmres, TestTypes);
+TYPED_TEST_SUITE(CbGmres, TestTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(CbGmres, SolvesStencilSystem)

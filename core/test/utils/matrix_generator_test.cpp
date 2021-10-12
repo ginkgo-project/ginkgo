@@ -145,7 +145,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(MatrixGenerator, gko::test::ValueTypes);
+TYPED_TEST_SUITE(MatrixGenerator, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(MatrixGenerator, OutputHasCorrectSize)
