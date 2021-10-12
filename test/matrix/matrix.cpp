@@ -168,6 +168,32 @@ protected:
             }
         };
         {
+            SCOPED_TRACE("Uninitialized matrix (0x0)");
+            guarded_fn(test_pair<MtxType>{MtxType::create(ref), exec});
+        }
+        {
+            SCOPED_TRACE("Uninitialized matrix (0x1)");
+            guarded_fn(test_pair<MtxType>{
+                MtxType::create(ref, gko::dim<2>{0, 1}), exec});
+        }
+        {
+            SCOPED_TRACE("Uninitialized matrix (1x0)");
+            guarded_fn(test_pair<MtxType>{
+                MtxType::create(ref, gko::dim<2>{1, 0}), exec});
+        }
+        {
+            SCOPED_TRACE("Zero matrix (0x0)");
+            guarded_fn(gen_mtx<MtxType>(0, 0, 0, 0));
+        }
+        {
+            SCOPED_TRACE("Zero matrix (0x1)");
+            guarded_fn(gen_mtx<MtxType>(0, 0, 0, 0));
+        }
+        {
+            SCOPED_TRACE("Zero matrix (1x0)");
+            guarded_fn(gen_mtx<MtxType>(0, 0, 0, 0));
+        }
+        {
             SCOPED_TRACE("Zero matrix (200x100)");
             guarded_fn(gen_mtx<MtxType>(200, 100, 0, 0));
         }
@@ -278,90 +304,6 @@ struct MatrixTypeNameGenerator {
 };
 
 TYPED_TEST_SUITE(Matrix, MatrixTypes, MatrixTypeNameGenerator);
-
-
-TYPED_TEST(Matrix, EmptyMatrixReadWorks)
-{
-    for (auto size : {gko::dim<2>{}, gko::dim<2>{1, 0}, gko::dim<2>{0, 1}}) {
-        SCOPED_TRACE(size);
-        gko::matrix_data<typename TestFixture::value_type,
-                         typename TestFixture::index_type>
-            data{size};
-        auto mtx = TypeParam::create(this->exec);
-
-        mtx->read(data);
-
-        ASSERT_EQ(mtx->get_size(), size);
-    }
-}
-
-
-TYPED_TEST(Matrix, EmptyMatrixWriteWorks)
-{
-    auto mtx = this->gen_mtx(0, 0, 0, 0);
-    gko::matrix_data<typename TestFixture::value_type,
-                     typename TestFixture::index_type>
-        data;
-
-    mtx.dev->write(data);
-
-    ASSERT_FALSE(data.size);
-    ASSERT_TRUE(data.nonzeros.empty());
-}
-
-
-TYPED_TEST(Matrix, EmptyMatrixSpMVWorks)
-{
-    for (auto size : {gko::dim<2>{}, gko::dim<2>{1, 0}, gko::dim<2>{0, 1}}) {
-        SCOPED_TRACE(size);
-        auto mtx = this->gen_mtx(size[0], size[1], 0, 0);
-        auto b = this->gen_in_vec(mtx, 1, 1);
-        auto x = this->gen_out_vec(mtx, 1, 1);
-
-        mtx.dev->apply(b.dev.get(), x.dev.get());
-    }
-}
-
-
-TYPED_TEST(Matrix, EmptyMatrixSpMMWorks)
-{
-    for (auto size : {gko::dim<2>{}, gko::dim<2>{1, 0}, gko::dim<2>{0, 1}}) {
-        SCOPED_TRACE(size);
-        auto mtx = this->gen_mtx(size[0], size[1], 0, 0);
-        auto b = this->gen_in_vec(mtx, 4, 4);
-        auto x = this->gen_out_vec(mtx, 4, 4);
-
-        mtx.dev->apply(b.dev.get(), x.dev.get());
-    }
-}
-
-
-TYPED_TEST(Matrix, EmptyMatrixAdvancedSpMVWorks)
-{
-    for (auto size : {gko::dim<2>{}, gko::dim<2>{1, 0}, gko::dim<2>{0, 1}}) {
-        SCOPED_TRACE(size);
-        auto mtx = this->gen_mtx(size[0], size[1], 0, 0);
-        auto b = this->gen_in_vec(mtx, 1, 1);
-        auto x = this->gen_out_vec(mtx, 1, 1);
-        auto alpha = this->gen_scalar();
-
-        mtx.dev->apply(alpha.dev.get(), b.dev.get(), alpha.dev.get(),
-                       x.dev.get());
-    }
-}
-
-
-TYPED_TEST(Matrix, EmptyMatrixAdvancedSpMMWorks)
-{
-    for (auto size : {gko::dim<2>{}, gko::dim<2>{1, 0}, gko::dim<2>{0, 1}}) {
-        SCOPED_TRACE(size);
-        auto mtx = this->gen_mtx(size[0], size[1], 0, 0);
-        auto b = this->gen_in_vec(mtx, 4, 4);
-        auto x = this->gen_out_vec(mtx, 4, 4);
-
-        mtx.dev->apply(b.dev.get(), x.dev.get());
-    }
-}
 
 
 TYPED_TEST(Matrix, SpMVIsEquivalentToRef)
