@@ -54,8 +54,6 @@ namespace gko {
  * @ingroup accessor
  */
 namespace acc {
-
-
 namespace detail {
 
 

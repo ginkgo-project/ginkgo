@@ -84,6 +84,14 @@ template <typename Reference, typename ArithmeticType>
 struct enable_reference_operators {
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
 
+    /**
+     * @internal
+     * This function calls the cast operator to arithmetic_type of *this.
+     * To achieve that, it needs to cast *this to a Reference object because
+     * the cast operation must be defined there (this is a requirement for this
+     * Mixin).
+     * This function is also used to detect if a proxy object is used or not.
+     */
     constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE arithmetic_type
     to_arithmetic_type() const
     {
