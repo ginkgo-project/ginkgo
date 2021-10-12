@@ -103,7 +103,18 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
-    auto residual = Vector::create_with_config_of(dense_b);
+    // TODO: add tempory output clone
+    auto residual_cache =
+        std::dynamic_pointer_cast<Vector>(this->get_residual_cache());
+    Vector* residual = nullptr;
+    if (residual_cache) {
+        residual = residual_cache.get();
+    }
+    std::shared_ptr<Vector> residual_op;
+    if (!residual) {
+        residual_op = Vector::create_with_config_of(dense_b);
+        residual = residual_op.get();
+    }
     auto inner_solution = Vector::create_with_config_of(dense_b);
 
     bool one_changed{};
@@ -111,23 +122,22 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     exec->run(ir::make_initialize(&stop_status));
 
     residual->copy_from(dense_b);
-    system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
-                          lend(residual));
+    system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op), residual);
 
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_,
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
-        lend(residual));
+        residual);
 
     int iter = -1;
     while (true) {
         ++iter;
-        this->template log<log::Logger::iteration_complete>(
-            this, iter, lend(residual), dense_x);
+        this->template log<log::Logger::iteration_complete>(this, iter,
+                                                            residual, dense_x);
 
         if (stop_criterion->update()
                 .num_iterations(iter)
-                .residual(lend(residual))
+                .residual(residual)
                 .solution(dense_x)
                 .check(relative_stopping_id, true, &stop_status,
                        &one_changed)) {
@@ -138,8 +148,8 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             // Use the inner solver to solve
             // A * inner_solution = residual
             // with residual as initial guess.
-            inner_solution->copy_from(lend(residual));
-            solver_->apply(lend(residual), lend(inner_solution));
+            inner_solution->copy_from(residual);
+            solver_->apply(residual, lend(inner_solution));
 
             // x = x + relaxation_factor * inner_solution
             dense_x->add_scaled(lend(relaxation_factor_), lend(inner_solution));
@@ -147,16 +157,16 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             // residual = b - A * x
             residual->copy_from(dense_b);
             system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
-                                  lend(residual));
+                                  residual);
         } else {
             // x = x + relaxation_factor * A \ residual
-            solver_->apply(lend(relaxation_factor_), lend(residual),
-                           lend(one_op), dense_x);
+            solver_->apply(lend(relaxation_factor_), residual, lend(one_op),
+                           dense_x);
 
             // residual = b - A * x
             residual->copy_from(dense_b);
             system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
-                                  lend(residual));
+                                  residual);
         }
     }
 }

@@ -308,11 +308,14 @@ struct MultigridState {
                        mid_case == multigrid::mid_smooth_type::both ||
                        mid_case == multigrid::mid_smooth_type::pre_smoother;
         if (use_pre && pre_smoother) {
+            // avoid additional residual calculation
+            // TODO: add the possiblity for non ResidualCacheable
+            gko::as<ResidualCacheable>(pre_smoother)->set_residual_cache(r);
             pre_smoother->apply(b, x);
             // additional residual computation after pre_smoother if it already
             // contained the residual.
-            r->copy_from(b);  // n * b
-            matrix->apply(neg_one, x, one, r.get());
+            // r->copy_from(b);  // n * b
+            // matrix->apply(neg_one, x, one, r.get());
         } else if (level != 0) {
             // move the residual computation at level 0 to out-of-cycle if there
             // is no pre-smoother at level 0

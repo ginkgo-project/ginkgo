@@ -757,6 +757,37 @@ public:
 
 
 /**
+ * The ResidualCacheable is an interface that allows to set the residual cache
+ * of a LinOp. It allows to set the residual workspace and use it afterward.
+ */
+class ResidualCacheable {
+public:
+    /**
+     * Gets the residual cache
+     *
+     * @return a pointer to the residual cache
+     */
+    std::shared_ptr<LinOp> get_residual_cache() const noexcept
+    {
+        return residual_cache_;
+    }
+
+    /**
+     * Sets the residual cache
+     *
+     * @param residual_cache  the shared pointer to the residual cache
+     */
+    void set_residual_cache(std::shared_ptr<LinOp> residual_cache) const
+    {
+        residual_cache_ = residual_cache;
+    }
+
+private:
+    mutable std::shared_ptr<LinOp> residual_cache_;
+};
+
+
+/**
  * The EnableLinOp mixin can be used to provide sensible default implementations
  * of the majority of the LinOp and PolymorphicObject interface.
  *
