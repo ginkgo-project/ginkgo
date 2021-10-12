@@ -81,15 +81,20 @@ void simple_apply(std::shared_ptr<const HipExecutor> exec,
 {
     if (hipblas::is_supported<ValueType>::value) {
         auto handle = exec->get_hipblas_handle();
-        {
-            hipblas::pointer_mode_guard pm_guard(handle);
-            auto alpha = one<ValueType>();
-            auto beta = zero<ValueType>();
-            hipblas::gemm(handle, HIPBLAS_OP_N, HIPBLAS_OP_N, c->get_size()[1],
-                          c->get_size()[0], a->get_size()[1], &alpha,
-                          b->get_const_values(), b->get_stride(),
-                          a->get_const_values(), a->get_stride(), &beta,
-                          c->get_values(), c->get_stride());
+        if (c->get_size()[0] * c->get_size()[1] > 0) {
+            if (a->get_size()[1] > 0) {
+                hipblas::pointer_mode_guard pm_guard(handle);
+                auto alpha = one<ValueType>();
+                auto beta = zero<ValueType>();
+                hipblas::gemm(handle, HIPBLAS_OP_N, HIPBLAS_OP_N,
+                              c->get_size()[1], c->get_size()[0],
+                              a->get_size()[1], &alpha, b->get_const_values(),
+                              b->get_stride(), a->get_const_values(),
+                              a->get_stride(), &beta, c->get_values(),
+                              c->get_stride());
+            } else {
+                dense::fill(exec, c, zero<ValueType>());
+            }
         }
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -106,12 +111,18 @@ void apply(std::shared_ptr<const HipExecutor> exec,
            const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
 {
     if (hipblas::is_supported<ValueType>::value) {
-        hipblas::gemm(exec->get_hipblas_handle(), HIPBLAS_OP_N, HIPBLAS_OP_N,
-                      c->get_size()[1], c->get_size()[0], a->get_size()[1],
-                      alpha->get_const_values(), b->get_const_values(),
-                      b->get_stride(), a->get_const_values(), a->get_stride(),
-                      beta->get_const_values(), c->get_values(),
-                      c->get_stride());
+        if (c->get_size()[0] * c->get_size()[1] > 0) {
+            if (a->get_size()[1] > 0) {
+                hipblas::gemm(
+                    exec->get_hipblas_handle(), HIPBLAS_OP_N, HIPBLAS_OP_N,
+                    c->get_size()[1], c->get_size()[0], a->get_size()[1],
+                    alpha->get_const_values(), b->get_const_values(),
+                    b->get_stride(), a->get_const_values(), a->get_stride(),
+                    beta->get_const_values(), c->get_values(), c->get_stride());
+            } else {
+                dense::scale(exec, beta, c);
+            }
+        }
     } else {
         GKO_NOT_IMPLEMENTED;
     }
