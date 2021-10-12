@@ -70,6 +70,84 @@ T get_value_chunk(const uint8* ptr, size_type start)
 }
 
 
+inline void get_next_position(const uint8* chunk_data, const uint8 ind,
+                              size_type& shf, size_type& col)
+{
+    if (ind < 0xFD) {
+        col += ind;
+        shf++;
+    } else if (ind == 0xFD) {
+        shf++;
+        col += get_value_chunk<uint16>(chunk_data, shf);
+        shf += 2;
+    } else {
+        shf++;
+        col += *(uint32*)(chunk_data + shf);
+        shf += 4;
+    }
+}
+
+
+template <typename ValueType>
+inline void get_next_position_value(const uint8* chunk_data, const uint8 ind,
+                                    size_type& shf, size_type& col,
+                                    ValueType& val)
+{
+    get_next_position(chunk_data, ind, shf, col);
+    val = get_value_chunk<ValueType>(chunk_data, shf);
+    shf += sizeof(ValueType);
+}
+
+
+template <typename ValueType, typename Callable>
+inline void get_next_position_value_put(const uint8* chunk_data,
+                                        const uint8 ind, size_type& shf,
+                                        size_type& col, ValueType& val,
+                                        Callable finalize_op)
+{
+    get_next_position(chunk_data, ind, shf, col);
+    val = get_value_chunk<ValueType>(chunk_data, shf);
+    val = finalize_op(val);
+    set_value_chunk<ValueType>(chunk_data, shf, val);
+    shf += sizeof(ValueType);
+}
+
+
+inline void put_next_position(uint8* chunk_data, const uint8 ind,
+                              const size_type colRS, size_type& shf,
+                              size_type& col)
+{
+    if (ind < 0xFD) {
+        set_value_chunk<uint8>(chunk_data, shf, ind);
+        col += ind;
+        shf++;
+    } else if (ind == 0xFD) {
+        set_value_chunk<uint8>(chunk_data, shf, 0xFD);
+        shf++;
+        set_value_chunk<uint16>(chunk_data, shf, colRS);
+        col += colRS;
+        shf += 2;
+    } else {
+        set_value_chunk<uint8>(chunk_data, shf, 0xFE);
+        shf++;
+        set_value_chunk<uint32>(chunk_data, shf, colRS);
+        col += colRS;
+        shf += 4;
+    }
+}
+
+
+template <typename ValueType>
+inline void put_next_position_value(uint8* chunk_data, const uint8 ind,
+                                    const size_type colRS, size_type& shf,
+                                    size_type& col, ValueType val)
+{
+    put_next_position(chunk_data, ind, colRS, shf, col);
+    set_value_chunk<ValueType>(chunk_data, shf, val);
+    shf += sizeof(remove_complex<ValueType>);
+}
+
+
 inline void update_bccoo_position(const uint8* chunk_data, size_type& shf,
                                   size_type& row, size_type& col)
 {
@@ -80,18 +158,21 @@ inline void update_bccoo_position(const uint8* chunk_data, size_type& shf,
         col = 0;
         ind = chunk_data[shf];
     }
-    if (ind < 0xFD) {
-        col += ind;
-        shf++;
-    } else if (ind == 0xFD) {
-        shf++;
-        col += get_value_chunk<uint16>(chunk_data, shf);
-        shf += 2;
-    } else {
-        shf++;
-        col += get_value_chunk<uint32>(chunk_data, shf);
-        shf += 4;
-    }
+    get_next_position(chunk_data, ind, shf, col);
+    /*
+        if (ind < 0xFD) {
+            col += ind;
+            shf++;
+        } else if (ind == 0xFD) {
+            shf++;
+            col += get_value_chunk<uint16>(chunk_data, shf);
+            shf += 2;
+        } else {
+            shf++;
+            col += get_value_chunk<uint32>(chunk_data, shf);
+            shf += 4;
+        }
+    */
 }
 
 
@@ -111,6 +192,31 @@ inline void update_bccoo_position(const IndexType* rows_data,
 }
 
 
+template <typename IndexType>
+inline void update_bccoo_position(const IndexType* rows_data,
+                                  const IndexType* offsets_data,
+                                  const uint8* chunk_data, size_type block_size,
+                                  size_type& nblk, size_type& blk,
+                                  size_type& shf, size_type& row,
+                                  size_type& col)
+{
+    /*
+        if (nblk == 0) {
+            row = rows_data[blk];
+            col = 0;
+            shf = offsets_data[blk];
+        }
+        update_bccoo_position(chunk_data, shf, row, col);
+    */
+    update_bccoo_position(rows_data, offsets_data, chunk_data, block_size, nblk,
+                          blk, shf, row, col);
+    if (++nblk == block_size) {
+        nblk = 0;
+        blk++;
+    }
+}
+
+
 template <typename T>
 void update_bccoo_position_val(const uint8* chunk_data, size_type& shf,
                                size_type& row, size_type& col, T& val)
@@ -122,20 +228,26 @@ void update_bccoo_position_val(const uint8* chunk_data, size_type& shf,
         col = 0;
         ind = chunk_data[shf];
     }
-    if (ind < 0xFD) {
-        col += ind;
-        shf++;
-    } else if (ind == 0xFD) {
-        shf++;
-        col += get_value_chunk<uint16>(chunk_data, shf);
-        shf += 2;
-    } else {
-        shf++;
-        col += get_value_chunk<uint32>(chunk_data, shf);
-        shf += 4;
-    }
-    val = get_value_chunk<T>(chunk_data, shf);
-    shf += sizeof(T);
+    /*
+        if (ind < 0xFD) {
+            col += ind;
+            shf++;
+        } else if (ind == 0xFD) {
+            shf++;
+            col += get_value_chunk<uint16>(chunk_data, shf);
+            shf += 2;
+        } else {
+            shf++;
+            col += get_value_chunk<uint32>(chunk_data, shf);
+            shf += 4;
+        }
+    */
+    /*
+                    get_next_position(chunk_data, ind, shf, col);
+        val = get_value_chunk<T>(chunk_data, shf);
+        shf += sizeof(T);
+    */
+    get_next_position_value(chunk_data, ind, shf, col, val);
 }
 
 
@@ -155,17 +267,44 @@ void update_bccoo_position_val(const IndexType* rows_data,
 }
 
 
-#define UPDATE 1
+template <typename IndexType, typename T>
+void update_bccoo_position_val(const IndexType* rows_data,
+                               const IndexType* offsets_data,
+                               const uint8* chunk_data, size_type block_size,
+                               size_type& nblk, size_type& blk, size_type& shf,
+                               size_type& row, size_type& col, T& val)
+{
+    /*
+        if (nblk == 0) {
+            row = rows_data[blk];
+            col = 0;
+            shf = offsets_data[blk];
+        }
+        update_bccoo_position_val(chunk_data, shf, row, col, val);
+    */
+    update_bccoo_position_val(rows_data, offsets_data, chunk_data, nblk, blk,
+                              shf, row, col, val);
+    if (++nblk == block_size) {
+        nblk = 0;
+        blk++;
+    }
+}
+
+
+#define UPDATE 2
 
 
 #if UPDATE > 1
 
-template <typename IndexType, typename T>
+// template <typename IndexType, typename T>
+template <typename IndexType, typename T, typename Callable>
 void update_bccoo_position_val(const IndexType* rows_data,
                                const IndexType* offsets_data, uint8* chunk_data,
-                               size_type nblk, size_type blk, size_type& shf,
-                               size_type& row, size_type& col, T& val,
-                               std::function<remove_complex<T>(const T)>& func)
+                               size_type block_size, size_type& nblk,
+                               size_type& blk, size_type& shf, size_type& row,
+                               size_type& col, T& val, Callable finalize_op)
+//                               std::function<remove_complex<T>(const T)>
+//                               &func)
 {
 #if UPDATE == 2
     if (nblk == 0) {
@@ -180,26 +319,37 @@ void update_bccoo_position_val(const IndexType* rows_data,
         col = 0;
         ind = chunk_data[shf];
     }
-    if (ind < 0xFD) {
-        col += ind;
-        shf++;
-    } else if (ind == 0xFD) {
-        shf++;
-        col += get_value_chunk<uint16>(chunk_data, shf);
-        shf += 2;
-    } else {
-        shf++;
-        col += get_value_chunk<uint32>(chunk_data, shf);
-        shf += 4;
-    }
+    /*
+        if (ind < 0xFD) {
+            col += ind;
+            shf++;
+        } else if (ind == 0xFD) {
+            shf++;
+            col += get_value_chunk<uint16>(chunk_data, shf);
+            shf += 2;
+        } else {
+            shf++;
+            col += get_value_chunk<uint32>(chunk_data, shf);
+            shf += 4;
+        }
+    */
+    /* */
+    get_next_position(chunk_data, ind, shf, col);
     val = get_value_chunk<T>(chunk_data, shf);
-#else
-    update_bccoo_position_val(rows_data, offsets_data, chunk_data, nblk, blk,
-                              shf, row, col, val);
-#endif
-    val = func(val);
+    //    val = func(val);
+    val = finalize_op(val);
     set_value_chunk<T>(chunk_data, shf, val);
     shf += sizeof(T);
+/* */
+//		get_next_position_value_put(chunk_data, ind, shf, col, val,
+// finalize_op);
+#endif
+#if UPDATE == 2
+    if (++nblk == block_size) {
+        nblk = 0;
+        blk++;
+    }
+#endif
 }
 
 #endif
@@ -228,34 +378,39 @@ inline void update_bccoo_position_copy(const uint8* chunk_dataS,
             shfR++;
         }
     }
-
-    if (indS < 0xFD) {
-        colS += indS;
-        shfS++;
-        set_value_chunk<uint8>(chunk_dataR, shfR, indS);
-        shfR++;
-    } else if (indS == 0xFD) {
-        shfS++;
-        colS += get_value_chunk<uint16>(chunk_dataS, shfS);
-        shfS += 2;
-        set_value_chunk<uint8>(chunk_dataR, shfR, 0xFD);
-        shfR++;
-        set_value_chunk<uint16>(chunk_dataR, shfR, colS - colR);
-        colR = colS;
-        shfR += 2;
-    } else {
-        shfS++;
-        colS += *(uint32*)(chunk_dataS + shfS);
-        shfS += 4;
-        set_value_chunk<uint8>(chunk_dataR, shfR, 0xFE);
-        shfR++;
-        set_value_chunk<uint32>(chunk_dataR, shfR, colS - colR);
-        colR = colS;
-        shfR += 4;
-    }
+    /*
+        if (indS < 0xFD) {
+            colS += indS;
+            shfS++;
+            set_value_chunk<uint8>(chunk_dataR, shfR, indS);
+            colR += indS;
+            shfR++;
+        } else if (indS == 0xFD) {
+            shfS++;
+            colS += get_value_chunk<uint16>(chunk_dataS, shfS);
+            shfS += 2;
+            set_value_chunk<uint8>(chunk_dataR, shfR, 0xFD);
+            shfR++;
+            set_value_chunk<uint16>(chunk_dataR, shfR, colS - colR);
+            colR = colS;
+            shfR += 2;
+        } else {
+            shfS++;
+            colS += *(uint32 *)(chunk_dataS + shfS);
+            shfS += 4;
+            set_value_chunk<uint8>(chunk_dataR, shfR, 0xFE);
+            shfR++;
+            set_value_chunk<uint32>(chunk_dataR, shfR, colS - colR);
+            colR = colS;
+            shfR += 4;
+        }
+    */
+    get_next_position(chunk_dataS, indS, shfS, colS);
+    put_next_position(chunk_dataR, indS, colR - colS, shfR, colR);
 }
 
 
 }  // namespace gko
+
 
 #endif  // GKO_CORE_BASE_UNALIGNED_ACCESS_HPP_
