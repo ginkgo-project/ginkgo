@@ -985,7 +985,10 @@ protected:
           row_ptrs_(exec, size[0] + 1),
           srow_(exec, strategy->clac_size(num_nonzeros)),
           strategy_(strategy->copy())
-    {}
+    {
+        row_ptrs_.fill(0);
+        this->make_srow();
+    }
 
     /**
      * Creates a CSR matrix from already allocated (and initialized) row
