@@ -229,14 +229,7 @@ void Ell<ValueType, IndexType>::read(const mat_data& data)
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::write(mat_data& data) const
 {
-    std::unique_ptr<const LinOp> op{};
-    const Ell* tmp{};
-    if (this->get_executor()->get_master() != this->get_executor()) {
-        op = this->clone(this->get_executor()->get_master());
-        tmp = static_cast<const Ell*>(op.get());
-    } else {
-        tmp = this;
-    }
+    auto tmp = make_temporary_clone(this->get_executor()->get_master(), this);
 
     data = {tmp->get_size(), {}};
 

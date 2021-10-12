@@ -283,14 +283,7 @@ namespace {
 template <typename MatrixType, typename MatrixData>
 inline void write_impl(const MatrixType* mtx, MatrixData& data)
 {
-    std::unique_ptr<const LinOp> op{};
-    const MatrixType* tmp{};
-    if (mtx->get_executor()->get_master() != mtx->get_executor()) {
-        op = mtx->clone(mtx->get_executor()->get_master());
-        tmp = static_cast<const MatrixType*>(op.get());
-    } else {
-        tmp = mtx;
-    }
+    auto tmp = make_temporary_clone(mtx->get_executor()->get_master(), mtx);
 
     data = {tmp->get_size(), {}};
     const auto values = tmp->get_const_values();

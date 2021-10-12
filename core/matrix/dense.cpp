@@ -723,7 +723,6 @@ namespace {
 template <typename MatrixType, typename MatrixData>
 inline void write_impl(const MatrixType* mtx, MatrixData& data)
 {
-    std::unique_ptr<const LinOp> op{};
     auto tmp = make_temporary_clone(mtx->get_executor()->get_master(), mtx);
 
     data = {mtx->get_size(), {}};
