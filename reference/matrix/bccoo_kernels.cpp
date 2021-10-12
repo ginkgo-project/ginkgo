@@ -117,15 +117,17 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
     ValueType val;
     for (size_type i = 0; i < num_stored_elements; i++) {
-        update_bccoo_position_val(rows_data, offsets_data, chunk_data, nblk,
-                                  blk, shf, row, col, val);
+        update_bccoo_position_val(rows_data, offsets_data, chunk_data,
+                                  block_size, nblk, blk, shf, row, col, val);
         for (size_type j = 0; j < num_cols; j++) {
             c->at(row, j) += val * b->at(col, j);
         }
-        if (++nblk == block_size) {
-            nblk = 0;
-            blk++;
-        }
+        /*
+                if (++nblk == block_size) {
+                    nblk = 0;
+                    blk++;
+                }
+        */
     }
 }
 
@@ -152,15 +154,17 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
     ValueType val;
     for (size_type i = 0; i < num_stored_elements; i++) {
-        update_bccoo_position_val(rows_data, offsets_data, chunk_data, nblk,
-                                  blk, shf, row, col, val);
+        update_bccoo_position_val(rows_data, offsets_data, chunk_data,
+                                  block_size, nblk, blk, shf, row, col, val);
         for (size_type j = 0; j < num_cols; j++) {
             c->at(row, j) += alpha_val * val * b->at(col, j);
         }
-        if (++nblk == block_size) {
-            nblk = 0;
-            blk++;
-        }
+        /*
+                if (++nblk == block_size) {
+                    nblk = 0;
+                    blk++;
+                }
+        */
     }
 }
 
@@ -259,15 +263,17 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
     auto values = result->get_values();
 
     for (size_type i = 0; i < num_stored_elements; i++) {
-        update_bccoo_position_val(rows_data, offsets_data, chunk_data, nblk,
-                                  blk, shf, row, col, val);
+        update_bccoo_position_val(rows_data, offsets_data, chunk_data,
+                                  block_size, nblk, blk, shf, row, col, val);
         row_idxs[i] = row;
         col_idxs[i] = col;
         values[i] = val;
-        if (++nblk == block_size) {
-            nblk = 0;
-            blk++;
-        }
+        /*
+                if (++nblk == block_size) {
+                    nblk = 0;
+                    blk++;
+                }
+        */
     }
 }
 
@@ -328,18 +334,21 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
             ind = chunk_data[shf];
         }
 
-        if (ind < 0xFD) {
-            col += ind;
-            shf++;
-        } else if (ind == 0xFD) {
-            shf++;
-            col += get_value_chunk<uint16>(chunk_data, shf);
-            shf += 2;
-        } else {
-            shf++;
-            col += *(uint32*)(chunk_data + shf);
-            shf += 4;
-        }
+        get_next_position(chunk_data, ind, shf, col);
+        /*
+                if (ind < 0xFD) {
+                    col += ind;
+                    shf++;
+                } else if (ind == 0xFD) {
+                    shf++;
+                    col += get_value_chunk<uint16>(chunk_data, shf);
+                    shf += 2;
+                } else {
+                    shf++;
+                    col += *(uint32 *)(chunk_data + shf);
+                    shf += 4;
+                }
+        */
         /* */
         val = get_value_chunk<ValueType>(chunk_data, shf);
         shf += sizeof(ValueType);
@@ -385,13 +394,15 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
     }
 
     for (size_type i = 0; i < num_stored_elements; i++) {
-        update_bccoo_position_val(rows_data, offsets_data, chunk_data, nblk,
-                                  blk, shf, row, col, val);
+        update_bccoo_position_val(rows_data, offsets_data, chunk_data,
+                                  block_size, nblk, blk, shf, row, col, val);
         result->at(row, col) += val;
-        if (++nblk == block_size) {
-            nblk = 0;
-            blk++;
-        }
+        /*
+                if (++nblk == block_size) {
+                    nblk = 0;
+                    blk++;
+                }
+        */
     }
 }
 
@@ -423,15 +434,17 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
     }
 
     for (size_type i = 0; i < num_stored_elements; i++) {
-        update_bccoo_position_val(rows_data, offsets_data, chunk_data, nblk,
-                                  blk, shf, row, col, val);
+        update_bccoo_position_val(rows_data, offsets_data, chunk_data,
+                                  block_size, nblk, blk, shf, row, col, val);
         if (row == col) {
             diag_values[row] = val;
         }
-        if (++nblk == block_size) {
-            nblk = 0;
-            blk++;
-        }
+        /*
+                if (++nblk == block_size) {
+                    nblk = 0;
+                    blk++;
+                }
+        */
     }
 }
 
@@ -463,13 +476,18 @@ void compute_absolute_inplace(std::shared_ptr<const DefaultExecutor> exec,
         set_value_chunk<ValueType>(chunk_data, shf, val);
         shf += sizeof(ValueType);
 #else
-        update_bccoo_position_val(rows_data, offsets_data, chunk_data, nblk,
-                                  blk, shf, row, col, val, &std::abs);
+        //                                  blk, shf, row, col, val, &std::abs);
+        update_bccoo_position_val(rows_data, offsets_data, chunk_data,
+                                  block_size, nblk, blk, shf, row, col, val,
+                                  [](ValueType val) { return abs(val); });
+//																	&std::abs);
 #endif
-        if (++nblk == block_size) {
-            nblk = 0;
-            blk++;
-        }
+        /*
+                if (++nblk == block_size) {
+                    nblk = 0;
+                    blk++;
+                }
+        */
     }
 }
 
