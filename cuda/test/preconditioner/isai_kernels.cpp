@@ -48,7 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/preconditioner/isai_kernels.hpp"
-#include "cuda/base/config.hpp"
 #include "cuda/test/utils.hpp"
 #include "matrices/config.hpp"
 

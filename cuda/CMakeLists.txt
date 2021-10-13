@@ -193,7 +193,8 @@ target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_CO
 ginkgo_compile_features(ginkgo_cuda)
 target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA)
 target_include_directories(ginkgo_cuda
-    SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
+    SYSTEM PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+
 # include path for generated headers like jacobi_common.hpp
 target_include_directories(ginkgo_cuda
     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..)
