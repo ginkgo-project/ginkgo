@@ -359,7 +359,8 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
         add_or_set_member(solver_json, "scaling",
                           rapidjson::StringRef(FLAGS_batch_scaling.c_str()),
                           allocator);
-        if (FLAGS_detailed && b->get_size().at(0)[1] == 1 && !FLAGS_overhead) {
+        if (FLAGS_detailed && FLAGS_print_residuals_and_iters &&
+            b->get_size().at(0)[1] == 1 && !FLAGS_overhead) {
             add_or_set_member(solver_json, "rhs_norm",
                               rapidjson::Value(rapidjson::kObjectType),
                               allocator);
@@ -406,7 +407,7 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
         }
         const size_type nrhs = b->get_size().at(0)[1];
         if (FLAGS_warmup > 0 &&
-            (FLAGS_print_residuals_and_iters || FLAGS_detailed)) {
+            (FLAGS_print_residuals_and_iters && FLAGS_detailed)) {
             add_or_set_member(solver_json, "num_iters",
                               rapidjson::Value(rapidjson::kObjectType),
                               allocator);
@@ -498,7 +499,8 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
 
             // slow run, gets the recurrent and true residuals of each
             // iteration
-            if (b->get_size().at(0)[1] == 1) {
+            if (FLAGS_print_residuals_and_iters &&
+                b->get_size().at(0)[1] == 1) {
                 x_clone = clone(x);
                 std::shared_ptr<const gko::BatchLinOp> mat_clone2 =
                     clone(system_matrix);
@@ -535,21 +537,18 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
                         }
                     }
                 }
-                if (!FLAGS_overhead &&
-                    (FLAGS_print_residuals_and_iters || FLAGS_detailed)) {
-                    auto residual = compute_batch_residual_norm(
-                        lend(system_matrix), lend(b), lend(x_clone));
-                    add_or_set_member(solver_json, "residual_norm",
-                                      rapidjson::Value(rapidjson::kObjectType),
-                                      allocator);
-                    for (size_type i = 0; i < nbatch; ++i) {
-                        add_or_set_member(
-                            solver_json["residual_norm"],
-                            std::to_string(i).c_str(),
-                            rapidjson::Value(rapidjson::kArrayType), allocator);
-                        solver_json["residual_norm"][std::to_string(i).c_str()]
-                            .PushBack(residual[i], allocator);
-                    }
+
+                auto residual = compute_batch_residual_norm(
+                    lend(system_matrix), lend(b), lend(x_clone));
+                add_or_set_member(solver_json, "residual_norm",
+                                  rapidjson::Value(rapidjson::kObjectType),
+                                  allocator);
+                for (size_type i = 0; i < nbatch; ++i) {
+                    add_or_set_member(
+                        solver_json["residual_norm"], std::to_string(i).c_str(),
+                        rapidjson::Value(rapidjson::kArrayType), allocator);
+                    solver_json["residual_norm"][std::to_string(i).c_str()]
+                        .PushBack(residual[i], allocator);
                 }
             }
             exec->synchronize();
