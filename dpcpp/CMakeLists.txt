@@ -51,6 +51,7 @@ target_sources(ginkgo_dpcpp
     solver/batch_gmres_kernels.dp.cpp
     solver/batch_idr_kernels.dp.cpp
     solver/batch_richardson_kernels.dp.cpp
+    solver/batch_sparse_direct_kernels.dp.cpp
     solver/cb_gmres_kernels.dp.cpp
     solver/gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp

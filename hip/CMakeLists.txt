@@ -189,6 +189,7 @@ set(GINKGO_HIP_SOURCES
     solver/batch_gmres_kernels.hip.cpp
     solver/batch_idr_kernels.hip.cpp
     solver/batch_richardson_kernels.hip.cpp
+	solver/batch_sparse_direct_kernels.hip.cpp
     solver/cb_gmres_kernels.hip.cpp
     solver/gmres_kernels.hip.cpp
     solver/idr_kernels.hip.cpp
