@@ -100,6 +100,7 @@ using spgeam_kernels =
 
 
 namespace host_kernel {
+namespace {
 
 
 template <int items_per_thread, typename ValueType, typename IndexType>
@@ -246,22 +247,34 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 
-}  // namespace host_kernel
-
-
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const CudaExecutor> exec,
-          const matrix::Csr<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+void load_balance_spmv(std::shared_ptr<const CudaExecutor> exec,
+                       const matrix::Csr<ValueType, IndexType>* a,
+                       const matrix::Dense<ValueType>* b,
+                       matrix::Dense<ValueType>* c,
+                       const matrix::Dense<ValueType>* alpha = nullptr,
+                       const matrix::Dense<ValueType>* beta = nullptr)
 {
-    if (a->get_strategy()->get_name() == "load_balance") {
-        components::fill_array(exec, c->get_values(),
-                               c->get_num_stored_elements(), zero<ValueType>());
-        const IndexType nwarps = a->get_num_srow_elements();
-        if (nwarps > 0) {
-            const dim3 csr_block(config::warp_size, warps_in_block, 1);
-            const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
-                                b->get_size()[1]);
+    if (beta) {
+        dense::scale(exec, beta, c);
+    } else {
+        dense::fill(exec, c, zero<ValueType>());
+    }
+    const IndexType nwarps = a->get_num_srow_elements();
+    if (nwarps > 0) {
+        const dim3 csr_block(config::warp_size, warps_in_block, 1);
+        const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b->get_size()[1]);
+        if (alpha) {
+            kernel::abstract_spmv<<<csr_grid, csr_block>>>(
+                nwarps, static_cast<IndexType>(a->get_size()[0]),
+                as_cuda_type(alpha->get_const_values()),
+                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+                as_cuda_type(a->get_const_row_ptrs()),
+                as_cuda_type(a->get_const_srow()),
+                as_cuda_type(b->get_const_values()),
+                as_cuda_type(b->get_stride()), as_cuda_type(c->get_values()),
+                as_cuda_type(c->get_stride()));
+        } else {
             kernel::abstract_spmv<<<csr_grid, csr_block>>>(
                 nwarps, static_cast<IndexType>(a->get_size()[0]),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
@@ -270,9 +283,120 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(b->get_const_values()),
                 as_cuda_type(b->get_stride()), as_cuda_type(c->get_values()),
                 as_cuda_type(c->get_stride()));
-        } else {
-            GKO_NOT_SUPPORTED(nwarps);
         }
+    } else {
+        GKO_NOT_SUPPORTED(nwarps);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+bool try_general_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
+                                const ValueType* alpha,
+                                const matrix::Csr<ValueType, IndexType>* a,
+                                const matrix::Dense<ValueType>* b,
+                                const ValueType* beta,
+                                matrix::Dense<ValueType>* c)
+{
+    auto handle = exec->get_cusparse_handle();
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+    if (!cusparse::is_supported<ValueType, IndexType>::value ||
+        b->get_stride() != 1 || c->get_stride() != 1 || b->get_size()[0] == 0 ||
+        c->get_size()[0] == 0) {
+        return false;
+    }
+
+    auto descr = cusparse::create_mat_descr();
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+    cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
+                   a->get_size()[1], a->get_num_stored_elements(), alpha, descr,
+                   a->get_const_values(), row_ptrs, col_idxs,
+                   b->get_const_values(), beta, c->get_values());
+
+    cusparse::destroy(descr);
+#else  // CUDA_VERSION >= 11000
+    cusparseOperation_t trans = CUSPARSE_OPERATION_NON_TRANSPOSE;
+    auto row_ptrs = const_cast<IndexType*>(a->get_const_row_ptrs());
+    auto col_idxs = const_cast<IndexType*>(a->get_const_col_idxs());
+    auto values = const_cast<ValueType*>(a->get_const_values());
+    auto mat = cusparse::create_csr(a->get_size()[0], a->get_size()[1],
+                                    a->get_num_stored_elements(), row_ptrs,
+                                    col_idxs, values);
+    auto b_val = const_cast<ValueType*>(b->get_const_values());
+    auto c_val = c->get_values();
+    if (b->get_stride() == 1 && c->get_stride() == 1) {
+        auto vecb = cusparse::create_dnvec(b->get_size()[0], b_val);
+        auto vecc = cusparse::create_dnvec(c->get_size()[0], c_val);
+        cusparseSpMVAlg_t alg = CUSPARSE_CSRMV_ALG1;
+        size_type buffer_size = 0;
+        cusparse::spmv_buffersize<ValueType>(handle, trans, alpha, mat, vecb,
+                                             beta, vecc, alg, &buffer_size);
+
+        gko::Array<char> buffer_array(exec, buffer_size);
+        auto buffer = buffer_array.get_data();
+        cusparse::spmv<ValueType>(handle, trans, alpha, mat, vecb, beta, vecc,
+                                  alg, buffer);
+        cusparse::destroy(vecb);
+        cusparse::destroy(vecc);
+    } else {
+        cusparseSpMMAlg_t alg = CUSPARSE_SPMM_CSR_ALG2;
+        auto vecb =
+            cusparse::create_dnmat(b->get_size(), b->get_stride(), b_val);
+        auto vecc =
+            cusparse::create_dnmat(c->get_size(), c->get_stride(), c_val);
+        size_type buffer_size = 0;
+        cusparse::spmm_buffersize<ValueType>(handle, trans, trans, alpha, mat,
+                                             vecb, beta, vecc, alg,
+                                             &buffer_size);
+
+        gko::Array<char> buffer_array(exec, buffer_size);
+        auto buffer = buffer_array.get_data();
+        cusparse::spmm<ValueType>(handle, trans, trans, alpha, mat, vecb, beta,
+                                  vecc, alg, buffer);
+        cusparse::destroy(vecb);
+        cusparse::destroy(vecc);
+    }
+    cusparse::destroy(mat);
+#endif
+    return true;
+}
+
+
+template <typename ValueType, typename IndexType>
+bool try_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
+                        const matrix::Csr<ValueType, IndexType>* a,
+                        const matrix::Dense<ValueType>* b,
+                        matrix::Dense<ValueType>* c,
+                        const matrix::Dense<ValueType>* alpha = nullptr,
+                        const matrix::Dense<ValueType>* beta = nullptr)
+{
+    if (alpha) {
+        return try_general_sparselib_spmv(exec, alpha->get_const_values(), a, b,
+                                          beta->get_const_values(), c);
+    } else {
+        auto handle = exec->get_cusparse_handle();
+        cusparse::pointer_mode_guard pm_guard(handle);
+        const auto valpha = one<ValueType>();
+        const auto vbeta = zero<ValueType>();
+        return try_general_sparselib_spmv(exec, &valpha, a, b, &vbeta, c);
+    }
+}
+
+
+}  // anonymous namespace
+}  // namespace host_kernel
+
+
+template <typename ValueType, typename IndexType>
+void spmv(std::shared_ptr<const CudaExecutor> exec,
+          const matrix::Csr<ValueType, IndexType>* a,
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+{
+    if (c->get_size()[0] * c->get_size()[1] == 0) {
+        // empty output: nothing to do
+    } else if (a->get_strategy()->get_name() == "load_balance") {
+        host_kernel::load_balance_spmv(exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
@@ -282,83 +406,37 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 return items_per_thread == compiled_info;
             },
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
-    } else if (a->get_strategy()->get_name() == "classical") {
-        IndexType max_length_per_row = 0;
-        using Tcsr = matrix::Csr<ValueType, IndexType>;
-        if (auto strategy =
-                std::dynamic_pointer_cast<const typename Tcsr::classical>(
-                    a->get_strategy())) {
-            max_length_per_row = strategy->get_max_length_per_row();
-        } else if (auto strategy = std::dynamic_pointer_cast<
-                       const typename Tcsr::automatical>(a->get_strategy())) {
-            max_length_per_row = strategy->get_max_length_per_row();
-        } else {
-            GKO_NOT_SUPPORTED(a->get_strategy());
-        }
-        host_kernel::select_classical_spmv(
-            classical_kernels(),
-            [&max_length_per_row](int compiled_info) {
-                return max_length_per_row >= compiled_info;
-            },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
-    } else if (a->get_strategy()->get_name() == "sparselib" ||
-               a->get_strategy()->get_name() == "cusparse") {
-        auto handle = exec->get_cusparse_handle();
-        {
-            cusparse::pointer_mode_guard pm_guard(handle);
-            const auto alpha = one<ValueType>();
-            const auto beta = zero<ValueType>();
-            // TODO: add implementation for int64 and multiple RHS
-            if (b->get_stride() != 1 || c->get_stride() != 1)
-                GKO_NOT_IMPLEMENTED;
-
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-            // TODO: add implementation for int64 and multiple RHS
-            if (!cusparse::is_supported<ValueType, IndexType>::value) {
-                GKO_NOT_IMPLEMENTED;
-            }
-
-            auto descr = cusparse::create_mat_descr();
-            auto row_ptrs = a->get_const_row_ptrs();
-            auto col_idxs = a->get_const_col_idxs();
-            cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                           a->get_size()[0], a->get_size()[1],
-                           a->get_num_stored_elements(), &alpha, descr,
-                           a->get_const_values(), row_ptrs, col_idxs,
-                           b->get_const_values(), &beta, c->get_values());
-
-            cusparse::destroy(descr);
-#else  // CUDA_VERSION >= 11000
-            cusparseOperation_t trans = CUSPARSE_OPERATION_NON_TRANSPOSE;
-            cusparseSpMVAlg_t alg = CUSPARSE_CSRMV_ALG1;
-            auto row_ptrs = const_cast<IndexType*>(a->get_const_row_ptrs());
-            auto col_idxs = const_cast<IndexType*>(a->get_const_col_idxs());
-            auto values = const_cast<ValueType*>(a->get_const_values());
-            auto mat = cusparse::create_csr(a->get_size()[0], a->get_size()[1],
-                                            a->get_num_stored_elements(),
-                                            row_ptrs, col_idxs, values);
-            auto b_val = const_cast<ValueType*>(b->get_const_values());
-            auto c_val = c->get_values();
-            auto vecb =
-                cusparse::create_dnvec(b->get_num_stored_elements(), b_val);
-            auto vecc =
-                cusparse::create_dnvec(c->get_num_stored_elements(), c_val);
-            size_type buffer_size = 0;
-            cusparse::spmv_buffersize<ValueType>(handle, trans, &alpha, mat,
-                                                 vecb, &beta, vecc, alg,
-                                                 &buffer_size);
-
-            gko::Array<char> buffer_array(exec, buffer_size);
-            auto buffer = buffer_array.get_data();
-            cusparse::spmv<ValueType>(handle, trans, &alpha, mat, vecb, &beta,
-                                      vecc, alg, buffer);
-            cusparse::destroy(vecb);
-            cusparse::destroy(vecc);
-            cusparse::destroy(mat);
-#endif
-        }
     } else {
-        GKO_NOT_IMPLEMENTED;
+        bool use_classical = true;
+        if (a->get_strategy()->get_name() == "sparselib" ||
+            a->get_strategy()->get_name() == "cusparse") {
+            use_classical = !host_kernel::try_sparselib_spmv(exec, a, b, c);
+        }
+        if (use_classical) {
+            IndexType max_length_per_row = 0;
+            using Tcsr = matrix::Csr<ValueType, IndexType>;
+            if (auto strategy =
+                    std::dynamic_pointer_cast<const typename Tcsr::classical>(
+                        a->get_strategy())) {
+                max_length_per_row = strategy->get_max_length_per_row();
+            } else if (auto strategy = std::dynamic_pointer_cast<
+                           const typename Tcsr::automatical>(
+                           a->get_strategy())) {
+                max_length_per_row = strategy->get_max_length_per_row();
+            } else {
+                // as a fall-back: use average row length, at least 1
+                max_length_per_row = std::max<size_type>(
+                    a->get_num_stored_elements() /
+                        std::max<size_type>(a->get_size()[0], 1),
+                    1);
+            }
+            host_kernel::select_classical_spmv(
+                classical_kernels(),
+                [&max_length_per_row](int compiled_info) {
+                    return max_length_per_row >= compiled_info;
+                },
+                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+        }
     }
 }
 
@@ -373,94 +451,10 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Dense<ValueType>* beta,
                    matrix::Dense<ValueType>* c)
 {
-    if (a->get_strategy()->get_name() == "load_balance") {
-        dense::scale(exec, beta, c);
-
-        const IndexType nwarps = a->get_num_srow_elements();
-
-        if (nwarps > 0) {
-            const dim3 csr_block(config::warp_size, warps_in_block, 1);
-            const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
-                                b->get_size()[1]);
-            kernel::abstract_spmv<<<csr_grid, csr_block>>>(
-                nwarps, static_cast<IndexType>(a->get_size()[0]),
-                as_cuda_type(alpha->get_const_values()),
-                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-                as_cuda_type(a->get_const_row_ptrs()),
-                as_cuda_type(a->get_const_srow()),
-                as_cuda_type(b->get_const_values()),
-                as_cuda_type(b->get_stride()), as_cuda_type(c->get_values()),
-                as_cuda_type(c->get_stride()));
-        } else {
-            GKO_NOT_SUPPORTED(nwarps);
-        }
-    } else if (a->get_strategy()->get_name() == "sparselib" ||
-               a->get_strategy()->get_name() == "cusparse") {
-        // TODO: add implementation for int64 and multiple RHS
-        if (b->get_stride() != 1 || c->get_stride() != 1) GKO_NOT_IMPLEMENTED;
-
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-        if (!cusparse::is_supported<ValueType, IndexType>::value) {
-            GKO_NOT_IMPLEMENTED;
-        }
-
-        auto descr = cusparse::create_mat_descr();
-        auto row_ptrs = a->get_const_row_ptrs();
-        auto col_idxs = a->get_const_col_idxs();
-        cusparse::spmv(exec->get_cusparse_handle(),
-                       CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
-                       a->get_size()[1], a->get_num_stored_elements(),
-                       alpha->get_const_values(), descr, a->get_const_values(),
-                       row_ptrs, col_idxs, b->get_const_values(),
-                       beta->get_const_values(), c->get_values());
-
-        cusparse::destroy(descr);
-#else  // CUDA_VERSION >= 11000
-        cusparseOperation_t trans = CUSPARSE_OPERATION_NON_TRANSPOSE;
-        cusparseSpMVAlg_t alg = CUSPARSE_CSRMV_ALG1;
-        auto row_ptrs = const_cast<IndexType*>(a->get_const_row_ptrs());
-        auto col_idxs = const_cast<IndexType*>(a->get_const_col_idxs());
-        auto values = const_cast<ValueType*>(a->get_const_values());
-        auto mat = cusparse::create_csr(a->get_size()[0], a->get_size()[1],
-                                        a->get_num_stored_elements(), row_ptrs,
-                                        col_idxs, values);
-        auto b_val = const_cast<ValueType*>(b->get_const_values());
-        auto c_val = c->get_values();
-        auto vecb = cusparse::create_dnvec(b->get_num_stored_elements(), b_val);
-        auto vecc = cusparse::create_dnvec(c->get_num_stored_elements(), c_val);
-        size_type buffer_size = 0;
-        cusparse::spmv_buffersize<ValueType>(
-            exec->get_cusparse_handle(), trans, alpha->get_const_values(), mat,
-            vecb, beta->get_const_values(), vecc, alg, &buffer_size);
-        gko::Array<char> buffer_array(exec, buffer_size);
-        auto buffer = buffer_array.get_data();
-        cusparse::spmv<ValueType>(exec->get_cusparse_handle(), trans,
-                                  alpha->get_const_values(), mat, vecb,
-                                  beta->get_const_values(), vecc, alg, buffer);
-        cusparse::destroy(vecb);
-        cusparse::destroy(vecc);
-        cusparse::destroy(mat);
-#endif
-    } else if (a->get_strategy()->get_name() == "classical") {
-        IndexType max_length_per_row = 0;
-        using Tcsr = matrix::Csr<ValueType, IndexType>;
-        if (auto strategy =
-                std::dynamic_pointer_cast<const typename Tcsr::classical>(
-                    a->get_strategy())) {
-            max_length_per_row = strategy->get_max_length_per_row();
-        } else if (auto strategy = std::dynamic_pointer_cast<
-                       const typename Tcsr::automatical>(a->get_strategy())) {
-            max_length_per_row = strategy->get_max_length_per_row();
-        } else {
-            GKO_NOT_SUPPORTED(a->get_strategy());
-        }
-        host_kernel::select_classical_spmv(
-            classical_kernels(),
-            [&max_length_per_row](int compiled_info) {
-                return max_length_per_row >= compiled_info;
-            },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha,
-            beta);
+    if (c->get_size()[0] * c->get_size()[1] == 0) {
+        // empty output: nothing to do
+    } else if (a->get_strategy()->get_name() == "load_balance") {
+        host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
@@ -472,7 +466,38 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha,
             beta);
     } else {
-        GKO_NOT_IMPLEMENTED;
+        bool use_classical = true;
+        if (a->get_strategy()->get_name() == "sparselib" ||
+            a->get_strategy()->get_name() == "cusparse") {
+            use_classical =
+                !host_kernel::try_sparselib_spmv(exec, a, b, c, alpha, beta);
+        }
+        if (use_classical) {
+            IndexType max_length_per_row = 0;
+            using Tcsr = matrix::Csr<ValueType, IndexType>;
+            if (auto strategy =
+                    std::dynamic_pointer_cast<const typename Tcsr::classical>(
+                        a->get_strategy())) {
+                max_length_per_row = strategy->get_max_length_per_row();
+            } else if (auto strategy = std::dynamic_pointer_cast<
+                           const typename Tcsr::automatical>(
+                           a->get_strategy())) {
+                max_length_per_row = strategy->get_max_length_per_row();
+            } else {
+                // as a fall-back: use average row length, at least 1
+                max_length_per_row = std::max<size_type>(
+                    a->get_num_stored_elements() /
+                        std::max<size_type>(a->get_size()[0], 1),
+                    1);
+            }
+            host_kernel::select_classical_spmv(
+                classical_kernels(),
+                [&max_length_per_row](int compiled_info) {
+                    return max_length_per_row >= compiled_info;
+                },
+                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c,
+                alpha, beta);
+        }
     }
 }
 
