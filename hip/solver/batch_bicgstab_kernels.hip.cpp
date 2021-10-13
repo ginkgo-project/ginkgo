@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 #include "hip/matrix/batch_struct.hip.hpp"
 
 
@@ -66,6 +67,7 @@ namespace batch_bicgstab {
 // include all depedencies (note: do not remove this comment)
 #include "common/cuda_hip/log/batch_logger.hpp.inc"
 #include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_identity.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_jacobi.hpp.inc"
@@ -158,6 +160,26 @@ static void apply_impl(
 }
 
 
+template <typename MatrixType, typename OptsType, typename LogType,
+          typename HipVT>
+void dispatch_on_preconditioner(
+    std::shared_ptr<const HipExecutor> exec, const OptsType& opts,
+    const LogType& logger, const MatrixType* const amat,
+    const batch_dense::UniformBatch<const HipVT>& b_b,
+    const batch_dense::UniformBatch<HipVT>& x_b)
+{
+    auto m_b = get_batch_struct(amat);
+    if (opts.preconditioner == gko::preconditioner::batch::type::none) {
+        apply_impl<BatchIdentity<HipVT>>(exec, opts, logger, m_b, b_b, x_b);
+    } else if (opts.preconditioner ==
+               gko::preconditioner::batch::type::jacobi) {
+        apply_impl<BatchJacobi<HipVT>>(exec, opts, logger, m_b, b_b, x_b);
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+
 template <typename ValueType>
 void apply(std::shared_ptr<const HipExecutor> exec,
            const BatchBicgstabOptions<remove_complex<ValueType>>& opts,
@@ -171,22 +193,14 @@ void apply(std::shared_ptr<const HipExecutor> exec,
     batch_log::SimpleFinalLogger<remove_complex<ValueType>> logger(
         logdata.res_norms->get_values(), logdata.iter_counts.get_data());
 
-    const gko::batch_dense::UniformBatch<hip_value_type> x_b =
-        get_batch_struct(x);
+    const auto x_b = get_batch_struct(x);
+    const auto b_b = get_batch_struct(b);
 
     if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a)) {
-        auto m_b = get_batch_struct(amat);
-        auto b_b = get_batch_struct(b);
-        if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-            apply_impl<BatchIdentity<hip_value_type>>(exec, opts, logger, m_b,
-                                                      b_b, x_b);
-        } else if (opts.preconditioner ==
-                   gko::preconditioner::batch::type::jacobi) {
-            apply_impl<BatchJacobi<hip_value_type>>(exec, opts, logger, m_b,
-                                                    b_b, x_b);
-        } else {
-            GKO_NOT_IMPLEMENTED;
-        }
+        dispatch_on_preconditioner(exec, opts, logger, amat, b_b, x_b);
+    } else if (auto amat =
+                   dynamic_cast<const matrix::BatchEll<ValueType>*>(a)) {
+        dispatch_on_preconditioner(exec, opts, logger, amat, b_b, x_b);
     } else {
         GKO_NOT_SUPPORTED(a);
     }
