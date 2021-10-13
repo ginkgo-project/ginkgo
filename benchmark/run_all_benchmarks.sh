@@ -173,6 +173,12 @@ else
     DETAILED_STR="--detailed=true"
 fi
 
+if  [ ! "${SOLVERS_USE_ABS_RESIDUAL}" ] || [ "${SOLVERS_USE_ABS_RESIDUAL}" -eq 0 ]; then
+    SOLVERS_ABS_RESIDUAL_STR="--use_abs_residual=false"
+else
+    SOLVERS_ABS_RESIDUAL_STR="--use_abs_residual=true"
+fi
+
 # Control whether to run detailed benchmarks or not.
 # Default setting is detailed=false. To activate, set DETAILED=1.
 if  [ ! "${PRINT_RES_ITERS}" ] || [ "${PRINT_RES_ITERS}" -eq 0 ]; then
@@ -409,6 +415,7 @@ run_batch_solver_benchmarks() {
                     --num_batches="${NUM_BATCH_ENTRIES}" "${SS_STR}" \
                     --num_shared_vecs="${NUM_SHARED_VECS}" \
                     --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
+					${SOLVERS_ABS_RESIDUAL_STR} \
                     ${SOLVERS_RHS_FLAG} ${DETAILED_STR} ${SOLVERS_INITIAL_GUESS_FLAG} \
                     --gpu_timer=${GPU_TIMER} \
                     --jacobi_max_block_size=${SOLVERS_JACOBI_MAX_BS} --device_id="${DEVICE_ID}" \

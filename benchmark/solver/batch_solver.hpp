@@ -71,8 +71,8 @@ DEFINE_uint32(max_iters, 1000,
 DEFINE_double(rel_res_goal, 1e-6, "The relative residual goal of the solver");
 
 DEFINE_bool(
-    rel_residual, false,
-    "Use relative residual instead of residual reduction stopping criterion");
+    use_abs_residual, false,
+    "Use absolute residual instead of residual reduction stopping criterion");
 
 DEFINE_string(batch_solvers, "richardson",
               "A comma-separated list of solvers to run. "
@@ -286,6 +286,22 @@ gko::preconditioner::batch::type get_preconditioner(const std::string& prec)
 }
 
 
+template <typename SolverIntermediate>
+std::unique_ptr<gko::BatchLinOpFactory> add_criteria_finalize(
+    SolverIntermediate inter, const std::shared_ptr<const gko::Executor>& exec)
+{
+    const auto toltype = FLAGS_use_abs_residual
+                             ? gko::stop::batch::ToleranceType::absolute
+                             : gko::stop::batch::ToleranceType::relative;
+    return inter
+        .with_residual_tol(
+            static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
+        .with_tolerance_type(toltype)
+        .with_max_iterations(static_cast<int>(FLAGS_max_iters))
+        .on(exec);
+}
+
+
 // For now, we only use relative residual tolerance
 std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
     const std::shared_ptr<const gko::Executor>& exec,
@@ -294,34 +310,22 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
 {
     if (description == "richardson") {
         using Solver = gko::solver::BatchRichardson<etype>;
-        return Solver::build()
-            .with_max_iterations(static_cast<int>(FLAGS_max_iters))
-            .with_residual_tol(
-                static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
-            .with_preconditioner(prec_type)
-            .with_relaxation_factor(static_cast<gko::remove_complex<etype>>(
-                FLAGS_relaxation_factor))
-            .on(exec);
+        return add_criteria_finalize(
+            Solver::build()
+                .with_preconditioner(prec_type)
+                .with_relaxation_factor(static_cast<gko::remove_complex<etype>>(
+                    FLAGS_relaxation_factor)),
+            exec);
     } else if (description == "bicgstab") {
         using Solver = gko::solver::BatchBicgstab<etype>;
-        return Solver::build()
-            .with_num_shared_vectors(static_cast<int>(FLAGS_num_shared_vecs))
-            .with_max_iterations(static_cast<int>(FLAGS_max_iters))
-            .with_residual_tol(
-                static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
-            .with_preconditioner(prec_type)
-            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .on(exec);
+        return add_criteria_finalize(
+            Solver::build().with_preconditioner(prec_type), exec);
     } else if (description == "gmres") {
         using Solver = gko::solver::BatchGmres<etype>;
-        return Solver::build()
-            .with_max_iterations(static_cast<int>(FLAGS_max_iters))
-            .with_residual_tol(
-                static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
-            .with_preconditioner(prec_type)
-            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .with_restart(FLAGS_gmres_restart)
-            .on(exec);
+        return add_criteria_finalize(
+            Solver::build().with_preconditioner(prec_type).with_restart(
+                FLAGS_gmres_restart),
+            exec);
     } else if (description == "direct") {
         using Solver = gko::solver::BatchDirect<etype>;
         return Solver::build().on(exec);
@@ -623,6 +627,9 @@ int read_data_and_launch_benchmark(int argc, char* argv[],
         ss_rel_res_goal.str() + "\nThe number of right hand sides is " +
         std::to_string(FLAGS_nrhs) + "\nThe number of batch entries is " +
         std::to_string(FLAGS_num_batches) + "\n";
+    if (FLAGS_use_abs_residual) {
+        extra_information += "Using absolute residual convergence criterion.\n";
+    }
     print_general_information(extra_information);
 
     auto exec = get_executor();
