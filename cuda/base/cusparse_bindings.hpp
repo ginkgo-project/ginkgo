@@ -166,6 +166,34 @@ inline void spmv(cusparseHandle_t handle, cusparseOperation_t opA,
 }
 
 
+template <typename ValueType>
+inline void spmm_buffersize(cusparseHandle_t handle, cusparseOperation_t opB,
+                            cusparseOperation_t opA, const ValueType* alpha,
+                            const cusparseSpMatDescr_t matA,
+                            const cusparseDnMatDescr_t vecX,
+                            const ValueType* beta,
+                            const cusparseDnMatDescr_t vecY,
+                            cusparseSpMMAlg_t alg, size_type* bufferSize)
+{
+    constexpr auto value_type = cuda_data_type<ValueType>();
+    cusparseSpMM_bufferSize(handle, opA, opB, alpha, matA, vecX, beta, vecY,
+                            value_type, alg, bufferSize);
+}
+
+template <typename ValueType>
+inline void spmm(cusparseHandle_t handle, cusparseOperation_t opA,
+                 cusparseOperation_t opB, const ValueType* alpha,
+                 const cusparseSpMatDescr_t matA,
+                 const cusparseDnMatDescr_t vecX, const ValueType* beta,
+                 const cusparseDnMatDescr_t vecY, cusparseSpMMAlg_t alg,
+                 void* externalBuffer)
+{
+    constexpr auto value_type = cuda_data_type<ValueType>();
+    cusparseSpMM(handle, opA, opB, alpha, matA, vecX, beta, vecY, value_type,
+                 alg, externalBuffer);
+}
+
+
 #endif
 
 
@@ -813,21 +841,22 @@ inline cusparseDnVecDescr_t create_dnvec(int64 size, ValueType* values)
 }
 
 
-inline void destroy(cusparseDnVecDescr_t descr)
-{
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(descr));
-}
-
-
 template <typename ValueType>
-inline cusparseDnMatDescr_t create_dnmat(int64 rows, int64 cols, int64 stride,
+inline cusparseDnMatDescr_t create_dnmat(gko::dim<2> size, size_type stride,
                                          ValueType* values)
 {
     cusparseDnMatDescr_t descr{};
     constexpr auto value_type = cuda_data_type<ValueType>();
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateDnMat(
-        &descr, rows, cols, stride, values, value_type, CUSPARSE_ORDER_ROW));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseCreateDnMat(&descr, size[0], size[1], stride, values,
+                            value_type, CUSPARSE_ORDER_ROW));
     return descr;
+}
+
+
+inline void destroy(cusparseDnVecDescr_t descr)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(descr));
 }
 
 
