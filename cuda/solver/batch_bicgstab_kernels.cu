@@ -112,14 +112,12 @@ int get_max_dynamic_shared_memory(std::shared_ptr<const CudaExecutor> exec,
     cudaDeviceGetAttribute(&shmem_per_sm,
                            cudaDevAttrMaxSharedMemoryPerMultiprocessor,
                            exec->get_device_id());
-    printf(" Max shared mem per SM = %d.\n", shmem_per_sm);
     int max_shared_pc =
         100 - static_cast<int>(static_cast<double>(required_cache_storage) /
                                shmem_per_sm * 100);
     if (max_shared_pc <= 0) {
         max_shared_pc = 1;
     }
-    printf(" Max shared pc required = %d.\n", max_shared_pc);
     GKO_ASSERT_NO_CUDA_ERRORS(cudaFuncSetAttribute(
         apply_kernel<StopType, PrecType, LogType, BatchMatrixType, ValueType>,
         cudaFuncAttributePreferredSharedMemoryCarveout, max_shared_pc - 1));
@@ -127,8 +125,6 @@ int get_max_dynamic_shared_memory(std::shared_ptr<const CudaExecutor> exec,
     cudaFuncGetAttributes(
         &funcattr,
         apply_kernel<StopType, PrecType, LogType, BatchMatrixType, ValueType>);
-    printf(" Max dyn. shared memory for batch bcgs = %d.\n",
-           funcattr.maxDynamicSharedSizeBytes);
     return funcattr.maxDynamicSharedSizeBytes;
 }
 
@@ -194,12 +190,15 @@ static void apply_impl(
         exec, sconf.gmem_stride_bytes * nbatch / sizeof(ValueType));
     assert(sconf.gmem_stride_bytes % sizeof(ValueType) == 0);
 
-    printf(" Bicgstab: vectors in shared memory = %d\n", sconf.n_shared);
+    std::cerr << " Bicgstab: vectors in shared memory = " << sconf.n_shared
+              << "\n";
     if (sconf.prec_shared) {
-        printf(" Bicgstab: precondiioner is in shared memory.\n");
+        std::cerr << " Bicgstab: precondiioner is in shared memory.\n";
     }
-    printf(" Bicgstab: vectors in global memory = %d\n", sconf.n_global);
-    printf(" Bicgstab: number of threads per block = %d.\n", block_size);
+    std::cerr << " Bicgstab: vectors in global memory = " << sconf.n_global
+              << "\n";
+    std::cerr << " Bicgstab: number of threads per block = " << block_size
+              << "\n";
 
     if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
         BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleAbsResidual, PrecType);
