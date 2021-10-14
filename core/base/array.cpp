@@ -110,12 +110,11 @@ ValueType reduce_add(const Array<ValueType>& input_arr,
                      const ValueType init_value)
 {
     auto exec = input_arr.get_executor();
-    auto value = Array<ValueType>(exec, 1);
-    value.fill(init_value);
+    auto value = Array<ValueType>(exec, {0});
     exec->run(array::make_reduce_add_array(input_arr.get_const_data(),
                                            input_arr.get_num_elems(),
                                            value.get_data()));
-    return exec->copy_val_to_host(value.get_data());
+    return init_value + exec->copy_val_to_host(value.get_data());
 }
 
 
