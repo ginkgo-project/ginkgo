@@ -36,6 +36,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "core/synthesizer/implementation_selection.hpp"
+#include "cuda/base/config.hpp"
+#include "cuda/base/math.hpp"
+#include "cuda/base/types.hpp"
+#include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/reduction.cuh"
+#include "cuda/components/thread_ids.cuh"
+#include "cuda/components/uninitialized_array.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {
@@ -47,11 +57,71 @@ namespace cuda {
 namespace sparsity_csr {
 
 
+constexpr int classical_overweight = 32;
+constexpr int spmv_block_size = 128;
+constexpr int warps_in_block = 4;
+
+
+using classical_kernels = syn::value_list<int, 2>;
+
+
+#include "common/cuda_hip/matrix/sparsity_csr_kernels.hpp.inc"
+
+
+namespace host_kernel {
+
+
+template <int subwarp_size, typename ValueType, typename IndexType>
+void classical_spmv(syn::value_list<int, subwarp_size>,
+                    std::shared_ptr<const CudaExecutor> exec,
+                    const matrix::SparsityCsr<ValueType, IndexType>* a,
+                    const matrix::Dense<ValueType>* b,
+                    matrix::Dense<ValueType>* c,
+                    const matrix::Dense<ValueType>* alpha = nullptr,
+                    const matrix::Dense<ValueType>* beta = nullptr)
+{
+    const auto nwarps = exec->get_num_warps_per_sm() *
+                        exec->get_num_multiprocessor() * classical_overweight;
+    const auto gridx =
+        std::min(ceildiv(a->get_size()[0], spmv_block_size / subwarp_size),
+                 int64(nwarps / warps_in_block));
+    const dim3 grid(gridx, b->get_size()[1]);
+    const dim3 block(spmv_block_size);
+
+    if (alpha == nullptr && beta == nullptr) {
+        kernel::abstract_classical_spmv<subwarp_size><<<grid, block, 0, 0>>>(
+            a->get_size()[0], as_cuda_type(a->get_const_value()),
+            a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(c->get_values()), c->get_stride());
+
+    } else if (alpha != nullptr && beta != nullptr) {
+        kernel::abstract_classical_spmv<subwarp_size><<<grid, block, 0, 0>>>(
+            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(a->get_const_value()), a->get_const_col_idxs(),
+            as_cuda_type(a->get_const_row_ptrs()),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(beta->get_const_values()),
+            as_cuda_type(c->get_values()), c->get_stride());
+    } else {
+        GKO_KERNEL_NOT_FOUND;
+    }
+}
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
+
+
+}  // namespace host_kernel
+
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::SparsityCsr<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b,
-          matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+{
+    host_kernel::select_classical_spmv(
+        classical_kernels(), [](int compiled_info) { return true; },
+        syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL);
@@ -63,7 +133,12 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::SparsityCsr<ValueType, IndexType>* a,
                    const matrix::Dense<ValueType>* b,
                    const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+                   matrix::Dense<ValueType>* c)
+{
+    host_kernel::select_classical_spmv(
+        classical_kernels(), [](int compiled_info) { return true; },
+        syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha, beta);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL);
