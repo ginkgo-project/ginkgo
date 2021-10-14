@@ -58,15 +58,19 @@ protected:
     ReduceArray()
         : ref(gko::ReferenceExecutor::create()),
           exec(gko::HipExecutor::create(0, ref)),
+          rand_engine(42),
           total_size(6344),
-          vals(ref, total_size),
+          vals(ref),
           dvals(exec, total_size)
     {
-        std::fill_n(vals.get_data(), total_size, 3);
+        vals = gko::test::generate_random_array<value_type>(
+            total_size, std::uniform_int_distribution<>(2, 5), rand_engine,
+            ref);
         dvals = vals;
         out = gko::Array<value_type>(this->ref, I<T>{2});
     }
 
+    std::ranlux48 rand_engine;
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::HipExecutor> exec;
     gko::size_type total_size;
@@ -82,7 +86,7 @@ TYPED_TEST_SUITE(ReduceArray, gko::test::ValueAndIndexTypes,
 TYPED_TEST(ReduceArray, EqualsReference)
 {
     using T = typename TestFixture::value_type;
-    auto dval = gko::Array<T>(this->exec, I<T>{2});
+    auto dval = this->out;
     auto val = gko::Array<T>(this->ref, 1);
 
     gko::kernels::reference::components::reduce_add_array(

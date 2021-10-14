@@ -704,6 +704,7 @@ private:
  *
  * @param [in] input_arr the input array to be reduced
  * @param [in] init_val the initial value
+ *
  * @return the reduced value
  */
 template <typename ValueType>

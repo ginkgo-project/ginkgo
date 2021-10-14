@@ -56,7 +56,7 @@ namespace hip {
 namespace components {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_reduce_block_size = 512;
 
 
 #include "common/cuda_hip/components/reduction.hpp.inc"
@@ -69,15 +69,17 @@ void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,
     auto block_results_val = array;
     size_type grid_dim = size;
     auto block_results = Array<ValueType>(exec);
-    if (size > default_block_size) {
-        const auto n = ceildiv(size, default_block_size);
-        grid_dim = (n <= default_block_size) ? n : default_block_size;
+    if (size > default_reduce_block_size) {
+        const auto n = ceildiv(size, default_reduce_block_size);
+        grid_dim =
+            (n <= default_reduce_block_size) ? n : default_reduce_block_size;
 
         block_results.resize_and_reset(grid_dim);
 
-        hipLaunchKernelGGL(
-            reduce_add_array, dim3(grid_dim), dim3(default_block_size), 0, 0,
-            size, as_hip_type(array), as_hip_type(block_results.get_data()));
+        hipLaunchKernelGGL(reduce_add_array, dim3(grid_dim),
+                           dim3(default_reduce_block_size), 0, 0, size,
+                           as_hip_type(array),
+                           as_hip_type(block_results.get_data()));
 
         block_results_val = block_results.get_const_data();
     }
@@ -85,7 +87,7 @@ void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,
     auto d_result = Array<ValueType>::view(exec, 1, val);
 
     hipLaunchKernelGGL(reduce_add_array_with_initial_value, dim3(1),
-                       dim3(default_block_size), 0, 0, grid_dim,
+                       dim3(default_reduce_block_size), 0, 0, grid_dim,
                        as_hip_type(block_results_val),
                        as_hip_type(d_result.get_data()));
 }
