@@ -1158,11 +1158,7 @@ std::unique_ptr<Matrix> initialize(
     size_type stride,
     std::initializer_list<std::initializer_list<typename Matrix::value_type>>
         vals,
-<<<<<<< HEAD
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-=======
-    std::shared_ptr<const Executor> exec, TArgs &&...create_args)
->>>>>>> d682b17b5d (add further calls to validate function)
 {
     using dense = matrix::Dense<typename Matrix::value_type>;
     size_type num_rows = vals.size();
@@ -1210,11 +1206,7 @@ template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
     std::initializer_list<std::initializer_list<typename Matrix::value_type>>
         vals,
-<<<<<<< HEAD
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-=======
-    std::shared_ptr<const Executor> exec, TArgs &&...create_args)
->>>>>>> d682b17b5d (add further calls to validate function)
 {
     return initialize<Matrix>(vals.size() > 0 ? begin(vals)->size() : 0, vals,
                               std::move(exec),
