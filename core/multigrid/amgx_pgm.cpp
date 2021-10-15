@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/row_gatherer.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/base/utils.hpp"
@@ -161,6 +162,16 @@ void AmgxPgm<ValueType, IndexType>::generate()
                                         one<ValueType>()));
     // TODO: implement the restrict_op from aggregation.
     auto restrict_op = gko::as<csr_type>(share(prolong_csr->transpose()));
+    auto restrict_sparsity =
+        share(matrix::SparsityCsr<ValueType, IndexType>::create(
+            exec, restrict_op->get_size(),
+            restrict_op->get_num_stored_elements()));
+    exec->copy_from(exec.get(), static_cast<size_type>(num_agg + 1),
+                    restrict_op->get_const_row_ptrs(),
+                    restrict_sparsity->get_row_ptrs());
+    exec->copy_from(exec.get(), restrict_op->get_num_stored_elements(),
+                    restrict_op->get_const_col_idxs(),
+                    restrict_sparsity->get_col_idxs());
 
     // Construct the coarse matrix
     // TODO: use less memory footprint to improve it
@@ -170,7 +181,8 @@ void AmgxPgm<ValueType, IndexType>::generate()
     amgxpgm_op->apply(prolong_csr.get(), tmp.get());
     restrict_op->apply(tmp.get(), coarse_matrix.get());
 
-    this->set_multigrid_level(prolong_row_gather, coarse_matrix, restrict_op);
+    this->set_multigrid_level(prolong_row_gather, coarse_matrix,
+                              restrict_sparsity);
 }
 
 
