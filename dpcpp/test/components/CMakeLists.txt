@@ -1,5 +1,6 @@
 ginkgo_create_test(absolute_array)
 ginkgo_create_dpcpp_test(cooperative_groups_kernels)
 ginkgo_create_test(fill_array)
+ginkgo_create_test(reduce_array)
 ginkgo_create_test(precision_conversion)
 ginkgo_create_test(prefix_sum)

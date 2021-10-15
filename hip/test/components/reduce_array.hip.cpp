@@ -86,14 +86,14 @@ TYPED_TEST_SUITE(ReduceArray, gko::test::ValueAndIndexTypes,
 TYPED_TEST(ReduceArray, EqualsReference)
 {
     using T = typename TestFixture::value_type;
-    auto dval = this->out;
+    auto dval = gko::Array<T>(this->exec, 1);
     auto val = gko::Array<T>(this->ref, 1);
+    dval = this->out;
 
-    gko::kernels::reference::components::reduce_add_array(
-        this->ref, this->vals.get_const_data(), this->total_size,
-        this->out.get_data());
-    gko::kernels::hip::components::reduce_add_array(
-        this->exec, this->dvals.get_data(), this->total_size, dval.get_data());
+    gko::kernels::reference::components::reduce_add_array(this->ref, this->vals,
+                                                          this->out);
+    gko::kernels::hip::components::reduce_add_array(this->exec, this->dvals,
+                                                    dval);
 
     val = dval;
     ASSERT_EQ(this->out.get_data()[0], val.get_data()[0]);

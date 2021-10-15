@@ -6,7 +6,6 @@ target_sources(ginkgo_omp
     base/version.cpp
     components/absolute_array.cpp
     components/fill_array.cpp
-    components/reduce_array.cpp
     components/prefix_sum.cpp
     factorization/factorization_kernels.cpp
     factorization/ic_kernels.cpp
@@ -38,6 +37,7 @@ target_sources(ginkgo_omp
     stop/criterion_kernels.cpp
     stop/residual_norm_kernels.cpp
     ../common/unified/components/precision_conversion.cpp
+    ../common/unified/components/reduce_array.cpp
     ../common/unified/matrix/coo_kernels.cpp
     ../common/unified/matrix/csr_kernels.cpp
     ../common/unified/matrix/dense_kernels.cpp
