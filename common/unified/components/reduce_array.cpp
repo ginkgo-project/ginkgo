@@ -30,44 +30,45 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_COMPONENTS_REDUCE_ARRAY_HPP_
-#define GKO_CORE_COMPONENTS_REDUCE_ARRAY_HPP_
+#include "core/components/reduce_array.hpp"
 
 
-#include <memory>
+#include <ginkgo/core/base/math.hpp>
 
 
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/types.hpp>
-
-
-#include "core/base/kernel_declaration.hpp"
+#include "common/unified/base/kernel_launch.hpp"
+#include "common/unified/base/kernel_launch_reduction.hpp"
 
 
 namespace gko {
 namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+/**
+ * @brief The Dense matrix format namespace.
+ *
+ * @ingroup dense
+ */
+namespace components {
 
 
-#define GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL(ValueType)                 \
-    void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec, \
-                          const Array<ValueType>& data,                \
-                          Array<ValueType>& result)
+template <typename ValueType>
+void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,
+                      const Array<ValueType>& array, Array<ValueType>& result)
+{
+    run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto array, auto result) {
+            return i == 0 ? (array[i] + result[0]) : array[i];
+        },
+        [] GKO_KERNEL(auto a, auto b) { return a + b; },
+        [] GKO_KERNEL(auto a) { return a; }, ValueType{}, result.get_data(),
+        array.get_num_elems(), array, result);
+}
+
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename ValueType>    \
-    GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL(ValueType)
-
-
-GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(components,
-                                        GKO_DECLARE_ALL_AS_TEMPLATES);
-
-
-#undef GKO_DECLARE_ALL_AS_TEMPLATES
-
-
+}  // namespace components
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_CORE_COMPONENTS_REDUCE_ARRAY_HPP_

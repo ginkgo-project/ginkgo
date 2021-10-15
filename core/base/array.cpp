@@ -99,9 +99,7 @@ void reduce_add(const Array<ValueType>& input_arr, Array<ValueType>& result)
 {
     GKO_ASSERT(result.get_num_elems() == 1);
     auto exec = input_arr.get_executor();
-    exec->run(array::make_reduce_add_array(input_arr.get_const_data(),
-                                           input_arr.get_num_elems(),
-                                           result.get_data()));
+    exec->run(array::make_reduce_add_array(input_arr, result));
 }
 
 
@@ -110,10 +108,9 @@ ValueType reduce_add(const Array<ValueType>& input_arr,
                      const ValueType init_value)
 {
     auto exec = input_arr.get_executor();
-    auto value = Array<ValueType>(exec, {0});
-    exec->run(array::make_reduce_add_array(input_arr.get_const_data(),
-                                           input_arr.get_num_elems(),
-                                           value.get_data()));
+    auto value = Array<ValueType>(exec, 1);
+    value.fill(ValueType{0});
+    exec->run(array::make_reduce_add_array(input_arr, value));
     return init_value + exec->copy_val_to_host(value.get_data());
 }
 
