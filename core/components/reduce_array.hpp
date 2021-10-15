@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 

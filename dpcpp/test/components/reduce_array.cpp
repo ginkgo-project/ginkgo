@@ -44,8 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 
 
+#include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
-#include "cuda/test/utils.hpp"
 
 
 namespace {
@@ -57,7 +57,7 @@ protected:
     using value_type = T;
     ReduceArray()
         : ref(gko::ReferenceExecutor::create()),
-          exec(gko::CudaExecutor::create(0, ref)),
+          exec(gko::DpcppExecutor::create(0, ref)),
           rand_engine(42),
           total_size(6344),
           vals(ref),
@@ -72,7 +72,7 @@ protected:
 
     std::ranlux48 rand_engine;
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::CudaExecutor> exec;
+    std::shared_ptr<gko::DpcppExecutor> exec;
     gko::size_type total_size;
     gko::Array<value_type> out;
     gko::Array<value_type> vals;
@@ -92,8 +92,8 @@ TYPED_TEST(ReduceArray, EqualsReference)
 
     gko::kernels::reference::components::reduce_add_array(this->ref, this->vals,
                                                           this->out);
-    gko::kernels::cuda::components::reduce_add_array(this->exec, this->dvals,
-                                                     dval);
+    gko::kernels::dpcpp::components::reduce_add_array(this->exec, this->dvals,
+                                                      dval);
 
     val = dval;
     ASSERT_EQ(this->out.get_data()[0], val.get_data()[0]);

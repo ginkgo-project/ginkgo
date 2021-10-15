@@ -19,7 +19,6 @@ target_sources(ginkgo_dpcpp
     base/helper.dp.cpp
     components/absolute_array.dp.cpp
     components/fill_array.dp.cpp
-    components/reduce_array.dp.cpp
     components/prefix_sum.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
@@ -51,6 +50,7 @@ target_sources(ginkgo_dpcpp
     stop/criterion_kernels.dp.cpp
     stop/residual_norm_kernels.dp.cpp
     ../common/unified/components/precision_conversion.cpp
+    ../common/unified/components/reduce_array.cpp
     ../common/unified/matrix/coo_kernels.cpp
     ../common/unified/matrix/csr_kernels.cpp
     ../common/unified/matrix/dense_kernels.cpp
