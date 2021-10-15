@@ -598,8 +598,8 @@ void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
             MultigridState(system_matrix_.get(), this, b->get_size()[1]);
         exec->run(multigrid::make_initialize(&stop_status));
         // compute the residual at the r_list(0);
-        auto r = state.r_list.at(0);
-        r->copy_from(b);
+        // auto r = state.r_list.at(0);
+        // r->copy_from(b);
         if (parameters_.zero_guess) {
             using matrix::Dense;
             using std::complex;
@@ -615,19 +615,19 @@ void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
                 GKO_NOT_SUPPORTED(x);
             }
         }
-        system_matrix_->apply(lend(neg_one_op), x, lend(one_op), r.get());
+        // system_matrix_->apply(lend(neg_one_op), x, lend(one_op), r.get());
         auto stop_criterion = stop_criterion_factory_->generate(
             system_matrix_,
             std::shared_ptr<const LinOp>(b, null_deleter<const LinOp>{}), x,
-            r.get());
+            nullptr);
         int iter = -1;
         while (true) {
             ++iter;
             this->template log<log::Logger::iteration_complete>(this, iter,
-                                                                r.get(), x);
+                                                                nullptr, x);
             if (stop_criterion->update()
                     .num_iterations(iter)
-                    .residual(r.get())
+                    // .residual(r.get())
                     .solution(x)
                     .check(RelativeStoppingId, true, &stop_status,
                            &one_changed)) {
@@ -636,8 +636,9 @@ void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
 
             state.run_cycle(this->get_parameters().cycle, 0, system_matrix_, b,
                             x);
-            r->copy_from(b);
-            system_matrix_->apply(lend(neg_one_op), x, lend(one_op), r.get());
+            // r->copy_from(b);
+            // system_matrix_->apply(lend(neg_one_op), x, lend(one_op),
+            // r.get());
         }
     };
 
