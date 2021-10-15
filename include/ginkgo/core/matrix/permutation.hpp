@@ -48,8 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
-
-#include "core/components/validation_helpers.hpp"
+#include <ginkgo/core/components/validation_helpers.hpp>
 
 namespace gko {
 namespace matrix {
@@ -168,19 +167,6 @@ public:
         return std::unique_ptr<const Permutation>(new Permutation{
             exec, size, gko::detail::array_const_cast(std::move(perm_idxs)),
             enabled_permute});
-    }
-
-    // TODO add has_unique_idxs test
-    void validate_impl() const
-    {
-        std::map<std::string, std::function<bool()>> constraints_map{
-            {"is_finite", [this] { return ::gko::validate::is_finite(this); }}};
-
-        for (auto const& x : constraints_map) {
-            if (!x.second()) {
-                throw gko::Invalid(__FILE__, __LINE__, "Permutation", x.first);
-            };
-        }
     }
 
 protected:

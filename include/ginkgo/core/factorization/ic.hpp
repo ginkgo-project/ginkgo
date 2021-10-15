@@ -41,9 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/components/validation_helpers.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
-#include "core/components/validation_helpers.hpp"
 
 namespace gko {
 /**
@@ -119,7 +118,7 @@ public:
                             : l_factor_has_non_zero_diagonal;
              }}};
 
-        for (auto const &x : constraints_map) {
+        for (auto const& x : constraints_map) {
             if (!x.second()) {
                 throw gko::Invalid(__FILE__, __LINE__, "Ic", x.first);
             };

@@ -43,13 +43,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/components/validation_helpers.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
-#include "core/components/validation_helpers.hpp"
 #include "core/matrix/coo_kernels.hpp"
 
 
@@ -262,7 +262,7 @@ void Coo<ValueType, IndexType>::validate_impl() const
                  row_idxs_.get_const_data(), row_idxs_.get_num_elems());
          }}};
 
-    for (auto const &x : constraints_map) {
+    for (auto const& x : constraints_map) {
         if (x.second()) {
             throw gko::Invalid(__FILE__, __LINE__, "Coo", x.first);
         };

@@ -33,10 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/components/validation_helpers.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
-#include "core/components/validation_helpers.hpp"
 #include "core/test/utils.hpp"
 
 #include <complex>
@@ -77,9 +77,9 @@ protected:
         auto coo_sym_mtx(gko::matrix::Coo<value_type, index_type>::create(
             exec, gko::dim<2>{3, 3}, 7));
 
-        value_type *v = coo_sym_mtx->get_values();
-        index_type *c = coo_sym_mtx->get_col_idxs();
-        index_type *r = coo_sym_mtx->get_row_idxs();
+        value_type* v = coo_sym_mtx->get_values();
+        index_type* c = coo_sym_mtx->get_col_idxs();
+        index_type* r = coo_sym_mtx->get_row_idxs();
         /* set values of symmetric matrix */
         /* clang-format off */
         r[0] = 0; r[1] = 0;

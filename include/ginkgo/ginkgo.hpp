@@ -66,6 +66,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/base/version.hpp>
 
+#include <ginkgo/core/components/validation_helpers.hpp>
+
 #include <ginkgo/core/factorization/ic.hpp>
 #include <ginkgo/core/factorization/ilu.hpp>
 #include <ginkgo/core/factorization/par_ic.hpp>
