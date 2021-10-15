@@ -500,10 +500,12 @@ void Multigrid::generate()
     size_type level = 0;
     auto matrix = system_matrix_;
     auto exec = this->get_executor();
+    std::cout << "generate" << std::endl;
     // Always generate smoother with size = level.
     while (level < parameters_.max_levels &&
            num_rows > parameters_.min_coarse_rows) {
         auto index = level_selector_(level, lend(matrix));
+        std::cout << "level " << level << " index " << index << std::endl;
         GKO_ENSURE_IN_BOUNDS(index, parameters_.mg_level.size());
         auto mg_level_factory = parameters_.mg_level.at(index);
         // coarse generate
