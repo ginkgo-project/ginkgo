@@ -803,6 +803,28 @@ public:
             stride);
     }
 
+    /**
+     * Creates a constant (immutable) Dense matrix from a constant array.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the dimensions of the matrix
+     * @param values  the value array of the matrix
+     * @param stride  the row-stride of the matrix
+     * @returns A smart pointer to the constant matrix wrapping the input array
+     *          (if it resides on the same executor as the matrix) or a copy of
+     *          the array on the correct executor.
+     */
+    static std::unique_ptr<const Dense> create_const(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        gko::detail::ConstArrayView<ValueType>&& values, size_type stride)
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const Dense>(new Dense{
+            exec, size, gko::detail::array_const_cast(std::move(values)),
+            stride});
+    }
+
 protected:
     /**
      * Creates an uninitialized Dense matrix of the specified size.
@@ -1136,11 +1158,7 @@ std::unique_ptr<Matrix> initialize(
     size_type stride,
     std::initializer_list<std::initializer_list<typename Matrix::value_type>>
         vals,
-<<<<<<< HEAD
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-=======
-    std::shared_ptr<const Executor> exec, TArgs &&...create_args)
->>>>>>> d682b17b5d (add further calls to validate function)
 {
     using dense = matrix::Dense<typename Matrix::value_type>;
     size_type num_rows = vals.size();
@@ -1188,11 +1206,7 @@ template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
     std::initializer_list<std::initializer_list<typename Matrix::value_type>>
         vals,
-<<<<<<< HEAD
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-=======
-    std::shared_ptr<const Executor> exec, TArgs &&...create_args)
->>>>>>> d682b17b5d (add further calls to validate function)
 {
     return initialize<Matrix>(vals.size() > 0 ? begin(vals)->size() : 0, vals,
                               std::move(exec),

@@ -116,7 +116,7 @@ protected:
     gko::remove_complex<value_type> tol;
 };
 
-TYPED_TEST_SUITE(Ic, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Ic, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Ic, ThrowNotSupportedForWrongLinOp)

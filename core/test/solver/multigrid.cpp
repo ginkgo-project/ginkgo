@@ -199,7 +199,7 @@ protected:
     }
 };
 
-TYPED_TEST_CASE(Multigrid, gko::test::ValueTypes);
+TYPED_TEST_CASE(Multigrid, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Multigrid, MultigridFactoryKnowsItsExecutor)

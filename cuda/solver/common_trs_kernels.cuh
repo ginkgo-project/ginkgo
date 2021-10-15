@@ -59,14 +59,11 @@ namespace solver {
 
 
 struct SolveStruct {
-    virtual void dummy() {}
+    virtual ~SolveStruct() {}
 };
 
 
 namespace cuda {
-
-
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
 
 
 struct SolveStruct : gko::solver::SolveStruct {
@@ -113,44 +110,6 @@ struct SolveStruct : gko::solver::SolveStruct {
 };
 
 
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-
-
-struct SolveStruct : gko::solver::SolveStruct {
-    cusparseSolveAnalysisInfo_t solve_info;
-    cusparseMatDescr_t factor_descr;
-    SolveStruct()
-    {
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseCreateSolveAnalysisInfo(&solve_info));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateMatDescr(&factor_descr));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseSetMatIndexBase(factor_descr, CUSPARSE_INDEX_BASE_ZERO));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseSetMatType(factor_descr, CUSPARSE_MATRIX_TYPE_GENERAL));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseSetMatDiagType(factor_descr, CUSPARSE_DIAG_TYPE_NON_UNIT));
-    }
-
-    SolveStruct(const SolveStruct&) = delete;
-
-    SolveStruct(SolveStruct&&) = delete;
-
-    SolveStruct& operator=(const SolveStruct&) = delete;
-
-    SolveStruct& operator=(SolveStruct&&) = delete;
-
-    ~SolveStruct()
-    {
-        cusparseDestroyMatDescr(factor_descr);
-        cusparseDestroySolveAnalysisInfo(solve_info);
-    }
-};
-
-
-#endif
-
-
 }  // namespace cuda
 }  // namespace solver
 
@@ -163,19 +122,7 @@ namespace {
 void should_perform_transpose_kernel(std::shared_ptr<const CudaExecutor> exec,
                                      bool& do_transpose)
 {
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
-
-
     do_transpose = false;
-
-
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-
-
-    do_transpose = true;
-
-
-#endif
 }
 
 
@@ -200,10 +147,6 @@ void generate_kernel(std::shared_ptr<const CudaExecutor> exec,
                 GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatFillMode(
                     cuda_solve_struct->factor_descr, CUSPARSE_FILL_MODE_UPPER));
             }
-
-
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
-
 
             ValueType one = 1.0;
 
@@ -238,25 +181,6 @@ void generate_kernel(std::shared_ptr<const CudaExecutor> exec,
                     cuda_solve_struct->policy,
                     cuda_solve_struct->factor_work_vec);
             }
-
-
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-
-
-            {
-                cusparse::pointer_mode_guard pm_guard(handle);
-                cusparse::csrsm_analysis(
-                    handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                    matrix->get_size()[0], matrix->get_num_stored_elements(),
-                    cuda_solve_struct->factor_descr, matrix->get_const_values(),
-                    matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-                    cuda_solve_struct->solve_info);
-            }
-
-
-#endif
-
-
         } else {
             GKO_NOT_SUPPORTED(solve_struct);
         }
@@ -282,11 +206,6 @@ void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
                 dynamic_cast<const solver::cuda::SolveStruct*>(solve_struct)) {
             ValueType one = 1.0;
             auto handle = exec->get_cusparse_handle();
-
-
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
-
-
             x->copy_from(gko::lend(b));
             {
                 cusparse::pointer_mode_guard pm_guard(handle);
@@ -301,44 +220,6 @@ void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
                     cuda_solve_struct->solve_info, cuda_solve_struct->policy,
                     cuda_solve_struct->factor_work_vec);
             }
-
-
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-
-
-            {
-                cusparse::pointer_mode_guard pm_guard(handle);
-                if (b->get_stride() == 1) {
-                    cusparse::csrsm_solve(
-                        handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                        matrix->get_size()[0], b->get_stride(), &one,
-                        cuda_solve_struct->factor_descr,
-                        matrix->get_const_values(),
-                        matrix->get_const_row_ptrs(),
-                        matrix->get_const_col_idxs(),
-                        cuda_solve_struct->solve_info, b->get_const_values(),
-                        b->get_size()[0], x->get_values(), x->get_size()[0]);
-                } else {
-                    dense::transpose(exec, b, trans_b);
-                    dense::transpose(exec, x, trans_x);
-                    cusparse::csrsm_solve(
-                        handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                        matrix->get_size()[0], trans_b->get_size()[0], &one,
-                        cuda_solve_struct->factor_descr,
-                        matrix->get_const_values(),
-                        matrix->get_const_row_ptrs(),
-                        matrix->get_const_col_idxs(),
-                        cuda_solve_struct->solve_info, trans_b->get_values(),
-                        trans_b->get_size()[1], trans_x->get_values(),
-                        trans_x->get_size()[1]);
-                    dense::transpose(exec, trans_x, x);
-                }
-            }
-
-
-#endif
-
-
         } else {
             GKO_NOT_SUPPORTED(solve_struct);
         }

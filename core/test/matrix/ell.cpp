@@ -110,7 +110,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Ell, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Ell, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Ell, KnowsItsSize)
@@ -148,6 +148,23 @@ TYPED_TEST(Ell, CanBeCreatedFromExistingData)
         this->exec, gko::dim<2>{3, 2},
         gko::Array<value_type>::view(this->exec, 8, values),
         gko::Array<index_type>::view(this->exec, 8, col_idxs), 2, 4);
+
+    ASSERT_EQ(mtx->get_const_values(), values);
+    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
+}
+
+
+TYPED_TEST(Ell, CanBeCreatedFromExistingConstData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    const value_type values[] = {1.0, 3.0, 4.0, -1.0, 2.0, 0.0, 0.0, -1.0};
+    const index_type col_idxs[] = {0, 1, 0, -1, 1, 0, 0, -1};
+
+    auto mtx = gko::matrix::Ell<value_type, index_type>::create_const(
+        this->exec, gko::dim<2>{3, 2},
+        gko::Array<value_type>::const_view(this->exec, 8, values),
+        gko::Array<index_type>::const_view(this->exec, 8, col_idxs), 2, 4);
 
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);

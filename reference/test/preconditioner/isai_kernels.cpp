@@ -323,7 +323,7 @@ protected:
     std::shared_ptr<Csr> spd_sparse_inv;
 };
 
-TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Isai, KernelGenerateA)

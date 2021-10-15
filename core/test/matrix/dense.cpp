@@ -80,7 +80,7 @@ protected:
     std::unique_ptr<gko::matrix::Dense<value_type>> mtx;
 };
 
-TYPED_TEST_SUITE(Dense, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Dense, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Dense, CanBeEmpty)
@@ -132,6 +132,25 @@ TYPED_TEST(Dense, CanBeConstructedFromExistingData)
     auto m = gko::matrix::Dense<TypeParam>::create(
         this->exec, gko::dim<2>{3, 2},
         gko::Array<value_type>::view(this->exec, 9, data), 3);
+
+    ASSERT_EQ(m->get_const_values(), data);
+    ASSERT_EQ(m->at(2, 1), value_type{6.0});
+}
+
+
+TYPED_TEST(Dense, CanBeConstructedFromExistingConstData)
+{
+    using value_type = typename TestFixture::value_type;
+    // clang-format off
+    const value_type data[] = {
+        1.0, 2.0, -1.0,
+        3.0, 4.0, -1.0,
+        5.0, 6.0, -1.0};
+    // clang-format on
+
+    auto m = gko::matrix::Dense<TypeParam>::create_const(
+        this->exec, gko::dim<2>{3, 2},
+        gko::Array<value_type>::const_view(this->exec, 9, data), 3);
 
     ASSERT_EQ(m->get_const_values(), data);
     ASSERT_EQ(m->at(2, 1), value_type{6.0});

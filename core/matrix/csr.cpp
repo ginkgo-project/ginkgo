@@ -91,6 +91,8 @@ GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
+GKO_REGISTER_OPERATION(scale, csr::scale);
+GKO_REGISTER_OPERATION(inv_scale, csr::inv_scale);
 
 
 }  // anonymous namespace
@@ -374,7 +376,7 @@ void Csr<ValueType, IndexType>::validate_impl() const
                                                      row_ptrs_.get_num_elems());
          }}};
 
-    for (auto const &x : constraints_map) {
+    for (auto const& x : constraints_map) {
         if (!x.second()) {
             throw gko::Invalid(__FILE__, __LINE__, "Csr", x.first);
         };
@@ -615,6 +617,24 @@ Csr<ValueType, IndexType>::compute_absolute() const
 
     convert_strategy_helper(abs_csr.get());
     return abs_csr;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::scale_impl(const LinOp* alpha)
+{
+    auto exec = this->get_executor();
+    exec->run(csr::make_scale(make_temporary_conversion<ValueType>(alpha).get(),
+                              this));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::inv_scale_impl(const LinOp* alpha)
+{
+    auto exec = this->get_executor();
+    exec->run(csr::make_inv_scale(
+        make_temporary_conversion<ValueType>(alpha).get(), this));
 }
 
 

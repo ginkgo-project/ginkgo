@@ -233,10 +233,10 @@ trigger_pipeline:
     - |
       if [[ "${PR_ID}" != "null" ]]; then
         echo "Finding the corresponding Pull Request - ${PR_ID}"
-        echo "Checking whether the PR contains ST:ready-to-merge or ST:run-full-test labels"
+        echo "Checking whether the PR contains 1:ST:ready-to-merge or 1:ST:run-full-test labels"
         ENABLE_FULL_PIPELINE=$(curl -X GET -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
           "https://api.github.com/repos/ginkgo-project/ginkgo/issues/${PR_ID}" | jq -r \
-          'any( [.labels | .[] | .name ] | .[] ; . == "ST:ready-to-merge" or . == "ST:run-full-test")')
+          'any( [.labels | .[] | .name ] | .[] ; . == "1:ST:ready-to-merge" or . == "1:ST:run-full-test")')
         if [[ "${ENABLE_FULL_PIPELINE}" == "true" ]]; then
           echo "trigger full pipeline"
           curl -X POST -F token=${CI_JOB_TOKEN} -F "ref=${CI_COMMIT_REF_NAME}" -F "variables[STATUS_CONTEXT]=full" \
@@ -254,65 +254,6 @@ trigger_pipeline:
 
 # Build jobs
 # Job with example runs.
-build/cuda90/gcc/all/debug/shared:
-  <<: *default_build
-  extends:
-    - .quick_test_condition
-    - .use_gko-cuda90-gnu5-llvm39
-  variables:
-    <<: *default_variables
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    RUN_EXAMPLES: "ON"
-    CUDA_ARCH: 35
-
-build/cuda90/clang/all/release/static:
-  <<: *default_build
-  extends:
-    - .full_test_condition
-    - .use_gko-cuda90-gnu5-llvm39
-  variables:
-    <<: *default_variables
-    C_COMPILER: "clang"
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 35
-
-# cuda 9.1 and friends
-build/cuda91/gcc/all/debug/static:
-  <<: *default_build
-  extends:
-    - .full_test_condition
-    - .use_gko-cuda91-gnu6-llvm40
-  variables:
-    <<: *default_variables
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 35
-
-build/cuda91/clang/all/release/shared:
-  <<: *default_build
-  extends:
-    - .full_test_condition
-    - .use_gko-cuda91-gnu6-llvm40
-  variables:
-    <<: *default_variables
-    C_COMPILER: "clang"
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Release"
-    CUDA_ARCH: 35
-
-
 # cuda 9.2 and friends
 build/cuda92/gcc/all/release/shared:
   <<: *default_build_with_test
@@ -325,6 +266,7 @@ build/cuda92/gcc/all/release/shared:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
+    RUN_EXAMPLES: "ON"
     CUDA_ARCH: 61
 
 # cuda 10.0 and friends
@@ -552,6 +494,24 @@ build/cuda110/intel/cuda/debug/static:
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 61
 
+# cuda 11.4 and friends
+build/cuda114/gcc/cuda/debug/shared:
+  <<: *default_build_with_test
+  extends:
+    - .quick_test_condition
+    - .use_gko_cuda114-gnu11-llvm12
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
+    # fix gtest issue https://github.com/google/googletest/issues/3514
+    CXX_FLAGS: "-Wno-error=maybe-uninitialized"
+    # disable spurious unused argument warning
+    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
+    CUDA_ARCH: 61
+
 # HIP AMD
 build/amd/gcc/hip/debug/shared:
   <<: *default_build_with_test
@@ -601,7 +561,6 @@ build/nocuda/gcc/core/debug/static:
     - .use_gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
-    BUILD_REFERENCE: "OFF"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
@@ -616,7 +575,6 @@ build/nocuda/clang/core/release/shared:
     <<: *default_variables
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
-    BUILD_REFERENCE: "OFF"
     BUILD_TYPE: "Release"
 
 build/nocuda/intel/core/debug/shared:
@@ -628,7 +586,6 @@ build/nocuda/intel/core/debug/shared:
     <<: *default_variables
     C_COMPILER: "icc"
     CXX_COMPILER: "icpc"
-    BUILD_REFERENCE: "OFF"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
 

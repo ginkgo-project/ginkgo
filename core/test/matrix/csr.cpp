@@ -111,7 +111,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Csr, KnowsItsSize)
@@ -150,6 +150,30 @@ TYPED_TEST(Csr, CanBeCreatedFromExistingData)
         gko::Array<value_type>::view(this->exec, 4, values),
         gko::Array<index_type>::view(this->exec, 4, col_idxs),
         gko::Array<index_type>::view(this->exec, 4, row_ptrs),
+        std::make_shared<typename Mtx::load_balance>(2));
+
+    ASSERT_EQ(mtx->get_num_srow_elements(), 1);
+    ASSERT_EQ(mtx->get_const_values(), values);
+    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
+    ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
+    ASSERT_EQ(mtx->get_const_srow()[0], 0);
+}
+
+
+TYPED_TEST(Csr, CanBeCreatedFromExistingConstData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    const value_type values[] = {1.0, 2.0, 3.0, 4.0};
+    const index_type col_idxs[] = {0, 1, 1, 0};
+    const index_type row_ptrs[] = {0, 2, 3, 4};
+
+    auto mtx = gko::matrix::Csr<value_type, index_type>::create_const(
+        this->exec, gko::dim<2>{3, 2},
+        gko::Array<value_type>::const_view(this->exec, 4, values),
+        gko::Array<index_type>::const_view(this->exec, 4, col_idxs),
+        gko::Array<index_type>::const_view(this->exec, 4, row_ptrs),
         std::make_shared<typename Mtx::load_balance>(2));
 
     ASSERT_EQ(mtx->get_num_srow_elements(), 1);

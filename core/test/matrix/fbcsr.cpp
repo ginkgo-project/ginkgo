@@ -160,7 +160,8 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(FbcsrSample, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(FbcsrSample, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(FbcsrSample, SampleGeneratorsAreCorrect)
@@ -221,7 +222,8 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(FbcsrSampleComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(FbcsrSampleComplex, gko::test::ComplexValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(FbcsrSampleComplex, ComplexSampleGeneratorIsCorrect)
@@ -319,7 +321,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Fbcsr, GetNumBlocksCorrectlyThrows)
@@ -397,6 +399,32 @@ TYPED_TEST(Fbcsr, CanBeCreatedFromExistingData)
         gko::Array<value_type>::view(this->exec, bnnz * bs * bs, values),
         gko::Array<index_type>::view(this->exec, bnnz, col_idxs),
         gko::Array<index_type>::view(this->exec, nbrows + 1, row_ptrs));
+
+    ASSERT_EQ(mtx->get_const_values(), values);
+    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
+    ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
+}
+
+
+TYPED_TEST(Fbcsr, CanBeCreatedFromExistingConstData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using size_type = gko::size_type;
+    const int bs = this->fbsample.bs;
+    const size_type nbrows = this->fbsample.nbrows;
+    const size_type nbcols = this->fbsample.nbcols;
+    const size_type bnnz = this->fbsample.nbnz;
+    auto refmat = this->fbsample.generate_fbcsr();
+    auto values = refmat->get_const_values();
+    auto col_idxs = refmat->get_const_col_idxs();
+    auto row_ptrs = refmat->get_const_row_ptrs();
+
+    auto mtx = gko::matrix::Fbcsr<value_type, index_type>::create_const(
+        this->exec, gko::dim<2>{nbrows * bs, nbcols * bs}, bs,
+        gko::Array<value_type>::const_view(this->exec, bnnz * bs * bs, values),
+        gko::Array<index_type>::const_view(this->exec, bnnz, col_idxs),
+        gko::Array<index_type>::const_view(this->exec, nbrows + 1, row_ptrs));
 
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);

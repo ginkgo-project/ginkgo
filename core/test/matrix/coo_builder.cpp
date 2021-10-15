@@ -63,7 +63,8 @@ protected:
     std::unique_ptr<Mtx> mtx;
 };
 
-TYPED_TEST_SUITE(CooBuilder, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(CooBuilder, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(CooBuilder, ReturnsCorrectArrays)

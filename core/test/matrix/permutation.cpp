@@ -86,7 +86,8 @@ protected:
     std::unique_ptr<gko::matrix::Permutation<i_type>> mtx;
 };
 
-TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Permutation, CanBeEmpty)
@@ -137,6 +138,19 @@ TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingData)
     auto m = gko::matrix::Permutation<i_type>::create(
         this->exec, gko::dim<2>{3, 5},
         gko::Array<i_type>::view(this->exec, 3, data));
+
+    ASSERT_EQ(m->get_const_permutation(), data);
+}
+
+
+TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingConstData)
+{
+    using i_type = typename TestFixture::i_type;
+    using i_type = typename TestFixture::i_type;
+    const i_type data[] = {1, 0, 2};
+
+    auto m = gko::matrix::Permutation<i_type>::create_const(
+        this->exec, 3, gko::Array<i_type>::const_view(this->exec, 3, data));
 
     ASSERT_EQ(m->get_const_permutation(), data);
 }

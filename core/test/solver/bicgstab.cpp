@@ -89,7 +89,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Bicgstab, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Bicgstab, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Bicgstab, BicgstabFactoryKnowsItsExecutor)

@@ -86,7 +86,7 @@ protected:
     gko::Array<index_type> dvals;
 };
 
-TYPED_TEST_SUITE(PrefixSum, gko::test::IndexTypes);
+TYPED_TEST_SUITE(PrefixSum, gko::test::IndexTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(PrefixSum, TrivialCasesEqualReference)

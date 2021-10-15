@@ -203,7 +203,7 @@ protected:
     std::unique_ptr<typename ilu_type::Factory> ilu_factory_sort;
 };
 
-TYPED_TEST_SUITE(Ilu, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Ilu, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Ilu, ThrowNotSupportedForWrongLinOp1)

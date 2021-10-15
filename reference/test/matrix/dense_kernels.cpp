@@ -112,7 +112,7 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(Dense, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Dense, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Dense, CopyRespectsStride)
@@ -4053,7 +4053,8 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(DenseComplex, gko::test::ComplexValueTypes);
+TYPED_TEST_SUITE(DenseComplex, gko::test::ComplexValueTypes,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(DenseComplex, ScalesWithRealScalar)

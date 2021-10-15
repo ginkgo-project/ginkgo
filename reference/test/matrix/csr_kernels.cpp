@@ -350,7 +350,7 @@ protected:
     std::unique_ptr<Mtx> mtx3_unsorted;
 };
 
-TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Csr, AppliesToDenseVector)
@@ -1506,6 +1506,44 @@ TYPED_TEST(Csr, AdvancedAppliesToMixedComplex)
 }
 
 
+TYPED_TEST(Csr, ScalesData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Dense = gko::matrix::Dense<T>;
+    auto alpha = gko::initialize<Dense>({I<T>{2.0}}, this->exec);
+    auto to_scale = gko::clone(this->mtx2);
+
+    to_scale->scale(alpha.get());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(to_scale, this->mtx2);
+    EXPECT_EQ(to_scale->get_values()[0], T{2.0});
+    EXPECT_EQ(to_scale->get_values()[1], T{6.0});
+    EXPECT_EQ(to_scale->get_values()[2], T{4.0});
+    EXPECT_EQ(to_scale->get_values()[3], T{0.0});
+    EXPECT_EQ(to_scale->get_values()[4], T{10.0});
+}
+
+
+TYPED_TEST(Csr, InvScalesData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Dense = gko::matrix::Dense<T>;
+    auto alpha = gko::initialize<Dense>({I<T>{2.0}}, this->exec);
+    auto to_scale = gko::clone(this->mtx2);
+
+    to_scale->inv_scale(alpha.get());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(to_scale, this->mtx2);
+    EXPECT_EQ(to_scale->get_values()[0], T{0.5});
+    EXPECT_EQ(to_scale->get_values()[1], T{1.5});
+    EXPECT_EQ(to_scale->get_values()[2], T{1.0});
+    EXPECT_EQ(to_scale->get_values()[3], T{0.0});
+    EXPECT_EQ(to_scale->get_values()[4], T{2.5});
+}
+
+
 template <typename ValueIndexType>
 class CsrComplex : public ::testing::Test {
 protected:
@@ -1516,7 +1554,8 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, index_type>;
 };
 
-TYPED_TEST_SUITE(CsrComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_SUITE(CsrComplex, gko::test::ComplexValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(CsrComplex, MtxIsConjugateTransposable)

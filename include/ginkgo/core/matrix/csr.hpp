@@ -898,6 +898,60 @@ public:
         this->make_srow();
     }
 
+    /**
+     * Scales the matrix with a scalar.
+     *
+     * @param alpha  The entire matrix is scaled by alpha. alpha has to be a 1x1
+     * Dense matrix.
+     */
+    void scale(const LinOp* alpha)
+    {
+        auto exec = this->get_executor();
+        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+        this->scale_impl(make_temporary_clone(exec, alpha).get());
+    }
+
+    /**
+     * Scales the matrix with the inverse of a scalar.
+     *
+     * @param alpha  The entire matrix is scaled by 1 / alpha. alpha has to be a
+     * 1x1 Dense matrix.
+     */
+    void inv_scale(const LinOp* alpha)
+    {
+        auto exec = this->get_executor();
+        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+        this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
+    }
+
+    /*
+     * Creates a constant (immutable) Csr matrix from a set of constant arrays.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the dimensions of the matrix
+     * @param values  the value array of the matrix
+     * @param col_idxs  the column index array of the matrix
+     * @param row_ptrs  the row pointer array of the matrix
+     * @param strategy  the strategy the matrix uses for SpMV operations
+     * @returns A smart pointer to the constant matrix wrapping the input arrays
+     *          (if they reside on the same executor as the matrix) or a copy of
+     *          these arrays on the correct executor.
+     */
+    static std::unique_ptr<const Csr> create_const(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        gko::detail::ConstArrayView<ValueType>&& values,
+        gko::detail::ConstArrayView<IndexType>&& col_idxs,
+        gko::detail::ConstArrayView<IndexType>&& row_ptrs,
+        std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const Csr>(new Csr{
+            exec, size, gko::detail::array_const_cast(std::move(values)),
+            gko::detail::array_const_cast(std::move(col_idxs)),
+            gko::detail::array_const_cast(std::move(row_ptrs)), strategy});
+    }
+
 protected:
     /**
      * Creates an uninitialized CSR matrix of the specified size.
@@ -1087,6 +1141,22 @@ protected:
         srow_.resize_and_reset(strategy_->clac_size(values_.get_num_elems()));
         strategy_->process(row_ptrs_, &srow_);
     }
+
+    /**
+     * @copydoc scale(const LinOp *)
+     *
+     * @note  Other implementations of Csr should override this function
+     *        instead of scale(const LinOp *alpha).
+     */
+    virtual void scale_impl(const LinOp* alpha);
+
+    /**
+     * @copydoc inv_scale(const LinOp *)
+     *
+     * @note  Other implementations of Csr should override this function
+     *        instead of inv_scale(const LinOp *alpha).
+     */
+    virtual void inv_scale_impl(const LinOp* alpha);
 
 private:
     Array<value_type> values_;

@@ -89,7 +89,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Idr, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Idr, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Idr, IdrFactoryKnowsItsExecutor)

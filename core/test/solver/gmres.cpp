@@ -110,7 +110,7 @@ protected:
 template <typename T>
 constexpr gko::remove_complex<T> Gmres<T>::reduction_factor;
 
-TYPED_TEST_SUITE(Gmres, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Gmres, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Gmres, GmresFactoryKnowsItsExecutor)
