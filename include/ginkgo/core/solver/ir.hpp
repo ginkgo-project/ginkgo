@@ -108,7 +108,8 @@ template <typename ValueType = default_precision>
 class Ir : public EnableLinOp<Ir<ValueType>>,
            public EnableSolverBase<Ir<ValueType>>,
            public EnableIterativeBase<Ir<ValueType>>,
-           public Transposable {
+           public Transposable,
+           public ResidualCacheable {
     friend class EnableLinOp<Ir>;
     friend class EnablePolymorphicObject<Ir, LinOp>;
 
