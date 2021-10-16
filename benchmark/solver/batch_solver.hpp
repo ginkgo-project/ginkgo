@@ -237,11 +237,11 @@ template <typename Engine>
 std::unique_ptr<batch_vec<etype>> generate_initial_guess(
     std::shared_ptr<const gko::Executor> exec,
     std::shared_ptr<const gko::BatchLinOp> system_matrix,
-    const batch_vec<etype>* rhs, Engine engine)
+    const batch_vec<etype>* rhs, Engine engine, std::string prob_string)
 {
-    auto nrhs = FLAGS_nrhs;
-    auto nbatch = FLAGS_num_batches;
-    auto ndup = FLAGS_num_duplications;
+    const auto nrhs = FLAGS_nrhs;
+    const auto nbatch = FLAGS_num_batches;
+    const auto ndup = FLAGS_num_duplications;
     size_type multiplier = 1;
     if (FLAGS_using_suite_sparse) {
         multiplier = 1;
@@ -257,6 +257,19 @@ std::unique_ptr<batch_vec<etype>> generate_initial_guess(
         return create_batch_matrix<etype>(exec, vec_size, engine);
     } else if (FLAGS_initial_guess_generation == "rhs") {
         return rhs->clone();
+    } else if (FLAGS_initial_guess_generation == "file") {
+        std::clog << " Read initial guess from file\n";
+        std::vector<gko::matrix_data<etype>> xdata(nbatch);
+        for (size_type i = 0; i < xdata.size(); ++i) {
+            std::string x_str = "x_init.mtx";
+            std::string fname =
+                prob_string + "/" + std::to_string(i) + "/" + x_str;
+            std::ifstream b_fd(fname);
+            xdata[i] = gko::read_raw<etype>(b_fd);
+        }
+        auto temp_x = batch_vec<etype>::create(exec);
+        temp_x->read(xdata);
+        return batch_vec<etype>::create(exec, ndup, temp_x.get());
     }
     throw std::invalid_argument(std::string("\"initial_guess_generation\" = ") +
                                 FLAGS_initial_guess_generation +
@@ -761,7 +774,8 @@ int read_data_and_launch_benchmark(int argc, char* argv[],
                     b = generate_rhs(exec, system_matrix, engine, fbase);
                 }
             }
-            x = generate_initial_guess(exec, system_matrix, b.get(), engine);
+            x = generate_initial_guess(exec, system_matrix, b.get(), engine,
+                                       test_case["problem"].GetString());
 
             std::clog << "Batch Matrix has: "
                       << system_matrix->get_num_batch_entries()
