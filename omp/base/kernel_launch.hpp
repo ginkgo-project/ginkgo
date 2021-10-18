@@ -101,7 +101,7 @@ void run_kernel_sized_impl(syn::value_list<int, remainder_cols>,
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_kernel_sized,
-                                    run_kernel_sized_impl)
+                                    run_kernel_sized_impl);
 
 
 template <typename KernelFunction, typename... MappedKernelArgs>

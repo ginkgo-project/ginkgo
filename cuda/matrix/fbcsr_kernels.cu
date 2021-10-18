@@ -66,7 +66,7 @@ namespace csr_reuse {
 
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
-constexpr int wsize = config::warp_size;
+constexpr int default_block_size{512};
 
 
 #include "common/cuda_hip/matrix/csr_kernels.hpp.inc"

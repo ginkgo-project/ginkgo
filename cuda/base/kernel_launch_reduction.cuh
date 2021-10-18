@@ -376,7 +376,7 @@ void run_generic_kernel_row_reduction(syn::value_list<int, subwarp_size>,
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_generic_kernel_row_reduction,
-                                    run_generic_kernel_row_reduction)
+                                    run_generic_kernel_row_reduction);
 
 
 template <int subwarp_size, typename ValueType, typename KernelFunction,
