@@ -70,7 +70,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx1(Mtx::create(exec)),
           mtx2(Mtx::create(exec)),
-          mtx3(Mtx::create(exec, gko::dim<2>{2, 3}, 2, 2, 2))
+          mtx3(Mtx::create(exec, gko::dim<2>{2, 3}, 2, 2, 1))
     {
         // clang-format off
         mtx1 = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
@@ -97,11 +97,8 @@ protected:
         ell_col[3] = 1;
         // Set Coo values
         coo_val[0] = 2.0;
-        coo_val[1] = 0.0;
         coo_col[0] = 2;
-        coo_col[1] = 2;
         coo_row[0] = 0;
-        coo_row[1] = 1;
     }
 
     void assert_equal_to_mtx(const Csr* m)
