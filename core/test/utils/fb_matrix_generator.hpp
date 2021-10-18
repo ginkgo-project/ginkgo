@@ -161,9 +161,8 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
     const IndexType* const col_idxs = fmtx->get_const_col_idxs();
     const IndexType nnz = nbnz * bs2;
     ValueType* const vals = fmtx->get_values();
-
-    std::normal_distribution<gko::remove_complex<ValueType>> norm_dist(0.0,
-                                                                       2.0);
+    std::uniform_real_distribution<gko::remove_complex<ValueType>>
+        off_diag_dist(-1.0, 1.0);
 
     for (IndexType ibrow = 0; ibrow < nbrows; ibrow++) {
         if (row_diag_dominant) {
@@ -172,8 +171,6 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
 
             std::uniform_real_distribution<gko::remove_complex<ValueType>>
                 diag_dist(1.01 * nrownz, 2 * nrownz);
-            std::uniform_real_distribution<gko::remove_complex<ValueType>>
-                off_diag_dist(-1.0, 1.0);
 
             for (IndexType ibz = row_ptrs[ibrow]; ibz < row_ptrs[ibrow + 1];
                  ibz++) {
@@ -183,11 +180,12 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
                             off_diag_dist, rand_engine);
                 }
                 if (col_idxs[ibz] == ibrow) {
-                    for (int i = 0; i < block_size; i++)
+                    for (int i = 0; i < block_size; i++) {
                         vals[ibz * bs2 + i * block_size + i] =
                             static_cast<ValueType>(pow(-1, i)) *
                             gko::test::detail::get_rand_value<ValueType>(
                                 diag_dist, rand_engine);
+                    }
                 }
             }
         } else {
@@ -196,7 +194,7 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
                 for (int i = 0; i < bs2; i++) {
                     vals[ibz * bs2 + i] =
                         gko::test::detail::get_rand_value<ValueType>(
-                            norm_dist, rand_engine);
+                            off_diag_dist, rand_engine);
                 }
             }
         }
@@ -247,28 +245,6 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_random_fbcsr(
     }
     return generate_fbcsr_from_csr(ref, rand_csr_ref.get(), mat_blk_sz,
                                    diag_dominant, std::move(engine));
-}
-
-
-/**
- * Returns a constant one of the requested real type.
- */
-template <typename T>
-inline constexpr typename std::enable_if_t<!gko::is_complex_s<T>::value, T>
-get_some_number()
-{
-    return static_cast<T>(1.0);
-}
-
-/**
- * Returns a constant -0.7071 + 0.7071i of the requested complex type.
- */
-template <typename T>
-inline constexpr typename std::enable_if_t<gko::is_complex_s<T>::value, T>
-get_some_number()
-{
-    using RT = gko::remove_complex<T>;
-    return {static_cast<RT>(-0.7071), static_cast<RT>(0.7071)};
 }
 
 

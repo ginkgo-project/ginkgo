@@ -80,7 +80,7 @@ void spmv(const std::shared_ptr<const ReferenceExecutor>,
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
-        to_array<size_type>(nbnz, bs, bs), a->get_const_values()};
+        to_std_array<size_type>(nbnz, bs, bs), a->get_const_values()};
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
@@ -123,7 +123,7 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor>,
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
     const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
-        to_array<size_type>(nbnz, bs, bs), a->get_const_values()};
+        to_std_array<size_type>(nbnz, bs, bs), a->get_const_values()};
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;

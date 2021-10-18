@@ -52,7 +52,7 @@ namespace {
 
 class BlockMatrixGenerator : public ::testing::Test {
 protected:
-    using real_type = float;
+    using real_type = double;
     using value_type = std::complex<real_type>;
 
     BlockMatrixGenerator()
@@ -129,7 +129,7 @@ TEST_F(BlockMatrixGenerator, ComplexOutputIsRowDiagonalDominantWhenRequested)
     using Dbv_t =
         gko::acc::range<gko::acc::block_col_major<const value_type, 3>>;
     const auto nbnz = cbmtx->get_num_stored_blocks();
-    const Dbv_t vals(gko::to_array<gko::size_type>(nbnz, blk_sz, blk_sz),
+    const Dbv_t vals(gko::to_std_array<gko::size_type>(nbnz, blk_sz, blk_sz),
                      cbmtx->get_const_values());
     const int* const row_ptrs = cbmtx->get_const_row_ptrs();
     const int* const col_idxs = cbmtx->get_const_col_idxs();
@@ -141,12 +141,15 @@ TEST_F(BlockMatrixGenerator, ComplexOutputIsRowDiagonalDominantWhenRequested)
         for (int iz = row_ptrs[irow]; iz < row_ptrs[irow + 1]; iz++) {
             if (col_idxs[iz] == irow) {
                 diagfound = true;
-                for (int i = 0; i < blk_sz; i++)
-                    for (int j = 0; j < blk_sz; j++)
+                for (int i = 0; i < blk_sz; i++) {
+                    for (int j = 0; j < blk_sz; j++) {
                         if (i == j) {
                             diag_val[i] = abs(vals(iz, i, i));
-                        } else
+                        } else {
                             row_del_sum[i] += abs(vals(iz, i, j));
+                        }
+                    }
+                }
             } else {
                 for (int i = 0; i < blk_sz; i++)
                     for (int j = 0; j < blk_sz; j++)

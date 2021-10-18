@@ -61,6 +61,8 @@ protected:
     using Mtx = gko::matrix::Fbcsr<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
 
+    Fbcsr() : distb(), engine(42) {}
+
     void SetUp()
     {
         ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
@@ -86,13 +88,21 @@ protected:
 
     std::unique_ptr<const Mtx> rsorted_ref;
 
+    std::normal_distribution<gko::remove_complex<T>> distb;
+    std::ranlux48 engine;
+
+    value_type get_random_value()
+    {
+        return gko::test::detail::get_rand_value<T>(distb, engine);
+    }
+
     void generate_sin(Dense* const x)
     {
         value_type* const xarr = x->get_values();
         for (index_type i = 0; i < x->get_size()[0] * x->get_size()[1]; i++) {
-            xarr[i] = static_cast<real_type>(2.0) *
-                      std::sin(static_cast<real_type>(i / 2.0) +
-                               gko::test::get_some_number<value_type>());
+            xarr[i] =
+                static_cast<real_type>(2.0) *
+                std::sin(static_cast<real_type>(i / 2.0) + get_random_value());
         }
     }
 };
@@ -118,6 +128,7 @@ TYPED_TEST(Fbcsr, CanWriteFromMatrixOnDevice)
     ASSERT_TRUE(refdata.nonzeros == cudadata.nonzeros);
 }
 
+
 TYPED_TEST(Fbcsr, TransposeIsEquivalentToRefSortedBS3)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -136,6 +147,7 @@ TYPED_TEST(Fbcsr, TransposeIsEquivalentToRefSortedBS3)
     GKO_ASSERT_MTX_EQ_SPARSITY(trans_ref, trans_cuda);
     GKO_ASSERT_MTX_NEAR(trans_ref, trans_cuda, 0.0);
 }
+
 
 TYPED_TEST(Fbcsr, TransposeIsEquivalentToRefSortedBS7)
 {
@@ -163,6 +175,7 @@ TYPED_TEST(Fbcsr, TransposeIsEquivalentToRefSortedBS7)
     GKO_ASSERT_MTX_NEAR(trans_ref, trans_cuda, 0.0);
 }
 
+
 TYPED_TEST(Fbcsr, SpmvIsEquivalentToRefSorted)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -186,6 +199,7 @@ TYPED_TEST(Fbcsr, SpmvIsEquivalentToRefSorted)
     GKO_ASSERT_MTX_NEAR(prod_ref, prod_cuda, 5 * tol);
 }
 
+
 TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -206,7 +220,7 @@ TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
     prod_cuda->copy_from(prod_ref.get());
     auto alpha_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
     alpha_ref->get_values()[0] =
-        static_cast<real_type>(2.4) + gko::test::get_some_number<value_type>();
+        static_cast<real_type>(2.4) + this->get_random_value();
     auto beta_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
     beta_ref->get_values()[0] = -1.2;
     auto alpha = Dense::create(this->cuda);
@@ -221,6 +235,7 @@ TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
     const double tol = r<value_type>::value;
     GKO_ASSERT_MTX_NEAR(prod_ref, prod_cuda, 5 * tol);
 }
+
 
 TYPED_TEST(Fbcsr, ConjTransposeIsEquivalentToRefSortedBS3)
 {
@@ -241,6 +256,7 @@ TYPED_TEST(Fbcsr, ConjTransposeIsEquivalentToRefSortedBS3)
     GKO_ASSERT_MTX_NEAR(trans_ref, trans_cuda, 0.0);
 }
 
+
 TYPED_TEST(Fbcsr, MaxNnzPerRowIsEquivalentToRefSortedBS3)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -258,6 +274,7 @@ TYPED_TEST(Fbcsr, MaxNnzPerRowIsEquivalentToRefSortedBS3)
     ASSERT_EQ(ref_max_nnz, cuda_max_nnz);
 }
 
+
 TYPED_TEST(Fbcsr, RecognizeSortedMatrix)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -266,6 +283,7 @@ TYPED_TEST(Fbcsr, RecognizeSortedMatrix)
 
     ASSERT_TRUE(rand_cuda->is_sorted_by_column_index());
 }
+
 
 TYPED_TEST(Fbcsr, RecognizeUnsortedMatrix)
 {
@@ -280,6 +298,7 @@ TYPED_TEST(Fbcsr, RecognizeUnsortedMatrix)
     ASSERT_FALSE(unsrt_cuda->is_sorted_by_column_index());
 }
 
+
 TYPED_TEST(Fbcsr, InplaceAbsoluteMatrixIsEquivalentToRef)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -293,8 +312,9 @@ TYPED_TEST(Fbcsr, InplaceAbsoluteMatrixIsEquivalentToRef)
     rand_cuda->compute_absolute_inplace();
 
     const double tol = r<value_type>::value;
-    GKO_ASSERT_MTX_NEAR(rand_ref, rand_cuda, 5 * tol);
+    GKO_ASSERT_MTX_NEAR(rand_ref, rand_cuda, tol);
 }
+
 
 TYPED_TEST(Fbcsr, OutplaceAbsoluteMatrixIsEquivalentToRef)
 {
@@ -307,7 +327,7 @@ TYPED_TEST(Fbcsr, OutplaceAbsoluteMatrixIsEquivalentToRef)
     auto dabs_mtx = rand_cuda->compute_absolute();
 
     const double tol = r<value_type>::value;
-    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 5 * tol);
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, tol);
 }
 
 
