@@ -433,10 +433,12 @@ public:
                 }
                 const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
                 const auto num_elems = row_ptrs[num_rows];
+                const auto bucket_divider =
+                    num_elems > 0 ? ceildiv(num_elems, warp_size_) : 1;
                 for (size_type i = 0; i < num_rows; i++) {
                     auto bucket =
                         ceildiv((ceildiv(row_ptrs[i + 1], warp_size_) * nwarps),
-                                ceildiv(num_elems, warp_size_));
+                                bucket_divider);
                     if (bucket < nwarps) {
                         srow[bucket]++;
                     }
