@@ -78,34 +78,6 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 }  // namespace hybrid
 
 
-namespace {
-
-
-template <typename ValueType, typename IndexType>
-void get_each_row_nnz(const matrix_data<ValueType, IndexType>& data,
-                      Array<size_type>& row_nnz)
-{
-    size_type nnz = 0;
-    IndexType current_row = 0;
-    auto row_nnz_val = row_nnz.get_data();
-    for (size_type i = 0; i < row_nnz.get_num_elems(); i++) {
-        row_nnz_val[i] = zero<size_type>();
-    }
-    for (const auto& elem : data.nonzeros) {
-        if (elem.row != current_row) {
-            row_nnz_val[current_row] = nnz;
-            current_row = elem.row;
-            nnz = 0;
-        }
-        nnz += (elem.value != zero<ValueType>());
-    }
-    row_nnz_val[current_row] = nnz;
-}
-
-
-}  // namespace
-
-
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
@@ -257,10 +229,8 @@ void Hybrid<ValueType, IndexType>::write(mat_data& data) const
         }
 
         while (coo_ind < coo_nnz && coo_row_idxs[coo_ind] == row) {
-            if (coo_vals[coo_ind] != zero<ValueType>()) {
-                data.nonzeros.emplace_back(row, coo_col_idxs[coo_ind],
-                                           coo_vals[coo_ind]);
-            }
+            data.nonzeros.emplace_back(row, coo_col_idxs[coo_ind],
+                                       coo_vals[coo_ind]);
             coo_ind++;
         }
     }

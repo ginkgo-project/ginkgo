@@ -167,11 +167,9 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
         }
         // Coo part (row should be ascending)
         while (coo_idx < coo_nnz && coo_row[coo_idx] == row) {
-            if (coo_val[coo_idx] != zero<ValueType>()) {
-                csr_val[csr_idx] = coo_val[coo_idx];
-                csr_col_idxs[csr_idx] = coo_col[coo_idx];
-                csr_idx++;
-            }
+            csr_val[csr_idx] = coo_val[coo_idx];
+            csr_col_idxs[csr_idx] = coo_col[coo_idx];
+            csr_idx++;
             coo_idx++;
         }
         csr_row_ptrs[row + 1] = csr_idx;

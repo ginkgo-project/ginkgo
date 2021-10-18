@@ -163,9 +163,9 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType>* result)
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, this->get_size(), this->get_num_stored_elements(),
-        result->get_strategy());
+    const auto nnz = this->get_num_stored_elements();
+    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size(), nnz,
+                                                 result->get_strategy());
     tmp->values_ = std::move(this->values_);
     tmp->col_idxs_ = std::move(this->col_idxs_);
     exec->run(coo::make_convert_to_csr(this, tmp.get()));
