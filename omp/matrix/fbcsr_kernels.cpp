@@ -79,7 +79,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
-        to_array<size_type>(nbnz, bs, bs), a->get_const_values()};
+        to_std_array<size_type>(nbnz, bs, bs), a->get_const_values()};
 
 #pragma omp parallel for
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
@@ -123,7 +123,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
     const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
-        to_array<size_type>(nbnz, bs, bs), a->get_const_values()};
+        to_std_array<size_type>(nbnz, bs, bs), a->get_const_values()};
 
 #pragma omp parallel for
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
@@ -180,7 +180,8 @@ void convert_fbcsr_to_fbcsc(const IndexType num_blk_rows, const int blksz,
                             IndexType* const col_ptrs,
                             ValueType* const csc_vals, UnaryOperator op)
 {
-    auto sizes = gko::to_array<size_type>(row_ptrs[num_blk_rows], blksz, blksz);
+    auto sizes =
+        gko::to_std_array<size_type>(row_ptrs[num_blk_rows], blksz, blksz);
     const acc::range<acc::block_col_major<const ValueType, 3>> rvalues(
         sizes, fbcsr_vals);
     acc::range<acc::block_col_major<ValueType, 3>> cvalues(sizes, csc_vals);
@@ -401,7 +402,7 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
     assert(diag->get_size()[0] == nbdim_min * bs);
 
     const acc::range<acc::block_col_major<const ValueType, 3>> vblocks(
-        gko::to_array<size_type>(row_ptrs[nbrows], bs, bs), values);
+        gko::to_std_array<size_type>(row_ptrs[nbrows], bs, bs), values);
 
 #pragma omp parallel for
     for (IndexType ibrow = 0; ibrow < nbdim_min; ++ibrow) {

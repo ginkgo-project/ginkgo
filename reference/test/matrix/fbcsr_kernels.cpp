@@ -147,12 +147,9 @@ std::unique_ptr<gko::matrix::Dense<T>> get_some_vectors(
     using RT = gko::remove_complex<T>;
     std::ranlux48 engine(39);
     std::normal_distribution<RT> dist(0.0, 5.0);
-    auto x = gko::matrix::Dense<T>::create(exec, gko::dim<2>{nrows, nrhs});
-    T* const xvals = x->get_values();
-    for (int i = 0; i < nrows * nrhs; i++) {
-        xvals[i] = gko::test::detail::get_rand_value<T>(dist, engine);
-    }
-    return x;
+    std::uniform_int_distribution<> nnzdist(1, nrhs);
+    return gko::test::generate_random_matrix<gko::matrix::Dense<T>>(
+        nrows, nrhs, nnzdist, dist, engine, exec);
 }
 
 

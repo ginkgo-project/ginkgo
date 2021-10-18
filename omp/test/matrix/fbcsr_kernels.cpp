@@ -401,6 +401,7 @@ TEST_F(Fbcsr, OutplaceAbsoluteComplexMatrixIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
 }
 
+
 TEST_F(Fbcsr, MaxNnzPerRowIsEquivalentToRefSortedBS3)
 {
     auto mtx_ref = gko::test::generate_random_fbcsr<real_type>(

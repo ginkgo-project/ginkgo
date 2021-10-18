@@ -67,6 +67,7 @@ __global__ __launch_bounds__(default_block_size) void transpose_blocks(
             values[ibz * mat_blk_sz_2 + i] =
                 origblocks[sw_id_in_threadblock * mat_blk_sz_2 + in_pos];
         }
+        subwarp_grp.sync();
     }
 }
 

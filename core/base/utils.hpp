@@ -228,7 +228,7 @@ std::shared_ptr<const Dest> convert_to_with_sorting(
  * @param args  Entities to be filled into an array after casting to type T.
  */
 template <typename T, typename... Args>
-inline std::array<T, sizeof...(Args)> to_array(Args&&... args)
+constexpr std::array<T, sizeof...(Args)> to_std_array(Args&&... args)
 {
     return {static_cast<T>(args)...};
 }
