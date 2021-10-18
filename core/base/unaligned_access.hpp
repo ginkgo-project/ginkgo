@@ -143,7 +143,8 @@ inline void put_next_position_value(uint8* chunk_data, const uint8 ind,
 {
     put_next_position(chunk_data, ind, colRS, shf, col);
     set_value_chunk<ValueType>(chunk_data, shf, val);
-    shf += sizeof(remove_complex<ValueType>);
+    //    shf += sizeof(remove_complex<ValueType>);
+    shf += sizeof(ValueType);
 }
 
 
@@ -195,6 +196,25 @@ inline void put_detect_newblock(uint8* chunk_data, IndexType* rows_data,
 }
 
 
+template <typename IndexType>
+inline void get_detect_newblock_csr(const IndexType* rows_data,
+                                    const IndexType* offsets_data,
+                                    size_type nblk, size_type blk,
+                                    IndexType* row_ptrs, size_type pos,
+                                    size_type& shf, size_type& row,
+                                    size_type& col)
+{
+    if (nblk == 0) {
+        if (row != rows_data[blk]) {
+            row_ptrs[row] = pos;
+            row = rows_data[blk];
+        }
+        col = 0;
+        shf = offsets_data[blk];
+    }
+}
+
+
 inline uint8 get_position_newrow(const uint8* chunk_data, size_type& shf,
                                  size_type& row, size_type& col)
 {
@@ -203,6 +223,24 @@ inline uint8 get_position_newrow(const uint8* chunk_data, size_type& shf,
         row++;
         shf++;
         col = 0;
+        ind = chunk_data[shf];
+    }
+    return ind;
+}
+
+
+template <typename IndexType>
+inline uint8 get_position_newrow_csr(const uint8* chunk_data,
+                                     IndexType* row_ptrs, size_type pos,
+                                     size_type& shf, size_type& row,
+                                     size_type& col)
+{
+    uint8 ind = (chunk_data[shf]);
+    while (ind == 0xFF) {
+        row++;
+        col = 0;
+        row_ptrs[row] = pos;
+        shf++;
         ind = chunk_data[shf];
     }
     return ind;
