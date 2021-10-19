@@ -65,6 +65,8 @@ find_library(CURAND curand
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 find_library(CUFFT cufft
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+find_library(NVTX nvToolsExt
+    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 target_sources(ginkgo_cuda
@@ -198,7 +200,7 @@ target_include_directories(ginkgo_cuda
 target_include_directories(ginkgo_cuda
     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..)
 target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE} ${CURAND} ${CUFFT})
-target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device)
+target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device ${NVTX})
 target_compile_options(ginkgo_cuda
         PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
 # we handle CUDA architecture flags for now, disable CMake handling
