@@ -124,6 +124,7 @@ TEST_F(BlockMatrixGenerator, OutputHasCorrectSparsityPattern)
     }
 }
 
+
 TEST_F(BlockMatrixGenerator, ComplexOutputIsRowDiagonalDominantWhenRequested)
 {
     using Dbv_t =
