@@ -364,18 +364,21 @@ __device__ void store(thrust::complex<ValueType>* values, int index,
 template <bool is_upper, typename ValueType, typename IndexType>
 __global__ void sptrsv_naive_caching_kernel(
     const IndexType* const rowptrs, const IndexType* const colidxs,
-    const ValueType* const vals, const ValueType* const b, ValueType* const x,
-    const size_type n, bool* nan_produced)
+    const ValueType* const vals, const ValueType* const b, size_type b_stride,
+    ValueType* const x, size_type x_stride, const size_type n,
+    const size_type nrhs, bool* nan_produced)
 {
-    const auto gid = thread::get_thread_id_flat<IndexType>();
+    const auto full_gid = thread::get_thread_id_flat<IndexType>();
+    const auto rhs = full_gid % nrhs;
+    const auto gid = full_gid / nrhs;
     const auto row = is_upper ? n - 1 - gid : gid;
 
     if (gid >= n) {
         return;
     }
 
-    const auto self_shmem_id = gid / default_block_size;
-    const auto self_shid = gid % default_block_size;
+    const auto self_shmem_id = full_gid / default_block_size;
+    const auto self_shid = full_gid % default_block_size;
 
     __shared__ UninitializedArray<ValueType, default_block_size> x_s_array;
     ValueType* x_s = x_s_array;
@@ -394,11 +397,12 @@ __global__ void sptrsv_naive_caching_kernel(
     ValueType sum = 0.0;
     for (auto i = row_begin; i != row_diag; i += row_step) {
         const auto dependency = colidxs[i];
-        auto x_p = &x[dependency];
+        auto x_p = &x[dependency * x_stride + rhs];
 
-        const auto dependency_gid = is_upper ? n - 1 - dependency : dependency;
+        const auto dependency_gid = is_upper ? (n - 1 - dependency) * nrhs + rhs
+                                             : dependency * nrhs + rhs;
         const bool shmem_possible =
-            dependency_gid / default_block_size == self_shmem_id;
+            (dependency_gid / default_block_size) == self_shmem_id;
         if (shmem_possible) {
             const auto dependency_shid = dependency_gid % default_block_size;
             x_p = &x_s[dependency_shid];
@@ -412,15 +416,15 @@ __global__ void sptrsv_naive_caching_kernel(
         sum += x * vals[i];
     }
 
-    const auto r = (b[row] - sum) / vals[row_diag];
+    const auto r = (b[row * b_stride + rhs] - sum) / vals[row_diag];
 
     store(x_s, self_shid, r);
-    x[row] = r;
+    x[row * x_stride + rhs] = r;
 
     // This check to ensure no infinte loops happen.
     if (is_nan(r)) {
         store(x_s, self_shid, zero<ValueType>());
-        x[row] = zero<ValueType>();
+        x[row * x_stride + rhs] = zero<ValueType>();
         *nan_produced = true;
     }
 }
@@ -429,10 +433,13 @@ __global__ void sptrsv_naive_caching_kernel(
 template <bool is_upper, typename ValueType, typename IndexType>
 __global__ void sptrsv_naive_legacy_kernel(
     const IndexType* const rowptrs, const IndexType* const colidxs,
-    const ValueType* const vals, const ValueType* const b, ValueType* const x,
-    const size_type n, bool* nan_produced)
+    const ValueType* const vals, const ValueType* const b, size_type b_stride,
+    ValueType* const x, size_type x_stride, const size_type n,
+    const size_type nrhs, bool* nan_produced)
 {
-    const auto gid = thread::get_thread_id_flat<IndexType>();
+    const auto full_gid = thread::get_thread_id_flat<IndexType>();
+    const auto rhs = full_gid % nrhs;
+    const auto gid = full_gid / nrhs;
     const auto row = is_upper ? n - 1 - gid : gid;
 
     if (gid >= n) {
@@ -451,17 +458,17 @@ __global__ void sptrsv_naive_legacy_kernel(
     auto j = row_begin;
     while (j != row_diag + row_step) {
         auto col = colidxs[j];
-        while (!is_nan(load(x, col))) {
-            sum += vals[j] * load(x, col);
+        while (!is_nan(load(x, col * x_stride + rhs))) {
+            sum += vals[j] * load(x, col * x_stride + rhs);
             j += row_step;
             col = colidxs[j];
         }
         if (row == col) {
-            const auto r = (b[row] - sum) / vals[row_diag];
-            store(x, row, r);
+            const auto r = (b[row * b_stride + rhs] - sum) / vals[row_diag];
+            store(x, row * x_stride + rhs, r);
             j += row_step;
             if (is_nan(r)) {
-                store(x, row, zero<ValueType>());
+                store(x, row * x_stride + rhs, zero<ValueType>());
                 *nan_produced = true;
             }
         }
@@ -478,29 +485,31 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
     // Pre-Volta GPUs may deadlock due to missing independent thread scheduling.
     const auto is_fallback_required = exec->get_major_version() < 7;
 
-    const IndexType n = matrix->get_size()[0];
+    const auto n = matrix->get_size()[0];
+    const auto nrhs = b->get_size()[1];
 
     // Initialize x to all NaNs.
-    cudaMemset(x->get_values(), 0xFF, n * sizeof(ValueType));
+    x->fill(nan<ValueType>());
 
-    Array<bool> nan_produced(exec, 1);
-    cudaMemset(nan_produced.get_data(), false, sizeof(bool));
+    Array<bool> nan_produced(exec, {false});
 
     const dim3 block_size(is_fallback_required ? 32 : default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
+    const dim3 grid_size(ceildiv(n * nrhs, block_size.x), 1, 1);
 
     if (is_fallback_required) {
         sptrsv_naive_legacy_kernel<is_upper><<<grid_size, block_size>>>(
             matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
             as_cuda_type(matrix->get_const_values()),
-            as_cuda_type(b->get_const_values()), as_cuda_type(x->get_values()),
-            n, nan_produced.get_data());
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(x->get_values()), x->get_stride(), n, nrhs,
+            nan_produced.get_data());
     } else {
         sptrsv_naive_caching_kernel<is_upper><<<grid_size, block_size>>>(
             matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
             as_cuda_type(matrix->get_const_values()),
-            as_cuda_type(b->get_const_values()), as_cuda_type(x->get_values()),
-            n, nan_produced.get_data());
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(x->get_values()), x->get_stride(), n, nrhs,
+            nan_produced.get_data());
     }
 
     if (exec->copy_val_to_host(nan_produced.get_const_data())) {

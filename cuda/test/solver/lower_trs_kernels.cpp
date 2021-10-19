@@ -165,6 +165,27 @@ TEST_F(LowerTrs, CudaSingleRhsApplyIsEquivalentToRef)
 }
 
 
+TEST_F(LowerTrs, CudaMultipleRhsApplyClassicalIsEquivalentToRef)
+{
+    initialize_data(50, 3);
+    auto lower_trs_factory =
+        gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(ref);
+    auto d_lower_trs_factory =
+        gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(cuda);
+    d_csr_mtx->set_strategy(std::make_shared<CsrMtx::classical>());
+    auto solver = lower_trs_factory->generate(csr_mtx);
+    auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
+    auto db2_strided = Mtx::create(cuda, b->get_size(), 4);
+    d_b2->convert_to(db2_strided.get());
+    auto dx_strided = Mtx::create(cuda, x->get_size(), 5);
+
+    solver->apply(b2.get(), x.get());
+    d_solver->apply(db2_strided.get(), dx_strided.get());
+
+    GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-14);
+}
+
+
 TEST_F(LowerTrs, CudaMultipleRhsApplyIsEquivalentToRef)
 {
     initialize_data(50, 3);
@@ -174,11 +195,14 @@ TEST_F(LowerTrs, CudaMultipleRhsApplyIsEquivalentToRef)
         gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(cuda);
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
+    auto db2_strided = Mtx::create(cuda, b->get_size(), 4);
+    d_b2->convert_to(db2_strided.get());
+    auto dx_strided = Mtx::create(cuda, x->get_size(), 5);
 
     solver->apply(b2.get(), x.get());
-    d_solver->apply(d_b2.get(), d_x.get());
+    d_solver->apply(db2_strided.get(), dx_strided.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-14);
 }
 
 
