@@ -30,68 +30,45 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/array.hpp>
+#include "core/components/reduce_array.hpp"
 
 
-#include <algorithm>
+#include <ginkgo/core/base/math.hpp>
 
 
-#include <gtest/gtest.h>
+#include "common/unified/base/kernel_launch.hpp"
+#include "common/unified/base/kernel_launch_reduction.hpp"
 
 
-#include <ginkgo/core/base/executor.hpp>
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+/**
+ * @brief The Dense matrix format namespace.
+ *
+ * @ingroup dense
+ */
+namespace components {
 
 
-#include "core/test/utils.hpp"
-
-
-namespace {
-
-
-template <typename T>
-class Array : public ::testing::Test {
-protected:
-    Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
-    {
-        x.get_data()[0] = 5;
-        x.get_data()[1] = 2;
-    }
-
-    std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> x;
-};
-
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes, TypenameNameGenerator);
-
-
-TYPED_TEST(Array, CanBeFilledWithValue)
+template <typename ValueType>
+void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,
+                      const Array<ValueType>& array, Array<ValueType>& result)
 {
-    this->x.fill(TypeParam{42});
-
-    ASSERT_EQ(this->x.get_num_elems(), 2);
-    ASSERT_EQ(this->x.get_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_data()[1], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[1], TypeParam{42});
+    run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto array, auto result) {
+            return i == 0 ? (array[i] + result[0]) : array[i];
+        },
+        [] GKO_KERNEL(auto a, auto b) { return a + b; },
+        [] GKO_KERNEL(auto a) { return a; }, ValueType{}, result.get_data(),
+        array.get_num_elems(), array, result);
 }
 
-
-TYPED_TEST(Array, CanBeReduced)
-{
-    auto out = gko::Array<TypeParam>(this->exec, I<TypeParam>{1});
-
-    gko::reduce_add(this->x, out);
-
-    ASSERT_EQ(out.get_data()[0], TypeParam{8});
-}
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);
 
 
-TYPED_TEST(Array, CanBeReduced2)
-{
-    auto out = gko::reduce_add(this->x, TypeParam{2});
-
-    ASSERT_EQ(out, TypeParam{9});
-}
-
-
-}  // namespace
+}  // namespace components
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko

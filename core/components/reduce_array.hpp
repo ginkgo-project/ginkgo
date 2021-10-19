@@ -30,68 +30,45 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_CORE_COMPONENTS_REDUCE_ARRAY_HPP_
+#define GKO_CORE_COMPONENTS_REDUCE_ARRAY_HPP_
+
+
+#include <memory>
+
+
 #include <ginkgo/core/base/array.hpp>
-
-
-#include <algorithm>
-
-
-#include <gtest/gtest.h>
-
-
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
-#include "core/test/utils.hpp"
+#include "core/base/kernel_declaration.hpp"
 
 
-namespace {
+namespace gko {
+namespace kernels {
 
 
-template <typename T>
-class Array : public ::testing::Test {
-protected:
-    Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
-    {
-        x.get_data()[0] = 5;
-        x.get_data()[1] = 2;
-    }
-
-    std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> x;
-};
-
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes, TypenameNameGenerator);
+#define GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL(ValueType)                 \
+    void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec, \
+                          const Array<ValueType>& data,                \
+                          Array<ValueType>& result)
 
 
-TYPED_TEST(Array, CanBeFilledWithValue)
-{
-    this->x.fill(TypeParam{42});
-
-    ASSERT_EQ(this->x.get_num_elems(), 2);
-    ASSERT_EQ(this->x.get_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_data()[1], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[0], TypeParam{42});
-    ASSERT_EQ(this->x.get_const_data()[1], TypeParam{42});
-}
+#define GKO_DECLARE_ALL_AS_TEMPLATES \
+    template <typename ValueType>    \
+    GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL(ValueType)
 
 
-TYPED_TEST(Array, CanBeReduced)
-{
-    auto out = gko::Array<TypeParam>(this->exec, I<TypeParam>{1});
-
-    gko::reduce_add(this->x, out);
-
-    ASSERT_EQ(out.get_data()[0], TypeParam{8});
-}
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(components,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
-TYPED_TEST(Array, CanBeReduced2)
-{
-    auto out = gko::reduce_add(this->x, TypeParam{2});
-
-    ASSERT_EQ(out, TypeParam{9});
-}
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
-}  // namespace
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif  // GKO_CORE_COMPONENTS_REDUCE_ARRAY_HPP_

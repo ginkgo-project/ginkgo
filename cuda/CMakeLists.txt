@@ -69,6 +69,7 @@ find_library(CUFFT cufft
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 set(GKO_CUDA_COMMON_SOURCES
     ../common/unified/components/precision_conversion.cpp
+    ../common/unified/components/reduce_array.cpp
     ../common/unified/matrix/coo_kernels.cpp
     ../common/unified/matrix/csr_kernels.cpp
     ../common/unified/matrix/dense_kernels.cpp

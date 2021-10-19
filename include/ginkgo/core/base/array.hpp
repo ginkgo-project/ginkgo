@@ -611,7 +611,7 @@ public:
      *
      * @param value the value to be filled
      */
-    void fill(const ValueType value);
+    void fill(const value_type value);
 
     /**
      * Returns the number of elements in the Array.
@@ -695,6 +695,34 @@ private:
     data_manager data_;
     std::shared_ptr<const Executor> exec_;
 };
+
+
+/**
+ * Reduce (sum) the values in the array
+ *
+ * @tparam The type of the input data
+ *
+ * @param [in] input_arr the input array to be reduced
+ * @param [in] init_val the initial value
+ *
+ * @return the reduced value
+ */
+template <typename ValueType>
+ValueType reduce_add(const Array<ValueType>& input_arr,
+                     const ValueType init_val = 0);
+
+/**
+ * Reduce (sum) the values in the array
+ *
+ * @tparam The type of the input data
+ *
+ * @param [in] input_arr the input array to be reduced
+ * @param [out,in] result the reduced value. The result is written into the
+ *                 first entry and the value in the first entry is used as the
+ *                 initial value for the reduce.
+ */
+template <typename ValueType>
+void reduce_add(const Array<ValueType>& input_arr, Array<ValueType>& result);
 
 
 namespace detail {
