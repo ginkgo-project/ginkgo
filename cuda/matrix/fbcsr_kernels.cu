@@ -320,8 +320,10 @@ void is_sorted_by_column_index(
     bool* const is_sorted)
 {
     *is_sorted = true;
-    auto cpu_array = Array<bool>::view(exec->get_master(), 1, is_sorted);
-    auto gpu_array = Array<bool>{exec, cpu_array};
+    auto gpu_array = Array<bool>(exec, 1);
+    // need to initialize the GPU value to true
+    exec->copy_from<bool>(exec->get_master().get(), 1, is_sorted,
+                          gpu_array.get_data());
     auto block_size = default_block_size;
     const auto num_brows =
         static_cast<IndexType>(to_check->get_num_block_rows());
@@ -329,7 +331,7 @@ void is_sorted_by_column_index(
     csr_reuse::kernel::check_unsorted<<<num_blocks, block_size>>>(
         to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
         num_brows, gpu_array.get_data());
-    cpu_array = gpu_array;
+    *is_sorted = exec->copy_val_to_host(gpu_array.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

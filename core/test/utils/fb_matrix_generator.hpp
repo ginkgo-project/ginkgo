@@ -203,6 +203,7 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
     return fmtx;
 }
 
+
 /**
  * Generates a random block CSR matrix.
  *
