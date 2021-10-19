@@ -42,7 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/unaligned_access.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "omp/components/format_conversion.hpp"
 
 
 namespace gko {
@@ -62,26 +64,26 @@ namespace bccoo {
 
 
 void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec,
-                            size_type* block_size) GKO_NOT_IMPLEMENTED;
-// {
-// 	*block_size = 10;
-// }
+                            size_type* block_size)  // GKO_NOT_IMPLEMENTED;
+{
+    *block_size = 10;
+}
 
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Bccoo<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b,
-          matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
-//{
+          matrix::Dense<ValueType>* c)  // GKO_NOT_IMPLEMENTED;
+{
 // TODO (script:bccoo): change the code imported from matrix/coo if needed
-//#pragma omp parallel for
-//    for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
-//        c->at(i) = zero<ValueType>();
-//    }
-//
-//    spmv2(exec, a, b, c);
-//}
+#pragma omp parallel for
+    for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
+        c->at(i) = zero<ValueType>();
+    }
+
+    spmv2(exec, a, b, c);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BCCOO_SPMV_KERNEL);
 
@@ -92,17 +94,17 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Bccoo<ValueType, IndexType>* a,
                    const matrix::Dense<ValueType>* b,
                    const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
-//    auto beta_val = beta->at(0, 0);
-//#pragma omp parallel for
-//    for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
-//        c->at(i) *= beta_val;
-//    }
-//
-//    advanced_spmv2(exec, alpha, a, b, c);
-//}
+                   matrix::Dense<ValueType>* c)  // GKO_NOT_IMPLEMENTED;
+{
+    // TODO (script:bccoo): change the code imported from matrix/coo if needed
+    auto beta_val = beta->at(0, 0);
+#pragma omp parallel for
+    for (size_type i = 0; i < c->get_num_stored_elements(); i++) {
+        c->at(i) *= beta_val;
+    }
+
+    advanced_spmv2(exec, alpha, a, b, c);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_ADVANCED_SPMV_KERNEL);
@@ -112,7 +114,75 @@ template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const OmpExecutor> exec,
            const matrix::Bccoo<ValueType, IndexType>* a,
            const matrix::Dense<ValueType>* b,
-           matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+           matrix::Dense<ValueType>* c)  // GKO_NOT_IMPLEMENTED;
+/*
+{
+    auto *rows_data = a->get_const_rows();
+    auto *offsets_data = a->get_const_offsets();
+    auto *chunk_data = a->get_const_chunk();
+    auto num_stored_elements = a->get_num_stored_elements();
+    auto block_size = a->get_block_size();
+    auto num_cols = b->get_size()[1];
+    auto num_blks = b->get_num_blocks();
+
+//#pragma omp parallel for
+    for (size_type j = 0; j < num_cols; j++) {
+    // Computation of chunk
+                size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
+                ValueType val, sum = {};
+                for (size_type k = 0; k < num_blks; k++) {
+                                for (size_type i = offsets_data[k];
+                                                                                i < offsets_data[k+1]; i++) {
+//        				get_detect_newblock(rows_data,
+offsets_data, nblk, blk,
+//
+shf, row, col); size_type cur_row = row; uint8 ind =
+get_position_newrow(chunk_data, shf, row, col); if (cur_row != row) {
+                                                                        c->at(cur_row,
+j) += acum; acum = {};
+                                                                }
+                                        get_next_position_value(chunk_data, ind,
+shf, col, val);
+//        				get_detect_endblock(block_size, nblk,
+blk); acum += val * b->at(col, j);
+            }
+                                                c->at(row, j) += acum;
+        }
+    }
+}
+*/
+{
+    auto* rows_data = a->get_const_rows();
+    auto* offsets_data = a->get_const_offsets();
+    auto* chunk_data = a->get_const_chunk();
+    auto num_stored_elements = a->get_num_stored_elements();
+    auto block_size = a->get_block_size();
+    auto num_cols = b->get_size()[1];
+    auto num_blks = a->get_num_blocks();
+
+    //#pragma omp parallel for
+    for (size_type j = 0; j < num_cols; j++) {
+        // Computation of chunk
+        size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
+        ValueType val;
+        for (size_type k = 0; k < num_blks; k++) {
+            for (size_type i = offsets_data[k]; i < offsets_data[k + 1]; i++) {
+#if OPTION == 0
+                update_bccoo_position_val(rows_data, offsets_data, chunk_data,
+                                          block_size, nblk, blk, shf, row, col,
+                                          val);
+#else
+                get_detect_newblock(rows_data, offsets_data, nblk, blk, shf,
+                                    row, col);
+                uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+                get_next_position_value(chunk_data, ind, shf, col, val);
+                get_detect_endblock(block_size, nblk, blk);
+#endif
+                c->at(row, j) += val * b->at(col, j);
+            }
+        }
+    }
+}
 //{
 // TODO (script:bccoo): change the code imported from matrix/coo if needed
 //    auto bccoo_val = a->get_const_values();
@@ -136,7 +206,38 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Dense<ValueType>* alpha,
                     const matrix::Bccoo<ValueType, IndexType>* a,
                     const matrix::Dense<ValueType>* b,
-                    matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+                    matrix::Dense<ValueType>* c)  // GKO_NOT_IMPLEMENTED;
+{
+    auto* rows_data = a->get_const_rows();
+    auto* offsets_data = a->get_const_offsets();
+    auto* chunk_data = a->get_const_chunk();
+    auto num_stored_elements = a->get_num_stored_elements();
+    auto block_size = a->get_block_size();
+    auto alpha_val = alpha->at(0, 0);
+    auto num_cols = b->get_size()[1];
+
+#pragma omp parallel for
+    for (size_type j = 0; j < num_cols; j++) {
+        // Computation of chunk
+        size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
+        ValueType val;
+        for (size_type i = 0; i < num_stored_elements; i++) {
+#if OPTION == 0
+            update_bccoo_position_val(rows_data, offsets_data, chunk_data,
+                                      block_size, nblk, blk, shf, row, col,
+                                      val);
+#else
+            get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row,
+                                col);
+            uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+            get_next_position_value(chunk_data, ind, shf, col, val);
+            get_detect_endblock(block_size, nblk, blk);
+#endif
+            c->at(row, j) += alpha_val * val * b->at(col, j);
+        }
+    }
+}
+
 //{
 // TODO (script:bccoo): change the code imported from matrix/coo if needed
 //    auto bccoo_val = a->get_const_values();
@@ -289,8 +390,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_absolute(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Bccoo<ValueType, IndexType>* source,
-                      matrix::Bccoo<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
+                      remove_complex<matrix::Bccoo<ValueType, IndexType>>*
+                          result) GKO_NOT_IMPLEMENTED;
 // {
 //
 // }

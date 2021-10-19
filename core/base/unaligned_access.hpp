@@ -70,6 +70,27 @@ T get_value_chunk(const uint8* ptr, size_type start)
 }
 
 
+inline void cnt_next_position(const uint8 ind, size_type& shf)
+{
+    if (ind < 0xFD) {
+        shf++;
+    } else if (ind == 0xFD) {
+        shf += 3;
+    } else {
+        shf += 5;
+    }
+}
+
+
+template <typename ValueType>
+inline void cnt_next_position_value(const uint8 ind, size_type& shf,
+                                    const ValueType val)
+{
+    cnt_next_position(ind, shf);
+    shf += sizeof(ValueType);
+}
+
+
 inline void get_next_position(const uint8* chunk_data, const uint8 ind,
                               size_type& shf, size_type& col)
 {
@@ -82,7 +103,8 @@ inline void get_next_position(const uint8* chunk_data, const uint8 ind,
         shf += 2;
     } else {
         shf++;
-        col += *(uint32*)(chunk_data + shf);
+        col += get_value_chunk<uint32>(chunk_data, shf);
+        //        col += *(uint32 *)(chunk_data + shf);
         shf += 4;
     }
 }
@@ -143,7 +165,6 @@ inline void put_next_position_value(uint8* chunk_data, const uint8 ind,
 {
     put_next_position(chunk_data, ind, colRS, shf, col);
     set_value_chunk<ValueType>(chunk_data, shf, val);
-    //    shf += sizeof(remove_complex<ValueType>);
     shf += sizeof(ValueType);
 }
 
@@ -172,7 +193,6 @@ inline void put_detect_newblock(IndexType* rows_data, const size_type nblk,
         col = 0;
         rows_data[blk] = row;
     }
-    /* */
 }
 
 
@@ -215,15 +235,35 @@ inline void get_detect_newblock_csr(const IndexType* rows_data,
 }
 
 
+// inline uint8 put_position_newrow_mat_data(const mat_data elem,
+inline uint8 cnt_position_newrow_mat_data(const size_type rowMD,
+                                          const size_type colMD, size_type& shf,
+                                          size_type& row, size_type& col)
+{
+    //    if (elem.row != row) {
+    if (rowMD != row) {
+        //        shf += elem.row - row;;
+        shf += rowMD - row;
+        ;
+        row = rowMD;
+        col = 0;
+    }
+    return (colMD - col);
+    //    return (elem.column - col);
+}
+
+
 inline uint8 get_position_newrow(const uint8* chunk_data, size_type& shf,
                                  size_type& row, size_type& col)
 {
-    uint8 ind = (chunk_data[shf]);
+    //    uint8 ind = (chunk_data[shf]);
+    uint8 ind = get_value_chunk<uint8>(chunk_data, shf);
     while (ind == 0xFF) {
         row++;
         shf++;
         col = 0;
-        ind = chunk_data[shf];
+        //        ind = chunk_data[shf];
+        ind = get_value_chunk<uint8>(chunk_data, shf);
     }
     return ind;
 }
@@ -235,13 +275,15 @@ inline uint8 get_position_newrow_csr(const uint8* chunk_data,
                                      size_type& shf, size_type& row,
                                      size_type& col)
 {
-    uint8 ind = (chunk_data[shf]);
+    //    uint8 ind = (chunk_data[shf]);
+    uint8 ind = get_value_chunk<uint8>(chunk_data, shf);
     while (ind == 0xFF) {
         row++;
         col = 0;
         row_ptrs[row] = pos;
         shf++;
-        ind = chunk_data[shf];
+        //        ind = chunk_data[shf];
+        ind = get_value_chunk<uint8>(chunk_data, shf);
     }
     return ind;
 }
@@ -255,12 +297,14 @@ inline uint8 get_position_newrow_put(const uint8* chunk_dataS, size_type& shfS,
                                      IndexType* rows_dataR, size_type& shfR,
                                      size_type& rowR, size_type& colR)
 {
-    uint8 indS = (chunk_dataS[shfS]);
+    //    uint8 indS = (chunk_dataS[shfS]);
+    uint8 indS = get_value_chunk<uint8>(chunk_dataS, shfS);
     while (indS == 0xFF) {
         rowS++;
         colS = 0;
         shfS++;
-        indS = chunk_dataS[shfS];
+        //        indS = chunk_dataS[shfS];
+        indS = get_value_chunk<uint8>(chunk_dataS, shfS);
         rowR++;
         colR = 0;
         if (nblkR == 0) {
@@ -271,6 +315,23 @@ inline uint8 get_position_newrow_put(const uint8* chunk_dataS, size_type& shfS,
         }
     }
     return indS;
+}
+
+// inline uint8 put_position_newrow_mat_data(const mat_data elem,
+inline uint8 put_position_newrow_mat_data(const size_type rowMD,
+                                          const size_type colMD,
+                                          uint8* chunk_data, size_type& shf,
+                                          size_type& row, size_type& col)
+{
+    //    while (elem.row != row) {
+    while (rowMD != row) {
+        row++;
+        col = 0;
+        set_value_chunk<uint8>(chunk_data, shf, 0xFF);
+        shf++;
+    }
+    return (colMD - col);
+    //    return (elem.column - col);
 }
 
 
@@ -299,7 +360,6 @@ inline void put_detect_endblock(IndexType* offsets_data, const size_type shf,
 inline void update_bccoo_position(const uint8* chunk_data, size_type& shf,
                                   size_type& row, size_type& col)
 {
-    /* */
     uint8 ind = get_position_newrow(chunk_data, shf, row, col);
     get_next_position(chunk_data, ind, shf, col);
 }
@@ -313,7 +373,6 @@ inline void update_bccoo_position(const IndexType* rows_data,
                                   size_type& col)
 {
     get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
-    /* */
     update_bccoo_position(chunk_data, shf, row, col);
 }
 
@@ -329,61 +388,57 @@ inline void update_bccoo_position(const IndexType* rows_data,
     update_bccoo_position(rows_data, offsets_data, chunk_data, block_size, nblk,
                           blk, shf, row, col);
     get_detect_endblock(block_size, nblk, blk);
-    /* */
 }
 
 
 template <typename T>
-void update_bccoo_position_val(const uint8* chunk_data, size_type& shf,
-                               size_type& row, size_type& col, T& val)
+inline void update_bccoo_position_val(const uint8* chunk_data, size_type& shf,
+                                      size_type& row, size_type& col, T& val)
 {
-    /* */
     uint8 ind = get_position_newrow(chunk_data, shf, row, col);
     get_next_position_value(chunk_data, ind, shf, col, val);
 }
 
 
 template <typename IndexType, typename T>
-void update_bccoo_position_val(const IndexType* rows_data,
-                               const IndexType* offsets_data,
-                               const uint8* chunk_data, size_type nblk,
-                               size_type blk, size_type& shf, size_type& row,
-                               size_type& col, T& val)
+inline void update_bccoo_position_val(const IndexType* rows_data,
+                                      const IndexType* offsets_data,
+                                      const uint8* chunk_data, size_type nblk,
+                                      size_type blk, size_type& shf,
+                                      size_type& row, size_type& col, T& val)
 {
     get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
-    /* */
     update_bccoo_position_val(chunk_data, shf, row, col, val);
 }
 
 
 template <typename IndexType, typename T>
-void update_bccoo_position_val(const IndexType* rows_data,
-                               const IndexType* offsets_data,
-                               const uint8* chunk_data, size_type block_size,
-                               size_type& nblk, size_type& blk, size_type& shf,
-                               size_type& row, size_type& col, T& val)
+inline void update_bccoo_position_val(const IndexType* rows_data,
+                                      const IndexType* offsets_data,
+                                      const uint8* chunk_data,
+                                      size_type block_size, size_type& nblk,
+                                      size_type& blk, size_type& shf,
+                                      size_type& row, size_type& col, T& val)
 {
     update_bccoo_position_val(rows_data, offsets_data, chunk_data, nblk, blk,
                               shf, row, col, val);
     get_detect_endblock(block_size, nblk, blk);
-    /* */
 }
 
 
 template <typename IndexType, typename T, typename Callable>
-void update_bccoo_position_val(const IndexType* rows_data,
-                               const IndexType* offsets_data, uint8* chunk_data,
-                               size_type block_size, size_type& nblk,
-                               size_type& blk, size_type& shf, size_type& row,
-                               size_type& col, T& val, Callable finalize_op)
+inline void update_bccoo_position_val(const IndexType* rows_data,
+                                      const IndexType* offsets_data,
+                                      uint8* chunk_data, size_type block_size,
+                                      size_type& nblk, size_type& blk,
+                                      size_type& shf, size_type& row,
+                                      size_type& col, T& val,
+                                      Callable finalize_op)
 {
     get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
-    /* */
     uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-    /* */
     get_next_position_value_put(chunk_data, ind, shf, col, val, finalize_op);
     get_detect_endblock(block_size, nblk, blk);
-    /* */
 }
 
 
@@ -395,7 +450,6 @@ inline void update_bccoo_position_copy(const uint8* chunk_dataS,
                                        uint8* chunk_dataR, size_type& shfR,
                                        size_type& rowR, size_type& colR)
 {
-    /* */
     uint8 indS =
         get_position_newrow_put(chunk_dataS, shfS, rowS, colS, chunk_dataR,
                                 nblkR, blkR, rows_dataR, shfR, rowR, colR);
@@ -412,7 +466,6 @@ inline void update_bccoo_position_copy_val(
     uint8* chunk_dataR, size_type& shfR, size_type& rowR, size_type& colR,
     ValueTypeR& valR, Callable finalize_op)
 {
-    /* */
     uint8 indS =
         get_position_newrow_put(chunk_dataS, shfS, rowS, colS, chunk_dataR,
                                 nblkR, blkR, rows_dataR, shfR, rowR, colR);

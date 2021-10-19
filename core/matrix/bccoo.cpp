@@ -240,75 +240,108 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     // Computation of rows, offsets and m (mem_size)
     IndexType* rows_data = rows.get_data();
     IndexType* offsets_data = offsets.get_data();
-    size_type k = 0, b = 0, c = 0, r = 0, m = 0;
+    size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
     offsets_data[0] = 0;
     for (const auto& elem : data.nonzeros) {
         if (elem.value != zero<ValueType>()) {
-            if (k == 0) r = rows_data[b] = elem.row;
-            if (elem.row != r) {  // new row
-                r = elem.row;
-                c = 0;
-                m++;
-            }
-            size_type d = elem.column - c;
-            if (d < 0xFD) {
-                m++;
-            } else if (d < 0xFFFF) {
-                m += 3;
-            } else {
-                m += 5;
-            }
-            c = elem.column;
-            m += sizeof(ValueType);
-            if (++k == block_size) {
-                k = 0;
-                b++;
-                offsets_data[b] = m;
-                c = 0;
-            }
+            /* */
+            put_detect_newblock(rows_data, nblk, blk, row, elem.row - row, col);
+            size_type ind = cnt_position_newrow_mat_data(elem.row, elem.column,
+                                                         shf, row, col);
+            cnt_next_position_value(ind, shf, elem.value);
+            put_detect_endblock(offsets_data, shf, block_size, nblk, blk);
+            /* */
+            /*
+                        if (nblk == 0) row = rows_data[blk] = elem.row;
+            */
+            /*
+                        if (elem.row != row) {  // new row
+                            shf += elem.row - row;
+                            row = elem.row;
+                            col = 0;
+            //                shf++;
+                        }
+                        size_type ind = elem.column - col;
+            */
+            /*
+                        if (ind < 0xFD) {
+                            shf++;
+                        } else if (ind < 0xFFFF) {
+                            shf += 3;
+                        } else {
+                            shf += 5;
+                        }
+                        col = elem.column;
+                        shf += sizeof(ValueType);
+            */
+            /*
+                        if (++nblk == block_size) {
+                            nblk = 0;
+                            blk++;
+                            offsets_data[blk] = shf;
+                            col = 0;
+                        }
+            */
         }
     }
 
     // Creation of chunk
-    array<uint8> chunk(exec_master, m);
+    array<uint8> chunk(exec_master, shf);
     uint8* chunk_data = chunk.get_data();
 
     // Computation of chunk
-    k = 0, b = 0, c = 0, r = 0, m = 0;
+    nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
     offsets_data[0] = 0;
     for (const auto& elem : data.nonzeros) {
         if (elem.value != zero<ValueType>()) {
-            if (k == 0) r = rows_data[b] = elem.row;
-            while (elem.row != r) {  // new row
-                r++;
-                c = 0;
-                set_value_chunk<uint8>(chunk_data, m, 0xFF);
-                m++;
-            }
-            size_type d = elem.column - c;
-            if (d < 0xFD) {
-                set_value_chunk<uint8>(chunk_data, m, d);
-                m++;
-            } else if (d < 0xFFFF) {
-                set_value_chunk<uint8>(chunk_data, m, 0xFD);
-                m++;
-                set_value_chunk<uint16>(chunk_data, m, d);
-                m += 2;
-            } else {
-                set_value_chunk<uint8>(chunk_data, m, 0xFE);
-                m++;
-                set_value_chunk<uint32>(chunk_data, m, d);
-                m += 4;
-            }
-            c = elem.column;
-            set_value_chunk<ValueType>(chunk_data, m, elem.value);
-            m += sizeof(ValueType);
-            if (++k == block_size) {
-                k = 0;
-                b++;
-                offsets_data[b] = m;
-                c = 0;
-            }
+            /* */
+            put_detect_newblock(rows_data, nblk, blk, row, elem.row - row, col);
+            //						put_position_newrow_mat_data(elem,
+            // chunk_data, shf, row, col);
+            size_type ind = put_position_newrow_mat_data(
+                elem.row, elem.column, chunk_data, shf, row, col);
+            put_next_position_value(chunk_data, ind, ind, shf, col, elem.value);
+            put_detect_endblock(offsets_data, shf, block_size, nblk, blk);
+            /* */
+            /*
+                        if (nblk == 0) row = rows_data[blk] = elem.row;
+            */
+            /*
+                        while (elem.row != row) {  // new row
+                            row++;
+                            col = 0;
+                            set_value_chunk<uint8>(chunk_data, shf, 0xFF);
+                            shf++;
+                        }
+                        size_type ind = elem.column - col;
+            */
+            /*
+                        if (ind < 0xFD) {
+                            set_value_chunk<uint8>(chunk_data, shf, ind);
+                            shf++;
+                        } else if (ind < 0xFFFF) {
+                            set_value_chunk<uint8>(chunk_data, shf, 0xFD);
+                            shf++;
+                            set_value_chunk<uint16>(chunk_data, shf, ind);
+                            shf += 2;
+                        } else {
+                            set_value_chunk<uint8>(chunk_data, shf, 0xFE);
+                            shf++;
+                            set_value_chunk<uint32>(chunk_data, shf, ind);
+                            shf += 4;
+                        }
+                        col = elem.column;
+                        set_value_chunk<ValueType>(chunk_data, shf, elem.value);
+                        shf += sizeof(ValueType);
+            */
+            /*
+                        if (++nblk == block_size) {
+                            nblk = 0;
+                            blk++;
+                            offsets_data[blk] = shf;
+                            col = 0;
+                        }
+            */
         }
     }
 
@@ -344,40 +377,55 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
     data = {this->get_size(), {}};
 
     // Computation of chunk
-    size_type k = 0, b = 0, c = 0, r = 0, m = 0;
+    size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
     ValueType val;
     for (size_type i = 0; i < num_stored_elements; i++) {
-        if (k == 0) {
-            r = rows_data[b];
-            c = 0;
-            m = offsets_data[b];
-        }
-        uint8 d = get_value_chunk<uint8>(chunk_data, m);
-        while (d == 0xFF) {
-            r++;
-            m++;
-            c = 0;
-            d = get_value_chunk<uint8>(chunk_data, m);
-        }
-        if (d < 0xFD) {
-            c += d;
-            m++;
-        } else if (d == 0xFD) {
-            m++;
-            c += get_value_chunk<uint16>(chunk_data, m);
-            m += 2;
-        } else {
-            m++;
-            c += get_value_chunk<uint32>(chunk_data, m);
-            m += 4;
-        }
-        val = get_value_chunk<ValueType>(chunk_data, m);
-        data.nonzeros.emplace_back(r, c, val);
-        m += sizeof(ValueType);
-        if (++k == block_size) {
-            k = 0;
-            b++;
-        }
+        /* */
+        get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
+        uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+        get_next_position_value(chunk_data, ind, shf, col, val);
+        data.nonzeros.emplace_back(row, col, val);
+        get_detect_endblock(block_size, nblk, blk);
+        /* */
+        /*
+                if (nblk == 0) {
+                    row = rows_data[blk];
+                    col = 0;
+                    shf = offsets_data[blk];
+                }
+        */
+        /*
+                uint8 ind = get_value_chunk<uint8>(chunk_data, shf);
+                while (ind == 0xFF) {
+                    row++;
+                    shf++;
+                    col = 0;
+                    ind = get_value_chunk<uint8>(chunk_data, shf);
+                }
+        */
+        /*
+                if (ind < 0xFD) {
+                    col += ind;
+                    shf++;
+                } else if (ind == 0xFD) {
+                    shf++;
+                    col += get_value_chunk<uint16>(chunk_data, shf);
+                    shf += 2;
+                } else {
+                    shf++;
+                    col += get_value_chunk<uint32>(chunk_data, shf);
+                    shf += 4;
+                }
+                val = get_value_chunk<ValueType>(chunk_data, shf);
+                shf += sizeof(ValueType);
+        */
+        //        data.nonzeros.emplace_back(row, col, val);
+        /*
+                if (++nblk == block_size) {
+                    nblk = 0;
+                    blk++;
+                }
+        */
     }
 }
 
