@@ -553,7 +553,7 @@ Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
     auto sub_mat_size = gko::dim<2>(row_span.length(), column_span.length());
     Array<IndexType> row_ptrs(exec, row_span.length() + 1);
     exec->run(csr::make_fill_array(
-        row_ptrs.get_data(), row_ptrs.get_num_elems() + 1, zero<IndexType>()));
+        row_ptrs.get_data(), row_ptrs.get_num_elems(), zero<IndexType>()));
     exec->run(csr::make_calculate_nonzeros_per_row_in_span(
         this, row_span, column_span, &row_ptrs));
     exec->run(csr::make_prefix_sum(row_ptrs.get_data(), row_span.length() + 1));

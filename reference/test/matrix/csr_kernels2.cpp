@@ -177,7 +177,7 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
            4.5, 7.5
            4.5, 0.0
            2.5, 0.0
-           1.0, 3.5
+          -1.0, 3.5
            0.0, 0.0
         */
         auto ref4 = gko::initialize<Mtx>(

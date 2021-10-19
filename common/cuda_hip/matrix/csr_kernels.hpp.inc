@@ -1053,7 +1053,7 @@ namespace kernel {
 
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void get_row_nnz_data(
-    const size_type num_rows, const size_type* __restrict__ nnz_per_row,
+    const size_type num_rows, const IndexType* __restrict__ nnz_per_row,
     IndexType* __restrict__ row_ptrs)
 {
     const auto tidx = thread::get_thread_id_flat();
@@ -1098,7 +1098,7 @@ __global__
         const span row_span, const span col_span,
         const IndexType* __restrict__ row_ptrs,
         const IndexType* __restrict__ col_idxs,
-        size_type* __restrict__ nnz_per_row)
+        IndexType* __restrict__ nnz_per_row)
 {
     const auto tidx = thread::get_thread_id_flat() + row_span.begin;
     if (tidx < row_span.end) {

@@ -989,27 +989,21 @@ protected:
      * Creates a CSR matrix from already allocated (and initialized) row
      * pointer array.
      *
-     * @tparam RowPtrsArray  type of `row_ptrs` array
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param row_ptrs  array of row pointers
-     *
-     * @note If `row_ptrs`, is not an rvalue, not
-     *       an array of IndexType, IndexType and ValueType, respectively, or
-     *       is on the wrong executor, an internal copy of that array will be
-     *       created, and the original array data will not be used in the
-     *       matrix.
      */
     explicit Csr(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         Array<IndexType>&& row_ptrs,
         std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
         : EnableLinOp<Csr>(exec, size),
-          row_ptrs_{exec, std::forward<Array<IndexType>>(row_ptrs)},
+          row_ptrs_{exec, std::move(row_ptrs)},
           srow_(exec),
           strategy_(strategy->copy())
     {
+        GKO_ASSERT(row_ptrs_.get_num_elems() == size[0] + 1);
         auto num_nnz = exec->copy_val_to_host(row_ptrs_.get_data() + size[0]);
         values_ = Array<ValueType>(exec, num_nnz);
         col_idxs_ = Array<IndexType>(exec, num_nnz);
