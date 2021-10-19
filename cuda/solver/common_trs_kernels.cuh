@@ -111,7 +111,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         // cusparse needs non-nullptr input vectors even for analysis
         auto descr_b = cusparse::create_dnmat(
             matrix->get_size()[0], num_rhs, matrix->get_size()[1],
-            reinterpret_cast<ValueType*>(0xFF));
+            reinterpret_cast<ValueType*>(0xCC));
         auto descr_c = cusparse::create_dnmat(
             matrix->get_size()[0], num_rhs, matrix->get_size()[1],
             reinterpret_cast<ValueType*>(0xFF));
@@ -325,36 +325,36 @@ constexpr int default_block_size = 512;
 
 template <typename ValueType>
 __device__ std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType>
-load(const ValueType *values, int index)
+load(const ValueType* values, int index)
 {
-    const volatile ValueType *val = values + index;
+    const volatile ValueType* val = values + index;
     return *val;
 }
 
 template <typename ValueType>
 __device__ std::enable_if_t<std::is_floating_point<ValueType>::value,
                             thrust::complex<ValueType>>
-load(const thrust::complex<ValueType> *values, int index)
+load(const thrust::complex<ValueType>* values, int index)
 {
-    auto real = reinterpret_cast<const ValueType *>(values);
+    auto real = reinterpret_cast<const ValueType*>(values);
     auto imag = real + 1;
     return {load(real, 2 * index), load(imag, 2 * index)};
 }
 
 template <typename ValueType>
 __device__ void store(
-    ValueType *values, int index,
+    ValueType* values, int index,
     std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType> value)
 {
-    volatile ValueType *val = values + index;
+    volatile ValueType* val = values + index;
     *val = value;
 }
 
 template <typename ValueType>
-__device__ void store(thrust::complex<ValueType> *values, int index,
+__device__ void store(thrust::complex<ValueType>* values, int index,
                       thrust::complex<ValueType> value)
 {
-    auto real = reinterpret_cast<ValueType *>(values);
+    auto real = reinterpret_cast<ValueType*>(values);
     auto imag = real + 1;
     store(real, 2 * index, value.real());
     store(imag, 2 * index, value.imag());
@@ -363,9 +363,9 @@ __device__ void store(thrust::complex<ValueType> *values, int index,
 
 template <bool is_upper, typename ValueType, typename IndexType>
 __global__ void sptrsv_naive_caching_kernel(
-    const IndexType *const rowptrs, const IndexType *const colidxs,
-    const ValueType *const vals, const ValueType *const b, ValueType *const x,
-    const size_type n, bool *nan_produced)
+    const IndexType* const rowptrs, const IndexType* const colidxs,
+    const ValueType* const vals, const ValueType* const b, ValueType* const x,
+    const size_type n, bool* nan_produced)
 {
     const auto gid = thread::get_thread_id_flat<IndexType>();
     const auto row = is_upper ? n - 1 - gid : gid;
@@ -378,7 +378,7 @@ __global__ void sptrsv_naive_caching_kernel(
     const auto self_shid = gid % default_block_size;
 
     __shared__ UninitializedArray<ValueType, default_block_size> x_s_array;
-    ValueType *x_s = x_s_array;
+    ValueType* x_s = x_s_array;
     x_s[self_shid] = nan<ValueType>();
 
     __syncthreads();
@@ -428,9 +428,9 @@ __global__ void sptrsv_naive_caching_kernel(
 
 template <bool is_upper, typename ValueType, typename IndexType>
 __global__ void sptrsv_naive_legacy_kernel(
-    const IndexType *const rowptrs, const IndexType *const colidxs,
-    const ValueType *const vals, const ValueType *const b, ValueType *const x,
-    const size_type n, bool *nan_produced)
+    const IndexType* const rowptrs, const IndexType* const colidxs,
+    const ValueType* const vals, const ValueType* const b, ValueType* const x,
+    const size_type n, bool* nan_produced)
 {
     const auto gid = thread::get_thread_id_flat<IndexType>();
     const auto row = is_upper ? n - 1 - gid : gid;
@@ -471,9 +471,9 @@ __global__ void sptrsv_naive_legacy_kernel(
 
 template <bool is_upper, typename ValueType, typename IndexType>
 void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType> *matrix,
-                          const matrix::Dense<ValueType> *b,
-                          matrix::Dense<ValueType> *x)
+                          const matrix::Csr<ValueType, IndexType>* matrix,
+                          const matrix::Dense<ValueType>* b,
+                          matrix::Dense<ValueType>* x)
 {
     // Pre-Volta GPUs may deadlock due to missing independent thread scheduling.
     const auto is_fallback_required = exec->get_major_version() < 7;
