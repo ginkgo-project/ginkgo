@@ -70,7 +70,6 @@ protected:
     Bccoo() : exec(gko::ReferenceExecutor::create()), mtx(Mtx::create(exec))
     {
         // clang-format off
-//				std::cout << "initialize" << std::endl;
         mtx = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
                                      {0.0, 5.0, 0.0}}, exec);
 				/* TODO 
@@ -114,15 +113,12 @@ TYPED_TEST_SUITE(Bccoo, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Bccoo, ConvertsToPrecision)
-//GKO_NOT_IMPLEMENTED;
 {
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using OtherType = typename gko::next_precision<ValueType>;
     using Bccoo = typename TestFixture::Mtx;
     using OtherBccoo = gko::matrix::Bccoo<OtherType, IndexType>;
-//    std::cout << "ConvertsToPrecision" << std::endl;
     auto tmp = OtherBccoo::create(this->exec);
     auto res = Bccoo::create(this->exec);
     // If OtherType is more precise: 0, otherwise r
@@ -138,9 +134,7 @@ TYPED_TEST(Bccoo, ConvertsToPrecision)
 
 
 TYPED_TEST(Bccoo, MovesToPrecision)
-// GKO_NOT_IMPLEMENTED;
 {
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using OtherType = typename gko::next_precision<ValueType>;
@@ -161,10 +155,7 @@ TYPED_TEST(Bccoo, MovesToPrecision)
 
 
 TYPED_TEST(Bccoo, ConvertsToCoo)
-// GKO_NOT_IMPLEMENTED;
-/* */
 {
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Coo	= typename TestFixture::Coo;
@@ -191,20 +182,15 @@ TYPED_TEST(Bccoo, ConvertsToCoo)
     EXPECT_EQ(v[2], value_type{2.0});
     EXPECT_EQ(v[3], value_type{5.0});
 }
-/* */
 
 
 TYPED_TEST(Bccoo, MovesToCoo)
-// GKO_NOT_IMPLEMENTED;
-/* */
 {
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Coo	= typename TestFixture::Coo;
 
     auto coo_mtx = Coo::create(this->mtx->get_executor());
-//    this->mtx->convert_to(coo_mtx.get());
     this->mtx->move_to(coo_mtx.get());
 
     auto v = coo_mtx->get_const_values();
@@ -226,16 +212,11 @@ TYPED_TEST(Bccoo, MovesToCoo)
     EXPECT_EQ(v[2], value_type{2.0});
     EXPECT_EQ(v[3], value_type{5.0});
 }
-/* */
 
 
 TYPED_TEST(Bccoo, ConvertsToCsr)
-// GKO_NOT_IMPLEMENTED;
-/* */
 {
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
     using value_type = typename TestFixture::value_type;
-//    using Csr = typename gko::matrix::Csr<value_type, gko::int32>;
     using Csr = typename TestFixture::Csr;
     auto csr_s_classical = std::make_shared<typename Csr::classical>();
     auto csr_s_merge = std::make_shared<typename Csr::merge_path>();
@@ -265,24 +246,18 @@ TYPED_TEST(Bccoo, ConvertsToCsr)
     GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
     ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
-/* */
 
 
 TYPED_TEST(Bccoo, MovesToCsr)
-// GKO_NOT_IMPLEMENTED;
 {
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
     using value_type = typename TestFixture::value_type;
-//    using Csr = typename gko::matrix::Csr<value_type, gko::int32>;
     using Csr = typename TestFixture::Csr;
     auto csr_s_classical = std::make_shared<typename Csr::classical>();
     auto csr_s_merge = std::make_shared<typename Csr::merge_path>();
     auto csr_mtx_c = Csr::create(this->mtx->get_executor(), csr_s_classical);
     auto csr_mtx_m = Csr::create(this->mtx->get_executor(), csr_s_merge);
 
-//    this->mtx->convert_to(csr_mtx_c.get());
     this->mtx->move_to(csr_mtx_c.get());
-//    this->mtx->convert_to(csr_mtx_m.get());
     this->mtx->move_to(csr_mtx_m.get());
 
     auto v = csr_mtx_c->get_const_values();
@@ -308,9 +283,7 @@ TYPED_TEST(Bccoo, MovesToCsr)
 
 
 TYPED_TEST(Bccoo, ConvertsToDense)
-// GKO_NOT_IMPLEMENTED;
 {
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Dense = typename TestFixture::Vec;
@@ -346,9 +319,7 @@ TYPED_TEST(Bccoo, ConvertsToDense)
 
 
 TYPED_TEST(Bccoo, MovesToDense)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Dense = typename TestFixture::Vec;
@@ -365,9 +336,7 @@ TYPED_TEST(Bccoo, MovesToDense)
 
 
 TYPED_TEST(Bccoo, ConvertsEmptyToPrecision)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using OtherType = typename gko::next_precision<ValueType>;
@@ -384,9 +353,7 @@ TYPED_TEST(Bccoo, ConvertsEmptyToPrecision)
 
 
 TYPED_TEST(Bccoo, MovesEmptyToPrecision)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using OtherType = typename gko::next_precision<ValueType>;
@@ -403,42 +370,26 @@ TYPED_TEST(Bccoo, MovesEmptyToPrecision)
 
 
 TYPED_TEST(Bccoo, ConvertsEmptyToCoo)
-// GKO_NOT_IMPLEMENTED;
-/* */
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using Bccoo = typename TestFixture::Mtx;
-    //    using Coo	= typename TestFixture::Coo;
     using Coo = gko::matrix::Coo<ValueType, IndexType>;
 
     auto empty = Bccoo::create(this->exec);
     auto res = Coo::create(this->exec);
     empty->convert_to(res.get());
 
-    //    std::cout << "Convert_Coo_F" << std::endl;
     ASSERT_EQ(res->get_num_stored_elements(), 0);
-    //    std::cout << "Convert_Coo_G" << std::endl;
-    //    ASSERT_EQ(*res->get_const_row_idxs(), 0);
-    //    std::cout << "Convert_Coo_H" << std::endl;
-    //    ASSERT_EQ(*res->get_const_col_idxs(), 0);
-    //    std::cout << "Convert_Coo_I" << std::endl;
     ASSERT_FALSE(res->get_size());
-    //    std::cout << "Convert_Coo_J" << std::endl;
 }
-/* */
 
 
 TYPED_TEST(Bccoo, MovesEmptyToCoo)
-// GKO_NOT_IMPLEMENTED;
-/* */
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using Bccoo = typename TestFixture::Mtx;
-    //    using Coo	= typename TestFixture::Coo;
     using Coo = gko::matrix::Coo<ValueType, IndexType>;
 
     auto empty = Bccoo::create(this->exec);
@@ -446,17 +397,12 @@ TYPED_TEST(Bccoo, MovesEmptyToCoo)
     empty->move_to(res.get());
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
-    //    ASSERT_EQ(*res->get_const_row_idxs(), 0);
-    //    ASSERT_EQ(*res->get_const_col_idxs(), 0);
     ASSERT_FALSE(res->get_size());
 }
-/* */
 
 
 TYPED_TEST(Bccoo, ConvertsEmptyToCsr)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using Bccoo = typename TestFixture::Mtx;
@@ -473,9 +419,7 @@ TYPED_TEST(Bccoo, ConvertsEmptyToCsr)
 
 
 TYPED_TEST(Bccoo, MovesEmptyToCsr)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using Bccoo = typename TestFixture::Mtx;
@@ -492,9 +436,7 @@ TYPED_TEST(Bccoo, MovesEmptyToCsr)
 
 
 TYPED_TEST(Bccoo, ConvertsEmptyToDense)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using Bccoo = typename TestFixture::Mtx;
@@ -509,9 +451,7 @@ TYPED_TEST(Bccoo, ConvertsEmptyToDense)
 
 
 TYPED_TEST(Bccoo, MovesEmptyToDense)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using Bccoo = typename TestFixture::Mtx;
@@ -526,10 +466,7 @@ TYPED_TEST(Bccoo, MovesEmptyToDense)
 
 
 TYPED_TEST(Bccoo, AppliesToDenseVector)
-// GKO_NOT_IMPLEMENTED;
 {
-    //  TODO (script:bccoo): change the code imported from matrix/coo if needed
-    //		std::cout << "AppliesToDenseVector" << std::endl;
     using Vec = typename TestFixture::Vec;
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
@@ -541,9 +478,7 @@ TYPED_TEST(Bccoo, AppliesToDenseVector)
 
 
 TYPED_TEST(Bccoo, AppliesToMixedDenseVector)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using MixedVec = typename TestFixture::MixedVec;
     auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
     auto y = MixedVec::create(this->exec, gko::dim<2>{2, 1});
@@ -569,9 +504,7 @@ TYPED_TEST(Bccoo, AppliesToMixedDenseVector)
 
 
 TYPED_TEST(Bccoo, AppliesToDenseMatrix)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
     // clang-format off
@@ -617,9 +550,7 @@ TYPED_TEST(Bccoo, AppliesToDenseMatrix)
 
 
 TYPED_TEST(Bccoo, AppliesLinearCombinationToDenseVector)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Vec = typename TestFixture::Vec;
     auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
     auto beta = gko::initialize<Vec>({2.0}, this->exec);
@@ -633,9 +564,7 @@ TYPED_TEST(Bccoo, AppliesLinearCombinationToDenseVector)
 
 
 TYPED_TEST(Bccoo, AppliesLinearCombinationToMixedDenseVector)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using MixedVec = typename TestFixture::MixedVec;
     auto alpha = gko::initialize<MixedVec>({-1.0}, this->exec);
     auto beta = gko::initialize<MixedVec>({2.0}, this->exec);
@@ -649,9 +578,7 @@ TYPED_TEST(Bccoo, AppliesLinearCombinationToMixedDenseVector)
 
 
 TYPED_TEST(Bccoo, AppliesLinearCombinationToDenseMatrix)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
@@ -677,9 +604,7 @@ TYPED_TEST(Bccoo, AppliesLinearCombinationToDenseMatrix)
 
 
 TYPED_TEST(Bccoo, ApplyFailsOnWrongInnerDimension)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Vec = typename TestFixture::Vec;
     auto x = Vec::create(this->exec, gko::dim<2>{2});
     auto y = Vec::create(this->exec, gko::dim<2>{2});
@@ -689,9 +614,7 @@ TYPED_TEST(Bccoo, ApplyFailsOnWrongInnerDimension)
 
 
 TYPED_TEST(Bccoo, ApplyFailsOnWrongNumberOfRows)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Vec = typename TestFixture::Vec;
     auto x = Vec::create(this->exec, gko::dim<2>{3, 2});
     auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
@@ -701,9 +624,7 @@ TYPED_TEST(Bccoo, ApplyFailsOnWrongNumberOfRows)
 
 
 TYPED_TEST(Bccoo, ApplyFailsOnWrongNumberOfCols)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Vec = typename TestFixture::Vec;
     auto x = Vec::create(this->exec, gko::dim<2>{3});
     auto y = Vec::create(this->exec, gko::dim<2>{2});
@@ -713,9 +634,7 @@ TYPED_TEST(Bccoo, ApplyFailsOnWrongNumberOfCols)
 
 
 TYPED_TEST(Bccoo, AppliesAddToDenseVector)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Vec = typename TestFixture::Vec;
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<Vec>({2.0, 1.0}, this->exec);
@@ -727,9 +646,7 @@ TYPED_TEST(Bccoo, AppliesAddToDenseVector)
 
 
 TYPED_TEST(Bccoo, AppliesAddToMixedDenseVector)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using MixedVec = typename TestFixture::MixedVec;
     auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
     auto y = gko::initialize<MixedVec>({2.0, 1.0}, this->exec);
@@ -741,9 +658,7 @@ TYPED_TEST(Bccoo, AppliesAddToMixedDenseVector)
 
 
 TYPED_TEST(Bccoo, AppliesAddToDenseMatrix)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
     // clang-format off
@@ -767,9 +682,7 @@ TYPED_TEST(Bccoo, AppliesAddToDenseMatrix)
 
 
 TYPED_TEST(Bccoo, AppliesLinearCombinationAddToDenseVector)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Vec = typename TestFixture::Vec;
     auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
@@ -782,9 +695,7 @@ TYPED_TEST(Bccoo, AppliesLinearCombinationAddToDenseVector)
 
 
 TYPED_TEST(Bccoo, AppliesLinearCombinationAddToMixedDenseVector)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using MixedVec = typename TestFixture::MixedVec;
     auto alpha = gko::initialize<MixedVec>({-1.0}, this->exec);
     auto x = gko::initialize<MixedVec>({2.0, 1.0, 4.0}, this->exec);
@@ -797,9 +708,7 @@ TYPED_TEST(Bccoo, AppliesLinearCombinationAddToMixedDenseVector)
 
 
 TYPED_TEST(Bccoo, AppliesLinearCombinationAddToDenseMatrix)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
@@ -824,9 +733,7 @@ TYPED_TEST(Bccoo, AppliesLinearCombinationAddToDenseMatrix)
 
 
 TYPED_TEST(Bccoo, ApplyAddFailsOnWrongInnerDimension)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Vec = typename TestFixture::Vec;
     auto x = Vec::create(this->exec, gko::dim<2>{2});
     auto y = Vec::create(this->exec, gko::dim<2>{2});
@@ -836,9 +743,7 @@ TYPED_TEST(Bccoo, ApplyAddFailsOnWrongInnerDimension)
 
 
 TYPED_TEST(Bccoo, ApplyAddFailsOnWrongNumberOfRows)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Vec = typename TestFixture::Vec;
     auto x = Vec::create(this->exec, gko::dim<2>{3, 2});
     auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
@@ -848,9 +753,7 @@ TYPED_TEST(Bccoo, ApplyAddFailsOnWrongNumberOfRows)
 
 
 TYPED_TEST(Bccoo, ApplyAddFailsOnWrongNumberOfCols)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Vec = typename TestFixture::Vec;
     auto x = Vec::create(this->exec, gko::dim<2>{3});
     auto y = Vec::create(this->exec, gko::dim<2>{2});
@@ -860,9 +763,7 @@ TYPED_TEST(Bccoo, ApplyAddFailsOnWrongNumberOfCols)
 
 
 TYPED_TEST(Bccoo, ExtractsDiagonal)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using T = typename TestFixture::value_type;
     auto matrix = this->mtx->clone();
     auto diag = matrix->extract_diagonal();
@@ -875,16 +776,12 @@ TYPED_TEST(Bccoo, ExtractsDiagonal)
 
 
 TYPED_TEST(Bccoo, InplaceAbsolute)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Mtx = typename TestFixture::Mtx;
     auto mtx = gko::initialize<Mtx>(
         {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec);
 
-    //    std::cout << " XXXX " << std::endl;
     mtx->compute_absolute_inplace();
-    //    std::cout << " YYYY " << std::endl;
 
     GKO_ASSERT_MTX_NEAR(
         mtx, l({{1.0, 2.0, 2.0}, {3.0, 5.0, 0.0}, {0.0, 1.0, 1.5}}), 0.0);
@@ -892,29 +789,20 @@ TYPED_TEST(Bccoo, InplaceAbsolute)
 
 
 TYPED_TEST(Bccoo, OutplaceAbsolute)
-// GKO_NOT_IMPLEMENTED;
-/* */
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Mtx = typename TestFixture::Mtx;
     auto mtx = gko::initialize<Mtx>(
         {{1.0, 2.0, -2.0}, {3.0, -5.0, 0.0}, {0.0, 1.0, -1.5}}, this->exec);
 
-    //		std::cout << "AAA" << std::endl;
     auto abs_mtx = mtx->compute_absolute();
-    //		std::cout << "BBB" << std::endl;
 
     GKO_ASSERT_MTX_NEAR(
         abs_mtx, l({{1.0, 2.0, 2.0}, {3.0, 5.0, 0.0}, {0.0, 1.0, 1.5}}), 0.0);
-    //		std::cout << "ABAB" << std::endl;
 }
-/* */
 
 
 TYPED_TEST(Bccoo, AppliesToComplex)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using value_type = typename TestFixture::value_type;
     using complex_type = gko::to_complex<value_type>;
     using Vec = gko::matrix::Dense<complex_type>;
@@ -939,9 +827,7 @@ TYPED_TEST(Bccoo, AppliesToComplex)
 
 
 TYPED_TEST(Bccoo, AppliesToMixedComplex)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using mixed_value_type =
         gko::next_precision<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
@@ -967,9 +853,7 @@ TYPED_TEST(Bccoo, AppliesToMixedComplex)
 
 
 TYPED_TEST(Bccoo, AdvancedAppliesToComplex)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using value_type = typename TestFixture::value_type;
     using complex_type = gko::to_complex<value_type>;
     using Dense = gko::matrix::Dense<value_type>;
@@ -999,9 +883,7 @@ TYPED_TEST(Bccoo, AdvancedAppliesToComplex)
 
 
 TYPED_TEST(Bccoo, AdvancedAppliesToMixedComplex)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using mixed_value_type =
         gko::next_precision<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
@@ -1032,9 +914,7 @@ TYPED_TEST(Bccoo, AdvancedAppliesToMixedComplex)
 
 
 TYPED_TEST(Bccoo, ApplyAddsToComplex)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using value_type = typename TestFixture::value_type;
     using complex_type = gko::to_complex<value_type>;
     using Vec = gko::matrix::Dense<complex_type>;
@@ -1061,9 +941,7 @@ TYPED_TEST(Bccoo, ApplyAddsToComplex)
 
 
 TYPED_TEST(Bccoo, ApplyAddsToMixedComplex)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using mixed_value_type =
         gko::next_precision<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
@@ -1091,9 +969,7 @@ TYPED_TEST(Bccoo, ApplyAddsToMixedComplex)
 
 
 TYPED_TEST(Bccoo, ApplyAddsScaledToComplex)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using value_type = typename TestFixture::value_type;
     using complex_type = gko::to_complex<value_type>;
     using Dense = gko::matrix::Dense<value_type>;
@@ -1122,9 +998,7 @@ TYPED_TEST(Bccoo, ApplyAddsScaledToComplex)
 
 
 TYPED_TEST(Bccoo, ApplyAddsScaledToMixedComplex)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using mixed_value_type =
         gko::next_precision<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
@@ -1167,15 +1041,11 @@ TYPED_TEST_SUITE(BccooComplex, gko::test::ComplexValueIndexTypes);
 
 
 TYPED_TEST(BccooComplex, OutplaceAbsolute)
-// GKO_NOT_IMPLEMENTED;
-/* */
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto exec = gko::ReferenceExecutor::create();
-    //		std::cout << "CCC" << std::endl;
     // clang-format off
     auto mtx = gko::initialize<Mtx>(
         {{T{1.0, 0.0}, T{3.0, 4.0}, T{0.0, 2.0}},
@@ -1183,21 +1053,15 @@ TYPED_TEST(BccooComplex, OutplaceAbsolute)
          {T{0.0, 0.0}, T{0.0, -1.5}, T{2.0, 0.0}}}, exec);
     // clang-format on
 
-    //		std::cout << "DDD" << std::endl;
     auto abs_mtx = mtx->compute_absolute();
-    //		std::cout << "EEE" << std::endl;
 
     GKO_ASSERT_MTX_NEAR(
         abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
-    //		std::cout << "FFF" << std::endl;
 }
-/* */
 
 
 TYPED_TEST(BccooComplex, InplaceAbsolute)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;

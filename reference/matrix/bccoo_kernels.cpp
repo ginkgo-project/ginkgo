@@ -132,7 +132,6 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type j = 0; j < num_cols; j++) {
             c->at(row, j) += val * b->at(col, j);
         }
-        /* */
     }
 }
 
@@ -171,7 +170,6 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type j = 0; j < num_cols; j++) {
             c->at(row, j) += alpha_val * val * b->at(col, j);
         }
-        /* */
     }
 }
 
@@ -210,45 +208,24 @@ void convert_to_next_precision(
     for (size_type i = 0; i < num_stored_elements; i++) {
         get_detect_newblock(rows_dataS, offsets_dataS, nblkS, blkS, shfS, rowS,
                             colS);
-        /* */
         put_detect_newblock(chunk_dataR, rows_dataR, nblkR, blkR, shfR, rowR,
                             rowS - rowR, colR);
-        /* */
 #if OPTION == 0
         update_bccoo_position_copy_val(chunk_dataS, shfS, rowS, colS, valS,
                                        rows_dataR, nblkR, blkR, chunk_dataR,
                                        shfR, rowR, colR, valR,
                                        [](ValueType val) { return (val); });
 #else
-        //        update_bccoo_position_copy(chunk_dataS, shfS, rowS, colS,
-        //        rows_dataR,
-        //                                  nblkR, blkR, chunk_dataR, shfR,
-        //                                  rowR, colR);
         uint8 indS =
             get_position_newrow_put(chunk_dataS, shfS, rowS, colS, chunk_dataR,
                                     nblkR, blkR, rows_dataR, shfR, rowR, colR);
-        /*
-                        get_next_position(chunk_dataS, indS, shfS, colS);
-                        put_next_position(chunk_dataR, indS, colR - colS, shfR,
-           colR); valS = get_value_chunk<ValueType>(chunk_dataS, shfS); shfS +=
-           sizeof(ValueType); valR = valS;
-                set_value_chunk<new_precision>(chunk_dataR, shfR, valR);
-                shfR += sizeof(new_precision);
-        */
         get_next_position_value(chunk_dataS, indS, shfS, colS, valS);
         valR = valS;
         put_next_position_value(chunk_dataR, indS, colR - colS, shfR, colR,
                                 valR);
-// #else
-//        /* OPTION 2 */
-//        update_bccoo_position_copy_val(chunk_dataS, shfS, rowS, colS,
-//           valS, rows_dataR, nblkR, blkR, chunk_dataR, shfR, rowR, colR, valR,
-//           [](ValueType val) { return (val); });
 #endif
         get_detect_endblock(block_size, nblkS, blkS);
-        /* */
         put_detect_endblock(offsets_dataR, shfR, block_size, nblkR, blkR);
-        /* */
     }
 }
 
@@ -289,7 +266,6 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
         row_idxs[i] = row;
         col_idxs[i] = col;
         values[i] = val;
-        /* */
     }
 }
 
@@ -332,35 +308,11 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type i = 0; i < num_stored_elements; i++) {
         get_detect_newblock_csr(rows_data, offsets_data, nblk, blk, row_ptrs, i,
                                 shf, row, col);
-        /*
-                if (nblk == 0) {
-                    if (row != rows_data[blk]) {
-                        row_ptrs[row] = i;
-                        row = rows_data[blk];
-                    }
-                    col = 0;
-                    shf = offsets_data[blk];
-                }
-        */
-        /* */
         uint8 ind =
             get_position_newrow_csr(chunk_data, row_ptrs, i, shf, row, col);
-        /*
-                uint8 ind = (chunk_data[shf]);
-                while (ind == 0xFF) {
-                    row++;
-                    col = 0;
-                    row_ptrs[row] = i;
-                    shf++;
-                    ind = chunk_data[shf];
-                }
-        */
-        /* */
         get_next_position_value(chunk_data, ind, shf, col, val);
-
         col_idxs[i] = col;
         values[i] = val;
-
         get_detect_endblock(block_size, nblk, blk);
     }
     row_ptrs[row + 1] = num_stored_elements;
@@ -406,7 +358,6 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
         get_detect_endblock(block_size, nblk, blk);
 #endif
         result->at(row, col) += val;
-        /* */
     }
 }
 
@@ -450,7 +401,6 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
         if (row == col) {
             diag_values[row] = val;
         }
-        /* */
     }
 }
 
@@ -523,14 +473,6 @@ void compute_absolute(
                             colS);
         put_detect_newblock(chunk_dataR, rows_dataR, nblkR, blkR, shfR, rowR,
                             rowS - rowR, colR);
-        /*
-                update_bccoo_position_copy(chunk_dataS, shfS, rowS, colS,
-           rows_dataR, nblkR, blkR, chunk_dataR, shfR, rowR, colR); valS =
-           get_value_chunk<ValueType>(chunk_dataS, shfS); shfS +=
-           sizeof(ValueType); valR = abs(valS);
-                set_value_chunk<ValueType>(chunk_dataR, shfR, valR);
-                shfR += sizeof(remove_complex<ValueType>);
-        */
 #if OPTION == 0
         update_bccoo_position_copy_val(chunk_dataS, shfS, rowS, colS, valS,
                                        rows_dataR, nblkR, blkR, chunk_dataR,

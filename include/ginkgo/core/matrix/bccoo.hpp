@@ -326,7 +326,8 @@ protected:
     Bccoo(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Bccoo>(exec, dim<2>{}),
           rows_(exec, 0),
-          offsets_(exec, 1),
+          //          offsets_(exec, 1),
+          offsets_(exec, 0),
           chunk_(exec, 0),
           num_nonzeros_{0},
           block_size_{0}
@@ -348,6 +349,7 @@ protected:
                 (block_size <= 0) ? 0 : ceildiv(num_nonzeros, block_size)),
           offsets_(exec, (block_size <= 0)
                              ? 1
+                             //                             ? 0
                              : ceildiv(num_nonzeros, block_size) + 1),
           chunk_(exec, num_bytes),
           num_nonzeros_{num_nonzeros},
