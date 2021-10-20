@@ -34,7 +34,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_BASE_CUSPARSE_BLOCK_BINDINGS_HPP_
 
 
+#include <cuda.h>
+#include <cusparse.h>
+
+
+#include <ginkgo/core/base/exception_helpers.hpp>
+
+
 #include "cuda/base/cusparse_bindings.hpp"
+#include "cuda/base/types.hpp"
 
 
 namespace gko {

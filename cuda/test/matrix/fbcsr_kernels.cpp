@@ -107,7 +107,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Fbcsr, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Fbcsr, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Fbcsr, CanWriteFromMatrixOnDevice)
