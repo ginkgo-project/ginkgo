@@ -156,6 +156,8 @@ public:
     using complex_type = to_complex<Dense>;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
+    using const_row_major_range =
+        gko::range<gko::accessor::row_major<const ValueType, 2>>;
 
     /**
      * Creates a Dense matrix with the same size and stride as another Dense
@@ -827,6 +829,35 @@ public:
      * @param columns  column span
      * @param stride   stride of the new submatrix.
      */
+    std::unique_ptr<const Dense> create_submatrix(const span& rows,
+                                                  const span& columns,
+                                                  const size_type stride) const
+    {
+        return this->create_submatrix_impl(rows, columns, stride);
+    }
+
+    /**
+     * Create a submatrix from the original matrix.
+     *
+     * @param rows     row span
+     * @param columns  column span
+     */
+    std::unique_ptr<const Dense> create_submatrix(const span& rows,
+                                                  const span& columns) const
+    {
+        return create_submatrix(rows, columns, this->get_stride());
+    }
+
+    /**
+     * Create a submatrix from the original matrix.
+     * Warning: defining stride for this create_submatrix method might cause
+     * wrong memory access. Better use the create_submatrix(rows, columns)
+     * method instead.
+     *
+     * @param rows     row span
+     * @param columns  column span
+     * @param stride   stride of the new submatrix.
+     */
     std::unique_ptr<Dense> create_submatrix(const span& rows,
                                             const span& columns,
                                             const size_type stride)
@@ -1094,6 +1125,33 @@ protected:
      */
     virtual std::unique_ptr<Dense> create_submatrix_impl(
         const span& rows, const span& columns, const size_type stride);
+
+
+    /**
+     * @copydoc create_submatrix(const span, const span, const size_type)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of create_submatrix(const span, const span, const
+     *        size_type).
+     */
+    virtual std::unique_ptr<const Dense> create_submatrix_impl(
+        const span& rows, const span& columns, const size_type stride) const
+    {
+        const_row_major_range range_this{
+            this->get_const_values(), this->get_size()[0], this->get_size()[1],
+            this->get_stride()};
+        const auto range_result = range_this(rows, columns);
+        // TODO: can result in HUGE padding - which will be copied with the
+        // vector
+        return std::move(Dense::create(
+            this->get_executor(),
+            dim<2>{range_result.length(0), range_result.length(1)},
+            gko::detail::array_const_cast(Array<ValueType>::const_view(
+                this->get_executor(),
+                range_result.length(0) * range_this.length(1) - columns.begin,
+                range_result->data)),
+            stride));
+    }
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
