@@ -66,6 +66,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Should we compile mixed-precision kernels for Ginkgo? */
 #cmakedefine GINKGO_MIXED_PRECISION
 
+/* Should run time validation of underlying matrices and vector be enabled? */
+#cmakedefine GINKGO_DATA_VALIDATION
 
 /* What is HIP compiled for, hcc or nvcc? */
 // clang-format off

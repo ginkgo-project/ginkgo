@@ -98,6 +98,7 @@ option(GINKGO_DPCPP_SINGLE_MODE "Do not compile double kernels for the DPC++ bac
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
 option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) to the installation RPATH." ON)
 option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
+option(GINKGO_DATA_VALIDATION "Check for validity of the underlying system on apply call." OFF)
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
