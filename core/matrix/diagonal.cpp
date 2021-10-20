@@ -37,11 +37,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/components/validation_helpers.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/components/absolute_array.hpp"
-#include "core/components/validation_helpers.hpp"
 #include "core/matrix/diagonal_kernels.hpp"
 
 
@@ -299,7 +299,7 @@ void Diagonal<ValueType>::validate_impl() const
                  values_.get_const_data(), values_.get_num_elems());
          }}};
 
-    for (auto const &x : constraints_map) {
+    for (auto const& x : constraints_map) {
         if (!x.second()) {
             throw gko::Invalid(__FILE__, __LINE__, "Diagonal", x.first);
         };

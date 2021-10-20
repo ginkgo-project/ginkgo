@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/components/validation_helpers.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -45,7 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/allocator.hpp"
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
-#include "core/components/validation_helpers.hpp"
 #include "core/matrix/sellp_kernels.hpp"
 
 
@@ -309,7 +309,7 @@ void Sellp<ValueType, IndexType>::validate_impl() const
     std::map<std::string, std::function<bool()>> constraints_map{
         {"is_finite", [this] { return ::gko::validate::is_finite(this); }}};
 
-    for (auto const &x : constraints_map) {
+    for (auto const& x : constraints_map) {
         if (!x.second()) {
             throw gko::Invalid(__FILE__, __LINE__, "Sellp", x.first);
         };

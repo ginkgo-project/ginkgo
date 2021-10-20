@@ -30,9 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/validation_helpers.hpp"
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/components/validation_helpers.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -41,7 +41,7 @@ namespace gko {
 namespace validate {
 
 template <typename F>
-bool all_of(const size_type num_entries, F &&pred)
+bool all_of(const size_type num_entries, F&& pred)
 {
     for (size_type i = 0; i < num_entries; ++i) {
         if (!pred(i)) {
@@ -52,14 +52,14 @@ bool all_of(const size_type num_entries, F &&pred)
 }
 
 template <class ValueType, class IndexType>
-bool is_symmetric_impl(const LinOp *matrix, const float tolerance)
+bool is_symmetric_impl(const LinOp* matrix, const float tolerance)
 {
     matrix_data<ValueType, IndexType> data{};
-    dynamic_cast<const WritableToMatrixData<ValueType, IndexType> *>(matrix)
+    dynamic_cast<const WritableToMatrixData<ValueType, IndexType>*>(matrix)
         ->write(data);
 
     matrix_data<ValueType, IndexType> data_t{data};
-    for (auto &nonzeros : data.nonzeros) {
+    for (auto& nonzeros : data.nonzeros) {
         std::swap(nonzeros.row, nonzeros.column);
     }
 
@@ -73,12 +73,12 @@ bool is_symmetric_impl(const LinOp *matrix, const float tolerance)
         });
 }
 
-#define GKO_CALL_AND_RETURN_IF_CASTABLE(T1, T2, func, matrix, ...)    \
-    if (dynamic_cast<const WritableToMatrixData<T1, T2> *>(matrix)) { \
-        return func<T1, T2>(matrix, ##__VA_ARGS__);                   \
+#define GKO_CALL_AND_RETURN_IF_CASTABLE(T1, T2, func, matrix, ...)   \
+    if (dynamic_cast<const WritableToMatrixData<T1, T2>*>(matrix)) { \
+        return func<T1, T2>(matrix, ##__VA_ARGS__);                  \
     }
 
-bool is_symmetric(const LinOp *matrix, const float tolerance)
+bool is_symmetric(const LinOp* matrix, const float tolerance)
 {
     GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_CALL_AND_RETURN_IF_CASTABLE,
                                            is_symmetric_impl, matrix, tolerance)
@@ -87,10 +87,10 @@ bool is_symmetric(const LinOp *matrix, const float tolerance)
 
 // TODO check also if every diagonal element is present
 template <class ValueType, class IndexType>
-bool has_non_zero_diagonal_impl(const LinOp *matrix)
+bool has_non_zero_diagonal_impl(const LinOp* matrix)
 {
     matrix_data<ValueType, IndexType> data{};
-    dynamic_cast<const WritableToMatrixData<ValueType, IndexType> *>(matrix)
+    dynamic_cast<const WritableToMatrixData<ValueType, IndexType>*>(matrix)
         ->write(data);
 
     size_type num_diag_els = 0;
@@ -129,7 +129,7 @@ bool has_non_zero_diagonal_impl(const LinOp *matrix)
                   });
 }
 
-bool has_non_zero_diagonal(const LinOp *matrix)
+bool has_non_zero_diagonal(const LinOp* matrix)
 {
     GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_CALL_AND_RETURN_IF_CASTABLE,
                                            has_non_zero_diagonal_impl, matrix)
@@ -137,17 +137,17 @@ bool has_non_zero_diagonal(const LinOp *matrix)
 }
 
 template <class ValueType, class IndexType>
-bool is_triangular_impl(const LinOp *matrix, const bool upper)
+bool is_triangular_impl(const LinOp* matrix, const bool upper)
 {
     matrix_data<ValueType, IndexType> data{};
-    dynamic_cast<const WritableToMatrixData<ValueType, IndexType> *>(matrix)
+    dynamic_cast<const WritableToMatrixData<ValueType, IndexType>*>(matrix)
         ->write(data);
 
     auto predicate = [upper](const IndexType i1, const IndexType i2) {
         return upper ? i1 > i2 : i2 > i1;
     };
 
-    for (auto &nonzero : data.nonzeros) {
+    for (auto& nonzero : data.nonzeros) {
         if (predicate(nonzero.row, nonzero.column)) {
             return false;
         }
@@ -156,14 +156,14 @@ bool is_triangular_impl(const LinOp *matrix, const bool upper)
 }
 
 
-bool is_lower_triangular(const LinOp *matrix)
+bool is_lower_triangular(const LinOp* matrix)
 {
     GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_CALL_AND_RETURN_IF_CASTABLE,
                                            is_triangular_impl, matrix, false)
     return false;
 }
 
-bool is_upper_triangular(const LinOp *matrix)
+bool is_upper_triangular(const LinOp* matrix)
 {
     GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_CALL_AND_RETURN_IF_CASTABLE,
                                            is_triangular_impl, matrix, true)
@@ -172,19 +172,19 @@ bool is_upper_triangular(const LinOp *matrix)
 
 
 template <typename IndexType>
-bool has_unique_idxs(const IndexType *idxs, const size_type num_entries)
+bool has_unique_idxs(const IndexType* idxs, const size_type num_entries)
 {
     return all_of(num_entries - 1,
                   [idxs](const size_type i) { return idxs[i] != idxs[i + 1]; });
 }
 
 #define GKO_DECLARE_HAS_UNIQUE_IDXS(IndexType) \
-    bool has_unique_idxs(const IndexType *idxs, const size_type num_entries)
+    bool has_unique_idxs(const IndexType* idxs, const size_type num_entries)
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_HAS_UNIQUE_IDXS);
 
 template <typename IndexType>
-bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries)
+bool is_row_ordered(const IndexType* row_ptrs, const size_type num_entries)
 {
     return all_of(num_entries - 1, [row_ptrs](const size_type i) {
         return row_ptrs[i] <= row_ptrs[i + 1];
@@ -192,12 +192,12 @@ bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries)
 }
 
 #define GKO_DECLARE_IS_ROW_ORDERED(IndexType) \
-    bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries)
+    bool is_row_ordered(const IndexType* row_ptrs, const size_type num_entries)
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_IS_ROW_ORDERED);
 
 template <typename IndexType>
-bool is_within_bounds(const IndexType *idxs, const size_type num_entries,
+bool is_within_bounds(const IndexType* idxs, const size_type num_entries,
                       const IndexType lower_bound, const IndexType upper_bound)
 {
     return all_of(num_entries,
@@ -207,14 +207,14 @@ bool is_within_bounds(const IndexType *idxs, const size_type num_entries,
 }
 
 #define GKO_DECLARE_IS_WITHIN_BOUNDS(IndexType)                               \
-    bool is_within_bounds(const IndexType *idxs, const size_type num_entries, \
+    bool is_within_bounds(const IndexType* idxs, const size_type num_entries, \
                           const IndexType lower_bound,                        \
                           const IndexType upper_bound)
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_IS_WITHIN_BOUNDS);
 
 template <typename ValueType>
-bool is_finite(const ValueType *values, const size_type num_entries)
+bool is_finite(const ValueType* values, const size_type num_entries)
 {
     return all_of(num_entries, [values](const size_type i) {
         return (std::isfinite(std::abs(values[i])));
@@ -222,15 +222,15 @@ bool is_finite(const ValueType *values, const size_type num_entries)
 }
 
 #define GKO_DECLARE_IS_FINITE(ValueType) \
-    bool is_finite(const ValueType *values, const size_type num_entries)
+    bool is_finite(const ValueType* values, const size_type num_entries)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IS_FINITE);
 
 template <class ValueType, class IndexType>
-bool is_finite_impl(const LinOp *matrix)
+bool is_finite_impl(const LinOp* matrix)
 {
     matrix_data<ValueType, IndexType> data{};
-    dynamic_cast<const WritableToMatrixData<ValueType, IndexType> *>(matrix)
+    dynamic_cast<const WritableToMatrixData<ValueType, IndexType>*>(matrix)
         ->write(data);
 
     size_type num_elems = data.nonzeros.size();
@@ -240,7 +240,7 @@ bool is_finite_impl(const LinOp *matrix)
     });
 }
 
-bool is_finite(const LinOp *matrix)
+bool is_finite(const LinOp* matrix)
 {
     GKO_CALL_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_CALL_AND_RETURN_IF_CASTABLE,
                                            is_finite_impl, matrix)
@@ -250,7 +250,7 @@ bool is_finite(const LinOp *matrix)
 #undef GKO_CALL_AND_RETURN_IF_CASTABLE
 
 template <typename IndexType>
-bool is_consecutive(const IndexType *idxs, const size_type num_entries,
+bool is_consecutive(const IndexType* idxs, const size_type num_entries,
                     const IndexType max_gap)
 {
     return all_of(num_entries - 1, [idxs, max_gap](const size_type i) {
@@ -259,7 +259,7 @@ bool is_consecutive(const IndexType *idxs, const size_type num_entries,
 }
 
 #define GKO_DECLARE_IS_CONSECUTIVE(IndexType)                               \
-    bool is_consecutive(const IndexType *idxs, const size_type num_entries, \
+    bool is_consecutive(const IndexType* idxs, const size_type num_entries, \
                         const IndexType max_gap)
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_IS_CONSECUTIVE);

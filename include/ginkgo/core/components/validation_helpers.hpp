@@ -44,28 +44,28 @@ namespace validate {
  *
  * @param A the input matrix which is tested
  */
-bool is_symmetric(const LinOp *matrix, const float tolerance = 0.0);
+bool is_symmetric(const LinOp* matrix, const float tolerance = 0.0);
 
 /**
  * Tests whether a given matrix has zero elements on the diagonal
  *
  * @param A the input matrix which is tested
  */
-bool has_non_zero_diagonal(const LinOp *matrix);
+bool has_non_zero_diagonal(const LinOp* matrix);
 
 /**
  * Tests whether a given matrix is a lower triangular matrix
  *
  * @param A the input matrix which is tested
  */
-bool is_lower_triangular(const LinOp *matrix);
+bool is_lower_triangular(const LinOp* matrix);
 
 /**
  * Tests whether a given matrix is an upper triangular matrix
  *
  * @param A the input matrix which is tested
  */
-bool is_upper_triangular(const LinOp *matrix);
+bool is_upper_triangular(const LinOp* matrix);
 
 /**
  * Tests whether the given row_ptrs are in an ascending order
@@ -74,7 +74,7 @@ bool is_upper_triangular(const LinOp *matrix);
  * @param num_entries length of the array which is to be tested
  */
 template <typename IndexType>
-bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries);
+bool is_row_ordered(const IndexType* row_ptrs, const size_type num_entries);
 
 /**
  * Tests whether the elements of the given index array are within unique
@@ -83,7 +83,7 @@ bool is_row_ordered(const IndexType *row_ptrs, const size_type num_entries);
  * @param num_entries length of the array which is to be tested
  */
 template <typename IndexType>
-bool has_unique_idxs(const IndexType *idxs, const size_type num_entries);
+bool has_unique_idxs(const IndexType* idxs, const size_type num_entries);
 
 /**
  * Tests whether the elements of the given array are within [lower_bound,
@@ -95,7 +95,7 @@ bool has_unique_idxs(const IndexType *idxs, const size_type num_entries);
  * @param upper_bound the upper bound
  */
 template <typename IndexType>
-bool is_within_bounds(const IndexType *idxs, const size_type num_entries,
+bool is_within_bounds(const IndexType* idxs, const size_type num_entries,
                       const IndexType lower_bound, const IndexType upper_bound);
 
 
@@ -106,7 +106,7 @@ bool is_within_bounds(const IndexType *idxs, const size_type num_entries,
  * @param num_entries length of the array which is to be tested
  */
 template <typename ValueType>
-bool is_finite(const ValueType *values, const size_type num_entries);
+bool is_finite(const ValueType* values, const size_type num_entries);
 
 
 /**
@@ -114,7 +114,7 @@ bool is_finite(const ValueType *values, const size_type num_entries);
  *
  * @param LinOp the LinOp which values are to be tested
  */
-bool is_finite(const LinOp *matrix);
+bool is_finite(const LinOp* matrix);
 
 /**
  * Tests whether the difference between adjacent elements is below a threshold
@@ -123,7 +123,7 @@ bool is_finite(const LinOp *matrix);
  * @param num_entries length of the array which is to be tested
  */
 template <typename IndexType>
-bool is_consecutive(const IndexType *idxs, const size_type num_entries,
+bool is_consecutive(const IndexType* idxs, const size_type num_entries,
                     const IndexType max_gap);
 }  // namespace validate
 }  // namespace gko

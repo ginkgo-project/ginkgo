@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/components/validation_helpers.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -54,7 +55,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
-#include "core/components/validation_helpers.hpp"
 #include "core/matrix/dense_kernels.hpp"
 
 
@@ -753,7 +753,7 @@ void Dense<ValueType>::validate_impl() const
                  values_.get_const_data(), values_.get_num_elems());
          }}};
 
-    for (auto const &x : constraints_map) {
+    for (auto const& x : constraints_map) {
         if (!x.second()) {
             throw gko::Invalid(__FILE__, __LINE__, "Dense", x.first);
         };

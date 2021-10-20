@@ -42,13 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/components/validation_helpers.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
-#include "core/components/validation_helpers.hpp"
 #include "core/matrix/ell_kernels.hpp"
 
 
@@ -269,7 +269,7 @@ void Ell<ValueType, IndexType>::validate_impl() const
                  this->get_size()[1]);
          }}};
 
-    for (auto const &x : constraints_map) {
+    for (auto const& x : constraints_map) {
         if (!x.second()) {
             throw gko::Invalid(__FILE__, __LINE__, "Diagonal", x.first);
         };
