@@ -46,9 +46,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/block_sizes.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/config.hpp"
+#include "cuda/base/cublas_bindings.hpp"
+#include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/cusparse_block_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
+#include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/merging.cuh"
@@ -90,6 +93,33 @@ constexpr int default_block_size{512};
 #include "common/cuda_hip/matrix/fbcsr_kernels.hpp.inc"
 
 
+namespace {
+
+template <typename ValueType>
+void dense_transpose(std::shared_ptr<const CudaExecutor> exec,
+                     const size_type nrows, const size_type ncols,
+                     const size_type orig_stride, const ValueType* const orig,
+                     const size_type trans_stride, ValueType* const trans)
+{
+    if (cublas::is_supported<ValueType>::value) {
+        auto handle = exec->get_cublas_handle();
+        {
+            cublas::pointer_mode_guard pm_guard(handle);
+            auto alpha = one<ValueType>();
+            auto beta = zero<ValueType>();
+            cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, nrows, ncols, &alpha,
+                         orig, orig_stride, &beta,
+                         static_cast<ValueType*>(nullptr), nrows, trans,
+                         trans_stride);
+        }
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+}  // namespace
+
+
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Fbcsr<ValueType, IndexType>* const a,
@@ -116,14 +146,15 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                             nnzb, &alpha, descr, values, row_ptrs, col_idxs, bs,
                             b->get_const_values(), &beta, c->get_values());
         } else {
-            auto trans_c = matrix::Dense<ValueType>::create(
-                exec, transpose(c->get_size()));
+            auto trans_c =
+                Array<ValueType>(exec, c->get_size()[0] * c->get_size()[1]);
             cusparse::bsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                             CUSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
                             &alpha, descr, values, row_ptrs, col_idxs, bs,
                             b->get_const_values(), nrhs, &beta,
-                            trans_c->get_values(), mb * bs);
-            trans_c->transpose(c);
+                            trans_c.get_data(), mb * bs);
+            dense_transpose(exec, nrhs, mb * bs, mb * bs, trans_c.get_data(),
+                            c->get_stride(), c->get_values());
         }
         cusparse::destroy(descr);
     } else {
@@ -161,15 +192,17 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                             nnzb, alphp, descr, values, row_ptrs, col_idxs, bs,
                             b->get_const_values(), betap, c->get_values());
         } else {
-            auto trans_c = matrix::Dense<ValueType>::create(
-                exec, transpose(c->get_size()));
-            c->transpose(trans_c.get());
+            auto trans_c =
+                Array<ValueType>(exec, c->get_size()[0] * c->get_size()[1]);
+            dense_transpose(exec, mb * bs, nrhs, c->get_stride(),
+                            c->get_values(), mb * bs, trans_c.get_data());
             cusparse::bsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                             CUSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
                             alphp, descr, values, row_ptrs, col_idxs, bs,
                             b->get_const_values(), nrhs, betap,
-                            trans_c->get_values(), mb * bs);
-            trans_c->transpose(c);
+                            trans_c.get_data(), mb * bs);
+            dense_transpose(exec, nrhs, mb * bs, mb * bs, trans_c.get_data(),
+                            c->get_stride(), c->get_values());
         }
         cusparse::destroy(descr);
     } else {
