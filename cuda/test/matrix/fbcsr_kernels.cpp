@@ -200,6 +200,30 @@ TYPED_TEST(Fbcsr, SpmvIsEquivalentToRefSorted)
 }
 
 
+TYPED_TEST(Fbcsr, SpmvMultiIsEquivalentToRefSorted)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename Mtx::value_type;
+    auto rand_cuda = Mtx::create(this->cuda);
+    rand_cuda->copy_from(gko::lend(this->rsorted_ref));
+    auto x_ref = Dense::create(
+        this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 3));
+    this->generate_sin(x_ref.get());
+    auto x_cuda = Dense::create(this->cuda);
+    x_cuda->copy_from(x_ref.get());
+    auto prod_ref = Dense::create(
+        this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 3));
+    auto prod_cuda = Dense::create(this->cuda, prod_ref->get_size());
+
+    rand_cuda->apply(x_cuda.get(), prod_cuda.get());
+    this->rsorted_ref->apply(x_ref.get(), prod_ref.get());
+
+    const double tol = r<value_type>::value;
+    GKO_ASSERT_MTX_NEAR(prod_ref, prod_cuda, 5 * tol);
+}
+
+
 TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -215,6 +239,43 @@ TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
     x_cuda->copy_from(x_ref.get());
     auto prod_ref = Dense::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 1));
+    this->generate_sin(prod_ref.get());
+    auto prod_cuda = Dense::create(this->cuda);
+    prod_cuda->copy_from(prod_ref.get());
+    auto alpha_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
+    alpha_ref->get_values()[0] =
+        static_cast<real_type>(2.4) + this->get_random_value();
+    auto beta_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
+    beta_ref->get_values()[0] = -1.2;
+    auto alpha = Dense::create(this->cuda);
+    alpha->copy_from(alpha_ref.get());
+    auto beta = Dense::create(this->cuda);
+    beta->copy_from(beta_ref.get());
+
+    rand_cuda->apply(alpha.get(), x_cuda.get(), beta.get(), prod_cuda.get());
+    this->rsorted_ref->apply(alpha_ref.get(), x_ref.get(), beta_ref.get(),
+                             prod_ref.get());
+
+    const double tol = r<value_type>::value;
+    GKO_ASSERT_MTX_NEAR(prod_ref, prod_cuda, 5 * tol);
+}
+
+
+TYPED_TEST(Fbcsr, AdvancedSpmvMultiIsEquivalentToRefSorted)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
+    auto rand_cuda = Mtx::create(this->cuda);
+    rand_cuda->copy_from(gko::lend(this->rsorted_ref));
+    auto x_ref = Dense::create(
+        this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 3));
+    this->generate_sin(x_ref.get());
+    auto x_cuda = Dense::create(this->cuda);
+    x_cuda->copy_from(x_ref.get());
+    auto prod_ref = Dense::create(
+        this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 3));
     this->generate_sin(prod_ref.get());
     auto prod_cuda = Dense::create(this->cuda);
     prod_cuda->copy_from(prod_ref.get());
