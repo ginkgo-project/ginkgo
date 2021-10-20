@@ -92,8 +92,9 @@ constexpr int default_block_size{512};
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const CudaExecutor> exec,
-          const matrix::Fbcsr<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+          const matrix::Fbcsr<ValueType, IndexType>* const a,
+          const matrix::Dense<ValueType>* const b,
+          matrix::Dense<ValueType>* const c)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_cusparse_handle();
@@ -115,12 +116,19 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                             nnzb, &alpha, descr, values, row_ptrs, col_idxs, bs,
                             b->get_const_values(), &beta, c->get_values());
         } else {
-            GKO_NOT_IMPLEMENTED;
+            auto trans_c = matrix::Dense<ValueType>::create(
+                exec, transpose(c->get_size()));
+            cusparse::bsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                            CUSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
+                            &alpha, descr, values, row_ptrs, col_idxs, bs,
+                            b->get_const_values(), nrhs, &beta,
+                            trans_c->get_values(), mb * bs);
+            trans_c->transpose(c);
         }
-
         cusparse::destroy(descr);
-    } else
+    } else {
         GKO_NOT_IMPLEMENTED;
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_SPMV_KERNEL);
@@ -128,11 +136,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
-                   const matrix::Fbcsr<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
+                   const matrix::Dense<ValueType>* const alpha,
+                   const matrix::Fbcsr<ValueType, IndexType>* const a,
+                   const matrix::Dense<ValueType>* const b,
+                   const matrix::Dense<ValueType>* const beta,
+                   matrix::Dense<ValueType>* const c)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_cusparse_handle();
@@ -153,12 +161,20 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                             nnzb, alphp, descr, values, row_ptrs, col_idxs, bs,
                             b->get_const_values(), betap, c->get_values());
         } else {
-            GKO_NOT_IMPLEMENTED;
+            auto trans_c = matrix::Dense<ValueType>::create(
+                exec, transpose(c->get_size()));
+            c->transpose(trans_c.get());
+            cusparse::bsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                            CUSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
+                            alphp, descr, values, row_ptrs, col_idxs, bs,
+                            b->get_const_values(), nrhs, betap,
+                            trans_c->get_values(), mb * bs);
+            trans_c->transpose(c);
         }
-
         cusparse::destroy(descr);
-    } else
+    } else {
         GKO_NOT_IMPLEMENTED;
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

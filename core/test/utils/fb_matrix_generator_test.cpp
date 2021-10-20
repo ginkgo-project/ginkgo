@@ -152,9 +152,11 @@ TEST_F(BlockMatrixGenerator, ComplexOutputIsRowDiagonalDominantWhenRequested)
                     }
                 }
             } else {
-                for (int i = 0; i < blk_sz; i++)
-                    for (int j = 0; j < blk_sz; j++)
+                for (int i = 0; i < blk_sz; i++) {
+                    for (int j = 0; j < blk_sz; j++) {
                         row_del_sum[i] += abs(vals(iz, i, j));
+                    }
+                }
             }
         }
         std::vector<real_type> diag_dom(blk_sz);

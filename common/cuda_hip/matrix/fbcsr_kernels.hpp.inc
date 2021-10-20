@@ -38,7 +38,6 @@ template <int mat_blk_sz, int subwarp_size, typename ValueType,
 __global__ __launch_bounds__(default_block_size) void transpose_blocks(
     const IndexType nbnz, ValueType* const values)
 {
-    constexpr int warps_in_block{default_block_size / subwarp_size};
     const auto total_subwarp_count =
         thread::get_subwarp_num_flat<subwarp_size, IndexType>();
     const IndexType begin_blk =
@@ -46,26 +45,27 @@ __global__ __launch_bounds__(default_block_size) void transpose_blocks(
 
     auto thread_block = group::this_thread_block();
     auto subwarp_grp = group::tiled_partition<subwarp_size>(thread_block);
-    const auto sw_threadidx = subwarp_grp.thread_rank();
-    const unsigned sw_id_in_threadblock{threadIdx.x / subwarp_size};
+    const int sw_threadidx = subwarp_grp.thread_rank();
 
     constexpr int mat_blk_sz_2{mat_blk_sz * mat_blk_sz};
-    __shared__ UninitializedArray<ValueType, warps_in_block * mat_blk_sz_2>
-        origblocks;
+    constexpr int num_entries_per_thread{(mat_blk_sz_2 - 1) / subwarp_size + 1};
+    ValueType orig_vals[num_entries_per_thread];
 
     for (auto ibz = begin_blk; ibz < nbnz; ibz += total_subwarp_count) {
         for (int i = sw_threadidx; i < mat_blk_sz_2; i += subwarp_size) {
-            origblocks[sw_id_in_threadblock * mat_blk_sz_2 + i] =
-                values[ibz * mat_blk_sz_2 + i];
+            orig_vals[i / subwarp_size] = values[ibz * mat_blk_sz_2 + i];
         }
         subwarp_grp.sync();
 
-        for (int i = sw_threadidx; i < mat_blk_sz_2; i += subwarp_size) {
-            const int row = i % mat_blk_sz;
-            const int col = i / mat_blk_sz;
-            const int in_pos = row * mat_blk_sz + col;
-            values[ibz * mat_blk_sz_2 + i] =
-                origblocks[sw_id_in_threadblock * mat_blk_sz_2 + in_pos];
+        for (int i = 0; i < num_entries_per_thread; i++) {
+            const int orig_pos = i * subwarp_size + sw_threadidx;
+            if (orig_pos >= mat_blk_sz_2) {
+                break;
+            }
+            const int orig_row = orig_pos % mat_blk_sz;
+            const int orig_col = orig_pos / mat_blk_sz;
+            const int new_pos = orig_row * mat_blk_sz + orig_col;
+            values[ibz * mat_blk_sz_2 + new_pos] = orig_vals[i];
         }
         subwarp_grp.sync();
     }
