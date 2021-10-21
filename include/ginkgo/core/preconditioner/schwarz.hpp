@@ -51,42 +51,11 @@ namespace preconditioner {
 
 
 /**
- * A block-Schwarz preconditioner is a block-diagonal linear operator, obtained
- * by inverting the diagonal blocks of the source operator.
- *
- * The Schwarz class implements the inversion of the diagonal blocks using
- * Gauss-Jordan elimination with column pivoting, and stores the inverse
- * explicitly in a customized format.
- *
- * If the diagonal blocks of the matrix are not explicitly set by the user, the
- * implementation will try to automatically detect the blocks by first finding
- * the natural blocks of the matrix, and then applying the supervariable
- * agglomeration procedure on them. However, if problem-specific knowledge
- * regarding the block diagonal structure is available, it is usually beneficial
- * to explicitly pass the starting rows of the diagonal blocks, as the block
- * detection is merely a heuristic and cannot perfectly detect the diagonal
- * block structure. The current implementation supports blocks of up to 32 rows
- * / columns.
- *
- * The implementation also includes an improved, adaptive version of the
- * block-Schwarz preconditioner, which can store some of the blocks in lower
- * precision and thus improve the performance of preconditioner application by
- * reducing the amount of memory transfers. This variant can be enabled by
- * setting the Schwarz::Factory's `storage_optimization` parameter.  Refer to
- * the documentation of the parameter for more details.
+ * TODO
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  integral type used to store pointers to the start of each
  *                    block
- *
- * @note The current implementation supports blocks of up to 32 rows / columns.
- * @note When using the adaptive variant, there may be a trade-off in terms of
- *       slightly longer preconditioner generation due to extra work required to
- *       detect the optimal precision of the blocks.
- * @note When the max_block_size is set to 1, specialized  kernels are used,
- *       both for generation (inverting the diagonals) and application (diagonal
- *       scaling) to reduce the overhead involved in the usual (adaptive) block
- *       case.
  *
  * @ingroup schwarz
  * @ingroup precond
@@ -120,12 +89,18 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    std::vector<std::shared_ptr<LinOp>> get_subdomain_matrices() const
+    {
+        return subdomain_matrices_;
+    }
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Number of subdomains.
+         * Array of subdomain sizes.
          */
-        uint32 GKO_FACTORY_PARAMETER_SCALAR(num_subdomains, 1u);
+        std::vector<size_type> GKO_FACTORY_PARAMETER_VECTOR(
+            subdomain_sizes, std::vector<size_type>{});
 
         /**
          * @brief `true` means it is known that the matrix given to this
@@ -156,7 +131,8 @@ public:
          * Generated Inner solvers.
          */
         std::vector<std::shared_ptr<const LinOp>> GKO_FACTORY_PARAMETER_VECTOR(
-            generated_inner_solvers, nullptr);
+            generated_inner_solvers,
+            std::vector<std::shared_ptr<const LinOp>>{});
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -183,7 +159,7 @@ protected:
         : EnableLinOp<Schwarz>(factory->get_executor(),
                                gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
-          num_subdomains_{parameters_.num_subdomains}
+          num_subdomains_{parameters_.subdomain_sizes.size()}
     {
         this->generate(lend(system_matrix), parameters_.skip_sorting);
     }

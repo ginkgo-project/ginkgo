@@ -56,7 +56,10 @@ protected:
 
     SchwarzFactory()
         : exec(gko::ReferenceExecutor::create()),
-          schwarz_factory(Schwarz::build().with_num_subdomains(3u).on(exec)),
+          schwarz_factory(
+              Schwarz::build()
+                  .with_subdomain_sizes(std::vector<gko::size_type>{3, 2, 1})
+                  .on(exec)),
           mtx(gko::matrix::Csr<value_type, index_type>::create(
               exec, gko::dim<2>{5, 5}, 13))
     {}
@@ -77,7 +80,9 @@ TYPED_TEST(SchwarzFactory, KnowsItsExecutor)
 
 TYPED_TEST(SchwarzFactory, KnowsNumSubdomains)
 {
-    ASSERT_EQ(this->schwarz_factory->get_parameters().num_subdomains, 3);
+    ASSERT_EQ(this->schwarz_factory->get_parameters().subdomain_sizes[0], 3);
+    ASSERT_EQ(this->schwarz_factory->get_parameters().subdomain_sizes[1], 2);
+    ASSERT_EQ(this->schwarz_factory->get_parameters().subdomain_sizes[2], 1);
 }
 
 

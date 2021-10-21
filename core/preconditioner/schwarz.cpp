@@ -71,23 +71,16 @@ void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     precision_dispatch_real_complex<ValueType>(
         [this](const auto dense_b, auto dense_x) {
             size_type offset = 0;
-            size_type num_rows_per_subd =
-                dense_b->get_size()[0] / this->num_subdomains_;
-            size_type l_num_rows = 0;
             // TODO Replace with BlockApprox
             for (size_type i = 0; i < this->num_subdomains_; ++i) {
-                if (i != this->num_subdomains_ - 1) {
-                    l_num_rows = num_rows_per_subd;
-                } else {
-                    l_num_rows =
-                        dense_b->get_size()[0] - (i * num_rows_per_subd);
-                }
+                size_type l_num_rows = parameters_.subdomain_sizes[i];
                 auto rspan = gko::span(offset, offset + l_num_rows);
                 const auto b_view = dense_b->create_submatrix(
                     rspan, gko::span(0, dense_b->get_size()[1]));
                 auto x_view = dense_x->create_submatrix(
                     rspan, gko::span(0, dense_x->get_size()[1]));
                 this->subdomain_solvers_[i]->apply(b_view.get(), x_view.get());
+                offset += l_num_rows;
             }
         },
         b, x);
@@ -104,17 +97,9 @@ void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* alpha,
         [this](auto dense_alpha, const auto dense_b, auto dense_beta,
                auto dense_x) {
             size_type offset = 0;
-            size_type num_rows_per_subd =
-                dense_b->get_size()[0] / this->num_subdomains_;
-            size_type l_num_rows = 0;
             // TODO Replace with BlockApprox
             for (size_type i = 0; i < this->num_subdomains_; ++i) {
-                if (i != this->num_subdomains_ - 1) {
-                    l_num_rows = num_rows_per_subd;
-                } else {
-                    l_num_rows =
-                        dense_b->get_size()[0] - (i * num_rows_per_subd);
-                }
+                size_type l_num_rows = parameters_.subdomain_sizes[i];
                 auto rspan = gko::span(offset, offset + l_num_rows);
                 const auto b_view = dense_b->create_submatrix(
                     rspan, gko::span(0, dense_b->get_size()[1]));
@@ -122,6 +107,7 @@ void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* alpha,
                     rspan, gko::span(0, dense_x->get_size()[1]));
                 this->subdomain_solvers_[i]->apply(dense_alpha, b_view.get(),
                                                    dense_beta, x_view.get());
+                offset += l_num_rows;
             }
         },
         alpha, b, beta, x);
@@ -148,21 +134,17 @@ void Schwarz<ValueType, IndexType>::generate(const LinOp* system_matrix,
                                              bool skip_sorting)
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
+    GKO_ASSERT(num_subdomains_ > 0);
     using csr_type = matrix::Csr<ValueType, IndexType>;
     const auto exec = this->get_executor();
     auto csr_mtx =
         convert_to_with_sorting<csr_type>(exec, system_matrix, skip_sorting);
     size_type offset = 0;
-    size_type num_rows_per_subd =
-        system_matrix->get_size()[0] / num_subdomains_;
+    auto mat_size = system_matrix->get_size();
     size_type l_num_rows = 0;
     // TODO Replace with BlockApprox
     for (size_type i = 0; i < num_subdomains_; ++i) {
-        if (i != num_subdomains_ - 1) {
-            l_num_rows = num_rows_per_subd;
-        } else {
-            l_num_rows = system_matrix->get_size()[0] - (i * num_rows_per_subd);
-        }
+        size_type l_num_rows = parameters_.subdomain_sizes[i];
         auto rspan = gko::span(offset, offset + l_num_rows);
         auto cspan = gko::span(offset, offset + l_num_rows);
         subdomain_matrices_.emplace_back(
