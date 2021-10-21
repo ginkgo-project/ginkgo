@@ -89,11 +89,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define GKO_STUB(_macro) _macro GKO_NOT_COMPILED(GKO_HOOK_MODULE)
 
-#define GKO_STUB_VALUE_CONVERSION(_macro)                             \
-    template <typename SourceType, typename TargetType>               \
-    _macro(SourceType, TargetType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)
-
 #define GKO_STUB_NON_COMPLEX_VALUE_TYPE(_macro)          \
     template <typename ValueType>                        \
     _macro(ValueType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
@@ -139,7 +134,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_STUB_VALUE_CONVERSION(_macro)                             \
     template <typename SourceType, typename TargetType>               \
     _macro(SourceType, TargetType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)
+    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro);                \
+    GKO_INSTANTIATE_FOR_EACH_INDEX_CONVERSION(_macro)
 
 #define GKO_STUB_VALUE_CONVERSION_OR_COPY(_macro)                     \
     template <typename SourceType, typename TargetType>               \
