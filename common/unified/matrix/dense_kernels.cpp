@@ -419,7 +419,7 @@ template <typename ValueType, typename OutputType, typename IndexType>
 void row_gather(std::shared_ptr<const DefaultExecutor> exec,
                 const Array<IndexType>* row_indices,
                 const matrix::Dense<ValueType>* orig,
-                matrix::Dense<OutputType>* row_gathered)
+                matrix::Dense<OutputType>* row_collection)
 {
     run_kernel(
         exec,
@@ -427,7 +427,7 @@ void row_gather(std::shared_ptr<const DefaultExecutor> exec,
             gathered(row, col) = orig(rows[row], col);
         },
         dim<2>{row_indices->get_num_elems(), orig->get_size()[1]}, orig,
-        *row_indices, row_gathered);
+        *row_indices, row_collection);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
@@ -440,7 +440,7 @@ void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,
                          const Array<IndexType>* row_indices,
                          const matrix::Dense<ValueType>* orig,
                          const matrix::Dense<ValueType>* beta,
-                         matrix::Dense<OutputType>* row_gathered)
+                         matrix::Dense<OutputType>* row_collection)
 {
     run_kernel(
         exec,
@@ -454,7 +454,7 @@ void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,
         },
         dim<2>{row_indices->get_num_elems(), orig->get_size()[1]},
         alpha->get_const_values(), orig, *row_indices, beta->get_const_values(),
-        row_gathered);
+        row_collection);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(

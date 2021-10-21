@@ -810,12 +810,12 @@ template <typename ValueType, typename OutputType, typename IndexType>
 void row_gather(std::shared_ptr<const ReferenceExecutor> exec,
                 const Array<IndexType>* row_indices,
                 const matrix::Dense<ValueType>* orig,
-                matrix::Dense<OutputType>* row_gathered)
+                matrix::Dense<OutputType>* row_collection)
 {
     auto rows = row_indices->get_const_data();
     for (size_type i = 0; i < row_indices->get_num_elems(); ++i) {
         for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-            row_gathered->at(i, j) = orig->at(rows[i], j);
+            row_collection->at(i, j) = orig->at(rows[i], j);
         }
     }
 }
@@ -830,7 +830,7 @@ void advanced_row_gather(std::shared_ptr<const ReferenceExecutor> exec,
                          const Array<IndexType>* row_indices,
                          const matrix::Dense<ValueType>* orig,
                          const matrix::Dense<ValueType>* beta,
-                         matrix::Dense<OutputType>* row_gathered)
+                         matrix::Dense<OutputType>* row_collection)
 {
     using type = highest_precision<ValueType, OutputType>;
     auto rows = row_indices->get_const_data();
@@ -838,10 +838,10 @@ void advanced_row_gather(std::shared_ptr<const ReferenceExecutor> exec,
     auto scalar_beta = beta->at(0, 0);
     for (size_type i = 0; i < row_indices->get_num_elems(); ++i) {
         for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-            row_gathered->at(i, j) =
+            row_collection->at(i, j) =
                 static_cast<type>(scalar_alpha * orig->at(rows[i], j)) +
                 static_cast<type>(scalar_beta) *
-                    static_cast<type>(row_gathered->at(i, j));
+                    static_cast<type>(row_collection->at(i, j));
         }
     }
 }

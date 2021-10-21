@@ -118,8 +118,8 @@ class Dense
       public Transposable,
       public Permutable<int32>,
       public Permutable<int64>,
-      public EnableRowGatherer<Dense<ValueType>, int32>,
-      public EnableRowGatherer<Dense<ValueType>, int64>,
+      public EnableRowGather<Dense<ValueType>, int32>,
+      public EnableRowGather<Dense<ValueType>, int64>,
       public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>> {
     friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
@@ -394,22 +394,22 @@ public:
         const Array<int64>* gather_indices) const override;
 
     void row_gather(const Array<int32>* gather_indices,
-                    LinOp* out) const override;
+                    LinOp* row_collection) const override;
 
     void row_gather(const Array<int64>* gather_indices,
-                    LinOp* out) const override;
+                    LinOp* row_collection) const override;
 
     void row_gather(const LinOp* alpha, const Array<int32>* gather_indices,
-                    const LinOp* beta, LinOp* out) const override;
+                    const LinOp* beta, LinOp* row_collection) const override;
 
     void row_gather(const LinOp* alpha, const Array<int64>* gather_indices,
-                    const LinOp* beta, LinOp* out) const override;
+                    const LinOp* beta, LinOp* row_collection) const override;
 
     void row_gather(const Array<int32>* gather_indices,
-                    Dense* row_gathered) const override;
+                    Dense* row_collection) const override;
 
     void row_gather(const Array<int64>* gather_indices,
-                    Dense* row_gathered) const override;
+                    Dense* row_collection) const override;
 
     std::unique_ptr<LinOp> column_permute(
         const Array<int32>* permutation_indices) const override;
@@ -1087,13 +1087,13 @@ protected:
 
     template <typename OutputType, typename IndexType>
     void row_gather_impl(const Array<IndexType>* row_indices,
-                         Dense<OutputType>* output) const;
+                         Dense<OutputType>* row_collection) const;
 
     template <typename OutputType, typename IndexType>
     void row_gather_impl(const Dense<ValueType>* alpha,
                          const Array<IndexType>* row_indices,
                          const Dense<ValueType>* beta,
-                         Dense<OutputType>* output) const;
+                         Dense<OutputType>* row_collection) const;
 
     template <typename IndexType>
     void column_permute_impl(const Array<IndexType>* permutation,

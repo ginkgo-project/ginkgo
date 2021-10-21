@@ -218,7 +218,7 @@ namespace kernels {
     void row_gather(std::shared_ptr<const DefaultExecutor> exec,    \
                     const Array<_itype>* gather_indices,            \
                     const matrix::Dense<_vtype>* orig,              \
-                    matrix::Dense<_otype>* row_gathered)
+                    matrix::Dense<_otype>* row_collection)
 
 
 #define GKO_DECLARE_DENSE_ADVANCED_ROW_GATHER_KERNEL(_vtype, _otype, _itype) \
@@ -227,7 +227,7 @@ namespace kernels {
                              const Array<_itype>* gather_indices,            \
                              const matrix::Dense<_vtype>* orig,              \
                              const matrix::Dense<_vtype>* beta,              \
-                             matrix::Dense<_otype>* row_gathered)
+                             matrix::Dense<_otype>* row_collection)
 
 #define GKO_DECLARE_DENSE_COLUMN_PERMUTE_KERNEL(_vtype, _itype)      \
     void column_permute(std::shared_ptr<const DefaultExecutor> exec, \
