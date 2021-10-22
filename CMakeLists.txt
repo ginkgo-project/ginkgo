@@ -36,6 +36,7 @@ option(GINKGO_BUILD_EXAMPLES "Build Ginkgo's examples" ON)
 option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
 option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
 option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" ${GINKGO_HAS_OMP})
+option(GINKGO_BUILD_MPI "Compile the MPI module" ${GINKGO_HAS_MPI})
 option(GINKGO_BUILD_DPCPP
     "Compile DPC++ kernels for Intel GPUs or other DPC++ enabled hardware" ${GINKGO_HAS_DPCPP})
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
@@ -189,6 +190,33 @@ else()
     message(STATUS "HWLOC is being forcibly switched off")
 endif()
 
+set(GINKGO_HAVE_MPI 0)
+set(GINKGO_HAVE_CUDA_AWARE_MPI 0)
+if(GINKGO_BUILD_MPI)
+    find_package(MPI REQUIRED)
+    set(GINKGO_HAVE_MPI 1)
+    if(GINKGO_BUILD_CUDA AND (${GINKGO_FORCE_CUDA_AWARE_MPI} MATCHES "") )
+        enable_language(CUDA)
+        try_run(GKO_CUDA_AWARE_RUN_STATUS GKO_CUDA_AWARE_COMPILE_STATUS
+            "${CMAKE_BINARY_DIR}" SOURCES "${CMAKE_SOURCE_DIR}/mpi/test/cuda-aware-mpi-test.cu"
+            COMPILE_DEFINITIONS ""
+            LINK_LIBRARIES MPI::MPI_C
+            RUN_OUTPUT_VARIABLE GKO_CUDA_AWARE_RUN_OUT
+            COMPILE_OUTPUT_VARIABLE GKO_CUDA_AWARE_COMPILE_OUT)
+        if( ${GKO_CUDA_AWARE_RUN_STATUS} MATCHES "FAILED_TO_RUN" )
+            message(STATUS "MPI does not support CUDA, disabling CUDA-Aware features, everything will be staged through the host.")
+        else()
+            message(STATUS "MPI supports CUDA, enabling CUDA-Aware features")
+            set(GINKGO_HAVE_CUDA_AWARE_MPI 1)
+        endif()
+    endif()
+    if( ${GINKGO_FORCE_CUDA_AWARE_MPI} MATCHES "YES" )
+        set(GINKGO_HAVE_CUDA_AWARE_MPI 1)
+    elseif( ${GINKGO_FORCE_CUDA_AWARE_MPI} MATCHES "NO" )
+        set(GINKGO_HAVE_CUDA_AWARE_MPI 0)
+    endif()
+endif()
+
 # We keep using NVCC/HCC for consistency with previous releases even if AMD
 # updated everything to use NVIDIA/AMD in ROCM 4.1
 set(GINKGO_HIP_PLATFORM_NVCC 0)
@@ -260,6 +288,9 @@ if (GINKGO_BUILD_DPCPP)
 endif()
 if (GINKGO_BUILD_OMP)
     add_subdirectory(omp)        # High-performance omp kernels
+endif()
+if(GINKGO_BUILD_MPI)
+    add_subdirectory(mpi)        # The MPI module
 endif()
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
 add_subdirectory(include)        # Public API self-contained check

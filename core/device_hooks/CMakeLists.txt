@@ -41,6 +41,15 @@ if (NOT GINKGO_BUILD_OMP)
     ginkgo_install_library(ginkgo_omp)
 endif()
 
+if(NOT GINKGO_BUILD_MPI)
+    add_library(ginkgo_mpi
+        $<TARGET_OBJECTS:ginkgo_mpi_device>
+        mpi_hooks.cpp)
+    ginkgo_compile_features(ginkgo_mpi)
+    ginkgo_default_includes(ginkgo_mpi)
+    ginkgo_install_library(ginkgo_mpi mpi)
+endif()
+
 if (NOT GINKGO_BUILD_REFERENCE)
     add_library(ginkgo_reference
         $<TARGET_OBJECTS:ginkgo_reference_device>
