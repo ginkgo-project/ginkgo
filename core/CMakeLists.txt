@@ -13,6 +13,7 @@ target_sources(ginkgo
     base/perturbation.cpp
     base/version.cpp
     distributed/partition.cpp
+    factorization/glu.cpp
     factorization/ic.cpp
     factorization/ilu.cpp
     factorization/par_ic.cpp
@@ -41,11 +42,11 @@ target_sources(ginkgo
     reorder/rcm.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
+    solver/cb_gmres.cpp
     solver/cg.cpp
     solver/cgs.cpp
     solver/fcg.cpp
     solver/gmres.cpp
-    solver/cb_gmres.cpp
     solver/idr.cpp
     solver/ir.cpp
     solver/lower_trs.cpp
@@ -73,7 +74,7 @@ target_compile_options(ginkgo PRIVATE "${GINKGO_COMPILER_FLAGS}")
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
-    PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
+    PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp glu)
 # The PAPI dependency needs to be exposed to the user.
 set(GKO_RPATH_ADDITIONS "")
 if (GINKGO_HAVE_PAPI_SDE)
@@ -95,6 +96,7 @@ endif()
 
 ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo "${GKO_RPATH_ADDITIONS}")
+ginkgo_install_library(glu)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo "")

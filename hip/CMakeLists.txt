@@ -162,6 +162,7 @@ set(GINKGO_HIP_SOURCES
     components/prefix_sum_kernels.hip.cpp
     distributed/partition_kernels.hip.cpp
     factorization/factorization_kernels.hip.cpp
+    factorization/glu_kernels.hip.cpp
     factorization/ic_kernels.hip.cpp
     factorization/ilu_kernels.hip.cpp
     factorization/par_ic_kernels.hip.cpp
@@ -189,8 +190,8 @@ set(GINKGO_HIP_SOURCES
     preconditioner/jacobi_kernels.hip.cpp
     preconditioner/jacobi_simple_apply_kernel.hip.cpp
     reorder/rcm_kernels.hip.cpp
-    solver/gmres_kernels.hip.cpp
     solver/cb_gmres_kernels.hip.cpp
+    solver/gmres_kernels.hip.cpp
     solver/idr_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
     solver/multigrid_kernels.hip.cpp

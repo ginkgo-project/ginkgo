@@ -9,6 +9,7 @@ target_sources(ginkgo_omp
     components/prefix_sum_kernels.cpp
     distributed/partition_kernels.cpp
     factorization/factorization_kernels.cpp
+    factorization/glu_kernels.cpp
     factorization/ic_kernels.cpp
     factorization/ilu_kernels.cpp
     factorization/par_ic_kernels.cpp
@@ -29,8 +30,8 @@ target_sources(ginkgo_omp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     reorder/rcm_kernels.cpp
-    solver/gmres_kernels.cpp
     solver/cb_gmres_kernels.cpp
+    solver/gmres_kernels.cpp
     solver/idr_kernels.cpp
     solver/lower_trs_kernels.cpp
     solver/multigrid_kernels.cpp

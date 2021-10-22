@@ -1,3 +1,7 @@
+
+
+// TODO (script:glu): adapt this block as needed
+
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
@@ -44,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/reduce_array_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
+#include "core/factorization/glu_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
 #include "core/factorization/par_ic_kernels.hpp"

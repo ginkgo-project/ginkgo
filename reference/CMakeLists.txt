@@ -11,6 +11,7 @@ target_sources(ginkgo_reference
     components/prefix_sum_kernels.cpp
     distributed/partition_kernels.cpp
     factorization/factorization_kernels.cpp
+    factorization/glu_kernels.cpp
     factorization/ic_kernels.cpp
     factorization/ilu_kernels.cpp
     factorization/par_ic_kernels.cpp
@@ -33,11 +34,11 @@ target_sources(ginkgo_reference
     reorder/rcm_kernels.cpp
     solver/bicg_kernels.cpp
     solver/bicgstab_kernels.cpp
+    solver/cb_gmres_kernels.cpp
     solver/cg_kernels.cpp
     solver/cgs_kernels.cpp
     solver/fcg_kernels.cpp
     solver/gmres_kernels.cpp
-    solver/cb_gmres_kernels.cpp
     solver/idr_kernels.cpp
     solver/ir_kernels.cpp
     solver/lower_trs_kernels.cpp
