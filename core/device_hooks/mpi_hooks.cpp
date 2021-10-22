@@ -254,8 +254,8 @@ void scatter(const SendType* send_buffer, const int* send_counts,
 
 template <typename ScanType>
 void scan(const ScanType* send_buffer, ScanType* recv_buffer, int count,
-          op_type op_enum, std::shared_ptr<const communicator> comm)
-    GKO_NOT_COMPILED(mpi);
+          op_type op_enum, std::shared_ptr<const communicator> comm,
+          std::shared_ptr<request> req) GKO_NOT_COMPILED(mpi);
 
 
 template <typename RecvType>
