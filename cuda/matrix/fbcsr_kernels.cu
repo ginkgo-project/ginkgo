@@ -333,17 +333,15 @@ void calculate_max_nnz_per_row(
     const auto grid_dim = ceildiv(num_b_rows, default_block_size);
     csr_reuse::kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
         num_b_rows, as_cuda_type(source->get_const_row_ptrs()),
-        as_cuda_type(nnz_per_row.get_data()));
+        nnz_per_row.get_data());
 
     const auto n = ceildiv(num_b_rows, default_block_size);
     const auto reduce_dim = n <= default_block_size ? n : default_block_size;
     csr_reuse::kernel::reduce_max_nnz<<<reduce_dim, default_block_size>>>(
-        num_b_rows, as_cuda_type(nnz_per_row.get_const_data()),
-        as_cuda_type(block_results.get_data()));
+        num_b_rows, nnz_per_row.get_const_data(), block_results.get_data());
 
     csr_reuse::kernel::reduce_max_nnz<<<1, default_block_size>>>(
-        reduce_dim, as_cuda_type(block_results.get_const_data()),
-        as_cuda_type(d_result.get_data()));
+        reduce_dim, block_results.get_const_data(), d_result.get_data());
 
     *result = bs * exec->copy_val_to_host(d_result.get_const_data());
 }
