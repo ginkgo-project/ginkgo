@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
+#include "core/distributed/partition_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
@@ -208,6 +209,32 @@ GKO_STUB_INDEX_TYPE(GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL);
 
 
 }  // namespace index_set
+
+
+namespace partition {
+
+
+GKO_PARTITION_COUNT_RANGES
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+
+template <typename LocalIndexType>
+GKO_DECLARE_PARTITION_BUILD_FROM_CONTIGUOUS(LocalIndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_PARTITION_BUILD_FROM_CONTIGUOUS);
+
+template <typename LocalIndexType>
+GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING(LocalIndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING);
+
+template <typename LocalIndexType>
+GKO_DECLARE_PARTITION_BUILD_RANKS(LocalIndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_RANKS);
+
+
+}  // namespace partition
 
 
 namespace dense {
