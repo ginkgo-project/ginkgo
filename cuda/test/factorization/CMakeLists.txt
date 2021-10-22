@@ -1,3 +1,4 @@
+ginkgo_create_test(glu_kernels)
 ginkgo_create_test(ic_kernels)
 ginkgo_create_test(ilu_kernels)
 ginkgo_create_test(par_ic_kernels)

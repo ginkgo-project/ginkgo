@@ -25,6 +25,7 @@ target_sources(ginkgo_dpcpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
     factorization/factorization_kernels.dp.cpp
+    factorization/glu_kernels.dp.cpp
     factorization/lu_kernels.dp.cpp
     factorization/par_ic_kernels.dp.cpp
     factorization/par_ict_kernels.dp.cpp
@@ -37,10 +38,10 @@ target_sources(ginkgo_dpcpp
     factorization/par_ilut_sweep_kernel.dp.cpp
     matrix/coo_kernels.dp.cpp
     matrix/csr_kernels.dp.cpp
-    matrix/fbcsr_kernels.dp.cpp
     matrix/dense_kernels.dp.cpp
     matrix/diagonal_kernels.dp.cpp
     matrix/ell_kernels.dp.cpp
+    matrix/fbcsr_kernels.dp.cpp
     matrix/fft_kernels.dp.cpp
     matrix/sellp_kernels.dp.cpp
     matrix/sparsity_csr_kernels.dp.cpp
@@ -48,8 +49,8 @@ target_sources(ginkgo_dpcpp
     preconditioner/isai_kernels.dp.cpp
     preconditioner/jacobi_kernels.dp.cpp
     reorder/rcm_kernels.dp.cpp
-    solver/gmres_kernels.dp.cpp
     solver/cb_gmres_kernels.dp.cpp
+    solver/gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
     solver/lower_trs_kernels.dp.cpp
     solver/multigrid_kernels.dp.cpp

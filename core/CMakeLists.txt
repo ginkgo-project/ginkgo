@@ -15,6 +15,7 @@ target_sources(ginkgo
     distributed/partition.cpp
     factorization/elimination_forest.cpp
     factorization/factorization.cpp
+    factorization/glu.cpp
     factorization/ic.cpp
     factorization/ilu.cpp
     factorization/lu.cpp
@@ -81,7 +82,7 @@ target_compile_options(ginkgo PRIVATE "${GINKGO_COMPILER_FLAGS}")
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
-    PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
+    PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp glu)
 # The PAPI dependency needs to be exposed to the user.
 set(GKO_RPATH_ADDITIONS "")
 if (GINKGO_HAVE_PAPI_SDE)
@@ -103,6 +104,7 @@ endif()
 
 ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo "${GKO_RPATH_ADDITIONS}")
+ginkgo_install_library(glu)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo "")

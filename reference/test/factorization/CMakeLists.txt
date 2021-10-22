@@ -1,4 +1,5 @@
 ginkgo_create_test(cholesky_kernels)
+ginkgo_create_test(glu_kernels)
 ginkgo_create_test(ic_kernels)
 ginkgo_create_test(ilu_kernels)
 ginkgo_create_test(lu_kernels)

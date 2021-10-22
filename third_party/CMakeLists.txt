@@ -23,4 +23,6 @@ if(GINKGO_BUILD_BENCHMARKS)
     endif()
 endif()
 
+add_subdirectory(glu)
+
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
