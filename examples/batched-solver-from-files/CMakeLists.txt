@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(batched-solver)
+project(batched-solver-from-files)
 
 # We only need to find Ginkgo if we build this example stand-alone
 if (NOT GINKGO_BUILD_EXAMPLES)
