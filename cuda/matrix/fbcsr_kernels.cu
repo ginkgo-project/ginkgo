@@ -274,13 +274,13 @@ void transpose(const std::shared_ptr<const CudaExecutor> exec,
             static_cast<IndexType>(orig->get_num_stored_blocks());
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
-        const IndexType buffer_size = cusparse::transpose_buffersize(
+        const IndexType buffer_size = cusparse::bsr_transpose_buffersize(
             exec->get_cusparse_handle(), orig->get_num_block_rows(),
             orig->get_num_block_cols(), nnzb, orig->get_const_values(),
             orig->get_const_row_ptrs(), orig->get_const_col_idxs(), bs, bs);
         Array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
-        cusparse::transpose(
+        cusparse::bsr_transpose(
             exec->get_cusparse_handle(), orig->get_num_block_rows(),
             orig->get_num_block_cols(), nnzb, orig->get_const_values(),
             orig->get_const_row_ptrs(), orig->get_const_col_idxs(), bs, bs,
