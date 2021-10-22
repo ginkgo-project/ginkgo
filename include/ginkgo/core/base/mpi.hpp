@@ -104,6 +104,10 @@ using array_manager = std::unique_ptr<T, std::function<void(T*)>>;
 namespace gko {
 namespace mpi {
 
+/*
+ * This enum is used for selecting the operation type for functions that take
+ * MPI_Op. For example the MPI_Reduce operations.
+ */
 enum class op_type {
     sum = 1,
     min = 2,
@@ -277,6 +281,9 @@ private:
 };
 
 
+/**
+ * A type helper which can be used to create MPI_Datatype from other types.
+ */
 class mpi_type {
 public:
     mpi_type(const int count, MPI_Datatype& old);
@@ -288,6 +295,14 @@ private:
 };
 
 
+/**
+ * This class wraps the MPI_Window class with RAII functionality. Different
+ * create and lock type methods are setup with enums.
+ *
+ * MPI_Window is primarily used for one sided communication and this class
+ * provides functionalities to fence, lock, unlock and flush the communication
+ * buffers.
+ */
 template <typename ValueType>
 class window {
 public:
@@ -333,24 +348,61 @@ private:
 };
 
 
+/**
+ * This function is used to synchronize between the ranks of a given
+ * communicator.
+ *
+ * @param comm  the communicator
+ */
 void synchronize(const communicator& comm = communicator::get_comm_world());
 
 
+/**
+ * Allows a rank to wait on a particular request handle.
+ *
+ * @param req  The request to wait on.
+ * @param status  The status variable that can be queried.
+ */
 void wait(std::shared_ptr<request> req, std::shared_ptr<status> status = {});
 
 
 double get_walltime();
 
 
+/**
+ * Get the rank in the communicator of the calling process.
+ *
+ * @param comm  the communicator
+ */
 int get_my_rank(const communicator& comm = communicator::get_comm_world());
 
 
+/**
+ * Get the node local rank in the communicator of the calling process.
+ *
+ * @param comm  the communicator
+ */
 int get_local_rank(const communicator& comm = communicator::get_comm_world());
 
 
+/**
+ * Get the number of ranks in the communicator of the calling process.
+ *
+ * @param comm  the communicator
+ */
 int get_num_ranks(const communicator& comm = communicator::get_comm_world());
 
 
+/**
+ * Send data from calling process to destination rank.
+ *
+ * @param send_buffer  the buffer to send
+ * @param send_count  the number of elements to send
+ * @param destination_rank  the rank to send the data to
+ * @param send_tag  the tag for the send call
+ * @param req  the request handle for the send call
+ * @param comm  the communicator
+ */
 template <typename SendType>
 void send(const SendType* send_buffer, const int send_count,
           const int destination_rank, const int send_tag,
@@ -358,6 +410,16 @@ void send(const SendType* send_buffer, const int send_count,
           std::shared_ptr<const communicator> comm = {});
 
 
+/**
+ * Receive data from source rank.
+ *
+ * @param recv_buffer  the buffer to send
+ * @param recv_count  the number of elements to send
+ * @param source_rank  the rank to send the data to
+ * @param recv_tag  the tag for the send call
+ * @param req  the request handle for the send call
+ * @param comm  the communicator
+ */
 template <typename RecvType>
 void recv(RecvType* recv_buffer, const int recv_count, const int source_rank,
           const int recv_tag, std::shared_ptr<request> req = {},
@@ -365,6 +427,17 @@ void recv(RecvType* recv_buffer, const int recv_count, const int source_rank,
           std::shared_ptr<const communicator> comm = {});
 
 
+/**
+ * Put data into the target window.
+ *
+ * @param origin_buffer  the buffer to send
+ * @param origin_count  the number of elements to put
+ * @param target_rank  the rank to put the data to
+ * @param target_disp  the displacement at the target window
+ * @param target_count  the request handle for the send call
+ * @param window  the window to put the data into
+ * @param req  the request handle
+ */
 template <typename PutType>
 void put(const PutType* origin_buffer, const int origin_count,
          const int target_rank, const unsigned int target_disp,
@@ -372,17 +445,46 @@ void put(const PutType* origin_buffer, const int origin_count,
          std::shared_ptr<request> req = {});
 
 
+/**
+ * Get data from the target window.
+ *
+ * @param origin_buffer  the buffer to send
+ * @param origin_count  the number of elements to get
+ * @param target_rank  the rank to get the data from
+ * @param target_disp  the displacement at the target window
+ * @param target_count  the request handle for the send call
+ * @param window  the window to put the data into
+ * @param req  the request handle
+ */
 template <typename GetType>
 void get(GetType* origin_buffer, const int origin_count, const int target_rank,
          const unsigned int target_disp, const int target_count,
          window<GetType>& window, std::shared_ptr<request> req = {});
 
 
+/**
+ * Broadcast data from calling process to all ranks in the communicator
+ *
+ * @param buffer  the buffer to broadcsat
+ * @param count  the number of elements to broadcast
+ * @param root_rank  the rank to broadcast from
+ * @param comm  the communicator
+ */
 template <typename BroadcastType>
 void broadcast(BroadcastType* buffer, int count, int root_rank,
                std::shared_ptr<const communicator> comm = {});
 
 
+/**
+ * Reduce data into root from all calling processes on the same communicator.
+ *
+ * @param send_buffer  the buffer to reduce
+ * @param recv_buffer  the reduced result
+ * @param count  the number of elements to reduce
+ * @param op_enum  the reduce operation. See @op_type
+ * @param comm  the communicator
+ * @param req  the request handle
+ */
 template <typename ReduceType>
 void reduce(const ReduceType* send_buffer, ReduceType* recv_buffer, int count,
             op_type op_enum, int root_rank,
@@ -390,6 +492,16 @@ void reduce(const ReduceType* send_buffer, ReduceType* recv_buffer, int count,
             std::shared_ptr<request> req = {});
 
 
+/**
+ * Reduce data from all calling processes from all calling processes on same
+ * communicator.
+ *
+ * @param recv_buffer  the data to reduce and the reduced result
+ * @param count  the number of elements to reduce
+ * @param op_enum  the reduce operation. See @op_type
+ * @param comm  the communicator
+ * @param req  the request handle
+ */
 template <typename ReduceType>
 void all_reduce(ReduceType* recv_buffer, int count,
                 op_type op_enum = op_type::sum,
@@ -397,6 +509,17 @@ void all_reduce(ReduceType* recv_buffer, int count,
                 std::shared_ptr<request> req = {});
 
 
+/**
+ * Reduce data from all calling processes from all calling processes on same
+ * communicator.
+ *
+ * @param send_buffer  the data to reduce
+ * @param recv_buffer  the reduced result
+ * @param count  the number of elements to reduce
+ * @param op_enum  the reduce operation. See @op_type
+ * @param comm  the communicator
+ * @param req  the request handle
+ */
 template <typename ReduceType>
 void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
                 int count, op_type op_enum = op_type::sum,
@@ -404,12 +527,34 @@ void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
                 std::shared_ptr<request> req = {});
 
 
+/**
+ * Gather data onto the root rank from all ranks in the communicator.
+ *
+ * @param send_buffer  the buffer to gather from
+ * @param send_count  the number of elements to send
+ * @param recv_buffer  the buffer to gather into
+ * @param recv_count  the number of elements to receive
+ * @param root_rank  the rank to gather into
+ * @param comm  the communicator
+ */
 template <typename SendType, typename RecvType>
 void gather(const SendType* send_buffer, const int send_count,
             RecvType* recv_buffer, const int recv_count, int root_rank,
             std::shared_ptr<const communicator> comm = {});
 
 
+/**
+ * Gather data onto the root rank from all ranks in the communicator with
+ * offsets.
+ *
+ * @param send_buffer  the buffer to gather from
+ * @param send_count  the number of elements to send
+ * @param recv_buffer  the buffer to gather into
+ * @param recv_count  the number of elements to receive
+ * @param displacements  the offsets for the buffer
+ * @param root_rank  the rank to gather into
+ * @param comm  the communicator
+ */
 template <typename SendType, typename RecvType>
 void gather(const SendType* send_buffer, const int send_count,
             RecvType* recv_buffer, const int* recv_counts,
@@ -417,18 +562,46 @@ void gather(const SendType* send_buffer, const int send_count,
             std::shared_ptr<const communicator> comm = {});
 
 
+/**
+ * Gather data onto all ranks from all ranks in the communicator.
+ *
+ * @param send_buffer  the buffer to gather from
+ * @param send_count  the number of elements to send
+ * @param recv_buffer  the buffer to gather into
+ * @param recv_count  the number of elements to receive
+ * @param comm  the communicator
+ */
 template <typename SendType, typename RecvType>
 void all_gather(const SendType* send_buffer, const int send_count,
                 RecvType* recv_buffer, const int recv_count,
                 std::shared_ptr<const communicator> comm = {});
 
 
+/**
+ * Scatter data from root rank to all ranks in the communicator.
+ *
+ * @param send_buffer  the buffer to gather from
+ * @param send_count  the number of elements to send
+ * @param recv_buffer  the buffer to gather into
+ * @param recv_count  the number of elements to receive
+ * @param comm  the communicator
+ */
 template <typename SendType, typename RecvType>
 void scatter(const SendType* send_buffer, const int send_count,
              RecvType* recv_buffer, const int recv_count, int root_rank,
              std::shared_ptr<const communicator> comm = {});
 
 
+/**
+ * Scatter data from root rank to all ranks in the communicator with offsets.
+ *
+ * @param send_buffer  the buffer to gather from
+ * @param send_count  the number of elements to send
+ * @param recv_buffer  the buffer to gather into
+ * @param recv_count  the number of elements to receive
+ * @param displacements  the offsets for the buffer
+ * @param comm  the communicator
+ */
 template <typename SendType, typename RecvType>
 void scatter(const SendType* send_buffer, const int* send_counts,
              const int* displacements, RecvType* recv_buffer,
@@ -436,12 +609,35 @@ void scatter(const SendType* send_buffer, const int* send_counts,
              std::shared_ptr<const communicator> comm = {});
 
 
+/**
+ * Communicate data from all ranks to all other ranks in place (MPI_Alltoall).
+ * See MPI documentation for more details.
+ *
+ * @param buffer  the buffer to send and the buffer receive
+ * @param recv_count  the number of elements to receive
+ * @param comm  the communicator
+ * @param req  the request handle
+ *
+ * @note This overload uses MPI_IN_PLACE and the source and destination buffers
+ *       are the same.
+ */
 template <typename RecvType>
-void all_to_all(RecvType* recv_buffer, const int recv_count,
+void all_to_all(RecvType* buffer, const int recv_count,
                 std::shared_ptr<const communicator> comm = {},
                 std::shared_ptr<request> req = {});
 
 
+/**
+ * Communicate data from all ranks to all other ranks (MPI_Alltoall).
+ * See MPI documentation for more details.
+ *
+ * @param send_buffer  the buffer to send
+ * @param send_count  the number of elements to send
+ * @param recv_buffer  the buffer to receive
+ * @param recv_count  the number of elements to receive
+ * @param comm  the communicator
+ * @param req  the request handle
+ */
 template <typename SendType, typename RecvType>
 void all_to_all(const SendType* send_buffer, const int send_count,
                 RecvType* recv_buffer, const int recv_count = {},
@@ -449,6 +645,20 @@ void all_to_all(const SendType* send_buffer, const int send_count,
                 std::shared_ptr<request> req = {});
 
 
+/**
+ * Communicate data from all ranks to all other ranks with
+ * offsets (MPI_Alltoallv). See MPI documentation for more details.
+ *
+ * @param send_buffer  the buffer to send
+ * @param send_count  the number of elements to send
+ * @param send_offsets  the offsets for the send buffer
+ * @param recv_buffer  the buffer to gather into
+ * @param recv_count  the number of elements to receive
+ * @param recv_offsets  the offsets for the recv buffer
+ * @param stride  the stride to be used in case of sending concatenated data
+ * @param comm  the communicator
+ * @param req  the request handle
+ */
 template <typename SendType, typename RecvType>
 void all_to_all(const SendType* send_buffer, const int* send_counts,
                 const int* send_offsets, RecvType* recv_buffer,
@@ -458,10 +668,22 @@ void all_to_all(const SendType* send_buffer, const int* send_counts,
                 std::shared_ptr<request> req = {});
 
 
+/**
+ * Does a scan operation with the given operator.
+ * (MPI_Scan). See MPI documentation for more details.
+ *
+ * @param send_buffer  the buffer to scan from
+ * @param recv_buffer  the result buffer
+ * @param recv_count  the number of elements to scan
+ * @param op_enum  the operation type to be used for the scan. See @op_type
+ * @param comm  the communicator
+ * @param req  the request handle
+ */
 template <typename ReduceType>
 void scan(const ReduceType* send_buffer, ReduceType* recv_buffer, int count,
           op_type op_enum = op_type::sum,
-          std::shared_ptr<const communicator> comm = {});
+          std::shared_ptr<const communicator> comm = {},
+          std::shared_ptr<request> req = {});
 
 
 }  // namespace mpi

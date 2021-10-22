@@ -748,6 +748,45 @@ TEST_F(MpiBindings, AllToAllVWorksCorrectly)
 }
 
 
+TEST_F(MpiBindings, CanScanValues)
+{
+    using ValueType = double;
+    auto comm = gko::mpi::communicator::create(MPI_COMM_WORLD);
+    auto my_rank = gko::mpi::get_my_rank(comm->get());
+    auto num_ranks = gko::mpi::get_num_ranks(comm->get());
+    ValueType data, sum, max, min;
+    if (my_rank == 0) {
+        data = 3;
+    } else if (my_rank == 1) {
+        data = 5;
+    } else if (my_rank == 2) {
+        data = 2;
+    } else if (my_rank == 3) {
+        data = 6;
+    }
+    gko::mpi::scan<ValueType>(&data, &sum, 1, gko::mpi::op_type::sum, 0);
+    gko::mpi::scan<ValueType>(&data, &max, 1, gko::mpi::op_type::max, 0);
+    gko::mpi::scan<ValueType>(&data, &min, 1, gko::mpi::op_type::min, 0);
+    if (my_rank == 0) {
+        EXPECT_EQ(sum, 3.0);
+        EXPECT_EQ(max, 3.0);
+        EXPECT_EQ(min, 3.0);
+    } else if (my_rank == 1) {
+        EXPECT_EQ(sum, 8.0);
+        EXPECT_EQ(max, 5.0);
+        EXPECT_EQ(min, 3.0);
+    } else if (my_rank == 2) {
+        EXPECT_EQ(sum, 10.0);
+        EXPECT_EQ(max, 5.0);
+        EXPECT_EQ(min, 2.0);
+    } else if (my_rank == 3) {
+        EXPECT_EQ(sum, 16.0);
+        EXPECT_EQ(max, 6.0);
+        EXPECT_EQ(min, 2.0);
+    }
+}
+
+
 // Calls a custom gtest main with MPI listeners. See gtest-mpi-listeners.hpp for
 // more details.
 GKO_DECLARE_GTEST_MPI_MAIN;

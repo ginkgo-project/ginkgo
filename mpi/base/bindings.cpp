@@ -630,12 +630,19 @@ void all_to_all(const SendType* send_buffer, const int* send_counts,
 
 template <typename ScanType>
 void scan(const ScanType* send_buffer, ScanType* recv_buffer, int count,
-          op_type op_enum, std::shared_ptr<const communicator> comm)
+          op_type op_enum, std::shared_ptr<const communicator> comm,
+          std::shared_ptr<request> req)
 {
     auto operation = helpers::get_operation<ScanType>(op_enum);
     auto scan_type = helpers::get_mpi_type(recv_buffer[0]);
-    bindings::scan(send_buffer, recv_buffer, count, scan_type, operation,
-                   comm ? comm->get() : communicator::get_comm_world());
+    if (!req.get()) {
+        bindings::scan(send_buffer, recv_buffer, count, scan_type, operation,
+                       comm ? comm->get() : communicator::get_comm_world());
+    } else {
+        bindings::i_scan(send_buffer, recv_buffer, count, scan_type, operation,
+                         comm ? comm->get() : communicator::get_comm_world(),
+                         req->get_requests());
+    }
 }
 
 
@@ -786,7 +793,9 @@ GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(
 
 #define GKO_DECLARE_SCAN(ScanType)                                           \
     void scan(const ScanType* send_buffer, ScanType* recv_buffer, int count, \
-              op_type op_enum, std::shared_ptr<const communicator> comm)
+              op_type op_enum, std::shared_ptr<const communicator> comm,     \
+              std::shared_ptr<request> req)
+
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_SCAN);
 
 
