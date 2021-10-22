@@ -541,8 +541,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                value type.
  */
 #define GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(_macro) \
-    template _macro(int32);                                  \
-    template _macro(int64);                                  \
+    GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro);             \
     template _macro(unsigned long);                          \
     template _macro(unsigned int)
 
@@ -641,8 +640,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  */
 #define GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(_macro) \
     GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro);       \
-    GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro);       \
-    template _macro(size_type)
+    GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(_macro)
 
 
 /**

@@ -96,9 +96,7 @@ void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
         tmp_subset_superset_index.push_back(tmp_subset_superset_index.back() +
                                             tmp_subset_end.back() -
                                             tmp_subset_begin.back());
-        if (i < num_indices) {
-            tmp_subset_begin.push_back(tmp_indices.get_data()[i]);
-        }
+        tmp_subset_begin.push_back(tmp_indices.get_data()[i]);
     }
     tmp_subset_end.push_back(tmp_indices.get_data()[num_indices - 1] + 1);
     tmp_subset_superset_index.push_back(tmp_subset_superset_index.back() +
@@ -121,7 +119,8 @@ void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
         tmp_subset_superset_index.data() + tmp_subset_superset_index.size()));
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INDEX_SET_POPULATE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(
+    GKO_DECLARE_INDEX_SET_POPULATE_KERNEL);
 
 
 template <typename IndexType>
@@ -162,7 +161,7 @@ void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(
     GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL);
 
 
@@ -203,7 +202,7 @@ void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(
     GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL);
 
 

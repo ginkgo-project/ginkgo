@@ -77,6 +77,7 @@ using ComplexValueTypes =
 
 
 using IndexTypes = ::testing::Types<gko::int32, gko::int64>;
+using IndexSizeTypes = ::testing::Types<gko::int32, gko::int64, gko::size_type>;
 
 
 using ValueAndIndexTypes =

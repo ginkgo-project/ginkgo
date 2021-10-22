@@ -33,10 +33,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/index_set.hpp>
 
 
+#include <algorithm>
+
+
+#include <gtest/gtest.h>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/range.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -91,7 +96,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
 };
 
-TYPED_TEST_SUITE(IndexSet, gko::test::IndexTypes);
+TYPED_TEST_SUITE(IndexSet, gko::test::IndexSizeTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(IndexSet, CanBeConstructedFromIndices)
@@ -167,8 +172,8 @@ TYPED_TEST(IndexSet, CanDetectElementInIndexSet)
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
 
     ASSERT_EQ(idx_set.get_num_subsets(), 2);
-    ASSERT_TRUE(idx_set.is_element(4));
-    ASSERT_FALSE(idx_set.is_element(2));
+    ASSERT_TRUE(idx_set.contains(4));
+    ASSERT_FALSE(idx_set.contains(2));
 }
 
 TYPED_TEST(IndexSet, CanGetGlobalIndex)

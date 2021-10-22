@@ -33,9 +33,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/index_set.hpp>
 
 
+#include <algorithm>
+#include <type_traits>
+
+
+#include <gtest/gtest.h>
+
+
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/range.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -68,7 +74,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
 };
 
-TYPED_TEST_SUITE(IndexSet, gko::test::IndexTypes);
+TYPED_TEST_SUITE(IndexSet, gko::test::IndexSizeTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(IndexSet, CanBeEmpty)
