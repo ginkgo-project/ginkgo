@@ -157,28 +157,30 @@ GKO_BIND_CUSPARSE64_BSRMM(ValueType, detail::not_implemented);
 
 
 template <typename ValueType, typename IndexType>
-inline int transpose_buffersize(cusparseHandle_t handle, IndexType mb,
-                                IndexType nb, IndexType nnzb,
-                                const ValueType* origValA,
-                                const IndexType* origRowPtrA,
-                                const IndexType* origColIndA, int rowblocksize,
-                                int colblocksize) GKO_NOT_IMPLEMENTED;
+inline int bsr_transpose_buffersize(cusparseHandle_t handle, IndexType mb,
+                                    IndexType nb, IndexType nnzb,
+                                    const ValueType* origValA,
+                                    const IndexType* origRowPtrA,
+                                    const IndexType* origColIndA,
+                                    int rowblocksize,
+                                    int colblocksize) GKO_NOT_IMPLEMENTED;
 
 template <typename ValueType, typename IndexType>
-inline void transpose(cusparseHandle_t handle, IndexType mb, IndexType nb,
-                      IndexType nnzb, const ValueType* origValA,
-                      const IndexType* origRowPtrA,
-                      const IndexType* origColIndA, int rowblocksize,
-                      int colblocksize, ValueType* TransValA,
-                      IndexType* transRowIndA, IndexType* transColPtrA,
-                      cusparseAction_t copyValues, cusparseIndexBase_t idxBase,
-                      void* pBuffer) GKO_NOT_IMPLEMENTED;
+inline void bsr_transpose(cusparseHandle_t handle, IndexType mb, IndexType nb,
+                          IndexType nnzb, const ValueType* origValA,
+                          const IndexType* origRowPtrA,
+                          const IndexType* origColIndA, int rowblocksize,
+                          int colblocksize, ValueType* TransValA,
+                          IndexType* transRowIndA, IndexType* transColPtrA,
+                          cusparseAction_t copyValues,
+                          cusparseIndexBase_t idxBase,
+                          void* pBuffer) GKO_NOT_IMPLEMENTED;
 
 // cuSparse does not transpose the blocks themselves,
 //  only the sparsity pattern
 #define GKO_BIND_CUSPARSE_BLOCK_TRANSPOSE32(ValueType, CusparseName)           \
     template <>                                                                \
-    inline int transpose_buffersize<ValueType, int32>(                         \
+    inline int bsr_transpose_buffersize<ValueType, int32>(                     \
         cusparseHandle_t handle, int32 mb, int32 nb, int32 nnzb,               \
         const ValueType* origValA, const int32* origRowPtrA,                   \
         const int32* origColIndA, int rowblocksize, int colblocksize)          \
@@ -190,7 +192,7 @@ inline void transpose(cusparseHandle_t handle, IndexType mb, IndexType nb,
         return pBufferSize;                                                    \
     }                                                                          \
     template <>                                                                \
-    inline void transpose<ValueType, int32>(                                   \
+    inline void bsr_transpose<ValueType, int32>(                               \
         cusparseHandle_t handle, int32 mb, int32 nb, int32 nnzb,               \
         const ValueType* origValA, const int32* origRowPtrA,                   \
         const int32* origColIndA, int rowblocksize, int colblocksize,          \
