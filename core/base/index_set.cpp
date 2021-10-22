@@ -71,7 +71,7 @@ void IndexSet<IndexType>::populate_subsets(const gko::Array<IndexType>& indices,
 
 
 template <typename IndexType>
-bool IndexSet<IndexType>::is_element(const IndexType input_index) const
+bool IndexSet<IndexType>::contains(const IndexType input_index) const
 {
     auto local_index = this->get_local_index(input_index);
     return local_index != invalid_index<IndexType>();
@@ -84,10 +84,10 @@ IndexType IndexSet<IndexType>::get_global_index(const IndexType index) const
     auto exec = this->get_executor();
     const auto local_idx =
         Array<IndexType>(exec, std::initializer_list<IndexType>{index});
-    auto global_idx = Array<IndexType>(
-        exec->get_master(), this->get_global_indices(local_idx, true));
+    auto global_idx =
+        Array<IndexType>(exec, this->get_global_indices(local_idx, true));
 
-    return global_idx.get_data()[0];
+    return exec->copy_val_to_host(global_idx.get_data());
 }
 
 
@@ -97,10 +97,10 @@ IndexType IndexSet<IndexType>::get_local_index(const IndexType index) const
     auto exec = this->get_executor();
     const auto global_idx =
         Array<IndexType>(exec, std::initializer_list<IndexType>{index});
-    auto local_idx = Array<IndexType>(
-        exec->get_master(), this->get_local_indices(global_idx, true));
+    auto local_idx =
+        Array<IndexType>(exec, this->get_local_indices(global_idx, true));
 
-    return local_idx.get_data()[0];
+    return exec->copy_val_to_host(local_idx.get_data());
 }
 
 
@@ -139,7 +139,7 @@ Array<IndexType> IndexSet<IndexType>::get_local_indices(
 
 
 #define GKO_DECLARE_INDEX_SET(_type) class IndexSet<_type>
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INDEX_SET);
+GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(GKO_DECLARE_INDEX_SET);
 
 
 }  // namespace gko

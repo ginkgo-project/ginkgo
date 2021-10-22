@@ -50,15 +50,15 @@ namespace gko {
 
 
 /**
- * An index set class represents an ordered set object in a mathematical sense.
+ * An index set class represents an ordered set with  in a mathematical sense.
  * The index set contains subsets which store the starting and end points of a
  * range, [a,b), storing the first index and one past the last index. As the
  * index set only stores the end-points of ranges, it can be quite efficient in
  * terms of storage.
  *
- * This class is particularly useful in storing continous ranges. For example,
+ * This class is particularly useful in storing continuous ranges. For example,
  * consider the index set (1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 18, 19, 20, 21,
- * 42). Instead of storing the entire array of indices, one can store subsets
+ * 42). Instead of storing the entire array of indices, one can store intervals
  * ([1,9), [10,13), [18,22), [42,43)), thereby only using half the storage.
  *
  * We store three arrays, one (subsets_begin) with the starting indices of the
@@ -93,14 +93,7 @@ public:
      * This can only be empty. The executor can be set using the set_executor
      * method at a later time.
      */
-    IndexSet() noexcept
-        : index_set_id_(0),
-          index_space_size_(0),
-          exec_(nullptr),
-          subsets_begin_(exec_),
-          subsets_end_(exec_),
-          superset_cumulative_indices_(exec_)
-    {}
+    IndexSet() noexcept = default;
 
     /**
      * Creates an index set on the specified executor and the given size
@@ -110,7 +103,7 @@ public:
      *              is the size of the index space.
      */
     IndexSet(std::shared_ptr<const gko::Executor> executor,
-             const index_type size)
+             const index_type size = 0)
         : index_set_id_(0),
           index_space_size_(size),
           exec_(executor),
@@ -165,6 +158,7 @@ public:
           subsets_end_(exec_),
           superset_cumulative_indices_(exec_)
     {
+        GKO_ASSERT(index_space_size_ >= indices.get_num_elems());
         this->populate_subsets(indices, is_sorted);
     }
 
@@ -256,7 +250,7 @@ public:
      * @return  the global index array from the index set.
      *
      * @note Whenever possible, passing a sorted array is preferred as the
-     * queries can be significantly faster.
+     *       queries can be significantly faster.
      */
     Array<index_type> get_global_indices(const Array<index_type>& local_indices,
                                          const bool is_sorted = false) const;
@@ -270,18 +264,18 @@ public:
      * @return  the local index array from the index set.
      *
      * @note Whenever possible, passing a sorted array is preferred as the
-     * queries can be significantly faster.
+     *       queries can be significantly faster.
      */
     Array<index_type> get_local_indices(const Array<index_type>& global_indices,
                                         const bool is_sorted = false) const;
 
     /**
-     * Checks if the element exists in the index set.
+     * Checks if the global index exists in the index set.
      *
      * @param index  the index to check.
      * @return  whether the element exists in the index set.
      */
-    bool is_element(const index_type index) const;
+    bool contains(const index_type index) const;
 
     /**
      * Returns the number of subsets stored in the index set.
