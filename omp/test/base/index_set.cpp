@@ -95,7 +95,8 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
 
-TYPED_TEST_SUITE(IndexSet, gko::test::IndexSizeTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(IndexSet, gko::test::IndexAndUnsignedTypes,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(IndexSet, PopulateSubsetsIsEquivalentToReferenceForUnsortedInput)
@@ -119,12 +120,6 @@ TYPED_TEST(IndexSet, PopulateSubsetsIsEquivalentToReferenceForUnsortedInput)
     GKO_ASSERT_ARRAY_EQ(ref_begin_comp, omp_begin_comp);
     GKO_ASSERT_ARRAY_EQ(ref_end_comp, omp_end_comp);
     GKO_ASSERT_ARRAY_EQ(ref_superset_comp, omp_superset_comp);
-    // this->assert_equal_arrays(num_subsets, ref_begin_comp.get_data(),
-    //                           omp_begin_comp.get_data());
-    // this->assert_equal_arrays(num_subsets, ref_end_comp.get_data(),
-    //                           omp_end_comp.get_data());
-    // this->assert_equal_arrays(num_subsets, ref_superset_comp.get_data(),
-    //                           omp_superset_comp.get_data());
 }
 
 
@@ -150,12 +145,6 @@ TYPED_TEST(IndexSet, PopulateSubsetsIsEquivalentToReferenceForSortedInput)
     GKO_ASSERT_ARRAY_EQ(ref_begin_comp, omp_begin_comp);
     GKO_ASSERT_ARRAY_EQ(ref_end_comp, omp_end_comp);
     GKO_ASSERT_ARRAY_EQ(ref_superset_comp, omp_superset_comp);
-    // this->assert_equal_arrays(num_subsets, ref_begin_comp.get_data(),
-    //                           omp_begin_comp.get_data());
-    // this->assert_equal_arrays(num_subsets, ref_end_comp.get_data(),
-    //                           omp_end_comp.get_data());
-    // this->assert_equal_arrays(num_subsets, ref_superset_comp.get_data(),
-    //                           omp_superset_comp.get_data());
 }
 
 
@@ -197,8 +186,6 @@ TYPED_TEST(IndexSet, GetGlobalIndicesIsEquivalentToReference)
 
     ASSERT_EQ(rand_global_arr.get_num_elems(), omp_local_arr.get_num_elems());
     GKO_ASSERT_ARRAY_EQ(ref_local_arr, omp_local_arr);
-    // this->assert_equal_arrays(num_elems, ref_local_arr.get_data(),
-    //                           omp_local_arr.get_data());
 }
 
 
@@ -240,8 +227,6 @@ TYPED_TEST(IndexSet, GetLocalIndicesIsEquivalentToReference)
 
     ASSERT_EQ(rand_local_arr.get_num_elems(), omp_global_arr.get_num_elems());
     GKO_ASSERT_ARRAY_EQ(ref_global_arr, omp_global_arr);
-    // this->assert_equal_arrays(num_elems, ref_global_arr.get_data(),
-    //                           omp_global_arr.get_data());
 }
 
 

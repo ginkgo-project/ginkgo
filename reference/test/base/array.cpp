@@ -61,7 +61,7 @@ protected:
     gko::Array<T> x;
 };
 
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Array, gko::test::AllTemplateTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Array, CanBeFilledWithValue)
