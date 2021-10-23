@@ -245,6 +245,7 @@ configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
 # Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be
 # propagated to the other parts of Ginkgo in case of building as static libraries
 add_subdirectory(devices)        # Basic device functionalities. Always compiled.
+add_subdirectory(common)         # Import list of unified kernel source files
 if(GINKGO_BUILD_CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
 endif()

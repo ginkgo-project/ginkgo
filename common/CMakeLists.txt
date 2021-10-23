@@ -1,0 +1,15 @@
+set(GKO_UNIFIED_COMMON_SOURCES 
+    ../common/unified/components/precision_conversion.cpp
+    ../common/unified/components/reduce_array.cpp
+    ../common/unified/matrix/coo_kernels.cpp
+    ../common/unified/matrix/csr_kernels.cpp
+    ../common/unified/matrix/dense_kernels.cpp
+    ../common/unified/matrix/diagonal_kernels.cpp
+    ../common/unified/preconditioner/jacobi_kernels.cpp
+    ../common/unified/solver/bicg_kernels.cpp
+    ../common/unified/solver/bicgstab_kernels.cpp
+    ../common/unified/solver/cg_kernels.cpp
+    ../common/unified/solver/cgs_kernels.cpp
+    ../common/unified/solver/fcg_kernels.cpp
+    ../common/unified/solver/ir_kernels.cpp
+    PARENT_SCOPE)

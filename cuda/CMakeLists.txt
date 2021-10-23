@@ -67,21 +67,6 @@ find_library(CUFFT cufft
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
-set(GKO_CUDA_COMMON_SOURCES
-    ../common/unified/components/precision_conversion.cpp
-    ../common/unified/components/reduce_array.cpp
-    ../common/unified/matrix/coo_kernels.cpp
-    ../common/unified/matrix/csr_kernels.cpp
-    ../common/unified/matrix/dense_kernels.cpp
-    ../common/unified/matrix/diagonal_kernels.cpp
-    ../common/unified/preconditioner/jacobi_kernels.cpp
-    ../common/unified/solver/bicg_kernels.cpp
-    ../common/unified/solver/bicgstab_kernels.cpp
-    ../common/unified/solver/cg_kernels.cpp
-    ../common/unified/solver/cgs_kernels.cpp
-    ../common/unified/solver/fcg_kernels.cpp
-    ../common/unified/solver/ir_kernels.cpp
-    )
 target_sources(ginkgo_cuda
     PRIVATE
     base/exception.cpp
@@ -127,10 +112,10 @@ target_sources(ginkgo_cuda
     solver/upper_trs_kernels.cu
     stop/criterion_kernels.cu
     stop/residual_norm_kernels.cu
-    ${GKO_CUDA_COMMON_SOURCES}
+    ${GKO_UNIFIED_COMMON_SOURCES}
     )
 # override the default language mapping for the common files, set them to CUDA
-foreach(source_file IN LISTS GKO_CUDA_COMMON_SOURCES)
+foreach(source_file IN LISTS GKO_UNIFIED_COMMON_SOURCES)
     set_source_files_properties(${source_file} PROPERTIES LANGUAGE CUDA)
 endforeach(source_file)
 if(GINKGO_JACOBI_FULL_OPTIMIZATIONS)
