@@ -33,41 +33,84 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/distributed/partition_kernels.hpp"
 
 
+#include <thrust/device_ptr.h>
+#include <thrust/execution_policy.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/scan.h>
+#include <thrust/sort.h>
+
+
+#include "common/unified/base/kernel_launch.hpp"
+#include "core/components/fill_array.hpp"
+#include "core/components/prefix_sum.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {
 namespace partition {
 
 
-void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
-                  const Array<comm_index_type>& mapping,
-                  size_type& num_ranges) GKO_NOT_IMPLEMENTED;
-
-
-template <typename LocalIndexType>
-void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,
-                           const Array<global_index_type>& ranges,
-                           distributed::Partition<LocalIndexType>* partition)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_PARTITION_BUILD_FROM_CONTIGUOUS);
-
-
-template <typename LocalIndexType>
-void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
-                        const Array<comm_index_type>& mapping,
-                        distributed::Partition<LocalIndexType>* partition)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING);
-
-
 template <typename LocalIndexType>
 void build_ranks(std::shared_ptr<const DefaultExecutor> exec,
                  const global_index_type* range_offsets, const int* range_parts,
                  size_type num_ranges, int num_parts, LocalIndexType* ranks,
-                 LocalIndexType* sizes) GKO_NOT_IMPLEMENTED;
+                 LocalIndexType* sizes)
+{
+    Array<LocalIndexType> range_sizes{exec, num_ranges};
+    // num_parts sentinel at the end
+    Array<comm_index_type> tmp_part_ids{exec, num_ranges + 1};
+    Array<size_type> permutation{exec, num_ranges};
+    // set sizes to 0 in case of empty parts
+    components::fill_array(exec, sizes, num_parts, LocalIndexType{});
+
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto num_ranges, auto num_parts,
+                      auto range_offsets, auto range_parts, auto range_sizes,
+                      auto tmp_part_ids, auto permutation) {
+            if (i == 0) {
+                // set sentinel value at the end
+                tmp_part_ids[num_ranges] = num_parts;
+            }
+            range_sizes[i] = range_offsets[i + 1] - range_offsets[i];
+            tmp_part_ids[i] = range_parts[i];
+            permutation[i] = static_cast<int64>(i);
+        },
+        num_ranges, num_ranges, num_parts, range_offsets, range_parts,
+        range_sizes, tmp_part_ids, permutation);
+
+    auto tmp_part_id_ptr = thrust::device_pointer_cast(tmp_part_ids.get_data());
+    auto range_sizes_ptr = thrust::device_pointer_cast(range_sizes.get_data());
+    auto permutation_ptr = thrust::device_pointer_cast(permutation.get_data());
+    auto value_it = thrust::make_zip_iterator(
+        thrust::make_tuple(range_sizes_ptr, permutation_ptr));
+    // group sizes by part ID
+    thrust::stable_sort_by_key(thrust::device, tmp_part_id_ptr,
+                               tmp_part_id_ptr + num_ranges, value_it);
+    // compute inclusive prefix sum for each part
+    thrust::inclusive_scan_by_key(thrust::device, tmp_part_id_ptr,
+                                  tmp_part_id_ptr + num_ranges, range_sizes_ptr,
+                                  range_sizes_ptr);
+    // write back the results
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto grouped_range_ranks, auto grouped_part_ids,
+                      auto orig_idxs, auto ranks, auto sizes) {
+            auto prev_part =
+                i > 0 ? grouped_part_ids[i - 1] : comm_index_type{-1};
+            auto cur_part = grouped_part_ids[i];
+            auto next_part = grouped_part_ids[i + 1];  // safe due to sentinel
+            if (cur_part != next_part) {
+                sizes[cur_part] = grouped_range_ranks[i];
+            }
+            // write result shifted by one entry to get exclusive prefix sum
+            ranks[orig_idxs[i]] = prev_part == cur_part
+                                      ? grouped_range_ranks[i - 1]
+                                      : LocalIndexType{};
+        },
+        num_ranges, range_sizes, tmp_part_ids, permutation, ranks, sizes);
+}
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_RANKS);
 
