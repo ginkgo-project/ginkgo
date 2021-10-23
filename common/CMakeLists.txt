@@ -1,15 +1,17 @@
-set(GKO_UNIFIED_COMMON_SOURCES 
-    ../common/unified/components/precision_conversion.cpp
-    ../common/unified/components/reduce_array.cpp
-    ../common/unified/matrix/coo_kernels.cpp
-    ../common/unified/matrix/csr_kernels.cpp
-    ../common/unified/matrix/dense_kernels.cpp
-    ../common/unified/matrix/diagonal_kernels.cpp
-    ../common/unified/preconditioner/jacobi_kernels.cpp
-    ../common/unified/solver/bicg_kernels.cpp
-    ../common/unified/solver/bicgstab_kernels.cpp
-    ../common/unified/solver/cg_kernels.cpp
-    ../common/unified/solver/cgs_kernels.cpp
-    ../common/unified/solver/fcg_kernels.cpp
-    ../common/unified/solver/ir_kernels.cpp
-    PARENT_SCOPE)
+set(UNIFIED_SOURCES
+    components/precision_conversion.cpp
+    components/reduce_array.cpp
+    matrix/coo_kernels.cpp
+    matrix/csr_kernels.cpp
+    matrix/dense_kernels.cpp
+    matrix/diagonal_kernels.cpp
+    preconditioner/jacobi_kernels.cpp
+    solver/bicg_kernels.cpp
+    solver/bicgstab_kernels.cpp
+    solver/cg_kernels.cpp
+    solver/cgs_kernels.cpp
+    solver/fcg_kernels.cpp
+    solver/ir_kernels.cpp
+    )
+list(TRANSFORM UNIFIED_SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/unified/)
+set(GKO_UNIFIED_COMMON_SOURCES ${UNIFIED_SOURCES} PARENT_SCOPE)
