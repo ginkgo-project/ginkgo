@@ -74,8 +74,7 @@ protected:
     gko::Array<value_type> seqs;
 };
 
-TYPED_TEST_SUITE(FillArray, gko::test::ValueAndIndexTypes,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(FillArray, gko::test::AllTemplateTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(FillArray, EqualsReference)

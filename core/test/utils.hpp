@@ -77,8 +77,17 @@ using ComplexValueTypes =
 
 
 using IndexTypes = ::testing::Types<gko::int32, gko::int64>;
-using IndexSizeTypes =
+using IndexAndUnsignedTypes =
     ::testing::Types<gko::int32, gko::int64, gko::uint32, gko::uint64>;
+
+using AllTemplateTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<float, std::complex<float>, gko::int32, gko::int64,
+                     gko::uint32, gko::uint64>;
+#else
+    ::testing::Types<float, double, std::complex<float>, std::complex<double>,
+                     gko::int32, gko::int64, gko::uint32, gko::uint64>;
+#endif
 
 
 using ValueAndIndexTypes =
