@@ -91,20 +91,11 @@ protected:
         }
     }
 
-    static void assert_equal_arrays(const T num_elems, const T* a, const T* b)
-    {
-        if (num_elems > 0) {
-            for (auto i = 0; i < num_elems; ++i) {
-                EXPECT_EQ(a[i], b[i]);
-            }
-        }
-    }
-
     std::shared_ptr<const gko::OmpExecutor> omp;
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
 
-TYPED_TEST_SUITE(IndexSet, gko::test::IndexTypes);
+TYPED_TEST_SUITE(IndexSet, gko::test::IndexSizeTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(IndexSet, PopulateSubsetsIsEquivalentToReferenceForUnsortedInput)
@@ -125,12 +116,15 @@ TYPED_TEST(IndexSet, PopulateSubsetsIsEquivalentToReferenceForUnsortedInput)
         &omp_superset_comp, false);
 
     auto num_subsets = ref_begin_comp.get_num_elems();
-    this->assert_equal_arrays(num_subsets, ref_begin_comp.get_data(),
-                              omp_begin_comp.get_data());
-    this->assert_equal_arrays(num_subsets, ref_end_comp.get_data(),
-                              omp_end_comp.get_data());
-    this->assert_equal_arrays(num_subsets, ref_superset_comp.get_data(),
-                              omp_superset_comp.get_data());
+    GKO_ASSERT_ARRAY_EQ(ref_begin_comp, omp_begin_comp);
+    GKO_ASSERT_ARRAY_EQ(ref_end_comp, omp_end_comp);
+    GKO_ASSERT_ARRAY_EQ(ref_superset_comp, omp_superset_comp);
+    // this->assert_equal_arrays(num_subsets, ref_begin_comp.get_data(),
+    //                           omp_begin_comp.get_data());
+    // this->assert_equal_arrays(num_subsets, ref_end_comp.get_data(),
+    //                           omp_end_comp.get_data());
+    // this->assert_equal_arrays(num_subsets, ref_superset_comp.get_data(),
+    //                           omp_superset_comp.get_data());
 }
 
 
@@ -153,13 +147,15 @@ TYPED_TEST(IndexSet, PopulateSubsetsIsEquivalentToReferenceForSortedInput)
         this->omp, TypeParam(520), &rand_arr, &omp_begin_comp, &omp_end_comp,
         &omp_superset_comp, false);
 
-    auto num_subsets = ref_begin_comp.get_num_elems();
-    this->assert_equal_arrays(num_subsets, ref_begin_comp.get_data(),
-                              omp_begin_comp.get_data());
-    this->assert_equal_arrays(num_subsets, ref_end_comp.get_data(),
-                              omp_end_comp.get_data());
-    this->assert_equal_arrays(num_subsets, ref_superset_comp.get_data(),
-                              omp_superset_comp.get_data());
+    GKO_ASSERT_ARRAY_EQ(ref_begin_comp, omp_begin_comp);
+    GKO_ASSERT_ARRAY_EQ(ref_end_comp, omp_end_comp);
+    GKO_ASSERT_ARRAY_EQ(ref_superset_comp, omp_superset_comp);
+    // this->assert_equal_arrays(num_subsets, ref_begin_comp.get_data(),
+    //                           omp_begin_comp.get_data());
+    // this->assert_equal_arrays(num_subsets, ref_end_comp.get_data(),
+    //                           omp_end_comp.get_data());
+    // this->assert_equal_arrays(num_subsets, ref_superset_comp.get_data(),
+    //                           omp_superset_comp.get_data());
 }
 
 
@@ -200,9 +196,9 @@ TYPED_TEST(IndexSet, GetGlobalIndicesIsEquivalentToReference)
         &omp_superset_comp, &rand_global_arr, &omp_local_arr, false);
 
     ASSERT_EQ(rand_global_arr.get_num_elems(), omp_local_arr.get_num_elems());
-    auto num_elems = ref_local_arr.get_num_elems();
-    this->assert_equal_arrays(num_elems, ref_local_arr.get_data(),
-                              omp_local_arr.get_data());
+    GKO_ASSERT_ARRAY_EQ(ref_local_arr, omp_local_arr);
+    // this->assert_equal_arrays(num_elems, ref_local_arr.get_data(),
+    //                           omp_local_arr.get_data());
 }
 
 
@@ -243,9 +239,9 @@ TYPED_TEST(IndexSet, GetLocalIndicesIsEquivalentToReference)
         &omp_superset_comp, &rand_local_arr, &omp_global_arr, false);
 
     ASSERT_EQ(rand_local_arr.get_num_elems(), omp_global_arr.get_num_elems());
-    auto num_elems = ref_global_arr.get_num_elems();
-    this->assert_equal_arrays(num_elems, ref_global_arr.get_data(),
-                              omp_global_arr.get_data());
+    GKO_ASSERT_ARRAY_EQ(ref_global_arr, omp_global_arr);
+    // this->assert_equal_arrays(num_elems, ref_global_arr.get_data(),
+    //                           omp_global_arr.get_data());
 }
 
 

@@ -50,9 +50,9 @@ namespace gko {
 
 
 /**
- * An index set class represents an ordered set with  in a mathematical sense.
- * The index set contains subsets which store the starting and end points of a
- * range, [a,b), storing the first index and one past the last index. As the
+ * An index set class represents an ordered set of intervals. The index set
+ * contains subsets which store the starting and end points of a range,
+ * [a,b), storing the first index and one past the last index. As the
  * index set only stores the end-points of ranges, it can be quite efficient in
  * terms of storage.
  *
@@ -66,7 +66,8 @@ namespace gko {
  * index beyond the end indices of the subsets and the last
  * (superset_cumulative_indices) storing the cumulative number of indices in the
  * subsequent subsets with an initial zero which speeds up the
- * querying.
+ * querying. Additionally, the arrays conataining the range boundaries
+ * (subsets_begin, subsets_end) are stored in a sorted fashion.
  *
  * Therefore the storage would look as follows
  *
@@ -101,24 +102,6 @@ public:
      * @param exec  the Executor where the index set data will be allocated
      * @param size  the maximum index the index set it allowed to hold. This
      *              is the size of the index space.
-     */
-    IndexSet(std::shared_ptr<const gko::Executor> executor,
-             const index_type size = 0)
-        : index_set_id_(0),
-          index_space_size_(size),
-          exec_(executor),
-          subsets_begin_(exec_),
-          subsets_end_(exec_),
-          superset_cumulative_indices_(exec_)
-    {}
-
-
-    /**
-     * Creates an index set on the specified executor and the given size
-     *
-     * @param exec  the Executor where the index set data will be allocated
-     * @param size  the maximum index the index set it allowed to hold. This
-     *              is the size of the index space.
      * @param indices  the indices that the index set should hold.
      * @param is_sorted  a parameter that specifies if the indices array is
      *                   sorted or not. `true` if sorted.
@@ -126,33 +109,7 @@ public:
     IndexSet(std::shared_ptr<const gko::Executor> executor,
              const index_type size, const gko::Array<index_type>& indices,
              const bool is_sorted = false)
-        : index_set_id_(0),
-          index_space_size_(size),
-          exec_(executor),
-          subsets_begin_(exec_),
-          subsets_end_(exec_),
-          superset_cumulative_indices_(exec_)
-    {
-        this->populate_subsets(indices, is_sorted);
-    }
-
-
-    /**
-     * Creates an index set on the specified executor and the given size
-     *
-     * @param exec  the Executor where the index set data will be allocated
-     * @param id    the id of the index set
-     * @param size  the maximum index the index set it allowed to hold. This
-     *              is the size of the index space.
-     * @param indices  the indices that the index set should hold.
-     * @param is_sorted  a parameter that specifies if the indices array is
-     *                   sorted or not. `true` if sorted.
-     */
-    IndexSet(std::shared_ptr<const gko::Executor> executor, const index_type id,
-             const index_type size, const gko::Array<index_type>& indices,
-             const bool is_sorted = false)
-        : index_set_id_(id),
-          index_space_size_(size),
+        : index_space_size_(size),
           exec_(executor),
           subsets_begin_(exec_),
           subsets_end_(exec_),
@@ -180,20 +137,6 @@ public:
     index_type get_size() const { return this->index_space_size_; }
 
     /**
-     * Returns the id of the index set.
-     *
-     * @return  the id of the index set.
-     */
-    index_type get_id() const { return this->index_set_id_; }
-
-    /**
-     * Returns the id of the index set.
-     *
-     * @param  id  the id to set for the index set
-     */
-    void set_id(index_type id) { this->index_set_id_ = id; }
-
-    /**
      * Returns if the index set is contiguous
      *
      * @return  if the index set is contiguous.
@@ -216,11 +159,15 @@ public:
      * == 4` and `idx_set.get_global_index(7) == 9`
      *
      * @note This function returns a scalar value and needs a scalar value.
-     *       It is probably more efficient to use the Array functions that
-     *       take and return arrays which allow for more throughput.
+     *       For repeated queries, it is more efficient to use the Array
+     *       functions that take and return arrays which allow for more
+     *       throughput.
      *
      * @param local_index  the local index.
      * @return  the global index from the index set.
+     *
+     * @warning This single entry query can have significant kernel lauch
+     *          overheads and should be avoided if possible.
      */
     index_type get_global_index(const index_type local_index) const;
 
@@ -233,11 +180,15 @@ public:
      * == 3` and `idx_set.get_local_index(6) == 4`.
      *
      * @note This function returns a scalar value and needs a scalar value.
-     *       It is probably more efficient to use the Array functions that
-     *       take and return arrays which allow for more throughput.
+     *       For repeated queries, it is more efficient to use the Array
+     *       functions that take and return arrays which allow for more
+     *       throughput.
      *
      * @param global_index  the global index.
      * @return  the local index of the element in the index set.
+     *
+     * @warning This single entry query can have significant kernel lauch
+     *          overheads and should be avoided if possible.
      */
     index_type get_local_index(const index_type global_index) const;
 
@@ -270,10 +221,21 @@ public:
                                         const bool is_sorted = false) const;
 
     /**
+     * This function allows the user to decompress the index set and obtain the
+     * complete list of indices stored by the index set.
+     *
+     * @return  the decompressed set of indices.
+     */
+    Array<index_type> decompress() const;
+
+    /**
      * Checks if the global index exists in the index set.
      *
      * @param index  the index to check.
      * @return  whether the element exists in the index set.
+     *
+     * @warning This single entry query can have significant kernel lauch
+     *          overheads and should be avoided if possible.
      */
     bool contains(const index_type index) const;
 
@@ -325,7 +287,6 @@ private:
 
     std::shared_ptr<const gko::Executor> exec_;
 
-    index_type index_set_id_;
     index_type index_space_size_;
     index_type num_stored_indices_;
     gko::Array<index_type> subsets_begin_;

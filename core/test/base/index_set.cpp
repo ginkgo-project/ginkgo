@@ -64,13 +64,6 @@ protected:
         }
     }
 
-    static void assert_equal_index_sets(gko::IndexSet<T>& a,
-                                        gko::IndexSet<T>& b)
-    {
-        ASSERT_EQ(a.get_size(), b.get_size());
-        ASSERT_EQ(a.get_num_subsets(), b.get_num_subsets());
-    }
-
     std::shared_ptr<const gko::Executor> exec;
 };
 
@@ -83,82 +76,6 @@ TYPED_TEST(IndexSet, CanBeEmpty)
 
     ASSERT_EQ(empty.get_size(), 0);
     ASSERT_EQ(empty.get_num_subsets(), 0);
-}
-
-
-TYPED_TEST(IndexSet, CanBeConstructedWithSize)
-{
-    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
-
-    ASSERT_EQ(idx_set.get_size(), 10);
-    ASSERT_EQ(idx_set.get_num_subsets(), 0);
-}
-
-
-TYPED_TEST(IndexSet, CanBeCopyConstructed)
-{
-    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
-
-    auto idx_set2(idx_set);
-
-    this->assert_equal_index_sets(idx_set2, idx_set);
-}
-
-
-TYPED_TEST(IndexSet, CanBeMoveConstructed)
-{
-    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
-
-    auto idx_set2(std::move(idx_set));
-
-    ASSERT_EQ(idx_set2.get_size(), 10);
-}
-
-
-TYPED_TEST(IndexSet, CanBeCopyAssigned)
-{
-    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
-
-    auto idx_set2 = idx_set;
-
-    this->assert_equal_index_sets(idx_set2, idx_set);
-}
-
-
-TYPED_TEST(IndexSet, CanBeMoveAssigned)
-{
-    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
-
-    auto idx_set2 = std::move(idx_set);
-
-    ASSERT_EQ(idx_set2.get_size(), 10);
-}
-
-
-TYPED_TEST(IndexSet, KnowsItsSize)
-{
-    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
-
-    ASSERT_EQ(idx_set.get_size(), 10);
-}
-
-
-TYPED_TEST(IndexSet, CanGetId)
-{
-    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
-
-    ASSERT_EQ(idx_set.get_id(), 0);
-}
-
-
-TYPED_TEST(IndexSet, CanSetId)
-{
-    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10};
-
-    ASSERT_EQ(idx_set.get_id(), 0);
-    idx_set.set_id(3);
-
-    ASSERT_EQ(idx_set.get_id(), 3);
 }
 
 
