@@ -45,62 +45,6 @@ namespace omp {
 namespace partition {
 
 
-void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
-                  const Array<comm_index_type>& mapping, size_type& num_ranges)
-{
-    num_ranges = 0;
-    auto mapping_data = mapping.get_const_data();
-#pragma omp parallel for reduction(+ : num_ranges)
-    for (size_type i = 0; i < mapping.get_num_elems(); i++) {
-        auto cur_part = mapping_data[i];
-        auto prev_part = i == 0 ? comm_index_type{-1} : mapping_data[i - 1];
-        num_ranges += cur_part != prev_part;
-    }
-}
-
-
-template <typename LocalIndexType>
-void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,
-                           const Array<global_index_type>& ranges,
-                           distributed::Partition<LocalIndexType>* partition)
-{
-    partition->get_range_bounds()[0] = 0;
-#pragma omp parallel for
-    for (comm_index_type i = 0; i < ranges.get_num_elems() - 1; i++) {
-        auto begin = ranges.get_const_data()[i];
-        auto end = ranges.get_const_data()[i + 1];
-        partition->get_range_bounds()[i + 1] = end;
-        partition->get_part_ids()[i] = i;
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_PARTITION_BUILD_FROM_CONTIGUOUS);
-
-
-template <typename LocalIndexType>
-void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
-                        const Array<comm_index_type>& mapping,
-                        distributed::Partition<LocalIndexType>* partition)
-{
-    size_type range_idx{};
-    comm_index_type range_part{-1};
-    for (size_type i = 0; i < mapping.get_num_elems(); i++) {
-        auto cur_part = mapping.get_const_data()[i];
-        if (cur_part != range_part) {
-            partition->get_range_bounds()[range_idx] = i;
-            partition->get_part_ids()[range_idx] = cur_part;
-            range_idx++;
-            range_part = cur_part;
-        }
-    }
-    partition->get_range_bounds()[range_idx] =
-        static_cast<global_index_type>(mapping.get_num_elems());
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING);
-
-
 template <typename LocalIndexType>
 void build_ranks(std::shared_ptr<const DefaultExecutor> exec,
                  const global_index_type* range_offsets, const int* range_parts,
@@ -125,6 +69,7 @@ void build_ranks(std::shared_ptr<const DefaultExecutor> exec,
             ranks[range] = local_sizes[part + base];
             local_sizes[part + base] += end - begin;
         }
+#pragma omp barrier
         // exclusive prefix sum over local sizes
 #pragma omp for
         for (comm_index_type part = 0; part < num_parts; ++part) {
