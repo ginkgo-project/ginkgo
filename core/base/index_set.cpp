@@ -50,6 +50,7 @@ namespace gko {
 namespace index_set {
 
 
+GKO_REGISTER_OPERATION(decompress, index_set::decompress);
 GKO_REGISTER_OPERATION(populate_subsets, index_set::populate_subsets);
 GKO_REGISTER_OPERATION(global_to_local, index_set::global_to_local);
 GKO_REGISTER_OPERATION(local_to_global, index_set::local_to_global);
@@ -101,6 +102,22 @@ IndexType IndexSet<IndexType>::get_local_index(const IndexType index) const
         Array<IndexType>(exec, this->get_local_indices(global_idx, true));
 
     return exec->copy_val_to_host(local_idx.get_data());
+}
+
+
+template <typename IndexType>
+Array<IndexType> IndexSet<IndexType>::decompress() const
+{
+    auto exec = this->get_executor();
+    auto num_elems = exec->copy_val_to_host(
+        this->superset_cumulative_indices_.get_const_data() +
+        this->superset_cumulative_indices_.get_num_elems() - 1);
+    auto decomp_indices = gko::Array<IndexType>(exec, num_elems);
+    exec->run(index_set::make_decompress(
+        this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
+        &this->superset_cumulative_indices_, &decomp_indices));
+
+    return std::move(decomp_indices);
 }
 
 

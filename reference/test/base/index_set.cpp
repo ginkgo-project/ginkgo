@@ -99,6 +99,79 @@ protected:
 TYPED_TEST_SUITE(IndexSet, gko::test::IndexSizeTypes, TypenameNameGenerator);
 
 
+TYPED_TEST(IndexSet, CanBeCopyConstructed)
+{
+    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
+    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
+    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
+
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
+
+    auto idx_set2(idx_set);
+
+    this->assert_equal_index_sets(idx_set2, idx_set);
+}
+
+
+TYPED_TEST(IndexSet, CanBeMoveConstructed)
+{
+    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
+    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
+    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
+
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
+
+    auto idx_set2(std::move(idx_set));
+
+    ASSERT_EQ(idx_set2.get_size(), 10);
+}
+
+
+TYPED_TEST(IndexSet, CanBeCopyAssigned)
+{
+    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
+    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
+    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
+
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
+
+    auto idx_set2 = idx_set;
+
+    this->assert_equal_index_sets(idx_set2, idx_set);
+}
+
+
+TYPED_TEST(IndexSet, CanBeMoveAssigned)
+{
+    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
+    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
+    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
+
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
+
+    auto idx_set2 = std::move(idx_set);
+
+    ASSERT_EQ(idx_set2.get_size(), 10);
+}
+
+
+TYPED_TEST(IndexSet, KnowsItsSize)
+{
+    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
+    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
+    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
+
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
+
+    ASSERT_EQ(idx_set.get_size(), 10);
+}
+
+
 TYPED_TEST(IndexSet, CanBeConstructedFromIndices)
 {
     auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
@@ -118,6 +191,20 @@ TYPED_TEST(IndexSet, CanBeConstructedFromIndices)
                               end_comp.get_data());
     this->assert_equal_arrays(num_subsets, idx_set.get_superset_indices(),
                               superset_comp.get_data());
+}
+
+
+TYPED_TEST(IndexSet, CanBeDecompressedIntoIndices)
+{
+    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
+    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
+    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
+
+    auto out_arr = idx_set.decompress();
+
+    GKO_ASSERT_ARRAY_EQ(idx_arr, out_arr);
 }
 
 

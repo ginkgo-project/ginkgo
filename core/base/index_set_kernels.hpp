@@ -47,6 +47,15 @@ namespace gko {
 namespace kernels {
 
 
+#define GKO_DECLARE_INDEX_SET_DECOMPRESS_KERNEL(IndexType)       \
+    void decompress(std::shared_ptr<const DefaultExecutor> exec, \
+                    const IndexType index_space_size,            \
+                    const Array<IndexType>* subset_begin,        \
+                    const Array<IndexType>* subset_end,          \
+                    const Array<IndexType>* superset_indices,    \
+                    Array<IndexType>* decomp_indices)
+
+
 #define GKO_DECLARE_INDEX_SET_POPULATE_KERNEL(IndexType)                   \
     void populate_subsets(                                                 \
         std::shared_ptr<const DefaultExecutor> exec,                       \
@@ -76,6 +85,8 @@ namespace kernels {
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                         \
+    template <typename IndexType>                            \
+    GKO_DECLARE_INDEX_SET_DECOMPRESS_KERNEL(IndexType);      \
     template <typename IndexType>                            \
     GKO_DECLARE_INDEX_SET_POPULATE_KERNEL(IndexType);        \
     template <typename IndexType>                            \
