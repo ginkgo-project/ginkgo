@@ -542,8 +542,8 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  */
 #define GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(_macro) \
     GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro);             \
-    template _macro(unsigned long);                          \
-    template _macro(unsigned int)
+    template _macro(uint32);                                 \
+    template _macro(uint64)
 
 
 /**
@@ -644,7 +644,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 /**
- * Value for an invalid int.
+ * Value for an invalid signed index type.
  */
 template <typename IndexType>
 inline IndexType invalid_index()
@@ -661,19 +661,19 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVALID_TYPES);
  * Value for an invalid unsigned int.
  */
 template <>
-inline unsigned int invalid_index()
+inline uint32 invalid_index<uint32>()
 {
-    return std::numeric_limits<unsigned int>::max();
+    return std::numeric_limits<uint32>::max();
 }
 
 
 /**
- * Value for an invalid index.
+ * Value for an invalid unsigned long.
  */
 template <>
-inline gko::size_type invalid_index()
+inline uint64 invalid_index<uint64>()
 {
-    return std::numeric_limits<gko::size_type>::max();
+    return std::numeric_limits<uint64>::max();
 }
 
 
