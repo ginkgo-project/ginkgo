@@ -64,6 +64,31 @@ namespace index_set {
 
 
 template <typename IndexType>
+void decompress(std::shared_ptr<const DefaultExecutor> exec,
+                const IndexType index_space_size,
+                const Array<IndexType>* subset_begin,
+                const Array<IndexType>* subset_end,
+                const Array<IndexType>* superset_indices,
+                Array<IndexType>* decomp_indices)
+{
+    auto indices = decomp_indices->get_data();
+    auto num_elems = decomp_indices->get_num_elems();
+    auto num_subsets = superset_indices->get_num_elems() - 1;
+    auto ss_indices = superset_indices->get_const_data();
+    for (size_type subset = 0; subset < num_subsets; ++subset) {
+        for (size_type i = 0; i < ss_indices[subset + 1] - ss_indices[subset];
+             ++i) {
+            indices[ss_indices[subset] + i] =
+                subset_begin->get_const_data()[subset] + i;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(
+    GKO_DECLARE_INDEX_SET_DECOMPRESS_KERNEL);
+
+
+template <typename IndexType>
 void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
                       const IndexType index_space_size,
                       const Array<IndexType>* indices,
