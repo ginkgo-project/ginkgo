@@ -142,6 +142,7 @@ __global__ __launch_bounds__(block_size) void compute_partial_norm2(
         [](const norm_type& x, const norm_type& y) { return x + y; });
 }
 
+
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void finalize_sqrt_reduce_computation(
     size_type size, const ValueType* work, ValueType* result)

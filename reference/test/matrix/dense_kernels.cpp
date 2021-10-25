@@ -605,6 +605,7 @@ TYPED_TEST(Dense, ComputesNorm2Mixed)
     EXPECT_EQ(result->at(0, 1), MixedT_nc{5.0});
 }
 
+
 TYPED_TEST(Dense, ComputesNorm1)
 {
     using Mtx = typename TestFixture::Mtx;

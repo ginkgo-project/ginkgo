@@ -83,6 +83,7 @@ constexpr int default_block_size = 256;
 
 namespace kernel {
 
+
 template <typename ValueType, typename IndexType>
 void fill_in_coo(size_type num_rows, size_type num_cols, size_type stride,
                  const size_type* __restrict__ row_ptrs,
