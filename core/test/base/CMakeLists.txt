@@ -1,6 +1,8 @@
 ginkgo_create_test(abstract_factory)
 ginkgo_create_test(allocator)
 ginkgo_create_test(array)
+ginkgo_create_test(batch_dim)
+ginkgo_create_test(batch_lin_op)
 ginkgo_create_test(dense_cache)
 ginkgo_create_test(combination)
 ginkgo_create_test(composition)
