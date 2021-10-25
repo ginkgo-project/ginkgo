@@ -414,6 +414,8 @@ TEST_F(CsrBlockDiagonal, GeneratesCorrectBlockDiagonalMatrix)
                       check->get_const_values()[inz]);
         }
     }
+    ASSERT_EQ(bdcsr->get_const_row_ptrs()[bdcsr->get_size()[0]],
+              check->get_const_row_ptrs()[bdcsr->get_size()[0]]);
 }
 
 TEST_F(CsrBlockDiagonal, ThrowsOnRectangularInput)
