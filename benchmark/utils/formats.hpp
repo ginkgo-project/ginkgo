@@ -45,14 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gflags/gflags.h>
 
 
-#ifdef HAS_CUDA
-#include "benchmark/utils/cuda_linops.hpp"
-#endif  // HAS_CUDA
-#ifdef HAS_HIP
-#include "benchmark/utils/hip_linops.hip.hpp"
-#endif  // HAS_HIP
-
-
+#include "benchmark/utils/sparselib_linops.hpp"
 #include "benchmark/utils/types.hpp"
 
 
@@ -66,15 +59,8 @@ std::string available_format =
     "hybridminstorage"
 #ifdef HAS_CUDA
     ", cusp_csr, cusp_csrex, cusp_coo"
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
     ", cusp_csrmp, cusp_csrmm, cusp_ell, cusp_hybrid"
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-#if defined(CUDA_VERSION) &&  \
-    (CUDA_VERSION >= 11000 || \
-     ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
     ", cusp_gcsr, cusp_gcsr2, cusp_gcoo"
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
-        // 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
     ", hipsp_csr, hipsp_csrmm, hipsp_coo, hipsp_ell, hipsp_hybrid"
@@ -104,7 +90,6 @@ std::string format_description =
     "hybridminstorage: Hybrid uses the minimal storage to store the matrix."
 #ifdef HAS_CUDA
     "\n"
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
     "cusp_coo: use cusparseXhybmv with a CUSPARSE_HYB_PARTITION_USER "
     "partition.\n"
     "cusp_csr: benchmark CuSPARSE with the cusparseXcsrmv function.\n"
@@ -113,14 +98,7 @@ std::string format_description =
     "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function.\n"
     "cusp_hybrid: benchmark CuSPARSE spmv with cusparseXhybmv and an automatic "
     "partition.\n"
-#else  // CUDA_VERSION >= 11000
-    "cusp_csr: is an alias of cusp_gcsr.\n"
-    "cusp_coo: is an alias of cusp_gcoo.\n"
-#endif
     "cusp_csrex: benchmark CuSPARSE with the cusparseXcsrmvEx function."
-#if defined(CUDA_VERSION) &&  \
-    (CUDA_VERSION >= 11000 || \
-     ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
     "\n"
     "cusp_gcsr: benchmark CuSPARSE with the generic csr with default "
     "algorithm.\n"
@@ -128,8 +106,6 @@ std::string format_description =
     "CUSPARSE_CSRMV_ALG2.\n"
     "cusp_gcoo: benchmark CuSPARSE with the generic coo with default "
     "algorithm.\n"
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
-        // 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
     "\n"
@@ -184,6 +160,29 @@ std::unique_ptr<MatrixType> read_matrix_from_data(
 {
     auto mat = MatrixType::create(std::move(exec));
     mat->read(data);
+    return mat;
+}
+
+
+/**
+ * Creates a Ginkgo sparselib matrix from the intermediate data representation
+ * format gko::matrix_data.
+ *
+ * @param exec  the executor where the matrix will be put
+ * @param data  the data represented in the intermediate representation format
+ *
+ * @tparam MatrixTagType  the tag type for the matrix format, see
+ *                        sparselib_linops.hpp
+ *
+ * @return a `unique_pointer` to the created matrix
+ */
+template <typename MatrixTagType>
+std::unique_ptr<gko::LinOp> read_splib_matrix_from_data(
+    std::shared_ptr<const gko::Executor> exec,
+    const gko::matrix_data<etype, itype>& data)
+{
+    auto mat = create_sparselib_linop<MatrixTagType>(std::move(exec));
+    gko::as<gko::ReadableFromMatrixData<etype, itype>>(mat.get())->read(data);
     return mat;
 }
 
@@ -300,34 +299,25 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
              return mat;
          }},
 #ifdef HAS_CUDA
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-        {"cusp_csr", read_matrix_from_data<cusp_csr>},
-        {"cusp_csrmp", read_matrix_from_data<cusp_csrmp>},
-        {"cusp_csrmm", read_matrix_from_data<cusp_csrmm>},
-        {"cusp_hybrid", read_matrix_from_data<cusp_hybrid>},
-        {"cusp_coo", read_matrix_from_data<cusp_coo>},
-        {"cusp_ell", read_matrix_from_data<cusp_ell>},
-#else  // CUDA_VERSION >= 11000
-       // cusp_csr, cusp_coo use the generic ones from CUDA 11
-        {"cusp_csr", read_matrix_from_data<cusp_gcsr>},
-        {"cusp_coo", read_matrix_from_data<cusp_gcoo>},
-#endif
-        {"cusp_csrex", read_matrix_from_data<cusp_csrex>},
-#if defined(CUDA_VERSION) &&  \
-    (CUDA_VERSION >= 11000 || \
-     ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
-        {"cusp_gcsr", read_matrix_from_data<cusp_gcsr>},
-        {"cusp_gcsr2", read_matrix_from_data<cusp_gcsr2>},
-        {"cusp_gcoo", read_matrix_from_data<cusp_gcoo>},
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
-        // 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
+        {"cusp_csr", read_splib_matrix_from_data<cusp_csr>},
+        {"cusp_csrmp", read_splib_matrix_from_data<cusp_csrmp>},
+        {"cusp_csrmm", read_splib_matrix_from_data<cusp_csrmm>},
+        {"cusp_hybrid", read_splib_matrix_from_data<cusp_hybrid>},
+        {"cusp_coo", read_splib_matrix_from_data<cusp_coo>},
+        {"cusp_ell", read_splib_matrix_from_data<cusp_ell>},
+        {"cusp_csr", read_splib_matrix_from_data<cusp_gcsr>},
+        {"cusp_coo", read_splib_matrix_from_data<cusp_gcoo>},
+        {"cusp_csrex", read_splib_matrix_from_data<cusp_csrex>},
+        {"cusp_gcsr", read_splib_matrix_from_data<cusp_gcsr>},
+        {"cusp_gcsr2", read_splib_matrix_from_data<cusp_gcsr2>},
+        {"cusp_gcoo", read_splib_matrix_from_data<cusp_gcoo>},
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
-        {"hipsp_csr", read_matrix_from_data<hipsp_csr>},
-        {"hipsp_csrmm", read_matrix_from_data<hipsp_csrmm>},
-        {"hipsp_hybrid", read_matrix_from_data<hipsp_hybrid>},
-        {"hipsp_coo", read_matrix_from_data<hipsp_coo>},
-        {"hipsp_ell", read_matrix_from_data<hipsp_ell>},
+        {"hipsp_csr", read_splib_matrix_from_data<hipsp_csr>},
+        {"hipsp_csrmm", read_splib_matrix_from_data<hipsp_csrmm>},
+        {"hipsp_hybrid", read_splib_matrix_from_data<hipsp_hybrid>},
+        {"hipsp_coo", read_splib_matrix_from_data<hipsp_coo>},
+        {"hipsp_ell", read_splib_matrix_from_data<hipsp_ell>},
 #endif  // HAS_HIP
         {"hybrid", read_matrix_from_data<hybrid>},
         {"hybrid0",
