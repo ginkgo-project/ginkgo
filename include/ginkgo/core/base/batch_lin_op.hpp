@@ -55,6 +55,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+/**
+ * @addtogroup BatchLinOp
+ *
+ * The batch_stride class stores the strides of the batch entries in a
+ * BatchLinOp object. The design allows for optimized storage in case of same
+ * strides among the batch entries by storing a common stride. All member
+ * functions and getters are optimized for this case of common stride.
+ *
+ * While the common stride is the frequently encountered case, the batch_stride
+ * class additionally allows the user to store different strides for different
+ * batch entries as well.
+ */
 class batch_stride {
 public:
     /**
@@ -65,7 +77,7 @@ public:
     bool stores_equal_strides() const { return equal_strides_; }
 
     /**
-     * Get the number of batche entries stored
+     * Get the number of batch entries stored
      *
      * @return num_batch_entries
      */
@@ -593,7 +605,7 @@ protected:
  * entries should implement the BatchTransposable interface.
  *
  * It provides two functionalities, the normal transpose and the
- * conjugate transpose, both transposing the invidual batch entries.
+ * conjugate transpose, both transposing the individual batch entries.
  *
  * The normal transpose returns the transpose of the linear operator without
  * changing any of its elements representing the operation, $B = A^{T}$.
@@ -707,13 +719,13 @@ public:
  *
  * @tparam ConcreteFactory  the concrete factory which is being implemented
  *                          [CRTP parmeter]
- * @tparam ConcreteLinOp  the concrete BatchLinOp type which this factory
+ * @tparam ConcreteBatchLinOp  the concrete BatchLinOp type which this factory
  * produces, needs to have a constructor which takes a const ConcreteFactory *,
  * and an std::shared_ptr<const BatchLinOp> as parameters.
  * @tparam ParametersType  a subclass of enable_parameters_type template which
  *                         defines all of the parameters of the factory
  * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
- *                          hierarchy, has to be a subclass of LinOpFactory
+ *                          hierarchy, has to be a subclass of BatchLinOpFactory
  *
  * @ingroup BatchLinOp
  */
@@ -777,7 +789,7 @@ using EnableDefaultBatchLinOpFactory =
  * std::cout << my_op->get_my_parameters().my_value;  // prints 5
  *
  * // create a factory with custom `my_value` parameter
- * auto fact = MyLinOp::build().with_my_value(0).on(exec);
+ * auto fact = MyBatchLinOp::build().with_my_value(0).on(exec);
  * // create a operator using the factory:
  * auto my_op = fact->generate(gko::matrix::BatchIdentity::create(exec, 2));
  * std::cout << my_op->get_my_parameters().my_value;  // prints 0
@@ -789,8 +801,8 @@ using EnableDefaultBatchLinOpFactory =
  * in all contexts. See <https://stackoverflow.com/q/50202718/9385966> for more
  * details.
  *
- * @param _lin_op  concrete operator for which the factory is to be created
- *                 [CRTP parameter]
+ * @param _batch_lin_op  concrete operator for which the factory is to be
+ * created [CRTP parameter]
  * @param _parameters_name  name of the parameters member in the class
  *                          (its type is `<_parameters_name>_type`, the
  *                          protected member's name is `<_parameters_name>_`,
