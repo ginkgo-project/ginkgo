@@ -61,7 +61,7 @@ if(GINKGO_HAVE_PAPI_SDE)
 endif()
 
 if (GINKGO_BUILD_MPI)
-    target_link_libraries(ginkgo PUBLIC "${MPI_C_LIBRARIES}" "${MPI_CXX_LIBRARIES}")
+    target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
     target_include_directories(ginkgo SYSTEM PUBLIC ${MPI_INCLUDE_PATH})
 endif()
 
