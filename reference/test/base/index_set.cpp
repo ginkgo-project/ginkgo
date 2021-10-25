@@ -109,7 +109,7 @@ TYPED_TEST(IndexSet, CanBeCopyConstructed)
 
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
 
-    auto idx_set2(idx_set);
+    gko::IndexSet<TypeParam> idx_set2(idx_set);
 
     this->assert_equal_index_sets(idx_set2, idx_set);
 }
@@ -124,7 +124,7 @@ TYPED_TEST(IndexSet, CanBeMoveConstructed)
 
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
 
-    auto idx_set2(std::move(idx_set));
+    gko::IndexSet<TypeParam> idx_set2(std::move(idx_set));
 
     ASSERT_EQ(idx_set2.get_size(), 10);
 }
@@ -139,7 +139,7 @@ TYPED_TEST(IndexSet, CanBeCopyAssigned)
 
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
 
-    auto idx_set2 = idx_set;
+    gko::IndexSet<TypeParam> idx_set2 = idx_set;
 
     this->assert_equal_index_sets(idx_set2, idx_set);
 }
@@ -154,7 +154,7 @@ TYPED_TEST(IndexSet, CanBeMoveAssigned)
 
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
 
-    auto idx_set2 = std::move(idx_set);
+    gko::IndexSet<TypeParam> idx_set2 = std::move(idx_set);
 
     ASSERT_EQ(idx_set2.get_size(), 10);
 }
