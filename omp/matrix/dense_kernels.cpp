@@ -126,6 +126,7 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
+
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Dense<ValueType>* source,
