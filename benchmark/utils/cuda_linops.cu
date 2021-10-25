@@ -30,10 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_BENCHMARK_UTILS_CUDA_LINOPS_HPP_
-#define GKO_BENCHMARK_UTILS_CUDA_LINOPS_HPP_
-
-
 #include <ginkgo/ginkgo.hpp>
 
 
@@ -45,11 +41,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cusparse.h>
 
 
+#include "benchmark/utils/sparselib_linops.hpp"
 #include "benchmark/utils/types.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/device_guard.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
 #include "cuda/base/types.hpp"
+
+
+class cusp_csr {};
+class cusp_csrmp {};
+class cusp_csrmm {};
+class cusp_hybrid {};
+class cusp_coo {};
+class cusp_ell {};
+class cusp_gcsr {};
+class cusp_gcoo {};
+class cusp_csrex {};
+class cusp_gcsr2 {};
 
 
 namespace detail {
@@ -685,35 +694,58 @@ private:
 
 
 // Some shortcuts
-using cusp_csrex = detail::CuspCsrEx<etype, itype>;
+
+
+#define IMPL_CREATE_SPARSELIB_LINOP(_type, ...)                \
+    template <>                                                \
+    std::unique_ptr<gko::LinOp> create_sparselib_linop<_type>( \
+        std::shared_ptr<const gko::Executor> exec)             \
+    {                                                          \
+        return __VA_ARGS__::create(exec);                      \
+    }
+#define STUB_CREATE_SPARSELIB_LINOP(_type)                     \
+    template <>                                                \
+    std::unique_ptr<gko::LinOp> create_sparselib_linop<_type>( \
+        std::shared_ptr<const gko::Executor> exec) GKO_NOT_IMPLEMENTED;
+
+
+IMPL_CREATE_SPARSELIB_LINOP(cusp_csrex, detail::CuspCsrEx<etype, itype>)
+
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-using cusp_csr = detail::CuspCsr<etype, itype>;
-using cusp_csrmp = detail::CuspCsrmp<etype, itype>;
-using cusp_csrmm = detail::CuspCsrmm<etype, itype>;
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+IMPL_CREATE_SPARSELIB_LINOP(cusp_csr, detail::CuspCsr<etype, itype>)
+IMPL_CREATE_SPARSELIB_LINOP(cusp_csrmp, detail::CuspCsrmp<etype, itype>)
+IMPL_CREATE_SPARSELIB_LINOP(cusp_csrmm, detail::CuspCsrmm<etype, itype>)
+#else
+STUB_CREATE_SPARSELIB_LINOP(cusp_csr)
+STUB_CREATE_SPARSELIB_LINOP(cusp_csrmp)
+STUB_CREATE_SPARSELIB_LINOP(cusp_csrmm)
+#endif  // not (defined(CUDA_VERSION) && (CUDA_VERSION < 11000))
 
 
 #if defined(CUDA_VERSION) &&  \
     (CUDA_VERSION >= 11000 || \
      ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
-
-
-using cusp_gcsr = detail::CuspGenericCsr<etype, itype>;
-using cusp_gcsr2 = detail::CuspGenericCsr<etype, itype, CUSPARSE_CSRMV_ALG2>;
-using cusp_gcoo = detail::CuspGenericCoo<etype, itype>;
-
-
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
-        // 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
+IMPL_CREATE_SPARSELIB_LINOP(cusp_gcsr, detail::CuspGenericCsr<etype, itype>)
+IMPL_CREATE_SPARSELIB_LINOP(
+    cusp_gcsr2, detail::CuspGenericCsr<etype, itype, CUSPARSE_CSRMV_ALG2>)
+IMPL_CREATE_SPARSELIB_LINOP(cusp_gcoo, detail::CuspGenericCoo<etype, itype>)
+#else
+STUB_CREATE_SPARSELIB_LINOP(cusp_gcsr)
+STUB_CREATE_SPARSELIB_LINOP(cusp_gcsr2)
+STUB_CREATE_SPARSELIB_LINOP(cusp_gcoo)
+#endif  // not (defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 ||
+        // ((CUDA_VERSION >= 10020) && !(defined(_WIN32) ||
+        // defined(__CYGWIN__)))))
 
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-using cusp_coo =
-    detail::CuspHybrid<etype, itype, CUSPARSE_HYB_PARTITION_USER, 0>;
-using cusp_ell =
-    detail::CuspHybrid<etype, itype, CUSPARSE_HYB_PARTITION_MAX, 0>;
-using cusp_hybrid = detail::CuspHybrid<etype, itype>;
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
-#endif  // GKO_BENCHMARK_UTILS_CUDA_LINOPS_HPP_
+IMPL_CREATE_SPARSELIB_LINOP(
+    cusp_coo, detail::CuspHybrid<etype, itype, CUSPARSE_HYB_PARTITION_USER, 0>)
+IMPL_CREATE_SPARSELIB_LINOP(
+    cusp_ell, detail::CuspHybrid<etype, itype, CUSPARSE_HYB_PARTITION_MAX, 0>)
+IMPL_CREATE_SPARSELIB_LINOP(cusp_hybrid, detail::CuspHybrid<etype, itype>)
+#else
+STUB_CREATE_SPARSELIB_LINOP(cusp_coo)
+STUB_CREATE_SPARSELIB_LINOP(cusp_ell)
+STUB_CREATE_SPARSELIB_LINOP(cusp_hybrid)
+#endif  // not (defined(CUDA_VERSION) && (CUDA_VERSION < 11000))

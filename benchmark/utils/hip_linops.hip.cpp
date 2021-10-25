@@ -30,10 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_BENCHMARK_UTILS_HIP_LINOPS_HIP_HPP_
-#define GKO_BENCHMARK_UTILS_HIP_LINOPS_HIP_HPP_
-
-
 #include <ginkgo/ginkgo.hpp>
 
 
@@ -43,9 +39,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hipsparse.h>
 
 
+#include "benchmark/utils/sparselib_linops.hpp"
 #include "benchmark/utils/types.hpp"
 #include "hip/base/device_guard.hip.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
+
+
+class hipsp_csr {};
+class hipsp_csrmm {};
+class hipsp_hybrid {};
+class hipsp_coo {};
+class hipsp_ell {};
 
 
 namespace detail {
@@ -321,15 +325,39 @@ private:
 }  // namespace detail
 
 
-// Some shortcuts
-using hipsp_csr = detail::HipspCsr<etype, itype>;
-using hipsp_csrmm = detail::HipspCsrmm<etype, itype>;
+template <>
+std::unique_ptr<gko::LinOp> create_sparselib_linop<hipsp_csr>(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    return detail::HipspCsr<etype, itype>::create(exec);
+}
 
+template <>
+std::unique_ptr<gko::LinOp> create_sparselib_linop<hipsp_csrmm>(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    return detail::HipspCsrmm<etype, itype>::create(exec);
+}
 
-using hipsp_coo =
-    detail::HipspHybrid<etype, itype, HIPSPARSE_HYB_PARTITION_USER, 0>;
-using hipsp_ell =
-    detail::HipspHybrid<etype, itype, HIPSPARSE_HYB_PARTITION_MAX, 0>;
-using hipsp_hybrid = detail::HipspHybrid<etype, itype>;
+template <>
+std::unique_ptr<gko::LinOp> create_sparselib_linop<hipsp_coo>(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    return detail::HipspHybrid<etype, itype, HIPSPARSE_HYB_PARTITION_USER,
+                               0>::create(exec);
+}
 
-#endif  // GKO_BENCHMARK_UTILS_HIP_LINOPS_HIP_HPP_
+template <>
+std::unique_ptr<gko::LinOp> create_sparselib_linop<hipsp_ell>(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    return detail::HipspHybrid<etype, itype, HIPSPARSE_HYB_PARTITION_MAX,
+                               0>::create(exec);
+}
+
+template <>
+std::unique_ptr<gko::LinOp> create_sparselib_linop<hipsp_hybrid>(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    return detail::HipspHybrid<etype, itype>::create(exec);
+}

@@ -30,41 +30,40 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_BENCHMARK_UTILS_TYPES_HPP_
-#define GKO_BENCHMARK_UTILS_TYPES_HPP_
+#ifndef GKO_BENCHMARK_UTILS_SPARSELIB_LINOPS_HPP_
+#define GKO_BENCHMARK_UTILS_SPARSELIB_LINOPS_HPP_
+
+#include <memory>
 
 
-#include <complex>
+#include <ginkgo/core/base/lin_op.hpp>
+#include "ginkgo/core/base/exception_helpers.hpp"
 
 
-#include <ginkgo/core/base/math.hpp>
+class cusp_csr;
+class cusp_csrmp;
+class cusp_csrmm;
+class cusp_hybrid;
+class cusp_coo;
+class cusp_ell;
+class cusp_gcsr;
+class cusp_gcoo;
+class cusp_csrex;
+class cusp_gcsr;
+class cusp_gcsr2;
+class cusp_gcoo;
 
 
-using itype = gko::int32;
+class hipsp_csr;
+class hipsp_csrmm;
+class hipsp_hybrid;
+class hipsp_coo;
+class hipsp_ell;
 
 
-#if defined(GKO_BENCHMARK_USE_DOUBLE_PRECISION) ||         \
-    defined(GKO_BENCHMARK_USE_SINGLE_PRECISION) ||         \
-    defined(GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION) || \
-    defined(GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
-// separate ifdefs to catch duplicate definitions
-#ifdef GKO_BENCHMARK_USE_DOUBLE_PRECISION
-using etype = double;
-#endif
-#ifdef GKO_BENCHMARK_USE_SINGLE_PRECISION
-using etype = float;
-#endif
-#ifdef GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION
-using etype = std::complex<double>;
-#endif
-#ifdef GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION
-using etype = std::complex<float>;
-#endif
-#else  // default to double precision
-using etype = double;
-#endif
-
-using rc_etype = gko::remove_complex<etype>;
+template <typename OpTagType>
+std::unique_ptr<gko::LinOp> create_sparselib_linop(
+    std::shared_ptr<const gko::Executor> exec);
 
 
-#endif  // GKO_BENCHMARK_UTILS_TYPES_HPP_
+#endif  // GKO_BENCHMARK_UTILS_SPARSELIB_LINOPS_HPP_

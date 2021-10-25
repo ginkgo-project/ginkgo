@@ -4,37 +4,30 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL "Release")
         "will be affected")
 endif()
 
-if (GINKGO_BUILD_CUDA AND GINKGO_BUILD_HIP AND
-    GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
-    message(FATAL_ERROR "Building the benchmarks for both HIP AMD and CUDA "
-        "at the same time is currently not supported. "
-        "Disable the benchmark build using `-DGINKGO_BUILD_BENCHMARKS=OFF` "
-        "or use `export HIP_PLATFORM=nvcc` (ROCM <=4.0) or "
-        "`export HIP_PLATFORM=nvidia` (ROCM >= 4.1) in your build environment instead.")
-endif()
-
 function(ginkgo_benchmark_add_tuning_maybe name)
     if(GINKGO_BENCHMARK_ENABLE_TUNING)
         target_sources(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../utils/tuning_variables.cpp)
     endif()
 endfunction()
 
-function(ginkgo_benchmark_cusp_linops name)
-    target_compile_definitions("${name}" PRIVATE HAS_CUDA=1)
-    target_link_libraries("${name}" ginkgo ${CUDA_RUNTIME_LIBS}
-        ${CUBLAS} ${CUSPARSE})
-    target_include_directories("${name}" SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
+function(ginkgo_benchmark_cusp_linops type def)
+    add_library(cusparse_linops_${type} utils/cuda_linops.cu)
+    # make the dependency public to catch issues
+    target_compile_definitions(cusparse_linops_${type} PUBLIC ${def})
+    target_link_libraries(cusparse_linops_${type} Ginkgo::ginkgo ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
+    target_include_directories(cusparse_linops_${type} SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
     if(CMAKE_CUDA_COMPILER_VERSION GREATER_EQUAL "9.2")
-        target_compile_definitions("${name}" PRIVATE ALLOWMP=1)
+        target_compile_definitions(cusparse_linops_${type} PRIVATE ALLOWMP=1)
     endif()
 endfunction()
 
-function(ginkgo_benchmark_hipsp_linops name)
-    target_compile_definitions("${name}" PRIVATE HAS_HIP=1)
+function(ginkgo_benchmark_hipsp_linops type def)
+    add_library(hipsparse_linops_${type} utils/hip_linops.hip.cpp)
+    target_compile_definitions(hipsparse_linops_${type} PUBLIC ${def})
     EXECUTE_PROCESS(COMMAND ${HIP_PATH}/bin/hipconfig --cpp_config OUTPUT_VARIABLE HIP_CXX_FLAGS)
-    set_target_properties("${name}" PROPERTIES COMPILE_FLAGS ${HIP_CXX_FLAGS})
+    set_target_properties(hipsparse_linops_${type} PROPERTIES COMPILE_FLAGS ${HIP_CXX_FLAGS})
     # use Thrust C++ device just for compilation, we don't use thrust::complex in the benchmarks
-    target_compile_definitions("${name}" PUBLIC -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CPP)
+    target_compile_definitions(hipsparse_linops_${type} PUBLIC -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CPP)
     # for some reason, HIP creates a dependency on Threads::Threads here, so we
     # need to find it
     find_package(Threads REQUIRED)
@@ -43,11 +36,10 @@ function(ginkgo_benchmark_hipsp_linops name)
     find_package(hiprand REQUIRED)
     find_package(hipsparse REQUIRED)
     find_package(rocrand REQUIRED)
-    target_include_directories("${name}" SYSTEM PRIVATE
+    target_include_directories(hipsparse_linops_${type} SYSTEM PRIVATE
         ${HSA_HEADER} ${HIP_INCLUDE_DIRS}
         ${HIPBLAS_INCLUDE_DIRS} ${HIPSPARSE_INCLUDE_DIRS})
-
-    target_link_libraries("${name}" ${HIPSPARSE_LIBRARIES})
+    target_link_libraries(hipsparse_linops_${type} Ginkgo::ginkgo ${HIPSPARSE_LIBRARIES})
 endfunction()
 
 
@@ -61,18 +53,26 @@ endfunction()
 # \param macro_def       preprocessor macro name that will be defined during
 #                        building (to compile for a specific type)
 # All remaining arguments will be treated as source files
-function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def)
+function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def type)
     add_executable("${name}" ${ARGN})
     target_link_libraries("${name}" ginkgo gflags rapidjson)
+    if (GINKGO_BUILD_CUDA)
+        target_link_libraries("${name}" cuda_timer)
+    endif()
+    if (GINKGO_BUILD_HIP)
+        target_link_libraries("${name}" hip_timer)
+    endif()
     target_compile_definitions("${name}" PRIVATE "${macro_def}")
     target_compile_options("${name}" PRIVATE ${GINKGO_COMPILER_FLAGS})
     ginkgo_benchmark_add_tuning_maybe("${name}")
     if("${use_lib_linops}")
         if (GINKGO_BUILD_CUDA)
-            ginkgo_benchmark_cusp_linops("${name}")
+            target_compile_definitions("${name}" PRIVATE HAS_CUDA=1)
+            target_link_libraries("${name}" cusparse_linops_${type})
         endif()
         if (GINKGO_BUILD_HIP)
-            ginkgo_benchmark_hipsp_linops("${name}")
+            target_compile_definitions("${name}" PRIVATE HAS_HIP=1)
+            target_link_libraries("${name}" hipsparse_linops_${type})
         endif()
     endif()
 endfunction(ginkgo_add_single_benchmark_executable)
@@ -87,14 +87,41 @@ endfunction(ginkgo_add_single_benchmark_executable)
 # All remaining arguments will be treated as source files
 function(ginkgo_add_typed_benchmark_executables name use_lib_linops)
     ginkgo_add_single_benchmark_executable(
-        "${name}" "${use_lib_linops}" "GKO_BENCHMARK_USE_DOUBLE_PRECISION" ${ARGN})
+        "${name}" "${use_lib_linops}" "GKO_BENCHMARK_USE_DOUBLE_PRECISION" "d" ${ARGN})
     ginkgo_add_single_benchmark_executable(
-        "${name}_single" "${use_lib_linops}" "GKO_BENCHMARK_USE_SINGLE_PRECISION" ${ARGN})
+        "${name}_single" "${use_lib_linops}" "GKO_BENCHMARK_USE_SINGLE_PRECISION" "s" ${ARGN})
     ginkgo_add_single_benchmark_executable(
-        "${name}_dcomplex" "${use_lib_linops}" "GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION" ${ARGN})
+        "${name}_dcomplex" "${use_lib_linops}" "GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION" "z" ${ARGN})
     ginkgo_add_single_benchmark_executable(
-        "${name}_scomplex" "${use_lib_linops}" "GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION" ${ARGN})
+        "${name}_scomplex" "${use_lib_linops}" "GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION" "c" ${ARGN})
 endfunction(ginkgo_add_typed_benchmark_executables)
+
+
+if (GINKGO_BUILD_CUDA)
+    enable_language(CUDA)
+    ginkgo_benchmark_cusp_linops(d GKO_BENCHMARK_USE_DOUBLE_PRECISION)
+    ginkgo_benchmark_cusp_linops(s GKO_BENCHMARK_USE_SINGLE_PRECISION)
+    ginkgo_benchmark_cusp_linops(z GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION)
+    ginkgo_benchmark_cusp_linops(c GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
+    add_library(cuda_timer utils/cuda_timer.cu)
+    target_link_libraries(cuda_timer ginkgo ${CUDA_RUNTIME_LIBS})
+    target_include_directories(cuda_timer SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
+endif()
+if (GINKGO_BUILD_HIP)
+    ginkgo_benchmark_hipsp_linops(d GKO_BENCHMARK_USE_DOUBLE_PRECISION)
+    ginkgo_benchmark_hipsp_linops(s GKO_BENCHMARK_USE_SINGLE_PRECISION)
+    ginkgo_benchmark_hipsp_linops(z GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION)
+    ginkgo_benchmark_hipsp_linops(c GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
+    add_library(hip_timer utils/hip_timer.hip.cpp)
+    EXECUTE_PROCESS(COMMAND ${HIP_PATH}/bin/hipconfig --cpp_config OUTPUT_VARIABLE HIP_CXX_FLAGS)
+    set_target_properties(hip_timer PROPERTIES COMPILE_FLAGS ${HIP_CXX_FLAGS})
+    # for some reason, HIP creates a dependency on Threads::Threads here, so we
+    # need to find it
+    find_package(Threads REQUIRED)
+    find_package(HIP REQUIRED)
+    target_include_directories(hip_timer SYSTEM PRIVATE ${HSA_HEADER} ${HIP_INCLUDE_DIRS})
+    target_link_libraries(hip_timer ginkgo)
+endif()
 
 
 add_subdirectory(blas)
