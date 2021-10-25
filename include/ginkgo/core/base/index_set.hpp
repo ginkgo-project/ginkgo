@@ -91,8 +91,7 @@ public:
     /**
      * Creates an index set not tied to any executor.
      *
-     * This can only be empty. The executor can be set using the set_executor
-     * method at a later time.
+     * This can only be empty.
      */
     IndexSet() noexcept = default;
 
@@ -125,7 +124,7 @@ public:
              const index_type size, const gko::Array<index_type>& indices,
              const bool is_sorted = false)
         : index_space_size_(size),
-          exec_(executor),
+          exec_(std::move(executor)),
           subsets_begin_(exec_),
           subsets_end_(exec_),
           superset_cumulative_indices_(exec_)
@@ -325,6 +324,8 @@ public:
      *
      * @note Whenever possible, passing a sorted array is preferred as the
      *       queries can be significantly faster.
+     * @note Passing local indices from [0, size) is equivalent to using the
+     *       @decompress function.
      */
     Array<index_type> get_global_indices(const Array<index_type>& local_indices,
                                          const bool is_sorted = false) const;

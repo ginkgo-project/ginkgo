@@ -71,11 +71,6 @@ protected:
         return std::move(rand_index_arr);
     }
 
-    static void assert_equal_to_original(gko::IndexSet<T>& a)
-    {
-        ASSERT_EQ(a.get_size(), 10);
-    }
-
     static void assert_equal_index_sets(gko::IndexSet<T>& a,
                                         gko::IndexSet<T>& b)
     {
@@ -116,7 +111,6 @@ TYPED_TEST(IndexSet, PopulateSubsetsIsEquivalentToReferenceForUnsortedInput)
         this->omp, TypeParam(520), &rand_arr, &omp_begin_comp, &omp_end_comp,
         &omp_superset_comp, false);
 
-    auto num_subsets = ref_begin_comp.get_num_elems();
     GKO_ASSERT_ARRAY_EQ(ref_begin_comp, omp_begin_comp);
     GKO_ASSERT_ARRAY_EQ(ref_end_comp, omp_end_comp);
     GKO_ASSERT_ARRAY_EQ(ref_superset_comp, omp_superset_comp);
