@@ -856,6 +856,7 @@ GKO_DECLARE_BLOCK_DIAG_CSR_MATRIX(ValueType, IndexType)
         roffset += imatrix->get_size()[0];
         nzoffset += irowptrs[imatrix->get_size()[0]];
     }
+    h_row_ptrs.get_data()[roffset] = nzoffset;
     assert(nzoffset == total_nnz);
     assert(roffset == total_rows);
     auto outm = mtx_type::create(exec, dim<2>(total_rows, total_rows), h_values,
