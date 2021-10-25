@@ -97,6 +97,21 @@ public:
     IndexSet() noexcept = default;
 
     /**
+     * Creates an empty IndexSet tied to the specified Executor.
+     *
+     * @param exec  the Executor where the IndexSet data is allocated
+     */
+    explicit IndexSet(std::shared_ptr<const Executor> exec) noexcept
+        : exec_(std::move(exec)),
+          index_space_size_(0),
+          num_stored_indices_(0),
+          subsets_begin_(exec_),
+          subsets_end_(exec_),
+          superset_cumulative_indices_(exec_)
+
+    {}
+
+    /**
      * Creates an index set on the specified executor and the given size
      *
      * @param exec  the Executor where the index set data will be allocated
@@ -117,6 +132,114 @@ public:
     {
         GKO_ASSERT(index_space_size_ >= indices.get_num_elems());
         this->populate_subsets(indices, is_sorted);
+    }
+
+    /**
+     * Creates a copy of another IndexSet on a different executor.
+     *
+     * @param exec  the executor where the new IndexSet will be created
+     * @param other  the IndexSet to copy from
+     */
+    IndexSet(std::shared_ptr<const Executor> exec, const IndexSet& other)
+        : IndexSet(exec)
+    {
+        *this = other;
+    }
+
+    /**
+     * Copies data from another IndexSet
+     *
+     * The executor of this is preserved. In case this does not have an assigned
+     * executor, it will inherit the executor of other.
+     *
+     * @param other  the IndexSet to copy from
+     *
+     * @return this
+     */
+    IndexSet& operator=(const IndexSet& other)
+    {
+        if (&other == this) {
+            return *this;
+        }
+        if (exec_ == nullptr) {
+            exec_ = other.get_executor();
+        }
+        if (other.get_executor() == nullptr) {
+            this->clear();
+            return *this;
+        }
+        index_space_size_ = other.index_space_size_;
+        num_stored_indices_ = other.num_stored_indices_;
+        subsets_begin_ = other.subsets_begin_;
+        subsets_end_ = other.subsets_end_;
+        superset_cumulative_indices_ = other.superset_cumulative_indices_;
+
+        return *this;
+    }
+
+    /**
+     * Moves data from another IndexSet. If the data is on another device, it is
+     * copied over. If it is on the same device, then the data from the other
+     * IndexSet is moved over and the other IndexSet is cleared.
+     *
+     * @param other  the IndexSet to move data from
+     *
+     * @return this
+     */
+    IndexSet& operator=(IndexSet&& other)
+    {
+        if (&other == this) {
+            return *this;
+        }
+        if (exec_ == nullptr) {
+            exec_ = other.get_executor();
+        }
+        if (other.get_executor() == nullptr) {
+            this->clear();
+            return *this;
+        }
+        if (exec_ == other.get_executor()) {
+            // same device
+            index_space_size_ = other.index_space_size_;
+            num_stored_indices_ = other.num_stored_indices_;
+            subsets_begin_ = std::move(other.subsets_begin_);
+            subsets_end_ = std::move(other.subsets_end_);
+            superset_cumulative_indices_ =
+                std::move(other.superset_cumulative_indices_);
+            other.clear();
+        } else {
+            // different device, copy the data
+            *this = other;
+        }
+        return *this;
+    }
+
+    /**
+     * Creates a copy of another IndexSet.
+     *
+     * @param other  the IndexSet to copy from
+     */
+    IndexSet(const IndexSet& other) : IndexSet(other.get_executor(), other) {}
+
+    /**
+     * Moves another IndexSet to a different executor.
+     *
+     * @param exec  the executor where the new IndexSet will be moved
+     * @param other  the IndexSet to move
+     */
+    IndexSet(std::shared_ptr<const Executor> exec, IndexSet&& other)
+        : IndexSet(exec)
+    {
+        *this = std::move(other);
+    }
+
+    void clear() noexcept
+    {
+        index_space_size_ = 0;
+        num_stored_indices_ = 0;
+        subsets_begin_.clear();
+        subsets_end_.clear();
+        superset_cumulative_indices_.clear();
     }
 
     /**
