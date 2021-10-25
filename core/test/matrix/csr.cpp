@@ -293,19 +293,13 @@ protected:
         value_type* v = mat1->get_values();
         index_type* r = mat1->get_row_ptrs();
         index_type* c = mat1->get_col_idxs();
-        r[0] = 0;
-        r[1] = 2;
-        r[2] = 5;
-        r[3] = 7;
-        r[4] = 8;
-        c[0] = 0;
-        c[1] = 2;
-        c[2] = 1;
-        c[3] = 2;
-        c[4] = 3;
-        c[5] = 1;
-        c[6] = 3;
+        // clang-format off
+        r[0] = 0; r[1] = 2; r[2] = 5; r[3] = 7; r[4] = 8;
+        c[0] = 0; c[1] = 2;
+        c[2] = 1; c[3] = 2; c[4] = 3;
+        c[5] = 1; c[6] = 3;
         c[7] = 3;
+        // clang-format on
         for (int i = 0; i < 8; i++) {
             v[i] = i;
         }
@@ -314,16 +308,12 @@ protected:
         v = mat2->get_values();
         r = mat2->get_row_ptrs();
         c = mat2->get_col_idxs();
-        r[0] = 0;
-        r[1] = 2;
-        r[2] = 4;
-        r[3] = 6;
-        c[0] = 0;
-        c[1] = 2;
-        c[2] = 1;
-        c[3] = 2;
-        c[4] = 0;
-        c[5] = 1;
+        // clang-format off
+        r[0] = 0; r[1] = 2; r[2] = 4; r[3] = 6;
+        c[0] = 0; c[1] = 2;
+        c[2] = 1; c[3] = 2;
+        c[4] = 0; c[5] = 1;
+        // clang-format on
         for (int i = 0; i < 6; i++) {
             v[i] = 3 * i;
         }
@@ -332,13 +322,11 @@ protected:
         v = mat3->get_values();
         r = mat3->get_row_ptrs();
         c = mat3->get_col_idxs();
-        r[0] = 0;
-        r[1] = 2;
-        r[2] = 4;
-        c[0] = 0;
-        c[1] = 1;
-        c[2] = 0;
-        c[3] = 1;
+        // clang-format off
+        r[0] = 0; r[1] = 2; r[2] = 4;
+        c[0] = 0; c[1] = 1;
+        c[2] = 0; c[3] = 1;
+        // clang-format on
         for (int i = 0; i < 4; i++) {
             v[i] = 1 + 0.5 * i;
         }
@@ -363,24 +351,17 @@ protected:
         r[8] = 16;
         r[9] = 18;
 
-        c[0] = 0;
-        c[1] = 2;
-        c[2] = 1;
-        c[3] = 2;
-        c[4] = 3;
-        c[5] = 1;
-        c[6] = 3;
+        // clang-format off
+        c[0] = 0; c[1] = 2;
+        c[2] = 1; c[3] = 2; c[4] = 3;
+        c[5] = 1; c[6] = 3;
         c[7] = 3;
-        c[8] = 4;
-        c[9] = 6;
-        c[10] = 5;
-        c[11] = 6;
-        c[12] = 4;
-        c[13] = 5;
-        c[14] = 7;
-        c[15] = 8;
-        c[16] = 7;
-        c[17] = 8;
+        c[8] = 4; c[9] = 6;
+        c[10] = 5; c[11] = 6;
+        c[12] = 4; c[13] = 5;
+        c[14] = 7; c[15] = 8;
+        c[16] = 7; c[17] = 8;
+        // clang-format on
         for (int i = 0; i < 8; i++) {
             v[i] = i;
         }
