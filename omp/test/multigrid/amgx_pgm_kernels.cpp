@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
+#include <ginkgo/core/matrix/row_gatherer.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -65,7 +66,9 @@ protected:
     using index_type = gko::int32;
     using Mtx = gko::matrix::Dense<>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
+    using RowGatherer = gko::matrix::RowGatherer<index_type>;
     using Diag = gko::matrix::Diagonal<value_type>;
+
     AmgxPgm() : rand_engine(30) {}
 
     void SetUp()
@@ -289,13 +292,21 @@ TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRef)
 
     auto mg_level = mg_level_factory->generate(system_mtx);
     auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
+    auto row_gatherer = gko::as<RowGatherer>(mg_level->get_prolong_op());
+    auto d_row_gatherer = gko::as<RowGatherer>(d_mg_level->get_prolong_op());
+    auto row_gather_view = gko::Array<index_type>::const_view(
+        row_gatherer->get_executor(), row_gatherer->get_row_gather_index_size(),
+        row_gatherer->get_const_row_gather_index());
+    auto d_row_gather_view = gko::Array<index_type>::const_view(
+        d_row_gatherer->get_executor(),
+        row_gatherer->get_row_gather_index_size(),
+        d_row_gatherer->get_const_row_gather_index());
 
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
                         gko::as<Csr>(mg_level->get_restrict_op()), 1e-14);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
                         gko::as<Csr>(mg_level->get_coarse_op()), 1e-14);
-    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_prolong_op()),
-                        gko::as<Csr>(mg_level->get_prolong_op()), 1e-14);
+    GKO_ASSERT_ARRAY_EQ(d_row_gather_view, row_gather_view);
 }
 
 
@@ -313,13 +324,21 @@ TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
 
     auto mg_level = mg_level_factory->generate(system_mtx);
     auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
+    auto row_gatherer = gko::as<RowGatherer>(mg_level->get_prolong_op());
+    auto d_row_gatherer = gko::as<RowGatherer>(d_mg_level->get_prolong_op());
+    auto row_gather_view = gko::Array<index_type>::const_view(
+        row_gatherer->get_executor(), row_gatherer->get_row_gather_index_size(),
+        row_gatherer->get_const_row_gather_index());
+    auto d_row_gather_view = gko::Array<index_type>::const_view(
+        d_row_gatherer->get_executor(),
+        row_gatherer->get_row_gather_index_size(),
+        d_row_gatherer->get_const_row_gather_index());
 
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
                         gko::as<Csr>(mg_level->get_restrict_op()), 1e-14);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
                         gko::as<Csr>(mg_level->get_coarse_op()), 1e-14);
-    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_prolong_op()),
-                        gko::as<Csr>(mg_level->get_prolong_op()), 1e-14);
+    GKO_ASSERT_ARRAY_EQ(d_row_gather_view, row_gather_view);
 }
 
 

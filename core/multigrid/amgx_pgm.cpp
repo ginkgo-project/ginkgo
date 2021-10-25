@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/row_gatherer.hpp>
 
 
 #include "core/base/utils.hpp"
@@ -142,27 +143,34 @@ void AmgxPgm<ValueType, IndexType>::generate()
 
     gko::dim<2>::dimension_type coarse_dim = num_agg;
     auto fine_dim = system_matrix_->get_size()[0];
-    // TODO: prolong_op can be done with lightway format
-    auto prolong_op = share(
+    // prolong_row_gather is the lightway implementation for prolongation
+    // TODO: However, we still create the csr to process coarse/restrict matrix
+    // generation. It may be changed when we have the direct triple product from
+    // agg index.
+    auto prolong_row_gather = share(matrix::RowGatherer<IndexType>::create(
+        exec, gko::dim<2>{fine_dim, coarse_dim}));
+    exec->copy_from(exec.get(), agg_.get_num_elems(), agg_.get_const_data(),
+                    prolong_row_gather->get_row_gather_index());
+    auto prolong_csr = share(
         matrix_type::create(exec, gko::dim<2>{fine_dim, coarse_dim}, fine_dim));
     exec->copy_from(exec.get(), agg_.get_num_elems(), agg_.get_const_data(),
-                    prolong_op->get_col_idxs());
-    exec->run(amgx_pgm::make_fill_seq_array(prolong_op->get_row_ptrs(),
+                    prolong_csr->get_col_idxs());
+    exec->run(amgx_pgm::make_fill_seq_array(prolong_csr->get_row_ptrs(),
                                             fine_dim + 1));
-    exec->run(amgx_pgm::make_fill_array(prolong_op->get_values(), fine_dim,
+    exec->run(amgx_pgm::make_fill_array(prolong_csr->get_values(), fine_dim,
                                         one<ValueType>()));
     // TODO: implement the restrict_op from aggregation.
-    auto restrict_op = gko::as<matrix_type>(share(prolong_op->transpose()));
+    auto restrict_op = gko::as<matrix_type>(share(prolong_csr->transpose()));
 
     // Construct the coarse matrix
     // TODO: use less memory footprint to improve it
     auto coarse_matrix =
         share(matrix_type::create(exec, gko::dim<2>{coarse_dim, coarse_dim}));
     auto tmp = matrix_type::create(exec, gko::dim<2>{fine_dim, coarse_dim});
-    amgxpgm_op->apply(prolong_op.get(), tmp.get());
+    amgxpgm_op->apply(prolong_csr.get(), tmp.get());
     restrict_op->apply(tmp.get(), coarse_matrix.get());
 
-    this->set_multigrid_level(prolong_op, coarse_matrix, restrict_op);
+    this->set_multigrid_level(prolong_row_gather, coarse_matrix, restrict_op);
 }
 
 
