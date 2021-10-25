@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -622,6 +623,55 @@ template <typename ValueType>
 {
     return detail::array_equal_impl(first_expression, second_expression, first,
                                     second);
+}
+
+/**
+ * array_equal overload: first is ConstArrayView.
+ * It copies the ConstArrayView to Array and then compare the arrays.
+ *
+ * @copydoc array_equal
+ */
+template <typename ValueType>
+::testing::AssertionResult array_equal(
+    const std::string& first_expression, const std::string& second_expression,
+    const gko::detail::ConstArrayView<ValueType>& first,
+    const Array<ValueType>& second)
+{
+    return detail::array_equal_impl(first_expression, second_expression,
+                                    first.copy_to_array(), second);
+}
+
+/**
+ * array_equal overload: second is ConstArrayView.
+ * It copies the ConstArrayView to Array and then compare the arrays.
+ *
+ * @copydoc array_equal
+ */
+template <typename ValueType>
+::testing::AssertionResult array_equal(
+    const std::string& first_expression, const std::string& second_expression,
+    const Array<ValueType>& first,
+    const gko::detail::ConstArrayView<ValueType>& second)
+{
+    return detail::array_equal_impl(first_expression, second_expression, first,
+                                    second.copy_to_array());
+}
+
+/**
+ * array_equal overload: Both ConstArrayView.
+ * It copies the ConstArrayView to Array and then compare the arrays.
+ *
+ * @copydoc array_equal
+ */
+template <typename ValueType>
+::testing::AssertionResult array_equal(
+    const std::string& first_expression, const std::string& second_expression,
+    const gko::detail::ConstArrayView<ValueType>& first,
+    const gko::detail::ConstArrayView<ValueType>& second)
+{
+    return detail::array_equal_impl(first_expression, second_expression,
+                                    first.copy_to_array(),
+                                    second.copy_to_array());
 }
 
 
