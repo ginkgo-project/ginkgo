@@ -81,7 +81,7 @@ function(ginkgo_create_mpi_test test_name num_mpi_procs)
       set(OPENMPI_RUN_AS_ROOT_FLAG "")
   endif()
   target_link_libraries(${TEST_TARGET_NAME} PRIVATE ginkgo GTest::Main GTest::GTest ${ARGN})
-  target_link_libraries(${TEST_TARGET_NAME} PRIVATE ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
+  target_link_libraries(${TEST_TARGET_NAME} PRIVATE MPI::MPI_CXX)
   set(test_param ${MPIEXEC_NUMPROC_FLAG} ${num_mpi_procs} ${OPENMPI_RUN_AS_ROOT_FLAG} ${CMAKE_BINARY_DIR}/${REL_BINARY_DIR}/${test_name})
   add_test(NAME ${REL_BINARY_DIR}/${test_name}
     COMMAND ${MPIEXEC_EXECUTABLE} ${test_param} )

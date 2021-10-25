@@ -396,7 +396,8 @@ GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCATTER2);
 
 #define GKO_DECLARE_SCAN(ScanType)                                           \
     void scan(const ScanType* send_buffer, ScanType* recv_buffer, int count, \
-              op_type op_enum, std::shared_ptr<const communicator> comm)
+              op_type op_enum, std::shared_ptr<const communicator> comm,     \
+              std::shared_ptr<request> req)
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_SCAN);
 

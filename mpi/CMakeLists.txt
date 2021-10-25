@@ -11,7 +11,7 @@ target_sources(ginkgo_mpi
 ginkgo_compile_features(ginkgo_mpi)
 target_include_directories(ginkgo_mpi
   SYSTEM PRIVATE ${MPI_INCLUDE_PATH})
-target_link_libraries(ginkgo_mpi PRIVATE "${MPI_C_LIBRARIES}" "${MPI_CXX_LIBRARIES}")
+target_link_libraries(ginkgo_mpi PRIVATE MPI::MPI_CXX)
 target_compile_options(ginkgo_mpi PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
 ginkgo_default_includes(ginkgo_mpi)
