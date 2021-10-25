@@ -64,11 +64,6 @@ protected:
         }
     }
 
-    static void assert_equal_to_original(gko::IndexSet<T>& a)
-    {
-        ASSERT_EQ(a.get_size(), 10);
-    }
-
     static void assert_equal_index_sets(gko::IndexSet<T>& a,
                                         gko::IndexSet<T>& b)
     {
@@ -248,7 +243,7 @@ TYPED_TEST(IndexSet, CanDetectNonContiguousIndexSets)
 
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
 
-    ASSERT_GT(idx_set.get_num_subsets(), 1);
+    ASSERT_EQ(idx_set.get_num_subsets(), 2);
     ASSERT_FALSE(idx_set.is_contiguous());
 }
 

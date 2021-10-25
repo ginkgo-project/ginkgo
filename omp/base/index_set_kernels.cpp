@@ -70,7 +70,6 @@ void decompress(std::shared_ptr<const DefaultExecutor> exec,
                 Array<IndexType>* decomp_indices)
 {
     auto indices = decomp_indices->get_data();
-    auto num_elems = decomp_indices->get_num_elems();
     auto num_subsets = superset_indices->get_num_elems() - 1;
     auto ss_indices = superset_indices->get_const_data();
 #pragma omp parallel for
