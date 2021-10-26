@@ -259,6 +259,24 @@ TYPED_TEST(IndexSet, CanDetectElementInIndexSet)
     ASSERT_FALSE(idx_set.contains(2));
 }
 
+
+TYPED_TEST(IndexSet, CanDetectMultipleElementInIndexSet)
+{
+    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 3, 4, 5, 6}};
+    auto query_arr = gko::Array<TypeParam>{this->exec, {1, 4, 9, 0}};
+
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
+
+    auto query_out = idx_set.contains(query_arr);
+
+    ASSERT_EQ(idx_set.get_num_subsets(), 2);
+    ASSERT_TRUE(query_out.get_data()[0]);
+    ASSERT_TRUE(query_out.get_data()[1]);
+    ASSERT_FALSE(query_out.get_data()[2]);
+    ASSERT_TRUE(query_out.get_data()[3]);
+}
+
+
 TYPED_TEST(IndexSet, CanGetGlobalIndex)
 {
     auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};

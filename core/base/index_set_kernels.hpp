@@ -47,6 +47,11 @@ namespace gko {
 namespace kernels {
 
 
+#define GKO_DECLARE_INDEX_SET_COMPUTE_VALIDITY_KERNEL(IndexType)       \
+    void compute_validity(std::shared_ptr<const DefaultExecutor> exec, \
+                          const Array<IndexType>* local_indices,       \
+                          Array<bool>* validity_array)
+
 #define GKO_DECLARE_INDEX_SET_DECOMPRESS_KERNEL(IndexType)       \
     void decompress(std::shared_ptr<const DefaultExecutor> exec, \
                     const IndexType index_space_size,            \
@@ -54,7 +59,6 @@ namespace kernels {
                     const Array<IndexType>* subset_end,          \
                     const Array<IndexType>* superset_indices,    \
                     Array<IndexType>* decomp_indices)
-
 
 #define GKO_DECLARE_INDEX_SET_POPULATE_KERNEL(IndexType)                   \
     void populate_subsets(                                                 \
@@ -84,14 +88,16 @@ namespace kernels {
                          const bool is_sorted)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                         \
-    template <typename IndexType>                            \
-    GKO_DECLARE_INDEX_SET_DECOMPRESS_KERNEL(IndexType);      \
-    template <typename IndexType>                            \
-    GKO_DECLARE_INDEX_SET_POPULATE_KERNEL(IndexType);        \
-    template <typename IndexType>                            \
-    GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL(IndexType); \
-    template <typename IndexType>                            \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                          \
+    template <typename IndexType>                             \
+    GKO_DECLARE_INDEX_SET_COMPUTE_VALIDITY_KERNEL(IndexType); \
+    template <typename IndexType>                             \
+    GKO_DECLARE_INDEX_SET_DECOMPRESS_KERNEL(IndexType);       \
+    template <typename IndexType>                             \
+    GKO_DECLARE_INDEX_SET_POPULATE_KERNEL(IndexType);         \
+    template <typename IndexType>                             \
+    GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL(IndexType);  \
+    template <typename IndexType>                             \
     GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL(IndexType)
 
 
