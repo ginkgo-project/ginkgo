@@ -122,6 +122,26 @@ void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING);
 
 
+template <typename LocalIndexType>
+void build_ranges_from_global_size(std::shared_ptr<const DefaultExecutor> exec,
+                                   int num_parts, int64 global_size,
+                                   Array<LocalIndexType>& ranges)
+{
+    const auto size_per_part = global_size / num_parts;
+    const auto rest = global_size - (num_parts * size_per_part);
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto size_per_part, auto rest, auto ranges) {
+            ranges[i] = size_per_part + static_cast<LocalIndexType>(i < rest);
+        },
+        ranges.get_num_elems() - 1, size_per_part, rest, ranges.get_data());
+    components::prefix_sum(exec, ranges.get_data(), ranges.get_num_elems());
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_PARTITION_BUILD_FROM_GLOBAL_SIZE);
+
+
 }  // namespace partition
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

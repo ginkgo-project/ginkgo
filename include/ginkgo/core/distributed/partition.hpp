@@ -202,6 +202,19 @@ public:
         const Array<global_index_type>& ranges);
 
     /**
+     * Builds a partition by evenly distributing the global range.
+     * @param exec  the Executor on which the partition should be built
+     * @param num_parts  the number of parst used in this partition
+     * @param global_size  the global size of this partition
+     * @return  a Partition where each range has either
+     * `floor(global_size/num_parts)` or `floor(global_size/num_parts) + 1`
+     * indices.
+     */
+    static std::unique_ptr<Partition> build_from_global_size(
+        std::shared_ptr<const Executor> exec, comm_index_type num_parts,
+        global_index_type global_size);
+
+    /**
      * Creates a partition stored on the given executor with the given number of
      * consecutive ranges and parts.
      */

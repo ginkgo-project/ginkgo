@@ -60,6 +60,11 @@ namespace kernels {
                             const Array<comm_index_type>& mapping,       \
                             distributed::Partition<LocalIndexType>* partition)
 
+#define GKO_DECLARE_PARTITION_BUILD_FROM_GLOBAL_SIZE(LocalIndexType) \
+    void build_ranges_from_global_size(                              \
+        std::shared_ptr<const DefaultExecutor> exec, int num_parts,  \
+        int64 global_size, Array<LocalIndexType>& ranges)
+
 #define GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES(LocalIndexType)          \
     void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,  \
                                 const global_index_type* range_offsets,       \
@@ -81,6 +86,8 @@ namespace kernels {
     GKO_DECLARE_PARTITION_BUILD_FROM_CONTIGUOUS(LocalIndexType);  \
     template <typename LocalIndexType>                            \
     GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING(LocalIndexType);     \
+    template <typename LocalIndexType>                            \
+    GKO_DECLARE_PARTITION_BUILD_FROM_GLOBAL_SIZE(LocalIndexType); \
     template <typename LocalIndexType>                            \
     GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES(LocalIndexType); \
     template <typename LocalIndexType>                            \

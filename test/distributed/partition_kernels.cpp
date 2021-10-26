@@ -311,4 +311,55 @@ TYPED_TEST(Partition, BuildsFromContiguousWithOnlyOneEmptyPart)
 }
 
 
+TYPED_TEST(Partition, BuildsFromGlobalSize)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    const int num_parts = 7;
+    const global_index_type global_size = 708;
+
+    auto part =
+        gko::distributed::Partition<local_index_type>::build_from_global_size(
+            this->ref, num_parts, global_size);
+    auto dpart =
+        gko::distributed::Partition<local_index_type>::build_from_global_size(
+            this->exec, num_parts, global_size);
+
+    this->assert_equal(part, dpart);
+}
+
+
+TYPED_TEST(Partition, BuildsFromGlobalSizeEmpty)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    const int num_parts = 7;
+    const global_index_type global_size = 0;
+
+    auto part =
+        gko::distributed::Partition<local_index_type>::build_from_global_size(
+            this->ref, num_parts, global_size);
+    auto dpart =
+        gko::distributed::Partition<local_index_type>::build_from_global_size(
+            this->exec, num_parts, global_size);
+
+    this->assert_equal(part, dpart);
+}
+
+
+TYPED_TEST(Partition, BuildsFromGlobalSizeMorePartsThanSize)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    const int num_parts = 77;
+    const global_index_type global_size = 13;
+
+    auto part =
+        gko::distributed::Partition<local_index_type>::build_from_global_size(
+            this->ref, num_parts, global_size);
+    auto dpart =
+        gko::distributed::Partition<local_index_type>::build_from_global_size(
+            this->exec, num_parts, global_size);
+
+    this->assert_equal(part, dpart);
+}
+
+
 }  // namespace
