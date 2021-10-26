@@ -3,7 +3,7 @@ include(FetchContent)
 FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG        6a7ed316a5cdc07b6d26362c90770787513822d4
+    GIT_TAG        master
 )
 # need to set the variables in CACHE due to CMP0077
 set(gtest_disable_pthreads ON CACHE INTERNAL "")
