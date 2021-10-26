@@ -60,12 +60,12 @@ namespace kernels {
                             const Array<comm_index_type>& mapping,       \
                             distributed::Partition<LocalIndexType>* partition)
 
-#define GKO_DECLARE_PARTITION_BUILD_RANKS(LocalIndexType)          \
-    void build_ranks(std::shared_ptr<const DefaultExecutor> exec,  \
-                     const global_index_type* range_offsets,       \
-                     const int* range_parts, size_type num_ranges, \
-                     int num_parts, LocalIndexType* ranks,         \
-                     LocalIndexType* sizes)
+#define GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES(LocalIndexType)          \
+    void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,  \
+                                const global_index_type* range_offsets,       \
+                                const int* range_parts, size_type num_ranges, \
+                                int num_parts, LocalIndexType* ranks,         \
+                                LocalIndexType* sizes)
 
 #define GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType)                     \
     void is_ordered(std::shared_ptr<const DefaultExecutor> exec,             \
@@ -73,17 +73,17 @@ namespace kernels {
                     bool* result)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                             \
-    using global_index_type = distributed::global_index_type;    \
-    using comm_index_type = distributed::comm_index_type;        \
-    GKO_PARTITION_COUNT_RANGES;                                  \
-    template <typename LocalIndexType>                           \
-    GKO_DECLARE_PARTITION_BUILD_FROM_CONTIGUOUS(LocalIndexType); \
-    template <typename LocalIndexType>                           \
-    GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING(LocalIndexType);    \
-    template <typename LocalIndexType>                           \
-    GKO_DECLARE_PARTITION_BUILD_RANKS(LocalIndexType);           \
-    template <typename LocalIndexType>                           \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                              \
+    using global_index_type = distributed::global_index_type;     \
+    using comm_index_type = distributed::comm_index_type;         \
+    GKO_PARTITION_COUNT_RANGES;                                   \
+    template <typename LocalIndexType>                            \
+    GKO_DECLARE_PARTITION_BUILD_FROM_CONTIGUOUS(LocalIndexType);  \
+    template <typename LocalIndexType>                            \
+    GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING(LocalIndexType);     \
+    template <typename LocalIndexType>                            \
+    GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES(LocalIndexType); \
+    template <typename LocalIndexType>                            \
     GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType)
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(partition,
