@@ -94,12 +94,12 @@ protected:
             gko::make_array_view(this->exec, dpart->get_num_ranges(),
                                  dpart->get_part_ids()));
         GKO_ASSERT_ARRAY_EQ(
-            gko::make_array_view(
-                this->ref, part->get_num_ranges(),
-                const_cast<local_index_type*>(part->get_range_ranks())),
-            gko::make_array_view(
-                this->exec, dpart->get_num_ranges(),
-                const_cast<local_index_type*>(dpart->get_range_ranks())));
+            gko::make_array_view(this->ref, part->get_num_ranges(),
+                                 const_cast<local_index_type*>(
+                                     part->get_range_starting_indices())),
+            gko::make_array_view(this->exec, dpart->get_num_ranges(),
+                                 const_cast<local_index_type*>(
+                                     dpart->get_range_starting_indices())));
         GKO_ASSERT_ARRAY_EQ(
             gko::make_array_view(
                 this->ref, part->get_num_parts(),

@@ -44,7 +44,8 @@ namespace partition {
 GKO_REGISTER_OPERATION(count_ranges, partition::count_ranges);
 GKO_REGISTER_OPERATION(build_from_mapping, partition::build_from_mapping);
 GKO_REGISTER_OPERATION(build_from_contiguous, partition::build_from_contiguous);
-GKO_REGISTER_OPERATION(build_ranks, partition::build_ranks);
+GKO_REGISTER_OPERATION(build_starting_indices,
+                       partition::build_starting_indices);
 GKO_REGISTER_OPERATION(is_ordered, partition::is_ordered);
 
 
@@ -63,7 +64,7 @@ Partition<LocalIndexType>::build_from_mapping(
     auto result = Partition::create(exec, num_parts, num_ranges);
     exec->run(
         partition::make_build_from_mapping(*local_mapping.get(), result.get()));
-    result->compute_range_ranks();
+    result->compute_range_starting_indices();
     return result;
 }
 
@@ -80,18 +81,18 @@ Partition<LocalIndexType>::build_from_contiguous(
         ranges.get_num_elems() - 1);
     exec->run(partition::make_build_from_contiguous(*local_ranges.get(),
                                                     result.get()));
-    result->compute_range_ranks();
+    result->compute_range_starting_indices();
     return result;
 }
 
 
 template <typename LocalIndexType>
-void Partition<LocalIndexType>::compute_range_ranks()
+void Partition<LocalIndexType>::compute_range_starting_indices()
 {
     auto exec = offsets_.get_executor();
-    exec->run(partition::make_build_ranks(
+    exec->run(partition::make_build_starting_indices(
         offsets_.get_const_data(), part_ids_.get_const_data(), get_num_ranges(),
-        get_num_parts(), ranks_.get_data(), part_sizes_.get_data()));
+        get_num_parts(), starting_indices_.get_data(), part_sizes_.get_data()));
 }
 
 

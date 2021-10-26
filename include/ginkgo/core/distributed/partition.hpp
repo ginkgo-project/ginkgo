@@ -126,19 +126,25 @@ public:
     comm_index_type* get_part_ids() { return part_ids_.get_data(); }
 
     /**
-     * Compute the range_ranks and part_sizes based on the current range_bounds
-     * and part_ids.
+     * Compute the range_starting_indices and part_sizes based on the current
+     * range_bounds and part_ids.
      */
-    void compute_range_ranks();
+    void compute_range_starting_indices();
 
     /**
-     * Returns the part-local base index for each range in this partition.
-     * range_ranks[i]
-     * These values can only be used after compute_range_ranks() was executed.
+     * Returns the part-local starting index for each range in this partition.
+     *
+     * Consider the partition on `[0, 10)` with
+     * > p_1 = [0-3, 7-9],
+     * > p_2 = [4-6].
+     * Then `range_ranks[0] = 0`, `range_ranks[1] = 0`, `range_ranks[2] = 5`.
+
+     * @note These values can only be used after compute_range_ranks() was
+     executed.
      */
-    const local_index_type* get_range_ranks() const
+    const local_index_type* get_range_starting_indices() const
     {
-        return ranks_.get_const_data();
+        return starting_indices_.get_const_data();
     }
 
     /**
@@ -204,17 +210,20 @@ public:
         : EnablePolymorphicObject<Partition>{exec},
           num_parts_{num_parts},
           offsets_{exec, num_ranges + 1},
-          ranks_{exec, num_ranges},
+          starting_indices_{exec, num_ranges},
           part_sizes_{exec, static_cast<size_type>(num_parts)},
           part_ids_{exec, num_ranges}
     {
-        // TODO zero out contents
+        offsets_.fill(0);
+        starting_indices_.fill(0);
+        part_sizes_.fill(0);
+        part_ids_.fill(0);
     }
 
 private:
     comm_index_type num_parts_;
     Array<global_index_type> offsets_;
-    Array<local_index_type> ranks_;
+    Array<local_index_type> starting_indices_;
     Array<local_index_type> part_sizes_;
     Array<comm_index_type> part_ids_;
 };

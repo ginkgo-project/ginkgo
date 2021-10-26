@@ -40,10 +40,11 @@ namespace partition {
 
 
 template <typename LocalIndexType>
-void build_ranks(std::shared_ptr<const DefaultExecutor> exec,
-                 const global_index_type* range_offsets, const int* range_parts,
-                 size_type num_ranges, int num_parts, LocalIndexType* ranks,
-                 LocalIndexType* sizes)
+void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
+                            const global_index_type* range_offsets,
+                            const int* range_parts, size_type num_ranges,
+                            int num_parts, LocalIndexType* ranks,
+                            LocalIndexType* sizes)
 {
     Array<LocalIndexType> range_sizes{exec, num_ranges};
     // num_parts sentinel at the end
@@ -96,7 +97,8 @@ void build_ranks(std::shared_ptr<const DefaultExecutor> exec,
         num_ranges, range_sizes, tmp_part_ids, permutation, ranks, sizes);
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_RANKS);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES);
 
 
 template <typename LocalIndexType>

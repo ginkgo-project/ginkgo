@@ -46,10 +46,11 @@ namespace partition {
 
 
 template <typename LocalIndexType>
-void build_ranks(std::shared_ptr<const DefaultExecutor> exec,
-                 const global_index_type* range_offsets, const int* range_parts,
-                 size_type num_ranges, int num_parts, LocalIndexType* ranks,
-                 LocalIndexType* sizes)
+void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
+                            const global_index_type* range_offsets,
+                            const int* range_parts, size_type num_ranges,
+                            int num_parts, LocalIndexType* ranks,
+                            LocalIndexType* sizes)
 {
     std::fill_n(sizes, num_parts, 0);
     auto num_threads = static_cast<size_type>(omp_get_max_threads());
@@ -90,7 +91,8 @@ void build_ranks(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_RANKS);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES);
 
 
 template <typename LocalIndexType>
