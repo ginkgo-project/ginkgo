@@ -94,6 +94,27 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING);
 
 
 template <typename LocalIndexType>
+void build_ranges_from_global_size(std::shared_ptr<const DefaultExecutor> exec,
+                                   int num_parts, int64 global_size,
+                                   Array<LocalIndexType>& ranges)
+{
+    const auto size_per_part = global_size / num_parts;
+    const auto rest = global_size - (num_parts * size_per_part);
+
+    auto* ranges_ptr = ranges.get_data();
+
+    ranges_ptr[0] = 0;
+    for (int i = 1; i < num_parts + 1; ++i) {
+        ranges_ptr[i] = ranges_ptr[i - 1] + size_per_part +
+                        static_cast<LocalIndexType>((i - 1) < rest);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_PARTITION_BUILD_FROM_GLOBAL_SIZE);
+
+
+template <typename LocalIndexType>
 void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
                             const global_index_type* range_offsets,
                             const int* range_parts, size_type num_ranges,

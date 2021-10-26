@@ -44,6 +44,8 @@ namespace partition {
 GKO_REGISTER_OPERATION(count_ranges, partition::count_ranges);
 GKO_REGISTER_OPERATION(build_from_mapping, partition::build_from_mapping);
 GKO_REGISTER_OPERATION(build_from_contiguous, partition::build_from_contiguous);
+GKO_REGISTER_OPERATION(build_ranges_from_global_size,
+                       partition::build_ranges_from_global_size);
 GKO_REGISTER_OPERATION(build_starting_indices,
                        partition::build_starting_indices);
 GKO_REGISTER_OPERATION(is_ordered, partition::is_ordered);
@@ -83,6 +85,19 @@ Partition<LocalIndexType>::build_from_contiguous(
                                                     result.get()));
     result->compute_range_starting_indices();
     return result;
+}
+
+
+template <typename LocalIndexType>
+std::unique_ptr<Partition<LocalIndexType>>
+Partition<LocalIndexType>::build_from_global_size(
+    std::shared_ptr<const Executor> exec, comm_index_type num_parts,
+    global_index_type global_size)
+{
+    Array<global_index_type> ranges(exec, num_parts + 1);
+    exec->run(partition::make_build_ranges_from_global_size(
+        num_parts, global_size, ranges));
+    return Partition<LocalIndexType>::build_from_contiguous(exec, ranges);
 }
 
 
