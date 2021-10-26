@@ -307,6 +307,7 @@ public:
      *       throughput.
      *
      * @param global_index  the global index.
+     *
      * @return  the local index of the element in the index set.
      *
      * @warning This single entry query can have significant kernel lauch
@@ -320,6 +321,7 @@ public:
      * @param local_indices  the local index array.
      * @param is_sorted  a parameter that specifies if the query array is sorted
      *                   or not. `true` if sorted .
+     *
      * @return  the global index array from the index set.
      *
      * @note Whenever possible, passing a sorted array is preferred as the
@@ -336,6 +338,7 @@ public:
      * @param global_indices  the global index array.
      * @param is_sorted  a parameter that specifies if the query array is sorted
      *                   or not. `true` if sorted.
+     *
      * @return  the local index array from the index set.
      *
      * @note Whenever possible, passing a sorted array is preferred as the
@@ -355,7 +358,21 @@ public:
     /**
      * Checks if the global index exists in the index set.
      *
+     * @param indices  the indices to check.
+     * @param is_sorted  a parameter that specifies if the query array is sorted
+     *                   or not. `true` if sorted.
+     *
+     * @return  the Array that contains element wise whether the corresponding
+     *          global index in the index set or not.
+     */
+    Array<bool> contains(const Array<index_type>& indices,
+                         const bool is_sorted = false) const;
+
+    /**
+     * Checks if the global index exists in the index set.
+     *
      * @param index  the index to check.
+     *
      * @return  whether the element exists in the index set.
      *
      * @warning This single entry query can have significant kernel lauch

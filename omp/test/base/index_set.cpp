@@ -142,6 +142,25 @@ TYPED_TEST(IndexSet, PopulateSubsetsIsEquivalentToReferenceForSortedInput)
 }
 
 
+TYPED_TEST(IndexSet, IndicesContainsIsEquivalentToReference)
+{
+    auto rand_arr = this->setup_random_indices(512);
+    auto ref_idx_set = gko::IndexSet<TypeParam>(this->ref, 520, rand_arr);
+    auto omp_idx_set = gko::IndexSet<TypeParam>(this->omp, 520, rand_arr);
+
+    auto ref_indices_arr = this->setup_random_indices(73);
+    auto ref_validity_arr = gko::Array<bool>(this->omp, 73);
+    gko::kernels::reference::index_set::compute_validity(
+        this->ref, &ref_indices_arr, &ref_validity_arr);
+    auto omp_indices_arr = gko::Array<TypeParam>(this->omp, ref_indices_arr);
+    auto omp_validity_arr = gko::Array<bool>(this->omp, 73);
+    gko::kernels::omp::index_set::compute_validity(this->omp, &omp_indices_arr,
+                                                   &omp_validity_arr);
+
+    GKO_ASSERT_ARRAY_EQ(ref_validity_arr, omp_validity_arr);
+}
+
+
 TYPED_TEST(IndexSet, GetGlobalIndicesIsEquivalentToReference)
 {
     auto rand_arr = this->setup_random_indices(512);

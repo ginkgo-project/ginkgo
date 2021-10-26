@@ -1,4 +1,5 @@
 set(UNIFIED_SOURCES
+    base/index_set_kernels.cpp
     components/precision_conversion.cpp
     components/reduce_array.cpp
     matrix/coo_kernels.cpp

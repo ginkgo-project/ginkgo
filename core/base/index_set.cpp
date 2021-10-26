@@ -54,6 +54,7 @@ GKO_REGISTER_OPERATION(decompress, index_set::decompress);
 GKO_REGISTER_OPERATION(populate_subsets, index_set::populate_subsets);
 GKO_REGISTER_OPERATION(global_to_local, index_set::global_to_local);
 GKO_REGISTER_OPERATION(local_to_global, index_set::local_to_global);
+GKO_REGISTER_OPERATION(compute_validity, index_set::compute_validity);
 
 
 }  // namespace index_set
@@ -68,6 +69,20 @@ void IndexSet<IndexType>::populate_subsets(const gko::Array<IndexType>& indices,
     exec->run(index_set::make_populate_subsets(
         this->index_space_size_, &indices, &this->subsets_begin_,
         &this->subsets_end_, &this->superset_cumulative_indices_, is_sorted));
+}
+
+
+template <typename IndexType>
+Array<bool> IndexSet<IndexType>::contains(const Array<IndexType>& input_indices,
+                                          const bool is_sorted) const
+{
+    auto exec = this->get_executor();
+    auto local_indices = this->get_local_indices(input_indices, is_sorted);
+    auto validity_array = Array<bool>(exec, local_indices.get_num_elems());
+    auto invalid_idx = invalid_index<IndexType>();
+    exec->run(
+        index_set::make_compute_validity(&local_indices, &validity_array));
+    return std::move(validity_array);
 }
 
 

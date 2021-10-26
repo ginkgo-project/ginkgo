@@ -64,6 +64,22 @@ namespace index_set {
 
 
 template <typename IndexType>
+void compute_validity(std::shared_ptr<const DefaultExecutor> exec,
+                      const Array<IndexType>* local_indices,
+                      Array<bool>* validity_array)
+{
+    auto num_elems = local_indices->get_num_elems();
+    for (size_type i = 0; i < num_elems; ++i) {
+        validity_array->get_data()[i] =
+            local_indices->get_const_data()[i] != invalid_index<IndexType>();
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(
+    GKO_DECLARE_INDEX_SET_COMPUTE_VALIDITY_KERNEL);
+
+
+template <typename IndexType>
 void decompress(std::shared_ptr<const DefaultExecutor> exec,
                 const IndexType index_space_size,
                 const Array<IndexType>* subset_begin,
