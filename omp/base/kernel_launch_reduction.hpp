@@ -146,7 +146,7 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_kernel_reduction_sized,
-                                    run_kernel_reduction_sized_impl)
+                                    run_kernel_reduction_sized_impl);
 
 
 }  // namespace
@@ -358,7 +358,7 @@ void run_kernel_col_reduction_sized_impl(
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_kernel_col_reduction_sized,
-                                    run_kernel_col_reduction_sized_impl)
+                                    run_kernel_col_reduction_sized_impl);
 
 
 }  // namespace
