@@ -137,78 +137,77 @@ template <typename T>
 using BatchBicgstabOptions =
     gko::kernels::batch_bicgstab::BatchBicgstabOptions<T>;
 
-#define BATCH_BICGSTAB_KERNEL_LAUNCH(_stoppertype, _prectype)           \
-    apply_kernel<stop::_stoppertype<ValueType>>                         \
-        <<<nbatch, block_size, shared_size>>>(                          \
-            shared_gap, sconf, opts.max_its, opts.residual_tol, logger, \
-            _prectype(), a, b.values, x.values, workspace.get_data())
 
-template <typename PrecType, typename BatchMatrixType, typename LogType,
-          typename ValueType>
-static void apply_impl(
-    std::shared_ptr<const CudaExecutor> exec,
-    const BatchBicgstabOptions<remove_complex<ValueType>> opts, LogType logger,
-    const BatchMatrixType& a,
-    const gko::batch_dense::UniformBatch<const ValueType>& b,
-    const gko::batch_dense::UniformBatch<ValueType>& x)
-{
-    using real_type = gko::remove_complex<ValueType>;
-    const size_type nbatch = a.num_batch;
-    const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
+template <typename CuValueType>
+class KernelCaller {
+public:
+    using value_type = CuValueType;
 
-    // TODO: Add function to BatchCSR to return storage needed per matrix
-    const int matrix_storage = (a.num_rows + 1) * sizeof(int) +
-                               a.num_nnz * (sizeof(int) + sizeof(ValueType));
-    int shmem_per_blk = 0;
-    int block_size = 256;
-    if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-        shmem_per_blk =
-            get_max_dynamic_shared_memory<stop::SimpleAbsResidual<ValueType>,
-                                          PrecType, LogType, BatchMatrixType,
-                                          ValueType>(exec, matrix_storage);
-        block_size =
-            get_num_threads_per_block<stop::SimpleAbsResidual<ValueType>,
-                                      PrecType, LogType, BatchMatrixType,
-                                      ValueType>(exec, a.num_rows);
-    } else {
-        shmem_per_blk =
-            get_max_dynamic_shared_memory<stop::SimpleRelResidual<ValueType>,
-                                          PrecType, LogType, BatchMatrixType,
-                                          ValueType>(exec, matrix_storage);
-        block_size =
-            get_num_threads_per_block<stop::SimpleRelResidual<ValueType>,
-                                      PrecType, LogType, BatchMatrixType,
-                                      ValueType>(exec, a.num_rows);
+    KernelCaller(std::shared_ptr<const CudaExecutor> exec,
+                 const BatchBicgstabOptions<remove_complex<value_type>> opts)
+        : exec_{exec}, opts_{opts}
+    {}
+
+    template <typename BatchMatrixType, typename PrecType, typename StopType,
+              typename LogType>
+    void call_kernel(LogType logger, const BatchMatrixType& a,
+                     const gko::batch_dense::UniformBatch<const value_type>& b,
+                     const gko::batch_dense::UniformBatch<value_type>& x) const
+    {
+        using real_type = gko::remove_complex<value_type>;
+        const size_type nbatch = a.num_batch;
+        const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
+
+        // TODO: Add function to BatchCSR to return storage needed per matrix
+        const int matrix_storage =
+            (a.num_rows + 1) * sizeof(int) +
+            a.num_nnz * (sizeof(int) + sizeof(value_type));
+        const int shmem_per_blk =
+            get_max_dynamic_shared_memory<StopType, PrecType, LogType,
+                                          BatchMatrixType, value_type>(
+                exec_, matrix_storage);
+        const int block_size =
+            get_num_threads_per_block<StopType, PrecType, LogType,
+                                      BatchMatrixType, value_type>(exec_,
+                                                                   a.num_rows);
+        assert(block_size >= 2 * config::warp_size);
+
+        const size_t prec_size =
+            PrecType::dynamic_work_size(shared_gap, a.num_nnz) *
+            sizeof(value_type);
+        const auto sconf =
+            gko::kernels::batch_bicgstab::compute_shared_storage<PrecType,
+                                                                 value_type>(
+                shmem_per_blk, shared_gap, a.num_nnz, b.num_rhs);
+        const size_t shared_size =
+            sconf.n_shared * shared_gap * sizeof(value_type) +
+            (sconf.prec_shared ? prec_size : 0);
+        auto workspace = gko::Array<value_type>(
+            exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
+        assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
+
+        std::cerr << " Bicgstab: vectors in shared memory = " << sconf.n_shared
+                  << "\n";
+        if (sconf.prec_shared) {
+            std::cerr << " Bicgstab: precondiioner is in shared memory.\n";
+        }
+        std::cerr << " Bicgstab: vectors in global memory = " << sconf.n_global
+                  << "\n Bicgstab: number of threads per block = " << block_size
+                  << "\n";
+
+        apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
+            shared_gap, sconf, opts_.max_its, opts_.residual_tol, logger,
+            PrecType(), a, b.values, x.values, workspace.get_data());
+
+        GKO_CUDA_LAST_IF_ERROR_THROW;
     }
-    assert(block_size >= 2 * config::warp_size);
 
-    const size_t prec_size =
-        PrecType::dynamic_work_size(shared_gap, a.num_nnz) * sizeof(ValueType);
-    const auto sconf =
-        gko::kernels::batch_bicgstab::compute_shared_storage<PrecType,
-                                                             ValueType>(
-            shmem_per_blk, shared_gap, a.num_nnz, b.num_rhs);
-    const size_t shared_size = sconf.n_shared * shared_gap * sizeof(ValueType) +
-                               (sconf.prec_shared ? prec_size : 0);
-    auto workspace = gko::Array<ValueType>(
-        exec, sconf.gmem_stride_bytes * nbatch / sizeof(ValueType));
-    assert(sconf.gmem_stride_bytes % sizeof(ValueType) == 0);
+private:
+    std::shared_ptr<const CudaExecutor> exec_;
+    const BatchBicgstabOptions<remove_complex<value_type>> opts_;
+};
 
-    printf(" Bicgstab: vectors in shared memory = %d\n", sconf.n_shared);
-    if (sconf.prec_shared) {
-        printf(" Bicgstab: precondiioner is in shared memory.\n");
-    }
-    printf(" Bicgstab: vectors in global memory = %d\n", sconf.n_global);
-    printf(" Bicgstab: number of threads per block = %d.\n", block_size);
-
-    if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-        BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleAbsResidual, PrecType);
-    } else {
-        BATCH_BICGSTAB_KERNEL_LAUNCH(SimpleRelResidual, PrecType);
-    }
-    GKO_CUDA_LAST_IF_ERROR_THROW;
-}
-
+#include "core/solver/batch_dispatch.hpp.inc"
 
 template <typename ValueType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
@@ -219,43 +218,11 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
            log::BatchLogData<ValueType>& logdata)
 {
     using cu_value_type = cuda_type<ValueType>;
-
-    batch_log::SimpleFinalLogger<remove_complex<ValueType>> logger(
-        logdata.res_norms->get_values(), logdata.iter_counts.get_data());
-
-    const gko::batch_dense::UniformBatch<cu_value_type> x_b =
-        get_batch_struct(x);
-
-    if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a)) {
-        auto m_b = get_batch_struct(amat);
-        auto b_b = get_batch_struct(b);
-        if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-            apply_impl<BatchIdentity<cu_value_type>>(exec, opts, logger, m_b,
-                                                     b_b, x_b);
-        } else if (opts.preconditioner ==
-                   gko::preconditioner::batch::type::jacobi) {
-            apply_impl<BatchJacobi<cu_value_type>>(exec, opts, logger, m_b, b_b,
-                                                   x_b);
-        } else {
-            GKO_NOT_IMPLEMENTED;
-        }
-    } else if (auto amat =
-                   dynamic_cast<const matrix::BatchEll<ValueType>*>(a)) {
-        auto m_b = get_batch_struct(amat);
-        auto b_b = get_batch_struct(b);
-        if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-            apply_impl<BatchIdentity<cu_value_type>>(exec, opts, logger, m_b,
-                                                     b_b, x_b);
-        } else if (opts.preconditioner ==
-                   gko::preconditioner::batch::type::jacobi) {
-            apply_impl<BatchJacobi<cu_value_type>>(exec, opts, logger, m_b, b_b,
-                                                   x_b);
-        } else {
-            GKO_NOT_IMPLEMENTED;
-        }
-    } else {
-        GKO_NOT_SUPPORTED(a);
-    }
+    BatchSolverDispatch<CudaExecutor,
+                        BatchBicgstabOptions<remove_complex<ValueType>>,
+                        ValueType, cu_value_type>
+        dispatcher(KernelCaller<cu_value_type>(exec, opts), exec, opts);
+    dispatcher.apply(a, b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);
