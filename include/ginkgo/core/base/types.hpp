@@ -699,6 +699,24 @@ inline constexpr GKO_ATTRIBUTES IndexType invalid_index()
 }
 
 
+namespace distributed {
+
+
+/**
+ *  Index type for global indices in a distributed system
+ */
+using global_index_type = int64;
+
+
+/**
+ * Index type for enumerating processors
+ *
+ * Conforms to the MPI C interface of e.g. MPI rank or size
+ */
+using comm_index_type = int;
+
+
+}  // namespace distributed
 }  // namespace gko
 
 

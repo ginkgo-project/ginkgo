@@ -36,14 +36,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
 namespace distributed {
-
-
-using global_index_type = int64;
-using comm_index_type = int;
 
 
 /**
