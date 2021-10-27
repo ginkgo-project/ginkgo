@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reference/log/batch_logger.hpp"
 #include "reference/matrix/batch_csr_kernels.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
+#include "reference/matrix/batch_ell_kernels.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
 #include "reference/stop/batch_criteria.hpp"
@@ -60,12 +61,12 @@ namespace batch_bicgstab {
 namespace {
 
 
-using gko::kernels::reference::batch_csr::advanced_spmv_kernel;
+// using gko::kernels::reference::batch_csr::advanced_spmv_kernel;
+using gko::kernels::reference::batch_csr::batch_scale;
 using gko::kernels::reference::batch_csr::spmv_kernel;
 namespace batch_dense = gko::kernels::reference::batch_dense;
 using gko::kernels::reference::BatchIdentity;
 using gko::kernels::reference::BatchJacobi;
-namespace stop = gko::kernels::reference::stop;
 namespace batch_log = gko::kernels::reference::batch_log;
 
 
@@ -79,6 +80,7 @@ template <typename T>
 using BatchBicgstabOptions =
     gko::kernels::batch_bicgstab::BatchBicgstabOptions<T>;
 
+#if 0
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 static void apply_impl(
@@ -171,6 +173,69 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
     } else {
         GKO_NOT_IMPLEMENTED;
     }
+}
+#endif
+
+
+template <typename ValueType>
+class KernelCaller {
+public:
+    KernelCaller(std::shared_ptr<const OmpExecutor> exec,
+                 const BatchBicgstabOptions<remove_complex<ValueType>> opts)
+        : exec_{exec}, opts_{opts}
+    {}
+
+    template <typename BatchMatrixType, typename PrecType, typename StopType,
+              typename LogType>
+    void call_kernel(LogType logger, const BatchMatrixType& a,
+                     const gko::batch_dense::UniformBatch<const ValueType>& b,
+                     const gko::batch_dense::UniformBatch<ValueType>& x) const
+    {
+        using real_type = typename gko::remove_complex<ValueType>;
+        const size_type nbatch = a.num_batch;
+        const auto nrows = a.num_rows;
+        const auto nrhs = b.num_rhs;
+
+        // required for static allocation in stopping criterion
+        GKO_ASSERT(batch_config<ValueType>::max_num_rhs >= nrhs);
+
+        const int local_size_bytes =
+            gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
+                nrows, nrhs) +
+            PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
+        using byte = unsigned char;
+
+        Array<byte> local_space(exec_, local_size_bytes);
+
+#pragma omp parallel for firstprivate(logger) firstprivate(local_space)
+        for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
+            batch_entry_bicgstab_impl<StopType, PrecType, LogType,
+                                      BatchMatrixType, ValueType>(
+                opts_, logger, PrecType(), a, b, x, ibatch, local_space);
+        }
+    }
+
+private:
+    std::shared_ptr<const OmpExecutor> exec_;
+    const BatchBicgstabOptions<remove_complex<ValueType>> opts_;
+};
+
+#include "core/solver/batch_dispatch.hpp.inc"
+
+template <typename ValueType>
+void apply(std::shared_ptr<const OmpExecutor> exec,
+           const BatchBicgstabOptions<remove_complex<ValueType>>& opts,
+           const BatchLinOp* const a,
+           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchDense<ValueType>* const x,
+           log::BatchLogData<ValueType>& logdata)
+{
+    BatchSolverDispatch<OmpExecutor,
+                        BatchBicgstabOptions<remove_complex<ValueType>>,
+                        ValueType, ValueType>
+        dispatcher(KernelCaller<ValueType>(exec, opts), exec, opts,
+                   log::BatchLogType::convergence_completion);
+    dispatcher.apply(a, b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);
