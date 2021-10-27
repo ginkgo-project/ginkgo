@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/log/batch_logging.hpp"
 
+
 namespace gko {
 namespace kernels {
 namespace batch_bicgstab {
@@ -57,7 +58,6 @@ struct BatchBicgstabOptions {
     int max_its;
     RealType residual_tol;
     ::gko::stop::batch::ToleranceType tol_type;
-    int num_sh_vecs = 10;
 };
 
 
