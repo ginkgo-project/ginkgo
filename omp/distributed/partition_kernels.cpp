@@ -49,8 +49,8 @@ template <typename LocalIndexType>
 void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
                             const global_index_type* range_offsets,
                             const int* range_parts, size_type num_ranges,
-                            int num_parts, LocalIndexType* ranks,
-                            LocalIndexType* sizes)
+                            int num_parts, int& num_empty_parts,
+                            LocalIndexType* ranks, LocalIndexType* sizes)
 {
     std::fill_n(sizes, num_parts, 0);
     auto num_threads = static_cast<size_type>(omp_get_max_threads());
@@ -72,7 +72,7 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
         }
 #pragma omp barrier
         // exclusive prefix sum over local sizes
-#pragma omp for
+#pragma omp for reduction(+ : num_empty_parts)
         for (comm_index_type part = 0; part < num_parts; ++part) {
             LocalIndexType size{};
             for (size_type thread = 0; thread < num_threads; ++thread) {
@@ -82,6 +82,7 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
                 size += local_size;
             }
             sizes[part] = size;
+            num_empty_parts += size == 0 ? 1 : 0;
         }
         // add global baselines to local ranks
         for (auto range = thread_begin; range < thread_end; range++) {
@@ -94,12 +95,6 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES);
 
-
-template <typename LocalIndexType>
-void is_ordered(std::shared_ptr<const DefaultExecutor> exec,
-                const distributed::Partition<LocalIndexType>* partition,
-                bool* result) GKO_NOT_IMPLEMENTED;
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_IS_ORDERED);
 
 }  // namespace partition
 }  // namespace omp

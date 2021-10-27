@@ -118,8 +118,8 @@ template <typename LocalIndexType>
 void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
                             const global_index_type* range_offsets,
                             const int* range_parts, size_type num_ranges,
-                            int num_parts, LocalIndexType* ranks,
-                            LocalIndexType* sizes)
+                            int num_parts, int& num_empty_parts,
+                            LocalIndexType* ranks, LocalIndexType* sizes)
 {
     std::fill_n(sizes, num_parts, 0);
     for (size_type range = 0; range < num_ranges; ++range) {
@@ -130,6 +130,7 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
         ranks[range] = rank;
         sizes[part] += end - begin;
     }
+    num_empty_parts = std::count(sizes, sizes + num_parts, 0);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(

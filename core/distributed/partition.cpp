@@ -90,7 +90,7 @@ Partition<LocalIndexType>::build_from_contiguous(
 
 template <typename LocalIndexType>
 std::unique_ptr<Partition<LocalIndexType>>
-Partition<LocalIndexType>::build_from_global_size(
+Partition<LocalIndexType>::build_from_global_size_uniform(
     std::shared_ptr<const Executor> exec, comm_index_type num_parts,
     global_index_type global_size)
 {
@@ -107,14 +107,15 @@ void Partition<LocalIndexType>::compute_range_starting_indices()
     auto exec = offsets_.get_executor();
     exec->run(partition::make_build_starting_indices(
         offsets_.get_const_data(), part_ids_.get_const_data(), get_num_ranges(),
-        get_num_parts(), starting_indices_.get_data(), part_sizes_.get_data()));
+        get_num_parts(), num_empty_parts_, starting_indices_.get_data(),
+        part_sizes_.get_data()));
 }
 
 
 template <typename LocalIndexType>
 bool Partition<LocalIndexType>::is_connected()
 {
-    return get_num_parts() == get_num_ranges();
+    return get_num_parts() - get_num_empty_parts() == get_num_ranges();
 }
 
 

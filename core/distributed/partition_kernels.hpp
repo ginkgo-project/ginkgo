@@ -69,8 +69,8 @@ namespace kernels {
     void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,  \
                                 const global_index_type* range_offsets,       \
                                 const int* range_parts, size_type num_ranges, \
-                                int num_parts, LocalIndexType* ranks,         \
-                                LocalIndexType* sizes)
+                                int num_parts, int& num_empty_parts,          \
+                                LocalIndexType* ranks, LocalIndexType* sizes)
 
 #define GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType)                     \
     void is_ordered(std::shared_ptr<const DefaultExecutor> exec,             \

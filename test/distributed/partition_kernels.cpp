@@ -83,6 +83,7 @@ protected:
         ASSERT_EQ(part->get_size(), dpart->get_size());
         ASSERT_EQ(part->get_num_ranges(), dpart->get_num_ranges());
         ASSERT_EQ(part->get_num_parts(), dpart->get_num_parts());
+        ASSERT_EQ(part->get_num_empty_parts(), dpart->get_num_empty_parts());
         GKO_ASSERT_ARRAY_EQ(
             gko::make_array_view(this->ref, part->get_num_ranges() + 1,
                                  part->get_range_bounds()),
@@ -317,12 +318,12 @@ TYPED_TEST(Partition, BuildsFromGlobalSize)
     const int num_parts = 7;
     const global_index_type global_size = 708;
 
-    auto part =
-        gko::distributed::Partition<local_index_type>::build_from_global_size(
-            this->ref, num_parts, global_size);
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_global_size(
-            this->exec, num_parts, global_size);
+    auto part = gko::distributed::Partition<
+        local_index_type>::build_from_global_size_uniform(this->ref, num_parts,
+                                                          global_size);
+    auto dpart = gko::distributed::Partition<
+        local_index_type>::build_from_global_size_uniform(this->exec, num_parts,
+                                                          global_size);
 
     this->assert_equal(part, dpart);
 }
@@ -334,12 +335,12 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeEmpty)
     const int num_parts = 7;
     const global_index_type global_size = 0;
 
-    auto part =
-        gko::distributed::Partition<local_index_type>::build_from_global_size(
-            this->ref, num_parts, global_size);
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_global_size(
-            this->exec, num_parts, global_size);
+    auto part = gko::distributed::Partition<
+        local_index_type>::build_from_global_size_uniform(this->ref, num_parts,
+                                                          global_size);
+    auto dpart = gko::distributed::Partition<
+        local_index_type>::build_from_global_size_uniform(this->exec, num_parts,
+                                                          global_size);
 
     this->assert_equal(part, dpart);
 }
@@ -351,14 +352,73 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeMorePartsThanSize)
     const int num_parts = 77;
     const global_index_type global_size = 13;
 
-    auto part =
-        gko::distributed::Partition<local_index_type>::build_from_global_size(
-            this->ref, num_parts, global_size);
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_global_size(
-            this->exec, num_parts, global_size);
+    auto part = gko::distributed::Partition<
+        local_index_type>::build_from_global_size_uniform(this->ref, num_parts,
+                                                          global_size);
+    auto dpart = gko::distributed::Partition<
+        local_index_type>::build_from_global_size_uniform(this->exec, num_parts,
+                                                          global_size);
 
     this->assert_equal(part, dpart);
+}
+
+
+TYPED_TEST(Partition, IsOrderedTrue)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    comm_index_type num_parts = 7;
+    gko::size_type size_per_part = 1000;
+    gko::size_type global_size = num_parts * size_per_part;
+    gko::Array<comm_index_type> mapping{this->ref, global_size};
+    for (comm_index_type i = 0; i < num_parts; ++i) {
+        std::fill(mapping.get_data() + i * size_per_part,
+                  mapping.get_data() + (i + 1) * size_per_part, i);
+    }
+    auto dpart =
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->exec, mapping, num_parts);
+
+    ASSERT_TRUE(dpart->is_ordered());
+}
+
+
+TYPED_TEST(Partition, IsOrderedFail)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    comm_index_type num_parts = 7;
+    gko::size_type size_per_part = 1000;
+    gko::size_type global_size = num_parts * size_per_part;
+    gko::Array<comm_index_type> mapping{this->ref, global_size};
+    for (comm_index_type i = 0; i < num_parts; ++i) {
+        std::fill(mapping.get_data() + i * size_per_part,
+                  mapping.get_data() + (i + 1) * size_per_part,
+                  num_parts - 1 - i);
+    }
+    auto dpart =
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->exec, mapping, num_parts);
+
+    ASSERT_FALSE(dpart->is_ordered());
+}
+
+
+TYPED_TEST(Partition, IsOrderedRandom)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    comm_index_type num_parts = 7;
+    std::uniform_int_distribution<comm_index_type> part_dist{0, num_parts - 1};
+    gko::Array<comm_index_type> mapping{this->ref, 10000};
+    for (gko::size_type i = 0; i < mapping.get_num_elems(); i++) {
+        mapping.get_data()[i] = part_dist(this->rand_engine);
+    }
+    auto part =
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, mapping, num_parts);
+    auto dpart =
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->exec, mapping, num_parts);
+
+    ASSERT_EQ(part->is_ordered(), dpart->is_ordered());
 }
 
 

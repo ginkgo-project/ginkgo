@@ -85,19 +85,30 @@ public:
      * Returns the number of ranges stored by this partition.
      * This size refers to the data returned by get_range_bounds().
      */
-    size_type get_num_ranges() const { return offsets_.get_num_elems() - 1; }
+    size_type get_num_ranges() const noexcept
+    {
+        return offsets_.get_num_elems() - 1;
+    }
 
     /**
      * Returns the number of parts represented in this partition.
      */
-    comm_index_type get_num_parts() const { return num_parts_; }
+    comm_index_type get_num_parts() const noexcept { return num_parts_; }
+
+    /**
+     * Returns the number of empty parts within this partition.
+     */
+    comm_index_type get_num_empty_parts() const noexcept
+    {
+        return num_empty_parts_;
+    }
 
     /**
      * Returns the ranges boundary array stored by this partition.
      * `range_bounds[i]` is the beginning (inclusive) and
      * `range_bounds[i + 1]` is the end (exclusive) of the ith range.
      */
-    const global_index_type* get_const_range_bounds() const
+    const global_index_type* get_const_range_bounds() const noexcept
     {
         return offsets_.get_const_data();
     }
@@ -105,14 +116,17 @@ public:
     /**
      * @copydoc get_const_range_bounds()
      */
-    global_index_type* get_range_bounds() { return offsets_.get_data(); }
+    global_index_type* get_range_bounds() noexcept
+    {
+        return offsets_.get_data();
+    }
 
     /**
      * Returns the part ID array stored by this partition.
      * For each range from get_range_bounds(), it stores the part ID in the
      * range [0, get_num_parts() - 1].
      */
-    const comm_index_type* get_const_part_ids() const
+    const comm_index_type* get_const_part_ids() const noexcept
     {
         return part_ids_.get_const_data();
     }
@@ -132,14 +146,15 @@ public:
      * Returns the part-local starting index for each range in this partition.
      *
      * Consider the partition on `[0, 10)` with
-     * > p_1 = [0-3, 7-9],
-     * > p_2 = [4-6].
-     * Then `range_ranks[0] = 0`, `range_ranks[1] = 0`, `range_ranks[2] = 5`.
-
+     * > p_1 = [0-4), [7-10),
+     * > p_2 = [4-7).
+     * Then `range_starting_indices[0] = 0`, `range_starting_indices[1] = 0`,
+     `range_starting_indices[2] = 5`.
+     *
      * @note These values can only be used after compute_range_ranks() was
      executed.
      */
-    const local_index_type* get_range_starting_indices() const
+    const local_index_type* get_range_starting_indices() const noexcept
     {
         return starting_indices_.get_const_data();
     }
@@ -148,7 +163,7 @@ public:
      * Returns the part size array.
      * part_sizes[p] stores the number of elements in part `p`.
      */
-    const local_index_type* get_part_sizes() const
+    const local_index_type* get_part_sizes() const noexcept
     {
         return part_sizes_.get_const_data();
     }
@@ -164,12 +179,12 @@ public:
     }
 
     /**
-     * Checks if each part is associated with a contiguous range.
+     * Checks if each part is associated with at most one contiguous range.
      */
     bool is_connected();
 
     /**
-     * Checks if the ranges are orderd by their part index.
+     * Checks if the ranges are ordered by their part index.
      *
      * Implies that the partition is connected.
      */
@@ -178,9 +193,11 @@ public:
 
     /**
      * Builds a partition from a given mapping global_index -> part_id.
+     *
      * @param exec  the Executor on which the partition should be built
      * @param mapping  the mapping from global indices to part IDs.
      * @param num_parts  the number of parts used in the mapping.
+     *
      * @return  a Partition representing the given mapping as a set of ranges
      */
     static std::unique_ptr<Partition> build_from_mapping(
@@ -189,9 +206,11 @@ public:
 
     /**
      * Builds a partition consisting of contiguous ranges, one for each part.
+     *
      * @param exec  the Executor on which the partition should be built
      * @param ranges  the boundaries of the ranges representing each part.
                       Part i contains the indices [ranges[i], ranges[i + 1]).
+
      * @return  a Partition representing the given contiguous partitioning.
      */
     static std::unique_ptr<Partition> build_from_contiguous(
@@ -200,14 +219,16 @@ public:
 
     /**
      * Builds a partition by evenly distributing the global range.
+     *
      * @param exec  the Executor on which the partition should be built
      * @param num_parts  the number of parst used in this partition
      * @param global_size  the global size of this partition
+     *
      * @return  a Partition where each range has either
      * `floor(global_size/num_parts)` or `floor(global_size/num_parts) + 1`
      * indices.
      */
-    static std::unique_ptr<Partition> build_from_global_size(
+    static std::unique_ptr<Partition> build_from_global_size_uniform(
         std::shared_ptr<const Executor> exec, comm_index_type num_parts,
         global_index_type global_size);
 
@@ -219,6 +240,7 @@ public:
               comm_index_type num_parts = 0, size_type num_ranges = 0)
         : EnablePolymorphicObject<Partition>{exec},
           num_parts_{num_parts},
+          num_empty_parts_{0},
           offsets_{exec, num_ranges + 1},
           starting_indices_{exec, num_ranges},
           part_sizes_{exec, static_cast<size_type>(num_parts)},
@@ -232,6 +254,7 @@ public:
 
 private:
     comm_index_type num_parts_;
+    comm_index_type num_empty_parts_;
     Array<global_index_type> offsets_;
     Array<local_index_type> starting_indices_;
     Array<local_index_type> part_sizes_;

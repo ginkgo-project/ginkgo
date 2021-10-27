@@ -132,7 +132,7 @@ void build_ranges_from_global_size(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto size_per_part, auto rest, auto ranges) {
-            ranges[i] = size_per_part + static_cast<LocalIndexType>(i < rest);
+            ranges[i] = size_per_part + (i < rest ? 1 : 0);
         },
         ranges.get_num_elems() - 1, size_per_part, rest, ranges.get_data());
     components::prefix_sum(exec, ranges.get_data(), ranges.get_num_elems());
@@ -140,6 +140,31 @@ void build_ranges_from_global_size(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_PARTITION_BUILD_FROM_GLOBAL_SIZE);
+
+
+template <typename LocalIndexType>
+void is_ordered(std::shared_ptr<const DefaultExecutor> exec,
+                const distributed::Partition<LocalIndexType>* partition,
+                bool* result)
+{
+    const auto part_ids = partition->get_const_part_ids();
+    const auto num_ranges = partition->get_num_ranges();
+    // it is necessary to use uint32 as a temporary result, since
+    // bool can't be used with suffles
+    Array<uint32> result_uint32{exec, 1};
+    run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, const auto part_ids) {
+            return static_cast<uint32>(part_ids[i] < part_ids[i + 1]);
+        },
+        [] GKO_KERNEL(const auto a, const auto b) { return a && b; },
+        [] GKO_KERNEL(const auto a) { return a; }, uint32(1),
+        result_uint32.get_data(), num_ranges - 1, part_ids);
+    *result = static_cast<bool>(
+        exec->template copy_val_to_host(result_uint32.get_const_data()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_IS_ORDERED);
 
 
 }  // namespace partition
