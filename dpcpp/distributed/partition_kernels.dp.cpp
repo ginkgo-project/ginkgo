@@ -43,8 +43,8 @@ template <typename LocalIndexType>
 void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
                             const global_index_type* range_offsets,
                             const int* range_parts, size_type num_ranges,
-                            int num_parts, LocalIndexType* ranks,
-                            LocalIndexType* sizes)
+                            int num_parts, int& num_empty_parts,
+                            LocalIndexType* ranks, LocalIndexType* sizes)
 {
     Array<LocalIndexType> range_sizes{exec, num_ranges};
     // num_parts sentinel at the end
@@ -78,6 +78,7 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
     // TODO compute prefix_sum again
     // write back the results
     // TODO this needs to be adapted to the output of the algorithm above
+    // TODO count number of zeros in size and store in num_empty_parts
     run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto grouped_range_ranks, auto grouped_part_ids,
@@ -100,12 +101,6 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES);
 
-
-template <typename LocalIndexType>
-void is_ordered(std::shared_ptr<const DefaultExecutor> exec,
-                const distributed::Partition<LocalIndexType>* partition,
-                bool* result) GKO_NOT_IMPLEMENTED;
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_IS_ORDERED);
 
 }  // namespace partition
 }  // namespace dpcpp

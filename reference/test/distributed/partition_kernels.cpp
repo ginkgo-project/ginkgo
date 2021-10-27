@@ -123,6 +123,61 @@ TYPED_TEST(Partition, BuildsFromMapping)
 }
 
 
+TYPED_TEST(Partition, BuildsFromMappingWithEmptyParts)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    gko::Array<comm_index_type> mapping{
+        this->ref, {3, 3, 0, 1, 1, 3, 0, 0, 1, 0, 1, 1, 1, 3, 3, 0}};
+    comm_index_type num_parts = 5;
+    gko::size_type num_ranges = 10;
+
+    auto partition =
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, mapping, num_parts);
+
+    EXPECT_EQ(partition->get_size(), mapping.get_num_elems());
+    EXPECT_EQ(partition->get_num_ranges(), num_ranges);
+    EXPECT_EQ(partition->get_num_parts(), num_parts);
+    EXPECT_EQ(partition->get_num_empty_parts(), 2);
+    EXPECT_EQ(partition->get_const_range_bounds()[0], 0);
+    EXPECT_EQ(partition->get_const_range_bounds()[1], 2);
+    EXPECT_EQ(partition->get_const_range_bounds()[2], 3);
+    EXPECT_EQ(partition->get_const_range_bounds()[3], 5);
+    EXPECT_EQ(partition->get_const_range_bounds()[4], 6);
+    EXPECT_EQ(partition->get_const_range_bounds()[5], 8);
+    EXPECT_EQ(partition->get_const_range_bounds()[6], 9);
+    EXPECT_EQ(partition->get_const_range_bounds()[7], 10);
+    EXPECT_EQ(partition->get_const_range_bounds()[8], 13);
+    EXPECT_EQ(partition->get_const_range_bounds()[9], 15);
+    EXPECT_EQ(partition->get_const_range_bounds()[10], 16);
+    EXPECT_EQ(partition->get_part_ids()[0], 3);
+    EXPECT_EQ(partition->get_part_ids()[1], 0);
+    EXPECT_EQ(partition->get_part_ids()[2], 1);
+    EXPECT_EQ(partition->get_part_ids()[3], 3);
+    EXPECT_EQ(partition->get_part_ids()[4], 0);
+    EXPECT_EQ(partition->get_part_ids()[5], 1);
+    EXPECT_EQ(partition->get_part_ids()[6], 0);
+    EXPECT_EQ(partition->get_part_ids()[7], 1);
+    EXPECT_EQ(partition->get_part_ids()[8], 3);
+    EXPECT_EQ(partition->get_part_ids()[9], 0);
+    EXPECT_EQ(partition->get_range_starting_indices()[0], 0);
+    EXPECT_EQ(partition->get_range_starting_indices()[1], 0);
+    EXPECT_EQ(partition->get_range_starting_indices()[2], 0);
+    EXPECT_EQ(partition->get_range_starting_indices()[3], 2);
+    EXPECT_EQ(partition->get_range_starting_indices()[4], 1);
+    EXPECT_EQ(partition->get_range_starting_indices()[5], 2);
+    EXPECT_EQ(partition->get_range_starting_indices()[6], 3);
+    EXPECT_EQ(partition->get_range_starting_indices()[7], 3);
+    EXPECT_EQ(partition->get_range_starting_indices()[8], 3);
+    EXPECT_EQ(partition->get_range_starting_indices()[9], 4);
+    EXPECT_EQ(partition->get_part_sizes()[0], 5);
+    EXPECT_EQ(partition->get_part_sizes()[1], 6);
+    EXPECT_EQ(partition->get_part_sizes()[2], 0);
+    EXPECT_EQ(partition->get_part_sizes()[3], 5);
+    EXPECT_EQ(partition->get_part_sizes()[4], 0);
+}
+
+
 TYPED_TEST(Partition, BuildsFromRanges)
 {
     using local_index_type = typename TestFixture::local_index_type;
@@ -166,9 +221,8 @@ TYPED_TEST(Partition, BuildsFromGlobalSize)
 {
     using local_index_type = typename TestFixture::local_index_type;
 
-    auto partition =
-        gko::distributed::Partition<local_index_type>::build_from_global_size(
-            this->ref, 5, 13);
+    auto partition = gko::distributed::Partition<
+        local_index_type>::build_from_global_size_uniform(this->ref, 5, 13);
 
     EXPECT_EQ(partition->get_size(), 13);
     EXPECT_EQ(partition->get_num_ranges(), 5);
@@ -201,9 +255,8 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeEmptySize)
 {
     using local_index_type = typename TestFixture::local_index_type;
 
-    auto partition =
-        gko::distributed::Partition<local_index_type>::build_from_global_size(
-            this->ref, 5, 0);
+    auto partition = gko::distributed::Partition<
+        local_index_type>::build_from_global_size_uniform(this->ref, 5, 0);
 
     EXPECT_EQ(partition->get_size(), 0);
     EXPECT_EQ(partition->get_num_ranges(), 5);
@@ -236,9 +289,8 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeWithEmptyParts)
 {
     using local_index_type = typename TestFixture::local_index_type;
 
-    auto partition =
-        gko::distributed::Partition<local_index_type>::build_from_global_size(
-            this->ref, 5, 3);
+    auto partition = gko::distributed::Partition<
+        local_index_type>::build_from_global_size_uniform(this->ref, 5, 3);
 
     EXPECT_EQ(partition->get_size(), 3);
     EXPECT_EQ(partition->get_num_ranges(), 5);
@@ -274,6 +326,18 @@ TYPED_TEST(Partition, IsConnected)
         gko::distributed::Partition<local_index_type>::build_from_mapping(
             this->ref, gko::Array<comm_index_type>{this->ref, {0, 0, 1, 1, 2}},
             3));
+
+    ASSERT_TRUE(part->is_connected());
+}
+
+
+TYPED_TEST(Partition, IsConnectedWithEmptyParts)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    auto part = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, gko::Array<comm_index_type>{this->ref, {0, 0, 2, 2, 5}},
+            6));
 
     ASSERT_TRUE(part->is_connected());
 }
