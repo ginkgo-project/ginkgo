@@ -44,6 +44,15 @@ namespace log {
 
 
 /**
+ * Types of batch loggers available.
+ */
+enum class BatchLogType {
+    convergence_completion,
+    simple_convergence_completion
+};
+
+
+/**
  * Stores logging data for batch solver kernels.
  */
 template <typename ValueType>
