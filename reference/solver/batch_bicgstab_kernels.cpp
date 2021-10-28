@@ -62,7 +62,6 @@ namespace {
 
 
 using gko::kernels::reference::batch_csr::advanced_spmv_kernel;
-using gko::kernels::reference::batch_csr::batch_scale;
 using gko::kernels::reference::batch_csr::spmv_kernel;
 
 using gko::kernels::reference::batch_ell::advanced_spmv_kernel;
@@ -119,21 +118,21 @@ void apply_select_prec(
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
         BatchIdentity<ValueType> prec{};
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            apply_impl<stop::AbsResidualMaxIter<ValueType>>(exec, opts, logger,
-                                                            prec, a, b, x);
+            apply_impl<stop::SimpleAbsResidual<ValueType>>(exec, opts, logger,
+                                                           prec, a, b, x);
         } else {
-            apply_impl<stop::RelResidualMaxIter<ValueType>>(exec, opts, logger,
-                                                            prec, a, b, x);
+            apply_impl<stop::SimpleRelResidual<ValueType>>(exec, opts, logger,
+                                                           prec, a, b, x);
         }
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
         BatchJacobi<ValueType> prec{};
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            apply_impl<stop::AbsResidualMaxIter<ValueType>>(exec, opts, logger,
-                                                            prec, a, b, x);
+            apply_impl<stop::SimpleAbsResidual<ValueType>>(exec, opts, logger,
+                                                           prec, a, b, x);
         } else {
-            apply_impl<stop::RelResidualMaxIter<ValueType>>(exec, opts, logger,
-                                                            prec, a, b, x);
+            apply_impl<stop::SimpleRelResidual<ValueType>>(exec, opts, logger,
+                                                           prec, a, b, x);
         }
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -149,8 +148,7 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
            matrix::BatchDense<ValueType>* const x,
            gko::log::BatchLogData<ValueType>& logdata)
 {
-    batch_log::FinalLogger<remove_complex<ValueType>> logger(
-        static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
+    batch_log::SimpleFinalLogger<remove_complex<ValueType>> logger(
         logdata.res_norms->get_values(), logdata.iter_counts.get_data());
 
     const gko::batch_dense::UniformBatch<ValueType> x_b =
