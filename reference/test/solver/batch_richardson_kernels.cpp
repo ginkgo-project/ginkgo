@@ -74,34 +74,18 @@ protected:
         sys_1.bnorm = gko::batch_initialize<RBDense>(nbatch, {0.0}, exec);
         sys_1.b->compute_norm2(sys_1.bnorm.get());
 
-        sys_m.xex = gko::batch_initialize<BDense>(
-            nbatch,
-            std::initializer_list<std::initializer_list<value_type>>{
-                {1.0, 1.0}, {3.0, 0.0}, {2.0, 0.0}},
-            exec);
-        sys_m.b = gko::batch_initialize<BDense>(
-            nbatch,
-            std::initializer_list<std::initializer_list<value_type>>{
-                {-1.0, 2.0}, {3.0, -1.0}, {1.0, 0.0}},
-            exec);
-        sys_m.mtx =
-            gko::test::create_poisson1d_batch<value_type>(exec, nrows, nbatch);
-        sys_m.bnorm =
-            gko::batch_initialize<RBDense>(nbatch, {{0.0, 0.0}}, exec);
-        sys_m.b->compute_norm2(sys_m.bnorm.get());
-
         auto execp = this->exec;
-        solve_fn = [execp](const Options opts, const Mtx *mtx, const BDense *b,
-                           BDense *x, LogData &logdata) {
+        solve_fn = [execp](const Options opts, const Mtx* mtx, const BDense* b,
+                           BDense* x, LogData& logdata) {
             gko::kernels::reference::batch_rich::apply<value_type>(
                 execp, opts, mtx, b, x, logdata);
         };
-        scale_mat = [execp](const BDense *const left, const BDense *const right,
-                            Mtx *const mat, BDense *const b) {
+        scale_mat = [execp](const BDense* const left, const BDense* const right,
+                            Mtx* const mat, BDense* const b) {
             gko::kernels::reference::batch_csr::pre_diag_scale_system<
                 value_type>(execp, left, right, mat, b);
         };
-        scale_vecs = [execp](const BDense *const scale, BDense *const mat) {
+        scale_vecs = [execp](const BDense* const scale, BDense* const mat) {
             gko::kernels::reference::batch_dense::batch_scale<value_type>(
                 execp, scale, mat);
         };
@@ -114,22 +98,15 @@ protected:
     const Options opts_1{gpb::type::jacobi, 500, r<real_type>::value,
                          gko::stop::batch::ToleranceType::relative, 1.0};
 
-    const int nrhs = 2;
-    const Options opts_m{gpb::type::jacobi, 1000, r<real_type>::value,
-                         gko::stop::batch::ToleranceType::relative, 1.0};
-
     gko::test::LinSys<value_type> sys_1;
-    gko::test::LinSys<value_type> sys_m;
 
-    std::function<void(Options, const Mtx *, const BDense *, BDense *,
-                       LogData &)>
+    std::function<void(Options, const Mtx*, const BDense*, BDense*, LogData&)>
         solve_fn;
-    std::function<void(const BDense *, const BDense *, Mtx *, BDense *)>
-        scale_mat;
-    std::function<void(const BDense *, BDense *)> scale_vecs;
+    std::function<void(const BDense*, const BDense*, Mtx*, BDense*)> scale_mat;
+    std::function<void(const BDense*, BDense*)> scale_vecs;
 
     std::unique_ptr<typename solver_type::Factory> create_factory(
-        std::shared_ptr<const gko::Executor> exec, const Options &opts)
+        std::shared_ptr<const gko::Executor> exec, const Options& opts)
     {
         return solver_type::build()
             .with_max_iterations(opts.max_its)
@@ -148,22 +125,6 @@ protected:
         } else {
             return -1;
         }
-    }
-
-    std::vector<int> multiple_iters_regression() const
-    {
-        std::vector<int> iters(2);
-        if (std::is_same<real_type, float>::value) {
-            iters[0] = 40;
-            iters[1] = 39;
-        } else if (std::is_same<real_type, double>::value) {
-            iters[0] = 98;
-            iters[1] = 97;
-        } else {
-            iters[0] = -1;
-            iters[1] = -1;
-        }
-        return iters;
     }
 };
 
@@ -195,8 +156,8 @@ TYPED_TEST(BatchRich, StencilSystemJacobiLoggerIsSameAsBefore)
         this->opts_1, this->sys_1, 1);
 
     const int ref_iters = this->single_iters_regression();
-    const int *const iter_array = r_1.logdata.iter_counts.get_const_data();
-    const real_type *const res_log_array =
+    const int* const iter_array = r_1.logdata.iter_counts.get_const_data();
+    const real_type* const res_log_array =
         r_1.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
         // test logger
@@ -207,56 +168,6 @@ TYPED_TEST(BatchRich, StencilSystemJacobiLoggerIsSameAsBefore)
                     r_1.resnorm->get_const_values()[i] /
                         this->sys_1.bnorm->get_const_values()[i],
                     10 * r<value_type>::value);
-    }
-}
-
-
-TYPED_TEST(BatchRich, SolvesStencilMultipleSystemJacobi)
-{
-    auto r_m = gko::test::solve_poisson_uniform(
-        this->exec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts_m, this->sys_m, this->nrhs);
-
-    for (size_t i = 0; i < this->nbatch; i++) {
-        for (size_t j = 0; j < this->nrhs; j++) {
-            ASSERT_LE(
-                r_m.resnorm->get_const_values()[i * this->nrhs + j] /
-                    this->sys_m.bnorm->get_const_values()[i * this->nrhs + j],
-                this->opts_m.residual_tol);
-        }
-    }
-    GKO_ASSERT_BATCH_MTX_NEAR(r_m.x, this->sys_m.xex,
-                              1e-6 /*r<value_type>::value*/);
-}
-
-
-TYPED_TEST(BatchRich, StencilMultipleSystemJacobiLoggerIsSameAsBefore)
-{
-    using value_type = typename TestFixture::value_type;
-    using real_type = gko::remove_complex<value_type>;
-
-    auto r_m = gko::test::solve_poisson_uniform(
-        this->exec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts_m, this->sys_m, this->nrhs);
-
-    const std::vector<int> ref_iters = this->multiple_iters_regression();
-    const int *const iter_array = r_m.logdata.iter_counts.get_const_data();
-    const real_type *const res_log_array =
-        r_m.logdata.res_norms->get_const_values();
-    for (size_t i = 0; i < this->nbatch; i++) {
-        // test logger
-        for (size_t j = 0; j < this->nrhs; j++) {
-            ASSERT_EQ(iter_array[i * this->nrhs + j], ref_iters[j]);
-            ASSERT_LE(
-                res_log_array[i * this->nrhs + j] /
-                    this->sys_m.bnorm->get_const_values()[i * this->nrhs + j],
-                this->opts_m.residual_tol);
-            ASSERT_NEAR(
-                res_log_array[i] / this->sys_m.bnorm->get_const_values()[i],
-                r_m.resnorm->get_const_values()[i] /
-                    this->sys_m.bnorm->get_const_values()[i],
-                10 * r<value_type>::value);
-        }
     }
 }
 
@@ -277,8 +188,8 @@ TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
         this->exec, this->solve_fn, this->scale_mat, this->scale_vecs,
         opts_slower, this->sys_1, 1);
 
-    const int *const iter_arr1 = result1.logdata.iter_counts.get_const_data();
-    const int *const iter_arr2 = result2.logdata.iter_counts.get_const_data();
+    const int* const iter_arr1 = result1.logdata.iter_counts.get_const_data();
+    const int* const iter_arr2 = result2.logdata.iter_counts.get_const_data();
     for (size_t i = 0; i < this->nbatch; i++) {
         ASSERT_LE(iter_arr1[i], iter_arr2[i]);
     }
@@ -352,9 +263,9 @@ TEST(BatchRich, CoreCanSolveWithoutScaling)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_relaxation_factor(RT{0.98})
             .on(exec);
-    const int nrows = 40;
+    const int nrows = 42;
     const size_t nbatch = 3;
-    const int nrhs = 5;
+    const int nrhs = 1;
     gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
                                   batchrich_factory.get());
 }
@@ -365,7 +276,7 @@ TEST(BatchRich, CoreCanSolveWithScaling)
     using T = double;
     using RT = typename gko::remove_complex<T>;
     using Solver = gko::solver::BatchRichardson<T>;
-    const RT tol = 200 * std::numeric_limits<RT>::epsilon();
+    const RT tol = 10000 * std::numeric_limits<RT>::epsilon();
     const int maxits = 10000;
     std::shared_ptr<gko::ReferenceExecutor> exec =
         gko::ReferenceExecutor::create();
@@ -378,7 +289,7 @@ TEST(BatchRich, CoreCanSolveWithScaling)
             .on(exec);
     const int nrows = 40;
     const size_t nbatch = 3;
-    const int nrhs = 5;
+    const int nrhs = 1;
 
     gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, 20 * tol, maxits,
                                   batchrich_factory.get(), 10, true);
