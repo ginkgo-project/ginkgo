@@ -64,8 +64,7 @@ protected:
 
     BatchBicgstab()
         : exec(gko::ReferenceExecutor::create()),
-          sys_1(gko::test::get_poisson_problem<T>(exec, 1, nbatch)),
-          sys_m(gko::test::get_poisson_problem<T>(exec, nrhs, nbatch))
+          sys_1(gko::test::get_poisson_problem<T>(exec, 1, nbatch))
     {
         auto execp = this->exec;
         solve_fn = [execp](const Options opts, const Mtx* mtx, const BDense* b,
@@ -93,12 +92,8 @@ protected:
     const Options opts_1{gko::preconditioner::batch::type::none, 500,
                          static_cast<real_type>(1e3) * eps,
                          gko::stop::batch::ToleranceType::relative};
-    const int nrhs = 2;
-    const Options opts_m{gko::preconditioner::batch::type::none, 500, eps,
-                         gko::stop::batch::ToleranceType::absolute};
 
     gko::test::LinSys<value_type> sys_1;
-    gko::test::LinSys<value_type> sys_m;
 
     std::function<void(Options, const Mtx*, const BDense*, BDense*, LogData&)>
         solve_fn;
@@ -125,22 +120,6 @@ protected:
         } else {
             return -1;
         }
-    }
-
-    std::vector<int> multiple_iters_regression() const
-    {
-        std::vector<int> iters(2);
-        if (std::is_same<real_type, float>::value) {
-            iters[0] = 2;
-            iters[1] = 2;
-        } else if (std::is_same<real_type, double>::value) {
-            iters[0] = 2;
-            iters[1] = 2;
-        } else {
-            iters[0] = -1;
-            iters[1] = -1;
-        }
-        return iters;
     }
 };
 
@@ -182,47 +161,6 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerIsCorrect)
                   this->opts_1.residual_tol);
         ASSERT_NEAR(res_log_array[i], r_1.resnorm->get_const_values()[i],
                     10 * this->eps);
-    }
-}
-
-
-TYPED_TEST(BatchBicgstab, SolvesStencilMultipleSystem)
-{
-    auto r_m = gko::test::solve_poisson_uniform(
-        this->exec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts_m, this->sys_m, this->nrhs);
-
-    GKO_ASSERT_BATCH_MTX_NEAR(r_m.x, this->sys_m.xex, this->eps);
-    for (size_t i = 0; i < this->nbatch; i++) {
-        ASSERT_LE(r_m.resnorm->get_const_values()[i],
-                  this->opts_m.residual_tol);
-    }
-}
-
-
-TYPED_TEST(BatchBicgstab, StencilMultipleSystemLoggerIsCorrect)
-{
-    using value_type = typename TestFixture::value_type;
-    using real_type = gko::remove_complex<value_type>;
-
-    auto r_m = gko::test::solve_poisson_uniform(
-        this->exec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts_m, this->sys_m, this->nrhs);
-
-    const std::vector<int> ref_iters = this->multiple_iters_regression();
-    const int* const iter_array = r_m.logdata.iter_counts.get_const_data();
-    const real_type* const res_log_array =
-        r_m.logdata.res_norms->get_const_values();
-    for (size_t i = 0; i < this->nbatch; i++) {
-        for (size_t j = 0; j < this->nrhs; j++) {
-            GKO_ASSERT((iter_array[i * this->nrhs + j] <= ref_iters[j] + 1) &&
-                       (iter_array[i * this->nrhs + j] >= ref_iters[j] - 1));
-            ASSERT_LE(res_log_array[i * this->nrhs + j],
-                      this->opts_m.residual_tol);
-            ASSERT_NEAR(res_log_array[i * this->nrhs + j],
-                        r_m.resnorm->get_const_values()[i * this->nrhs + j],
-                        10 * this->eps);
-        }
     }
 }
 
@@ -302,9 +240,9 @@ TEST(BatchBicgstab, CoreCanSolveWithoutScaling)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .on(exec);
-    const int nrows = 40;
+    const int nrows = 39;
     const size_t nbatch = 3;
-    const int nrhs = 5;
+    const int nrhs = 1;
 
     gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
                                   batchbicgstab_factory.get(), 10);
@@ -327,9 +265,9 @@ TEST(BatchBicgstab, CoreCanSolveWithScaling)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .on(exec);
-    const int nrows = 40;
+    const int nrows = 42;
     const size_t nbatch = 3;
-    const int nrhs = 5;
+    const int nrhs = 1;
 
     gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
                                   batchbicgstab_factory.get(), 10, true);
