@@ -16,6 +16,7 @@ target_sources(ginkgo_dpcpp
     PRIVATE
     base/version.dp.cpp
     base/executor.dp.cpp
+    base/memory_space.dp.cpp
     base/helper.dp.cpp
     base/index_set_kernels.dp.cpp
     components/device_matrix_data_kernels.dp.cpp

@@ -157,6 +157,7 @@ set(GINKGO_HIP_SOURCES
     base/exception.hip.cpp
     base/executor.hip.cpp
     base/index_set_kernels.hip.cpp
+    base/memory_space.hip.cpp
     base/version.hip.cpp
     components/device_matrix_data_kernels.hip.cpp
     components/prefix_sum_kernels.hip.cpp

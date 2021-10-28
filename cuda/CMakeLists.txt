@@ -72,6 +72,7 @@ target_sources(ginkgo_cuda
     base/exception.cpp
     base/executor.cpp
     base/index_set_kernels.cpp
+    base/memory_space.cpp
     base/version.cpp
     components/device_matrix_data_kernels.cu
     components/prefix_sum_kernels.cu

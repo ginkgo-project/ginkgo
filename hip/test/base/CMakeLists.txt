@@ -6,6 +6,7 @@ if(GINKGO_HAVE_HWLOC)
 endif()
 ginkgo_create_hip_test(kernel_launch)
 # correct flags for kernel_launch.hpp are set in GINKGO_HIPCC_OPTIONS
+ginkgo_create_hip_test(hip_memory_space)
 ginkgo_create_hip_test(lin_op)
 ginkgo_create_hip_test(math)
 # Only hcc needs the libraries. nvcc only requires the headers.
