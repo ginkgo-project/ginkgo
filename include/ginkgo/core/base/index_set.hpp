@@ -291,7 +291,7 @@ public:
      * @warning This single entry query can have significant kernel lauch
      *          overheads and should be avoided if possible.
      */
-    index_type get_global_index(const index_type local_index) const;
+    index_type get_global_index(index_type local_index) const;
 
     /**
      * Return the local index given a global index.
@@ -313,7 +313,7 @@ public:
      * @warning This single entry query can have significant kernel lauch
      *          overheads and should be avoided if possible.
      */
-    index_type get_local_index(const index_type global_index) const;
+    index_type get_local_index(index_type global_index) const;
 
     /**
      * This is an array version of the scalar function above.
@@ -327,10 +327,11 @@ public:
      * @note Whenever possible, passing a sorted array is preferred as the
      *       queries can be significantly faster.
      * @note Passing local indices from [0, size) is equivalent to using the
-     *       @decompress function.
+     *       @to_global_indices function.
      */
-    Array<index_type> get_global_indices(const Array<index_type>& local_indices,
-                                         const bool is_sorted = false) const;
+    Array<index_type> map_local_to_global(
+        const Array<index_type>& local_indices,
+        const bool is_sorted = false) const;
 
     /**
      * This is an array version of the scalar function above.
@@ -344,41 +345,42 @@ public:
      * @note Whenever possible, passing a sorted array is preferred as the
      *       queries can be significantly faster.
      */
-    Array<index_type> get_local_indices(const Array<index_type>& global_indices,
-                                        const bool is_sorted = false) const;
+    Array<index_type> map_global_to_local(
+        const Array<index_type>& global_indices,
+        const bool is_sorted = false) const;
 
     /**
-     * This function allows the user to decompress the index set and obtain the
-     * complete list of indices stored by the index set.
+     * This function allows the user obtain a decompresed global_indices Array
+     * from the indices stored in the index set
      *
      * @return  the decompressed set of indices.
      */
-    Array<index_type> decompress() const;
+    Array<index_type> to_global_indices() const;
 
     /**
      * Checks if the global index exists in the index set.
      *
-     * @param indices  the indices to check.
+     * @param global_indices  the indices to check.
      * @param is_sorted  a parameter that specifies if the query array is sorted
      *                   or not. `true` if sorted.
      *
      * @return  the Array that contains element wise whether the corresponding
      *          global index in the index set or not.
      */
-    Array<bool> contains(const Array<index_type>& indices,
+    Array<bool> contains(const Array<index_type>& global_indices,
                          const bool is_sorted = false) const;
 
     /**
      * Checks if the global index exists in the index set.
      *
-     * @param index  the index to check.
+     * @param global_index  the index to check.
      *
      * @return  whether the element exists in the index set.
      *
      * @warning This single entry query can have significant kernel lauch
      *          overheads and should be avoided if possible.
      */
-    bool contains(const index_type index) const;
+    bool contains(const index_type global_index) const;
 
     /**
      * Returns the number of subsets stored in the index set.

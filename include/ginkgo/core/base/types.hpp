@@ -649,6 +649,8 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 template <typename IndexType>
 inline IndexType invalid_index()
 {
+    static_assert(std::is_signed<IndexType>::value,
+                  "IndexType needs to be signed");
     return static_cast<IndexType>(-1);
 }
 
