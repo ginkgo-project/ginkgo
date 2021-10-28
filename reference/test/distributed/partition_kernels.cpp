@@ -56,6 +56,16 @@ using global_index_type = gko::distributed::global_index_type;
 using comm_index_type = gko::distributed::comm_index_type;
 
 
+template <typename T, typename U>
+void assert_equal_data(const T* data, std::initializer_list<U> reference_data)
+{
+    std::vector<U> ref(std::move(reference_data));
+    for (auto i = 0; i < ref.size(); ++i) {
+        EXPECT_EQ(data[i], ref[i]);
+    }
+}
+
+
 template <typename LocalIndexType>
 class Partition : public ::testing::Test {
 protected:
@@ -83,40 +93,14 @@ TYPED_TEST(Partition, BuildsFromMapping)
     EXPECT_EQ(partition->get_size(), mapping.get_num_elems());
     EXPECT_EQ(partition->get_num_ranges(), num_ranges);
     EXPECT_EQ(partition->get_num_parts(), num_parts);
-    EXPECT_EQ(partition->get_range_bounds()[0], 0);
-    EXPECT_EQ(partition->get_range_bounds()[1], 2);
-    EXPECT_EQ(partition->get_range_bounds()[2], 3);
-    EXPECT_EQ(partition->get_range_bounds()[3], 5);
-    EXPECT_EQ(partition->get_range_bounds()[4], 6);
-    EXPECT_EQ(partition->get_range_bounds()[5], 8);
-    EXPECT_EQ(partition->get_range_bounds()[6], 9);
-    EXPECT_EQ(partition->get_range_bounds()[7], 10);
-    EXPECT_EQ(partition->get_range_bounds()[8], 13);
-    EXPECT_EQ(partition->get_range_bounds()[9], 15);
-    EXPECT_EQ(partition->get_range_bounds()[10], 16);
-    EXPECT_EQ(partition->get_part_ids()[0], 2);
-    EXPECT_EQ(partition->get_part_ids()[1], 0);
-    EXPECT_EQ(partition->get_part_ids()[2], 1);
-    EXPECT_EQ(partition->get_part_ids()[3], 2);
-    EXPECT_EQ(partition->get_part_ids()[4], 0);
-    EXPECT_EQ(partition->get_part_ids()[5], 1);
-    EXPECT_EQ(partition->get_part_ids()[6], 0);
-    EXPECT_EQ(partition->get_part_ids()[7], 1);
-    EXPECT_EQ(partition->get_part_ids()[8], 2);
-    EXPECT_EQ(partition->get_part_ids()[9], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[0], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[1], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[2], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[3], 2);
-    EXPECT_EQ(partition->get_range_starting_indices()[4], 1);
-    EXPECT_EQ(partition->get_range_starting_indices()[5], 2);
-    EXPECT_EQ(partition->get_range_starting_indices()[6], 3);
-    EXPECT_EQ(partition->get_range_starting_indices()[7], 3);
-    EXPECT_EQ(partition->get_range_starting_indices()[8], 3);
-    EXPECT_EQ(partition->get_range_starting_indices()[9], 4);
-    EXPECT_EQ(partition->get_part_sizes()[0], 5);
-    EXPECT_EQ(partition->get_part_sizes()[1], 6);
-    EXPECT_EQ(partition->get_part_sizes()[2], 5);
+    EXPECT_EQ(partition->get_num_empty_parts(), 0);
+    assert_equal_data(partition->get_range_bounds(),
+                      {0, 2, 3, 5, 6, 8, 9, 10, 13, 15, 16});
+    assert_equal_data(partition->get_part_ids(),
+                      {2, 0, 1, 2, 0, 1, 0, 1, 2, 0});
+    assert_equal_data(partition->get_range_starting_indices(),
+                      {0, 0, 0, 2, 1, 2, 3, 3, 3, 4});
+    assert_equal_data(partition->get_part_sizes(), {5, 6, 5});
 }
 
 
@@ -136,42 +120,13 @@ TYPED_TEST(Partition, BuildsFromMappingWithEmptyParts)
     EXPECT_EQ(partition->get_num_ranges(), num_ranges);
     EXPECT_EQ(partition->get_num_parts(), num_parts);
     EXPECT_EQ(partition->get_num_empty_parts(), 2);
-    EXPECT_EQ(partition->get_range_bounds()[0], 0);
-    EXPECT_EQ(partition->get_range_bounds()[1], 2);
-    EXPECT_EQ(partition->get_range_bounds()[2], 3);
-    EXPECT_EQ(partition->get_range_bounds()[3], 5);
-    EXPECT_EQ(partition->get_range_bounds()[4], 6);
-    EXPECT_EQ(partition->get_range_bounds()[5], 8);
-    EXPECT_EQ(partition->get_range_bounds()[6], 9);
-    EXPECT_EQ(partition->get_range_bounds()[7], 10);
-    EXPECT_EQ(partition->get_range_bounds()[8], 13);
-    EXPECT_EQ(partition->get_range_bounds()[9], 15);
-    EXPECT_EQ(partition->get_range_bounds()[10], 16);
-    EXPECT_EQ(partition->get_part_ids()[0], 3);
-    EXPECT_EQ(partition->get_part_ids()[1], 0);
-    EXPECT_EQ(partition->get_part_ids()[2], 1);
-    EXPECT_EQ(partition->get_part_ids()[3], 3);
-    EXPECT_EQ(partition->get_part_ids()[4], 0);
-    EXPECT_EQ(partition->get_part_ids()[5], 1);
-    EXPECT_EQ(partition->get_part_ids()[6], 0);
-    EXPECT_EQ(partition->get_part_ids()[7], 1);
-    EXPECT_EQ(partition->get_part_ids()[8], 3);
-    EXPECT_EQ(partition->get_part_ids()[9], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[0], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[1], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[2], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[3], 2);
-    EXPECT_EQ(partition->get_range_starting_indices()[4], 1);
-    EXPECT_EQ(partition->get_range_starting_indices()[5], 2);
-    EXPECT_EQ(partition->get_range_starting_indices()[6], 3);
-    EXPECT_EQ(partition->get_range_starting_indices()[7], 3);
-    EXPECT_EQ(partition->get_range_starting_indices()[8], 3);
-    EXPECT_EQ(partition->get_range_starting_indices()[9], 4);
-    EXPECT_EQ(partition->get_part_sizes()[0], 5);
-    EXPECT_EQ(partition->get_part_sizes()[1], 6);
-    EXPECT_EQ(partition->get_part_sizes()[2], 0);
-    EXPECT_EQ(partition->get_part_sizes()[3], 5);
-    EXPECT_EQ(partition->get_part_sizes()[4], 0);
+    assert_equal_data(partition->get_range_bounds(),
+                      {0, 2, 3, 5, 6, 8, 9, 10, 13, 15, 16});
+    assert_equal_data(partition->get_part_ids(),
+                      {3, 0, 1, 3, 0, 1, 0, 1, 3, 0});
+    assert_equal_data(partition->get_range_starting_indices(),
+                      {0, 0, 0, 2, 1, 2, 3, 3, 3, 4});
+    assert_equal_data(partition->get_part_sizes(), {5, 6, 0, 5, 0});
 }
 
 
@@ -188,27 +143,11 @@ TYPED_TEST(Partition, BuildsFromRanges)
               ranges.get_data()[ranges.get_num_elems() - 1]);
     EXPECT_EQ(partition->get_num_ranges(), ranges.get_num_elems() - 1);
     EXPECT_EQ(partition->get_num_parts(), ranges.get_num_elems() - 1);
-    EXPECT_EQ(partition->get_range_bounds()[0], 0);
-    EXPECT_EQ(partition->get_range_bounds()[1], 5);
-    EXPECT_EQ(partition->get_range_bounds()[2], 5);
-    EXPECT_EQ(partition->get_range_bounds()[3], 7);
-    EXPECT_EQ(partition->get_range_bounds()[4], 9);
-    EXPECT_EQ(partition->get_range_bounds()[5], 10);
-    EXPECT_EQ(partition->get_part_ids()[0], 0);
-    EXPECT_EQ(partition->get_part_ids()[1], 1);
-    EXPECT_EQ(partition->get_part_ids()[2], 2);
-    EXPECT_EQ(partition->get_part_ids()[3], 3);
-    EXPECT_EQ(partition->get_part_ids()[4], 4);
-    EXPECT_EQ(partition->get_range_starting_indices()[0], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[1], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[2], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[3], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[4], 0);
-    EXPECT_EQ(partition->get_part_sizes()[0], 5);
-    EXPECT_EQ(partition->get_part_sizes()[1], 0);
-    EXPECT_EQ(partition->get_part_sizes()[2], 2);
-    EXPECT_EQ(partition->get_part_sizes()[3], 2);
-    EXPECT_EQ(partition->get_part_sizes()[4], 1);
+    EXPECT_EQ(partition->get_num_empty_parts(), 1);
+    assert_equal_data(partition->get_range_bounds(), {0, 5, 5, 7, 9, 10});
+    assert_equal_data(partition->get_part_ids(), {0, 1, 2, 3, 4});
+    assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
+    assert_equal_data(partition->get_part_sizes(), {5, 0, 2, 2, 1});
 }
 
 TYPED_TEST(Partition, BuildsFromGlobalSize)
@@ -221,27 +160,11 @@ TYPED_TEST(Partition, BuildsFromGlobalSize)
     EXPECT_EQ(partition->get_size(), 13);
     EXPECT_EQ(partition->get_num_ranges(), 5);
     EXPECT_EQ(partition->get_num_parts(), 5);
-    EXPECT_EQ(partition->get_range_bounds()[0], 0);
-    EXPECT_EQ(partition->get_range_bounds()[1], 3);
-    EXPECT_EQ(partition->get_range_bounds()[2], 6);
-    EXPECT_EQ(partition->get_range_bounds()[3], 9);
-    EXPECT_EQ(partition->get_range_bounds()[4], 11);
-    EXPECT_EQ(partition->get_range_bounds()[5], 13);
-    EXPECT_EQ(partition->get_part_ids()[0], 0);
-    EXPECT_EQ(partition->get_part_ids()[1], 1);
-    EXPECT_EQ(partition->get_part_ids()[2], 2);
-    EXPECT_EQ(partition->get_part_ids()[3], 3);
-    EXPECT_EQ(partition->get_part_ids()[4], 4);
-    EXPECT_EQ(partition->get_range_starting_indices()[0], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[1], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[2], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[3], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[4], 0);
-    EXPECT_EQ(partition->get_part_sizes()[0], 3);
-    EXPECT_EQ(partition->get_part_sizes()[1], 3);
-    EXPECT_EQ(partition->get_part_sizes()[2], 3);
-    EXPECT_EQ(partition->get_part_sizes()[3], 2);
-    EXPECT_EQ(partition->get_part_sizes()[4], 2);
+    EXPECT_EQ(partition->get_num_empty_parts(), 0);
+    assert_equal_data(partition->get_range_bounds(), {0, 3, 6, 9, 11, 13});
+    assert_equal_data(partition->get_part_ids(), {0, 1, 2, 3, 4});
+    assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
+    assert_equal_data(partition->get_part_sizes(), {3, 3, 3, 2, 2});
 }
 
 
@@ -255,27 +178,11 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeEmptySize)
     EXPECT_EQ(partition->get_size(), 0);
     EXPECT_EQ(partition->get_num_ranges(), 5);
     EXPECT_EQ(partition->get_num_parts(), 5);
-    EXPECT_EQ(partition->get_range_bounds()[0], 0);
-    EXPECT_EQ(partition->get_range_bounds()[1], 0);
-    EXPECT_EQ(partition->get_range_bounds()[2], 0);
-    EXPECT_EQ(partition->get_range_bounds()[3], 0);
-    EXPECT_EQ(partition->get_range_bounds()[4], 0);
-    EXPECT_EQ(partition->get_range_bounds()[5], 0);
-    EXPECT_EQ(partition->get_part_ids()[0], 0);
-    EXPECT_EQ(partition->get_part_ids()[1], 1);
-    EXPECT_EQ(partition->get_part_ids()[2], 2);
-    EXPECT_EQ(partition->get_part_ids()[3], 3);
-    EXPECT_EQ(partition->get_part_ids()[4], 4);
-    EXPECT_EQ(partition->get_range_starting_indices()[0], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[1], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[2], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[3], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[4], 0);
-    EXPECT_EQ(partition->get_part_sizes()[0], 0);
-    EXPECT_EQ(partition->get_part_sizes()[1], 0);
-    EXPECT_EQ(partition->get_part_sizes()[2], 0);
-    EXPECT_EQ(partition->get_part_sizes()[3], 0);
-    EXPECT_EQ(partition->get_part_sizes()[4], 0);
+    EXPECT_EQ(partition->get_num_empty_parts(), 5);
+    assert_equal_data(partition->get_range_bounds(), {0, 0, 0, 0, 0, 0});
+    assert_equal_data(partition->get_part_ids(), {0, 1, 2, 3, 4});
+    assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
+    assert_equal_data(partition->get_part_sizes(), {0, 0, 0, 0, 0});
 }
 
 
@@ -289,27 +196,11 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeWithEmptyParts)
     EXPECT_EQ(partition->get_size(), 3);
     EXPECT_EQ(partition->get_num_ranges(), 5);
     EXPECT_EQ(partition->get_num_parts(), 5);
-    EXPECT_EQ(partition->get_range_bounds()[0], 0);
-    EXPECT_EQ(partition->get_range_bounds()[1], 1);
-    EXPECT_EQ(partition->get_range_bounds()[2], 2);
-    EXPECT_EQ(partition->get_range_bounds()[3], 3);
-    EXPECT_EQ(partition->get_range_bounds()[4], 3);
-    EXPECT_EQ(partition->get_range_bounds()[5], 3);
-    EXPECT_EQ(partition->get_part_ids()[0], 0);
-    EXPECT_EQ(partition->get_part_ids()[1], 1);
-    EXPECT_EQ(partition->get_part_ids()[2], 2);
-    EXPECT_EQ(partition->get_part_ids()[3], 3);
-    EXPECT_EQ(partition->get_part_ids()[4], 4);
-    EXPECT_EQ(partition->get_range_starting_indices()[0], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[1], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[2], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[3], 0);
-    EXPECT_EQ(partition->get_range_starting_indices()[4], 0);
-    EXPECT_EQ(partition->get_part_sizes()[0], 1);
-    EXPECT_EQ(partition->get_part_sizes()[1], 1);
-    EXPECT_EQ(partition->get_part_sizes()[2], 1);
-    EXPECT_EQ(partition->get_part_sizes()[3], 0);
-    EXPECT_EQ(partition->get_part_sizes()[4], 0);
+    EXPECT_EQ(partition->get_num_empty_parts(), 2);
+    assert_equal_data(partition->get_range_bounds(), {0, 1, 2, 3, 3, 3});
+    assert_equal_data(partition->get_part_ids(), {0, 1, 2, 3, 4});
+    assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
+    assert_equal_data(partition->get_part_sizes(), {1, 1, 1, 0, 0});
 }
 
 
@@ -321,7 +212,7 @@ TYPED_TEST(Partition, IsConnected)
             this->ref, gko::Array<comm_index_type>{this->ref, {0, 0, 1, 1, 2}},
             3));
 
-    ASSERT_TRUE(part->is_connected());
+    ASSERT_TRUE(part->has_connected_parts());
 }
 
 
@@ -333,7 +224,7 @@ TYPED_TEST(Partition, IsConnectedWithEmptyParts)
             this->ref, gko::Array<comm_index_type>{this->ref, {0, 0, 2, 2, 5}},
             6));
 
-    ASSERT_TRUE(part->is_connected());
+    ASSERT_TRUE(part->has_connected_parts());
 }
 
 
@@ -345,7 +236,7 @@ TYPED_TEST(Partition, IsConnectedUnordered)
             this->ref, gko::Array<comm_index_type>{this->ref, {1, 1, 0, 0, 2}},
             3));
 
-    ASSERT_TRUE(part->is_connected());
+    ASSERT_TRUE(part->has_connected_parts());
 }
 
 
@@ -357,7 +248,7 @@ TYPED_TEST(Partition, IsConnectedFail)
             this->ref, gko::Array<comm_index_type>{this->ref, {0, 1, 2, 0, 1}},
             3));
 
-    ASSERT_FALSE(part->is_connected());
+    ASSERT_FALSE(part->has_connected_parts());
 }
 
 
@@ -369,7 +260,7 @@ TYPED_TEST(Partition, IsOrdered)
             this->ref, gko::Array<comm_index_type>{this->ref, {1, 1, 0, 0, 2}},
             3));
 
-    ASSERT_FALSE(part->is_ordered());
+    ASSERT_FALSE(part->has_ordered_parts());
 }
 
 
@@ -381,7 +272,7 @@ TYPED_TEST(Partition, IsOrderedFail)
             this->ref, gko::Array<comm_index_type>{this->ref, {0, 1, 1, 2, 2}},
             3));
 
-    ASSERT_TRUE(part->is_ordered());
+    ASSERT_TRUE(part->has_ordered_parts());
 }
 
 

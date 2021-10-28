@@ -49,7 +49,36 @@ namespace distributed {
  * with an associated part ID and local index (number of indices in this part
  * before `begin`).
  * Global indices are stored as 64 bit signed integers (int64), part-local
- * indices use LocalIndexType, Part IDs use 32 bit signed integers (int)
+ * indices use LocalIndexType, Part IDs use 32 bit signed integers (int).
+ *
+ * For example, consider the interval [0, 13) that is partitioned into the
+ * following ranges:
+ * ```
+ * [0,3), [3, 7), [7, 8), [8, 10), [10, 13).
+ * ```
+ * These ranges are distributed on three part with:
+ * ```
+ * p_0 = [0, 3) + [7, 8) + [10, 13),
+ * p_1 = [3, 7),
+ * p_2 = [8, 10).
+ * ```
+ * The part ids can be queried from the @ref get_part_ids array, and the ranges
+ * are represented as offsets, accessed by @ref get_range_bounds, leading to the
+ * array:
+ * ```
+ * r = [0, 3, 7, 8, 10, 13]
+ * ```
+ * so that individual ranges are given by `[r[i], r[i + 1])`.
+ * Since each part may be associated with multiple ranges, it is possible to get
+ * the starting index for each range that is local to the owning part, see @ref
+ * get_range_starting_indices. For the partition above that means
+ * ```
+ * starting_index[0] = 0,
+ * starting_index[1] = 0,
+ * starting_index[2] = 3,  // second range of part 1
+ * starting_index[3] = 0,
+ * starting_index[4] = 4,  // third range of part 1
+ * ```
  *
  * @tparam LocalIndexType  The index type used for part-local indices.
  *                         To prevent overflows, no single part's size may
@@ -124,22 +153,15 @@ public:
     }
 
     /**
-     * Compute the range_starting_indices and part_sizes based on the current
-     * range_bounds and part_ids.
-     */
-    void compute_range_starting_indices();
-
-    /**
      * Returns the part-local starting index for each range in this partition.
      *
      * Consider the partition on `[0, 10)` with
-     * > p_1 = [0-4), [7-10),
-     * > p_2 = [4-7).
+     * ```
+     * p_1 = [0-4) + [7-10),
+     * p_2 = [4-7).
+     * ```
      * Then `range_starting_indices[0] = 0`, `range_starting_indices[1] = 0`,
-     `range_starting_indices[2] = 5`.
-     *
-     * @note These values can only be used after compute_range_ranks() was
-     executed.
+     * `range_starting_indices[2] = 5`.
      */
     const local_index_type* get_range_starting_indices() const noexcept
     {
@@ -166,16 +188,16 @@ public:
     }
 
     /**
-     * Checks if each part is associated with at most one contiguous range.
+     * Checks if each part has no more than one contiguous range.
      */
-    bool is_connected();
+    bool has_connected_parts();
 
     /**
      * Checks if the ranges are ordered by their part index.
      *
      * Implies that the partition is connected.
      */
-    bool is_ordered();
+    bool has_ordered_parts();
 
 
     /**
@@ -239,6 +261,12 @@ private:
         part_sizes_.fill(0);
         part_ids_.fill(0);
     }
+
+    /**
+     * Compute the range_starting_indices and part_sizes based on the current
+     * range_bounds and part_ids.
+     */
+    void compute_range_starting_indices();
 
     comm_index_type num_parts_;
     comm_index_type num_empty_parts_;
