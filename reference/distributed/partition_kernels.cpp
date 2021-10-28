@@ -52,51 +52,45 @@ void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 
-template <typename LocalIndexType>
 void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,
                            const Array<global_index_type>& ranges,
-                           distributed::Partition<LocalIndexType>* partition)
+                           global_index_type* range_bounds,
+                           comm_index_type* part_ids)
 {
-    partition->get_range_bounds()[0] = 0;
+    range_bounds[0] = 0;
     for (comm_index_type i = 0; i < ranges.get_num_elems() - 1; i++) {
-        auto begin = ranges.get_const_data()[i];
         auto end = ranges.get_const_data()[i + 1];
-        partition->get_range_bounds()[i + 1] = end;
-        partition->get_part_ids()[i] = i;
+        range_bounds[i + 1] = end;
+        part_ids[i] = i;
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_PARTITION_BUILD_FROM_CONTIGUOUS);
 
-
-template <typename LocalIndexType>
 void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
                         const Array<comm_index_type>& mapping,
-                        distributed::Partition<LocalIndexType>* partition)
+                        global_index_type* range_bounds,
+                        comm_index_type* part_ids)
 {
     size_type range_idx{};
     comm_index_type range_part{-1};
     for (size_type i = 0; i < mapping.get_num_elems(); i++) {
         auto cur_part = mapping.get_const_data()[i];
         if (cur_part != range_part) {
-            partition->get_range_bounds()[range_idx] = i;
-            partition->get_part_ids()[range_idx] = cur_part;
+            range_bounds[range_idx] = i;
+            part_ids[range_idx] = cur_part;
             range_idx++;
             range_part = cur_part;
         }
     }
-    partition->get_range_bounds()[range_idx] =
+    range_bounds[range_idx] =
         static_cast<global_index_type>(mapping.get_num_elems());
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING);
 
-
-template <typename LocalIndexType>
 void build_ranges_from_global_size(std::shared_ptr<const DefaultExecutor> exec,
-                                   int num_parts, int64 global_size,
-                                   Array<LocalIndexType>& ranges)
+                                   comm_index_type num_parts,
+                                   global_index_type global_size,
+                                   Array<global_index_type>& ranges)
 {
     const auto size_per_part = global_size / num_parts;
     const auto rest = global_size - (num_parts * size_per_part);
@@ -105,13 +99,10 @@ void build_ranges_from_global_size(std::shared_ptr<const DefaultExecutor> exec,
 
     ranges_ptr[0] = 0;
     for (int i = 1; i < num_parts + 1; ++i) {
-        ranges_ptr[i] = ranges_ptr[i - 1] + size_per_part +
-                        static_cast<LocalIndexType>((i - 1) < rest);
+        ranges_ptr[i] =
+            ranges_ptr[i - 1] + size_per_part + ((i - 1) < rest ? 1 : 0);
     }
 }
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_PARTITION_BUILD_FROM_GLOBAL_SIZE);
 
 
 template <typename LocalIndexType>
@@ -142,7 +133,7 @@ void is_ordered(std::shared_ptr<const DefaultExecutor> exec,
                 bool* result)
 {
     *result = true;
-    auto part_ids = partition->get_const_part_ids();
+    auto part_ids = partition->get_part_ids();
 
     for (comm_index_type i = 1; i < partition->get_num_ranges(); ++i) {
         if (part_ids[i] < part_ids[i - 1]) {

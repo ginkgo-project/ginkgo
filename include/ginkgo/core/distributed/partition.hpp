@@ -108,17 +108,9 @@ public:
      * `range_bounds[i]` is the beginning (inclusive) and
      * `range_bounds[i + 1]` is the end (exclusive) of the ith range.
      */
-    const global_index_type* get_const_range_bounds() const noexcept
+    const global_index_type* get_range_bounds() const noexcept
     {
         return offsets_.get_const_data();
-    }
-
-    /**
-     * @copydoc get_const_range_bounds()
-     */
-    global_index_type* get_range_bounds() noexcept
-    {
-        return offsets_.get_data();
     }
 
     /**
@@ -126,15 +118,10 @@ public:
      * For each range from get_range_bounds(), it stores the part ID in the
      * range [0, get_num_parts() - 1].
      */
-    const comm_index_type* get_const_part_ids() const noexcept
+    const comm_index_type* get_part_ids() const noexcept
     {
         return part_ids_.get_const_data();
     }
-
-    /**
-     * @copydoc get_const_part_ids()
-     */
-    comm_index_type* get_part_ids() { return part_ids_.get_data(); }
 
     /**
      * Compute the range_starting_indices and part_sizes based on the current
@@ -232,6 +219,7 @@ public:
         std::shared_ptr<const Executor> exec, comm_index_type num_parts,
         global_index_type global_size);
 
+private:
     /**
      * Creates a partition stored on the given executor with the given number of
      * consecutive ranges and parts.
@@ -252,7 +240,6 @@ public:
         part_ids_.fill(0);
     }
 
-private:
     comm_index_type num_parts_;
     comm_index_type num_empty_parts_;
     Array<global_index_type> offsets_;

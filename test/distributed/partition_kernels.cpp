@@ -85,15 +85,19 @@ protected:
         ASSERT_EQ(part->get_num_parts(), dpart->get_num_parts());
         ASSERT_EQ(part->get_num_empty_parts(), dpart->get_num_empty_parts());
         GKO_ASSERT_ARRAY_EQ(
-            gko::make_array_view(this->ref, part->get_num_ranges() + 1,
-                                 part->get_range_bounds()),
-            gko::make_array_view(this->exec, dpart->get_num_ranges() + 1,
-                                 dpart->get_range_bounds()));
+            gko::make_array_view(
+                this->ref, part->get_num_ranges() + 1,
+                const_cast<global_index_type*>(part->get_range_bounds())),
+            gko::make_array_view(
+                this->exec, dpart->get_num_ranges() + 1,
+                const_cast<global_index_type*>(dpart->get_range_bounds())));
         GKO_ASSERT_ARRAY_EQ(
-            gko::make_array_view(this->ref, part->get_num_ranges(),
-                                 part->get_part_ids()),
-            gko::make_array_view(this->exec, dpart->get_num_ranges(),
-                                 dpart->get_part_ids()));
+            gko::make_array_view(
+                this->ref, part->get_num_ranges(),
+                const_cast<comm_index_type*>(part->get_part_ids())),
+            gko::make_array_view(
+                this->exec, dpart->get_num_ranges(),
+                const_cast<comm_index_type*>(dpart->get_part_ids())));
         GKO_ASSERT_ARRAY_EQ(
             gko::make_array_view(this->ref, part->get_num_ranges(),
                                  const_cast<local_index_type*>(
