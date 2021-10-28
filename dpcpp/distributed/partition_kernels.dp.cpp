@@ -49,7 +49,7 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
     Array<LocalIndexType> range_sizes{exec, num_ranges};
     // num_parts sentinel at the end
     Array<comm_index_type> tmp_part_ids{exec, num_ranges + 1};
-    Array<size_type> permutation{exec, num_ranges};
+    Array<global_index_type> permutation{exec, num_ranges};
     // set sizes to 0 in case of empty parts
     components::fill_array(exec, sizes, num_parts, LocalIndexType{});
 
@@ -64,7 +64,7 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
             }
             range_sizes[i] = range_offsets[i + 1] - range_offsets[i];
             tmp_part_ids[i] = range_parts[i];
-            permutation[i] = static_cast<int64>(i);
+            permutation[i] = static_cast<global_index_type>(i);
         },
         num_ranges, num_ranges, num_parts, range_offsets, range_parts,
         range_sizes, tmp_part_ids, permutation);

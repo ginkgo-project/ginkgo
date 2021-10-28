@@ -382,7 +382,7 @@ TYPED_TEST(Partition, IsOrderedTrue)
         gko::distributed::Partition<local_index_type>::build_from_mapping(
             this->exec, mapping, num_parts);
 
-    ASSERT_TRUE(dpart->is_ordered());
+    ASSERT_TRUE(dpart->has_ordered_parts());
 }
 
 
@@ -402,7 +402,7 @@ TYPED_TEST(Partition, IsOrderedFail)
         gko::distributed::Partition<local_index_type>::build_from_mapping(
             this->exec, mapping, num_parts);
 
-    ASSERT_FALSE(dpart->is_ordered());
+    ASSERT_FALSE(dpart->has_ordered_parts());
 }
 
 
@@ -422,7 +422,7 @@ TYPED_TEST(Partition, IsOrderedRandom)
         gko::distributed::Partition<local_index_type>::build_from_mapping(
             this->exec, mapping, num_parts);
 
-    ASSERT_EQ(part->is_ordered(), dpart->is_ordered());
+    ASSERT_EQ(part->has_ordered_parts(), dpart->has_ordered_parts());
 }
 
 

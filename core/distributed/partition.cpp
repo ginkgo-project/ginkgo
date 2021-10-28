@@ -115,16 +115,16 @@ void Partition<LocalIndexType>::compute_range_starting_indices()
 
 
 template <typename LocalIndexType>
-bool Partition<LocalIndexType>::is_connected()
+bool Partition<LocalIndexType>::has_connected_parts()
 {
     return get_num_parts() - get_num_empty_parts() == get_num_ranges();
 }
 
 
 template <typename LocalIndexType>
-bool Partition<LocalIndexType>::is_ordered()
+bool Partition<LocalIndexType>::has_ordered_parts()
 {
-    if (is_connected()) {
+    if (has_connected_parts()) {
         auto exec = this->get_executor();
         bool is_ordered;
         exec->run(partition::make_is_ordered(this, &is_ordered));
