@@ -59,26 +59,35 @@ std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
 }
 
 
+std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
+    int device_id, std::shared_ptr<MemorySpace> mem_space,
+    std::shared_ptr<Executor> master, std::string device_type)
+{
+    return std::shared_ptr<DpcppExecutor>(new DpcppExecutor(
+        device_id, std::move(mem_space), std::move(master), device_type));
+}
+
+
+DpcppMemorySpace::DpcppMemorySpace(int device_id, std::string device_type)
+    : device_id_(device_id), device_type_(device_type)
+{}
+
+
+int DpcppMemorySpace::get_num_devices(std::string) { return 0; }
+
+
 void DpcppExecutor::populate_exec_info(const MachineTopology* mach_topo)
 {
     // This method is always called, so cannot throw when not compiled.
 }
 
 
-void OmpExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
-                              const void* src_ptr, void* dest_ptr) const
+void HostMemorySpace::raw_copy_to(const DpcppMemorySpace*, size_type num_bytes,
+                                  const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(dpcpp);
 
 
-bool OmpExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
-{
-    // Dummy check
-    auto dev_type = dest_exec->get_device_type();
-    return dev_type == "cpu" || dev_type == "host";
-}
-
-
-void DpcppExecutor::raw_free(void* ptr) const noexcept
+void DpcppMemorySpace::raw_free(void* ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
     // If the nvidia module was not compiled, the library couldn't have
@@ -86,28 +95,36 @@ void DpcppExecutor::raw_free(void* ptr) const noexcept
 }
 
 
-void* DpcppExecutor::raw_alloc(size_type num_bytes) const
+void* DpcppMemorySpace::raw_alloc(size_type num_bytes) const
     GKO_NOT_COMPILED(dpcpp);
 
 
-void DpcppExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
+void DpcppMemorySpace::raw_copy_to(const HostMemorySpace*, size_type num_bytes,
+                                   const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(dpcpp);
 
 
-void DpcppExecutor::raw_copy_to(const CudaExecutor*, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
+void DpcppMemorySpace::raw_copy_to(const CudaMemorySpace*, size_type num_bytes,
+                                   const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(dpcpp);
 
 
-void DpcppExecutor::raw_copy_to(const HipExecutor*, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
+void DpcppMemorySpace::raw_copy_to(const CudaUVMSpace*, size_type num_bytes,
+                                   const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(dpcpp);
 
 
-void DpcppExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
+void DpcppMemorySpace::raw_copy_to(const HipMemorySpace*, size_type num_bytes,
+                                   const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(dpcpp);
+
+
+void DpcppMemorySpace::raw_copy_to(const DpcppMemorySpace*, size_type num_bytes,
+                                   const void* src_ptr, void* dest_ptr) const
+    GKO_NOT_COMPILED(dpcpp);
+
+
+void DpcppMemorySpace::synchronize() const GKO_NOT_COMPILED(dpcpp);
 
 
 void DpcppExecutor::synchronize() const GKO_NOT_COMPILED(dpcpp);
@@ -126,18 +143,20 @@ int DpcppExecutor::get_num_devices(std::string) { return 0; }
 void DpcppExecutor::set_device_property() {}
 
 
-bool DpcppExecutor::verify_memory_to(const OmpExecutor* dest_exec) const
+bool DpcppMemorySpace::verify_memory_to(
+    const HostMemorySpace* dest_mem_space) const
 {
     // Dummy check
     return this->get_device_type() == "cpu" ||
            this->get_device_type() == "host";
 }
 
-bool DpcppExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
+bool DpcppMemorySpace::verify_memory_to(
+    const DpcppMemorySpace* dest_mem_space) const
 {
     // Dummy check
-    return dest_exec->get_device_type() == this->get_device_type() &&
-           dest_exec->get_device_id() == this->get_device_id();
+    return dest_mem_space->get_device_type() == this->get_device_type() &&
+           dest_mem_space->get_device_id() == this->get_device_id();
 }
 
 

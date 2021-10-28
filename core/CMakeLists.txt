@@ -9,6 +9,7 @@ target_sources(ginkgo
     base/device_matrix_data.cpp
     base/executor.cpp
     base/index_set.cpp
+    base/memory_space.cpp
     base/mtx_io.cpp
     base/perturbation.cpp
     base/version.cpp
