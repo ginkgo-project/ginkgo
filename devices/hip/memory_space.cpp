@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,60 +30,37 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 
 
 namespace gko {
 
 
-std::shared_ptr<Executor> CudaExecutor::get_master() noexcept
+bool HipMemorySpace::verify_memory_to(
+    const CudaMemorySpace* dest_mem_space) const
 {
-    return master_;
+#if GINKGO_HIP_PLATFORM_NVCC
+    return this->get_device_id() == dest_mem_space->get_device_id();
+#else
+    return false;
+#endif
 }
 
 
-std::shared_ptr<const Executor> CudaExecutor::get_master() const noexcept
+bool HipMemorySpace::verify_memory_to(const CudaUVMSpace* dest_mem_space) const
 {
-    return master_;
+#if GINKGO_HIP_PLATFORM_NVCC
+    return this->get_device_id() == dest_mem_space->get_device_id();
+#else
+    return false;
+#endif
 }
 
 
-std::shared_ptr<MemorySpace> CudaExecutor::get_mem_space() noexcept
+bool HipMemorySpace::verify_memory_to(
+    const HipMemorySpace* dest_mem_space) const
 {
-    return mem_space_instance_;
-}
-
-
-std::shared_ptr<const MemorySpace> CudaExecutor::get_mem_space() const noexcept
-{
-    return mem_space_instance_;
-}
-
-
-void CudaExecutor::increase_num_execs(unsigned device_id)
-{
-#ifdef GKO_COMPILING_CUDA_DEVICE
-    // increase the Cuda Device count only when ginkgo build cuda
-    std::lock_guard<std::mutex> guard(nvidia_device::get_mutex(device_id));
-    nvidia_device::get_num_execs(device_id)++;
-#endif  // GKO_COMPILING_CUDA_DEVICE
-}
-
-
-void CudaExecutor::decrease_num_execs(unsigned device_id)
-{
-#ifdef GKO_COMPILING_CUDA_DEVICE
-    // increase the Cuda Device count only when ginkgo build cuda
-    std::lock_guard<std::mutex> guard(nvidia_device::get_mutex(device_id));
-    nvidia_device::get_num_execs(device_id)--;
-#endif  // GKO_COMPILING_CUDA_DEVICE
-}
-
-
-unsigned CudaExecutor::get_num_execs(unsigned device_id)
-{
-    std::lock_guard<std::mutex> guard(nvidia_device::get_mutex(device_id));
-    return nvidia_device::get_num_execs(device_id);
+    return this->get_device_id() == dest_mem_space->get_device_id();
 }
 
 

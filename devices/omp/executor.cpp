@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 
 
 #include <cstdlib>
@@ -55,9 +56,6 @@ void OmpExecutor::populate_exec_info(const MachineTopology* mach_topo)
 }
 
 
-void OmpExecutor::raw_free(void* ptr) const noexcept { std::free(ptr); }
-
-
 std::shared_ptr<Executor> OmpExecutor::get_master() noexcept
 {
     return this->shared_from_this();
@@ -70,18 +68,15 @@ std::shared_ptr<const Executor> OmpExecutor::get_master() const noexcept
 }
 
 
-void* OmpExecutor::raw_alloc(size_type num_bytes) const
+std::shared_ptr<MemorySpace> OmpExecutor::get_mem_space() noexcept
 {
-    return GKO_ENSURE_ALLOCATED(std::malloc(num_bytes), "OMP", num_bytes);
+    return this->mem_space_instance_;
 }
 
 
-void OmpExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
-                              const void* src_ptr, void* dest_ptr) const
+std::shared_ptr<const MemorySpace> OmpExecutor::get_mem_space() const noexcept
 {
-    if (num_bytes > 0) {
-        std::memcpy(dest_ptr, src_ptr, num_bytes);
-    }
+    return this->mem_space_instance_;
 }
 
 
