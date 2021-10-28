@@ -45,19 +45,15 @@ std::shared_ptr<const Executor> HipExecutor::get_master() const noexcept
 }
 
 
-bool HipExecutor::verify_memory_to(const HipExecutor* dest_exec) const
+std::shared_ptr<MemorySpace> HipExecutor::get_mem_space() noexcept
 {
-    return this->get_device_id() == dest_exec->get_device_id();
+    return mem_space_instance_;
 }
 
 
-bool HipExecutor::verify_memory_to(const CudaExecutor* dest_exec) const
+std::shared_ptr<const MemorySpace> HipExecutor::get_mem_space() const noexcept
 {
-#if GINKGO_HIP_PLATFORM_NVCC
-    return this->get_device_id() == dest_exec->get_device_id();
-#else
-    return false;
-#endif
+    return mem_space_instance_;
 }
 
 

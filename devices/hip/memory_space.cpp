@@ -30,60 +30,37 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/memory_space.hpp>
-
-
-#include <cstdlib>
-#include <cstring>
-
-
-#include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 namespace gko {
 
 
-void OmpExecutor::populate_exec_info(const MachineTopology* mach_topo)
+bool HipMemorySpace::verify_memory_to(
+    const CudaMemorySpace* dest_mem_space) const
 {
-    auto num_cores =
-        (mach_topo->get_num_cores() == 0 ? 1 : mach_topo->get_num_cores());
-    auto num_pus =
-        (mach_topo->get_num_pus() == 0 ? 1 : mach_topo->get_num_pus());
-    this->get_exec_info().num_computing_units = num_cores;
-    this->get_exec_info().num_pu_per_cu = num_pus / num_cores;
+#if GINKGO_HIP_PLATFORM_NVCC
+    return this->get_device_id() == dest_mem_space->get_device_id();
+#else
+    return false;
+#endif
 }
 
 
-std::shared_ptr<Executor> OmpExecutor::get_master() noexcept
+bool HipMemorySpace::verify_memory_to(const CudaUVMSpace* dest_mem_space) const
 {
-    return this->shared_from_this();
+#if GINKGO_HIP_PLATFORM_NVCC
+    return this->get_device_id() == dest_mem_space->get_device_id();
+#else
+    return false;
+#endif
 }
 
 
-std::shared_ptr<const Executor> OmpExecutor::get_master() const noexcept
+bool HipMemorySpace::verify_memory_to(
+    const HipMemorySpace* dest_mem_space) const
 {
-    return this->shared_from_this();
-}
-
-
-std::shared_ptr<MemorySpace> OmpExecutor::get_mem_space() noexcept
-{
-    return this->mem_space_instance_;
-}
-
-
-std::shared_ptr<const MemorySpace> OmpExecutor::get_mem_space() const noexcept
-{
-    return this->mem_space_instance_;
-}
-
-
-void OmpExecutor::synchronize() const
-{
-    // This is a no-op for single-threaded OMP
-    // TODO: change when adding support for multi-threaded OMP execution
+    return this->get_device_id() == dest_mem_space->get_device_id();
 }
 
 

@@ -139,7 +139,10 @@ public:
      * @param n  the number of elements to allocate
      * @return  the pointer to a newly allocated memory area of `n` elements.
      */
-    T* allocate(std::size_t n) const { return exec_->alloc<T>(n); }
+    T* allocate(std::size_t n) const
+    {
+        return exec_->get_mem_space()->template alloc<T>(n);
+    }
 
     /**
      * Frees a memory area that was allocated by this allocator.
@@ -148,7 +151,10 @@ public:
      *
      * @note  The second parameter is unused.
      */
-    void deallocate(T* ptr, std::size_t) const { exec_->free(ptr); }
+    void deallocate(T* ptr, std::size_t) const
+    {
+        exec_->get_mem_space()->free(ptr);
+    }
 
     /**
      * Compares two ExecutorAllocators for equality
