@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
@@ -178,7 +179,7 @@ public:
     /**
      * The default deleter type used by Array.
      */
-    using default_deleter = executor_deleter<value_type[]>;
+    using default_deleter = memory_space_deleter<value_type[]>;
 
     /**
      * The deleter type used for views.
@@ -211,7 +212,9 @@ public:
      */
     explicit Array(std::shared_ptr<const Executor> exec) noexcept
         : num_elems_(0),
-          data_(nullptr, default_deleter{exec}),
+          data_(nullptr,
+                default_deleter{exec == nullptr ? nullptr
+                                                : exec->get_mem_space()}),
           exec_(std::move(exec))
     {}
 
@@ -224,11 +227,11 @@ public:
      */
     Array(std::shared_ptr<const Executor> exec, size_type num_elems)
         : num_elems_(num_elems),
-          data_(nullptr, default_deleter{exec}),
+          data_(nullptr, default_deleter{exec->get_mem_space()}),
           exec_(std::move(exec))
     {
         if (num_elems > 0) {
-            data_.reset(exec_->alloc<value_type>(num_elems));
+            data_.reset(exec_->get_mem_space()->alloc<value_type>(num_elems));
         }
     }
 
@@ -268,7 +271,7 @@ public:
      */
     Array(std::shared_ptr<const Executor> exec, size_type num_elems,
           value_type* data)
-        : Array(exec, num_elems, data, default_deleter{exec})
+        : Array(exec, num_elems, data, default_deleter{exec->get_mem_space()})
     {}
 
     /**
@@ -451,8 +454,9 @@ public:
             GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_num_elems(),
                                          this->num_elems_);
         }
-        exec_->copy_from(other.get_executor().get(), other.get_num_elems(),
-                         other.get_const_data(), this->get_data());
+        exec_->get_mem_space()->copy_from(
+            other.get_executor()->get_mem_space().get(), other.get_num_elems(),
+            other.get_const_data(), this->get_data());
         return *this;
     }
 
@@ -498,7 +502,7 @@ public:
             this->clear();
             return *this;
         }
-        if (exec_ == other.get_executor()) {
+        if ((exec_->get_mem_space() == other.get_executor()->get_mem_space())) {
             // same device, only move the pointer
             using std::swap;
             swap(data_, other.data_);
@@ -534,7 +538,8 @@ public:
     {
         if (this->exec_ == nullptr) {
             this->exec_ = other.get_executor();
-            this->data_ = data_manager{nullptr, default_deleter{this->exec_}};
+            this->data_ = data_manager{
+                nullptr, default_deleter{this->exec_->get_mem_space()}};
         }
         if (other.get_executor() == nullptr) {
             this->clear();
@@ -550,7 +555,8 @@ public:
         Array<OtherValueType> tmp{this->exec_};
         const OtherValueType* source = other.get_const_data();
         // if we are on different executors: copy, then convert
-        if (this->exec_ != other.get_executor()) {
+        if (this->exec_->get_mem_space() !=
+            other.get_executor()->get_mem_space()) {
             tmp = other;
             source = tmp.get_const_data();
         }
@@ -600,7 +606,7 @@ public:
 
         if (num_elems > 0 && this->is_owning()) {
             num_elems_ = num_elems;
-            data_.reset(exec_->alloc<value_type>(num_elems));
+            data_.reset(exec_->get_mem_space()->alloc<value_type>(num_elems));
         } else {
             this->clear();
         }
@@ -656,7 +662,7 @@ public:
      */
     void set_executor(std::shared_ptr<const Executor> exec)
     {
-        if (exec == exec_) {
+        if (exec_ && exec->get_mem_space() == exec_->get_mem_space()) {
             // moving to the same executor, no-op
             return;
         }
