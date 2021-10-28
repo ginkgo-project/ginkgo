@@ -53,14 +53,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-using global_index_type = gko::distributed::global_index_type;
 using comm_index_type = gko::distributed::comm_index_type;
 
 
-template <typename LocalIndexType>
+template <typename LocalGlobalIndexType>
 class Partition : public ::testing::Test {
 protected:
-    using local_index_type = LocalIndexType;
+    using local_index_type =
+        typename std::tuple_element<0, decltype(LocalGlobalIndexType())>::type;
+    using global_index_type =
+        typename std::tuple_element<1, decltype(LocalGlobalIndexType())>::type;
     Partition() : rand_engine(96457) {}
 
     void SetUp()
@@ -77,8 +79,10 @@ protected:
     }
 
     void assert_equal(
-        std::unique_ptr<gko::distributed::Partition<local_index_type>>& part,
-        std::unique_ptr<gko::distributed::Partition<local_index_type>>& dpart)
+        std::unique_ptr<gko::distributed::Partition<local_index_type,
+                                                    global_index_type>>& part,
+        std::unique_ptr<gko::distributed::Partition<local_index_type,
+                                                    global_index_type>>& dpart)
     {
         ASSERT_EQ(part->get_size(), dpart->get_size());
         ASSERT_EQ(part->get_num_ranges(), dpart->get_num_ranges());
@@ -120,12 +124,13 @@ protected:
     std::shared_ptr<gko::EXEC_TYPE> exec;
 };
 
-TYPED_TEST_SUITE(Partition, gko::test::IndexTypes);
+TYPED_TEST_SUITE(Partition, gko::test::LocalGlobalIndexTypes);
 
 
 TYPED_TEST(Partition, BuildsFromMapping)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     comm_index_type num_parts = 7;
     std::uniform_int_distribution<comm_index_type> part_dist{0, num_parts - 1};
     gko::Array<comm_index_type> mapping{this->ref, 10000};
@@ -134,12 +139,14 @@ TYPED_TEST(Partition, BuildsFromMapping)
     }
     gko::Array<comm_index_type> dmapping{this->exec, mapping};
 
-    auto part =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->ref, mapping, num_parts);
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->exec, dmapping, num_parts);
+    auto part = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->ref,
+                                                                 mapping,
+                                                                 num_parts);
+    auto dpart = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->exec,
+                                                                 dmapping,
+                                                                 num_parts);
 
     this->assert_equal(part, dpart);
 }
@@ -148,6 +155,7 @@ TYPED_TEST(Partition, BuildsFromMapping)
 TYPED_TEST(Partition, BuildsFromMappingWithEmptyPart)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     comm_index_type num_parts = 7;
     // skip part 0
     std::uniform_int_distribution<comm_index_type> part_dist{1, num_parts - 1};
@@ -157,12 +165,14 @@ TYPED_TEST(Partition, BuildsFromMappingWithEmptyPart)
     }
     gko::Array<comm_index_type> dmapping{this->exec, mapping};
 
-    auto part =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->ref, mapping, num_parts);
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->exec, dmapping, num_parts);
+    auto part = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->ref,
+                                                                 mapping,
+                                                                 num_parts);
+    auto dpart = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->exec,
+                                                                 dmapping,
+                                                                 num_parts);
 
     this->assert_equal(part, dpart);
 }
@@ -171,6 +181,7 @@ TYPED_TEST(Partition, BuildsFromMappingWithEmptyPart)
 TYPED_TEST(Partition, BuildsFromMappingWithAlmostAllPartsEmpty)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     comm_index_type num_parts = 7;
     // return only part 1
     std::uniform_int_distribution<comm_index_type> part_dist{1, 1};
@@ -180,12 +191,14 @@ TYPED_TEST(Partition, BuildsFromMappingWithAlmostAllPartsEmpty)
     }
     gko::Array<comm_index_type> dmapping{this->exec, mapping};
 
-    auto part =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->ref, mapping, num_parts);
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->exec, dmapping, num_parts);
+    auto part = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->ref,
+                                                                 mapping,
+                                                                 num_parts);
+    auto dpart = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->exec,
+                                                                 dmapping,
+                                                                 num_parts);
 
     this->assert_equal(part, dpart);
 }
@@ -194,16 +207,19 @@ TYPED_TEST(Partition, BuildsFromMappingWithAlmostAllPartsEmpty)
 TYPED_TEST(Partition, BuildsFromMappingWithAllPartsEmpty)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     comm_index_type num_parts = 7;
     gko::Array<comm_index_type> mapping{this->ref, 0};
     gko::Array<comm_index_type> dmapping{this->exec, 0};
 
-    auto part =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->ref, mapping, num_parts);
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->exec, dmapping, num_parts);
+    auto part = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->ref,
+                                                                 mapping,
+                                                                 num_parts);
+    auto dpart = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->exec,
+                                                                 dmapping,
+                                                                 num_parts);
 
     this->assert_equal(part, dpart);
 }
@@ -212,17 +228,20 @@ TYPED_TEST(Partition, BuildsFromMappingWithAllPartsEmpty)
 TYPED_TEST(Partition, BuildsFromMappingWithOnePart)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     comm_index_type num_parts = 1;
     gko::Array<comm_index_type> mapping{this->ref, 10000};
     mapping.fill(0);
     gko::Array<comm_index_type> dmapping{this->exec, mapping};
 
-    auto part =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->ref, mapping, num_parts);
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->exec, dmapping, num_parts);
+    auto part = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->ref,
+                                                                 mapping,
+                                                                 num_parts);
+    auto dpart = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->exec,
+                                                                 dmapping,
+                                                                 num_parts);
 
     this->assert_equal(part, dpart);
 }
@@ -231,16 +250,17 @@ TYPED_TEST(Partition, BuildsFromMappingWithOnePart)
 TYPED_TEST(Partition, BuildsFromContiguous)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     gko::Array<global_index_type> ranges{this->ref,
                                          {0, 1234, 3134, 4578, 16435, 60000}};
     gko::Array<global_index_type> dranges{this->exec, ranges};
 
-    auto part =
-        gko::distributed::Partition<local_index_type>::build_from_contiguous(
-            this->ref, ranges);
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_contiguous(
-            this->exec, dranges);
+    auto part = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_contiguous(this->ref,
+                                                                    ranges);
+    auto dpart = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_contiguous(this->exec,
+                                                                    dranges);
 
     this->assert_equal(part, dpart);
 }
@@ -249,16 +269,17 @@ TYPED_TEST(Partition, BuildsFromContiguous)
 TYPED_TEST(Partition, BuildsFromContiguousWithSomeEmptyParts)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     gko::Array<global_index_type> ranges{
         this->ref, {0, 1234, 3134, 3134, 4578, 16435, 16435, 60000}};
     gko::Array<global_index_type> dranges{this->exec, ranges};
 
-    auto part =
-        gko::distributed::Partition<local_index_type>::build_from_contiguous(
-            this->ref, ranges);
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_contiguous(
-            this->exec, dranges);
+    auto part = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_contiguous(this->ref,
+                                                                    ranges);
+    auto dpart = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_contiguous(this->exec,
+                                                                    dranges);
 
     this->assert_equal(part, dpart);
 }
@@ -267,16 +288,17 @@ TYPED_TEST(Partition, BuildsFromContiguousWithSomeEmptyParts)
 TYPED_TEST(Partition, BuildsFromContiguousWithSomeMostlyEmptyParts)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     gko::Array<global_index_type> ranges{
         this->ref, {0, 0, 3134, 4578, 4578, 4578, 4578, 4578}};
     gko::Array<global_index_type> dranges{this->exec, ranges};
 
-    auto part =
-        gko::distributed::Partition<local_index_type>::build_from_contiguous(
-            this->ref, ranges);
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_contiguous(
-            this->exec, dranges);
+    auto part = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_contiguous(this->ref,
+                                                                    ranges);
+    auto dpart = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_contiguous(this->exec,
+                                                                    dranges);
 
     this->assert_equal(part, dpart);
 }
@@ -285,15 +307,16 @@ TYPED_TEST(Partition, BuildsFromContiguousWithSomeMostlyEmptyParts)
 TYPED_TEST(Partition, BuildsFromContiguousWithOnlyEmptyParts)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     gko::Array<global_index_type> ranges{this->ref, {0, 0, 0, 0, 0, 0, 0}};
     gko::Array<global_index_type> dranges{this->exec, ranges};
 
-    auto part =
-        gko::distributed::Partition<local_index_type>::build_from_contiguous(
-            this->ref, ranges);
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_contiguous(
-            this->exec, dranges);
+    auto part = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_contiguous(this->ref,
+                                                                    ranges);
+    auto dpart = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_contiguous(this->exec,
+                                                                    dranges);
 
     this->assert_equal(part, dpart);
 }
@@ -302,15 +325,16 @@ TYPED_TEST(Partition, BuildsFromContiguousWithOnlyEmptyParts)
 TYPED_TEST(Partition, BuildsFromContiguousWithOnlyOneEmptyPart)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     gko::Array<global_index_type> ranges{this->ref, {0, 0}};
     gko::Array<global_index_type> dranges{this->exec, ranges};
 
-    auto part =
-        gko::distributed::Partition<local_index_type>::build_from_contiguous(
-            this->ref, ranges);
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_contiguous(
-            this->exec, dranges);
+    auto part = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_contiguous(this->ref,
+                                                                    ranges);
+    auto dpart = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_contiguous(this->exec,
+                                                                    dranges);
 
     this->assert_equal(part, dpart);
 }
@@ -319,15 +343,16 @@ TYPED_TEST(Partition, BuildsFromContiguousWithOnlyOneEmptyPart)
 TYPED_TEST(Partition, BuildsFromGlobalSize)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     const int num_parts = 7;
     const global_index_type global_size = 708;
 
-    auto part = gko::distributed::Partition<
-        local_index_type>::build_from_global_size_uniform(this->ref, num_parts,
-                                                          global_size);
-    auto dpart = gko::distributed::Partition<
-        local_index_type>::build_from_global_size_uniform(this->exec, num_parts,
-                                                          global_size);
+    auto part =
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_global_size_uniform(this->ref, num_parts, global_size);
+    auto dpart =
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_global_size_uniform(this->exec, num_parts, global_size);
 
     this->assert_equal(part, dpart);
 }
@@ -336,15 +361,16 @@ TYPED_TEST(Partition, BuildsFromGlobalSize)
 TYPED_TEST(Partition, BuildsFromGlobalSizeEmpty)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     const int num_parts = 7;
     const global_index_type global_size = 0;
 
-    auto part = gko::distributed::Partition<
-        local_index_type>::build_from_global_size_uniform(this->ref, num_parts,
-                                                          global_size);
-    auto dpart = gko::distributed::Partition<
-        local_index_type>::build_from_global_size_uniform(this->exec, num_parts,
-                                                          global_size);
+    auto part =
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_global_size_uniform(this->ref, num_parts, global_size);
+    auto dpart =
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_global_size_uniform(this->exec, num_parts, global_size);
 
     this->assert_equal(part, dpart);
 }
@@ -353,15 +379,16 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeEmpty)
 TYPED_TEST(Partition, BuildsFromGlobalSizeMorePartsThanSize)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     const int num_parts = 77;
     const global_index_type global_size = 13;
 
-    auto part = gko::distributed::Partition<
-        local_index_type>::build_from_global_size_uniform(this->ref, num_parts,
-                                                          global_size);
-    auto dpart = gko::distributed::Partition<
-        local_index_type>::build_from_global_size_uniform(this->exec, num_parts,
-                                                          global_size);
+    auto part =
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_global_size_uniform(this->ref, num_parts, global_size);
+    auto dpart =
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_global_size_uniform(this->exec, num_parts, global_size);
 
     this->assert_equal(part, dpart);
 }
@@ -370,6 +397,7 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeMorePartsThanSize)
 TYPED_TEST(Partition, IsOrderedTrue)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     comm_index_type num_parts = 7;
     gko::size_type size_per_part = 1000;
     gko::size_type global_size = num_parts * size_per_part;
@@ -378,9 +406,10 @@ TYPED_TEST(Partition, IsOrderedTrue)
         std::fill(mapping.get_data() + i * size_per_part,
                   mapping.get_data() + (i + 1) * size_per_part, i);
     }
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->exec, mapping, num_parts);
+    auto dpart = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->exec,
+                                                                 mapping,
+                                                                 num_parts);
 
     ASSERT_TRUE(dpart->has_ordered_parts());
 }
@@ -389,6 +418,7 @@ TYPED_TEST(Partition, IsOrderedTrue)
 TYPED_TEST(Partition, IsOrderedFail)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     comm_index_type num_parts = 7;
     gko::size_type size_per_part = 1000;
     gko::size_type global_size = num_parts * size_per_part;
@@ -398,9 +428,10 @@ TYPED_TEST(Partition, IsOrderedFail)
                   mapping.get_data() + (i + 1) * size_per_part,
                   num_parts - 1 - i);
     }
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->exec, mapping, num_parts);
+    auto dpart = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->exec,
+                                                                 mapping,
+                                                                 num_parts);
 
     ASSERT_FALSE(dpart->has_ordered_parts());
 }
@@ -409,18 +440,21 @@ TYPED_TEST(Partition, IsOrderedFail)
 TYPED_TEST(Partition, IsOrderedRandom)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     comm_index_type num_parts = 7;
     std::uniform_int_distribution<comm_index_type> part_dist{0, num_parts - 1};
     gko::Array<comm_index_type> mapping{this->ref, 10000};
     for (gko::size_type i = 0; i < mapping.get_num_elems(); i++) {
         mapping.get_data()[i] = part_dist(this->rand_engine);
     }
-    auto part =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->ref, mapping, num_parts);
-    auto dpart =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->exec, mapping, num_parts);
+    auto part = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->ref,
+                                                                 mapping,
+                                                                 num_parts);
+    auto dpart = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->exec,
+                                                                 mapping,
+                                                                 num_parts);
 
     ASSERT_EQ(part->has_ordered_parts(), dpart->has_ordered_parts());
 }

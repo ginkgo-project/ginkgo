@@ -51,9 +51,9 @@ namespace cuda {
 namespace partition {
 
 
-template <typename LocalIndexType>
+template <typename LocalIndexType, typename GlobalIndexType>
 void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
-                            const global_index_type* range_offsets,
+                            const GlobalIndexType* range_offsets,
                             const int* range_parts, size_type num_ranges,
                             int num_parts, int& num_empty_parts,
                             LocalIndexType* ranks, LocalIndexType* sizes)
@@ -61,7 +61,7 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
     Array<LocalIndexType> range_sizes{exec, num_ranges};
     // num_parts sentinel at the end
     Array<comm_index_type> tmp_part_ids{exec, num_ranges + 1};
-    Array<global_index_type> permutation{exec, num_ranges};
+    Array<GlobalIndexType> permutation{exec, num_ranges};
     // set sizes to 0 in case of empty parts
     components::fill_array(exec, sizes, num_parts, LocalIndexType{});
 
@@ -76,7 +76,7 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
             }
             range_sizes[i] = range_offsets[i + 1] - range_offsets[i];
             tmp_part_ids[i] = range_parts[i];
-            permutation[i] = static_cast<global_index_type>(i);
+            permutation[i] = static_cast<GlobalIndexType>(i);
         },
         num_ranges, num_ranges, num_parts, range_offsets, range_parts,
         range_sizes, tmp_part_ids, permutation);
@@ -115,7 +115,7 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
         thrust::count(thrust::device, sizes, sizes + num_parts, 0);
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES);
 
 

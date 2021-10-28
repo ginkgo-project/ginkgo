@@ -703,17 +703,26 @@ namespace distributed {
 
 
 /**
- *  Index type for global indices in a distributed system
- */
-using global_index_type = int64;
-
-
-/**
  * Index type for enumerating processors
  *
  * Conforms to the MPI C interface of e.g. MPI rank or size
  */
 using comm_index_type = int;
+
+
+/**
+ * Instantiates a template for each valid combination of local and global index
+ * type
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments, where the first is replaced by the
+ *                local index type and the second by the global index type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(_macro) \
+    template _macro(int32, int32);                               \
+    template _macro(int32, int64);                               \
+    template _macro(int64, int64);
 
 
 }  // namespace distributed
