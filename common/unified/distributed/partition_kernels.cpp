@@ -62,10 +62,10 @@ void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 
-template <typename LocalIndexType>
 void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,
                            const Array<global_index_type>& ranges,
-                           distributed::Partition<LocalIndexType>* partition)
+                           global_index_type* range_bounds,
+                           comm_index_type* part_ids)
 {
     run_kernel(
         exec,
@@ -76,18 +76,14 @@ void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,
             bounds[i + 1] = ranges[i + 1];
             ids[i] = i;
         },
-        ranges.get_num_elems() - 1, ranges, partition->get_range_bounds(),
-        partition->get_part_ids());
+        ranges.get_num_elems() - 1, ranges, range_bounds, part_ids);
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_PARTITION_BUILD_FROM_CONTIGUOUS);
 
-
-template <typename LocalIndexType>
 void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
                         const Array<comm_index_type>& mapping,
-                        distributed::Partition<LocalIndexType>* partition)
+                        global_index_type* range_bounds,
+                        comm_index_type* part_ids)
 {
     Array<size_type> range_index_ranks{exec, mapping.get_num_elems() + 1};
     run_kernel(
@@ -115,17 +111,14 @@ void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
             }
         },
         mapping.get_num_elems() + 1, mapping.get_num_elems(), mapping,
-        range_index_ranks, partition->get_range_bounds(),
-        partition->get_part_ids());
+        range_index_ranks, range_bounds, part_ids);
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING);
 
-
-template <typename LocalIndexType>
 void build_ranges_from_global_size(std::shared_ptr<const DefaultExecutor> exec,
-                                   int num_parts, int64 global_size,
-                                   Array<LocalIndexType>& ranges)
+                                   comm_index_type num_parts,
+                                   global_index_type global_size,
+                                   Array<global_index_type>& ranges)
 {
     const auto size_per_part = global_size / num_parts;
     const auto rest = global_size - (num_parts * size_per_part);
@@ -138,16 +131,13 @@ void build_ranges_from_global_size(std::shared_ptr<const DefaultExecutor> exec,
     components::prefix_sum(exec, ranges.get_data(), ranges.get_num_elems());
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_PARTITION_BUILD_FROM_GLOBAL_SIZE);
-
 
 template <typename LocalIndexType>
 void is_ordered(std::shared_ptr<const DefaultExecutor> exec,
                 const distributed::Partition<LocalIndexType>* partition,
                 bool* result)
 {
-    const auto part_ids = partition->get_const_part_ids();
+    const auto part_ids = partition->get_part_ids();
     const auto num_ranges = partition->get_num_ranges();
     // it is necessary to use uint32 as a temporary result, since
     // bool can't be used with suffles

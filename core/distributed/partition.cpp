@@ -64,8 +64,9 @@ Partition<LocalIndexType>::build_from_mapping(
     size_type num_ranges{};
     exec->run(partition::make_count_ranges(*local_mapping.get(), num_ranges));
     auto result = Partition::create(exec, num_parts, num_ranges);
-    exec->run(
-        partition::make_build_from_mapping(*local_mapping.get(), result.get()));
+    exec->run(partition::make_build_from_mapping(*local_mapping.get(),
+                                                 result->offsets_.get_data(),
+                                                 result->part_ids_.get_data()));
     result->compute_range_starting_indices();
     return result;
 }
@@ -81,8 +82,9 @@ Partition<LocalIndexType>::build_from_contiguous(
     auto result = Partition::create(
         exec, static_cast<comm_index_type>(ranges.get_num_elems() - 1),
         ranges.get_num_elems() - 1);
-    exec->run(partition::make_build_from_contiguous(*local_ranges.get(),
-                                                    result.get()));
+    exec->run(partition::make_build_from_contiguous(
+        *local_ranges.get(), result->offsets_.get_data(),
+        result->part_ids_.get_data()));
     result->compute_range_starting_indices();
     return result;
 }
