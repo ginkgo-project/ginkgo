@@ -58,15 +58,15 @@ namespace index_set {
 
 
 template <typename IndexType>
-void decompress(std::shared_ptr<const DefaultExecutor> exec,
-                const IndexType index_space_size,
-                const Array<IndexType>* subset_begin,
-                const Array<IndexType>* subset_end,
-                const Array<IndexType>* superset_indices,
-                Array<IndexType>* decomp_indices) GKO_NOT_IMPLEMENTED;
+void to_global_indices(std::shared_ptr<const DefaultExecutor> exec,
+                       const IndexType index_space_size,
+                       const Array<IndexType>* subset_begin,
+                       const Array<IndexType>* subset_end,
+                       const Array<IndexType>* superset_indices,
+                       Array<IndexType>* decomp_indices) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(
-    GKO_DECLARE_INDEX_SET_DECOMPRESS_KERNEL);
+    GKO_DECLARE_INDEX_SET_TO_GLOBAL_INDICES_KERNEL);
 
 
 template <typename IndexType>

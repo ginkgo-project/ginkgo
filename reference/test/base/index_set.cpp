@@ -190,7 +190,7 @@ TYPED_TEST(IndexSet, CanBeConstructedFromIndices)
 }
 
 
-TYPED_TEST(IndexSet, CanBeDecompressedIntoIndices)
+TYPED_TEST(IndexSet, CanBeTo_Global_IndicesedIntoIndices)
 {
     auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
     auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
@@ -198,7 +198,7 @@ TYPED_TEST(IndexSet, CanBeDecompressedIntoIndices)
     auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
 
-    auto out_arr = idx_set.decompress();
+    auto out_arr = idx_set.to_global_indices();
 
     GKO_ASSERT_ARRAY_EQ(idx_arr, out_arr);
 }
@@ -259,24 +259,6 @@ TYPED_TEST(IndexSet, CanDetectElementInIndexSet)
     ASSERT_FALSE(idx_set.contains(2));
 }
 
-
-TYPED_TEST(IndexSet, CanDetectMultipleElementInIndexSet)
-{
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 3, 4, 5, 6}};
-    auto query_arr = gko::Array<TypeParam>{this->exec, {1, 4, 9, 0}};
-
-    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
-
-    auto query_out = idx_set.contains(query_arr);
-
-    ASSERT_EQ(idx_set.get_num_subsets(), 2);
-    ASSERT_TRUE(query_out.get_data()[0]);
-    ASSERT_TRUE(query_out.get_data()[1]);
-    ASSERT_FALSE(query_out.get_data()[2]);
-    ASSERT_TRUE(query_out.get_data()[3]);
-}
-
-
 TYPED_TEST(IndexSet, CanGetGlobalIndex)
 {
     auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
@@ -302,7 +284,7 @@ TYPED_TEST(IndexSet, CanGetGlobalIndexFromSortedArrays)
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
     ASSERT_EQ(idx_set.get_num_elems(), 8);
 
-    auto idx_set_gidx = idx_set.get_global_indices(lidx_arr, true);
+    auto idx_set_gidx = idx_set.map_local_to_global(lidx_arr, true);
 
     this->assert_equal_arrays(gidx_arr.get_num_elems(),
                               idx_set_gidx.get_const_data(),
@@ -318,7 +300,7 @@ TYPED_TEST(IndexSet, CanGetGlobalIndexFromUnsortedArrays)
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
     ASSERT_EQ(idx_set.get_num_elems(), 8);
 
-    auto idx_set_gidx = idx_set.get_global_indices(lidx_arr);
+    auto idx_set_gidx = idx_set.map_local_to_global(lidx_arr);
 
     this->assert_equal_arrays(gidx_arr.get_num_elems(),
                               idx_set_gidx.get_const_data(),
@@ -360,7 +342,7 @@ TYPED_TEST(IndexSet, CanGetLocalIndexFromSortedArrays)
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
     ASSERT_EQ(idx_set.get_num_elems(), 8);
 
-    auto idx_set_lidx = idx_set.get_local_indices(gidx_arr, true);
+    auto idx_set_lidx = idx_set.map_global_to_local(gidx_arr, true);
 
     this->assert_equal_arrays(lidx_arr.get_num_elems(),
                               idx_set_lidx.get_const_data(),
@@ -376,7 +358,7 @@ TYPED_TEST(IndexSet, CanGetLocalIndexFromUnsortedArrays)
     auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
     ASSERT_EQ(idx_set.get_num_elems(), 8);
 
-    auto idx_set_lidx = idx_set.get_local_indices(gidx_arr);
+    auto idx_set_lidx = idx_set.map_global_to_local(gidx_arr);
 
     this->assert_equal_arrays(lidx_arr.get_num_elems(),
                               idx_set_lidx.get_const_data(),
