@@ -91,8 +91,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
 };
 
-TYPED_TEST_SUITE(IndexSet, gko::test::IndexAndUnsignedTypes,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(IndexSet, gko::test::IndexTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(IndexSet, CanBeCopyConstructed)

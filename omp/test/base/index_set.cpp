@@ -90,8 +90,7 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
 
-TYPED_TEST_SUITE(IndexSet, gko::test::IndexAndUnsignedTypes,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(IndexSet, gko::test::IndexTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(IndexSet, PopulateSubsetsIsEquivalentToReferenceForUnsortedInput)
