@@ -108,52 +108,6 @@ TEST(OmpExecutor, RunsCorrectLambdaOperation)
 }
 
 
-TEST(OmpExecutor, AllocatesAndFreesMemory)
-{
-    const int num_elems = 10;
-    exec_ptr omp = gko::OmpExecutor::create();
-    int* ptr = nullptr;
-
-    ASSERT_NO_THROW(ptr = omp->alloc<int>(num_elems));
-    ASSERT_NO_THROW(omp->free(ptr));
-}
-
-
-TEST(OmpExecutor, FreeAcceptsNullptr)
-{
-    exec_ptr omp = gko::OmpExecutor::create();
-    ASSERT_NO_THROW(omp->free(nullptr));
-}
-
-
-TEST(OmpExecutor, FailsWhenOverallocating)
-{
-    const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
-    exec_ptr omp = gko::OmpExecutor::create();
-    int* ptr = nullptr;
-
-    ASSERT_THROW(ptr = omp->alloc<int>(num_elems), gko::AllocationError);
-
-    omp->free(ptr);
-}
-
-
-TEST(OmpExecutor, CopiesData)
-{
-    int orig[] = {3, 8};
-    const int num_elems = std::extent<decltype(orig)>::value;
-    exec_ptr omp = gko::OmpExecutor::create();
-    int* copy = omp->alloc<int>(num_elems);
-
-    // user code is run on the OMP, so local variables are in OMP memory
-    omp->copy(num_elems, orig, copy);
-    EXPECT_EQ(3, copy[0]);
-    EXPECT_EQ(8, copy[1]);
-
-    omp->free(copy);
-}
-
-
 TEST(OmpExecutor, IsItsOwnMaster)
 {
     exec_ptr omp = gko::OmpExecutor::create();
@@ -235,95 +189,15 @@ TEST(ReferenceExecutor, RunsCorrectLambdaOperation)
 }
 
 
-TEST(ReferenceExecutor, AllocatesAndFreesMemory)
-{
-    const int num_elems = 10;
-    exec_ptr ref = gko::ReferenceExecutor::create();
-    int* ptr = nullptr;
-
-    ASSERT_NO_THROW(ptr = ref->alloc<int>(num_elems));
-    ASSERT_NO_THROW(ref->free(ptr));
-}
-
-
-TEST(ReferenceExecutor, FreeAcceptsNullptr)
-{
-    exec_ptr omp = gko::ReferenceExecutor::create();
-    ASSERT_NO_THROW(omp->free(nullptr));
-}
-
-
-TEST(ReferenceExecutor, FailsWhenOverallocating)
-{
-    const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
-    exec_ptr ref = gko::ReferenceExecutor::create();
-    int* ptr = nullptr;
-
-    ASSERT_THROW(ptr = ref->alloc<int>(num_elems), gko::AllocationError);
-
-    ref->free(ptr);
-}
-
-
-TEST(ReferenceExecutor, CopiesData)
-{
-    int orig[] = {3, 8};
-    const int num_elems = std::extent<decltype(orig)>::value;
-    exec_ptr ref = gko::ReferenceExecutor::create();
-    int* copy = ref->alloc<int>(num_elems);
-
-    // ReferenceExecutor is a type of OMP executor, so this is O.K.
-    ref->copy(num_elems, orig, copy);
-    EXPECT_EQ(3, copy[0]);
-    EXPECT_EQ(8, copy[1]);
-
-    ref->free(copy);
-}
-
-
 TEST(ReferenceExecutor, CopiesSingleValue)
 {
     exec_ptr ref = gko::ReferenceExecutor::create();
-    int* el = ref->alloc<int>(1);
+    int* el = ref->get_mem_space()->alloc<int>(1);
     el[0] = 83683;
 
     EXPECT_EQ(83683, ref->copy_val_to_host(el));
 
-    ref->free(el);
-}
-
-
-TEST(ReferenceExecutor, CopiesDataFromOmp)
-{
-    int orig[] = {3, 8};
-    const int num_elems = std::extent<decltype(orig)>::value;
-    exec_ptr omp = gko::OmpExecutor::create();
-    exec_ptr ref = gko::ReferenceExecutor::create();
-    int* copy = ref->alloc<int>(num_elems);
-
-    // ReferenceExecutor is a type of OMP executor, so this is O.K.
-    ref->copy_from(omp.get(), num_elems, orig, copy);
-    EXPECT_EQ(3, copy[0]);
-    EXPECT_EQ(8, copy[1]);
-
-    ref->free(copy);
-}
-
-
-TEST(ReferenceExecutor, CopiesDataToOmp)
-{
-    int orig[] = {3, 8};
-    const int num_elems = std::extent<decltype(orig)>::value;
-    exec_ptr omp = gko::OmpExecutor::create();
-    exec_ptr ref = gko::ReferenceExecutor::create();
-    int* copy = omp->alloc<int>(num_elems);
-
-    // ReferenceExecutor is a type of OMP executor, so this is O.K.
-    omp->copy_from(ref.get(), num_elems, orig, copy);
-    EXPECT_EQ(3, copy[0]);
-    EXPECT_EQ(8, copy[1]);
-
-    ref->free(copy);
+    ref->get_mem_space()->free(el);
 }
 
 
@@ -524,130 +398,6 @@ TEST(DpcppExecutor, KnowsItsDeviceId)
     auto dpcpp = gko::DpcppExecutor::create(0, omp);
 
     ASSERT_EQ(0, dpcpp->get_device_id());
-}
-
-
-TEST(Executor, CanVerifyMemory)
-{
-    auto ref = gko::ReferenceExecutor::create();
-    auto omp = gko::OmpExecutor::create();
-    auto hip = gko::HipExecutor::create(0, omp);
-    auto cuda = gko::CudaExecutor::create(0, omp);
-    auto omp2 = gko::OmpExecutor::create();
-    auto hip2 = gko::HipExecutor::create(0, omp);
-    auto cuda2 = gko::CudaExecutor::create(0, omp);
-    auto hip_1 = gko::HipExecutor::create(1, omp);
-    auto cuda_1 = gko::CudaExecutor::create(1, omp);
-    std::shared_ptr<gko::DpcppExecutor> host_dpcpp;
-    std::shared_ptr<gko::DpcppExecutor> cpu_dpcpp;
-    std::shared_ptr<gko::DpcppExecutor> gpu_dpcpp;
-    std::shared_ptr<gko::DpcppExecutor> host_dpcpp_dup;
-    std::shared_ptr<gko::DpcppExecutor> cpu_dpcpp_dup;
-    std::shared_ptr<gko::DpcppExecutor> gpu_dpcpp_dup;
-    if (gko::DpcppExecutor::get_num_devices("host")) {
-        host_dpcpp = gko::DpcppExecutor::create(0, omp, "host");
-        host_dpcpp_dup = gko::DpcppExecutor::create(0, omp, "host");
-    }
-    if (gko::DpcppExecutor::get_num_devices("cpu")) {
-        cpu_dpcpp = gko::DpcppExecutor::create(0, omp, "cpu");
-        cpu_dpcpp_dup = gko::DpcppExecutor::create(0, omp, "cpu");
-    }
-    if (gko::DpcppExecutor::get_num_devices("gpu")) {
-        gpu_dpcpp = gko::DpcppExecutor::create(0, omp, "gpu");
-        gpu_dpcpp_dup = gko::DpcppExecutor::create(0, omp, "gpu");
-    }
-
-    ASSERT_EQ(false, ref->memory_accessible(omp));
-    ASSERT_EQ(false, omp->memory_accessible(ref));
-    ASSERT_EQ(false, ref->memory_accessible(hip));
-    ASSERT_EQ(false, hip->memory_accessible(ref));
-    ASSERT_EQ(false, omp->memory_accessible(hip));
-    ASSERT_EQ(false, hip->memory_accessible(omp));
-    ASSERT_EQ(false, ref->memory_accessible(cuda));
-    ASSERT_EQ(false, cuda->memory_accessible(ref));
-    ASSERT_EQ(false, omp->memory_accessible(cuda));
-    ASSERT_EQ(false, cuda->memory_accessible(omp));
-    if (gko::DpcppExecutor::get_num_devices("host")) {
-        ASSERT_EQ(false, host_dpcpp->memory_accessible(ref));
-        ASSERT_EQ(false, ref->memory_accessible(host_dpcpp));
-        ASSERT_EQ(true, host_dpcpp->memory_accessible(omp));
-        ASSERT_EQ(true, omp->memory_accessible(host_dpcpp));
-        ASSERT_EQ(true, host_dpcpp->memory_accessible(host_dpcpp_dup));
-        ASSERT_EQ(true, host_dpcpp_dup->memory_accessible(host_dpcpp));
-    }
-    if (gko::DpcppExecutor::get_num_devices("cpu")) {
-        ASSERT_EQ(false, ref->memory_accessible(cpu_dpcpp));
-        ASSERT_EQ(false, cpu_dpcpp->memory_accessible(ref));
-        ASSERT_EQ(true, cpu_dpcpp->memory_accessible(omp));
-        ASSERT_EQ(true, omp->memory_accessible(cpu_dpcpp));
-        ASSERT_EQ(true, cpu_dpcpp->memory_accessible(cpu_dpcpp_dup));
-        ASSERT_EQ(true, cpu_dpcpp_dup->memory_accessible(cpu_dpcpp));
-    }
-    if (gko::DpcppExecutor::get_num_devices("gpu")) {
-        ASSERT_EQ(false, gpu_dpcpp->memory_accessible(ref));
-        ASSERT_EQ(false, ref->memory_accessible(gpu_dpcpp));
-        ASSERT_EQ(false, gpu_dpcpp->memory_accessible(omp));
-        ASSERT_EQ(false, omp->memory_accessible(gpu_dpcpp));
-        ASSERT_EQ(false, gpu_dpcpp->memory_accessible(gpu_dpcpp_dup));
-        ASSERT_EQ(false, gpu_dpcpp_dup->memory_accessible(gpu_dpcpp));
-    }
-#if GINKGO_HIP_PLATFORM_NVCC
-    ASSERT_EQ(true, hip->memory_accessible(cuda));
-    ASSERT_EQ(true, cuda->memory_accessible(hip));
-    ASSERT_EQ(true, hip_1->memory_accessible(cuda_1));
-    ASSERT_EQ(true, cuda_1->memory_accessible(hip_1));
-#else
-    ASSERT_EQ(false, hip->memory_accessible(cuda));
-    ASSERT_EQ(false, cuda->memory_accessible(hip));
-    ASSERT_EQ(false, hip_1->memory_accessible(cuda_1));
-    ASSERT_EQ(false, cuda_1->memory_accessible(hip_1));
-#endif
-    ASSERT_EQ(true, omp->memory_accessible(omp2));
-    ASSERT_EQ(true, hip->memory_accessible(hip2));
-    ASSERT_EQ(true, cuda->memory_accessible(cuda2));
-    ASSERT_EQ(false, hip->memory_accessible(hip_1));
-    ASSERT_EQ(false, cuda->memory_accessible(hip_1));
-    ASSERT_EQ(false, cuda->memory_accessible(cuda_1));
-    ASSERT_EQ(false, hip->memory_accessible(cuda_1));
-}
-
-
-template <typename T>
-struct mock_free : T {
-    /**
-     * @internal Due to a bug with gcc 5.3, the constructor needs to be called
-     * with `()` operator instead of `{}`.
-     */
-    template <typename... Params>
-    mock_free(Params&&... params) : T(std::forward<Params>(params)...)
-    {}
-
-    void raw_free(void* ptr) const noexcept override
-    {
-        called_free = true;
-        T::raw_free(ptr);
-    }
-
-    mutable bool called_free{false};
-};
-
-
-TEST(ExecutorDeleter, DeletesObject)
-{
-    auto ref = std::make_shared<mock_free<gko::ReferenceExecutor>>();
-    auto x = ref->alloc<int>(5);
-
-    gko::executor_deleter<int>{ref}(x);
-
-    ASSERT_TRUE(ref->called_free);
-}
-
-
-TEST(ExecutorDeleter, AvoidsDeletionForNullExecutor)
-{
-    int x[5];
-
-    ASSERT_NO_THROW(gko::executor_deleter<int>{nullptr}(x));
 }
 
 
