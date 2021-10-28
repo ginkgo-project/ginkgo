@@ -5,6 +5,7 @@ if(GINKGO_HAVE_HWLOC)
     find_package(NUMA REQUIRED)
     ginkgo_create_cuda_test(cuda_executor_topology NUMA::NUMA)
 endif()
+ginkgo_create_cuda_test(cuda_memory_space)
 ginkgo_create_cuda_test(exception_helpers)
 ginkgo_create_cuda_test(kernel_launch)
 # set correct flags for kernel_launch.hpp

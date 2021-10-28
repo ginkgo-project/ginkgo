@@ -68,23 +68,6 @@ const std::vector<sycl::device> get_devices(std::string device_type)
 }  // namespace detail
 
 
-void OmpExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
-                              const void* src_ptr, void* dest_ptr) const
-{
-    if (num_bytes > 0) {
-        dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
-    }
-}
-
-
-bool OmpExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
-{
-    auto device = detail::get_devices(
-        dest_exec->get_device_type())[dest_exec->get_device_id()];
-    return device.is_host() || device.is_cpu();
-}
-
-
 std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
     int device_id, std::shared_ptr<Executor> master, std::string device_type)
 {
@@ -100,91 +83,12 @@ void DpcppExecutor::populate_exec_info(const MachineTopology* mach_topo)
 }
 
 
-void DpcppExecutor::raw_free(void* ptr) const noexcept
+void DpcppExecutor::synchronize() const
 {
-    // the free function may syncronize excution or not, which depends on
-    // implementation or backend, so it is not guaranteed.
-    // TODO: maybe a light wait implementation?
-    try {
-        queue_->wait_and_throw();
-        sycl::free(ptr, queue_->get_context());
-    } catch (cl::sycl::exception& err) {
-#if GKO_VERBOSE_LEVEL >= 1
-        // Unfortunately, if memory free fails, there's not much we can do
-        std::cerr << "Unrecoverable Dpcpp error on device "
-                  << this->get_device_id() << " in " << __func__ << ": "
-                  << err.what() << std::endl
-                  << "Exiting program" << std::endl;
-#endif  // GKO_VERBOSE_LEVEL >= 1
-        // OpenCL error code use 0 for CL_SUCCESS and negative number for others
-        // error. if the error is not from OpenCL, it will return CL_SUCCESS.
-        int err_code = err.get_cl_code();
-        // if return CL_SUCCESS, exit 1 as DPCPP error.
-        if (err_code == 0) {
-            err_code = 1;
-        }
-        std::exit(err_code);
-    }
+    dynamic_cast<DpcppMemorySpace*>(mem_space_instance_.get())
+        ->get_queue()
+        ->wait_and_throw();
 }
-
-
-void* DpcppExecutor::raw_alloc(size_type num_bytes) const
-{
-    void* dev_ptr = sycl::malloc_device(num_bytes, *queue_.get());
-    GKO_ENSURE_ALLOCATED(dev_ptr, "DPC++", num_bytes);
-    return dev_ptr;
-}
-
-
-void DpcppExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
-{
-    if (num_bytes > 0) {
-        queue_->memcpy(dest_ptr, src_ptr, num_bytes).wait();
-    }
-}
-
-
-void DpcppExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
-{
-    // TODO: later when possible, if we have DPC++ with a CUDA backend
-    // support/compiler, we could maybe support native copies?
-    GKO_NOT_SUPPORTED(dest);
-}
-
-
-void DpcppExecutor::raw_copy_to(const HipExecutor* dest, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
-{
-    GKO_NOT_SUPPORTED(dest);
-}
-
-
-void DpcppExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
-                                const void* src_ptr, void* dest_ptr) const
-{
-    if (num_bytes > 0) {
-        // If the queue is different and is not cpu/host, the queue can not
-        // transfer the data to another queue (on the same device)
-        // Note. it could be changed when we ensure the behavior is expected.
-        auto queue = this->get_queue();
-        auto dest_queue = dest->get_queue();
-        auto device = queue->get_device();
-        auto dest_device = dest_queue->get_device();
-        if (((device.is_host() || device.is_cpu()) &&
-             (dest_device.is_host() || dest_device.is_cpu())) ||
-            (queue == dest_queue)) {
-            dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
-        } else {
-            // the memcpy only support host<->device or itself memcpy
-            GKO_NOT_SUPPORTED(dest);
-        }
-    }
-}
-
-
-void DpcppExecutor::synchronize() const { queue_->wait_and_throw(); }
 
 
 void DpcppExecutor::run(const Operation& op) const
@@ -200,41 +104,6 @@ int DpcppExecutor::get_num_devices(std::string device_type)
 {
     return detail::get_devices(device_type).size();
 }
-
-
-bool DpcppExecutor::verify_memory_to(const OmpExecutor* dest_exec) const
-{
-    auto device = detail::get_devices(
-        get_exec_info().device_type)[get_exec_info().device_id];
-    return device.is_host() || device.is_cpu();
-}
-
-bool DpcppExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
-{
-    // If the queue is different and is not cpu/host, the queue can not access
-    // the data from another queue (on the same device)
-    // Note. it could be changed when we ensure the behavior is expected.
-    auto queue = this->get_queue();
-    auto dest_queue = dest_exec->get_queue();
-    auto device = queue->get_device();
-    auto dest_device = dest_queue->get_device();
-    return ((device.is_host() || device.is_cpu()) &&
-            (dest_device.is_host() || dest_device.is_cpu())) ||
-           (queue == dest_queue);
-}
-
-
-namespace detail {
-
-
-void delete_queue(sycl::queue* queue)
-{
-    queue->wait();
-    delete queue;
-}
-
-
-}  // namespace detail
 
 
 void DpcppExecutor::set_device_property()
@@ -272,13 +141,6 @@ void DpcppExecutor::set_device_property()
         this->get_exec_info().max_workitem_sizes.push_back(
             max_workitem_sizes[i]);
     }
-    // Here we declare the queue with the property `in_order` which ensures the
-    // kernels are executed in the submission order. Otherwise, calls to
-    // `wait()` would be needed after every call to a DPC++ function or kernel.
-    // For example, without `in_order`, doing a copy, a kernel, and a copy, will
-    // not necessarily happen in that order by default, which we need to avoid.
-    auto* queue = new sycl::queue{device, sycl::property::queue::in_order{}};
-    queue_ = std::move(queue_manager<sycl::queue>{queue, detail::delete_queue});
 }
 
 
