@@ -1,5 +1,4 @@
 ginkgo_create_test(batch_criteria)
-ginkgo_create_test(batch_additional_criteria)
 ginkgo_create_test(combined)
 ginkgo_create_test(criterion_kernels)
 ginkgo_create_test(iteration)
