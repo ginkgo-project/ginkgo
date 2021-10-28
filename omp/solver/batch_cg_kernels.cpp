@@ -61,7 +61,6 @@ namespace {
 
 
 using gko::kernels::reference::batch_csr::advanced_spmv_kernel;
-using gko::kernels::reference::batch_csr::batch_scale;
 using gko::kernels::reference::batch_csr::spmv_kernel;
 namespace batch_dense = gko::kernels::reference::batch_dense;
 using gko::kernels::reference::BatchIdentity;
@@ -82,10 +81,10 @@ using BatchCgOptions = gko::kernels::batch_cg::BatchCgOptions<T>;
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 static void apply_impl(std::shared_ptr<const OmpExecutor> exec,
-                       const BatchCgOptions<remove_complex<ValueType>> &opts,
-                       LogType logger, PrecType prec, const BatchMatrixType &a,
-                       const gko::batch_dense::UniformBatch<const ValueType> &b,
-                       const gko::batch_dense::UniformBatch<ValueType> &x)
+                       const BatchCgOptions<remove_complex<ValueType>>& opts,
+                       LogType logger, PrecType prec, const BatchMatrixType& a,
+                       const gko::batch_dense::UniformBatch<const ValueType>& b,
+                       const gko::batch_dense::UniformBatch<ValueType>& x)
 {
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
@@ -96,14 +95,13 @@ static void apply_impl(std::shared_ptr<const OmpExecutor> exec,
         gko::kernels::batch_cg::local_memory_requirement<ValueType>(nrows,
                                                                     nrhs) +
         PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
-    using byte = unsigned char;
-    Array<byte> local_space(exec, local_size_bytes);
+    Array<unsigned char> local_space(exec, local_size_bytes);
 
 #pragma omp parallel for firstprivate(logger) firstprivate(local_space)
     for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
         batch_entry_cg_impl<StopType, PrecType, LogType, BatchMatrixType,
-                            ValueType, byte>(opts, logger, prec, a, b, x,
-                                             ibatch, local_space);
+                            ValueType>(opts, logger, prec, a, b, x, ibatch,
+                                       local_space);
     }
 }
 
@@ -114,23 +112,23 @@ static void apply_impl(std::shared_ptr<const OmpExecutor> exec,
 
 template <typename BatchType, typename LoggerType, typename ValueType>
 void apply_select_prec(std::shared_ptr<const OmpExecutor> exec,
-                       const BatchCgOptions<remove_complex<ValueType>> &opts,
-                       const LoggerType logger, const BatchType &a,
-                       const gko::batch_dense::UniformBatch<const ValueType> &b,
-                       const gko::batch_dense::UniformBatch<ValueType> &x)
+                       const BatchCgOptions<remove_complex<ValueType>>& opts,
+                       const LoggerType logger, const BatchType& a,
+                       const gko::batch_dense::UniformBatch<const ValueType>& b,
+                       const gko::batch_dense::UniformBatch<ValueType>& x)
 {
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            BATCH_CG_LAUNCH_KERNEL(AbsResidualMaxIter, BatchIdentity);
+            BATCH_CG_LAUNCH_KERNEL(SimpleAbsResidual, BatchIdentity);
         } else {
-            BATCH_CG_LAUNCH_KERNEL(RelResidualMaxIter, BatchIdentity);
+            BATCH_CG_LAUNCH_KERNEL(SimpleRelResidual, BatchIdentity);
         }
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            BATCH_CG_LAUNCH_KERNEL(AbsResidualMaxIter, BatchJacobi);
+            BATCH_CG_LAUNCH_KERNEL(SimpleAbsResidual, BatchJacobi);
         } else {
-            BATCH_CG_LAUNCH_KERNEL(RelResidualMaxIter, BatchJacobi);
+            BATCH_CG_LAUNCH_KERNEL(SimpleRelResidual, BatchJacobi);
         }
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -140,19 +138,18 @@ void apply_select_prec(std::shared_ptr<const OmpExecutor> exec,
 
 template <typename ValueType>
 void apply(std::shared_ptr<const OmpExecutor> exec,
-           const BatchCgOptions<remove_complex<ValueType>> &opts,
-           const BatchLinOp *const a,
-           const matrix::BatchDense<ValueType> *const b,
-           matrix::BatchDense<ValueType> *const x,
-           gko::log::BatchLogData<ValueType> &logdata)
+           const BatchCgOptions<remove_complex<ValueType>>& opts,
+           const BatchLinOp* const a,
+           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchDense<ValueType>* const x,
+           gko::log::BatchLogData<ValueType>& logdata)
 {
-    batch_log::FinalLogger<remove_complex<ValueType>> logger(
-        static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
+    batch_log::SimpleFinalLogger<remove_complex<ValueType>> logger(
         logdata.res_norms->get_values(), logdata.iter_counts.get_data());
 
     const gko::batch_dense::UniformBatch<ValueType> x_b =
         host::get_batch_struct(x);
-    if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
+    if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a)) {
         const auto a_b = host::get_batch_struct(a_mat);
         const auto b_b = host::get_batch_struct(b);
         apply_select_prec(exec, opts, logger, a_b, b_b, x_b);
