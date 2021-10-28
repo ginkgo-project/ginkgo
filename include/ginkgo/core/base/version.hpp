@@ -219,12 +219,16 @@ public:
      */
     version dpcpp_version;
 
+#if GKO_HAVE_MPI
+
     /**
      * Contains version information of the MPI module.
      *
      * This is the version of the static/shared library called "ginkgo_mpi".
      */
     version mpi_version;
+
+#endif
 
 private:
     static constexpr version get_header_version() noexcept
@@ -245,7 +249,9 @@ private:
 
     static version get_dpcpp_version() noexcept;
 
+#if GKO_HAVE_MPI
     static version get_mpi_version() noexcept;
+#endif
 
     version_info()
         : header_version{get_header_version()},
@@ -254,8 +260,10 @@ private:
           omp_version{get_omp_version()},
           cuda_version{get_cuda_version()},
           hip_version{get_hip_version()},
-          dpcpp_version{get_dpcpp_version()},
-          mpi_version{get_mpi_version()}
+#if GKO_HAVE_MPI
+          mpi_version{get_mpi_version()},
+#endif
+          dpcpp_version{get_dpcpp_version()}
     {}
 };
 

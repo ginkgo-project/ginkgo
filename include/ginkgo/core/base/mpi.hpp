@@ -52,49 +52,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if GKO_HAVE_MPI
 
+
 #include <mpi.h>
-
-#endif
-
-
-#ifndef MPI_VERSION
-
-using MPI_Comm = int;
-using MPI_Status = int;
-using MPI_Request = int;
-using MPI_Datatype = int;
-using MPI_Op = int;
-using MPI_Win = int*;
-using MPI_Info = int*;
-
-#ifndef MPI_COMM_WORLD
-#define MPI_COMM_WORLD 0
-#endif
-#ifndef MPI_COMM_SELF
-#define MPI_COMM_SELF 0
-#endif
-#ifndef MPI_COMM_NULL
-#define MPI_COMM_NULL 0
-#endif
-#ifndef MPI_WIN_NULL
-#define MPI_WIN_NULL nullptr
-#endif
-#ifndef MPI_REQUEST_NULL
-#define MPI_REQUEST_NULL 0
-#endif
-#ifndef MPI_INFO_NULL
-#define MPI_INFO_NULL nullptr
-#endif
-#ifndef MPI_MIN
-#define MPI_MIN 0
-#endif
-#ifndef MPI_MAX
-#define MPI_MAX 0
-#endif
-#ifndef MPI_SUM
-#define MPI_SUM 0
-#endif
-#endif
 
 
 template <typename T>
@@ -688,6 +647,9 @@ void scan(const ReduceType* send_buffer, ReduceType* recv_buffer, int count,
 
 }  // namespace mpi
 }  // namespace gko
+
+
+#endif  // GKO_HAVE_MPI
 
 
 #endif  // GKO_PUBLIC_CORE_BASE_MPI_HPP_
