@@ -48,15 +48,15 @@ GKO_REGISTER_OPERATION(build_ranges_from_global_size,
                        partition::build_ranges_from_global_size);
 GKO_REGISTER_OPERATION(build_starting_indices,
                        partition::build_starting_indices);
-GKO_REGISTER_OPERATION(is_ordered, partition::is_ordered);
+GKO_REGISTER_OPERATION(has_ordered_parts, partition::has_ordered_parts);
 
 
 }  // namespace partition
 
 
-template <typename LocalIndexType>
-std::unique_ptr<Partition<LocalIndexType>>
-Partition<LocalIndexType>::build_from_mapping(
+template <typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
+Partition<LocalIndexType, GlobalIndexType>::build_from_mapping(
     std::shared_ptr<const Executor> exec, const Array<comm_index_type>& mapping,
     comm_index_type num_parts)
 {
@@ -72,11 +72,10 @@ Partition<LocalIndexType>::build_from_mapping(
 }
 
 
-template <typename LocalIndexType>
-std::unique_ptr<Partition<LocalIndexType>>
-Partition<LocalIndexType>::build_from_contiguous(
-    std::shared_ptr<const Executor> exec,
-    const Array<global_index_type>& ranges)
+template <typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
+Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
+    std::shared_ptr<const Executor> exec, const Array<GlobalIndexType>& ranges)
 {
     auto local_ranges = make_temporary_clone(exec, &ranges);
     auto result = Partition::create(
@@ -90,21 +89,22 @@ Partition<LocalIndexType>::build_from_contiguous(
 }
 
 
-template <typename LocalIndexType>
-std::unique_ptr<Partition<LocalIndexType>>
-Partition<LocalIndexType>::build_from_global_size_uniform(
+template <typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
+Partition<LocalIndexType, GlobalIndexType>::build_from_global_size_uniform(
     std::shared_ptr<const Executor> exec, comm_index_type num_parts,
-    global_index_type global_size)
+    GlobalIndexType global_size)
 {
-    Array<global_index_type> ranges(exec, num_parts + 1);
+    Array<GlobalIndexType> ranges(exec, num_parts + 1);
     exec->run(partition::make_build_ranges_from_global_size(
         num_parts, global_size, ranges));
-    return Partition<LocalIndexType>::build_from_contiguous(exec, ranges);
+    return Partition::build_from_contiguous(exec, ranges);
 }
 
 
-template <typename LocalIndexType>
-void Partition<LocalIndexType>::compute_range_starting_indices()
+template <typename LocalIndexType, typename GlobalIndexType>
+void Partition<LocalIndexType,
+               GlobalIndexType>::compute_range_starting_indices()
 {
     auto exec = offsets_.get_executor();
     exec->run(partition::make_build_starting_indices(
@@ -114,29 +114,29 @@ void Partition<LocalIndexType>::compute_range_starting_indices()
 }
 
 
-template <typename LocalIndexType>
-bool Partition<LocalIndexType>::has_connected_parts()
+template <typename LocalIndexType, typename GlobalIndexType>
+bool Partition<LocalIndexType, GlobalIndexType>::has_connected_parts()
 {
     return get_num_parts() - get_num_empty_parts() == get_num_ranges();
 }
 
 
-template <typename LocalIndexType>
-bool Partition<LocalIndexType>::has_ordered_parts()
+template <typename LocalIndexType, typename GlobalIndexType>
+bool Partition<LocalIndexType, GlobalIndexType>::has_ordered_parts()
 {
     if (has_connected_parts()) {
         auto exec = this->get_executor();
-        bool is_ordered;
-        exec->run(partition::make_is_ordered(this, &is_ordered));
-        return is_ordered;
+        bool has_ordered_parts;
+        exec->run(partition::make_has_ordered_parts(this, &has_ordered_parts));
+        return has_ordered_parts;
     } else {
         return false;
     }
 }
 
 
-#define GKO_DECLARE_PARTITION(_type) class Partition<_type>
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION);
+#define GKO_DECLARE_PARTITION(_local, _global) class Partition<_local, _global>
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_PARTITION);
 
 
 }  // namespace distributed

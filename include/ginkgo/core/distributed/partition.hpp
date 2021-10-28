@@ -83,23 +83,29 @@ namespace distributed {
  * @tparam LocalIndexType  The index type used for part-local indices.
  *                         To prevent overflows, no single part's size may
  *                         exceed this index type's maximum value.
+ * @tparam GlobalIndexType  The index type used for the global indices. Needs
+ *                          to be a larger type than LocalIndexType.
  */
-template <typename LocalIndexType = int32>
-class Partition : public EnablePolymorphicObject<Partition<LocalIndexType>>,
-                  public EnablePolymorphicAssignment<Partition<LocalIndexType>>,
-                  public EnableCreateMethod<Partition<LocalIndexType>> {
-    friend class EnableCreateMethod<Partition<LocalIndexType>>;
-    friend class EnablePolymorphicObject<Partition<LocalIndexType>>;
-    static_assert(sizeof(global_index_type) >= sizeof(LocalIndexType),
-                  "global_index_type must be at least as large as "
+template <typename LocalIndexType = int32, typename GlobalIndexType = int64>
+class Partition
+    : public EnablePolymorphicObject<
+          Partition<LocalIndexType, GlobalIndexType>>,
+      public EnablePolymorphicAssignment<
+          Partition<LocalIndexType, GlobalIndexType>>,
+      public EnableCreateMethod<Partition<LocalIndexType, GlobalIndexType>> {
+    friend class EnableCreateMethod<Partition>;
+    friend class EnablePolymorphicObject<Partition>;
+    static_assert(sizeof(GlobalIndexType) >= sizeof(LocalIndexType),
+                  "GlobalIndexType must be at least as large as "
                   "LocalIndexType");
 
 public:
-    using EnableCreateMethod<Partition<LocalIndexType>>::create;
-    using EnablePolymorphicAssignment<Partition<LocalIndexType>>::convert_to;
-    using EnablePolymorphicAssignment<Partition<LocalIndexType>>::move_to;
+    using EnableCreateMethod<Partition>::create;
+    using EnablePolymorphicAssignment<Partition>::convert_to;
+    using EnablePolymorphicAssignment<Partition>::move_to;
 
     using local_index_type = LocalIndexType;
+    using global_index_type = GlobalIndexType;
 
     /**
      * Returns the total number of elements represented by this partition.

@@ -49,49 +49,55 @@ namespace kernels {
                       const Array<comm_index_type>& mapping,       \
                       size_type& num_ranges)
 
-#define GKO_PARTITION_BUILD_FROM_CONTIGUOUS                                 \
+#define GKO_PARTITION_BUILD_FROM_CONTIGUOUS(GlobalIndexType)                \
     void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec, \
-                               const Array<global_index_type>& ranges,      \
-                               global_index_type* range_bounds,             \
+                               const Array<GlobalIndexType>& ranges,        \
+                               GlobalIndexType* range_bounds,               \
                                comm_index_type* part_ids)
 
-#define GKO_PARTITION_BUILD_FROM_MAPPING                                 \
+#define GKO_PARTITION_BUILD_FROM_MAPPING(GlobalIndexType)                \
     void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec, \
                             const Array<comm_index_type>& mapping,       \
-                            global_index_type* range_bounds,             \
+                            GlobalIndexType* range_bounds,               \
                             comm_index_type* part_ids)
 
-#define GKO_PARTITION_BUILD_FROM_GLOBAL_SIZE                      \
-    void build_ranges_from_global_size(                           \
-        std::shared_ptr<const DefaultExecutor> exec,              \
-        comm_index_type num_parts, global_index_type global_size, \
-        Array<global_index_type>& ranges)
+#define GKO_PARTITION_BUILD_FROM_GLOBAL_SIZE(GlobalIndexType)   \
+    void build_ranges_from_global_size(                         \
+        std::shared_ptr<const DefaultExecutor> exec,            \
+        comm_index_type num_parts, GlobalIndexType global_size, \
+        Array<GlobalIndexType>& ranges)
 
-#define GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES(LocalIndexType)          \
+#define GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES(LocalIndexType,          \
+                                                     GlobalIndexType)         \
     void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,  \
-                                const global_index_type* range_offsets,       \
+                                const GlobalIndexType* range_offsets,         \
                                 const int* range_parts, size_type num_ranges, \
                                 comm_index_type num_parts,                    \
                                 comm_index_type& num_empty_parts,             \
                                 LocalIndexType* ranks, LocalIndexType* sizes)
 
-#define GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType)                     \
-    void is_ordered(std::shared_ptr<const DefaultExecutor> exec,             \
-                    const distributed::Partition<LocalIndexType>* partition, \
-                    bool* result)
+#define GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType, GlobalIndexType) \
+    void has_ordered_parts(                                               \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const distributed::Partition<LocalIndexType, GlobalIndexType>*    \
+            partition,                                                    \
+        bool* result)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                              \
-    using global_index_type = distributed::global_index_type;     \
-    using comm_index_type = distributed::comm_index_type;         \
-    GKO_PARTITION_COUNT_RANGES;                                   \
-    GKO_PARTITION_BUILD_FROM_CONTIGUOUS;                          \
-    GKO_PARTITION_BUILD_FROM_MAPPING;                             \
-    GKO_PARTITION_BUILD_FROM_GLOBAL_SIZE;                         \
-    template <typename LocalIndexType>                            \
-    GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES(LocalIndexType); \
-    template <typename LocalIndexType>                            \
-    GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
+    using comm_index_type = distributed::comm_index_type;          \
+    GKO_PARTITION_COUNT_RANGES;                                    \
+    template <typename GlobalIndexType>                            \
+    GKO_PARTITION_BUILD_FROM_CONTIGUOUS(GlobalIndexType);          \
+    template <typename GlobalIndexType>                            \
+    GKO_PARTITION_BUILD_FROM_MAPPING(GlobalIndexType);             \
+    template <typename GlobalIndexType>                            \
+    GKO_PARTITION_BUILD_FROM_GLOBAL_SIZE(GlobalIndexType);         \
+    template <typename LocalIndexType, typename GlobalIndexType>   \
+    GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES(LocalIndexType,   \
+                                                 GlobalIndexType); \
+    template <typename LocalIndexType, typename GlobalIndexType>   \
+    GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType, GlobalIndexType)
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(partition,
                                         GKO_DECLARE_ALL_AS_TEMPLATES);

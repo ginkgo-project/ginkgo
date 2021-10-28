@@ -52,7 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-using global_index_type = gko::distributed::global_index_type;
 using comm_index_type = gko::distributed::comm_index_type;
 
 
@@ -66,29 +65,34 @@ void assert_equal_data(const T* data, std::initializer_list<U> reference_data)
 }
 
 
-template <typename LocalIndexType>
+template <typename LocalGlobalIndexType>
 class Partition : public ::testing::Test {
 protected:
-    using local_index_type = LocalIndexType;
+    using local_index_type =
+        typename std::tuple_element<0, decltype(LocalGlobalIndexType())>::type;
+    using global_index_type =
+        typename std::tuple_element<1, decltype(LocalGlobalIndexType())>::type;
     Partition() : ref(gko::ReferenceExecutor::create()) {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
 
-TYPED_TEST_SUITE(Partition, gko::test::IndexTypes);
+TYPED_TEST_SUITE(Partition, gko::test::LocalGlobalIndexTypes);
 
 
 TYPED_TEST(Partition, BuildsFromMapping)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     gko::Array<comm_index_type> mapping{
         this->ref, {2, 2, 0, 1, 1, 2, 0, 0, 1, 0, 1, 1, 1, 2, 2, 0}};
     comm_index_type num_parts = 3;
     gko::size_type num_ranges = 10;
 
-    auto partition =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->ref, mapping, num_parts);
+    auto partition = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->ref,
+                                                                 mapping,
+                                                                 num_parts);
 
     EXPECT_EQ(partition->get_size(), mapping.get_num_elems());
     EXPECT_EQ(partition->get_num_ranges(), num_ranges);
@@ -107,14 +111,16 @@ TYPED_TEST(Partition, BuildsFromMapping)
 TYPED_TEST(Partition, BuildsFromMappingWithEmptyParts)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     gko::Array<comm_index_type> mapping{
         this->ref, {3, 3, 0, 1, 1, 3, 0, 0, 1, 0, 1, 1, 1, 3, 3, 0}};
     comm_index_type num_parts = 5;
     gko::size_type num_ranges = 10;
 
-    auto partition =
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->ref, mapping, num_parts);
+    auto partition = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_mapping(this->ref,
+                                                                 mapping,
+                                                                 num_parts);
 
     EXPECT_EQ(partition->get_size(), mapping.get_num_elems());
     EXPECT_EQ(partition->get_num_ranges(), num_ranges);
@@ -133,11 +139,12 @@ TYPED_TEST(Partition, BuildsFromMappingWithEmptyParts)
 TYPED_TEST(Partition, BuildsFromRanges)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     gko::Array<global_index_type> ranges{this->ref, {0, 5, 5, 7, 9, 10}};
 
-    auto partition =
-        gko::distributed::Partition<local_index_type>::build_from_contiguous(
-            this->ref, ranges);
+    auto partition = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_contiguous(this->ref,
+                                                                    ranges);
 
     EXPECT_EQ(partition->get_size(),
               ranges.get_data()[ranges.get_num_elems() - 1]);
@@ -153,9 +160,11 @@ TYPED_TEST(Partition, BuildsFromRanges)
 TYPED_TEST(Partition, BuildsFromGlobalSize)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
 
-    auto partition = gko::distributed::Partition<
-        local_index_type>::build_from_global_size_uniform(this->ref, 5, 13);
+    auto partition =
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_global_size_uniform(this->ref, 5, 13);
 
     EXPECT_EQ(partition->get_size(), 13);
     EXPECT_EQ(partition->get_num_ranges(), 5);
@@ -171,9 +180,11 @@ TYPED_TEST(Partition, BuildsFromGlobalSize)
 TYPED_TEST(Partition, BuildsFromGlobalSizeEmptySize)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
 
-    auto partition = gko::distributed::Partition<
-        local_index_type>::build_from_global_size_uniform(this->ref, 5, 0);
+    auto partition =
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_global_size_uniform(this->ref, 5, 0);
 
     EXPECT_EQ(partition->get_size(), 0);
     EXPECT_EQ(partition->get_num_ranges(), 5);
@@ -189,9 +200,11 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeEmptySize)
 TYPED_TEST(Partition, BuildsFromGlobalSizeWithEmptyParts)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
 
-    auto partition = gko::distributed::Partition<
-        local_index_type>::build_from_global_size_uniform(this->ref, 5, 3);
+    auto partition =
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_global_size_uniform(this->ref, 5, 3);
 
     EXPECT_EQ(partition->get_size(), 3);
     EXPECT_EQ(partition->get_num_ranges(), 5);
@@ -207,10 +220,12 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeWithEmptyParts)
 TYPED_TEST(Partition, IsConnected)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     auto part = gko::share(
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->ref, gko::Array<comm_index_type>{this->ref, {0, 0, 1, 1, 2}},
-            3));
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_mapping(
+                this->ref,
+                gko::Array<comm_index_type>{this->ref, {0, 0, 1, 1, 2}}, 3));
 
     ASSERT_TRUE(part->has_connected_parts());
 }
@@ -219,10 +234,12 @@ TYPED_TEST(Partition, IsConnected)
 TYPED_TEST(Partition, IsConnectedWithEmptyParts)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     auto part = gko::share(
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->ref, gko::Array<comm_index_type>{this->ref, {0, 0, 2, 2, 5}},
-            6));
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_mapping(
+                this->ref,
+                gko::Array<comm_index_type>{this->ref, {0, 0, 2, 2, 5}}, 6));
 
     ASSERT_TRUE(part->has_connected_parts());
 }
@@ -231,10 +248,12 @@ TYPED_TEST(Partition, IsConnectedWithEmptyParts)
 TYPED_TEST(Partition, IsConnectedUnordered)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     auto part = gko::share(
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->ref, gko::Array<comm_index_type>{this->ref, {1, 1, 0, 0, 2}},
-            3));
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_mapping(
+                this->ref,
+                gko::Array<comm_index_type>{this->ref, {1, 1, 0, 0, 2}}, 3));
 
     ASSERT_TRUE(part->has_connected_parts());
 }
@@ -243,10 +262,12 @@ TYPED_TEST(Partition, IsConnectedUnordered)
 TYPED_TEST(Partition, IsConnectedFail)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     auto part = gko::share(
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->ref, gko::Array<comm_index_type>{this->ref, {0, 1, 2, 0, 1}},
-            3));
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_mapping(
+                this->ref,
+                gko::Array<comm_index_type>{this->ref, {0, 1, 2, 0, 1}}, 3));
 
     ASSERT_FALSE(part->has_connected_parts());
 }
@@ -255,10 +276,12 @@ TYPED_TEST(Partition, IsConnectedFail)
 TYPED_TEST(Partition, IsOrdered)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     auto part = gko::share(
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->ref, gko::Array<comm_index_type>{this->ref, {1, 1, 0, 0, 2}},
-            3));
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_mapping(
+                this->ref,
+                gko::Array<comm_index_type>{this->ref, {1, 1, 0, 0, 2}}, 3));
 
     ASSERT_FALSE(part->has_ordered_parts());
 }
@@ -267,10 +290,12 @@ TYPED_TEST(Partition, IsOrdered)
 TYPED_TEST(Partition, IsOrderedFail)
 {
     using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
     auto part = gko::share(
-        gko::distributed::Partition<local_index_type>::build_from_mapping(
-            this->ref, gko::Array<comm_index_type>{this->ref, {0, 1, 1, 2, 2}},
-            3));
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_mapping(
+                this->ref,
+                gko::Array<comm_index_type>{this->ref, {0, 1, 1, 2, 2}}, 3));
 
     ASSERT_TRUE(part->has_ordered_parts());
 }
