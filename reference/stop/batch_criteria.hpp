@@ -50,6 +50,88 @@ namespace stop {
 
 
 /**
+ * Stopping criterion for batch solvers that combines a maximum iteration
+ * count and relative residual threshold.
+ *
+ * Supports only one right hand side.
+ */
+template <typename ValueType>
+class SimpleRelResidual {
+public:
+    using real_type = remove_complex<ValueType>;
+
+    /**
+     * Set up the stopping criterion and convergence variable.
+     *
+     * @param max_iters  Maximum number of iterations allowed.
+     * @param rel_res_tol  Tolerance on relative residual norm.
+     * @param rhs_b_norms  The reference RHS norms.
+     */
+    SimpleRelResidual(const real_type rel_res_tol,
+                      const real_type* const rhs_b_norms)
+        : rel_tol_{rel_res_tol}, rhs_norms_{rhs_b_norms}
+    {}
+
+    /**
+     * Checks whether the right hand side has converged.
+     *
+     * @param residual_norms  Current residual norm.
+     *
+     * @return  True if RHS has converged, false otherwise.
+     */
+    bool check_converged(const real_type* const residual_norms) const
+    {
+        return (residual_norms[0] / rhs_norms_[0] < rel_tol_);
+    }
+
+private:
+    const real_type rel_tol_;
+    const real_type* const rhs_norms_;
+};
+
+
+/**
+ * Stopping criterion for batch solvers that combines a maximum iteration
+ * count and absolute residual threshold.
+ *
+ * Supports only one right hand side.
+ */
+template <typename ValueType>
+class SimpleAbsResidual {
+public:
+    using real_type = remove_complex<ValueType>;
+
+    /**
+     * Set up the stopping criterion and convergence variable.
+     *
+     * @param max_iters  Maximum number of iterations allowed.
+     * @param tol  Tolerance on residual norm.
+     */
+    SimpleAbsResidual(const real_type tol, const real_type*) : abs_tol_{tol} {}
+
+    /**
+     * Checks whether the different right hand sides have converged.
+     *
+     * @param iter  The current iteration count.
+     * @param residual_norms  (Optional) current residual norm of each RHS.
+     * @param residual  Current residual vectors. Unused if residual_norms
+     *                  are provided.
+     * @param converged  Bits representing converged (1) or not (0) for each
+     *                   RHS. The 'right-most' bit corresponds to the first RHS.
+     *
+     * @return  True if all RHS have converged, false otherwise.
+     */
+    bool check_converged(const real_type* const residual_norms) const
+    {
+        return (residual_norms[0] < abs_tol_);
+    }
+
+private:
+    const real_type abs_tol_;
+};
+
+
+/**
  * A stopping criterion for batch solvers that comprises a
  * maximum iteration count as well as relative residual tolerance.
  *
@@ -75,8 +157,8 @@ public:
      */
     RelResidualMaxIter(const int num_rhs, const int max_iters,
                        const real_type rel_res_tol,
-                       const real_type *const rhs_b_norms,
-                       bitset_type &converge_bitset)
+                       const real_type* const rhs_b_norms,
+                       bitset_type& converge_bitset)
         : nrhs_{num_rhs},
           rel_tol_{rel_res_tol},
           max_its_{max_iters},
@@ -99,9 +181,9 @@ public:
      * @return  True if all RHS have converged, false otherwise.
      */
     bool check_converged(
-        const int iter, const real_type *const residual_norms,
-        const gko::batch_dense::BatchEntry<const ValueType> &residual,
-        bitset_type &converged) const
+        const int iter, const real_type* const residual_norms,
+        const gko::batch_dense::BatchEntry<const ValueType>& residual,
+        bitset_type& converged) const
     {
         if (iter >= max_its_ - 1) {
             return true;
@@ -128,11 +210,11 @@ private:
     int nrhs_;
     int max_its_;
     const real_type rel_tol_;
-    const real_type *const rhs_norms_;
+    const real_type* const rhs_norms_;
     static constexpr uint32 all_true_ = ~static_cast<bitset_type>(0);
 
-    void check_norms(const real_type *const res_norms,
-                     bitset_type &converged) const
+    void check_norms(const real_type* const res_norms,
+                     bitset_type& converged) const
     {
         for (int i = 0; i < nrhs_; i++) {
             if (res_norms[i] / rhs_norms_[i] < rel_tol_) {
@@ -169,8 +251,8 @@ public:
      */
     AbsResidualMaxIter(const int num_rhs, const int max_iters,
                        const real_type abs_res_tol,
-                       const real_type *const rhs_b_norms,
-                       bitset_type &converge_bitset)
+                       const real_type* const rhs_b_norms,
+                       bitset_type& converge_bitset)
         : nrhs_{num_rhs},
           abs_tol_{abs_res_tol},
           max_its_{max_iters},
@@ -193,9 +275,9 @@ public:
      * @return  True if all RHS have converged, false otherwise.
      */
     bool check_converged(
-        const int iter, const real_type *const residual_norms,
-        const gko::batch_dense::BatchEntry<const ValueType> &residual,
-        bitset_type &converged) const
+        const int iter, const real_type* const residual_norms,
+        const gko::batch_dense::BatchEntry<const ValueType>& residual,
+        bitset_type& converged) const
     {
         if (iter >= max_its_ - 1) {
             return true;
@@ -222,11 +304,11 @@ private:
     int nrhs_;
     int max_its_;
     const real_type abs_tol_;
-    const real_type *const rhs_norms_;
+    const real_type* const rhs_norms_;
     static constexpr uint32 all_true_ = ~static_cast<bitset_type>(0);
 
-    void check_norms(const real_type *const res_norms,
-                     bitset_type &converged) const
+    void check_norms(const real_type* const res_norms,
+                     bitset_type& converged) const
     {
         for (int i = 0; i < nrhs_; i++) {
             // don't check for RHSs which have already converged.
