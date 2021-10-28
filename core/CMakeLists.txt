@@ -71,8 +71,13 @@ target_compile_options(ginkgo PRIVATE "${GINKGO_COMPILER_FLAGS}")
 # add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
-target_link_libraries(ginkgo
-    PUBLIC ginkgo_device ginkgo_omp ginkgo_mpi ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
+if(GINKGO_BUILD_MPI)
+    target_link_libraries(ginkgo
+        PUBLIC ginkgo_device ginkgo_omp ginkgo_mpi ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
+else()
+    target_link_libraries(ginkgo
+        PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
+endif()
 # The PAPI dependency needs to be exposed to the user.
 set(GKO_RPATH_ADDITIONS "")
 if (GINKGO_HAVE_PAPI_SDE)

@@ -1,6 +1,6 @@
 find_package(MPI REQUIRED)
 
-add_library(ginkgo_mpi $<TARGET_OBJECTS:ginkgo_mpi_device> "")
+add_library(ginkgo_mpi)
 target_sources(ginkgo_mpi
     PRIVATE
         base/exception.cpp
