@@ -143,7 +143,8 @@ public:
     explicit temporary_clone(std::shared_ptr<const Executor> exec, pointer ptr,
                              bool copy_data = true)
     {
-        if (ptr->get_executor()->memory_accessible(exec)) {
+        if (ptr->get_executor()->get_mem_space()->memory_accessible(
+                exec->get_mem_space())) {
             // just use the object we already have
             handle_ = handle_type(ptr, null_deleter<T>());
         } else {
