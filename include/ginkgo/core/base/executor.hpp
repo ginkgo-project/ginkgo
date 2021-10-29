@@ -627,6 +627,26 @@ public:
      *
      * @tparam T  datatype to copy
      *
+     * @param exec  The executor whose mem_space to be copied from
+     * @param num_elems  number of elements of type T to copy
+     * @param src_ptr  pointer to a block of memory containing the data to be
+     *                 copied
+     * @param dest_ptr  pointer to an allocated block of memory
+     *                  where the data will be copied to
+     */
+    template <typename T>
+    void copy_from(const Executor* exec, size_type num_elems, const T* src_ptr,
+                   T* dest_ptr) const
+    {
+        this->get_mem_space()->copy_from(exec->get_mem_space().get(), num_elems,
+                                         src_ptr, dest_ptr);
+    }
+
+    /**
+     * Copies data within this Executor's memory space.
+     *
+     * @tparam T  datatype to copy
+     *
      * @param num_elems  number of elements of type T to copy
      * @param src_ptr  pointer to a block of memory containing the data to be
      *                 copied
