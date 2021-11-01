@@ -91,6 +91,16 @@ void HostMemorySpace::raw_copy_to(const DpcppMemorySpace* dest,
 }
 
 
+void ReferenceMemorySpace::raw_copy_to(const DpcppMemorySpace* dest,
+                                       size_type num_bytes, const void* src_ptr,
+                                       void* dest_ptr) const
+{
+    if (num_bytes > 0) {
+        dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+    }
+}
+
+
 void DpcppMemorySpace::raw_free(void* ptr) const noexcept
 {
     // the free function may syncronize excution or not, which depends on
@@ -131,6 +141,7 @@ DpcppMemorySpace::DpcppMemorySpace(int device_id, std::string device_type)
     : device_id_(device_id), device_type_(device_type)
 {
     assert(device_id < max_devices);
+    auto device = detail::get_devices(device_type)[device_id];
     // Here we declare the queue with the property `in_order` which ensures the
     // kernels are executed in the submission order. Otherwise, calls to
     // `wait()` would be needed after every call to a DPC++ function or kernel.
@@ -167,11 +178,23 @@ void DpcppMemorySpace::raw_copy_to(const DpcppMemorySpace* dest,
 
 void DpcppMemorySpace::raw_copy_to(const HostMemorySpace* dest,
                                    size_type num_bytes, const void* src_ptr,
-                                   void* dest_ptr) const if (num_bytes > 0)
+                                   void* dest_ptr) const
 {
-    queue_->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+    if (num_bytes > 0) {
+        queue_->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+    }
 }
-}  // namespace gko
+
+
+void DpcppMemorySpace::raw_copy_to(const ReferenceMemorySpace* dest,
+                                   size_type num_bytes, const void* src_ptr,
+                                   void* dest_ptr) const
+{
+    if (num_bytes > 0) {
+        queue_->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+    }
+}
+
 
 void DpcppMemorySpace::raw_copy_to(const HipMemorySpace* dest,
                                    size_type num_bytes, const void* src_ptr,
@@ -188,9 +211,10 @@ void DpcppMemorySpace::raw_copy_to(const CudaUVMSpace* dest,
 bool DpcppMemorySpace::verify_memory_to(
     const HostMemorySpace* dest_mem_space) const
 {
-    auto device = detail::get_devices(device_type_[device_id_]);
+    auto device = this->get_queue()->get_device();
     return device.is_host() || device.is_cpu();
 }
+
 
 bool DpcppMemorySpace::verify_memory_to(
     const DpcppMemorySpace* dest_mem_space) const
