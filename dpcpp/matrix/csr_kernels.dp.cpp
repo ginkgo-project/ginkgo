@@ -40,7 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <oneapi/mkl.hpp>
 
 
-#include <ginkgo/core/base/allocator.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -51,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/base/allocator.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/components/prefix_sum.hpp"

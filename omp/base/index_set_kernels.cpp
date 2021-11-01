@@ -36,12 +36,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
-#include <ginkgo/core/base/allocator.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/allocator.hpp"
 #include "core/base/index_set_kernels.hpp"
 
 
