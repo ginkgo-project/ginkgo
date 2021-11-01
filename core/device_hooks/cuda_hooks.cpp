@@ -84,6 +84,12 @@ void HostMemorySpace::raw_copy_to(const CudaMemorySpace*, size_type num_bytes,
     GKO_NOT_COMPILED(cuda);
 
 
+void ReferenceMemorySpace::raw_copy_to(const CudaMemorySpace*,
+                                       size_type num_bytes, const void* src_ptr,
+                                       void* dest_ptr) const
+    GKO_NOT_COMPILED(cuda);
+
+
 void CudaMemorySpace::raw_free(void* ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
@@ -111,6 +117,11 @@ void* CudaUVMSpace::raw_alloc(size_type num_bytes) const
 void CudaMemorySpace::raw_copy_to(const HostMemorySpace*, size_type num_bytes,
                                   const void* src_ptr, void* dest_ptr) const
     GKO_NOT_COMPILED(cuda);
+
+
+void CudaMemorySpace::raw_copy_to(const ReferenceMemorySpace*,
+                                  size_type num_bytes, const void* src_ptr,
+                                  void* dest_ptr) const GKO_NOT_COMPILED(cuda);
 
 
 void CudaMemorySpace::raw_copy_to(const CudaMemorySpace*, size_type num_bytes,
@@ -159,6 +170,17 @@ void HostMemorySpace::raw_copy_to(const CudaUVMSpace* dest_mem_space,
 
 
 void CudaUVMSpace::raw_copy_to(const HostMemorySpace* dest_mem_space,
+                               size_type n_bytes, const void* src_ptr,
+                               void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+
+
+void ReferenceMemorySpace::raw_copy_to(const CudaUVMSpace* dest_mem_space,
+                                       size_type n_bytes, const void* src_ptr,
+                                       void* dest_ptr) const
+    GKO_NOT_COMPILED(cuda);
+
+
+void CudaUVMSpace::raw_copy_to(const ReferenceMemorySpace* dest_mem_space,
                                size_type n_bytes, const void* src_ptr,
                                void* dest_ptr) const GKO_NOT_COMPILED(cuda);
 
