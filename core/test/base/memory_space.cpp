@@ -48,6 +48,52 @@ namespace {
 using mem_space_ptr = std::shared_ptr<gko::MemorySpace>;
 
 
+TEST(ReferenceMemorySpace, AllocatesAndFreesMemory)
+{
+    const int num_elems = 10;
+    mem_space_ptr host = gko::ReferenceMemorySpace::create();
+    int* ptr = nullptr;
+
+    ASSERT_NO_THROW(ptr = host->alloc<int>(num_elems));
+    ASSERT_NO_THROW(host->free(ptr));
+}
+
+
+TEST(ReferenceMemorySpace, FreeAcceptsNullptr)
+{
+    mem_space_ptr host = gko::ReferenceMemorySpace::create();
+    ASSERT_NO_THROW(host->free(nullptr));
+}
+
+
+TEST(ReferenceMemorySpace, FailsWhenOverallocating)
+{
+    const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
+    mem_space_ptr host = gko::ReferenceMemorySpace::create();
+    int* ptr = nullptr;
+
+    ASSERT_THROW(ptr = host->alloc<int>(num_elems), gko::AllocationError);
+
+    host->free(ptr);
+}
+
+
+TEST(ReferenceMemorySpace, CopiesData)
+{
+    int orig[] = {3, 8};
+    const int num_elems = std::extent<decltype(orig)>::value;
+    mem_space_ptr host = gko::ReferenceMemorySpace::create();
+    int* copy = host->alloc<int>(num_elems);
+
+    // user code is run on the HOST, so local variables are in HOST memory
+    host->copy_from(host.get(), num_elems, orig, copy);
+    EXPECT_EQ(3, copy[0]);
+    EXPECT_EQ(8, copy[1]);
+
+    host->free(copy);
+}
+
+
 TEST(HostMemorySpace, AllocatesAndFreesMemory)
 {
     const int num_elems = 10;
@@ -120,9 +166,11 @@ TEST(HipMemorySpace, KnowsItsDeviceId)
 
 TEST(MemorySpace, CanVerifyMemory)
 {
+    auto ref = gko::ReferenceMemorySpace::create();
     auto host = gko::HostMemorySpace::create();
     auto hip = gko::HipMemorySpace::create(0);
     auto cuda = gko::CudaMemorySpace::create(0);
+    auto ref2 = gko::ReferenceMemorySpace::create();
     auto host2 = gko::HostMemorySpace::create();
     auto hip2 = gko::HipMemorySpace::create(0);
     auto cuda2 = gko::CudaMemorySpace::create(0);
@@ -147,7 +195,12 @@ TEST(MemorySpace, CanVerifyMemory)
         gpu_dpcpp_dup = gko::DpcppMemorySpace::create(0, "gpu");
     }
 
+    ASSERT_EQ(true, ref->memory_accessible(ref));
+    ASSERT_EQ(true, ref2->memory_accessible(ref));
+    ASSERT_EQ(false, ref->memory_accessible(host));
     ASSERT_EQ(true, host->memory_accessible(host));
+    ASSERT_EQ(true, host2->memory_accessible(host));
+    ASSERT_EQ(false, host->memory_accessible(ref));
     ASSERT_EQ(false, host->memory_accessible(hip));
     ASSERT_EQ(false, hip->memory_accessible(host));
     ASSERT_EQ(false, cuda->memory_accessible(host));

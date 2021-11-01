@@ -705,8 +705,8 @@ public:
     /**
      * @copydoc get_mem_space
      */
-    virtual std::shared_ptr<const MemorySpace> get_mem_space()
-        const noexcept = 0;
+    virtual std::shared_ptr<const MemorySpace> get_mem_space() const
+        noexcept = 0;
 
 protected:
     /**
@@ -1119,7 +1119,7 @@ public:
 protected:
     ReferenceExecutor()
     {
-        mem_space_instance_ = HostMemorySpace::create();
+        mem_space_instance_ = ReferenceMemorySpace::create();
         this->ReferenceExecutor::populate_exec_info(
             MachineTopology::get_instance());
     }
@@ -1135,7 +1135,7 @@ protected:
         : mem_space_instance_(mem_space)
     {
         if (!check_mem_space_validity(mem_space_instance_)) {
-            GKO_MEMSPACE_MISMATCH(NOT_HOST);
+            GKO_MEMSPACE_MISMATCH(NOT_REF);
         }
     }
 

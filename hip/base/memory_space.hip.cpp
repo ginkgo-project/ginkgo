@@ -61,6 +61,18 @@ void HostMemorySpace::raw_copy_to(const HipMemorySpace* dest,
 }
 
 
+void ReferenceMemorySpace::raw_copy_to(const HipMemorySpace* dest,
+                                       size_type num_bytes, const void* src_ptr,
+                                       void* dest_ptr) const
+{
+    if (num_bytes > 0) {
+        hip::device_guard g(dest->get_device_id());
+        GKO_ASSERT_NO_HIP_ERRORS(
+            hipMemcpy(dest_ptr, src_ptr, num_bytes, hipMemcpyHostToDevice));
+    }
+}
+
+
 void HipMemorySpace::raw_free(void* ptr) const noexcept
 {
     hip::device_guard g(this->get_device_id());
@@ -93,6 +105,18 @@ void* HipMemorySpace::raw_alloc(size_type num_bytes) const
 
 void HipMemorySpace::raw_copy_to(const HostMemorySpace*, size_type num_bytes,
                                  const void* src_ptr, void* dest_ptr) const
+{
+    if (num_bytes > 0) {
+        hip::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_HIP_ERRORS(
+            hipMemcpy(dest_ptr, src_ptr, num_bytes, hipMemcpyDeviceToHost));
+    }
+}
+
+
+void HipMemorySpace::raw_copy_to(const ReferenceMemorySpace*,
+                                 size_type num_bytes, const void* src_ptr,
+                                 void* dest_ptr) const
 {
     if (num_bytes > 0) {
         hip::device_guard g(this->get_device_id());

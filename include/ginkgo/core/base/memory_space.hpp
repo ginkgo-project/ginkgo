@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MEMORY_SPACE_HPP_
-#define GKO_CORE_MEMORY_SPACE_HPP_
+#ifndef GKO_CORE_BASE_MEMORY_SPACE_HPP_
+#define GKO_CORE_BASE_MEMORY_SPACE_HPP_
 
 
 #include <iostream>
@@ -413,7 +413,53 @@ protected:
 
     GKO_ENABLE_FOR_ALL_MEMORY_SPACES(GKO_OVERRIDE_RAW_COPY_TO);
 
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceMemorySpace, false);
+
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HostMemorySpace, true);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaMemorySpace, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaUVMSpace, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipMemorySpace, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppMemorySpace, false);
+};
+
+
+class ReferenceMemorySpace
+    : public detail::MemorySpaceBase<ReferenceMemorySpace> {
+    friend class detail::MemorySpaceBase<ReferenceMemorySpace>;
+
+public:
+    /**
+     * Creates a new ReferenceMemorySpace.
+     */
+    static std::shared_ptr<ReferenceMemorySpace> create()
+    {
+        return std::shared_ptr<ReferenceMemorySpace>(
+            new ReferenceMemorySpace());
+    }
+
+    void synchronize() const override;
+
+protected:
+    ReferenceMemorySpace() = default;
+
+    void* raw_alloc(size_type size) const override;
+
+    void raw_free(void* ptr) const noexcept override;
+
+    bool verify_memory_from(const MemorySpace* src_mem_space) const override
+    {
+        return src_mem_space->verify_memory_to(this);
+    }
+
+    GKO_ENABLE_FOR_ALL_MEMORY_SPACES(GKO_OVERRIDE_RAW_COPY_TO);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HostMemorySpace, false);
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceMemorySpace, true);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaMemorySpace, false);
 
@@ -476,6 +522,8 @@ protected:
 
     bool verify_memory_to(const CudaUVMSpace* dest_mem_space) const override;
 
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceMemorySpace, false);
+
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HostMemorySpace, false);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppMemorySpace, false);
@@ -534,6 +582,8 @@ protected:
     bool verify_memory_to(const HipMemorySpace* dest_mem_space) const override;
 
     bool verify_memory_to(const CudaMemorySpace* dest_mem_space) const override;
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceMemorySpace, false);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaUVMSpace, true);
 
@@ -597,6 +647,8 @@ protected:
     bool verify_memory_to(const CudaUVMSpace* dest_mem_space) const override;
 
     bool verify_memory_to(const HipMemorySpace* dest_mem_space) const override;
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceMemorySpace, false);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HostMemorySpace, false);
 
@@ -664,6 +716,8 @@ protected:
     {
         return src_mem_space->verify_memory_to(this);
     }
+
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceMemorySpace, false);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaMemorySpace, false);
 

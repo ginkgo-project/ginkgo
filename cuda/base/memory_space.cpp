@@ -99,6 +99,18 @@ void HostMemorySpace::raw_copy_to(const CudaMemorySpace* dest,
 }
 
 
+void ReferenceMemorySpace::raw_copy_to(const CudaMemorySpace* dest,
+                                       size_type num_bytes, const void* src_ptr,
+                                       void* dest_ptr) const
+{
+    if (num_bytes > 0) {
+        cuda::device_guard g(dest->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice));
+    }
+}
+
+
 void CudaMemorySpace::raw_free(void* ptr) const noexcept
 {
     cuda::device_guard g(this->get_device_id());
@@ -148,6 +160,18 @@ void* CudaMemorySpace::raw_alloc(size_type num_bytes) const
 
 void CudaMemorySpace::raw_copy_to(const HostMemorySpace*, size_type num_bytes,
                                   const void* src_ptr, void* dest_ptr) const
+{
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
+    }
+}
+
+
+void CudaMemorySpace::raw_copy_to(const ReferenceMemorySpace*,
+                                  size_type num_bytes, const void* src_ptr,
+                                  void* dest_ptr) const
 {
     if (num_bytes > 0) {
         cuda::device_guard g(this->get_device_id());
@@ -260,16 +284,15 @@ void HostMemorySpace::raw_copy_to(const CudaUVMSpace* dest, size_type num_bytes,
 }
 
 
-void* CudaUVMSpace::raw_alloc(size_type num_bytes) const
+void ReferenceMemorySpace::raw_copy_to(const CudaUVMSpace* dest,
+                                       size_type num_bytes, const void* src_ptr,
+                                       void* dest_ptr) const
 {
-    void* dev_ptr = nullptr;
-    cuda::device_guard g(this->get_device_id());
-    auto error_code = cudaMallocManaged(&dev_ptr, num_bytes);
-    if (error_code != cudaErrorMemoryAllocation) {
-        GKO_ASSERT_NO_CUDA_ERRORS(error_code);
+    if (num_bytes > 0) {
+        cuda::device_guard g(dest->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice));
     }
-    GKO_ENSURE_ALLOCATED(dev_ptr, "cuda", num_bytes);
-    return dev_ptr;
 }
 
 
@@ -281,6 +304,30 @@ void CudaUVMSpace::raw_copy_to(const HostMemorySpace*, size_type num_bytes,
         GKO_ASSERT_NO_CUDA_ERRORS(
             cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
     }
+}
+
+
+void CudaUVMSpace::raw_copy_to(const ReferenceMemorySpace*, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
+{
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
+    }
+}
+
+
+void* CudaUVMSpace::raw_alloc(size_type num_bytes) const
+{
+    void* dev_ptr = nullptr;
+    cuda::device_guard g(this->get_device_id());
+    auto error_code = cudaMallocManaged(&dev_ptr, num_bytes);
+    if (error_code != cudaErrorMemoryAllocation) {
+        GKO_ASSERT_NO_CUDA_ERRORS(error_code);
+    }
+    GKO_ENSURE_ALLOCATED(dev_ptr, "cuda", num_bytes);
+    return dev_ptr;
 }
 
 

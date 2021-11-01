@@ -66,4 +66,46 @@ void HostMemorySpace::raw_copy_to(const HostMemorySpace*, size_type num_bytes,
 }
 
 
+void HostMemorySpace::raw_copy_to(const ReferenceMemorySpace*,
+                                  size_type num_bytes, const void* src_ptr,
+                                  void* dest_ptr) const
+{
+    std::memcpy(dest_ptr, src_ptr, num_bytes);
+}
+
+
+void ReferenceMemorySpace::raw_copy_to(const HostMemorySpace*,
+                                       size_type num_bytes, const void* src_ptr,
+                                       void* dest_ptr) const
+{
+    std::memcpy(dest_ptr, src_ptr, num_bytes);
+}
+
+
+void ReferenceMemorySpace::raw_free(void* ptr) const noexcept
+{
+    std::free(ptr);
+}
+
+
+void ReferenceMemorySpace::synchronize() const
+{
+    // Currently a no-op
+}
+
+
+void* ReferenceMemorySpace::raw_alloc(size_type num_bytes) const
+{
+    return GKO_ENSURE_ALLOCATED(std::malloc(num_bytes), "Reference", num_bytes);
+}
+
+
+void ReferenceMemorySpace::raw_copy_to(const ReferenceMemorySpace*,
+                                       size_type num_bytes, const void* src_ptr,
+                                       void* dest_ptr) const
+{
+    std::memcpy(dest_ptr, src_ptr, num_bytes);
+}
+
+
 }  // namespace gko

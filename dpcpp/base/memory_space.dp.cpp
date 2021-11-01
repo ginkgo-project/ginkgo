@@ -91,6 +91,16 @@ void HostMemorySpace::raw_copy_to(const DpcppMemorySpace* dest,
 }
 
 
+void ReferenceMemorySpace::raw_copy_to(const DpcppMemorySpace* dest,
+                                       size_type num_bytes, const void* src_ptr,
+                                       void* dest_ptr) const
+{
+    if (num_bytes > 0) {
+        dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+    }
+}
+
+
 void DpcppMemorySpace::raw_free(void* ptr) const noexcept
 {
     // the free function may syncronize excution or not, which depends on
@@ -171,7 +181,15 @@ void DpcppMemorySpace::raw_copy_to(const HostMemorySpace* dest,
 {
     queue_->memcpy(dest_ptr, src_ptr, num_bytes).wait();
 }
-}  // namespace gko
+
+
+void DpcppMemorySpace::raw_copy_to(const ReferenceMemorySpace* dest,
+                                   size_type num_bytes, const void* src_ptr,
+                                   void* dest_ptr) const if (num_bytes > 0)
+{
+    queue_->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+}
+
 
 void DpcppMemorySpace::raw_copy_to(const HipMemorySpace* dest,
                                    size_type num_bytes, const void* src_ptr,
