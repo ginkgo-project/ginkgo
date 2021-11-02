@@ -35,8 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/types.hpp>
-
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
+
 
 #include "reference/base/config.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"

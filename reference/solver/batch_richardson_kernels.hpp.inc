@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 inline void batch_entry_richardson_impl(
@@ -101,17 +100,6 @@ inline void batch_entry_richardson_impl(
         }
 
         prec.apply(gko::batch::to_const(r_b), dx_b);
-
-        // zero out dx for rhs's which do not need to be updated,
-        //  though this is unnecessary for this solver.
-        // for (int j = 0; j < nrhs; j++) {
-        //    const uint32 conv = converged & (1 << j);
-        //    if (conv) {
-        //        for (int i = 0; i < nrows; i++) {
-        //            dx_b.values[i * dx_b.stride + j] = 0.0;
-        //        }
-        //    }
-        //}
 
         batch_dense::add_scaled(relax_b, gko::batch::to_const(dx_b), x_b);
     }
