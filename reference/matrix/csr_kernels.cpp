@@ -643,8 +643,8 @@ void calculate_nonzeros_per_row_in_span(
     for (size_type row = row_span.begin; row < row_span.end; ++row) {
         for (size_type col = source->get_const_row_ptrs()[row];
              col < source->get_const_row_ptrs()[row + 1]; ++col) {
-            if (source->get_const_col_idxs()[col] >= col_span.begin &&
-                source->get_const_col_idxs()[col] < col_span.end) {
+            if (source->get_const_col_idxs()[col] < col_span.end &&
+                source->get_const_col_idxs()[col] >= col_span.begin) {
                 row_nnz->get_data()[res_row]++;
             }
         }

@@ -989,7 +989,6 @@ protected:
      * Creates a CSR matrix from already allocated (and initialized) row
      * pointer array.
      *
-     *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param row_ptrs  array of row pointers

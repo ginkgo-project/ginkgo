@@ -1051,18 +1051,6 @@ __global__ __launch_bounds__(default_block_size) void inv_symm_permute_kernel(
 namespace kernel {
 
 
-template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void get_row_nnz_data(
-    const size_type num_rows, const IndexType* __restrict__ nnz_per_row,
-    IndexType* __restrict__ row_ptrs)
-{
-    const auto tidx = thread::get_thread_id_flat();
-    if (tidx < num_rows) {
-        row_ptrs[tidx] = nnz_per_row[tidx];
-    }
-}
-
-
 template <typename ValueType, typename IndexType>
 __global__
     __launch_bounds__(default_block_size) void compute_submatrix_idxs_and_vals(
@@ -1077,6 +1065,7 @@ __global__
         ValueType* __restrict__ result_values)
 {
     const auto tidx = thread::get_thread_id_flat();
+    // for (int tidx = threadIdx.x; tidx < num_rows; tidx += blockDim.x) {
     if (tidx < num_rows) {
         size_type res_nnz = result_row_ptrs[tidx];
         for (size_type nnz = source_row_ptrs[row_offset + tidx];
