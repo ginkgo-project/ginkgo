@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
@@ -65,7 +66,7 @@ protected:
 
     Csr()
 #ifdef GINKGO_FAST_TESTS
-        : mtx_size(152, 185),
+        : mtx_size(131, 155),
 #else
         : mtx_size(532, 231),
 #endif
@@ -102,10 +103,10 @@ protected:
         return gen_mtx<MtxType>(num_rows, num_cols, min_nnz_row, num_cols);
     }
 
-    void set_up_apply_data(int num_vectors = 1)
+    void set_up_apply_data()
     {
         mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx<Vec>(mtx_size[0], mtx_size[1], 1));
+        mtx->copy_from(gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 5));
         dmtx = Mtx::create(cuda);
         dmtx->copy_from(mtx.get());
     }
@@ -120,13 +121,68 @@ protected:
 };
 
 
+TEST_F(Csr, CalculateNnzPerRowIsEquivalentToRef)
+{
+    using Mtx = gko::matrix::Csr<>;
+    set_up_apply_data();
+
+    gko::span rspan{7, 51};
+    gko::span cspan{22, 88};
+    auto size = this->mtx->get_size();
+    auto row_nnz = gko::Array<int>(this->ref, rspan.length() + 1);
+    row_nnz.fill(gko::zero<int>());
+    auto drow_nnz = gko::Array<int>(this->cuda, row_nnz);
+
+    gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
+        this->ref, this->mtx.get(), rspan, cspan, &row_nnz);
+    gko::kernels::cuda::csr::calculate_nonzeros_per_row_in_span(
+        this->cuda, this->dmtx.get(), rspan, cspan, &drow_nnz);
+
+    GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
+}
+
+
+TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
+{
+    using Mtx = gko::matrix::Csr<>;
+    set_up_apply_data();
+
+    gko::span rspan{7, 51};
+    gko::span cspan{22, 88};
+    auto size = this->mtx->get_size();
+    auto row_nnz = gko::Array<int>(this->ref, rspan.length() + 1);
+    row_nnz.fill(gko::zero<int>());
+    gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
+        this->ref, this->mtx.get(), rspan, cspan, &row_nnz);
+    gko::kernels::reference::components::prefix_sum(
+        this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
+    auto drow_nnz = gko::Array<int>(this->cuda, row_nnz);
+    auto smat1 =
+        Mtx::create(this->ref, gko::dim<2>(rspan.length(), cspan.length()),
+                    std::move(row_nnz));
+    auto sdmat1 =
+        Mtx::create(this->cuda, gko::dim<2>(rspan.length(), cspan.length()),
+                    std::move(drow_nnz));
+
+
+    gko::kernels::reference::csr::compute_submatrix(this->ref, this->mtx.get(),
+                                                    rspan, cspan, smat1.get());
+    gko::kernels::cuda::csr::compute_submatrix(this->cuda, this->dmtx.get(),
+                                               rspan, cspan, sdmat1.get());
+    auto hmat = Mtx::create(this->ref);
+    hmat->copy_from(sdmat1.get());
+
+    GKO_ASSERT_MTX_NEAR(hmat, smat1, 0.0);
+}
+
+
 TEST_F(Csr, CreateSubMatrixIsEquivalentToRef)
 {
     using Mtx = gko::matrix::Csr<>;
     set_up_apply_data();
 
-    gko::span rspan{36, 98};
-    gko::span cspan{26, 104};
+    gko::span rspan{47, 81};
+    gko::span cspan{2, 31};
     auto smat1 = this->mtx->create_submatrix(rspan, cspan);
     auto sdmat1 = this->dmtx->create_submatrix(rspan, cspan);
     auto hmat = Mtx::create(this->ref);
