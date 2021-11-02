@@ -72,10 +72,10 @@ using BatchIdrOptions = gko::kernels::batch_idr::BatchIdrOptions<T>;
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 static void apply_impl(std::shared_ptr<const ReferenceExecutor> exec,
-                       const BatchIdrOptions<remove_complex<ValueType>> &opts,
-                       LogType logger, PrecType prec, const BatchMatrixType &a,
-                       const gko::batch_dense::UniformBatch<const ValueType> &b,
-                       const gko::batch_dense::UniformBatch<ValueType> &x)
+                       const BatchIdrOptions<remove_complex<ValueType>>& opts,
+                       LogType logger, PrecType prec, const BatchMatrixType& a,
+                       const gko::batch_dense::UniformBatch<const ValueType>& b,
+                       const gko::batch_dense::UniformBatch<ValueType>& x)
 {
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
@@ -98,26 +98,26 @@ static void apply_impl(std::shared_ptr<const ReferenceExecutor> exec,
 
 template <typename BatchType, typename LoggerType, typename ValueType>
 void apply_select_prec(std::shared_ptr<const ReferenceExecutor> exec,
-                       const BatchIdrOptions<remove_complex<ValueType>> &opts,
-                       const LoggerType logger, const BatchType &a,
-                       const gko::batch_dense::UniformBatch<const ValueType> &b,
-                       const gko::batch_dense::UniformBatch<ValueType> &x)
+                       const BatchIdrOptions<remove_complex<ValueType>>& opts,
+                       const LoggerType logger, const BatchType& a,
+                       const gko::batch_dense::UniformBatch<const ValueType>& b,
+                       const gko::batch_dense::UniformBatch<ValueType>& x)
 {
     if (opts.preconditioner == gko::preconditioner::batch::type::none) {
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            apply_impl<stop::AbsResidualMaxIter<ValueType>>(
+            apply_impl<stop::SimpleAbsResidual<ValueType>>(
                 exec, opts, logger, BatchIdentity<ValueType>(), a, b, x);
         } else {
-            apply_impl<stop::RelResidualMaxIter<ValueType>>(
+            apply_impl<stop::SimpleRelResidual<ValueType>>(
                 exec, opts, logger, BatchIdentity<ValueType>(), a, b, x);
         }
     } else if (opts.preconditioner ==
                gko::preconditioner::batch::type::jacobi) {
         if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            apply_impl<stop::AbsResidualMaxIter<ValueType>>(
+            apply_impl<stop::SimpleAbsResidual<ValueType>>(
                 exec, opts, logger, BatchJacobi<ValueType>(), a, b, x);
         } else {
-            apply_impl<stop::RelResidualMaxIter<ValueType>>(
+            apply_impl<stop::SimpleRelResidual<ValueType>>(
                 exec, opts, logger, BatchJacobi<ValueType>(), a, b, x);
         }
     } else {
@@ -127,22 +127,21 @@ void apply_select_prec(std::shared_ptr<const ReferenceExecutor> exec,
 
 template <typename ValueType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec,
-           const BatchIdrOptions<remove_complex<ValueType>> &opts,
-           const BatchLinOp *const a,
-           const matrix::BatchDense<ValueType> *const b,
-           matrix::BatchDense<ValueType> *const x,
-           gko::log::BatchLogData<ValueType> &logdata)
+           const BatchIdrOptions<remove_complex<ValueType>>& opts,
+           const BatchLinOp* const a,
+           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchDense<ValueType>* const x,
+           gko::log::BatchLogData<ValueType>& logdata)
 {
     if (opts.is_complex_subspace == true && !is_complex<ValueType>()) {
         GKO_NOT_IMPLEMENTED;
     }
 
-    batch_log::FinalLogger<remove_complex<ValueType>> logger(
-        static_cast<int>(b->get_size().at(0)[1]), opts.max_its,
+    batch_log::SimpleFinalLogger<remove_complex<ValueType>> logger(
         logdata.res_norms->get_values(), logdata.iter_counts.get_data());
 
     const auto x_b = host::get_batch_struct(x);
-    if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType> *>(a)) {
+    if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a)) {
         const auto a_b = host::get_batch_struct(a_mat);
         const auto b_b = host::get_batch_struct(b);
         apply_select_prec(exec, opts, logger, a_b, b_b, x_b);
