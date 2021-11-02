@@ -84,7 +84,7 @@ private:
     int* const final_iters_;
 };
 
-
+#if 0
 /**
  * Simple logger for final residuals and iteration counts of all
  * linear systems in a batch.
@@ -162,6 +162,7 @@ private:
     int* const final_iters_;
     uint32 init_converged_;
 };
+#endif
 
 
 }  // namespace batch_log
