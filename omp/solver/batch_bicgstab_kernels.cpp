@@ -58,22 +58,18 @@ namespace omp {
 namespace batch_bicgstab {
 
 
-namespace {
-
-
-// using gko::kernels::reference::batch_csr::advanced_spmv_kernel;
 using gko::kernels::reference::batch_csr::batch_scale;
 using gko::kernels::reference::batch_csr::spmv_kernel;
 namespace batch_dense = gko::kernels::reference::batch_dense;
+namespace batch_csr = gko::kernels::reference::batch_csr;
+namespace batch_ell = gko::kernels::reference::batch_ell;
 using gko::kernels::reference::BatchIdentity;
 using gko::kernels::reference::BatchJacobi;
 namespace batch_log = gko::kernels::reference::batch_log;
+namespace stop = gko::kernels::reference::stop;
 
 
 #include "reference/solver/batch_bicgstab_kernels.hpp.inc"
-
-
-}  // unnamed namespace
 
 
 template <typename T>
@@ -220,7 +216,14 @@ private:
     const BatchBicgstabOptions<remove_complex<ValueType>> opts_;
 };
 
+namespace {
+
+using namespace gko::kernels::host;
+
 #include "core/solver/batch_dispatch.hpp.inc"
+
+}  // namespace
+
 
 template <typename ValueType>
 void apply(std::shared_ptr<const OmpExecutor> exec,
@@ -230,11 +233,13 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
            matrix::BatchDense<ValueType>* const x,
            log::BatchLogData<ValueType>& logdata)
 {
-    BatchSolverDispatch<OmpExecutor,
-                        BatchBicgstabOptions<remove_complex<ValueType>>,
-                        ValueType, ValueType>
-        dispatcher(KernelCaller<ValueType>(exec, opts), exec, opts,
-                   log::BatchLogType::convergence_completion);
+    // BatchSolverDispatch<OmpExecutor,
+    //                     BatchBicgstabOptions<remove_complex<ValueType>>,
+    //                     ValueType, ValueType>
+    //     dispatcher(KernelCaller<ValueType>(exec, opts), exec, opts,
+    //                log::BatchLogType::convergence_completion);
+    auto dispatcher = create_dispatcher<ValueType, ValueType>(
+        KernelCaller<ValueType>(exec, opts), exec, opts);
     dispatcher.apply(a, b, x, logdata);
 }
 

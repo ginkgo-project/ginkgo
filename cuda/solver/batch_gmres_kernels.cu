@@ -147,10 +147,8 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
            log::BatchLogData<ValueType>& logdata)
 {
     using cu_value_type = cuda_type<ValueType>;
-    BatchSolverDispatch<CudaExecutor,
-                        BatchGmresOptions<remove_complex<ValueType>>, ValueType,
-                        cu_value_type>
-        dispatcher(KernelCaller<cu_value_type>(exec, opts), exec, opts);
+    auto dispatcher = create_dispatcher<ValueType, cu_value_type>(
+        KernelCaller<cu_value_type>(exec, opts), exec, opts);
     dispatcher.apply(a, b, x, logdata);
 }
 

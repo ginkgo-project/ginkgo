@@ -39,7 +39,8 @@ public:
     void call_kernel(
         LogType logger, const BatchMatrixType& a,
         const gko::batch_dense::UniformBatch<DeviceValueType>& b,
-        const gko::batch_dense::UniformBatch<DeviceValueType>& x) const {};
+        const gko::batch_dense::UniformBatch<DeviceValueType>& x) const
+    {}
 };
 
 
@@ -47,21 +48,21 @@ public:
  * Handles dispatching to the correct instantiation of a batched solver
  * depending on runtime parameters.
  *
- * Requires the following to be defined before including this class:
- * - A KernelCaller class with an interface like DummyKernelCaller.
- *
- * @tparam ExecType  Executor to run the kernel on
+ * @tparam KernelCaller  Class with an interface like DummyKernelCaller,
+ *   that is reponsible for finally calling the templated backend-specific
+ *   kernel.
+ * @tparam ExecType  Executor to run the kernel on.
  * @tparam OptsType  Structure type of options for the particular solver to be
  *   used.
  * @tparam ValueType  The user-facing value type.
  * @tparam DeviceValueType  The backend-specific value type corresponding to
  *   ValueType.
  */
-template <typename ExecType, typename OptsType, typename ValueType,
-          typename DeviceValueType>
+template <typename KernelCaller, typename ExecType, typename OptsType,
+          typename ValueType, typename DeviceValueType>
 class BatchSolverDispatch {
 public:
-    BatchSolverDispatch(const KernelCaller<DeviceValueType>& kernel_caller,
+    BatchSolverDispatch(const KernelCaller& kernel_caller,
                         std::shared_ptr<const ExecType> exec,
                         const OptsType& opts,
                         const log::BatchLogType logger_type =
@@ -75,8 +76,8 @@ public:
     template <typename PrecType, typename BatchMatrixType, typename LogType>
     void dispatch_on_stop(
         const LogType& logger, const BatchMatrixType& amat,
-        const batch_dense::UniformBatch<const DeviceValueType>& b_b,
-        const batch_dense::UniformBatch<DeviceValueType>& x_b)
+        const gko::batch_dense::UniformBatch<const DeviceValueType>& b_b,
+        const gko::batch_dense::UniformBatch<DeviceValueType>& x_b)
     {
         if (opts_.tol_type == gko::stop::batch::ToleranceType::absolute) {
             caller_.template call_kernel<
@@ -97,8 +98,8 @@ public:
     template <typename MatrixType, typename LogType>
     void dispatch_on_preconditioner(
         const LogType& logger, const MatrixType* const amat,
-        const batch_dense::UniformBatch<const DeviceValueType>& b_b,
-        const batch_dense::UniformBatch<DeviceValueType>& x_b)
+        const gko::batch_dense::UniformBatch<const DeviceValueType>& b_b,
+        const gko::batch_dense::UniformBatch<DeviceValueType>& x_b)
     {
         auto m_b = get_batch_struct(amat);
         if (opts_.preconditioner == gko::preconditioner::batch::type::none) {
@@ -116,19 +117,14 @@ public:
     template <typename BatchMatrixType>
     void dispatch_on_logger(
         const BatchMatrixType* const amat,
-        const batch_dense::UniformBatch<const DeviceValueType>& b_b,
-        const batch_dense::UniformBatch<DeviceValueType>& x_b,
+        const gko::batch_dense::UniformBatch<const DeviceValueType>& b_b,
+        const gko::batch_dense::UniformBatch<DeviceValueType>& x_b,
         log::BatchLogData<ValueType>& logdata)
     {
         if (logger_type_ == log::BatchLogType::simple_convergence_completion) {
             batch_log::SimpleFinalLogger<remove_complex<DeviceValueType>>
                 logger(logdata.res_norms->get_values(),
                        logdata.iter_counts.get_data());
-            dispatch_on_preconditioner(logger, amat, b_b, x_b);
-        } else if (logger_type_ == log::BatchLogType::convergence_completion) {
-            batch_log::FinalLogger<remove_complex<DeviceValueType>> logger(
-                b_b.num_rhs, opts_.max_its, logdata.res_norms->get_values(),
-                logdata.iter_counts.get_data());
             dispatch_on_preconditioner(logger, amat, b_b, x_b);
         } else {
             GKO_NOT_IMPLEMENTED;
@@ -154,8 +150,26 @@ public:
     }
 
 private:
-    const KernelCaller<DeviceValueType>& caller_;
+    const KernelCaller& caller_;
     std::shared_ptr<const ExecType> exec_;
     const OptsType& opts_;
     const log::BatchLogType logger_type_;
 };
+
+
+/**
+ * Conventient function to create a dispatcher. Infers most template arguments.
+ */
+template <typename ValueType, typename DeviceValueType, typename KernelCaller,
+          typename ExecType, typename OptsType>
+BatchSolverDispatch<KernelCaller, ExecType, OptsType, ValueType,
+                    DeviceValueType>
+create_dispatcher(const KernelCaller& kernel_caller,
+                  std::shared_ptr<const ExecType> exec, const OptsType& opts,
+                  const log::BatchLogType logger_type =
+                      log::BatchLogType::simple_convergence_completion)
+{
+    return BatchSolverDispatch<KernelCaller, ExecType, OptsType, ValueType,
+                               DeviceValueType>(kernel_caller, exec, opts,
+                                                logger_type);
+}
