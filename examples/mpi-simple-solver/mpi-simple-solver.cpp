@@ -47,9 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int main(int argc, char* argv[])
 {
-    auto mpi_init_fin = gko::mpi::init_finalize(argc, argv);
+    auto mpi_init_fin = gko::mpi::init_finalize::get_instance(argc, argv);
     {
-        auto mpi_init_fin2 = gko::mpi::init_finalize(argc, argv);
+        auto mpi_init_fin2 = gko::mpi::init_finalize::get_instance(argc, argv);
 
         // Use some shortcuts. In Ginkgo, vectors are seen as a
         // gko::matrix::Dense with one column/one row. The advantage of this

@@ -91,25 +91,24 @@ enum class op_type {
  */
 class init_finalize {
 public:
-    init_finalize(int& argc, char**& argv, const size_type num_threads = 1);
-
-    init_finalize() = delete;
-
-    init_finalize(init_finalize& other) = default;
-
-    init_finalize& operator=(const init_finalize& other) = default;
-
-    init_finalize(init_finalize&& other) = default;
-
-    init_finalize& operator=(init_finalize&& other) = default;
+    static init_finalize* get_instance(int& argc, char**& argv,
+                                       const size_type num_threads = 1)
+    {
+        static init_finalize instance(argc, argv, num_threads);
+        return &instance;
+    }
 
     static bool is_finalized();
 
     static bool is_initialized();
 
+private:
+    init_finalize(int& argc, char**& argv, const size_type num_threads = 1);
+
+    init_finalize() = delete;
+
     ~init_finalize();
 
-private:
     int num_args_;
     int required_thread_support_;
     int provided_thread_support_;
