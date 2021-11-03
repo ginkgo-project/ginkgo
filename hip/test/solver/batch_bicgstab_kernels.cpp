@@ -87,7 +87,7 @@ protected:
     const int nrows = 3;
     const Options opts_1{gko::preconditioner::batch::type::none, 500,
                          static_cast<real_type>(1e3) * eps,
-                         gko::stop::batch::ToleranceType::relative, 10};
+                         gko::stop::batch::ToleranceType::relative};
     gko::test::LinSys<T> sys_1;
 
     std::unique_ptr<typename solver_type::Factory> create_factory(

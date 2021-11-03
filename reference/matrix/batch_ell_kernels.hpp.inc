@@ -30,22 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_REFERENCE_MATRIX_BATCH_ELL_KERNELS_HPP_
-#define GKO_REFERENCE_MATRIX_BATCH_ELL_KERNELS_HPP_
-
-
-#include <ginkgo/core/base/types.hpp>
-
-
-#include "core/matrix/batch_struct.hpp"
-
-
-namespace gko {
-namespace kernels {
-namespace reference {
-namespace batch_ell {
-
-
 /**
  * 'Device' kernel for SpMV of one CSR matrix in a batch.
  *
@@ -97,11 +81,3 @@ inline void advanced_spmv_kernel(
         }
     }
 }
-
-
-}  // namespace batch_ell
-}  // namespace reference
-}  // namespace kernels
-}  // namespace gko
-
-#endif  // GKO_REFERENCE_MATRIX_BATCH_ELL_KERNELS_HPP_
