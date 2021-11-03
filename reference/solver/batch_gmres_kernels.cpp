@@ -36,7 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reference/base/config.hpp"
 // include device kernels for every matrix and preconditioner type
 #include "reference/log/batch_logger.hpp"
-#include "reference/matrix/batch_csr_kernels.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
 #include "reference/matrix/batch_struct.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
@@ -58,6 +57,8 @@ namespace batch_gmres {
 
 namespace {
 
+#include "reference/matrix/batch_csr_kernels.hpp.inc"
+#include "reference/matrix/batch_ell_kernels.hpp.inc"
 #include "reference/solver/batch_gmres_kernels.hpp.inc"
 
 
@@ -67,6 +68,7 @@ namespace {
 template <typename T>
 using BatchGmresOptions = gko::kernels::batch_gmres::BatchGmresOptions<T>;
 
+#if 0
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 static void apply_impl(std::shared_ptr<const ReferenceExecutor> exec,
@@ -150,6 +152,69 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
     } else {
         GKO_NOT_IMPLEMENTED;
     }
+}
+#endif
+
+template <typename ValueType>
+class KernelCaller {
+public:
+    KernelCaller(std::shared_ptr<const ReferenceExecutor> exec,
+                 const BatchGmresOptions<remove_complex<ValueType>> opts)
+        : exec_{exec}, opts_{opts}
+    {}
+
+    template <typename BatchMatrixType, typename PrecType, typename StopType,
+              typename LogType>
+    void call_kernel(LogType logger, const BatchMatrixType& a,
+                     const gko::batch_dense::UniformBatch<const ValueType>& b,
+                     const gko::batch_dense::UniformBatch<ValueType>& x) const
+    {
+        using real_type = typename gko::remove_complex<ValueType>;
+        const size_type nbatch = a.num_batch;
+        const auto nrows = a.num_rows;
+        const auto nrhs = b.num_rhs;
+        GKO_ASSERT(nrhs == 1);
+
+        const int local_size_bytes =
+            gko::kernels::batch_gmres::local_memory_requirement<ValueType>(
+                nrows, nrhs, opts_.restart_num) +
+            PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
+        using byte = unsigned char;
+
+        Array<byte> local_space(exec_, local_size_bytes);
+
+        for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
+            batch_entry_gmres_impl<StopType, PrecType, LogType, BatchMatrixType,
+                                   ValueType>(opts_, logger, PrecType(), a, b,
+                                              x, ibatch, local_space);
+        }
+    }
+
+private:
+    std::shared_ptr<const ReferenceExecutor> exec_;
+    const BatchGmresOptions<remove_complex<ValueType>> opts_;
+};
+
+namespace {
+
+using namespace gko::kernels::host;
+
+#include "core/solver/batch_dispatch.hpp.inc"
+
+}  // namespace
+
+
+template <typename ValueType>
+void apply(std::shared_ptr<const ReferenceExecutor> exec,
+           const BatchGmresOptions<remove_complex<ValueType>>& opts,
+           const BatchLinOp* const a,
+           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchDense<ValueType>* const x,
+           log::BatchLogData<ValueType>& logdata)
+{
+    auto dispatcher = create_dispatcher<ValueType, ValueType>(
+        KernelCaller<ValueType>(exec, opts), exec, opts);
+    dispatcher.apply(a, b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_GMRES_APPLY_KERNEL);

@@ -48,7 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "reference/components/format_conversion.hpp"
-#include "reference/matrix/batch_ell_kernels.hpp"
 #include "reference/matrix/batch_struct.hpp"
 
 namespace gko {
@@ -60,6 +59,9 @@ namespace reference {
  * @ingroup batch_ell
  */
 namespace batch_ell {
+
+
+#include "reference/matrix/batch_ell_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>

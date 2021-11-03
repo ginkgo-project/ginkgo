@@ -36,10 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/batch_struct.hpp"
 #include "reference/base/config.hpp"
 #include "reference/log/batch_logger.hpp"
-// include device kernels for every matrix and preconditioner type
-#include "reference/matrix/batch_csr_kernels.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
-//#include "reference/matrix/batch_struct.hpp"
+#include "reference/matrix/batch_struct.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
 #include "reference/stop/batch_criteria.hpp"
@@ -61,10 +59,12 @@ namespace batch_rich {
 namespace {
 
 
-using gko::kernels::reference::batch_csr::advanced_spmv_kernel;
-using gko::kernels::reference::batch_csr::spmv_kernel;
+// using gko::kernels::reference::batch_csr::advanced_spmv_kernel;
+// using gko::kernels::reference::batch_csr::spmv_kernel;
 
 
+#include "reference/matrix/batch_csr_kernels.hpp.inc"
+#include "reference/matrix/batch_ell_kernels.hpp.inc"
 #include "reference/solver/batch_richardson_kernels.hpp.inc"
 
 
