@@ -48,7 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/iterator_factory.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "omp/components/format_conversion.hpp"
-#include "reference/matrix/batch_ell_kernels.hpp"
 #include "reference/matrix/batch_struct.hpp"
 
 namespace gko {
@@ -61,6 +60,7 @@ namespace omp {
  */
 namespace batch_ell {
 
+#include "reference/matrix/batch_ell_kernels.hpp.inc"
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
@@ -76,7 +76,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);
         const auto c_b = gko::batch::batch_entry(c_ub, batch);
-        gko::kernels::reference::batch_ell::spmv_kernel(a_b, b_b, c_b);
+        spmv_kernel(a_b, b_b, c_b);
     }
 }
 
@@ -105,8 +105,8 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
         const auto c_b = gko::batch::batch_entry(c_ub, batch);
         const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
         const auto beta_b = gko::batch::batch_entry(beta_ub, batch);
-        gko::kernels::reference::batch_ell::advanced_spmv_kernel(
-            alpha_b.values[0], a_b, b_b, beta_b.values[0], c_b);
+        advanced_spmv_kernel(alpha_b.values[0], a_b, b_b, beta_b.values[0],
+                             c_b);
     }
 }
 
