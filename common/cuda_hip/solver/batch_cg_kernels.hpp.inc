@@ -122,14 +122,14 @@ template <typename StopType, typename PrecType, typename LogType,
 __global__ void apply_kernel(const int max_iter,
                              const gko::remove_complex<ValueType> tol,
                              LogType logger, PrecType prec_shared,
-                             const BatchMatrixType a, const size_type stride,
-                             const int nrhs,
+                             const BatchMatrixType a,
                              const ValueType* const __restrict__ b,
                              ValueType* const __restrict__ x)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const auto nbatch = a.num_batch;
     const auto nrows = a.num_rows;
+    constexpr int nrhs = 1;
 
     // required for static allocation in stopping criterion
     assert(batch_config<ValueType>::max_num_rhs >= nrhs);

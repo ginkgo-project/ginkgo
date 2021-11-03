@@ -37,7 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reference/matrix/batch_struct.hpp"
 // include device kernels for every matrix and preconditioner type
 #include "reference/log/batch_logger.hpp"
-#include "reference/matrix/batch_csr_kernels.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
@@ -60,8 +59,8 @@ namespace batch_cg {
 namespace {
 
 
-using gko::kernels::reference::batch_csr::advanced_spmv_kernel;
-using gko::kernels::reference::batch_csr::spmv_kernel;
+// using gko::kernels::reference::batch_csr::advanced_spmv_kernel;
+// using gko::kernels::reference::batch_csr::spmv_kernel;
 namespace batch_dense = gko::kernels::reference::batch_dense;
 using gko::kernels::reference::BatchIdentity;
 using gko::kernels::reference::BatchJacobi;
@@ -69,6 +68,7 @@ namespace stop = gko::kernels::reference::stop;
 namespace batch_log = gko::kernels::reference::batch_log;
 
 
+#include "reference/matrix/batch_csr_kernels.hpp.inc"
 #include "reference/solver/batch_cg_kernels.hpp.inc"
 
 
