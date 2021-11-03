@@ -56,10 +56,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <mpi.h>
 
 
-template <typename T>
-using array_manager = std::unique_ptr<T, std::function<void(T*)>>;
-
-
 namespace gko {
 namespace mpi {
 
@@ -85,16 +81,29 @@ enum class op_type {
 
 
 /*
- * Class that allows an RAII of initialization and calls MPI_Finalize at the
- * end of its scope. Therefore this must be called before any of the MPI
+ * This enum specifies the threading type to be used when creating an MPI
+ * environment.
+ */
+enum class thread_type {
+    serialized = MPI_THREAD_SERIALIZED,
+    funneled = MPI_THREAD_FUNNELED,
+    single = MPI_THREAD_SINGLE,
+    multiple = MPI_THREAD_MULTIPLE
+};
+
+
+/*
+ * Class that sets up and finalizes the MPI exactly once per program execution.
+ * using the singleton pattern. This must be called before any of the MPI
  * functions.
  */
 class init_finalize {
 public:
-    static init_finalize* get_instance(int& argc, char**& argv,
-                                       const size_type num_threads = 1)
+    static init_finalize* get_instance(
+        int& argc, char**& argv,
+        const thread_type thread_t = thread_type::serialized)
     {
-        static init_finalize instance(argc, argv, num_threads);
+        static init_finalize instance(argc, argv, thread_t);
         return &instance;
     }
 
@@ -103,7 +112,7 @@ public:
     static bool is_initialized();
 
 private:
-    init_finalize(int& argc, char**& argv, const size_type num_threads = 1);
+    init_finalize(int& argc, char**& argv, const thread_type thread_t);
 
     init_finalize() = delete;
 
@@ -123,9 +132,11 @@ private:
  */
 class info {
 public:
-    info();
+    info() : info_(MPI_INFO_NULL) {}
 
-    info(MPI_Info input) { this->info_ = input; }
+    explicit info(MPI_Info input);
+
+    void create_default();
 
     void remove(std::string key);
 
@@ -150,16 +161,19 @@ private:
  */
 class request : public EnableSharedCreateMethod<request> {
 public:
-    request(const int size) : req_(new MPI_Request[size]) {}
+    explicit request(const int size) : req_(new MPI_Request[size]) {}
 
     request() : req_(new MPI_Request[1]) {}
 
+    void free(MPI_Request* req);
+
     ~request()
     {
-        if (req_) delete[] req_;
+        // this->free(this->req_);
+        delete[] req_;
     }
 
-    MPI_Request* get_requests() const { return req_; }
+    MPI_Request* get() const { return req_; }
 
 private:
     MPI_Request* req_;
@@ -167,9 +181,8 @@ private:
 
 
 /**
- * A status class that takes in the given status and duplicates it
- * for our purposes. As the class or object goes out of scope, the status
- * is freed.
+ * A status class that allows creation of MPI_Status and
+ * frees the status array when it  goes out of scope
  */
 class status : public EnableSharedCreateMethod<status> {
 public:
@@ -275,8 +288,7 @@ public:
 
     window(ValueType* base, unsigned int size,
            std::shared_ptr<const communicator> comm,
-           const int disp_unit = sizeof(ValueType),
-           info input_info = info(MPI_INFO_NULL),
+           const int disp_unit = sizeof(ValueType), info input_info = info(),
            win_type create_type = win_type::create);
 
     MPI_Win get() { return this->window_; }

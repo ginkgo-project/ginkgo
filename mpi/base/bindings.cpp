@@ -67,11 +67,11 @@ bool init_finalize::is_finalized()
 
 
 init_finalize::init_finalize(int& argc, char**& argv,
-                             const size_type num_threads)
+                             const thread_type thread_t)
 {
     auto flag = is_initialized();
     if (!flag) {
-        this->required_thread_support_ = MPI_THREAD_SERIALIZED;
+        this->required_thread_support_ = static_cast<int>(thread_t);
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Init_thread(&argc, &argv, this->required_thread_support_,
                             &(this->provided_thread_support_)));
@@ -167,10 +167,16 @@ communicator& communicator::operator=(communicator&& other)
 }
 
 
+void request::free(MPI_Request* req) { bindings::free_requests(this->req_); }
+
+
 communicator::~communicator() { bindings::free_comm(this->comm_); }
 
 
-info::info() { bindings::create_info(&this->info_); }
+void info::create_default() { bindings::create_info(&this->info_); }
+
+
+info::info(MPI_Info info) { bindings::duplicate_info(info, &this->info_); }
 
 
 void info::add(std::string key, std::string value)
@@ -335,9 +341,9 @@ void synchronize(const communicator& comm) { bindings::barrier(comm.get()); }
 void wait(std::shared_ptr<request> req, std::shared_ptr<status> status)
 {
     if (status.get()) {
-        bindings::wait(req->get_requests(), status->get_statuses());
+        bindings::wait(req->get(), status->get_statuses());
     } else {
-        bindings::wait(req->get_requests(), MPI_STATUS_IGNORE);
+        bindings::wait(req->get(), MPI_STATUS_IGNORE);
     }
 }
 
@@ -354,10 +360,9 @@ void send(const SendType* send_buffer, const int send_count,
                        send_tag,
                        comm ? comm->get() : communicator::get_comm_world());
     } else {
-        bindings::i_send(send_buffer, send_count, send_type, destination_rank,
-                         send_tag,
-                         comm ? comm->get() : communicator::get_comm_world(),
-                         req->get_requests());
+        bindings::i_send(
+            send_buffer, send_count, send_type, destination_rank, send_tag,
+            comm ? comm->get() : communicator::get_comm_world(), req->get());
     }
 }
 
@@ -375,10 +380,9 @@ void recv(RecvType* recv_buffer, const int recv_count, const int source_rank,
                        comm ? comm->get() : communicator::get_comm_world(),
                        MPI_STATUS_IGNORE);
     } else {
-        bindings::i_recv(recv_buffer, recv_count, recv_type, source_rank,
-                         recv_tag,
-                         comm ? comm->get() : communicator::get_comm_world(),
-                         req->get_requests());
+        bindings::i_recv(
+            recv_buffer, recv_count, recv_type, source_rank, recv_tag,
+            comm ? comm->get() : communicator::get_comm_world(), req->get());
     }
 }
 
@@ -396,7 +400,7 @@ void put(const PutType* origin_buffer, const int origin_count,
     } else {
         bindings::req_put(origin_buffer, origin_count, put_type, target_rank,
                           target_disp, target_count, put_type, window.get(),
-                          req->get_requests());
+                          req->get());
     }
 }
 
@@ -413,7 +417,7 @@ void get(GetType* origin_buffer, const int origin_count, const int target_rank,
     } else {
         bindings::req_get(origin_buffer, origin_count, get_type, target_rank,
                           target_disp, target_count, get_type, window.get(),
-                          req->get_requests());
+                          req->get());
     }
 }
 
@@ -441,10 +445,9 @@ void reduce(const ReduceType* send_buffer, ReduceType* recv_buffer, int count,
                          operation, root_rank,
                          comm ? comm->get() : communicator::get_comm_world());
     } else {
-        bindings::i_reduce(send_buffer, recv_buffer, count, reduce_type,
-                           operation, root_rank,
-                           comm ? comm->get() : communicator::get_comm_world(),
-                           req->get_requests());
+        bindings::i_reduce(
+            send_buffer, recv_buffer, count, reduce_type, operation, root_rank,
+            comm ? comm->get() : communicator::get_comm_world(), req->get());
     }
 }
 
@@ -464,7 +467,7 @@ void all_reduce(ReduceType* recv_buffer, int count, op_type op_enum,
         bindings::i_all_reduce(
             bindings::in_place<ReduceType>(), recv_buffer, count, reduce_type,
             operation, comm ? comm->get() : communicator::get_comm_world(),
-            req->get_requests());
+            req->get());
     }
 }
 
@@ -484,8 +487,7 @@ void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
     } else {
         bindings::i_all_reduce(
             send_buffer, recv_buffer, count, reduce_type, operation,
-            comm ? comm->get() : communicator::get_comm_world(),
-            req->get_requests());
+            comm ? comm->get() : communicator::get_comm_world(), req->get());
     }
 }
 
@@ -572,8 +574,7 @@ void all_to_all(RecvType* recv_buffer, const int recv_count,
         bindings::i_all_to_all(
             bindings::in_place<RecvType>(), recv_count, recv_type, recv_buffer,
             recv_count, recv_type,
-            comm ? comm->get() : communicator::get_comm_world(),
-            req->get_requests());
+            comm ? comm->get() : communicator::get_comm_world(), req->get());
     }
 }
 
@@ -595,8 +596,7 @@ void all_to_all(const SendType* send_buffer, const int send_count,
         bindings::i_all_to_all(
             send_buffer, send_count, send_type, recv_buffer,
             recv_count == 0 ? send_count : recv_count, recv_type,
-            comm ? comm->get() : communicator::get_comm_world(),
-            req->get_requests());
+            comm ? comm->get() : communicator::get_comm_world(), req->get());
     }
 }
 
@@ -622,8 +622,7 @@ void all_to_all(const SendType* send_buffer, const int* send_counts,
         bindings::i_all_to_all_v(
             send_buffer, send_counts, send_offsets, send_type, recv_buffer,
             recv_counts, recv_offsets, recv_type,
-            comm ? comm->get() : communicator::get_comm_world(),
-            req->get_requests());
+            comm ? comm->get() : communicator::get_comm_world(), req->get());
     }
 }
 
@@ -641,7 +640,7 @@ void scan(const ScanType* send_buffer, ScanType* recv_buffer, int count,
     } else {
         bindings::i_scan(send_buffer, recv_buffer, count, scan_type, operation,
                          comm ? comm->get() : communicator::get_comm_world(),
-                         req->get_requests());
+                         req->get());
     }
 }
 
