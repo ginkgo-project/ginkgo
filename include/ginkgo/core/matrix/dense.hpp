@@ -725,6 +725,20 @@ public:
     }
 
     /**
+     * Computes the column-wise (L^1) norm of this matrix.
+     *
+     * @param result  a Dense row vector, used to store the norm
+     *                (the number of columns in the vector must match the number
+     *                of columns of this)
+     */
+    void compute_norm1(LinOp* result) const
+    {
+        auto exec = this->get_executor();
+        this->compute_norm1_impl(
+            make_temporary_output_clone(exec, result).get());
+    }
+
+    /**
      * Create a submatrix from the original matrix.
      * Warning: defining stride for this create_submatrix method might cause
      * wrong memory access. Better use the create_submatrix(rows, columns)
@@ -960,6 +974,14 @@ protected:
      *        instead of compute_norm2(LinOp *result).
      */
     virtual void compute_norm2_impl(LinOp* result) const;
+
+    /**
+     * @copydoc compute_norm1(LinOp *) const
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of compute_norm1(LinOp *result).
+     */
+    virtual void compute_norm1_impl(LinOp* result) const;
 
     /**
      * @copydoc create_submatrix(const span, const span, const size_type)
