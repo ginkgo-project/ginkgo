@@ -33,32 +33,51 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_BENCHMARK_UTILS_SPARSELIB_LINOPS_HPP_
 #define GKO_BENCHMARK_UTILS_SPARSELIB_LINOPS_HPP_
 
+
 #include <memory>
 
 
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
-#include "ginkgo/core/base/exception_helpers.hpp"
 
 
-class cusp_csr;
-class cusp_csrmp;
-class cusp_csrmm;
-class cusp_hybrid;
-class cusp_coo;
-class cusp_ell;
-class cusp_gcsr;
-class cusp_gcoo;
-class cusp_csrex;
-class cusp_gcsr;
-class cusp_gcsr2;
-class cusp_gcoo;
+#define IMPL_CREATE_SPARSELIB_LINOP(_type, ...)                              \
+    template <>                                                              \
+    std::unique_ptr<gko::LinOp> create_sparselib_linop<_type>(               \
+        std::shared_ptr<const gko::Executor> exec)                           \
+    {                                                                        \
+        return __VA_ARGS__::create(exec);                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
-class hipsp_csr;
-class hipsp_csrmm;
-class hipsp_hybrid;
-class hipsp_coo;
-class hipsp_ell;
+#define STUB_CREATE_SPARSELIB_LINOP(_type)                     \
+    template <>                                                \
+    std::unique_ptr<gko::LinOp> create_sparselib_linop<_type>( \
+        std::shared_ptr<const gko::Executor> exec) GKO_NOT_IMPLEMENTED
+
+
+class cusparse_csr;
+class cusparse_csrmp;
+class cusparse_csrmm;
+class cusparse_hybrid;
+class cusparse_coo;
+class cusparse_ell;
+class cusparse_gcsr;
+class cusparse_gcoo;
+class cusparse_csrex;
+class cusparse_gcsr;
+class cusparse_gcsr2;
+class cusparse_gcoo;
+
+
+class hipsparse_csr;
+class hipsparse_csrmm;
+class hipsparse_hybrid;
+class hipsparse_coo;
+class hipsparse_ell;
 
 
 template <typename OpTagType>

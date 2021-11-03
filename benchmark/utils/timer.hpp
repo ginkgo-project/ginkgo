@@ -34,10 +34,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_BENCHMARK_UTILS_TIMER_HPP_
 
 
-#include "benchmark/utils/timer_impl.hpp"
+#include <ginkgo/ginkgo.hpp>
+
+
+#include <memory>
 
 
 #include <gflags/gflags.h>
+
+
+#include "benchmark/utils/timer_impl.hpp"
 
 
 // Command-line arguments
