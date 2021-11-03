@@ -117,7 +117,7 @@ Array<IndexType> IndexSet<IndexType>::to_global_indices() const
         this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
         &this->superset_cumulative_indices_, &decomp_indices));
 
-    return std::move(decomp_indices);
+    return decomp_indices;
 }
 
 
@@ -134,7 +134,7 @@ Array<IndexType> IndexSet<IndexType>::map_local_to_global(
         this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
         &this->superset_cumulative_indices_, &local_indices, &global_indices,
         is_sorted));
-    return std::move(global_indices);
+    return global_indices;
 }
 
 
@@ -151,7 +151,7 @@ Array<IndexType> IndexSet<IndexType>::map_global_to_local(
         this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
         &this->superset_cumulative_indices_, &global_indices, &local_indices,
         is_sorted));
-    return std::move(local_indices);
+    return local_indices;
 }
 
 

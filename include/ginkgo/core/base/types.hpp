@@ -533,20 +533,6 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 /**
- * Instantiates a template for each index and size type compiled by Ginkgo.
- *
- * @param _macro  A macro which expands the template instantiation
- *                (not including the leading `template` specifier).
- *                Should take one argument, which is replaced by the
- *                value type.
- */
-#define GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(_macro) \
-    GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro);             \
-    template _macro(uint32);                                 \
-    template _macro(uint64)
-
-
-/**
  * Instantiates a template for each value and index type compiled by Ginkgo.
  *
  * @param _macro  A macro which expands the template instantiation
@@ -640,42 +626,19 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  */
 #define GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(_macro) \
     GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro);       \
-    GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(_macro)
+    GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro);       \
+    template _macro(gko::size_type)
 
 
 /**
  * Value for an invalid signed index type.
  */
 template <typename IndexType>
-inline IndexType invalid_index()
+inline constexpr GKO_ATTRIBUTES IndexType invalid_index()
 {
     static_assert(std::is_signed<IndexType>::value,
                   "IndexType needs to be signed");
     return static_cast<IndexType>(-1);
-}
-
-#define GKO_DECLARE_INVALID_TYPES(_itype) _itype invalid_index()
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INVALID_TYPES);
-
-
-/**
- * Value for an invalid unsigned int.
- */
-template <>
-inline uint32 invalid_index<uint32>()
-{
-    return std::numeric_limits<uint32>::max();
-}
-
-
-/**
- * Value for an invalid unsigned long.
- */
-template <>
-inline uint64 invalid_index<uint64>()
-{
-    return std::numeric_limits<uint64>::max();
 }
 
 

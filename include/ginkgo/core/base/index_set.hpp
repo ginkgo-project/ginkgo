@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
@@ -81,7 +82,9 @@ namespace gko {
  * @ingroup IndexSet
  */
 template <typename IndexType = int32>
-class IndexSet {
+class IndexSet : public EnablePolymorphicObject<IndexSet<IndexType>> {
+    friend class EnablePolymorphicObject<IndexSet>;
+
 public:
     /**
      * The type of elements stored in the index set.
@@ -89,25 +92,12 @@ public:
     using index_type = IndexType;
 
     /**
-     * Creates an index set not tied to any executor.
-     *
-     * This can only be empty.
-     */
-    IndexSet() noexcept = default;
-
-    /**
      * Creates an empty IndexSet tied to the specified Executor.
      *
      * @param exec  the Executor where the IndexSet data is allocated
      */
-    explicit IndexSet(std::shared_ptr<const Executor> exec) noexcept
-        : exec_(std::move(exec)),
-          index_space_size_(0),
-          num_stored_indices_(0),
-          subsets_begin_(exec_),
-          subsets_end_(exec_),
-          superset_cumulative_indices_(exec_)
-
+    IndexSet(std::shared_ptr<const Executor> exec)
+        : EnablePolymorphicObject<IndexSet>(std::move(exec))
     {}
 
     /**
@@ -123,11 +113,8 @@ public:
     IndexSet(std::shared_ptr<const gko::Executor> executor,
              const index_type size, const gko::Array<index_type>& indices,
              const bool is_sorted = false)
-        : index_space_size_(size),
-          exec_(std::move(executor)),
-          subsets_begin_(exec_),
-          subsets_end_(exec_),
-          superset_cumulative_indices_(exec_)
+        : EnablePolymorphicObject<IndexSet>(std::move(executor)),
+          index_space_size_(size)
     {
         GKO_ASSERT(index_space_size_ >= indices.get_num_elems());
         this->populate_subsets(indices, is_sorted);
@@ -143,112 +130,6 @@ public:
         : IndexSet(exec)
     {
         *this = other;
-    }
-
-    /**
-     * Copies data from another IndexSet
-     *
-     * The executor of this is preserved. In case this does not have an assigned
-     * executor, it will inherit the executor of other.
-     *
-     * @param other  the IndexSet to copy from
-     *
-     * @return this
-     */
-    IndexSet& operator=(const IndexSet& other)
-    {
-        if (&other == this) {
-            return *this;
-        }
-        if (exec_ == nullptr) {
-            exec_ = other.get_executor();
-        }
-        if (other.get_executor() == nullptr) {
-            this->clear();
-            return *this;
-        }
-        index_space_size_ = other.index_space_size_;
-        num_stored_indices_ = other.num_stored_indices_;
-        subsets_begin_ = other.subsets_begin_;
-        subsets_end_ = other.subsets_end_;
-        superset_cumulative_indices_ = other.superset_cumulative_indices_;
-
-        return *this;
-    }
-
-    /**
-     * Moves data from another IndexSet. If the data is on another device, it is
-     * copied over. If it is on the same device, then the data from the other
-     * IndexSet is moved over and the other IndexSet is cleared.
-     *
-     * @param other  the IndexSet to move data from
-     *
-     * @return this
-     */
-    IndexSet& operator=(IndexSet&& other)
-    {
-        if (&other == this) {
-            return *this;
-        }
-        if (exec_ == nullptr) {
-            exec_ = other.get_executor();
-        }
-        if (other.get_executor() == nullptr) {
-            this->clear();
-            return *this;
-        }
-        if (exec_ == other.get_executor()) {
-            // same device
-            index_space_size_ = other.index_space_size_;
-            num_stored_indices_ = other.num_stored_indices_;
-            subsets_begin_ = std::move(other.subsets_begin_);
-            subsets_end_ = std::move(other.subsets_end_);
-            superset_cumulative_indices_ =
-                std::move(other.superset_cumulative_indices_);
-            other.clear();
-        } else {
-            // different device, copy the data
-            *this = other;
-        }
-        return *this;
-    }
-
-    /**
-     * Creates a copy of another IndexSet.
-     *
-     * @param other  the IndexSet to copy from
-     */
-    IndexSet(const IndexSet& other) : IndexSet(other.get_executor(), other) {}
-
-    /**
-     * Moves another IndexSet to a different executor.
-     *
-     * @param exec  the executor where the new IndexSet will be moved
-     * @param other  the IndexSet to move
-     */
-    IndexSet(std::shared_ptr<const Executor> exec, IndexSet&& other)
-        : IndexSet(exec)
-    {
-        *this = std::move(other);
-    }
-
-    void clear() noexcept
-    {
-        index_space_size_ = 0;
-        num_stored_indices_ = 0;
-        subsets_begin_.clear();
-        subsets_end_.clear();
-        superset_cumulative_indices_.clear();
-    }
-
-    /**
-     * Returns the Executor associated with the index set.
-     *
-     * @return the Executor associated with the index set
-     */
-    std::shared_ptr<const gko::Executor> get_executor() const noexcept
-    {
-        return exec_;
     }
 
     /**
@@ -358,7 +239,7 @@ public:
     Array<index_type> to_global_indices() const;
 
     /**
-     * Checks if the global index exists in the index set.
+     * Checks if the individual global indeices exist in the index set.
      *
      * @param global_indices  the indices to check.
      * @param is_sorted  a parameter that specifies if the query array is sorted
@@ -427,8 +308,6 @@ public:
 private:
     void populate_subsets(const gko::Array<index_type>& indices,
                           const bool is_sorted);
-
-    std::shared_ptr<const gko::Executor> exec_;
 
     index_type index_space_size_;
     index_type num_stored_indices_;

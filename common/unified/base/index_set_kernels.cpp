@@ -55,18 +55,16 @@ void compute_validity(std::shared_ptr<const DefaultExecutor> exec,
                       const Array<IndexType>* local_indices,
                       Array<bool>* validity_array)
 {
-    auto invalid_idx = invalid_index<IndexType>();
     run_kernel(
         exec,
-        [invalid_idx] GKO_KERNEL(auto elem, auto local_indices,
-                                 auto validity_array) {
-            validity_array[elem] = local_indices[elem] != invalid_idx;
+        [] GKO_KERNEL(auto elem, auto local_indices, auto validity_array) {
+            validity_array[elem] =
+                local_indices[elem] != invalid_index<IndexType>();
         },
-        local_indices->get_num_elems(), local_indices->get_const_data(),
-        validity_array->get_data());
+        local_indices->get_num_elems(), *local_indices, *validity_array);
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_INDEX_SET_COMPUTE_VALIDITY_KERNEL);
 
 

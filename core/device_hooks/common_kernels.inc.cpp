@@ -110,11 +110,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     _macro(IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro)
 
-#define GKO_STUB_INDEX_AND_SIZE_TYPE(_macro)                 \
-    template <typename IndexSizeType>                        \
-    _macro(IndexSizeType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
-    GKO_INSTANTIATE_FOR_EACH_INDEX_AND_SIZE_TYPE(_macro)
-
 #define GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro)           \
     template <typename ValueType, typename IndexType>               \
     _macro(ValueType, IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
