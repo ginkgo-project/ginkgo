@@ -78,3 +78,9 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
       run: cp .github/format-rebase.sh /tmp && /tmp/format-rebase.sh
+    - name: Upload code formatting diffs
+      if: success()
+      uses: actions/upload-artifact@v2
+      with:
+          name: patch
+          path: diff.patch
