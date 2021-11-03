@@ -290,12 +290,6 @@ inline void batch_entry_bicgstab_impl(
     while (1) {
         ++iter;
 
-        // bool all_converged = stop.check_converged(iter,
-        // res_norms_entry.values,
-        //                                          {NULL, 0, 0, 0}, converged);
-        // logger.log_iteration(ibatch, iter, res_norms_entry.values,
-        // converged);
-
         if (stop.check_converged(res_norms_entry.values)) {
             break;
         }
@@ -337,10 +331,6 @@ inline void batch_entry_bicgstab_impl(
                                               res_norms_entry);
 
 
-        // const uint32 converged_prev = converged;
-        // all_converged = stop.check_converged(iter, res_norms_entry.values,
-        //                                     {NULL, 0, 0, 0}, converged);
-
         if (stop.check_converged(res_norms_entry.values)) {
             // update x for the sytems (rhs) which converge at this point...  x
             // = x + alpha*p_hat
@@ -351,12 +341,6 @@ inline void batch_entry_bicgstab_impl(
                             gko::batch::to_const(p_hat_entry), x_entry);
             break;
         }
-
-        // logger.log_iteration(ibatch, iter, res_norms_entry.values,
-        // converged);
-        // if (all_converged) {
-        //    break;
-        //}
 
         // s_hat = precond * s
         prec.apply(gko::batch::to_const(s_entry), s_hat_entry);
