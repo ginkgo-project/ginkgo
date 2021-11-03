@@ -148,7 +148,7 @@ TYPED_TEST(Vector, ReadsDistributedLocalData)
 TYPED_TEST(Vector, ConvertsToDense)
 {
     using value_type = typename TestFixture::value_type;
-    auto dist = TestFixture::Vec::create(this->ref);
+    auto dist = TestFixture::Vec::create(this->ref, this->comm);
     auto global = TestFixture::GVec::create(this->ref);
     auto gathered = TestFixture::GVec::create(this->ref);
     dist->read_distributed(this->vec_input, this->part);
@@ -168,7 +168,7 @@ TYPED_TEST(Vector, ConvertsToDenseReversePartition)
 {
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
-    auto dist = TestFixture::Vec::create(this->ref);
+    auto dist = TestFixture::Vec::create(this->ref, this->comm);
     auto global = TestFixture::GVec::create(this->ref);
     auto gathered = TestFixture::GVec::create(this->ref);
     auto part = gko::share(
@@ -191,7 +191,7 @@ TYPED_TEST(Vector, ConvertsToDenseScatteredPartition)
 {
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
-    auto dist = TestFixture::Vec::create(this->ref);
+    auto dist = TestFixture::Vec::create(this->ref, this->comm);
     auto global = TestFixture::GVec::create(this->ref);
     auto gathered = TestFixture::GVec::create(this->ref);
     auto part = gko::share(
