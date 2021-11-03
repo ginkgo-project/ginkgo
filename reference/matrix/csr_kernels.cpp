@@ -641,10 +641,10 @@ void calculate_nonzeros_per_row_in_span(
 {
     size_type res_row = 0;
     for (size_type row = row_span.begin; row < row_span.end; ++row) {
-        for (size_type col = source->get_const_row_ptrs()[row];
-             col < source->get_const_row_ptrs()[row + 1]; ++col) {
-            if (source->get_const_col_idxs()[col] < col_span.end &&
-                source->get_const_col_idxs()[col] >= col_span.begin) {
+        for (size_type nnz = source->get_const_row_ptrs()[row];
+             nnz < source->get_const_row_ptrs()[row + 1]; ++nnz) {
+            if (source->get_const_col_idxs()[nnz] < col_span.end &&
+                source->get_const_col_idxs()[nnz] >= col_span.begin) {
                 row_nnz->get_data()[res_row]++;
             }
         }

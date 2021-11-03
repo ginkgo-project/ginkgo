@@ -1065,7 +1065,6 @@ __global__
         ValueType* __restrict__ result_values)
 {
     const auto tidx = thread::get_thread_id_flat();
-    // for (int tidx = threadIdx.x; tidx < num_rows; tidx += blockDim.x) {
     if (tidx < num_rows) {
         size_type res_nnz = result_row_ptrs[tidx];
         for (size_type nnz = source_row_ptrs[row_offset + tidx];
