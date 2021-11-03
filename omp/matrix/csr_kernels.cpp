@@ -723,9 +723,9 @@ void calculate_nonzeros_per_row_in_span(
     const auto col_idxs = source->get_const_col_idxs();
 #pragma omp parallel for
     for (size_type row = row_span.begin; row < row_span.end; ++row) {
-        for (size_type col = row_ptrs[row]; col < row_ptrs[row + 1]; ++col) {
-            if (col_idxs[col] >= col_span.begin &&
-                col_idxs[col] < col_span.end) {
+        for (size_type nnz = row_ptrs[row]; nnz < row_ptrs[row + 1]; ++nnz) {
+            if (col_idxs[nnz] >= col_span.begin &&
+                col_idxs[nnz] < col_span.end) {
                 row_nnz->get_data()[row - row_span.begin]++;
             }
         }
