@@ -221,6 +221,18 @@ inline void flush_all_local_windows(MPI_Win* win)
 }
 
 
+inline void duplicate_info(MPI_Info in_info, MPI_Info* out_info)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_dup(in_info, out_info));
+}
+
+
+inline void free_requests(MPI_Request* req)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Request_free(req));
+}
+
+
 inline void create_info(MPI_Info* info)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_create(info));
