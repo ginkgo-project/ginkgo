@@ -671,6 +671,26 @@ inline T ensure_allocated_impl(T ptr, const std::string& file, int line,
                   "semi-colon warnings")
 
 
+/**
+ * Throws an InvalidState exception.
+ * This macro sets the correct information about the location of the error
+ * and fills the exception with data about _obj, followed by throwing it.
+ *
+ * @param _obj  the object referenced by InvalidState exception
+ * @param _reason  The reason for the invalid state
+ */
+#define GKO_INVALID_STATE(_obj, _reason)                                      \
+    {                                                                         \
+        throw ::gko::InvalidState(__FILE__, __LINE__, __func__,               \
+                                  ::gko::name_demangling::get_type_name(      \
+                                      ::gko::detail::get_dynamic_type(_obj)), \
+                                  _reason);                                   \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
+
+
 }  // namespace gko
 
 

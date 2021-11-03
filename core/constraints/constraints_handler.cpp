@@ -286,7 +286,7 @@ void ConstraintsHandler<ValueType, IndexType>::reconstruct_system_impl(
             zero_init_guess_ = detail::zero_guess_with_constrained_values(
                 exec, size, idxs_, values_.get());
         } else {
-            GKO_NOT_SUPPORTED(values_);
+            GKO_INVALID_STATE(*this, "Constrained values are not set.");
         }
     }
     if (force || !cons_init_guess_) {
@@ -295,7 +295,7 @@ void ConstraintsHandler<ValueType, IndexType>::reconstruct_system_impl(
                 idxs_, lend(cons_operator_), lend(used_init_guess()),
                 lend(values_)));
         } else {
-            GKO_NOT_SUPPORTED(values_);
+            GKO_INVALID_STATE(*this, "Constrained values are not set.");
         }
     }
     if (force || !cons_rhs_) {
@@ -304,7 +304,8 @@ void ConstraintsHandler<ValueType, IndexType>::reconstruct_system_impl(
                 idxs_, lend(cons_operator_), lend(used_init_guess()),
                 lend(orig_rhs_)));
         } else {
-            GKO_NOT_SUPPORTED(orig_rhs_);
+            GKO_INVALID_STATE(*this,
+                              "The original right-hand-side is not set.");
         }
     }
 }

@@ -537,8 +537,8 @@ TYPED_TEST(ConstrainedSystem, ReconstructsRhsAndInitForGetInit)
 
 TYPED_TEST(ConstrainedSystem, ThrowsIfNoValues)
 {
-    ASSERT_THROW(this->empty_handler.get_initial_guess(), gko::NotSupported);
-    ASSERT_THROW(this->empty_handler.get_right_hand_side(), gko::NotSupported);
+    ASSERT_THROW(this->empty_handler.get_initial_guess(), gko::InvalidState);
+    ASSERT_THROW(this->empty_handler.get_right_hand_side(), gko::InvalidState);
 }
 
 
@@ -546,8 +546,8 @@ TYPED_TEST(ConstrainedSystem, ThrowsIfNoRhs)
 {
     this->empty_handler.with_constrained_values(this->empty_values);
 
-    ASSERT_THROW(this->empty_handler.get_initial_guess(), gko::NotSupported);
-    ASSERT_THROW(this->empty_handler.get_right_hand_side(), gko::NotSupported);
+    ASSERT_THROW(this->empty_handler.get_initial_guess(), gko::InvalidState);
+    ASSERT_THROW(this->empty_handler.get_right_hand_side(), gko::InvalidState);
 }
 
 

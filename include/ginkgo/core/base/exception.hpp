@@ -623,6 +623,33 @@ public:
 };
 
 
+/**
+ *
+ * InvalidState is thrown if an object is used, while it has an invalid internal
+ * state.
+ */
+class InvalidState : public Error {
+public:
+    /**
+     * Initializes an InvalidState error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the function where the error occurred
+     * @param obj_type  The object type on which the requested operation
+     *                  cannot be performed.
+     * @param reason  The reason why the object is in an invalid state.
+     */
+    InvalidState(const std::string& file, int line, const std::string& func,
+                 const std::string& obj_type, const std::string& reason)
+        : Error(file, line,
+                "The object of type " + obj_type +
+                    " that executed the operation " + func +
+                    " was in an invalid state. Reason:" + reason)
+    {}
+};
+
+
 }  // namespace gko
 
 
