@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     const auto fin = gko::mpi::init_finalize(argc, argv);
     // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
     const gko::size_type coarse_iter = argc >= 5 ? std::atoi(argv[4]) : 10u;
     const gko::remove_complex<ValueType> rel_fac =
         argc >= 6 ? std::atoi(argv[5]) : 1.0;
-    const auto comm = gko::mpi::communicator::create();
+    const auto comm = gko::mpi::communicator::create_world();
     const auto rank = comm->rank();
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -241,8 +241,8 @@ int main(int argc, char *argv[])
                                .on(exec))
             .on(exec));
     auto ras_precond = ras::build()
-                           .with_coarse_relaxation_factors(rel_fac)
-                           .with_generated_coarse_solvers(coarse_solver)
+                           // .with_coarse_relaxation_factors(rel_fac)
+                           // .with_generated_coarse_solvers(coarse_solver)
                            .with_inner_solver(inner_solver)
                            .on(exec)
                            ->generate(A);
