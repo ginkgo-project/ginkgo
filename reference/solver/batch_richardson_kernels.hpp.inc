@@ -89,9 +89,9 @@ inline void batch_entry_richardson_impl(
 
         // r <- b - Ax
         batch_dense::copy(b_b, r_b);
-        batch_csr::advanced_spmv_kernel(static_cast<ValueType>(-1.0), a_b,
-                                        gko::batch::to_const(x_b),
-                                        static_cast<ValueType>(1.0), r_b);
+        advanced_spmv_kernel(static_cast<ValueType>(-1.0), a_b,
+                             gko::batch::to_const(x_b),
+                             static_cast<ValueType>(1.0), r_b);
 
         batch_dense::compute_norm2(gko::batch::to_const(r_b), norms_b);
 

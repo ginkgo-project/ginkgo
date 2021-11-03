@@ -131,6 +131,12 @@ public:
         }
     }
 
+    /**
+     * Solves a linear system from the given data and kernel caller.
+     *
+     * Note: The correct backend-specific get_batch_struct function needs to be
+     * available in the current scope.
+     */
     void apply(const BatchLinOp* const a,
                const matrix::BatchDense<ValueType>* const b,
                matrix::BatchDense<ValueType>* const x,
