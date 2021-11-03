@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/math.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
 #include "cuda/base/types.hpp"
+#include "cuda/components/atomic.cuh"
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 
@@ -321,6 +322,7 @@ void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
 
 
 constexpr int default_block_size = 512;
+constexpr int fallback_block_size = 32;
 
 
 template <typename ValueType>
@@ -366,9 +368,15 @@ __global__ void sptrsv_naive_caching_kernel(
     const IndexType* const rowptrs, const IndexType* const colidxs,
     const ValueType* const vals, const ValueType* const b, size_type b_stride,
     ValueType* const x, size_type x_stride, const size_type n,
-    const size_type nrhs, bool* nan_produced)
+    const size_type nrhs, bool* nan_produced, IndexType* atomic_counter)
 {
-    const auto full_gid = thread::get_thread_id_flat<IndexType>();
+    __shared__ IndexType block_base_idx;
+    if (threadIdx.x == 0) {
+        block_base_idx =
+            atomic_add(atomic_counter, IndexType{1}) * default_block_size;
+    }
+    __syncthreads();
+    const auto full_gid = static_cast<IndexType>(threadIdx.x) + block_base_idx;
     const auto rhs = full_gid % nrhs;
     const auto gid = full_gid / nrhs;
     const auto row = is_upper ? n - 1 - gid : gid;
@@ -435,9 +443,15 @@ __global__ void sptrsv_naive_legacy_kernel(
     const IndexType* const rowptrs, const IndexType* const colidxs,
     const ValueType* const vals, const ValueType* const b, size_type b_stride,
     ValueType* const x, size_type x_stride, const size_type n,
-    const size_type nrhs, bool* nan_produced)
+    const size_type nrhs, bool* nan_produced, IndexType* atomic_counter)
 {
-    const auto full_gid = thread::get_thread_id_flat<IndexType>();
+    __shared__ IndexType block_base_idx;
+    if (threadIdx.x == 0) {
+        block_base_idx =
+            atomic_add(atomic_counter, IndexType{1}) * fallback_block_size;
+    }
+    __syncthreads();
+    const auto full_gid = static_cast<IndexType>(threadIdx.x) + block_base_idx;
     const auto rhs = full_gid % nrhs;
     const auto gid = full_gid / nrhs;
     const auto row = is_upper ? n - 1 - gid : gid;
@@ -492,8 +506,10 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
     x->fill(nan<ValueType>());
 
     Array<bool> nan_produced(exec, {false});
+    Array<IndexType> atomic_counter(exec, {IndexType{}});
 
-    const dim3 block_size(is_fallback_required ? 32 : default_block_size, 1, 1);
+    const dim3 block_size(
+        is_fallback_required ? fallback_block_size : default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n * nrhs, block_size.x), 1, 1);
 
     if (is_fallback_required) {
@@ -502,14 +518,14 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
             as_cuda_type(matrix->get_const_values()),
             as_cuda_type(b->get_const_values()), b->get_stride(),
             as_cuda_type(x->get_values()), x->get_stride(), n, nrhs,
-            nan_produced.get_data());
+            nan_produced.get_data(), atomic_counter.get_data());
     } else {
         sptrsv_naive_caching_kernel<is_upper><<<grid_size, block_size>>>(
             matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
             as_cuda_type(matrix->get_const_values()),
             as_cuda_type(b->get_const_values()), b->get_stride(),
             as_cuda_type(x->get_values()), x->get_stride(), n, nrhs,
-            nan_produced.get_data());
+            nan_produced.get_data(), atomic_counter.get_data());
     }
 
     if (exec->copy_val_to_host(nan_produced.get_const_data())) {
