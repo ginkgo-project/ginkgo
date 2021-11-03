@@ -74,7 +74,7 @@ protected:
     gko::Array<value_type> dvals;
 };
 
-TYPED_TEST_SUITE(ReduceArray, gko::test::AllTemplateTypes,
+TYPED_TEST_SUITE(ReduceArray, gko::test::ValueAndIndexTypes,
                  TypenameNameGenerator);
 
 
