@@ -55,9 +55,9 @@ inline void initialize(
     batch_dense::copy(b_entry, r_entry);
 
     // r = b - A*x
-    batch_csr::advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
-                                    gko::batch::to_const(x_entry),
-                                    static_cast<ValueType>(1.0), r_entry);
+    advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
+                         gko::batch::to_const(x_entry),
+                         static_cast<ValueType>(1.0), r_entry);
     batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
                                           res_norms_entry);
 
@@ -190,7 +190,7 @@ inline void arnoldi_method(
         &V_entry.values[i * V_entry.stride * num_rows], V_entry.stride,
         num_rows, V_entry.num_rhs};
 
-    batch_csr::spmv_kernel(A_entry, v_i_entry, helper_entry);
+    spmv_kernel(A_entry, v_i_entry, helper_entry);
 
     prec.apply(gko::batch::to_const(helper_entry), w_entry);
 
@@ -463,9 +463,9 @@ inline void batch_entry_gmres_impl(
         batch_dense::copy(b_entry, r_entry);
 
         // r = r - A*x
-        batch_csr::advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
-                                        gko::batch::to_const(x_entry),
-                                        static_cast<ValueType>(1.0), r_entry);
+        advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
+                             gko::batch::to_const(x_entry),
+                             static_cast<ValueType>(1.0), r_entry);
         batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
                                               res_norms_entry);
 
