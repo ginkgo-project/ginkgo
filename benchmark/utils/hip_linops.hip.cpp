@@ -45,11 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/base/hipsparse_bindings.hip.hpp"
 
 
-class hipsp_csr {};
-class hipsp_csrmm {};
-class hipsp_hybrid {};
-class hipsp_coo {};
-class hipsp_ell {};
+class hipsparse_csr {};
+class hipsparse_csrmm {};
+class hipsparse_hybrid {};
+class hipsparse_coo {};
+class hipsparse_ell {};
 
 
 namespace detail {
@@ -58,7 +58,7 @@ namespace detail {
 struct hipsparseMatDescr;
 
 
-class HipspBase : public gko::LinOp {
+class HipsparseBase : public gko::LinOp {
 public:
     hipsparseMatDescr_t get_descr() const { return this->descr_.get(); }
 
@@ -71,8 +71,8 @@ protected:
         GKO_NOT_IMPLEMENTED;
     }
 
-    HipspBase(std::shared_ptr<const gko::Executor> exec,
-              const gko::dim<2>& size = gko::dim<2>{})
+    HipsparseBase(std::shared_ptr<const gko::Executor> exec,
+                  const gko::dim<2>& size = gko::dim<2>{})
         : gko::LinOp(exec, size)
     {
         gpu_exec_ = std::dynamic_pointer_cast<const gko::HipExecutor>(exec);
@@ -82,11 +82,11 @@ protected:
         this->initialize_descr();
     }
 
-    ~HipspBase() = default;
+    ~HipsparseBase() = default;
 
-    HipspBase(const HipspBase& other) = delete;
+    HipsparseBase(const HipsparseBase& other) = delete;
 
-    HipspBase& operator=(const HipspBase& other)
+    HipsparseBase& operator=(const HipsparseBase& other)
     {
         if (this != &other) {
             gko::LinOp::operator=(other);
@@ -119,12 +119,13 @@ private:
 
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
-class HipspCsr
-    : public gko::EnableLinOp<HipspCsr<ValueType, IndexType>, HipspBase>,
-      public gko::EnableCreateMethod<HipspCsr<ValueType, IndexType>>,
+class HipsparseCsr
+    : public gko::EnableLinOp<HipsparseCsr<ValueType, IndexType>,
+                              HipsparseBase>,
+      public gko::EnableCreateMethod<HipsparseCsr<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
-    friend class gko::EnableCreateMethod<HipspCsr>;
-    friend class gko::EnablePolymorphicObject<HipspCsr, HipspBase>;
+    friend class gko::EnableCreateMethod<HipsparseCsr>;
+    friend class gko::EnablePolymorphicObject<HipsparseCsr, HipsparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -160,9 +161,9 @@ protected:
             &scalars.get_const_data()[1], dx);
     }
 
-    HipspCsr(std::shared_ptr<const gko::Executor> exec,
-             const gko::dim<2>& size = gko::dim<2>{})
-        : gko::EnableLinOp<HipspCsr, HipspBase>(exec, size),
+    HipsparseCsr(std::shared_ptr<const gko::Executor> exec,
+                 const gko::dim<2>& size = gko::dim<2>{})
+        : gko::EnableLinOp<HipsparseCsr, HipsparseBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
           trans_(HIPSPARSE_OPERATION_NON_TRANSPOSE)
@@ -179,12 +180,13 @@ private:
 
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
-class HipspCsrmm
-    : public gko::EnableLinOp<HipspCsrmm<ValueType, IndexType>, HipspBase>,
-      public gko::EnableCreateMethod<HipspCsrmm<ValueType, IndexType>>,
+class HipsparseCsrmm
+    : public gko::EnableLinOp<HipsparseCsrmm<ValueType, IndexType>,
+                              HipsparseBase>,
+      public gko::EnableCreateMethod<HipsparseCsrmm<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
-    friend class gko::EnableCreateMethod<HipspCsrmm>;
-    friend class gko::EnablePolymorphicObject<HipspCsrmm, HipspBase>;
+    friend class gko::EnableCreateMethod<HipsparseCsrmm>;
+    friend class gko::EnablePolymorphicObject<HipsparseCsrmm, HipsparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -221,9 +223,9 @@ protected:
             dense_x->get_size()[0]);
     }
 
-    HipspCsrmm(std::shared_ptr<const gko::Executor> exec,
-               const gko::dim<2>& size = gko::dim<2>{})
-        : gko::EnableLinOp<HipspCsrmm, HipspBase>(exec, size),
+    HipsparseCsrmm(std::shared_ptr<const gko::Executor> exec,
+                   const gko::dim<2>& size = gko::dim<2>{})
+        : gko::EnableLinOp<HipsparseCsrmm, HipsparseBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
           trans_(HIPSPARSE_OPERATION_NON_TRANSPOSE)
@@ -242,14 +244,15 @@ template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32,
           hipsparseHybPartition_t Partition = HIPSPARSE_HYB_PARTITION_AUTO,
           int Threshold = 0>
-class HipspHybrid
+class HipsparseHybrid
     : public gko::EnableLinOp<
-          HipspHybrid<ValueType, IndexType, Partition, Threshold>, HipspBase>,
+          HipsparseHybrid<ValueType, IndexType, Partition, Threshold>,
+          HipsparseBase>,
       public gko::EnableCreateMethod<
-          HipspHybrid<ValueType, IndexType, Partition, Threshold>>,
+          HipsparseHybrid<ValueType, IndexType, Partition, Threshold>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
-    friend class gko::EnableCreateMethod<HipspHybrid>;
-    friend class gko::EnablePolymorphicObject<HipspHybrid, HipspBase>;
+    friend class gko::EnableCreateMethod<HipsparseHybrid>;
+    friend class gko::EnablePolymorphicObject<HipsparseHybrid, HipsparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -271,21 +274,21 @@ public:
             Threshold, Partition);
     }
 
-    ~HipspHybrid() override
+    ~HipsparseHybrid() override
     {
         const auto id = this->get_gpu_exec()->get_device_id();
         try {
             gko::hip::device_guard g{id};
             GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseDestroyHybMat(hyb_));
         } catch (const std::exception& e) {
-            std::cerr << "Error when unallocating HipspHybrid hyb_ matrix: "
+            std::cerr << "Error when unallocating HipsparseHybrid hyb_ matrix: "
                       << e.what() << std::endl;
         }
     }
 
-    HipspHybrid(const HipspHybrid& other) = delete;
+    HipsparseHybrid(const HipsparseHybrid& other) = delete;
 
-    HipspHybrid& operator=(const HipspHybrid& other) = default;
+    HipsparseHybrid& operator=(const HipsparseHybrid& other) = default;
 
 protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
@@ -303,9 +306,9 @@ protected:
             &scalars.get_const_data()[1], dx);
     }
 
-    HipspHybrid(std::shared_ptr<const gko::Executor> exec,
-                const gko::dim<2>& size = gko::dim<2>{})
-        : gko::EnableLinOp<HipspHybrid, HipspBase>(exec, size),
+    HipsparseHybrid(std::shared_ptr<const gko::Executor> exec,
+                    const gko::dim<2>& size = gko::dim<2>{})
+        : gko::EnableLinOp<HipsparseHybrid, HipsparseBase>(exec, size),
           trans_(HIPSPARSE_OPERATION_NON_TRANSPOSE)
     {
         const auto id = this->get_gpu_exec()->get_device_id();
@@ -325,39 +328,14 @@ private:
 }  // namespace detail
 
 
-template <>
-std::unique_ptr<gko::LinOp> create_sparselib_linop<hipsp_csr>(
-    std::shared_ptr<const gko::Executor> exec)
-{
-    return detail::HipspCsr<etype, itype>::create(exec);
-}
-
-template <>
-std::unique_ptr<gko::LinOp> create_sparselib_linop<hipsp_csrmm>(
-    std::shared_ptr<const gko::Executor> exec)
-{
-    return detail::HipspCsrmm<etype, itype>::create(exec);
-}
-
-template <>
-std::unique_ptr<gko::LinOp> create_sparselib_linop<hipsp_coo>(
-    std::shared_ptr<const gko::Executor> exec)
-{
-    return detail::HipspHybrid<etype, itype, HIPSPARSE_HYB_PARTITION_USER,
-                               0>::create(exec);
-}
-
-template <>
-std::unique_ptr<gko::LinOp> create_sparselib_linop<hipsp_ell>(
-    std::shared_ptr<const gko::Executor> exec)
-{
-    return detail::HipspHybrid<etype, itype, HIPSPARSE_HYB_PARTITION_MAX,
-                               0>::create(exec);
-}
-
-template <>
-std::unique_ptr<gko::LinOp> create_sparselib_linop<hipsp_hybrid>(
-    std::shared_ptr<const gko::Executor> exec)
-{
-    return detail::HipspHybrid<etype, itype>::create(exec);
-}
+IMPL_CREATE_SPARSELIB_LINOP(hipsparse_csr, detail::HipsparseCsr<etype, itype>);
+IMPL_CREATE_SPARSELIB_LINOP(hipsparse_csrmm,
+                            detail::HipsparseCsrmm<etype, itype>);
+IMPL_CREATE_SPARSELIB_LINOP(
+    hipsparse_coo,
+    detail::HipsparseHybrid<etype, itype, HIPSPARSE_HYB_PARTITION_USER, 0>);
+IMPL_CREATE_SPARSELIB_LINOP(
+    hipsparse_ell,
+    detail::HipsparseHybrid<etype, itype, HIPSPARSE_HYB_PARTITION_MAX, 0>);
+IMPL_CREATE_SPARSELIB_LINOP(hipsparse_hybrid,
+                            detail::HipsparseHybrid<etype, itype>);

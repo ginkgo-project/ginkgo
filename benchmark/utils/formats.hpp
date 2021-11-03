@@ -58,64 +58,73 @@ std::string available_format =
     "hybrid60, hybrid80, hybridlimit0, hybridlimit25, hybridlimit33, "
     "hybridminstorage"
 #ifdef HAS_CUDA
-    ", cusp_csr, cusp_csrex, cusp_coo"
-    ", cusp_csrmp, cusp_csrmm, cusp_ell, cusp_hybrid"
-    ", cusp_gcsr, cusp_gcsr2, cusp_gcoo"
+    ", cusparse_csr, cusparse_csrex, cusparse_coo"
+    ", cusparse_csrmp, cusparse_csrmm, cusparse_ell, cusparse_hybrid"
+    ", cusparse_gcsr, cusparse_gcsr2, cusparse_gcoo"
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
-    ", hipsp_csr, hipsp_csrmm, hipsp_coo, hipsp_ell, hipsp_hybrid"
+    ", hipsparse_csr, hipsparse_csrmm, hipsparse_coo, hipsparse_ell, "
+    "hipsparse_hybrid"
 #endif  // HAS_HIP
     ".\n";
 
 std::string format_description =
-    "coo: Coordinate storage. The CUDA kernel uses the load-balancing approach "
-    "suggested in Flegar et al.: Overcoming Load Imbalance for Irregular "
-    "Sparse Matrices.\n"
-    "csr: Compressed Sparse Row storage. Ginkgo implementation with automatic "
-    "strategy.\n"
+    "coo: Coordinate storage. The GPU kernels use the load-balancing "
+    "approach\n"
+    "     suggested in Flegar et al.: Overcoming Load Imbalance for\n"
+    "     Irregular Sparse Matrices.\n"
+    "csr: Compressed Sparse Row storage. Ginkgo implementation with\n"
+    "     automatic strategy.\n"
     "csrc: Ginkgo's CSR implementation with automatic stategy.\n"
     "csri: Ginkgo's CSR implementation with inbalance strategy.\n"
     "csrm: Ginkgo's CSR implementation with merge_path strategy.\n"
     "csrs: Ginkgo's CSR implementation with sparselib strategy.\n"
-    "ell: Ellpack format according to Bell and Garland: Efficient Sparse "
-    "Matrix-Vector Multiplication on CUDA.\n"
-    "ell-mixed: Mixed Precision Ellpack format according to Bell and Garland: "
-    "Efficient Sparse Matrix-Vector Multiplication on CUDA.\n"
+    "ell: Ellpack format according to Bell and Garland: Efficient Sparse\n"
+    "     Matrix-Vector Multiplication on CUDA.\n"
+    "ell-mixed: Mixed Precision Ellpack format according to Bell and Garland:\n"
+    "           Efficient Sparse Matrix-Vector Multiplication on CUDA.\n"
     "sellp: Sliced Ellpack uses a default block size of 32.\n"
-    "hybrid: Hybrid uses ell and coo to represent the matrix.\n"
-    "hybrid0, hybrid25, hybrid33, hybrid40, hybrid60, hybrid80: Hybrid uses "
-    "the row distribution to decide the partition.\n"
-    "hybridlimit0, hybridlimit25, hybrid33: Add the upper bound on the ell "
-    "part of hybrid0, hybrid25, hybrid33.\n"
-    "hybridminstorage: Hybrid uses the minimal storage to store the matrix."
+    "hybrid: Hybrid uses ELL and COO to represent the matrix.\n"
+    "hybrid0, hybrid25, hybrid33, hybrid40, hybrid60, hybrid80:\n"
+    "    Use 0%, 25%, ... quantiles of the row length distribution\n"
+    "    to choose number of entries stored in the ELL part.\n"
+    "hybridlimit0, hybridlimit25, hybrid33: Similar to hybrid0\n"
+    "    but with an additional absolute limit on the number of entries\n"
+    "    per row stored in ELL.\n"
+    "hybridminstorage: Use the minimal storage to store the matrix."
 #ifdef HAS_CUDA
     "\n"
-    "cusp_coo: use cusparseXhybmv with a CUSPARSE_HYB_PARTITION_USER "
-    "partition.\n"
-    "cusp_csr: benchmark CuSPARSE with the cusparseXcsrmv function.\n"
-    "cusp_ell: use cusparseXhybmv with CUSPARSE_HYB_PARTITION_MAX partition.\n"
-    "cusp_csrmp: benchmark CuSPARSE with the cusparseXcsrmv_mp function.\n"
-    "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function.\n"
-    "cusp_hybrid: benchmark CuSPARSE spmv with cusparseXhybmv and an automatic "
-    "partition.\n"
-    "cusp_csrex: benchmark CuSPARSE with the cusparseXcsrmvEx function."
-    "\n"
-    "cusp_gcsr: benchmark CuSPARSE with the generic csr with default "
-    "algorithm.\n"
-    "cusp_gcsr2: benchmark CuSPARSE with the generic csr with "
-    "CUSPARSE_CSRMV_ALG2.\n"
-    "cusp_gcoo: benchmark CuSPARSE with the generic coo with default "
-    "algorithm.\n"
+    "cusparse_coo: cuSPARSE COO SpMV, using cusparseXhybmv with \n"
+    "              CUSPARSE_HYB_PARTITION_USER for CUDA < 10.2, or\n"
+    "              the Generic API otherwise\n"
+    "cusparse_csr: cuSPARSE CSR SpMV, using cusparseXcsrmv for CUDA < 10.2,\n"
+    "              or the Generic API with default algorithm otherwise\n"
+    "cusparse_csrex: cuSPARSE CSR SpMV using cusparseXcsrmvEx\n"
+    "cusparse_ell: cuSPARSE ELL SpMV using cusparseXhybmv with\n"
+    "              CUSPARSE_HYB_PARTITION_MAX, available for CUDA < 11.0\n"
+    "cusparse_csrmp: cuSPARSE CSR SpMV using cusparseXcsrmv_mp,\n"
+    "                available for CUDA < 11.0\n"
+    "cusparse_csrmm: cuSPARSE CSR SpMV using cusparseXcsrmv_mm,\n"
+    "                available for CUDA < 11.0\n"
+    "cusparse_hybrid: cuSPARSE Hybrid SpMV using cusparseXhybmv\n"
+    "                 with an automatic partition, available for CUDA < 11.0\n"
+    "cusparse_gcsr: cuSPARSE CSR SpMV using Generic API with default\n"
+    "               algorithm, available for CUDA >= 10.2\n"
+    "cusparse_gcsr2: cuSPARSE CSR SpMV using Generic API with\n"
+    "                CUSPARSE_CSRMV_ALG2, available for CUDA >= 10.2\n"
+    "cusparse_gcoo: cuSPARSE Generic API with default COO SpMV,\n"
+    "               available for CUDA >= 10.2\n"
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
     "\n"
-    "hipsp_csr: benchmark HipSPARSE with the hipsparseXcsrmv function.\n"
-    "hipsp_csrmm: benchmark HipSPARSE with the hipsparseXcsrmv_mm function.\n"
-    "hipsp_hybrid: benchmark HipSPARSE spmv with hipsparseXhybmv and an "
-    "automatic partition.\n"
-    "hipsp_coo: use hipsparseXhybmv with a HIPSPARSE_HYB_PARTITION_USER "
-    "partition.\n"
-    "hipsp_ell: use hipsparseXhybmv with HIPSPARSE_HYB_PARTITION_MAX partition."
+    "hipsparse_csr: hipSPARSE CSR SpMV using hipsparseXcsrmv\n"
+    "hipsparse_csrmm: hipSPARSE CSR SpMV using hipsparseXcsrmv_mm\n"
+    "hipsparse_hybrid: hipSPARSE CSR SpMV using hipsparseXhybmv\n"
+    "                  with an automatic partition\n"
+    "hipsparse_coo: hipSPARSE CSR SpMV using hipsparseXhybmv\n"
+    "               with HIPSPARSE_HYB_PARTITION_USER\n"
+    "hipsparse_ell: hipSPARSE CSR SpMV using hipsparseXhybmv\n"
+    "               with HIPSPARSE_HYB_PARTITION_MAX"
 #endif  // HAS_HIP
     ;
 
@@ -299,25 +308,25 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
              return mat;
          }},
 #ifdef HAS_CUDA
-        {"cusp_csr", read_splib_matrix_from_data<cusp_csr>},
-        {"cusp_csrmp", read_splib_matrix_from_data<cusp_csrmp>},
-        {"cusp_csrmm", read_splib_matrix_from_data<cusp_csrmm>},
-        {"cusp_hybrid", read_splib_matrix_from_data<cusp_hybrid>},
-        {"cusp_coo", read_splib_matrix_from_data<cusp_coo>},
-        {"cusp_ell", read_splib_matrix_from_data<cusp_ell>},
-        {"cusp_csr", read_splib_matrix_from_data<cusp_gcsr>},
-        {"cusp_coo", read_splib_matrix_from_data<cusp_gcoo>},
-        {"cusp_csrex", read_splib_matrix_from_data<cusp_csrex>},
-        {"cusp_gcsr", read_splib_matrix_from_data<cusp_gcsr>},
-        {"cusp_gcsr2", read_splib_matrix_from_data<cusp_gcsr2>},
-        {"cusp_gcoo", read_splib_matrix_from_data<cusp_gcoo>},
+        {"cusparse_csr", read_splib_matrix_from_data<cusparse_csr>},
+        {"cusparse_csrmp", read_splib_matrix_from_data<cusparse_csrmp>},
+        {"cusparse_csrmm", read_splib_matrix_from_data<cusparse_csrmm>},
+        {"cusparse_hybrid", read_splib_matrix_from_data<cusparse_hybrid>},
+        {"cusparse_coo", read_splib_matrix_from_data<cusparse_coo>},
+        {"cusparse_ell", read_splib_matrix_from_data<cusparse_ell>},
+        {"cusparse_csr", read_splib_matrix_from_data<cusparse_gcsr>},
+        {"cusparse_coo", read_splib_matrix_from_data<cusparse_gcoo>},
+        {"cusparse_csrex", read_splib_matrix_from_data<cusparse_csrex>},
+        {"cusparse_gcsr", read_splib_matrix_from_data<cusparse_gcsr>},
+        {"cusparse_gcsr2", read_splib_matrix_from_data<cusparse_gcsr2>},
+        {"cusparse_gcoo", read_splib_matrix_from_data<cusparse_gcoo>},
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
-        {"hipsp_csr", read_splib_matrix_from_data<hipsp_csr>},
-        {"hipsp_csrmm", read_splib_matrix_from_data<hipsp_csrmm>},
-        {"hipsp_hybrid", read_splib_matrix_from_data<hipsp_hybrid>},
-        {"hipsp_coo", read_splib_matrix_from_data<hipsp_coo>},
-        {"hipsp_ell", read_splib_matrix_from_data<hipsp_ell>},
+        {"hipsparse_csr", read_splib_matrix_from_data<hipsparse_csr>},
+        {"hipsparse_csrmm", read_splib_matrix_from_data<hipsparse_csrmm>},
+        {"hipsparse_hybrid", read_splib_matrix_from_data<hipsparse_hybrid>},
+        {"hipsparse_coo", read_splib_matrix_from_data<hipsparse_coo>},
+        {"hipsparse_ell", read_splib_matrix_from_data<hipsparse_ell>},
 #endif  // HAS_HIP
         {"hybrid", read_matrix_from_data<hybrid>},
         {"hybrid0",

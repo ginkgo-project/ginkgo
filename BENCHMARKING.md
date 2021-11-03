@@ -287,12 +287,12 @@ The supported environment variables are described in the following list:
 * `PRECONDS={jacobi,ic,ilu,paric,parict,parilu,parilut,ic-isai,ilu-isai,paric-isai,parict-isai,parilu-isai,parilut-isai,none}`
     the preconditioners to use for either `solver` or `preconditioner` benchmarks.
     Multiple options can be passed to this variable. Default is `none`.
-* `FORMATS={csr,coo,ell,hybrid,sellp,hybridxx,cusp_xx,hipsp_xx}` the matrix
+* `FORMATS={csr,coo,ell,hybrid,sellp,hybridxx,cusparse_xx,hipsparse_xx}` the matrix
     formats to benchmark for the `spmv` phase of the benchmark. Run
     `${ginkgo_build_dir}/benchmark/spmv/spmv --help` for a full list. If needed,
     multiple options for hybrid with different optimization parameters are
     available. Depending on the libraries available at build time, vendor
-    library formats (cuSPARSE with `cusp_` prefix or hipSPARSE with `hipsp_`
+    library formats (cuSPARSE with `cusparse_` prefix or hipSPARSE with `hipsparse_`
     prefix) can be used as well. Multiple options can be passed. The default is
     `csr,coo,ell,hybrid,sellp`.
 * `SOLVERS={bicgstab,bicg,cg,cgs,fcg,gmres,cb_gmres_{keep,reduce1,reduce2,integer,ireduce1,ireduce2},lower_trs,upper_trs}`
