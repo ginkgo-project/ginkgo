@@ -356,15 +356,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL);
 
 
-template <typename IndexType>
-void convert_row_idxs_to_ptrs(std::shared_ptr<const OmpExecutor> exec,
-                              const IndexType* idxs, size_type num_nonzeros,
-                              IndexType* ptrs, size_type num_rows)
-{
-    convert_sorted_idxs_to_ptrs(idxs, num_nonzeros, ptrs, num_rows);
-}
-
-
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Coo<ValueType, IndexType>* coo,
@@ -415,6 +406,15 @@ void convert_to_bccoo(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_TO_BCCOO_KERNEL);
+
+
+template <typename IndexType>
+void convert_row_idxs_to_ptrs(std::shared_ptr<const OmpExecutor> exec,
+                              const IndexType* idxs, size_type num_nonzeros,
+                              IndexType* ptrs, size_type length)
+{
+    convert_sorted_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
+}
 
 
 template <typename ValueType, typename IndexType>

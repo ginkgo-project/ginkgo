@@ -248,8 +248,8 @@ TEST_F(Bccoo, SimpleApplyAddToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Bccoo, SimpleApplyAddToDenseMatrixIsEquivalentToRefUnsorted)
-GKO_NOT_IMPLEMENTED;
+// TEST_F(Bccoo, SimpleApplyAddToDenseMatrixIsEquivalentToRefUnsorted)
+// GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script:bccoo): change the code imported from matrix/coo if needed
 //    set_up_apply_data(3);
@@ -329,6 +329,36 @@ TEST_F(Bccoo, ApplyAddToComplexIsEquivalentToRef)
     dmtx->apply2(dalpha.get(), dcomplex_b.get(), dcomplex_x.get());
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+}
+
+
+TEST_F(Bccoo, ConvertToDenseIsEquivalentToRef)
+// GKO_NOT_IMPLEMENTED;
+{
+    // TODO (script:bccoo): change the code imported from matrix/coo if needed
+    set_up_apply_data();
+    auto dense_mtx = gko::matrix::Dense<>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<>::create(omp);
+
+    mtx->convert_to(dense_mtx.get());
+    dmtx->convert_to(ddense_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Bccoo, ConvertToCooIsEquivalentToRef)
+// GKO_NOT_IMPLEMENTED;
+{
+    // TODO (script:bccoo): change the code imported from matrix/coo if needed
+    set_up_apply_data();
+    auto coo_mtx = gko::matrix::Coo<>::create(ref);
+    auto dcoo_mtx = gko::matrix::Coo<>::create(omp);
+
+    mtx->convert_to(coo_mtx.get());
+    dmtx->convert_to(dcoo_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(coo_mtx.get(), dcoo_mtx.get(), 1e-14);
 }
 
 
