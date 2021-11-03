@@ -37,9 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reference/matrix/batch_struct.hpp"
 // include device kernels for every matrix and preconditioner type
 #include "reference/log/batch_logger.hpp"
-#include "reference/matrix/batch_csr_kernels.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
-#include "reference/matrix/batch_ell_kernels.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
 #include "reference/stop/batch_criteria.hpp"
@@ -58,120 +56,21 @@ namespace omp {
 namespace batch_bicgstab {
 
 
-using gko::kernels::reference::batch_csr::batch_scale;
-using gko::kernels::reference::batch_csr::spmv_kernel;
 namespace batch_dense = gko::kernels::reference::batch_dense;
-namespace batch_csr = gko::kernels::reference::batch_csr;
-namespace batch_ell = gko::kernels::reference::batch_ell;
 using gko::kernels::reference::BatchIdentity;
 using gko::kernels::reference::BatchJacobi;
 namespace batch_log = gko::kernels::reference::batch_log;
 namespace stop = gko::kernels::reference::stop;
 
 
+#include "reference/matrix/batch_csr_kernels.hpp.inc"
+#include "reference/matrix/batch_ell_kernels.hpp.inc"
 #include "reference/solver/batch_bicgstab_kernels.hpp.inc"
 
 
 template <typename T>
 using BatchBicgstabOptions =
     gko::kernels::batch_bicgstab::BatchBicgstabOptions<T>;
-
-#if 0
-template <typename StopType, typename PrecType, typename LogType,
-          typename BatchMatrixType, typename ValueType>
-static void apply_impl(
-    std::shared_ptr<const OmpExecutor> exec,
-    const BatchBicgstabOptions<remove_complex<ValueType>>& opts, LogType logger,
-    PrecType prec, const BatchMatrixType& a,
-    const gko::batch_dense::UniformBatch<const ValueType>& b,
-    const gko::batch_dense::UniformBatch<ValueType>& x)
-{
-    using real_type = typename gko::remove_complex<ValueType>;
-    const size_type nbatch = a.num_batch;
-    const auto nrows = a.num_rows;
-    const auto nrhs = b.num_rhs;
-
-    // required for static allocation in stopping criterion
-    GKO_ASSERT(batch_config<ValueType>::max_num_rhs >= nrhs);
-
-    const int local_size_bytes =
-        gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
-            nrows, nrhs) +
-        PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
-    using byte = unsigned char;
-    Array<byte> local_space(exec, local_size_bytes);
-
-#pragma omp parallel for firstprivate(logger) firstprivate(local_space)
-    for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
-        batch_entry_bicgstab_impl<StopType, PrecType, LogType, BatchMatrixType,
-                                  ValueType>(opts, logger, prec, a, b, x,
-                                             ibatch, local_space);
-    }
-}
-
-
-template <typename BatchType, typename LoggerType, typename ValueType>
-void apply_select_prec(
-    std::shared_ptr<const OmpExecutor> exec,
-    const BatchBicgstabOptions<remove_complex<ValueType>>& opts,
-    const LoggerType logger, const BatchType& a,
-    const gko::batch_dense::UniformBatch<const ValueType>& b,
-    const gko::batch_dense::UniformBatch<ValueType>& x)
-{
-    if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-        BatchIdentity<ValueType> prec;
-
-        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            apply_impl<stop::SimpleAbsResidual<ValueType>>(exec, opts, logger,
-                                                           prec, a, b, x);
-        } else {
-            apply_impl<stop::SimpleRelResidual<ValueType>>(exec, opts, logger,
-                                                           prec, a, b, x);
-        }
-
-
-    } else if (opts.preconditioner ==
-               gko::preconditioner::batch::type::jacobi) {
-        BatchJacobi<ValueType> prec;
-
-        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            apply_impl<stop::SimpleAbsResidual<ValueType>>(exec, opts, logger,
-                                                           prec, a, b, x);
-        } else {
-            apply_impl<stop::SimpleRelResidual<ValueType>>(exec, opts, logger,
-                                                           prec, a, b, x);
-        }
-
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
-}
-
-
-template <typename ValueType>
-void apply(std::shared_ptr<const OmpExecutor> exec,
-           const BatchBicgstabOptions<remove_complex<ValueType>>& opts,
-           const BatchLinOp* const a,
-           const matrix::BatchDense<ValueType>* const b,
-           matrix::BatchDense<ValueType>* const x,
-           gko::log::BatchLogData<ValueType>& logdata)
-{
-    batch_log::SimpleFinalLogger<remove_complex<ValueType>> logger(
-        logdata.res_norms->get_values(), logdata.iter_counts.get_data());
-    const gko::batch_dense::UniformBatch<ValueType> x_b =
-        host::get_batch_struct(x);
-    if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a)) {
-        const gko::batch_csr::UniformBatch<const ValueType> a_b =
-            host::get_batch_struct(a_mat);
-        const gko::batch_dense::UniformBatch<const ValueType> b_b =
-            host::get_batch_struct(b);
-        apply_select_prec(exec, opts, logger, a_b, b_b, x_b);
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
-}
-#endif
-
 
 template <typename ValueType>
 class KernelCaller {
@@ -233,11 +132,6 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
            matrix::BatchDense<ValueType>* const x,
            log::BatchLogData<ValueType>& logdata)
 {
-    // BatchSolverDispatch<OmpExecutor,
-    //                     BatchBicgstabOptions<remove_complex<ValueType>>,
-    //                     ValueType, ValueType>
-    //     dispatcher(KernelCaller<ValueType>(exec, opts), exec, opts,
-    //                log::BatchLogType::convergence_completion);
     auto dispatcher = create_dispatcher<ValueType, ValueType>(
         KernelCaller<ValueType>(exec, opts), exec, opts);
     dispatcher.apply(a, b, x, logdata);

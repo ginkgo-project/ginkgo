@@ -71,6 +71,7 @@ namespace batch_idr {
 #include "common/cuda_hip/components/reduction.hpp.inc"
 #include "common/cuda_hip/log/batch_logger.hpp.inc"
 #include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
 // TODO: remove batch dense include
 #include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
@@ -83,64 +84,46 @@ namespace batch_idr {
 template <typename T>
 using BatchIdrOptions = gko::kernels::batch_idr::BatchIdrOptions<T>;
 
-#define BATCH_IDR_KERNEL_LAUNCH(_stoppertype, _prectype)                   \
-    apply_kernel<stop::_stoppertype<ValueType>>                            \
-        <<<nbatch, default_block_size, shared_size>>>(                     \
-            opts.max_its, opts.residual_tol, opts.subspace_dim_val,        \
-            opts.kappa_val, opts.to_use_smoothing, opts.deterministic_gen, \
-            logger, _prectype<ValueType>(), subspace_vectors, a, b.values, \
-            x.values)
+template <typename CuValueType>
+class KernelCaller {
+public:
+    using value_type = CuValueType;
 
-template <typename BatchMatrixType, typename LogType, typename ValueType>
-static void apply_impl(std::shared_ptr<const CudaExecutor> exec,
-                       const BatchIdrOptions<remove_complex<ValueType>> opts,
-                       LogType logger, const BatchMatrixType& a,
-                       const gko::batch_dense::UniformBatch<const ValueType>& b,
-                       const gko::batch_dense::UniformBatch<ValueType>& x,
-                       const ValueType* const subspace_vectors)
-{
-    using real_type = gko::remove_complex<ValueType>;
-    const size_type nbatch = a.num_batch;
-    static_assert(default_block_size >= 2 * config::warp_size,
-                  "Need at least two warps!");
+    KernelCaller(std::shared_ptr<const CudaExecutor> exec,
+                 const BatchIdrOptions<remove_complex<value_type>> opts,
+                 const value_type* const subspace_vectors)
+        : exec_{exec}, opts_{opts}, subspace_vectors_{subspace_vectors}
+    {}
 
-    int shared_size =
-#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
-        gko::kernels::batch_idr::local_memory_requirement<ValueType>(
-            a.num_rows, b.num_rhs, opts.subspace_dim_val);
-#else
-        0;
-#endif
+    template <typename BatchMatrixType, typename PrecType, typename StopType,
+              typename LogType>
+    void call_kernel(LogType logger, const BatchMatrixType& a,
+                     const gko::batch_dense::UniformBatch<const value_type>& b,
+                     const gko::batch_dense::UniformBatch<value_type>& x) const
+    {
+        using real_type = gko::remove_complex<value_type>;
+        const size_type nbatch = a.num_batch;
 
-    if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
-        shared_size +=
-            BatchIdentity<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
-            sizeof(ValueType);
-#endif
-        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            BATCH_IDR_KERNEL_LAUNCH(SimpleAbsResidual, BatchIdentity);
-        } else {
-            BATCH_IDR_KERNEL_LAUNCH(SimpleRelResidual, BatchIdentity);
-        }
-    } else if (opts.preconditioner ==
-               gko::preconditioner::batch::type::jacobi) {
-#if GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM
-        shared_size +=
-            BatchJacobi<ValueType>::dynamic_work_size(a.num_rows, a.num_nnz) *
-            sizeof(ValueType);
-#endif
+        static_assert(default_block_size >= 2 * config::warp_size,
+                      "Need at least two warps per block!");
 
-        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            BATCH_IDR_KERNEL_LAUNCH(SimpleAbsResidual, BatchJacobi);
-        } else {
-            BATCH_IDR_KERNEL_LAUNCH(SimpleRelResidual, BatchJacobi);
-        }
-    } else {
-        GKO_NOT_IMPLEMENTED;
+        const int shared_size =
+            gko::kernels::batch_idr::local_memory_requirement<value_type>(
+                a.num_rows, b.num_rhs, opts_.subspace_dim_val) +
+            PrecType::dynamic_work_size(a.num_rows, a.num_nnz) *
+                sizeof(value_type);
+        apply_kernel<StopType><<<nbatch, default_block_size, shared_size>>>(
+            opts_.max_its, opts_.residual_tol, opts_.subspace_dim_val,
+            opts_.kappa_val, opts_.to_use_smoothing, opts_.deterministic_gen,
+            logger, PrecType(), subspace_vectors_, a, b.values, x.values);
+        GKO_CUDA_LAST_IF_ERROR_THROW;
     }
-    GKO_CUDA_LAST_IF_ERROR_THROW;
-}
+
+private:
+    std::shared_ptr<const CudaExecutor> exec_;
+    const BatchIdrOptions<remove_complex<value_type>> opts_;
+    const value_type* const subspace_vectors_;
+};
 
 namespace {
 
@@ -162,6 +145,9 @@ get_rand_value(Distribution&& dist, Generator&& gen)
 }  // unnamed namespace
 
 
+#include "core/solver/batch_dispatch.hpp.inc"
+
+
 template <typename ValueType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
            const BatchIdrOptions<remove_complex<ValueType>>& opts,
@@ -175,10 +161,6 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     if (opts.is_complex_subspace == true && !is_complex<ValueType>()) {
         GKO_NOT_IMPLEMENTED;
     }
-    // For now, FinalLogger is the only one available
-    batch_log::SimpleFinalLogger<remove_complex<ValueType>> logger(
-        logdata.res_norms->get_values(), logdata.iter_counts.get_data());
-
     const gko::batch_dense::UniformBatch<cu_value_type> x_b =
         get_batch_struct(x);
     Array<ValueType> arr(exec->get_master());
@@ -201,13 +183,11 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     }
     const cu_value_type* const subspace_vectors_entry =
         opts.deterministic_gen ? as_cuda_type(arr.get_const_data()) : nullptr;
-    if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a)) {
-        const auto m_b = get_batch_struct(amat);
-        const auto b_b = get_batch_struct(b);
-        apply_impl(exec, opts, logger, m_b, b_b, x_b, subspace_vectors_entry);
-    } else {
-        GKO_NOT_SUPPORTED(a);
-    }
+
+    auto dispatcher = create_dispatcher<ValueType, cu_value_type>(
+        KernelCaller<cu_value_type>(exec, opts, subspace_vectors_entry), exec,
+        opts);
+    dispatcher.apply(a, b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDR_APPLY_KERNEL);
