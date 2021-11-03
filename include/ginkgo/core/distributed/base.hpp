@@ -56,6 +56,12 @@ public:
         : comm_{comm}
     {}
 
+protected:
+    void set_communicator(std::shared_ptr<mpi::communicator> comm)
+    {
+        comm_ = comm;
+    }
+
 private:
     std::shared_ptr<mpi::communicator> comm_;
 };

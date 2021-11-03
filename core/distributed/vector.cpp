@@ -81,6 +81,8 @@ void Vector<ValueType, LocalIndexType>::convert_to(
     Vector<next_precision<ValueType>, LocalIndexType>* result) const
 {
     result->set_size(this->get_size());
+    result->set_communicator(this->get_communicator());
+    result->partition_ = this->partition_;
     this->get_local()->convert_to(result->get_local());
 }
 
@@ -95,7 +97,7 @@ void Vector<ValueType, LocalIndexType>::move_to(
 
 template <typename ValueType, typename LocalIndexType>
 void Vector<ValueType, LocalIndexType>::convert_to(
-    matrix::Dense<ValueType> *result) const
+    matrix::Dense<ValueType>* result) const
 {
     // gather all local matrices
     // gather them block-wise (part-wise)
@@ -111,7 +113,7 @@ void Vector<ValueType, LocalIndexType>::convert_to(
     gko::Array<comm_index_type> part_sizes;
     part_sizes = gko::Array<LocalIndexType>::view(
         part->get_executor(), part->get_num_parts(),
-        const_cast<LocalIndexType *>(part->get_part_sizes()));
+        const_cast<LocalIndexType*>(part->get_part_sizes()));
     exec->get_master()->copy_from(exec.get(), local_row_counts.size(),
                                   part_sizes.get_data(),
                                   local_row_counts.data());
@@ -137,7 +139,7 @@ void Vector<ValueType, LocalIndexType>::convert_to(
 
 template <typename ValueType, typename LocalIndexType>
 void Vector<ValueType, LocalIndexType>::move_to(
-    matrix::Dense<ValueType> *result)
+    matrix::Dense<ValueType>* result)
 {
     this->convert_to(result);
 }
