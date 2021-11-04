@@ -46,8 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace omp {
-
-
 /**
  * @brief The batch Bicgstab solver namespace.
  *
@@ -62,6 +60,7 @@ using gko::kernels::reference::BatchJacobi;
 namespace batch_log = gko::kernels::reference::batch_log;
 namespace stop = gko::kernels::reference::stop;
 
+constexpr int max_num_rhs = 1;
 
 #include "reference/matrix/batch_csr_kernels.hpp.inc"
 #include "reference/matrix/batch_ell_kernels.hpp.inc"
@@ -90,9 +89,6 @@ public:
         const size_type nbatch = a.num_batch;
         const auto nrows = a.num_rows;
         const auto nrhs = b.num_rhs;
-
-        // required for static allocation in stopping criterion
-        GKO_ASSERT(batch_config<ValueType>::max_num_rhs >= nrhs);
 
         const int local_size_bytes =
             gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
