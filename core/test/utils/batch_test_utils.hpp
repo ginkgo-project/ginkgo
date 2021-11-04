@@ -489,8 +489,8 @@ template <typename ValueType, typename SolverType>
 void compare_with_reference(std::shared_ptr<const Executor> d_exec,
                             BatchSystem<ValueType>& bsys,
                             typename SolverType::Factory* const ref_factory,
-                            const bool symmetric, const double iter_tol,
-                            const double res_tol, const double sol_tol)
+                            const double iter_tol, const double res_tol,
+                            const double sol_tol)
 {
     using value_type = ValueType;
     using BDense = matrix::BatchDense<ValueType>;

@@ -132,8 +132,7 @@ TYPED_TEST(BatchBicgstab, SolveIsEquivalentToReference)
     const double sol_tol = 100 * res_tol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        this->d_exec, r_sys, r_factory.get(), false, iter_tol, res_tol,
-        sol_tol);
+        this->d_exec, r_sys, r_factory.get(), iter_tol, res_tol, sol_tol);
 }
 
 
@@ -258,7 +257,7 @@ TEST(BatchBicgstab, SolvesLargeSystemEquivalentToReference)
     const double sol_tol = 10 * solver_restol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        d_exec, r_sys, r_factory.get(), false, iter_tol, res_tol, sol_tol);
+        d_exec, r_sys, r_factory.get(), iter_tol, res_tol, sol_tol);
 }
 
 }  // namespace
