@@ -123,7 +123,7 @@ TYPED_TEST(BatchBicgstab, SolveIsEquivalentToReference)
     using solver_type = gko::solver::BatchBicgstab<value_type>;
     using opts_type = typename TestFixture::Options;
     const opts_type opts{gko::preconditioner::batch::type::none, 500, this->eps,
-                         gko::stop::batch::ToleranceType::relative, 10};
+                         gko::stop::batch::ToleranceType::relative};
     auto r_sys = gko::test::generate_solvable_batch_system<value_type>(
         this->exec, this->nbatch, 11, 1, false);
     auto r_factory = this->create_factory(this->exec, opts);
