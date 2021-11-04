@@ -107,16 +107,41 @@ public:
         return &instance;
     }
 
-    static bool is_finalized();
+    static bool is_finalized()
+    {
+        int flag = 0;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Finalized(&flag));
+        return flag;
+    }
 
-    static bool is_initialized();
+    static bool is_initialized()
+    {
+        int flag = 0;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Initialized(&flag));
+        return flag;
+    }
 
 private:
-    init_finalize(int& argc, char**& argv, const thread_type thread_t);
+    init_finalize(int& argc, char**& argv, const thread_type thread_t)
+    {
+        auto flag = is_initialized();
+        if (!flag) {
+            this->required_thread_support_ = static_cast<int>(thread_t);
+            GKO_ASSERT_NO_MPI_ERRORS(
+                MPI_Init_thread(&argc, &argv, this->required_thread_support_,
+                                &(this->provided_thread_support_)));
+        } else {
+            // GKO_MPI_INITIALIZED;
+        }
+    }
 
     init_finalize() = delete;
 
-    ~init_finalize();
+    ~init_finalize()
+    {
+        auto flag = is_finalized();
+        if (!flag) MPI_Finalize();
+    }
 
     int num_args_;
     int required_thread_support_;
@@ -134,19 +159,38 @@ class info {
 public:
     info() : info_(MPI_INFO_NULL) {}
 
-    explicit info(MPI_Info input);
+    explicit info(MPI_Info input_info)
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_dup(input_info, &this->info_));
+    }
 
-    void create_default();
+    void create_default()
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_create(&this->info_));
+    }
 
-    void remove(std::string key);
+    void remove(std::string key)
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_delete(this->info_, key.c_str()));
+    }
 
     std::string& at(std::string& key) { return this->key_value_.at(key); }
 
-    void add(std::string key, std::string value);
+    void add(std::string key, std::string value)
+    {
+        this->key_value_[key] = value;
+        GKO_ASSERT_NO_MPI_ERRORS(
+            MPI_Info_set(this->info_, key.c_str(), value.c_str()));
+    }
 
     MPI_Info get() { return this->info_; }
 
-    ~info();
+    ~info()
+    {
+        if (this->info_ != MPI_INFO_NULL) {
+            MPI_Info_free(&this->info_);
+        }
+    }
 
 private:
     std::map<std::string, std::string> key_value_;
@@ -165,7 +209,10 @@ public:
 
     request() : req_(new MPI_Request[1]) {}
 
-    void free(MPI_Request* req);
+    void free(MPI_Request* req)
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Request_free(req));
+    }
 
     ~request()
     {
@@ -195,7 +242,7 @@ public:
         if (status_) delete[] status_;
     }
 
-    MPI_Status* get_statuses() const { return status_; }
+    MPI_Status* get() const { return status_; }
 
 private:
     MPI_Status* status_;
@@ -209,19 +256,68 @@ private:
  */
 class communicator : public EnableSharedCreateMethod<communicator> {
 public:
-    communicator(const MPI_Comm& comm);
+    communicator(const MPI_Comm& comm)
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(comm, &this->comm_));
+        this->size_ = get_num_ranks();
+        this->rank_ = get_my_rank();
+        this->local_rank_ = get_local_rank();
+    }
 
-    communicator(const MPI_Comm& comm, int color, int key);
+    communicator(const MPI_Comm& comm, int color, int key)
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(
+            MPI_Comm_split(comm, color, key, &this->comm_));
+        this->size_ = get_num_ranks();
+        this->rank_ = get_my_rank();
+        this->local_rank_ = get_local_rank();
+    }
 
-    communicator();
+    communicator()
+    {
+        this->comm_ = MPI_COMM_NULL;
+        this->size_ = 0;
+        this->rank_ = -1;
+    }
 
-    communicator(communicator& other);
+    communicator(communicator& other)
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(other.comm_, &this->comm_));
+        this->size_ = get_num_ranks();
+        this->rank_ = get_my_rank();
+        this->local_rank_ = get_local_rank();
+    }
 
-    communicator& operator=(const communicator& other);
+    communicator& operator=(const communicator& other)
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(other.comm_, &this->comm_));
+        this->size_ = get_num_ranks();
+        this->rank_ = get_my_rank();
+        this->local_rank_ = get_local_rank();
+        return *this;
+    }
 
-    communicator(communicator&& other);
+    communicator(communicator&& other)
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(other.comm_, &this->comm_));
+        this->size_ = get_num_ranks();
+        this->rank_ = get_my_rank();
+        this->local_rank_ = get_local_rank();
+        other.comm_ = MPI_COMM_NULL;
+        other.size_ = 0;
+        other.rank_ = -1;
+    }
 
-    communicator& operator=(communicator&& other);
+    communicator& operator=(communicator&& other)
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(other.comm_, &this->comm_));
+        this->size_ = get_num_ranks();
+        this->rank_ = get_my_rank();
+        this->local_rank_ = get_local_rank();
+        other.size_ = 0;
+        other.rank_ = -1;
+        return *this;
+    }
 
     static MPI_Comm get_comm_world() { return MPI_COMM_WORLD; }
 
@@ -238,32 +334,89 @@ public:
 
     int local_rank() const { return local_rank_; };
 
-    bool compare(const MPI_Comm& other) const;
+    bool compare(const MPI_Comm& other) const
+    {
+        int flag;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_compare(this->comm_, other, &flag));
+        return flag;
+    }
 
     bool operator==(const communicator& rhs) { return compare(rhs.get()); }
 
-    ~communicator();
+    ~communicator()
+    {
+        if (this->comm_ && this->comm_ != MPI_COMM_NULL) {
+            MPI_Comm_free(&this->comm_);
+        }
+    }
 
 private:
     MPI_Comm comm_;
     int size_{};
     int rank_{};
     int local_rank_{};
+
+    int get_my_rank()
+    {
+        int my_rank = 0;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(comm_, &my_rank));
+        return my_rank;
+    }
+
+    int get_local_rank()
+    {
+        MPI_Comm local_comm;
+        int rank;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split_type(
+            comm_, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &local_comm));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(local_comm, &rank));
+        MPI_Comm_free(&local_comm);
+        return rank;
+    }
+
+    int get_num_ranks()
+    {
+        int size = 1;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_size(comm_, &size));
+        return size;
+    }
 };
 
 
 /**
- * A type helper which can be used to create MPI_Datatype from other types.
+ * Get the rank in the communicator of the calling process.
+ *
+ * @param comm  the communicator
  */
-class mpi_type {
-public:
-    mpi_type(const int count, MPI_Datatype& old);
-    ~mpi_type();
-    const MPI_Datatype& get() const { return this->type_; }
+double get_walltime() { return MPI_Wtime(); }
 
-private:
-    MPI_Datatype type_{};
-};
+
+/**
+ * This function is used to synchronize between the ranks of a given
+ * communicator.
+ *
+ * @param comm  the communicator
+ */
+void synchronize(const communicator& comm = communicator::get_comm_world())
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(comm.get()));
+}
+
+
+/**
+ * Allows a rank to wait on a particular request handle.
+ *
+ * @param req  The request to wait on.
+ * @param status  The status variable that can be queried.
+ */
+void wait(std::shared_ptr<request> req, std::shared_ptr<status> status = {})
+{
+    if (status.get()) {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Wait(req->get(), status->get()));
+    } else {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Wait(req->get(), MPI_STATUS_IGNORE));
+    }
+}
 
 
 /**
@@ -289,78 +442,91 @@ public:
     window(ValueType* base, unsigned int size,
            std::shared_ptr<const communicator> comm,
            const int disp_unit = sizeof(ValueType), info input_info = info(),
-           win_type create_type = win_type::create);
+           win_type create_type = win_type::create)
+    {
+        if (create_type == win_type::create) {
+            GKO_ASSERT_NO_MPI_ERRORS(
+                MPI_Win_create(base, size, disp_unit, input_info.get(),
+                               comm->get(), &this->window_));
+        } else if (create_type == win_type::dynamic_create) {
+            GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_create_dynamic(
+                input_info.get(), comm->get(), &this->window_));
+        } else if (create_type == win_type::allocate) {
+            GKO_ASSERT_NO_MPI_ERRORS(
+                MPI_Win_allocate(size, disp_unit, input_info.get(), comm->get(),
+                                 base, &this->window_));
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
+    }
 
     MPI_Win get() { return this->window_; }
 
-    void fence(int assert = 0);
+    void fence(int assert = 0)
+    {
+        if (&this->window_) {
+            GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_fence(assert, this->window_));
+        }
+    }
 
-    void lock(int rank, int assert = 0, lock_type lock_t = lock_type::shared);
+    void lock(int rank, int assert = 0, lock_type lock_t = lock_type::shared)
+    {
+        if (lock_t == lock_type::shared) {
+            GKO_ASSERT_NO_MPI_ERRORS(
+                MPI_Win_lock(MPI_LOCK_SHARED, rank, assert, this->window_));
+        } else if (lock_t == lock_type::exclusive) {
+            GKO_ASSERT_NO_MPI_ERRORS(
+                MPI_Win_lock(MPI_LOCK_EXCLUSIVE, rank, assert, this->window_));
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
+    }
 
-    void unlock(int rank);
+    void unlock(int rank)
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_unlock(rank, this->window_));
+    }
 
-    void lock_all(int assert = 0);
+    void lock_all(int assert = 0)
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_lock_all(assert, this->window_));
+    }
 
-    void unlock_all();
+    void unlock_all()
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_unlock_all(this->window_));
+    }
 
-    void flush(int rank);
+    void flush(int rank)
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_flush(rank, this->window_));
+    }
 
-    void flush_local(int rank);
+    void flush_local(int rank)
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_flush_local(rank, this->window_));
+    }
 
-    void flush_all();
+    void flush_all()
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_flush_all(this->window_));
+    }
 
-    void flush_all_local();
+    void flush_all_local()
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_flush_local_all(this->window_));
+    }
 
-    ~window();
+    ~window()
+    {
+        if (this->window_ && this->window_ != MPI_WIN_NULL) {
+            MPI_Win_free(&this->window_);
+        }
+    }
 
 private:
     MPI_Win window_;
 };
-
-
-/**
- * This function is used to synchronize between the ranks of a given
- * communicator.
- *
- * @param comm  the communicator
- */
-void synchronize(const communicator& comm = communicator::get_comm_world());
-
-
-/**
- * Allows a rank to wait on a particular request handle.
- *
- * @param req  The request to wait on.
- * @param status  The status variable that can be queried.
- */
-void wait(std::shared_ptr<request> req, std::shared_ptr<status> status = {});
-
-
-double get_walltime();
-
-
-/**
- * Get the rank in the communicator of the calling process.
- *
- * @param comm  the communicator
- */
-int get_my_rank(const communicator& comm = communicator::get_comm_world());
-
-
-/**
- * Get the node local rank in the communicator of the calling process.
- *
- * @param comm  the communicator
- */
-int get_local_rank(const communicator& comm = communicator::get_comm_world());
-
-
-/**
- * Get the number of ranks in the communicator of the calling process.
- *
- * @param comm  the communicator
- */
-int get_num_ranks(const communicator& comm = communicator::get_comm_world());
 
 
 /**

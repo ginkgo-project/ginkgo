@@ -58,8 +58,8 @@ protected:
 
     void SetUp()
     {
-        rank = gko::mpi::get_my_rank(comm);
-        ASSERT_EQ(gko::mpi::get_num_ranks(comm), 8);
+        rank = comm.rank();
+        ASSERT_EQ(comm.size(), 8);
     }
 
     gko::mpi::communicator comm;
@@ -95,20 +95,18 @@ TEST_F(Communicator, KnowsItsCommunicator)
 
 TEST_F(Communicator, CommunicatorCanBeCopied)
 {
-    auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
-    auto copy = comm_world;
+    auto copy = comm;
 
-    EXPECT_EQ(comm_world.compare(MPI_COMM_WORLD), true);
+    EXPECT_EQ(comm.compare(MPI_COMM_WORLD), true);
     EXPECT_EQ(copy.compare(MPI_COMM_WORLD), true);
 }
 
 
 TEST_F(Communicator, CommunicatorCanBeCopyConstructed)
 {
-    auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
-    auto copy = gko::mpi::communicator(comm_world);
+    auto copy = gko::mpi::communicator(comm);
 
-    EXPECT_EQ(comm_world.compare(MPI_COMM_WORLD), true);
+    EXPECT_EQ(comm.compare(MPI_COMM_WORLD), true);
     EXPECT_EQ(copy.compare(MPI_COMM_WORLD), true);
 }
 
@@ -116,28 +114,25 @@ TEST_F(Communicator, CommunicatorCanBeCopyConstructed)
 TEST_F(Communicator, CommunicatorCanBeMoved)
 {
     int size;
-    auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
-
+    auto comm_world = gko::mpi::communicator::create_world();
     auto moved = std::move(comm_world);
 
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    EXPECT_EQ(comm_world.get(), MPI_COMM_NULL);
-    EXPECT_EQ(comm_world.size(), 0);
-    EXPECT_EQ(moved.compare(MPI_COMM_WORLD), true);
-    EXPECT_EQ(moved.size(), size);
+    EXPECT_EQ(comm_world, nullptr);
+    EXPECT_EQ(moved->compare(MPI_COMM_WORLD), true);
+    EXPECT_EQ(moved->size(), size);
 }
 
 
 TEST_F(Communicator, CommunicatorCanBeMoveConstructed)
 {
     int size;
-    auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
-
-    auto moved = gko::mpi::communicator(std::move(comm_world));
+    auto comm_world = gko::mpi::communicator::create_world();
+    auto moved = gko::mpi::communicator(std::move(*comm_world.get()));
 
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    EXPECT_EQ(comm_world.get(), MPI_COMM_NULL);
-    EXPECT_EQ(comm_world.size(), 0);
+    EXPECT_EQ(comm_world->get(), MPI_COMM_NULL);
+    EXPECT_EQ(comm_world->size(), 0);
     EXPECT_EQ(moved.compare(MPI_COMM_WORLD), true);
     EXPECT_EQ(moved.size(), size);
 }
@@ -147,18 +142,8 @@ TEST_F(Communicator, CommKnowsItsSize)
 {
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
 
     EXPECT_EQ(comm.size(), size);
-}
-
-
-TEST_F(Communicator, KnowsItsSize)
-{
-    int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    EXPECT_EQ(gko::mpi::get_num_ranks(MPI_COMM_WORLD), size);
 }
 
 
@@ -166,7 +151,6 @@ TEST_F(Communicator, CommKnowsItsRank)
 {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
 
     EXPECT_EQ(comm.rank(), rank);
 }
@@ -176,7 +160,6 @@ TEST_F(Communicator, CommKnowsItsLocalRank)
 {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
 
     // Expect local rank to be same as rank when on one node
     EXPECT_EQ(comm.local_rank(), rank);
@@ -188,32 +171,19 @@ TEST_F(Communicator, KnowsItsRanks)
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    EXPECT_EQ(rank, gko::mpi::get_my_rank(MPI_COMM_WORLD));
-}
-
-
-TEST_F(Communicator, KnowsItsDefaultCommunicator)
-{
-    auto comm_world = gko::mpi::communicator(MPI_COMM_WORLD);
-    ASSERT_TRUE(comm_world == comm);
-}
-
-
-TEST_F(Communicator, KnowsNumRanks)
-{
-    EXPECT_EQ(gko::mpi::get_num_ranks(comm), 8);
+    EXPECT_EQ(comm.rank(), rank);
 }
 
 
 TEST_F(Communicator, CanSetCustomCommunicator)
 {
-    auto world_rank = gko::mpi::get_my_rank(comm);
-    auto world_size = gko::mpi::get_num_ranks(comm);
+    auto world_rank = comm.rank();
+    auto world_size = comm.size();
     auto color = world_rank / 4;
 
     auto row_comm = gko::mpi::communicator(comm.get(), color, world_rank);
     for (auto i = 0; i < world_size; ++i) {
-        EXPECT_LT(gko::mpi::get_my_rank(row_comm.get()), 4);
+        EXPECT_LT(row_comm.rank(), 4);
     }
 }
 
