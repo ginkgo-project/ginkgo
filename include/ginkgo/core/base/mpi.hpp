@@ -528,9 +528,39 @@ private:
     MPI_Win window_;
 };
 
+namespace detail {
+
+template <typename T>
+inline const T* in_place()
+{
+    return reinterpret_cast<const T*>(MPI_IN_PLACE);
+}
+
+}  // namespace detail
+
 
 /**
- * Send data from calling process to destination rank.
+ * Send (Blocking) data from calling process to destination rank.
+ *
+ * @param send_buffer  the buffer to send
+ * @param send_count  the number of elements to send
+ * @param destination_rank  the rank to send the data to
+ * @param send_tag  the tag for the send call
+ * @param comm  the communicator
+ */
+template <typename SendType>
+void send(const SendType* send_buffer, const int send_count,
+          const int destination_rank, const int send_tag,
+          std::shared_ptr<const communicator> comm)
+{
+    auto send_type = helpers::get_mpi_type(send_buffer[0]);
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Send(send_buffer, send_count, send_type,
+                                      destination_rank, send_tag, comm->get()));
+}
+
+
+/**
+ * Send (Non-blocking) data from calling process to destination rank.
  *
  * @param send_buffer  the buffer to send
  * @param send_count  the number of elements to send
@@ -542,8 +572,36 @@ private:
 template <typename SendType>
 void send(const SendType* send_buffer, const int send_count,
           const int destination_rank, const int send_tag,
-          std::shared_ptr<request> req = {},
-          std::shared_ptr<const communicator> comm = {});
+          std::shared_ptr<request> req,
+          std::shared_ptr<const communicator> comm)
+{
+    auto send_type = helpers::get_mpi_type(send_buffer[0]);
+
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Isend(send_buffer, send_count, send_type,
+                                       destination_rank, send_tag, comm->get(),
+                                       req->get()));
+}
+
+
+/**
+ * Receive data from source rank.
+ *
+ * @param recv_buffer  the buffer to send
+ * @param recv_count  the number of elements to send
+ * @param source_rank  the rank to send the data to
+ * @param recv_tag  the tag for the send call
+ * @param comm  the communicator
+ */
+template <typename RecvType>
+void recv(RecvType* recv_buffer, const int recv_count, const int source_rank,
+          const int recv_tag, std::shared_ptr<status> status,
+          std::shared_ptr<const communicator> comm)
+{
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    GKO_ASSERT_NO_MPI_ERRORS(
+        MPI_Recv(recv_buffer, recv_count, recv_type, source_rank, recv_tag,
+                 comm->get(), status ? status->get() : MPI_STATUS_IGNORE));
+}
 
 
 /**
@@ -558,9 +616,36 @@ void send(const SendType* send_buffer, const int send_count,
  */
 template <typename RecvType>
 void recv(RecvType* recv_buffer, const int recv_count, const int source_rank,
-          const int recv_tag, std::shared_ptr<request> req = {},
-          std::shared_ptr<status> status = {},
-          std::shared_ptr<const communicator> comm = {});
+          const int recv_tag, std::shared_ptr<request> req,
+          std::shared_ptr<const communicator> comm)
+{
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Irecv(recv_buffer, recv_count, recv_type,
+                                       source_rank, recv_tag, comm->get(),
+                                       req->get()));
+}
+
+
+/**
+ * Put data into the target window.
+ *
+ * @param origin_buffer  the buffer to send
+ * @param origin_count  the number of elements to put
+ * @param target_rank  the rank to put the data to
+ * @param target_disp  the displacement at the target window
+ * @param target_count  the request handle for the send call
+ * @param window  the window to put the data into
+ */
+template <typename PutType>
+void put(const PutType* origin_buffer, const int origin_count,
+         const int target_rank, const unsigned int target_disp,
+         const int target_count, window<PutType>& window)
+{
+    auto put_type = helpers::get_mpi_type(origin_buffer[0]);
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Put(origin_buffer, origin_count, put_type,
+                                     target_rank, target_disp, target_count,
+                                     put_type, window.get()));
+}
 
 
 /**
@@ -578,7 +663,35 @@ template <typename PutType>
 void put(const PutType* origin_buffer, const int origin_count,
          const int target_rank, const unsigned int target_disp,
          const int target_count, window<PutType>& window,
-         std::shared_ptr<request> req = {});
+         std::shared_ptr<request> req)
+{
+    auto put_type = helpers::get_mpi_type(origin_buffer[0]);
+    bindings::req_put(origin_buffer, origin_count, put_type, target_rank,
+                      target_disp, target_count, put_type, window.get(),
+                      req->get());
+}
+
+
+/**
+ * Get data from the target window.
+ *
+ * @param origin_buffer  the buffer to send
+ * @param origin_count  the number of elements to get
+ * @param target_rank  the rank to get the data from
+ * @param target_disp  the displacement at the target window
+ * @param target_count  the request handle for the send call
+ * @param window  the window to put the data into
+ */
+template <typename GetType>
+void get(GetType* origin_buffer, const int origin_count, const int target_rank,
+         const unsigned int target_disp, const int target_count,
+         window<GetType>& window)
+{
+    auto get_type = helpers::get_mpi_type(origin_buffer[0]);
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Get(origin_buffer, origin_count, get_type,
+                                     target_rank, target_disp, target_count,
+                                     get_type, window.get()));
+}
 
 
 /**
@@ -595,7 +708,13 @@ void put(const PutType* origin_buffer, const int origin_count,
 template <typename GetType>
 void get(GetType* origin_buffer, const int origin_count, const int target_rank,
          const unsigned int target_disp, const int target_count,
-         window<GetType>& window, std::shared_ptr<request> req = {});
+         window<GetType>& window, std::shared_ptr<request> req)
+{
+    auto get_type = helpers::get_mpi_type(origin_buffer[0]);
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Rget(origin_buffer, origin_count, get_type,
+                                      target_rank, target_disp, target_count,
+                                      get_type, window, req->get()));
+}
 
 
 /**
@@ -608,7 +727,35 @@ void get(GetType* origin_buffer, const int origin_count, const int target_rank,
  */
 template <typename BroadcastType>
 void broadcast(BroadcastType* buffer, int count, int root_rank,
-               std::shared_ptr<const communicator> comm = {});
+               std::shared_ptr<const communicator> comm)
+{
+    auto bcast_type = helpers::get_mpi_type(buffer[0]);
+    bindings::broadcast(buffer, count, bcast_type, root_rank, );
+    GKO_ASSERT_NO_MPI_ERRORS(
+        MPI_Bcast(buffer, count, bcast_type, root_rank, comm->get()));
+}
+
+
+/**
+ * Reduce data into root from all calling processes on the same communicator.
+ *
+ * @param send_buffer  the buffer to reduce
+ * @param recv_buffer  the reduced result
+ * @param count  the number of elements to reduce
+ * @param op_enum  the reduce operation. See @op_type
+ * @param comm  the communicator
+ */
+template <typename ReduceType>
+void reduce(const ReduceType* send_buffer, ReduceType* recv_buffer, int count,
+            op_type op_enum = op_type::sum, int root_rank = 0,
+            std::shared_ptr<const communicator> comm)
+{
+    auto operation = helpers::get_operation<ReduceType>(op_enum);
+    auto reduce_type = helpers::get_mpi_type(send_buffer[0]);
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Reduce(send_buffer, recv_buffer, count,
+                                        reduce_type, operation, root_rank,
+                                        comm->get()));
+}
 
 
 /**
@@ -623,9 +770,37 @@ void broadcast(BroadcastType* buffer, int count, int root_rank,
  */
 template <typename ReduceType>
 void reduce(const ReduceType* send_buffer, ReduceType* recv_buffer, int count,
-            op_type op_enum, int root_rank,
-            std::shared_ptr<const communicator> comm = {},
-            std::shared_ptr<request> req = {});
+            op_type op_enum = op_type::sum, int root_rank = 0,
+            std::shared_ptr<const communicator> comm,
+            std::shared_ptr<request> req)
+{
+    auto operation = helpers::get_operation<ReduceType>(op_enum);
+    auto reduce_type = helpers::get_mpi_type(send_buffer[0]);
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Ireduce(send_buffer, recv_buffer, count,
+                                         reduce_type, operation, root_rank,
+                                         comm->get(), req->get()));
+}
+
+
+/**
+ * Reduce data from all calling processes from all calling processes on same
+ * communicator.
+ *
+ * @param recv_buffer  the data to reduce and the reduced result
+ * @param count  the number of elements to reduce
+ * @param op_enum  the reduce operation. See @op_type
+ * @param comm  the communicator
+ */
+template <typename ReduceType>
+void all_reduce(ReduceType* recv_buffer, int count, op_type op_enum,
+                std::shared_ptr<const communicator> comm)
+{
+    auto operation = helpers::get_operation<ReduceType>(op_enum);
+    auto reduce_type = helpers::get_mpi_type(recv_buffer[0]);
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Allreduce(detail::in_place<ReduceType>(),
+                                           recv_buffer, count, reduce_type,
+                                           operation, comm->get()));
+}
 
 
 /**
@@ -639,10 +814,16 @@ void reduce(const ReduceType* send_buffer, ReduceType* recv_buffer, int count,
  * @param req  the request handle
  */
 template <typename ReduceType>
-void all_reduce(ReduceType* recv_buffer, int count,
-                op_type op_enum = op_type::sum,
-                std::shared_ptr<const communicator> comm = {},
-                std::shared_ptr<request> req = {});
+void all_reduce(ReduceType* recv_buffer, int count, op_type op_enum,
+                std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req)
+{
+    auto operation = helpers::get_operation<ReduceType>(op_enum);
+    auto reduce_type = helpers::get_mpi_type(recv_buffer[0]);
+    GKO_ASSERT_NO_MPI_ERRORS(
+        MPI_Iallreduce(detail::in_place<ReduceType>(), recv_buffer, count,
+                       reduce_type, operation, comm->get(), req->get()));
+}
 
 
 /**
@@ -658,9 +839,39 @@ void all_reduce(ReduceType* recv_buffer, int count,
  */
 template <typename ReduceType>
 void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
-                int count, op_type op_enum = op_type::sum,
-                std::shared_ptr<const communicator> comm = {},
-                std::shared_ptr<request> req = {});
+                int count, op_type op_enum,
+                std::shared_ptr<const communicator> comm)
+{
+    auto operation = helpers::get_operation<ReduceType>(op_enum);
+    auto reduce_type = helpers::get_mpi_type(recv_buffer[0]);
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Allreduce(
+        send_buffer, recv_buffer, count, reduce_type, operation, comm->get()));
+}
+
+
+/**
+ * Reduce data from all calling processes from all calling processes on same
+ * communicator.
+ *
+ * @param send_buffer  the data to reduce
+ * @param recv_buffer  the reduced result
+ * @param count  the number of elements to reduce
+ * @param op_enum  the reduce operation. See @op_type
+ * @param comm  the communicator
+ * @param req  the request handle
+ */
+template <typename ReduceType>
+void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
+                int count, op_type op_enum,
+                std::shared_ptr<const communicator> comm,
+                std::shared_ptr<request> req)
+{
+    auto operation = helpers::get_operation<ReduceType>(op_enum);
+    auto reduce_type = helpers::get_mpi_type(recv_buffer[0]);
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallreduce(send_buffer, recv_buffer, count,
+                                            reduce_type, operation, comm->get(),
+                                            req->get()));
+}
 
 
 /**
@@ -676,7 +887,14 @@ void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
 template <typename SendType, typename RecvType>
 void gather(const SendType* send_buffer, const int send_count,
             RecvType* recv_buffer, const int recv_count, int root_rank,
-            std::shared_ptr<const communicator> comm = {});
+            std::shared_ptr<const communicator> comm)
+{
+    auto send_type = helpers::get_mpi_type(send_buffer[0]);
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    bindings::gather(send_buffer, send_count, send_type, recv_buffer,
+                     recv_count, recv_type, root_rank,
+                     comm ? comm->get() : communicator::get_comm_world());
+}
 
 
 /**
@@ -695,7 +913,14 @@ template <typename SendType, typename RecvType>
 void gather(const SendType* send_buffer, const int send_count,
             RecvType* recv_buffer, const int* recv_counts,
             const int* displacements, int root_rank,
-            std::shared_ptr<const communicator> comm = {});
+            std::shared_ptr<const communicator> comm)
+{
+    auto send_type = helpers::get_mpi_type(send_buffer[0]);
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    bindings::gatherv(send_buffer, send_count, send_type, recv_buffer,
+                      recv_counts, displacements, recv_type, root_rank,
+                      comm ? comm->get() : communicator::get_comm_world());
+}
 
 
 /**
@@ -710,7 +935,14 @@ void gather(const SendType* send_buffer, const int send_count,
 template <typename SendType, typename RecvType>
 void all_gather(const SendType* send_buffer, const int send_count,
                 RecvType* recv_buffer, const int recv_count,
-                std::shared_ptr<const communicator> comm = {});
+                std::shared_ptr<const communicator> comm)
+{
+    auto send_type = helpers::get_mpi_type(send_buffer[0]);
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    bindings::all_gather(send_buffer, send_count, send_type, recv_buffer,
+                         recv_count, recv_type,
+                         comm ? comm->get() : communicator::get_comm_world());
+}
 
 
 /**
@@ -725,7 +957,14 @@ void all_gather(const SendType* send_buffer, const int send_count,
 template <typename SendType, typename RecvType>
 void scatter(const SendType* send_buffer, const int send_count,
              RecvType* recv_buffer, const int recv_count, int root_rank,
-             std::shared_ptr<const communicator> comm = {});
+             std::shared_ptr<const communicator> comm)
+{
+    auto send_type = helpers::get_mpi_type(send_buffer[0]);
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    bindings::scatter(send_buffer, send_count, send_type, recv_buffer,
+                      recv_count, recv_type, root_rank,
+                      comm ? comm->get() : communicator::get_comm_world());
+}
 
 
 /**
@@ -742,7 +981,14 @@ template <typename SendType, typename RecvType>
 void scatter(const SendType* send_buffer, const int* send_counts,
              const int* displacements, RecvType* recv_buffer,
              const int recv_count, int root_rank,
-             std::shared_ptr<const communicator> comm = {});
+             std::shared_ptr<const communicator> comm)
+{
+    auto send_type = helpers::get_mpi_type(send_buffer[0]);
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    bindings::scatterv(send_buffer, send_counts, displacements, send_type,
+                       recv_buffer, recv_count, recv_type, root_rank,
+                       comm ? comm->get() : communicator::get_comm_world());
+}
 
 
 /**
@@ -758,9 +1004,23 @@ void scatter(const SendType* send_buffer, const int* send_counts,
  *       are the same.
  */
 template <typename RecvType>
-void all_to_all(RecvType* buffer, const int recv_count,
+void all_to_all(RecvType* recv_buffer, const int recv_count,
                 std::shared_ptr<const communicator> comm = {},
-                std::shared_ptr<request> req = {});
+                std::shared_ptr<request> req)
+{
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    if (!req.get()) {
+        bindings::all_to_all(
+            bindings::in_place<RecvType>(), recv_count, recv_type, recv_buffer,
+            recv_count, recv_type,
+            comm ? comm->get() : communicator::get_comm_world());
+    } else {
+        bindings::i_all_to_all(
+            bindings::in_place<RecvType>(), recv_count, recv_type, recv_buffer,
+            recv_count, recv_type,
+            comm ? comm->get() : communicator::get_comm_world(), req->get());
+    }
+}
 
 
 /**
@@ -776,9 +1036,24 @@ void all_to_all(RecvType* buffer, const int recv_count,
  */
 template <typename SendType, typename RecvType>
 void all_to_all(const SendType* send_buffer, const int send_count,
-                RecvType* recv_buffer, const int recv_count = {},
+                RecvType* recv_buffer, const int recv_count{},
                 std::shared_ptr<const communicator> comm = {},
-                std::shared_ptr<request> req = {});
+                std::shared_ptr<request> req)
+{
+    auto send_type = helpers::get_mpi_type(send_buffer[0]);
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    if (!req.get()) {
+        bindings::all_to_all(
+            send_buffer, send_count, send_type, recv_buffer,
+            recv_count == 0 ? send_count : recv_count, recv_type,
+            comm ? comm->get() : communicator::get_comm_world());
+    } else {
+        bindings::i_all_to_all(
+            send_buffer, send_count, send_type, recv_buffer,
+            recv_count == 0 ? send_count : recv_count, recv_type,
+            comm ? comm->get() : communicator::get_comm_world(), req->get());
+    }
+}
 
 
 /**
@@ -799,9 +1074,24 @@ template <typename SendType, typename RecvType>
 void all_to_all(const SendType* send_buffer, const int* send_counts,
                 const int* send_offsets, RecvType* recv_buffer,
                 const int* recv_counts, const int* recv_offsets,
-                const int stride = 1,
-                std::shared_ptr<const communicator> comm = {},
-                std::shared_ptr<request> req = {});
+                const int stride, std::shared_ptr<const communicator> comm = {},
+                std::shared_ptr<request> req = {})
+{
+    auto send_type = helpers::get_mpi_type(send_buffer[0]);
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+
+    if (!req.get()) {
+        bindings::all_to_all_v(
+            send_buffer, send_counts, send_offsets, send_type, recv_buffer,
+            recv_counts, recv_offsets, recv_type,
+            comm ? comm->get() : communicator::get_comm_world());
+    } else {
+        bindings::i_all_to_all_v(
+            send_buffer, send_counts, send_offsets, send_type, recv_buffer,
+            recv_counts, recv_offsets, recv_type,
+            comm ? comm->get() : communicator::get_comm_world(), req->get());
+    }
+}
 
 
 /**
@@ -815,11 +1105,23 @@ void all_to_all(const SendType* send_buffer, const int* send_counts,
  * @param comm  the communicator
  * @param req  the request handle
  */
-template <typename ReduceType>
-void scan(const ReduceType* send_buffer, ReduceType* recv_buffer, int count,
+template <typename ScanType>
+void scan(const ScanType* send_buffer, ScanType* recv_buffer, int count,
           op_type op_enum = op_type::sum,
           std::shared_ptr<const communicator> comm = {},
-          std::shared_ptr<request> req = {});
+          std::shared_ptr<request> req = {})
+{
+    auto operation = helpers::get_operation<ScanType>(op_enum);
+    auto scan_type = helpers::get_mpi_type(recv_buffer[0]);
+    if (!req.get()) {
+        bindings::scan(send_buffer, recv_buffer, count, scan_type, operation,
+                       comm ? comm->get() : communicator::get_comm_world());
+    } else {
+        bindings::i_scan(send_buffer, recv_buffer, count, scan_type, operation,
+                         comm ? comm->get() : communicator::get_comm_world(),
+                         req->get());
+    }
+}
 
 
 }  // namespace mpi
