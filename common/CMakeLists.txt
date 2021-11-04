@@ -1,8 +1,9 @@
 set(UNIFIED_SOURCES
     base/index_set_kernels.cpp
-    components/precision_conversion_kernels.cpp
+    components/device_matrix_data_kernels.cpp
     components/absolute_array_kernels.cpp
     components/fill_array_kernels.cpp
+    components/precision_conversion_kernels.cpp
     components/reduce_array_kernels.cpp
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp

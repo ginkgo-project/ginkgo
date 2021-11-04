@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/index_set_kernels.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/absolute_array_kernels.hpp"
+#include "core/components/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -171,6 +172,18 @@ GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DEVICE_MATRIX_DATA_REMOVE_ZEROS_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL);
+template <typename ValueType, typename IndexType, typename RowPtrType>
+GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL(ValueType, IndexType,
+                                                     RowPtrType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL32);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL64);
 
 
 }  // namespace components

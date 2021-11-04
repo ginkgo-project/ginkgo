@@ -6,6 +6,7 @@ target_sources(ginkgo
     base/array.cpp
     base/combination.cpp
     base/composition.cpp
+    base/device_matrix_data.cpp
     base/executor.cpp
     base/index_set.cpp
     base/mtx_io.cpp
