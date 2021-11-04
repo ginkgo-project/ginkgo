@@ -3,6 +3,7 @@ find_package(OpenMP 3.0 REQUIRED)
 add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_omp_device> "")
 target_sources(ginkgo_omp
     PRIVATE
+    base/index_set_kernels.cpp
     base/version.cpp
     components/absolute_array.cpp
     components/fill_array.cpp

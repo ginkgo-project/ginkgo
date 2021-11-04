@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "core/base/index_set_kernels.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
@@ -173,6 +174,19 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL);
 
 
 }  // namespace components
+
+
+namespace index_set {
+
+
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_INDEX_SET_COMPUTE_VALIDITY_KERNEL);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_INDEX_SET_TO_GLOBAL_INDICES_KERNEL);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_INDEX_SET_POPULATE_KERNEL);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL);
+
+
+}  // namespace index_set
 
 
 namespace dense {

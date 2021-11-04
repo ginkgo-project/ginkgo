@@ -627,7 +627,19 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #define GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(_macro) \
     GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro);       \
     GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro);       \
-    template _macro(size_type)
+    template _macro(gko::size_type)
+
+
+/**
+ * Value for an invalid signed index type.
+ */
+template <typename IndexType>
+inline constexpr GKO_ATTRIBUTES IndexType invalid_index()
+{
+    static_assert(std::is_signed<IndexType>::value,
+                  "IndexType needs to be signed");
+    return static_cast<IndexType>(-1);
+}
 
 
 }  // namespace gko

@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/allocator.hpp"
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/matrix/ell_kernels.hpp"
