@@ -59,9 +59,7 @@ namespace batch_rich {
 namespace {
 
 
-// using gko::kernels::reference::batch_csr::advanced_spmv_kernel;
-// using gko::kernels::reference::batch_csr::spmv_kernel;
-
+constexpr int max_num_rhs = 1;
 
 #include "reference/matrix/batch_csr_kernels.hpp.inc"
 #include "reference/matrix/batch_ell_kernels.hpp.inc"
@@ -75,66 +73,56 @@ template <typename T>
 using BatchRichardsonOptions =
     gko::kernels::batch_rich::BatchRichardsonOptions<T>;
 
-template <typename StopType, typename PrecType, typename LogType,
-          typename BatchMatrixType, typename ValueType>
-static void apply_impl(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    const BatchRichardsonOptions<remove_complex<ValueType>>& opts,
-    LogType logger, PrecType prec, const BatchMatrixType& a,
-    const gko::batch_dense::UniformBatch<const ValueType>& b,
-    const gko::batch_dense::UniformBatch<ValueType>& x)
-{
-    using real_type = typename gko::remove_complex<ValueType>;
-    const size_type nbatch = a.num_batch;
-    const auto nrows = a.num_rows;
-    const auto nrhs = b.num_rhs;
 
-    GKO_ASSERT((nrhs == x.num_rhs));
+template <typename ValueType>
+class KernelCaller {
+public:
+    KernelCaller(std::shared_ptr<const ReferenceExecutor> exec,
+                 const BatchRichardsonOptions<remove_complex<ValueType>> opts)
+        : exec_{exec}, opts_{opts}
+    {}
 
-    const int local_size_bytes =
-        gko::kernels::batch_rich::local_memory_requirement<ValueType>(nrows,
-                                                                      nrhs) +
-        PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
-    using byte = unsigned char;
-    Array<byte> local_space(exec, local_size_bytes);
+    template <typename BatchMatrixType, typename PrecType, typename StopType,
+              typename LogType>
+    void call_kernel(LogType logger, const BatchMatrixType& a,
+                     const gko::batch_dense::UniformBatch<const ValueType>& b,
+                     const gko::batch_dense::UniformBatch<ValueType>& x) const
+    {
+        using real_type = typename gko::remove_complex<ValueType>;
+        const size_type nbatch = a.num_batch;
+        const auto nrows = a.num_rows;
+        const auto nrhs = b.num_rhs;
+        GKO_ASSERT(nrhs == 1);
 
-    for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
-        batch_entry_richardson_impl<StopType>(opts, logger, prec, a, b, x,
-                                              ibatch, local_space);
-    }
-}
+        const int local_size_bytes =
+            gko::kernels::batch_rich::local_memory_requirement<ValueType>(
+                nrows, nrhs) +
+            PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
+        using byte = unsigned char;
 
-template <typename BatchType, typename LoggerType, typename ValueType>
-void apply_select_prec(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    const BatchRichardsonOptions<remove_complex<ValueType>>& opts,
-    const LoggerType logger, const BatchType& a,
-    const gko::batch_dense::UniformBatch<const ValueType>& b,
-    const gko::batch_dense::UniformBatch<ValueType>& x)
-{
-    if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-        BatchIdentity<ValueType> prec;
-        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            apply_impl<stop::SimpleAbsResidual<ValueType>>(exec, opts, logger,
-                                                           prec, a, b, x);
-        } else {
-            apply_impl<stop::SimpleRelResidual<ValueType>>(exec, opts, logger,
-                                                           prec, a, b, x);
+        Array<byte> local_space(exec_, local_size_bytes);
+
+        for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
+            batch_entry_richardson_impl<StopType, PrecType, LogType,
+                                        BatchMatrixType, ValueType>(
+                opts_, logger, PrecType(), a, b, x, ibatch, local_space);
         }
-    } else if (opts.preconditioner ==
-               gko::preconditioner::batch::type::jacobi) {
-        BatchJacobi<ValueType> prec;
-        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            apply_impl<stop::SimpleAbsResidual<ValueType>>(exec, opts, logger,
-                                                           prec, a, b, x);
-        } else {
-            apply_impl<stop::SimpleRelResidual<ValueType>>(exec, opts, logger,
-                                                           prec, a, b, x);
-        }
-    } else {
-        GKO_NOT_IMPLEMENTED;
     }
-}
+
+private:
+    std::shared_ptr<const ReferenceExecutor> exec_;
+    const BatchRichardsonOptions<remove_complex<ValueType>> opts_;
+};
+
+
+namespace {
+
+using namespace gko::kernels::host;
+
+#include "core/solver/batch_dispatch.hpp.inc"
+
+}  // namespace
+
 
 template <typename ValueType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec,
@@ -142,20 +130,11 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
            const BatchLinOp* const a,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x,
-           gko::log::BatchLogData<ValueType>& logdata)
+           log::BatchLogData<ValueType>& logdata)
 {
-    batch_log::SimpleFinalLogger<remove_complex<ValueType>> logger(
-        logdata.res_norms->get_values(), logdata.iter_counts.get_data());
-
-    const gko::batch_dense::UniformBatch<ValueType> x_b =
-        host::get_batch_struct(x);
-    if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a)) {
-        const auto a_b = host::get_batch_struct(a_mat);
-        const auto b_b = host::get_batch_struct(b);
-        apply_select_prec(exec, opts, logger, a_b, b_b, x_b);
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    auto dispatcher = create_dispatcher<ValueType, ValueType>(
+        KernelCaller<ValueType>(exec, opts), exec, opts);
+    dispatcher.apply(a, b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL);
