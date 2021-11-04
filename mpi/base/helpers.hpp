@@ -75,27 +75,8 @@ GKO_MPI_DATATYPE(long, MPI_LONG);
 GKO_MPI_DATATYPE(float, MPI_FLOAT);
 GKO_MPI_DATATYPE(double, MPI_DOUBLE);
 GKO_MPI_DATATYPE(long double, MPI_LONG_DOUBLE);
-GKO_MPI_DATATYPE(std::complex<float>, MPI_COMPLEX);
-GKO_MPI_DATATYPE(std::complex<double>, MPI_DOUBLE_COMPLEX);
-
-
-namespace detail {
-namespace operations {
-
-template <typename ValueType>
-void custom(void* in, void* inout, int* size, MPI_Datatype*)
-{
-    auto l_in = reinterpret_cast<ValueType*>(in);
-    auto l_inout = reinterpret_cast<ValueType*>(inout);
-    ValueType sum = 0.0;
-    for (auto i = 0; i < *size; ++i) {
-    }
-    *l_inout = (*l_in);
-}
-
-
-}  // namespace operations
-}  // namespace detail
+GKO_MPI_DATATYPE(std::complex<float>, MPI_C_COMPLEX);
+GKO_MPI_DATATYPE(std::complex<double>, MPI_C_DOUBLE_COMPLEX);
 
 
 template <typename ValueType>
@@ -104,51 +85,30 @@ MPI_Op get_operation(gko::mpi::op_type op)
     switch (op) {
     case gko::mpi::op_type::sum:
         return MPI_SUM;
-        break;
     case gko::mpi::op_type::min:
         return MPI_MIN;
-        break;
     case gko::mpi::op_type::max:
         return MPI_MAX;
-        break;
     case gko::mpi::op_type::product:
         return MPI_PROD;
-        break;
-    case gko::mpi::op_type::custom: {
-        // TEMPLATE to create custom operations
-        MPI_Op op;
-        GKO_ASSERT_NO_MPI_ERRORS(
-            MPI_Op_create(detail::operations::custom<ValueType>, true, &op));
-        return op;
-        break;
-    }
     case gko::mpi::op_type::logical_and:
         return MPI_LAND;
-        break;
     case gko::mpi::op_type::bitwise_and:
         return MPI_BAND;
-        break;
     case gko::mpi::op_type::logical_or:
         return MPI_LOR;
-        break;
     case gko::mpi::op_type::bitwise_or:
         return MPI_BOR;
-        break;
     case gko::mpi::op_type::logical_xor:
         return MPI_LXOR;
-        break;
     case gko::mpi::op_type::bitwise_xor:
         return MPI_BXOR;
-        break;
     case gko::mpi::op_type::max_val_and_loc:
         return MPI_MAXLOC;
-        break;
     case gko::mpi::op_type::min_val_and_loc:
         return MPI_MINLOC;
-        break;
     default:
         GKO_NOT_SUPPORTED(op);
-        break;
     }
 }
 

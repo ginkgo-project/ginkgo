@@ -32,7 +32,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
-#include <type_traits>
 
 
 #include <mpi.h>
@@ -48,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 
@@ -766,9 +764,9 @@ TEST_F(MpiBindings, CanScanValues)
     } else if (my_rank == 3) {
         data = 6;
     }
-    gko::mpi::scan<ValueType>(&data, &sum, 1, gko::mpi::op_type::sum, 0);
-    gko::mpi::scan<ValueType>(&data, &max, 1, gko::mpi::op_type::max, 0);
-    gko::mpi::scan<ValueType>(&data, &min, 1, gko::mpi::op_type::min, 0);
+    gko::mpi::scan<ValueType>(&data, &sum, 1, gko::mpi::op_type::sum, nullptr);
+    gko::mpi::scan<ValueType>(&data, &max, 1, gko::mpi::op_type::max, nullptr);
+    gko::mpi::scan<ValueType>(&data, &min, 1, gko::mpi::op_type::min, nullptr);
     if (my_rank == 0) {
         EXPECT_EQ(sum, 3.0);
         EXPECT_EQ(max, 3.0);

@@ -40,13 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
-#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/base/range.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-
-
-#include "core/test/utils.hpp"
 
 
 namespace {
