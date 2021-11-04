@@ -53,8 +53,8 @@ inline void batch_entry_richardson_impl(
     const auto residual = reinterpret_cast<ValueType*>(shared_space);
     ValueType* const delta_x = residual + nrows * nrhs;
     ValueType* const prec_work = delta_x + nrows * nrhs;
-    real_type norms[batch_config<ValueType>::max_num_rhs];
-    real_type init_res_norm[batch_config<ValueType>::max_num_rhs];
+    real_type norms[max_num_rhs];
+    real_type init_res_norm[max_num_rhs];
 
     const auto a_b = gko::batch::batch_entry(gko::batch::to_const(a), ibatch);
     const auto b_b = gko::batch::batch_entry(gko::batch::to_const(b), ibatch);
