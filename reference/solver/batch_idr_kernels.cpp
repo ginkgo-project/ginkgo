@@ -49,8 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace reference {
-
-
 /**
  * @brief The batch Idr solver namespace.
  *
@@ -58,7 +56,10 @@ namespace reference {
  */
 namespace batch_idr {
 
+
 namespace {
+
+constexpr int max_num_rhs = 1;
 
 #include "reference/matrix/batch_csr_kernels.hpp.inc"
 #include "reference/matrix/batch_ell_kernels.hpp.inc"
@@ -66,91 +67,9 @@ namespace {
 
 }  // unnamed namespace
 
+
 template <typename T>
 using BatchIdrOptions = gko::kernels::batch_idr::BatchIdrOptions<T>;
-
-#if 0
-template <typename StopType, typename PrecType, typename LogType,
-          typename BatchMatrixType, typename ValueType>
-static void apply_impl(std::shared_ptr<const ReferenceExecutor> exec,
-                       const BatchIdrOptions<remove_complex<ValueType>>& opts,
-                       LogType logger, PrecType prec, const BatchMatrixType& a,
-                       const gko::batch_dense::UniformBatch<const ValueType>& b,
-                       const gko::batch_dense::UniformBatch<ValueType>& x)
-{
-    const size_type nbatch = a.num_batch;
-    const auto nrows = a.num_rows;
-    const auto nrhs = b.num_rhs;
-    const auto subspace_dim = opts.subspace_dim_val;
-
-    GKO_ASSERT(batch_config<ValueType>::max_num_rhs >= nrhs);
-
-    const int local_size_bytes =
-        gko::kernels::batch_idr::local_memory_requirement<ValueType>(
-            nrows, nrhs, subspace_dim) +
-        PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
-    Array<unsigned char> local_space(exec, local_size_bytes);
-
-    for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
-        batch_entry_idr_impl<StopType>(opts, logger, prec, a, b, x, ibatch,
-                                       local_space);
-    }
-}
-
-template <typename BatchType, typename LoggerType, typename ValueType>
-void apply_select_prec(std::shared_ptr<const ReferenceExecutor> exec,
-                       const BatchIdrOptions<remove_complex<ValueType>>& opts,
-                       const LoggerType logger, const BatchType& a,
-                       const gko::batch_dense::UniformBatch<const ValueType>& b,
-                       const gko::batch_dense::UniformBatch<ValueType>& x)
-{
-    if (opts.preconditioner == gko::preconditioner::batch::type::none) {
-        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            apply_impl<stop::SimpleAbsResidual<ValueType>>(
-                exec, opts, logger, BatchIdentity<ValueType>(), a, b, x);
-        } else {
-            apply_impl<stop::SimpleRelResidual<ValueType>>(
-                exec, opts, logger, BatchIdentity<ValueType>(), a, b, x);
-        }
-    } else if (opts.preconditioner ==
-               gko::preconditioner::batch::type::jacobi) {
-        if (opts.tol_type == gko::stop::batch::ToleranceType::absolute) {
-            apply_impl<stop::SimpleAbsResidual<ValueType>>(
-                exec, opts, logger, BatchJacobi<ValueType>(), a, b, x);
-        } else {
-            apply_impl<stop::SimpleRelResidual<ValueType>>(
-                exec, opts, logger, BatchJacobi<ValueType>(), a, b, x);
-        }
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
-}
-
-template <typename ValueType>
-void apply(std::shared_ptr<const ReferenceExecutor> exec,
-           const BatchIdrOptions<remove_complex<ValueType>>& opts,
-           const BatchLinOp* const a,
-           const matrix::BatchDense<ValueType>* const b,
-           matrix::BatchDense<ValueType>* const x,
-           gko::log::BatchLogData<ValueType>& logdata)
-{
-    if (opts.is_complex_subspace == true && !is_complex<ValueType>()) {
-        GKO_NOT_IMPLEMENTED;
-    }
-
-    batch_log::SimpleFinalLogger<remove_complex<ValueType>> logger(
-        logdata.res_norms->get_values(), logdata.iter_counts.get_data());
-
-    const auto x_b = host::get_batch_struct(x);
-    if (auto a_mat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a)) {
-        const auto a_b = host::get_batch_struct(a_mat);
-        const auto b_b = host::get_batch_struct(b);
-        apply_select_prec(exec, opts, logger, a_b, b_b, x_b);
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
-}
-#endif
 
 template <typename ValueType>
 class KernelCaller {
@@ -191,6 +110,7 @@ private:
     std::shared_ptr<const ReferenceExecutor> exec_;
     const BatchIdrOptions<remove_complex<ValueType>> opts_;
 };
+
 
 namespace {
 
