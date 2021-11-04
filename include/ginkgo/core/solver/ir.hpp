@@ -106,7 +106,8 @@ namespace solver {
 template <typename ValueType = default_precision>
 class Ir : public EnableLinOp<Ir<ValueType>>,
            public Transposable,
-           public ResidualCacheable {
+           public ResidualCacheable,
+           public EnableZeroInput {
     friend class EnableLinOp<Ir>;
     friend class EnablePolymorphicObject<Ir, LinOp>;
 

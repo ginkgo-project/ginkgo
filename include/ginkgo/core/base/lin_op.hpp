@@ -727,6 +727,23 @@ public:
 
 
 /**
+ * The EnableZeroInput
+ */
+class EnableZeroInput {
+public:
+    bool get_input_zero() const noexcept { return is_zero_; }
+
+    void set_input_zero(bool is_zero) const { is_zero_ = is_zero; }
+
+protected:
+    EnableZeroInput() : is_zero_(false) {}
+
+private:
+    mutable bool is_zero_;
+};
+
+
+/**
  * The AbsoluteComputable is an interface that allows to get the component wise
  * absolute of a LinOp. Use EnableAbsoluteComputation<AbsoluteLinOp> to
  * implement this interface.

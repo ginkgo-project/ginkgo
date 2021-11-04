@@ -98,6 +98,7 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 {
     using Vector = matrix::Dense<ValueType>;
     constexpr uint8 relative_stopping_id{1};
+    bool zero_input = this->get_input_zero();
 
     auto exec = this->get_executor();
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
@@ -121,52 +122,71 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     Array<stopping_status> stop_status(exec, dense_b->get_size()[1]);
     exec->run(ir::make_initialize(&stop_status));
 
-    residual->copy_from(dense_b);
-    system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op), residual);
+    if (!zero_input) {
+        residual->copy_from(dense_b);
+        system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
+                              lend(residual));
+    }
+    const Vector* residual_ptr = zero_input ? dense_b : residual;
+    // zero input the residual is dense_b
 
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_,
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
-        residual);
+        residual_ptr);
 
     int iter = -1;
     while (true) {
         ++iter;
-        this->template log<log::Logger::iteration_complete>(this, iter,
-                                                            residual, dense_x);
+        this->template log<log::Logger::iteration_complete>(
+            this, iter, residual_ptr, dense_x);
 
-        if (stop_criterion->update()
-                .num_iterations(iter)
-                .residual(residual)
-                .solution(dense_x)
-                .check(relative_stopping_id, true, &stop_status,
-                       &one_changed)) {
-            break;
+        if (iter == 0) {
+            if (stop_criterion->update()
+                    .num_iterations(iter)
+                    .residual(residual_ptr)
+                    .solution(dense_x)
+                    .check(relative_stopping_id, true, &stop_status,
+                           &one_changed)) {
+                break;
+            }
+        } else {
+            if (stop_criterion->update()
+                    .num_iterations(iter)
+                    .solution(dense_x)
+                    .check(relative_stopping_id, false, &stop_status,
+                           &one_changed)) {
+                break;
+            }
+            std::cout << "Has residual" << std::endl;
+            residual_ptr = residual;
+            // residual = b - A * x
+            residual->copy_from(dense_b);
+            system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
+                                  lend(residual));
+            if (stop_criterion->update()
+                    .num_iterations(iter)
+                    .residual(residual_ptr)
+                    .solution(dense_x)
+                    .check(relative_stopping_id, true, &stop_status,
+                           &one_changed)) {
+                break;
+            }
         }
 
         if (solver_->apply_uses_initial_guess()) {
             // Use the inner solver to solve
             // A * inner_solution = residual
             // with residual as initial guess.
-            inner_solution->copy_from(residual);
-            solver_->apply(residual, lend(inner_solution));
+            inner_solution->copy_from(residual_ptr);
+            solver_->apply(residual_ptr, lend(inner_solution));
 
             // x = x + relaxation_factor * inner_solution
             dense_x->add_scaled(lend(relaxation_factor_), lend(inner_solution));
-
-            // residual = b - A * x
-            residual->copy_from(dense_b);
-            system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
-                                  residual);
         } else {
             // x = x + relaxation_factor * A \ residual
-            solver_->apply(lend(relaxation_factor_), residual, lend(one_op),
+            solver_->apply(lend(relaxation_factor_), residual_ptr, lend(one_op),
                            dense_x);
-
-            // residual = b - A * x
-            residual->copy_from(dense_b);
-            system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
-                                  residual);
         }
     }
 }
