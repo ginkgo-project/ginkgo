@@ -262,7 +262,8 @@ struct MultigridState {
 
     void run_cycle(multigrid::cycle cycle, size_type level,
                    const std::shared_ptr<const LinOp>& matrix, const LinOp* b,
-                   LinOp* x, bool is_first = true, bool is_end = true)
+                   LinOp* x, bool x_is_zero = false, bool is_first = true,
+                   bool is_end = true)
     {
         if (level == multigrid->get_mg_level_list().size()) {
             multigrid->get_coarsest_solver()->apply(b, x);
@@ -275,14 +276,14 @@ struct MultigridState {
                 using value_type = typename std::decay_t<
                     detail::pointee<decltype(mg_level)>>::value_type;
                 this->run_cycle<value_type>(cycle, level, matrix, b, x,
-                                            is_first, is_end);
+                                            x_is_zero, is_first, is_end);
             });
     }
 
     template <typename VT>
     void run_cycle(multigrid::cycle cycle, size_type level,
                    const std::shared_ptr<const LinOp>& matrix, const LinOp* b,
-                   LinOp* x, bool is_first, bool is_end)
+                   LinOp* x, bool x_is_zero, bool is_first, bool is_end)
     {
         auto total_level = multigrid->get_mg_level_list().size();
 
@@ -308,7 +309,15 @@ struct MultigridState {
                        mid_case == multigrid::mid_smooth_type::both ||
                        mid_case == multigrid::mid_smooth_type::pre_smoother;
         if (use_pre && pre_smoother) {
-            pre_smoother->apply(b, x);
+            auto pre_allow_zero_input =
+                std::dynamic_pointer_cast<const EnableZeroInput>(pre_smoother);
+            if (x_is_zero && pre_allow_zero_input) {
+                pre_allow_zero_input->set_input_zero(true);
+                pre_smoother->apply(b, x);
+                pre_allow_zero_input->set_input_zero(false);
+            } else {
+                pre_smoother->apply(b, x);
+            }
             // additional residual computation after pre_smoother if it already
             // contained the residual.
             r->copy_from(b);  // n * b
@@ -324,7 +333,7 @@ struct MultigridState {
         // next level
         e->fill(zero<VT>());
         this->run_cycle(cycle, level + 1, mg_level->get_coarse_op(), g.get(),
-                        e.get(), true, cycle == multigrid::cycle::v);
+                        e.get(), true, true, cycle == multigrid::cycle::v);
         if (level < multigrid->get_mg_level_list().size() - 1) {
             // additional work for non-v_cycle
             // next level
@@ -332,10 +341,10 @@ struct MultigridState {
                 // f_cycle call v_cycle in the second cycle
                 this->run_cycle(multigrid::cycle::v, level + 1,
                                 mg_level->get_coarse_op(), g.get(), e.get(),
-                                false, true);
+                                false, false, true);
             } else if (cycle == multigrid::cycle::w) {
                 this->run_cycle(cycle, level + 1, mg_level->get_coarse_op(),
-                                g.get(), e.get(), false, true);
+                                g.get(), e.get(), false, false, true);
             } else if ((cycle == multigrid::cycle::kfcg ||
                         cycle == multigrid::cycle::kgcr) &&
                        level % multigrid->get_parameters().kcycle_base == 0) {
@@ -468,7 +477,7 @@ struct MultigridState {
                 // second iteration
                 // Apply on d for keeping the answer on e
                 mg_state->run_cycle(cycle, level + 1, mg_level->get_coarse_op(),
-                                    g.get(), d.get(), false, true);
+                                    g.get(), d.get(), false, false, true);
                 coarse->apply(d.get(), w.get());
                 t = is_fcg ? d : w;
                 t->compute_dot(v.get(), gamma.get());
@@ -656,7 +665,7 @@ void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
             }
 
             state.run_cycle(this->get_parameters().cycle, 0, system_matrix_, b,
-                            x);
+                            x, parameters_.zero_guess);
             r->copy_from(b);
             system_matrix_->apply(lend(neg_one_op), x, lend(one_op), r.get());
         }
