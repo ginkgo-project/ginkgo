@@ -46,8 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace omp {
-
-
 /**
  * @brief The batch Cg solver namespace.
  *
@@ -56,23 +54,23 @@ namespace omp {
 namespace batch_cg {
 
 
-namespace {
+// namespace {
 
 
-// using gko::kernels::reference::batch_csr::advanced_spmv_kernel;
-// using gko::kernels::reference::batch_csr::spmv_kernel;
 namespace batch_dense = gko::kernels::reference::batch_dense;
 using gko::kernels::reference::BatchIdentity;
 using gko::kernels::reference::BatchJacobi;
-namespace stop = gko::kernels::reference::stop;
 namespace batch_log = gko::kernels::reference::batch_log;
+namespace stop = gko::kernels::reference::stop;
 
+constexpr int max_num_rhs = 1;
 
 #include "reference/matrix/batch_csr_kernels.hpp.inc"
+#include "reference/matrix/batch_ell_kernels.hpp.inc"
 #include "reference/solver/batch_cg_kernels.hpp.inc"
 
 
-}  // unnamed namespace
+//}  // unnamed namespace
 
 
 template <typename T>
@@ -89,7 +87,6 @@ static void apply_impl(std::shared_ptr<const OmpExecutor> exec,
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
-    GKO_ASSERT(batch_config<ValueType>::max_num_rhs >= nrhs);
 
     const int local_size_bytes =
         gko::kernels::batch_cg::local_memory_requirement<ValueType>(nrows,
@@ -157,6 +154,69 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
         GKO_NOT_IMPLEMENTED;
     }
 }
+
+#if 0
+template <typename ValueType>
+class KernelCaller {
+public:
+    KernelCaller(std::shared_ptr<const OmpExecutor> exec,
+                 const BatchCgOptions<remove_complex<ValueType>> opts)
+        : exec_{exec}, opts_{opts}
+    {}
+
+    template <typename BatchMatrixType, typename PrecType, typename StopType,
+              typename LogType>
+    void call_kernel(LogType logger, const BatchMatrixType& a,
+                     const gko::batch_dense::UniformBatch<const ValueType>& b,
+                     const gko::batch_dense::UniformBatch<ValueType>& x) const
+    {
+        using real_type = typename gko::remove_complex<ValueType>;
+        const size_type nbatch = a.num_batch;
+        const auto nrows = a.num_rows;
+        const auto nrhs = b.num_rhs;
+        GKO_ASSERT(nrhs == 1);
+
+        const int local_size_bytes =
+            gko::kernels::batch_cg::local_memory_requirement<ValueType>(nrows,
+                                                                        nrhs) +
+            PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
+        Array<unsigned char> local_space(exec_, local_size_bytes);
+
+#pragma omp parallel for firstprivate(logger) firstprivate(local_space)
+        for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
+            batch_entry_cg_impl<StopType, PrecType, LogType, BatchMatrixType,
+                                ValueType>(opts_, logger, PrecType(), a, b, x,
+                                           ibatch, local_space);
+        }
+    }
+
+private:
+    std::shared_ptr<const OmpExecutor> exec_;
+    const BatchCgOptions<remove_complex<ValueType>> opts_;
+};
+
+namespace {
+
+using namespace gko::kernels::host;
+
+#include "core/solver/batch_dispatch.hpp.inc"
+
+}  // namespace
+
+
+template <typename ValueType>
+void apply(std::shared_ptr<const OmpExecutor> exec,
+           const BatchCgOptions<remove_complex<ValueType>>& opts,
+           const BatchLinOp* const a,
+           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchDense<ValueType>* const x,
+           log::BatchLogData<ValueType>& logdata)
+{
+    auto dispatcher = create_dispatcher<ValueType, ValueType>(
+        KernelCaller<ValueType>(exec, opts), exec, opts);
+    dispatcher.apply(a, b, x, logdata);
+}
+#endif
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG_APPLY_KERNEL);
 
