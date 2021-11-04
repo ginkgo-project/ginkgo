@@ -120,7 +120,9 @@ private:
     const BatchRichardsonOptions<remove_complex<value_type>> opts_;
 };
 
+
 #include "core/solver/batch_dispatch.hpp.inc"
+
 
 template <typename ValueType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
