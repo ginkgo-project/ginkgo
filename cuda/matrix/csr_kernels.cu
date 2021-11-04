@@ -314,8 +314,9 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
             // TODO: add implementation for int64 and multiple RHS
-            if (cusparse::is_supported<ValueType, IndexType>::value)
+            if (!cusparse::is_supported<ValueType, IndexType>::value) {
                 GKO_NOT_IMPLEMENTED;
+            }
 
             auto descr = cusparse::create_mat_descr();
             auto row_ptrs = a->get_const_row_ptrs();
@@ -399,8 +400,9 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         if (b->get_stride() != 1 || c->get_stride() != 1) GKO_NOT_IMPLEMENTED;
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-        if (cusparse::is_supported<ValueType, IndexType>::value)
+        if (!cusparse::is_supported<ValueType, IndexType>::value) {
             GKO_NOT_IMPLEMENTED;
+        }
 
         auto descr = cusparse::create_mat_descr();
         auto row_ptrs = a->get_const_row_ptrs();
@@ -509,8 +511,9 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
     auto& c_vals_array = c_builder.get_value_array();
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-    if (cusparse::is_supported<ValueType, IndexType>::value)
+    if (!cusparse::is_supported<ValueType, IndexType>::value) {
         GKO_NOT_IMPLEMENTED;
+    }
 
     auto a_descr = cusparse::create_mat_descr();
     auto b_descr = cusparse::create_mat_descr();
@@ -675,8 +678,9 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
     auto c_row_ptrs = c->get_row_ptrs();
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-    if (cusparse::is_supported<ValueType, IndexType>::value)
+    if (!cusparse::is_supported<ValueType, IndexType>::value) {
         GKO_NOT_IMPLEMENTED;
+    }
 
     matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
     auto& c_col_idxs_array = c_builder.get_col_idx_array();
