@@ -244,7 +244,7 @@ std::unique_ptr<MatrixType> generate_random_triangular_matrix(
         }
 
         // add diagonal if it hasn't been added yet
-        if (!has_diagonal) {
+        if (!has_diagonal && row < num_cols) {
             auto val = ones_on_diagonal ? one
                                         : detail::get_rand_value<value_type>(
                                               value_dist, engine);
