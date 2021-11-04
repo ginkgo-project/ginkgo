@@ -262,9 +262,6 @@ __global__ void apply_kernel(const int global_gap, const int max_iter,
     const auto nrows = a.num_rows;
     constexpr int nrhs = 1;
 
-    // required for static allocation in stopping criterion
-    assert(batch_config<ValueType>::max_num_rhs >= nrhs);
-
     constexpr auto tile_size = config::warp_size;
     auto thread_block = group::this_thread_block();
     auto warp_grp = group::tiled_partition<tile_size>(thread_block);
