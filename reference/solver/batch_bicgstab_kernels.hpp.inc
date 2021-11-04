@@ -192,7 +192,7 @@ inline void batch_entry_bicgstab_impl(
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
-    GKO_ASSERT((nrhs <= batch_config<ValueType>::max_num_rhs));
+    GKO_ASSERT((nrhs <= max_num_rhs));
 
     unsigned char* const shared_space = local_space.get_data();
     ValueType* const r = reinterpret_cast<ValueType*>(shared_space);
@@ -204,13 +204,13 @@ inline void batch_entry_bicgstab_impl(
     ValueType* const s_hat = s + nrows * nrhs;
     ValueType* const t = s_hat + nrows * nrhs;
     ValueType* const prec_work = t + nrows * nrhs;
-    ValueType rho_old[batch_config<ValueType>::max_num_rhs];
-    ValueType rho_new[batch_config<ValueType>::max_num_rhs];
-    ValueType omega[batch_config<ValueType>::max_num_rhs];
-    ValueType alpha[batch_config<ValueType>::max_num_rhs];
-    ValueType temp[batch_config<ValueType>::max_num_rhs];
-    real_type norms_rhs[batch_config<ValueType>::max_num_rhs];
-    real_type norms_res[batch_config<ValueType>::max_num_rhs];
+    ValueType rho_old[max_num_rhs];
+    ValueType rho_new[max_num_rhs];
+    ValueType omega[max_num_rhs];
+    ValueType alpha[max_num_rhs];
+    ValueType temp[max_num_rhs];
+    real_type norms_rhs[max_num_rhs];
+    real_type norms_res[max_num_rhs];
 
     const auto A_entry =
         gko::batch::batch_entry(gko::batch::to_const(a), ibatch);

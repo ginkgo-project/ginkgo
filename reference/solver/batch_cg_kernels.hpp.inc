@@ -177,11 +177,9 @@ inline void batch_entry_cg_impl(
     // stopping criterion object
     StopType stop(opts.residual_tol, rhs_norms_entry.values);
 
-    int iter = -1;
+    int iter = 0;
 
-    while (1) {
-        ++iter;
-
+    for (iter = 0; iter < opts.max_its; iter++) {
         // use implicit residual norms
         res_norms_entry.values[0] = sqrt(abs(rho_old_entry.values[0]));
 

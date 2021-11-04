@@ -518,7 +518,7 @@ inline void batch_entry_idr_impl(
     Array<unsigned char>& local_space)
 {
     using real_type = typename gko::remove_complex<ValueType>;
-    constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
+    constexpr int max_nrhs = max_num_rhs;
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;

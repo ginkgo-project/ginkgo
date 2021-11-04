@@ -167,8 +167,7 @@ TYPED_TEST(BatchRich, SolvesStencilSystemJacobi)
     const double sol_tol = 100 * res_tol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        this->d_exec, r_sys, r_factory.get(), false, iter_tol, res_tol,
-        sol_tol);
+        this->d_exec, r_sys, r_factory.get(), iter_tol, res_tol, sol_tol);
 }
 
 
