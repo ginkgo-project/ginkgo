@@ -154,8 +154,7 @@ TYPED_TEST(BatchCg, SolveIsEquivalentToReference)
     const double sol_tol = 10 * solver_restol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        this->cuexec, r_sys, r_factory.get(), false, iter_tol, res_tol,
-        sol_tol);
+        this->cuexec, r_sys, r_factory.get(), iter_tol, res_tol, sol_tol);
 }
 
 
