@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/abstract_factory.hpp>
+#include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -591,6 +592,16 @@ public:
     void read(const matrix_assembly_data<ValueType, IndexType>& data)
     {
         this->read(data.get_ordered_data());
+    }
+
+    /**
+     * Reads a matrix from a device_matrix_data structure.
+     *
+     * @param data  the device_matrix_data structure.
+     */
+    virtual void read(const device_matrix_data<ValueType, IndexType>& data)
+    {
+        this->read(data.copy_to_host());
     }
 };
 

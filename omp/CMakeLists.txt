@@ -5,6 +5,7 @@ target_sources(ginkgo_omp
     PRIVATE
     base/index_set_kernels.cpp
     base/version.cpp
+    components/device_matrix_data_kernels.cpp
     components/prefix_sum_kernels.cpp
     factorization/factorization_kernels.cpp
     factorization/ic_kernels.cpp

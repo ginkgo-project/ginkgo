@@ -47,6 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/complex.h>
 
 
+#include <ginkgo/core/base/matrix_data.hpp>
+
+
 namespace gko {
 
 
@@ -55,6 +58,36 @@ namespace cuda {
 
 
 namespace detail {
+
+
+/**
+ * @internal
+ *
+ * replacement for thrust::complex without alignment restrictions.
+ */
+template <typename T>
+struct fake_complex {
+    T real;
+    T imag;
+
+    GKO_ATTRIBUTES fake_complex() : real{}, imag{} {}
+
+    GKO_ATTRIBUTES fake_complex(thrust::complex<T> val)
+        : real{val.real()}, imag{val.imag()}
+    {}
+
+    GKO_ATTRIBUTES operator thrust::complex<T>() const { return {real, imag}; }
+
+    friend bool GKO_ATTRIBUTES operator==(fake_complex a, fake_complex b)
+    {
+        return a.real == b.real && a.imag == b.imag;
+    }
+
+    friend bool GKO_ATTRIBUTES operator!=(fake_complex a, fake_complex b)
+    {
+        return !(a == b);
+    }
+};
 
 
 template <typename T>
@@ -135,6 +168,22 @@ struct cuda_type_impl<cuDoubleComplex> {
 template <>
 struct cuda_type_impl<cuComplex> {
     using type = thrust::complex<float>;
+};
+
+template <typename T>
+struct cuda_struct_member_type_impl {
+    using type = T;
+};
+
+template <typename T>
+struct cuda_struct_member_type_impl<std::complex<T>> {
+    using type = fake_complex<T>;
+};
+
+template <typename ValueType, typename IndexType>
+struct cuda_type_impl<matrix_data_entry<ValueType, IndexType>> {
+    using type = matrix_data_entry<
+        typename cuda_struct_member_type_impl<ValueType>::type, IndexType>;
 };
 
 

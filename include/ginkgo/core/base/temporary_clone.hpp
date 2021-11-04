@@ -170,6 +170,13 @@ public:
      */
     T* operator->() const { return handle_.get(); }
 
+    /**
+     * Dereferences the object held by temporary_clone.
+     *
+     * @return the underlying object
+     */
+    T& operator*() const { return *handle_; }
+
 private:
     // std::function deleter allows to decide the (type of) deleter at runtime
     using handle_type = std::unique_ptr<T, std::function<void(T*)>>;

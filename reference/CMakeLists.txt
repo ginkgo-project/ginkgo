@@ -4,6 +4,7 @@ target_sources(ginkgo_reference
     base/version.cpp
     base/index_set_kernels.cpp
     components/absolute_array_kernels.cpp
+    components/device_matrix_data_kernels.cpp
     components/fill_array_kernels.cpp
     components/reduce_array_kernels.cpp
     components/precision_conversion_kernels.cpp
