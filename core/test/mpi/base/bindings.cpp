@@ -40,8 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include "gtest-mpi-listener.hpp"
-#include "gtest-mpi-main.hpp"
+#include "../gtest-mpi-listener.hpp"
+#include "../gtest-mpi-main.hpp"
 
 
 #include <ginkgo/config.hpp>
@@ -181,7 +181,7 @@ TEST_F(MpiBindings, CanPutValuesWithLockAll)
         }
     }
     win.unlock_all();
-    gko::mpi::synchronize();
+    gko::mpi::synchronize(comm);
     ASSERT_EQ(data[0], 1);
     ASSERT_EQ(data[1], 2);
     ASSERT_EQ(data[2], 3);
@@ -214,7 +214,7 @@ TEST_F(MpiBindings, CanPutValuesWithExclusiveLock)
             }
         }
     }
-    gko::mpi::synchronize();
+    gko::mpi::synchronize(comm);
     ASSERT_EQ(data[0], 1);
     ASSERT_EQ(data[1], 2);
     ASSERT_EQ(data[2], 3);
@@ -248,7 +248,7 @@ TEST_F(MpiBindings, CanPutValuesWithFence)
         }
     }
     win.fence();
-    gko::mpi::synchronize();
+    gko::mpi::synchronize(comm);
     ASSERT_EQ(data[0], 1);
     ASSERT_EQ(data[1], 2);
     ASSERT_EQ(data[2], 3);
@@ -283,7 +283,7 @@ TEST_F(MpiBindings, CanGetValuesWithLockAll)
         }
         win.unlock_all();
     }
-    gko::mpi::synchronize();
+    gko::mpi::synchronize(comm);
     ASSERT_EQ(data[0], 1);
     ASSERT_EQ(data[1], 2);
     ASSERT_EQ(data[2], 3);
@@ -318,7 +318,7 @@ TEST_F(MpiBindings, CanGetValuesWithExclusiveLock)
             }
         }
     }
-    gko::mpi::synchronize();
+    gko::mpi::synchronize(comm);
     ASSERT_EQ(data[0], 1);
     ASSERT_EQ(data[1], 2);
     ASSERT_EQ(data[2], 3);
@@ -352,7 +352,7 @@ TEST_F(MpiBindings, CanGetValuesWithFence)
         }
     }
     win.fence();
-    gko::mpi::synchronize();
+    gko::mpi::synchronize(comm);
     ASSERT_EQ(data[0], 1);
     ASSERT_EQ(data[1], 2);
     ASSERT_EQ(data[2], 3);

@@ -173,5 +173,4 @@ int main(int argc, char* argv[])
         std::cout << "Residual norm sqrt(r^T r):\n";
         write(std::cout, lend(res));
     }
-    gko::mpi::synchronize();
 }
