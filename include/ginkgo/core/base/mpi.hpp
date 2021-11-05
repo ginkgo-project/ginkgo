@@ -168,14 +168,6 @@ inline const T* in_place()
  */
 class init_finalize {
 public:
-    static init_finalize* get_instance(
-        int& argc, char**& argv,
-        const thread_type thread_t = thread_type::serialized)
-    {
-        static init_finalize instance(argc, argv, thread_t);
-        return &instance;
-    }
-
     static bool is_finalized()
     {
         int flag = 0;
@@ -190,8 +182,8 @@ public:
         return flag;
     }
 
-private:
-    init_finalize(int& argc, char**& argv, const thread_type thread_t)
+    init_finalize(int& argc, char**& argv,
+                  const thread_type thread_t = thread_type::serialized)
     {
         auto flag = is_initialized();
         if (!flag) {
@@ -200,7 +192,7 @@ private:
                 MPI_Init_thread(&argc, &argv, this->required_thread_support_,
                                 &(this->provided_thread_support_)));
         } else {
-            // GKO_MPI_INITIALIZED;
+            GKO_MPI_INITIALIZED;
         }
     }
 
@@ -212,6 +204,7 @@ private:
         if (!flag) MPI_Finalize();
     }
 
+private:
     int num_args_;
     int required_thread_support_;
     int provided_thread_support_;
@@ -466,7 +459,7 @@ double get_walltime() { return MPI_Wtime(); }
  *
  * @param comm  the communicator
  */
-void synchronize(const communicator& comm = communicator::get_comm_world())
+void synchronize(const communicator& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(comm.get()));
 }
