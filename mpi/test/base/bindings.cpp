@@ -105,12 +105,13 @@ TEST_F(MpiBindings, CanSendAndRecvValues)
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
                 gko::mpi::send<ValueType>(send_array.get_const_data(), 4, rank,
-                                          40 + rank);
+                                          40 + rank, comm);
             }
         }
     } else {
         recv_array = gko::Array<ValueType>{ref, 4};
-        gko::mpi::recv<ValueType>(recv_array.get_data(), 4, 0, 40 + my_rank);
+        gko::mpi::recv<ValueType>(recv_array.get_data(), 4, 0, 40 + my_rank,
+                                  comm);
     }
     if (my_rank != 0) {
         ASSERT_EQ(recv_array.get_data()[0], 1);
@@ -138,13 +139,13 @@ TEST_F(MpiBindings, CanNonBlockingSendAndNonBlockingRecvValues)
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
                 gko::mpi::send<ValueType>(send_array.get_data(), 4, rank,
-                                          40 + rank, req);
+                                          40 + rank, req, comm);
             }
         }
     } else {
         recv_array = gko::Array<ValueType>{ref, 4};
         gko::mpi::recv<ValueType>(recv_array.get_data(), 4, 0, 40 + my_rank,
-                                  req);
+                                  req, comm);
     }
     gko::mpi::wait(req);
     if (my_rank != 0) {
@@ -374,7 +375,7 @@ TEST_F(MpiBindings, CanBroadcastValues)
         // clang-format on
         array = gko::Array<double>{gko::Array<double>::view(ref, 8, data)};
     }
-    gko::mpi::broadcast<double>(array.get_data(), 8, 0);
+    gko::mpi::broadcast<double>(array.get_data(), 8, 0, comm);
     auto comp_data = array.get_data();
     ASSERT_EQ(comp_data[0], 2.0);
     ASSERT_EQ(comp_data[1], 3.0);
@@ -406,9 +407,12 @@ TEST_F(MpiBindings, CanReduceValues)
     } else if (my_rank == 3) {
         data = 6;
     }
-    gko::mpi::reduce<ValueType>(&data, &sum, 1, gko::mpi::op_type::sum, 0);
-    gko::mpi::reduce<ValueType>(&data, &max, 1, gko::mpi::op_type::max, 0);
-    gko::mpi::reduce<ValueType>(&data, &min, 1, gko::mpi::op_type::min, 0);
+    gko::mpi::reduce<ValueType>(&data, &sum, 1, gko::mpi::op_type::sum, 0,
+                                comm);
+    gko::mpi::reduce<ValueType>(&data, &max, 1, gko::mpi::op_type::max, 0,
+                                comm);
+    gko::mpi::reduce<ValueType>(&data, &min, 1, gko::mpi::op_type::min, 0,
+                                comm);
     if (my_rank == 0) {
         EXPECT_EQ(sum, 16.0);
         EXPECT_EQ(max, 6.0);
@@ -432,7 +436,7 @@ TEST_F(MpiBindings, CanAllReduceValues)
     } else if (my_rank == 3) {
         data = 6;
     }
-    gko::mpi::all_reduce<int>(&data, &sum, 1, gko::mpi::op_type::sum);
+    gko::mpi::all_reduce<int>(&data, &sum, 1, gko::mpi::op_type::sum, comm);
     ASSERT_EQ(sum, 16);
 }
 
@@ -452,7 +456,7 @@ TEST_F(MpiBindings, CanAllReduceValuesInPlace)
     } else if (my_rank == 3) {
         data = 6;
     }
-    gko::mpi::all_reduce<int>(&data, 1, gko::mpi::op_type::sum);
+    gko::mpi::all_reduce<int>(&data, 1, gko::mpi::op_type::sum, comm);
     ASSERT_EQ(data, 16);
 }
 
@@ -474,7 +478,8 @@ TEST_F(MpiBindings, CanScatterValues)
     }
     auto scatter_into_array = gko::Array<double>{ref, 2};
     gko::mpi::scatter<double, double>(scatter_from_array.get_data(), 2,
-                                      scatter_into_array.get_data(), 2, 0);
+                                      scatter_into_array.get_data(), 2, 0,
+                                      comm);
     auto comp_data = scatter_into_array.get_data();
     if (my_rank == 0) {
         ASSERT_EQ(comp_data[0], 2.0);
@@ -510,7 +515,7 @@ TEST_F(MpiBindings, CanGatherValues)
     }
     auto gather_array =
         gko::Array<int>{ref, static_cast<gko::size_type>(num_ranks)};
-    gko::mpi::gather<int, int>(&data, 1, gather_array.get_data(), 1, 0);
+    gko::mpi::gather<int, int>(&data, 1, gather_array.get_data(), 1, 0, comm);
     if (my_rank == 0) {
         ASSERT_EQ(gather_array.get_data()[0], 3);
         ASSERT_EQ(gather_array.get_data()[1], 5);
@@ -551,10 +556,11 @@ TEST_F(MpiBindings, CanScatterValuesWithDisplacements)
     }
     scatter_into_array =
         gko::Array<double>{ref, static_cast<gko::size_type>(nelems)};
-    gko::mpi::gather<int, int>(&nelems, 1, s_counts.get_data(), 1, 0);
-    gko::mpi::scatter<double, double>(
+    gko::mpi::gather<int, int>(&nelems, 1, s_counts.get_data(), 1, 0, comm);
+    gko::mpi::scatterv<double, double>(
         scatter_from_array.get_data(), s_counts.get_data(),
-        displacements.get_data(), scatter_into_array.get_data(), nelems, 0);
+        displacements.get_data(), scatter_into_array.get_data(), nelems, 0,
+        comm);
     auto comp_data = scatter_into_array.get_data();
     if (my_rank == 0) {
         ASSERT_EQ(comp_data[0], 2.0);
@@ -615,10 +621,10 @@ TEST_F(MpiBindings, CanGatherValuesWithDisplacements)
             gko::Array<double>::view(ref->get_master(), 3, data)};
     }
 
-    gko::mpi::gather<int, int>(&nelems, 1, r_counts.get_data(), 1, 0);
-    gko::mpi::gather<double, double>(
+    gko::mpi::gather<int, int>(&nelems, 1, r_counts.get_data(), 1, 0, comm);
+    gko::mpi::gatherv<double, double>(
         gather_from_array.get_data(), nelems, gather_into_array.get_data(),
-        r_counts.get_data(), displacements.get_data(), 0);
+        r_counts.get_data(), displacements.get_data(), 0, comm);
     auto comp_data = gather_into_array.get_data();
     if (my_rank == 0) {
         ASSERT_EQ(comp_data[0], 2.0);
@@ -662,7 +668,7 @@ TEST_F(MpiBindings, AllToAllWorksCorrectly)
     }
 
     gko::mpi::all_to_all<double, double>(send_array.get_data(), 1,
-                                         recv_array.get_data());
+                                         recv_array.get_data(), 1, comm);
     this->assert_equal_arrays(recv_array, ref_array);
 }
 
@@ -689,7 +695,7 @@ TEST_F(MpiBindings, AllToAllInPlaceWorksCorrectly)
         ref_array = gko::Array<double>(ref, {2.0, 2.0, 0.0, -2.0});
     }
 
-    gko::mpi::all_to_all<double>(recv_array.get_data(), 1);
+    gko::mpi::all_to_all<double>(recv_array.get_data(), 1, comm);
     this->assert_equal_arrays(recv_array, ref_array);
 }
 
@@ -740,10 +746,10 @@ TEST_F(MpiBindings, AllToAllVWorksCorrectly)
         ref_array = gko::Array<double>{ref, {0.0, 2.5, 3.5, 3.0}};
     }
 
-    gko::mpi::all_to_all<double, double>(
+    gko::mpi::all_to_all_v<double, double>(
         send_array.get_data(), scounts_array.get_data(),
         soffset_array.get_data(), recv_array.get_data(),
-        rcounts_array.get_data(), roffset_array.get_data());
+        rcounts_array.get_data(), roffset_array.get_data(), {}, comm);
     this->assert_equal_arrays(recv_array, ref_array);
 }
 
@@ -764,9 +770,9 @@ TEST_F(MpiBindings, CanScanValues)
     } else if (my_rank == 3) {
         data = 6;
     }
-    gko::mpi::scan<ValueType>(&data, &sum, 1, gko::mpi::op_type::sum, nullptr);
-    gko::mpi::scan<ValueType>(&data, &max, 1, gko::mpi::op_type::max, nullptr);
-    gko::mpi::scan<ValueType>(&data, &min, 1, gko::mpi::op_type::min, nullptr);
+    gko::mpi::scan<ValueType>(&data, &sum, 1, gko::mpi::op_type::sum, comm);
+    gko::mpi::scan<ValueType>(&data, &max, 1, gko::mpi::op_type::max, comm);
+    gko::mpi::scan<ValueType>(&data, &min, 1, gko::mpi::op_type::min, comm);
     if (my_rank == 0) {
         EXPECT_EQ(sum, 3.0);
         EXPECT_EQ(max, 3.0);
