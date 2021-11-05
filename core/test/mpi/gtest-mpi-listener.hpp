@@ -79,11 +79,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GTEST_MPI_MINIMAL_LISTENER_H
 
 #include <cassert>
+#include <mpi.h>
 #include <sstream>
 #include <string>
 #include <vector>
-#include "gtest/gtest.h"
-#include "mpi.h"
+
+
+#include <gtest/gtest.h>
 
 
 namespace GTestMPIListener {

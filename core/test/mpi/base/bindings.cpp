@@ -30,18 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #include <memory>
 
 
-#include <mpi.h>
-
-
 #include <gtest/gtest.h>
-
-
-#include "../gtest-mpi-listener.hpp"
-#include "../gtest-mpi-main.hpp"
 
 
 #include <ginkgo/config.hpp>
@@ -49,6 +41,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mpi.hpp>
+
+
+#include "core/test/mpi/gtest-mpi-listener.hpp"
+#include "core/test/mpi/gtest-mpi-main.hpp"
 
 
 class MpiBindings : public ::testing::Test {

@@ -35,12 +35,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <gtest/gtest.h>
 
-#include "../gtest-mpi-listener.hpp"
-#include "../gtest-mpi-main.hpp"
-
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+
+
+#include "core/test/mpi/gtest-mpi-listener.hpp"
+#include "core/test/mpi/gtest-mpi-main.hpp"
 
 
 namespace {

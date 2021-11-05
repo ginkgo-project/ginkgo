@@ -30,13 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
-#include <cuda.h>
-#include <mpi.h>
-
 #include <assert.h>
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+
+#include <cuda.h>
 
 
 int main(int argc, char* argv[])
