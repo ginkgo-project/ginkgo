@@ -119,10 +119,4 @@ TYPED_TEST(BatchIdentity, ApplySingleIsEquivalentToReference)
 }
 
 
-TYPED_TEST(BatchIdentity, ApplyMultipleIsEquivalentToReference)
-{
-    this->check_identity(2);
-}
-
-
 }  // namespace
