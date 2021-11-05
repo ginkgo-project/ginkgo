@@ -4,7 +4,7 @@ add_library(ginkgo_mpi)
 target_sources(ginkgo_mpi
     PRIVATE
         base/exception.cpp
-        base/bindings.cpp
+        # base/bindings.cpp
         base/version.cpp
         )
 
