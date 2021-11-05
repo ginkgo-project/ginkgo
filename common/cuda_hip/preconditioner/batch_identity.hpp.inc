@@ -82,19 +82,6 @@ public:
         const gko::batch_csr::BatchEntry<const ValueType>& mat, ValueType*)
     {}
 
-    __device__ __forceinline__ void apply(
-        const gko::batch_dense::BatchEntry<const ValueType>& r,
-        const gko::batch_dense::BatchEntry<ValueType>& z) const
-    {
-        for (int li = threadIdx.x; li < r.num_rows * r.num_rhs;
-             li += blockDim.x) {
-            const int row = li / r.num_rhs;
-            const int col = li % r.num_rhs;
-
-            z.values[row * z.stride + col] = r.values[row * r.stride + col];
-        }
-    }
-
     __device__ __forceinline__ void apply(const int num_rows,
                                           const ValueType* const r,
                                           ValueType* const z) const
@@ -119,11 +106,10 @@ __global__ void batch_identity(
         const auto b_b = gko::batch::batch_entry(b, batch);
         const auto x_b = gko::batch::batch_entry(x, batch);
 
-        //__shared__ ValueType prec_work[BatchJacobi<ValueType>::work_size];
         extern __shared__ char local_mem[];
         const auto prec_work = reinterpret_cast<ValueType*>(local_mem);
         prec.generate(a_b, prec_work);
-        prec.apply(b_b, x_b);
+        prec.apply(b_b.num_rows, b_b.values, x_b.values);
     }
 }
 
@@ -141,10 +127,9 @@ __global__ void batch_identity(
         const auto b_b = gko::batch::batch_entry(b, batch);
         const auto x_b = gko::batch::batch_entry(x, batch);
 
-        //__shared__ ValueType prec_work[BatchJacobi<ValueType>::work_size];
         extern __shared__ char local_mem[];
         const auto prec_work = reinterpret_cast<ValueType*>(local_mem);
         prec.generate(a_b, prec_work);
-        prec.apply(b_b, x_b);
+        prec.apply(b_b.num_rows, b_b.values, x_b.values);
     }
 }
