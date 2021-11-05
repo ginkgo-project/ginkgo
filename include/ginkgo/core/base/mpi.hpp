@@ -450,7 +450,7 @@ private:
  *
  * @param comm  the communicator
  */
-double get_walltime() { return MPI_Wtime(); }
+static double get_walltime() { return MPI_Wtime(); }
 
 
 /**
@@ -459,7 +459,7 @@ double get_walltime() { return MPI_Wtime(); }
  *
  * @param comm  the communicator
  */
-void synchronize(const std::shared_ptr<communicator>& comm)
+static void synchronize(const std::shared_ptr<communicator>& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(comm->get()));
 }
@@ -471,7 +471,8 @@ void synchronize(const std::shared_ptr<communicator>& comm)
  * @param req  The request to wait on.
  * @param status  The status variable that can be queried.
  */
-void wait(std::shared_ptr<request> req, std::shared_ptr<status> status = {})
+static void wait(std::shared_ptr<request> req,
+                 std::shared_ptr<status> status = {})
 {
     if (status.get()) {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Wait(req->get(), status->get()));
