@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_manager/factorization/ilu.hpp"
 #include "resource_manager/matrix/csr.hpp"
 #include "resource_manager/matrix/dense.hpp"
+#include "resource_manager/multigrid/amgx_pgm.hpp"
 #include "resource_manager/preconditioner/ilu.hpp"
 #include "resource_manager/preconditioner/isai.hpp"
 #include "resource_manager/preconditioner/jacobi.hpp"

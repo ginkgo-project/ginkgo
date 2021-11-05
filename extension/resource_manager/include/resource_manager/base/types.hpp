@@ -66,25 +66,25 @@ struct map_type {
 
 template <typename T>
 struct map_type<T, typename std::enable_if<
-                       std::is_convertible<T *, Executor *>::value>::type> {
+                       std::is_convertible<T*, Executor*>::value>::type> {
     using type = ExecutorMap;
 };
 
 template <typename T>
-struct map_type<T, typename std::enable_if<
-                       std::is_convertible<T *, LinOp *>::value>::type> {
+struct map_type<
+    T, typename std::enable_if<std::is_convertible<T*, LinOp*>::value>::type> {
     using type = LinOpMap;
 };
 
 template <typename T>
 struct map_type<T, typename std::enable_if<
-                       std::is_convertible<T *, LinOpFactory *>::value>::type> {
+                       std::is_convertible<T*, LinOpFactory*>::value>::type> {
     using type = LinOpFactoryMap;
 };
 
 template <typename T>
 struct map_type<T, typename std::enable_if<std::is_convertible<
-                       T *, CriterionFactory *>::value>::type> {
+                       T*, CriterionFactory*>::value>::type> {
     using type = CriterionFactoryMap;
 };
 
@@ -101,25 +101,25 @@ struct base_type {
 
 template <typename T>
 struct base_type<T, typename std::enable_if<
-                        std::is_convertible<T *, Executor *>::value>::type> {
+                        std::is_convertible<T*, Executor*>::value>::type> {
     using type = Executor;
 };
 
 template <typename T>
-struct base_type<T, typename std::enable_if<
-                        std::is_convertible<T *, LinOp *>::value>::type> {
+struct base_type<
+    T, typename std::enable_if<std::is_convertible<T*, LinOp*>::value>::type> {
     using type = LinOp;
 };
 
 template <typename T>
-struct base_type<T, typename std::enable_if<std::is_convertible<
-                        T *, LinOpFactory *>::value>::type> {
+struct base_type<T, typename std::enable_if<
+                        std::is_convertible<T*, LinOpFactory*>::value>::type> {
     using type = LinOpFactory;
 };
 
 template <typename T>
 struct base_type<T, typename std::enable_if<std::is_convertible<
-                        T *, CriterionFactory *>::value>::type> {
+                        T*, CriterionFactory*>::value>::type> {
     using type = CriterionFactory;
 };
 
@@ -135,7 +135,7 @@ ENUM_CLASS(RM_Executor, int, ENUM_EXECUTER);
     _expand(LinOp, 0), _expand(LinOpWithFactory), _expand(Cg), _expand(Isai), \
         _expand(Jacobi), _expand(LinOpWithOutFactory), _expand(Csr),          \
         _expand(Dense), _expand(Ilu), _expand(LowerTrs), _expand(UpperTrs),   \
-        _expand(IluFactorization)
+        _expand(IluFactorization), _expand(AmgxPgm)
 
 ENUM_CLASS(RM_LinOp, int, ENUM_LINOP);
 
@@ -143,7 +143,8 @@ ENUM_CLASS(RM_LinOp, int, ENUM_LINOP);
 #define ENUM_LINOPFACTORY(_expand)                                             \
     _expand(LinOpFactory, 0), _expand(CgFactory), _expand(IsaiFactory),        \
         _expand(JacobiFactory), _expand(IluFactory), _expand(LowerTrsFactory), \
-        _expand(UpperTrsFactory), _expand(IluFactorizationFactory)
+        _expand(UpperTrsFactory), _expand(IluFactorizationFactory),            \
+        _expand(AmgxPgmFactory)
 
 ENUM_CLASS(RM_LinOpFactory, int, ENUM_LINOPFACTORY);
 
@@ -198,8 +199,8 @@ struct is_derived : public std::integral_constant<bool, false> {};
 template <typename Derived, typename Base>
 struct is_derived<
     Derived, Base,
-    typename std::enable_if<std::is_convertible<const volatile Derived *,
-                                                const volatile Base *>::value &&
+    typename std::enable_if<std::is_convertible<const volatile Derived*,
+                                                const volatile Base*>::value &&
                             !std::is_same<const volatile Derived,
                                           const volatile Base>::value>::type>
     : public std::integral_constant<bool, true> {};
