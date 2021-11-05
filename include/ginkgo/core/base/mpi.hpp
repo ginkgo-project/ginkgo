@@ -459,9 +459,9 @@ double get_walltime() { return MPI_Wtime(); }
  *
  * @param comm  the communicator
  */
-void synchronize(const communicator& comm)
+void synchronize(const std::shared_ptr<communicator>& comm)
 {
-    GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(comm.get()));
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(comm->get()));
 }
 
 

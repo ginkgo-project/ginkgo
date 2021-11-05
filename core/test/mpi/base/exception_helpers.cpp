@@ -35,8 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <gtest/gtest.h>
 
-#include "gtest-mpi-listener.hpp"
-#include "gtest-mpi-main.hpp"
+#include "../gtest-mpi-listener.hpp"
+#include "../gtest-mpi-main.hpp"
 
 
 #include <ginkgo/config.hpp>

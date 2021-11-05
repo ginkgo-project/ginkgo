@@ -156,7 +156,7 @@ IF(GINKGO_BUILD_OMP)
 ENDIF()
 
 IF(GINKGO_BUILD_MPI)
-    include(mpi/get_info.cmake)
+    include(core/mpi/get_info.cmake)
 ENDIF()
 
 IF(GINKGO_BUILD_CUDA)

@@ -61,8 +61,8 @@ if(GINKGO_HAVE_PAPI_SDE)
 endif()
 
 if (GINKGO_BUILD_MPI)
-    target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
-    target_include_directories(ginkgo SYSTEM PUBLIC ${MPI_INCLUDE_PATH})
+    target_sources(ginkgo
+        PRIVATE mpi/exception.cpp)
 endif()
 
 ginkgo_compile_features(ginkgo)
@@ -71,13 +71,8 @@ target_compile_options(ginkgo PRIVATE "${GINKGO_COMPILER_FLAGS}")
 # add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
-if(GINKGO_BUILD_MPI)
-    target_link_libraries(ginkgo
-        PUBLIC ginkgo_device ginkgo_omp ginkgo_mpi ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
-else()
-    target_link_libraries(ginkgo
-        PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
-endif()
+target_link_libraries(ginkgo
+    PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
 # The PAPI dependency needs to be exposed to the user.
 set(GKO_RPATH_ADDITIONS "")
 if (GINKGO_HAVE_PAPI_SDE)
@@ -85,6 +80,15 @@ if (GINKGO_HAVE_PAPI_SDE)
     list(GET PAPI_LIBRARIES 0 PAPI_FIRST_LIB)
     get_filename_component(GKO_PAPI_LIBDIR "${PAPI_FIRST_LIB}" DIRECTORY)
     list(APPEND GKO_RPATH_ADDITIONS "${GKO_PAPI_LIBDIR}")
+endif()
+
+if (GINKGO_BUILD_MPI)
+    target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
+    target_include_directories(ginkgo SYSTEM PUBLIC ${MPI_INCLUDE_PATH})
+
+    # Propagate some useful information
+    set(MPI_C_VERSION ${MPI_C_VERSION} PARENT_SCOPE)
+    set(MPI_C_LIBRARIES ${MPI_C_LIBRARIES} PARENT_SCOPE)
 endif()
 
 # Since we have a public dependency on HIP, this dependency appears

@@ -289,9 +289,6 @@ endif()
 if (GINKGO_BUILD_OMP)
     add_subdirectory(omp)        # High-performance omp kernels
 endif()
-if(GINKGO_BUILD_MPI)
-    add_subdirectory(mpi)        # The MPI module
-endif()
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
 add_subdirectory(include)        # Public API self-contained check
 if (GINKGO_BUILD_TESTS)
