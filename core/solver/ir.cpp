@@ -111,19 +111,20 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     if (residual_cache) {
         residual = residual_cache.get();
     }
-    static std::shared_ptr<Vector> residual_op;
     if (!residual) {
-        if (!residual_op.get()) {
-            residual_op = Vector::create_with_config_of(dense_b);
+        if (!residual_op_.get() ||
+            residual_op_->get_size() != dense_b->get_size()) {
+            residual_op_ = Vector::create_with_config_of(dense_b);
         }
-        residual = residual_op.get();
+        residual = residual_op_.get();
     }
-    static auto inner_solution = Vector::create_with_config_of(dense_b);
-
+    if (!inner_solution_.get() ||
+        inner_solution_->get_size() != dense_b->get_size()) {
+        inner_solution_ = Vector::create_with_config_of(dense_b);
+    }
     bool one_changed{};
-    static Array<stopping_status> stop_status(exec, dense_b->get_size()[1]);
+    stop_status.resize_and_reset(dense_b->get_size()[1]);
     exec->run(ir::make_initialize(&stop_status));
-
     if (!zero_input) {
         residual->copy_from(dense_b);
         system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
@@ -179,11 +180,12 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             // Use the inner solver to solve
             // A * inner_solution = residual
             // with residual as initial guess.
-            inner_solution->copy_from(residual_ptr);
-            solver_->apply(residual_ptr, lend(inner_solution));
+            inner_solution_->copy_from(residual_ptr);
+            solver_->apply(residual_ptr, lend(inner_solution_));
 
             // x = x + relaxation_factor * inner_solution
-            dense_x->add_scaled(lend(relaxation_factor_), lend(inner_solution));
+            dense_x->add_scaled(lend(relaxation_factor_),
+                                lend(inner_solution_));
         } else {
             // x = x + relaxation_factor * A \ residual
             solver_->apply(lend(relaxation_factor_), residual_ptr, lend(one_op),

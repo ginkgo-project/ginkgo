@@ -224,7 +224,8 @@ protected:
         : EnableLinOp<Ir>(factory->get_executor(),
                           gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
-          system_matrix_{std::move(system_matrix)}
+          system_matrix_{std::move(system_matrix)},
+          stop_status(factory->get_executor())
     {
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
         if (parameters_.generated_solver) {
@@ -247,6 +248,9 @@ private:
     std::shared_ptr<const LinOp> solver_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     std::shared_ptr<const matrix::Dense<ValueType>> relaxation_factor_{};
+    mutable std::shared_ptr<matrix::Dense<ValueType>> inner_solution_{};
+    mutable std::shared_ptr<matrix::Dense<ValueType>> residual_op_{};
+    mutable Array<stopping_status> stop_status;
 };
 
 
