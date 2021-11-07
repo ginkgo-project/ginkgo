@@ -60,6 +60,7 @@ namespace solver {
  *
  * @ingroup solver
  */
+class Multigrid;
 namespace multigrid {
 
 
@@ -91,6 +92,67 @@ enum class cycle { v, f, w, kfcg, kgcr };
  * - standalone: uses the defined smoother in the mid smoother
  */
 enum class mid_smooth_type { both, post_smoother, pre_smoother, standalone };
+
+
+struct MultigridState {
+    MultigridState() : nrhs{0} {}
+
+    void generate(const LinOp* system_matrix_in, const Multigrid* multigrid_in,
+                  const size_type nrhs_in);
+
+    template <typename VT>
+    void allocate_memory(int level, multigrid::cycle cycle,
+                         size_type current_nrows, size_type next_nrows);
+
+    void run_cycle(multigrid::cycle cycle, size_type level,
+                   const std::shared_ptr<const LinOp>& matrix, const LinOp* b,
+                   LinOp* x, bool x_is_zero = false, bool is_first = true,
+                   bool is_end = true);
+
+    template <typename VT>
+    void run_cycle(multigrid::cycle cycle, size_type level,
+                   const std::shared_ptr<const LinOp>& matrix, const LinOp* b,
+                   LinOp* x, bool x_is_zero, bool is_first, bool is_end);
+
+    struct KCycleMultiGridState {
+        void reserve_space(MultigridState* mg_state_in);
+
+        template <typename VT>
+        void allocate_memory(int level, multigrid::cycle cycle,
+                             size_type current_nrows, size_type next_nrows);
+
+        template <typename VT>
+        void kstep(multigrid::cycle cycle, size_type level,
+                   const std::shared_ptr<matrix::Dense<VT>>& g,
+                   const std::shared_ptr<matrix::Dense<VT>>& e);
+
+        MultigridState* mg_state;
+        // 1 x nrhs
+        std::vector<std::shared_ptr<LinOp>> alpha_list;
+        std::vector<std::shared_ptr<LinOp>> beta_list;
+        std::vector<std::shared_ptr<LinOp>> gamma_list;
+        std::vector<std::shared_ptr<LinOp>> rho_list;
+        std::vector<std::shared_ptr<LinOp>> zeta_list;
+        std::vector<std::shared_ptr<LinOp>> old_norm_list;
+        std::vector<std::shared_ptr<LinOp>> new_norm_list;
+        // next level's nrows x nrhs
+        std::vector<std::shared_ptr<LinOp>> v_list;
+        std::vector<std::shared_ptr<LinOp>> w_list;
+        std::vector<std::shared_ptr<LinOp>> d_list;
+    };
+    // current level's nrows x nrhs
+    std::vector<std::shared_ptr<LinOp>> r_list;
+    // next level's nrows x nrhs
+    std::vector<std::shared_ptr<LinOp>> g_list;
+    std::vector<std::shared_ptr<LinOp>> e_list;
+    // constant 1 x 1
+    std::vector<std::shared_ptr<const LinOp>> one_list;
+    std::vector<std::shared_ptr<const LinOp>> neg_one_list;
+    const LinOp* system_matrix;
+    const Multigrid* multigrid;
+    KCycleMultiGridState kcycle_state;
+    size_type nrhs;
+};
 
 
 }  // namespace multigrid
@@ -439,7 +501,8 @@ protected:
         : EnableLinOp<Multigrid>(factory->get_executor(),
                                  transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix}
+          system_matrix_{system_matrix},
+          stop_status(factory->get_executor())
     {
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
 
@@ -537,6 +600,8 @@ private:
     std::shared_ptr<const LinOp> coarsest_solver_{};
     std::function<size_type(const size_type, const LinOp*)> level_selector_;
     std::function<size_type(const size_type, const LinOp*)> solver_selector_;
+    mutable multigrid::MultigridState state;
+    mutable Array<stopping_status> stop_status;
 };
 
 
