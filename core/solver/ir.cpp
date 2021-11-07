@@ -101,8 +101,8 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     bool zero_input = this->get_input_zero();
 
     auto exec = this->get_executor();
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
+    static auto one_op = initialize<Vector>({one<ValueType>()}, exec);
+    static auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
     // TODO: add tempory output clone
     auto residual_cache =
@@ -111,15 +111,17 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     if (residual_cache) {
         residual = residual_cache.get();
     }
-    std::shared_ptr<Vector> residual_op;
+    static std::shared_ptr<Vector> residual_op;
     if (!residual) {
-        residual_op = Vector::create_with_config_of(dense_b);
+        if (!residual_op.get()) {
+            residual_op = Vector::create_with_config_of(dense_b);
+        }
         residual = residual_op.get();
     }
-    auto inner_solution = Vector::create_with_config_of(dense_b);
+    static auto inner_solution = Vector::create_with_config_of(dense_b);
 
     bool one_changed{};
-    Array<stopping_status> stop_status(exec, dense_b->get_size()[1]);
+    static Array<stopping_status> stop_status(exec, dense_b->get_size()[1]);
     exec->run(ir::make_initialize(&stop_status));
 
     if (!zero_input) {
@@ -158,7 +160,6 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
                            &one_changed)) {
                 break;
             }
-            std::cout << "Has residual" << std::endl;
             residual_ptr = residual;
             // residual = b - A * x
             residual->copy_from(dense_b);
