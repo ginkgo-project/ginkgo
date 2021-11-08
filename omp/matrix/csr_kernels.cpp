@@ -723,6 +723,7 @@ void calculate_nonzeros_per_row_in_span(
     const auto col_idxs = source->get_const_col_idxs();
 #pragma omp parallel for
     for (size_type row = row_span.begin; row < row_span.end; ++row) {
+        row_nnz->get_data()[row - row_span.begin] = zero<IndexType>();
         for (size_type nnz = row_ptrs[row]; nnz < row_ptrs[row + 1]; ++nnz) {
             if (col_idxs[nnz] >= col_span.begin &&
                 col_idxs[nnz] < col_span.end) {
