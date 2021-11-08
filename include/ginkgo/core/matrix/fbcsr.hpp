@@ -301,13 +301,6 @@ public:
     int get_block_size() const noexcept { return bs_; }
 
     /**
-     * Set the fixed block size for this matrix
-     *
-     * @param block_size The block size
-     */
-    void set_block_size(const int block_size) noexcept { bs_ = block_size; }
-
-    /**
      * @return The number of block-rows in the matrix
      */
     index_type get_num_block_rows() const noexcept
