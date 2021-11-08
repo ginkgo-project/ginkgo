@@ -94,15 +94,16 @@ public:
             gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
                 nrows, nrhs) +
             PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
-        using byte = unsigned char;
 
-        Array<byte> local_space(exec_, local_size_bytes);
-
-#pragma omp parallel for firstprivate(logger) firstprivate(local_space)
+#pragma omp parallel for firstprivate(logger)
         for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
+            // TODO: Align to cache line boundary
+            const auto local_space =
+                static_cast<unsigned char*>(malloc(local_size_bytes));
             batch_entry_bicgstab_impl<StopType, PrecType, LogType,
                                       BatchMatrixType, ValueType>(
                 opts_, logger, PrecType(), a, b, x, ibatch, local_space);
+            free(local_space);
         }
     }
 
