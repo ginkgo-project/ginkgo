@@ -95,7 +95,7 @@ public:
         for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
             batch_entry_cg_impl<StopType, PrecType, LogType, BatchMatrixType,
                                 ValueType>(opts_, logger, PrecType(), a, b, x,
-                                           ibatch, local_space);
+                                           ibatch, local_space.get_data());
         }
     }
 
