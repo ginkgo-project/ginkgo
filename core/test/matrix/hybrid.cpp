@@ -204,13 +204,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixDataAutomatically)
     using value_type = typename TestFixture::value_type;
     auto m =
         Mtx::create(this->exec, std::make_shared<typename Mtx::automatic>());
-    m->read({{2, 3},
-             {{0, 0, 1.0},
-              {0, 1, 3.0},
-              {0, 2, 2.0},
-              {1, 0, 0.0},
-              {1, 1, 5.0},
-              {1, 2, 0.0}}});
+    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
     auto v = m->get_const_coo_values();
     auto c = m->get_const_coo_col_idxs();
@@ -242,13 +236,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixDataByColumns2)
     using Mtx = typename TestFixture::Mtx;
     auto m = Mtx::create(this->exec,
                          std::make_shared<typename Mtx::column_limit>(2));
-    m->read({{2, 3},
-             {{0, 0, 1.0},
-              {0, 1, 3.0},
-              {0, 2, 2.0},
-              {1, 0, 0.0},
-              {1, 1, 5.0},
-              {1, 2, 0.0}}});
+    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
     this->assert_equal_to_original_mtx(m.get());
 }
@@ -260,13 +248,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixDataByPercent40)
     using value_type = typename TestFixture::value_type;
     auto m = Mtx::create(this->exec,
                          std::make_shared<typename Mtx::imbalance_limit>(0.4));
-    m->read({{2, 3},
-             {{0, 0, 1.0},
-              {0, 1, 3.0},
-              {0, 2, 2.0},
-              {1, 0, 0.0},
-              {1, 1, 5.0},
-              {1, 2, 0.0}}});
+    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
     auto v = m->get_const_ell_values();
     auto c = m->get_const_ell_col_idxs();
@@ -304,9 +286,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataAutomatically)
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
     data.set_value(0, 2, 2.0);
-    data.set_value(1, 0, 0.0);
     data.set_value(1, 1, 5.0);
-    data.set_value(1, 2, 0.0);
 
     m->read(data);
 
@@ -346,9 +326,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataByColumns2)
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
     data.set_value(0, 2, 2.0);
-    data.set_value(1, 0, 0.0);
     data.set_value(1, 1, 5.0);
-    data.set_value(1, 2, 0.0);
 
     m->read(data);
 
@@ -367,9 +345,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataByPercent40)
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
     data.set_value(0, 2, 2.0);
-    data.set_value(1, 0, 0.0);
     data.set_value(1, 1, 5.0);
-    data.set_value(1, 2, 0.0);
 
     m->read(data);
 
