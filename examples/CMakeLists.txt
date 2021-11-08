@@ -31,10 +31,6 @@ set(EXAMPLES_LIST
     schroedinger-splitting
     simple-solver-logging)
 
-if(GINKGO_BUILD_MPI)
-    list(APPEND EXAMPLES_LIST mpi-simple-solver)
-endif()
-
 if(GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP)
     list(APPEND EXAMPLES_LIST custom-matrix-format)
 endif()
