@@ -127,7 +127,6 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Sellp<ValueType, IndexType>>,
             public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
             public DiagonalExtractable<ValueType>,
-            public SubMatrixExtractable<Csr<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable,
@@ -765,9 +764,9 @@ public:
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
     std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
-        const gko::span& row_span, const gko::span& column_span) const override;
+        const gko::span& row_span, const gko::span& column_span) const;
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
+    std::unique_ptr<absolute_type> compute_absolute() const;
 
     void compute_absolute_inplace() override;
 
@@ -984,30 +983,6 @@ protected:
           srow_(exec, strategy->clac_size(num_nonzeros)),
           strategy_(strategy->copy())
     {}
-
-    /**
-     * Creates a CSR matrix from already allocated (and initialized) row
-     * pointer array.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param row_ptrs  array of row pointers
-     */
-    explicit Csr(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        Array<IndexType>&& row_ptrs,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
-        : EnableLinOp<Csr>(exec, size),
-          row_ptrs_{exec, std::move(row_ptrs)},
-          srow_(exec),
-          strategy_(strategy->copy())
-    {
-        GKO_ASSERT(row_ptrs_.get_num_elems() == size[0] + 1);
-        auto num_nnz = exec->copy_val_to_host(row_ptrs_.get_data() + size[0]);
-        values_ = Array<ValueType>(exec, num_nnz);
-        col_idxs_ = Array<IndexType>(exec, num_nnz);
-        this->make_srow();
-    }
 
     /**
      * Creates a CSR matrix from already allocated (and initialized) row

@@ -50,7 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/components/prefix_sum.hpp"
-#include "core/components/reduce_array.hpp"
 #include "core/matrix/csr_kernels.hpp"
 
 
@@ -90,7 +89,6 @@ GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        csr::is_sorted_by_column_index);
 GKO_REGISTER_OPERATION(extract_diagonal, csr::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(reduce_add_array, components::reduce_add_array);
 GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
@@ -552,13 +550,15 @@ Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
     auto exec = this->get_executor();
     auto sub_mat_size = gko::dim<2>(row_span.length(), column_span.length());
     Array<IndexType> row_ptrs(exec, row_span.length() + 1);
-    exec->run(csr::make_fill_array(
-        row_ptrs.get_data(), row_ptrs.get_num_elems(), zero<IndexType>()));
     exec->run(csr::make_calculate_nonzeros_per_row_in_span(
         this, row_span, column_span, &row_ptrs));
     exec->run(csr::make_prefix_sum(row_ptrs.get_data(), row_span.length() + 1));
-    auto sub_mat = Mat::create(exec, sub_mat_size, std::move(row_ptrs),
-                               this->get_strategy());
+    auto num_nnz =
+        exec->copy_val_to_host(row_ptrs.get_data() + sub_mat_size[0]);
+    auto sub_mat = Mat::create(exec, sub_mat_size,
+                               std::move(Array<ValueType>(exec, num_nnz)),
+                               std::move(Array<IndexType>(exec, num_nnz)),
+                               std::move(row_ptrs), this->get_strategy());
     exec->run(csr::make_compute_submatrix(this, row_span, column_span,
                                           sub_mat.get()));
     sub_mat->make_srow();

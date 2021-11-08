@@ -1090,6 +1090,7 @@ __global__
 {
     const auto tidx = thread::get_thread_id_flat() + row_span.begin;
     if (tidx < row_span.end) {
+        nnz_per_row[tidx - row_span.begin] = zero<IndexType>();
         for (size_type col = row_ptrs[tidx]; col < row_ptrs[tidx + 1]; ++col) {
             if (col_idxs[col] >= col_span.begin &&
                 col_idxs[col] < col_span.end) {
