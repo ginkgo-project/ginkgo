@@ -48,18 +48,22 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(ValueType, IndexType) \
-    void spmv(std::shared_ptr<const DefaultExecutor> exec,         \
-              const matrix::SparsityCsr<ValueType, IndexType>* a,  \
-              const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+#define GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(MatrixValueType, InputValueType, \
+                                             OutputValueType, IndexType)      \
+    void spmv(std::shared_ptr<const DefaultExecutor> exec,                    \
+              const matrix::SparsityCsr<MatrixValueType, IndexType>* a,       \
+              const matrix::Dense<InputValueType>* b,                         \
+              matrix::Dense<OutputValueType>* c)
 
-#define GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType) \
-    void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,         \
-                       const matrix::Dense<ValueType>* alpha,               \
-                       const matrix::SparsityCsr<ValueType, IndexType>* a,  \
-                       const matrix::Dense<ValueType>* b,                   \
-                       const matrix::Dense<ValueType>* beta,                \
-                       matrix::Dense<ValueType>* c)
+#define GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(            \
+    MatrixValueType, InputValueType, OutputValueType, IndexType)  \
+    void advanced_spmv(                                           \
+        std::shared_ptr<const DefaultExecutor> exec,              \
+        const matrix::Dense<MatrixValueType>* alpha,              \
+        const matrix::SparsityCsr<MatrixValueType, IndexType>* a, \
+        const matrix::Dense<InputValueType>* b,                   \
+        const matrix::Dense<OutputValueType>* beta,               \
+        matrix::Dense<OutputValueType>* c)
 
 #define GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType)    \
     void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,            \
@@ -98,10 +102,14 @@ namespace kernels {
         bool* is_sorted)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
+    template <typename MatrixValueType, typename InputValueType,            \
+              typename OutputValueType, typename IndexType>                 \
+    GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(MatrixValueType, InputValueType,   \
+                                         OutputValueType, IndexType);       \
+    template <typename MatrixValueType, typename InputValueType,            \
+              typename OutputValueType, typename IndexType>                 \
+    GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(                          \
+        MatrixValueType, InputValueType, OutputValueType, IndexType);       \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType);    \
     template <typename ValueType, typename IndexType>                       \
