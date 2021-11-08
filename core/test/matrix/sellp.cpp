@@ -227,13 +227,7 @@ TYPED_TEST(Sellp, CanBeReadFromMatrixData)
 {
     using Mtx = typename TestFixture::Mtx;
     auto m = Mtx::create(this->exec);
-    m->read({{2, 3},
-             {{0, 0, 1.0},
-              {0, 1, 3.0},
-              {0, 2, 2.0},
-              {1, 0, 0.0},
-              {1, 1, 5.0},
-              {1, 2, 0.0}}});
+    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
     this->assert_equal_to_original_mtx(m.get());
 }
@@ -243,13 +237,7 @@ TYPED_TEST(Sellp, CanBeReadFromMatrixDataWithSliceSizeAndStrideFactor)
 {
     using Mtx = typename TestFixture::Mtx;
     auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, 2, 2, 3);
-    m->read({{2, 3},
-             {{0, 0, 1.0},
-              {0, 1, 3.0},
-              {0, 2, 2.0},
-              {1, 0, 0.0},
-              {1, 1, 5.0},
-              {1, 2, 0.0}}});
+    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
     this->assert_equal_to_original_mtx_with_slice_size_and_stride_factor(
         m.get());
@@ -284,9 +272,7 @@ TYPED_TEST(Sellp, CanBeReadFromMatrixAssemblyData)
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
     data.set_value(0, 2, 2.0);
-    data.set_value(1, 0, 0.0);
     data.set_value(1, 1, 5.0);
-    data.set_value(1, 2, 0.0);
 
     m->read(data);
 
@@ -304,9 +290,7 @@ TYPED_TEST(Sellp, CanBeReadFromMatrixAssemblyDataWithSliceSizeAndStrideFactor)
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
     data.set_value(0, 2, 2.0);
-    data.set_value(1, 0, 0.0);
     data.set_value(1, 1, 5.0);
-    data.set_value(1, 2, 0.0);
 
     m->read(data);
 
