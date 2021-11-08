@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/iterator_factory.hpp"
+#include "core/base/mixed_precision_types.hpp"
 #include "omp/components/format_conversion.hpp"
 
 
@@ -61,47 +62,51 @@ namespace omp {
 namespace sparsity_csr {
 
 
-template <typename ValueType, typename IndexType>
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
-          const matrix::SparsityCsr<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+          const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
+          const matrix::Dense<InputValueType>* b,
+          matrix::Dense<OutputValueType>* c)
 {
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    auto val = a->get_const_value()[0];
+    const auto val = static_cast<OutputValueType>(a->get_const_value()[0]);
 
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c->at(row, j) = zero<ValueType>();
+            c->at(row, j) = zero<OutputValueType>();
         }
         for (size_type k = row_ptrs[row];
              k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
             auto col = col_idxs[k];
             for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) += val * b->at(col, j);
+                c->at(row, j) +=
+                    val * static_cast<OutputValueType>(b->at(col, j));
             }
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
-                   const matrix::SparsityCsr<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
+                   const matrix::Dense<MatrixValueType>* alpha,
+                   const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
+                   const matrix::Dense<InputValueType>* b,
+                   const matrix::Dense<OutputValueType>* beta,
+                   matrix::Dense<OutputValueType>* c)
 {
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    auto valpha = alpha->at(0, 0);
-    auto vbeta = beta->at(0, 0);
-    auto val = a->get_const_value()[0];
+    const auto valpha = static_cast<OutputValueType>(alpha->at(0, 0));
+    const auto vbeta = beta->at(0, 0);
+    const auto val = static_cast<OutputValueType>(a->get_const_value()[0]);
 
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
@@ -112,13 +117,14 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
              k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
             auto col = col_idxs[k];
             for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) += valpha * val * b->at(col, j);
+                c->at(row, j) +=
+                    valpha * val * static_cast<OutputValueType>(b->at(col, j));
             }
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL);
 
 
