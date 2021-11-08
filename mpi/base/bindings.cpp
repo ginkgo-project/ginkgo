@@ -330,6 +330,16 @@ int get_num_ranks(const communicator& comm)
 }
 
 
+bool is_gpu_aware()
+{
+#if GKO_HAVE_CUDA_AWARE_MPI
+    return true;
+#else
+    return false;
+#endif
+}
+
+
 void synchronize(const communicator& comm) { bindings::barrier(comm.get()); }
 
 

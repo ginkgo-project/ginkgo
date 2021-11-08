@@ -164,6 +164,9 @@ int get_num_ranks(const communicator& comm) GKO_NOT_COMPILED(mpi);
 void synchronize(const communicator& comm) GKO_NOT_COMPILED(mpi);
 
 
+bool is_gpu_aware() GKO_NOT_COMPILED(mpi);
+
+
 void wait(std::shared_ptr<request> req, std::shared_ptr<status> status)
     GKO_NOT_COMPILED(mpi);
 

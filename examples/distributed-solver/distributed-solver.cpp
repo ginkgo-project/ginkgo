@@ -91,10 +91,10 @@ int main(int argc, char* argv[])
     ValueType t_init = MPI_Wtime();
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto grid_dim =
-        static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);
-    const auto comm = gko::mpi::communicator::create_world();
-    const gko::size_type inner_iter = argc >= 4 ? std::atoi(argv[3]) : 10u;
+        static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 20);
+    const gko::size_type num_reps = argc >= 4 ? std::atoi(argv[3]) : 5u;
     const gko::size_type coarse_iters = argc >= 5 ? std::atoi(argv[4]) : 50u;
+    const auto comm = gko::mpi::communicator::create_world();
     const auto rank = comm->rank();
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -125,53 +125,52 @@ int main(int argc, char* argv[])
 
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
+    const auto num_rows = grid_dim * grid_dim * grid_dim;
 
-    // gko::matrix_data<ValueType, GlobalIndexType> A_data;
-    // gko::matrix_data<ValueType, GlobalIndexType> b_data;
-    // gko::matrix_data<ValueType, GlobalIndexType> x_data;
-    // A_data.size = {num_rows, num_rows};
-    // b_data.size = {num_rows, 1};
-    // x_data.size = {num_rows, 1};
-    // for (int i = 0; i < grid_dim; i++) {
-    //     for (int j = 0; j < grid_dim; j++) {
-    //         for (int k = 0; k < grid_dim; k++) {
-    //             auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
-    //             if (i > 0)
-    //                 A_data.nonzeros.emplace_back(idx, idx - grid_dim *
-    //                 grid_dim,
-    //                                              -1);
-    //             if (j > 0)
-    //                 A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
-    //             if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
-    //             A_data.nonzeros.emplace_back(idx, idx, 8);
-    //             if (k < grid_dim - 1)
-    //                 A_data.nonzeros.emplace_back(idx, idx + 1, -1);
-    //             if (j < grid_dim - 1)
-    //                 A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
-    //             if (i < grid_dim - 1)
-    //                 A_data.nonzeros.emplace_back(idx, idx + grid_dim *
-    //                 grid_dim,
-    //                                              -1);
-    //             // b_data.nonzeros.emplace_back(
-    //             //     idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
-    //             b_data.nonzeros.emplace_back(idx, 0, 1.0);
-    //             x_data.nonzeros.emplace_back(idx, 0, 1.0);
-    //         }
-    //     }
-    // }
-
-    std::ifstream a_stream{"data/A.mtx"};
-    auto A_data = gko::read_raw<ValueType, GlobalIndexType>(a_stream);
+    gko::matrix_data<ValueType, GlobalIndexType> A_data;
     gko::matrix_data<ValueType, GlobalIndexType> b_data;
     gko::matrix_data<ValueType, GlobalIndexType> x_data;
-    const auto num_rows = A_data.size[0];
+    A_data.size = {num_rows, num_rows};
     b_data.size = {num_rows, 1};
     x_data.size = {num_rows, 1};
-    gko::size_type size = num_rows;
-    for (auto i = 0; i < size; i++) {
-        b_data.nonzeros.emplace_back(i, 0, 1.0);
-        x_data.nonzeros.emplace_back(i, 0, 1.0);
+    for (int i = 0; i < grid_dim; i++) {
+        for (int j = 0; j < grid_dim; j++) {
+            for (int k = 0; k < grid_dim; k++) {
+                auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
+                if (i > 0)
+                    A_data.nonzeros.emplace_back(idx, idx - grid_dim * grid_dim,
+                                                 -1);
+                if (j > 0)
+                    A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
+                if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
+                A_data.nonzeros.emplace_back(idx, idx, 8);
+                if (k < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + 1, -1);
+                if (j < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
+                if (i < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + grid_dim * grid_dim,
+                                                 -1);
+                // b_data.nonzeros.emplace_back(
+                //     idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
+                b_data.nonzeros.emplace_back(idx, 0, 1.0);
+                x_data.nonzeros.emplace_back(idx, 0, 1.0);
+            }
+        }
     }
+
+    // std::ifstream a_stream{"data/A.mtx"};
+    // auto A_data = gko::read_raw<ValueType, GlobalIndexType>(a_stream);
+    // gko::matrix_data<ValueType, GlobalIndexType> b_data;
+    // gko::matrix_data<ValueType, GlobalIndexType> x_data;
+    // const auto num_rows = A_data.size[0];
+    // b_data.size = {num_rows, 1};
+    // x_data.size = {num_rows, 1};
+    // gko::size_type size = num_rows;
+    // for (auto i = 0; i < size; i++) {
+    //     b_data.nonzeros.emplace_back(i, 0, 1.0);
+    //     x_data.nonzeros.emplace_back(i, 0, 1.0);
+    // }
 
     // build partition: uniform number of rows per rank
     gko::Array<gko::int64> ranges_array{
@@ -184,7 +183,6 @@ int main(int argc, char* argv[])
     auto partition = gko::share(
         part_type::build_from_contiguous(exec->get_master(), ranges_array));
 
-    ValueType t_init_end = MPI_Wtime();
 
     auto A_host = gko::share(dist_mtx::create(exec->get_master(), comm));
     auto b_host = dist_vec::create(exec->get_master(), comm);
@@ -198,6 +196,7 @@ int main(int argc, char* argv[])
     A->copy_from(A_host.get());
     b->copy_from(b_host.get());
     x->copy_from(x_host.get());
+    ValueType t_init_end = MPI_Wtime();
 
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
@@ -206,10 +205,10 @@ int main(int argc, char* argv[])
     b->compute_norm2(gko::lend(initial_resnorm));
     b->copy_from(b_host.get());
 
-    auto block_A = block_approx::create(exec, A.get(), comm);
+    // auto block_A = block_approx::create(exec, A.get(), comm);
 
-    gko::remove_complex<ValueType> inner_reduction_factor = 1e-2;
-    auto inner_solver = gko::share(paric::build().on(exec));
+    // gko::remove_complex<ValueType> inner_reduction_factor = 1e-2;
+    // auto inner_solver = gko::share(paric::build().on(exec));
     // bj::build().on(exec));
     // gko::share(
     //     ir::build()
@@ -226,32 +225,32 @@ int main(int argc, char* argv[])
     //                        .on(exec))
     //     .on(exec));
     // bj::build().with_max_block_size(1u).on(exec)
-    auto bA = block_A->get_block_mtxs();
-    auto inner_solvers = std::vector<std::shared_ptr<const gko::LinOp>>();
-    for (auto i = 0; i < bA.size(); ++i) {
-        inner_solvers.emplace_back(
-            gko::share(inner_solver->generate(gko::share(bA[i]))));
-    }
-    auto coarse_solver = gko::share(
-        ir::build()
-            .with_relaxation_factor(1.0)
-            .with_solver(bj::build().with_max_block_size(1u).on(exec))
-            // cg::build()
-            //     // .with_preconditioner(bj::build().on(exec))
-            //     .with_criteria(
-            //         gko::stop::Iteration::build().with_max_iters(10u).on(exec))
-            //     .on(exec)
-            // )
-            .with_criteria(gko::stop::Iteration::build()
-                               .with_max_iters(coarse_iters)
-                               .on(exec))
-            .on(exec)
-            ->generate(A));
-    auto ras_precond = ras::build()
-                           .with_generated_inner_solvers(inner_solvers)
-                           .with_generated_coarse_solvers(coarse_solver)
-                           .on(exec)
-                           ->generate(A);
+    // auto bA = block_A->get_block_mtxs();
+    // auto inner_solvers = std::vector<std::shared_ptr<const gko::LinOp>>();
+    // for (auto i = 0; i < bA.size(); ++i) {
+    //     inner_solvers.emplace_back(
+    //         gko::share(inner_solver->generate(gko::share(bA[i]))));
+    // }
+    // auto coarse_solver = gko::share(
+    //     ir::build()
+    //         .with_relaxation_factor(1.0)
+    //         .with_solver(bj::build().with_max_block_size(1u).on(exec))
+    //         // cg::build()
+    //         //     // .with_preconditioner(bj::build().on(exec))
+    //         //     .with_criteria(
+    //         // gko::stop::Iteration::build().with_max_iters(10u).on(exec))
+    //         //     .on(exec)
+    //         // )
+    //         .with_criteria(gko::stop::Iteration::build()
+    //                            .with_max_iters(coarse_iters)
+    //                            .on(exec))
+    //         .on(exec)
+    //         ->generate(A));
+    // auto ras_precond = ras::build()
+    //                        .with_generated_inner_solvers(inner_solvers)
+    //                        .with_generated_coarse_solvers(coarse_solver)
+    //                        .on(exec)
+    //                        ->generate(A);
 
     gko::remove_complex<ValueType> reduction_factor = 1e-10;
     std::shared_ptr<gko::stop::Iteration::Factory> iter_stop =
@@ -285,7 +284,7 @@ int main(int argc, char* argv[])
     ValueType t_read_setup_end = MPI_Wtime();
 
     auto Ainv = solver::build()
-                    .with_generated_preconditioner(gko::share(ras_precond))
+                    // .with_generated_preconditioner(gko::share(ras_precond))
                     .with_criteria(combined_stop)
                     .on(exec)
                     ->generate(A);
@@ -296,11 +295,16 @@ int main(int argc, char* argv[])
     // Ainv->add_logger(stream_logger);
     MPI_Barrier(MPI_COMM_WORLD);
     ValueType t_solver_generate_end = MPI_Wtime();
+    ValueType t_solver_apply_end = t_solver_generate_end;
+    for (auto i = 0; i < num_reps; ++i) {
+        ValueType t_loop_st = MPI_Wtime();
+        Ainv->apply(lend(b), lend(x));
+        MPI_Barrier(MPI_COMM_WORLD);
+        ValueType t_loop_end = MPI_Wtime();
+        t_solver_apply_end += t_loop_end - t_loop_st;
+        x->copy_from(x_host.get());
+    }
 
-    Ainv->apply(lend(b), lend(x));
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    ValueType t_solver_apply_end = MPI_Wtime();
     // Ainv->remove_logger(logger.get());
 
     one = gko::initialize<vec>({1.0}, exec);
@@ -318,7 +322,9 @@ int main(int argc, char* argv[])
 
     if (comm->rank() == 0) {
         // clang-format off
-    std::cout << "\nNum rows in matrix: " << num_rows
+        std::cout
+              << "\nRunning on: " << executor_string
+              << "\nNum rows in matrix: " << num_rows
               << "\nNum ranks: " << comm->size()
               << "\nInitial Res norm: " << *initial_resnorm->get_values()
               << "\nFinal Res norm: " << *result->get_values()
@@ -327,7 +333,7 @@ int main(int argc, char* argv[])
               << "\nInit time: " << t_init_end - t_init
               << "\nRead time: " << t_read_setup_end - t_init
               << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
-              << "\nSolver apply time: " << t_solver_apply_end - t_solver_generate_end
+              << "\nSolver apply time: " << (t_solver_apply_end - t_solver_generate_end) / num_reps
               << "\nTotal time: " << t_end - t_init
               << std::endl;
         // clang-format on

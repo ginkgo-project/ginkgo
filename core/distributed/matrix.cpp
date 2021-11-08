@@ -183,7 +183,7 @@ Matrix<ValueType, LocalIndexType>::get_block_approx(
 
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::communicate(
-    const LocalVec* local_b) const
+    const LocalVec* local_b, std::shared_ptr<mpi::request> req) const
 {
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
@@ -195,7 +195,7 @@ void Matrix<ValueType, LocalIndexType>::communicate(
     recv_buffer_.init(exec, recv_dim);
     send_buffer_.init(exec, send_dim);
     auto use_host_buffer =
-        exec->get_master() != exec /* || comm->is_gpu_aware() */;
+        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
     if (use_host_buffer) {
         host_recv_buffer_.init(exec->get_master(), recv_dim);
         host_send_buffer_.init(exec->get_master(), send_dim);
@@ -207,13 +207,13 @@ void Matrix<ValueType, LocalIndexType>::communicate(
                         send_sizes_.data(), send_offsets_.data(),
                         host_recv_buffer_->get_values(), recv_sizes_.data(),
                         recv_offsets_.data(), num_cols,
-                        this->get_communicator());
+                        this->get_communicator(), req);
         recv_buffer_->copy_from(host_recv_buffer_.get());
     } else {
         mpi::all_to_all(send_buffer_->get_const_values(), send_sizes_.data(),
                         send_offsets_.data(), recv_buffer_->get_values(),
                         recv_sizes_.data(), recv_offsets_.data(), num_cols,
-                        this->get_communicator());
+                        this->get_communicator(), req);
     }
 }
 
@@ -224,8 +224,10 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
 {
     auto dense_b = as<GlobalVec>(b);
     auto dense_x = as<GlobalVec>(x);
+    auto req = gko::mpi::request::create(this->get_communicator()->size());
+    this->communicate(dense_b->get_local(), req);
     diag_mtx_->apply(dense_b->get_local(), dense_x->get_local());
-    this->communicate(dense_b->get_local());
+    gko::mpi::wait(req);
     offdiag_mtx_->apply(&one_scalar_, recv_buffer_.get(), &one_scalar_,
                         dense_x->get_local());
 }
@@ -241,9 +243,11 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* alpha,
     auto vec_x = as<GlobalVec>(x);
     auto local_alpha = as<LocalVec>(alpha);
     auto local_beta = as<LocalVec>(beta);
+    auto req = gko::mpi::request::create(this->get_communicator()->size());
+    this->communicate(vec_b->get_local(), req);
     diag_mtx_->apply(local_alpha, vec_b->get_local(), local_beta,
                      vec_x->get_local());
-    this->communicate(vec_b->get_local());
+    gko::mpi::wait(req);
     offdiag_mtx_->apply(local_alpha, recv_buffer_.get(), &one_scalar_,
                         vec_x->get_local());
 }

@@ -127,7 +127,8 @@ protected:
            std::shared_ptr<mpi::communicator> comm =
                std::make_shared<mpi::communicator>());
 
-    void communicate(const LocalVec* local_b) const;
+    void communicate(const LocalVec* local_b,
+                     std::shared_ptr<mpi::request> req = {}) const;
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

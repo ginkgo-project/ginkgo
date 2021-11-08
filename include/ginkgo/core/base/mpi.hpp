@@ -333,6 +333,9 @@ private:
 };
 
 
+bool is_gpu_aware();
+
+
 void synchronize(const communicator& comm = communicator::get_comm_world());
 
 
