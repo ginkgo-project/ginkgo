@@ -161,6 +161,10 @@ public:
  * constrained values are added to the solution of the system `cons_A * z =
  * new_b`.
  *
+ * @note Current restrictions:
+ * - can only be used with a single right-hand-side
+ * - can only be used with `stride=1` vectors
+ *
  * @tparam ValueType The ValueType of the underlying operator and vectors
  * @tparam IndexType The IndexType of the underlying operator and vectors
  */
@@ -375,6 +379,10 @@ public:
     }
 
 private:
+    /**
+     * If available, returns the initial guess provided by the user. Otherwise,
+     * it will return an initial guess filled with zero.
+     */
     std::shared_ptr<const Dense> used_init_guess()
     {
         return orig_init_guess_ ? orig_init_guess_ : zero_init_guess_;
