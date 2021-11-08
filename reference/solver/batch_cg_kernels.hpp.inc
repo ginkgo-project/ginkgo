@@ -113,7 +113,7 @@ inline void batch_entry_cg_impl(
     LogType logger, PrecType prec, const BatchMatrixType& a,
     const gko::batch_dense::UniformBatch<const ValueType>& b,
     const gko::batch_dense::UniformBatch<ValueType>& x, const size_type ibatch,
-    Array<unsigned char>& local_space)
+    unsigned char* const local_space)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     using byte = unsigned char;
@@ -121,7 +121,7 @@ inline void batch_entry_cg_impl(
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
 
-    byte* const shared_space = local_space.get_data();
+    byte* const shared_space = local_space;
     ValueType* const r = reinterpret_cast<ValueType*>(shared_space);
     ValueType* const z = r + nrows * nrhs;
     ValueType* const p = z + nrows * nrhs;
@@ -177,11 +177,13 @@ inline void batch_entry_cg_impl(
     // stopping criterion object
     StopType stop(opts.residual_tol, rhs_norms_entry.values);
 
-    int iter = 0;
+    int iter{};
 
     for (iter = 0; iter < opts.max_its; iter++) {
         // use implicit residual norms
         res_norms_entry.values[0] = sqrt(abs(rho_old_entry.values[0]));
+        // std::cout << "  Batch " << ibatch << ", Iter " << iter <<
+        //    ", res = " << res_norms_entry.values[0] << std::endl;
 
         if (stop.check_converged(res_norms_entry.values)) {
             break;
