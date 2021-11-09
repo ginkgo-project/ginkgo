@@ -129,7 +129,6 @@ __global__ void apply_kernel(const int max_iter,
     using real_type = typename gko::remove_complex<ValueType>;
     const auto nbatch = a.num_batch;
     const auto nrows = a.num_rows;
-    constexpr int nrhs = 1;
 
     constexpr auto tile_size = config::warp_size;
     auto thread_block = group::this_thread_block();
@@ -138,11 +137,11 @@ __global__ void apply_kernel(const int max_iter,
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
         extern __shared__ char local_mem_sh[];
         ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
-        ValueType* const z_sh = r_sh + nrows * nrhs;
-        ValueType* const p_sh = z_sh + nrows * nrhs;
-        ValueType* const Ap_sh = p_sh + nrows * nrhs;
-        ValueType* const x_sh = Ap_sh + nrows * nrhs;
-        ValueType* const prec_work_sh = x_sh + nrows * nrhs;
+        ValueType* const z_sh = r_sh + nrows;
+        ValueType* const p_sh = z_sh + nrows;
+        ValueType* const Ap_sh = p_sh + nrows;
+        ValueType* const x_sh = Ap_sh + nrows;
+        ValueType* const prec_work_sh = x_sh + nrows;
         __shared__ UninitializedArray<ValueType, 1> rho_old_sh;
         __shared__ UninitializedArray<ValueType, 1> rho_new_sh;
         __shared__ UninitializedArray<ValueType, 1> alpha_sh;
