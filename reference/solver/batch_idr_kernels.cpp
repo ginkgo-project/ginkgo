@@ -130,7 +130,7 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
            log::BatchLogData<ValueType>& logdata)
 {
     auto dispatcher = create_dispatcher<ValueType, ValueType>(
-        KernelCaller<ValueType>(exec, opts), exec, opts);
+        KernelCaller<ValueType>(exec, opts), opts);
     dispatcher.apply(a, b, x, logdata);
 }
 

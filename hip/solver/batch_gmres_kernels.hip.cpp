@@ -152,7 +152,7 @@ void apply(std::shared_ptr<const HipExecutor> exec,
 {
     using d_value_type = hip_type<ValueType>;
     auto dispatcher = create_dispatcher<ValueType, d_value_type>(
-        KernelCaller<d_value_type>(exec, opts), exec, opts);
+        KernelCaller<d_value_type>(exec, opts), opts);
     dispatcher.apply(a, b, x, logdata);
 }
 

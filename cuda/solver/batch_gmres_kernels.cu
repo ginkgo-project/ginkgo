@@ -150,7 +150,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
 {
     using cu_value_type = cuda_type<ValueType>;
     auto dispatcher = create_dispatcher<ValueType, cu_value_type>(
-        KernelCaller<cu_value_type>(exec, opts), exec, opts);
+        KernelCaller<cu_value_type>(exec, opts), opts);
     dispatcher.apply(a, b, x, logdata);
 }
 
