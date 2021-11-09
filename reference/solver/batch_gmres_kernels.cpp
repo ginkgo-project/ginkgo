@@ -79,7 +79,7 @@ public:
 
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
-    void call_kernel(LogType logger, const BatchMatrixType& a,
+    void call_kernel(const LogType& logger, const BatchMatrixType& a,
                      const gko::batch_dense::UniformBatch<const ValueType>& b,
                      const gko::batch_dense::UniformBatch<ValueType>& x) const
     {
@@ -93,14 +93,14 @@ public:
             gko::kernels::batch_gmres::local_memory_requirement<ValueType>(
                 nrows, nrhs, opts_.restart_num) +
             PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
-        using byte = unsigned char;
-
-        Array<byte> local_space(exec_, local_size_bytes);
+        // For some reason, gko::Array allocation fails here
+        // Array<unsigned char> local_space(exec_, local_size_bytes);
+        std::vector<unsigned char> local_space(local_size_bytes);
 
         for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
             batch_entry_gmres_impl<StopType, PrecType, LogType, BatchMatrixType,
                                    ValueType>(opts_, logger, PrecType(), a, b,
-                                              x, ibatch, local_space);
+                                              x, ibatch, local_space.data());
         }
     }
 
@@ -128,7 +128,7 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
            log::BatchLogData<ValueType>& logdata)
 {
     auto dispatcher = create_dispatcher<ValueType, ValueType>(
-        KernelCaller<ValueType>(exec, opts), exec, opts);
+        KernelCaller<ValueType>(exec, opts), opts);
     dispatcher.apply(a, b, x, logdata);
 }
 
