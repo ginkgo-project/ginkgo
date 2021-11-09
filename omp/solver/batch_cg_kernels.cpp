@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_cg_kernels.hpp"
 
 
-#include <omp.h>
-
-
 #include "omp/base/config.hpp"
 #include "reference/matrix/batch_struct.hpp"
 // include device kernels for every matrix and preconditioner type
@@ -140,7 +137,7 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
            log::BatchLogData<ValueType>& logdata)
 {
     auto dispatcher = create_dispatcher<ValueType, ValueType>(
-        KernelCaller<ValueType>(exec, opts), exec, opts);
+        KernelCaller<ValueType>(exec, opts), opts);
     dispatcher.apply(a, b, x, logdata);
 }
 
