@@ -285,11 +285,9 @@ inline void batch_entry_bicgstab_impl(
     // stopping criterion object
     StopType stop(opts.residual_tol, rhs_norms_entry.values);
 
-    int iter = -1;
+    int iter{};
 
-    while (1) {
-        ++iter;
-
+    for (iter = 0; iter < opts.max_its; iter++) {
         if (stop.check_converged(res_norms_entry.values)) {
             break;
         }

@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 template <typename DeviceValueType>
 class DummyKernelCaller {
 public:
@@ -51,26 +50,20 @@ public:
  * @tparam KernelCaller  Class with an interface like DummyKernelCaller,
  *   that is reponsible for finally calling the templated backend-specific
  *   kernel.
- * @tparam ExecType  Executor to run the kernel on.
  * @tparam OptsType  Structure type of options for the particular solver to be
  *   used.
  * @tparam ValueType  The user-facing value type.
  * @tparam DeviceValueType  The backend-specific value type corresponding to
  *   ValueType.
  */
-template <typename KernelCaller, typename ExecType, typename OptsType,
-          typename ValueType, typename DeviceValueType>
+template <typename KernelCaller, typename OptsType, typename ValueType,
+          typename DeviceValueType>
 class BatchSolverDispatch {
 public:
-    BatchSolverDispatch(const KernelCaller& kernel_caller,
-                        std::shared_ptr<const ExecType> exec,
-                        const OptsType& opts,
+    BatchSolverDispatch(const KernelCaller& kernel_caller, const OptsType& opts,
                         const log::BatchLogType logger_type =
                             log::BatchLogType::simple_convergence_completion)
-        : caller_(kernel_caller),
-          exec_(exec),
-          opts_(opts),
-          logger_type_{logger_type}
+        : caller_(kernel_caller), opts_(opts), logger_type_{logger_type}
     {}
 
     template <typename PrecType, typename BatchMatrixType, typename LogType>
@@ -157,7 +150,6 @@ public:
 
 private:
     const KernelCaller& caller_;
-    std::shared_ptr<const ExecType> exec_;
     const OptsType& opts_;
     const log::BatchLogType logger_type_;
 };
@@ -167,15 +159,13 @@ private:
  * Conventient function to create a dispatcher. Infers most template arguments.
  */
 template <typename ValueType, typename DeviceValueType, typename KernelCaller,
-          typename ExecType, typename OptsType>
-BatchSolverDispatch<KernelCaller, ExecType, OptsType, ValueType,
-                    DeviceValueType>
-create_dispatcher(const KernelCaller& kernel_caller,
-                  std::shared_ptr<const ExecType> exec, const OptsType& opts,
+          typename OptsType>
+BatchSolverDispatch<KernelCaller, OptsType, ValueType, DeviceValueType>
+create_dispatcher(const KernelCaller& kernel_caller, const OptsType& opts,
                   const log::BatchLogType logger_type =
                       log::BatchLogType::simple_convergence_completion)
 {
-    return BatchSolverDispatch<KernelCaller, ExecType, OptsType, ValueType,
-                               DeviceValueType>(kernel_caller, exec, opts,
+    return BatchSolverDispatch<KernelCaller, OptsType, ValueType,
+                               DeviceValueType>(kernel_caller, opts,
                                                 logger_type);
 }
