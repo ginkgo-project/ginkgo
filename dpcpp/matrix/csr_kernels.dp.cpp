@@ -1651,15 +1651,16 @@ GKO_ENABLE_DEFAULT_HOST(calc_nnz_in_span, calc_nnz_in_span);
 
 
 template <typename ValueType, typename IndexType>
-void compute_submat(size_type num_rows, size_type num_cols, size_type num_nnz,
-                    size_type row_offset, size_type col_offset,
-                    const IndexType* __restrict__ src_row_ptrs,
-                    const IndexType* __restrict__ src_col_idxs,
-                    const ValueType* __restrict__ src_values,
-                    const IndexType* __restrict__ res_row_ptrs,
-                    IndexType* __restrict__ res_col_idxs,
-                    ValueType* __restrict__ res_values,
-                    sycl::nd_item<3> item_ct1)
+void compute_submatrix_idxs_and_vals(size_type num_rows, size_type num_cols,
+                                     size_type num_nnz, size_type row_offset,
+                                     size_type col_offset,
+                                     const IndexType* __restrict__ src_row_ptrs,
+                                     const IndexType* __restrict__ src_col_idxs,
+                                     const ValueType* __restrict__ src_values,
+                                     const IndexType* __restrict__ res_row_ptrs,
+                                     IndexType* __restrict__ res_col_idxs,
+                                     ValueType* __restrict__ res_values,
+                                     sycl::nd_item<3> item_ct1)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     if (tidx < num_rows) {
@@ -1676,7 +1677,8 @@ void compute_submat(size_type num_rows, size_type num_cols, size_type num_nnz,
     }
 }
 
-GKO_ENABLE_DEFAULT_HOST(compute_submat, compute_submat);
+GKO_ENABLE_DEFAULT_HOST(compute_submatrix_idxs_and_vals,
+                        compute_submatrix_idxs_and_vals);
 
 
 }  // namespace kernel
@@ -1718,7 +1720,7 @@ void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_nnz = source->get_num_stored_elements();
     auto grid_dim = ceildiv(num_rows, default_block_size);
     auto block_dim = default_block_size;
-    kernel::compute_submat(
+    kernel::compute_submatrix_idxs_and_vals(
         grid_dim, block_dim, 0, exec->get_queue(), num_rows, num_cols, num_nnz,
         row_offset, col_offset, source->get_const_row_ptrs(),
         source->get_const_col_idxs(), source->get_const_values(),
