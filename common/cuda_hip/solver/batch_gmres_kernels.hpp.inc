@@ -260,7 +260,6 @@ __global__ void apply_kernel(const int global_gap, const int max_iter,
     using real_type = typename gko::remove_complex<ValueType>;
     const auto nbatch = a.num_batch;
     const auto nrows = a.num_rows;
-    constexpr int nrhs = 1;
 
     constexpr auto tile_size = config::warp_size;
     auto thread_block = group::this_thread_block();
@@ -274,14 +273,14 @@ __global__ void apply_kernel(const int global_gap, const int max_iter,
         extern __shared__ char local_mem_sh[];
         ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
 #endif
-        ValueType* const z_sh = r_sh + nrows * nrhs;
-        ValueType* const w_sh = z_sh + nrows * nrhs;
-        ValueType* const x_sh = w_sh + nrows * nrhs;
-        ValueType* const helper_sh = x_sh + nrows * nrhs;
-        ValueType* const cs_sh = helper_sh + nrows * nrhs;
-        ValueType* const sn_sh = cs_sh + restart * nrhs;
-        ValueType* const y_sh = sn_sh + restart * nrhs;
-        ValueType* const s_sh = y_sh + restart * nrhs;
+        ValueType* const z_sh = r_sh + nrows;
+        ValueType* const w_sh = z_sh + nrows;
+        ValueType* const x_sh = w_sh + nrows;
+        ValueType* const helper_sh = x_sh + nrows;
+        ValueType* const cs_sh = helper_sh + nrows;
+        ValueType* const sn_sh = cs_sh + restart;
+        ValueType* const y_sh = sn_sh + restart;
+        ValueType* const s_sh = y_sh + restart;
 
         // Hessenberg matrix
         // const gko::batch_dense::BatchEntry<ValueType> H_shared_entry{
@@ -291,7 +290,7 @@ __global__ void apply_kernel(const int global_gap, const int max_iter,
         // the other in a row - when drawn on paper, (and the same is true for
         // actual storage as the storage order is row-major) to get entry (i,j)
         // for rhs: rhs_k , H_entry.stride*i + j*nrhs  + rhs_k
-        ValueType* const H_sh = s_sh + (restart + 1) * nrhs;
+        ValueType* const H_sh = s_sh + (restart + 1);
 
         // Krylov subspace basis vectors
         // storage:row-major order , subspace basis vectors corr. to each rhs
@@ -302,9 +301,9 @@ __global__ void apply_kernel(const int global_gap, const int max_iter,
         // are stored contiguously in memory one after the other.
         // const gko::batch_dense::BatchEntry<ValueType> V_shared_entry{
         //     V_sh, static_cast<size_type>(nrhs), nrows * (restart + 1), nrhs};
-        ValueType* const V_sh = H_sh + restart * (restart + 1) * nrhs;
+        ValueType* const V_sh = H_sh + restart * (restart + 1);
 
-        ValueType* const prec_work_sh = V_sh + nrows * (restart + 1) * nrhs;
+        ValueType* const prec_work_sh = V_sh + nrows * (restart + 1);
 
         // real_type *const norms_rhs_sh = reinterpret_cast<real_type *>(
         //     prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz));
@@ -320,7 +319,7 @@ __global__ void apply_kernel(const int global_gap, const int max_iter,
             gko::batch::batch_entry_ptr(x, 1, nrows, ibatch);
 
         // Stride of Hessenberg matrix
-        const auto h_stride = static_cast<size_type>(nrhs * restart);
+        const auto h_stride = static_cast<size_type>(restart);
 
         prec_shared.generate(a_gl_entry, prec_work_sh);
 
