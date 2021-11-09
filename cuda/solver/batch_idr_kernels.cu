@@ -185,8 +185,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
         opts.deterministic_gen ? as_cuda_type(arr.get_const_data()) : nullptr;
 
     auto dispatcher = create_dispatcher<ValueType, cu_value_type>(
-        KernelCaller<cu_value_type>(exec, opts, subspace_vectors_entry), exec,
-        opts);
+        KernelCaller<cu_value_type>(exec, opts, subspace_vectors_entry), opts);
     dispatcher.apply(a, b, x, logdata);
 }
 
