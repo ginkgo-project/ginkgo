@@ -98,14 +98,13 @@ public:
             gko::kernels::batch_rich::local_memory_requirement<ValueType>(
                 nrows, nrhs) +
             PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
-        using byte = unsigned char;
-
-        Array<byte> local_space(exec_, local_size_bytes);
+        // Array<unsigned char> local_space(exec_, local_size_bytes);
+        std::vector<unsigned char> local_space(local_size_bytes);
 
         for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
             batch_entry_richardson_impl<StopType, PrecType, LogType,
                                         BatchMatrixType, ValueType>(
-                opts_, logger, PrecType(), a, b, x, ibatch, local_space);
+                opts_, logger, PrecType(), a, b, x, ibatch, local_space.data());
         }
     }
 
