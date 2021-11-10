@@ -399,12 +399,9 @@ TEST_F(MpiBindings, CanReduceValues)
     } else if (my_rank == 3) {
         data = 6;
     }
-    gko::mpi::reduce<ValueType>(&data, &sum, 1, gko::mpi::op_type::sum, 0,
-                                comm);
-    gko::mpi::reduce<ValueType>(&data, &max, 1, gko::mpi::op_type::max, 0,
-                                comm);
-    gko::mpi::reduce<ValueType>(&data, &min, 1, gko::mpi::op_type::min, 0,
-                                comm);
+    gko::mpi::reduce<ValueType>(&data, &sum, 1, MPI_SUM, 0, comm);
+    gko::mpi::reduce<ValueType>(&data, &max, 1, MPI_MAX, 0, comm);
+    gko::mpi::reduce<ValueType>(&data, &min, 1, MPI_MIN, 0, comm);
     if (my_rank == 0) {
         EXPECT_EQ(sum, 16.0);
         EXPECT_EQ(max, 6.0);
@@ -428,7 +425,7 @@ TEST_F(MpiBindings, CanAllReduceValues)
     } else if (my_rank == 3) {
         data = 6;
     }
-    gko::mpi::all_reduce<int>(&data, &sum, 1, gko::mpi::op_type::sum, comm);
+    gko::mpi::all_reduce<int>(&data, &sum, 1, MPI_SUM, comm);
     ASSERT_EQ(sum, 16);
 }
 
@@ -448,7 +445,7 @@ TEST_F(MpiBindings, CanAllReduceValuesInPlace)
     } else if (my_rank == 3) {
         data = 6;
     }
-    gko::mpi::all_reduce<int>(&data, 1, gko::mpi::op_type::sum, comm);
+    gko::mpi::all_reduce<int>(&data, 1, MPI_SUM, comm);
     ASSERT_EQ(data, 16);
 }
 
@@ -549,7 +546,7 @@ TEST_F(MpiBindings, CanScatterValuesWithDisplacements)
     scatter_into_array =
         gko::Array<double>{ref, static_cast<gko::size_type>(nelems)};
     gko::mpi::gather<int, int>(&nelems, 1, s_counts.get_data(), 1, 0, comm);
-    gko::mpi::scatterv<double, double>(
+    gko::mpi::scatter_v<double, double>(
         scatter_from_array.get_data(), s_counts.get_data(),
         displacements.get_data(), scatter_into_array.get_data(), nelems, 0,
         comm);
@@ -614,7 +611,7 @@ TEST_F(MpiBindings, CanGatherValuesWithDisplacements)
     }
 
     gko::mpi::gather<int, int>(&nelems, 1, r_counts.get_data(), 1, 0, comm);
-    gko::mpi::gatherv<double, double>(
+    gko::mpi::gather_v<double, double>(
         gather_from_array.get_data(), nelems, gather_into_array.get_data(),
         r_counts.get_data(), displacements.get_data(), 0, comm);
     auto comp_data = gather_into_array.get_data();
@@ -762,9 +759,9 @@ TEST_F(MpiBindings, CanScanValues)
     } else if (my_rank == 3) {
         data = 6;
     }
-    gko::mpi::scan<ValueType>(&data, &sum, 1, gko::mpi::op_type::sum, comm);
-    gko::mpi::scan<ValueType>(&data, &max, 1, gko::mpi::op_type::max, comm);
-    gko::mpi::scan<ValueType>(&data, &min, 1, gko::mpi::op_type::min, comm);
+    gko::mpi::scan<ValueType>(&data, &sum, 1, MPI_SUM, comm);
+    gko::mpi::scan<ValueType>(&data, &max, 1, MPI_MAX, comm);
+    gko::mpi::scan<ValueType>(&data, &min, 1, MPI_MIN, comm);
     if (my_rank == 0) {
         EXPECT_EQ(sum, 3.0);
         EXPECT_EQ(max, 3.0);
