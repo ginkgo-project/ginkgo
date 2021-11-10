@@ -163,6 +163,21 @@ void handle_list(
 
 
 namespace multigrid {
+namespace {
+template <typename ValueType>
+int get_type_index(ValueType)
+{
+    return 0;
+}
+
+int get_type_index(float) { return 1; }
+
+int get_type_index(double) { return 2; }
+
+int get_type_index(std::complex<float>) { return 3; }
+
+int get_type_index(std::complex<double>) { return 4; }
+}  // namespace
 
 
 void MultigridState::generate(const LinOp* system_matrix_in,
@@ -179,6 +194,8 @@ void MultigridState::generate(const LinOp* system_matrix_in,
     r_list.clear();
     g_list.clear();
     e_list.clear();
+    b_list.clear();
+    x_list.clear();
     one_list.clear();
     neg_one_list.clear();
     r_list.reserve(list_size);
@@ -186,10 +203,13 @@ void MultigridState::generate(const LinOp* system_matrix_in,
     e_list.reserve(list_size);
     one_list.reserve(list_size);
     neg_one_list.reserve(list_size);
+    b_list.reserve(list_size);
+    x_list.reserve(list_size);
     if (cycle == multigrid::cycle::kfcg || cycle == multigrid::cycle::kgcr) {
         kcycle_state.reserve_space(this);
     }
     // Allocate memory first such that repeating allocation in each iter.
+    int previous_xb = 0;
     for (int i = 0; i < mg_level_list.size(); i++) {
         auto next_nrows = mg_level_list.at(i)->get_coarse_op()->get_size()[0];
         auto mg_level = mg_level_list.at(i);
@@ -197,12 +217,26 @@ void MultigridState::generate(const LinOp* system_matrix_in,
         run<gko::multigrid::EnableMultigridLevel, float, double,
             std::complex<float>, std::complex<double>>(
             mg_level,
-            [this](auto mg_level, auto i, auto cycle, auto current_nrows,
-                   auto next_nrows) {
+            [&, this](auto mg_level, auto i, auto cycle, auto current_nrows,
+                      auto next_nrows) {
                 using value_type = typename std::decay_t<
                     detail::pointee<decltype(mg_level)>>::value_type;
+                using vec = matrix::Dense<value_type>;
                 this->allocate_memory<value_type>(i, cycle, current_nrows,
                                                   next_nrows);
+                auto exec = as<LinOp>(multigrid->get_mg_level_list().at(i))
+                                ->get_executor();
+                int current_xb = get_type_index(value_type{});
+                if (previous_xb != 0 && current_xb != previous_xb) {
+                    b_list.emplace_back(
+                        vec::create(exec, dim<2>{current_nrows, nrhs}));
+                    x_list.emplace_back(
+                        vec::create(exec, dim<2>{current_nrows, nrhs}));
+                } else {
+                    b_list.emplace_back(nullptr);
+                    x_list.emplace_back(nullptr);
+                }
+                previous_xb = current_xb;
             },
             i, cycle, current_nrows, next_nrows);
 
@@ -263,6 +297,17 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     auto r = as_vec<VT>(r_list.at(level));
     auto g = as_vec<VT>(g_list.at(level));
     auto e = as_vec<VT>(e_list.at(level));
+    auto x_workspace = x_list.at(level);
+    auto b_workspace = b_list.at(level);
+    LinOp* x_ptr = x;
+    const LinOp* b_ptr = b;
+    if (x_workspace) {
+        // the value_type is change
+        x_workspace->copy_from(x);
+        b_workspace->copy_from(b);
+        x_ptr = x_workspace.get();
+        b_ptr = b_workspace.get();
+    }
     // get mg_level
     auto mg_level = multigrid->get_mg_level_list().at(level);
     // get the pre_smoother
@@ -285,21 +330,21 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
             std::dynamic_pointer_cast<const EnableZeroInput>(pre_smoother);
         if (x_is_zero && pre_allow_zero_input) {
             pre_allow_zero_input->set_input_zero(true);
-            pre_smoother->apply(b, x);
+            pre_smoother->apply(b_ptr, x_ptr);
             pre_allow_zero_input->set_input_zero(false);
         } else {
-            pre_smoother->apply(b, x);
+            pre_smoother->apply(b_ptr, x_ptr);
         }
         // split the check
         // Thus, when the IR only contains iter limit, there's no additional
         // residual computation
         r->copy_from(b);  // n * b
-        matrix->apply(neg_one, x, one, r.get());
+        matrix->apply(neg_one, x_ptr, one, r.get());
     } else if (level != 0) {
         // move the residual computation at level 0 to out-of-cycle if there
         // is no pre-smoother at level 0
         r->copy_from(b);
-        matrix->apply(neg_one, x, one, r.get());
+        matrix->apply(neg_one, x_ptr, one, r.get());
     }
     // first cycle
     mg_level->get_restrict_op()->apply(r.get(), g.get());
@@ -328,14 +373,14 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
         }
     }
     // prolong
-    mg_level->get_prolong_op()->apply(one, e.get(), one, x);
+    mg_level->get_prolong_op()->apply(one, e.get(), one, x_ptr);
 
     // end or origin previous
     bool use_post = is_end || mid_case == multigrid::mid_smooth_type::both ||
                     mid_case == multigrid::mid_smooth_type::post_smoother;
     // post-smooth
     if (use_post && post_smoother) {
-        post_smoother->apply(b, x);
+        post_smoother->apply(b_ptr, x_ptr);
     }
 
     // put the mid smoother into the end of previous cycle
@@ -344,7 +389,10 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
         (cycle == multigrid::cycle::w || cycle == multigrid::cycle::f) &&
         !is_end && mid_case == multigrid::mid_smooth_type::standalone;
     if (use_mid && mid_smoother) {
-        mid_smoother->apply(b, x);
+        mid_smoother->apply(b_ptr, x_ptr);
+    }
+    if (x_workspace) {
+        x->copy_from(x_ptr);
     }
 }
 

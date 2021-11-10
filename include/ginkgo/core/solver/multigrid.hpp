@@ -142,6 +142,8 @@ struct MultigridState {
     };
     // current level's nrows x nrhs
     std::vector<std::shared_ptr<LinOp>> r_list;
+    std::vector<std::shared_ptr<LinOp>> x_list;
+    std::vector<std::shared_ptr<LinOp>> b_list;
     // next level's nrows x nrhs
     std::vector<std::shared_ptr<LinOp>> g_list;
     std::vector<std::shared_ptr<LinOp>> e_list;
