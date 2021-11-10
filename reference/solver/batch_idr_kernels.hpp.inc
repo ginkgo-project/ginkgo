@@ -515,7 +515,7 @@ inline void batch_entry_idr_impl(
     LogType logger, PrecType prec, const BatchMatrixType& a,
     const gko::batch_dense::UniformBatch<const ValueType>& b,
     const gko::batch_dense::UniformBatch<ValueType>& x, const size_type ibatch,
-    Array<unsigned char>& local_space)
+    unsigned char* const local_space)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     constexpr int max_nrhs = max_num_rhs;
@@ -527,8 +527,7 @@ inline void batch_entry_idr_impl(
     const auto smoothing = opts.to_use_smoothing;
     const auto deterministic = opts.deterministic_gen;
 
-    unsigned char* const shared_space = local_space.get_data();
-    ValueType* const r = reinterpret_cast<ValueType*>(shared_space);
+    ValueType* const r = reinterpret_cast<ValueType*>(local_space);
     ValueType* const t = r + nrows * nrhs;
     ValueType* const v = t + nrows * nrhs;
     ValueType* const xs = v + nrows * nrhs;
