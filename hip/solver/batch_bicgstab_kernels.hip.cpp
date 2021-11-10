@@ -125,7 +125,6 @@ public:
         const int block_size =
             get_num_threads_per_block<BatchMatrixType>(exec_, a.num_rows);
         assert(block_size >= 2 * config::warp_size);
-
         const size_t prec_size =
             PrecType::dynamic_work_size(shared_gap, a.num_nnz) *
             sizeof(value_type);

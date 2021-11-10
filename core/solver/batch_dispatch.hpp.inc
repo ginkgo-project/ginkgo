@@ -63,7 +63,7 @@ public:
     BatchSolverDispatch(const KernelCaller& kernel_caller, const OptsType& opts,
                         const log::BatchLogType logger_type =
                             log::BatchLogType::simple_convergence_completion)
-        : caller_(kernel_caller), opts_(opts), logger_type_{logger_type}
+        : caller_{kernel_caller}, opts_{opts}, logger_type_{logger_type}
     {}
 
     template <typename PrecType, typename BatchMatrixType, typename LogType>
@@ -149,8 +149,8 @@ public:
     }
 
 private:
-    const KernelCaller& caller_;
-    const OptsType& opts_;
+    const KernelCaller caller_;
+    const OptsType opts_;
     const log::BatchLogType logger_type_;
 };
 
