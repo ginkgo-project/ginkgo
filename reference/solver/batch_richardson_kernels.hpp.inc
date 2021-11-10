@@ -38,7 +38,7 @@ inline void batch_entry_richardson_impl(
     LogType logger, PrecType prec, const BatchMatrixType& a,
     const gko::batch_dense::UniformBatch<const ValueType>& b,
     const gko::batch_dense::UniformBatch<ValueType>& x, const size_type ibatch,
-    Array<unsigned char>& local_space)
+    unsigned char* const local_space)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
@@ -47,10 +47,7 @@ inline void batch_entry_richardson_impl(
 
     GKO_ASSERT((nrhs == x.num_rhs));
 
-    using byte = unsigned char;
-
-    byte* const shared_space = local_space.get_data();
-    const auto residual = reinterpret_cast<ValueType*>(shared_space);
+    const auto residual = reinterpret_cast<ValueType*>(local_space);
     ValueType* const delta_x = residual + nrows * nrhs;
     ValueType* const prec_work = delta_x + nrows * nrhs;
     real_type norms[max_num_rhs];
