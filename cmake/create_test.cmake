@@ -65,11 +65,6 @@ function(ginkgo_create_mpi_test test_name num_mpi_procs)
     ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
   string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
   add_executable(${TEST_TARGET_NAME} ${test_name}.cpp)
-  target_include_directories("${TEST_TARGET_NAME}"
-    PRIVATE
-    "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"
-    ${MPI_INCLUDE_PATH}
-    )
   set_target_properties(${TEST_TARGET_NAME} PROPERTIES
     OUTPUT_NAME ${test_name})
   if (GINKGO_CHECK_CIRCULAR_DEPS)
@@ -80,11 +75,11 @@ function(ginkgo_create_mpi_test test_name num_mpi_procs)
   else()
       set(OPENMPI_RUN_AS_ROOT_FLAG "")
   endif()
-  target_link_libraries(${TEST_TARGET_NAME} PRIVATE ginkgo GTest::Main GTest::GTest ${ARGN})
+  target_link_libraries(${TEST_TARGET_NAME} PRIVATE ginkgo GTest::MPI_main GTest::GTest ${ARGN})
   target_link_libraries(${TEST_TARGET_NAME} PRIVATE MPI::MPI_CXX)
   set(test_param ${MPIEXEC_NUMPROC_FLAG} ${num_mpi_procs} ${OPENMPI_RUN_AS_ROOT_FLAG} ${CMAKE_BINARY_DIR}/${REL_BINARY_DIR}/${test_name})
   add_test(NAME ${REL_BINARY_DIR}/${test_name}
-    COMMAND ${MPIEXEC_EXECUTABLE} ${test_param} )
+    COMMAND ${MPIEXEC_EXECUTABLE} ${test_param})
 endfunction(ginkgo_create_mpi_test)
 
 function(ginkgo_create_test_cpp_cuda_header test_name)

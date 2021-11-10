@@ -39,11 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *******************************************************************************/
 
-#ifndef GTEST_MPI_MINIMAL_LISTENER_H
-#define GTEST_MPI_MINIMAL_LISTENER_H
-
-#include <cassert>
 #include <mpi.h>
+#include <cassert>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -373,4 +370,18 @@ private:
 
 }  // namespace GTestMPIListener
 
-#endif /* GTEST_MPI_MINIMAL_LISTENER_H */
+
+int main(int argc, char** argv)
+{
+    ::testing::InitGoogleTest(&argc, argv);
+    MPI_Init(&argc, &argv);
+    ::testing::AddGlobalTestEnvironment(new GTestMPIListener::MPIEnvironment);
+    ::testing::TestEventListeners& listeners =
+        ::testing::UnitTest::GetInstance()->listeners();
+    ::testing::TestEventListener* l =
+        listeners.Release(listeners.default_result_printer());
+    listeners.Append(
+        new GTestMPIListener::MPIWrapperPrinter(l, MPI_COMM_WORLD));
+    int result = RUN_ALL_TESTS();
+    return 0;
+}

@@ -83,8 +83,6 @@ set(GINKGO_MKL_ROOT @GINKGO_MKL_ROOT@)
 set(GINKGO_DPL_ROOT @GINKGO_DPL_ROOT@)
 
 set(GINKGO_HAVE_MPI @GINKGO_HAVE_MPI@)
-set(GINKGO_HAVE_CUDA_AWARE_MPI @GINKGO_HAVE_CUDA_AWARE_MPI@)
-set(GINKGO_FORCE_CUDA_AWARE_MPI @GINKGO_FORCE_CUDA_AWARE_MPI@)
 
 set(GINKGO_HAVE_PAPI_SDE @GINKGO_HAVE_PAPI_SDE@)
 
@@ -154,6 +152,11 @@ endif()
 
 if(GINKGO_HAVE_HWLOC)
     find_package(HWLOC REQUIRED)
+endif()
+
+# Check for MPI if it is enabled
+if(GINKGO_HAVE_MPI)
+    find_package(MPI REQUIRED)
 endif()
 
 # HIP and OpenMP depend on Threads::Threads in some circumstances, but don't find it

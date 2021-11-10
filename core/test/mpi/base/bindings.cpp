@@ -43,10 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/mpi.hpp>
 
 
-#include "core/test/mpi/gtest-mpi-listener.hpp"
-#include "core/test/mpi/gtest-mpi-main.hpp"
-
-
 class MpiBindings : public ::testing::Test {
 protected:
     MpiBindings() : ref(gko::ReferenceExecutor::create()) {}
@@ -787,8 +783,3 @@ TEST_F(MpiBindings, CanScanValues)
         EXPECT_EQ(min, 2.0);
     }
 }
-
-
-// Calls a custom gtest main with MPI listeners. See gtest-mpi-listeners.hpp for
-// more details.
-GKO_DECLARE_GTEST_MPI_MAIN;
