@@ -95,14 +95,13 @@ public:
             gko::kernels::batch_idr::local_memory_requirement<ValueType>(
                 nrows, nrhs, opts_.subspace_dim_val) +
             PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
-        using byte = unsigned char;
-
-        Array<byte> local_space(exec_, local_size_bytes);
+        // Array<unsigned char> local_space(exec_, local_size_bytes);
+        std::vector<unsigned char> local_space(local_size_bytes);
 
         for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
             batch_entry_idr_impl<StopType, PrecType, LogType, BatchMatrixType,
                                  ValueType>(opts_, logger, PrecType(), a, b, x,
-                                            ibatch, local_space);
+                                            ibatch, local_space.data());
         }
     }
 

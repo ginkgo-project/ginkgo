@@ -78,7 +78,7 @@ class KernelCaller {
 public:
     KernelCaller(std::shared_ptr<const ReferenceExecutor> exec,
                  const BatchBicgstabOptions<remove_complex<ValueType>> opts)
-        : exec_{exec}, opts_{opts}
+        : exec_{std::move(exec)}, opts_{opts}
     {}
 
     template <typename BatchMatrixType, typename PrecType, typename StopType,
@@ -97,24 +97,24 @@ public:
             gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
                 nrows, nrhs) +
             PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
-        Array<unsigned char> local_space(exec_, local_size_bytes);
+        // Array<unsigned char> local_space(exec_, local_size_bytes);
+        std::vector<unsigned char> local_space(local_size_bytes);
 
         for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
             batch_entry_bicgstab_impl<StopType, PrecType, LogType,
                                       BatchMatrixType, ValueType>(
-                opts_, logger, PrecType(), a, b, x, ibatch,
-                local_space.get_data());
+                opts_, logger, PrecType(), a, b, x, ibatch, local_space.data());
         }
     }
 
 private:
-    std::shared_ptr<const ReferenceExecutor> exec_;
+    const std::shared_ptr<const ReferenceExecutor> exec_;
     const BatchBicgstabOptions<remove_complex<ValueType>> opts_;
 };
 
 namespace {
 
-using namespace gko::kernels::host;
+using gko::kernels::host::get_batch_struct;
 
 #include "core/solver/batch_dispatch.hpp.inc"
 
