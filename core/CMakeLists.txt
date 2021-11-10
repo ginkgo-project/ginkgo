@@ -84,11 +84,6 @@ endif()
 
 if (GINKGO_BUILD_MPI)
     target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
-    target_include_directories(ginkgo SYSTEM PUBLIC ${MPI_INCLUDE_PATH})
-
-    # Propagate some useful information
-    set(MPI_C_VERSION ${MPI_C_VERSION} PARENT_SCOPE)
-    set(MPI_C_LIBRARIES ${MPI_C_LIBRARIES} PARENT_SCOPE)
 endif()
 
 # Since we have a public dependency on HIP, this dependency appears

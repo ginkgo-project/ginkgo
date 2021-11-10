@@ -23,3 +23,12 @@ set_target_properties(gtest gtest_main PROPERTIES
 # by default, the outdated targets are not being exported
 add_library(GTest::Main ALIAS gtest_main)
 add_library(GTest::GTest ALIAS gtest)
+if(GINKGO_BUILD_MPI)
+    add_library(gtest_mpi_main "")
+    target_sources(gtest_mpi_main
+        PRIVATE
+        gtest_mpi_listener.cpp)
+    find_package(MPI REQUIRED)
+    target_link_libraries(gtest_mpi_main PRIVATE GTest::GTest MPI::MPI_CXX)
+    add_library(GTest::MPI_main ALIAS gtest_mpi_main)
+endif()
