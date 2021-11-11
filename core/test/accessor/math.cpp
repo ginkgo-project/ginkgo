@@ -30,6 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <cinttypes>
 #include <complex>
 
 
@@ -48,8 +49,9 @@ public:
     using value_type = ValueType;
 };
 
-using RealTypes =
-    ::testing::Types<char, short, int, unsigned int, long long, float, double>;
+using RealTypes = ::testing::Types<std::int8_t, std::uint8_t, std::int16_t,
+                                   std::uint16_t, std::int32_t, std::uint32_t,
+                                   std::int64_t, std::uint64_t, float, double>;
 
 
 TYPED_TEST_SUITE(RealMath, RealTypes);

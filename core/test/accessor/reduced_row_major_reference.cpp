@@ -30,6 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <cinttypes>
 #include <complex>
 #include <limits>
 #include <tuple>
@@ -75,11 +76,13 @@ protected:
 
 
 using ReferenceTypes =
-    ::testing::Types<std::tuple<short, char>, std::tuple<int, short>,
-                     std::tuple<long long, short>,
-                     std::tuple<unsigned short, unsigned short>,
-                     std::tuple<double, int>, std::tuple<double, double>,
-                     std::tuple<double, float>, std::tuple<float, float>,
+    ::testing::Types<std::tuple<std::int16_t, std::int8_t>,
+                     std::tuple<std::int32_t, std::int16_t>,
+                     std::tuple<std::int64_t, std::int16_t>,
+                     std::tuple<std::uint16_t, std::uint16_t>,
+                     std::tuple<double, std::int32_t>,
+                     std::tuple<double, double>, std::tuple<double, float>,
+                     std::tuple<float, float>,
                      std::tuple<std::complex<double>, std::complex<double>>,
                      std::tuple<std::complex<double>, std::complex<float>>,
                      std::tuple<std::complex<float>, std::complex<float>>>;
@@ -108,7 +111,7 @@ TYPED_TEST(ReducedRowMajorReference, Write)
 {
     using ar_type = typename TestFixture::ar_type;
     using st_type = typename TestFixture::st_type;
-    const ar_type to_write{19};
+    const auto to_write = static_cast<ar_type>(19.1);
 
     this->get_ref() = to_write;
 
@@ -130,7 +133,7 @@ TYPED_TEST(ReducedRowMajorReference, Multiplication)
     auto res2 = this->get_ref() * mult;
     auto res3 = this->get_const_ref() * mult;
     auto res4 = mult * this->get_const_ref();
-    // Not properly supported:
+    // Not supported because of overload ambiguity:
     // auto self_res1 = this->get_ref() * this->get_const_ref();
     // auto self_res2 = this->get_const_ref() * this->get_ref();
     auto self_res1 = this->get_ref() * this->get_ref();

@@ -30,6 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <cinttypes>
 #include <complex>
 #include <limits>
 #include <tuple>
@@ -66,6 +67,7 @@ protected:
     // writing only works on rvalue reference
     // and reading is only guaranteed to work on rvalue references
     auto get_ref() { return ref_type{&storage, scalar}; }
+
     auto get_const_ref() { return const_ref_type{&storage, scalar}; }
 
     auto get_conv_storage() { return scalar * static_cast<ar_type>(storage); }
@@ -76,11 +78,13 @@ protected:
 
 
 using ReferenceTypes =
-    ::testing::Types<std::tuple<short, char>, std::tuple<int, short>,
-                     std::tuple<long long, short>,
-                     std::tuple<unsigned short, unsigned short>,
-                     std::tuple<double, int>, std::tuple<double, double>,
-                     std::tuple<double, float>, std::tuple<float, float>>;
+    ::testing::Types<std::tuple<std::int16_t, std::int8_t>,
+                     std::tuple<std::int32_t, std::int16_t>,
+                     std::tuple<std::int64_t, std::int16_t>,
+                     std::tuple<std::uint16_t, std::uint16_t>,
+                     std::tuple<double, std::int32_t>,
+                     std::tuple<double, double>, std::tuple<double, float>,
+                     std::tuple<float, float>>;
 
 TYPED_TEST_SUITE(ScaledReducedRowMajorReference, ReferenceTypes);
 
@@ -111,7 +115,7 @@ TYPED_TEST(ScaledReducedRowMajorReference, ReadWithDifferentScalar)
     ar_type test = this->get_ref();
     ar_type c_test = this->get_const_ref();
 
-    ASSERT_EQ(test, this->get_conv_storage());
+    ASSERT_EQ(test, st_type{8} * new_scalar);
     ASSERT_EQ(c_test, this->get_conv_storage());
     ASSERT_EQ(static_cast<ar_type>(this->get_const_ref()),
               this->get_conv_storage());

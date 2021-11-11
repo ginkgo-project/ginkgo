@@ -37,9 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
-#if defined(__CUDACC__)
 #include <thrust/complex.h>
-#endif
 
 
 #include "block_col_major.hpp"
@@ -86,13 +84,11 @@ struct cuda_type<T&&> {
 };
 
 
-// Transform std::complex to thrust::complex iff thrust::complex is included
-#if defined(__CUDACC__)
+// Transform std::complex to thrust::complex
 template <typename T>
 struct cuda_type<std::complex<T>> {
     using type = thrust::complex<T>;
 };
-#endif  // defined(__CUDACC__)
 
 
 }  // namespace detail
