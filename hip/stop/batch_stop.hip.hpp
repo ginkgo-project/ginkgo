@@ -30,8 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_STOP_BATCH_HIP_HPP_
-#define GKO_HIP_STOP_BATCH_HIP_HPP_
+#ifndef GKO_HIP_STOP_BATCH_STOP_HIP_HPP_
+#define GKO_HIP_STOP_BATCH_STOP_HIP_HPP_
+
 
 namespace gko {
 namespace kernels {
@@ -45,4 +46,4 @@ namespace hip {
 }  // namespace kernels
 }  // namespace gko
 
-#endif
+#endif  // GKO_HIP_STOP_BATCH_STOP_HIP_HPP_
