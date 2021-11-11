@@ -262,4 +262,4 @@ BatchSolverDispatch<KernelCaller, OptsType, ValueType> create_dispatcher(
 }  // namespace batch_solver
 }  // namespace gko
 
-#endif
+#endif  // GKO_CORE_SOLVER_BATCH_DISPATCH_HPP_
