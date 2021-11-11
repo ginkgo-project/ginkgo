@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "core/solver/batch_dispatch.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/exception.cuh"
 #include "cuda/base/types.hpp"
@@ -63,16 +64,11 @@ namespace batch_gmres {
 
 #include "common/cuda_hip/components/uninitialized_array.hpp.inc"
 // include all depedencies (note: do not remove this comment)
-#include "common/cuda_hip/components/reduction.hpp.inc"
-#include "common/cuda_hip/log/batch_logger.hpp.inc"
 #include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
-#include "common/cuda_hip/preconditioner/batch_identity.hpp.inc"
-#include "common/cuda_hip/preconditioner/batch_jacobi.hpp.inc"
 #include "common/cuda_hip/solver/batch_gmres_kernels.hpp.inc"
-#include "common/cuda_hip/stop/batch_criteria.hpp.inc"
 
 
 template <typename T>
@@ -137,9 +133,6 @@ private:
 };
 
 
-#include "core/solver/batch_dispatch.hpp.inc"
-
-
 template <typename ValueType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
            const BatchGmresOptions<remove_complex<ValueType>>& opts,
@@ -149,7 +142,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
            log::BatchLogData<ValueType>& logdata)
 {
     using cu_value_type = cuda_type<ValueType>;
-    auto dispatcher = create_dispatcher<ValueType, cu_value_type>(
+    auto dispatcher = batch_solver::create_dispatcher<ValueType>(
         KernelCaller<cu_value_type>(exec, opts), opts);
     dispatcher.apply(a, b, x, logdata);
 }

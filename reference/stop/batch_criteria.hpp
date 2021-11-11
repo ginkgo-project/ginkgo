@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace reference {
+namespace host {
 namespace stop {
 
 
@@ -132,7 +132,7 @@ private:
 
 
 }  // namespace stop
-}  // namespace reference
+}  // namespace host
 }  // namespace kernels
 }  // namespace gko
 
