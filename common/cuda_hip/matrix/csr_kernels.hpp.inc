@@ -1064,14 +1064,15 @@ __global__
         IndexType* __restrict__ result_col_idxs,
         ValueType* __restrict__ result_values)
 {
-    const auto tidx = thread::get_thread_id_flat();
-    if (tidx < num_rows) {
-        size_type res_nnz = result_row_ptrs[tidx];
-        for (size_type nnz = source_row_ptrs[row_offset + tidx];
-             nnz < source_row_ptrs[row_offset + tidx + 1]; ++nnz) {
-            if ((source_col_idxs[nnz] < (col_offset + num_cols) &&
-                 source_col_idxs[nnz] >= col_offset)) {
-                result_col_idxs[res_nnz] = source_col_idxs[nnz] - col_offset;
+    const auto res_row = thread::get_thread_id_flat();
+    if (res_row < num_rows) {
+        const auto src_row = res_row + row_offset;
+        auto res_nnz = result_row_ptrs[res_row];
+        for (auto nnz = source_row_ptrs[src_row];
+             nnz < source_row_ptrs[src_row + 1]; ++nnz) {
+            const auto res_col = source_col_idxs[nnz] - col_offset;
+            if (res_col < num_cols && res_col >= 0) {
+                result_col_idxs[res_nnz] = res_col;
                 result_values[res_nnz] = source_values[nnz];
                 res_nnz++;
             }
@@ -1088,15 +1089,15 @@ __global__
         const IndexType* __restrict__ col_idxs,
         IndexType* __restrict__ nnz_per_row)
 {
-    const auto tidx = thread::get_thread_id_flat() + row_span.begin;
-    if (tidx < row_span.end) {
-        nnz_per_row[tidx - row_span.begin] = zero<IndexType>();
-        for (size_type col = row_ptrs[tidx]; col < row_ptrs[tidx + 1]; ++col) {
-            if (col_idxs[col] >= col_span.begin &&
-                col_idxs[col] < col_span.end) {
-                nnz_per_row[tidx - row_span.begin]++;
+    const auto src_row = thread::get_thread_id_flat() + row_span.begin;
+    if (src_row < row_span.end) {
+        IndexType nnz{};
+        for (auto i = row_ptrs[src_row]; i < row_ptrs[src_row + 1]; ++i) {
+            if (col_idxs[i] >= col_span.begin && col_idxs[i] < col_span.end) {
+                nnz++;
             }
         }
+        nnz_per_row[src_row - row_span.begin] = nnz;
     }
 }
 
