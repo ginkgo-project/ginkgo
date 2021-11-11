@@ -81,12 +81,12 @@ protected:
 
         if (relative) {
             using BatchStop =
-                gko::kernels::reference::stop::SimpleRelResidual<value_type>;
+                gko::kernels::host::stop::SimpleRelResidual<value_type>;
             BatchStop bstop(tol, h_bnorms.get_const_data());
             all_conv = bstop.check_converged(h_resnorms.get_const_data());
         } else {
             using BatchStop =
-                gko::kernels::reference::stop::SimpleAbsResidual<value_type>;
+                gko::kernels::host::stop::SimpleAbsResidual<value_type>;
             BatchStop bstop(tol, h_bnorms.get_const_data());
             all_conv = bstop.check_converged(h_resnorms.get_const_data());
         }

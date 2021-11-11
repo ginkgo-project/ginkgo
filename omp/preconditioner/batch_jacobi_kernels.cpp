@@ -54,20 +54,19 @@ void batch_jacobi_apply(std::shared_ptr<const gko::OmpExecutor> exec,
                         const matrix::BatchDense<ValueType>* const b,
                         matrix::BatchDense<ValueType>* const x)
 {
-    using gko::kernels::reference::BatchJacobi;
-
     const auto a_ub = host::get_batch_struct(a);
     const auto b_ub = host::get_batch_struct(b);
     const auto x_ub = host::get_batch_struct(x);
     const int local_size_bytes =
-        BatchJacobi<ValueType>::dynamic_work_size(a_ub.num_rows, a_ub.num_nnz) *
+        host::BatchJacobi<ValueType>::dynamic_work_size(a_ub.num_rows,
+                                                        a_ub.num_nnz) *
         sizeof(ValueType);
     using byte = unsigned char;
 
 #pragma omp parallel for
     for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
         Array<byte> local_space(exec, local_size_bytes);
-        BatchJacobi<ValueType> prec;
+        host::BatchJacobi<ValueType> prec;
 
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);
@@ -90,20 +89,19 @@ void batch_jacobi_apply(std::shared_ptr<const gko::OmpExecutor> exec,
                         const matrix::BatchDense<ValueType>* const b,
                         matrix::BatchDense<ValueType>* const x)
 {
-    using gko::kernels::reference::BatchJacobi;
-
     const auto a_ub = host::get_batch_struct(a);
     const auto b_ub = host::get_batch_struct(b);
     const auto x_ub = host::get_batch_struct(x);
     const int local_size_bytes =
-        BatchJacobi<ValueType>::dynamic_work_size(a_ub.num_rows, a_ub.num_nnz) *
+        host::BatchJacobi<ValueType>::dynamic_work_size(a_ub.num_rows,
+                                                        a_ub.num_nnz) *
         sizeof(ValueType);
     using byte = unsigned char;
 
 #pragma omp parallel for
     for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
         Array<byte> local_space(exec, local_size_bytes);
-        BatchJacobi<ValueType> prec;
+        host::BatchJacobi<ValueType> prec;
 
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);
