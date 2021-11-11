@@ -53,7 +53,7 @@ protected:
     using real_type = gko::remove_complex<value_type>;
     using BDense = gko::matrix::BatchDense<value_type>;
     using BatchLog =
-        gko::kernels::reference::batch_log::SimpleFinalLogger<real_type>;
+        gko::kernels::host::batch_log::SimpleFinalLogger<real_type>;
 
     BatchFinalLogger() : exec(gko::ReferenceExecutor::create()) {}
 
