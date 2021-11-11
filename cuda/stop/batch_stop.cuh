@@ -30,8 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_STOP_BATCH_CUH_
-#define GKO_CUDA_STOP_BATCH_CUH_
+#ifndef GKO_CUDA_STOP_BATCH_STOP_CUH_
+#define GKO_CUDA_STOP_BATCH_STOP_CUH_
+
 
 namespace gko {
 namespace kernels {
@@ -45,4 +46,4 @@ namespace cuda {
 }  // namespace kernels
 }  // namespace gko
 
-#endif
+#endif  // GKO_CUDA_STOP_BATCH_STOP_CUH_
