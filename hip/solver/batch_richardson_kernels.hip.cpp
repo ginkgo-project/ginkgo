@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "core/solver/batch_dispatch.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/exception.hip.hpp"
 #include "hip/base/types.hip.hpp"
@@ -64,16 +65,11 @@ namespace batch_rich {
 
 #include "common/cuda_hip/components/uninitialized_array.hpp.inc"
 // include all depedencies (note: do not remove this comment)
-#include "common/cuda_hip/components/reduction.hpp.inc"
-#include "common/cuda_hip/log/batch_logger.hpp.inc"
 #include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
-#include "common/cuda_hip/preconditioner/batch_identity.hpp.inc"
-#include "common/cuda_hip/preconditioner/batch_jacobi.hpp.inc"
 #include "common/cuda_hip/solver/batch_richardson_kernels.hpp.inc"
-#include "common/cuda_hip/stop/batch_criteria.hpp.inc"
 
 
 template <typename T>
@@ -120,9 +116,6 @@ private:
 };
 
 
-#include "core/solver/batch_dispatch.hpp.inc"
-
-
 template <typename ValueType>
 void apply(std::shared_ptr<const HipExecutor> exec,
            const BatchRichardsonOptions<remove_complex<ValueType>>& opts,
@@ -132,7 +125,7 @@ void apply(std::shared_ptr<const HipExecutor> exec,
            log::BatchLogData<ValueType>& logdata)
 {
     using d_value_type = hip_type<ValueType>;
-    auto dispatcher = create_dispatcher<ValueType, d_value_type>(
+    auto dispatcher = batch_solver::create_dispatcher<ValueType>(
         KernelCaller<d_value_type>(exec, opts), opts);
     dispatcher.apply(a, b, x, logdata);
 }
