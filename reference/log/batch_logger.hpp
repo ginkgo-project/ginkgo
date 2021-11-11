@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace reference {
+namespace host {
 namespace batch_log {
 
 
@@ -86,7 +86,7 @@ private:
 
 
 }  // namespace batch_log
-}  // namespace reference
+}  // namespace host
 }  // namespace kernels
 }  // namespace gko
 
