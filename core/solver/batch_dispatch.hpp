@@ -58,7 +58,11 @@ using DeviceValueType = typename gko::kernels::cuda::cuda_type<ValueType>;
 
 #elif defined GKO_COMPILING_HIP
 
-#include "hip/matrix/batch_struct.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/log/batch_loggers.hip.hpp"
+#include "hip/matrix/batch_struct.hip.hpp"
+#include "hip/preconditioner/batch_preconditioners.hip.hpp"
+#include "hip/stop/batch_stop.hip.hpp"
 
 namespace gko {
 namespace batch_solver {
