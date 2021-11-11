@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace reference {
+namespace host {
 
 
 /**
@@ -52,7 +52,7 @@ public:
     /**
      * The size of the work vector required in case of static allocation.
      */
-    static constexpr int work_size = batch_config<ValueType>::max_num_rows;
+    // static constexpr int work_size = batch_config<ValueType>::max_num_rows;
 
     /**
      * The size of the work vector required in case of dynamic allocation.
@@ -123,7 +123,7 @@ private:
 };
 
 
-}  // namespace reference
+}  // namespace host
 }  // namespace kernels
 }  // namespace gko
 

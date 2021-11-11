@@ -33,14 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_cg_kernels.hpp"
 
 
+#include "core/solver/batch_dispatch.hpp"
 #include "omp/base/config.hpp"
-#include "reference/matrix/batch_struct.hpp"
 // include device kernels for every matrix and preconditioner type
-#include "reference/log/batch_logger.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
-#include "reference/preconditioner/batch_identity.hpp"
-#include "reference/preconditioner/batch_jacobi.hpp"
-#include "reference/stop/batch_criteria.hpp"
 
 
 namespace gko {
@@ -55,11 +51,6 @@ namespace batch_cg {
 
 
 namespace batch_dense = gko::kernels::reference::batch_dense;
-using gko::kernels::reference::BatchIdentity;
-using gko::kernels::reference::BatchJacobi;
-namespace batch_log = gko::kernels::reference::batch_log;
-namespace stop = gko::kernels::reference::stop;
-
 constexpr int max_num_rhs = 1;
 
 #include "reference/matrix/batch_csr_kernels.hpp.inc"
@@ -123,7 +114,6 @@ namespace {
 
 using namespace gko::kernels::host;
 
-#include "core/solver/batch_dispatch.hpp.inc"
 
 }  // namespace
 
@@ -136,7 +126,7 @@ void apply(std::shared_ptr<const OmpExecutor> exec,
            matrix::BatchDense<ValueType>* const x,
            log::BatchLogData<ValueType>& logdata)
 {
-    auto dispatcher = create_dispatcher<ValueType, ValueType>(
+    auto dispatcher = batch_solver::create_dispatcher<ValueType>(
         KernelCaller<ValueType>(exec, opts), opts);
     dispatcher.apply(a, b, x, logdata);
 }

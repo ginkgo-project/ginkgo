@@ -33,14 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_gmres_kernels.hpp"
 
 
+#include "core/solver/batch_dispatch.hpp"
 #include "reference/base/config.hpp"
 // include device kernels for every matrix and preconditioner type
-#include "reference/log/batch_logger.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
-#include "reference/matrix/batch_struct.hpp"
-#include "reference/preconditioner/batch_identity.hpp"
-#include "reference/preconditioner/batch_jacobi.hpp"
-#include "reference/stop/batch_criteria.hpp"
 
 
 namespace gko {
@@ -110,15 +106,6 @@ private:
 };
 
 
-namespace {
-
-using namespace gko::kernels::host;
-
-#include "core/solver/batch_dispatch.hpp.inc"
-
-}  // namespace
-
-
 template <typename ValueType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec,
            const BatchGmresOptions<remove_complex<ValueType>>& opts,
@@ -127,7 +114,7 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
            matrix::BatchDense<ValueType>* const x,
            log::BatchLogData<ValueType>& logdata)
 {
-    auto dispatcher = create_dispatcher<ValueType, ValueType>(
+    auto dispatcher = batch_solver::create_dispatcher<ValueType>(
         KernelCaller<ValueType>(exec, opts), opts);
     dispatcher.apply(a, b, x, logdata);
 }

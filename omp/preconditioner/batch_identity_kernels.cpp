@@ -50,31 +50,30 @@ namespace batch_identity {
 
 template <typename ValueType>
 void batch_identity_apply(std::shared_ptr<const gko::OmpExecutor> exec,
-                          const matrix::BatchCsr<ValueType> *const a,
-                          const matrix::BatchDense<ValueType> *const b,
-                          matrix::BatchDense<ValueType> *const x)
+                          const matrix::BatchCsr<ValueType>* const a,
+                          const matrix::BatchDense<ValueType>* const b,
+                          matrix::BatchDense<ValueType>* const x)
 {
-    using gko::kernels::reference::BatchIdentity;
-
     const auto a_ub = host::get_batch_struct(a);
     const auto b_ub = host::get_batch_struct(b);
     const auto x_ub = host::get_batch_struct(x);
-    const int local_size_bytes = BatchIdentity<ValueType>::dynamic_work_size(
-                                     a_ub.num_rows, a_ub.num_nnz) *
-                                 sizeof(ValueType);
+    const int local_size_bytes =
+        host::BatchIdentity<ValueType>::dynamic_work_size(a_ub.num_rows,
+                                                          a_ub.num_nnz) *
+        sizeof(ValueType);
     using byte = unsigned char;
 
 #pragma omp parallel for
     for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
         Array<byte> local_space(exec, local_size_bytes);
-        BatchIdentity<ValueType> prec;
+        host::BatchIdentity<ValueType> prec;
 
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);
         const auto x_b = gko::batch::batch_entry(x_ub, batch);
 
         const auto prec_work =
-            reinterpret_cast<ValueType *>(local_space.get_data());
+            reinterpret_cast<ValueType*>(local_space.get_data());
         prec.generate(a_b, prec_work);
         prec.apply(b_b, x_b);
     }
