@@ -88,7 +88,7 @@ template <typename...>
 using void_t = void;
 
 
-}
+}  // namespace xstd
 
 
 using size_type = std::size_t;

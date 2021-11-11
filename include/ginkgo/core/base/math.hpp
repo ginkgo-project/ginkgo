@@ -865,6 +865,11 @@ namespace detail {
 /**
  * @internal
  * Tests if a member function `Ref::to_arithmetic_type` exists
+ * This is used for the accessor references to convert to the arithmetic type in
+ * the math-functions
+ *
+ * @note
+ * This basically mirrors the accessor functionality
  */
 template <typename Ref, typename Dummy = xstd::void_t<>>
 struct has_to_arithmetic_type : std::false_type {
@@ -898,7 +903,9 @@ struct has_arithmetic_type<Ref, xstd::void_t<typename Ref::arithmetic_type>>
 
 /**
  * @internal
- * converts `ref` to an arithmetic type. It performs the following three steps:
+ * converts `ref` to arithmetic type. This is used for accessor references to
+ * convert the type before performing math operations.
+ * It performs the following three steps in order:
  * 1. If a function `to_arithmetic_type()` is available, it will return the
  *    result of that function
  * 2. Otherwise, if the type `Ref::arithmetic_type` exists, it will return the
