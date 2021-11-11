@@ -31,9 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
+
+
 #include "core/solver/batch_dispatch.hpp"
-
-
 #include "reference/base/config.hpp"
 // include device kernels for every matrix and preconditioner type
 #include "reference/matrix/batch_dense_kernels.hpp"
