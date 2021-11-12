@@ -149,6 +149,7 @@ struct MultigridState {
     std::vector<std::shared_ptr<LinOp>> e_list;
     // constant 1 x 1
     std::vector<std::shared_ptr<const LinOp>> one_list;
+    std::vector<std::shared_ptr<const LinOp>> next_one_list;
     std::vector<std::shared_ptr<const LinOp>> neg_one_list;
     const LinOp* system_matrix;
     const Multigrid* multigrid;

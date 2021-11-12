@@ -196,12 +196,14 @@ void MultigridState::generate(const LinOp* system_matrix_in,
     e_list.clear();
     b_list.clear();
     x_list.clear();
+    next_one_list.clear();
     one_list.clear();
     neg_one_list.clear();
     r_list.reserve(list_size);
     g_list.reserve(list_size);
     e_list.reserve(list_size);
     one_list.reserve(list_size);
+    next_one_list.reserve(list_size);
     neg_one_list.reserve(list_size);
     b_list.reserve(list_size);
     x_list.reserve(list_size);
@@ -255,8 +257,18 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
     auto exec =
         as<LinOp>(multigrid->get_mg_level_list().at(level))->get_executor();
     r_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-    g_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
-    e_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
+    if (level != 0) {
+        // allocate the previous level
+        g_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
+        e_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
+        next_one_list.emplace_back(initialize<vec>({gko::one<VT>()}, exec));
+    }
+    if (level + 1 == multigrid->get_mg_level_list().size()) {
+        // the last level allocate the g, e for coarsest solver
+        g_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
+        e_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
+        next_one_list.emplace_back(initialize<vec>({gko::one<VT>()}, exec));
+    }
     one_list.emplace_back(initialize<vec>({gko::one<VT>()}, exec));
     neg_one_list.emplace_back(initialize<vec>({-gko::one<VT>()}, exec));
     if ((cycle == multigrid::cycle::kfcg || cycle == multigrid::cycle::kgcr) &&
@@ -294,20 +306,20 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
 {
     auto total_level = multigrid->get_mg_level_list().size();
 
-    auto r = as_vec<VT>(r_list.at(level));
-    auto g = as_vec<VT>(g_list.at(level));
-    auto e = as_vec<VT>(e_list.at(level));
+    auto r = r_list.at(level);
+    auto g = g_list.at(level);
+    auto e = e_list.at(level);
     auto x_workspace = x_list.at(level);
     auto b_workspace = b_list.at(level);
     LinOp* x_ptr = x;
     const LinOp* b_ptr = b;
-    if (x_workspace) {
-        // the value_type is change
-        x_workspace->copy_from(x);
-        b_workspace->copy_from(b);
-        x_ptr = x_workspace.get();
-        b_ptr = b_workspace.get();
-    }
+    // if (x_workspace) {
+    //     // the value_type is change
+    //     x_workspace->copy_from(x);
+    //     b_workspace->copy_from(b);
+    //     x_ptr = x_workspace.get();
+    //     b_ptr = b_workspace.get();
+    // }
     // get mg_level
     auto mg_level = multigrid->get_mg_level_list().at(level);
     // get the pre_smoother
@@ -321,17 +333,26 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // get the post_smoother
     auto post_smoother = multigrid->get_post_smoother_list().at(level);
     auto one = one_list.at(level).get();
+    auto next_one = next_one_list.at(level).get();
     auto neg_one = neg_one_list.at(level).get();
     // origin or next or first
     bool use_pre = is_first || mid_case == multigrid::mid_smooth_type::both ||
                    mid_case == multigrid::mid_smooth_type::pre_smoother;
     if (use_pre && pre_smoother) {
-        auto pre_allow_zero_input =
-            std::dynamic_pointer_cast<const EnableZeroInput>(pre_smoother);
-        if (x_is_zero && pre_allow_zero_input) {
-            pre_allow_zero_input->set_input_zero(true);
-            pre_smoother->apply(b_ptr, x_ptr);
-            pre_allow_zero_input->set_input_zero(false);
+        if (x_is_zero) {
+            // when level is zero, the x_ptr is already filled by zero
+            if (level != 0) {
+                dynamic_cast<matrix::Dense<VT>*>(x_ptr)->fill(zero<VT>());
+            }
+            if (auto pre_allow_zero_input =
+                    std::dynamic_pointer_cast<const EnableZeroInput>(
+                        pre_smoother)) {
+                pre_allow_zero_input->set_input_zero(true);
+                pre_smoother->apply(b_ptr, x_ptr);
+                pre_allow_zero_input->set_input_zero(false);
+            } else {
+                pre_smoother->apply(b_ptr, x_ptr);
+            }
         } else {
             pre_smoother->apply(b_ptr, x_ptr);
         }
@@ -349,7 +370,10 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // first cycle
     mg_level->get_restrict_op()->apply(r.get(), g.get());
     // next level
-    e->fill(zero<VT>());
+    if (level + 1 == total_level) {
+        // the coarsest solver use the last level valuetype
+        as_vec<VT>(e)->fill(zero<VT>());
+    }
     auto next_level_matrix =
         (level + 1 < total_level)
             ? multigrid->get_mg_level_list().at(level + 1)->get_fine_op()
@@ -369,11 +393,11 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
         } else if ((cycle == multigrid::cycle::kfcg ||
                     cycle == multigrid::cycle::kgcr) &&
                    level % multigrid->get_parameters().kcycle_base == 0) {
-            kcycle_state.kstep<VT>(cycle, level, g, e);
+            // kcycle_state.kstep<VT>(cycle, level, g, e);
         }
     }
     // prolong
-    mg_level->get_prolong_op()->apply(one, e.get(), one, x_ptr);
+    mg_level->get_prolong_op()->apply(next_one, e.get(), next_one, x_ptr);
 
     // end or origin previous
     bool use_post = is_end || mid_case == multigrid::mid_smooth_type::both ||
@@ -391,9 +415,9 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     if (use_mid && mid_smoother) {
         mid_smoother->apply(b_ptr, x_ptr);
     }
-    if (x_workspace) {
-        x->copy_from(x_ptr);
-    }
+    // if (x_workspace) {
+    //     x->copy_from(x_ptr);
+    // }
 }
 
 void MultigridState::KCycleMultiGridState::reserve_space(
