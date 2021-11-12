@@ -306,30 +306,6 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
 #define GKO_MPI_ERROR(_errcode) \
     ::gko::MpiError(__FILE__, __LINE__, __func__, _errcode)
 
-/**
- * Throws when MPI has already been initialized.
- *
- */
-#define GKO_MPI_INITIALIZED                                                  \
-    {                                                                        \
-        throw ::gko::MpiInitialized(__FILE__, __LINE__, __func__);           \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-/**
- * Throws when MPI has already been finalized.
- *
- */
-#define GKO_MPI_FINALIZED                                                    \
-    {                                                                        \
-        throw ::gko::MpiFinalized(__FILE__, __LINE__, __func__);             \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
 
 /**
  * Instantiates a CudaError.
