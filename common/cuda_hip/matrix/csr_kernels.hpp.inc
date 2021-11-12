@@ -1046,3 +1046,60 @@ __global__ __launch_bounds__(default_block_size) void inv_symm_permute_kernel(
         out_vals[out_begin + i] = in_vals[in_begin + i];
     }
 }
+
+
+namespace kernel {
+
+
+template <typename ValueType, typename IndexType>
+__global__
+    __launch_bounds__(default_block_size) void compute_submatrix_idxs_and_vals(
+        const size_type num_rows, const size_type num_cols,
+        const size_type num_nnz, const size_type row_offset,
+        const size_type col_offset,
+        const IndexType* __restrict__ source_row_ptrs,
+        const IndexType* __restrict__ source_col_idxs,
+        const ValueType* __restrict__ source_values,
+        const IndexType* __restrict__ result_row_ptrs,
+        IndexType* __restrict__ result_col_idxs,
+        ValueType* __restrict__ result_values)
+{
+    const auto res_row = thread::get_thread_id_flat();
+    if (res_row < num_rows) {
+        const auto src_row = res_row + row_offset;
+        auto res_nnz = result_row_ptrs[res_row];
+        for (auto nnz = source_row_ptrs[src_row];
+             nnz < source_row_ptrs[src_row + 1]; ++nnz) {
+            const auto res_col = source_col_idxs[nnz] - col_offset;
+            if (res_col < num_cols && res_col >= 0) {
+                result_col_idxs[res_nnz] = res_col;
+                result_values[res_nnz] = source_values[nnz];
+                res_nnz++;
+            }
+        }
+    }
+}
+
+
+template <typename IndexType>
+__global__
+    __launch_bounds__(default_block_size) void calculate_nnz_per_row_in_span(
+        const span row_span, const span col_span,
+        const IndexType* __restrict__ row_ptrs,
+        const IndexType* __restrict__ col_idxs,
+        IndexType* __restrict__ nnz_per_row)
+{
+    const auto src_row = thread::get_thread_id_flat() + row_span.begin;
+    if (src_row < row_span.end) {
+        IndexType nnz{};
+        for (auto i = row_ptrs[src_row]; i < row_ptrs[src_row + 1]; ++i) {
+            if (col_idxs[i] >= col_span.begin && col_idxs[i] < col_span.end) {
+                nnz++;
+            }
+        }
+        nnz_per_row[src_row - row_span.begin] = nnz;
+    }
+}
+
+
+}  // namespace kernel

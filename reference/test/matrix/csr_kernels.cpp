@@ -1624,4 +1624,101 @@ TYPED_TEST(CsrComplex, OutplaceAbsolute)
 }
 
 
+TYPED_TEST(Csr, CanGetSubmatrix)
+{
+    using Vec = typename TestFixture::Vec;
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    /* this->mtx
+     * 1   3   2
+     * 0   5   0
+     */
+    auto sub_mat =
+        this->mtx->create_submatrix(gko::span(0, 2), gko::span(0, 2));
+    auto ref =
+        gko::initialize<Mtx>({I<T>{1.0, 3.0}, I<T>{0.0, 5.0}}, this->exec);
+
+    GKO_ASSERT_MTX_NEAR(sub_mat.get(), ref.get(), 0.0);
+}
+
+
+TYPED_TEST(Csr, CanGetSubmatrix2)
+{
+    using Vec = typename TestFixture::Vec;
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto mat = gko::initialize<Mtx>(
+        {
+            I<T>{1.0, 3.0, 4.5, 0.0, 2.0},   // 0
+            I<T>{1.0, 0.0, 4.5, 7.5, 3.0},   // 1
+            I<T>{0.0, 3.0, 4.5, 0.0, 2.0},   // 2
+            I<T>{0.0, -1.0, 2.5, 0.0, 2.0},  // 3
+            I<T>{1.0, 0.0, -1.0, 3.5, 1.0},  // 4
+            I<T>{0.0, 1.0, 0.0, 0.0, 2.0},   // 5
+            I<T>{0.0, 3.0, 0.0, 7.5, 1.0}    // 6
+        },
+        this->exec);
+    ASSERT_EQ(mat->get_num_stored_elements(), 23);
+    {
+        auto sub_mat1 = mat->create_submatrix(gko::span(0, 2), gko::span(0, 2));
+        auto ref1 =
+            gko::initialize<Mtx>({I<T>{1.0, 3.0}, I<T>{1.0, 0.0}}, this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+    }
+    {
+        auto sub_mat2 = mat->create_submatrix(gko::span(2, 4), gko::span(0, 2));
+        auto ref2 =
+            gko::initialize<Mtx>({I<T>{0.0, 3.0}, I<T>{0.0, -1.0}}, this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat2.get(), ref2.get(), 0.0);
+    }
+    {
+        auto sub_mat3 = mat->create_submatrix(gko::span(0, 2), gko::span(3, 5));
+        auto ref3 =
+            gko::initialize<Mtx>({I<T>{0.0, 2.0}, I<T>{7.5, 3.0}}, this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat3.get(), ref3.get(), 0.0);
+    }
+    {
+        auto sub_mat4 = mat->create_submatrix(gko::span(1, 6), gko::span(2, 4));
+        /*
+           4.5, 7.5
+           4.5, 0.0
+           2.5, 0.0
+          -1.0, 3.5
+           0.0, 0.0
+        */
+        auto ref4 = gko::initialize<Mtx>(
+            {I<T>{4.5, 7.5}, I<T>{4.5, 0.0}, I<T>{2.5, 0.0}, I<T>{-1.0, 3.5},
+             I<T>{0.0, 0.0}},
+            this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat4.get(), ref4.get(), 0.0);
+    }
+    {
+        auto sub_mat5 = mat->create_submatrix(gko::span(0, 7), gko::span(0, 5));
+        auto ref5 = gko::initialize<Mtx>(
+            {
+                I<T>{1.0, 3.0, 4.5, 0.0, 2.0},   // 0
+                I<T>{1.0, 0.0, 4.5, 7.5, 3.0},   // 1
+                I<T>{0.0, 3.0, 4.5, 0.0, 2.0},   // 2
+                I<T>{0.0, -1.0, 2.5, 0.0, 2.0},  // 3
+                I<T>{1.0, 0.0, -1.0, 3.5, 1.0},  // 4
+                I<T>{0.0, 1.0, 0.0, 0.0, 2.0},   // 5
+                I<T>{0.0, 3.0, 0.0, 7.5, 1.0}    // 6
+            },
+            this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat5.get(), ref5.get(), 0.0);
+    }
+    {
+        auto sub_mat7 = mat->create_submatrix(gko::span(0, 1), gko::span(0, 1));
+        auto ref7 = gko::initialize<Mtx>({I<T>{1.0}}, this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat7.get(), ref7.get(), 0.0);
+    }
+}
+
+
 }  // namespace

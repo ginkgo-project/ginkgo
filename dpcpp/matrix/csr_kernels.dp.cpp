@@ -1625,6 +1625,113 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 
+namespace kernel {
+
+
+template <typename IndexType>
+void calc_nnz_in_span(const span row_span, const span col_span,
+                      const IndexType* __restrict__ row_ptrs,
+                      const IndexType* __restrict__ col_idxs,
+                      IndexType* __restrict__ nnz_per_row,
+                      sycl::nd_item<3> item_ct1)
+{
+    const auto tidx = thread::get_thread_id_flat(item_ct1) + row_span.begin;
+    if (tidx < row_span.end) {
+        nnz_per_row[tidx - row_span.begin] = zero<IndexType>();
+        for (size_type col = row_ptrs[tidx]; col < row_ptrs[tidx + 1]; ++col) {
+            if (col_idxs[col] >= col_span.begin &&
+                col_idxs[col] < col_span.end) {
+                nnz_per_row[tidx - row_span.begin]++;
+            }
+        }
+    }
+}
+
+GKO_ENABLE_DEFAULT_HOST(calc_nnz_in_span, calc_nnz_in_span);
+
+
+template <typename ValueType, typename IndexType>
+void compute_submatrix_idxs_and_vals(size_type num_rows, size_type num_cols,
+                                     size_type num_nnz, size_type row_offset,
+                                     size_type col_offset,
+                                     const IndexType* __restrict__ src_row_ptrs,
+                                     const IndexType* __restrict__ src_col_idxs,
+                                     const ValueType* __restrict__ src_values,
+                                     const IndexType* __restrict__ res_row_ptrs,
+                                     IndexType* __restrict__ res_col_idxs,
+                                     ValueType* __restrict__ res_values,
+                                     sycl::nd_item<3> item_ct1)
+{
+    const auto tidx = thread::get_thread_id_flat(item_ct1);
+    if (tidx < num_rows) {
+        size_type res_nnz = res_row_ptrs[tidx];
+        for (size_type nnz = src_row_ptrs[row_offset + tidx];
+             nnz < src_row_ptrs[row_offset + tidx + 1]; ++nnz) {
+            if ((src_col_idxs[nnz] < (col_offset + num_cols) &&
+                 src_col_idxs[nnz] >= col_offset)) {
+                res_col_idxs[res_nnz] = src_col_idxs[nnz] - col_offset;
+                res_values[res_nnz] = src_values[nnz];
+                res_nnz++;
+            }
+        }
+    }
+}
+
+GKO_ENABLE_DEFAULT_HOST(compute_submatrix_idxs_and_vals,
+                        compute_submatrix_idxs_and_vals);
+
+
+}  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void calculate_nonzeros_per_row_in_span(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
+    const span& col_span, Array<IndexType>* row_nnz)
+{
+    const auto num_rows = source->get_size()[0];
+    auto row_ptrs = source->get_const_row_ptrs();
+    auto col_idxs = source->get_const_col_idxs();
+    auto grid_dim = ceildiv(row_span.length(), default_block_size);
+    auto block_dim = default_block_size;
+
+    kernel::calc_nnz_in_span(grid_dim, block_dim, 0, exec->get_queue(),
+                             row_span, col_span, row_ptrs, col_idxs,
+                             row_nnz->get_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
+                       const matrix::Csr<ValueType, IndexType>* source,
+                       gko::span row_span, gko::span col_span,
+                       matrix::Csr<ValueType, IndexType>* result)
+{
+    const auto row_offset = row_span.begin;
+    const auto col_offset = col_span.begin;
+    const auto num_rows = result->get_size()[0];
+    const auto num_cols = result->get_size()[1];
+    const auto row_ptrs = source->get_const_row_ptrs();
+
+    const auto num_nnz = source->get_num_stored_elements();
+    auto grid_dim = ceildiv(num_rows, default_block_size);
+    auto block_dim = default_block_size;
+    kernel::compute_submatrix_idxs_and_vals(
+        grid_dim, block_dim, 0, exec->get_queue(), num_rows, num_cols, num_nnz,
+        row_offset, col_offset, source->get_const_row_ptrs(),
+        source->get_const_col_idxs(), source->get_const_values(),
+        result->get_const_row_ptrs(), result->get_col_idxs(),
+        result->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL);
+
+
 namespace {
 
 

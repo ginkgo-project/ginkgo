@@ -1083,6 +1083,56 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void calculate_nonzeros_per_row_in_span(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
+    const span& col_span, Array<IndexType>* row_nnz)
+{
+    const auto num_rows = source->get_size()[0];
+    auto row_ptrs = source->get_const_row_ptrs();
+    auto col_idxs = source->get_const_col_idxs();
+    auto grid_dim = ceildiv(row_span.length(), default_block_size);
+
+    hipLaunchKernelGGL(kernel::calculate_nnz_per_row_in_span, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, row_span, col_span,
+                       as_hip_type(row_ptrs), as_hip_type(col_idxs),
+                       as_hip_type(row_nnz->get_data()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
+                       const matrix::Csr<ValueType, IndexType>* source,
+                       gko::span row_span, gko::span col_span,
+                       matrix::Csr<ValueType, IndexType>* result)
+{
+    auto row_offset = row_span.begin;
+    auto col_offset = col_span.begin;
+    auto num_rows = result->get_size()[0];
+    auto num_cols = result->get_size()[1];
+    auto row_ptrs = source->get_const_row_ptrs();
+    auto grid_dim = ceildiv(num_rows, default_block_size);
+
+    auto num_nnz = source->get_num_stored_elements();
+    grid_dim = ceildiv(num_nnz, default_block_size);
+    hipLaunchKernelGGL(
+        kernel::compute_submatrix_idxs_and_vals, dim3(grid_dim),
+        dim3(default_block_size), 0, 0, num_rows, num_cols, num_nnz, row_offset,
+        col_offset, as_hip_type(source->get_const_row_ptrs()),
+        as_hip_type(source->get_const_col_idxs()),
+        as_hip_type(source->get_const_values()),
+        as_hip_type(result->get_const_row_ptrs()),
+        as_hip_type(result->get_col_idxs()), as_hip_type(result->get_values()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const HipExecutor> exec,
                        const matrix::Csr<ValueType, IndexType>* source,
                        matrix::Hybrid<ValueType, IndexType>* result)

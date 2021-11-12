@@ -763,6 +763,9 @@ public:
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
+    std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
+        const gko::span& row_span, const gko::span& column_span) const;
+
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;

@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/absolute_array.hpp"
 #include "core/components/fill_array.hpp"
+#include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_kernels.hpp"
 
 
@@ -69,6 +70,9 @@ GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
 GKO_REGISTER_OPERATION(calculate_total_cols, csr::calculate_total_cols);
 GKO_REGISTER_OPERATION(convert_to_ell, csr::convert_to_ell);
 GKO_REGISTER_OPERATION(convert_to_hybrid, csr::convert_to_hybrid);
+GKO_REGISTER_OPERATION(calculate_nonzeros_per_row_in_span,
+                       csr::calculate_nonzeros_per_row_in_span);
+GKO_REGISTER_OPERATION(compute_submatrix, csr::compute_submatrix);
 GKO_REGISTER_OPERATION(transpose, csr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, csr::conj_transpose);
 GKO_REGISTER_OPERATION(inv_symm_permute, csr::inv_symm_permute);
@@ -85,6 +89,7 @@ GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        csr::is_sorted_by_column_index);
 GKO_REGISTER_OPERATION(extract_diagonal, csr::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
@@ -533,6 +538,31 @@ bool Csr<ValueType, IndexType>::is_sorted_by_column_index() const
     bool is_sorted;
     exec->run(csr::make_is_sorted_by_column_index(this, &is_sorted));
     return is_sorted;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>>
+Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
+                                            const gko::span& column_span) const
+{
+    using Mat = Csr<ValueType, IndexType>;
+    auto exec = this->get_executor();
+    auto sub_mat_size = gko::dim<2>(row_span.length(), column_span.length());
+    Array<IndexType> row_ptrs(exec, row_span.length() + 1);
+    exec->run(csr::make_calculate_nonzeros_per_row_in_span(
+        this, row_span, column_span, &row_ptrs));
+    exec->run(csr::make_prefix_sum(row_ptrs.get_data(), row_span.length() + 1));
+    auto num_nnz =
+        exec->copy_val_to_host(row_ptrs.get_data() + sub_mat_size[0]);
+    auto sub_mat = Mat::create(exec, sub_mat_size,
+                               std::move(Array<ValueType>(exec, num_nnz)),
+                               std::move(Array<IndexType>(exec, num_nnz)),
+                               std::move(row_ptrs), this->get_strategy());
+    exec->run(csr::make_compute_submatrix(this, row_span, column_span,
+                                          sub_mat.get()));
+    sub_mat->make_srow();
+    return sub_mat;
 }
 
 

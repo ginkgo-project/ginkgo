@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
 #include "hip/test/utils.hip.hpp"
@@ -98,6 +99,14 @@ protected:
             num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+    }
+
+    void set_up_apply_data()
+    {
+        mtx2 = Mtx::create(ref);
+        mtx2->copy_from(gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 5));
+        dmtx2 = Mtx::create(hip);
+        dmtx2->copy_from(mtx2.get());
     }
 
     void set_up_apply_data(std::shared_ptr<Mtx::strategy_type> strategy,
@@ -154,6 +163,7 @@ protected:
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<Mtx> mtx2;
     std::unique_ptr<ComplexMtx> complex_mtx;
     std::unique_ptr<Mtx> square_mtx;
     std::unique_ptr<Vec> expected;
@@ -162,6 +172,7 @@ protected:
     std::unique_ptr<Vec> beta;
 
     std::unique_ptr<Mtx> dmtx;
+    std::unique_ptr<Mtx> dmtx2;
     std::unique_ptr<ComplexMtx> complex_dmtx;
     std::unique_ptr<Mtx> square_dmtx;
     std::unique_ptr<Vec> dresult;
@@ -934,6 +945,76 @@ TEST_F(Csr, OutplaceAbsoluteComplexMatrixIsEquivalentToRef)
     auto dabs_mtx = complex_dmtx->compute_absolute();
 
     GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
+}
+
+
+TEST_F(Csr, CalculateNnzPerRowInSpanIsEquivalentToRef)
+{
+    using Mtx = gko::matrix::Csr<>;
+    set_up_apply_data();
+    gko::span rspan{7, 51};
+    gko::span cspan{22, 88};
+    auto size = this->mtx2->get_size();
+    auto row_nnz = gko::Array<int>(this->ref, rspan.length() + 1);
+    auto drow_nnz = gko::Array<int>(this->hip, row_nnz);
+
+    gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
+        this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
+    gko::kernels::hip::csr::calculate_nonzeros_per_row_in_span(
+        this->hip, this->dmtx2.get(), rspan, cspan, &drow_nnz);
+
+    GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
+}
+
+
+TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
+{
+    using Mtx = gko::matrix::Csr<>;
+    using IndexType = int;
+    using ValueType = double;
+    set_up_apply_data();
+    gko::span rspan{7, 51};
+    gko::span cspan{22, 88};
+    auto size = this->mtx2->get_size();
+    auto row_nnz = gko::Array<int>(this->ref, rspan.length() + 1);
+    gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
+        this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
+    gko::kernels::reference::components::prefix_sum(
+        this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
+    auto num_nnz = row_nnz.get_data()[rspan.length()];
+    auto drow_nnz = gko::Array<int>(this->hip, row_nnz);
+    auto smat1 =
+        Mtx::create(this->ref, gko::dim<2>(rspan.length(), cspan.length()),
+                    std::move(gko::Array<ValueType>(this->ref, num_nnz)),
+                    std::move(gko::Array<IndexType>(this->ref, num_nnz)),
+                    std::move(row_nnz));
+    auto sdmat1 =
+        Mtx::create(this->hip, gko::dim<2>(rspan.length(), cspan.length()),
+                    std::move(gko::Array<ValueType>(this->hip, num_nnz)),
+                    std::move(gko::Array<IndexType>(this->hip, num_nnz)),
+                    std::move(drow_nnz));
+
+
+    gko::kernels::reference::csr::compute_submatrix(this->ref, this->mtx2.get(),
+                                                    rspan, cspan, smat1.get());
+    gko::kernels::hip::csr::compute_submatrix(this->hip, this->dmtx2.get(),
+                                              rspan, cspan, sdmat1.get());
+
+    GKO_ASSERT_MTX_NEAR(sdmat1, smat1, 0.0);
+}
+
+
+TEST_F(Csr, CreateSubMatrixIsEquivalentToRef)
+{
+    using Mtx = gko::matrix::Csr<>;
+    set_up_apply_data();
+    gko::span rspan{47, 81};
+    gko::span cspan{2, 31};
+
+    auto smat1 = this->mtx2->create_submatrix(rspan, cspan);
+    auto sdmat1 = this->dmtx2->create_submatrix(rspan, cspan);
+
+    GKO_ASSERT_MTX_NEAR(sdmat1, smat1, 0.0);
 }
 
 
