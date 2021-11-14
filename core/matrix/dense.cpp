@@ -104,21 +104,19 @@ GKO_REGISTER_OPERATION(get_imag, dense::get_imag);
 
 }  // namespace dense
 
-/* */
+
 namespace bccoo {
 GKO_REGISTER_OPERATION(get_default_block_size, bccoo::get_default_block_size);
 
 }  // namespace bccoo
-/* */
+
 
 namespace {
 
 template <typename ValueType, typename IndexType, typename MatrixType,
           typename OperationType>
 inline void conversion_helper(Bccoo<ValueType, IndexType> *result,
-                              MatrixType *source,
-                              const OperationType &op)  // GKO_NOT_IMPLEMENTED;
-/**/
+                              MatrixType *source, const OperationType &op)
 {
     auto exec = source->get_executor();
 
@@ -133,7 +131,7 @@ inline void conversion_helper(Bccoo<ValueType, IndexType> *result,
     exec->run(op(source, tmp.get()));
     tmp->move_to(result);
 }
-/* */
+
 
 template <typename ValueType, typename IndexType, typename MatrixType,
           typename OperationType>
