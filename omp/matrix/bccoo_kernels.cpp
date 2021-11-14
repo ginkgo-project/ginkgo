@@ -132,7 +132,7 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
             while (shf < offsets_data[blk + 1]) {
                 row_old = row;
                 uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-                get_next_position_value(chunk_data, ind, shf, col, val);
+                get_next_position_value(chunk_data, nblk, ind, shf, col, val);
                 if (row_old != row) {
 #pragma omp critical(bccoo_apply)
                     {
@@ -152,46 +152,58 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
     auto num_blks = a->get_num_blocks();
 
 // Computation of chunk
-#pragma omp parallel for default(none), shared(a, b, c, num_blks)
-    for (size_type blk = 0; blk < num_blks; blk++) {
-        auto* rows_data = a->get_const_rows();
-        auto* offsets_data = a->get_const_offsets();
-        auto* chunk_data = a->get_const_chunk();
+#pragma omp parallel default(none), shared(exec, a, b, c, num_blks)
+    {
         auto num_cols = b->get_size()[1];
-        auto block_size = a->get_block_size();
-        //        size_type tid = omp_get_thread_num();
-        size_type nblk = 0, col = 0;
-        size_type row = rows_data[blk], row_old = 0;
-        size_type shf = offsets_data[blk];
-        ValueType val;
-        ValueType* sumV = new ValueType[num_cols];
-        for (size_type j = 0; j < num_cols; j++) {
-            sumV[j] = zero<ValueType>();
-        }
-        while (shf < offsets_data[blk + 1]) {
-            row_old = row;
-            uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-            get_next_position_value(chunk_data, ind, shf, col, val);
-            if (row_old != row) {
+        Array<ValueType> sumV_array(exec, num_cols);
+#pragma omp for
+        for (size_type blk = 0; blk < num_blks; blk++) {
+            auto* rows_data = a->get_const_rows();
+            auto* offsets_data = a->get_const_offsets();
+            auto* chunk_data = a->get_const_chunk();
+            auto block_size = a->get_block_size();
+            //        size_type tid = omp_get_thread_num();
+            size_type nblk = 0, col = 0;
+            size_type row = rows_data[blk], row_old = 0;
+            size_type shf = offsets_data[blk];
+            ValueType val;
+            ValueType* sumV = sumV_array.get_data();
+            for (size_type j = 0; j < num_cols; j++) {
+                sumV[j] = zero<ValueType>();
+            }
+            while (shf < offsets_data[blk + 1]) {
+                row_old = row;
+                uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+                get_next_position_value(chunk_data, nblk, ind, shf, col, val);
+                if (row_old != row) {
 #pragma omp critical(bccoo_apply)
-                {
-                    for (size_type j = 0; j < num_cols; j++) {
-                        c->at(row_old, j) += sumV[j];
-                        sumV[j] = zero<ValueType>();
+                    {
+                        for (size_type j = 0; j < num_cols; j++) {
+                            // TODO replace with
+                            // 			OMP atomic_add (ValueType
+                            // &inout,
+                            // 			ValueType out);
+                            // atomic_add(c->at(row_old, j), sumV[j]);
+                            c->at(row_old, j) += sumV[j];
+                            sumV[j] = zero<ValueType>();
+                        }
                     }
                 }
+                for (size_type j = 0; j < num_cols; j++) {
+                    // TODO replace with
+                    // 			OMP atomic_add (ValueType &inout,
+                    // 			ValueType out);
+                    // atomic_add(c->at(row_old, j), sumV[j]);
+                    sumV[j] += val * b->at(col, j);
+                }
             }
-            for (size_type j = 0; j < num_cols; j++) {
-                sumV[j] += val * b->at(col, j);
-            }
-        }
 #pragma omp critical(bccoo_apply)
-        {
-            for (size_type j = 0; j < num_cols; j++) {
-                c->at(row, j) += sumV[j];
+            {
+                for (size_type j = 0; j < num_cols; j++) {
+                    c->at(row, j) += sumV[j];
+                }
             }
         }
-        delete[] sumV;
     }
 #endif
 }
@@ -227,7 +239,7 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
             while (shf < offsets_data[blk + 1]) {
                 row_old = row;
                 uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-                get_next_position_value(chunk_data, ind, shf, col, val);
+                get_next_position_value(chunk_data, nblk, ind, shf, col, val);
                 if (row_old != row) {
 #pragma omp critical(bccoo_apply)
                     {
@@ -247,51 +259,62 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
     auto num_blks = a->get_num_blocks();
 
 // Computation of chunk
-#pragma omp parallel for default(none), shared(alpha, a, b, c, num_blks)
-    for (size_type blk = 0; blk < num_blks; blk++) {
-        auto* rows_data = a->get_const_rows();
-        auto* offsets_data = a->get_const_offsets();
-        auto* chunk_data = a->get_const_chunk();
+#pragma omp parallel default(none), shared(exec, alpha, a, b, c, num_blks)
+    {
         auto num_cols = b->get_size()[1];
-        auto block_size = a->get_block_size();
-        auto alpha_val = alpha->at(0, 0);
-        //            size_type tid = omp_get_thread_num();
-        size_type nblk = 0, col = 0;
-        size_type row = rows_data[blk], row_old = 0;
-        size_type shf = offsets_data[blk];
-        ValueType val;
-        ValueType* sumV = new ValueType[num_cols];
-        for (size_type j = 0; j < num_cols; j++) {
-            sumV[j] = zero<ValueType>();
-        }
-        while (shf < offsets_data[blk + 1]) {
-            row_old = row;
-            uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-            get_next_position_value(chunk_data, ind, shf, col, val);
-            if (row_old != row) {
+        Array<ValueType> sumV_array(exec, num_cols);
+#pragma omp for
+        for (size_type blk = 0; blk < num_blks; blk++) {
+            auto* rows_data = a->get_const_rows();
+            auto* offsets_data = a->get_const_offsets();
+            auto* chunk_data = a->get_const_chunk();
+            auto num_cols = b->get_size()[1];
+            auto block_size = a->get_block_size();
+            auto alpha_val = alpha->at(0, 0);
+            //            size_type tid = omp_get_thread_num();
+            size_type nblk = 0, col = 0;
+            size_type row = rows_data[blk], row_old = 0;
+            size_type shf = offsets_data[blk];
+            ValueType val;
+            ValueType* sumV = sumV_array.get_data();
+            for (size_type j = 0; j < num_cols; j++) {
+                sumV[j] = zero<ValueType>();
+            }
+            while (shf < offsets_data[blk + 1]) {
+                row_old = row;
+                uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+                get_next_position_value(chunk_data, nblk, ind, shf, col, val);
+                if (row_old != row) {
 #pragma omp critical(bccoo_apply)
-                {
-                    for (size_type j = 0; j < num_cols; j++) {
-                        c->at(row_old, j) += sumV[j];
-                        sumV[j] = zero<ValueType>();
+                    {
+                        for (size_type j = 0; j < num_cols; j++) {
+                            // TODO replace with
+                            // 			OMP atomic_add (ValueType
+                            // &inout, 			ValueType out);
+                            // atomic_add(c->at(row_old, j), sumV[j]);
+                            c->at(row_old, j) += sumV[j];
+                            sumV[j] = zero<ValueType>();
+                        }
                     }
                 }
+                for (size_type j = 0; j < num_cols; j++) {
+                    // TODO replace with
+                    // 			OMP atomic_add (ValueType &inout,
+                    // 			ValueType out);
+                    // atomic_add(c->at(row_old, j), sumV[j]);
+                    sumV[j] += alpha_val * val * b->at(col, j);
+                }
             }
-            for (size_type j = 0; j < num_cols; j++) {
-                sumV[j] += alpha_val * val * b->at(col, j);
-            }
-        }
 #pragma omp critical(bccoo_apply)
-        {
-            for (size_type j = 0; j < num_cols; j++) {
-                c->at(row, j) += sumV[j];
+            {
+                for (size_type j = 0; j < num_cols; j++) {
+                    c->at(row, j) += sumV[j];
+                }
             }
         }
-        delete[] sumV;
     }
 #endif
 }
-
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_ADVANCED_SPMV2_KERNEL);
@@ -302,12 +325,58 @@ void convert_to_next_precision(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Bccoo<ValueType, IndexType>* source,
     matrix::Bccoo<next_precision<ValueType>, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
-/*
 {
+    auto num_blksS = source->get_num_blocks();
+    if (source->get_block_size() == source->get_block_size()) {
+        if (source->get_num_stored_elements() > 0) {
+            result->get_offsets()[0] = 0;
+        }
+#pragma omp parallel for default(none), shared(source, result, num_blksS)
+        for (size_type blkS = 0; blkS < num_blksS; blkS++) {
+            auto* rows_dataS = source->get_const_rows();
+            auto* offsets_dataS = source->get_const_offsets();
+            auto* rows_dataR = result->get_rows();
+            auto* offsets_dataR = result->get_offsets();
+            rows_dataR[blkS] = rows_dataS[blkS];
+            offsets_dataR[blkS + 1] = offsets_dataS[blkS + 1];
+        }
+// Computation of chunk
+#pragma omp parallel for default(none), shared(source, result, num_blksS)
+        for (size_type blkS = 0; blkS < num_blksS; blkS++) {
+            auto* rows_dataS = source->get_const_rows();
+            auto* offsets_dataS = source->get_const_offsets();
+            auto* chunk_dataS = source->get_const_chunk();
+            size_type block_sizeS = source->get_block_size();
+            size_type num_bytesS = source->get_num_bytes();
+            size_type nblkS = 0, colS = 0;
+            size_type rowS = rows_dataS[blkS];
+            size_type shfS = offsets_dataS[blkS];
+            ValueType valS;
 
+            auto* rows_dataR = result->get_rows();
+            auto* offsets_dataR = result->get_offsets();
+            auto* chunk_dataR = result->get_chunk();
+            size_type block_sizeR = result->get_block_size();
+            size_type num_bytesR = result->get_num_bytes();
+            size_type nblkR = 0, colR = 0;
+            size_type blkR = blkS;
+            size_type rowR = rowS;
+            size_type shfR = shfS;
+            next_precision<ValueType> valR;
+
+            while (shfS < offsets_dataS[blkS + 1]) {
+                uint8 indS = get_position_newrow_put(
+                    chunk_dataS, shfS, rowS, colS, chunk_dataR, nblkR, blkR,
+                    rows_dataR, shfR, rowR, colR);
+                get_next_position_value(chunk_dataS, nblkS, indS, shfS, colS,
+                                        valS);
+                valR = (valS);
+                put_next_position_value(chunk_dataR, nblkR, indS, colS - colR,
+                                        shfR, colR, valR);
+            }
+        }
+    }
 }
-*/
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_CONVERT_TO_NEXT_PRECISION_KERNEL);
@@ -318,17 +387,6 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
                     matrix::Coo<ValueType, IndexType>* result)
 {
-    //    size_type block_size = source->get_block_size();
-    //    size_type num_stored_elements = source->get_num_stored_elements();
-
-    //    size_type nblk = 0, blk = 0, row = 0, col = 0, shf = 0;
-    //    size_type num_bytes = source->get_num_bytes();
-
-    //    auto *rows_data = source->get_const_rows();
-    //    auto *offsets_data = source->get_const_offsets();
-    //    auto *chunk_data = source->get_const_chunk();
-    //    ValueType val;
-
     auto num_blks = source->get_num_blocks();
 
 #pragma omp parallel for default(none), shared(source, result, num_blks)
@@ -348,7 +406,7 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
         ValueType val;
         while (shf < offsets_data[blk + 1]) {
             uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-            get_next_position_value(chunk_data, ind, shf, col, val);
+            get_next_position_value(chunk_data, nblk, ind, shf, col, val);
             row_idxs[i] = row;
             col_idxs[i] = col;
             values[i] = val;
@@ -364,31 +422,52 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(std::shared_ptr<const OmpExecutor> exec,
                               const IndexType* idxs, size_type num_nonzeros,
-                              IndexType* ptrs,
-                              size_type length) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
-//    convert_sorted_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
-//}
+                              IndexType* ptrs, size_type length)
+{
+    convert_sorted_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
+}
 
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
                     matrix::Csr<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
-//    auto num_rows = result->get_size()[0];
-//
-//    auto row_ptrs = result->get_row_ptrs();
-//    const auto nnz = result->get_num_stored_elements();
-//
-//    const auto source_row_idxs = source->get_const_row_idxs();
-//
-//    convert_row_idxs_to_ptrs(exec, source_row_idxs, nnz, row_ptrs,
-//                             num_rows + 1);
-//}
+{
+    const auto nnz = source->get_num_stored_elements();
+    const auto num_blks = source->get_num_blocks();
+    const auto num_rows = source->get_size()[0];
+    const auto num_cols = source->get_size()[1];
+
+    Array<IndexType> rows_array(exec, nnz);
+    IndexType* row_idxs = rows_array.get_data();
+
+#pragma omp parallel for default(none), \
+    shared(source, result, row_idxs, num_blks)
+    for (size_type blk = 0; blk < num_blks; blk++) {
+        auto* rows_data = source->get_const_rows();
+        auto* offsets_data = source->get_const_offsets();
+        auto* chunk_data = source->get_const_chunk();
+        auto col_idxs = result->get_col_idxs();
+        auto values = result->get_values();
+        size_type block_size = source->get_block_size();
+        //        size_type tid = omp_get_thread_num();
+        size_type nblk = 0, col = 0;
+        size_type row = rows_data[blk];
+        size_type shf = offsets_data[blk];
+        size_type i = block_size * blk;
+        ValueType val;
+        while (shf < offsets_data[blk + 1]) {
+            uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+            get_next_position_value(chunk_data, nblk, ind, shf, col, val);
+            row_idxs[i] = row;
+            col_idxs[i] = col;
+            values[i] = val;
+            i++;
+        }
+    }
+    auto row_ptrs = result->get_row_ptrs();
+    convert_row_idxs_to_ptrs(exec, row_idxs, nnz, row_ptrs, num_rows + 1);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_CONVERT_TO_CSR_KERNEL);
@@ -422,7 +501,7 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
         ValueType val;
         while (shf < offsets_data[blk + 1]) {
             uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-            get_next_position_value(chunk_data, ind, shf, col, val);
+            get_next_position_value(chunk_data, nblk, ind, shf, col, val);
             result->at(row, col) += val;
         }
     }
@@ -458,7 +537,7 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
         ValueType val;
         while (shf < offsets_data[blk + 1]) {
             uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-            get_next_position_value(chunk_data, ind, shf, col, val);
+            get_next_position_value(chunk_data, nblk, ind, shf, col, val);
             if (row == col) {
                 diag_values[row] = val;
             }
@@ -490,7 +569,7 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
         ValueType val;
         while (shf < offsets_data[blk + 1]) {
             uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-            get_next_position_value_put(chunk_data, ind, shf, col, val,
+            get_next_position_value_put(chunk_data, nblk, ind, shf, col, val,
                                         [](ValueType val) { return abs(val); });
         }
     }
@@ -506,47 +585,55 @@ void compute_absolute(
     const matrix::Bccoo<ValueType, IndexType>* source,
     remove_complex<matrix::Bccoo<ValueType, IndexType>>* result)
 {
-    size_type block_size = source->get_block_size();
-    size_type num_stored_elements = source->get_num_stored_elements();
+    auto num_blksS = source->get_num_blocks();
+    if (source->get_block_size() == source->get_block_size()) {
+        if (source->get_num_stored_elements() > 0) {
+            result->get_offsets()[0] = 0;
+        }
+#pragma omp parallel for default(none), shared(source, result, num_blksS)
+        for (size_type blkS = 0; blkS < num_blksS; blkS++) {
+            auto* rows_dataS = source->get_const_rows();
+            auto* offsets_dataS = source->get_const_offsets();
+            auto* rows_dataR = result->get_rows();
+            auto* offsets_dataR = result->get_offsets();
+            rows_dataR[blkS] = rows_dataS[blkS];
+            offsets_dataR[blkS + 1] = offsets_dataS[blkS + 1];
+        }
+// Computation of chunk
+#pragma omp parallel for default(none), shared(source, result, num_blksS)
+        for (size_type blkS = 0; blkS < num_blksS; blkS++) {
+            auto* rows_dataS = source->get_const_rows();
+            auto* offsets_dataS = source->get_const_offsets();
+            auto* chunk_dataS = source->get_const_chunk();
+            size_type block_sizeS = source->get_block_size();
+            size_type num_bytesS = source->get_num_bytes();
+            size_type nblkS = 0, colS = 0;
+            size_type rowS = rows_dataS[blkS];
+            size_type shfS = offsets_dataS[blkS];
+            ValueType valS;
 
-    size_type nblkS = 0, blkS = 0, rowS = 0, colS = 0, shfS = 0;
-    size_type num_bytesS = source->get_num_bytes();
+            auto* rows_dataR = result->get_rows();
+            auto* offsets_dataR = result->get_offsets();
+            auto* chunk_dataR = result->get_chunk();
+            size_type block_sizeR = result->get_block_size();
+            size_type num_bytesR = result->get_num_bytes();
+            size_type nblkR = 0, colR = 0;
+            size_type blkR = blkS;
+            size_type rowR = rowS;
+            size_type shfR = shfS;
+            remove_complex<ValueType> valR;
 
-    auto* rows_dataS = source->get_const_rows();
-    auto* offsets_dataS = source->get_const_offsets();
-    auto* chunk_dataS = source->get_const_chunk();
-    ValueType valS;
-
-    size_type nblkR = 0, blkR = 0, rowR = 0, colR = 0, shfR = 0;
-    size_type num_bytesR = result->get_num_bytes();
-
-    auto* rows_dataR = result->get_rows();
-    auto* offsets_dataR = result->get_offsets();
-    auto* chunk_dataR = result->get_chunk();
-    remove_complex<ValueType> valR;
-
-    offsets_dataR[0] = 0;
-    for (size_type i = 0; i < num_stored_elements; i++) {
-        get_detect_newblock(rows_dataS, offsets_dataS, nblkS, blkS, shfS, rowS,
-                            colS);
-        put_detect_newblock(chunk_dataR, rows_dataR, nblkR, blkR, shfR, rowR,
-                            rowS - rowR, colR);
-#if OPTION == 0
-        update_bccoo_position_copy_val(chunk_dataS, shfS, rowS, colS, valS,
-                                       rows_dataR, nblkR, blkR, chunk_dataR,
-                                       shfR, rowR, colR, valR,
-                                       [](ValueType val) { return abs(val); });
-#else
-        uint8 indS =
-            get_position_newrow_put(chunk_dataS, shfS, rowS, colS, chunk_dataR,
-                                    nblkR, blkR, rows_dataR, shfR, rowR, colR);
-        get_next_position_value(chunk_dataS, indS, shfS, colS, valS);
-        valR = abs(valS);
-        put_next_position_value(chunk_dataR, indS, colR - colS, shfR, colR,
-                                valR);
-#endif
-        get_detect_endblock(block_size, nblkS, blkS);
-        put_detect_endblock(offsets_dataR, shfR, block_size, nblkR, blkR);
+            while (shfS < offsets_dataS[blkS + 1]) {
+                uint8 indS = get_position_newrow_put(
+                    chunk_dataS, shfS, rowS, colS, chunk_dataR, nblkR, blkR,
+                    rows_dataR, shfR, rowR, colR);
+                get_next_position_value(chunk_dataS, nblkS, indS, shfS, colS,
+                                        valS);
+                valR = abs(valS);
+                put_next_position_value(chunk_dataR, nblkR, indS, colS - colR,
+                                        shfR, colR, valR);
+            }
+        }
     }
 }
 
