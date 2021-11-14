@@ -465,34 +465,48 @@ void memsize_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
     auto num_nonzeros = 0;
-    size_type nblk = 0, rrr = 0, ccc = 0, shf = 0;
+    size_type nblk = 0, blk = 0, rowR = 0, colR = 0, shf = 0;
     for (size_type row = 0; row < num_rows; ++row) {
         for (size_type col = 0; col < num_cols; ++col) {
             if (source->at(row, col) != zero<ValueType>()) {
+                /*
+                                                                                cnt_detect_newblock(nblk, shf, row, row - rowR, colR);
+                */
                 if (nblk == 0) {
-                    rrr = row;
-                    ccc = 0;
+                    rowR = row;
+                    colR = 0;
                 }
-                if (row != rrr) {  // new row
-                    rrr = row;
-                    ccc = 0;
+                if (row != rowR) {  // new row
+                    rowR = row;
+                    colR = 0;
                     shf++;
                 }
-                size_type d = col - ccc;
-                if (d < 0xFD) {
+                /* */
+                size_type ind = col - colR;
+                /*
+                                cnt_next_position_value(ind, shf,
+                   source->at(row,col));
+                */
+                if (ind < 0xFD) {
                     shf++;
-                } else if (d < 0xFFFF) {
+                } else if (ind < 0xFFFF) {
                     shf += 3;
                 } else {
                     shf += 5;
                 }
-                ccc = col;
                 shf += sizeof(ValueType);
-                //            }
-                if (++nblk == block_size) {
+                /* */
+                colR = col;
+                nblk++;
+                /*
+                                        put_detect_endblock(block_size, nblk,
+                   blk);
+                */
+                if (nblk == block_size) {
                     nblk = 0;
-                    ccc = 0;
+                    colR = 0;
                 }
+                /* */
             }
         }
     }
@@ -517,48 +531,62 @@ void copy_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
     auto num_nonzeros = 0;
-    size_type nblk = 0, blk = 0, rrr = 0, ccc = 0, shf = 0;
+    size_type nblk = 0, blk = 0, rowR = 0, colR = 0, shf = 0;
     offsets_data[0] = 0;
     for (size_type row = 0; row < num_rows; ++row) {
         for (size_type col = 0; col < num_cols; ++col) {
             if (source->at(row, col) != zero<ValueType>()) {
+                /*
+                                                                                put_detect_newblock(chunk_data, rows_data, nblk, blk, shf,
+                                                                                                                                                                rowR, row - rowR, colR);
+                */
                 if (nblk == 0) {
-                    rrr = row;
-                    ccc = 0;
+                    rowR = row;
+                    colR = 0;
                     rows_data[blk] = row;
                 }
-                if (row != rrr) {  // new row
-                    rrr = row;
-                    ccc = 0;
+                if (row != rowR) {  // new row
+                    rowR = row;
+                    colR = 0;
                     set_value_chunk<uint8>(chunk_data, shf, 0xFF);
                     shf++;
                 }
-                size_type d = col - ccc;
-                if (d < 0xFD) {
-                    set_value_chunk<uint8>(chunk_data, shf, d);
+                /* */
+                size_type ind = col - colR;
+                /*
+                                                                                put_next_position_value(chunk_data, nblk, ind, col - colR,
+                                                                                                                                                                                shf, col, source->at(row, col));
+                */
+                if (ind < 0xFD) {
+                    set_value_chunk<uint8>(chunk_data, shf, ind);
                     shf++;
-                } else if (d < 0xFFFF) {
+                } else if (ind < 0xFFFF) {
                     set_value_chunk<uint8>(chunk_data, shf, 0xFD);
                     shf++;
-                    set_value_chunk<uint16>(chunk_data, shf, d);
+                    set_value_chunk<uint16>(chunk_data, shf, ind);
                     shf += 2;
                 } else {
                     set_value_chunk<uint8>(chunk_data, shf, 0xFE);
                     shf++;
-                    set_value_chunk<uint32>(chunk_data, shf, d);
+                    set_value_chunk<uint32>(chunk_data, shf, ind);
                     shf += 4;
                 }
-                ccc = col;
+                colR = col;
                 set_value_chunk<ValueType>(chunk_data, shf,
                                            source->at(row, col));
                 shf += sizeof(ValueType);
-                //            }
-                if (++nblk == block_size) {
+                nblk++;
+                /* */
+                /*
+                                                                                put_detect_endblock(offsets_data, shf, block_size, nblk, blk);
+                */
+                if (nblk == block_size) {
                     nblk = 0;
                     blk++;
                     offsets_data[blk] = shf;
-                    ccc = 0;
+                    colR = 0;
                 }
+                /* */
             }
         }
     }

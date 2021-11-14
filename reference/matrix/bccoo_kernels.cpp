@@ -60,9 +60,6 @@ namespace reference {
 namespace bccoo {
 
 
-#define OPTION 1
-
-
 void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec,
                             size_type* block_size)
 {
@@ -116,19 +113,18 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     auto block_size = a->get_block_size();
     auto num_cols = b->get_size()[1];
 
+    //º		std::cout << "spmv2" << std::endl;
     // Computation of chunk
     size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
     ValueType val;
     for (size_type i = 0; i < num_stored_elements; i++) {
-#if OPTION == 0
-        update_bccoo_position_val(rows_data, offsets_data, chunk_data,
-                                  block_size, nblk, blk, shf, row, col, val);
-#else
         get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
         uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-        get_next_position_value(chunk_data, ind, shf, col, val);
+        get_next_position_value(chunk_data, nblk, ind, shf, col, val);
         get_detect_endblock(block_size, nblk, blk);
-#endif
+        //				std::cout << row << " - " << col << " =
+        //"
+        //<< val << std::endl;
         for (size_type j = 0; j < num_cols; j++) {
             c->at(row, j) += val * b->at(col, j);
         }
@@ -154,19 +150,15 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     auto alpha_val = alpha->at(0, 0);
     auto num_cols = b->get_size()[1];
 
+    //		std::cout << "advanced_spmv2" << std::endl;
     // Computation of chunk
     size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
     ValueType val;
     for (size_type i = 0; i < num_stored_elements; i++) {
-#if OPTION == 0
-        update_bccoo_position_val(rows_data, offsets_data, chunk_data,
-                                  block_size, nblk, blk, shf, row, col, val);
-#else
         get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
         uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-        get_next_position_value(chunk_data, ind, shf, col, val);
+        get_next_position_value(chunk_data, nblk, ind, shf, col, val);
         get_detect_endblock(block_size, nblk, blk);
-#endif
         for (size_type j = 0; j < num_cols; j++) {
             c->at(row, j) += alpha_val * val * b->at(col, j);
         }
@@ -204,26 +196,21 @@ void convert_to_next_precision(
     auto* chunk_dataR = result->get_chunk();
     new_precision valR;
 
-    offsets_dataR[0] = 0;
+    if (num_stored_elements > 0) {
+        offsets_dataR[0] = 0;
+    }
     for (size_type i = 0; i < num_stored_elements; i++) {
         get_detect_newblock(rows_dataS, offsets_dataS, nblkS, blkS, shfS, rowS,
                             colS);
         put_detect_newblock(chunk_dataR, rows_dataR, nblkR, blkR, shfR, rowR,
                             rowS - rowR, colR);
-#if OPTION == 0
-        update_bccoo_position_copy_val(chunk_dataS, shfS, rowS, colS, valS,
-                                       rows_dataR, nblkR, blkR, chunk_dataR,
-                                       shfR, rowR, colR, valR,
-                                       [](ValueType val) { return (val); });
-#else
         uint8 indS =
             get_position_newrow_put(chunk_dataS, shfS, rowS, colS, chunk_dataR,
                                     nblkR, blkR, rows_dataR, shfR, rowR, colR);
-        get_next_position_value(chunk_dataS, indS, shfS, colS, valS);
+        get_next_position_value(chunk_dataS, nblkS, indS, shfS, colS, valS);
         valR = valS;
-        put_next_position_value(chunk_dataR, indS, colR - colS, shfR, colR,
-                                valR);
-#endif
+        put_next_position_value(chunk_dataR, nblkR, indS, colS - colR, shfR,
+                                colR, valR);
         get_detect_endblock(block_size, nblkS, blkS);
         put_detect_endblock(offsets_dataR, shfR, block_size, nblkR, blkR);
     }
@@ -254,15 +241,10 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
     auto values = result->get_values();
 
     for (size_type i = 0; i < num_stored_elements; i++) {
-#if OPTION == 0
-        update_bccoo_position_val(rows_data, offsets_data, chunk_data,
-                                  block_size, nblk, blk, shf, row, col, val);
-#else
         get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
         uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-        get_next_position_value(chunk_data, ind, shf, col, val);
+        get_next_position_value(chunk_data, nblk, ind, shf, col, val);
         get_detect_endblock(block_size, nblk, blk);
-#endif
         row_idxs[i] = row;
         col_idxs[i] = col;
         values[i] = val;
@@ -310,12 +292,26 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                                 shf, row, col);
         uint8 ind =
             get_position_newrow_csr(chunk_data, row_ptrs, i, shf, row, col);
-        get_next_position_value(chunk_data, ind, shf, col, val);
+        get_next_position_value(chunk_data, nblk, ind, shf, col, val);
+        //				std::cout << i << " - " << row_ptrs[row]
+        //<<
+        //"
+        //-> "
+        //									<<
+        // row
+        //<<
+        //"
+        //-
+        //"
+        //<< col << " - " << val << std::endl;
         col_idxs[i] = col;
         values[i] = val;
         get_detect_endblock(block_size, nblk, blk);
     }
-    row_ptrs[row + 1] = num_stored_elements;
+    //		std::cout << "ABC " << row << std::endl;
+    if (num_stored_elements > 0) {
+        row_ptrs[row + 1] = num_stored_elements;
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -348,15 +344,10 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
     }
 
     for (size_type i = 0; i < num_stored_elements; i++) {
-#if OPTION == 0
-        update_bccoo_position_val(rows_data, offsets_data, chunk_data,
-                                  block_size, nblk, blk, shf, row, col, val);
-#else
         get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
         uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-        get_next_position_value(chunk_data, ind, shf, col, val);
+        get_next_position_value(chunk_data, nblk, ind, shf, col, val);
         get_detect_endblock(block_size, nblk, blk);
-#endif
         result->at(row, col) += val;
     }
 }
@@ -389,15 +380,10 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
     }
 
     for (size_type i = 0; i < num_stored_elements; i++) {
-#if OPTION == 0
-        update_bccoo_position_val(rows_data, offsets_data, chunk_data,
-                                  block_size, nblk, blk, shf, row, col, val);
-#else
         get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
         uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-        get_next_position_value(chunk_data, ind, shf, col, val);
+        get_next_position_value(chunk_data, nblk, ind, shf, col, val);
         get_detect_endblock(block_size, nblk, blk);
-#endif
         if (row == col) {
             diag_values[row] = val;
         }
@@ -424,17 +410,11 @@ void compute_absolute_inplace(std::shared_ptr<const DefaultExecutor> exec,
     ValueType val;
 
     for (size_type i = 0; i < num_stored_elements; i++) {
-#if OPTION == 0
-        update_bccoo_position_val(rows_data, offsets_data, chunk_data,
-                                  block_size, nblk, blk, shf, row, col, val,
-                                  [](ValueType val) { return abs(val); });
-#else
         get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
         uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-        get_next_position_value_put(chunk_data, ind, shf, col, val,
+        get_next_position_value_put(chunk_data, nblk, ind, shf, col, val,
                                     [](ValueType val) { return abs(val); });
         get_detect_endblock(block_size, nblk, blk);
-#endif
     }
 }
 
@@ -467,26 +447,21 @@ void compute_absolute(
     auto* chunk_dataR = result->get_chunk();
     remove_complex<ValueType> valR;
 
-    offsets_dataR[0] = 0;
+    if (num_stored_elements > 0) {
+        offsets_dataR[0] = 0;
+    }
     for (size_type i = 0; i < num_stored_elements; i++) {
         get_detect_newblock(rows_dataS, offsets_dataS, nblkS, blkS, shfS, rowS,
                             colS);
         put_detect_newblock(chunk_dataR, rows_dataR, nblkR, blkR, shfR, rowR,
                             rowS - rowR, colR);
-#if OPTION == 0
-        update_bccoo_position_copy_val(chunk_dataS, shfS, rowS, colS, valS,
-                                       rows_dataR, nblkR, blkR, chunk_dataR,
-                                       shfR, rowR, colR, valR,
-                                       [](ValueType val) { return abs(val); });
-#else
         uint8 indS =
             get_position_newrow_put(chunk_dataS, shfS, rowS, colS, chunk_dataR,
                                     nblkR, blkR, rows_dataR, shfR, rowR, colR);
-        get_next_position_value(chunk_dataS, indS, shfS, colS, valS);
+        get_next_position_value(chunk_dataS, nblkS, indS, shfS, colS, valS);
         valR = abs(valS);
-        put_next_position_value(chunk_dataR, indS, colR - colS, shfR, colR,
-                                valR);
-#endif
+        put_next_position_value(chunk_dataR, nblkR, indS, colS - colR, shfR,
+                                colR, valR);
         get_detect_endblock(block_size, nblkS, blkS);
         put_detect_endblock(offsets_dataR, shfR, block_size, nblkR, blkR);
     }

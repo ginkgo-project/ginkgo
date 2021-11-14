@@ -184,9 +184,13 @@ void Bccoo<ValueType, IndexType>::convert_to(
     auto tmp = Csr<ValueType, IndexType>::create(
         exec, this->get_size(), this->get_num_stored_elements(),
         result->get_strategy());
+    //		std::cout << "YYY" << std::endl;
     exec->run(bccoo::make_convert_to_csr(this, tmp.get()));
+    //		std::cout << "XXX" << std::endl;
     tmp->make_srow();
+    //		std::cout << "WWW" << std::endl;
     tmp->move_to(result);
+    //		std::cout << "VVV" << std::endl;
 }
 
 
@@ -262,11 +266,10 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     for (const auto& elem : data.nonzeros) {
         if (elem.value != zero<ValueType>()) {
             put_detect_newblock(rows_data, nblk, blk, row, elem.row - row, col);
-            //						put_position_newrow_mat_data(elem,
-            // chunk_data, shf, row, col);
             size_type ind = put_position_newrow_mat_data(
                 elem.row, elem.column, chunk_data, shf, row, col);
-            put_next_position_value(chunk_data, ind, ind, shf, col, elem.value);
+            put_next_position_value(chunk_data, nblk, ind, ind, shf, col,
+                                    elem.value);
             put_detect_endblock(offsets_data, shf, block_size, nblk, blk);
         }
     }
@@ -308,7 +311,7 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
     for (size_type i = 0; i < num_stored_elements; i++) {
         get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
         uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-        get_next_position_value(chunk_data, ind, shf, col, val);
+        get_next_position_value(chunk_data, nblk, ind, shf, col, val);
         data.nonzeros.emplace_back(row, col, val);
         get_detect_endblock(block_size, nblk, blk);
     }
