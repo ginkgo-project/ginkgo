@@ -462,45 +462,12 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type row = 0; row < num_rows; ++row) {
         for (size_type col = 0; col < num_cols; ++col) {
             if (source->at(row, col) != zero<ValueType>()) {
-                /* */
                 cnt_detect_newblock(nblk, shf, rowR, row - rowR, colR);
-                /*
-                if (nblk == 0) {
-                    rowR = row;
-                    colR = 0;
-                }
-                if (row != rowR) {  // new row
-                    rowR = row;
-                    colR = 0;
-                    shf++;
-                }
-                */
-                /* */
                 size_type colRS =
                     cnt_position_newrow_mat_data(row, col, shf, rowR, colR);
                 cnt_next_position_value(colRS, shf, colR, source->at(row, col),
                                         nblk);
-                /*
-                size_type ind = col - colR;
-                if (ind < 0xFD) {
-                    shf++;
-                } else if (ind < 0xFFFF) {
-                    shf += 3;
-                } else {
-                    shf += 5;
-                }
-                colR = col;
-                shf += sizeof(ValueType);
-                nblk++;
-                */
-                /* */
                 cnt_detect_endblock(block_size, nblk, blk);
-                /*
-                if (nblk == block_size) {
-                    nblk = 0;
-                    colR = 0;
-                }
-                */
             }
         }
     }
@@ -530,61 +497,13 @@ void copy_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type row = 0; row < num_rows; ++row) {
         for (size_type col = 0; col < num_cols; ++col) {
             if (source->at(row, col) != zero<ValueType>()) {
-                /* */
                 put_detect_newblock(chunk_data, rows_data, nblk, blk, shf, rowR,
                                     row - rowR, colR);
-                /*
-                if (nblk == 0) {
-                    rowR = row;
-                    colR = 0;
-                    rows_data[blk] = row;
-                }
-                if (row != rowR) {  // new row
-                    rowR = row;
-                    colR = 0;
-                    set_value_chunk<uint8>(chunk_data, shf, 0xFF);
-                    shf++;
-                }
-                */
-                /**/
                 size_type colRS = put_position_newrow_mat_data(
                     row, col, chunk_data, shf, rowR, colR);
-                /*
-size_type colRS = col - colR;
-                /* */
-                /* */
                 put_next_position_value(chunk_data, nblk, col - colR, shf, colR,
                                         source->at(row, col));
-                /*
-                if (colRS < 0xFD) {
-                    set_value_chunk<uint8>(chunk_data, shf, colRS);
-                    shf++;
-                } else if (colRS < 0xFFFF) {
-                    set_value_chunk<uint8>(chunk_data, shf, 0xFD);
-                    shf++;
-                    set_value_chunk<uint16>(chunk_data, shf, colRS);
-                    shf += 2;
-                } else {
-                    set_value_chunk<uint8>(chunk_data, shf, 0xFE);
-                    shf++;
-                    set_value_chunk<uint32>(chunk_data, shf, colRS);
-                    shf += 4;
-                }
-                colR = col;
-                set_value_chunk<ValueType>(chunk_data, shf,
-                                           source->at(row, col));
-                shf += sizeof(ValueType);
-                nblk++;
-                */
                 put_detect_endblock(offsets_data, shf, block_size, nblk, blk);
-                /*
-                if (nblk == block_size) {
-                    nblk = 0;
-                    blk++;
-                    offsets_data[blk] = shf;
-                    colR = 0;
-                }
-                */
             }
         }
     }
@@ -598,32 +517,9 @@ template <typename ValueType, typename IndexType>
 void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Dense<ValueType>* source,
                       matrix::Bccoo<ValueType, IndexType>* result)
-//    GKO_NOT_IMPLEMENTED;
 {
     copy_to_bccoo(exec, source, result);
-    /*
-        auto num_rows = result->get_size()[0];
-        auto num_cols = result->get_size()[1];
-        auto num_nonzeros = result->get_num_stored_elements();
-
-        auto row_idxs = result->get_row_idxs();
-        auto col_idxs = result->get_col_idxs();
-        auto values = result->get_values();
-
-        auto idxs = 0;
-        for (size_type row = 0; row < num_rows; ++row) {
-            for (size_type col = 0; col < num_cols; ++col) {
-                auto val = source->at(row, col);
-                if (val != zero<ValueType>()) {
-                    row_idxs[idxs] = row;
-                    col_idxs[idxs] = col;
-                    values[idxs] = val;
-                    ++idxs;
-                }
-            }
-        }
-    */
-// }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_BCCOO_KERNEL);

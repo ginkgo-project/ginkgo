@@ -184,13 +184,9 @@ void Bccoo<ValueType, IndexType>::convert_to(
     auto tmp = Csr<ValueType, IndexType>::create(
         exec, this->get_size(), this->get_num_stored_elements(),
         result->get_strategy());
-    //		std::cout << "YYY" << std::endl;
     exec->run(bccoo::make_convert_to_csr(this, tmp.get()));
-    //		std::cout << "XXX" << std::endl;
     tmp->make_srow();
-    //		std::cout << "WWW" << std::endl;
     tmp->move_to(result);
-    //		std::cout << "VVV" << std::endl;
 }
 
 

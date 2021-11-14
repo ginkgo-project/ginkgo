@@ -113,7 +113,6 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     auto block_size = a->get_block_size();
     auto num_cols = b->get_size()[1];
 
-    //º		std::cout << "spmv2" << std::endl;
     // Computation of chunk
     size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
     ValueType val;
@@ -122,9 +121,6 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
         uint8 ind = get_position_newrow(chunk_data, shf, row, col);
         get_next_position_value(chunk_data, nblk, ind, shf, col, val);
         get_detect_endblock(block_size, nblk, blk);
-        //				std::cout << row << " - " << col << " =
-        //"
-        //<< val << std::endl;
         for (size_type j = 0; j < num_cols; j++) {
             c->at(row, j) += val * b->at(col, j);
         }
@@ -150,7 +146,6 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     auto alpha_val = alpha->at(0, 0);
     auto num_cols = b->get_size()[1];
 
-    //		std::cout << "advanced_spmv2" << std::endl;
     // Computation of chunk
     size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
     ValueType val;
@@ -293,22 +288,10 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
         uint8 ind =
             get_position_newrow_csr(chunk_data, row_ptrs, i, shf, row, col);
         get_next_position_value(chunk_data, nblk, ind, shf, col, val);
-        //				std::cout << i << " - " << row_ptrs[row]
-        //<<
-        //"
-        //-> "
-        //									<<
-        // row
-        //<<
-        //"
-        //-
-        //"
-        //<< col << " - " << val << std::endl;
         col_idxs[i] = col;
         values[i] = val;
         get_detect_endblock(block_size, nblk, blk);
     }
-    //		std::cout << "ABC " << row << std::endl;
     if (num_stored_elements > 0) {
         row_ptrs[row + 1] = num_stored_elements;
     }

@@ -172,53 +172,11 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
-// template <typename ValueType>
-// void memsize_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
-//                    const matrix::Dense<ValueType> *source,
-//                    const size_type block_size,
-//                    size_type *result) // GKO_NOT_IMPLEMENTED;
 template <typename ValueType>
 void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Dense<ValueType>* source,
-                    const size_type block_size, size_type* result)
-{
-    // Computation of rows, offsets and m (mem_size)
-    auto num_rows = source->get_size()[0];
-    auto num_cols = source->get_size()[1];
-    auto num_nonzeros = 0;
-    size_type nblk = 0, rrr = 0, ccc = 0, shf = 0;
-    for (size_type row = 0; row < num_rows; ++row) {
-        for (size_type col = 0; col < num_cols; ++col) {
-            if (source->at(row, col) != zero<ValueType>()) {
-                if (nblk == 0) {
-                    rrr = row;
-                    ccc = 0;
-                }
-                if (row != rrr) {  // new row
-                    rrr = row;
-                    ccc = 0;
-                    shf++;
-                }
-                size_type d = col - ccc;
-                if (d < 0xFD) {
-                    shf++;
-                } else if (d < 0xFFFF) {
-                    shf += 3;
-                } else {
-                    shf += 5;
-                }
-                ccc = col;
-                shf += sizeof(ValueType);
-                //            }
-                if (++nblk == block_size) {
-                    nblk = 0;
-                    ccc = 0;
-                }
-            }
-        }
-    }
-    *result = shf;
-}
+                    const size_type block_size,
+                    size_type* result) GKO_NOT_IMPLEMENTED;
 /*
 {
 
@@ -250,41 +208,7 @@ void convert_to_bccoo(std::shared_ptr<const OmpExecutor> exec,
     GKO_NOT_IMPLEMENTED;
 /*
 {
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    auto num_nonzeros = result->get_num_stored_elements();
 
-    auto row_idxs = result->get_row_idxs();
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
-    array<IndexType> row_ptrs_array(exec, num_rows);
-    auto row_ptrs = row_ptrs_array.get_data();
-
-#pragma omp parallel for
-    for (size_type row = 0; row < num_rows; ++row) {
-        IndexType row_count{};
-        for (size_type col = 0; col < num_cols; ++col) {
-            auto val = source->at(row, col);
-            row_count += val != zero<ValueType>();
-        }
-        row_ptrs[row] = row_count;
-    }
-
-    components::prefix_sum(exec, row_ptrs, num_rows);
-
-#pragma omp parallel for
-    for (size_type row = 0; row < num_rows; ++row) {
-        auto idxs = row_ptrs[row];
-        for (size_type col = 0; col < num_cols; ++col) {
-            auto val = source->at(row, col);
-            if (val != zero<ValueType>()) {
-                row_idxs[idxs] = row;
-                col_idxs[idxs] = col;
-                values[idxs] = val;
-                ++idxs;
-            }
-        }
-    }
 }
 */
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
