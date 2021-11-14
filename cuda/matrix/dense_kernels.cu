@@ -240,29 +240,9 @@ void convert_to_bccoo(std::shared_ptr<const CudaExecutor> exec,
     GKO_NOT_IMPLEMENTED;
 /*
 {
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-
-    auto row_idxs = result->get_row_idxs();
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
-
-    auto stride = source->get_stride();
-
-    auto nnz_prefix_sum = array<size_type>(exec, num_rows);
-    calculate_nonzeros_per_row(exec, source, &nnz_prefix_sum);
-
-    components::prefix_sum(exec, nnz_prefix_sum.get_data(), num_rows);
-
-    size_type grid_dim = ceildiv(num_rows, default_block_size);
-
-    kernel::fill_in_coo<<<grid_dim, default_block_size>>>(
-        num_rows, num_cols, stride,
-        as_cuda_type(nnz_prefix_sum.get_const_data()),
-        as_cuda_type(source->get_const_values()), as_cuda_type(row_idxs),
-        as_cuda_type(col_idxs), as_cuda_type(values));
 }
 */
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_BCCOO_KERNEL);
 

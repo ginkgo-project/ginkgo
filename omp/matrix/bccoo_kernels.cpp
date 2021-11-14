@@ -61,7 +61,10 @@ namespace omp {
  */
 namespace bccoo {
 
+
 #define OPTION 1
+// If OPTION == 0, the products for each column is computed separately
+// Otherwise, the elements of the matrix are accessed only once
 
 void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec,
                             size_type* block_size)
@@ -124,7 +127,6 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
             auto* offsets_data = a->get_const_offsets();
             auto* chunk_data = a->get_const_chunk();
             auto block_size = a->get_block_size();
-            //            size_type tid = omp_get_thread_num();
             size_type nblk = 0, col = 0;
             size_type row = rows_data[blk], row_old = 0;
             size_type shf = offsets_data[blk];
@@ -162,7 +164,6 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
             auto* offsets_data = a->get_const_offsets();
             auto* chunk_data = a->get_const_chunk();
             auto block_size = a->get_block_size();
-            //        size_type tid = omp_get_thread_num();
             size_type nblk = 0, col = 0;
             size_type row = rows_data[blk], row_old = 0;
             size_type shf = offsets_data[blk];
@@ -179,27 +180,27 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp critical(bccoo_apply)
                     {
                         for (size_type j = 0; j < num_cols; j++) {
-                            // TODO replace with
-                            // 			OMP atomic_add (ValueType
+                            // TODO: replace with
+                            // 			 OMP atomic_add (ValueType
                             // &inout,
-                            // 			ValueType out);
-                            // atomic_add(c->at(row_old, j), sumV[j]);
+                            // ValueType out); atomic_add(c->at(row_old, j),
+                            // sumV[j]);
                             c->at(row_old, j) += sumV[j];
                             sumV[j] = zero<ValueType>();
                         }
                     }
                 }
                 for (size_type j = 0; j < num_cols; j++) {
-                    // TODO replace with
-                    // 			OMP atomic_add (ValueType &inout,
-                    // 			ValueType out);
-                    // atomic_add(c->at(row_old, j), sumV[j]);
                     sumV[j] += val * b->at(col, j);
                 }
             }
 #pragma omp critical(bccoo_apply)
             {
                 for (size_type j = 0; j < num_cols; j++) {
+                    // TODO: replace with
+                    // 			 OMP atomic_add (ValueType &inout,
+                    // 											 ValueType
+                    // out); atomic_add(c->at(row_old, j), sumV[j]);
                     c->at(row, j) += sumV[j];
                 }
             }
@@ -231,7 +232,6 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
             auto* chunk_data = a->get_const_chunk();
             auto block_size = a->get_block_size();
             auto alpha_val = alpha->at(0, 0);
-            //            size_type tid = omp_get_thread_num();
             size_type nblk = 0, col = 0;
             size_type row = rows_data[blk], row_old = 0;
             size_type shf = offsets_data[blk];
@@ -271,7 +271,6 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
             auto num_cols = b->get_size()[1];
             auto block_size = a->get_block_size();
             auto alpha_val = alpha->at(0, 0);
-            //            size_type tid = omp_get_thread_num();
             size_type nblk = 0, col = 0;
             size_type row = rows_data[blk], row_old = 0;
             size_type shf = offsets_data[blk];
@@ -288,26 +287,27 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp critical(bccoo_apply)
                     {
                         for (size_type j = 0; j < num_cols; j++) {
-                            // TODO replace with
-                            // 			OMP atomic_add (ValueType
-                            // &inout, 			ValueType out);
-                            // atomic_add(c->at(row_old, j), sumV[j]);
+                            // TODO: replace with
+                            // 			 OMP atomic_add (ValueType
+                            // &inout,
+                            // ValueType out); atomic_add(c->at(row_old, j),
+                            // sumV[j]);
                             c->at(row_old, j) += sumV[j];
                             sumV[j] = zero<ValueType>();
                         }
                     }
                 }
                 for (size_type j = 0; j < num_cols; j++) {
-                    // TODO replace with
-                    // 			OMP atomic_add (ValueType &inout,
-                    // 			ValueType out);
-                    // atomic_add(c->at(row_old, j), sumV[j]);
                     sumV[j] += alpha_val * val * b->at(col, j);
                 }
             }
 #pragma omp critical(bccoo_apply)
             {
                 for (size_type j = 0; j < num_cols; j++) {
+                    // TODO: replace with
+                    // 			 OMP atomic_add (ValueType &inout,
+                    // 											 ValueType
+                    // out); atomic_add(c->at(row_old, j), sumV[j]);
                     c->at(row, j) += sumV[j];
                 }
             }
@@ -398,7 +398,6 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
         auto col_idxs = result->get_col_idxs();
         auto values = result->get_values();
         size_type block_size = source->get_block_size();
-        //        size_type tid = omp_get_thread_num();
         size_type nblk = 0, col = 0;
         size_type row = rows_data[blk];
         size_type shf = offsets_data[blk];
@@ -441,7 +440,6 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
         auto col_idxs = result->get_col_idxs();
         auto values = result->get_values();
         size_type block_size = source->get_block_size();
-        //        size_type tid = omp_get_thread_num();
         size_type nblk = 0, col = 0;
         size_type row = rows_data[blk];
         size_type shf = offsets_data[blk];
@@ -486,7 +484,6 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
         auto* offsets_data = source->get_const_offsets();
         auto* chunk_data = source->get_const_chunk();
         size_type block_size = source->get_block_size();
-        //        size_type tid = omp_get_thread_num();
         size_type nblk = 0, col = 0;
         size_type row = rows_data[blk];
         size_type shf = offsets_data[blk];
@@ -522,7 +519,6 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
         auto* offsets_data = orig->get_const_offsets();
         auto* chunk_data = orig->get_const_chunk();
         size_type block_size = orig->get_block_size();
-        //        size_type tid = omp_get_thread_num();
         size_type nblk = 0, col = 0;
         size_type row = rows_data[blk];
         size_type shf = offsets_data[blk];
@@ -554,7 +550,6 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
         auto* offsets_data = matrix->get_const_offsets();
         auto* chunk_data = matrix->get_chunk();
         size_type block_size = matrix->get_block_size();
-        //        size_type tid = omp_get_thread_num();
         size_type nblk = 0, col = 0;
         size_type row = rows_data[blk];
         size_type shf = offsets_data[blk];

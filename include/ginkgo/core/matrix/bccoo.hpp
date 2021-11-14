@@ -322,18 +322,14 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      */
-    /**/
     Bccoo(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Bccoo>(exec, dim<2>{}),
           rows_(exec, 0),
-          //          offsets_(exec, 1),
-          offsets_(exec, 0),
+          offsets_(exec, 0),  // 0 is more correct than 1
           chunk_(exec, 0),
           num_nonzeros_{0},
           block_size_{0}
-    {
-        //				std::cout << "CREATING A " << std::endl;
-    }
+    {}
 
     /**
      * Creates an uninitialized BCCOO matrix of the specified size.
@@ -351,13 +347,11 @@ protected:
                 (block_size <= 0) ? 0 : ceildiv(num_nonzeros, block_size)),
           offsets_(exec, (block_size <= 0)
                              ? 0
-                             //                             ? 0
                              : ceildiv(num_nonzeros, block_size) + 1),
           chunk_(exec, num_bytes),
           num_nonzeros_{num_nonzeros},
           block_size_{block_size}
     {
-        //				std::cout << "CREATING B " << std::endl;
         GKO_ASSERT(block_size_ >= 0);
     }
 
@@ -395,7 +389,6 @@ protected:
           num_nonzeros_{num_nonzeros},
           block_size_{block_size}
     {
-        //				std::cout << "CREATING C " << std::endl;
         GKO_ASSERT_EQ(rows_.get_num_elems() + 1, offsets_.get_num_elems());
     }
 
@@ -414,8 +407,6 @@ private:
     array<uint8> chunk_;
     size_type block_size_;
     size_type num_nonzeros_;
-    // size_type num_blocks_;
-    // size_type num_bytes_;
 };
 
 
