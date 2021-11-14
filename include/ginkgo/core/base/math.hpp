@@ -1107,7 +1107,7 @@ GKO_INLINE GKO_ATTRIBUTES T safe_divide(T a, T b)
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
-is_nan(const T &value)
+is_nan(const T& value)
 {
     return std::isnan(value);
 }
@@ -1124,14 +1124,14 @@ is_nan(const T &value)
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<is_complex_s<T>::value, bool> is_nan(
-    const T &value)
+    const T& value)
 {
     return std::isnan(value.real()) || std::isnan(value.imag());
 }
 
 
 /**
- * Returns NaN of the given type.
+ * Returns a quiet NaN of the given type.
  *
  * @tparam T  the type of the object
  *
@@ -1146,7 +1146,7 @@ nan()
 
 
 /**
- * Returns a complex with both components NaN.
+ * Returns a complex with both components quiet NaN.
  *
  * @tparam T  the type of the object
  *

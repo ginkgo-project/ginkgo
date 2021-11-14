@@ -559,9 +559,9 @@ void spgemm_copy(cusparseHandle_t handle, const ValueType* alpha,
 
 inline size_type sparse_matrix_nnz(cusparseSpMatDescr_t descr)
 {
-    int64_t dummy1{};
-    int64_t dummy2{};
-    int64_t nnz{};
+    int64 dummy1{};
+    int64 dummy2{};
+    int64 nnz{};
     cusparseSpMatGetSize(descr, &dummy1, &dummy2, &nnz);
     return static_cast<size_type>(nnz);
 }
@@ -803,7 +803,7 @@ inline void destroy(cusparseSpGEMMDescr_t info)
 
 
 template <typename ValueType>
-inline cusparseDnVecDescr_t create_dnvec(int64_t size, ValueType* values)
+inline cusparseDnVecDescr_t create_dnvec(int64 size, ValueType* values)
 {
     cusparseDnVecDescr_t descr{};
     constexpr auto value_type = cuda_data_type<ValueType>();
@@ -820,8 +820,8 @@ inline void destroy(cusparseDnVecDescr_t descr)
 
 
 template <typename ValueType>
-inline cusparseDnMatDescr_t create_dnmat(int64_t rows, int64_t cols,
-                                         int64_t stride, ValueType* values)
+inline cusparseDnMatDescr_t create_dnmat(int64 rows, int64 cols, int64 stride,
+                                         ValueType* values)
 {
     cusparseDnMatDescr_t descr{};
     constexpr auto value_type = cuda_data_type<ValueType>();
@@ -838,7 +838,7 @@ inline void destroy(cusparseDnMatDescr_t descr)
 
 
 template <typename ValueType, typename IndexType>
-inline cusparseSpVecDescr_t create_spvec(int64_t size, int64_t nnz,
+inline cusparseSpVecDescr_t create_spvec(int64 size, int64 nnz,
                                          IndexType* indices, ValueType* values)
 {
     cusparseSpVecDescr_t descr{};
@@ -858,7 +858,7 @@ inline void destroy(cusparseSpVecDescr_t descr)
 
 
 template <typename IndexType, typename ValueType>
-inline cusparseSpMatDescr_t create_csr(int64_t rows, int64_t cols, int64_t nnz,
+inline cusparseSpMatDescr_t create_csr(int64 rows, int64 cols, int64 nnz,
                                        IndexType* csrRowOffsets,
                                        IndexType* csrColInd,
                                        ValueType* csrValues)
@@ -1153,7 +1153,7 @@ void spsm_solve(cusparseHandle_t handle, cusparseOperation_t op_a,
 }
 
 
-#endif
+#endif  // (defined(CUDA_VERSION) && (CUDA_VERSION >= 11030))
 
 
 template <typename IndexType>

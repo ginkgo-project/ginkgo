@@ -83,6 +83,8 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
     cusparseHandle_t handle;
     cusparseSpSMDescr_t spsm_descr;
     cusparseSpMatDescr_t descr_a;
+
+    // Implicit parameter in spsm_solve, therefore stored here.
     Array<char> work;
 
     CudaSolveStruct(std::shared_ptr<const gko::CudaExecutor> exec,
@@ -112,10 +114,10 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         // cusparse needs non-nullptr input vectors even for analysis
         auto descr_b = cusparse::create_dnmat(
             matrix->get_size()[0], num_rhs, matrix->get_size()[1],
-            reinterpret_cast<ValueType*>(0xCC));
+            reinterpret_cast<ValueType*>(0xDEAD));
         auto descr_c = cusparse::create_dnmat(
             matrix->get_size()[0], num_rhs, matrix->get_size()[1],
-            reinterpret_cast<ValueType*>(0xFF));
+            reinterpret_cast<ValueType*>(0xDEAF));
 
         auto work_size = cusparse::spsm_buffer_size(
             handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -325,36 +327,38 @@ constexpr int default_block_size = 512;
 constexpr int fallback_block_size = 32;
 
 
-template <typename ValueType>
-__device__ std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType>
-load(const ValueType* values, int index)
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__
+    std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType>
+    load(const ValueType* values, IndexType index)
 {
     const volatile ValueType* val = values + index;
     return *val;
 }
 
-template <typename ValueType>
-__device__ std::enable_if_t<std::is_floating_point<ValueType>::value,
-                            thrust::complex<ValueType>>
-load(const thrust::complex<ValueType>* values, int index)
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__ std::enable_if_t<
+    std::is_floating_point<ValueType>::value, thrust::complex<ValueType>>
+load(const thrust::complex<ValueType>* values, IndexType index)
 {
     auto real = reinterpret_cast<const ValueType*>(values);
     auto imag = real + 1;
     return {load(real, 2 * index), load(imag, 2 * index)};
 }
 
-template <typename ValueType>
-__device__ void store(
-    ValueType* values, int index,
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__ void store(
+    ValueType* values, IndexType index,
     std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType> value)
 {
     volatile ValueType* val = values + index;
     *val = value;
 }
 
-template <typename ValueType>
-__device__ void store(thrust::complex<ValueType>* values, int index,
-                      thrust::complex<ValueType> value)
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__ void store(thrust::complex<ValueType>* values,
+                                      IndexType index,
+                                      thrust::complex<ValueType> value)
 {
     auto real = reinterpret_cast<ValueType*>(values);
     auto imag = real + 1;
@@ -370,7 +374,9 @@ __global__ void sptrsv_naive_caching_kernel(
     ValueType* const x, size_type x_stride, const size_type n,
     const size_type nrhs, bool* nan_produced, IndexType* atomic_counter)
 {
+    __shared__ UninitializedArray<ValueType, default_block_size> x_s_array;
     __shared__ IndexType block_base_idx;
+
     if (threadIdx.x == 0) {
         block_base_idx =
             atomic_add(atomic_counter, IndexType{1}) * default_block_size;
@@ -388,7 +394,6 @@ __global__ void sptrsv_naive_caching_kernel(
     const auto self_shmem_id = full_gid / default_block_size;
     const auto self_shid = full_gid % default_block_size;
 
-    __shared__ UninitializedArray<ValueType, default_block_size> x_s_array;
     ValueType* x_s = x_s_array;
     x_s[self_shid] = nan<ValueType>();
 
@@ -490,6 +495,15 @@ __global__ void sptrsv_naive_legacy_kernel(
 }
 
 
+template <typename IndexType>
+__global__ void sptrsv_init_kernel(bool* const nan_produced,
+                                   IndexType* const atomic_counter)
+{
+    *nan_produced = false;
+    *atomic_counter = IndexType{};
+}
+
+
 template <bool is_upper, typename ValueType, typename IndexType>
 void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
                           const matrix::Csr<ValueType, IndexType>* matrix,
@@ -505,8 +519,10 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
     // Initialize x to all NaNs.
     x->fill(nan<ValueType>());
 
-    Array<bool> nan_produced(exec, {false});
-    Array<IndexType> atomic_counter(exec, {IndexType{}});
+    Array<bool> nan_produced(exec, 1);
+    Array<IndexType> atomic_counter(exec, 1);
+    sptrsv_init_kernel<<<1, 1>>>(nan_produced.get_data(),
+                                 atomic_counter.get_data());
 
     const dim3 block_size(
         is_fallback_required ? fallback_block_size : default_block_size, 1, 1);
@@ -528,15 +544,14 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
             nan_produced.get_data(), atomic_counter.get_data());
     }
 
-    if (exec->copy_val_to_host(nan_produced.get_const_data())) {
 #if GKO_VERBOSE_LEVEL >= 1
+    if (exec->copy_val_to_host(nan_produced.get_const_data())) {
         std::cerr
             << "Error: triangular solve produced NaN, either not all diagonal "
                "elements are nonzero, or the system is very ill-conditioned. "
-               "The NaN will be replaced with a zero."
-            << std::endl;
-#endif  // GKO_VERBOSE_LEVEL >= 1
+               "The NaN will be replaced with a zero.\n";
     }
+#endif  // GKO_VERBOSE_LEVEL >= 1
 }
 
 
