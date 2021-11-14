@@ -249,9 +249,9 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     for (const auto& elem : data.nonzeros) {
         if (elem.value != zero<ValueType>()) {
             put_detect_newblock(rows_data, nblk, blk, row, elem.row - row, col);
-            size_type ind = cnt_position_newrow_mat_data(elem.row, elem.column,
-                                                         shf, row, col);
-            cnt_next_position_value(ind, shf, elem.value);
+            size_type colRS = cnt_position_newrow_mat_data(
+                elem.row, elem.column, shf, row, col);
+            cnt_next_position_value(colRS, shf, col, elem.value, nblk);
             put_detect_endblock(offsets_data, shf, block_size, nblk, blk);
         }
     }
@@ -266,9 +266,9 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     for (const auto& elem : data.nonzeros) {
         if (elem.value != zero<ValueType>()) {
             put_detect_newblock(rows_data, nblk, blk, row, elem.row - row, col);
-            size_type ind = put_position_newrow_mat_data(
+            size_type colRS = put_position_newrow_mat_data(
                 elem.row, elem.column, chunk_data, shf, row, col);
-            put_next_position_value(chunk_data, nblk, ind, ind, shf, col,
+            put_next_position_value(chunk_data, nblk, colRS, shf, col,
                                     elem.value);
             put_detect_endblock(offsets_data, shf, block_size, nblk, blk);
         }

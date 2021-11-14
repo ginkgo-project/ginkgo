@@ -79,7 +79,7 @@ GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot);
 GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2);
 GKO_REGISTER_OPERATION(compute_norm1, dense::compute_norm1);
 GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros);
-GKO_REGISTER_OPERATION(memsize_bccoo, dense::memsize_bccoo);
+GKO_REGISTER_OPERATION(mem_size_bccoo, dense::mem_size_bccoo);
 GKO_REGISTER_OPERATION(copy_to_bccoo, dense::copy_to_bccoo);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        dense::calculate_max_nnz_per_row);
@@ -138,10 +138,10 @@ inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
     exec->run(bccoo::make_get_default_block_size(&block_size));
     size_type num_stored_nonzeros = 0;
     exec->run(dense::make_count_nonzeros(source, &num_stored_nonzeros));
-    size_type memsize = 0;
-    exec->run(dense::make_memsize_bccoo(source, block_size, &memsize));
+    size_type mem_size = 0;
+    exec->run(dense::make_mem_size_bccoo(source, block_size, &mem_size));
     auto tmp = Bccoo<ValueType, IndexType>::create(
-        exec, source->get_size(), num_stored_nonzeros, block_size, memsize);
+        exec, source->get_size(), num_stored_nonzeros, block_size, mem_size);
     exec->run(op(source, tmp.get()));
     tmp->move_to(result);
 }

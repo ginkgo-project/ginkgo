@@ -371,8 +371,8 @@ void convert_to_next_precision(
                 get_next_position_value(chunk_dataS, nblkS, indS, shfS, colS,
                                         valS);
                 valR = (valS);
-                put_next_position_value(chunk_dataR, nblkR, indS, colS - colR,
-                                        shfR, colR, valR);
+                put_next_position_value(chunk_dataR, nblkR, colS - colR, shfR,
+                                        colR, valR);
             }
         }
     }
@@ -630,8 +630,8 @@ void compute_absolute(
                 get_next_position_value(chunk_dataS, nblkS, indS, shfS, colS,
                                         valS);
                 valR = abs(valS);
-                put_next_position_value(chunk_dataR, nblkR, indS, colS - colR,
-                                        shfR, colR, valR);
+                put_next_position_value(chunk_dataR, nblkR, colS - colR, shfR,
+                                        colR, valR);
             }
         }
     }
