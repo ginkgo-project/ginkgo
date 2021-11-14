@@ -81,10 +81,6 @@ protected:
     std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
                                      int min_nnz_row)
     {
-        //				std::cout << num_rows << " - " <<
-        // num_cols
-        //<< " - " ; 				std::cout << min_nnz_row <<
-        // std::endl;
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
@@ -152,14 +148,10 @@ protected:
 
 
 TEST_F(Bccoo, SimpleApplyIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data();
 
-    //		std::cout << " mtx->apply" << std::endl;
     mtx->apply(y.get(), expected.get());
-    //		std::cout << "dmtx->apply" << std::endl;
     dmtx->apply(dy.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
@@ -167,9 +159,7 @@ TEST_F(Bccoo, SimpleApplyIsEquivalentToRef)
 
 
 TEST_F(Bccoo, AdvancedApplyIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data();
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
@@ -180,9 +170,7 @@ TEST_F(Bccoo, AdvancedApplyIsEquivalentToRef)
 
 
 TEST_F(Bccoo, SimpleApplyAddIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data();
 
     mtx->apply2(y.get(), expected.get());
@@ -193,9 +181,7 @@ TEST_F(Bccoo, SimpleApplyAddIsEquivalentToRef)
 
 
 TEST_F(Bccoo, AdvancedApplyAddIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data();
 
     mtx->apply2(alpha.get(), y.get(), expected.get());
@@ -206,16 +192,10 @@ TEST_F(Bccoo, AdvancedApplyAddIsEquivalentToRef)
 
 
 TEST_F(Bccoo, SimpleApplyToDenseMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data(3);
 
     mtx->apply(y.get(), expected.get());
-    //		for (int j = 0; j < 3; j++) {
-    //				std::cout << "EXP " << expected.get()->at(0,j)
-    //<< std::endl;
-    //		}
     dmtx->apply(dy.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
@@ -223,9 +203,7 @@ TEST_F(Bccoo, SimpleApplyToDenseMatrixIsEquivalentToRef)
 
 
 TEST_F(Bccoo, AdvancedApplyToDenseMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data(3);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
@@ -236,9 +214,7 @@ TEST_F(Bccoo, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 
 
 TEST_F(Bccoo, SimpleApplyAddToDenseMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data(3);
 
     mtx->apply2(y.get(), expected.get());
@@ -263,9 +239,7 @@ TEST_F(Bccoo, SimpleApplyAddToDenseMatrixIsEquivalentToRef)
 
 
 TEST_F(Bccoo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data(3);
 
     mtx->apply2(alpha.get(), y.get(), expected.get());
@@ -276,9 +250,7 @@ TEST_F(Bccoo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
 
 
 TEST_F(Bccoo, ApplyToComplexIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
     auto dcomplex_b = ComplexVec::create(omp);
@@ -295,9 +267,7 @@ TEST_F(Bccoo, ApplyToComplexIsEquivalentToRef)
 
 
 TEST_F(Bccoo, AdvancedApplyToComplexIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
     auto dcomplex_b = ComplexVec::create(omp);
@@ -314,9 +284,7 @@ TEST_F(Bccoo, AdvancedApplyToComplexIsEquivalentToRef)
 
 
 TEST_F(Bccoo, ApplyAddToComplexIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexVec>(231, 3, 1);
     auto dcomplex_b = ComplexVec::create(omp);
@@ -333,9 +301,7 @@ TEST_F(Bccoo, ApplyAddToComplexIsEquivalentToRef)
 
 
 TEST_F(Bccoo, ConvertToDenseIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data();
     auto dense_mtx = gko::matrix::Dense<>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<>::create(omp);
@@ -348,9 +314,7 @@ TEST_F(Bccoo, ConvertToDenseIsEquivalentToRef)
 
 
 TEST_F(Bccoo, ConvertToCooIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data();
     auto coo_mtx = gko::matrix::Coo<>::create(ref);
     auto dcoo_mtx = gko::matrix::Coo<>::create(omp);
@@ -363,24 +327,23 @@ TEST_F(Bccoo, ConvertToCooIsEquivalentToRef)
 
 
 TEST_F(Bccoo, ConvertToCsrIsEquivalentToRef)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
-//    set_up_apply_data();
-//    auto csr_mtx = gko::matrix::Csr<>::create(ref);
-//    auto dcsr_mtx = gko::matrix::Csr<>::create(omp);
-//
-//    mtx->convert_to(csr_mtx.get());
-//    dmtx->convert_to(dcsr_mtx.get());
-//
-//    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
-//}
-
-
-TEST_F(Bccoo, ExtractDiagonalIsEquivalentToRef)
 // GKO_NOT_IMPLEMENTED;
 {
     // TODO (script:bccoo): change the code imported from matrix/coo if needed
+    set_up_apply_data();
+    auto csr_mtx = gko::matrix::Csr<>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<>::create(omp);
+
+    mtx->convert_to(csr_mtx.get());
+    dmtx->convert_to(dcsr_mtx.get());
+
+    //		std::cout << "GKO_ASSERT_MTX_NEAR" << std::endl;
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Bccoo, ExtractDiagonalIsEquivalentToRef)
+{
     set_up_apply_data();
 
     auto diag = mtx->extract_diagonal();
@@ -391,9 +354,7 @@ TEST_F(Bccoo, ExtractDiagonalIsEquivalentToRef)
 
 
 TEST_F(Bccoo, InplaceAbsoluteMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data();
 
     mtx->compute_absolute_inplace();
@@ -404,9 +365,7 @@ TEST_F(Bccoo, InplaceAbsoluteMatrixIsEquivalentToRef)
 
 
 TEST_F(Bccoo, OutplaceAbsoluteMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data();
 
     auto abs_mtx = mtx->compute_absolute();

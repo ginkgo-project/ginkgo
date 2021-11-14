@@ -331,7 +331,9 @@ protected:
           chunk_(exec, 0),
           num_nonzeros_{0},
           block_size_{0}
-    {}
+    {
+        //				std::cout << "CREATING A " << std::endl;
+    }
 
     /**
      * Creates an uninitialized BCCOO matrix of the specified size.
@@ -348,13 +350,14 @@ protected:
           rows_(exec,
                 (block_size <= 0) ? 0 : ceildiv(num_nonzeros, block_size)),
           offsets_(exec, (block_size <= 0)
-                             ? 1
+                             ? 0
                              //                             ? 0
                              : ceildiv(num_nonzeros, block_size) + 1),
           chunk_(exec, num_bytes),
           num_nonzeros_{num_nonzeros},
           block_size_{block_size}
     {
+        //				std::cout << "CREATING B " << std::endl;
         GKO_ASSERT(block_size_ >= 0);
     }
 
@@ -392,6 +395,7 @@ protected:
           num_nonzeros_{num_nonzeros},
           block_size_{block_size}
     {
+        //				std::cout << "CREATING C " << std::endl;
         GKO_ASSERT_EQ(rows_.get_num_elems() + 1, offsets_.get_num_elems());
     }
 
