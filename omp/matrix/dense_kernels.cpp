@@ -178,9 +178,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 //                    const size_type block_size,
 //                    size_type *result) // GKO_NOT_IMPLEMENTED;
 template <typename ValueType>
-void memsize_bccoo(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Dense<ValueType>* source,
-                   const size_type block_size, size_type* result)
+void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
+                    const matrix::Dense<ValueType>* source,
+                    const size_type block_size, size_type* result)
 {
     // Computation of rows, offsets and m (mem_size)
     auto num_rows = source->get_size()[0];
