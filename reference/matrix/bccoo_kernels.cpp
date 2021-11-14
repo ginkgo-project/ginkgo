@@ -209,8 +209,8 @@ void convert_to_next_precision(
                                     nblkR, blkR, rows_dataR, shfR, rowR, colR);
         get_next_position_value(chunk_dataS, nblkS, indS, shfS, colS, valS);
         valR = valS;
-        put_next_position_value(chunk_dataR, nblkR, indS, colS - colR, shfR,
-                                colR, valR);
+        put_next_position_value(chunk_dataR, nblkR, colS - colR, shfR, colR,
+                                valR);
         get_detect_endblock(block_size, nblkS, blkS);
         put_detect_endblock(offsets_dataR, shfR, block_size, nblkR, blkR);
     }
@@ -460,8 +460,8 @@ void compute_absolute(
                                     nblkR, blkR, rows_dataR, shfR, rowR, colR);
         get_next_position_value(chunk_dataS, nblkS, indS, shfS, colS, valS);
         valR = abs(valS);
-        put_next_position_value(chunk_dataR, nblkR, indS, colS - colR, shfR,
-                                colR, valR);
+        put_next_position_value(chunk_dataR, nblkR, colS - colR, shfR, colR,
+                                valR);
         get_detect_endblock(block_size, nblkS, blkS);
         put_detect_endblock(offsets_dataR, shfR, block_size, nblkR, blkR);
     }

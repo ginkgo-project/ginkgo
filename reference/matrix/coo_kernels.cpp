@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/unaligned_access.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 
@@ -155,8 +156,30 @@ void mem_size_bccoo(std::shared_ptr<const DefaultExecutor> exec,
                     const size_type num_blocks, const size_type block_size,
                     size_type* mem_size)
 {
+    // Computation of rows, offsets and m (mem_size)
     const IndexType* row_idxs = coo->get_const_row_idxs();
     const IndexType* col_idxs = coo->get_const_col_idxs();
+    const ValueType* values = coo->get_const_values();
+    const size_type num_rows = coo->get_size()[0];
+    const size_type num_stored_elements = coo->get_num_stored_elements();
+    size_type nblk = 0, blk = 0, rowR = 0, colR = 0, shf = 0;
+    for (size_type i = 0; i < num_stored_elements; i++) {
+        const size_type row = row_idxs[i];
+        const size_type col = col_idxs[i];
+        const ValueType val = values[i];
+        cnt_detect_newblock(nblk, shf, rowR, row - rowR, colR);
+        size_type colRS =
+            cnt_position_newrow_mat_data(row, col, shf, rowR, colR);
+        cnt_next_position_value(colRS, shf, colR, val, nblk);
+        cnt_detect_endblock(block_size, nblk, blk);
+    }
+
+    *mem_size = shf;
+}
+/*
+{
+    const IndexType *row_idxs = coo->get_const_row_idxs();
+    const IndexType *col_idxs = coo->get_const_col_idxs();
     const size_type num_rows = coo->get_size()[0];
     const size_type num_stored_elements = coo->get_num_stored_elements();
     //    size_type num_blocks = rows.size();
@@ -190,7 +213,7 @@ void mem_size_bccoo(std::shared_ptr<const DefaultExecutor> exec,
     }
     for (int b = 0; b < num_blocks; b++) offsets[b + 1] += offsets[b];
 }
-/* */
+*/
 /*
 template <typename ValueType, typename IndexType>
 // template <typename IndexType>
@@ -241,20 +264,53 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void copy_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::Coo<ValueType, IndexType>* source,
+                   matrix::Bccoo<ValueType, IndexType>* result)
+{
+    size_type block_size = result->get_block_size();
+    IndexType* rows_data = result->get_rows();
+    IndexType* offsets_data = result->get_offsets();
+    uint8* chunk_data = result->get_chunk();
+
+    // Computation of chunk
+    const IndexType* row_idxs = source->get_const_row_idxs();
+    const IndexType* col_idxs = source->get_const_col_idxs();
+    const ValueType* values = source->get_const_values();
+    const size_type num_rows = source->get_size()[0];
+    const size_type num_stored_elements = source->get_num_stored_elements();
+    size_type nblk = 0, blk = 0, rowR = 0, colR = 0, shf = 0;
+    if (num_stored_elements > 0) {
+        offsets_data[0] = 0;
+    }
+    for (size_type i = 0; i < num_stored_elements; i++) {
+        const size_type row = row_idxs[i];
+        const size_type col = col_idxs[i];
+        const ValueType val = values[i];
+        put_detect_newblock(chunk_data, rows_data, nblk, blk, shf, rowR,
+                            row - rowR, colR);
+        size_type colRS =
+            put_position_newrow_mat_data(row, col, chunk_data, shf, rowR, colR);
+        put_next_position_value(chunk_data, nblk, col - colR, shf, colR, val);
+        put_detect_endblock(offsets_data, shf, block_size, nblk, blk);
+    }
+}
+
+/*
+template <typename ValueType, typename IndexType>
 void fill_bccoo(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Coo<ValueType, IndexType>* coo,
+    const matrix::Coo<ValueType, IndexType> *coo,
     //                const IndexType *row_idxs, const IndexType *col_idxs,
     //                const ValueType *values, const size_type num_rows,
-    const IndexType* rows, const IndexType* offsets, uint8* data,
+    const IndexType *rows, const IndexType *offsets, uint8 *data,
     //                const size_type num_stored_elements,
     const size_type num_blocks, const size_type block_size)
 //  GKO_NOT_IMPLEMENTED;
-/*  */
 {
-    const IndexType* row_idxs = coo->get_const_row_idxs();
-    const IndexType* col_idxs = coo->get_const_col_idxs();
-    const ValueType* values = coo->get_const_values();
+    const IndexType *row_idxs = coo->get_const_row_idxs();
+    const IndexType *col_idxs = coo->get_const_col_idxs();
+    const ValueType *values = coo->get_const_values();
     const size_type num_rows = coo->get_size()[0];
     const size_type num_stored_elements = coo->get_num_stored_elements();
     //    size_type num_blocks = rows.size();
@@ -278,21 +334,21 @@ void fill_bccoo(
             } else if (d < 0xffff) {
                 data[p] = 0xFD;
                 p++;
-                *(uint16*)(data + p) = d;
+                *(uint16 *)(data + p) = d;
                 p += 2;
             } else {
                 data[p] = 0xFE;
                 p++;
-                *(uint32*)(data + p) = d;
+                *(uint32 *)(data + p) = d;
                 p += 4;
             }
             c = col_idxs[k];
-            *(ValueType*)(data + p) = values[k];
+            *(ValueType *)(data + p) = values[k];
             p += sizeof(ValueType);
         }
     }
 }
-/* */
+*/
 
 
 template <typename ValueType, typename IndexType>
@@ -302,26 +358,30 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
 // GKO_NOT_IMPLEMENTED;
 /* */
 {
-    auto num_rows = result->get_size()[0];
-    const auto nnz = result->get_num_stored_elements();
-    const auto num_blocks = result->get_num_blocks();
+    copy_to_bccoo(exec, source, result);
+    /*
+        auto num_rows = result->get_size()[0];
+        const auto nnz = result->get_num_stored_elements();
+        const auto num_blocks = result->get_num_blocks();
 
-    const auto source_row_idxs = source->get_const_row_idxs();
-    const auto source_col_idxs = source->get_const_col_idxs();
-    const auto source_values = source->get_const_values();
+        const auto source_row_idxs = source->get_const_row_idxs();
+        const auto source_col_idxs = source->get_const_col_idxs();
+        const auto source_values = source->get_const_values();
 
-    const auto result_block_size = result->get_block_size();
-    const auto result_rows = result->get_const_rows();
-    const auto result_offsets = result->get_const_offsets();
+        const auto result_block_size = result->get_block_size();
+        const auto result_rows = result->get_const_rows();
+        const auto result_offsets = result->get_const_offsets();
 
-    auto result_data = result->get_chunk();
+        auto result_data = result->get_chunk();
 
-    fill_bccoo(exec, source, result_rows, result_offsets, result_data,
-               num_blocks, result_block_size);
-    //    fill_bccoo(exec, source_row_idxs, source_col_idxs, source_values,
-    //    num_rows,
-    //               result_rows, result_offsets, result_data, nnz, num_blocks,
-    //               result_block_size);
+        fill_bccoo(exec, source, result_rows, result_offsets, result_data,
+                   num_blocks, result_block_size);
+        //    fill_bccoo(exec, source_row_idxs, source_col_idxs, source_values,
+        //    num_rows,
+        //               result_rows, result_offsets, result_data, nnz,
+       num_blocks,
+        //               result_block_size);
+    */
 }
 /* */
 

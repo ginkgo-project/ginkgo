@@ -155,7 +155,7 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel default(none), shared(exec, a, b, c, num_blks)
     {
         auto num_cols = b->get_size()[1];
-        Array<ValueType> sumV_array(exec, num_cols);
+        array<ValueType> sumV_array(exec, num_cols);
 #pragma omp for
         for (size_type blk = 0; blk < num_blks; blk++) {
             auto* rows_data = a->get_const_rows();
@@ -262,7 +262,7 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel default(none), shared(exec, alpha, a, b, c, num_blks)
     {
         auto num_cols = b->get_size()[1];
-        Array<ValueType> sumV_array(exec, num_cols);
+        array<ValueType> sumV_array(exec, num_cols);
 #pragma omp for
         for (size_type blk = 0; blk < num_blks; blk++) {
             auto* rows_data = a->get_const_rows();
@@ -371,8 +371,8 @@ void convert_to_next_precision(
                 get_next_position_value(chunk_dataS, nblkS, indS, shfS, colS,
                                         valS);
                 valR = (valS);
-                put_next_position_value(chunk_dataR, nblkR, indS, colS - colR,
-                                        shfR, colR, valR);
+                put_next_position_value(chunk_dataR, nblkR, colS - colR, shfR,
+                                        colR, valR);
             }
         }
     }
@@ -419,15 +419,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_CONVERT_TO_COO_KERNEL);
 
 
-template <typename IndexType>
-void convert_row_idxs_to_ptrs(std::shared_ptr<const OmpExecutor> exec,
-                              const IndexType* idxs, size_type num_nonzeros,
-                              IndexType* ptrs, size_type length)
-{
-    convert_sorted_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
-}
-
-
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
@@ -438,7 +429,7 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
     const auto num_rows = source->get_size()[0];
     const auto num_cols = source->get_size()[1];
 
-    Array<IndexType> rows_array(exec, nnz);
+    array<IndexType> rows_array(exec, nnz);
     IndexType* row_idxs = rows_array.get_data();
 
 #pragma omp parallel for default(none), \
@@ -466,7 +457,8 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
         }
     }
     auto row_ptrs = result->get_row_ptrs();
-    convert_row_idxs_to_ptrs(exec, row_idxs, nnz, row_ptrs, num_rows + 1);
+    components::convert_idxs_to_ptrs(exec, row_idxs, nnz, num_rows + 1,
+                                     row_ptrs);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -630,8 +622,8 @@ void compute_absolute(
                 get_next_position_value(chunk_dataS, nblkS, indS, shfS, colS,
                                         valS);
                 valR = abs(valS);
-                put_next_position_value(chunk_dataR, nblkR, indS, colS - colR,
-                                        shfR, colR, valR);
+                put_next_position_value(chunk_dataR, nblkR, colS - colR, shfR,
+                                        colR, valR);
             }
         }
     }

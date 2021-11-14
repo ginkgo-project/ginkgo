@@ -92,7 +92,7 @@ GKO_REGISTER_OPERATION(count_nonzero_blocks_per_row,
                        dense::count_nonzero_blocks_per_row);
 GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
 GKO_REGISTER_OPERATION(compute_slice_sets, dense::compute_slice_sets);
-GKO_REGISTER_OPERATION(memsize_bccoo, dense::memsize_bccoo);
+GKO_REGISTER_OPERATION(mem_size_bccoo, dense::mem_size_bccoo);
 GKO_REGISTER_OPERATION(copy_to_bccoo, dense::copy_to_bccoo);
 GKO_REGISTER_OPERATION(transpose, dense::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose);
@@ -163,10 +163,10 @@ inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
     exec->run(dense::make_prefix_sum(row_ptrs.get_data(), num_rows + 1));
     const auto num_stored_nonzeros =
         exec->copy_val_to_host(row_ptrs.get_const_data() + num_rows);
-    size_type memsize = 0;
-    exec->run(dense::make_memsize_bccoo(source, block_size, &memsize));
+    size_type mem_size = 0;
+    exec->run(dense::make_mem_size_bccoo(source, block_size, &mem_size));
     auto tmp = Bccoo<ValueType, IndexType>::create(
-        exec, source->get_size(), num_stored_nonzeros, block_size, memsize);
+        exec, source->get_size(), num_stored_nonzeros, block_size, mem_size);
     exec->run(op(source, tmp.get()));
     tmp->move_to(result);
 }
