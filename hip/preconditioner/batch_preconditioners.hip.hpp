@@ -30,68 +30,25 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_REFERENCE_PRECONDITIONER_BATCH_IDENTITY_HPP_
-#define GKO_REFERENCE_PRECONDITIONER_BATCH_IDENTITY_HPP_
+#ifndef GKO_HIP_PRECONDITIONER_BATCH_PRECONDITIONERS_HIP_HPP_
+#define GKO_HIP_PRECONDITIONER_BATCH_PRECONDITIONERS_HIP_HPP_
 
 
 #include "core/matrix/batch_struct.hpp"
-#include "reference/base/config.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace host {
+namespace hip {
 
 
-/**
- *  Identity preconditioner for batch solvers. ( To be able to have
- * unpreconditioned solves )
- */
-template <typename ValueType>
-class BatchIdentity final {
-public:
-    using value_type = ValueType;
-
-    /**
-     * The size of the work vector required in case of static allocation.
-     */
-    static constexpr int work_size = 0;
-
-    /**
-     * The size of the work vector required in case of dynamic allocation.
-     */
-    static int dynamic_work_size(int, int) { return 0; }
+#include "common/cuda_hip/preconditioner/batch_identity.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_jacobi.hpp.inc"
 
 
-    /**
-     * Sets the input and generates the identity preconditioner.(Nothing needs
-     * to be actually generated.)
-     *
-     * @param mat  Matrix for which to build an Ideniity preconditioner.
-     * @param work  A 'work-vector', which is unneecessary here as no
-     * preconditioner values are to be stored.
-     */
-    inline void generate(const gko::batch_csr::BatchEntry<const ValueType>& mat,
-                         ValueType* const work)
-    {}
-
-    inline void generate(const gko::batch_ell::BatchEntry<const ValueType>& mat,
-                         ValueType* const work)
-    {}
-
-    inline void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
-                      const gko::batch_dense::BatchEntry<ValueType>& z) const
-    {
-        for (int i = 0; i < r.num_rows; i++) {
-            for (int j = 0; j < r.num_rhs; j++)
-                z.values[i * z.stride + j] = r.values[i * r.stride + j];
-        }
-    }
-};
-
-
-}  // namespace host
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko
 
-#endif  // GKO_REFERENCE_PRECONDITIONER_BATCH_IDENTITY_HPP_
+#endif  // GKO_HIP_PRECONDITIONER_BATCH_PRECONDITIONERS_HIP_HPP_

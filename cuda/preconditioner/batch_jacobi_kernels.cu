@@ -49,13 +49,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
-
-
 namespace batch_jacobi {
 
 
 constexpr int default_block_size = 128;
-// constexpr int sm_multiplier = 4;
 
 
 #include "common/cuda_hip/components/uninitialized_array.hpp.inc"

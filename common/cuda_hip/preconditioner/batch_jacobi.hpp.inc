@@ -40,11 +40,6 @@ public:
     using value_type = ValueType;
 
     /**
-     * The size of the work vector required in case of static allocation.
-     */
-    static constexpr int work_size = batch_config<ValueType>::max_num_rows;
-
-    /**
      * The size of the work vector required in case of dynamic allocation.
      */
     __host__ __device__ static constexpr int dynamic_work_size(
@@ -60,7 +55,7 @@ public:
      * @param mat  Matrix for which to build a Jacobi preconditioner.
      * @param work  A 'work-vector', used here to store the inverse diagonal
      *              entries. It must be allocated with at least the amount
-     *              of memory given by work_size or dynamic_work_size.
+     *              of memory given by dynamic_work_size.
      */
     __device__ __forceinline__ void generate(
         const gko::batch_ell::BatchEntry<const ValueType>& mat,
@@ -94,7 +89,7 @@ public:
      * @param mat  Matrix for which to build a Jacobi preconditioner.
      * @param work  A 'work-vector', used here to store the inverse diagonal
      *              entries. It must be allocated with at least the amount
-     *              of memory given by work_size or dynamic_work_size.
+     *              of memory given by dynamic_work_size.
      */
     __device__ __forceinline__ void generate(
         const gko::batch_csr::BatchEntry<const ValueType>& mat,
@@ -118,18 +113,6 @@ public:
             }
         }
         __syncthreads();
-    }
-
-    __device__ __forceinline__ void apply(
-        const gko::batch_dense::BatchEntry<const ValueType>& r,
-        const gko::batch_dense::BatchEntry<ValueType>& z) const
-    {
-        for (int i = threadIdx.x; i < r.num_rows * r.num_rhs; i += blockDim.x) {
-            const int row = i / r.num_rhs;
-            const int col = i % r.num_rhs;
-            z.values[row * z.stride + col] =
-                work_[row] * r.values[row * r.stride + col];
-        }
     }
 
     __device__ __forceinline__ void apply(const int num_rows,
@@ -158,11 +141,10 @@ __global__ void batch_jacobi(
         const auto b_b = gko::batch::batch_entry(b, batch);
         const auto x_b = gko::batch::batch_entry(x, batch);
 
-        //__shared__ ValueType prec_work[BatchJacobi<ValueType>::work_size];
         extern __shared__ char local_mem[];
         const auto prec_work = reinterpret_cast<ValueType*>(local_mem);
         prec.generate(a_b, prec_work);
-        prec.apply(b_b, x_b);
+        prec.apply(b_b.num_rows, b_b.values, x_b.values);
     }
 }
 
@@ -179,10 +161,9 @@ __global__ void batch_jacobi(
         const auto b_b = gko::batch::batch_entry(b, batch);
         const auto x_b = gko::batch::batch_entry(x, batch);
 
-        //__shared__ ValueType prec_work[BatchJacobi<ValueType>::work_size];
         extern __shared__ char local_mem[];
         const auto prec_work = reinterpret_cast<ValueType*>(local_mem);
         prec.generate(a_b, prec_work);
-        prec.apply(b_b, x_b);
+        prec.apply(b_b.num_rows, b_b.values, x_b.values);
     }
 }

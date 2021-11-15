@@ -55,9 +55,9 @@ inline void initialize(
     batch_dense::copy(b_entry, r_entry);
 
     // r = b - A*x
-    batch_csr::advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
-                                    gko::batch::to_const(x_entry),
-                                    static_cast<ValueType>(1.0), r_entry);
+    advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
+                         gko::batch::to_const(x_entry),
+                         static_cast<ValueType>(1.0), r_entry);
     batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
                                           res_norms_entry);
 
@@ -190,7 +190,7 @@ inline void arnoldi_method(
         &V_entry.values[i * V_entry.stride * num_rows], V_entry.stride,
         num_rows, V_entry.num_rhs};
 
-    batch_csr::spmv_kernel(A_entry, v_i_entry, helper_entry);
+    spmv_kernel(A_entry, v_i_entry, helper_entry);
 
     prec.apply(gko::batch::to_const(helper_entry), w_entry);
 
@@ -270,14 +270,14 @@ inline void update_x(
 
 
 template <typename StopType, typename PrecType, typename LogType,
-          typename BatchMatrixType, typename ValueType, typename byte>
+          typename BatchMatrixType, typename ValueType>
 inline void batch_entry_gmres_impl(
     const gko::kernels::batch_gmres::BatchGmresOptions<
         remove_complex<ValueType>>& opts,
     LogType logger, PrecType prec, const BatchMatrixType& a,
     const gko::batch_dense::UniformBatch<const ValueType>& b,
     const gko::batch_dense::UniformBatch<ValueType>& x, const size_type ibatch,
-    Array<byte>& local_space)
+    unsigned char* const local_space)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
@@ -285,8 +285,7 @@ inline void batch_entry_gmres_impl(
     const auto nrhs = b.num_rhs;
     const auto restart = opts.restart_num;
 
-    byte* const shared_space = local_space.get_data();
-    ValueType* const r = reinterpret_cast<ValueType*>(shared_space);
+    ValueType* const r = reinterpret_cast<ValueType*>(local_space);
     ValueType* const z = r + nrows * nrhs;
     ValueType* const w = z + nrows * nrhs;
     ValueType* const helper = w + nrows * nrhs;
@@ -463,9 +462,9 @@ inline void batch_entry_gmres_impl(
         batch_dense::copy(b_entry, r_entry);
 
         // r = r - A*x
-        batch_csr::advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
-                                        gko::batch::to_const(x_entry),
-                                        static_cast<ValueType>(1.0), r_entry);
+        advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
+                             gko::batch::to_const(x_entry),
+                             static_cast<ValueType>(1.0), r_entry);
         batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
                                               res_norms_entry);
 

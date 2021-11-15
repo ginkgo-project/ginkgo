@@ -149,9 +149,9 @@ inline void initialize(
     // r = b
     batch_dense::copy(b_entry, r_entry);
     // r = b - A*x
-    batch_csr::advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
-                                    gko::batch::to_const(x_entry),
-                                    static_cast<ValueType>(1.0), r_entry);
+    advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
+                         gko::batch::to_const(x_entry),
+                         static_cast<ValueType>(1.0), r_entry);
     // compute residual norms
     batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
                                           res_norms_entry);
@@ -515,10 +515,10 @@ inline void batch_entry_idr_impl(
     LogType logger, PrecType prec, const BatchMatrixType& a,
     const gko::batch_dense::UniformBatch<const ValueType>& b,
     const gko::batch_dense::UniformBatch<ValueType>& x, const size_type ibatch,
-    Array<unsigned char>& local_space)
+    unsigned char* const local_space)
 {
     using real_type = typename gko::remove_complex<ValueType>;
-    constexpr int max_nrhs = batch_config<ValueType>::max_num_rhs;
+    constexpr int max_nrhs = max_num_rhs;
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
@@ -527,8 +527,7 @@ inline void batch_entry_idr_impl(
     const auto smoothing = opts.to_use_smoothing;
     const auto deterministic = opts.deterministic_gen;
 
-    unsigned char* const shared_space = local_space.get_data();
-    ValueType* const r = reinterpret_cast<ValueType*>(shared_space);
+    ValueType* const r = reinterpret_cast<ValueType*>(local_space);
     ValueType* const t = r + nrows * nrhs;
     ValueType* const v = t + nrows * nrhs;
     ValueType* const xs = v + nrows * nrhs;
@@ -716,8 +715,7 @@ inline void batch_entry_idr_impl(
                 gko::batch::to_const(U_entry), k, helper_entry, u_k_entry);
 
             // g_k = A * u_k
-            batch_csr::spmv_kernel(A_entry, gko::batch::to_const(u_k_entry),
-                                   g_k_entry);
+            spmv_kernel(A_entry, gko::batch::to_const(u_k_entry), g_k_entry);
 
             // for i = 0 to k-1
             //     alpha = (p_i * g_k)/M(i,i)
@@ -778,7 +776,7 @@ inline void batch_entry_idr_impl(
         prec.apply(gko::batch::to_const(r_entry), v_entry);
 
         // t = A *v
-        batch_csr::spmv_kernel(A_entry, gko::batch::to_const(v_entry), t_entry);
+        spmv_kernel(A_entry, gko::batch::to_const(v_entry), t_entry);
 
         // omega = ( t * r )/ (t * t)
         // rho = (t * r ) /(||t|| * || r||)

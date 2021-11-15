@@ -186,15 +186,15 @@ inline void batch_entry_bicgstab_impl(
     LogType logger, PrecType prec, const BatchMatrixType& a,
     const gko::batch_dense::UniformBatch<const ValueType>& b,
     const gko::batch_dense::UniformBatch<ValueType>& x, const size_type ibatch,
-    Array<unsigned char>& local_space)
+    unsigned char* const local_space)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
-    GKO_ASSERT((nrhs <= batch_config<ValueType>::max_num_rhs));
+    GKO_ASSERT((nrhs <= max_num_rhs));
 
-    unsigned char* const shared_space = local_space.get_data();
+    unsigned char* const shared_space = local_space;
     ValueType* const r = reinterpret_cast<ValueType*>(shared_space);
     ValueType* const r_hat = r + nrows * nrhs;
     ValueType* const p = r_hat + nrows * nrhs;
@@ -204,13 +204,13 @@ inline void batch_entry_bicgstab_impl(
     ValueType* const s_hat = s + nrows * nrhs;
     ValueType* const t = s_hat + nrows * nrhs;
     ValueType* const prec_work = t + nrows * nrhs;
-    ValueType rho_old[batch_config<ValueType>::max_num_rhs];
-    ValueType rho_new[batch_config<ValueType>::max_num_rhs];
-    ValueType omega[batch_config<ValueType>::max_num_rhs];
-    ValueType alpha[batch_config<ValueType>::max_num_rhs];
-    ValueType temp[batch_config<ValueType>::max_num_rhs];
-    real_type norms_rhs[batch_config<ValueType>::max_num_rhs];
-    real_type norms_res[batch_config<ValueType>::max_num_rhs];
+    ValueType rho_old[max_num_rhs];
+    ValueType rho_new[max_num_rhs];
+    ValueType omega[max_num_rhs];
+    ValueType alpha[max_num_rhs];
+    ValueType temp[max_num_rhs];
+    real_type norms_rhs[max_num_rhs];
+    real_type norms_res[max_num_rhs];
 
     const auto A_entry =
         gko::batch::batch_entry(gko::batch::to_const(a), ibatch);
@@ -285,17 +285,9 @@ inline void batch_entry_bicgstab_impl(
     // stopping criterion object
     StopType stop(opts.residual_tol, rhs_norms_entry.values);
 
-    int iter = -1;
+    int iter{};
 
-    while (1) {
-        ++iter;
-
-        // bool all_converged = stop.check_converged(iter,
-        // res_norms_entry.values,
-        //                                          {NULL, 0, 0, 0}, converged);
-        // logger.log_iteration(ibatch, iter, res_norms_entry.values,
-        // converged);
-
+    for (iter = 0; iter < opts.max_its; iter++) {
         if (stop.check_converged(res_norms_entry.values)) {
             break;
         }
@@ -337,10 +329,6 @@ inline void batch_entry_bicgstab_impl(
                                               res_norms_entry);
 
 
-        // const uint32 converged_prev = converged;
-        // all_converged = stop.check_converged(iter, res_norms_entry.values,
-        //                                     {NULL, 0, 0, 0}, converged);
-
         if (stop.check_converged(res_norms_entry.values)) {
             // update x for the sytems (rhs) which converge at this point...  x
             // = x + alpha*p_hat
@@ -351,12 +339,6 @@ inline void batch_entry_bicgstab_impl(
                             gko::batch::to_const(p_hat_entry), x_entry);
             break;
         }
-
-        // logger.log_iteration(ibatch, iter, res_norms_entry.values,
-        // converged);
-        // if (all_converged) {
-        //    break;
-        //}
 
         // s_hat = precond * s
         prec.apply(gko::batch::to_const(s_entry), s_hat_entry);

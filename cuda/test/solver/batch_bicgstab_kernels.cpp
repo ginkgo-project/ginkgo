@@ -102,7 +102,7 @@ protected:
     const int nrows = 3;
     const Options opts_1{gko::preconditioner::batch::type::none, 500,
                          static_cast<real_type>(1e3) * eps,
-                         gko::stop::batch::ToleranceType::relative, 10};
+                         gko::stop::batch::ToleranceType::relative};
     gko::test::LinSys<T> sys_1;
 
     std::function<void(Options, const Mtx*, const BDense*, BDense*, LogData&)>
@@ -155,8 +155,7 @@ TYPED_TEST(BatchBicgstab, SolveIsEquivalentToReference)
     const double sol_tol = 10 * solver_restol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        this->cuexec, r_sys, r_factory.get(), false, iter_tol, res_tol,
-        sol_tol);
+        this->cuexec, r_sys, r_factory.get(), iter_tol, res_tol, sol_tol);
 }
 
 
@@ -334,7 +333,7 @@ TEST(BatchBicgstab, SolvesLargeSystemEquivalentToReference)
     const double sol_tol = 10 * solver_restol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        d_exec, r_sys, r_factory.get(), false, iter_tol, res_tol, sol_tol);
+        d_exec, r_sys, r_factory.get(), iter_tol, res_tol, sol_tol);
 }
 
 }  // namespace

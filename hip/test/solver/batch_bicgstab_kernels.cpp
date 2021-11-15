@@ -87,7 +87,7 @@ protected:
     const int nrows = 3;
     const Options opts_1{gko::preconditioner::batch::type::none, 500,
                          static_cast<real_type>(1e3) * eps,
-                         gko::stop::batch::ToleranceType::relative, 10};
+                         gko::stop::batch::ToleranceType::relative};
     gko::test::LinSys<T> sys_1;
 
     std::unique_ptr<typename solver_type::Factory> create_factory(
@@ -123,7 +123,7 @@ TYPED_TEST(BatchBicgstab, SolveIsEquivalentToReference)
     using solver_type = gko::solver::BatchBicgstab<value_type>;
     using opts_type = typename TestFixture::Options;
     const opts_type opts{gko::preconditioner::batch::type::none, 500, this->eps,
-                         gko::stop::batch::ToleranceType::relative, 10};
+                         gko::stop::batch::ToleranceType::relative};
     auto r_sys = gko::test::generate_solvable_batch_system<value_type>(
         this->exec, this->nbatch, 11, 1, false);
     auto r_factory = this->create_factory(this->exec, opts);
@@ -132,8 +132,7 @@ TYPED_TEST(BatchBicgstab, SolveIsEquivalentToReference)
     const double sol_tol = 100 * res_tol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        this->d_exec, r_sys, r_factory.get(), false, iter_tol, res_tol,
-        sol_tol);
+        this->d_exec, r_sys, r_factory.get(), iter_tol, res_tol, sol_tol);
 }
 
 
@@ -258,7 +257,7 @@ TEST(BatchBicgstab, SolvesLargeSystemEquivalentToReference)
     const double sol_tol = 10 * solver_restol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        d_exec, r_sys, r_factory.get(), false, iter_tol, res_tol, sol_tol);
+        d_exec, r_sys, r_factory.get(), iter_tol, res_tol, sol_tol);
 }
 
 }  // namespace

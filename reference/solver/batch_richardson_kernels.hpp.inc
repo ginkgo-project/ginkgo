@@ -38,7 +38,7 @@ inline void batch_entry_richardson_impl(
     LogType logger, PrecType prec, const BatchMatrixType& a,
     const gko::batch_dense::UniformBatch<const ValueType>& b,
     const gko::batch_dense::UniformBatch<ValueType>& x, const size_type ibatch,
-    Array<unsigned char>& local_space)
+    unsigned char* const local_space)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const size_type nbatch = a.num_batch;
@@ -47,14 +47,11 @@ inline void batch_entry_richardson_impl(
 
     GKO_ASSERT((nrhs == x.num_rhs));
 
-    using byte = unsigned char;
-
-    byte* const shared_space = local_space.get_data();
-    const auto residual = reinterpret_cast<ValueType*>(shared_space);
+    const auto residual = reinterpret_cast<ValueType*>(local_space);
     ValueType* const delta_x = residual + nrows * nrhs;
     ValueType* const prec_work = delta_x + nrows * nrhs;
-    real_type norms[batch_config<ValueType>::max_num_rhs];
-    real_type init_res_norm[batch_config<ValueType>::max_num_rhs];
+    real_type norms[max_num_rhs];
+    real_type init_res_norm[max_num_rhs];
 
     const auto a_b = gko::batch::batch_entry(gko::batch::to_const(a), ibatch);
     const auto b_b = gko::batch::batch_entry(gko::batch::to_const(b), ibatch);
@@ -89,9 +86,9 @@ inline void batch_entry_richardson_impl(
 
         // r <- b - Ax
         batch_dense::copy(b_b, r_b);
-        batch_csr::advanced_spmv_kernel(static_cast<ValueType>(-1.0), a_b,
-                                        gko::batch::to_const(x_b),
-                                        static_cast<ValueType>(1.0), r_b);
+        advanced_spmv_kernel(static_cast<ValueType>(-1.0), a_b,
+                             gko::batch::to_const(x_b),
+                             static_cast<ValueType>(1.0), r_b);
 
         batch_dense::compute_norm2(gko::batch::to_const(r_b), norms_b);
 

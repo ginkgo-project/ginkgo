@@ -138,16 +138,22 @@ TYPED_TEST(BatchCg, SolveIsEquivalentToReference)
 {
     using value_type = typename TestFixture::value_type;
     using solver_type = gko::solver::BatchCg<value_type>;
+    using opts_type = typename TestFixture::Options;
+    constexpr bool issingle =
+        std::is_same<gko::remove_complex<value_type>, float>::value;
+    const float solver_restol = issingle ? 100 * this->eps : this->eps;
+    const opts_type opts{gko::preconditioner::batch::type::none, 500,
+                         solver_restol,
+                         gko::stop::batch::ToleranceType::relative};
     auto r_sys = gko::test::generate_solvable_batch_system<value_type>(
-        this->exec, this->nbatch, this->nrows, 1, true);
-    auto r_factory = this->create_factory(this->exec, this->opts_1);
+        this->exec, this->nbatch, 11, 1, true);
+    auto r_factory = this->create_factory(this->exec, opts);
     const double iter_tol = 0.01;
     const double res_tol = 10 * r<value_type>::value;
-    const double sol_tol = 100 * res_tol;
+    const double sol_tol = 10 * solver_restol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        this->ompexec, r_sys, r_factory.get(), false, iter_tol, res_tol,
-        sol_tol);
+        this->ompexec, r_sys, r_factory.get(), iter_tol, res_tol, sol_tol);
 }
 
 
