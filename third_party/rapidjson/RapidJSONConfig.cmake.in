@@ -1,0 +1,11 @@
+# - Config file for the RapidJSON package
+# It defines the following variables
+#  FOOBAR_INCLUDE_DIRS - include directories for FooBar
+
+# Compute paths
+get_filename_component(RapidJSON_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+set(RapidJSON_INCLUDE_DIRS "@RapidJSON_INCLUDE_DIR@")
+
+if(NOT TARGET RapidJSON)
+  include("${RapidJSON_CMAKE_DIR}/RapidJSONTargets.cmake")
+endif()
