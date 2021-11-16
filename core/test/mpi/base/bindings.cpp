@@ -70,14 +70,13 @@ TEST_F(MpiBindings, CanSetADefaultWindow)
 TEST_F(MpiBindings, CanCreateWindow)
 {
     using ValueType = int;
-    ValueType* data;
-    data = new ValueType[4]{1, 2, 3, 4};
+    auto data = std::vector<ValueType>{1, 2, 3, 4};
     auto comm = gko::mpi::communicator::create_world();
-    auto win = gko::mpi::window<ValueType>(data, 4 * sizeof(ValueType), comm);
+    auto win =
+        gko::mpi::window<ValueType>(data.data(), 4 * sizeof(ValueType), comm);
     ASSERT_NE(win.get(), MPI_WIN_NULL);
     win.lock_all();
     win.unlock_all();
-    delete data;
 }
 
 
@@ -87,17 +86,13 @@ TEST_F(MpiBindings, CanSendAndRecvValues)
     auto comm = gko::mpi::communicator::create_world();
     auto my_rank = comm->rank();
     auto num_ranks = comm->size();
-    auto send_array = gko::Array<ValueType>{ref};
     auto recv_array = gko::Array<ValueType>{ref};
-    ValueType* data;
     if (my_rank == 0) {
-        data = new ValueType[4]{1, 2, 3, 4};
-        send_array =
-            gko::Array<ValueType>{ref, gko::Array<ValueType>(ref, 4, data)};
+        auto send_array = std::vector<ValueType>{1, 2, 3, 4};
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
-                gko::mpi::send<ValueType>(send_array.get_const_data(), 4, rank,
-                                          40 + rank, comm);
+                gko::mpi::send<ValueType>(send_array.data(), 4, rank, 40 + rank,
+                                          comm);
             }
         }
     } else {
@@ -120,19 +115,17 @@ TEST_F(MpiBindings, CanNonBlockingSendAndNonBlockingRecvValues)
     auto comm = gko::mpi::communicator::create_world();
     auto my_rank = comm->rank();
     auto num_ranks = comm->size();
-    auto send_array = gko::Array<ValueType>{ref};
+    std::vector<ValueType> send_array;
     auto recv_array = gko::Array<ValueType>{ref};
     ValueType* data;
     std::vector<MPI_Request> req1;
     MPI_Request req2;
     if (my_rank == 0) {
-        data = new ValueType[4]{1, 2, 3, 4};
-        send_array =
-            gko::Array<ValueType>{ref, gko::Array<ValueType>(ref, 4, data)};
+        send_array = std::vector<ValueType>{1, 2, 3, 4};
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
                 req1.emplace_back(gko::mpi::i_send<ValueType>(
-                    send_array.get_data(), 4, rank, 40 + rank, comm));
+                    send_array.data(), 4, rank, 40 + rank, comm));
             }
         }
     } else {
