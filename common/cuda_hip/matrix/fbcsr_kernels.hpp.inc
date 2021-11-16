@@ -76,7 +76,7 @@ __global__ __launch_bounds__(default_block_size) void transpose_blocks(
 
 
 template <typename ValueType, typename IndexType>
-void from_matrix_data(
+void fill_in_matrix_data(
     std::shared_ptr<const DefaultExecutor> exec,
     const Array<matrix_data_entry<ValueType, IndexType>>& data, int block_size,
     Array<IndexType>& row_ptr_array, Array<IndexType>& col_idx_array,
@@ -89,7 +89,7 @@ void from_matrix_data(
     auto row_ptrs = row_ptr_array.get_data();
     auto num_rows = row_ptr_array.get_num_elems() - 1;
     if (nnz == 0) {
-        components::fill_array(exec, row_ptrs, num_rows, IndexType{});
+        components::fill_array(exec, row_ptrs, num_rows + 1, IndexType{});
         col_idx_array.resize_and_reset(0);
         value_array.resize_and_reset(0);
         return;
@@ -155,4 +155,4 @@ void from_matrix_data(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_FROM_MATRIX_DATA_KERNEL);
+    GKO_DECLARE_FBCSR_FILL_IN_MATRIX_DATA_KERNEL);

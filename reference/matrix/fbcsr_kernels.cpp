@@ -150,7 +150,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void from_matrix_data(
+void fill_in_matrix_data(
     std::shared_ptr<const DefaultExecutor> exec,
     const Array<matrix_data_entry<ValueType, IndexType>>& data, int block_size,
     Array<IndexType>& row_ptrs, Array<IndexType>& col_idxs,
@@ -199,7 +199,7 @@ void from_matrix_data(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_FROM_MATRIX_DATA_KERNEL);
+    GKO_DECLARE_FBCSR_FILL_IN_MATRIX_DATA_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

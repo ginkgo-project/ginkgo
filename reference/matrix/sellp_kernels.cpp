@@ -153,7 +153,7 @@ void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void from_matrix_data(
+void fill_in_matrix_data(
     std::shared_ptr<const DefaultExecutor> exec,
     const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
     const int64* row_ptrs, matrix::Sellp<ValueType, IndexType>* output)
@@ -187,7 +187,7 @@ void from_matrix_data(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SELLP_FROM_MATRIX_DATA_KERNEL);
+    GKO_DECLARE_SELLP_FILL_IN_MATRIX_DATA_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

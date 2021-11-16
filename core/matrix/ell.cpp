@@ -62,7 +62,7 @@ GKO_REGISTER_OPERATION(spmv, ell::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, ell::advanced_spmv);
 GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
 GKO_REGISTER_OPERATION(compute_max_row_nnz, ell::compute_max_row_nnz);
-GKO_REGISTER_OPERATION(from_matrix_data, ell::from_matrix_data);
+GKO_REGISTER_OPERATION(fill_in_matrix_data, ell::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_dense, ell::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_csr, ell::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, ell::count_nonzeros);
@@ -213,8 +213,8 @@ void Ell<ValueType, IndexType>::read(const device_mat_data& data)
         num_stored_elements_per_row_ = max_nnz;
         this->set_size(data.size);
     }
-    exec->run(ell::make_from_matrix_data(*local_data, row_ptrs.get_const_data(),
-                                         this));
+    exec->run(ell::make_fill_in_matrix_data(*local_data,
+                                            row_ptrs.get_const_data(), this));
 }
 
 

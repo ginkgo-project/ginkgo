@@ -71,7 +71,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void from_matrix_data(
+void fill_in_matrix_data(
     std::shared_ptr<const DefaultExecutor> exec,
     const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
     const int64* row_ptrs, matrix::Ell<ValueType, IndexType>* output)
@@ -82,17 +82,11 @@ void from_matrix_data(
                       auto num_cols, auto cols, auto values) {
             const auto begin = row_ptrs[row];
             const auto end = row_ptrs[row + 1];
-            const auto nnz = end - begin;
             auto out_idx = row;
-            for (auto i = begin; i < end; i++) {
-                const auto nonzero = nonzeros[i];
-                cols[out_idx] = nonzero.column;
-                values[out_idx] = unpack_member(nonzero.value);
-                out_idx += stride;
-            }
-            for (auto i = nnz; i < num_cols; i++) {
-                cols[out_idx] = 0;
-                values[out_idx] = zero(values[out_idx]);
+            for (auto i = begin; i < begin + num_cols; i++) {
+                cols[out_idx] = i < end ? nonzeros[i].column : 0;
+                values[out_idx] = i < end ? unpack_member(nonzeros[i].value)
+                                          : zero(values[out_idx]);
                 out_idx += stride;
             }
         },
@@ -102,7 +96,7 @@ void from_matrix_data(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_FROM_MATRIX_DATA_KERNEL);
+    GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL);
 
 
 }  // namespace ell

@@ -66,22 +66,24 @@ namespace detail {
  * replacement for thrust::complex without alignment restrictions.
  */
 template <typename T>
-struct fake_complex {
+struct alignas(std::complex<T>) fake_complex {
     T real;
     T imag;
 
-    GKO_ATTRIBUTES fake_complex() : real{}, imag{} {}
+    GKO_INLINE GKO_ATTRIBUTES constexpr fake_complex() : real{}, imag{} {}
 
-    GKO_ATTRIBUTES fake_complex(thrust::complex<T> val)
+    GKO_INLINE GKO_ATTRIBUTES constexpr fake_complex(thrust::complex<T> val)
         : real{val.real()}, imag{val.imag()}
     {}
 
-    friend bool GKO_ATTRIBUTES operator==(fake_complex a, fake_complex b)
+    friend bool GKO_INLINE GKO_ATTRIBUTES constexpr operator==(fake_complex a,
+                                                               fake_complex b)
     {
         return a.real == b.real && a.imag == b.imag;
     }
 
-    friend bool GKO_ATTRIBUTES operator!=(fake_complex a, fake_complex b)
+    friend bool GKO_INLINE GKO_ATTRIBUTES constexpr operator!=(fake_complex a,
+                                                               fake_complex b)
     {
         return !(a == b);
     }
@@ -92,15 +94,18 @@ template <typename ValueType>
 struct fake_complex_unpack_impl {
     using type = ValueType;
 
-    GKO_INLINE GKO_ATTRIBUTES static ValueType unpack(ValueType v) { return v; }
+    GKO_INLINE GKO_ATTRIBUTES static constexpr ValueType unpack(ValueType v)
+    {
+        return v;
+    }
 };
 
 template <typename ValueType>
 struct fake_complex_unpack_impl<fake_complex<ValueType>> {
     using type = thrust::complex<ValueType>;
 
-    GKO_INLINE GKO_ATTRIBUTES static thrust::complex<ValueType> unpack(
-        fake_complex<ValueType> v)
+    GKO_INLINE GKO_ATTRIBUTES static constexpr thrust::complex<ValueType>
+    unpack(fake_complex<ValueType> v)
     {
         return {v.real, v.imag};
     }
@@ -411,8 +416,9 @@ inline culibs_type<T> as_culibs_type(T val)
  * @return val cast to the correct type.
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES typename detail::fake_complex_unpack_impl<T>::type
-fake_complex_unpack(T v)
+GKO_INLINE GKO_ATTRIBUTES constexpr
+    typename detail::fake_complex_unpack_impl<T>::type
+    fake_complex_unpack(T v)
 {
     return detail::fake_complex_unpack_impl<T>::unpack(v);
 }
