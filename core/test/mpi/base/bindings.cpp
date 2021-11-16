@@ -123,23 +123,28 @@ TEST_F(MpiBindings, CanNonBlockingSendAndNonBlockingRecvValues)
     auto send_array = gko::Array<ValueType>{ref};
     auto recv_array = gko::Array<ValueType>{ref};
     ValueType* data;
-    auto req = gko::mpi::request::create(num_ranks);
+    std::vector<MPI_Request> req1;
+    MPI_Request req2;
     if (my_rank == 0) {
         data = new ValueType[4]{1, 2, 3, 4};
         send_array =
             gko::Array<ValueType>{ref, gko::Array<ValueType>(ref, 4, data)};
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
-                gko::mpi::send<ValueType>(send_array.get_data(), 4, rank,
-                                          40 + rank, req, comm);
+                req1.emplace_back(gko::mpi::i_send<ValueType>(
+                    send_array.get_data(), 4, rank, 40 + rank, comm));
             }
         }
     } else {
         recv_array = gko::Array<ValueType>{ref, 4};
-        gko::mpi::recv<ValueType>(recv_array.get_data(), 4, 0, 40 + my_rank,
-                                  req, comm);
+        req2 = std::move(gko::mpi::i_recv<ValueType>(recv_array.get_data(), 4,
+                                                     0, 40 + my_rank, comm));
     }
-    gko::mpi::wait(req);
+    if (my_rank == 0) {
+        auto stat1 = gko::mpi::wait_all(req1);
+    } else {
+        auto stat2 = gko::mpi::wait(req2);
+    }
     if (my_rank != 0) {
         ASSERT_EQ(recv_array.get_data()[0], 1);
         ASSERT_EQ(recv_array.get_data()[1], 2);
