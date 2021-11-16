@@ -82,7 +82,7 @@ device_matrix_data<ValueType, IndexType>::copy_to_host() const
 
 template <typename ValueType, typename IndexType>
 device_matrix_data<ValueType, IndexType>
-device_matrix_data<ValueType, IndexType>::create_from_host(
+device_matrix_data<ValueType, IndexType>::create_view_from_host(
     std::shared_ptr<const Executor> exec, host_type& data)
 {
     auto host_view = Array<nonzero_type>::view(

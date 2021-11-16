@@ -158,7 +158,7 @@ TYPED_TEST(DeviceMatrixData, CreatesFromHost)
             this->host_data.nonzeros.data());
 
     auto data =
-        gko::device_matrix_data<value_type, index_type>::create_from_host(
+        gko::device_matrix_data<value_type, index_type>::create_view_from_host(
             this->exec, this->host_data);
 
     ASSERT_EQ(data.size, this->host_data.size);
@@ -172,7 +172,7 @@ TYPED_TEST(DeviceMatrixData, CopiesToHost)
     using index_type = typename TestFixture::index_type;
 
     auto local_data =
-        gko::device_matrix_data<value_type, index_type>::create_from_host(
+        gko::device_matrix_data<value_type, index_type>::create_view_from_host(
             this->exec, this->host_data)
             .copy_to_host();
 
@@ -187,8 +187,8 @@ TYPED_TEST(DeviceMatrixData, SortsRowMajor)
     using index_type = typename TestFixture::index_type;
     using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
     auto device_data =
-        device_matrix_data::create_from_host(this->exec, this->host_data);
-    auto device_sorted_data = device_matrix_data::create_from_host(
+        device_matrix_data::create_view_from_host(this->exec, this->host_data);
+    auto device_sorted_data = device_matrix_data::create_view_from_host(
         this->exec, this->sorted_host_data);
 
     device_data.sort_row_major();
@@ -203,8 +203,8 @@ TYPED_TEST(DeviceMatrixData, RemovesZeros)
     using index_type = typename TestFixture::index_type;
     using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
     auto device_data =
-        device_matrix_data::create_from_host(this->exec, this->host_data);
-    auto device_nonzero_data = device_matrix_data::create_from_host(
+        device_matrix_data::create_view_from_host(this->exec, this->host_data);
+    auto device_nonzero_data = device_matrix_data::create_view_from_host(
         this->exec, this->nonzero_host_data);
 
     device_data.remove_zeros();
@@ -218,7 +218,7 @@ TYPED_TEST(DeviceMatrixData, DoesntRemoveZerosIfThereAreNone)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
-    auto device_nonzero_data = device_matrix_data::create_from_host(
+    auto device_nonzero_data = device_matrix_data::create_view_from_host(
         this->exec, this->nonzero_host_data);
     auto original = device_nonzero_data;
     auto original_ptr = device_nonzero_data.nonzeros.get_data();
@@ -236,7 +236,7 @@ TYPED_TEST(DeviceMatrixData, BuildsCorrectRowPtrs)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
-    auto device_sorted_data = device_matrix_data::create_from_host(
+    auto device_sorted_data = device_matrix_data::create_view_from_host(
         this->exec, this->sorted_host_data);
     gko::Array<index_type> row_ptrs(this->exec, device_sorted_data.size[0] + 1);
 

@@ -43,26 +43,90 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+/**
+ * This type is a device-side equivalent to matrix_data.
+ * It stores the data necessary to initialize any matrix format in Ginkgo in a
+ * array of matrix_data_entry values together with associated matrix dimensions.
+ *
+ * @note To be used with a Ginkgo matrix type, the entry array must be sorted in
+ *       row-major order, i.e. by row index, then by column index within rows.
+ *       This can be achieved by calling the sort_row_major function.
+ * @note The data must not contain any duplicate (row, column) pairs.
+ *
+ * @tparam ValueType  the type used to store matrix values
+ * @tparam IndexType  the type used to store matrix row and column indices
+ */
 template <typename ValueType, typename IndexType>
 struct device_matrix_data {
     using nonzero_type = matrix_data_entry<ValueType, IndexType>;
     using host_type = matrix_data<ValueType, IndexType>;
 
+    /**
+     * Initializes a new device_matrix_data object.
+     * It uses the given executor to allocate storage for the given number of
+     * entries and matrix dimensions.
+     *
+     * @param exec  the executor to be used to store the matrix entries
+     * @param size  the matrix dimensions
+     * @param num_entries  the number of entries to be stored
+     */
     device_matrix_data(std::shared_ptr<const Executor> exec, dim<2> size = {},
-                       size_type nnz = 0);
+                       size_type num_entries = 0);
 
+    /**
+     * Initializes a new device_matrix_data object from existing data.
+     *
+     * @param size  the matrix dimensions
+     * @param data  the array containing the matrix entries
+     */
     device_matrix_data(dim<2> size, Array<nonzero_type> data);
 
+    /**
+     * Copies the device_matrix_data entries to the host to return a regular
+     * matrix_data object with the same dimensions and entries.
+     *
+     * @return a matrix_data object with the same dimensions and entries.
+     */
     host_type copy_to_host() const;
 
-    static device_matrix_data create_from_host(
+    /**
+     * Creates a view of the given host data on the given executor.
+     *
+     * @param exec  the executor to create the device_matrix_data on.
+     * @param data  the data to be wrapped or copied into a device_matrix_data.
+     * @return  a device_matrix_data object with the same size as `data` and the
+     *          same entries, either wrapped as a non-owning view if `exec` is a
+     *          host executor or copied into an owning Array if `exec` is a
+     *          device executor.
+     */
+    static device_matrix_data create_view_from_host(
         std::shared_ptr<const Executor> exec, host_type& data);
 
+    /**
+     * Sorts the matrix entries in row-major order
+     * This means that they will be sorted by row index first, and then by
+     * column index inside each row.
+     */
     void sort_row_major();
 
+    /**
+     * Removes all zero entries from the storage.
+     * This does not modify the storage if there are no zero entries, and keeps
+     * the relative order of nonzero entries otherwise.
+     */
     void remove_zeros();
 
+    /** The matrix dimensions. */
     dim<2> size;
+    /**
+     * The matrix entries.
+     *
+     * @note Despite the name, the entry values may be zero, which can be
+     *       necessary dependent on the matrix format.
+     * @note To be used with a Ginkgo matrix type, the entry array must be
+     *       sorted in row-major order, i.e. by row index, then by column index
+     *       within rows. This can be achieved by calling sort_row_major()
+     */
     Array<nonzero_type> nonzeros;
 };
 
