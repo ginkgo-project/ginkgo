@@ -69,7 +69,7 @@ template <typename T>
 using unpack_member_type = typename detail::fake_complex_unpack_impl<T>::type;
 
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES unpack_member_type<T> unpack_member(T value)
+GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 {
     return fake_complex_unpack(value);
 }
@@ -106,7 +106,7 @@ template <typename T>
 using unpack_member_type = typename detail::fake_complex_unpack_impl<T>::type;
 
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES unpack_member_type<T> unpack_member(T value)
+GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 {
     return fake_complex_unpack(value);
 }
@@ -142,7 +142,7 @@ template <typename T>
 using unpack_member_type = T;
 
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES unpack_member_type<T> unpack_member(T value)
+GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 {
     return value;
 }
@@ -177,7 +177,7 @@ template <typename T>
 using unpack_member_type = T;
 
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES unpack_member_type<T> unpack_member(T value)
+GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 {
     return value;
 }

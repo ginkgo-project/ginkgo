@@ -61,7 +61,7 @@ GKO_REGISTER_OPERATION(spmv, coo::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, coo::advanced_spmv);
 GKO_REGISTER_OPERATION(spmv2, coo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2);
-GKO_REGISTER_OPERATION(from_matrix_data, coo::from_matrix_data);
+GKO_REGISTER_OPERATION(fill_in_matrix_data, coo::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_csr, coo::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense);
 GKO_REGISTER_OPERATION(extract_diagonal, coo::extract_diagonal);
@@ -209,7 +209,7 @@ void Coo<ValueType, IndexType>::read(const device_mat_data& data)
     this->col_idxs_.resize_and_reset(nnz);
     this->values_.resize_and_reset(nnz);
     auto nonzeros = make_temporary_clone(exec, &data.nonzeros);
-    exec->run(coo::make_from_matrix_data(*nonzeros, this));
+    exec->run(coo::make_fill_in_matrix_data(*nonzeros, this));
 }
 
 

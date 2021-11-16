@@ -357,7 +357,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void from_matrix_data(
+void fill_in_matrix_data(
     std::shared_ptr<const ReferenceExecutor> exec,
     const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
     matrix::Csr<ValueType, IndexType>* output)
@@ -370,7 +370,7 @@ void from_matrix_data(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_FROM_MATRIX_DATA_KERNEL);
+    GKO_DECLARE_CSR_FILL_IN_MATRIX_DATA_KERNEL);
 
 
 template <typename IndexType>

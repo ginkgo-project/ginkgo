@@ -61,10 +61,11 @@ namespace kernels {
                        const matrix::Dense<ValueType>* beta,                \
                        matrix::Dense<ValueType>* c)
 
-#define GKO_DECLARE_SPARSITY_CSR_FROM_MATRIX_DATA_KERNEL(ValueType, IndexType) \
-    void from_matrix_data(                                                     \
-        std::shared_ptr<const DefaultExecutor> exec,                           \
-        const Array<matrix_data_entry<ValueType, IndexType>>& data,            \
+#define GKO_DECLARE_SPARSITY_CSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, \
+                                                            IndexType) \
+    void fill_in_matrix_data(                                          \
+        std::shared_ptr<const DefaultExecutor> exec,                   \
+        const Array<matrix_data_entry<ValueType, IndexType>>& data,    \
         matrix::SparsityCsr<ValueType, IndexType>* output)
 
 #define GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL(ValueType, \
@@ -98,24 +99,24 @@ namespace kernels {
         const matrix::SparsityCsr<ValueType, IndexType>* to_check,    \
         bool* is_sorted)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_FROM_MATRIX_DATA_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL(ValueType,     \
-                                                             IndexType);    \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL(ValueType,  \
-                                                                IndexType); \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                       \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
+    template <typename ValueType, typename IndexType>                          \
+    GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(ValueType, IndexType);                \
+    template <typename ValueType, typename IndexType>                          \
+    GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                          \
+    GKO_DECLARE_SPARSITY_CSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                          \
+    GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL(ValueType,        \
+                                                             IndexType);       \
+    template <typename ValueType, typename IndexType>                          \
+    GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL(ValueType,     \
+                                                                IndexType);    \
+    template <typename ValueType, typename IndexType>                          \
+    GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                          \
+    GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType)
 
 

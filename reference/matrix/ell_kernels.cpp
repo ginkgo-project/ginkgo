@@ -156,7 +156,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void from_matrix_data(
+void fill_in_matrix_data(
     std::shared_ptr<const DefaultExecutor> exec,
     const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
     const int64* row_ptrs, matrix::Ell<ValueType, IndexType>* output)
@@ -179,7 +179,7 @@ void from_matrix_data(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_FROM_MATRIX_DATA_KERNEL);
+    GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

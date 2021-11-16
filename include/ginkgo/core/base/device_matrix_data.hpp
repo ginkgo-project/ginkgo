@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 
@@ -42,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-template <typename ValueType = double, typename IndexType = int32>
+template <typename ValueType, typename IndexType>
 struct device_matrix_data {
     using nonzero_type = matrix_data_entry<ValueType, IndexType>;
     using host_type = matrix_data<ValueType, IndexType>;

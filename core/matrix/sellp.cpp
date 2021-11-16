@@ -59,7 +59,7 @@ GKO_REGISTER_OPERATION(spmv, sellp::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, sellp::advanced_spmv);
 GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
 GKO_REGISTER_OPERATION(compute_slice_sets, sellp::compute_slice_sets);
-GKO_REGISTER_OPERATION(from_matrix_data, sellp::from_matrix_data);
+GKO_REGISTER_OPERATION(fill_in_matrix_data, sellp::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_dense, sellp::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_csr, sellp::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, sellp::count_nonzeros);
@@ -181,8 +181,8 @@ void Sellp<ValueType, IndexType>::read(const device_mat_data& data)
         slice_sets_.get_data() + slice_sets_.get_num_elems() - 1);
     values_.resize_and_reset(total_cols * slice_size_);
     col_idxs_.resize_and_reset(total_cols * slice_size_);
-    exec->run(sellp::make_from_matrix_data(*local_data,
-                                           row_ptrs.get_const_data(), this));
+    exec->run(sellp::make_fill_in_matrix_data(*local_data,
+                                              row_ptrs.get_const_data(), this));
 }
 
 

@@ -66,7 +66,7 @@ namespace {
 
 GKO_REGISTER_OPERATION(spmv, fbcsr::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, fbcsr::advanced_spmv);
-GKO_REGISTER_OPERATION(from_matrix_data, fbcsr::from_matrix_data);
+GKO_REGISTER_OPERATION(fill_in_matrix_data, fbcsr::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_csr, fbcsr::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_dense, fbcsr::convert_to_dense);
 GKO_REGISTER_OPERATION(transpose, fbcsr::transpose);
@@ -228,8 +228,8 @@ void Fbcsr<ValueType, IndexType>::read(const device_mat_data& data)
     row_ptrs_.resize_and_reset(row_blocks + 1);
     auto exec = this->get_executor();
     auto local_data = make_temporary_clone(exec, &data.nonzeros);
-    exec->run(fbcsr::make_from_matrix_data(*local_data, bs_, row_ptrs_,
-                                           col_idxs_, values_));
+    exec->run(fbcsr::make_fill_in_matrix_data(*local_data, bs_, row_ptrs_,
+                                              col_idxs_, values_));
 }
 
 

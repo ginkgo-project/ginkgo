@@ -57,7 +57,7 @@ GKO_REGISTER_OPERATION(transpose, sparsity_csr::transpose);
 GKO_REGISTER_OPERATION(count_num_diagonal_elements,
                        sparsity_csr::count_num_diagonal_elements);
 GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
-GKO_REGISTER_OPERATION(from_matrix_data, sparsity_csr::from_matrix_data);
+GKO_REGISTER_OPERATION(fill_in_matrix_data, sparsity_csr::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(remove_diagonal_elements,
                        sparsity_csr::remove_diagonal_elements);
 GKO_REGISTER_OPERATION(sort_by_column_index,
@@ -110,7 +110,7 @@ void SparsityCsr<ValueType, IndexType>::read(const device_mat_data& data)
     auto local_data = make_temporary_clone(exec, &data.nonzeros);
     exec->run(sparsity_csr::make_build_row_ptrs(*local_data, data.size[0],
                                                 this->get_row_ptrs()));
-    exec->run(sparsity_csr::make_from_matrix_data(*local_data, this));
+    exec->run(sparsity_csr::make_fill_in_matrix_data(*local_data, this));
 }
 
 

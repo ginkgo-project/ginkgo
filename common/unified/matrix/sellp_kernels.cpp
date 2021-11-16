@@ -82,7 +82,7 @@ void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void from_matrix_data(
+void fill_in_matrix_data(
     std::shared_ptr<const DefaultExecutor> exec,
     const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
     const int64* row_ptrs, matrix::Sellp<ValueType, IndexType>* output)
@@ -93,22 +93,16 @@ void from_matrix_data(
                       auto slice_sets, auto cols, auto values) {
             const auto row_begin = row_ptrs[row];
             const auto row_end = row_ptrs[row + 1];
-            const auto row_nnz = row_end - row_begin;
             const auto slice = row / slice_size;
             const auto local_row = row % slice_size;
             const auto slice_begin = slice_sets[slice];
             const auto slice_end = slice_sets[slice + 1];
             const auto slice_length = slice_end - slice_begin;
             auto out_idx = slice_begin * slice_size + local_row;
-            for (auto i = row_begin; i < row_end; i++) {
-                const auto nonzero = nonzeros[i];
-                cols[out_idx] = nonzero.column;
-                values[out_idx] = unpack_member(nonzero.value);
-                out_idx += slice_size;
-            }
-            for (auto i = row_nnz; i < slice_length; i++) {
-                cols[out_idx] = 0;
-                values[out_idx] = zero(values[out_idx]);
+            for (auto i = row_begin; i < row_begin + slice_length; i++) {
+                cols[out_idx] = i < row_end ? nonzeros[i].column : 0;
+                values[out_idx] = i < row_end ? unpack_member(nonzeros[i].value)
+                                              : zero(values[out_idx]);
                 out_idx += slice_size;
             }
         },
@@ -118,7 +112,7 @@ void from_matrix_data(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SELLP_FROM_MATRIX_DATA_KERNEL);
+    GKO_DECLARE_SELLP_FILL_IN_MATRIX_DATA_KERNEL);
 
 
 }  // namespace sellp
