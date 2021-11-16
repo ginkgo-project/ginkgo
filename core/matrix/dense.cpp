@@ -704,15 +704,15 @@ void Dense<ValueType>::read(const device_mat_data32& data)
 template <typename ValueType>
 void Dense<ValueType>::read(const mat_data& data)
 {
-    this->read(device_mat_data::create_from_host(this->get_executor(),
-                                                 const_cast<mat_data&>(data)));
+    this->read(device_mat_data::create_view_from_host(
+        this->get_executor(), const_cast<mat_data&>(data)));
 }
 
 
 template <typename ValueType>
 void Dense<ValueType>::read(const mat_data32& data)
 {
-    this->read(device_mat_data32::create_from_host(
+    this->read(device_mat_data32::create_view_from_host(
         this->get_executor(), const_cast<mat_data32&>(data)));
 }
 

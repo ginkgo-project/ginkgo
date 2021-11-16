@@ -324,8 +324,8 @@ void Csr<ValueType, IndexType>::move_to(Ell<ValueType, IndexType>* result)
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::read(const mat_data& data)
 {
-    this->read(device_mat_data::create_from_host(this->get_executor(),
-                                                 const_cast<mat_data&>(data)));
+    this->read(device_mat_data::create_view_from_host(
+        this->get_executor(), const_cast<mat_data&>(data)));
 }
 
 

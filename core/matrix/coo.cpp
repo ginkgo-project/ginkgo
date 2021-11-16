@@ -194,8 +194,8 @@ void Coo<ValueType, IndexType>::move_to(Dense<ValueType>* result)
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::read(const mat_data& data)
 {
-    this->read(device_mat_data::create_from_host(this->get_executor(),
-                                                 const_cast<mat_data&>(data)));
+    this->read(device_mat_data::create_view_from_host(
+        this->get_executor(), const_cast<mat_data&>(data)));
 }
 
 

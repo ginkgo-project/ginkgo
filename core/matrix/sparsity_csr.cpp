@@ -117,8 +117,8 @@ void SparsityCsr<ValueType, IndexType>::read(const device_mat_data& data)
 template <typename ValueType, typename IndexType>
 void SparsityCsr<ValueType, IndexType>::read(const mat_data& data)
 {
-    this->read(device_mat_data::create_from_host(this->get_executor(),
-                                                 const_cast<mat_data&>(data)));
+    this->read(device_mat_data::create_view_from_host(
+        this->get_executor(), const_cast<mat_data&>(data)));
 }
 
 
