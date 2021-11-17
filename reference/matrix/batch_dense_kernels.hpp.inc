@@ -30,44 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_REFERENCE_MATRIX_BATCH_DENSE_KERNELS_HPP_
-#define GKO_REFERENCE_MATRIX_BATCH_DENSE_KERNELS_HPP_
-
-
-#include <algorithm>
-
-
-#include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
-
-
-#include "core/matrix/batch_struct.hpp"
-
-
-namespace gko {
-namespace kernels {
-namespace reference {
-/**
- * @brief The BatchDense matrix format namespace.
- * @ref BatchDense
- * @ingroup batch_dense
- */
-namespace batch_dense {
-
-
 template <typename ValueType>
-using BatchEntry = gko::batch_dense::BatchEntry<ValueType>;
-
-
-template <typename ValueType>
-inline void simple_apply(const BatchEntry<const ValueType> &a,
-                         const BatchEntry<const ValueType> &b,
-                         const BatchEntry<ValueType> &c)
+inline void spmv_kernel(const gko::batch_dense::BatchEntry<const ValueType>& a,
+                        const gko::batch_dense::BatchEntry<const ValueType>& b,
+                        const gko::batch_dense::BatchEntry<ValueType>& c)
 {
     for (int row = 0; row < c.num_rows; ++row) {
         for (int col = 0; col < c.num_rhs; ++col) {
-            c.values[row * c.stride + col] = zero<ValueType>();
+            c.values[row * c.stride + col] = gko::zero<ValueType>();
         }
     }
 
@@ -84,11 +54,13 @@ inline void simple_apply(const BatchEntry<const ValueType> &a,
 
 
 template <typename ValueType>
-inline void apply(const ValueType alpha, const BatchEntry<const ValueType> &a,
-                  const BatchEntry<const ValueType> &b, const ValueType beta,
-                  const BatchEntry<ValueType> &c)
+inline void advanced_spmv_kernel(
+    const ValueType alpha,
+    const gko::batch_dense::BatchEntry<const ValueType>& a,
+    const gko::batch_dense::BatchEntry<const ValueType>& b,
+    const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& c)
 {
-    if (beta != zero<ValueType>()) {
+    if (beta != gko::zero<ValueType>()) {
         for (int row = 0; row < c.num_rows; ++row) {
             for (int col = 0; col < c.num_rhs; ++col) {
                 c.values[row * c.stride + col] *= beta;
@@ -97,7 +69,7 @@ inline void apply(const ValueType alpha, const BatchEntry<const ValueType> &a,
     } else {
         for (int row = 0; row < c.num_rows; ++row) {
             for (int col = 0; col < c.num_rhs; ++col) {
-                c.values[row * c.stride + col] *= zero<ValueType>();
+                c.values[row * c.stride + col] *= gko::zero<ValueType>();
             }
         }
     }
@@ -115,8 +87,8 @@ inline void apply(const ValueType alpha, const BatchEntry<const ValueType> &a,
 
 
 template <typename ValueType>
-inline void scale(const BatchEntry<const ValueType> &alpha,
-                  const BatchEntry<ValueType> &x)
+inline void scale(const gko::batch_dense::BatchEntry<const ValueType>& alpha,
+                  const gko::batch_dense::BatchEntry<ValueType>& x)
 {
     if (alpha.num_rhs == 1) {
         for (int i = 0; i < x.num_rows; ++i) {
@@ -135,9 +107,10 @@ inline void scale(const BatchEntry<const ValueType> &alpha,
 
 
 template <typename ValueType>
-inline void add_scaled(const BatchEntry<const ValueType> &alpha,
-                       const BatchEntry<const ValueType> &x,
-                       const BatchEntry<ValueType> &y)
+inline void add_scaled(
+    const gko::batch_dense::BatchEntry<const ValueType>& alpha,
+    const gko::batch_dense::BatchEntry<const ValueType>& x,
+    const gko::batch_dense::BatchEntry<ValueType>& y)
 {
     if (alpha.num_rhs == 1) {
         for (int i = 0; i < x.num_rows; ++i) {
@@ -158,14 +131,15 @@ inline void add_scaled(const BatchEntry<const ValueType> &alpha,
 
 
 template <typename ValueType>
-inline void compute_norm2(const BatchEntry<const ValueType> &x,
-                          const BatchEntry<remove_complex<ValueType>> &result)
+inline void compute_norm2(
+    const gko::batch_dense::BatchEntry<const ValueType>& x,
+    const gko::batch_dense::BatchEntry<gko::remove_complex<ValueType>>& result)
 {
     for (int j = 0; j < x.num_rhs; ++j) {
-        result.values[j] = zero<remove_complex<ValueType>>();
+        result.values[j] = gko::zero<gko::remove_complex<ValueType>>();
     }
     for (int i = 0; i < x.num_rows; ++i) {
-        for (size_type j = 0; j < x.num_rhs; ++j) {
+        for (int j = 0; j < x.num_rhs; ++j) {
             result.values[j] += squared_norm(x.values[i * x.stride + j]);
         }
     }
@@ -183,8 +157,8 @@ inline void compute_norm2(const BatchEntry<const ValueType> &x,
  */
 template <typename ValueType>
 inline void batch_scale(
-    const gko::batch_dense::BatchEntry<const ValueType> &diag_vec,
-    const gko::batch_dense::BatchEntry<ValueType> &a)
+    const gko::batch_dense::BatchEntry<const ValueType>& diag_vec,
+    const gko::batch_dense::BatchEntry<ValueType>& a)
 {
     for (int i_row = 0; i_row < a.num_rows; i_row++) {
         const ValueType scale = diag_vec.values[i_row];
@@ -202,8 +176,8 @@ inline void batch_scale(
  * and stride set.
  */
 template <typename ValueType>
-inline void copy(const gko::batch_dense::BatchEntry<const ValueType> &in,
-                 const gko::batch_dense::BatchEntry<ValueType> &out)
+inline void copy(const gko::batch_dense::BatchEntry<const ValueType>& in,
+                 const gko::batch_dense::BatchEntry<ValueType>& out)
 {
     for (int iz = 0; iz < in.num_rows * in.num_rhs; iz++) {
         const int i = iz / in.num_rhs;
@@ -214,12 +188,13 @@ inline void copy(const gko::batch_dense::BatchEntry<const ValueType> &in,
 
 
 template <typename ValueType>
-inline void compute_dot_product(const BatchEntry<const ValueType> &x,
-                                const BatchEntry<const ValueType> &y,
-                                const BatchEntry<ValueType> &result)
+inline void compute_dot_product(
+    const gko::batch_dense::BatchEntry<const ValueType>& x,
+    const gko::batch_dense::BatchEntry<const ValueType>& y,
+    const gko::batch_dense::BatchEntry<ValueType>& result)
 {
     for (int c = 0; c < result.num_rhs; c++) {
-        result.values[c] = zero<ValueType>();
+        result.values[c] = gko::zero<ValueType>();
     }
 
     for (int r = 0; r < x.num_rows; r++) {
@@ -233,13 +208,13 @@ inline void compute_dot_product(const BatchEntry<const ValueType> &x,
 
 template <typename ValueType>
 inline void copy(
-    const gko::batch_dense::BatchEntry<const ValueType> &source_entry,
-    const gko::batch_dense::BatchEntry<ValueType> &destination_entry,
-    const uint32 &converged)
+    const gko::batch_dense::BatchEntry<const ValueType>& source_entry,
+    const gko::batch_dense::BatchEntry<ValueType>& destination_entry,
+    const gko::uint32& converged)
 {
     for (int r = 0; r < source_entry.num_rows; r++) {
         for (int c = 0; c < source_entry.num_rhs; c++) {
-            const uint32 conv = converged & (1 << c);
+            const gko::uint32 conv = converged & (1 << c);
 
             if (conv) {
                 continue;
@@ -253,13 +228,14 @@ inline void copy(
 
 
 template <typename ValueType>
-inline void scale(const BatchEntry<const ValueType> &alpha,
-                  const BatchEntry<ValueType> &x, const uint32 &converged)
+inline void scale(const gko::batch_dense::BatchEntry<const ValueType>& alpha,
+                  const gko::batch_dense::BatchEntry<ValueType>& x,
+                  const gko::uint32& converged)
 {
     if (alpha.num_rhs == 1) {
         for (int i = 0; i < x.num_rows; ++i) {
             for (int j = 0; j < x.num_rhs; ++j) {
-                const uint32 conv = converged & (1 << j);
+                const gko::uint32 conv = converged & (1 << j);
 
                 if (conv) {
                     continue;
@@ -272,7 +248,7 @@ inline void scale(const BatchEntry<const ValueType> &alpha,
     } else {
         for (int i = 0; i < x.num_rows; ++i) {
             for (int j = 0; j < x.num_rhs; ++j) {
-                const uint32 conv = converged & (1 << j);
+                const gko::uint32 conv = converged & (1 << j);
 
                 if (conv) {
                     continue;
@@ -286,14 +262,16 @@ inline void scale(const BatchEntry<const ValueType> &alpha,
 
 
 template <typename ValueType>
-inline void add_scaled(const BatchEntry<const ValueType> &alpha,
-                       const BatchEntry<const ValueType> &x,
-                       const BatchEntry<ValueType> &y, const uint32 &converged)
+inline void add_scaled(
+    const gko::batch_dense::BatchEntry<const ValueType>& alpha,
+    const gko::batch_dense::BatchEntry<const ValueType>& x,
+    const gko::batch_dense::BatchEntry<ValueType>& y,
+    const gko::uint32& converged)
 {
     if (alpha.num_rhs == 1) {
         for (int i = 0; i < x.num_rows; ++i) {
             for (int j = 0; j < x.num_rhs; ++j) {
-                const uint32 conv = converged & (1 << j);
+                const gko::uint32 conv = converged & (1 << j);
 
                 if (conv) {
                     continue;
@@ -306,7 +284,7 @@ inline void add_scaled(const BatchEntry<const ValueType> &alpha,
     } else {
         for (int i = 0; i < x.num_rows; ++i) {
             for (int j = 0; j < x.num_rhs; ++j) {
-                const uint32 conv = converged & (1 << j);
+                const gko::uint32 conv = converged & (1 << j);
 
                 if (conv) {
                     continue;
@@ -322,22 +300,23 @@ inline void add_scaled(const BatchEntry<const ValueType> &alpha,
 
 
 template <typename ValueType>
-inline void compute_norm2(const BatchEntry<const ValueType> &x,
-                          const BatchEntry<remove_complex<ValueType>> &result,
-                          const uint32 &converged)
+inline void compute_norm2(
+    const gko::batch_dense::BatchEntry<const ValueType>& x,
+    const gko::batch_dense::BatchEntry<gko::remove_complex<ValueType>>& result,
+    const gko::uint32& converged)
 {
     for (int j = 0; j < x.num_rhs; ++j) {
-        const uint32 conv = converged & (1 << j);
+        const gko::uint32 conv = converged & (1 << j);
 
         if (conv) {
             continue;
         }
 
-        result.values[j] = zero<remove_complex<ValueType>>();
+        result.values[j] = gko::zero<gko::remove_complex<ValueType>>();
     }
     for (int i = 0; i < x.num_rows; ++i) {
-        for (size_type j = 0; j < x.num_rhs; ++j) {
-            const uint32 conv = converged & (1 << j);
+        for (int j = 0; j < x.num_rhs; ++j) {
+            const gko::uint32 conv = converged & (1 << j);
 
             if (conv) {
                 continue;
@@ -347,7 +326,7 @@ inline void compute_norm2(const BatchEntry<const ValueType> &x,
         }
     }
     for (int j = 0; j < x.num_rhs; ++j) {
-        const uint32 conv = converged & (1 << j);
+        const gko::uint32 conv = converged & (1 << j);
 
         if (conv) {
             continue;
@@ -359,24 +338,25 @@ inline void compute_norm2(const BatchEntry<const ValueType> &x,
 
 
 template <typename ValueType>
-inline void compute_dot_product(const BatchEntry<const ValueType> &x,
-                                const BatchEntry<const ValueType> &y,
-                                const BatchEntry<ValueType> &result,
-                                const uint32 &converged)
+inline void compute_dot_product(
+    const gko::batch_dense::BatchEntry<const ValueType>& x,
+    const gko::batch_dense::BatchEntry<const ValueType>& y,
+    const gko::batch_dense::BatchEntry<ValueType>& result,
+    const gko::uint32& converged)
 {
     for (int c = 0; c < result.num_rhs; c++) {
-        const uint32 conv = converged & (1 << c);
+        const gko::uint32 conv = converged & (1 << c);
 
         if (conv) {
             continue;
         }
 
-        result.values[c] = zero<ValueType>();
+        result.values[c] = gko::zero<ValueType>();
     }
 
     for (int r = 0; r < x.num_rows; r++) {
         for (int c = 0; c < x.num_rhs; c++) {
-            const uint32 conv = converged & (1 << c);
+            const gko::uint32 conv = converged & (1 << c);
 
             if (conv) {
                 continue;
@@ -387,12 +367,3 @@ inline void compute_dot_product(const BatchEntry<const ValueType> &x,
         }
     }
 }
-
-
-}  // namespace batch_dense
-}  // namespace reference
-}  // namespace kernels
-}  // namespace gko
-
-
-#endif  // GKO_REFERENCE_MATRIX_BATCH_DENSE_KERNELS_HPP_
