@@ -39,8 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "reference/base/config.hpp"
-#include "reference/matrix/batch_dense_kernels.hpp"
-#include "reference/matrix/batch_struct.hpp"
 
 
 namespace gko {
