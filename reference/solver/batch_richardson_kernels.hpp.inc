@@ -72,8 +72,8 @@ inline void batch_entry_richardson_impl(
     prec.generate(a_b, prec_work);
 
     // initial residual
-    batch_dense::compute_norm2<ValueType>(gko::batch::to_const(b_b), norms_b);
-    batch_dense::copy(gko::batch::to_const(norms_b), init_res_norm_b);
+    compute_norm2<ValueType>(gko::batch::to_const(b_b), norms_b);
+    copy(gko::batch::to_const(norms_b), init_res_norm_b);
 
     StopType stop(opts.residual_tol, init_res_norm_b.values);
 
@@ -85,12 +85,12 @@ inline void batch_entry_richardson_impl(
         // static_cast<ValueType>(1.0), r_b);
 
         // r <- b - Ax
-        batch_dense::copy(b_b, r_b);
+        copy(b_b, r_b);
         advanced_spmv_kernel(static_cast<ValueType>(-1.0), a_b,
                              gko::batch::to_const(x_b),
                              static_cast<ValueType>(1.0), r_b);
 
-        batch_dense::compute_norm2(gko::batch::to_const(r_b), norms_b);
+        compute_norm2(gko::batch::to_const(r_b), norms_b);
 
         if (stop.check_converged(norms)) {
             break;
@@ -98,7 +98,7 @@ inline void batch_entry_richardson_impl(
 
         prec.apply(gko::batch::to_const(r_b), dx_b);
 
-        batch_dense::add_scaled(relax_b, gko::batch::to_const(dx_b), x_b);
+        add_scaled(relax_b, gko::batch::to_const(dx_b), x_b);
     }
 
     logger.log_iteration(ibatch, iter, norms[0]);

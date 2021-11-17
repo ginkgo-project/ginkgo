@@ -44,11 +44,11 @@ inline void initialize(
         rhs_norms_entry)
 {
     // Compute norms of rhs
-    batch_dense::compute_norm2<ValueType>(b_entry, rhs_norms_entry);
+    compute_norm2<ValueType>(b_entry, rhs_norms_entry);
 
 
     // r = b
-    batch_dense::copy(b_entry, r_entry);
+    copy(b_entry, r_entry);
 
     // r = b - A*x
     advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
@@ -59,12 +59,11 @@ inline void initialize(
 
 
     // p = z
-    batch_dense::copy(gko::batch::to_const(z_entry), p_entry);
+    copy(gko::batch::to_const(z_entry), p_entry);
 
     // rho_old = r' * z
-    batch_dense::compute_dot_product(gko::batch::to_const(r_entry),
-                                     gko::batch::to_const(z_entry),
-                                     rho_old_entry);
+    compute_dot_product(gko::batch::to_const(r_entry),
+                        gko::batch::to_const(z_entry), rho_old_entry);
 }
 
 
@@ -93,7 +92,7 @@ inline void update_x_and_r(
     const gko::batch_dense::BatchEntry<ValueType>& x_entry,
     const gko::batch_dense::BatchEntry<ValueType>& r_entry)
 {
-    batch_dense::compute_dot_product<ValueType>(p_entry, Ap_entry, alpha_entry);
+    compute_dot_product<ValueType>(p_entry, Ap_entry, alpha_entry);
 
     const ValueType alpha = rho_old_entry.values[0] / alpha_entry.values[0];
     for (int r = 0; r < r_entry.num_rows; r++) {
@@ -203,9 +202,9 @@ inline void batch_entry_cg_impl(
         prec.apply(gko::batch::to_const(r_entry), z_entry);
 
         // rho_new =  (r)' * (z)
-        batch_dense::compute_dot_product<ValueType>(
-            gko::batch::to_const(r_entry), gko::batch::to_const(z_entry),
-            rho_new_entry);
+        compute_dot_product<ValueType>(gko::batch::to_const(r_entry),
+                                       gko::batch::to_const(z_entry),
+                                       rho_new_entry);
 
         // beta = rho_new / rho_old
         // p = z + beta * p
@@ -214,7 +213,7 @@ inline void batch_entry_cg_impl(
                  gko::batch::to_const(z_entry), p_entry);
 
         // rho_old = rho_new
-        batch_dense::copy(gko::batch::to_const(rho_new_entry), rho_old_entry);
+        copy(gko::batch::to_const(rho_new_entry), rho_old_entry);
     }
 
     logger.log_iteration(ibatch, iter, res_norms_entry.values[0]);
