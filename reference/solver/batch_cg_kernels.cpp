@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_dispatch.hpp"
 #include "reference/base/config.hpp"
-#include "reference/matrix/batch_dense_kernels.hpp"
 
 
 namespace gko {
@@ -52,6 +51,7 @@ namespace batch_cg {
 
 
 #include "reference/matrix/batch_csr_kernels.hpp.inc"
+#include "reference/matrix/batch_dense_kernels.hpp.inc"
 #include "reference/matrix/batch_ell_kernels.hpp.inc"
 #include "reference/solver/batch_cg_kernels.hpp.inc"
 
