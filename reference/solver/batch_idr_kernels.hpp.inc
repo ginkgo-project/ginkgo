@@ -65,7 +65,7 @@ inline void orthonormalize_subspace_vectors(
             temp_for_single_rhs_entry;
 
         // w_i = p_i
-        batch_dense::copy(gko::batch::to_const(p_i_entry), w_i_entry);
+        copy(gko::batch::to_const(p_i_entry), w_i_entry);
 
         for (int j = 0; j < i; j++) {
             // w_i = w_i - proj(p_i) on w_j that is w_i = w_i - (< w_j , p_i >
@@ -79,23 +79,22 @@ inline void orthonormalize_subspace_vectors(
             ValueType mul;
             const gko::batch_dense::BatchEntry<ValueType> mul_entry{&mul, 1, 1,
                                                                     1};
-            batch_dense::compute_dot_product(gko::batch::to_const(w_j_entry),
-                                             gko::batch::to_const(p_i_entry),
-                                             mul_entry);
+            compute_dot_product(gko::batch::to_const(w_j_entry),
+                                gko::batch::to_const(p_i_entry), mul_entry);
             mul_entry.values[0] /= static_cast<ValueType>(
                 tmp_norms_entry.values[j] * tmp_norms_entry.values[j]);
 
             mul_entry.values[0] *= -one<ValueType>();
-            batch_dense::add_scaled(gko::batch::to_const(mul_entry),
-                                    gko::batch::to_const(w_j_entry), w_i_entry);
+            add_scaled(gko::batch::to_const(mul_entry),
+                       gko::batch::to_const(w_j_entry), w_i_entry);
         }
 
         // p_i = w_i
-        batch_dense::copy(gko::batch::to_const(w_i_entry), p_i_entry);
+        copy(gko::batch::to_const(w_i_entry), p_i_entry);
 
-        batch_dense::compute_norm2(gko::batch::to_const(w_i_entry),
-                                   gko::batch_dense::BatchEntry<real_type>{
-                                       &tmp_norms_entry.values[i], 1, 1, 1});
+        compute_norm2(gko::batch::to_const(w_i_entry),
+                      gko::batch_dense::BatchEntry<real_type>{
+                          &tmp_norms_entry.values[i], 1, 1, 1});
     }
 
     // e_k = w_k / || w_k ||
@@ -109,10 +108,9 @@ inline void orthonormalize_subspace_vectors(
             one<ValueType>() /
             static_cast<ValueType>(tmp_norms_entry.values[k]);
 
-        batch_dense::scale(
-            gko::batch_dense::BatchEntry<const ValueType>{&scale_factor, 1, 1,
-                                                          1},
-            w_k_entry);
+        scale(gko::batch_dense::BatchEntry<const ValueType>{&scale_factor, 1, 1,
+                                                            1},
+              w_k_entry);
     }
 }
 
@@ -140,21 +138,20 @@ inline void initialize(
         tmp_norms_entry)
 {
     // Compute norms of rhs
-    batch_dense::compute_norm2<ValueType>(b_entry, rhs_norms_entry);
+    compute_norm2<ValueType>(b_entry, rhs_norms_entry);
 
     const auto subspace_dim = M_entry.num_rows;
     const auto num_rows = b_entry.num_rows;
     const auto num_rhs = b_entry.num_rhs;
 
     // r = b
-    batch_dense::copy(b_entry, r_entry);
+    copy(b_entry, r_entry);
     // r = b - A*x
     advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
                          gko::batch::to_const(x_entry),
                          static_cast<ValueType>(1.0), r_entry);
     // compute residual norms
-    batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
-                                          res_norms_entry);
+    compute_norm2<ValueType>(gko::batch::to_const(r_entry), res_norms_entry);
 
     // omega = 1
     for (int c = 0; c < omega_entry.num_rhs; c++) {
@@ -162,8 +159,8 @@ inline void initialize(
     }
 
     if (smoothing == true) {
-        batch_dense::copy(x_entry, xs_entry);
-        batch_dense::copy(gko::batch::to_const(r_entry), rs_entry);
+        copy(x_entry, xs_entry);
+        copy(gko::batch::to_const(r_entry), rs_entry);
     }
 
     // initialize G,U with zeroes
@@ -269,7 +266,7 @@ inline void update_v(
     const gko::batch_dense::BatchEntry<const ValueType>& r_entry,
     const gko::batch_dense::BatchEntry<ValueType>& v_entry, const size_type k)
 {
-    batch_dense::copy(gko::batch::to_const(r_entry), v_entry);
+    copy(gko::batch::to_const(r_entry), v_entry);
 
     const auto subspace_dim = c_entry.num_rows;
     const auto nrows = r_entry.num_rows;
@@ -312,7 +309,7 @@ inline void update_u_k(
         }
     }
 
-    batch_dense::copy(gko::batch::to_const(helper_entry), u_k_entry);
+    copy(gko::batch::to_const(helper_entry), u_k_entry);
 }
 
 
@@ -419,11 +416,10 @@ inline void compute_omega(
     const gko::batch_dense::BatchEntry<ValueType>& omega_entry,
     const gko::remove_complex<ValueType> kappa)
 {
-    batch_dense::compute_dot_product(gko::batch::to_const(t_entry),
-                                     gko::batch::to_const(r_entry),
-                                     t_r_dot_entry);
-    batch_dense::compute_norm2(gko::batch::to_const(t_entry), norms_t_entry);
-    batch_dense::compute_norm2(gko::batch::to_const(r_entry), norms_r_entry);
+    compute_dot_product(gko::batch::to_const(t_entry),
+                        gko::batch::to_const(r_entry), t_r_dot_entry);
+    compute_norm2(gko::batch::to_const(t_entry), norms_t_entry);
+    compute_norm2(gko::batch::to_const(r_entry), norms_r_entry);
 
     // omega = ( t * r )/ (t * t)
     omega_entry.values[0] = t_r_dot_entry.values[0] /
@@ -483,10 +479,9 @@ inline void smoothing_operation(
     }
 
     // gamma = (t * rs)/(t * t)
-    batch_dense::compute_dot_product(gko::batch::to_const(t_entry),
-                                     gko::batch::to_const(rs_entry),
-                                     gamma_entry);
-    batch_dense::compute_norm2(gko::batch::to_const(t_entry), norms_t_entry);
+    compute_dot_product(gko::batch::to_const(t_entry),
+                        gko::batch::to_const(rs_entry), gamma_entry);
+    compute_norm2(gko::batch::to_const(t_entry), norms_t_entry);
 
     gamma_entry.values[0] /= static_cast<ValueType>(norms_t_entry.values[0] *
                                                     norms_t_entry.values[0]);
@@ -702,7 +697,7 @@ inline void batch_entry_idr_impl(
                      gko::batch::to_const(r_entry), v_entry, k);
 
             // helper = v
-            batch_dense::copy(gko::batch::to_const(v_entry), helper_entry);
+            copy(gko::batch::to_const(v_entry), helper_entry);
 
             // v = precond * helper
             prec.apply(gko::batch::to_const(helper_entry), v_entry);
@@ -802,18 +797,18 @@ inline void batch_entry_idr_impl(
             smoothing_operation(gko::batch::to_const(x_entry),
                                 gko::batch::to_const(r_entry), gamma_entry,
                                 t_entry, xs_entry, rs_entry, t_norms_entry);
-            batch_dense::compute_norm2<ValueType>(
-                gko::batch::to_const(rs_entry), res_norms_entry);
+            compute_norm2<ValueType>(gko::batch::to_const(rs_entry),
+                                     res_norms_entry);
         } else {
-            batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
-                                                  res_norms_entry);
+            compute_norm2<ValueType>(gko::batch::to_const(r_entry),
+                                     res_norms_entry);
         }
     }
 
     logger.log_iteration(ibatch, outer_iter, res_norms_entry.values[0]);
 
     if (smoothing == true) {
-        batch_dense::copy(gko::batch::to_const(xs_entry), x_entry);
-        batch_dense::copy(gko::batch::to_const(rs_entry), r_entry);
+        copy(gko::batch::to_const(xs_entry), x_entry);
+        copy(gko::batch::to_const(rs_entry), r_entry);
     }
 }

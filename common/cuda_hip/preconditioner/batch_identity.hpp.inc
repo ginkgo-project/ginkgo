@@ -82,6 +82,10 @@ public:
         const gko::batch_csr::BatchEntry<const ValueType>& mat, ValueType*)
     {}
 
+    __device__ __forceinline__ void generate(
+        const gko::batch_dense::BatchEntry<const ValueType>& mat, ValueType*)
+    {}
+
     __device__ __forceinline__ void apply(const int num_rows,
                                           const ValueType* const r,
                                           ValueType* const z) const

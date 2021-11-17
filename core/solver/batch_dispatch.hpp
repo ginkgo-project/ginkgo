@@ -233,6 +233,10 @@ public:
                        dynamic_cast<const matrix::BatchEll<ValueType>*>(a)) {
             auto m_b = device::get_batch_struct(amat);
             dispatch_on_logger(m_b, b_b, x_b, logdata);
+        } else if (auto amat =
+                       dynamic_cast<const matrix::BatchDense<ValueType>*>(a)) {
+            auto m_b = device::get_batch_struct(amat);
+            dispatch_on_logger(m_b, b_b, x_b, logdata);
         } else {
             GKO_NOT_SUPPORTED(a);
         }
