@@ -216,76 +216,6 @@ private:
 
 
 /**
- * A class holding and operating on the MPI_Info class. Stores the key value
- * pair as a map and provides methods to access these values with keys as
- * strings.
- */
-class info {
-public:
-    info() : info_(MPI_INFO_NULL) {}
-
-    explicit info(MPI_Info input_info)
-    {
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_dup(input_info, &this->info_));
-    }
-
-    void create_default()
-    {
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_create(&this->info_));
-    }
-
-    void remove(std::string key)
-    {
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_delete(this->info_, key.c_str()));
-    }
-
-    std::string& at(std::string& key) { return this->key_value_.at(key); }
-
-    void add(std::string key, std::string value)
-    {
-        this->key_value_[key] = value;
-        GKO_ASSERT_NO_MPI_ERRORS(
-            MPI_Info_set(this->info_, key.c_str(), value.c_str()));
-    }
-
-    MPI_Info get() { return this->info_; }
-
-    ~info()
-    {
-        if (this->info_ != MPI_INFO_NULL) {
-            MPI_Info_free(&this->info_);
-        }
-    }
-
-private:
-    std::map<std::string, std::string> key_value_;
-    MPI_Info info_;
-};
-
-
-/**
- * A status class that allows creation of MPI_Status and
- * frees the status array when it  goes out of scope
- */
-class status : public EnableSharedCreateMethod<status> {
-public:
-    status(const int size) : status_(new MPI_Status[size]) {}
-
-    status() : status_(new MPI_Status[1]) {}
-
-    ~status()
-    {
-        if (status_) delete[] status_;
-    }
-
-    MPI_Status* get() const { return status_; }
-
-private:
-    MPI_Status* status_;
-};
-
-
-/**
  * A communicator class that takes in the given communicator and duplicates it
  * for our purposes. As the class or object goes out of scope, the communicator
  * is freed.
@@ -494,20 +424,21 @@ public:
 
     window(ValueType* base, unsigned int size,
            std::shared_ptr<const communicator> comm,
-           const int disp_unit = sizeof(ValueType), info input_info = info(),
+           const int disp_unit = sizeof(ValueType),
+           MPI_Info input_info = MPI_INFO_NULL,
            win_type create_type = win_type::create)
     {
         if (create_type == win_type::create) {
-            GKO_ASSERT_NO_MPI_ERRORS(
-                MPI_Win_create(base, size, disp_unit, input_info.get(),
-                               comm->get(), &this->window_));
+            GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_create(base, size, disp_unit,
+                                                    input_info, comm->get(),
+                                                    &this->window_));
         } else if (create_type == win_type::dynamic_create) {
             GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_create_dynamic(
-                input_info.get(), comm->get(), &this->window_));
+                input_info, comm->get(), &this->window_));
         } else if (create_type == win_type::allocate) {
-            GKO_ASSERT_NO_MPI_ERRORS(
-                MPI_Win_allocate(size, disp_unit, input_info.get(), comm->get(),
-                                 base, &this->window_));
+            GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_allocate(size, disp_unit,
+                                                      input_info, comm->get(),
+                                                      base, &this->window_));
         } else {
             GKO_NOT_IMPLEMENTED;
         }
@@ -635,16 +566,19 @@ MPI_Request i_send(const SendType* send_buffer, const int send_count,
  * @param source_rank  the rank to send the data to
  * @param recv_tag  the tag for the send call
  * @param comm  the communicator
+ *
+ * @return  the status of completion of this call
  */
 template <typename RecvType>
-void recv(RecvType* recv_buffer, const int recv_count, const int source_rank,
-          const int recv_tag, std::shared_ptr<const communicator> comm,
-          std::shared_ptr<status> status = {})
+MPI_Status recv(RecvType* recv_buffer, const int recv_count,
+                const int source_rank, const int recv_tag,
+                std::shared_ptr<const communicator> comm)
 {
+    MPI_Status status;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Recv(
         recv_buffer, recv_count, detail::mpi_type_impl<RecvType>::get_type(),
-        source_rank, recv_tag, comm->get(),
-        status ? status->get() : MPI_STATUS_IGNORE));
+        source_rank, recv_tag, comm->get(), &status));
+    return status;
 }
 
 
