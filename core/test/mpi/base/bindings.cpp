@@ -649,7 +649,7 @@ TYPED_TEST(MpiBindings, AllToAllVWorksCorrectly)
     gko::mpi::all_to_all_v(send_array.get_data(), scounts_array.get_data(),
                            soffset_array.get_data(), recv_array.get_data(),
                            rcounts_array.get_data(), roffset_array.get_data(),
-                           {}, comm);
+                           comm);
     GKO_ASSERT_ARRAY_EQ(recv_array, ref_array);
 }
 
