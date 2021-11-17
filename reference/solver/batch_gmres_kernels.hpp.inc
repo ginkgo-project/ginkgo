@@ -48,18 +48,17 @@ inline void initialize(
         res_norms_entry)
 {
     // Compute norms of rhs
-    batch_dense::compute_norm2<ValueType>(b_entry, rhs_norms_entry);
+    compute_norm2<ValueType>(b_entry, rhs_norms_entry);
 
 
     // r = b
-    batch_dense::copy(b_entry, r_entry);
+    copy(b_entry, r_entry);
 
     // r = b - A*x
     advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
                          gko::batch::to_const(x_entry),
                          static_cast<ValueType>(1.0), r_entry);
-    batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
-                                          res_norms_entry);
+    compute_norm2<ValueType>(gko::batch::to_const(r_entry), res_norms_entry);
 
 
     // z = precond * r
@@ -153,7 +152,7 @@ inline void update_v_naught_and_s(
     const gko::batch_dense::BatchEntry<real_type>& z_norms_entry =
         tmp_norms_entry;
 
-    batch_dense::compute_norm2(z_entry, z_norms_entry);
+    compute_norm2(z_entry, z_norms_entry);
 
     for (int r = 0; r < v_naught_entry.num_rows; r++) {
         v_naught_entry.values[r * v_naught_entry.stride] =
@@ -203,8 +202,8 @@ inline void arnoldi_method(
             &H_entry.values[k * H_entry.stride + i * num_rhs],
             static_cast<size_type>(w_entry.num_rhs), 1, w_entry.num_rhs};
 
-        batch_dense::compute_dot_product(gko::batch::to_const(w_entry),
-                                         v_k_entry, h_k_i_entry);
+        compute_dot_product(gko::batch::to_const(w_entry), v_k_entry,
+                            h_k_i_entry);
 
         for (int r = 0; r < w_entry.num_rows; r++) {
             ValueType h_k_i_scalar = h_k_i_entry.values[0];
@@ -217,7 +216,7 @@ inline void arnoldi_method(
     const gko::batch_dense::BatchEntry<real_type>& w_norms_entry =
         tmp_norms_entry;
 
-    batch_dense::compute_norm2(gko::batch::to_const(w_entry), w_norms_entry);
+    compute_norm2(gko::batch::to_const(w_entry), w_norms_entry);
 
     const gko::batch_dense::BatchEntry<ValueType> h_i_plus_1_i_entry{
         &H_entry.values[(i + 1) * H_entry.stride + i * num_rhs],
@@ -459,14 +458,14 @@ inline void batch_entry_gmres_impl(
                  x_entry, y_entry);
 
         // r = b
-        batch_dense::copy(b_entry, r_entry);
+        copy(b_entry, r_entry);
 
         // r = r - A*x
         advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
                              gko::batch::to_const(x_entry),
                              static_cast<ValueType>(1.0), r_entry);
-        batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
-                                              res_norms_entry);
+        compute_norm2<ValueType>(gko::batch::to_const(r_entry),
+                                 res_norms_entry);
 
         // z = precond * r
         prec.apply(gko::batch::to_const(r_entry), z_entry);

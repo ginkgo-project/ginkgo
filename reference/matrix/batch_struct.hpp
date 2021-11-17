@@ -68,9 +68,13 @@ template <typename ValueType>
 inline gko::batch_dense::UniformBatch<const ValueType> get_batch_struct(
     const matrix::BatchDense<ValueType>* const op)
 {
-    return {op->get_const_values(), op->get_num_batch_entries(),
-            op->get_stride().at(0), static_cast<int>(op->get_size().at(0)[0]),
-            static_cast<int>(op->get_size().at(0)[1])};
+    return {
+        op->get_const_values(),
+        op->get_num_batch_entries(),
+        op->get_stride().at(0),
+        static_cast<int>(op->get_size().at(0)[0]),
+        static_cast<int>(op->get_size().at(0)[1]),
+        static_cast<int>(op->get_size().at(0)[0] * op->get_size().at(0)[1])};
 }
 
 
@@ -81,9 +85,13 @@ template <typename ValueType>
 inline gko::batch_dense::UniformBatch<ValueType> get_batch_struct(
     matrix::BatchDense<ValueType>* const op)
 {
-    return {op->get_values(), op->get_num_batch_entries(),
-            op->get_stride().at(0), static_cast<int>(op->get_size().at(0)[0]),
-            static_cast<int>(op->get_size().at(0)[1])};
+    return {
+        op->get_values(),
+        op->get_num_batch_entries(),
+        op->get_stride().at(0),
+        static_cast<int>(op->get_size().at(0)[0]),
+        static_cast<int>(op->get_size().at(0)[1]),
+        static_cast<int>(op->get_size().at(0)[0] * op->get_size().at(0)[1])};
 }
 
 
