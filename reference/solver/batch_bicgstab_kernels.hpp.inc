@@ -54,20 +54,19 @@ inline void initialize(
     }
 
     // Compute norms of rhs
-    batch_dense::compute_norm2<ValueType>(b_entry, rhs_norms_entry);
+    compute_norm2<ValueType>(b_entry, rhs_norms_entry);
 
 
     // r = b
-    batch_dense::copy(b_entry, r_entry);
+    copy(b_entry, r_entry);
 
     // r = b - A*x
     advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
                          gko::batch::to_const(x_entry),
                          static_cast<ValueType>(1.0), r_entry);
-    batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
-                                          res_norms_entry);
+    compute_norm2<ValueType>(gko::batch::to_const(r_entry), res_norms_entry);
 
-    batch_dense::copy(gko::batch::to_const(r_entry), r_hat_entry);
+    copy(gko::batch::to_const(r_entry), r_hat_entry);
 
     for (int r = 0; r < p_entry.num_rows; r++) {
         for (int c = 0; c < p_entry.num_rhs; c++) {
@@ -106,8 +105,7 @@ inline void compute_alpha(
     const gko::batch_dense::BatchEntry<const ValueType>& v_entry,
     const gko::batch_dense::BatchEntry<ValueType>& alpha_entry)
 {
-    batch_dense::compute_dot_product<ValueType>(r_hat_entry, v_entry,
-                                                alpha_entry);
+    compute_dot_product<ValueType>(r_hat_entry, v_entry, alpha_entry);
     alpha_entry.values[0] = rho_new_entry.values[0] / alpha_entry.values[0];
 }
 
@@ -134,8 +132,8 @@ inline void compute_omega(
     const gko::batch_dense::BatchEntry<ValueType>& temp_entry,
     const gko::batch_dense::BatchEntry<ValueType>& omega_entry)
 {
-    batch_dense::compute_dot_product<ValueType>(t_entry, s_entry, omega_entry);
-    batch_dense::compute_dot_product<ValueType>(t_entry, t_entry, temp_entry);
+    compute_dot_product<ValueType>(t_entry, s_entry, omega_entry);
+    compute_dot_product<ValueType>(t_entry, t_entry, temp_entry);
     omega_entry.values[0] /= temp_entry.values[0];
 }
 
@@ -293,9 +291,9 @@ inline void batch_entry_bicgstab_impl(
         }
 
         // rho_new =  < r_hat , r > = (r_hat)' * (r)
-        batch_dense::compute_dot_product<ValueType>(
-            gko::batch::to_const(r_hat_entry), gko::batch::to_const(r_entry),
-            rho_new_entry);
+        compute_dot_product<ValueType>(gko::batch::to_const(r_hat_entry),
+                                       gko::batch::to_const(r_entry),
+                                       rho_new_entry);
 
 
         // beta = (rho_new / rho_old)*(alpha / omega)
@@ -325,8 +323,8 @@ inline void batch_entry_bicgstab_impl(
                  gko::batch::to_const(alpha_entry),
                  gko::batch::to_const(v_entry), s_entry);
         // an estimate of residual norms
-        batch_dense::compute_norm2<ValueType>(gko::batch::to_const(s_entry),
-                                              res_norms_entry);
+        compute_norm2<ValueType>(gko::batch::to_const(s_entry),
+                                 res_norms_entry);
 
 
         if (stop.check_converged(res_norms_entry.values)) {
@@ -360,11 +358,11 @@ inline void batch_entry_bicgstab_impl(
                        gko::batch::to_const(s_entry),
                        gko::batch::to_const(t_entry), x_entry, r_entry);
 
-        batch_dense::compute_norm2<ValueType>(gko::batch::to_const(r_entry),
-                                              res_norms_entry);
+        compute_norm2<ValueType>(gko::batch::to_const(r_entry),
+                                 res_norms_entry);
 
         // rho_old = rho_new
-        batch_dense::copy(gko::batch::to_const(rho_new_entry), rho_old_entry);
+        copy(gko::batch::to_const(rho_new_entry), rho_old_entry);
     }
 
     logger.log_iteration(ibatch, iter, res_norms_entry.values[0]);

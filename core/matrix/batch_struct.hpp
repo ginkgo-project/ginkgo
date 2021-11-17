@@ -155,6 +155,7 @@ struct UniformBatch {
     size_type stride;     ///< Common stride of each dense matrix
     int num_rows;         ///< Common number of rows in each matrix
     int num_rhs;          ///< Common number of columns of each matrix
+    int num_nnz;          ///< Common number of non-zeros of each matrix
 };
 
 
