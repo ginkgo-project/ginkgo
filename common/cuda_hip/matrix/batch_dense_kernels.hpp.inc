@@ -35,6 +35,109 @@ template <typename ValueType>
 using BatchEntry = gko::batch_dense::BatchEntry<ValueType>;
 
 
+template <typename ValueType>
+__device__ __forceinline__ void single_spmv_kernel(
+    const gko::batch_dense::BatchEntry<const ValueType>& a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ c)
+{
+    constexpr auto tile_size = config::warp_size;
+
+    auto thread_block = group::this_thread_block();
+    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
+    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
+
+    for (int row = subwarp_grp_id; row < a.num_rows;
+         row += num_subwarp_grps_per_block) {
+        ValueType temp = zero<ValueType>();
+        for (int j = subwarp_grp.thread_rank(); j < a.num_rhs;
+             j += subwarp_grp.size()) {
+            const ValueType val = a.values[row * a.stride + j];
+            temp += val * b[j];
+        }
+
+#pragma unroll
+        for (int i = static_cast<int>(tile_size) / 2; i > 0; i /= 2) {
+            temp += subwarp_grp.shfl_down(temp, i);
+        }
+
+        if (subwarp_grp.thread_rank() == 0) {
+            c[row] = temp;
+        }
+    }
+}
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size, sm_multiplier) void mv(
+    const gko::batch_dense::UniformBatch<const ValueType> a,
+    const gko::batch_dense::UniformBatch<const ValueType> b,
+    const gko::batch_dense::UniformBatch<ValueType> c)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < a.num_batch;
+         ibatch += gridDim.x) {
+        const auto a_b = gko::batch::batch_entry(a, ibatch);
+        const auto b_b = gko::batch::batch_entry(b, ibatch);
+        const auto c_b = gko::batch::batch_entry(c, ibatch);
+        single_spmv_kernel(a_b, b_b.values, c_b.values);
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void single_advanced_spmv_kernel(
+    const ValueType alpha,
+    const gko::batch_dense::BatchEntry<const ValueType>& a,
+    const ValueType* const __restrict__ b, const ValueType beta,
+    ValueType* const __restrict__ c)
+{
+    constexpr auto tile_size = config::warp_size;
+
+    auto thread_block = group::this_thread_block();
+    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
+    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
+
+    for (int row = subwarp_grp_id; row < a.num_rows;
+         row += num_subwarp_grps_per_block) {
+        ValueType temp = zero<ValueType>();
+        for (int j = subwarp_grp.thread_rank(); j < a.num_rhs;
+             j += subwarp_grp.size()) {
+            const ValueType val = a.values[row * a.stride + j];
+            temp += alpha * val * b[j];
+        }
+
+#pragma unroll
+        for (int i = static_cast<int>(tile_size) / 2; i > 0; i /= 2) {
+            temp += subwarp_grp.shfl_down(temp, i);
+        }
+
+        if (subwarp_grp.thread_rank() == 0) {
+            c[row] = temp + beta * c[row];
+        }
+    }
+}
+
+template <typename ValueType>
+__global__
+    __launch_bounds__(default_block_size, sm_multiplier) void advanced_mv(
+        const gko::batch_dense::UniformBatch<const ValueType> alpha,
+        const gko::batch_dense::UniformBatch<const ValueType> a,
+        const gko::batch_dense::UniformBatch<const ValueType> b,
+        const gko::batch_dense::UniformBatch<const ValueType> beta,
+        const gko::batch_dense::UniformBatch<ValueType> c)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < a.num_batch;
+         ibatch += gridDim.x) {
+        const auto a_b = gko::batch::batch_entry(a, ibatch);
+        const auto b_b = gko::batch::batch_entry(b, ibatch);
+        const auto c_b = gko::batch::batch_entry(c, ibatch);
+        const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
+        const auto beta_b = gko::batch::batch_entry(beta, ibatch);
+        single_advanced_spmv_kernel(alpha_b.values[0], a_b, b_b.values,
+                                    beta_b.values[0], c_b.values);
+    }
+}
+
 /**
  *
  *   Scales the vectors in global or shared memory with a factor of alpha(alpha
