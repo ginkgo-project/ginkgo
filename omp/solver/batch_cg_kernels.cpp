@@ -35,8 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_dispatch.hpp"
 #include "omp/base/config.hpp"
-// include device kernels for every matrix and preconditioner type
-#include "reference/matrix/batch_dense_kernels.hpp"
 
 
 namespace gko {
@@ -50,10 +48,10 @@ namespace omp {
 namespace batch_cg {
 
 
-namespace batch_dense = gko::kernels::reference::batch_dense;
 constexpr int max_num_rhs = 1;
 
 #include "reference/matrix/batch_csr_kernels.hpp.inc"
+#include "reference/matrix/batch_dense_kernels.hpp.inc"
 #include "reference/matrix/batch_ell_kernels.hpp.inc"
 #include "reference/solver/batch_cg_kernels.hpp.inc"
 

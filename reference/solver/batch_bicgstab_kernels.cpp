@@ -35,8 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/batch_dispatch.hpp"
 #include "reference/base/config.hpp"
-// include device kernels for every matrix and preconditioner type
-#include "reference/matrix/batch_dense_kernels.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
 
@@ -60,6 +58,7 @@ namespace {
 constexpr int max_num_rhs = 1;
 
 #include "reference/matrix/batch_csr_kernels.hpp.inc"
+#include "reference/matrix/batch_dense_kernels.hpp.inc"
 #include "reference/matrix/batch_ell_kernels.hpp.inc"
 #include "reference/solver/batch_bicgstab_kernels.hpp.inc"
 
