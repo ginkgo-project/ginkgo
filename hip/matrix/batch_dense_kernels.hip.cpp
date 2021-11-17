@@ -75,7 +75,18 @@ template <typename ValueType>
 void simple_apply(std::shared_ptr<const HipExecutor> exec,
                   const matrix::BatchDense<ValueType>* a,
                   const matrix::BatchDense<ValueType>* b,
-                  matrix::BatchDense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+                  matrix::BatchDense<ValueType>* c)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto a_ub = get_batch_struct(a);
+    const auto b_ub = get_batch_struct(b);
+    const auto c_ub = get_batch_struct(c);
+    if (b_ub.num_rhs > 1) {
+        GKO_NOT_IMPLEMENTED;
+    }
+    hipLaunchKernelGGL(mv, num_blocks, default_block_size, 0, 0, a_ub, b_ub,
+                       c_ub);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL);
@@ -87,7 +98,20 @@ void apply(std::shared_ptr<const HipExecutor> exec,
            const matrix::BatchDense<ValueType>* a,
            const matrix::BatchDense<ValueType>* b,
            const matrix::BatchDense<ValueType>* beta,
-           matrix::BatchDense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+           matrix::BatchDense<ValueType>* c)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const auto a_ub = get_batch_struct(a);
+    const auto b_ub = get_batch_struct(b);
+    const auto c_ub = get_batch_struct(c);
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto beta_ub = get_batch_struct(beta);
+    if (b_ub.num_rhs > 1) {
+        GKO_NOT_IMPLEMENTED;
+    }
+    hipLaunchKernelGGL(advanced_mv, num_blocks, default_block_size, 0, 0,
+                       alpha_ub, a_ub, b_ub, beta_ub, c_ub);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_APPLY_KERNEL);
 

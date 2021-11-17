@@ -107,9 +107,9 @@ protected:
             hip, gko::batch_dim<>(batch_size, gko::dim<2>{1, num_vecs}));
     }
 
-    void set_up_apply_data()
+    void set_up_apply_data(const int p = 1)
     {
-        const int m = 35, n = 15, p = 25;
+        const int m = 35, n = 15;
         x = gen_mtx<Mtx>(batch_size, m, n);
         c_x = gen_mtx<ComplexMtx>(batch_size, m, n);
         y = gen_mtx<Mtx>(batch_size, n, p);
@@ -155,6 +155,28 @@ protected:
     std::unique_ptr<Mtx> dbeta;
     std::unique_ptr<Mtx> dsquare;
 };
+
+
+TEST_F(BatchDense, SingleVectorAppyIsEquivalentToRef)
+{
+    set_up_apply_data(1);
+
+    x->apply(y.get(), expected.get());
+    dx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(BatchDense, SingleVectorAdvancedAppyIsEquivalentToRef)
+{
+    set_up_apply_data(1);
+
+    x->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, 1e-14);
+}
 
 
 TEST_F(BatchDense, SingleVectorAddScaledIsEquivalentToRef)

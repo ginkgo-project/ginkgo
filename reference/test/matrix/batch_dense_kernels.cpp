@@ -133,16 +133,6 @@ protected:
     std::unique_ptr<Mtx> mtx_6;
 
     std::ranlux48 rand_engine;
-
-    // template <typename MtxType>
-    // std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
-    //{
-    //    return gko::test::generate_random_matrix<MtxType>(
-    //        num_rows, num_cols,
-    //        std::uniform_int_distribution<gko::size_type>(num_cols, num_cols),
-    //        std::normal_distribution<gko::remove_complex<value_type>>(0.0, 1.0),
-    //        rand_engine, exec);
-    //}
 };
 
 
@@ -958,7 +948,7 @@ TYPED_TEST(BatchDense, SquareMatrixIsTransposable)
 {
     using Mtx = typename TestFixture::Mtx;
     auto trans = this->mtx_4->transpose();
-    auto trans_as_batch_dense = static_cast<Mtx *>(trans.get());
+    auto trans_as_batch_dense = static_cast<Mtx*>(trans.get());
 
     auto utb = trans_as_batch_dense->unbatch();
     GKO_ASSERT_MTX_NEAR(utb[0].get(),
@@ -974,7 +964,7 @@ TYPED_TEST(BatchDense, NonSquareMatrixIsTransposable)
 {
     using Mtx = typename TestFixture::Mtx;
     auto trans = this->mtx_5->transpose();
-    auto trans_as_batch_dense = static_cast<Mtx *>(trans.get());
+    auto trans_as_batch_dense = static_cast<Mtx*>(trans.get());
 
     auto utb = trans_as_batch_dense->unbatch();
     GKO_ASSERT_MTX_NEAR(utb[0].get(), l({{1.0, 6.0, 7.0}, {1.5, 1.0, -4.5}}),
