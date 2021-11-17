@@ -115,6 +115,34 @@ public:
         __syncthreads();
     }
 
+    /**
+     * Sets the input and generates the preconditioner by storing the inverse
+     * diagonal entries in the work vector.
+     *
+     * @param mat  Matrix for which to build a Jacobi preconditioner.
+     * @param work  A 'work-vector', used here to store the inverse diagonal
+     *              entries. It must be allocated with at least the amount
+     *              of memory given by dynamic_work_size.
+     */
+    __device__ __forceinline__ void generate(
+        const gko::batch_dense::BatchEntry<const ValueType>& mat,
+        ValueType* const __restrict__ work)
+    {
+        work_ = work;
+        constexpr auto warp_size = config::warp_size;
+        const auto tile =
+            group::tiled_partition<warp_size>(group::this_thread_block());
+        const int tile_rank = threadIdx.x / warp_size;
+        const int num_tiles = (blockDim.x - 1) / warp_size + 1;
+        for (int irow = tile_rank; irow < mat.num_rows; irow += num_tiles) {
+            const int iz = irow * static_cast<int>(mat.stride) + irow;
+            work_[irow] = (mat.values[iz] != zero<ValueType>())
+                              ? one<ValueType>() / mat.values[iz]
+                              : one<ValueType>();
+        }
+        __syncthreads();
+    }
+
     __device__ __forceinline__ void apply(const int num_rows,
                                           const ValueType* const r,
                                           ValueType* const z) const
