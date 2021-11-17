@@ -154,7 +154,8 @@ public:
         const size_type nbatch = a.num_batch;
         const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
 
-        // TODO: Add function to BatchCSR to return storage needed per matrix
+        // TODO: Add function to batch matrix types to return storage needed per
+        // matrix
         const int matrix_storage =
             (a.num_rows + 1) * sizeof(int) +
             a.num_nnz * (sizeof(int) + sizeof(value_type));
@@ -182,14 +183,17 @@ public:
             exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 
-        std::cerr << " Bicgstab: vectors in shared memory = " << sconf.n_shared
-                  << "\n";
-        if (sconf.prec_shared) {
-            std::cerr << " Bicgstab: precondiioner is in shared memory.\n";
-        }
-        std::cerr << " Bicgstab: vectors in global memory = " << sconf.n_global
-                  << "\n Bicgstab: number of threads per block = " << block_size
-                  << "\n";
+        // std::cerr << " Bicgstab: vectors in shared memory = " <<
+        // sconf.n_shared
+        //          << "\n";
+        // if (sconf.prec_shared) {
+        //    std::cerr << " Bicgstab: precondiioner is in shared memory.\n";
+        //}
+        // std::cerr << " Bicgstab: vectors in global memory = " <<
+        // sconf.n_global
+        //          << "\n Bicgstab: number of threads per block = " <<
+        //          block_size
+        //          << "\n";
 
         apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
             shared_gap, sconf, opts_.max_its, opts_.residual_tol, logger,
