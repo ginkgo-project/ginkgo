@@ -54,39 +54,33 @@ namespace test {
 
 
 /**
- * Generates a random matrix.
+ * Generates matrix data for a random matrix.
  *
- * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
- *                     the interface `ConvertibleTo<MatrixType>`)
+ * @tparam ValueType  the type for matrix values
+ * @tparam IndexType  the type for row and column indices
  * @tparam NonzeroDistribution  type of nonzero distribution
  * @tparam ValueDistribution  type of value distribution
  * @tparam Engine  type of random engine
- * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
  *
  * @param num_rows  number of rows
  * @param num_cols  number of columns
  * @param nonzero_dist  distribution of nonzeros per row
  * @param value_dist  distribution of matrix values
  * @param engine  a random engine
- * @param exec  executor where the matrix should be allocated
- * @param args  additional arguments for the matrix constructor
  *
- * @return the unique pointer of MatrixType
+ * @return the generated matrix_data with entries according to the given
+ *         dimensions and nonzero count and value distributions.
  */
-template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
-          typename ValueDistribution, typename Engine, typename... MatrixArgs>
-std::unique_ptr<MatrixType> generate_random_matrix(
+template <typename ValueType, typename IndexType, typename NonzeroDistribution,
+          typename ValueDistribution, typename Engine>
+matrix_data<ValueType, IndexType> generate_random_matrix_data(
     size_type num_rows, size_type num_cols, NonzeroDistribution&& nonzero_dist,
-    ValueDistribution&& value_dist, Engine&& engine,
-    std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
+    ValueDistribution&& value_dist, Engine&& engine)
 {
-    using value_type = typename MatrixType::value_type;
-    using index_type = typename MatrixType::index_type;
     using std::begin;
     using std::end;
 
-    matrix_data<value_type, index_type> data{gko::dim<2>{num_rows, num_cols},
-                                             {}};
+    matrix_data<ValueType, IndexType> data{gko::dim<2>{num_rows, num_cols}, {}};
 
     std::vector<size_type> col_idx(num_cols);
     std::iota(begin(col_idx), end(col_idx), size_type(0));
@@ -102,72 +96,44 @@ std::unique_ptr<MatrixType> generate_random_matrix(
             begin(col_idx), begin(col_idx) + nnz_in_row, [&](size_type col) {
                 data.nonzeros.emplace_back(
                     row, col,
-                    detail::get_rand_value<value_type>(value_dist, engine));
+                    detail::get_rand_value<ValueType>(value_dist, engine));
             });
     }
 
     data.ensure_row_major_order();
-
-    // convert to the correct matrix type
-    auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
-    result->read(data);
-    return result;
+    return data;
 }
 
 
 /**
- * Generates a random sparsity matrix.
+ * Generates a random matrix.
  *
- * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
- *                     the interface `ConvertibleTo<MatrixType>`)
- * @tparam NonzeroDistribution  type of nonzero distribution
- * @tparam Engine  type of random engine
- * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
+ * @tparam MatrixType  type of matrix to generate (must implement
+ *                     the interface `ReadableFromMatrixData<>` and provide
+ *                     matching `value_type` and `index_type` type aliases)
  *
- * @param num_rows  number of rows
- * @param num_cols  number of columns
- * @param nonzero_dist  distribution of nonzeros per row
- * @param engine  a random engine
  * @param exec  executor where the matrix should be allocated
  * @param args  additional arguments for the matrix constructor
+ *
+ * The other (template) parameters match generate_random_matrix_data.
  *
  * @return the unique pointer of MatrixType
  */
 template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
-          typename Engine, typename... MatrixArgs>
-std::unique_ptr<MatrixType> generate_random_sparsity_matrix(
+          typename ValueDistribution, typename Engine, typename... MatrixArgs>
+std::unique_ptr<MatrixType> generate_random_matrix(
     size_type num_rows, size_type num_cols, NonzeroDistribution&& nonzero_dist,
-    typename MatrixType::value_type value, Engine&& engine,
+    ValueDistribution&& value_dist, Engine&& engine,
     std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
 {
     using value_type = typename MatrixType::value_type;
     using index_type = typename MatrixType::index_type;
-    using std::begin;
-    using std::end;
 
-    matrix_data<value_type, index_type> data{gko::dim<2>{num_rows, num_cols},
-                                             {}};
-
-    std::vector<size_type> col_idx(num_cols);
-    std::iota(begin(col_idx), end(col_idx), size_type(0));
-    for (size_type row = 0; row < num_rows; ++row) {
-        // randomly generate number of nonzeros in this row
-        auto nnz_in_row = static_cast<size_type>(nonzero_dist(engine));
-        nnz_in_row = std::max(size_type(0), std::min(nnz_in_row, num_cols));
-        // select a subset of `nnz_in_row` column indexes, and fill these
-        // locations with random values
-        std::shuffle(begin(col_idx), end(col_idx), engine);
-        std::for_each(begin(col_idx), begin(col_idx) + nnz_in_row,
-                      [&](size_type col) {
-                          data.nonzeros.emplace_back(row, col, value);
-                      });
-    }
-
-    data.ensure_row_major_order();
-
-    // convert to the correct matrix type
     auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
-    result->read(data);
+    result->read(generate_random_matrix_data<value_type, index_type>(
+        num_rows, num_cols, std::forward<NonzeroDistribution>(nonzero_dist),
+        std::forward<ValueDistribution>(value_dist),
+        std::forward<Engine>(engine)));
     return result;
 }
 
@@ -175,12 +141,11 @@ std::unique_ptr<MatrixType> generate_random_sparsity_matrix(
 /**
  * Generates a random triangular matrix.
  *
- * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
- *                     the interface `ConvertibleTo<MatrixType>`)
+ * @tparam ValueType  the type for matrix values
+ * @tparam IndexType  the type for row and column indices
  * @tparam NonzeroDistribution  type of nonzero distribution
  * @tparam ValueDistribution  type of value distribution
  * @tparam Engine  type of random engine
- * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
  *
  * @param num_rows  number of rows
  * @param num_cols  number of columns
@@ -191,27 +156,22 @@ std::unique_ptr<MatrixType> generate_random_sparsity_matrix(
  * @param nonzero_dist  distribution of nonzeros per row
  * @param value_dist  distribution of matrix values
  * @param engine  a random engine
- * @param exec  executor where the matrix should be allocated
- * @param args  additional arguments for the matrix constructor
  *
- * @return the unique pointer of MatrixType
+ * @return the generated matrix_data with entries according to the given
+ *         dimensions and nonzero count and value distributions.
  */
-template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
-          typename ValueDistribution, typename Engine, typename... MatrixArgs>
-std::unique_ptr<MatrixType> generate_random_triangular_matrix(
+template <typename ValueType, typename IndexType, typename NonzeroDistribution,
+          typename ValueDistribution, typename Engine>
+matrix_data<ValueType, IndexType> generate_random_triangular_matrix_data(
     size_type num_rows, size_type num_cols, bool ones_on_diagonal,
     bool lower_triangular, NonzeroDistribution&& nonzero_dist,
-    ValueDistribution&& value_dist, Engine&& engine,
-    std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
+    ValueDistribution&& value_dist, Engine&& engine)
 {
-    using value_type = typename MatrixType::value_type;
-    using index_type = typename MatrixType::index_type;
     using std::begin;
     using std::end;
 
-    matrix_data<value_type, index_type> data{gko::dim<2>{num_rows, num_cols},
-                                             {}};
-    value_type one = 1.0;
+    matrix_data<ValueType, IndexType> data{gko::dim<2>{num_rows, num_cols}, {}};
+    ValueType one = 1.0;
     std::vector<size_type> col_idx(num_cols);
     std::iota(begin(col_idx), end(col_idx), size_type(0));
 
@@ -233,7 +193,7 @@ std::unique_ptr<MatrixType> generate_random_triangular_matrix(
             }
 
             // generate and store non-zero
-            auto val = detail::get_rand_value<value_type>(value_dist, engine);
+            auto val = detail::get_rand_value<ValueType>(value_dist, engine);
             if (col == row) {
                 has_diagonal = true;
                 if (ones_on_diagonal) {
@@ -246,17 +206,47 @@ std::unique_ptr<MatrixType> generate_random_triangular_matrix(
         // add diagonal if it hasn't been added yet
         if (!has_diagonal && row < num_cols) {
             auto val = ones_on_diagonal ? one
-                                        : detail::get_rand_value<value_type>(
+                                        : detail::get_rand_value<ValueType>(
                                               value_dist, engine);
             data.nonzeros.emplace_back(row, row, val);
         }
     }
 
     data.ensure_row_major_order();
+    return data;
+}
 
-    // convert to the correct matrix type
+
+/**
+ * Generates a random triangular matrix.
+ *
+ * @tparam MatrixType  type of matrix to generate (must implement
+ *                     the interface `ReadableFromMatrixData<>` and provide
+ *                     matching `value_type` and `index_type` type aliases)
+ *
+ * @param exec  executor where the matrix should be allocated
+ * @param args  additional arguments for the matrix constructor
+ *
+ * The other (template) parameters match generate_random_triangular_matrix_data.
+ *
+ * @return the unique pointer of MatrixType
+ */
+template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
+          typename ValueDistribution, typename Engine, typename... MatrixArgs>
+std::unique_ptr<MatrixType> generate_random_triangular_matrix(
+    size_type num_rows, size_type num_cols, bool ones_on_diagonal,
+    bool lower_triangular, NonzeroDistribution&& nonzero_dist,
+    ValueDistribution&& value_dist, Engine&& engine,
+    std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
+{
+    using value_type = typename MatrixType::value_type;
+    using index_type = typename MatrixType::index_type;
     auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
-    result->read(data);
+    result->read(generate_random_triangular_matrix_data<value_type, index_type>(
+        num_rows, num_cols, ones_on_diagonal, lower_triangular,
+        std::forward<NonzeroDistribution>(nonzero_dist),
+        std::forward<ValueDistribution>(value_dist),
+        std::forward<Engine>(engine)));
     return result;
 }
 
@@ -264,8 +254,9 @@ std::unique_ptr<MatrixType> generate_random_triangular_matrix(
 /**
  * Generates a random lower triangular matrix.
  *
- * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
- *                     the interface `ConvertibleTo<MatrixType>`)
+ * @tparam MatrixType  type of matrix to generate (must implement
+ *                     the interface `ReadableFromMatrixData<>` and provide
+ *                     matching `value_type` and `index_type` type aliases)
  * @tparam NonzeroDistribution  type of nonzero distribution
  * @tparam ValueDistribution  type of value distribution
  * @tparam Engine  type of random engine
@@ -299,8 +290,9 @@ std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
 /**
  * Generates a random upper triangular matrix.
  *
- * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
- *                     the interface `ConvertibleTo<MatrixType>`)
+ * @tparam MatrixType  type of matrix to generate (must implement
+ *                     the interface `ReadableFromMatrixData<>` and provide
+ *                     matching `value_type` and `index_type` type aliases)
  * @tparam NonzeroDistribution  type of nonzero distribution
  * @tparam ValueDistribution  type of value distribution
  * @tparam Engine  type of random engine
@@ -334,11 +326,10 @@ std::unique_ptr<MatrixType> generate_random_upper_triangular_matrix(
 /**
  * Generates a random square band matrix.
  *
- * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
- *                     the interface `ConvertibleTo<MatrixType>`)
+ * @tparam ValueType  the type for matrix values
+ * @tparam IndexType  the type for row and column indices
  * @tparam ValueDistribution  type of value distribution
  * @tparam Engine  type of random engine
- * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
  *
  * @param size  number of rows and columns
  * @param lower_bandwidth number of nonzeros in each row left of the main
@@ -347,8 +338,39 @@ std::unique_ptr<MatrixType> generate_random_upper_triangular_matrix(
  * diagonal
  * @param value_dist  distribution of matrix values
  * @param engine  a random engine
+ *
+ * @return the generated matrix_data with entries according to the given
+ *         dimensions and nonzero count and value distributions.
+ */
+template <typename ValueType, typename IndexType, typename ValueDistribution,
+          typename Engine, typename... MatrixArgs>
+matrix_data<ValueType, IndexType> generate_random_band_matrix_data(
+    size_type size, size_type lower_bandwidth, size_type upper_bandwidth,
+    ValueDistribution&& value_dist, Engine&& engine)
+{
+    matrix_data<ValueType, IndexType> data{gko::dim<2>{size, size}, {}};
+    for (size_type row = 0; row < size; ++row) {
+        for (size_type col = row < lower_bandwidth ? 0 : row - lower_bandwidth;
+             col <= std::min(row + upper_bandwidth, size - 1); col++) {
+            auto val = detail::get_rand_value<ValueType>(value_dist, engine);
+            data.nonzeros.emplace_back(row, col, val);
+        }
+    }
+    return data;
+}
+
+
+/**
+ * Generates a random banded matrix.
+ *
+ * @tparam MatrixType  type of matrix to generate (must implement
+ *                     the interface `ReadableFromMatrixData<>` and provide
+ *                     matching `value_type` and `index_type` type aliases)
+ *
  * @param exec  executor where the matrix should be allocated
  * @param args  additional arguments for the matrix constructor
+ *
+ * The other (template) parameters match generate_random_band_matrix_data.
  *
  * @return the unique pointer of MatrixType
  */
@@ -361,19 +383,11 @@ std::unique_ptr<MatrixType> generate_random_band_matrix(
 {
     using value_type = typename MatrixType::value_type;
     using index_type = typename MatrixType::index_type;
-
-    matrix_data<value_type, index_type> data{gko::dim<2>{size, size}, {}};
-    for (size_type row = 0; row < size; ++row) {
-        for (size_type col = row < lower_bandwidth ? 0 : row - lower_bandwidth;
-             col <= std::min(row + upper_bandwidth, size - 1); col++) {
-            auto val = detail::get_rand_value<value_type>(value_dist, engine);
-            data.nonzeros.emplace_back(row, col, val);
-        }
-    }
-
-    // convert to the correct matrix type
     auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
-    result->read(data);
+    result->read(generate_random_band_matrix_data<value_type, index_type>(
+        size, lower_bandwidth, upper_bandwidth,
+        std::forward<ValueDistribution>(value_dist),
+        std::forward<Engine>(engine)));
     return result;
 }
 
