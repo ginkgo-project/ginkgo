@@ -156,10 +156,11 @@ TYPED_TEST(BatchRich, SolvesStencilSystemJacobi)
 {
     using value_type = typename TestFixture::value_type;
     using solver_type = gko::solver::BatchRichardson<value_type>;
+    using mtx_type = typename TestFixture::Mtx;
     using opts_type = typename TestFixture::Options;
     const opts_type opts{gpb::type::jacobi, 1000, r<value_type>::value,
                          gko::stop::batch::ToleranceType::relative, 1.0};
-    auto r_sys = gko::test::generate_solvable_batch_system<value_type>(
+    auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
         this->exec, this->nbatch, 6, 1, false);
     auto r_factory = this->create_factory(this->exec, opts);
     const double iter_tol = 0.01;

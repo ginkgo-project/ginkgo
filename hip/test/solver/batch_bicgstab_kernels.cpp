@@ -121,10 +121,11 @@ TYPED_TEST(BatchBicgstab, SolveIsEquivalentToReference)
 {
     using value_type = typename TestFixture::value_type;
     using solver_type = gko::solver::BatchBicgstab<value_type>;
+    using mtx_type = typename TestFixture::Mtx;
     using opts_type = typename TestFixture::Options;
     const opts_type opts{gko::preconditioner::batch::type::none, 500, this->eps,
                          gko::stop::batch::ToleranceType::relative};
-    auto r_sys = gko::test::generate_solvable_batch_system<value_type>(
+    auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
         this->exec, this->nbatch, 11, 1, false);
     auto r_factory = this->create_factory(this->exec, opts);
     const double iter_tol = 0.01;
@@ -237,13 +238,14 @@ TEST(BatchBicgstab, SolvesLargeSystemEquivalentToReference)
 {
     using value_type = double;
     using real_type = double;
+    using mtx_type = gko::matrix::BatchCsr<value_type, int>;
     using solver_type = gko::solver::BatchBicgstab<value_type>;
     std::shared_ptr<gko::ReferenceExecutor> refexec =
         gko::ReferenceExecutor::create();
     std::shared_ptr<const gko::HipExecutor> d_exec =
         gko::HipExecutor::create(0, refexec);
     const float solver_restol = 1e-4;
-    auto r_sys = gko::test::generate_solvable_batch_system<value_type>(
+    auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
         refexec, 2, 1090, 1, false);
     auto r_factory =
         solver_type::build()
