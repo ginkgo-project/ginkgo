@@ -100,7 +100,6 @@ void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp* b,
     const bool to_scale =
         this->get_left_scaling_vector() && this->get_right_scaling_vector();
     const auto acsr = dynamic_cast<const Mtx*>(system_matrix_.get());
-    const auto aell = dynamic_cast<const EllMtx*>(system_matrix_.get());
     const Mtx* a_scaled{};
     const Vector* b_scaled{};
     auto a_scaled_smart = Mtx::create(exec);
@@ -146,13 +145,10 @@ void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp* b,
     if (acsr) {
         exec->run(batch_bicgstab::make_apply(opts, a_scaled, b_scaled, dense_x,
                                              logdata));
-    } else if (aell) {
-        exec->run(
-            batch_bicgstab::make_apply(opts, aell, b_scaled, dense_x, logdata));
     } else {
-        GKO_NOT_SUPPORTED(system_matrix_);
+        exec->run(batch_bicgstab::make_apply(opts, system_matrix_.get(),
+                                             b_scaled, dense_x, logdata));
     }
-
     this->template log<log::Logger::batch_solver_completed>(
         logdata.iter_counts, logdata.res_norms.get());
 
