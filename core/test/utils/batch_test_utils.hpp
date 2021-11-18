@@ -50,7 +50,7 @@ namespace test {
 
 template <typename ValueType>
 std::unique_ptr<matrix::BatchDense<remove_complex<ValueType>>>
-compute_residual_norm(const matrix::BatchCsr<ValueType, int>* const rmtx,
+compute_residual_norm(const BatchLinOp* const rmtx,
                       const matrix::BatchDense<ValueType>* const x,
                       const matrix::BatchDense<ValueType>* const b)
 {
@@ -74,11 +74,10 @@ compute_residual_norm(const matrix::BatchCsr<ValueType, int>* const rmtx,
 
 template <typename ValueType>
 struct LinSys {
-    using Mtx = matrix::BatchCsr<ValueType, int>;
     using BDense = matrix::BatchDense<ValueType>;
     using RBDense = matrix::BatchDense<remove_complex<ValueType>>;
 
-    std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<BatchLinOp> mtx;
     std::unique_ptr<BDense> b;
     std::unique_ptr<RBDense> bnorm;
     std::unique_ptr<BDense> xex;
@@ -101,10 +100,10 @@ LinSys<ValueType> get_poisson_problem(
 {
     using BDense = matrix::BatchDense<ValueType>;
     using RBDense = matrix::BatchDense<remove_complex<ValueType>>;
+    using Mtx = matrix::BatchCsr<ValueType, int>;
     LinSys<ValueType> sys;
     const int nrows = 3;
-    sys.mtx =
-        gko::test::create_poisson1d_batch<ValueType>(exec, nrows, nbatches);
+    sys.mtx = gko::test::create_poisson1d_batch<Mtx>(exec, nrows, nbatches);
     if (nrhs == 1) {
         sys.b = gko::batch_initialize<BDense>(nbatches, {-1.0, 3.0, 1.0}, exec);
         sys.xex =
@@ -299,7 +298,7 @@ void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
     std::shared_ptr<const gko::ReferenceExecutor> refexec =
         gko::ReferenceExecutor::create();
     std::shared_ptr<Mtx> ref_mtx =
-        gko::test::create_poisson1d_batch<T>(refexec, nrows, nbatch);
+        gko::test::create_poisson1d_batch<Mtx>(refexec, nrows, nbatch);
     std::shared_ptr<Mtx> mtx = Mtx::create(exec);
     mtx->copy_from(ref_mtx.get());
     auto solver = factory->generate(mtx);
@@ -391,7 +390,7 @@ void test_solve_iterations_with_scaling(
     auto xex = BDense::create(refexec, vecsz);
     auto b = BDense::create(refexec, vecsz);
     std::shared_ptr<Mtx> mtx =
-        gko::test::create_poisson1d_batch<value_type>(refexec, nrows, nbatch);
+        gko::test::create_poisson1d_batch<Mtx>(refexec, nrows, nbatch);
     const int nnz = mtx->get_const_row_ptrs()[nrows];
     for (size_t ib = 0; ib < nbatch; ib++) {
         value_type* const values = mtx->get_values() + nnz * ib;
@@ -457,34 +456,6 @@ void test_solve_iterations_with_scaling(
 }
 
 
-template <typename ValueType>
-void check_relative_diff(const matrix::BatchCsr<ValueType>* const a_ref,
-                         const matrix::BatchCsr<ValueType>* const b,
-                         const double tolerance)
-{
-    using real_type = typename gko::remove_complex<ValueType>;
-    const size_type batch_size = a_ref->get_num_batch_entries();
-    ASSERT_EQ(batch_size, b->get_num_batch_entries());
-    for (size_type ib = 0; ib < batch_size; ib++) {
-        real_type relerr = gko::zero<real_type>();
-        real_type refnorm = gko::zero<real_type>();
-        for (size_type irow = 0; irow < a_ref->get_size().at()[0]; irow++) {
-            ASSERT_EQ(a_ref->get_const_row_ptrs()[irow],
-                      b->get_const_row_ptrs()[irow]);
-            for (int iz = a_ref->get_const_row_ptrs()[irow];
-                 iz < a_ref->get_const_row_ptrs()[irow + 1]; iz++) {
-                ASSERT_EQ(a_ref->get_const_col_idxs()[iz],
-                          b->get_const_col_idxs()[iz]);
-                relerr += gko::squared_norm(a_ref->get_const_values()[iz] -
-                                            b->get_const_values()[iz]);
-                refnorm += gko::squared_norm(a_ref->get_const_values()[iz]);
-            }
-        }
-        ASSERT_LE(relerr / refnorm, tolerance);
-    }
-}
-
-
 template <typename ValueType, typename SolverType>
 void compare_with_reference(std::shared_ptr<const Executor> d_exec,
                             BatchSystem<ValueType>& bsys,
@@ -494,13 +465,11 @@ void compare_with_reference(std::shared_ptr<const Executor> d_exec,
 {
     using value_type = ValueType;
     using BDense = matrix::BatchDense<ValueType>;
-    using Mtx = matrix::BatchCsr<ValueType, int>;
     auto exec = d_exec->get_master();
     const auto nbatch = bsys.A->get_num_batch_entries();
     const auto nrows = bsys.A->get_size().at(0)[0];
     const auto nrhs = bsys.b->get_size().at(0)[1];
-    auto d_A = Mtx::create(d_exec);
-    d_A->copy_from(bsys.A.get());
+    auto d_A = bsys.A->clone(d_exec);
     auto d_b = BDense::create(d_exec);
     d_b->copy_from(bsys.b.get());
     auto r_x = BDense::create(exec, bsys.b->get_size());

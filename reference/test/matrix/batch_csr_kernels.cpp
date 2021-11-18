@@ -77,11 +77,11 @@ protected:
         this->create_mtx3(mtx3_sorted.get(), mtx3_unsorted.get());
     }
 
-    void create_mtx(Mtx *m)
+    void create_mtx(Mtx* m)
     {
-        value_type *v = m->get_values();
-        index_type *c = m->get_col_idxs();
-        index_type *r = m->get_row_ptrs();
+        value_type* v = m->get_values();
+        index_type* c = m->get_col_idxs();
+        index_type* r = m->get_row_ptrs();
         /*
          * 1   3   2
          * 0   5   0
@@ -106,11 +106,11 @@ protected:
         v[7] = 8.0;
     }
 
-    void create_mtx2(Mtx *m)
+    void create_mtx2(Mtx* m)
     {
-        value_type *v = m->get_values();
-        index_type *c = m->get_col_idxs();
-        index_type *r = m->get_row_ptrs();
+        value_type* v = m->get_values();
+        index_type* c = m->get_col_idxs();
+        index_type* r = m->get_row_ptrs();
         // It keeps an explict zero
         /*
          *  1    3   2
@@ -139,7 +139,7 @@ protected:
         v[9] = -9.0;
     }
 
-    void create_mtx3(Mtx *sorted, Mtx *unsorted)
+    void create_mtx3(Mtx* sorted, Mtx* unsorted)
     {
         auto vals_s = sorted->get_values();
         auto cols_s = sorted->get_col_idxs();
@@ -449,15 +449,15 @@ TYPED_TEST(BatchCsr, CanBeBatchScaled)
     const size_t nbatch = 2;
     const int nrows = 3;
     const int nrhs_1 = 1;
-    auto mtx = gko::test::create_poisson1d_batch<value_type, index_type>(
-        this->exec, nrows, nbatch);
+    auto mtx =
+        gko::test::create_poisson1d_batch<Mtx>(this->exec, nrows, nbatch);
     auto left =
         gko::batch_initialize<Vec>(nbatch, {-1.0, 3.0, 1.0}, this->exec);
     auto right =
         gko::batch_initialize<Vec>(nbatch, {1.0, 2.0, -1.0}, this->exec);
     auto ref_scaled_mtx = Mtx::create(this->exec);
     ref_scaled_mtx->copy_from(mtx.get());
-    value_type *const refvals = ref_scaled_mtx->get_values();
+    value_type* const refvals = ref_scaled_mtx->get_values();
     // clang-format off
     refvals[0] = -2; refvals[1] = 2;
     refvals[2] = -3; refvals[3] = 12; refvals[4] = 3;
@@ -484,8 +484,8 @@ TYPED_TEST(BatchCsr, CanPreScaleSystem)
     const int nrows = 3;
     const int nrhs = 2;
     const int nnz = 7;
-    auto mtx = gko::test::create_poisson1d_batch<value_type, index_type>(
-        this->exec, nrows, nbatch);
+    auto mtx =
+        gko::test::create_poisson1d_batch<Mtx>(this->exec, nrows, nbatch);
     mtx->get_col_idxs()[5] = 0;  // make unsymmetric
     mtx->get_values()[4] = -0.5;
     mtx->get_values()[nnz + 2] = -0.25;
@@ -498,7 +498,7 @@ TYPED_TEST(BatchCsr, CanPreScaleSystem)
     right->at(1, 2, 0) = 3.0;
     auto ref_scaled_mtx = Mtx::create(this->exec);
     ref_scaled_mtx->copy_from(mtx.get());
-    value_type *const refvals = ref_scaled_mtx->get_values();
+    value_type* const refvals = ref_scaled_mtx->get_values();
     // clang-format off
     refvals[0] = -2; refvals[1] = 2;
     refvals[2] = -3; refvals[3] = 12; refvals[4] = 1.5;
@@ -542,8 +542,8 @@ TYPED_TEST(BatchCsr, ConvertibleToBatchDense)
     const size_t nbatch = 2;
     const int nrows = 3;
     const int nnz = 7;
-    auto mtx = gko::test::create_poisson1d_batch<value_type, index_type>(
-        this->exec, nrows, nbatch);
+    std::shared_ptr<Mtx> mtx =
+        gko::test::create_poisson1d_batch<Mtx>(this->exec, nrows, nbatch);
     auto ans = Dense::create(
         this->exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows)));
     for (size_t ib = 0; ib < nbatch; ib++) {
