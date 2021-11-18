@@ -61,7 +61,7 @@ protected:
 
     BatchRich()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::test::create_poisson1d_batch<value_type>(
+          mtx(gko::test::create_poisson1d_batch<Mtx>(
               std::static_pointer_cast<const gko::ReferenceExecutor>(exec),
               nrows, nbatch))
     {}
@@ -85,10 +85,10 @@ protected:
                                      .with_relaxation_factor(this->def_relax)
                                      .on(this->exec);
         auto solver = batchrich_factory->generate(this->mtx);
-        return std::unique_ptr<Solver>(static_cast<Solver *>(solver.release()));
+        return std::unique_ptr<Solver>(static_cast<Solver*>(solver.release()));
     }
 
-    void assert_size(const gko::BatchLinOp *const solver)
+    void assert_size(const gko::BatchLinOp* const solver)
     {
         for (size_t i = 0; i < nbatch; i++) {
             ASSERT_EQ(solver->get_size().at(i), gko::dim<2>(nrows, nrows));
@@ -96,7 +96,7 @@ protected:
     }
 
     // Checks equality of the matrix and parameters with defaults
-    void assert_solver_params(const Solver *const a)
+    void assert_solver_params(const Solver* const a)
     {
         ASSERT_EQ(a->get_parameters().max_iterations, def_max_iters);
         ASSERT_EQ(a->get_parameters().preconditioner, gpb::type::jacobi);
@@ -106,11 +106,10 @@ protected:
     }
 
     // Checks equality of the matrix and parameters with defaults
-    void assert_solver_with_mtx(const Solver *const a)
+    void assert_solver_with_mtx(const Solver* const a)
     {
         auto a_copy_mtx = a->get_system_matrix();
-        const auto a_copy_batch_mtx =
-            static_cast<const Mtx *>(a_copy_mtx.get());
+        const auto a_copy_batch_mtx = static_cast<const Mtx*>(a_copy_mtx.get());
         GKO_ASSERT_BATCH_MTX_NEAR(a_copy_batch_mtx, mtx, 0.0);
         assert_solver_params(a);
     }
@@ -151,7 +150,7 @@ TYPED_TEST(BatchRich, CanBeCopied)
     copy->copy_from(solver.get());
 
     this->assert_size(copy.get());
-    this->assert_solver_with_mtx(static_cast<Solver *>(copy.get()));
+    this->assert_solver_with_mtx(static_cast<Solver*>(copy.get()));
 }
 
 
@@ -166,7 +165,7 @@ TYPED_TEST(BatchRich, CanBeMoved)
     copy->copy_from(std::move(solver));
 
     this->assert_size(copy.get());
-    this->assert_solver_with_mtx(static_cast<Solver *>(copy.get()));
+    this->assert_solver_with_mtx(static_cast<Solver*>(copy.get()));
     ASSERT_EQ(solver.get(), nullptr);
 }
 
@@ -180,7 +179,7 @@ TYPED_TEST(BatchRich, CanBeCloned)
     auto clone = solver->clone();
 
     this->assert_size(clone.get());
-    this->assert_solver_with_mtx(static_cast<Solver *>(clone.get()));
+    this->assert_solver_with_mtx(static_cast<Solver*>(clone.get()));
 }
 
 
@@ -193,7 +192,7 @@ TYPED_TEST(BatchRich, CanBeCleared)
 
     ASSERT_EQ(solver->get_num_batch_entries(), 0);
     ASSERT_EQ(solver->get_size().at(0), gko::dim<2>(0, 0));
-    auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
+    auto solver_mtx = static_cast<Solver*>(solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
@@ -267,7 +266,7 @@ TYPED_TEST(BatchRich, CanSetScalingVectors)
     solver->batch_scale(left_scale.get(), right_scale.get());
 
     auto s_solver =
-        dynamic_cast<gko::EnableBatchScaledSolver<value_type> *>(solver.get());
+        dynamic_cast<gko::EnableBatchScaledSolver<value_type>*>(solver.get());
     ASSERT_TRUE(s_solver);
     ASSERT_EQ(s_solver->get_left_scaling_vector(), left_scale.get());
     ASSERT_EQ(s_solver->get_right_scaling_vector(), right_scale.get());
