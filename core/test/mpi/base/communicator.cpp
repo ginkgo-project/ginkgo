@@ -38,7 +38,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/mpi.hpp>
-#include <ginkgo/core/base/range.hpp>
 
 
 namespace {
@@ -57,77 +56,6 @@ protected:
     gko::mpi::communicator comm;
     int rank;
 };
-
-
-TEST_F(Communicator, DefaultCommIsInvalid)
-{
-    auto comm = gko::mpi::communicator();
-
-    EXPECT_EQ(comm.get(), MPI_COMM_NULL);
-}
-
-
-TEST_F(Communicator, CanCreateWorld)
-{
-    auto comm = gko::mpi::communicator::create_world();
-
-    EXPECT_EQ(comm->compare(MPI_COMM_WORLD), true);
-}
-
-
-TEST_F(Communicator, KnowsItsCommunicator)
-{
-    MPI_Comm dup;
-    MPI_Comm_dup(MPI_COMM_WORLD, &dup);
-    auto comm_world = gko::mpi::communicator(dup);
-
-    EXPECT_EQ(comm_world.compare(dup), true);
-}
-
-
-TEST_F(Communicator, CommunicatorCanBeCopied)
-{
-    auto copy = comm;
-
-    EXPECT_EQ(comm.compare(MPI_COMM_WORLD), true);
-    EXPECT_EQ(copy.compare(MPI_COMM_WORLD), true);
-}
-
-
-TEST_F(Communicator, CommunicatorCanBeCopyConstructed)
-{
-    auto copy = gko::mpi::communicator(comm);
-
-    EXPECT_EQ(comm.compare(MPI_COMM_WORLD), true);
-    EXPECT_EQ(copy.compare(MPI_COMM_WORLD), true);
-}
-
-
-TEST_F(Communicator, CommunicatorCanBeMoved)
-{
-    int size;
-    auto comm_world = gko::mpi::communicator::create_world();
-    auto moved = std::move(comm_world);
-
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    EXPECT_EQ(comm_world, nullptr);
-    EXPECT_EQ(moved->compare(MPI_COMM_WORLD), true);
-    EXPECT_EQ(moved->size(), size);
-}
-
-
-TEST_F(Communicator, CommunicatorCanBeMoveConstructed)
-{
-    int size;
-    auto comm_world = gko::mpi::communicator::create_world();
-    auto moved = gko::mpi::communicator(std::move(*comm_world.get()));
-
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    EXPECT_EQ(comm_world->get(), MPI_COMM_NULL);
-    EXPECT_EQ(comm_world->size(), 0);
-    EXPECT_EQ(moved.compare(MPI_COMM_WORLD), true);
-    EXPECT_EQ(moved.size(), size);
-}
 
 
 TEST_F(Communicator, CommKnowsItsSize)
@@ -154,16 +82,38 @@ TEST_F(Communicator, CommKnowsItsLocalRank)
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     // Expect local rank to be same as rank when on one node
-    EXPECT_EQ(comm.local_rank(), rank);
+    EXPECT_EQ(comm.node_local_rank(), rank);
 }
 
 
-TEST_F(Communicator, KnowsItsRanks)
+TEST_F(Communicator, CommunicatorCanBeCopyConstructed)
 {
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    int rank = 5;
+    MPI_Comm_rank(comm.get(), &rank);
+    gko::mpi::communicator copy(comm);
 
-    EXPECT_EQ(comm.rank(), rank);
+    EXPECT_EQ(copy == comm, true);
+}
+
+
+TEST_F(Communicator, CommunicatorCanBeCopyAssigned)
+{
+    gko::mpi::communicator copy = comm;
+
+    EXPECT_EQ(copy == comm, true);
+}
+
+
+TEST_F(Communicator, NonOwnedCommunicatorFailsToMove)
+{
+    ASSERT_THROW({ auto moved = std::move(comm); }, gko::NotSupported);
+}
+
+
+TEST_F(Communicator, NonOwnedCommunicatorFailsToMoveConstruct)
+{
+    ASSERT_THROW({ auto moved = gko::mpi::communicator(std::move(comm)); },
+                 gko::NotSupported);
 }
 
 
@@ -177,6 +127,41 @@ TEST_F(Communicator, CanSetCustomCommunicator)
     for (auto i = 0; i < world_size; ++i) {
         EXPECT_LT(row_comm.rank(), 4);
     }
+}
+
+
+TEST_F(Communicator, CanMoveAssignCustomCommunicator)
+{
+    auto world_rank = comm.rank();
+    auto world_size = comm.size();
+    auto color = world_rank / 4;
+
+    auto row_comm = gko::mpi::communicator(comm.get(), color, world_rank);
+    auto mv_row_comm = std::move(row_comm);
+    for (auto i = 0; i < world_size; ++i) {
+        EXPECT_LT(mv_row_comm.rank(), 4);
+    }
+}
+
+
+TEST_F(Communicator, CanMoveConstructCustomCommunicator)
+{
+    auto world_rank = comm.rank();
+    auto world_size = comm.size();
+    auto color = world_rank / 4;
+
+    auto row_comm = gko::mpi::communicator(comm.get(), color, world_rank);
+    gko::mpi::communicator mv_row_comm(std::move(row_comm));
+    for (auto i = 0; i < world_size; ++i) {
+        EXPECT_LT(mv_row_comm.rank(), 4);
+    }
+}
+
+
+TEST_F(Communicator, CanDuplicateCommunicator)
+{
+    auto comm2 = gko::mpi::communicator::duplicate(MPI_COMM_WORLD);
+    ASSERT_TRUE(comm2 == comm);
 }
 
 

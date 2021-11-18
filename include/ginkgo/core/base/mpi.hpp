@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/utils_helper.hpp>
 
 
 #if GKO_HAVE_MPI
@@ -215,126 +216,144 @@ private:
 };
 
 
+namespace {
+
+
+class comm_deleter {
+public:
+    using pointer = MPI_Comm*;
+    void operator()(pointer comm) const
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_free(comm));
+    }
+};
+
+
+}  // namespace
+
+
 /**
  * A communicator class that takes in the given communicator and duplicates it
  * for our purposes. As the class or object goes out of scope, the communicator
  * is freed.
  */
-class communicator : public EnableSharedCreateMethod<communicator> {
+class communicator {
 public:
-    communicator(const MPI_Comm& comm)
+    communicator(MPI_Comm comm)
     {
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(comm, &this->comm_));
+        this->comm_ =
+            comm_manager(new MPI_Comm(comm), null_deleter<MPI_Comm>{});
         this->size_ = get_num_ranks();
         this->rank_ = get_my_rank();
-        this->local_rank_ = get_local_rank();
+        this->node_local_rank_ = get_node_local_rank();
     }
 
     communicator(const MPI_Comm& comm, int color, int key)
     {
-        GKO_ASSERT_NO_MPI_ERRORS(
-            MPI_Comm_split(comm, color, key, &this->comm_));
+        MPI_Comm comm_out;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split(comm, color, key, &comm_out));
+        this->comm_ = comm_manager(new MPI_Comm(comm_out), comm_deleter{});
         this->size_ = get_num_ranks();
         this->rank_ = get_my_rank();
-        this->local_rank_ = get_local_rank();
-    }
-
-    communicator()
-    {
-        this->comm_ = MPI_COMM_NULL;
-        this->size_ = 0;
-        this->rank_ = -1;
+        this->node_local_rank_ = get_node_local_rank();
     }
 
     communicator(communicator& other)
     {
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(other.comm_, &this->comm_));
-        this->size_ = get_num_ranks();
-        this->rank_ = get_my_rank();
-        this->local_rank_ = get_local_rank();
+        MPI_Comm comm;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(other.get(), &comm));
+        this->comm_ = comm_manager(new MPI_Comm(comm), comm_deleter{});
+        this->size_ = other.size_;
+        this->rank_ = other.rank_;
+        this->node_local_rank_ = other.node_local_rank_;
     }
 
     communicator& operator=(const communicator& other)
     {
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(other.comm_, &this->comm_));
-        this->size_ = get_num_ranks();
-        this->rank_ = get_my_rank();
-        this->local_rank_ = get_local_rank();
+        MPI_Comm comm;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(other.get(), &comm));
+        this->comm_ = comm_manager(new MPI_Comm(comm), comm_deleter{});
+        this->size_ = other.size_;
+        this->rank_ = other.rank_;
+        this->node_local_rank_ = other.node_local_rank_;
         return *this;
     }
 
     communicator(communicator&& other)
     {
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(other.comm_, &this->comm_));
-        this->size_ = get_num_ranks();
-        this->rank_ = get_my_rank();
-        this->local_rank_ = get_local_rank();
-        other.comm_ = MPI_COMM_NULL;
-        other.size_ = 0;
-        other.rank_ = -1;
+        if (other.is_owning()) {
+            this->comm_ = std::move(other.comm_);
+            this->size_ = other.size_;
+            this->rank_ = other.rank_;
+            this->node_local_rank_ = other.node_local_rank_;
+            other.size_ = 0;
+            other.rank_ = -1;
+        } else {
+            // If we don't own the communicator, then we can't move from it.
+            GKO_NOT_SUPPORTED(other);
+        }
     }
 
     communicator& operator=(communicator&& other)
     {
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(other.comm_, &this->comm_));
-        this->size_ = get_num_ranks();
-        this->rank_ = get_my_rank();
-        this->local_rank_ = get_local_rank();
-        other.size_ = 0;
-        other.rank_ = -1;
+        if (other.is_owning()) {
+            this->comm_ = std::move(other.comm_);
+            this->size_ = other.size_;
+            this->rank_ = other.rank_;
+            this->node_local_rank_ = other.node_local_rank_;
+            other.size_ = 0;
+            other.rank_ = -1;
+        } else {
+            // If we don't own the communicator, then we can't move from it.
+            GKO_NOT_SUPPORTED(other);
+        }
         return *this;
     }
 
-    static MPI_Comm get_comm_world() { return MPI_COMM_WORLD; }
-
-    static std::shared_ptr<communicator> create_world()
+    static communicator duplicate(const MPI_Comm& comm_in)
     {
-        return std::make_shared<communicator>(get_comm_world());
+        MPI_Comm comm;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(comm_in, &comm));
+        communicator comm_out(comm);
+        return comm_out;
     }
 
-    MPI_Comm get() const { return comm_; }
+    const MPI_Comm& get() const { return *(this->comm_.get()); }
 
     int size() const { return size_; }
 
     int rank() const { return rank_; };
 
-    int local_rank() const { return local_rank_; };
-
-    bool compare(const MPI_Comm& other) const
-    {
-        int flag;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_compare(this->comm_, other, &flag));
-        return flag;
-    }
+    int node_local_rank() const { return node_local_rank_; };
 
     bool operator==(const communicator& rhs) { return compare(rhs.get()); }
 
-    ~communicator()
+    bool is_owning()
     {
-        if (this->comm_ && this->comm_ != MPI_COMM_NULL) {
-            MPI_Comm_free(&this->comm_);
-        }
+        return comm_.get_deleter().target_type() == typeid(comm_deleter);
     }
 
 private:
-    MPI_Comm comm_;
+    using comm_manager =
+        std::unique_ptr<MPI_Comm, std::function<void(MPI_Comm*)>>;
+    comm_manager comm_;
     int size_{};
     int rank_{};
-    int local_rank_{};
+    int node_local_rank_{};
 
     int get_my_rank()
     {
         int my_rank = 0;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(comm_, &my_rank));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(get(), &my_rank));
         return my_rank;
     }
 
-    int get_local_rank()
+    int get_node_local_rank()
     {
         MPI_Comm local_comm;
         int rank;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split_type(
-            comm_, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &local_comm));
+            get(), MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &local_comm));
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(local_comm, &rank));
         MPI_Comm_free(&local_comm);
         return rank;
@@ -343,8 +362,15 @@ private:
     int get_num_ranks()
     {
         int size = 1;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_size(comm_, &size));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_size(get(), &size));
         return size;
+    }
+
+    bool compare(const MPI_Comm& other) const
+    {
+        int flag;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_compare(get(), other, &flag));
+        return flag;
     }
 };
 
@@ -363,9 +389,9 @@ inline double get_walltime() { return MPI_Wtime(); }
  *
  * @param comm  the communicator
  */
-inline void synchronize(const std::shared_ptr<communicator>& comm)
+inline void synchronize(const communicator& comm)
 {
-    GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(comm->get()));
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(comm.get()));
 }
 
 
@@ -422,23 +448,20 @@ public:
         window_ = std::exchange(other.window_, MPI_WIN_NULL);
     }
 
-    window(ValueType* base, unsigned int size,
-           std::shared_ptr<const communicator> comm,
+    window(ValueType* base, unsigned int size, const communicator& comm,
            const int disp_unit = sizeof(ValueType),
            MPI_Info input_info = MPI_INFO_NULL,
            win_type create_type = win_type::create)
     {
         if (create_type == win_type::create) {
-            GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_create(base, size, disp_unit,
-                                                    input_info, comm->get(),
-                                                    &this->window_));
+            GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_create(
+                base, size, disp_unit, input_info, comm.get(), &this->window_));
         } else if (create_type == win_type::dynamic_create) {
-            GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_create_dynamic(
-                input_info, comm->get(), &this->window_));
+            GKO_ASSERT_NO_MPI_ERRORS(
+                MPI_Win_create_dynamic(input_info, comm.get(), &this->window_));
         } else if (create_type == win_type::allocate) {
-            GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_allocate(size, disp_unit,
-                                                      input_info, comm->get(),
-                                                      base, &this->window_));
+            GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_allocate(
+                size, disp_unit, input_info, comm.get(), base, &this->window_));
         } else {
             GKO_NOT_IMPLEMENTED;
         }
@@ -525,11 +548,11 @@ private:
 template <typename SendType>
 inline void send(const SendType* send_buffer, const int send_count,
                  const int destination_rank, const int send_tag,
-                 std::shared_ptr<const communicator> comm)
+                 const communicator& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Send(
         send_buffer, send_count, detail::mpi_type_impl<SendType>::get_type(),
-        destination_rank, send_tag, comm->get()));
+        destination_rank, send_tag, comm.get()));
 }
 
 
@@ -548,12 +571,12 @@ inline void send(const SendType* send_buffer, const int send_count,
 template <typename SendType>
 inline MPI_Request i_send(const SendType* send_buffer, const int send_count,
                           const int destination_rank, const int send_tag,
-                          std::shared_ptr<const communicator> comm)
+                          const communicator& comm)
 {
     MPI_Request req;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Isend(
         send_buffer, send_count, detail::mpi_type_impl<SendType>::get_type(),
-        destination_rank, send_tag, comm->get(), &req));
+        destination_rank, send_tag, comm.get(), &req));
     return req;
 }
 
@@ -572,12 +595,12 @@ inline MPI_Request i_send(const SendType* send_buffer, const int send_count,
 template <typename RecvType>
 inline MPI_Status recv(RecvType* recv_buffer, const int recv_count,
                        const int source_rank, const int recv_tag,
-                       std::shared_ptr<const communicator> comm)
+                       const communicator& comm)
 {
     MPI_Status status;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Recv(
         recv_buffer, recv_count, detail::mpi_type_impl<RecvType>::get_type(),
-        source_rank, recv_tag, comm->get(), &status));
+        source_rank, recv_tag, comm.get(), &status));
     return status;
 }
 
@@ -597,12 +620,12 @@ inline MPI_Status recv(RecvType* recv_buffer, const int recv_count,
 template <typename RecvType>
 inline MPI_Request i_recv(RecvType* recv_buffer, const int recv_count,
                           const int source_rank, const int recv_tag,
-                          std::shared_ptr<const communicator> comm)
+                          const communicator& comm)
 {
     MPI_Request req;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Irecv(
         recv_buffer, recv_count, detail::mpi_type_impl<RecvType>::get_type(),
-        source_rank, recv_tag, comm->get(), &req));
+        source_rank, recv_tag, comm.get(), &req));
     return req;
 }
 
@@ -713,11 +736,11 @@ inline MPI_Request r_get(GetType* origin_buffer, const int origin_count,
  */
 template <typename BroadcastType>
 inline void broadcast(BroadcastType* buffer, int count, int root_rank,
-                      std::shared_ptr<const communicator> comm)
+                      const communicator& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Bcast(
         buffer, count, detail::mpi_type_impl<BroadcastType>::get_type(),
-        root_rank, comm->get()));
+        root_rank, comm.get()));
 }
 
 
@@ -733,12 +756,12 @@ inline void broadcast(BroadcastType* buffer, int count, int root_rank,
 template <typename ReduceType>
 inline void reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
                    int count, MPI_Op operation, int root_rank,
-                   std::shared_ptr<const communicator> comm)
+                   const communicator& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(
         MPI_Reduce(send_buffer, recv_buffer, count,
                    detail::mpi_type_impl<ReduceType>::get_type(), operation,
-                   root_rank, comm->get()));
+                   root_rank, comm.get()));
 }
 
 
@@ -757,13 +780,13 @@ template <typename ReduceType>
 inline MPI_Request i_reduce(const ReduceType* send_buffer,
                             ReduceType* recv_buffer, int count,
                             MPI_Op operation, int root_rank,
-                            std::shared_ptr<const communicator> comm)
+                            const communicator& comm)
 {
     MPI_Request req;
     GKO_ASSERT_NO_MPI_ERRORS(
         MPI_Ireduce(send_buffer, recv_buffer, count,
                     detail::mpi_type_impl<ReduceType>::get_type(), operation,
-                    root_rank, comm->get(), &req));
+                    root_rank, comm.get(), &req));
     return req;
 }
 
@@ -779,11 +802,11 @@ inline MPI_Request i_reduce(const ReduceType* send_buffer,
  */
 template <typename ReduceType>
 inline void all_reduce(ReduceType* recv_buffer, int count, MPI_Op operation,
-                       std::shared_ptr<const communicator> comm)
+                       const communicator& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Allreduce(
         detail::in_place<ReduceType>(), recv_buffer, count,
-        detail::mpi_type_impl<ReduceType>::get_type(), operation, comm->get()));
+        detail::mpi_type_impl<ReduceType>::get_type(), operation, comm.get()));
 }
 
 
@@ -800,14 +823,13 @@ inline void all_reduce(ReduceType* recv_buffer, int count, MPI_Op operation,
  */
 template <typename ReduceType>
 inline MPI_Request i_all_reduce(ReduceType* recv_buffer, int count,
-                                MPI_Op operation,
-                                std::shared_ptr<const communicator> comm)
+                                MPI_Op operation, const communicator& comm)
 {
     MPI_Request req;
     GKO_ASSERT_NO_MPI_ERRORS(
         MPI_Iallreduce(detail::in_place<ReduceType>(), recv_buffer, count,
                        detail::mpi_type_impl<ReduceType>::get_type(), operation,
-                       comm->get(), &req));
+                       comm.get(), &req));
     return req;
 }
 
@@ -824,12 +846,11 @@ inline MPI_Request i_all_reduce(ReduceType* recv_buffer, int count,
  */
 template <typename ReduceType>
 inline void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
-                       int count, MPI_Op operation,
-                       std::shared_ptr<const communicator> comm)
+                       int count, MPI_Op operation, const communicator& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Allreduce(
         send_buffer, recv_buffer, count,
-        detail::mpi_type_impl<ReduceType>::get_type(), operation, comm->get()));
+        detail::mpi_type_impl<ReduceType>::get_type(), operation, comm.get()));
 }
 
 
@@ -848,14 +869,13 @@ inline void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
 template <typename ReduceType>
 inline MPI_Request i_all_reduce(const ReduceType* send_buffer,
                                 ReduceType* recv_buffer, int count,
-                                MPI_Op operation,
-                                std::shared_ptr<const communicator> comm)
+                                MPI_Op operation, const communicator& comm)
 {
     MPI_Request req;
     GKO_ASSERT_NO_MPI_ERRORS(
         MPI_Iallreduce(send_buffer, recv_buffer, count,
                        detail::mpi_type_impl<ReduceType>::get_type(), operation,
-                       comm->get(), &req));
+                       comm.get(), &req));
     return req;
 }
 
@@ -873,12 +893,12 @@ inline MPI_Request i_all_reduce(const ReduceType* send_buffer,
 template <typename SendType, typename RecvType>
 inline void gather(const SendType* send_buffer, const int send_count,
                    RecvType* recv_buffer, const int recv_count, int root_rank,
-                   std::shared_ptr<const communicator> comm)
+                   const communicator& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Gather(
         send_buffer, send_count, detail::mpi_type_impl<SendType>::get_type(),
         recv_buffer, recv_count, detail::mpi_type_impl<RecvType>::get_type(),
-        root_rank, comm->get()));
+        root_rank, comm.get()));
 }
 
 
@@ -898,12 +918,12 @@ template <typename SendType, typename RecvType>
 inline void gather_v(const SendType* send_buffer, const int send_count,
                      RecvType* recv_buffer, const int* recv_counts,
                      const int* displacements, int root_rank,
-                     std::shared_ptr<const communicator> comm)
+                     const communicator& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Gatherv(
         send_buffer, send_count, detail::mpi_type_impl<SendType>::get_type(),
         recv_buffer, recv_counts, displacements,
-        detail::mpi_type_impl<RecvType>::get_type(), root_rank, comm->get()));
+        detail::mpi_type_impl<RecvType>::get_type(), root_rank, comm.get()));
 }
 
 
@@ -919,12 +939,12 @@ inline void gather_v(const SendType* send_buffer, const int send_count,
 template <typename SendType, typename RecvType>
 inline void all_gather(const SendType* send_buffer, const int send_count,
                        RecvType* recv_buffer, const int recv_count,
-                       std::shared_ptr<const communicator> comm)
+                       const communicator& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Allgather(
         send_buffer, send_count, detail::mpi_type_impl<SendType>::get_type(),
         recv_buffer, recv_count, detail::mpi_type_impl<RecvType>::get_type(),
-        comm->get()));
+        comm.get()));
 }
 
 
@@ -940,12 +960,12 @@ inline void all_gather(const SendType* send_buffer, const int send_count,
 template <typename SendType, typename RecvType>
 inline void scatter(const SendType* send_buffer, const int send_count,
                     RecvType* recv_buffer, const int recv_count, int root_rank,
-                    std::shared_ptr<const communicator> comm)
+                    const communicator& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Scatter(
         send_buffer, send_count, detail::mpi_type_impl<SendType>::get_type(),
         recv_buffer, recv_count, detail::mpi_type_impl<RecvType>::get_type(),
-        root_rank, comm->get()));
+        root_rank, comm.get()));
 }
 
 
@@ -963,12 +983,12 @@ template <typename SendType, typename RecvType>
 inline void scatter_v(const SendType* send_buffer, const int* send_counts,
                       const int* displacements, RecvType* recv_buffer,
                       const int recv_count, int root_rank,
-                      std::shared_ptr<const communicator> comm)
+                      const communicator& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Scatterv(
         send_buffer, send_counts, displacements,
         detail::mpi_type_impl<SendType>::get_type(), recv_buffer, recv_count,
-        detail::mpi_type_impl<RecvType>::get_type(), root_rank, comm->get()));
+        detail::mpi_type_impl<RecvType>::get_type(), root_rank, comm.get()));
 }
 
 
@@ -985,12 +1005,12 @@ inline void scatter_v(const SendType* send_buffer, const int* send_counts,
  */
 template <typename RecvType>
 inline void all_to_all(RecvType* recv_buffer, const int recv_count,
-                       std::shared_ptr<const communicator> comm)
+                       const communicator& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoall(
         detail::in_place<RecvType>(), recv_count,
         detail::mpi_type_impl<RecvType>::get_type(), recv_buffer, recv_count,
-        detail::mpi_type_impl<RecvType>::get_type(), comm->get()));
+        detail::mpi_type_impl<RecvType>::get_type(), comm.get()));
 }
 
 
@@ -1009,13 +1029,13 @@ inline void all_to_all(RecvType* recv_buffer, const int recv_count,
  */
 template <typename RecvType>
 inline MPI_Request i_all_to_all(RecvType* recv_buffer, const int recv_count,
-                                std::shared_ptr<const communicator> comm)
+                                const communicator& comm)
 {
     MPI_Request req;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoall(
         detail::in_place<RecvType>(), recv_count,
         detail::mpi_type_impl<RecvType>::get_type(), recv_buffer, recv_count,
-        detail::mpi_type_impl<RecvType>::get_type(), comm->get(), &req));
+        detail::mpi_type_impl<RecvType>::get_type(), comm.get(), &req));
     return req;
 }
 
@@ -1033,12 +1053,12 @@ inline MPI_Request i_all_to_all(RecvType* recv_buffer, const int recv_count,
 template <typename SendType, typename RecvType>
 inline void all_to_all(const SendType* send_buffer, const int send_count,
                        RecvType* recv_buffer, const int recv_count,
-                       std::shared_ptr<const communicator> comm)
+                       const communicator& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoall(
         send_buffer, send_count, detail::mpi_type_impl<SendType>::get_type(),
         recv_buffer, recv_count, detail::mpi_type_impl<RecvType>::get_type(),
-        comm->get()));
+        comm.get()));
 }
 
 
@@ -1057,14 +1077,13 @@ inline void all_to_all(const SendType* send_buffer, const int send_count,
 template <typename SendType, typename RecvType>
 inline MPI_Request i_all_to_all(const SendType* send_buffer,
                                 const int send_count, RecvType* recv_buffer,
-                                const int recv_count,
-                                std::shared_ptr<const communicator> comm)
+                                const int recv_count, const communicator& comm)
 {
     MPI_Request req;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoall(
         send_buffer, send_count, detail::mpi_type_impl<SendType>::get_type(),
         recv_buffer, recv_count, detail::mpi_type_impl<RecvType>::get_type(),
-        comm->get(), &req));
+        comm.get(), &req));
     return req;
 }
 
@@ -1085,13 +1104,12 @@ template <typename SendType, typename RecvType>
 inline void all_to_all_v(const SendType* send_buffer, const int* send_counts,
                          const int* send_offsets, RecvType* recv_buffer,
                          const int* recv_counts, const int* recv_offsets,
-                         std::shared_ptr<const communicator> comm)
+                         const communicator& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoallv(
         send_buffer, send_counts, send_offsets,
         detail::mpi_type_impl<SendType>::get_type(), recv_buffer, recv_counts,
-        recv_offsets, detail::mpi_type_impl<RecvType>::get_type(),
-        comm->get()));
+        recv_offsets, detail::mpi_type_impl<RecvType>::get_type(), comm.get()));
 }
 
 
@@ -1115,13 +1133,13 @@ inline MPI_Request i_all_to_all_v(const SendType* send_buffer,
                                   const int* send_offsets,
                                   RecvType* recv_buffer, const int* recv_counts,
                                   const int* recv_offsets,
-                                  std::shared_ptr<const communicator> comm)
+                                  const communicator& comm)
 {
     MPI_Request req;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoallv(
         send_buffer, send_counts, send_offsets,
         detail::mpi_type_impl<SendType>::get_type(), recv_buffer, recv_counts,
-        recv_offsets, detail::mpi_type_impl<RecvType>::get_type(), comm->get(),
+        recv_offsets, detail::mpi_type_impl<RecvType>::get_type(), comm.get(),
         &req));
     return req;
 }
@@ -1140,11 +1158,11 @@ inline MPI_Request i_all_to_all_v(const SendType* send_buffer,
  */
 template <typename ScanType>
 inline void scan(const ScanType* send_buffer, ScanType* recv_buffer, int count,
-                 MPI_Op operation, std::shared_ptr<const communicator> comm)
+                 MPI_Op operation, const communicator& comm)
 {
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Scan(
         send_buffer, recv_buffer, count,
-        detail::mpi_type_impl<ScanType>::get_type(), operation, comm->get()));
+        detail::mpi_type_impl<ScanType>::get_type(), operation, comm.get()));
 }
 
 
@@ -1162,14 +1180,13 @@ inline void scan(const ScanType* send_buffer, ScanType* recv_buffer, int count,
  */
 template <typename ScanType>
 inline MPI_Request i_scan(const ScanType* send_buffer, ScanType* recv_buffer,
-                          int count, MPI_Op operation,
-                          std::shared_ptr<const communicator> comm)
+                          int count, MPI_Op operation, const communicator& comm)
 {
     MPI_Request req;
     GKO_ASSERT_NO_MPI_ERRORS(
         MPI_Iscan(send_buffer, recv_buffer, count,
                   detail::mpi_type_impl<ScanType>::get_type(), operation,
-                  comm->get(), &req));
+                  comm.get(), &req));
     return req;
 }
 
