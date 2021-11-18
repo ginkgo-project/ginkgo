@@ -69,8 +69,7 @@ protected:
         sys_1.xex =
             gko::batch_initialize<BDense>(nbatch, {1.0, 3.0, 2.0}, exec);
         sys_1.b = gko::batch_initialize<BDense>(nbatch, {-1.0, 3.0, 1.0}, exec);
-        sys_1.mtx =
-            gko::test::create_poisson1d_batch<value_type>(exec, nrows, nbatch);
+        sys_1.mtx = gko::test::create_poisson1d_batch<Mtx>(exec, nrows, nbatch);
         sys_1.bnorm = gko::batch_initialize<RBDense>(nbatch, {0.0}, exec);
         sys_1.b->compute_norm2(sys_1.bnorm.get());
 
