@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_csr_kernels.hpp"
-#include "core/test/utils/batch_test_utils.hpp"
+#include "core/test/utils/batch.hpp"
 #include "cuda/test/utils.hpp"
 
 

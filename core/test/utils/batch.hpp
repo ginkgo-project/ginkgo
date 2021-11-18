@@ -123,15 +123,19 @@ std::unique_ptr<MatrixType> generate_uniform_batch_random_matrix(
 /**
  * Generate a batch of 1D Poisson matrices on the reference executor.
  *
+ * @tparam MatrixType  The concrete type of the output matrix.
+ *
  * @param exec  The reference executor.
  * @param nrows  The size (number of rows) of the generated matrix
  * @param nbatch  The number of Poisson matrices in the batch
  */
-template <typename ValueType, typename IndexType = int>
-std::unique_ptr<matrix::BatchCsr<ValueType, IndexType>> create_poisson1d_batch(
+template <typename MatrixType>
+std::unique_ptr<MatrixType> create_poisson1d_batch(
     std::shared_ptr<const ReferenceExecutor> exec, const int nrows,
     const size_type nbatch)
 {
+    using ValueType = typename MatrixType::value_type;
+    using IndexType = typename MatrixType::index_type;
     const int nnz = 3 * (nrows - 2) + 4;
     gko::Array<IndexType> row_ptrs(exec, nrows + 1);
     {
@@ -174,19 +178,24 @@ std::unique_ptr<matrix::BatchCsr<ValueType, IndexType>> create_poisson1d_batch(
         va[lrstart] = -1.0;
         va[lrstart + 1] = 2.0;
     }
-    using Mtx = matrix::BatchCsr<ValueType, IndexType>;
-    return Mtx::create(
+    using Csr = matrix::BatchCsr<ValueType, IndexType>;
+    auto csr = Csr::create(
         exec, nbatch,
         gko::dim<2>{static_cast<size_t>(nrows), static_cast<size_t>(nrows)},
         std::move(vals), std::move(col_idxs), std::move(row_ptrs));
+    std::vector<gko::matrix_data<ValueType, IndexType>> mdata;
+    csr->write(mdata);
+    auto mtx = MatrixType::create(exec);
+    mtx->read(mdata);
+    return mtx;
 }
 
 
 template <typename ValueType>
 struct BatchSystem {
-    using mtx_type = matrix::BatchCsr<ValueType, int>;
+    // using mtx_type = matrix::BatchCsr<ValueType, int>;
     using vec_type = matrix::BatchDense<ValueType>;
-    std::unique_ptr<mtx_type> A;
+    std::unique_ptr<BatchLinOp> A;
     std::unique_ptr<vec_type> b;
 };
 
@@ -194,13 +203,14 @@ struct BatchSystem {
  * Generate a bach of randomly changed, almost-tridiagonal matrices and
  * a RHS vector.
  */
-template <typename ValueType>
-BatchSystem<ValueType> generate_solvable_batch_system(
+template <typename MatrixType>
+BatchSystem<typename MatrixType::value_type> generate_solvable_batch_system(
     std::shared_ptr<const gko::Executor> exec, const size_type nsystems,
     const int nrows, const int nrhs, const bool symmetric)
 {
+    using value_type = typename MatrixType::value_type;
     using index_type = int;
-    using real_type = remove_complex<ValueType>;
+    using real_type = remove_complex<value_type>;
     const int nnz = nrows * 3 - 2;
     std::ranlux48 rgen(15);
     std::normal_distribution<real_type> distb(0.5, 0.1);
@@ -209,7 +219,7 @@ BatchSystem<ValueType> generate_solvable_batch_system(
     std::generate(spacings.begin(), spacings.end(),
                   [&]() { return distb(rgen); });
 
-    Array<ValueType> h_allvalues(h_exec, nnz * nsystems);
+    Array<value_type> h_allvalues(h_exec, nnz * nsystems);
     for (size_type isys = 0; isys < nsystems; isys++) {
         h_allvalues.get_data()[isys * nnz] = 2.0 / spacings[isys * nrows];
         h_allvalues.get_data()[isys * nnz + 1] = -1.0;
@@ -255,10 +265,10 @@ BatchSystem<ValueType> generate_solvable_batch_system(
     h_colidxs.get_data()[2 + (nrows - 2) * nnz_per_row + 1] = nrows - 1;
     assert(2 + (nrows - 2) * nnz_per_row + 1 == nnz - 1);
 
-    Array<ValueType> h_allb(h_exec, nrows * nrhs * nsystems);
+    Array<value_type> h_allb(h_exec, nrows * nrhs * nsystems);
     for (size_type ib = 0; ib < nsystems; ib++) {
         for (int j = 0; j < nrhs; j++) {
-            const ValueType bval = distb(rgen);
+            const value_type bval = distb(rgen);
             for (int i = 0; i < nrows; i++) {
                 h_allb.get_data()[ib * nrows * nrhs + i * nrhs + j] = bval;
             }
@@ -268,10 +278,58 @@ BatchSystem<ValueType> generate_solvable_batch_system(
     auto vec_size = batch_dim<>(nsystems, dim<2>(nrows, 1));
     auto vec_stride = batch_stride(nsystems, 1);
     auto mat_size = batch_dim<>(nsystems, dim<2>(nrows, nrows));
-    return {BatchSystem<ValueType>::mtx_type::create(
-                exec, mat_size, h_allvalues, h_colidxs, h_rowptrs),
-            BatchSystem<ValueType>::vec_type::create(exec, vec_size, h_allb,
-                                                     vec_stride)};
+    using Csr = matrix::BatchCsr<value_type, index_type>;
+    auto mcsr = Csr::create(exec, mat_size, h_allvalues, h_colidxs, h_rowptrs);
+    std::vector<matrix_data<value_type, index_type>> mdata;
+    mcsr->write(mdata);
+    auto mtx = MatrixType::create(exec);
+    mtx->read(mdata);
+    {
+        // check
+        std::vector<matrix_data<value_type, index_type>> mdata2;
+        mtx->write(mdata2);
+        if (mdata.size() != mdata2.size()) {
+            throw std::runtime_error("sizes not same");
+        }
+        for (size_t ib = 0; ib < mdata.size(); ib++) {
+            if (mdata[ib].nonzeros != mdata2[ib].nonzeros) {
+                throw std::runtime_error("Not same");
+            }
+        }
+    }
+    BatchSystem<value_type> sys;
+    sys.A = gko::give(mtx);
+    sys.b = BatchSystem<value_type>::vec_type::create(exec, vec_size, h_allb,
+                                                      vec_stride);
+    return sys;
+}
+
+
+template <typename ValueType>
+void check_relative_diff(const matrix::BatchCsr<ValueType>* const a_ref,
+                         const matrix::BatchCsr<ValueType>* const b,
+                         const double tolerance)
+{
+    using real_type = typename gko::remove_complex<ValueType>;
+    const size_type batch_size = a_ref->get_num_batch_entries();
+    ASSERT_EQ(batch_size, b->get_num_batch_entries());
+    for (size_type ib = 0; ib < batch_size; ib++) {
+        real_type relerr = gko::zero<real_type>();
+        real_type refnorm = gko::zero<real_type>();
+        for (size_type irow = 0; irow < a_ref->get_size().at()[0]; irow++) {
+            ASSERT_EQ(a_ref->get_const_row_ptrs()[irow],
+                      b->get_const_row_ptrs()[irow]);
+            for (int iz = a_ref->get_const_row_ptrs()[irow];
+                 iz < a_ref->get_const_row_ptrs()[irow + 1]; iz++) {
+                ASSERT_EQ(a_ref->get_const_col_idxs()[iz],
+                          b->get_const_col_idxs()[iz]);
+                relerr += gko::squared_norm(a_ref->get_const_values()[iz] -
+                                            b->get_const_values()[iz]);
+                refnorm += gko::squared_norm(a_ref->get_const_values()[iz]);
+            }
+        }
+        ASSERT_LE(relerr / refnorm, tolerance);
+    }
 }
 
 }  // namespace test
