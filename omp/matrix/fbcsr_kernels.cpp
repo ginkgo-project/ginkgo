@@ -161,7 +161,7 @@ void fill_in_matrix_data(
     Array<matrix_data_entry<ValueType, IndexType>> block_ordered{exec, data};
     const auto in_nnz = data.get_num_elems();
     auto block_ordered_ptr = block_ordered.get_data();
-    std::sort(
+    std::stable_sort(
         block_ordered_ptr, block_ordered_ptr + in_nnz,
         [block_size](auto a, auto b) {
             return std::make_tuple(a.row / block_size, a.column / block_size) <
@@ -190,10 +190,14 @@ void fill_in_matrix_data(
         }
         const auto local_row = entry.row % block_size;
         const auto local_col = entry.column % block_size;
-        value_vec[row_ptrs_ptr[block_row] * block_size * block_size +
-                  local_row + local_col * block_size] = entry.value;
+        value_vec[value_vec.size() - block_size * block_size + local_row +
+                  local_col * block_size] = entry.value;
     }
-    row_ptrs_ptr[row_ptrs.get_num_elems() - 1] = col_idx_vec.size();
+    while (block_row < static_cast<int64>(row_ptrs.get_num_elems() - 1)) {
+        // we finished row block_row, so store its end pointer
+        row_ptrs_ptr[block_row + 1] = col_idx_vec.size();
+        ++block_row;
+    }
     values.resize_and_reset(value_vec.size());
     col_idxs.resize_and_reset(col_idx_vec.size());
     std::copy(value_vec.begin(), value_vec.end(), values.get_data());
