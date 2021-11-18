@@ -58,7 +58,7 @@ protected:
 
     BatchBicgstab()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::test::create_poisson1d_batch<value_type>(
+          mtx(gko::test::create_poisson1d_batch<Mtx>(
               std::static_pointer_cast<const gko::ReferenceExecutor>(
                   this->exec),
               nrows, nbatch)),
