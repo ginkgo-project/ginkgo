@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_struct.hpp"
 #include "core/test/utils.hpp"
-#include "core/test/utils/batch.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/types.hpp"
 
