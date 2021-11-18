@@ -67,6 +67,7 @@ namespace batch_bicgstab {
 #include "common/cuda_hip/components/uninitialized_array.hpp.inc"
 // include all depedencies (note: do not remove this comment)
 #include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
 #include "common/cuda_hip/solver/batch_bicgstab_kernels.hpp.inc"
@@ -137,16 +138,19 @@ public:
             exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 
-        std::cerr << " Bicgstab: vectors in shared memory = " << sconf.n_shared
-                  << "\n";
-        if (sconf.prec_shared) {
-            std::cerr << " Bicgstab: precondiioner is in shared memory.\n";
-        }
-        std::cerr << " Bicgstab: vectors in global memory = " << sconf.n_global
-                  << "\n Hip: number of threads per warp = "
-                  << config::warp_size
-                  << "\n Bicgstab: number of threads per block = " << block_size
-                  << "\n";
+        // std::cerr << " Bicgstab: vectors in shared memory = " <<
+        // sconf.n_shared
+        //          << "\n";
+        // if (sconf.prec_shared) {
+        //    std::cerr << " Bicgstab: precondiioner is in shared memory.\n";
+        //}
+        // std::cerr << " Bicgstab: vectors in global memory = " <<
+        // sconf.n_global
+        //          << "\n Hip: number of threads per warp = "
+        //          << config::warp_size
+        //          << "\n Bicgstab: number of threads per block = " <<
+        //          block_size
+        //          << "\n";
         hipLaunchKernelGGL(
             apply_kernel<StopType>, dim3(nbatch), dim3(block_size), shared_size,
             0, shared_gap, sconf, opts_.max_its, opts_.residual_tol, logger,
