@@ -105,9 +105,9 @@ void fill_in_matrix_data(
                         });
     // build block pattern
     auto adj_predicate = [bs, data_ptr, nnz] __device__(size_type i) {
-        const auto a = i > 0 ? data_ptr[i - 1] : device_entry{-1, -1, {}};
+        const auto a = i > 0 ? data_ptr[i - 1] : device_entry{-bs, -bs, {}};
         const auto b = data_ptr[i];
-        return (a.row / bs == a.row / bs) && (a.column / bs == b.column / bs);
+        return (a.row / bs != b.row / bs) || (a.column / bs != b.column / bs);
     };
     auto iota = thrust::make_counting_iterator(size_type{});
     // count how many blocks we have by counting how often the block changes
@@ -123,7 +123,7 @@ void fill_in_matrix_data(
     auto values = as_device_type(value_array.get_data());
     auto block_ptrs = block_ptr_array.get_data();
     auto block_ptr_it = thrust::device_pointer_cast(block_ptrs);
-    // write (block_row, block_col, block_begin) tuples for each block
+    // write (block_row, block_col, block_start_idx) tuples for each block
     thrust::copy_if(thrust::device, iota, iota + nnz, block_ptr_it,
                     adj_predicate);
     auto block_output_it = thrust::make_zip_iterator(
@@ -145,7 +145,7 @@ void fill_in_matrix_data(
         [block_ptrs, nnz, num_blocks, bs, data_ptr,
          values] __device__(size_type i) {
             const auto block_begin = block_ptrs[i];
-            const auto block_end = i < num_blocks ? block_ptrs[i + 1] : nnz;
+            const auto block_end = i < num_blocks - 1 ? block_ptrs[i + 1] : nnz;
             for (auto nz = block_begin; nz < block_end; nz++) {
                 const auto entry = data_ptr[nz];
                 values[i * bs * bs + (entry.column % bs) * bs +
