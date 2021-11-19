@@ -36,9 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "core/components/fill_array.hpp"
-#include "core/components/precision_conversion.hpp"
-#include "core/components/reduce_array.hpp"
+#include "core/components/fill_array_kernels.hpp"
+#include "core/components/precision_conversion_kernels.hpp"
+#include "core/components/reduce_array_kernels.hpp"
 
 
 namespace gko {

@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/utils.hpp"
-#include "core/components/fill_array.hpp"
+#include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/amgx_pgm_kernels.hpp"
 

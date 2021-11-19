@@ -37,9 +37,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 
 
-#include "core/components/fill_array.hpp"
-#include "core/components/prefix_sum.hpp"
-#include "core/matrix/coo_kernels.hpp"
+#include "core/components/fill_array_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/types.hpp"

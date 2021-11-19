@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/components/absolute_array.hpp"
+#include "core/components/absolute_array_kernels.hpp"
 #include "core/matrix/diagonal_kernels.hpp"
 
 

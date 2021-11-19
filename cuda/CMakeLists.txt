@@ -73,9 +73,7 @@ target_sources(ginkgo_cuda
     base/executor.cpp
     base/index_set_kernels.cpp
     base/version.cpp
-    components/absolute_array.cu
-    components/fill_array.cu
-    components/prefix_sum.cu
+    components/prefix_sum_kernels.cu
     factorization/factorization_kernels.cu
     factorization/ic_kernels.cu
     factorization/ilu_kernels.cu

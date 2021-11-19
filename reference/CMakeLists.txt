@@ -3,11 +3,11 @@ target_sources(ginkgo_reference
     PRIVATE
     base/version.cpp
     base/index_set_kernels.cpp
-    components/absolute_array.cpp
-    components/fill_array.cpp
-    components/reduce_array.cpp
-    components/precision_conversion.cpp
-    components/prefix_sum.cpp
+    components/absolute_array_kernels.cpp
+    components/fill_array_kernels.cpp
+    components/reduce_array_kernels.cpp
+    components/precision_conversion_kernels.cpp
+    components/prefix_sum_kernels.cpp
     factorization/factorization_kernels.cpp
     factorization/ic_kernels.cpp
     factorization/ilu_kernels.cpp
