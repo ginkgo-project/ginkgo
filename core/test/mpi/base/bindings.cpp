@@ -147,16 +147,18 @@ TYPED_TEST(MpiBindings, CanPutValuesWithLockAll)
         data = std::vector<TypeParam>{0, 0, 0, 0};
     }
     auto win = window(data.data(), 4 * sizeof(TypeParam), comm);
-    win.lock_all();
     if (my_rank == 0) {
+        win.lock_all();
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
                 gko::mpi::put(data.data(), 4, rank, 0, 4, win);
-                win.flush(rank);
             }
+            win.flush_local(0);
+            win.flush(rank);
         }
+        win.unlock_all();
     }
-    win.unlock_all();
+    win.fence();
 
     auto ref = std::vector<TypeParam>{1, 2, 3, 4};
     ASSERT_EQ(data, ref);
@@ -181,11 +183,12 @@ TYPED_TEST(MpiBindings, CanPutValuesWithExclusiveLock)
             if (rank != my_rank) {
                 win.lock(rank, 0, window::lock_type::exclusive);
                 gko::mpi::put(data.data(), 4, rank, 0, 4, win);
-                win.flush(rank);
+                win.flush(0);
                 win.unlock(rank);
             }
         }
     }
+    win.fence();
 
     auto ref = std::vector<TypeParam>{1, 2, 3, 4};
     ASSERT_EQ(data, ref);
@@ -238,7 +241,6 @@ TYPED_TEST(MpiBindings, CanGetValuesWithLockAll)
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
                 gko::mpi::get(data.data(), 4, 0, 0, 4, win);
-                win.flush(0);
             }
         }
         win.unlock_all();
@@ -267,7 +269,6 @@ TYPED_TEST(MpiBindings, CanGetValuesWithExclusiveLock)
             if (rank != my_rank) {
                 win.lock(0, 0, window::lock_type::exclusive);
                 gko::mpi::get(data.data(), 4, 0, 0, 4, win);
-                win.flush(0);
                 win.unlock(0);
             }
         }
