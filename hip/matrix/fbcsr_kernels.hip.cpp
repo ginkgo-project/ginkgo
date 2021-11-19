@@ -46,8 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/fill_array_kernels.hpp"
 #include "hip/base/config.hip.hpp"
-
 
 namespace gko {
 namespace kernels {
