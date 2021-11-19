@@ -229,6 +229,12 @@ int main()
         auto test = gko::dim<3, type1>{4, 4, 4};
     }
 
+    // core/base/device_matrix_data.hpp
+    {
+        auto test =
+            gko::device_matrix_data<float, int>{exec, gko::dim<2>{1, 1}, 1};
+    }
+
     // core/base/exception.hpp
     {
         auto test = gko::Error(std::string("file"), 12,
