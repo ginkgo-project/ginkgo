@@ -87,9 +87,9 @@ protected:
     static void assert_equal_to_original_mtx(
         gko::matrix::RowGatherer<i_type>* m)
     {
-        auto gather = m->get_row_gather_index();
+        auto gather = m->get_row_gatherer_indices();
         ASSERT_EQ(m->get_size(), gko::dim<2>(4, 3));
-        ASSERT_EQ(m->get_row_gather_index_size(), 4);
+        ASSERT_EQ(m->get_row_gatherer_indices_size(), 4);
         ASSERT_EQ(gather[0], 1);
         ASSERT_EQ(gather[1], 0);
         ASSERT_EQ(gather[2], 2);
@@ -99,7 +99,7 @@ protected:
     static void assert_empty(gko::matrix::RowGatherer<i_type>* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
-        ASSERT_EQ(m->get_row_gather_index_size(), 0);
+        ASSERT_EQ(m->get_row_gatherer_indices_size(), 0);
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -117,7 +117,7 @@ TYPED_TEST(RowGatherer, CanBeEmpty)
     auto empty = gko::matrix::RowGatherer<i_type>::create(this->exec);
 
     this->assert_empty(empty.get());
-    ASSERT_EQ(empty->get_const_row_gather_index(), nullptr);
+    ASSERT_EQ(empty->get_const_row_gatherer_indices(), nullptr);
 }
 
 
@@ -128,7 +128,7 @@ TYPED_TEST(RowGatherer, CanBeConstructedWithSize)
         gko::matrix::RowGatherer<i_type>::create(this->exec, gko::dim<2>{2, 3});
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(m->get_row_gather_index_size(), 2);
+    ASSERT_EQ(m->get_row_gatherer_indices_size(), 2);
 }
 
 
@@ -141,7 +141,7 @@ TYPED_TEST(RowGatherer, RowGathererCanBeConstructedFromExistingData)
         this->exec, gko::dim<2>{3, 5},
         gko::Array<i_type>::view(this->exec, 3, data));
 
-    ASSERT_EQ(m->get_const_row_gather_index(), data);
+    ASSERT_EQ(m->get_const_row_gatherer_indices(), data);
 }
 
 
@@ -171,7 +171,7 @@ TYPED_TEST(RowGatherer, CanBeCopied)
     mtx_copy->copy_from(this->mtx.get());
 
     this->assert_equal_to_original_mtx(this->mtx.get());
-    this->mtx->get_row_gather_index()[0] = 3;
+    this->mtx->get_row_gatherer_indices()[0] = 3;
     this->assert_equal_to_original_mtx(mtx_copy.get());
 }
 

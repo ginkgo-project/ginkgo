@@ -521,8 +521,8 @@ TYPED_TEST(AmgxPgm, GenerateMgLevel)
     auto coarse_fine = this->amgxpgm_factory->generate(this->mtx);
     auto row_gatherer = gko::as<RowGatherer>(coarse_fine->get_prolong_op());
     auto row_gather_view = gko::Array<index_type>::const_view(
-        this->exec, row_gatherer->get_row_gather_index_size(),
-        row_gatherer->get_const_row_gather_index());
+        this->exec, row_gatherer->get_row_gatherer_indices_size(),
+        row_gatherer->get_const_row_gatherer_indices());
     auto expected_row_gather =
         gko::Array<index_type>(this->exec, {0, 1, 0, 1, 0});
 
@@ -567,8 +567,8 @@ TYPED_TEST(AmgxPgm, GenerateMgLevelOnUnsortedMatrix)
     auto coarse_fine = mglevel_sort->generate(matrix);
     auto row_gatherer = gko::as<RowGatherer>(coarse_fine->get_prolong_op());
     auto row_gather_view = gko::Array<index_type>::const_view(
-        this->exec, row_gatherer->get_row_gather_index_size(),
-        row_gatherer->get_const_row_gather_index());
+        this->exec, row_gatherer->get_row_gatherer_indices_size(),
+        row_gatherer->get_const_row_gatherer_indices());
     auto expected_row_gather =
         gko::Array<index_type>(this->exec, {0, 1, 0, 1, 0});
 

@@ -79,37 +79,37 @@ public:
     using index_type = IndexType;
 
     /**
-     * Returns a pointer to the array of row_gather_index.
+     * Returns a pointer to the array of row_gatherer_indices.
      *
-     * @return the pointer to the row_gather_index array.
+     * @return the pointer to the row_gatherer_indices array.
      */
-    index_type* get_row_gather_index() noexcept
+    index_type* get_row_gatherer_indices() noexcept
     {
-        return row_gather_index_.get_data();
+        return row_gatherer_indices_.get_data();
     }
 
     /**
-     * @copydoc get_row_gather_index()
+     * @copydoc get_row_gatherer_indices()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_row_gather_index() const noexcept
+    const index_type* get_const_row_gatherer_indices() const noexcept
     {
-        return row_gather_index_.get_const_data();
+        return row_gatherer_indices_.get_const_data();
     }
 
     /**
-     * Returns the number of elements explicitly stored in the row_gather_index
-     * array.
+     * Returns the number of elements explicitly stored in the
+     * row_gatherer_indices array.
      *
-     * @return the number of elements explicitly stored in the row_gather_index
-     * array.
+     * @return the number of elements explicitly stored in the
+     * row_gatherer_indices array.
      */
-    size_type get_row_gather_index_size() const noexcept
+    size_type get_row_gatherer_indices_size() const noexcept
     {
-        return row_gather_index_.get_num_elems();
+        return row_gatherer_indices_.get_num_elems();
     }
 
 protected:
@@ -129,7 +129,8 @@ protected:
      * @param size  size of the RowGatherable matrix
      */
     RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size)
-        : EnableLinOp<RowGatherer>(exec, size), row_gather_index_(exec, size[0])
+        : EnableLinOp<RowGatherer>(exec, size),
+          row_gatherer_indices_(exec, size[0])
     {}
 
     /**
@@ -140,25 +141,26 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the rowgatherer array.
-     * @param row_gather_index array of rowgatherer array
+     * @param row_gatherer_indices array of rowgatherer array
      *
-     * @note If `row_gather_index` is not an rvalue, not an array of
+     * @note If `row_gatherer_indices` is not an rvalue, not an array of
      * IndexType, or is on the wrong executor, an internal copy will be created,
      * and the original array data will not be used in the matrix.
      */
     template <typename IndicesArray>
     RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size,
-                IndicesArray&& row_gather_index)
+                IndicesArray&& row_gatherer_indices)
         : EnableLinOp<RowGatherer>(exec, size),
-          row_gather_index_{exec, std::forward<IndicesArray>(row_gather_index)}
+          row_gatherer_indices_{
+              exec, std::forward<IndicesArray>(row_gatherer_indices)}
     {
-        GKO_ASSERT_EQ(size[0], row_gather_index_.get_num_elems());
+        GKO_ASSERT_EQ(size[0], row_gatherer_indices_.get_num_elems());
     }
 
     void apply_impl(const LinOp* in, LinOp* out) const
     {
         auto gather = gko::as<RowGatherable<index_type>>(in);
-        gather->row_gather(&row_gather_index_, out);
+        gather->row_gather(&row_gatherer_indices_, out);
     }
 
 
@@ -166,11 +168,11 @@ protected:
                     LinOp* out) const
     {
         auto gather = gko::as<RowGatherable<index_type>>(in);
-        gather->row_gather(alpha, &row_gather_index_, beta, out);
+        gather->row_gather(alpha, &row_gatherer_indices_, beta, out);
     }
 
 private:
-    gko::Array<index_type> row_gather_index_;
+    gko::Array<index_type> row_gatherer_indices_;
 };
 
 
