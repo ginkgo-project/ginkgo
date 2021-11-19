@@ -53,6 +53,26 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace csr {
 
 
+template <typename ValueType, typename IndexType>
+void from_matrix_data(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
+    matrix::Csr<ValueType, IndexType>* output)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto nonzeros, auto cols, auto values) {
+            cols[i] = nonzeros[i].column;
+            values[i] = unpack_member(nonzeros[i].value);
+        },
+        nonzeros.get_num_elems(), nonzeros, output->get_col_idxs(),
+        output->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_FROM_MATRIX_DATA_KERNEL);
+
+
 template <typename IndexType>
 void invert_permutation(std::shared_ptr<const DefaultExecutor> exec,
                         size_type size, const IndexType* permutation_indices,

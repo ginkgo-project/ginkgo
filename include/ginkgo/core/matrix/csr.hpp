@@ -151,6 +151,7 @@ public:
     using index_type = IndexType;
     using transposed_type = Csr<ValueType, IndexType>;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Csr>;
 
     class automatical;
@@ -736,6 +737,8 @@ public:
     void move_to(SparsityCsr<ValueType, IndexType>* result) override;
 
     void read(const mat_data& data) override;
+
+    void read(const device_mat_data& data) override;
 
     void write(mat_data& data) const override;
 

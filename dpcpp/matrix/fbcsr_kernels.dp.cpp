@@ -78,6 +78,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void from_matrix_data(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const Array<matrix_data_entry<ValueType, IndexType>>& data, int block_size,
+    Array<IndexType>& row_ptrs, Array<IndexType>& col_idxs,
+    Array<ValueType>& values) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FBCSR_FROM_MATRIX_DATA_KERNEL);
+
+
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const DpcppExecutor> exec,
                               const IndexType* ptrs, size_type num_rows,

@@ -58,6 +58,19 @@ namespace hybrid {
 
 
 template <typename ValueType, typename IndexType>
+void split_matrix_data(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const Array<matrix_data_entry<ValueType, IndexType>>& data,
+    const int64* row_ptrs, size_type ell_limit, size_type num_rows,
+    Array<matrix_data_entry<ValueType, IndexType>>& ell_data,
+    Array<matrix_data_entry<ValueType, IndexType>>& coo_data)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_HYBRID_SPLIT_MATRIX_DATA_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
                       const matrix::Hybrid<ValueType, IndexType>* source,
                       matrix::Dense<ValueType>* result)

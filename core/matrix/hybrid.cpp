@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/absolute_array_kernels.hpp"
+#include "core/components/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
@@ -58,6 +59,9 @@ namespace hybrid {
 namespace {
 
 
+GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
+GKO_REGISTER_OPERATION(compute_row_nnz, hybrid::compute_row_nnz);
+GKO_REGISTER_OPERATION(split_matrix_data, hybrid::split_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_dense, hybrid::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_csr, hybrid::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, hybrid::count_nonzeros);
@@ -196,60 +200,36 @@ void Hybrid<ValueType, IndexType>::move_to(Csr<ValueType, IndexType>* result)
 
 
 template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
+{
+    auto exec = this->get_executor();
+    auto local_data = make_temporary_clone(exec, &data.nonzeros);
+    Array<int64> row_ptrs{exec, data.size[0] + 1};
+    exec->run(hybrid::make_build_row_ptrs(*local_data, data.size[0],
+                                          row_ptrs.get_data()));
+    Array<size_type> row_nnz{exec, data.size[0]};
+    exec->run(hybrid::make_compute_row_nnz(row_ptrs, row_nnz.get_data()));
+    size_type ell_max_nnz{};
+    size_type coo_nnz{};
+    this->get_strategy()->compute_hybrid_config(row_nnz, &ell_max_nnz,
+                                                &coo_nnz);
+    auto ell_nnz = data.nonzeros.get_num_elems() - coo_nnz;
+    device_mat_data ell_data{exec, data.size, ell_nnz};
+    device_mat_data coo_data{exec, data.size, coo_nnz};
+    exec->run(hybrid::make_split_matrix_data(
+        data.nonzeros, row_ptrs.get_const_data(), ell_max_nnz, data.size[0],
+        ell_data.nonzeros, coo_data.nonzeros));
+    this->set_size(data.size);
+    ell_->read(ell_data);
+    coo_->read(coo_data);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::read(const mat_data& data)
 {
-    // get the limitation of columns of the ell part
-    // calculate coo storage
-    size_type ell_lim = zero<size_type>();
-    size_type coo_lim = zero<size_type>();
-    Array<size_type> row_nnz(this->get_executor()->get_master(), data.size[0]);
-    get_each_row_nnz(data, row_nnz);
-    strategy_->compute_hybrid_config(row_nnz, &ell_lim, &coo_lim);
-
-    auto tmp =
-        Hybrid::create(this->get_executor()->get_master(), data.size, ell_lim,
-                       data.size[0], coo_lim, this->get_strategy());
-
-    // Get values and column indexes.
-    size_type ind = 0;
-    size_type n = data.nonzeros.size();
-    auto coo_vals = tmp->get_coo_values();
-    auto coo_col_idxs = tmp->get_coo_col_idxs();
-    auto coo_row_idxs = tmp->get_coo_row_idxs();
-    size_type coo_ind = 0;
-    for (size_type row = 0; row < data.size[0]; row++) {
-        size_type col = 0;
-
-        // ell_part
-        while (ind < n && data.nonzeros[ind].row == row && col < ell_lim) {
-            auto val = data.nonzeros[ind].value;
-            if (val != zero<ValueType>()) {
-                tmp->ell_val_at(row, col) = val;
-                tmp->ell_col_at(row, col) = data.nonzeros[ind].column;
-                col++;
-            }
-            ind++;
-        }
-        for (auto i = col; i < ell_lim; i++) {
-            tmp->ell_val_at(row, i) = zero<ValueType>();
-            tmp->ell_col_at(row, i) = 0;
-        }
-
-        // coo_part
-        while (ind < n && data.nonzeros[ind].row == row) {
-            auto val = data.nonzeros[ind].value;
-            if (val != zero<ValueType>()) {
-                coo_vals[coo_ind] = val;
-                coo_col_idxs[coo_ind] = data.nonzeros[ind].column;
-                coo_row_idxs[coo_ind] = data.nonzeros[ind].row;
-                coo_ind++;
-            }
-            ind++;
-        }
-    }
-
-    // Return the matrix
-    tmp->move_to(this);
+    this->read(device_mat_data::create_from_host(this->get_executor(),
+                                                 const_cast<mat_data&>(data)));
 }
 
 

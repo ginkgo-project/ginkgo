@@ -130,6 +130,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void from_matrix_data(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
+    matrix::Coo<ValueType, IndexType>* output)
+{
+    for (size_type i = 0; i < nonzeros.get_num_elems(); i++) {
+        auto nonzero = nonzeros.get_const_data()[i];
+        output->get_row_idxs()[i] = nonzero.row;
+        output->get_col_idxs()[i] = nonzero.column;
+        output->get_values()[i] = nonzero.value;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_FROM_MATRIX_DATA_KERNEL);
+
+
 template <typename IndexType>
 void convert_row_idxs_to_ptrs(std::shared_ptr<const ReferenceExecutor> exec,
                               const IndexType* idxs, size_type num_nonzeros,

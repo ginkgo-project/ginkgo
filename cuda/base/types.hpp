@@ -76,8 +76,6 @@ struct fake_complex {
         : real{val.real()}, imag{val.imag()}
     {}
 
-    GKO_ATTRIBUTES operator thrust::complex<T>() const { return {real, imag}; }
-
     friend bool GKO_ATTRIBUTES operator==(fake_complex a, fake_complex b)
     {
         return a.real == b.real && a.imag == b.imag;
@@ -86,6 +84,25 @@ struct fake_complex {
     friend bool GKO_ATTRIBUTES operator!=(fake_complex a, fake_complex b)
     {
         return !(a == b);
+    }
+};
+
+
+template <typename ValueType>
+struct fake_complex_unpack_impl {
+    using type = ValueType;
+
+    GKO_INLINE GKO_ATTRIBUTES static ValueType unpack(ValueType v) { return v; }
+};
+
+template <typename ValueType>
+struct fake_complex_unpack_impl<fake_complex<ValueType>> {
+    using type = thrust::complex<ValueType>;
+
+    GKO_INLINE GKO_ATTRIBUTES static thrust::complex<ValueType> unpack(
+        fake_complex<ValueType> v)
+    {
+        return {v.real, v.imag};
     }
 };
 
@@ -377,6 +394,27 @@ template <typename T>
 inline culibs_type<T> as_culibs_type(T val)
 {
     return reinterpret_cast<culibs_type<T>>(val);
+}
+
+
+/**
+ * Casts fake_complex<T> to thrust::complex<T> and leaves any other types
+ * unchanged.
+ *
+ * This is necessary to work around an issue with Thrust shipped in CUDA 9.2,
+ * and the fact that thrust::complex has stronger alignment restrictions than
+ * std::complex, i.e. structs containing them among other smaller members have
+ * different sizes on device and host.
+ *
+ * @param val  The input value.
+ *
+ * @return val cast to the correct type.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES typename detail::fake_complex_unpack_impl<T>::type
+fake_complex_unpack(T v)
+{
+    return detail::fake_complex_unpack_impl<T>::unpack(v);
 }
 
 

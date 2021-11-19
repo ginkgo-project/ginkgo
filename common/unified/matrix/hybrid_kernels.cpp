@@ -30,10 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/coo_kernels.hpp"
-
-
-#include <ginkgo/core/base/math.hpp>
+#include "core/matrix/hybrid_kernels.hpp"
 
 
 #include "common/unified/base/kernel_launch.hpp"
@@ -43,59 +40,26 @@ namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 /**
- * @brief The Coo matrix format namespace.
+ * @brief The Hybrid matrix format namespace.
  *
- * @ingroup coo
+ * @ingroup hybrid
  */
-namespace coo {
+namespace hybrid {
 
 
-template <typename ValueType, typename IndexType>
-void from_matrix_data(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
-    matrix::Coo<ValueType, IndexType>* output)
+void compute_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
+                     const Array<int64>& row_ptrs, size_type* row_nnzs)
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto nonzeros, auto rows, auto cols,
-                      auto values) {
-            auto nonzero = nonzeros[i];
-            rows[i] = nonzero.row;
-            cols[i] = nonzero.column;
-            values[i] = unpack_member(nonzero.value);
+        [] GKO_KERNEL(auto i, auto row_ptrs, auto row_nnzs) {
+            row_nnzs[i] = row_ptrs[i + 1] - row_ptrs[i];
         },
-        nonzeros.get_num_elems(), nonzeros, output->get_row_idxs(),
-        output->get_col_idxs(), output->get_values());
+        row_ptrs.get_num_elems() - 1, row_ptrs, row_nnzs);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_FROM_MATRIX_DATA_KERNEL);
 
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType>* orig,
-                      matrix::Diagonal<ValueType>* diag)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto tidx, auto orig_values, auto orig_row_idxs,
-                      auto orig_col_idxs, auto diag) {
-            if (orig_row_idxs[tidx] == orig_col_idxs[tidx]) {
-                diag[orig_row_idxs[tidx]] = orig_values[tidx];
-            }
-        },
-        orig->get_num_stored_elements(), orig->get_const_values(),
-        orig->get_const_row_idxs(), orig->get_const_col_idxs(),
-        diag->get_values());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL);
-
-
-}  // namespace coo
+}  // namespace hybrid
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

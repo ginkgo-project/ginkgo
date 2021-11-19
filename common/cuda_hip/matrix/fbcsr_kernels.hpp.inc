@@ -73,3 +73,86 @@ __global__ __launch_bounds__(default_block_size) void transpose_blocks(
 
 
 }  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void from_matrix_data(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const Array<matrix_data_entry<ValueType, IndexType>>& data, int block_size,
+    Array<IndexType>& row_ptr_array, Array<IndexType>& col_idx_array,
+    Array<ValueType>& value_array)
+{
+    using entry = matrix_data_entry<ValueType, IndexType>;
+    using device_entry = device_type<entry>;
+    const auto nnz = data.get_num_elems();
+    const auto bs = block_size;
+    auto row_ptrs = row_ptr_array.get_data();
+    auto num_rows = row_ptr_array.get_num_elems() - 1;
+    if (nnz == 0) {
+        components::fill_array(exec, row_ptrs, num_rows, IndexType{});
+        col_idx_array.resize_and_reset(0);
+        value_array.resize_and_reset(0);
+        return;
+    }
+    auto block_ordered_data = data;
+    auto data_ptr = as_device_type(block_ordered_data.get_data());
+    auto data_it = thrust::device_pointer_cast(data_ptr);
+    thrust::stable_sort(thrust::device, data_it, data_it + nnz,
+                        [bs] __device__(device_entry a, device_entry b) {
+                            return thrust::make_pair(a.row / bs,
+                                                     a.column / bs) <
+                                   thrust::make_pair(b.row / bs, b.column / bs);
+                        });
+    // build block pattern
+    auto adj_predicate = [bs, data_ptr, nnz] __device__(size_type i) {
+        const auto a = i > 0 ? data_ptr[i - 1] : device_entry{-1, -1, {}};
+        const auto b = data_ptr[i];
+        return (a.row / bs == a.row / bs) && (a.column / bs == b.column / bs);
+    };
+    auto iota = thrust::make_counting_iterator(size_type{});
+    // count how many blocks we have by counting how often the block changes
+    auto num_blocks = static_cast<size_type>(
+        thrust::count_if(thrust::device, iota, iota + nnz, adj_predicate));
+    // allocate storage
+    Array<IndexType> row_idx_array{exec, num_blocks};
+    Array<size_type> block_ptr_array{exec, num_blocks};
+    col_idx_array.resize_and_reset(num_blocks);
+    value_array.resize_and_reset(num_blocks * bs * bs);
+    auto row_idxs = row_idx_array.get_data();
+    auto col_idxs = col_idx_array.get_data();
+    auto values = as_device_type(value_array.get_data());
+    auto block_ptrs = block_ptr_array.get_data();
+    auto block_ptr_it = thrust::device_pointer_cast(block_ptrs);
+    // write (block_row, block_col, block_begin) tuples for each block
+    thrust::copy_if(thrust::device, iota, iota + nnz, block_ptr_it,
+                    adj_predicate);
+    auto block_output_it = thrust::make_zip_iterator(
+        thrust::make_tuple(thrust::device_pointer_cast(row_idxs),
+                           thrust::device_pointer_cast(col_idxs)));
+    thrust::transform(thrust::device, block_ptr_it, block_ptr_it + num_blocks,
+                      block_output_it, [bs, data_ptr] __device__(size_type i) {
+                          return thrust::make_tuple(data_ptr[i].row / bs,
+                                                    data_ptr[i].column / bs);
+                      });
+    // build row pointers from row indices
+    components::build_row_ptrs_from_idxs(exec, row_idx_array, num_rows,
+                                         row_ptrs);
+    // fill in values
+    components::fill_array(exec, value_array.get_data(), num_blocks * bs * bs,
+                           zero<ValueType>());
+    thrust::for_each_n(
+        thrust::device, iota, num_blocks,
+        [block_ptrs, nnz, num_blocks, bs, data_ptr,
+         values] __device__(size_type i) {
+            const auto block_begin = block_ptrs[i];
+            const auto block_end = i < num_blocks ? block_ptrs[i + 1] : nnz;
+            for (auto nz = block_begin; nz < block_end; nz++) {
+                const auto entry = data_ptr[nz];
+                values[i * bs * bs + (entry.column % bs) * bs +
+                       (entry.row % bs)] = fake_complex_unpack(entry.value);
+            }
+        });
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FBCSR_FROM_MATRIX_DATA_KERNEL);

@@ -171,6 +171,7 @@ function(ginkgo_create_common_test test_name)
         # use float for DPC++ if necessary
         if((exec STREQUAL "dpcpp") AND GINKGO_DPCPP_SINGLE_MODE)
             target_compile_definitions(${test_target_name} PRIVATE GINKGO_COMMON_SINGLE_MODE=1)
+            target_compile_definitions(${test_target_name} PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
         endif()
         ginkgo_set_test_target_properties(${test_name}_${exec} ${test_target_name})
     endforeach()
