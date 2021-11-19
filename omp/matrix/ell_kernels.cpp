@@ -80,11 +80,16 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
         a->get_num_stored_elements_per_row();
     const auto stride = a->get_stride();
     const auto a_vals = gko::acc::range<a_accessor>(
-        std::array<size_type, 1>{num_stored_elements_per_row * stride},
+        std::array<acc::size_type, 1>{
+            static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
         a->get_const_values());
     const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<size_type, 2>{{b->get_size()[0], b->get_size()[1]}},
-        b->get_const_values(), std::array<size_type, 1>{{b->get_stride()}});
+        std::array<acc::size_type, 2>{
+            {static_cast<acc::size_type>(b->get_size()[0]),
+             static_cast<acc::size_type>(b->get_size()[1])}},
+        b->get_const_values(),
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(b->get_stride())}});
 
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; row++) {
@@ -125,11 +130,16 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
         a->get_num_stored_elements_per_row();
     const auto stride = a->get_stride();
     const auto a_vals = gko::acc::range<a_accessor>(
-        std::array<size_type, 1>{num_stored_elements_per_row * stride},
+        std::array<acc::size_type, 1>{
+            static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
         a->get_const_values());
     const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<size_type, 2>{{b->get_size()[0], b->get_size()[1]}},
-        b->get_const_values(), std::array<size_type, 1>{{b->get_stride()}});
+        std::array<acc::size_type, 2>{
+            {static_cast<acc::size_type>(b->get_size()[0]),
+             static_cast<acc::size_type>(b->get_size()[1])}},
+        b->get_const_values(),
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(b->get_stride())}});
 
     const auto num_rhs = b->get_size()[1];
     const auto rounded_rhs = num_rhs / block_size * block_size;

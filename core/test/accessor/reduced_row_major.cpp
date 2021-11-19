@@ -81,9 +81,9 @@ protected:
 
     const std::array<size_type, 0> stride0{{}};
     const std::array<size_type, 1> stride1{{4}};
-    const std::array<gko::acc::size_type, 1> size_1d{{8u}};
-    const std::array<gko::acc::size_type, 2> size_2d{{2u, 4u}};
-    static constexpr gko::acc::size_type data_elements{8};
+    const std::array<size_type, 1> size_1d{{8}};
+    const std::array<size_type, 2> size_2d{{2, 4}};
+    static constexpr size_type data_elements{8};
     st_type data[data_elements]{1.1f, 2.2f, 3.3f, 4.4f,
                                 5.5f, 6.6f, 7.7f, -8.8f};
     reduced_storage1d r1{size_1d, data};

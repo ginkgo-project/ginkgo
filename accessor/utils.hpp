@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_ACCESSOR_UTILS_HPP_
 
 #include <cassert>
+#include <cinttypes>
 #include <complex>
-#include <cstddef>  // for std::size_t
 
 
 #if defined(__CUDACC__) || defined(__HIPCC__)
@@ -91,7 +91,7 @@ using void_t = void;
 }  // namespace xstd
 
 
-using size_type = std::size_t;
+using size_type = std::int64_t;
 
 
 namespace detail {

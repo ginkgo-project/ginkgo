@@ -155,8 +155,8 @@ private:
  *
  * @note  This class only manages the accesses and not the memory itself.
  */
-template <int Dimensionality, typename ArithmeticType, typename StorageType,
-          size_type ScalarMask>
+template <std::size_t Dimensionality, typename ArithmeticType,
+          typename StorageType, std::uint64_t ScalarMask>
 class scaled_reduced_row_major
     : public detail::enable_write_scalar<
           Dimensionality,
@@ -166,8 +166,8 @@ class scaled_reduced_row_major
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
-    static constexpr size_type dimensionality{Dimensionality};
-    static constexpr size_type scalar_mask{ScalarMask};
+    static constexpr auto dimensionality = Dimensionality;
+    static constexpr auto scalar_mask = ScalarMask;
     static constexpr bool is_const{std::is_const<storage_type>::value};
     using scalar_type =
         std::conditional_t<is_const, const arithmetic_type, arithmetic_type>;
@@ -190,9 +190,9 @@ public:
     friend class range<scaled_reduced_row_major>;
 
 protected:
-    static constexpr size_type scalar_dim{
+    static constexpr std::size_t scalar_dim{
         helper::count_mask_dimensionality<scalar_mask, dimensionality>()};
-    static constexpr size_type scalar_stride_dim{
+    static constexpr std::size_t scalar_stride_dim{
         scalar_dim == 0 ? 0 : (scalar_dim - 1)};
 
     using dim_type = std::array<size_type, dimensionality>;

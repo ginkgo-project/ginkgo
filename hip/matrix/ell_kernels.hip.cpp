@@ -124,9 +124,9 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
                    const matrix::Dense<OutputValueType>* beta = nullptr)
 {
     using a_accessor =
-        gko::acc::reduced_row_major<1, OutputValueType, const MatrixValueType>;
+        acc::reduced_row_major<1, OutputValueType, const MatrixValueType>;
     using b_accessor =
-        gko::acc::reduced_row_major<2, OutputValueType, const InputValueType>;
+        acc::reduced_row_major<2, OutputValueType, const InputValueType>;
 
     const auto nrows = a->get_size()[0];
     const auto stride = a->get_stride();
@@ -141,12 +141,17 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
     const dim3 grid_size(ceildiv(nrows * num_worker_per_row, block_size.x),
                          b->get_size()[1], 1);
 
-    const auto a_vals = gko::acc::range<a_accessor>(
-        std::array<size_type, 1>{{num_stored_elements_per_row * stride}},
+    const auto a_vals = acc::range<a_accessor>(
+        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(
+            num_stored_elements_per_row * stride)}},
         a->get_const_values());
-    const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<size_type, 2>{{b->get_size()[0], b->get_size()[1]}},
-        b->get_const_values(), std::array<size_type, 1>{{b->get_stride()}});
+    const auto b_vals = acc::range<b_accessor>(
+        std::array<acc::size_type, 2>{
+            {static_cast<acc::size_type>(b->get_size()[0]),
+             static_cast<acc::size_type>(b->get_size()[1])}},
+        b->get_const_values(),
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(b->get_stride())}});
 
     if (alpha == nullptr && beta == nullptr) {
         hipLaunchKernelGGL(
@@ -156,8 +161,8 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
             num_stored_elements_per_row, acc::as_hip_range(b_vals),
             as_hip_type(c->get_values()), c->get_stride());
     } else if (alpha != nullptr && beta != nullptr) {
-        const auto alpha_val = gko::acc::range<a_accessor>(
-            std::array<size_type, 1>{1}, alpha->get_const_values());
+        const auto alpha_val = acc::range<a_accessor>(
+            std::array<acc::size_type, 1>{1}, alpha->get_const_values());
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(kernel::spmv<num_thread_per_worker, atomic>),
             dim3(grid_size), dim3(block_size), 0, 0, nrows, num_worker_per_row,

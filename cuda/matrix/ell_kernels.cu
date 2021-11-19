@@ -139,12 +139,16 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
                          b->get_size()[1], 1);
 
     const auto a_vals = gko::acc::range<a_accessor>(
-        std::array<acc::size_type, 1>{{num_stored_elements_per_row * stride}},
+        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(
+            num_stored_elements_per_row * stride)}},
         a->get_const_values());
     const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<acc::size_type, 2>{{b->get_size()[0], b->get_size()[1]}},
+        std::array<acc::size_type, 2>{
+            {static_cast<acc::size_type>(b->get_size()[0]),
+             static_cast<acc::size_type>(b->get_size()[1])}},
         b->get_const_values(),
-        std::array<acc::size_type, 1>{{b->get_stride()}});
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(b->get_stride())}});
 
     if (alpha == nullptr && beta == nullptr) {
         kernel::spmv<num_thread_per_worker, atomic>

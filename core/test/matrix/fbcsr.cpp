@@ -78,8 +78,10 @@ void assert_matrices_are_same(
     const int bs = bm->get_block_size();
     const auto nbnz = bm->get_num_stored_blocks();
     gko::acc::range<gko::acc::block_col_major<const ValueType, 3>> fbvals(
-        std::array<gko::size_type, 3>{nbnz, static_cast<gko::size_type>(bs),
-                                      static_cast<gko::size_type>(bs)},
+        std::array<gko::acc::size_type, 3>{
+            static_cast<gko::acc::size_type>(nbnz),
+            static_cast<gko::acc::size_type>(bs),
+            static_cast<gko::acc::size_type>(bs)},
         bm->get_const_values());
 
     for (IndexType ibrow = 0; ibrow < nbrows; ibrow++) {

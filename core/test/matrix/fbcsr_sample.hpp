@@ -108,8 +108,10 @@ public:
         c[3] = 2;
 
         gko::acc::range<gko::acc::block_col_major<value_type, 3>> vals(
-            std::array<size_type, 3>{nbnz, static_cast<size_type>(bs),
-                                     static_cast<size_type>(bs)},
+            std::array<gko::acc::size_type, 3>{
+                static_cast<gko::acc::size_type>(nbnz),
+                static_cast<gko::acc::size_type>(bs),
+                static_cast<gko::acc::size_type>(bs)},
             v);
 
         if (mtx->get_size()[0] % bs != 0)

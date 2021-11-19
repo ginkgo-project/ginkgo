@@ -443,15 +443,6 @@ GKO_ENABLE_DEFAULT_HOST(extract_diagonal, extract_diagonal);
 
 namespace {
 
-template <int dim, typename Type1, typename Type2>
-GKO_INLINE auto as_dpcpp_accessor(
-    const acc::range<acc::reduced_row_major<dim, Type1, Type2>>& acc)
-{
-    return acc::range<acc::reduced_row_major<dim, Type1, Type2>>(
-        acc.get_accessor().get_size(), acc.get_accessor().get_stored_data(),
-        acc.get_accessor().get_stride());
-}
-
 
 template <int info, typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
@@ -483,26 +474,30 @@ void abstract_spmv(syn::value_list<int, info>,
                          b->get_size()[1], 1);
 
     const auto a_vals = gko::acc::range<a_accessor>(
-        std::array<size_type, 1>{{num_stored_elements_per_row * stride}},
+        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(
+            num_stored_elements_per_row * stride)}},
         a->get_const_values());
     const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<size_type, 2>{{b->get_size()[0], b->get_size()[1]}},
-        b->get_const_values(), std::array<size_type, 1>{{b->get_stride()}});
+        std::array<acc::size_type, 2>{
+            {static_cast<acc::size_type>(b->get_size()[0]),
+             static_cast<acc::size_type>(b->get_size()[1])}},
+        b->get_const_values(),
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(b->get_stride())}});
 
     if (alpha == nullptr && beta == nullptr) {
         kernel::spmv<num_thread_per_worker, atomic>(
             grid_size, block_size, 0, exec->get_queue(), nrows,
-            num_worker_per_row, as_dpcpp_accessor(a_vals),
-            a->get_const_col_idxs(), stride, num_stored_elements_per_row,
-            as_dpcpp_accessor(b_vals), c->get_values(), c->get_stride());
+            num_worker_per_row, a_vals, a->get_const_col_idxs(), stride,
+            num_stored_elements_per_row, b_vals, c->get_values(),
+            c->get_stride());
     } else if (alpha != nullptr && beta != nullptr) {
         const auto alpha_val = gko::acc::range<a_accessor>(
-            std::array<size_type, 1>{1}, alpha->get_const_values());
+            std::array<acc::size_type, 1>{1}, alpha->get_const_values());
         kernel::spmv<num_thread_per_worker, atomic>(
             grid_size, block_size, 0, exec->get_queue(), nrows,
-            num_worker_per_row, as_dpcpp_accessor(alpha_val),
-            as_dpcpp_accessor(a_vals), a->get_const_col_idxs(), stride,
-            num_stored_elements_per_row, as_dpcpp_accessor(b_vals),
+            num_worker_per_row, alpha_val, a_vals, a->get_const_col_idxs(),
+            stride, num_stored_elements_per_row, b_vals,
             beta->get_const_values(), c->get_values(), c->get_stride());
     } else {
         GKO_KERNEL_NOT_FOUND;
