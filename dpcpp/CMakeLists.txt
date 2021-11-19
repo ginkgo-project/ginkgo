@@ -53,7 +53,7 @@ target_sources(ginkgo_dpcpp
     )
 
 ginkgo_compile_features(ginkgo_dpcpp)
-target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP)
+target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP _ONEDPL_COMPILE_KERNEL=0)
 
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")

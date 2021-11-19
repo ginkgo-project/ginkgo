@@ -65,6 +65,13 @@ namespace kernels {
                        const matrix::Dense<ValueType>* beta,         \
                        matrix::Dense<ValueType>* c)
 
+#define GKO_DECLARE_FBCSR_FROM_MATRIX_DATA_KERNEL(ValueType, IndexType) \
+    void from_matrix_data(                                              \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const Array<matrix_data_entry<ValueType, IndexType>>& data,     \
+        int block_size, Array<IndexType>& row_ptrs,                     \
+        Array<IndexType>& col_idxs, Array<ValueType>& values)
+
 #define GKO_DECLARE_FBCSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
     void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,       \
                           const matrix::Fbcsr<ValueType, IndexType>* source, \
@@ -117,6 +124,8 @@ namespace kernels {
     GKO_DECLARE_FBCSR_SPMV_KERNEL(ValueType, IndexType);                       \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);              \
+    template <typename ValueType, typename IndexType>                          \
+    GKO_DECLARE_FBCSR_FROM_MATRIX_DATA_KERNEL(ValueType, IndexType);           \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_FBCSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);           \
     template <typename ValueType, typename IndexType>                          \

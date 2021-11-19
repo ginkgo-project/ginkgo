@@ -133,6 +133,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void fill_in_matrix_data(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const Array<matrix_data_entry<ValueType, IndexType>>& data,
+    matrix::Diagonal<ValueType>* output)
+{
+    for (size_type i = 0; i < data.get_num_elems(); i++) {
+        const auto entry = data.get_const_data()[i];
+        if (entry.row == entry.column) {
+            output->get_values()[entry.row] = entry.value;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIAGONAL_FILL_IN_MATRIX_DATA_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Diagonal<ValueType>* source,
                     matrix::Csr<ValueType, IndexType>* result)

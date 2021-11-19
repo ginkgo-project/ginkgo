@@ -71,6 +71,21 @@ namespace kernels {
     GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL(ValueType, IndexType, \
                                                          ::gko::int64)
 
+#define GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_FROM_IDXS_KERNEL(        \
+    IndexType, RowPtrType)                                                     \
+    void build_row_ptrs_from_idxs(std::shared_ptr<const DefaultExecutor> exec, \
+                                  const Array<IndexType>& row_idxs,            \
+                                  size_type num_rows, RowPtrType* row_ptrs)
+
+#define GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_FROM_IDXS_KERNEL32( \
+    IndexType)                                                            \
+    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_FROM_IDXS_KERNEL(       \
+        IndexType, ::gko::int32)
+#define GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_FROM_IDXS_KERNEL64( \
+    IndexType)                                                            \
+    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_FROM_IDXS_KERNEL(       \
+        IndexType, ::gko::int64)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
     template <typename ValueType, typename IndexType>                          \
@@ -80,7 +95,10 @@ namespace kernels {
                                                          IndexType);           \
     template <typename ValueType, typename IndexType, typename RowPtrType>     \
     GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL(ValueType, IndexType, \
-                                                         RowPtrType)
+                                                         RowPtrType);          \
+    template <typename IndexType, typename RowPtrType>                         \
+    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_FROM_IDXS_KERNEL(IndexType,  \
+                                                                   RowPtrType)
 
 
 namespace omp {

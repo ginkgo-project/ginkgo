@@ -126,6 +126,70 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL);
 
 
+void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
+                        const Array<int64>& row_ptrs, size_type slice_size,
+                        size_type stride_factor, size_type* slice_sets,
+                        size_type* slice_lengths)
+{
+    const auto num_rows = row_ptrs.get_num_elems() - 1;
+    const auto num_slices = ceildiv(num_rows, slice_size);
+    const auto row_ptrs_ptr = row_ptrs.get_const_data();
+    for (size_type slice = 0; slice < num_slices; slice++) {
+        size_type slice_length = 0;
+        for (size_type local_row = 0; local_row < slice_size; local_row++) {
+            const auto row = slice * slice_size + local_row;
+            const auto row_length =
+                row < num_rows ? row_ptrs_ptr[row + 1] - row_ptrs_ptr[row]
+                               : int64{};
+            slice_length = std::max<size_type>(
+                slice_length,
+                ceildiv(row_length, stride_factor) * stride_factor);
+        }
+        slice_lengths[slice] = slice_length;
+    }
+    exec->copy(num_slices, slice_lengths, slice_sets);
+    components::prefix_sum(exec, slice_sets, num_slices + 1);
+}
+
+
+template <typename ValueType, typename IndexType>
+void from_matrix_data(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
+    const int64* row_ptrs, matrix::Sellp<ValueType, IndexType>* output)
+{
+    const auto slice_size = output->get_slice_size();
+    const auto slice_sets = output->get_const_slice_sets();
+    const auto cols = output->get_col_idxs();
+    const auto vals = output->get_values();
+    for (size_type row = 0; row < output->get_size()[0]; row++) {
+        const auto row_begin = row_ptrs[row];
+        const auto row_end = row_ptrs[row + 1];
+        const auto row_nnz = row_end - row_begin;
+        const auto slice = row / slice_size;
+        const auto local_row = row % slice_size;
+        const auto slice_begin = slice_sets[slice];
+        const auto slice_end = slice_sets[slice + 1];
+        const auto slice_length = slice_end - slice_begin;
+        auto out_idx = slice_begin * slice_size + local_row;
+        for (auto i = row_begin; i < row_end; i++) {
+            const auto nonzero = nonzeros.get_const_data()[i];
+            cols[out_idx] = nonzero.column;
+            vals[out_idx] = nonzero.value;
+            out_idx += slice_size;
+        }
+        for (auto i = row_nnz; i < slice_length; i++) {
+            cols[out_idx] = 0;
+            vals[out_idx] = zero<ValueType>();
+            out_idx += slice_size;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SELLP_FROM_MATRIX_DATA_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Sellp<ValueType, IndexType>* source,

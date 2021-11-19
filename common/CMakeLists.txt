@@ -8,6 +8,10 @@ set(UNIFIED_SOURCES
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
     matrix/dense_kernels.cpp
+    matrix/ell_kernels.cpp
+    matrix/hybrid_kernels.cpp
+    matrix/sellp_kernels.cpp
+    matrix/sparsity_csr_kernels.cpp
     matrix/diagonal_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     solver/bicg_kernels.cpp

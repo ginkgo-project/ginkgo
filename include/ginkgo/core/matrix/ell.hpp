@@ -92,6 +92,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Ell>;
 
     friend class Ell<next_precision<ValueType>, IndexType>;
@@ -110,6 +111,8 @@ public:
     void move_to(Csr<ValueType, IndexType>* other) override;
 
     void read(const mat_data& data) override;
+
+    void read(const device_mat_data& data) override;
 
     void write(mat_data& data) const override;
 

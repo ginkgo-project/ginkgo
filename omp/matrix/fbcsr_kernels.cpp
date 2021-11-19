@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "accessor/block_col_major.hpp"
+#include "core/base/allocator.hpp"
 #include "core/base/block_sizes.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/base/utils.hpp"
@@ -148,6 +149,59 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void from_matrix_data(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const Array<matrix_data_entry<ValueType, IndexType>>& data, int block_size,
+    Array<IndexType>& row_ptrs, Array<IndexType>& col_idxs,
+    Array<ValueType>& values)
+{
+    Array<matrix_data_entry<ValueType, IndexType>> block_ordered{exec, data};
+    const auto in_nnz = data.get_num_elems();
+    auto block_ordered_ptr = block_ordered.get_data();
+    std::sort(
+        block_ordered_ptr, block_ordered_ptr + in_nnz,
+        [block_size](auto a, auto b) {
+            return std::make_tuple(a.row / block_size, a.column / block_size) <
+                   std::make_tuple(b.row / block_size, b.column / block_size);
+        });
+    auto row_ptrs_ptr = row_ptrs.get_data();
+    gko::vector<IndexType> col_idx_vec{{exec}};
+    gko::vector<ValueType> value_vec{{exec}};
+    int64 block_row = -1;
+    int64 block_col = -1;
+    for (size_type i = 0; i < in_nnz; i++) {
+        const auto entry = block_ordered_ptr[i];
+        const auto new_block_row = entry.row / block_size;
+        const auto new_block_col = entry.column / block_size;
+        while (new_block_row > block_row) {
+            // we finished row block_row, so store its end pointer
+            row_ptrs_ptr[block_row + 1] = col_idx_vec.size();
+            block_col = -1;
+            ++block_row;
+        }
+        if (new_block_col != block_col) {
+            // we encountered a new column, so insert it with block storage
+            col_idx_vec.emplace_back(new_block_col);
+            value_vec.resize(value_vec.size() + block_size * block_size);
+            block_col = new_block_col;
+        }
+        const auto local_row = entry.row % block_size;
+        const auto local_col = entry.column % block_size;
+        value_vec[row_ptrs_ptr[block_row] * block_size * block_size +
+                  local_row + local_col * block_size] = entry.value;
+    }
+    row_ptrs_ptr[row_ptrs.get_num_elems() - 1] = col_idx_vec.size();
+    values.resize_and_reset(value_vec.size());
+    col_idxs.resize_and_reset(col_idx_vec.size());
+    std::copy(value_vec.begin(), value_vec.end(), values.get_data());
+    std::copy(col_idx_vec.begin(), col_idx_vec.end(), col_idxs.get_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FBCSR_FROM_MATRIX_DATA_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

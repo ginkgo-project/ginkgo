@@ -61,6 +61,7 @@ GKO_REGISTER_OPERATION(spmv, coo::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, coo::advanced_spmv);
 GKO_REGISTER_OPERATION(spmv2, coo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2);
+GKO_REGISTER_OPERATION(from_matrix_data, coo::from_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_csr, coo::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense);
 GKO_REGISTER_OPERATION(extract_diagonal, coo::extract_diagonal);
@@ -193,36 +194,29 @@ void Coo<ValueType, IndexType>::move_to(Dense<ValueType>* result)
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::read(const mat_data& data)
 {
-    size_type nnz = 0;
-    for (const auto& elem : data.nonzeros) {
-        nnz += (elem.value != zero<ValueType>());
-    }
-    auto tmp = Coo::create(this->get_executor()->get_master(), data.size, nnz);
-    size_type elt = 0;
-    for (const auto& elem : data.nonzeros) {
-        auto val = elem.value;
-        if (val != zero<ValueType>()) {
-            tmp->get_row_idxs()[elt] = elem.row;
-            tmp->get_col_idxs()[elt] = elem.column;
-            tmp->get_values()[elt] = elem.value;
-            elt++;
-        }
-    }
-    this->copy_from(std::move(tmp));
+    this->read(device_mat_data::create_from_host(this->get_executor(),
+                                                 const_cast<mat_data&>(data)));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::read(const device_mat_data& data)
+{
+    const auto nnz = data.nonzeros.get_num_elems();
+    auto exec = this->get_executor();
+    this->set_size(data.size);
+    this->row_idxs_.resize_and_reset(nnz);
+    this->col_idxs_.resize_and_reset(nnz);
+    this->values_.resize_and_reset(nnz);
+    auto nonzeros = make_temporary_clone(exec, &data.nonzeros);
+    exec->run(coo::make_from_matrix_data(*nonzeros, this));
 }
 
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::write(mat_data& data) const
 {
-    std::unique_ptr<const LinOp> op{};
-    const Coo* tmp{};
-    if (this->get_executor()->get_master() != this->get_executor()) {
-        op = this->clone(this->get_executor()->get_master());
-        tmp = static_cast<const Coo*>(op.get());
-    } else {
-        tmp = this;
-    }
+    auto tmp = make_temporary_clone(this->get_executor()->get_master(), this);
 
     data = {this->get_size(), {}};
 

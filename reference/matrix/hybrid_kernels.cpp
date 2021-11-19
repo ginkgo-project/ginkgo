@@ -56,6 +56,53 @@ namespace reference {
 namespace hybrid {
 
 
+void compute_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
+                     const Array<int64>& row_ptrs, size_type* row_nnzs)
+{
+    for (size_type i = 0; i < row_ptrs.get_num_elems() - 1; i++) {
+        row_nnzs[i] =
+            row_ptrs.get_const_data()[i + 1] - row_ptrs.get_const_data()[i];
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void split_matrix_data(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const Array<matrix_data_entry<ValueType, IndexType>>& data,
+    const int64* row_ptrs, size_type ell_limit, size_type num_rows,
+    Array<matrix_data_entry<ValueType, IndexType>>& ell_data,
+    Array<matrix_data_entry<ValueType, IndexType>>& coo_data)
+{
+    auto data_ptr = data.get_const_data();
+    size_type ell_nnz{};
+    for (size_type row = 0; row < num_rows; row++) {
+        ell_nnz +=
+            std::min<size_type>(ell_limit, row_ptrs[row + 1] - row_ptrs[row]);
+    }
+    ell_data.resize_and_reset(ell_nnz);
+    coo_data.resize_and_reset(data.get_num_elems() - ell_nnz);
+    size_type ell_nz{};
+    size_type coo_nz{};
+    for (size_type row = 0; row < num_rows; row++) {
+        size_type local_ell_nnz{};
+        for (auto i = row_ptrs[row]; i < row_ptrs[row + 1]; i++) {
+            if (local_ell_nnz < ell_limit) {
+                ell_data.get_data()[ell_nz] = data.get_const_data()[i];
+                ell_nz++;
+                local_ell_nnz++;
+            } else {
+                coo_data.get_data()[coo_nz] = data.get_const_data()[i];
+                coo_nz++;
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_HYBRID_SPLIT_MATRIX_DATA_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Hybrid<ValueType, IndexType>* source,

@@ -55,13 +55,11 @@ namespace kernels {
                         const matrix::Dense<value_type>* b,          \
                         matrix::Dense<value_type>* c)
 
-
 #define GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL(value_type)       \
     void right_apply_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
                               const matrix::Diagonal<value_type>* a,       \
                               const matrix::Dense<value_type>* b,          \
                               matrix::Dense<value_type>* c)
-
 
 #define GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL(value_type, index_type) \
     void apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,       \
@@ -69,13 +67,17 @@ namespace kernels {
                       const matrix::Csr<value_type, index_type>* b,      \
                       matrix::Csr<value_type, index_type>* c)
 
-
 #define GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL(value_type, index_type) \
     void right_apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,       \
                             const matrix::Diagonal<value_type>* a,             \
                             const matrix::Csr<value_type, index_type>* b,      \
                             matrix::Csr<value_type, index_type>* c)
 
+#define GKO_DECLARE_DIAGONAL_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType) \
+    void fill_in_matrix_data(                                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                          \
+        const Array<matrix_data_entry<ValueType, IndexType>>& data,           \
+        matrix::Diagonal<ValueType>* output)
 
 #define GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType) \
     void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,     \
@@ -87,18 +89,20 @@ namespace kernels {
                         const matrix::Diagonal<ValueType>* orig,     \
                         matrix::Diagonal<ValueType>* trans)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL(ValueType);                \
-    template <typename ValueType>                                         \
-    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL(ValueType);          \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL(ValueType, IndexType);       \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);     \
-    template <typename ValueType>                                         \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
+    template <typename ValueType>                                          \
+    GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL(ValueType);                 \
+    template <typename ValueType>                                          \
+    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL(ValueType);           \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_DIAGONAL_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);      \
+    template <typename ValueType>                                          \
     GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL(ValueType)
 
 

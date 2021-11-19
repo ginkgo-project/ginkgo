@@ -91,7 +91,7 @@ struct matrix_data_entry {
     using index_type = IndexType;
     matrix_data_entry() = default;
 
-    matrix_data_entry(index_type r, index_type c, value_type v)
+    GKO_ATTRIBUTES matrix_data_entry(index_type r, index_type c, value_type v)
         : row(r), column(c), value(v)
     {}
 

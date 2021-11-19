@@ -356,6 +356,23 @@ void spgeam(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void from_matrix_data(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
+    matrix::Csr<ValueType, IndexType>* output)
+{
+    for (size_type i = 0; i < nonzeros.get_num_elems(); i++) {
+        const auto nonzero = nonzeros.get_const_data()[i];
+        output->get_col_idxs()[i] = nonzero.column;
+        output->get_values()[i] = nonzero.value;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_FROM_MATRIX_DATA_KERNEL);
+
+
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const ReferenceExecutor> exec,
                               const IndexType* ptrs, size_type num_rows,

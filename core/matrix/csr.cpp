@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/absolute_array_kernels.hpp"
+#include "core/components/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -64,6 +65,8 @@ GKO_REGISTER_OPERATION(advanced_spmv, csr::advanced_spmv);
 GKO_REGISTER_OPERATION(spgemm, csr::spgemm);
 GKO_REGISTER_OPERATION(advanced_spgemm, csr::advanced_spgemm);
 GKO_REGISTER_OPERATION(spgeam, csr::spgeam);
+GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
+GKO_REGISTER_OPERATION(from_matrix_data, csr::from_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
@@ -321,45 +324,32 @@ void Csr<ValueType, IndexType>::move_to(Ell<ValueType, IndexType>* result)
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::read(const mat_data& data)
 {
-    size_type nnz = 0;
-    for (const auto& elem : data.nonzeros) {
-        nnz += (elem.value != zero<ValueType>());
-    }
-    auto tmp = Csr::create(this->get_executor()->get_master(), data.size, nnz,
-                           this->get_strategy());
-    size_type ind = 0;
-    size_type cur_ptr = 0;
-    tmp->get_row_ptrs()[0] = cur_ptr;
-    for (size_type row = 0; row < data.size[0]; ++row) {
-        for (; ind < data.nonzeros.size(); ++ind) {
-            if (data.nonzeros[ind].row > row) {
-                break;
-            }
-            auto val = data.nonzeros[ind].value;
-            if (val != zero<ValueType>()) {
-                tmp->get_values()[cur_ptr] = val;
-                tmp->get_col_idxs()[cur_ptr] = data.nonzeros[ind].column;
-                ++cur_ptr;
-            }
-        }
-        tmp->get_row_ptrs()[row + 1] = cur_ptr;
-    }
-    tmp->make_srow();
-    tmp->move_to(this);
+    this->read(device_mat_data::create_from_host(this->get_executor(),
+                                                 const_cast<mat_data&>(data)));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::read(const device_mat_data& data)
+{
+    const auto nnz = data.nonzeros.get_num_elems();
+    auto exec = this->get_executor();
+    this->set_size(data.size);
+    this->row_ptrs_.resize_and_reset(data.size[0] + 1);
+    this->col_idxs_.resize_and_reset(nnz);
+    this->values_.resize_and_reset(nnz);
+    auto local_data = make_temporary_clone(exec, &data.nonzeros);
+    exec->run(csr::make_build_row_ptrs(*local_data, data.size[0],
+                                       this->get_row_ptrs()));
+    exec->run(csr::make_from_matrix_data(*local_data, this));
+    this->make_srow();
 }
 
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::write(mat_data& data) const
 {
-    std::unique_ptr<const LinOp> op{};
-    const Csr* tmp{};
-    if (this->get_executor()->get_master() != this->get_executor()) {
-        op = this->clone(this->get_executor()->get_master());
-        tmp = static_cast<const Csr*>(op.get());
-    } else {
-        tmp = this;
-    }
+    auto tmp = make_temporary_clone(this->get_executor()->get_master(), this);
 
     data = {tmp->get_size(), {}};
 

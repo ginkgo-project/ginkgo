@@ -106,11 +106,7 @@ struct span {
      *
      * @return `this->end - this->begin`
      */
-    GKO_ATTRIBUTES constexpr size_type length() const
-    {
-        GKO_ASSERT(is_valid());
-        return end - begin;
-    }
+    GKO_ATTRIBUTES constexpr size_type length() const { return end - begin; }
 
     /**
      * Beginning of the span.

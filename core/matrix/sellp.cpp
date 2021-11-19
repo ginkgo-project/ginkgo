@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/allocator.hpp"
 #include "core/components/absolute_array_kernels.hpp"
+#include "core/components/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/sellp_kernels.hpp"
 
@@ -56,6 +57,9 @@ namespace {
 
 GKO_REGISTER_OPERATION(spmv, sellp::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, sellp::advanced_spmv);
+GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
+GKO_REGISTER_OPERATION(compute_slice_sets, sellp::compute_slice_sets);
+GKO_REGISTER_OPERATION(from_matrix_data, sellp::from_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_dense, sellp::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_csr, sellp::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, sellp::count_nonzeros);
@@ -69,47 +73,6 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 }  // anonymous namespace
 }  // namespace sellp
-
-
-namespace {
-
-
-template <typename ValueType, typename IndexType>
-size_type calculate_total_cols(const matrix_data<ValueType, IndexType>& data,
-                               const size_type slice_size,
-                               const size_type stride_factor,
-                               vector<size_type>& slice_lengths)
-{
-    size_type nonzeros_per_row = 0;
-    IndexType current_row = 0;
-    IndexType current_slice = 0;
-    size_type total_cols = 0;
-    for (const auto& elem : data.nonzeros) {
-        if (elem.row != current_row) {
-            current_row = elem.row;
-            slice_lengths[current_slice] =
-                max(slice_lengths[current_slice], nonzeros_per_row);
-            nonzeros_per_row = 0;
-        }
-        if (elem.row / slice_size != current_slice) {
-            slice_lengths[current_slice] =
-                stride_factor *
-                ceildiv(slice_lengths[current_slice], stride_factor);
-            total_cols += slice_lengths[current_slice];
-            current_slice = elem.row / slice_size;
-        }
-        nonzeros_per_row += (elem.value != zero<ValueType>());
-    }
-    slice_lengths[current_slice] =
-        max(slice_lengths[current_slice], nonzeros_per_row);
-    slice_lengths[current_slice] =
-        stride_factor * ceildiv(slice_lengths[current_slice], stride_factor);
-    total_cols += slice_lengths[current_slice];
-    return total_cols;
-}
-
-
-}  // namespace
 
 
 template <typename ValueType, typename IndexType>
@@ -146,7 +109,6 @@ void Sellp<ValueType, IndexType>::convert_to(
     result->slice_sets_ = this->slice_sets_;
     result->slice_size_ = this->slice_size_;
     result->stride_factor_ = this->stride_factor_;
-    result->total_cols_ = this->total_cols_;
     result->set_size(this->get_size());
 }
 
@@ -200,66 +162,35 @@ void Sellp<ValueType, IndexType>::move_to(Csr<ValueType, IndexType>* result)
 
 
 template <typename ValueType, typename IndexType>
+void Sellp<ValueType, IndexType>::read(const device_mat_data& data)
+{
+    auto exec = this->get_executor();
+    if (this->get_size() != data.size) {
+        slice_lengths_.resize_and_reset(ceildiv(data.size[0], slice_size_));
+        slice_sets_.resize_and_reset(ceildiv(data.size[0], slice_size_) + 1);
+        this->set_size(data.size);
+    }
+    Array<int64> row_ptrs{exec, data.size[0] + 1};
+    auto local_data = make_temporary_clone(exec, &data.nonzeros);
+    exec->run(sellp::make_build_row_ptrs(*local_data, data.size[0],
+                                         row_ptrs.get_data()));
+    exec->run(sellp::make_compute_slice_sets(
+        row_ptrs, this->get_slice_size(), this->get_stride_factor(),
+        slice_sets_.get_data(), slice_lengths_.get_data()));
+    const auto total_cols = exec->copy_val_to_host(
+        slice_sets_.get_data() + slice_sets_.get_num_elems() - 1);
+    values_.resize_and_reset(total_cols * slice_size_);
+    col_idxs_.resize_and_reset(total_cols * slice_size_);
+    exec->run(sellp::make_from_matrix_data(*local_data,
+                                           row_ptrs.get_const_data(), this));
+}
+
+
+template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::read(const mat_data& data)
 {
-    // Make sure that slice_size and stride factor are not zero.
-    auto slice_size = (this->get_slice_size() == 0) ? default_slice_size
-                                                    : this->get_slice_size();
-    auto stride_factor = (this->get_stride_factor() == 0)
-                             ? default_stride_factor
-                             : this->get_stride_factor();
-
-    // Allocate space for slice_cols.
-    size_type slice_num =
-        static_cast<index_type>((data.size[0] + slice_size - 1) / slice_size);
-    vector<size_type> slice_lengths(slice_num, 0,
-                                    {this->get_executor()->get_master()});
-
-    // Get the number of maximum columns for every slice.
-    auto total_cols =
-        calculate_total_cols(data, slice_size, stride_factor, slice_lengths);
-
-    // Create an SELL-P format matrix based on the sizes.
-    auto tmp = Sellp::create(this->get_executor()->get_master(), data.size,
-                             slice_size, stride_factor, total_cols);
-
-    // Get slice length, slice set, matrix values and column indexes.
-    index_type slice_set = 0;
-    size_type ind = 0;
-    auto n = data.nonzeros.size();
-    for (size_type slice = 0; slice < slice_num; slice++) {
-        tmp->get_slice_lengths()[slice] = slice_lengths[slice];
-        tmp->get_slice_sets()[slice] = slice_set;
-        slice_set += tmp->get_slice_lengths()[slice];
-        for (size_type row_in_slice = 0; row_in_slice < slice_size;
-             row_in_slice++) {
-            size_type col = 0;
-            size_type row = slice * slice_size + row_in_slice;
-            while (ind < n && data.nonzeros[ind].row == row) {
-                auto val = data.nonzeros[ind].value;
-                auto sellp_ind =
-                    (tmp->get_slice_sets()[slice] + col) * slice_size +
-                    row_in_slice;
-                if (val != zero<ValueType>()) {
-                    tmp->get_values()[sellp_ind] = val;
-                    tmp->get_col_idxs()[sellp_ind] = data.nonzeros[ind].column;
-                    col++;
-                }
-                ind++;
-            }
-            for (auto i = col; i < tmp->get_slice_lengths()[slice]; i++) {
-                auto sellp_ind =
-                    (tmp->get_slice_sets()[slice] + i) * slice_size +
-                    row_in_slice;
-                tmp->get_values()[sellp_ind] = zero<ValueType>();
-                tmp->get_col_idxs()[sellp_ind] = 0;
-            }
-        }
-    }
-    tmp->get_slice_sets()[slice_num] = slice_set;
-
-    // Return the matrix.
-    tmp->move_to(this);
+    this->read(device_mat_data::create_from_host(this->get_executor(),
+                                                 const_cast<mat_data&>(data)));
 }
 
 

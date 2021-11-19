@@ -30,72 +30,82 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/coo_kernels.hpp"
+#include "core/matrix/ell_kernels.hpp"
 
 
 #include <ginkgo/core/base/math.hpp>
 
 
 #include "common/unified/base/kernel_launch.hpp"
+#include "common/unified/base/kernel_launch_reduction.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 /**
- * @brief The Coo matrix format namespace.
+ * @brief The Ell matrix format namespace.
  *
- * @ingroup coo
+ * @ingroup ell
  */
-namespace coo {
+namespace ell {
+
+
+template <typename IndexType>
+void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
+                         const Array<IndexType>& row_ptrs, size_type& max_nnz)
+{
+    Array<size_type> result{exec, 1};
+    run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto row_ptrs) {
+            return row_ptrs[i + 1] - row_ptrs[i];
+        },
+        [] GKO_KERNEL(auto a, auto b) { return a > b ? a : b; },
+        [] GKO_KERNEL(auto a) { return a; }, size_type{}, result.get_data(),
+        row_ptrs.get_num_elems() - 1, row_ptrs);
+    max_nnz = exec->copy_val_to_host(result.get_const_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void from_matrix_data(
     std::shared_ptr<const DefaultExecutor> exec,
     const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
-    matrix::Coo<ValueType, IndexType>* output)
+    const int64* row_ptrs, matrix::Ell<ValueType, IndexType>* output)
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto nonzeros, auto rows, auto cols,
-                      auto values) {
-            auto nonzero = nonzeros[i];
-            rows[i] = nonzero.row;
-            cols[i] = nonzero.column;
-            values[i] = unpack_member(nonzero.value);
-        },
-        nonzeros.get_num_elems(), nonzeros, output->get_row_idxs(),
-        output->get_col_idxs(), output->get_values());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_FROM_MATRIX_DATA_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType>* orig,
-                      matrix::Diagonal<ValueType>* diag)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto tidx, auto orig_values, auto orig_row_idxs,
-                      auto orig_col_idxs, auto diag) {
-            if (orig_row_idxs[tidx] == orig_col_idxs[tidx]) {
-                diag[orig_row_idxs[tidx]] = orig_values[tidx];
+        [] GKO_KERNEL(auto row, auto nonzeros, auto row_ptrs, auto stride,
+                      auto num_cols, auto cols, auto values) {
+            const auto begin = row_ptrs[row];
+            const auto end = row_ptrs[row + 1];
+            const auto nnz = end - begin;
+            auto out_idx = row;
+            for (auto i = begin; i < end; i++) {
+                const auto nonzero = nonzeros[i];
+                cols[out_idx] = nonzero.column;
+                values[out_idx] = unpack_member(nonzero.value);
+                out_idx += stride;
+            }
+            for (auto i = nnz; i < num_cols; i++) {
+                cols[out_idx] = 0;
+                values[out_idx] = zero(values[out_idx]);
+                out_idx += stride;
             }
         },
-        orig->get_num_stored_elements(), orig->get_const_values(),
-        orig->get_const_row_idxs(), orig->get_const_col_idxs(),
-        diag->get_values());
+        output->get_size()[0], nonzeros, row_ptrs, output->get_stride(),
+        output->get_num_stored_elements_per_row(), output->get_col_idxs(),
+        output->get_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL);
+    GKO_DECLARE_ELL_FROM_MATRIX_DATA_KERNEL);
 
 
-}  // namespace coo
+}  // namespace ell
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
