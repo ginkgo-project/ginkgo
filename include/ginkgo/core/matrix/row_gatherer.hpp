@@ -54,8 +54,8 @@ namespace matrix {
 
 
 /**
- * RowGatherer is a matrix "format" which stores the row rowgatherer
- * arrays which can be used to perform rowgatherer rows to another matrix.
+ * RowGatherer is a matrix "format" which stores the gather indices arrays which
+ * can be used to gather rows to another matrix.
  *
  * @tparam IndexType  precision of rowgatherer array indices.
  *
@@ -114,7 +114,7 @@ public:
 
 protected:
     /**
-     * Creates an uninitialized RowGatherer arrays on the specified executor..
+     * Creates an uninitialized RowGatherer arrays on the specified executor.
      *
      * @param exec  Executor associated to the LinOp
      */
@@ -134,13 +134,13 @@ protected:
 
     /**
      * Creates a RowGatherer matrix from an already allocated (and initialized)
-     * row and column rowgatherer arrays.
+     * row gathering array
      *
      * @tparam IndicesArray  type of array of indices
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the rowgatherer array.
-     * @param row_gather_indexindices array of rowgatherer array
+     * @param row_gather_index array of rowgatherer array
      *
      * @note If `row_gather_index` is not an rvalue, not an array of
      * IndexType, or is on the wrong executor, an internal copy will be created,

@@ -567,17 +567,18 @@ public:
  * The RowGatherable is an interface that allows to get the row gather result of
  * a LinOp.
  *
- * @tparam IndexType  the index type of gather_indices
+ * @tparam IndexType  the type of the indices used to extract/gather the rows
  */
 template <typename IndexType>
 class RowGatherable {
 public:
     /**
-     * Gets the LinOp after row gather
+     * Returns the LinOp containing a copy of the gathered rows
      *
-     * @param gather_indeces  the row gather index
+     * @param gather_indeces  pointer to an array containing row indices
+     *                        from this matrix. It may contain duplicates.
      *
-     * @return a pointer to the new LinOp after row gather
+     * @return a pointer to the new LinOp containing a copy of the gathered rows
      */
     virtual std::unique_ptr<LinOp> row_gather_linop(
         const Array<IndexType>* gather_indices) const = 0;
@@ -607,13 +608,15 @@ public:
      * @param beta  scaling the input row_collection
      * @param row_collection  pointer to a LinOp that will store the
      *             gathered rows:
-     *             row_collection(i,j) = input(gather_indices(i), j)`
+     *             `row_collection(i,j) = input(gather_indices(i), j)`
      *             It must have the same number of columns as this
      *             matrix and `gather_indices->get_num_elems()` rows.
      */
     virtual void row_gather(const LinOp* alpha,
                             const Array<IndexType>* gather_indices,
                             const LinOp* beta, LinOp* row_collection) const = 0;
+
+    virtual ~RowGatherable() = default;
 };
 
 
@@ -623,7 +626,7 @@ public:
  *
  * @tparam OutputType  the OutputType which is being returned
  *                     [CRTP parameter]
- * @tparam IndexType  the index type of gather_indices
+ * @tparam IndexType  the type of the indices used to extract/gather the rows
  *
  * @ingroup LinOp
  */
@@ -631,10 +634,8 @@ template <typename OutputType, typename IndexType>
 class EnableRowGather : public RowGatherable<IndexType> {
 public:
     using output_type = OutputType;
-    // linop version
+    // void row_gather(const Array<IndexType>*, LinOp*) const;
     using RowGatherable<IndexType>::row_gather;
-
-    virtual ~EnableRowGather() = default;
 
     std::unique_ptr<LinOp> row_gather_linop(
         const Array<IndexType>* gather_indices) const override
@@ -643,9 +644,10 @@ public:
     }
 
     /**
-     * Gets the OutputType object after row gather
+     * Returns the OutputType object containing a copy of the gathered rows
      *
-     * @return a pointer to the new row_gather result object
+     * @return a pointer to the new row_gather result object containing a copy
+     *         of the gathered rows
      */
     virtual std::unique_ptr<output_type> row_gather(
         const Array<IndexType>* gather_indices) const = 0;

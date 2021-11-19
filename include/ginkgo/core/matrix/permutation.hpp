@@ -157,7 +157,7 @@ public:
 
 protected:
     /**
-     * Creates an uninitialized Permutation arrays on the specified executor..
+     * Creates an uninitialized Permutation arrays on the specified executor.
      *
      * @param exec  Executor associated to the LinOp
      */

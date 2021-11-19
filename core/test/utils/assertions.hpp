@@ -626,8 +626,9 @@ template <typename ValueType>
 }
 
 /**
- * array_equal overload: first is ConstArrayView.
- * It copies the ConstArrayView to Array and then compare the arrays.
+ * array_equal overload: where `first` is a ConstArrayView.
+ * It creates a Array copy of the ConstArrayView and then compare `first` and
+ * `second`.
  *
  * @copydoc array_equal
  */
@@ -642,8 +643,9 @@ template <typename ValueType>
 }
 
 /**
- * array_equal overload: second is ConstArrayView.
- * It copies the ConstArrayView to Array and then compare the arrays.
+ * array_equal overload: where `second` is a ConstArrayView.
+ * It creates a Array copy of the ConstArrayView and then compare `first` and
+ * `second`
  *
  * @copydoc array_equal
  */
@@ -658,8 +660,9 @@ template <typename ValueType>
 }
 
 /**
- * array_equal overload: Both ConstArrayView.
- * It copies the ConstArrayView to Array and then compare the arrays.
+ * array_equal overload: where both `first` and `second` are ConstArrayViews.
+ * It creates Array copies of the ConstArrayView and then compare `first` and
+ * `second`
  *
  * @copydoc array_equal
  */

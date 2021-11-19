@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
+
 using TestType = ::testing::Types<
     std::tuple<float, float, gko::int32>, std::tuple<float, double, gko::int32>,
     std::tuple<double, double, gko::int32>,
@@ -56,6 +57,7 @@ using TestType = ::testing::Types<
     std::tuple<std::complex<float>, std::complex<double>, gko::int32>,
     std::tuple<std::complex<double>, std::complex<double>, gko::int32>,
     std::tuple<std::complex<double>, std::complex<float>, gko::int32>>;
+
 
 template <typename ValueIndexType>
 class RowGatherer : public ::testing::Test {
