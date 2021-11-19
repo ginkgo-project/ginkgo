@@ -43,6 +43,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
+                   std::shared_ptr<gko::ReferenceExecutor>& exec)
+{
+    exec = gko::ReferenceExecutor::create();
+}
+
+
+void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
                    std::shared_ptr<gko::OmpExecutor>& exec)
 {
     exec = gko::OmpExecutor::create();
