@@ -390,6 +390,12 @@ int main()
         auto test = Mtx::create(exec, gko::dim<2>{2, 2});
     }
 
+    // core/matrix/row_gatherer.hpp
+    {
+        using Mtx = gko::matrix::RowGatherer<>;
+        auto test = Mtx::create(exec, gko::dim<2>{2, 2});
+    }
+
     // core/matrix/sellp.hpp
     {
         using Mtx = gko::matrix::Sellp<>;

@@ -72,30 +72,38 @@ namespace {
 
 /**
  * run uses template to go through the list and select the valid
- * tempalate and run it.
+ * template and run it.
  *
  * @tparam Base  the Base class with one template
- * @tparam T  the object type
- * @tparam func  the validation
+ * @tparam T  the type of input object waiting converted
+ * @tparam Func  the validation
  * @tparam ...Args  the variadic arguments.
+ *
+ * @note this is the end case
  */
-template <template <typename> class Base, typename T, typename func,
+template <template <typename> class Base, typename T, typename Func,
           typename... Args>
-void run(T obj, func, Args... args)
+void run(T, Func, Args...)
 {
     GKO_NOT_IMPLEMENTED;
 }
 
 /**
  * run uses template to go through the list and select the valid
- * tempalate and run it.
+ * template and run it.
  *
  * @tparam Base  the Base class with one template
- * @tparam K  the template type
- * @tparam ...Types  other types in the list.
- * @tparam T  the object type
- * @tparam func  the validation
- * @tparam ...Args  the variadic arguments.
+ * @tparam K  the current template type of B. pointer of const Base<K> is tried
+ *            in the convertion.
+ * @tparam ...Types  the other types will be tried in the conversion if K fails
+ * @tparam T  the type of input object waiting converted
+ * @tparam Func  the function will run if the object can be converted to pointer
+ *               of const Base<K>
+ * @tparam ...Args  the additional arguments for the Func
+ *
+ * @param obj  the input object waiting converted
+ * @param f  the function will run if obj can be converted successfully
+ * @param args  the additional arguments for the function
  */
 template <template <typename> class Base, typename K, typename... Types,
           typename T, typename func, typename... Args>

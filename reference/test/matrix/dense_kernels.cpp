@@ -2156,11 +2156,6 @@ TYPED_TEST(Dense, NonSquareMatrixIsTransposableIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixCanGatherRows)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -2175,11 +2170,6 @@ TYPED_TEST(Dense, SquareMatrixCanGatherRows)
 
 TYPED_TEST(Dense, SquareMatrixCanGatherRowsIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -2195,12 +2185,6 @@ TYPED_TEST(Dense, SquareMatrixCanGatherRowsIntoDense)
 
 TYPED_TEST(Dense, SquareSubmatrixCanGatherRowsIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
-
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -2217,11 +2201,6 @@ TYPED_TEST(Dense, SquareSubmatrixCanGatherRowsIntoDense)
 
 TYPED_TEST(Dense, NonSquareSubmatrixCanGatherRowsWithRowGatherable)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
-
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
@@ -2241,11 +2220,6 @@ TYPED_TEST(Dense, NonSquareSubmatrixCanGatherRowsWithRowGatherable)
 TYPED_TEST(Dense,
            NonSquareSubmatrixCanGatherRowsIntoMixedDenseWithRowGatherable)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
-
     using Mtx = typename TestFixture::Mtx;
     using MixedMtx = typename TestFixture::MixedMtx;
     using T = typename TestFixture::value_type;
@@ -2269,11 +2243,6 @@ TYPED_TEST(
     Dense,
     NonSquareSubmatrixCanAdvancedGatherRowsIntoMixedDenseWithRowGatherable)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
-
     using Mtx = typename TestFixture::Mtx;
     using MixedMtx = typename TestFixture::MixedMtx;
     using T = typename TestFixture::value_type;
@@ -2311,11 +2280,6 @@ TYPED_TEST(Dense, SquareMatrixGatherRowsIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixCanGatherRows64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -2330,11 +2294,6 @@ TYPED_TEST(Dense, SquareMatrixCanGatherRows64)
 
 TYPED_TEST(Dense, SquareMatrixCanGatherRowsIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -2350,12 +2309,6 @@ TYPED_TEST(Dense, SquareMatrixCanGatherRowsIntoDense64)
 
 TYPED_TEST(Dense, SquareSubmatrixCanGatherRowsIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
-
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -2372,11 +2325,6 @@ TYPED_TEST(Dense, SquareSubmatrixCanGatherRowsIntoDense64)
 
 TYPED_TEST(Dense, NonSquareSubmatrixCanGatherRowsWithRowGatherable64)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
-
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
@@ -2395,11 +2343,6 @@ TYPED_TEST(Dense, NonSquareSubmatrixCanGatherRowsWithRowGatherable64)
 TYPED_TEST(Dense,
            NonSquareSubmatrixCanGatherRowsIntoMixedDenseWithRowGatherable64)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
-
     using Mtx = typename TestFixture::Mtx;
     using MixedMtx = typename TestFixture::MixedMtx;
     using T = typename TestFixture::value_type;
@@ -2433,11 +2376,6 @@ TYPED_TEST(Dense, SquareMatrixGatherRowsIntoDenseFailsForWrongDimensions64)
 
 TYPED_TEST(Dense, SquareMatrixIsPermutable)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
@@ -2453,11 +2391,6 @@ TYPED_TEST(Dense, SquareMatrixIsPermutable)
 
 TYPED_TEST(Dense, SquareMatrixIsPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
@@ -2474,11 +2407,6 @@ TYPED_TEST(Dense, SquareMatrixIsPermutableIntoDense)
 
 TYPED_TEST(Dense, SquareSubmatrixIsPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
@@ -2530,11 +2458,6 @@ TYPED_TEST(Dense, SquareMatrixPermuteIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixIsInversePermutable)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
@@ -2550,11 +2473,6 @@ TYPED_TEST(Dense, SquareMatrixIsInversePermutable)
 
 TYPED_TEST(Dense, SquareMatrixIsInversePermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
@@ -2571,11 +2489,6 @@ TYPED_TEST(Dense, SquareMatrixIsInversePermutableIntoDense)
 
 TYPED_TEST(Dense, SquareSubmatrixIsInversePermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
@@ -2631,11 +2544,6 @@ TYPED_TEST(Dense, SquareMatrixInversePermuteIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixIsPermutable64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
@@ -2651,11 +2559,6 @@ TYPED_TEST(Dense, SquareMatrixIsPermutable64)
 
 TYPED_TEST(Dense, SquareMatrixIsPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
@@ -2672,11 +2575,6 @@ TYPED_TEST(Dense, SquareMatrixIsPermutableIntoDense64)
 
 TYPED_TEST(Dense, SquareSubmatrixIsPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
@@ -2728,11 +2626,6 @@ TYPED_TEST(Dense, SquareMatrixPermuteIntoDenseFailsForWrongDimensions64)
 
 TYPED_TEST(Dense, SquareMatrixIsInversePermutable64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
@@ -2748,11 +2641,6 @@ TYPED_TEST(Dense, SquareMatrixIsInversePermutable64)
 
 TYPED_TEST(Dense, SquareMatrixIsInversePermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int64> permute_idxs{exec, {1, 2, 0}};
@@ -2769,11 +2657,6 @@ TYPED_TEST(Dense, SquareMatrixIsInversePermutableIntoDense64)
 
 TYPED_TEST(Dense, SquareSubmatrixIsInversePermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     auto exec = this->mtx5->get_executor();
     gko::Array<gko::int64> permute_idxs{exec, {1, 0}};
@@ -2829,11 +2712,6 @@ TYPED_TEST(Dense, SquareMatrixInversePermuteIntoDenseFailsForWrongDimensions64)
 
 TYPED_TEST(Dense, SquareMatrixIsRowPermutable)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -2849,10 +2727,6 @@ TYPED_TEST(Dense, SquareMatrixIsRowPermutable)
 
 TYPED_TEST(Dense, NonSquareMatrixIsRowPermutable)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
@@ -2867,11 +2741,6 @@ TYPED_TEST(Dense, NonSquareMatrixIsRowPermutable)
 
 TYPED_TEST(Dense, SquareMatrixIsRowPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -2888,11 +2757,6 @@ TYPED_TEST(Dense, SquareMatrixIsRowPermutableIntoDense)
 
 TYPED_TEST(Dense, SquareSubmatrixIsRowPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -2935,11 +2799,6 @@ TYPED_TEST(Dense, SquareMatrixRowPermuteIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixIsColPermutable)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -2955,10 +2814,6 @@ TYPED_TEST(Dense, SquareMatrixIsColPermutable)
 
 TYPED_TEST(Dense, NonSquareMatrixIsColPermutable)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
@@ -2973,11 +2828,6 @@ TYPED_TEST(Dense, NonSquareMatrixIsColPermutable)
 
 TYPED_TEST(Dense, SquareMatrixIsColPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -2994,11 +2844,6 @@ TYPED_TEST(Dense, SquareMatrixIsColPermutableIntoDense)
 
 TYPED_TEST(Dense, SquareSubmatrixIsColPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3041,11 +2886,6 @@ TYPED_TEST(Dense, SquareMatrixColPermuteIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutable)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3062,10 +2902,6 @@ TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutable)
 
 TYPED_TEST(Dense, NonSquareMatrixIsInverseRowPermutable)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
@@ -3081,11 +2917,6 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseRowPermutable)
 
 TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3102,11 +2933,6 @@ TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutableIntoDense)
 
 TYPED_TEST(Dense, SquareSubmatrixIsInverseRowPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3151,11 +2977,6 @@ TYPED_TEST(Dense, SquareMatrixInverseRowPermuteIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixIsInverseColPermutable)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3172,10 +2993,6 @@ TYPED_TEST(Dense, SquareMatrixIsInverseColPermutable)
 
 TYPED_TEST(Dense, NonSquareMatrixIsInverseColPermutable)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
@@ -3191,11 +3008,6 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseColPermutable)
 
 TYPED_TEST(Dense, SquareMatrixIsInverseColPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3212,11 +3024,6 @@ TYPED_TEST(Dense, SquareMatrixIsInverseColPermutableIntoDense)
 
 TYPED_TEST(Dense, SquareSubmatrixIsInverseColPermutableIntoDense)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3261,11 +3068,6 @@ TYPED_TEST(Dense, SquareMatrixInverseColPermuteIntoDenseFailsForWrongDimensions)
 
 TYPED_TEST(Dense, SquareMatrixIsRowPermutable64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3281,10 +3083,6 @@ TYPED_TEST(Dense, SquareMatrixIsRowPermutable64)
 
 TYPED_TEST(Dense, NonSquareMatrixIsRowPermutable64)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
@@ -3299,11 +3097,6 @@ TYPED_TEST(Dense, NonSquareMatrixIsRowPermutable64)
 
 TYPED_TEST(Dense, SquareMatrixIsRowPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3320,11 +3113,6 @@ TYPED_TEST(Dense, SquareMatrixIsRowPermutableIntoDense64)
 
 TYPED_TEST(Dense, SquareSubmatrixIsRowPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3367,11 +3155,6 @@ TYPED_TEST(Dense, SquareMatrixRowPermuteIntoDenseFailsForWrongDimensions64)
 
 TYPED_TEST(Dense, SquareMatrixIsColPermutable64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3387,10 +3170,6 @@ TYPED_TEST(Dense, SquareMatrixIsColPermutable64)
 
 TYPED_TEST(Dense, NonSquareMatrixIsColPermutable64)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
@@ -3405,11 +3184,6 @@ TYPED_TEST(Dense, NonSquareMatrixIsColPermutable64)
 
 TYPED_TEST(Dense, SquareMatrixIsColPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3426,11 +3200,6 @@ TYPED_TEST(Dense, SquareMatrixIsColPermutableIntoDense64)
 
 TYPED_TEST(Dense, SquareSubmatrixIsColPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3473,11 +3242,6 @@ TYPED_TEST(Dense, SquareMatrixColPermuteIntoDenseFailsForWrongDimensions64)
 
 TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutable64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3494,10 +3258,6 @@ TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutable64)
 
 TYPED_TEST(Dense, NonSquareMatrixIsInverseRowPermutable64)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
@@ -3513,11 +3273,6 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseRowPermutable64)
 
 TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3534,11 +3289,6 @@ TYPED_TEST(Dense, SquareMatrixIsInverseRowPermutableIntoDense64)
 
 TYPED_TEST(Dense, SquareSubmatrixIsInverseRowPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3584,11 +3334,6 @@ TYPED_TEST(Dense,
 
 TYPED_TEST(Dense, SquareMatrixIsInverseColPermutable64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3605,10 +3350,6 @@ TYPED_TEST(Dense, SquareMatrixIsInverseColPermutable64)
 
 TYPED_TEST(Dense, NonSquareMatrixIsInverseColPermutable64)
 {
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx4->get_executor();
@@ -3624,11 +3365,6 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseColPermutable64)
 
 TYPED_TEST(Dense, SquareMatrixIsInverseColPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3645,11 +3381,6 @@ TYPED_TEST(Dense, SquareMatrixIsInverseColPermutableIntoDense64)
 
 TYPED_TEST(Dense, SquareSubmatrixIsInverseColPermutableIntoDense64)
 {
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto exec = this->mtx5->get_executor();
@@ -3697,11 +3428,6 @@ TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrix)
 {
     using T = typename TestFixture::value_type;
 
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     auto diag = this->mtx5->extract_diagonal();
 
     ASSERT_EQ(diag->get_size()[0], 3);
@@ -3716,10 +3442,6 @@ TYPED_TEST(Dense, ExtractsDiagonalFromTallSkinnyMatrix)
 {
     using T = typename TestFixture::value_type;
 
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     auto diag = this->mtx4->extract_diagonal();
 
     ASSERT_EQ(diag->get_size()[0], 2);
@@ -3733,11 +3455,6 @@ TYPED_TEST(Dense, ExtractsDiagonalFromShortFatMatrix)
 {
     using T = typename TestFixture::value_type;
 
-    // clang-format off
-    // { 1.0, -1.0},
-    // {-2.0,  2.0},
-    // {-3.0,  3.0}
-    // clang-format on
     auto diag = this->mtx8->extract_diagonal();
 
     ASSERT_EQ(diag->get_size()[0], 2);
@@ -3750,12 +3467,6 @@ TYPED_TEST(Dense, ExtractsDiagonalFromShortFatMatrix)
 TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrixIntoDiagonal)
 {
     using T = typename TestFixture::value_type;
-
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     auto diag = gko::matrix::Diagonal<T>::create(this->exec, 3);
 
     this->mtx5->extract_diagonal(diag.get());
@@ -3771,11 +3482,6 @@ TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrixIntoDiagonal)
 TYPED_TEST(Dense, ExtractsDiagonalFromTallSkinnyMatrixIntoDiagonal)
 {
     using T = typename TestFixture::value_type;
-
-    // clang-format off
-    // {1.0, 3.0, 2.0},
-    // {0.0, 5.0, 0.0}
-    // clang-format on
     auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2);
 
     this->mtx4->extract_diagonal(diag.get());
@@ -3790,12 +3496,6 @@ TYPED_TEST(Dense, ExtractsDiagonalFromTallSkinnyMatrixIntoDiagonal)
 TYPED_TEST(Dense, ExtractsDiagonalFromShortFatMatrixIntoDiagonal)
 {
     using T = typename TestFixture::value_type;
-
-    // clang-format off
-    // { 1.0, -1.0},
-    // {-2.0,  2.0},
-    // {-3.0,  3.0}
-    // clang-format on
     auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2);
 
     this->mtx8->extract_diagonal(diag.get());
@@ -3810,11 +3510,6 @@ TYPED_TEST(Dense, ExtractsDiagonalFromShortFatMatrixIntoDiagonal)
 TYPED_TEST(Dense, InplaceAbsolute)
 {
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     this->mtx5->compute_absolute_inplace();
 
@@ -3827,12 +3522,6 @@ TYPED_TEST(Dense, InplaceAbsolute)
 TYPED_TEST(Dense, InplaceAbsoluteSubMatrix)
 {
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
-    // mtx takes the left top corner 2 x 2 matrix
     auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
 
     mtx->compute_absolute_inplace();
@@ -3846,11 +3535,6 @@ TYPED_TEST(Dense, InplaceAbsoluteSubMatrix)
 TYPED_TEST(Dense, OutplaceAbsolute)
 {
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto abs_mtx = this->mtx5->compute_absolute();
 
@@ -3864,11 +3548,6 @@ TYPED_TEST(Dense, OutplaceAbsoluteIntoDense)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     auto abs_mtx =
         gko::remove_complex<Mtx>::create(this->exec, this->mtx5->get_size());
 
@@ -3883,12 +3562,6 @@ TYPED_TEST(Dense, OutplaceAbsoluteIntoDense)
 TYPED_TEST(Dense, OutplaceAbsoluteSubMatrix)
 {
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
-    // mtx takes the left top corner 2 x 2 matrix
     auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
 
     auto abs_mtx = mtx->compute_absolute();
@@ -3902,11 +3575,6 @@ TYPED_TEST(Dense, OutplaceSubmatrixAbsoluteIntoDense)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
     auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
     auto abs_mtx =
         gko::remove_complex<Mtx>::create(this->exec, gko::dim<2>{2, 2}, 4);
@@ -3924,7 +3592,6 @@ TYPED_TEST(Dense, AppliesToComplex)
     using complex_type = gko::to_complex<value_type>;
     using Vec = gko::matrix::Dense<complex_type>;
     auto exec = gko::ReferenceExecutor::create();
-
     auto b =
         gko::initialize<Vec>({{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
                               {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
@@ -3949,7 +3616,6 @@ TYPED_TEST(Dense, AppliesToMixedComplex)
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
     using Vec = gko::matrix::Dense<mixed_complex_type>;
     auto exec = gko::ReferenceExecutor::create();
-
     auto b = gko::initialize<Vec>(
         {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
          {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
@@ -4032,11 +3698,6 @@ TYPED_TEST(Dense, AdvancedAppliesToMixedComplex)
 TYPED_TEST(Dense, MakeComplex)
 {
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto complex_mtx = this->mtx5->make_complex();
 
@@ -4049,11 +3710,6 @@ TYPED_TEST(Dense, MakeComplexIntoDense)
     using T = typename TestFixture::value_type;
     using ComplexMtx = typename TestFixture::ComplexMtx;
     auto exec = this->mtx5->get_executor();
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto complex_mtx = ComplexMtx::create(exec, this->mtx5->get_size());
     this->mtx5->make_complex(complex_mtx.get());
@@ -4067,11 +3723,6 @@ TYPED_TEST(Dense, MakeComplexIntoDenseFailsForWrongDimensions)
     using T = typename TestFixture::value_type;
     using ComplexMtx = typename TestFixture::ComplexMtx;
     auto exec = this->mtx5->get_executor();
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto complex_mtx = ComplexMtx::create(exec);
 
@@ -4083,11 +3734,6 @@ TYPED_TEST(Dense, MakeComplexIntoDenseFailsForWrongDimensions)
 TYPED_TEST(Dense, GetReal)
 {
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto real_mtx = this->mtx5->get_real();
 
@@ -4100,11 +3746,6 @@ TYPED_TEST(Dense, GetRealIntoDense)
     using T = typename TestFixture::value_type;
     using RealMtx = typename TestFixture::RealMtx;
     auto exec = this->mtx5->get_executor();
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto real_mtx = RealMtx::create(exec, this->mtx5->get_size());
     this->mtx5->get_real(real_mtx.get());
@@ -4118,11 +3759,6 @@ TYPED_TEST(Dense, GetRealIntoDenseFailsForWrongDimensions)
     using T = typename TestFixture::value_type;
     using RealMtx = typename TestFixture::RealMtx;
     auto exec = this->mtx5->get_executor();
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto real_mtx = RealMtx::create(exec);
     ASSERT_THROW(this->mtx5->get_real(real_mtx.get()), gko::DimensionMismatch);
@@ -4132,11 +3768,6 @@ TYPED_TEST(Dense, GetRealIntoDenseFailsForWrongDimensions)
 TYPED_TEST(Dense, GetImag)
 {
     using T = typename TestFixture::value_type;
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto imag_mtx = this->mtx5->get_imag();
 
@@ -4151,11 +3782,6 @@ TYPED_TEST(Dense, GetImagIntoDense)
     using T = typename TestFixture::value_type;
     using RealMtx = typename TestFixture::RealMtx;
     auto exec = this->mtx5->get_executor();
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto imag_mtx = RealMtx::create(exec, this->mtx5->get_size());
     this->mtx5->get_imag(imag_mtx.get());
@@ -4171,11 +3797,6 @@ TYPED_TEST(Dense, GetImagIntoDenseFailsForWrongDimensions)
     using T = typename TestFixture::value_type;
     using RealMtx = typename TestFixture::RealMtx;
     auto exec = this->mtx5->get_executor();
-    // clang-format off
-    // {1.0, -1.0, -0.5},
-    // {-2.0, 2.0, 4.5},
-    // {2.1, 3.4, 1.2}
-    // clang-format on
 
     auto imag_mtx = RealMtx::create(exec);
     ASSERT_THROW(this->mtx5->get_imag(imag_mtx.get()), gko::DimensionMismatch);

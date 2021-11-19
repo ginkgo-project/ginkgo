@@ -145,6 +145,11 @@ public:
      */
     bool is_owning() const noexcept { return false; }
 
+    /**
+     * Creates a array copied from ConstArrayView.
+     *
+     * @return an Array constructed from ConstArrayView data
+     */
     Array<ValueType> copy_to_array() const;
 
 private:

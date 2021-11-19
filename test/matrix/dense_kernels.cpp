@@ -71,15 +71,15 @@ protected:
 #else
     using vtype = double;
 #endif
-    // in single mode, mixedtype will be the same as vtype
-    using mixedtype = float;
+    // in single mode, mixed_type will be the same as vtype
+    using mixed_type = float;
     using Mtx = gko::matrix::Dense<vtype>;
-    using MixedMtx = gko::matrix::Dense<mixedtype>;
+    using MixedMtx = gko::matrix::Dense<mixed_type>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<vtype>>;
     using Arr = gko::Array<itype>;
     using ComplexMtx = gko::matrix::Dense<std::complex<vtype>>;
     using Diagonal = gko::matrix::Diagonal<vtype>;
-    using MixedComplexMtx = gko::matrix::Dense<std::complex<mixedtype>>;
+    using MixedComplexMtx = gko::matrix::Dense<std::complex<mixed_type>>;
 
     Dense() : rand_engine(15) {}
 
