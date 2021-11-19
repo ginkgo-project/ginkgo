@@ -61,7 +61,7 @@ namespace acc {
  * @tparam ValueType  type of values this accessor returns
  * @tparam Dimensionality  number of dimensions of this accessor
  */
-template <typename ValueType, size_type Dimensionality>
+template <typename ValueType, std::size_t Dimensionality>
 class block_col_major {
 public:
     friend class range<block_col_major>;
@@ -74,7 +74,7 @@ public:
     /**
      * Number of dimensions of the accessor.
      */
-    static constexpr size_type dimensionality = Dimensionality;
+    static constexpr auto dimensionality = Dimensionality;
 
     /**
      * Type of values returned by the accessor.

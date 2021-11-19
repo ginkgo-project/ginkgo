@@ -139,7 +139,7 @@ as_cuda_type(T val)
  *
  * @return `r` with appropriate types and reinterpreted to CUDA pointers
  */
-template <int dim, typename Type1, typename Type2>
+template <std::size_t dim, typename Type1, typename Type2>
 GKO_ACC_INLINE auto as_cuda_range(
     const range<reduced_row_major<dim, Type1, Type2>>& r)
 {
@@ -153,7 +153,7 @@ GKO_ACC_INLINE auto as_cuda_range(
 /**
  * @copydoc as_cuda_range()
  */
-template <int dim, typename Type1, typename Type2, size_type mask>
+template <std::size_t dim, typename Type1, typename Type2, std::uint64_t mask>
 GKO_ACC_INLINE auto as_cuda_range(
     const range<scaled_reduced_row_major<dim, Type1, Type2, mask>>& r)
 {

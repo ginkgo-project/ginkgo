@@ -72,11 +72,16 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
         a->get_num_stored_elements_per_row();
     const auto stride = a->get_stride();
     const auto a_vals = gko::acc::range<a_accessor>(
-        std::array<size_type, 1>{num_stored_elements_per_row * stride},
+        std::array<acc::size_type, 1>{
+            static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
         a->get_const_values());
     const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<size_type, 2>{{b->get_size()[0], b->get_size()[1]}},
-        b->get_const_values(), std::array<size_type, 1>{{b->get_stride()}});
+        std::array<acc::size_type, 2>{
+            {static_cast<acc::size_type>(b->get_size()[0]),
+             static_cast<acc::size_type>(b->get_size()[1])}},
+        b->get_const_values(),
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(b->get_stride())}});
 
     for (size_type j = 0; j < c->get_size()[1]; j++) {
         for (size_type row = 0; row < a->get_size()[0]; row++) {
@@ -115,11 +120,16 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
         a->get_num_stored_elements_per_row();
     const auto stride = a->get_stride();
     const auto a_vals = gko::acc::range<a_accessor>(
-        std::array<size_type, 1>{num_stored_elements_per_row * stride},
+        std::array<acc::size_type, 1>{
+            static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
         a->get_const_values());
     const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<size_type, 2>{{b->get_size()[0], b->get_size()[1]}},
-        b->get_const_values(), std::array<size_type, 1>{{b->get_stride()}});
+        std::array<acc::size_type, 2>{
+            {static_cast<acc::size_type>(b->get_size()[0]),
+             static_cast<acc::size_type>(b->get_size()[1])}},
+        b->get_const_values(),
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(b->get_stride())}});
     const auto alpha_val = arithmetic_type{alpha->at(0, 0)};
     const auto beta_val = arithmetic_type{beta->at(0, 0)};
 

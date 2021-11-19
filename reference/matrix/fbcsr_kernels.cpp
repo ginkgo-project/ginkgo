@@ -80,7 +80,7 @@ void spmv(const std::shared_ptr<const ReferenceExecutor>,
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
-        to_std_array<size_type>(nbnz, bs, bs), a->get_const_values()};
+        to_std_array<acc::size_type>(nbnz, bs, bs), a->get_const_values()};
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
@@ -123,7 +123,7 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor>,
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
     const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
-        to_std_array<size_type>(nbnz, bs, bs), a->get_const_values()};
+        to_std_array<acc::size_type>(nbnz, bs, bs), a->get_const_values()};
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
@@ -219,9 +219,9 @@ void convert_to_dense(const std::shared_ptr<const ReferenceExecutor>,
     const ValueType* const vals = source->get_const_values();
 
     const acc::range<acc::block_col_major<const ValueType, 3>> values{
-        std::array<size_type, 3>{source->get_num_stored_blocks(),
-                                 static_cast<size_type>(bs),
-                                 static_cast<size_type>(bs)},
+        std::array<acc::size_type, 3>{
+            static_cast<acc::size_type>(source->get_num_stored_blocks()),
+            static_cast<acc::size_type>(bs), static_cast<acc::size_type>(bs)},
         vals};
 
     for (IndexType brow = 0; brow < nbrows; ++brow) {
@@ -272,9 +272,9 @@ void convert_to_csr(const std::shared_ptr<const ReferenceExecutor>,
     ValueType* const vals = result->get_values();
 
     const acc::range<acc::block_col_major<const ValueType, 3>> bvalues{
-        std::array<size_type, 3>{source->get_num_stored_blocks(),
-                                 static_cast<size_type>(bs),
-                                 static_cast<size_type>(bs)},
+        std::array<acc::size_type, 3>{
+            static_cast<acc::size_type>(source->get_num_stored_blocks()),
+            static_cast<acc::size_type>(bs), static_cast<acc::size_type>(bs)},
         bvals};
 
     for (IndexType brow = 0; brow < nbrows; ++brow) {
@@ -320,14 +320,16 @@ void convert_fbcsr_to_fbcsc(const IndexType num_blk_rows, const int blksz,
                             ValueType* const csc_vals, UnaryOperator op)
 {
     const acc::range<acc::block_col_major<const ValueType, 3>> rvalues{
-        std::array<size_type, 3>{static_cast<size_type>(row_ptrs[num_blk_rows]),
-                                 static_cast<size_type>(blksz),
-                                 static_cast<size_type>(blksz)},
+        std::array<acc::size_type, 3>{
+            static_cast<acc::size_type>(row_ptrs[num_blk_rows]),
+            static_cast<acc::size_type>(blksz),
+            static_cast<acc::size_type>(blksz)},
         fbcsr_vals};
     const acc::range<acc::block_col_major<ValueType, 3>> cvalues{
-        std::array<size_type, 3>{static_cast<size_type>(row_ptrs[num_blk_rows]),
-                                 static_cast<size_type>(blksz),
-                                 static_cast<size_type>(blksz)},
+        std::array<acc::size_type, 3>{
+            static_cast<acc::size_type>(row_ptrs[num_blk_rows]),
+            static_cast<acc::size_type>(blksz),
+            static_cast<acc::size_type>(blksz)},
         csc_vals};
     for (IndexType brow = 0; brow < num_blk_rows; ++brow) {
         for (auto i = row_ptrs[brow]; i < row_ptrs[brow + 1]; ++i) {
@@ -541,9 +543,9 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor>,
     assert(diag->get_size()[0] == nbdim_min * bs);
 
     const acc::range<acc::block_col_major<const ValueType, 3>> vblocks{
-        std::array<size_type, 3>{orig->get_num_stored_blocks(),
-                                 static_cast<size_type>(bs),
-                                 static_cast<size_type>(bs)},
+        std::array<acc::size_type, 3>{
+            static_cast<acc::size_type>(orig->get_num_stored_blocks()),
+            static_cast<acc::size_type>(bs), static_cast<acc::size_type>(bs)},
         values};
 
     for (IndexType ibrow = 0; ibrow < nbdim_min; ++ibrow) {

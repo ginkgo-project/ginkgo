@@ -75,12 +75,13 @@ namespace acc {
  *
  * @note  This class only manages the accesses and not the memory itself.
  */
-template <int Dimensionality, typename ArithmeticType, typename StorageType>
+template <std::size_t Dimensionality, typename ArithmeticType,
+          typename StorageType>
 class reduced_row_major {
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
-    static constexpr size_type dimensionality{Dimensionality};
+    static constexpr auto dimensionality = Dimensionality;
     static constexpr bool is_const{std::is_const<storage_type>::value};
     using const_accessor =
         reduced_row_major<dimensionality, arithmetic_type, const storage_type>;

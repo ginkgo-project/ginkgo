@@ -938,29 +938,6 @@ void calculate_Qy_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 }
 
 
-// Specialization, so the Accessor can use the same function as regular pointers
-template <int dim, typename Type1, typename Type2>
-GKO_INLINE auto as_dpcpp_accessor(
-    const acc::range<acc::reduced_row_major<dim, Type1, Type2>>& acc)
-{
-    return acc::range<acc::reduced_row_major<dim, Type1, Type2>>(
-        acc.get_accessor().get_size(), acc.get_accessor().get_stored_data(),
-        acc.get_accessor().get_stride());
-}
-
-template <int dim, typename Type1, typename Type2, size_type mask>
-GKO_INLINE auto as_dpcpp_accessor(
-    const acc::range<acc::scaled_reduced_row_major<dim, Type1, Type2, mask>>&
-        acc)
-{
-    return acc::range<acc::scaled_reduced_row_major<dim, Type1, Type2, mask>>(
-        acc.get_accessor().get_size(), acc.get_accessor().get_stored_data(),
-        acc.get_accessor().get_storage_stride(),
-        acc.get_accessor().get_scalar(),
-        acc.get_accessor().get_scalar_stride());
-}
-
-
 template <typename ValueType>
 void zero_matrix(std::shared_ptr<const DpcppExecutor> exec, size_type m,
                  size_type n, size_type stride, ValueType* array)
@@ -1023,7 +1000,7 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
 
     initialize_2_1_kernel<block_size>(
         grid_dim_1, block_dim, 0, exec->get_queue(), residual->get_size()[0],
-        residual->get_size()[1], krylov_dim, as_dpcpp_accessor(krylov_bases),
+        residual->get_size()[1], krylov_dim, krylov_bases,
         residual_norm_collection->get_values(),
         residual_norm_collection->get_stride());
     kernels::dpcpp::dense::compute_norm2(exec, residual, residual_norm);
@@ -1047,7 +1024,7 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
             default_block_size, 0, exec->get_queue(), num_rhs, krylov_dim + 1,
             residual_norm->get_const_values(), residual_norm->get_stride(),
             arnoldi_norm->get_const_values() + 2 * stride_arnoldi,
-            stride_arnoldi, as_dpcpp_accessor(krylov_bases));
+            stride_arnoldi, krylov_bases);
     }
 
     const dim3 grid_dim_2(
@@ -1056,7 +1033,7 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
         grid_dim_2, block_dim, 0, exec->get_queue(), residual->get_size()[0],
         residual->get_size()[1], residual->get_const_values(),
         residual->get_stride(), residual_norm->get_const_values(),
-        residual_norm_collection->get_values(), as_dpcpp_accessor(krylov_bases),
+        residual_norm_collection->get_values(), krylov_bases,
         next_krylov_basis->get_values(), next_krylov_basis->get_stride(),
         final_iter_nums->get_data());
 }
@@ -1112,15 +1089,15 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
         multidot_kernel<default_dot_dim>(
             grid_size_num_iters, block_size, 0, exec->get_queue(), dim_size[0],
             dim_size[1], next_krylov_basis->get_const_values(),
-            stride_next_krylov, as_dpcpp_accessor(krylov_bases),
-            hessenberg_iter->get_values(), stride_hessenberg, stop_status);
+            stride_next_krylov, krylov_bases, hessenberg_iter->get_values(),
+            stride_hessenberg, stop_status);
     } else {
         singledot_kernel<singledot_block_size>(
             grid_size_iters_single, block_size_iters_single, 0,
             exec->get_queue(), dim_size[0],
             next_krylov_basis->get_const_values(), stride_next_krylov,
-            as_dpcpp_accessor(krylov_bases), hessenberg_iter->get_values(),
-            stride_hessenberg, stop_status);
+            krylov_bases, hessenberg_iter->get_values(), stride_hessenberg,
+            stop_status);
     }
     // for i in 1:iter
     //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
@@ -1129,8 +1106,8 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
         default_block_size, 0, exec->get_queue(), iter + 1, dim_size[0],
         dim_size[1], next_krylov_basis->get_values(), stride_next_krylov,
-        as_dpcpp_accessor(krylov_bases), hessenberg_iter->get_const_values(),
-        stride_hessenberg, stop_status);
+        krylov_bases, hessenberg_iter->get_const_values(), stride_hessenberg,
+        stop_status);
 
     // for i in 1:iter
     //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
@@ -1153,7 +1130,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(dim_size[1], default_block_size), default_block_size, 0,
         exec->get_queue(), dim_size[1], arnoldi_norm->get_values(),
         stride_arnoldi, hessenberg_iter->get_values(), stride_hessenberg,
-        iter + 1, as_dpcpp_accessor(krylov_bases), stop_status, reorth_status,
+        iter + 1, krylov_bases, stop_status, reorth_status,
         num_reorth->get_data());
     num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
@@ -1164,15 +1141,15 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
             multidot_kernel<default_dot_dim>(
                 grid_size_num_iters, block_size, 0, exec->get_queue(),
                 dim_size[0], dim_size[1], next_krylov_basis->get_const_values(),
-                stride_next_krylov, as_dpcpp_accessor(krylov_bases),
-                buffer_iter->get_values(), stride_buffer, stop_status);
+                stride_next_krylov, krylov_bases, buffer_iter->get_values(),
+                stride_buffer, stop_status);
         } else {
             singledot_kernel<singledot_block_size>(
                 grid_size_iters_single, block_size_iters_single, 0,
                 exec->get_queue(), dim_size[0],
                 next_krylov_basis->get_const_values(), stride_next_krylov,
-                as_dpcpp_accessor(krylov_bases), buffer_iter->get_values(),
-                stride_buffer, stop_status);
+                krylov_bases, buffer_iter->get_values(), stride_buffer,
+                stop_status);
         }
         // for i in 1:iter
         //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
@@ -1181,9 +1158,9 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
             ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
             default_block_size, 0, exec->get_queue(), iter + 1, dim_size[0],
             dim_size[1], next_krylov_basis->get_values(), stride_next_krylov,
-            as_dpcpp_accessor(krylov_bases), hessenberg_iter->get_values(),
-            stride_hessenberg, buffer_iter->get_const_values(), stride_buffer,
-            stop_status, reorth_status);
+            krylov_bases, hessenberg_iter->get_values(), stride_hessenberg,
+            buffer_iter->get_const_values(), stride_buffer, stop_status,
+            reorth_status);
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
@@ -1207,8 +1184,8 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
             ceildiv(dim_size[1], default_block_size), default_block_size, 0,
             exec->get_queue(), dim_size[1], arnoldi_norm->get_values(),
             stride_arnoldi, hessenberg_iter->get_values(), stride_hessenberg,
-            iter + 1, as_dpcpp_accessor(krylov_bases), stop_status,
-            reorth_status, num_reorth->get_data());
+            iter + 1, krylov_bases, stop_status, reorth_status,
+            num_reorth->get_data());
         num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
     }
 
@@ -1216,8 +1193,8 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
         default_block_size, 0, exec->get_queue(), iter, dim_size[0],
         dim_size[1], next_krylov_basis->get_values(), stride_next_krylov,
-        as_dpcpp_accessor(krylov_bases), hessenberg_iter->get_const_values(),
-        stride_hessenberg, stop_status);
+        krylov_bases, hessenberg_iter->get_const_values(), stride_hessenberg,
+        stop_status);
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // krylov_bases(:, iter + 1) = next_krylov_basis
     // End of arnoldi
@@ -1325,7 +1302,7 @@ void calculate_qy(std::shared_ptr<const DpcppExecutor> exec,
 
     calculate_Qy_kernel<block_size>(
         grid_dim, block_dim, 0, exec->get_queue(), num_rows, num_cols,
-        as_dpcpp_accessor(krylov_bases), y->get_const_values(), y->get_stride(),
+        krylov_bases, y->get_const_values(), y->get_stride(),
         before_preconditioner->get_values(), stride_before_preconditioner,
         final_iter_nums->get_const_data());
     // Calculate qy
