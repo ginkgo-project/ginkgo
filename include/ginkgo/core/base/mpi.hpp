@@ -417,7 +417,7 @@ inline MPI_Status wait(MPI_Request& req)
  */
 inline std::vector<MPI_Status> wait_all(std::vector<MPI_Request>& req)
 {
-    std::vector<MPI_Status> status;
+    std::vector<MPI_Status> status(req.size());
     GKO_ASSERT_NO_MPI_ERRORS(
         MPI_Waitall(req.size(), req.data(), status.data()));
     return status;
@@ -523,6 +523,8 @@ public:
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_flush_local_all(this->window_));
     }
+
+    void sync() { GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_sync(this->window_)); }
 
     ~window()
     {
