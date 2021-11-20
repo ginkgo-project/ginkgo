@@ -47,6 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/complex.h>
 
 
+#include <ginkgo/core/base/matrix_data.hpp>
+
+
 namespace gko {
 
 
@@ -55,6 +58,58 @@ namespace cuda {
 
 
 namespace detail {
+
+
+/**
+ * @internal
+ *
+ * replacement for thrust::complex without alignment restrictions.
+ */
+template <typename T>
+struct alignas(std::complex<T>) fake_complex {
+    T real;
+    T imag;
+
+    GKO_INLINE GKO_ATTRIBUTES constexpr fake_complex() : real{}, imag{} {}
+
+    GKO_INLINE GKO_ATTRIBUTES constexpr fake_complex(thrust::complex<T> val)
+        : real{val.real()}, imag{val.imag()}
+    {}
+
+    friend bool GKO_INLINE GKO_ATTRIBUTES constexpr operator==(fake_complex a,
+                                                               fake_complex b)
+    {
+        return a.real == b.real && a.imag == b.imag;
+    }
+
+    friend bool GKO_INLINE GKO_ATTRIBUTES constexpr operator!=(fake_complex a,
+                                                               fake_complex b)
+    {
+        return !(a == b);
+    }
+};
+
+
+template <typename ValueType>
+struct fake_complex_unpack_impl {
+    using type = ValueType;
+
+    GKO_INLINE GKO_ATTRIBUTES static constexpr ValueType unpack(ValueType v)
+    {
+        return v;
+    }
+};
+
+template <typename ValueType>
+struct fake_complex_unpack_impl<fake_complex<ValueType>> {
+    using type = thrust::complex<ValueType>;
+
+    GKO_INLINE GKO_ATTRIBUTES static constexpr thrust::complex<ValueType>
+    unpack(fake_complex<ValueType> v)
+    {
+        return {v.real, v.imag};
+    }
+};
 
 
 template <typename T>
@@ -135,6 +190,22 @@ struct cuda_type_impl<cuDoubleComplex> {
 template <>
 struct cuda_type_impl<cuComplex> {
     using type = thrust::complex<float>;
+};
+
+template <typename T>
+struct cuda_struct_member_type_impl {
+    using type = T;
+};
+
+template <typename T>
+struct cuda_struct_member_type_impl<std::complex<T>> {
+    using type = fake_complex<T>;
+};
+
+template <typename ValueType, typename IndexType>
+struct cuda_type_impl<matrix_data_entry<ValueType, IndexType>> {
+    using type = matrix_data_entry<
+        typename cuda_struct_member_type_impl<ValueType>::type, IndexType>;
 };
 
 
@@ -328,6 +399,28 @@ template <typename T>
 inline culibs_type<T> as_culibs_type(T val)
 {
     return reinterpret_cast<culibs_type<T>>(val);
+}
+
+
+/**
+ * Casts fake_complex<T> to thrust::complex<T> and leaves any other types
+ * unchanged.
+ *
+ * This is necessary to work around an issue with Thrust shipped in CUDA 9.2,
+ * and the fact that thrust::complex has stronger alignment restrictions than
+ * std::complex, i.e. structs containing them among other smaller members have
+ * different sizes on device and host.
+ *
+ * @param val  The input value.
+ *
+ * @return val cast to the correct type.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr
+    typename detail::fake_complex_unpack_impl<T>::type
+    fake_complex_unpack(T v)
+{
+    return detail::fake_complex_unpack_impl<T>::unpack(v);
 }
 
 

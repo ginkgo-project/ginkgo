@@ -41,7 +41,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -50,8 +53,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "accessor/block_col_major.hpp"
 #include "accessor/range.hpp"
-#include "core/components/absolute_array.hpp"
-#include "core/components/fill_array.hpp"
+#include "core/components/absolute_array_kernels.hpp"
+#include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/fbcsr_kernels.hpp"
 
 
@@ -63,6 +66,7 @@ namespace {
 
 GKO_REGISTER_OPERATION(spmv, fbcsr::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, fbcsr::advanced_spmv);
+GKO_REGISTER_OPERATION(fill_in_matrix_data, fbcsr::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_csr, fbcsr::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_dense, fbcsr::convert_to_dense);
 GKO_REGISTER_OPERATION(transpose, fbcsr::transpose);
@@ -84,72 +88,6 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 }  // anonymous namespace
 }  // namespace fbcsr
-
-
-namespace detail {
-
-
-/**
- * @internal
- * A lightweight dynamic block type on the host
- *
- * Currently used only while reading a FBCSR matrix from matrix_data.
- *
- * @tparam ValueType  The numeric type of entries of the block
- */
-template <typename ValueType>
-class DenseBlock final {
-public:
-    using value_type = ValueType;
-
-    DenseBlock() = default;
-
-    DenseBlock(const int num_rows, const int num_cols)
-        : nrows_{num_rows}, ncols_{num_cols}, vals_(num_rows * num_cols)
-    {}
-
-    value_type& at(const int row, const int col)
-    {
-        return vals_[row + col * nrows_];
-    }
-
-    const value_type& at(const int row, const int col) const
-    {
-        return vals_[row + col * nrows_];
-    }
-
-    value_type& operator()(const int row, const int col)
-    {
-        return at(row, col);
-    }
-
-    const value_type& operator()(const int row, const int col) const
-    {
-        return at(row, col);
-    }
-
-    int size() const { return nrows_ * ncols_; }
-
-    void resize(const int nrows, const int ncols)
-    {
-        vals_.resize(nrows * ncols);
-        nrows_ = nrows;
-        ncols_ = ncols;
-    }
-
-    void zero()
-    {
-        std::fill(vals_.begin(), vals_.end(), static_cast<value_type>(0));
-    }
-
-private:
-    int nrows_ = 0;
-    int ncols_ = 0;
-    std::vector<value_type> vals_;
-};
-
-
-}  // namespace detail
 
 
 template <typename ValueType, typename IndexType>
@@ -205,7 +143,6 @@ void Fbcsr<ValueType, IndexType>::convert_to(
     result->row_ptrs_ = this->row_ptrs_;
     result->set_size(this->get_size());
     result->bs_ = this->bs_;
-    result->nbcols_ = this->nbcols_;
 }
 
 
@@ -282,110 +219,25 @@ void Fbcsr<ValueType, IndexType>::move_to(
 }
 
 
-/*
- * Currently, this implementation is sequential and has complexity
- * O(nnz log(nnz)).
- * @note Can this be changed to a parallel O(nnz) implementation?
- */
+template <typename ValueType, typename IndexType>
+void Fbcsr<ValueType, IndexType>::read(const device_mat_data& data)
+{
+    const auto row_blocks = detail::get_num_blocks(bs_, data.size[0]);
+    const auto col_blocks = detail::get_num_blocks(bs_, data.size[1]);
+    this->set_size(data.size);
+    row_ptrs_.resize_and_reset(row_blocks + 1);
+    auto exec = this->get_executor();
+    auto local_data = make_temporary_clone(exec, &data.nonzeros);
+    exec->run(fbcsr::make_fill_in_matrix_data(*local_data, bs_, row_ptrs_,
+                                              col_idxs_, values_));
+}
+
+
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::read(const mat_data& data)
 {
-    GKO_ENSURE_IN_BOUNDS(data.nonzeros.size(),
-                         std::numeric_limits<index_type>::max());
-
-    const auto nnz = static_cast<index_type>(data.nonzeros.size());
-    const int bs = this->bs_;
-
-    using Block_t = detail::DenseBlock<value_type>;
-
-    struct FbEntry {
-        index_type block_row;
-        index_type block_column;
-    };
-
-    struct FbLess {
-        bool operator()(const FbEntry& a, const FbEntry& b) const
-        {
-            if (a.block_row != b.block_row)
-                return a.block_row < b.block_row;
-            else
-                return a.block_column < b.block_column;
-        }
-    };
-
-    auto create_block_map = [nnz, bs](const mat_data& mdata) {
-        std::map<FbEntry, Block_t, FbLess> blocks;
-        for (index_type inz = 0; inz < nnz; inz++) {
-            const index_type row = mdata.nonzeros[inz].row;
-            const index_type col = mdata.nonzeros[inz].column;
-            const value_type val = mdata.nonzeros[inz].value;
-
-            const auto localrow = static_cast<int>(row % bs);
-            const auto localcol = static_cast<int>(col % bs);
-            const index_type blockrow = row / bs;
-            const index_type blockcol = col / bs;
-
-            Block_t& nnzblk = blocks[{blockrow, blockcol}];
-            if (nnzblk.size() == 0) {
-                nnzblk.resize(bs, bs);
-                nnzblk.zero();
-                nnzblk(localrow, localcol) = val;
-            } else {
-                // If this does not happen, we re-visited a nonzero
-                assert(nnzblk(localrow, localcol) == gko::zero<value_type>());
-                nnzblk(localrow, localcol) = val;
-            }
-        }
-        return blocks;
-    };
-
-    const std::map<FbEntry, Block_t, FbLess> blocks = create_block_map(data);
-
-    auto tmp = Fbcsr::create(this->get_executor()->get_master(), data.size,
-                             blocks.size() * bs * bs, bs);
-
-    tmp->row_ptrs_.get_data()[0] = 0;
-    if (data.nonzeros.size() == 0) {
-        tmp->move_to(this);
-        return;
-    }
-
-    index_type cur_brow = 0;
-    index_type cur_bnz = 0;
-    index_type cur_bcol = blocks.begin()->first.block_column;
-    const index_type num_brows = detail::get_num_blocks(bs, data.size[0]);
-
-    acc::range<acc::block_col_major<value_type, 3>> values(
-        std::array<size_type, 3>{blocks.size(), static_cast<size_type>(bs),
-                                 static_cast<size_type>(bs)},
-        tmp->values_.get_data());
-
-    for (auto it = blocks.begin(); it != blocks.end(); it++) {
-        GKO_ENSURE_IN_BOUNDS(cur_brow, num_brows);
-
-        tmp->col_idxs_.get_data()[cur_bnz] = it->first.block_column;
-        for (int ibr = 0; ibr < bs; ibr++) {
-            for (int jbr = 0; jbr < bs; jbr++) {
-                values(cur_bnz, ibr, jbr) = it->second(ibr, jbr);
-            }
-        }
-        if (it->first.block_row > cur_brow) {
-            tmp->row_ptrs_.get_data()[++cur_brow] = cur_bnz;
-        } else {
-            assert(cur_brow == it->first.block_row);
-            assert(cur_bcol <= it->first.block_column);
-        }
-
-        cur_bcol = it->first.block_column;
-        cur_bnz++;
-    }
-
-    tmp->row_ptrs_.get_data()[++cur_brow] =
-        static_cast<index_type>(blocks.size());
-
-    assert(cur_brow == tmp->get_size()[0] / bs);
-
-    tmp->move_to(this);
+    this->read(device_mat_data::create_view_from_host(
+        this->get_executor(), const_cast<mat_data&>(data)));
 }
 
 

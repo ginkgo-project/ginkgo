@@ -18,9 +18,8 @@ target_sources(ginkgo_dpcpp
     base/executor.dp.cpp
     base/helper.dp.cpp
     base/index_set_kernels.dp.cpp
-    components/absolute_array.dp.cpp
-    components/fill_array.dp.cpp
-    components/prefix_sum.dp.cpp
+    components/device_matrix_data_kernels.dp.cpp
+    components/prefix_sum_kernels.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
     factorization/factorization_kernels.dp.cpp
@@ -54,7 +53,7 @@ target_sources(ginkgo_dpcpp
     )
 
 ginkgo_compile_features(ginkgo_dpcpp)
-target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP)
+target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP _ONEDPL_COMPILE_KERNEL=0)
 
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")

@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/components/absolute_array.hpp"
+#include "core/components/absolute_array_kernels.hpp"
 #include "core/matrix/diagonal_kernels.hpp"
 
 
@@ -53,6 +53,7 @@ GKO_REGISTER_OPERATION(apply_to_dense, diagonal::apply_to_dense);
 GKO_REGISTER_OPERATION(right_apply_to_dense, diagonal::right_apply_to_dense);
 GKO_REGISTER_OPERATION(apply_to_csr, diagonal::apply_to_csr);
 GKO_REGISTER_OPERATION(right_apply_to_csr, diagonal::right_apply_to_csr);
+GKO_REGISTER_OPERATION(fill_in_matrix_data, diagonal::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_csr, diagonal::convert_to_csr);
 GKO_REGISTER_OPERATION(conj_transpose, diagonal::conj_transpose);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
@@ -235,16 +236,44 @@ inline void read_impl(MatrixType* mtx, const MatrixData& data)
 
 
 template <typename ValueType>
+void Diagonal<ValueType>::read(const device_mat_data& data)
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(data.size);
+    this->set_size(data.size);
+    values_.resize_and_reset(data.size[0]);
+    values_.fill(zero<ValueType>());
+    auto exec = this->get_executor();
+    exec->run(diagonal::make_fill_in_matrix_data(
+        *make_temporary_clone(exec, &data.nonzeros), this));
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::read(const device_mat_data32& data)
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(data.size);
+    this->set_size(data.size);
+    values_.resize_and_reset(data.size[0]);
+    values_.fill(zero<ValueType>());
+    auto exec = this->get_executor();
+    exec->run(diagonal::make_fill_in_matrix_data(
+        *make_temporary_clone(exec, &data.nonzeros), this));
+}
+
+
+template <typename ValueType>
 void Diagonal<ValueType>::read(const mat_data& data)
 {
-    read_impl(this, data);
+    this->read(device_mat_data::create_view_from_host(
+        this->get_executor(), const_cast<mat_data&>(data)));
 }
 
 
 template <typename ValueType>
 void Diagonal<ValueType>::read(const mat_data32& data)
 {
-    read_impl(this, data);
+    this->read(device_mat_data32::create_view_from_host(
+        this->get_executor(), const_cast<mat_data32&>(data)));
 }
 
 

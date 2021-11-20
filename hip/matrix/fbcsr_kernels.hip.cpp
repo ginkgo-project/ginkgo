@@ -37,6 +37,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <hip/hip_runtime.h>
+#include <thrust/copy.h>
+#include <thrust/count.h>
+#include <thrust/device_ptr.h>
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/iterator/transform_output_iterator.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/sort.h>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -46,8 +53,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "common/unified/base/kernel_launch.hpp"
+#include "core/components/device_matrix_data_kernels.hpp"
+#include "core/components/fill_array_kernels.hpp"
 #include "hip/base/config.hip.hpp"
-
+#include "hip/components/cooperative_groups.hip.hpp"
 
 namespace gko {
 namespace kernels {
@@ -58,6 +68,12 @@ namespace hip {
  * @ingroup fbcsr
  */
 namespace fbcsr {
+
+
+constexpr int default_block_size{512};
+
+
+#include "common/cuda_hip/matrix/fbcsr_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>

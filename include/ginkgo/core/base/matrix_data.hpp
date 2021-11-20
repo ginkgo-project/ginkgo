@@ -83,6 +83,57 @@ get_rand_value(Distribution&& dist, Generator&& gen)
 
 
 /**
+ * Type used to store nonzeros.
+ */
+template <typename ValueType, typename IndexType>
+struct matrix_data_entry {
+    using value_type = ValueType;
+    using index_type = IndexType;
+    matrix_data_entry() = default;
+
+    GKO_ATTRIBUTES matrix_data_entry(index_type r, index_type c, value_type v)
+        : row(r), column(c), value(v)
+    {}
+
+    bool operator==(const matrix_data_entry& other) const
+    {
+        return std::tie(this->row, this->column, this->value) ==
+               std::tie(other.row, other.column, other.value);
+    };
+    bool operator!=(const matrix_data_entry& other) const
+    {
+        return std::tie(this->row, this->column, this->value) !=
+               std::tie(other.row, other.column, other.value);
+    };
+
+#define GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(_op)            \
+    bool operator _op(const matrix_data_entry& other) const \
+    {                                                       \
+        return std::tie(this->row, this->column)            \
+            _op std::tie(other.row, other.column);          \
+    }
+
+    GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(<);
+    GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(>);
+    GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(<=);
+    GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(>=);
+
+#undef GKO_DEFINE_DEFAULT_COMPARE_OPERATOR
+
+    friend std::ostream& operator<<(std::ostream& os,
+                                    const matrix_data_entry& x)
+    {
+        os << '(' << x.row << ',' << x.column << ',' << x.value << ')';
+        return os;
+    }
+
+    index_type row;
+    index_type column;
+    value_type value;
+};
+
+
+/**
  * This structure is used as an intermediate data type to store a sparse matrix.
  *
  * The matrix is stored as a sequence of nonzero elements, where each element is
@@ -104,37 +155,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 struct matrix_data {
     using value_type = ValueType;
     using index_type = IndexType;
-
-    /**
-     * Type used to store nonzeros.
-     */
-    struct nonzero_type {
-        nonzero_type() = default;
-
-        nonzero_type(index_type r, index_type c, value_type v)
-            : row(r), column(c), value(v)
-        {}
-
-#define GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(_op)                \
-    bool operator _op(const nonzero_type& other) const          \
-    {                                                           \
-        return std::tie(this->row, this->column, this->value)   \
-            _op std::tie(other.row, other.column, other.value); \
-    }
-
-        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(==);
-        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(!=);
-        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(<);
-        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(>);
-        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(<=);
-        GKO_DEFINE_DEFAULT_COMPARE_OPERATOR(>=);
-
-#undef GKO_DEFINE_DEFAULT_COMPARE_OPERATOR
-
-        index_type row;
-        index_type column;
-        value_type value;
-    };
+    using nonzero_type = matrix_data_entry<value_type, index_type>;
 
     /**
      * Initializes a matrix filled with the specified value.
@@ -467,6 +488,15 @@ struct matrix_data {
             begin(nonzeros), end(nonzeros), [](nonzero_type x, nonzero_type y) {
                 return std::tie(x.row, x.column) < std::tie(y.row, y.column);
             });
+    }
+
+    void remove_zeros()
+    {
+        nonzeros.erase(std::remove_if(begin(nonzeros), end(nonzeros),
+                                      [](nonzero_type nz) {
+                                          return nz.value == zero<ValueType>();
+                                      }),
+                       end(nonzeros));
     }
 
 private:

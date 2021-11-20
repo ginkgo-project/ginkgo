@@ -141,6 +141,47 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
 
+template <typename IndexType>
+void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
+                         const Array<IndexType>& row_ptrs, size_type& max_nnz)
+{
+    max_nnz = 0;
+    const auto ptrs = row_ptrs.get_const_data();
+    for (size_type i = 1; i < row_ptrs.get_num_elems(); i++) {
+        max_nnz = std::max<size_type>(max_nnz, ptrs[i] - ptrs[i - 1]);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void fill_in_matrix_data(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
+    const int64* row_ptrs, matrix::Ell<ValueType, IndexType>* output)
+{
+    for (size_type row = 0; row < output->get_size()[0]; row++) {
+        const auto row_begin = row_ptrs[row];
+        const auto row_end = row_ptrs[row + 1];
+        size_type col_idx = 0;
+        for (auto i = row_begin; i < row_end; i++) {
+            const auto entry = nonzeros.get_const_data()[i];
+            output->col_at(row, col_idx) = entry.column;
+            output->val_at(row, col_idx) = entry.value;
+            col_idx++;
+        }
+        for (; col_idx < output->get_num_stored_elements_per_row(); col_idx++) {
+            output->col_at(row, col_idx) = 0;
+            output->val_at(row, col_idx) = zero<ValueType>();
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Ell<ValueType, IndexType>* source,

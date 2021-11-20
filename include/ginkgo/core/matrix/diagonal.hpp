@@ -89,8 +89,10 @@ public:
 
     using value_type = ValueType;
     using index_type = int64;
-    using mat_data = gko::matrix_data<ValueType, int64>;
-    using mat_data32 = gko::matrix_data<ValueType, int32>;
+    using mat_data = matrix_data<ValueType, int64>;
+    using mat_data32 = matrix_data<ValueType, int32>;
+    using device_mat_data = device_matrix_data<ValueType, int64>;
+    using device_mat_data32 = device_matrix_data<ValueType, int32>;
     using absolute_type = remove_complex<Diagonal>;
 
     friend class Diagonal<next_precision<ValueType>>;
@@ -153,6 +155,10 @@ public:
     void read(const mat_data& data) override;
 
     void read(const mat_data32& data) override;
+
+    void read(const device_mat_data& data) override;
+
+    void read(const device_mat_data32& data) override;
 
     void write(mat_data& data) const override;
 

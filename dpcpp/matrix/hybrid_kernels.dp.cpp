@@ -40,8 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 
 
-#include "core/components/fill_array.hpp"
-#include "core/components/prefix_sum.hpp"
+#include "core/components/fill_array_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "dpcpp/base/config.hpp"
@@ -203,6 +203,19 @@ GKO_ENABLE_DEFAULT_HOST(add, add);
 
 
 }  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void split_matrix_data(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const Array<matrix_data_entry<ValueType, IndexType>>& data,
+    const int64* row_ptrs, size_type ell_limit, size_type num_rows,
+    Array<matrix_data_entry<ValueType, IndexType>>& ell_data,
+    Array<matrix_data_entry<ValueType, IndexType>>& coo_data)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_HYBRID_SPLIT_MATRIX_DATA_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

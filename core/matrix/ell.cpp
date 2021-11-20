@@ -46,8 +46,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/allocator.hpp"
-#include "core/components/absolute_array.hpp"
-#include "core/components/fill_array.hpp"
+#include "core/components/absolute_array_kernels.hpp"
+#include "core/components/device_matrix_data_kernels.hpp"
+#include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 
 
@@ -59,6 +60,9 @@ namespace {
 
 GKO_REGISTER_OPERATION(spmv, ell::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, ell::advanced_spmv);
+GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
+GKO_REGISTER_OPERATION(compute_max_row_nnz, ell::compute_max_row_nnz);
+GKO_REGISTER_OPERATION(fill_in_matrix_data, ell::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_dense, ell::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_csr, ell::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, ell::count_nonzeros);
@@ -192,39 +196,33 @@ void Ell<ValueType, IndexType>::move_to(Csr<ValueType, IndexType>* result)
 
 
 template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::read(const device_mat_data& data)
+{
+    auto exec = this->get_executor();
+    Array<int64> row_ptrs(exec, data.size[0] + 1);
+    auto local_data = make_temporary_clone(exec, &data.nonzeros);
+    exec->run(ell::make_build_row_ptrs(*local_data, data.size[0],
+                                       row_ptrs.get_data()));
+    size_type max_nnz{};
+    exec->run(ell::make_compute_max_row_nnz(row_ptrs, max_nnz));
+    if (this->get_size() != data.size ||
+        this->get_num_stored_elements_per_row() != max_nnz) {
+        stride_ = data.size[0];
+        values_.resize_and_reset(stride_ * max_nnz);
+        col_idxs_.resize_and_reset(stride_ * max_nnz);
+        num_stored_elements_per_row_ = max_nnz;
+        this->set_size(data.size);
+    }
+    exec->run(ell::make_fill_in_matrix_data(*local_data,
+                                            row_ptrs.get_const_data(), this));
+}
+
+
+template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::read(const mat_data& data)
 {
-    // Get the number of stored elements of every row.
-    auto num_stored_elements_per_row = calculate_max_nnz_per_row(data);
-
-    // Create an ELLPACK format matrix based on the sizes.
-    auto tmp = Ell::create(this->get_executor()->get_master(), data.size,
-                           num_stored_elements_per_row, data.size[0]);
-
-    // Get values and column indexes.
-    size_type ind = 0;
-    size_type n = data.nonzeros.size();
-    auto vals = tmp->get_values();
-    auto col_idxs = tmp->get_col_idxs();
-    for (size_type row = 0; row < data.size[0]; row++) {
-        size_type col = 0;
-        while (ind < n && data.nonzeros[ind].row == row) {
-            auto val = data.nonzeros[ind].value;
-            if (val != zero<ValueType>()) {
-                tmp->val_at(row, col) = val;
-                tmp->col_at(row, col) = data.nonzeros[ind].column;
-                col++;
-            }
-            ind++;
-        }
-        for (auto i = col; i < num_stored_elements_per_row; i++) {
-            tmp->val_at(row, i) = zero<ValueType>();
-            tmp->col_at(row, i) = 0;
-        }
-    }
-
-    // Return the matrix
-    tmp->move_to(this);
+    this->read(device_mat_data::create_view_from_host(
+        this->get_executor(), const_cast<mat_data&>(data)));
 }
 
 

@@ -65,6 +65,16 @@ device_type<T> as_device_type(T value)
 }
 
 
+template <typename T>
+using unpack_member_type = typename detail::fake_complex_unpack_impl<T>::type;
+
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
+{
+    return fake_complex_unpack(value);
+}
+
+
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
@@ -89,6 +99,16 @@ template <typename T>
 device_type<T> as_device_type(T value)
 {
     return as_hip_type(value);
+}
+
+
+template <typename T>
+using unpack_member_type = typename detail::fake_complex_unpack_impl<T>::type;
+
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
+{
+    return fake_complex_unpack(value);
 }
 
 
@@ -117,6 +137,16 @@ device_type<T> as_device_type(T value)
     return value;
 }
 
+
+template <typename T>
+using unpack_member_type = T;
+
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
+{
+    return value;
+}
+
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
@@ -138,6 +168,16 @@ using device_type = T;
 
 template <typename T>
 device_type<T> as_device_type(T value)
+{
+    return value;
+}
+
+
+template <typename T>
+using unpack_member_type = T;
+
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 {
     return value;
 }

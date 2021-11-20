@@ -90,6 +90,7 @@ GKO_REGISTER_OPERATION(row_gather, dense::row_gather);
 GKO_REGISTER_OPERATION(column_permute, dense::column_permute);
 GKO_REGISTER_OPERATION(inverse_row_permute, dense::inverse_row_permute);
 GKO_REGISTER_OPERATION(inverse_column_permute, dense::inverse_column_permute);
+GKO_REGISTER_OPERATION(fill_in_matrix_data, dense::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_coo, dense::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_csr, dense::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell);
@@ -670,43 +671,49 @@ void Dense<ValueType>::move_to(SparsityCsr<ValueType, int64>* result)
 }
 
 
-namespace {
-
-
-template <typename MatrixType, typename MatrixData>
-inline void read_impl(MatrixType* mtx, const MatrixData& data)
+template <typename ValueType>
+void Dense<ValueType>::read(const device_mat_data& data)
 {
-    auto tmp = MatrixType::create(mtx->get_executor()->get_master(), data.size);
-    size_type ind = 0;
-    for (size_type row = 0; row < data.size[0]; ++row) {
-        for (size_type col = 0; col < data.size[1]; ++col) {
-            if (ind < data.nonzeros.size() && data.nonzeros[ind].row == row &&
-                data.nonzeros[ind].column == col) {
-                tmp->at(row, col) = data.nonzeros[ind].value;
-                ++ind;
-            } else {
-                tmp->at(row, col) = zero<typename MatrixType::value_type>();
-            }
-        }
+    if (this->get_size() != data.size) {
+        this->set_size(data.size);
+        this->stride_ = data.size[1];
+        this->values_.resize_and_reset(data.size[0] * this->get_stride());
     }
-    tmp->move_to(mtx);
+    auto exec = this->get_executor();
+    this->fill(zero<ValueType>());
+    exec->run(dense::make_fill_in_matrix_data(
+        *make_temporary_clone(exec, &data.nonzeros), this));
 }
 
 
-}  // namespace
+template <typename ValueType>
+void Dense<ValueType>::read(const device_mat_data32& data)
+{
+    if (this->get_size() != data.size) {
+        this->set_size(data.size);
+        this->stride_ = data.size[1];
+        this->values_.resize_and_reset(data.size[0] * this->get_stride());
+    }
+    auto exec = this->get_executor();
+    this->fill(zero<ValueType>());
+    exec->run(dense::make_fill_in_matrix_data(
+        *make_temporary_clone(exec, &data.nonzeros), this));
+}
 
 
 template <typename ValueType>
 void Dense<ValueType>::read(const mat_data& data)
 {
-    read_impl(this, data);
+    this->read(device_mat_data::create_view_from_host(
+        this->get_executor(), const_cast<mat_data&>(data)));
 }
 
 
 template <typename ValueType>
 void Dense<ValueType>::read(const mat_data32& data)
 {
-    read_impl(this, data);
+    this->read(device_mat_data32::create_view_from_host(
+        this->get_executor(), const_cast<mat_data32&>(data)));
 }
 
 
@@ -717,13 +724,7 @@ template <typename MatrixType, typename MatrixData>
 inline void write_impl(const MatrixType* mtx, MatrixData& data)
 {
     std::unique_ptr<const LinOp> op{};
-    const MatrixType* tmp{};
-    if (mtx->get_executor()->get_master() != mtx->get_executor()) {
-        op = mtx->clone(mtx->get_executor()->get_master());
-        tmp = static_cast<const MatrixType*>(op.get());
-    } else {
-        tmp = mtx;
-    }
+    auto tmp = make_temporary_clone(mtx->get_executor()->get_master(), mtx);
 
     data = {mtx->get_size(), {}};
 

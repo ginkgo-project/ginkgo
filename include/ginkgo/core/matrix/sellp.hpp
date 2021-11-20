@@ -89,6 +89,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Sellp>;
 
     friend class Sellp<next_precision<ValueType>, IndexType>;
@@ -107,6 +108,8 @@ public:
     void move_to(Csr<ValueType, IndexType>* other) override;
 
     void read(const mat_data& data) override;
+
+    void read(const device_mat_data& data) override;
 
     void write(mat_data& data) const override;
 
@@ -214,7 +217,10 @@ public:
      *
      * @return the total column number.
      */
-    size_type get_total_cols() const noexcept { return total_cols_; }
+    size_type get_total_cols() const noexcept
+    {
+        return values_.get_num_elems() / slice_size_;
+    }
 
     /**
      * Returns the number of elements explicitly stored in the matrix.
@@ -328,8 +334,7 @@ protected:
           slice_lengths_(exec, ceildiv(size[0], slice_size)),
           slice_sets_(exec, ceildiv(size[0], slice_size) + 1),
           slice_size_(slice_size),
-          stride_factor_(stride_factor),
-          total_cols_(total_cols)
+          stride_factor_(stride_factor)
     {}
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
@@ -344,13 +349,12 @@ protected:
     }
 
 private:
-    Array<value_type> values_{0};
-    Array<index_type> col_idxs_{0};
-    Array<size_type> slice_lengths_{0};
-    Array<size_type> slice_sets_{0};
+    Array<value_type> values_;
+    Array<index_type> col_idxs_;
+    Array<size_type> slice_lengths_;
+    Array<size_type> slice_sets_;
     size_type slice_size_;
     size_type stride_factor_;
-    size_type total_cols_{0};
 };
 
 

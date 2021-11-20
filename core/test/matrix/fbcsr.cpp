@@ -364,8 +364,8 @@ TYPED_TEST(Fbcsr, ContainsCorrectData)
 TYPED_TEST(Fbcsr, BlockSizeIsSetCorrectly)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto m = Mtx::create(this->exec);
-    m->set_block_size(6);
+    auto m = Mtx::create(this->exec, 6);
+
     ASSERT_EQ(m->get_block_size(), 6);
 }
 
@@ -479,8 +479,7 @@ TYPED_TEST(Fbcsr, CanBeCleared)
 TYPED_TEST(Fbcsr, CanBeReadFromMatrixData)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto m = Mtx::create(this->exec);
-    m->set_block_size(this->fbsample.bs);
+    auto m = Mtx::create(this->exec, this->fbsample.bs);
 
     m->read(this->fbsample.generate_matrix_data());
 
@@ -492,8 +491,7 @@ TYPED_TEST(Fbcsr, CanBeReadFromEmptyMatrixData)
 {
     using Mtx = typename TestFixture::Mtx;
     using MtxData = typename TestFixture::MtxData;
-    auto m = Mtx::create(this->exec);
-    m->set_block_size(this->fbsample.bs);
+    auto m = Mtx::create(this->exec, this->fbsample.bs);
     MtxData mdata;
     mdata.size = gko::dim<2>{0, 0};
 

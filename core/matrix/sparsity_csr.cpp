@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/device_matrix_data_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
 
 
@@ -55,6 +56,8 @@ GKO_REGISTER_OPERATION(advanced_spmv, sparsity_csr::advanced_spmv);
 GKO_REGISTER_OPERATION(transpose, sparsity_csr::transpose);
 GKO_REGISTER_OPERATION(count_num_diagonal_elements,
                        sparsity_csr::count_num_diagonal_elements);
+GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
+GKO_REGISTER_OPERATION(fill_in_matrix_data, sparsity_csr::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(remove_diagonal_elements,
                        sparsity_csr::remove_diagonal_elements);
 GKO_REGISTER_OPERATION(sort_by_column_index,
@@ -96,32 +99,26 @@ void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp* alpha,
 
 
 template <typename ValueType, typename IndexType>
+void SparsityCsr<ValueType, IndexType>::read(const device_mat_data& data)
+{
+    const auto nnz = data.nonzeros.get_num_elems();
+    auto exec = this->get_executor();
+    this->set_size(data.size);
+    this->row_ptrs_.resize_and_reset(data.size[0] + 1);
+    this->col_idxs_.resize_and_reset(nnz);
+    this->value_.fill(one<ValueType>());
+    auto local_data = make_temporary_clone(exec, &data.nonzeros);
+    exec->run(sparsity_csr::make_build_row_ptrs(*local_data, data.size[0],
+                                                this->get_row_ptrs()));
+    exec->run(sparsity_csr::make_fill_in_matrix_data(*local_data, this));
+}
+
+
+template <typename ValueType, typename IndexType>
 void SparsityCsr<ValueType, IndexType>::read(const mat_data& data)
 {
-    size_type nnz = 0;
-    for (const auto& elem : data.nonzeros) {
-        nnz += (elem.value != zero<ValueType>());
-    }
-    auto tmp =
-        SparsityCsr::create(this->get_executor()->get_master(), data.size, nnz);
-    size_type ind = 0;
-    size_type cur_ptr = 0;
-    tmp->get_row_ptrs()[0] = cur_ptr;
-    tmp->get_value()[0] = one<ValueType>();
-    for (size_type row = 0; row < data.size[0]; ++row) {
-        for (; ind < data.nonzeros.size(); ++ind) {
-            if (data.nonzeros[ind].row > row) {
-                break;
-            }
-            auto val = data.nonzeros[ind].value;
-            if (val != zero<ValueType>()) {
-                tmp->get_col_idxs()[cur_ptr] = data.nonzeros[ind].column;
-                ++cur_ptr;
-            }
-        }
-        tmp->get_row_ptrs()[row + 1] = cur_ptr;
-    }
-    tmp->move_to(this);
+    this->read(device_mat_data::create_view_from_host(
+        this->get_executor(), const_cast<mat_data&>(data)));
 }
 
 

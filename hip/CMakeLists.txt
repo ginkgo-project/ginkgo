@@ -158,9 +158,8 @@ set(GINKGO_HIP_SOURCES
     base/executor.hip.cpp
     base/index_set_kernels.hip.cpp
     base/version.hip.cpp
-    components/absolute_array.hip.cpp
-    components/fill_array.hip.cpp
-    components/prefix_sum.hip.cpp
+    components/device_matrix_data_kernels.hip.cpp
+    components/prefix_sum_kernels.hip.cpp
     factorization/factorization_kernels.hip.cpp
     factorization/ic_kernels.hip.cpp
     factorization/ilu_kernels.hip.cpp

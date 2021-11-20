@@ -91,6 +91,12 @@ namespace kernels {
                 const matrix::Csr<ValueType, IndexType>* b,  \
                 matrix::Csr<ValueType, IndexType>* c)
 
+#define GKO_DECLARE_CSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType) \
+    void fill_in_matrix_data(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const Array<matrix_data_entry<ValueType, IndexType>>& data,      \
+        matrix::Csr<ValueType, IndexType>* output)
+
 #define GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
     void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,     \
                           const matrix::Csr<ValueType, IndexType>* source, \
@@ -221,6 +227,8 @@ namespace kernels {
     GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL(ValueType, IndexType);            \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_SPGEAM_KERNEL(ValueType, IndexType);                     \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);        \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);           \
     template <typename ValueType, typename IndexType>                        \
