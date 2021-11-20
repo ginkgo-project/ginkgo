@@ -1070,7 +1070,8 @@ __global__
         auto res_nnz = result_row_ptrs[res_row];
         for (auto nnz = source_row_ptrs[src_row];
              nnz < source_row_ptrs[src_row + 1]; ++nnz) {
-            const auto res_col = source_col_idxs[nnz] - col_offset;
+            const auto res_col =
+                source_col_idxs[nnz] - static_cast<IndexType>(col_offset);
             if (res_col < num_cols && res_col >= 0) {
                 result_col_idxs[res_nnz] = res_col;
                 result_values[res_nnz] = source_values[nnz];
