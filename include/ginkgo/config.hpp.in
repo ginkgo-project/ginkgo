@@ -88,6 +88,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // clang-format on
 
 
+/* Is GPU-aware MPI available ? */
+// clang-format off
+#define GKO_HAVE_GPU_AWARE_MPI @GINKGO_HAVE_GPU_AWARE_MPI@
+// clang-format on
+
+
 /* Is HWLOC available ? */
 // clang-format off
 #define GKO_HAVE_HWLOC @GINKGO_HAVE_HWLOC@
