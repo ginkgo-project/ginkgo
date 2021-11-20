@@ -20,7 +20,7 @@ endif()
 
 if(MPI_FOUND)
     if(NOT DEFINED GINKGO_BUILD_MPI)
-        message(STATUS "Enabling MPI executor")
+        message(STATUS "Enabling MPI support")
     endif()
     set(GINKGO_HAS_MPI ON)
 endif()

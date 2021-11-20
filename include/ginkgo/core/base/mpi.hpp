@@ -216,6 +216,19 @@ private:
 };
 
 
+/**
+ * Returns if GPU aware functionality has been enabled
+ */
+static bool is_gpu_aware()
+{
+#if GKO_HAVE_GPU_AWARE_MPI
+    return true;
+#else
+    return false;
+#endif
+}
+
+
 namespace {
 
 
