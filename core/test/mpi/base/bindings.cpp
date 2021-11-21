@@ -128,6 +128,10 @@ TYPED_TEST(MpiBindings, CanNonBlockingSendAndNonBlockingRecvValues)
         auto stat1 = gko::mpi::wait_all(req1);
     } else {
         auto stat2 = gko::mpi::wait(req2);
+        int count;
+        MPI_Get_count(&stat2, gko::mpi::type_impl<TypeParam>::get_type(),
+                      &count);
+        ASSERT_EQ(count, 4);
         auto ref_array = gko::Array<TypeParam>{this->ref, {1, 2, 3, 4}};
         GKO_ASSERT_ARRAY_EQ(ref_array, recv_array);
     }
@@ -146,7 +150,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithLockAll)
     } else {
         data = std::vector<TypeParam>{0, 0, 0, 0};
     }
-    auto win = window(data.data(), 4 * sizeof(TypeParam), comm);
+    auto win = window(data.data(), 4, comm);
     if (my_rank == 0) {
         win.lock_all();
         for (auto rank = 0; rank < num_ranks; ++rank) {
@@ -177,7 +181,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithExclusiveLock)
     } else {
         data = std::vector<TypeParam>{0, 0, 0, 0};
     }
-    auto win = window(data.data(), 4 * sizeof(TypeParam), comm);
+    auto win = window(data.data(), 4, comm);
     if (my_rank == 0) {
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
@@ -207,7 +211,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithFence)
     } else {
         data = std::vector<TypeParam>{0, 0, 0, 0};
     }
-    auto win = window(data.data(), 4 * sizeof(TypeParam), comm);
+    auto win = window(data.data(), 4, comm);
     win.fence();
     if (my_rank == 0) {
         for (auto rank = 0; rank < num_ranks; ++rank) {
@@ -235,7 +239,7 @@ TYPED_TEST(MpiBindings, CanGetValuesWithLockAll)
     } else {
         data = std::vector<TypeParam>{0, 0, 0, 0};
     }
-    auto win = window(data.data(), 4 * sizeof(TypeParam), comm);
+    auto win = window(data.data(), 4, comm);
     if (my_rank != 0) {
         win.lock_all();
         for (auto rank = 0; rank < num_ranks; ++rank) {
@@ -263,7 +267,7 @@ TYPED_TEST(MpiBindings, CanGetValuesWithExclusiveLock)
     } else {
         data = std::vector<TypeParam>{0, 0, 0, 0};
     }
-    auto win = window(data.data(), 4 * sizeof(TypeParam), comm);
+    auto win = window(data.data(), 4, comm);
     if (my_rank != 0) {
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
@@ -291,7 +295,7 @@ TYPED_TEST(MpiBindings, CanGetValuesWithFence)
     } else {
         data = std::vector<TypeParam>{0, 0, 0, 0};
     }
-    auto win = window(data.data(), 4 * sizeof(TypeParam), comm);
+    auto win = window(data.data(), 4, comm);
     win.fence();
     if (my_rank != 0) {
         for (auto rank = 0; rank < num_ranks; ++rank) {
