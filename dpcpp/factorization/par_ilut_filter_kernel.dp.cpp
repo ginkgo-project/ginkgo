@@ -1,0 +1,396 @@
+/*******************************<GINKGO LICENSE>******************************
+Copyright (c) 2017-2021, the Ginkgo authors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
+#include "core/factorization/par_ilut_kernels.hpp"
+
+
+#include <CL/sycl.hpp>
+
+
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/components/prefix_sum_kernels.hpp"
+#include "core/matrix/coo_builder.hpp"
+#include "core/matrix/csr_builder.hpp"
+#include "core/matrix/csr_kernels.hpp"
+#include "core/synthesizer/implementation_selection.hpp"
+#include "dpcpp/base/config.hpp"
+#include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/components/cooperative_groups.dp.hpp"
+#include "dpcpp/components/intrinsics.dp.hpp"
+#include "dpcpp/components/thread_ids.dp.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace dpcpp {
+/**
+ * @brief The parallel ILUT factorization namespace.
+ *
+ * @ingroup factor
+ */
+namespace par_ilut_factorization {
+
+
+constexpr int default_block_size = 512;
+
+
+// subwarp sizes for filter kernels
+using compiled_kernels = syn::value_list<int, 1, 8, 16, 32>;
+
+
+namespace kernel {
+
+
+template <int subwarp_size, typename IndexType, typename Predicate,
+          typename BeginCallback, typename StepCallback,
+          typename FinishCallback>
+void abstract_filter_impl(const IndexType* row_ptrs, IndexType num_rows,
+                          Predicate pred, BeginCallback begin_cb,
+                          StepCallback step_cb, FinishCallback finish_cb,
+                          sycl::nd_item<3> item_ct1)
+{
+    auto subwarp = group::tiled_partition<subwarp_size>(
+        group::this_thread_block(item_ct1));
+    auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>(item_ct1);
+    auto lane = subwarp.thread_rank();
+    auto lane_prefix_mask = (config::lane_mask_type(1) << lane) - 1;
+    if (row >= num_rows) {
+        return;
+    }
+
+    auto begin = row_ptrs[row];
+    auto end = row_ptrs[row + 1];
+    begin_cb(row);
+    auto num_steps = ceildiv(end - begin, subwarp_size);
+    for (IndexType step = 0; step < num_steps; ++step) {
+        auto idx = begin + lane + step * subwarp_size;
+        auto keep = idx < end && pred(idx, begin, end);
+        auto mask = subwarp.ballot(keep);
+        step_cb(row, idx, keep, popcnt(mask), popcnt(mask & lane_prefix_mask));
+    }
+    finish_cb(row, lane);
+}
+
+
+template <int subwarp_size, typename Predicate, typename IndexType>
+void abstract_filter_nnz(const IndexType* __restrict__ row_ptrs,
+                         IndexType num_rows, Predicate pred,
+                         IndexType* __restrict__ nnz, sycl::nd_item<3> item_ct1)
+{
+    IndexType count{};
+    abstract_filter_impl<subwarp_size>(
+        row_ptrs, num_rows, pred, [&](IndexType) { count = 0; },
+        [&](IndexType, IndexType, bool, IndexType warp_count, IndexType) {
+            count += warp_count;
+        },
+        [&](IndexType row, IndexType lane) {
+            if (row < num_rows && lane == 0) {
+                nnz[row] = count;
+            }
+        },
+        item_ct1);
+}
+
+
+template <int subwarp_size, typename Predicate, typename IndexType,
+          typename ValueType>
+void abstract_filter(const IndexType* __restrict__ old_row_ptrs,
+                     const IndexType* __restrict__ old_col_idxs,
+                     const ValueType* __restrict__ old_vals, IndexType num_rows,
+                     Predicate pred, const IndexType* __restrict__ new_row_ptrs,
+                     IndexType* __restrict__ new_row_idxs,
+                     IndexType* __restrict__ new_col_idxs,
+                     ValueType* __restrict__ new_vals,
+                     sycl::nd_item<3> item_ct1)
+{
+    IndexType count{};
+    IndexType new_offset{};
+    abstract_filter_impl<subwarp_size>(
+        old_row_ptrs, num_rows, pred,
+        [&](IndexType row) {
+            new_offset = new_row_ptrs[row];
+            count = 0;
+        },
+        [&](IndexType row, IndexType idx, bool keep, IndexType warp_count,
+            IndexType warp_prefix_sum) {
+            if (keep) {
+                auto new_idx = new_offset + warp_prefix_sum + count;
+                if (new_row_idxs) {
+                    new_row_idxs[new_idx] = row;
+                }
+                new_col_idxs[new_idx] = old_col_idxs[idx];
+                new_vals[new_idx] = old_vals[idx];
+            }
+            count += warp_count;
+        },
+        [](IndexType, IndexType) {}, item_ct1);
+}
+
+
+template <int subwarp_size, typename ValueType, typename IndexType>
+void threshold_filter_nnz(const IndexType* __restrict__ row_ptrs,
+                          const ValueType* vals, IndexType num_rows,
+                          remove_complex<ValueType> threshold,
+                          IndexType* __restrict__ nnz, bool lower,
+                          sycl::nd_item<3> item_ct1)
+{
+    abstract_filter_nnz<subwarp_size>(
+        row_ptrs, num_rows,
+        [&](IndexType idx, IndexType row_begin, IndexType row_end) {
+            auto diag_idx = lower ? row_end - 1 : row_begin;
+            /*
+            DPCT1007:0: Migration of this CUDA API is not supported by the
+            Intel(R) DPC++ Compatibility Tool.
+            */
+            return std::abs(vals[idx]) >= threshold || idx == diag_idx;
+        },
+        nnz, item_ct1);
+}
+
+template <int subwarp_size, typename ValueType, typename IndexType>
+void threshold_filter_nnz(dim3 grid, dim3 block,
+                          size_type dynamic_shared_memory, sycl::queue* queue,
+                          const IndexType* row_ptrs, const ValueType* vals,
+                          IndexType num_rows,
+                          remove_complex<ValueType> threshold, IndexType* nnz,
+                          bool lower)
+{
+    queue->parallel_for(
+        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            threshold_filter_nnz<subwarp_size>(row_ptrs, vals, num_rows,
+                                               threshold, nnz, lower, item_ct1);
+        });
+}
+
+
+template <int subwarp_size, typename ValueType, typename IndexType>
+void threshold_filter(const IndexType* __restrict__ old_row_ptrs,
+                      const IndexType* __restrict__ old_col_idxs,
+                      const ValueType* __restrict__ old_vals,
+                      IndexType num_rows, remove_complex<ValueType> threshold,
+                      const IndexType* __restrict__ new_row_ptrs,
+                      IndexType* __restrict__ new_row_idxs,
+                      IndexType* __restrict__ new_col_idxs,
+                      ValueType* __restrict__ new_vals, bool lower,
+                      sycl::nd_item<3> item_ct1)
+{
+    abstract_filter<subwarp_size>(
+        old_row_ptrs, old_col_idxs, old_vals, num_rows,
+        [&](IndexType idx, IndexType row_begin, IndexType row_end) {
+            auto diag_idx = lower ? row_end - 1 : row_begin;
+            /*
+            DPCT1007:2: Migration of this CUDA API is not supported by the
+            Intel(R) DPC++ Compatibility Tool.
+            */
+            return std::abs(old_vals[idx]) >= threshold || idx == diag_idx;
+        },
+        new_row_ptrs, new_row_idxs, new_col_idxs, new_vals, item_ct1);
+}
+
+template <int subwarp_size, typename ValueType, typename IndexType>
+void threshold_filter(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                      sycl::queue* queue, const IndexType* old_row_ptrs,
+                      const IndexType* old_col_idxs, const ValueType* old_vals,
+                      IndexType num_rows, remove_complex<ValueType> threshold,
+                      const IndexType* new_row_ptrs, IndexType* new_row_idxs,
+                      IndexType* new_col_idxs, ValueType* new_vals, bool lower)
+{
+    queue->parallel_for(
+        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            threshold_filter<subwarp_size>(old_row_ptrs, old_col_idxs, old_vals,
+                                           num_rows, threshold, new_row_ptrs,
+                                           new_row_idxs, new_col_idxs, new_vals,
+                                           lower, item_ct1);
+        });
+}
+
+
+template <int subwarp_size, typename IndexType, typename BucketType>
+void bucket_filter_nnz(const IndexType* __restrict__ row_ptrs,
+                       const BucketType* buckets, IndexType num_rows,
+                       BucketType bucket, IndexType* __restrict__ nnz,
+                       sycl::nd_item<3> item_ct1)
+{
+    abstract_filter_nnz<subwarp_size>(
+        row_ptrs, num_rows,
+        [&](IndexType idx, IndexType row_begin, IndexType row_end) {
+            return buckets[idx] >= bucket || idx == row_end - 1;
+        },
+        nnz, item_ct1);
+}
+
+template <int subwarp_size, typename IndexType, typename BucketType>
+void bucket_filter_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                       sycl::queue* queue, const IndexType* row_ptrs,
+                       const BucketType* buckets, IndexType num_rows,
+                       BucketType bucket, IndexType* nnz)
+{
+    queue->parallel_for(
+        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            bucket_filter_nnz<subwarp_size>(row_ptrs, buckets, num_rows, bucket,
+                                            nnz, item_ct1);
+        });
+}
+
+
+template <int subwarp_size, typename ValueType, typename IndexType,
+          typename BucketType>
+void bucket_filter(const IndexType* __restrict__ old_row_ptrs,
+                   const IndexType* __restrict__ old_col_idxs,
+                   const ValueType* __restrict__ old_vals,
+                   const BucketType* buckets, IndexType num_rows,
+                   BucketType bucket,
+                   const IndexType* __restrict__ new_row_ptrs,
+                   IndexType* __restrict__ new_row_idxs,
+                   IndexType* __restrict__ new_col_idxs,
+                   ValueType* __restrict__ new_vals, sycl::nd_item<3> item_ct1)
+{
+    abstract_filter<subwarp_size>(
+        old_row_ptrs, old_col_idxs, old_vals, num_rows,
+        [&](IndexType idx, IndexType row_begin, IndexType row_end) {
+            return buckets[idx] >= bucket || idx == row_end - 1;
+        },
+        new_row_ptrs, new_row_idxs, new_col_idxs, new_vals, item_ct1);
+}
+
+template <int subwarp_size, typename ValueType, typename IndexType,
+          typename BucketType>
+void bucket_filter(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                   sycl::queue* queue, const IndexType* old_row_ptrs,
+                   const IndexType* old_col_idxs, const ValueType* old_vals,
+                   const BucketType* buckets, IndexType num_rows,
+                   BucketType bucket, const IndexType* new_row_ptrs,
+                   IndexType* new_row_idxs, IndexType* new_col_idxs,
+                   ValueType* new_vals)
+{
+    queue->parallel_for(
+        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            bucket_filter<subwarp_size>(
+                old_row_ptrs, old_col_idxs, old_vals, buckets, num_rows, bucket,
+                new_row_ptrs, new_row_idxs, new_col_idxs, new_vals, item_ct1);
+        });
+}
+
+
+}  // namespace kernel
+
+
+namespace {
+
+
+template <int subwarp_size, typename ValueType, typename IndexType>
+void threshold_filter(syn::value_list<int, subwarp_size>,
+                      std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType>* a,
+                      remove_complex<ValueType> threshold,
+                      matrix::Csr<ValueType, IndexType>* m_out,
+                      matrix::Coo<ValueType, IndexType>* m_out_coo, bool lower)
+{
+    auto old_row_ptrs = a->get_const_row_ptrs();
+    auto old_col_idxs = a->get_const_col_idxs();
+    auto old_vals = a->get_const_values();
+    // compute nnz for each row
+    auto num_rows = static_cast<IndexType>(a->get_size()[0]);
+    auto block_size = default_block_size / subwarp_size;
+    auto num_blocks = ceildiv(num_rows, block_size);
+    auto new_row_ptrs = m_out->get_row_ptrs();
+    kernel::threshold_filter_nnz<subwarp_size>(
+        num_blocks, default_block_size, 0, exec->get_queue(), old_row_ptrs,
+        old_vals, num_rows, threshold, new_row_ptrs, lower);
+
+    // build row pointers
+    components::prefix_sum(exec, new_row_ptrs, num_rows + 1);
+
+    // build matrix
+    auto new_nnz = exec->copy_val_to_host(new_row_ptrs + num_rows);
+    // resize arrays and update aliases
+    matrix::CsrBuilder<ValueType, IndexType> builder{m_out};
+    builder.get_col_idx_array().resize_and_reset(new_nnz);
+    builder.get_value_array().resize_and_reset(new_nnz);
+    auto new_col_idxs = m_out->get_col_idxs();
+    auto new_vals = m_out->get_values();
+    IndexType* new_row_idxs{};
+    if (m_out_coo) {
+        matrix::CooBuilder<ValueType, IndexType> coo_builder{m_out_coo};
+        coo_builder.get_row_idx_array().resize_and_reset(new_nnz);
+        coo_builder.get_col_idx_array() =
+            Array<IndexType>::view(exec, new_nnz, new_col_idxs);
+        coo_builder.get_value_array() =
+            Array<ValueType>::view(exec, new_nnz, new_vals);
+        new_row_idxs = m_out_coo->get_row_idxs();
+    }
+    kernel::threshold_filter<subwarp_size>(
+        num_blocks, default_block_size, 0, exec->get_queue(), old_row_ptrs,
+        old_col_idxs, old_vals, num_rows, threshold, new_row_ptrs, new_row_idxs,
+        new_col_idxs, new_vals, lower);
+}
+
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_threshold_filter, threshold_filter);
+
+
+}  // namespace
+
+template <typename ValueType, typename IndexType>
+void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType>* a,
+                      remove_complex<ValueType> threshold,
+                      matrix::Csr<ValueType, IndexType>* m_out,
+                      matrix::Coo<ValueType, IndexType>* m_out_coo, bool lower)
+{
+    auto num_rows = a->get_size()[0];
+    auto total_nnz = a->get_num_stored_elements();
+    auto total_nnz_per_row = total_nnz / num_rows;
+    select_threshold_filter(
+        compiled_kernels(),
+        [&](int compiled_subwarp_size) {
+            return total_nnz_per_row <= compiled_subwarp_size ||
+                   compiled_subwarp_size == config::warp_size;
+        },
+        syn::value_list<int>(), syn::type_list<>(), exec, a, threshold, m_out,
+        m_out_coo, lower);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL);
+
+
+}  // namespace par_ilut_factorization
+}  // namespace dpcpp
+}  // namespace kernels
+}  // namespace gko
