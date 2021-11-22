@@ -323,6 +323,7 @@ TEST(BatchRich, CanSolveWithoutScaling)
     using T = std::complex<float>;
     using RT = typename gko::remove_complex<T>;
     using Solver = gko::solver::BatchRichardson<T>;
+    using Mtx = gko::matrix::BatchCsr<T, int>;
     const RT tol = 1e-5;
     std::shared_ptr<gko::ReferenceExecutor> refexec =
         gko::ReferenceExecutor::create();
@@ -340,8 +341,8 @@ TEST(BatchRich, CanSolveWithoutScaling)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .on(exec);
-    gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, 10 * tol, maxits,
-                                  batchrich_factory.get(), 2);
+    gko::test::test_solve<Solver, Mtx>(exec, nbatch, nrows, nrhs, 10 * tol,
+                                       maxits, batchrich_factory.get(), 2);
 }
 
 }  // namespace
