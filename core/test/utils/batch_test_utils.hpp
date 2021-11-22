@@ -280,7 +280,7 @@ Result<ValueType> solve_poisson_uniform_core(
 }
 
 
-template <typename SolverType>
+template <typename SolverType, typename MatrixType>
 void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
                 const int nrows, const int nrhs,
                 const remove_complex<typename SolverType::value_type> res_tol,
@@ -293,7 +293,7 @@ void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
     using RT = typename gko::remove_complex<T>;
     using Dense = gko::matrix::BatchDense<T>;
     using RDense = gko::matrix::BatchDense<RT>;
-    using Mtx = typename gko::matrix::BatchCsr<T>;
+    using Mtx = MatrixType;
     using factory_type = typename SolverType::Factory;
     std::shared_ptr<const gko::ReferenceExecutor> refexec =
         gko::ReferenceExecutor::create();

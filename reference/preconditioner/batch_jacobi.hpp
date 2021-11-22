@@ -74,9 +74,10 @@ public:
         work_ = work;
         for (int i = 0; i < mat.num_rows; i++) {
             for (int j = 0; j < mat.num_stored_elems_per_row; j++) {
-                if (mat.col_idxs[j] == i &&
-                    mat.values[j] != zero<ValueType>()) {
-                    work_[i] = one<ValueType>() / mat.values[j];
+                const auto idx = i + j * mat.stride;
+                if (mat.col_idxs[idx] == i &&
+                    mat.values[idx] != zero<ValueType>()) {
+                    work_[i] = one<ValueType>() / mat.values[idx];
                     break;
                 }
             }
