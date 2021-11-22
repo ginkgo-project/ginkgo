@@ -28,7 +28,12 @@ target_sources(ginkgo_dpcpp
     factorization/par_ic_kernels.dp.cpp
     factorization/par_ict_kernels.dp.cpp
     factorization/par_ilu_kernels.dp.cpp
-    factorization/par_ilut_kernels.dp.cpp
+    factorization/par_ilut_approx_filter_kernel.dp.cpp
+    factorization/par_ilut_filter_kernel.dp.cpp
+    factorization/par_ilut_select_common.dp.cpp
+    factorization/par_ilut_select_kernel.dp.cpp
+    factorization/par_ilut_spgeam_kernel.dp.cpp
+    factorization/par_ilut_sweep_kernel.dp.cpp
     matrix/coo_kernels.dp.cpp
     matrix/csr_kernels.dp.cpp
     matrix/fbcsr_kernels.dp.cpp
