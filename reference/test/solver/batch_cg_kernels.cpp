@@ -225,7 +225,7 @@ TEST(BatchCg, CanSolveWithoutScaling)
     using Solver = gko::solver::BatchCg<T>;
     using Dense = gko::matrix::BatchDense<T>;
     using RDense = gko::matrix::BatchDense<RT>;
-    using Mtx = typename gko::matrix::BatchCsr<T>;
+    using Mtx = gko::matrix::BatchCsr<T>;
     const RT tol = 1e-9;
     const int maxits = 1000;
     std::shared_ptr<gko::ReferenceExecutor> exec =
@@ -240,8 +240,8 @@ TEST(BatchCg, CanSolveWithoutScaling)
     const int nrows = 41;
     const size_t nbatch = 3;
     const int nrhs = 1;
-    gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
-                                  batchcg_factory.get(), 1.01);
+    gko::test::test_solve<Solver, Mtx>(exec, nbatch, nrows, nrhs, tol, maxits,
+                                       batchcg_factory.get(), 1.01);
 }
 
 
