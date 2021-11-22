@@ -409,6 +409,9 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  the batch size of the batch matrices
+     * @param num_stored_elems_per_row  The (common) number of stored entries
+     *                                  per row.
+     * @param stride  (Common) row-stride of the small matrices.
      * @param values  array of matrix values concatenated for the different
      *                batches
      * @param col_idxs  array of column indexes which is common among all the
