@@ -208,7 +208,6 @@ void Matrix<ValueType, LocalIndexType>::communicate(
                         host_recv_buffer_->get_values(), recv_sizes_.data(),
                         recv_offsets_.data(), num_cols,
                         this->get_communicator(), req);
-        recv_buffer_->copy_from(host_recv_buffer_.get());
     } else {
         mpi::all_to_all(send_buffer_->get_const_values(), send_sizes_.data(),
                         send_offsets_.data(), recv_buffer_->get_values(),
@@ -223,11 +222,17 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
                                                    LinOp* x) const
 {
     auto dense_b = as<GlobalVec>(b);
+    auto exec = this->get_executor();
     auto dense_x = as<GlobalVec>(x);
     auto req = gko::mpi::request::create(this->get_communicator()->size());
     this->communicate(dense_b->get_local(), req);
     diag_mtx_->apply(dense_b->get_local(), dense_x->get_local());
     gko::mpi::wait(req);
+    auto use_host_buffer =
+        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+    if (use_host_buffer) {
+        recv_buffer_->copy_from(host_recv_buffer_.get());
+    }
     offdiag_mtx_->apply(&one_scalar_, recv_buffer_.get(), &one_scalar_,
                         dense_x->get_local());
 }
@@ -241,6 +246,7 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* alpha,
 {
     auto vec_b = as<GlobalVec>(b);
     auto vec_x = as<GlobalVec>(x);
+    auto exec = this->get_executor();
     auto local_alpha = as<LocalVec>(alpha);
     auto local_beta = as<LocalVec>(beta);
     auto req = gko::mpi::request::create(this->get_communicator()->size());
@@ -248,6 +254,11 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* alpha,
     diag_mtx_->apply(local_alpha, vec_b->get_local(), local_beta,
                      vec_x->get_local());
     gko::mpi::wait(req);
+    auto use_host_buffer =
+        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+    if (use_host_buffer) {
+        recv_buffer_->copy_from(host_recv_buffer_.get());
+    }
     offdiag_mtx_->apply(local_alpha, recv_buffer_.get(), &one_scalar_,
                         vec_x->get_local());
 }
