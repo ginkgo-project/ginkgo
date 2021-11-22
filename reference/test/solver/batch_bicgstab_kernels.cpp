@@ -224,11 +224,12 @@ TEST(BatchBicgstab, GoodScalingImprovesConvergence)
 }
 
 
-TEST(BatchBicgstab, CoreCanSolveWithoutScaling)
+TEST(BatchBicgstab, CoreCanSolveCsrWithoutScaling)
 {
     using T = std::complex<float>;
     using RT = typename gko::remove_complex<T>;
     using Solver = gko::solver::BatchBicgstab<T>;
+    using Mtx = gko::matrix::BatchCsr<T, int>;
     const RT tol = 1e-5;
     const int maxits = 1000;
     std::shared_ptr<gko::ReferenceExecutor> exec =
@@ -244,15 +245,68 @@ TEST(BatchBicgstab, CoreCanSolveWithoutScaling)
     const size_t nbatch = 3;
     const int nrhs = 1;
 
-    gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
-                                  batchbicgstab_factory.get(), 10);
+    gko::test::test_solve<Solver, Mtx>(exec, nbatch, nrows, nrhs, tol, maxits,
+                                       batchbicgstab_factory.get(), 10);
 }
 
 
-TEST(BatchBicgstab, CoreCanSolveWithScaling)
+TEST(BatchBicgstab, CoreCanSolveEllWithoutScaling)
+{
+    using T = std::complex<float>;
+    using RT = typename gko::remove_complex<T>;
+    using Solver = gko::solver::BatchBicgstab<T>;
+    using Mtx = gko::matrix::BatchEll<T, int>;
+    const RT tol = 1e-5;
+    const int maxits = 1000;
+    std::shared_ptr<gko::ReferenceExecutor> exec =
+        gko::ReferenceExecutor::create();
+    auto batchbicgstab_factory =
+        Solver::build()
+            .with_max_iterations(maxits)
+            .with_residual_tol(tol)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
+            .on(exec);
+    const int nrows = 39;
+    const size_t nbatch = 3;
+    const int nrhs = 1;
+
+    gko::test::test_solve<Solver, Mtx>(exec, nbatch, nrows, nrhs, tol, maxits,
+                                       batchbicgstab_factory.get(), 10);
+}
+
+
+TEST(BatchBicgstab, CoreCanSolveDenseWithoutScaling)
+{
+    using T = std::complex<float>;
+    using RT = typename gko::remove_complex<T>;
+    using Solver = gko::solver::BatchBicgstab<T>;
+    using Mtx = gko::matrix::BatchDense<T>;
+    const RT tol = 1e-5;
+    const int maxits = 1000;
+    std::shared_ptr<gko::ReferenceExecutor> exec =
+        gko::ReferenceExecutor::create();
+    auto batchbicgstab_factory =
+        Solver::build()
+            .with_max_iterations(maxits)
+            .with_residual_tol(tol)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
+            .on(exec);
+    const int nrows = 13;
+    const size_t nbatch = 3;
+    const int nrhs = 1;
+
+    gko::test::test_solve<Solver, Mtx>(exec, nbatch, nrows, nrhs, tol, maxits,
+                                       batchbicgstab_factory.get(), 10);
+}
+
+
+TEST(BatchBicgstab, CoreCanSolveCsrWithScaling)
 {
     using T = double;
     using RT = typename gko::remove_complex<T>;
+    using Mtx = gko::matrix::BatchCsr<T, int>;
     using Solver = gko::solver::BatchBicgstab<T>;
     const RT tol = 1e-10;
     const int maxits = 1000;
@@ -269,8 +323,8 @@ TEST(BatchBicgstab, CoreCanSolveWithScaling)
     const size_t nbatch = 3;
     const int nrhs = 1;
 
-    gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
-                                  batchbicgstab_factory.get(), 10, true);
+    gko::test::test_solve<Solver, Mtx>(exec, nbatch, nrows, nrhs, tol, maxits,
+                                       batchbicgstab_factory.get(), 10, true);
 }
 
 

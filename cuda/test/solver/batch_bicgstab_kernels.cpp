@@ -381,7 +381,7 @@ TEST(BatchBicgstab, SolvesLargeEllSystemEquivalentToReference)
         gko::CudaExecutor::create(0, refexec);
     const float solver_restol = 1e-4;
     auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
-        refexec, 2, 90, 1, false);
+        refexec, 2, 91, 1, false);
     auto r_factory =
         solver_type::build()
             .with_max_iterations(500)
