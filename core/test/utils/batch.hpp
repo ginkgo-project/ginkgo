@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
 
 
 namespace gko {
@@ -193,7 +194,6 @@ std::unique_ptr<MatrixType> create_poisson1d_batch(
 
 template <typename ValueType>
 struct BatchSystem {
-    // using mtx_type = matrix::BatchCsr<ValueType, int>;
     using vec_type = matrix::BatchDense<ValueType>;
     std::unique_ptr<BatchLinOp> A;
     std::unique_ptr<vec_type> b;
