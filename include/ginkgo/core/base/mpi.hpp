@@ -397,6 +397,12 @@ public:
         return comm_.get_deleter().target_type() == typeid(comm_deleter);
     }
 
+    /**
+     * This function is used to synchronize the ranks in the communicator.
+     * Calls MPI_Barrier
+     */
+    void synchronize() const { GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(get())); }
+
 private:
     using comm_manager =
         std::unique_ptr<MPI_Comm, std::function<void(MPI_Comm*)>>;
@@ -445,18 +451,6 @@ private:
  * @param comm  the communicator
  */
 inline double get_walltime() { return MPI_Wtime(); }
-
-
-/**
- * This function is used to synchronize between the ranks of a given
- * communicator. Calls MPI_Barrier
- *
- * @param comm  the communicator
- */
-inline void synchronize(const communicator& comm)
-{
-    GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(comm.get()));
-}
 
 
 /**

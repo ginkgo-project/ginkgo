@@ -88,11 +88,15 @@ TEST_F(Communicator, CommKnowsItsLocalRank)
 
 TEST_F(Communicator, CommunicatorCanBeCopyConstructed)
 {
-    int rank = 5;
-    MPI_Comm_rank(comm.get(), &rank);
     gko::mpi::communicator copy(comm);
 
     EXPECT_EQ(copy == comm, true);
+}
+
+
+TEST_F(Communicator, CommunicatorCanBeSynchronized)
+{
+    ASSERT_NO_THROW(comm.synchronize());
 }
 
 
