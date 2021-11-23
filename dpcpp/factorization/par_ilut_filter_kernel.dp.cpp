@@ -66,7 +66,7 @@ namespace dpcpp {
 namespace par_ilut_factorization {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 256;
 
 
 // subwarp sizes for filter kernels

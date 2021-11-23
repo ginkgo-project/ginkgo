@@ -62,7 +62,11 @@ namespace {
 
 class ParIlut : public ::testing::Test {
 protected:
-    using value_type = gko::default_precision;
+#if GINKGO_DPCPP_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
     using index_type = gko::int32;
     using Dense = gko::matrix::Dense<value_type>;
     using ComplexDense = gko::matrix::Dense<std::complex<value_type>>;
@@ -501,8 +505,8 @@ TEST_F(ParIlut, KernelAddCandidatesIsEquivalentToRef)
 
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_l, dres_mtx_l);
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_u, dres_mtx_u);
-    GKO_ASSERT_MTX_NEAR(res_mtx_l, dres_mtx_l, 1e-14);
-    GKO_ASSERT_MTX_NEAR(res_mtx_u, dres_mtx_u, 1e-14);
+    GKO_ASSERT_MTX_NEAR(res_mtx_l, dres_mtx_l, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(res_mtx_u, dres_mtx_u, r<value_type>::value);
 }
 
 

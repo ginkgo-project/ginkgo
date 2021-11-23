@@ -144,21 +144,21 @@ struct bitonic_warp {
     __dpct_inline__ static void merge(ValueType* els, bool reverse,
                                       sycl::nd_item<3> item_ct1)
     {
-        auto tile = group::tiled_partition<num_threads>(
+        auto tile = group::tiled_partition<config::warp_size>(
             group::this_thread_block(item_ct1));
         auto new_reverse = reverse != upper_half(item_ct1);
         for (int i = 0; i < num_local; ++i) {
             auto other = tile.shfl_xor(els[i], num_threads / 2);
             bitonic_cas(els[i], other, new_reverse);
         }
-        half::merge(els, reverse);
+        half::merge(els, reverse, item_ct1);
     }
 
     __dpct_inline__ static void sort(ValueType* els, bool reverse,
                                      sycl::nd_item<3> item_ct1)
     {
         auto new_reverse = reverse != upper_half(item_ct1);
-        half::sort(els, new_reverse);
+        half::sort(els, new_reverse, item_ct1);
         merge(els, reverse, item_ct1);
     }
 };
@@ -166,11 +166,13 @@ struct bitonic_warp {
 template <typename ValueType, int NumLocalElements>
 struct bitonic_warp<ValueType, NumLocalElements, 1> {
     using local = bitonic_local<ValueType, NumLocalElements>;
-    __dpct_inline__ static void merge(ValueType* els, bool reverse)
+    __dpct_inline__ static void merge(ValueType* els, bool reverse,
+                                      sycl::nd_item<3> item_ct1)
     {
         local::merge(els, reverse);
     }
-    __dpct_inline__ static void sort(ValueType* els, bool reverse)
+    __dpct_inline__ static void sort(ValueType* els, bool reverse,
+                                     sycl::nd_item<3> item_ct1)
     {
         local::sort(els, reverse);
     }
@@ -228,7 +230,7 @@ struct bitonic_global {
                 bitonic_cas(shared_els[j], upper_shared_els[j], reverse);
             }
         }
-        half::merge(local_els, shared_els, reverse);
+        half::merge(local_els, shared_els, reverse, item_ct1);
     }
 
     __dpct_inline__ static void sort(ValueType* local_els,
@@ -236,7 +238,7 @@ struct bitonic_global {
                                      sycl::nd_item<3> item_ct1)
     {
         auto new_reverse = reverse != upper_half(item_ct1);
-        half::sort(local_els, shared_els, new_reverse);
+        half::sort(local_els, shared_els, new_reverse, item_ct1);
         merge(local_els, shared_els, reverse, item_ct1);
     }
 };
@@ -246,11 +248,11 @@ template <typename ValueType, int num_local, int num_threads,
 struct bitonic_global<ValueType, num_local, num_threads, 1, num_total_threads> {
     using warp = bitonic_warp<ValueType, num_local, num_threads>;
 
-    __dpct_inline__ static int shared_idx(int local)
+    __dpct_inline__ static int shared_idx(int local, sycl::nd_item<3> item_ct1)
     {
         // use the indexing from the general struct
         return bitonic_global<ValueType, num_local, num_threads, 2,
-                              num_total_threads>::shared_idx(local);
+                              num_total_threads>::shared_idx(local, item_ct1);
     }
 
     __dpct_inline__ static void merge(ValueType* local_els,
@@ -259,11 +261,11 @@ struct bitonic_global<ValueType, num_local, num_threads, 1, num_total_threads> {
     {
         group::this_thread_block(item_ct1).sync();
         for (int i = 0; i < num_local; ++i) {
-            local_els[i] = shared_els[shared_idx(i)];
+            local_els[i] = shared_els[shared_idx(i, item_ct1)];
         }
-        warp::merge(local_els, reverse);
+        warp::merge(local_els, reverse, item_ct1);
         for (int i = 0; i < num_local; ++i) {
-            shared_els[shared_idx(i)] = local_els[i];
+            shared_els[shared_idx(i, item_ct1)] = local_els[i];
         }
     }
 
@@ -273,10 +275,10 @@ struct bitonic_global<ValueType, num_local, num_threads, 1, num_total_threads> {
     {
         auto rank = group::this_thread_block(item_ct1).thread_rank();
         // This is the first step, so we don't need to load from shared memory
-        warp::sort(local_els, reverse);
+        warp::sort(local_els, reverse, item_ct1);
         // store the sorted elements in shared memory
         for (int i = 0; i < num_local; ++i) {
-            shared_els[shared_idx(i)] = local_els[i];
+            shared_els[shared_idx(i, item_ct1)] = local_els[i];
         }
     }
 };
@@ -313,7 +315,8 @@ struct bitonic_global<ValueType, num_local, num_threads, 1, num_total_threads> {
  */
 template <int num_elements, int num_local, typename ValueType>
 __dpct_inline__ void bitonic_sort(ValueType* local_elements,
-                                  ValueType* shared_elements)
+                                  ValueType* shared_elements,
+                                  sycl::nd_item<3> item_ct1)
 {
     constexpr auto num_threads = num_elements / num_local;
     constexpr auto num_warps = num_threads / config::warp_size;
@@ -329,11 +332,11 @@ __dpct_inline__ void bitonic_sort(ValueType* local_elements,
         detail::bitonic_global<ValueType, num_local, config::warp_size,
                                _num_warps, _num_threads>::sort(local_elements,
                                                                shared_elements,
-                                                               false);
+                                                               false, item_ct1);
     } else {
         constexpr auto _num_threads = num_warps > 1 ? 1 : num_threads;
         detail::bitonic_warp<ValueType, num_local, _num_threads>::sort(
-            local_elements, false);
+            local_elements, false, item_ct1);
     }
 }
 

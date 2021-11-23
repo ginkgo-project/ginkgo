@@ -62,7 +62,11 @@ namespace {
 
 class ParIct : public ::testing::Test {
 protected:
-    using value_type = gko::default_precision;
+#if GINKGO_DPCPP_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
     using index_type = gko::int32;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
@@ -149,7 +153,7 @@ TEST_F(ParIct, KernelAddCandidatesIsEquivalentToRef)
         dpcpp, lend(dmtx_llh), lend(dmtx), lend(dmtx_l), lend(dres_mtx_l));
 
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_l, dres_mtx_l);
-    GKO_ASSERT_MTX_NEAR(res_mtx_l, dres_mtx_l, 1e-14);
+    GKO_ASSERT_MTX_NEAR(res_mtx_l, dres_mtx_l, r<value_type>::value);
 }
 
 
