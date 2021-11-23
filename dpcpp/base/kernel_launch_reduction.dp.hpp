@@ -576,7 +576,7 @@ void run_kernel_row_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
     } else {
         select_generic_kernel_row_reduction_2d(
             subsubgroup_sizes(),
-            [&](int compiled_ssg_size) {
+            [cols](int compiled_ssg_size) {
                 return compiled_ssg_size >= cols ||
                        compiled_ssg_size == sg_size;
             },
@@ -612,7 +612,7 @@ void run_kernel_col_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
     if (cols <= sg_size) {
         select_generic_col_reduction_small(
             subsubgroup_sizes(),
-            [&](int compiled_ssg_size) {
+            [cols](int compiled_ssg_size) {
                 return compiled_ssg_size >= cols ||
                        compiled_ssg_size == sg_size;
             },
