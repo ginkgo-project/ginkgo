@@ -84,17 +84,18 @@ constexpr auto basecase_block_size = basecase_size / basecase_local_size;
 template <typename ValueType, typename IndexType>
 void build_searchtree(const ValueType* __restrict__ input, IndexType size,
                       remove_complex<ValueType>* __restrict__ tree_output,
-                      sycl::nd_item<3> item_ct1, AbsType* sh_samples)
+                      sycl::nd_item<3> item_ct1,
+                      remove_complex<ValueType>* sh_samples)
 {
     using AbsType = remove_complex<ValueType>;
     auto idx = item_ct1.get_local_id(2);
     AbsType samples[sampleselect_oversampling];
     // assuming rounding towards zero
-    auto stride = double(size) / sample_size;
+    // auto stride = remove_complex<ValueType>(size) / sample_size;
 #pragma unroll
     for (int i = 0; i < sampleselect_oversampling; ++i) {
         auto lidx = idx * sampleselect_oversampling + i;
-        auto val = input[static_cast<IndexType>(lidx * stride)];
+        auto val = input[static_cast<IndexType>(lidx * size / sample_size)];
         samples[i] = std::abs(val);
     }
 
@@ -120,7 +121,8 @@ void build_searchtree(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       IndexType size, remove_complex<ValueType>* tree_output)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<AbsType, 1, sycl::access_mode::read_write,
+        sycl::accessor<remove_complex<ValueType>, 1,
+                       sycl::access_mode::read_write,
                        sycl::access::target::local>
             sh_samples_acc_ct1(sycl::range<1>(1024 /*sample_size*/), cgh);
 
@@ -180,7 +182,7 @@ void count_buckets(const ValueType* __restrict__ input, IndexType size,
         // increment the bucket counter and store the bucket index
         uint32 bucket = tree_idx - searchtree_inner_size;
         // post-condition: sample[bucket] <= el < sample[bucket + 1]
-        atomic_add<IndexType>(sh_counter + bucket, 1);
+        atomic_add<atomic::local_space>(sh_counter + bucket, IndexType{1});
         oracles[i] = bucket;
     }
     group::this_thread_block(item_ct1).sync();
@@ -351,7 +353,7 @@ void filter_bucket(const ValueType* __restrict__ input, IndexType size,
     for (IndexType i = begin; i < end; i += default_block_size) {
         // only copy the element when it belongs to the target bucket
         auto found = bucket == oracles[i];
-        auto ofs = atomic_add<IndexType>(&*counter, found);
+        auto ofs = atomic_add<atomic::local_space>(&*counter, IndexType{found});
         if (found) {
             output[ofs] = abs(input[i]);
         }

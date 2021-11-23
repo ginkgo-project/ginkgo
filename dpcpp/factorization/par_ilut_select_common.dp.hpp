@@ -45,7 +45,7 @@ namespace dpcpp {
 namespace par_ilut_factorization {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 128;
 constexpr int items_per_thread = 16;
 
 

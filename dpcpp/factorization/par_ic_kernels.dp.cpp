@@ -56,7 +56,7 @@ namespace dpcpp {
 namespace par_ic_factorization {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 256;
 
 
 namespace kernel {

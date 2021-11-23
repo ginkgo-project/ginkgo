@@ -70,7 +70,7 @@ namespace dpcpp {
 namespace par_ict_factorization {
 
 
-constexpr int default_block_size = 512;
+constexpr int default_block_size = 256;
 
 
 // subwarp sizes for all warp-parallel kernels (filter, add_candidates)
