@@ -458,7 +458,7 @@ void run_kernel_row_reduction(std::shared_ptr<const CudaExecutor> exec,
     } else {
         select_run_generic_kernel_row_reduction(
             subwarp_sizes(),
-            [&](int compiled_subwarp_size) {
+            [=](int compiled_subwarp_size) {
                 return compiled_subwarp_size >= cols ||
                        compiled_subwarp_size == config::warp_size;
             },
@@ -488,7 +488,7 @@ void run_kernel_col_reduction(std::shared_ptr<const CudaExecutor> exec,
     if (cols <= config::warp_size) {
         select_generic_col_reduction_small(
             subwarp_sizes(),
-            [&](int compiled_subwarp_size) {
+            [=](int compiled_subwarp_size) {
                 return compiled_subwarp_size >= cols ||
                        compiled_subwarp_size == config::warp_size;
             },
