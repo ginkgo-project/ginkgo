@@ -174,6 +174,7 @@ using ell = gko::matrix::Ell<etype, itype>;
 using ell_mixed = gko::matrix::Ell<gko::next_precision<etype>, itype>;
 using batch_csr = gko::matrix::BatchCsr<etype>;
 using batch_ell = gko::matrix::BatchEll<etype>;
+using batch_dense = gko::matrix::BatchDense<etype>;
 
 /**
  * Creates a Ginkgo matrix from the intermediate data representation format
@@ -352,7 +353,9 @@ const std::map<std::string, std::function<std::unique_ptr<gko::BatchLinOp>(
         {"batch_ell",
          read_batch_matrix_from_data<gko::matrix::BatchEll<etype>>},
         {"batch_csr",
-         read_batch_matrix_from_data<gko::matrix::BatchCsr<etype>>}};
+         read_batch_matrix_from_data<gko::matrix::BatchCsr<etype>>},
+        {"batch_dense",
+         read_batch_matrix_from_data<gko::matrix::BatchDense<etype>>}};
 
 
 // clang-format off
