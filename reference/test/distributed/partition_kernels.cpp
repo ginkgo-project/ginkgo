@@ -72,6 +72,7 @@ protected:
         typename std::tuple_element<0, decltype(LocalGlobalIndexType())>::type;
     using global_index_type =
         typename std::tuple_element<1, decltype(LocalGlobalIndexType())>::type;
+
     Partition() : ref(gko::ReferenceExecutor::create()) {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
@@ -156,6 +157,25 @@ TYPED_TEST(Partition, BuildsFromRanges)
     assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
     assert_equal_data(partition->get_part_sizes(), {5, 0, 2, 2, 1});
 }
+
+
+TYPED_TEST(Partition, BuildsFromRangeWithSingleElement)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    gko::Array<global_index_type> ranges{this->ref, {0}};
+
+    auto partition = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_contiguous(this->ref,
+                                                                    ranges);
+
+    EXPECT_EQ(partition->get_size(), 0);
+    EXPECT_EQ(partition->get_num_ranges(), 0);
+    EXPECT_EQ(partition->get_num_parts(), 0);
+    EXPECT_EQ(partition->get_num_empty_parts(), 0);
+    assert_equal_data(partition->get_range_bounds(), {0});
+}
+
 
 TYPED_TEST(Partition, BuildsFromGlobalSize)
 {
@@ -256,6 +276,7 @@ TYPED_TEST(Partition, IsConnectedUnordered)
                 gko::Array<comm_index_type>{this->ref, {1, 1, 0, 0, 2}}, 3));
 
     ASSERT_TRUE(part->has_connected_parts());
+    ASSERT_FALSE(part->has_ordered_parts());
 }
 
 
@@ -281,9 +302,23 @@ TYPED_TEST(Partition, IsOrdered)
         gko::distributed::Partition<local_index_type, global_index_type>::
             build_from_mapping(
                 this->ref,
-                gko::Array<comm_index_type>{this->ref, {1, 1, 0, 0, 2}}, 3));
+                gko::Array<comm_index_type>{this->ref, {0, 1, 1, 2, 2}}, 3));
 
-    ASSERT_FALSE(part->has_ordered_parts());
+    ASSERT_TRUE(part->has_ordered_parts());
+}
+
+
+TYPED_TEST(Partition, IsOrderedWithEmptyParts)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    auto part = gko::share(
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_mapping(
+                this->ref,
+                gko::Array<comm_index_type>{this->ref, {0, 2, 2, 5, 5}}, 6));
+
+    ASSERT_TRUE(part->has_ordered_parts());
 }
 
 
@@ -295,9 +330,9 @@ TYPED_TEST(Partition, IsOrderedFail)
         gko::distributed::Partition<local_index_type, global_index_type>::
             build_from_mapping(
                 this->ref,
-                gko::Array<comm_index_type>{this->ref, {0, 1, 1, 2, 2}}, 3));
+                gko::Array<comm_index_type>{this->ref, {1, 1, 0, 0, 2}}, 3));
 
-    ASSERT_TRUE(part->has_ordered_parts());
+    ASSERT_FALSE(part->has_ordered_parts());
 }
 
 

@@ -54,37 +54,45 @@ namespace distributed {
  * For example, consider the interval [0, 13) that is partitioned into the
  * following ranges:
  * ```
- * [0,3), [3, 7), [7, 8), [8, 10), [10, 13).
+ * [0,3), [3, 6), [6, 8), [8, 10), [10, 13).
  * ```
  * These ranges are distributed on three part with:
  * ```
- * p_0 = [0, 3) + [7, 8) + [10, 13),
- * p_1 = [3, 7),
+ * p_0 = [0, 3) + [6, 8) + [10, 13),
+ * p_1 = [3, 6),
  * p_2 = [8, 10).
  * ```
  * The part ids can be queried from the @ref get_part_ids array, and the ranges
  * are represented as offsets, accessed by @ref get_range_bounds, leading to the
- * array:
+ * offset array:
  * ```
- * r = [0, 3, 7, 8, 10, 13]
+ * r = [0, 3, 6, 8, 10, 13]
  * ```
  * so that individual ranges are given by `[r[i], r[i + 1])`.
  * Since each part may be associated with multiple ranges, it is possible to get
  * the starting index for each range that is local to the owning part, see @ref
- * get_range_starting_indices. For the partition above that means
+ * get_range_starting_indices. These indices can be used to easily iterate over
+ * part local data. For example, the above partition has the following starting
+ * indices
  * ```
  * starting_index[0] = 0,
  * starting_index[1] = 0,
  * starting_index[2] = 3,  // second range of part 1
  * starting_index[3] = 0,
- * starting_index[4] = 4,  // third range of part 1
+ * starting_index[4] = 5,  // third range of part 1
  * ```
+ * which you can use to iterate only over the the second range of part 1 (the
+ * third global range) with
+ * ```
+ * for(int i = 0; i < r[3] - r[2]; ++i){
+ *   data[starting_index[2] + i] = val;
+ * }
  *
  * @tparam LocalIndexType  The index type used for part-local indices.
  *                         To prevent overflows, no single part's size may
  *                         exceed this index type's maximum value.
  * @tparam GlobalIndexType  The index type used for the global indices. Needs
- *                          to be a larger type than LocalIndexType.
+ *                          to be at least as large a type as LocalIndexType.
  */
 template <typename LocalIndexType = int32, typename GlobalIndexType = int64>
 class Partition
@@ -109,16 +117,16 @@ public:
 
     /**
      * Returns the total number of elements represented by this partition.
+     *
+     * @return  number elements.
      */
-    size_type get_size() const
-    {
-        return offsets_.get_executor()->copy_val_to_host(
-            offsets_.get_const_data() + get_num_ranges());
-    }
+    size_type get_size() const { return size_; }
 
     /**
      * Returns the number of ranges stored by this partition.
      * This size refers to the data returned by get_range_bounds().
+     *
+     * @return number of ranges.
      */
     size_type get_num_ranges() const noexcept
     {
@@ -127,11 +135,15 @@ public:
 
     /**
      * Returns the number of parts represented in this partition.
+     *
+     * @return number of parts.
      */
     comm_index_type get_num_parts() const noexcept { return num_parts_; }
 
     /**
      * Returns the number of empty parts within this partition.
+     *
+     * @return number of empty parts.
      */
     comm_index_type get_num_empty_parts() const noexcept
     {
@@ -142,6 +154,8 @@ public:
      * Returns the ranges boundary array stored by this partition.
      * `range_bounds[i]` is the beginning (inclusive) and
      * `range_bounds[i + 1]` is the end (exclusive) of the ith range.
+     *
+     * @return  range boundaries array.
      */
     const global_index_type* get_range_bounds() const noexcept
     {
@@ -149,9 +163,11 @@ public:
     }
 
     /**
-     * Returns the part ID array stored by this partition.
+     * Returns the part IDs of the ranges in this partition.
      * For each range from get_range_bounds(), it stores the part ID in the
-     * range [0, get_num_parts() - 1].
+     * interval [0, get_num_parts() - 1].
+     *
+     * @return  part ID array.
      */
     const comm_index_type* get_part_ids() const noexcept
     {
@@ -167,7 +183,9 @@ public:
      * p_2 = [4-7).
      * ```
      * Then `range_starting_indices[0] = 0`, `range_starting_indices[1] = 0`,
-     * `range_starting_indices[2] = 5`.
+     * `range_starting_indices[2] = 4`.
+     *
+     * @return  part-local starting index array.
      */
     const local_index_type* get_range_starting_indices() const noexcept
     {
@@ -176,7 +194,9 @@ public:
 
     /**
      * Returns the part size array.
-     * part_sizes[p] stores the number of elements in part `p`.
+     * part_sizes[p] stores the total number of indices in part `p`.
+     *
+     * @return  part size array.
      */
     const local_index_type* get_part_sizes() const noexcept
     {
@@ -184,8 +204,12 @@ public:
     }
 
     /**
-     * Returns the part size array.
-     * part_sizes[p] stores the number of elements in part `p`.
+     * Returns the size of a part given by its part ID.
+     * @warning Triggers a copy from device to host.
+     *
+     * @param part  the part ID.
+     *
+     * @return  size of part.
      */
     local_index_type get_part_size(comm_index_type part) const
     {
@@ -195,6 +219,8 @@ public:
 
     /**
      * Checks if each part has no more than one contiguous range.
+     *
+     * @return  true if each part has no more than one contiguous range.
      */
     bool has_connected_parts();
 
@@ -202,9 +228,10 @@ public:
      * Checks if the ranges are ordered by their part index.
      *
      * Implies that the partition is connected.
+     *
+     * @return  true if the ranges are ordered by their part index.
      */
     bool has_ordered_parts();
-
 
     /**
      * Builds a partition from a given mapping global_index -> part_id.
@@ -225,6 +252,7 @@ public:
      * @param exec  the Executor on which the partition should be built
      * @param ranges  the boundaries of the ranges representing each part.
                       Part i contains the indices [ranges[i], ranges[i + 1]).
+                      Has to contain at least one element.
 
      * @return  a Partition representing the given contiguous partitioning.
      */
@@ -257,6 +285,7 @@ private:
         : EnablePolymorphicObject<Partition>{exec},
           num_parts_{num_parts},
           num_empty_parts_{0},
+          size_{0},
           offsets_{exec, num_ranges + 1},
           starting_indices_{exec, num_ranges},
           part_sizes_{exec, static_cast<size_type>(num_parts)},
@@ -269,13 +298,15 @@ private:
     }
 
     /**
-     * Compute the range_starting_indices and part_sizes based on the current
-     * range_bounds and part_ids.
+     * Finalizes the construction in the create_* methods, by computing the
+     * range_starting_indices_ and part_sizes_ based on the current
+     * range_bounds_ and part_ids_, and setting size_ correctly.
      */
-    void compute_range_starting_indices();
+    void finalize_construction();
 
     comm_index_type num_parts_;
     comm_index_type num_empty_parts_;
+    global_index_type size_;
     Array<global_index_type> offsets_;
     Array<local_index_type> starting_indices_;
     Array<local_index_type> part_sizes_;

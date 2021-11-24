@@ -63,6 +63,7 @@ protected:
         typename std::tuple_element<0, decltype(LocalGlobalIndexType())>::type;
     using global_index_type =
         typename std::tuple_element<1, decltype(LocalGlobalIndexType())>::type;
+
     Partition() : rand_engine(96457) {}
 
     void SetUp()
@@ -133,10 +134,8 @@ TYPED_TEST(Partition, BuildsFromMapping)
     using global_index_type = typename TestFixture::global_index_type;
     comm_index_type num_parts = 7;
     std::uniform_int_distribution<comm_index_type> part_dist{0, num_parts - 1};
-    gko::Array<comm_index_type> mapping{this->ref, 10000};
-    for (gko::size_type i = 0; i < mapping.get_num_elems(); i++) {
-        mapping.get_data()[i] = part_dist(this->rand_engine);
-    }
+    auto mapping = gko::test::generate_random_array<comm_index_type>(
+        10000, part_dist, this->rand_engine, this->ref);
     gko::Array<comm_index_type> dmapping{this->exec, mapping};
 
     auto part = gko::distributed::Partition<
@@ -159,10 +158,8 @@ TYPED_TEST(Partition, BuildsFromMappingWithEmptyPart)
     comm_index_type num_parts = 7;
     // skip part 0
     std::uniform_int_distribution<comm_index_type> part_dist{1, num_parts - 1};
-    gko::Array<comm_index_type> mapping{this->ref, 10000};
-    for (gko::size_type i = 0; i < mapping.get_num_elems(); i++) {
-        mapping.get_data()[i] = part_dist(this->rand_engine);
-    }
+    auto mapping = gko::test::generate_random_array<comm_index_type>(
+        10000, part_dist, this->rand_engine, this->ref);
     gko::Array<comm_index_type> dmapping{this->exec, mapping};
 
     auto part = gko::distributed::Partition<
@@ -185,10 +182,8 @@ TYPED_TEST(Partition, BuildsFromMappingWithAlmostAllPartsEmpty)
     comm_index_type num_parts = 7;
     // return only part 1
     std::uniform_int_distribution<comm_index_type> part_dist{1, 1};
-    gko::Array<comm_index_type> mapping{this->ref, 10000};
-    for (gko::size_type i = 0; i < mapping.get_num_elems(); i++) {
-        mapping.get_data()[i] = part_dist(this->rand_engine);
-    }
+    auto mapping = gko::test::generate_random_array<comm_index_type>(
+        10000, part_dist, this->rand_engine, this->ref);
     gko::Array<comm_index_type> dmapping{this->exec, mapping};
 
     auto part = gko::distributed::Partition<
@@ -285,7 +280,7 @@ TYPED_TEST(Partition, BuildsFromContiguousWithSomeEmptyParts)
 }
 
 
-TYPED_TEST(Partition, BuildsFromContiguousWithSomeMostlyEmptyParts)
+TYPED_TEST(Partition, BuildsFromContiguousWithMostlyEmptyParts)
 {
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
@@ -327,6 +322,24 @@ TYPED_TEST(Partition, BuildsFromContiguousWithOnlyOneEmptyPart)
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
     gko::Array<global_index_type> ranges{this->ref, {0, 0}};
+    gko::Array<global_index_type> dranges{this->exec, ranges};
+
+    auto part = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_contiguous(this->ref,
+                                                                    ranges);
+    auto dpart = gko::distributed::Partition<
+        local_index_type, global_index_type>::build_from_contiguous(this->exec,
+                                                                    dranges);
+
+    this->assert_equal(part, dpart);
+}
+
+
+TYPED_TEST(Partition, BuildsFromContiguousWithSingleEntry)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    gko::Array<global_index_type> ranges{this->ref, {0}};
     gko::Array<global_index_type> dranges{this->exec, ranges};
 
     auto part = gko::distributed::Partition<
@@ -443,10 +456,8 @@ TYPED_TEST(Partition, IsOrderedRandom)
     using global_index_type = typename TestFixture::global_index_type;
     comm_index_type num_parts = 7;
     std::uniform_int_distribution<comm_index_type> part_dist{0, num_parts - 1};
-    gko::Array<comm_index_type> mapping{this->ref, 10000};
-    for (gko::size_type i = 0; i < mapping.get_num_elems(); i++) {
-        mapping.get_data()[i] = part_dist(this->rand_engine);
-    }
+    auto mapping = gko::test::generate_random_array<comm_index_type>(
+        10000, part_dist, this->rand_engine, this->ref);
     auto part = gko::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  mapping,

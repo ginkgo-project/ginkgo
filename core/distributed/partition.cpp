@@ -67,7 +67,7 @@ Partition<LocalIndexType, GlobalIndexType>::build_from_mapping(
     exec->run(partition::make_build_from_mapping(*local_mapping.get(),
                                                  result->offsets_.get_data(),
                                                  result->part_ids_.get_data()));
-    result->compute_range_starting_indices();
+    result->finalize_construction();
     return result;
 }
 
@@ -84,7 +84,7 @@ Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
     exec->run(partition::make_build_from_contiguous(
         *local_ranges.get(), result->offsets_.get_data(),
         result->part_ids_.get_data()));
-    result->compute_range_starting_indices();
+    result->finalize_construction();
     return result;
 }
 
@@ -103,28 +103,30 @@ Partition<LocalIndexType, GlobalIndexType>::build_from_global_size_uniform(
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
-void Partition<LocalIndexType,
-               GlobalIndexType>::compute_range_starting_indices()
+void Partition<LocalIndexType, GlobalIndexType>::finalize_construction()
 {
     auto exec = offsets_.get_executor();
     exec->run(partition::make_build_starting_indices(
         offsets_.get_const_data(), part_ids_.get_const_data(), get_num_ranges(),
         get_num_parts(), num_empty_parts_, starting_indices_.get_data(),
         part_sizes_.get_data()));
+    size_ = offsets_.get_executor()->copy_val_to_host(
+        offsets_.get_const_data() + get_num_ranges());
 }
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
 bool Partition<LocalIndexType, GlobalIndexType>::has_connected_parts()
 {
-    return get_num_parts() - get_num_empty_parts() == get_num_ranges();
+    return this->get_num_parts() - this->get_num_empty_parts() ==
+           this->get_num_ranges();
 }
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
 bool Partition<LocalIndexType, GlobalIndexType>::has_ordered_parts()
 {
-    if (has_connected_parts()) {
+    if (this->has_connected_parts()) {
         auto exec = this->get_executor();
         bool has_ordered_parts;
         exec->run(partition::make_has_ordered_parts(this, &has_ordered_parts));

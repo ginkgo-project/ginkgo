@@ -44,6 +44,8 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace partition {
 
 
+using distributed::comm_index_type;
+
 void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
                   const Array<comm_index_type>& mapping, size_type& num_ranges)
 {
@@ -89,25 +91,29 @@ void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
                         GlobalIndexType* range_bounds,
                         comm_index_type* part_ids)
 {
-    Array<size_type> range_index_ranks{exec, mapping.get_num_elems() + 1};
+    Array<size_type> range_starting_index{exec, mapping.get_num_elems() + 1};
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto mapping, auto output) {
-            const auto prev_part = i > 0 ? mapping[i - 1] : comm_index_type{-1};
+        [] GKO_KERNEL(auto i, auto mapping, auto range_starting_index) {
+            const auto prev_part =
+                i > 0 ? mapping[i - 1] : invalid_index<comm_index_type>();
             const auto cur_part = mapping[i];
-            output[i] = cur_part != prev_part ? 1 : 0;
+            range_starting_index[i] = cur_part != prev_part ? 1 : 0;
         },
-        mapping.get_num_elems(), mapping, range_index_ranks);
-    components::prefix_sum(exec, range_index_ranks.get_data(),
+        mapping.get_num_elems(), mapping, range_starting_index);
+    components::prefix_sum(exec, range_starting_index.get_data(),
                            mapping.get_num_elems() + 1);
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto size, auto mapping, auto prefix_sum,
-                      auto ranges, auto range_parts) {
-            const auto prev_part = i > 0 ? mapping[i - 1] : comm_index_type{-1};
-            const auto cur_part = i < size ? mapping[i] : comm_index_type{-1};
+        [] GKO_KERNEL(auto i, auto size, auto mapping,
+                      auto range_starting_index, auto ranges,
+                      auto range_parts) {
+            const auto prev_part =
+                i > 0 ? mapping[i - 1] : invalid_index<comm_index_type>();
+            const auto cur_part =
+                i < size ? mapping[i] : invalid_index<comm_index_type>();
             if (cur_part != prev_part) {
-                auto out_idx = prefix_sum[i];
+                auto out_idx = range_starting_index[i];
                 ranges[out_idx] = i;
                 if (i < size) {
                     range_parts[out_idx] = cur_part;
@@ -115,7 +121,7 @@ void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
             }
         },
         mapping.get_num_elems() + 1, mapping.get_num_elems(), mapping,
-        range_index_ranks, range_bounds, part_ids);
+        range_starting_index, range_bounds, part_ids);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_PARTITION_BUILD_FROM_MAPPING);
@@ -157,11 +163,13 @@ void has_ordered_parts(
         [] GKO_KERNEL(auto i, const auto part_ids) {
             return static_cast<uint32>(part_ids[i] < part_ids[i + 1]);
         },
-        [] GKO_KERNEL(const auto a, const auto b) { return a && b; },
+        [] GKO_KERNEL(const auto a, const auto b) {
+            return static_cast<uint32>(a && b);
+        },
         [] GKO_KERNEL(const auto a) { return a; }, uint32(1),
         result_uint32.get_data(), num_ranges - 1, part_ids);
     *result = static_cast<bool>(
-        exec->template copy_val_to_host(result_uint32.get_const_data()));
+        exec->copy_val_to_host(result_uint32.get_const_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
