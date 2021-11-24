@@ -46,11 +46,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/base/config.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
+#include "hip/components/atomic.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/merging.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"
+#include "hip/components/warp_blas.hip.hpp"
 
 
 namespace gko {
@@ -69,8 +71,6 @@ constexpr int subwarps_per_block{2};
 constexpr int default_block_size{subwarps_per_block * subwarp_size};
 
 
-#include "common/cuda_hip/components/atomic.hpp.inc"
-#include "common/cuda_hip/components/warp_blas.hpp.inc"
 #include "common/cuda_hip/preconditioner/isai_kernels.hpp.inc"
 
 

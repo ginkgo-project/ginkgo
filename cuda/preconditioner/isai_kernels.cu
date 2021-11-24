@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
+#include "cuda/components/warp_blas.cuh"
 
 
 namespace gko {
@@ -66,8 +67,6 @@ constexpr int subwarps_per_block{2};
 constexpr int default_block_size{subwarps_per_block * subwarp_size};
 
 
-#include "common/cuda_hip/components/atomic.hpp.inc"
-#include "common/cuda_hip/components/warp_blas.hpp.inc"
 #include "common/cuda_hip/preconditioner/isai_kernels.hpp.inc"
 
 

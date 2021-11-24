@@ -16,8 +16,9 @@
 #                    If GTEST_HEADER_DIR is available elsewhere GINKGO_BUILD_TESTS is not required.
 #                    CMake's step is not required if copying the ginkgo config.hpp from another ginkgo build into "${ROOT_DIR}/include/ginkgo/".
 #   ROOT_BUILD_DIR: the complete path for build folder. The default is "${ROOT_DIR}/${BUILD_DIR}"
-#   GTEST_HEADER_DIR: the gtest header folder. The default is "${ROOT_BUILD_DIR}/third_party_gtest/src/googletest/include"
+#   GTEST_HEADER_DIR: the gtest header folder. The default is "${ROOT_BUILD_DIR}/_deps/googletest-src/googletest/include"
 #   CLANG_FORMAT: the clang-format exec. The default is "clang-format"
+#   VERBOSE: if it is set as 1, script will ouput the path information
 CURRENT_DIR="$( pwd )"
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 SCRIPT_DIR="$( pwd )"
