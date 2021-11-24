@@ -52,7 +52,7 @@ struct config {
     /**
      * The number of threads within a Dpcpp subgroup.
      */
-    static constexpr uint32 warp_size = 16;
+    static constexpr uint32 warp_size = 32;
 
     /**
      * The bitmask of the entire warp.

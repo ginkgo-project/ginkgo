@@ -536,7 +536,9 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
 
     if (bucket.size * 2 > tmp_size_vals) {
         // we need to reallocate tmp2
+        std::cout << "reallocate tmp2 " << bucket.size * 2 << std::endl;
         tmp2.resize_and_reset(bucket.size * 2);
+        std::cout << "reallocate tmp2 finish " << std::endl;
     }
     auto tmp21 = tmp2.get_data();
     auto tmp22 = tmp2.get_data() + bucket.size;

@@ -322,6 +322,7 @@ TEST_F(ParIlut, KernelComplexThresholdSelectIsEquivalentToRef)
 
 TEST_F(ParIlut, KernelComplexThresholdSelectMinIsEquivalentToRef)
 {
+    // can change the threshold?
     test_select(mtx_l_complex, dmtx_l_complex, 0, 1e-14);
 }
 
