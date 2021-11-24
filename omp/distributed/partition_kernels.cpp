@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 
 
+#include <ginkgo/core/base/math.hpp>
+
+
 #include "core/base/allocator.hpp"
 
 
@@ -54,7 +57,8 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
 {
     std::fill_n(sizes, num_parts, 0);
     auto num_threads = static_cast<size_type>(omp_get_max_threads());
-    auto size_per_thread = (num_ranges + num_threads - 1) / num_threads;
+    auto size_per_thread =
+        static_cast<size_type>(ceildiv(num_ranges, num_threads));
     vector<LocalIndexType> local_sizes(num_parts * num_threads, 0, {exec});
 #pragma omp parallel
     {

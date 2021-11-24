@@ -30,13 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/distributed/partition_kernels.hpp"
 
-
-namespace gko {
-namespace kernels {
-namespace dpcpp {
-namespace partition {
+#include "common/unified/distributed/partition_kernels.hpp.inc"
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
@@ -46,13 +41,39 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
                             size_type num_ranges, comm_index_type num_parts,
                             comm_index_type& num_empty_parts,
                             LocalIndexType* starting_indices,
-                            LocalIndexType* part_sizes) GKO_NOT_IMPLEMENTED;
+                            LocalIndexType* part_sizes)
+{
+    Array<LocalIndexType> range_sizes{exec, num_ranges};
+    // num_parts sentinel at the end
+    Array<comm_index_type> tmp_part_ids{exec, num_ranges + 1};
+    Array<GlobalIndexType> permutation{exec, num_ranges};
+    // set part_sizes to 0 in case of empty parts
+    components::fill_array(exec, part_sizes, num_parts, LocalIndexType{});
+
+
+    kernel::setup_sizes_ids_permutation(exec, num_ranges, num_parts,
+                                        range_offsets, range_parts, range_sizes,
+                                        tmp_part_ids, permutation);
+
+    auto tmp_part_id_ptr = thrust::device_pointer_cast(tmp_part_ids.get_data());
+    auto range_sizes_ptr = thrust::device_pointer_cast(range_sizes.get_data());
+    auto permutation_ptr = thrust::device_pointer_cast(permutation.get_data());
+    auto value_it = thrust::make_zip_iterator(
+        thrust::make_tuple(range_sizes_ptr, permutation_ptr));
+    // group range_sizes by part ID
+    thrust::stable_sort_by_key(thrust::device, tmp_part_id_ptr,
+                               tmp_part_id_ptr + num_ranges, value_it);
+    // compute inclusive prefix sum for each part
+    thrust::inclusive_scan_by_key(thrust::device, tmp_part_id_ptr,
+                                  tmp_part_id_ptr + num_ranges, range_sizes_ptr,
+                                  range_sizes_ptr);
+    // write back the results
+    kernel::compute_part_sizes_and_starting_indices(
+        exec, num_ranges, range_sizes, tmp_part_ids, permutation,
+        starting_indices, part_sizes);
+    num_empty_parts =
+        thrust::count(thrust::device, part_sizes, part_sizes + num_parts, 0);
+}
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES);
-
-
-}  // namespace partition
-}  // namespace dpcpp
-}  // namespace kernels
-}  // namespace gko

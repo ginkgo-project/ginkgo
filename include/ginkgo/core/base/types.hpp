@@ -703,7 +703,7 @@ namespace distributed {
 
 
 /**
- * Index type for enumerating processors
+ * Index type for enumerating processes in a distributed application
  *
  * Conforms to the MPI C interface of e.g. MPI rank or size
  */
@@ -722,7 +722,7 @@ using comm_index_type = int;
 #define GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(_macro) \
     template _macro(int32, int32);                               \
     template _macro(int32, int64);                               \
-    template _macro(int64, int64);
+    template _macro(int64, int64)
 
 
 }  // namespace distributed
