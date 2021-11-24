@@ -74,8 +74,8 @@ protected:
           sys_m(gko::test::get_poisson_problem<T>(exec, nrhs, nbatch))
     {
         auto execp = cuexec;
-        solve_fn = [execp](const Options opts, const Mtx *mtx, const BDense *b,
-                           BDense *x, LogData &logdata) {
+        solve_fn = [execp](const Options opts, const Mtx* mtx, const BDense* b,
+                           BDense* x, LogData& logdata) {
             auto btemp =
                 std::dynamic_pointer_cast<BDense>(gko::share(b->transpose()));
             auto a = BDense::create(execp, mtx->get_size());
@@ -88,12 +88,12 @@ protected:
                 gko::share(btemp->transpose()));
             x->copy_from(xtemp.get());
         };
-        scale_pre = [execp](const BDense *const left, const BDense *const right,
-                            Mtx *const mat, BDense *const b) {
+        scale_pre = [execp](const BDense* const left, const BDense* const right,
+                            Mtx* const mat, BDense* const b) {
             gko::kernels::cuda::batch_csr::pre_diag_scale_system<value_type>(
                 execp, left, right, mat, b);
         };
-        scale_vecs = [execp](const BDense *const scale, BDense *const mat) {
+        scale_vecs = [execp](const BDense* const scale, BDense* const mat) {
             gko::kernels::cuda::batch_dense::batch_scale<value_type>(
                 execp, scale, mat);
         };
@@ -119,12 +119,10 @@ protected:
     gko::test::LinSys<T> sys_1;
     gko::test::LinSys<T> sys_m;
 
-    std::function<void(Options, const Mtx *, const BDense *, BDense *,
-                       LogData &)>
+    std::function<void(Options, const Mtx*, const BDense*, BDense*, LogData&)>
         solve_fn;
-    std::function<void(const BDense *, const BDense *, Mtx *, BDense *)>
-        scale_pre;
-    std::function<void(const BDense *, BDense *)> scale_vecs;
+    std::function<void(const BDense*, const BDense*, Mtx*, BDense*)> scale_pre;
+    std::function<void(const BDense*, BDense*)> scale_vecs;
 
     std::unique_ptr<BDense> ref_left_scale;
     std::unique_ptr<BDense> ref_right_scale;
@@ -305,6 +303,7 @@ TEST(BatchDirect, CanSolveWithoutScaling)
     using T = std::complex<float>;
     using RT = typename gko::remove_complex<T>;
     using Solver = gko::solver::BatchDirect<T>;
+    using Csr = gko::matrix::BatchCsr<T>;
     const RT tol = 1e-5;
     std::shared_ptr<gko::ReferenceExecutor> refexec =
         gko::ReferenceExecutor::create();
@@ -316,8 +315,9 @@ TEST(BatchDirect, CanSolveWithoutScaling)
     const size_t nbatch = 3;
     const int nrhs = 5;
 
-    gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
-                                  batchdirect_factory.get(), 1.0, false, false);
+    gko::test::test_solve<Solver, Csr>(exec, nbatch, nrows, nrhs, tol, maxits,
+                                       batchdirect_factory.get(), 1.0, false,
+                                       false);
 }
 
 }  // namespace
