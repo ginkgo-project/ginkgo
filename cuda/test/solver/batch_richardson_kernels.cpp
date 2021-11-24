@@ -73,17 +73,17 @@ protected:
           sys_1(gko::test::get_poisson_problem<value_type>(exec, 1, nbatch))
     {
         auto execp = cuexec;
-        solve_fn = [execp](const Options opts, const Mtx *mtx, const BDense *b,
-                           BDense *x, LogData &logdata) {
+        solve_fn = [execp](const Options opts, const Mtx* mtx, const BDense* b,
+                           BDense* x, LogData& logdata) {
             gko::kernels::cuda::batch_rich::apply<value_type>(execp, opts, mtx,
                                                               b, x, logdata);
         };
-        scale_mat = [execp](const BDense *const left, const BDense *const right,
-                            Mtx *const mat, BDense *const b) {
+        scale_mat = [execp](const BDense* const left, const BDense* const right,
+                            Mtx* const mat, BDense* const b) {
             gko::kernels::cuda::batch_csr::pre_diag_scale_system<value_type>(
                 execp, left, right, mat, b);
         };
-        scale_vecs = [execp](const BDense *const scale, BDense *const mat) {
+        scale_vecs = [execp](const BDense* const scale, BDense* const mat) {
             gko::kernels::cuda::batch_dense::batch_scale<value_type>(
                 execp, scale, mat);
         };
@@ -105,15 +105,13 @@ protected:
                          gko::stop::batch::ToleranceType::relative, 1.0};
     gko::test::LinSys<value_type> sys_1;
 
-    std::function<void(Options, const Mtx *, const BDense *, BDense *,
-                       LogData &)>
+    std::function<void(Options, const Mtx*, const BDense*, BDense*, LogData&)>
         solve_fn;
-    std::function<void(const BDense *, const BDense *, Mtx *, BDense *)>
-        scale_mat;
-    std::function<void(const BDense *, BDense *)> scale_vecs;
+    std::function<void(const BDense*, const BDense*, Mtx*, BDense*)> scale_mat;
+    std::function<void(const BDense*, BDense*)> scale_vecs;
 
     std::unique_ptr<typename solver_type::Factory> create_factory(
-        std::shared_ptr<const gko::Executor> exec, const Options &opts)
+        std::shared_ptr<const gko::Executor> exec, const Options& opts)
     {
         return solver_type::build()
             .with_max_iterations(opts.max_its)
@@ -179,8 +177,8 @@ TYPED_TEST(BatchRich, StencilSystemJacobiLoggerIsCorrect)
         this->opts_1, this->sys_1, 1);
 
     const int ref_iters = this->single_iters_regression();
-    const int *const iter_array = r_1.logdata.iter_counts.get_const_data();
-    const real_type *const res_log_array =
+    const int* const iter_array = r_1.logdata.iter_counts.get_const_data();
+    const real_type* const res_log_array =
         r_1.logdata.res_norms->get_const_values();
     for (size_t i = 0; i < this->nbatch; i++) {
         ASSERT_EQ(iter_array[i], ref_iters);
@@ -210,8 +208,8 @@ TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
         this->cuexec, this->solve_fn, this->scale_mat, this->scale_vecs,
         opts_slower, this->sys_1, 1);
 
-    const int *const iter_arr1 = result1.logdata.iter_counts.get_const_data();
-    const int *const iter_arr2 = result2.logdata.iter_counts.get_const_data();
+    const int* const iter_arr1 = result1.logdata.iter_counts.get_const_data();
+    const int* const iter_arr2 = result2.logdata.iter_counts.get_const_data();
     for (size_t i = 0; i < this->nbatch; i++) {
         ASSERT_LE(iter_arr1[i], iter_arr2[i]);
     }
@@ -320,6 +318,7 @@ TEST(BatchRich, CanSolveWithoutScaling)
     using T = std::complex<float>;
     using RT = typename gko::remove_complex<T>;
     using Solver = gko::solver::BatchRichardson<T>;
+    using Csr = gko::matrix::BatchCsr<T>;
     const RT tol = 1e-5;
     std::shared_ptr<gko::ReferenceExecutor> refexec =
         gko::ReferenceExecutor::create();
@@ -337,8 +336,9 @@ TEST(BatchRich, CanSolveWithoutScaling)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .on(exec);
-    gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, 10 * tol, maxits,
-                                  batchrich_factory.get(), 2);
+
+    gko::test::test_solve<Solver, Csr>(exec, nbatch, nrows, nrhs, 10 * tol,
+                                       maxits, batchrich_factory.get(), 2);
 }
 
 }  // namespace
