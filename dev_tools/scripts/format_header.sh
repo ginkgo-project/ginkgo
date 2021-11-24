@@ -120,6 +120,46 @@ get_include_regex () {
     fi
 }
 
+# Test if required commands are present on the system:
+command -v "$CLANG_FORMAT" &> /dev/null
+if [ ${?} -ne 0 ]; then
+    echo "The command 'clang-format' is required for this script to work, but not supported by your system. It can be set via environment parameter CLANG_FORMAT=<clang-format path>" 1>&2
+    exit 1
+fi
+
+# Test the command on MacOS
+declare -n &> /dev/null
+if [ ${?} -ne 0 ]; then
+    echo "The command 'declare' needs to support the '-n' option. Please update bash or use 'brew install bash' if on MacOS" 1>&2
+    exit 1
+fi
+
+touch .dummy_file
+sed -i 's///g' .dummy_file &> /dev/null
+if [ ${?} -ne 0 ]; then
+    echo "The command 'sed' needs to support the '-i' option without suffix. Please use gnu sed or use 'brew install gnu-sed' if on MacOS" 1>&2
+    rm .dummy_file
+    exit 1
+fi
+
+head -n -1 .dummy_file &> /dev/null
+if [ ${?} -ne 0 ]; then
+    echo "The command 'head' needs to support '-NUM' option, Please use gnu head or use 'brew install coreutils' if on MacOS" 1>&2
+    rm .dummy_file
+    exit 1
+fi
+rm .dummy_file
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 path/to/file"
+    exit 1
+fi
+
+if [ ! -f "$1" ]; then
+    echo "${1} does not exist or it is not a file."
+    exit 1
+fi
+
 GINKGO_LICENSE_BEACON="******************************<GINKGO LICENSE>******************************"
 
 CONTENT="content.cpp" # Store the residual part (start from namespace)
