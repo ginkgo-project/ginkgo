@@ -130,21 +130,21 @@ fi
 # Test the command on MacOS
 declare -n &> /dev/null
 if [ ${?} -ne 0 ]; then
-    echo "The command 'declare' is required to support '-n' option, please update bash or use 'brew install bash' if on MacOS" 1>&2
+    echo "The command 'declare' needs to support the '-n' option. Please update bash or use 'brew install bash' if on MacOS" 1>&2
     exit 1
 fi
 
 touch .dummy_file
 sed -i 's///g' .dummy_file &> /dev/null
 if [ ${?} -ne 0 ]; then
-    echo "The command 'sed' is required to support '-i' option without suffix, please use gnu bash or use 'brew install gnu-sed' if on MacOS" 1>&2
+    echo "The command 'sed' needs to support the '-i' option without suffix. Please use gnu sed or use 'brew install gnu-sed' if on MacOS" 1>&2
     rm .dummy_file
     exit 1
 fi
 
 head -n -1 .dummy_file &> /dev/null
 if [ ${?} -ne 0 ]; then
-    echo "The command 'head' is required to support '-NUM' option, please use gnu head or use 'brew install coreutils' if on MacOS" 1>&2
+    echo "The command 'head' needs to support '-NUM' option, Please use gnu head or use 'brew install coreutils' if on MacOS" 1>&2
     rm .dummy_file
     exit 1
 fi
