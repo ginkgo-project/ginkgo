@@ -352,6 +352,10 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
         auto& solver_json = solver_case[solver_name];
         const size_type nbatch = system_matrix->get_num_batch_entries();
+        add_or_set_member(
+            solver_json, "matrix_format",
+            rapidjson::StringRef(FLAGS_batch_solver_mat_format.c_str()),
+            allocator);
         add_or_set_member(solver_json, "num_batch_entries", nbatch, allocator);
         add_or_set_member(solver_json, "scaling",
                           rapidjson::StringRef(FLAGS_batch_scaling.c_str()),
