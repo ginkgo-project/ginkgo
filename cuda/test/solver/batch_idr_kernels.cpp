@@ -246,6 +246,7 @@ TEST(BatchIdr, CanSolveWithoutScaling)
     using T = std::complex<double>;
     using RT = typename gko::remove_complex<T>;
     using Solver = gko::solver::BatchIdr<T>;
+    using Csr = gko::matrix::BatchCsr<T>;
     const RT tol = 1e-9;
     std::shared_ptr<gko::ReferenceExecutor> refexec =
         gko::ReferenceExecutor::create();
@@ -266,8 +267,9 @@ TEST(BatchIdr, CanSolveWithoutScaling)
     const int nrows = 33;
     const size_t nbatch = 3;
     const int nrhs = 1;
-    gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
-                                  batchidr_factory.get(), 1.1);
+
+    gko::test::test_solve<Solver, Csr>(exec, nbatch, nrows, nrhs, tol, maxits,
+                                       batchidr_factory.get(), 1.1);
 }
 
 
