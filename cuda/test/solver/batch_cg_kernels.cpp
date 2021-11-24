@@ -279,11 +279,12 @@ TEST(BatchCg, GoodScalingImprovesConvergence)
 }
 
 
-TEST(BatchCg, CanSolveWithoutScaling)
+TEST(BatchCg, CanSolveCsrWithoutScaling)
 {
     using T = std::complex<float>;
     using RT = typename gko::remove_complex<T>;
     using Solver = gko::solver::BatchCg<T>;
+    using Csr = gko::matrix::BatchCsr<T>;
     const RT tol = 1e-5;
     std::shared_ptr<gko::ReferenceExecutor> refexec =
         gko::ReferenceExecutor::create();
@@ -300,8 +301,9 @@ TEST(BatchCg, CanSolveWithoutScaling)
     const int nrows = 28;
     const size_t nbatch = 3;
     const int nrhs = 1;
-    gko::test::test_solve<Solver>(exec, nbatch, nrows, nrhs, tol, maxits,
-                                  batchcg_factory.get(), 10);
+
+    gko::test::test_solve<Solver, Csr>(exec, nbatch, nrows, nrhs, tol, maxits,
+                                       batchcg_factory.get(), 10);
 }
 
 
