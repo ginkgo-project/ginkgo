@@ -90,13 +90,7 @@ TEST_F(Communicator, CommunicatorCanBeCopyConstructed)
 {
     gko::mpi::communicator copy(comm);
 
-    EXPECT_EQ(copy == comm, true);
-}
-
-
-TEST_F(Communicator, CommunicatorCanBeSynchronized)
-{
-    ASSERT_NO_THROW(comm.synchronize());
+    EXPECT_TRUE(copy == comm);
 }
 
 
@@ -104,20 +98,31 @@ TEST_F(Communicator, CommunicatorCanBeCopyAssigned)
 {
     gko::mpi::communicator copy = comm;
 
-    EXPECT_EQ(copy == comm, true);
+    EXPECT_TRUE(copy == comm);
 }
 
 
-TEST_F(Communicator, NonOwnedCommunicatorFailsToMove)
+TEST_F(Communicator, CommunicatorCanBeMoveConstructed)
 {
-    ASSERT_THROW({ auto moved = std::move(comm); }, gko::NotSupported);
+    gko::mpi::communicator comm2(MPI_COMM_WORLD);
+    gko::mpi::communicator copy(std::move(comm2));
+
+    EXPECT_TRUE(copy == comm);
 }
 
 
-TEST_F(Communicator, NonOwnedCommunicatorFailsToMoveConstruct)
+TEST_F(Communicator, CommunicatorCanBeMoveAssigned)
 {
-    ASSERT_THROW({ auto moved = gko::mpi::communicator(std::move(comm)); },
-                 gko::NotSupported);
+    gko::mpi::communicator comm2(MPI_COMM_WORLD);
+    gko::mpi::communicator copy = std::move(comm2);
+
+    EXPECT_TRUE(copy == comm);
+}
+
+
+TEST_F(Communicator, CommunicatorCanBeSynchronized)
+{
+    ASSERT_NO_THROW(comm.synchronize());
 }
 
 
@@ -131,42 +136,6 @@ TEST_F(Communicator, CanSetCustomCommunicator)
     for (auto i = 0; i < world_size; ++i) {
         EXPECT_LT(row_comm.rank(), 4);
     }
-}
-
-
-TEST_F(Communicator, CanMoveAssignCustomCommunicator)
-{
-    auto world_rank = comm.rank();
-    auto world_size = comm.size();
-    auto color = world_rank / 4;
-
-    auto row_comm = gko::mpi::communicator(comm.get(), color, world_rank);
-    gko::mpi::communicator mv_row_comm(MPI_COMM_WORLD);
-    mv_row_comm = std::move(row_comm);
-    for (auto i = 0; i < world_size; ++i) {
-        EXPECT_LT(mv_row_comm.rank(), 4);
-    }
-}
-
-
-TEST_F(Communicator, CanMoveConstructCustomCommunicator)
-{
-    auto world_rank = comm.rank();
-    auto world_size = comm.size();
-    auto color = world_rank / 4;
-
-    auto row_comm = gko::mpi::communicator(comm.get(), color, world_rank);
-    gko::mpi::communicator mv_row_comm(std::move(row_comm));
-    for (auto i = 0; i < world_size; ++i) {
-        EXPECT_LT(mv_row_comm.rank(), 4);
-    }
-}
-
-
-TEST_F(Communicator, CanDuplicateCommunicator)
-{
-    auto comm2 = gko::mpi::communicator::duplicate(MPI_COMM_WORLD);
-    ASSERT_TRUE(comm2 == comm);
 }
 
 
