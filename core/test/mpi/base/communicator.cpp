@@ -141,7 +141,8 @@ TEST_F(Communicator, CanMoveAssignCustomCommunicator)
     auto color = world_rank / 4;
 
     auto row_comm = gko::mpi::communicator(comm.get(), color, world_rank);
-    auto mv_row_comm = std::move(row_comm);
+    gko::mpi::communicator mv_row_comm(MPI_COMM_WORLD);
+    mv_row_comm = std::move(row_comm);
     for (auto i = 0; i < world_size; ++i) {
         EXPECT_LT(mv_row_comm.rank(), 4);
     }

@@ -34,12 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_BASE_MPI_HPP_
 
 
-#include <map>
 #include <memory>
-#include <mutex>
 #include <sstream>
 #include <string>
-#include <tuple>
 #include <type_traits>
 
 
@@ -61,18 +58,14 @@ namespace gko {
 namespace mpi {
 
 
-#define GKO_REGISTER_MPI_TYPE(input_type, mpi_type)          \
-    template <>                                              \
-    constexpr MPI_Datatype type_impl<input_type>::get_type() \
-    {                                                        \
-        return mpi_type;                                     \
+#define GKO_REGISTER_MPI_TYPE(input_type, mpi_type)         \
+    template <>                                             \
+    struct type_impl<input_type> {                          \
+        static MPI_Datatype get_type() { return mpi_type; } \
     }
 
-
 template <typename T>
-struct type_impl {
-    constexpr static MPI_Datatype get_type() { return MPI_DATATYPE_NULL; }
-};
+struct type_impl {};
 
 
 GKO_REGISTER_MPI_TYPE(char, MPI_CHAR);
@@ -162,7 +155,10 @@ public:
      */
     ~environment() { MPI_Finalize(); }
 
-    environment() = delete;
+    environment(const environment&) = delete;
+    environment(environment&&) = delete;
+    environment& operator=(const environment&) = delete;
+    environment& operator=(environment&&) = delete;
 
 private:
     int required_thread_support_;
@@ -195,6 +191,7 @@ public:
     void operator()(pointer comm) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_free(comm));
+        delete comm;
     }
 };
 
@@ -268,7 +265,7 @@ public:
      *
      * @param other  the object to be copied
      */
-    communicator(communicator& other)
+    communicator(const communicator& other)
     {
         MPI_Comm comm;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(other.get(), &comm));
@@ -286,6 +283,9 @@ public:
      */
     communicator& operator=(const communicator& other)
     {
+        if (&other == this) {
+            return *this;
+        }
         MPI_Comm comm;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(other.get(), &comm));
         this->comm_ = comm_manager(new MPI_Comm(comm), comm_deleter{});
@@ -324,6 +324,9 @@ public:
      */
     communicator& operator=(communicator&& other)
     {
+        if (&other == this) {
+            return *this;
+        }
         if (other.is_owning()) {
             this->comm_ = std::move(other.comm_);
             this->size_ = other.size_;
