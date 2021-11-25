@@ -65,14 +65,16 @@ void run_kernel_solver(std::shared_ptr<const HipExecutor> exec,
                        KernelFunction fn, dim<2> size, size_type default_stride,
                        KernelArgs&&... args)
 {
-    gko::hip::device_guard guard{exec->get_device_id()};
-    constexpr auto block_size = kernels::hip::default_block_size;
-    auto num_blocks = ceildiv(size[0] * size[1], block_size);
-    hipLaunchKernelGGL(kernels::hip::generic_kernel_2d_solver, num_blocks,
-                       block_size, 0, 0, static_cast<int64>(size[0]),
-                       static_cast<int64>(size[1]),
-                       static_cast<int64>(default_stride), fn,
-                       kernels::hip::map_to_device(args)...);
+    if (size[0] * size[1] > 0) {
+        gko::hip::device_guard guard{exec->get_device_id()};
+        constexpr auto block_size = kernels::hip::default_block_size;
+        auto num_blocks = ceildiv(size[0] * size[1], block_size);
+        hipLaunchKernelGGL(kernels::hip::generic_kernel_2d_solver, num_blocks,
+                           block_size, 0, 0, static_cast<int64>(size[0]),
+                           static_cast<int64>(size[1]),
+                           static_cast<int64>(default_stride), fn,
+                           kernels::hip::map_to_device(args)...);
+    }
 }
 
 
