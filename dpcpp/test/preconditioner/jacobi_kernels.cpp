@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
+#include "dpcpp/test/utils.hpp"
 
 
 namespace {
@@ -52,14 +53,19 @@ namespace {
 
 class Jacobi : public ::testing::Test {
 protected:
-    using Bj = gko::preconditioner::Jacobi<>;
-    using Mtx = gko::matrix::Csr<>;
-    using Vec = gko::matrix::Dense<>;
-    using mtx_data = gko::matrix_data<>;
+#if GINKGO_DPCPP_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
+    using Bj = gko::preconditioner::Jacobi<value_type>;
+    using Mtx = gko::matrix::Csr<value_type>;
+    using Vec = gko::matrix::Dense<value_type>;
+    using mtx_data = gko::matrix_data<value_type>;
 
     void SetUp()
     {
-        ASSERT_GT(gko::DpcppExecutor::get_num_devices(), 0);
+        ASSERT_GT(gko::DpcppExecutor::get_num_devices("all"), 0);
         ref = gko::ReferenceExecutor::create();
         dpcpp = gko::DpcppExecutor::create(0, ref);
     }
@@ -74,16 +80,16 @@ protected:
     void initialize_data(
         std::initializer_list<gko::int32> block_pointers,
         std::initializer_list<gko::precision_reduction> block_precisions,
-        std::initializer_list<double> condition_numbers,
+        std::initializer_list<value_type> condition_numbers,
         gko::uint32 max_block_size, int min_nnz, int max_nnz, int num_rhs = 1,
-        double accuracy = 0.1, bool skip_sorting = true)
+        value_type accuracy = 0.1, bool skip_sorting = true)
     {
         std::ranlux48 engine(42);
         const auto dim = *(end(block_pointers) - 1);
         if (condition_numbers.size() == 0) {
             mtx = gko::test::generate_random_matrix<Mtx>(
                 dim, dim, std::uniform_int_distribution<>(min_nnz, max_nnz),
-                std::normal_distribution<>(0.0, 1.0), engine, ref);
+                std::normal_distribution<value_type>(0.0, 1.0), engine, ref);
         } else {
             std::vector<mtx_data> blocks;
             for (gko::size_type i = 0; i < block_pointers.size() - 1; ++i) {
@@ -91,7 +97,8 @@ protected:
                     begin(block_pointers)[i + 1] - begin(block_pointers)[i];
                 const auto cond = begin(condition_numbers)[i];
                 blocks.push_back(mtx_data::cond(
-                    size, cond, std::normal_distribution<>(-1, 1), engine));
+                    size, cond, std::normal_distribution<value_type>(-1, 1),
+                    engine));
             }
             mtx = Mtx::create(ref);
             mtx->read(mtx_data::diag(begin(blocks), end(blocks)));
@@ -127,11 +134,11 @@ protected:
         }
         b = gko::test::generate_random_matrix<Vec>(
             dim, num_rhs, std::uniform_int_distribution<>(num_rhs, num_rhs),
-            std::normal_distribution<>(0.0, 1.0), engine, ref);
+            std::normal_distribution<value_type>(0.0, 1.0), engine, ref);
         d_b = gko::clone(dpcpp, b);
         x = gko::test::generate_random_matrix<Vec>(
             dim, num_rhs, std::uniform_int_distribution<>(num_rhs, num_rhs),
-            std::normal_distribution<>(0.0, 1.0), engine, ref);
+            std::normal_distribution<value_type>(0.0, 1.0), engine, ref);
         d_x = gko::clone(dpcpp, x);
     }
 
@@ -222,7 +229,7 @@ TEST_F(Jacobi, DpcppFindNaturalBlocksInLargeMatrixEquivalentToRef)
         1       1
         1       1
      */
-    using data = gko::matrix_data<double, int>;
+    using data = gko::matrix_data<value_type, int>;
     auto mtx = share(Mtx::create(ref));
     mtx->read(data::diag({550, 550}, {{1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
                                       {1.0, 1.0, 0.0, 0.0, 0.0, 0.0},
@@ -249,7 +256,7 @@ TEST_F(Jacobi,
                 1   1
                         1
      */
-    using data = gko::matrix_data<double, int>;
+    using data = gko::matrix_data<value_type, int>;
     auto mtx = share(Mtx::create(ref));
     mtx->read(data::diag({550, 550}, {{1.0, 1.0, 0.0, 0.0, 0.0},
                                       {1.0, 1.0, 0.0, 0.0, 0.0},
@@ -275,7 +282,7 @@ TEST_F(Jacobi,
         1       1   1
                 1        1
      */
-    using data = gko::matrix_data<double, int>;
+    using data = gko::matrix_data<value_type, int>;
     auto mtx = share(Mtx::create(ref));
     mtx->read({{50, 50},
                {{1.0, 1.0, 0.0, 1.0, 0.0},
@@ -300,7 +307,8 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithBlockSize32Sorted)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()),
+                        50 * r<value_type>::value);
 }
 
 
@@ -313,7 +321,8 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithBlockSize32Unsorted)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()),
+                        50 * r<value_type>::value);
 }
 
 
@@ -325,7 +334,8 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithDifferentBlockSize)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()),
+                        100 * r<value_type>::value);
 }
 
 
@@ -337,7 +347,8 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithMPW)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()),
+                        100 * r<value_type>::value);
 }
 
 
@@ -378,7 +389,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithBlockSize32)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 100 * r<value_type>::value);
 }
 
 
@@ -392,7 +403,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithDifferentBlockSize)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 100 * r<value_type>::value);
 }
 
 
@@ -406,7 +417,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRef)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 100 * r<value_type>::value);
 }
 
 
@@ -416,13 +427,13 @@ TEST_F(Jacobi, DpcppScalarApplyEquivalentToRef)
     std::ranlux48 engine(42);
     auto dense_smtx = gko::share(gko::test::generate_random_matrix<Vec>(
         dim, dim, std::uniform_int_distribution<>(1, dim),
-        std::normal_distribution<>(1.0, 2.0), engine, ref));
+        std::normal_distribution<value_type>(1.0, 2.0), engine, ref));
     gko::test::make_diag_dominant(dense_smtx.get());
     auto smtx = gko::share(Mtx::create(ref));
     smtx->copy_from(dense_smtx.get());
     auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
         dim, 3, std::uniform_int_distribution<>(1, 1),
-        std::normal_distribution<>(0.0, 1.0), engine, ref));
+        std::normal_distribution<value_type>(0.0, 1.0), engine, ref));
     auto sx = Vec::create(ref, sb->get_size());
 
     auto d_smtx = gko::share(Mtx::create(dpcpp));
@@ -437,7 +448,7 @@ TEST_F(Jacobi, DpcppScalarApplyEquivalentToRef)
     sj->apply(sb.get(), sx.get());
     d_sj->apply(d_sb.get(), d_sx.get());
 
-    GKO_ASSERT_MTX_NEAR(sx.get(), d_sx.get(), 1e-12);
+    GKO_ASSERT_MTX_NEAR(sx.get(), d_sx.get(), 100 * r<value_type>::value);
 }
 
 
@@ -455,7 +466,7 @@ TEST_F(Jacobi, DpcppLinearCombinationApplyEquivalentToRef)
     bj->apply(alpha.get(), b.get(), beta.get(), x.get());
     d_bj->apply(d_alpha.get(), d_b.get(), d_beta.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 100 * r<value_type>::value);
 }
 
 
@@ -465,18 +476,18 @@ TEST_F(Jacobi, DpcppScalarLinearCombinationApplyEquivalentToRef)
     std::ranlux48 engine(42);
     auto dense_smtx = gko::share(gko::test::generate_random_matrix<Vec>(
         dim, dim, std::uniform_int_distribution<>(1, dim),
-        std::normal_distribution<>(1.0, 2.0), engine, ref));
+        std::normal_distribution<value_type>(1.0, 2.0), engine, ref));
     gko::test::make_diag_dominant(dense_smtx.get());
     auto smtx = gko::share(Mtx::create(ref));
     smtx->copy_from(dense_smtx.get());
     auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
         dim, 3, std::uniform_int_distribution<>(1, 1),
-        std::normal_distribution<>(0.0, 1.0), engine, ref, gko::dim<2>(dim, 3),
-        4));
+        std::normal_distribution<value_type>(0.0, 1.0), engine, ref,
+        gko::dim<2>(dim, 3), 4));
     auto sx = gko::share(gko::test::generate_random_matrix<Vec>(
         dim, 3, std::uniform_int_distribution<>(1, 1),
-        std::normal_distribution<>(0.0, 1.0), engine, ref, gko::dim<2>(dim, 3),
-        4));
+        std::normal_distribution<value_type>(0.0, 1.0), engine, ref,
+        gko::dim<2>(dim, 3), 4));
 
     auto d_smtx = gko::share(gko::clone(dpcpp, smtx));
     auto d_sb = gko::share(gko::clone(dpcpp, sb));
@@ -492,7 +503,7 @@ TEST_F(Jacobi, DpcppScalarLinearCombinationApplyEquivalentToRef)
     sj->apply(alpha.get(), sb.get(), beta.get(), sx.get());
     d_sj->apply(d_alpha.get(), d_sb.get(), d_beta.get(), d_sx.get());
 
-    GKO_ASSERT_MTX_NEAR(sx.get(), d_sx.get(), 1e-12);
+    GKO_ASSERT_MTX_NEAR(sx.get(), d_sx.get(), 100 * r<value_type>::value);
 }
 
 
@@ -506,7 +517,7 @@ TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRef)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 100 * r<value_type>::value);
 }
 
 
@@ -524,12 +535,13 @@ TEST_F(Jacobi, DpcppLinearCombinationApplyToMultipleVectorsEquivalentToRef)
     bj->apply(alpha.get(), b.get(), beta.get(), x.get());
     d_bj->apply(d_alpha.get(), d_b.get(), d_beta.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 100 * r<value_type>::value);
 }
 
 
 TEST_F(Jacobi, ComputesTheSameConditionNumberAsRef)
 {
+    SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, {}, 13, 97, 99);
 
@@ -548,7 +560,7 @@ TEST_F(Jacobi, SelectsTheSamePrecisionsAsRef)
     initialize_data(
         {0, 2, 14, 27, 40, 51, 61, 70, 80, 92, 100},
         {ap, ap, ap, ap, ap, ap, ap, ap, ap, ap},
-        {1e+0, 1e+0, 1e+2, 1e+3, 1e+4, 1e+4, 1e+6, 1e+7, 1e+8, 1e+9}, 13, 97,
+        {1e+0, 1e+0, 1e+2, 1e+3, 1e+4, 1e+4, 1e+6, 1e+7, 1e+8, 1e+9}, 32, 97,
         99, 1, 0.2);
 
     auto bj = bj_factory->generate(mtx);
@@ -566,7 +578,7 @@ TEST_F(Jacobi, SelectsTheSamePrecisionsAsRef)
 
 TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
 {
-    auto mtx = gko::matrix::Csr<>::create(dpcpp);
+    auto mtx = gko::matrix::Csr<value_type>::create(dpcpp);
     // clang-format off
     mtx->read(mtx_data::diag({
         // perfectly conditioned block, small value difference,
@@ -582,26 +594,31 @@ TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
 
     auto bj =
         Bj::build()
-            .with_max_block_size(13u)
+            .with_max_block_size(32u)
             .with_block_pointers(gko::Array<gko::int32>(dpcpp, {0, 2, 4}))
             .with_storage_optimization(gko::precision_reduction::autodetect())
-            .with_accuracy(0.1)
+            .with_accuracy(value_type{0.1})
             .on(dpcpp)
             ->generate(give(mtx));
 
-    // both blocks are in the same group, both need (7, 8)
     auto h_bj = clone(ref, bj);
     auto prec =
         h_bj->get_parameters().storage_optimization.block_wise.get_const_data();
-    EXPECT_EQ(prec[0], gko::precision_reduction(1, 1));
-    ASSERT_EQ(prec[1], gko::precision_reduction(1, 1));
+    EXPECT_EQ(prec[0], gko::precision_reduction(0, 2));
+// 2 - 0 is same as 1 - 1 when it is float
+#if GINKGO_DPCPP_SINGLE_MODE
+    ASSERT_EQ(prec[1], gko::precision_reduction(2, 0));
+#else
+    ASSERT_EQ(prec[1], gko::precision_reduction(2, 0));
+#endif
 }
 
 
 TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithFullPrecision)
 {
+    SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, {}, 13, 97, 99);
+                    {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, {}, 32, 97, 99);
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -619,7 +636,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithReducedPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-7);
+    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 2e-7);
 }
 
 
@@ -664,6 +681,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithCustomQuarteredPrecision)
 
 TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithAdaptivePrecision)
 {
+    SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
                     99);
@@ -678,6 +696,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithAdaptivePrecision)
 TEST_F(Jacobi,
        DpcppTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
 {
+    SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
                     99);
@@ -694,6 +713,7 @@ TEST_F(Jacobi,
 TEST_F(Jacobi,
        DpcppConjTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
 {
+    SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
                     99);
@@ -709,6 +729,7 @@ TEST_F(Jacobi,
 
 TEST_F(Jacobi, DpcppApplyEquivalentToRefWithFullPrecision)
 {
+    SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, {}, 13, 97,
                     99);
@@ -724,6 +745,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithFullPrecision)
 
 TEST_F(Jacobi, DpcppApplyEquivalentToRefWithReducedPrecision)
 {
+    SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {sp, sp, sp, sp, sp, sp, sp, sp, sp, sp, sp}, {}, 13, 97,
                     99);
@@ -739,6 +761,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithReducedPrecision)
 
 TEST_F(Jacobi, DpcppApplyEquivalentToRefWithCustomReducedPrecision)
 {
+    SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {tp, tp, tp, tp, tp, tp, tp, tp, tp, tp, tp}, {}, 13, 97,
                     99);
@@ -799,6 +822,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithCustomQuarteredPrecision)
 
 TEST_F(Jacobi, DpcppApplyEquivalentToRefWithAdaptivePrecision)
 {
+    SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
                     99);
@@ -814,6 +838,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithAdaptivePrecision)
 
 TEST_F(Jacobi, DpcppLinearCombinationApplyEquivalentToRefWithAdaptivePrecision)
 {
+    SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {sp, dp, dp, sp, sp, sp, dp, dp, sp, dp, sp}, {}, 13, 97,
                     99);
@@ -833,6 +858,7 @@ TEST_F(Jacobi, DpcppLinearCombinationApplyEquivalentToRefWithAdaptivePrecision)
 
 TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRefWithFullPrecision)
 {
+    SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, {}, 13, 97,
                     99, 5);
@@ -863,6 +889,7 @@ TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRefWithReducedPrecision)
 
 TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRefWithAdaptivePrecision)
 {
+    SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
                     99, 5);
@@ -880,6 +907,7 @@ TEST_F(
     Jacobi,
     DpcppLinearCombinationApplyToMultipleVectorsEquivalentToRefWithAdaptivePrecision)
 {
+    SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
                     {sp, dp, dp, sp, sp, sp, dp, dp, sp, dp, sp}, {}, 13, 97,
                     99, 5);

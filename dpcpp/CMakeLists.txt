@@ -41,7 +41,10 @@ target_sources(ginkgo_dpcpp
     matrix/sparsity_csr_kernels.dp.cpp
     multigrid/pgm_kernels.dp.cpp
     preconditioner/isai_kernels.dp.cpp
+    preconditioner/jacobi_advanced_apply_kernel.dp.cpp
+    preconditioner/jacobi_generate_kernel.dp.cpp
     preconditioner/jacobi_kernels.dp.cpp
+    preconditioner/jacobi_simple_apply_kernel.dp.cpp
     reorder/rcm_kernels.dp.cpp
     solver/gmres_kernels.dp.cpp
     solver/cb_gmres_kernels.dp.cpp
@@ -53,6 +56,34 @@ target_sources(ginkgo_dpcpp
     stop/residual_norm_kernels.dp.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
     )
+
+# if(GINKGO_JACOBI_FULL_OPTIMIZATIONS)
+#     set(GKO_DPCPP_JACOBI_BLOCK_SIZES)
+#     foreach(blocksize RANGE 1 32)
+#         list(APPEND GKO_DPCPP_JACOBI_BLOCK_SIZES ${blocksize})
+#     endforeach()
+# else()
+    set(GKO_DPCPP_JACOBI_BLOCK_SIZES 32)
+# endif()
+set(GKO_DPCPP_JACOBI_SOURCES)
+foreach(GKO_JACOBI_BLOCK_SIZE IN LISTS GKO_DPCPP_JACOBI_BLOCK_SIZES)
+    configure_file(
+        preconditioner/jacobi_generate_instantiate.inc.dp.cpp
+        preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.dp.cpp)
+    configure_file(
+        preconditioner/jacobi_simple_apply_instantiate.inc.dp.cpp
+        preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.dp.cpp)
+    configure_file(
+        preconditioner/jacobi_advanced_apply_instantiate.inc.dp.cpp
+        preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.dp.cpp)
+    list(APPEND GKO_DPCPP_JACOBI_SOURCES
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.dp.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.dp.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.dp.cpp)
+endforeach()
+target_sources(ginkgo_dpcpp PRIVATE ${GKO_DPCPP_JACOBI_SOURCES})
+string(REPLACE ";" "," GKO_DPCPP_JACOBI_BLOCK_SIZES_CODE "${GKO_DPCPP_JACOBI_BLOCK_SIZES}")
+configure_file(preconditioner/jacobi_common.hpp.in preconditioner/jacobi_common.hpp)
 
 ginkgo_compile_features(ginkgo_dpcpp)
 target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP _ONEDPL_COMPILE_KERNEL=0)
@@ -72,6 +103,9 @@ if (BUILD_SHARED_LIBS)
 else ()
     target_link_options(ginkgo_dpcpp PUBLIC -fsycl-device-code-split=per_kernel)
 endif()
+# include path for generated headers like jacobi_common.hpp
+target_include_directories(ginkgo_dpcpp
+    PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..)
 target_link_libraries(ginkgo_dpcpp PUBLIC ginkgo_device)
 target_link_libraries(ginkgo_dpcpp PRIVATE MKL::MKL_DPCPP oneDPL)
 if (GINKGO_DPCPP_SINGLE_MODE)

@@ -348,7 +348,9 @@ inline bool validate_precision_reduction_feasibility(IndexType block_size,
     }
     cond *= compute_inf_norm(block_size, block_size, tmp_buffer, block_size);
     return cond >= 1.0 &&
-           cond * float_traits<remove_complex<ValueType>>::eps < 1e-3;
+           cond * static_cast<remove_complex<ValueType>>(
+                      float_traits<remove_complex<ValueType>>::eps) <
+               remove_complex<ValueType>{1e-3};
 }
 
 
