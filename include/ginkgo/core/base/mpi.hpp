@@ -183,13 +183,15 @@ namespace {
 
 
 /**
- * A deleter class that calls MPI_Comm_free on the owning MPI_Comm object
+ * A deleter class that calls MPI_Comm_free on the owning MPI_Comm object and
+ * deletes the underlying comm ptr
  */
 class comm_deleter {
 public:
     using pointer = MPI_Comm*;
     void operator()(pointer comm) const
     {
+        GKO_ASSERT(*comm != MPI_COMM_NULL);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_free(comm));
         delete comm;
     }
@@ -210,14 +212,13 @@ public:
      * Non-owning constructor for an existing communicator of type MPI_Comm. The
      * MPI_Comm object will not be deleted after the communicator object has
      * been freed and an explicit MPI_Comm_free needs to be called on the
-     * original MPI_Comm_free object.
+     * original MPI_Comm object.
      *
      * @param comm The input MPI_Comm object.
      */
     communicator(const MPI_Comm& comm)
     {
-        this->comm_ =
-            comm_manager(new MPI_Comm(comm), null_deleter<MPI_Comm>{});
+        this->comm_.reset(new MPI_Comm(comm));
         this->size_ = get_num_ranks();
         this->rank_ = get_my_rank();
         this->node_local_rank_ = get_node_local_rank();
@@ -235,7 +236,7 @@ public:
     {
         MPI_Comm comm_out;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split(comm, color, key, &comm_out));
-        this->comm_ = comm_manager(new MPI_Comm(comm_out), comm_deleter{});
+        this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
         this->size_ = get_num_ranks();
         this->rank_ = get_my_rank();
         this->node_local_rank_ = get_node_local_rank();
@@ -254,105 +255,27 @@ public:
         MPI_Comm comm_out;
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Comm_split(comm.get(), color, key, &comm_out));
-        this->comm_ = comm_manager(new MPI_Comm(comm_out), comm_deleter{});
+        this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
         this->size_ = get_num_ranks();
         this->rank_ = get_my_rank();
         this->node_local_rank_ = get_node_local_rank();
     }
 
-    /**
-     * Copy constructor. The underlying MPI_Comm object will be duplicated.
-     *
-     * @param other  the object to be copied
-     */
-    communicator(const communicator& other)
-    {
-        MPI_Comm comm;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(other.get(), &comm));
-        this->comm_ = comm_manager(new MPI_Comm(comm), comm_deleter{});
-        this->size_ = other.size_;
-        this->rank_ = other.rank_;
-        this->node_local_rank_ = other.node_local_rank_;
-    }
+    communicator(const communicator& other) = default;
 
-    /**
-     * Copy assignment operator. The underlying MPI_Comm object will be
-     * duplicated.
-     *
-     * @param other  the object to be copied
-     */
-    communicator& operator=(const communicator& other)
-    {
-        if (&other == this) {
-            return *this;
-        }
-        MPI_Comm comm;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(other.get(), &comm));
-        this->comm_ = comm_manager(new MPI_Comm(comm), comm_deleter{});
-        this->size_ = other.size_;
-        this->rank_ = other.rank_;
-        this->node_local_rank_ = other.node_local_rank_;
-        return *this;
-    }
+    communicator& operator=(const communicator& other) = default;
 
-    /**
-     * Move constructor. If we own the underlying communicator, then we move the
-     * object over. If we don't, then we throw.
-     *
-     * @param other  the object to be moved
-     */
     communicator(communicator&& other)
     {
-        if (other.is_owning()) {
-            this->comm_ = std::move(other.comm_);
-            this->size_ = other.size_;
-            this->rank_ = other.rank_;
-            this->node_local_rank_ = other.node_local_rank_;
-            other.size_ = 0;
-            other.rank_ = -1;
-        } else {
-            // If we don't own the communicator, then we can't move from it.
-            GKO_NOT_SUPPORTED(other);
-        }
+        this->comm_ = std::move(other.comm_);
+        other.comm_.reset(new MPI_Comm(MPI_COMM_NULL));
     }
 
-    /**
-     * Move assignment operator. If we own the underlying communicator, then we
-     * move the object over. If we don't, then we throw.
-     *
-     * @param other  the object to be moved
-     */
     communicator& operator=(communicator&& other)
     {
-        if (&other == this) {
-            return *this;
-        }
-        if (other.is_owning()) {
-            this->comm_ = std::move(other.comm_);
-            this->size_ = other.size_;
-            this->rank_ = other.rank_;
-            this->node_local_rank_ = other.node_local_rank_;
-            other.size_ = 0;
-            other.rank_ = -1;
-        } else {
-            // If we don't own the communicator, then we can't move from it.
-            GKO_NOT_SUPPORTED(other);
-        }
+        this->comm_ = std::move(other.comm_);
+        other.comm_.reset(new MPI_Comm(MPI_COMM_NULL));
         return *this;
-    }
-
-    /**
-     * Duplicate and create an owning communicator from an input MPI_Comm
-     * object.
-     *
-     * @param comm_in  the input MPI_Comm object to be duplicated
-     */
-    static communicator duplicate(const MPI_Comm& comm_in)
-    {
-        MPI_Comm comm;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(comm_in, &comm));
-        communicator comm_out(comm);
-        return comm_out;
     }
 
     /**
@@ -391,25 +314,13 @@ public:
     bool operator==(const communicator& rhs) { return compare(rhs.get()); }
 
     /**
-     * Check if the underlying comm object is owned
-     *
-     * @return  if the underlying comm object is owned
-     */
-    bool is_owning()
-    {
-        return comm_.get_deleter().target_type() == typeid(comm_deleter);
-    }
-
-    /**
      * This function is used to synchronize the ranks in the communicator.
      * Calls MPI_Barrier
      */
     void synchronize() const { GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(get())); }
 
 private:
-    using comm_manager =
-        std::unique_ptr<MPI_Comm, std::function<void(MPI_Comm*)>>;
-    comm_manager comm_;
+    std::shared_ptr<MPI_Comm> comm_;
     int size_{};
     int rank_{};
     int node_local_rank_{};
@@ -443,7 +354,7 @@ private:
     {
         int flag;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_compare(get(), other, &flag));
-        return flag;
+        return flag == MPI_IDENT;
     }
 };
 
