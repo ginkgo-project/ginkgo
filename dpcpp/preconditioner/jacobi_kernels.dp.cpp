@@ -65,7 +65,7 @@ namespace {
 
 
 // a total of 32 warps (1024 threads)
-constexpr int default_num_warps = 32;
+constexpr int default_num_warps = 16;
 // with current architectures, at most 32 warps can be scheduled per SM (and
 // current GPUs have at most 84 SMs)
 constexpr int default_grid_size = 32 * 32 * 128;
@@ -266,10 +266,6 @@ void transpose_jacobi(
     if (rank < block_size) {
         for (IndexType i = 0; i < block_size; ++i) {
             auto val = blocks[block_ofs + i * block_stride + rank];
-            /*
-            DPCT1007:4: Migration of this CUDA API is not supported by the
-            Intel(R) DPC++ Compatibility Tool.
-            */
             out_blocks[block_ofs + i + rank * block_stride] =
                 conjugate ? conj(val) : val;
         }
@@ -437,7 +433,8 @@ namespace {
 template <bool conjugate, int warps_per_block, int max_block_size,
           typename ValueType, typename IndexType>
 void transpose_jacobi(
-    syn::value_list<int, max_block_size>, size_type num_blocks,
+    syn::value_list<int, max_block_size>,
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
     const precision_reduction* block_precisions,
     const IndexType* block_pointers, const ValueType* blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
@@ -484,7 +481,7 @@ void transpose_jacobi(
             return max_block_size <= compiled_block_size;
         },
         syn::value_list<int, false, config::min_warps_per_block>(),
-        syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
+        syn::type_list<>(), exec, num_blocks, block_precisions.get_const_data(),
         block_pointers.get_const_data(), blocks.get_const_data(),
         storage_scheme, out_blocks.get_data());
 }
@@ -508,7 +505,7 @@ void conj_transpose_jacobi(
             return max_block_size <= compiled_block_size;
         },
         syn::value_list<int, true, config::min_warps_per_block>(),
-        syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
+        syn::type_list<>(), exec, num_blocks, block_precisions.get_const_data(),
         block_pointers.get_const_data(), blocks.get_const_data(),
         storage_scheme, out_blocks.get_data());
 }

@@ -63,8 +63,6 @@ namespace dpcpp {
  * @ingroup jacobi
  */
 namespace jacobi {
-
-
 namespace kernel {
 
 
@@ -179,7 +177,7 @@ void advanced_adaptive_apply(
 
 
 // clang-format off
-//#cmakedefine GKO_JACOBI_BLOCK_SIZE @GKO_JACOBI_BLOCK_SIZE@
+#cmakedefine GKO_JACOBI_BLOCK_SIZE @GKO_JACOBI_BLOCK_SIZE@
 // clang-format on
 // make things easier for IDEs
 #ifndef GKO_JACOBI_BLOCK_SIZE
@@ -190,7 +188,8 @@ void advanced_adaptive_apply(
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void advanced_apply(
-    syn::value_list<int, max_block_size>, size_type num_blocks,
+    syn::value_list<int, max_block_size>,
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
     const precision_reduction* block_precisions,
     const IndexType* block_pointers, const ValueType* blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
@@ -221,7 +220,8 @@ void advanced_apply(
 #define DECLARE_JACOBI_ADVANCED_APPLY_INSTANTIATION(ValueType, IndexType)   \
     void advanced_apply<config::min_warps_per_block, GKO_JACOBI_BLOCK_SIZE, \
                         ValueType, IndexType>(                              \
-        syn::value_list<int, GKO_JACOBI_BLOCK_SIZE>, size_type,             \
+        syn::value_list<int, GKO_JACOBI_BLOCK_SIZE>,                        \
+        std::shared_ptr<const DefaultExecutor>, size_type,                  \
         const precision_reduction*, const IndexType* block_pointers,        \
         const ValueType*,                                                   \
         const preconditioner::block_interleaved_storage_scheme<IndexType>&, \

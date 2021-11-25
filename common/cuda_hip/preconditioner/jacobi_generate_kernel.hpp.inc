@@ -73,7 +73,9 @@ __device__ __forceinline__ bool validate_precision_reduction_feasibility(
     }
 
     return succeeded && block_cond >= 1.0 &&
-           block_cond * float_traits<remove_complex<ValueType>>::eps < 1e-3;
+           block_cond * static_cast<remove_complex<ValueType>>(
+                            float_traits<remove_complex<ValueType>>::eps) <
+               remove_complex<ValueType>{1e-3};
 }
 
 

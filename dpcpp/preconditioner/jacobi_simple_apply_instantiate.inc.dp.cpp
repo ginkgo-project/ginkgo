@@ -174,7 +174,7 @@ void adaptive_apply(
 
 
 // clang-format off
-//#cmakedefine GKO_JACOBI_BLOCK_SIZE @GKO_JACOBI_BLOCK_SIZE@
+#cmakedefine GKO_JACOBI_BLOCK_SIZE @GKO_JACOBI_BLOCK_SIZE@
 // clang-format on
 // make things easier for IDEs
 #ifndef GKO_JACOBI_BLOCK_SIZE
@@ -184,7 +184,8 @@ void adaptive_apply(
 
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
-void apply(syn::value_list<int, max_block_size>, size_type num_blocks,
+void apply(syn::value_list<int, max_block_size>,
+           std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
            const precision_reduction* block_precisions,
            const IndexType* block_pointers, const ValueType* blocks,
            const preconditioner::block_interleaved_storage_scheme<IndexType>&
@@ -214,7 +215,8 @@ void apply(syn::value_list<int, max_block_size>, size_type num_blocks,
 #define DECLARE_JACOBI_SIMPLE_APPLY_INSTANTIATION(ValueType, IndexType)       \
     void apply<config::min_warps_per_block, GKO_JACOBI_BLOCK_SIZE, ValueType, \
                IndexType>(                                                    \
-        syn::value_list<int, GKO_JACOBI_BLOCK_SIZE>, size_type,               \
+        syn::value_list<int, GKO_JACOBI_BLOCK_SIZE>,                          \
+        std::shared_ptr<const DefaultExecutor>, size_type,                    \
         const precision_reduction*, const IndexType*, const ValueType*,       \
         const preconditioner::block_interleaved_storage_scheme<IndexType>&,   \
         const ValueType*, size_type, ValueType*, size_type)

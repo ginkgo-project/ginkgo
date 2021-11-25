@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/jacobi_kernels.hpp"
 
 
-#include <dpcpp/components/diagonal_block_manipulation.dp.hpp>
 #include <dpcpp/preconditioner/jacobi_common.hpp>
 
 
@@ -53,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/math.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
+#include "dpcpp/components/diagonal_block_manipulation.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 #include "dpcpp/components/uninitialized_array.hpp"
 #include "dpcpp/components/warp_blas.dp.hpp"
@@ -112,7 +112,9 @@ __dpct_inline__ bool validate_precision_reduction_feasibility(
     }
 
     return succeeded && block_cond >= 1.0 &&
-           block_cond * float_traits<remove_complex<ValueType>>::eps < 1e-3;
+           block_cond * static_cast<remove_complex<ValueType>>(
+                            float_traits<remove_complex<ValueType>>::eps) <
+               remove_complex<ValueType>{1e-3};
 }
 
 
@@ -135,7 +137,7 @@ void generate(
     csr::extract_transposed_diag_blocks<max_block_size, warps_per_block>(
         block, config::warp_size / subwarp_size, row_ptrs, col_idxs, values,
         block_ptrs, num_blocks, row, 1,
-        *workspace + item_ct1.get_local_id(0) * max_block_size);
+        *workspace + item_ct1.get_local_id(0) * max_block_size, item_ct1);
     const auto subwarp = group::tiled_partition<subwarp_size>(block);
     if (block_id < num_blocks) {
         const auto block_size = block_ptrs[block_id + 1] - block_ptrs[block_id];
@@ -199,7 +201,7 @@ void adaptive_generate(
     csr::extract_transposed_diag_blocks<max_block_size, warps_per_block>(
         block, config::warp_size / subwarp_size, row_ptrs, col_idxs, values,
         block_ptrs, num_blocks, row, 1,
-        *workspace + item_ct1.get_local_id(0) * max_block_size);
+        *workspace + item_ct1.get_local_id(0) * max_block_size, item_ct1);
 
     // compute inverse and figure out the correct precision
     const auto subwarp = group::tiled_partition<subwarp_size>(block);
@@ -251,8 +253,8 @@ void adaptive_generate(
 
     // make sure all blocks in the group have the same precision
     const auto warp = group::tiled_partition<config::warp_size>(block);
-    const auto prec =
-        preconditioner::detail::get_optimal_storage_reduction(reduce(
+    const auto prec = preconditioner::detail::get_optimal_storage_reduction(
+        ::gko::kernels::dpcpp::reduce(
             warp, prec_descriptor, [](uint32 x, uint32 y) { return x & y; }));
 
     // store the block back into memory
@@ -302,7 +304,7 @@ void adaptive_generate(
 
 
 // clang-format off
-//#cmakedefine GKO_JACOBI_BLOCK_SIZE @GKO_JACOBI_BLOCK_SIZE@
+#cmakedefine GKO_JACOBI_BLOCK_SIZE @GKO_JACOBI_BLOCK_SIZE@
 // clang-format on
 // make things easier for IDEs
 #ifndef GKO_JACOBI_BLOCK_SIZE
@@ -313,6 +315,7 @@ void adaptive_generate(
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void generate(syn::value_list<int, max_block_size>,
+              std::shared_ptr<const DefaultExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* mtx,
               remove_complex<ValueType> accuracy, ValueType* block_data,
               const preconditioner::block_interleaved_storage_scheme<IndexType>&
@@ -348,6 +351,7 @@ void generate(syn::value_list<int, max_block_size>,
     void generate<config::min_warps_per_block, GKO_JACOBI_BLOCK_SIZE,        \
                   ValueType, IndexType>(                                     \
         syn::value_list<int, GKO_JACOBI_BLOCK_SIZE>,                         \
+        std::shared_ptr<const DefaultExecutor>,                              \
         const matrix::Csr<ValueType, IndexType>*, remove_complex<ValueType>, \
         ValueType*,                                                          \
         const preconditioner::block_interleaved_storage_scheme<IndexType>&,  \
