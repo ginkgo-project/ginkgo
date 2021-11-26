@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/allocator.hpp"
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 namespace gko {
 namespace kernels {
@@ -48,10 +48,10 @@ namespace distributed_vector {
 template <typename ValueType, typename LocalIndexType>
 void build_local(
     std::shared_ptr<const DefaultExecutor> exec,
-    const Array<matrix_data_entry<ValueType, global_index_type>> &input,
-    const distributed::Partition<LocalIndexType> *partition,
+    const Array<matrix_data_entry<ValueType, global_index_type>>& input,
+    const distributed::Partition<LocalIndexType>* partition,
     comm_index_type local_part,
-    Array<matrix_data_entry<ValueType, LocalIndexType>> &local_data,
+    Array<matrix_data_entry<ValueType, LocalIndexType>>& local_data,
     ValueType deduction_help)
 {
     using range_index_type = global_index_type;
@@ -78,7 +78,7 @@ void build_local(
                                    range_bounds + num_ranges + 1, idx);
         return std::distance(range_bounds + 1, it);
     };
-    auto update_range = [&](global_index_type idx, range_info &info) {
+    auto update_range = [&](global_index_type idx, range_info& info) {
         if (idx < info.begin || idx >= info.end) {
             info.index = find_range(idx);
             info.begin = range_bounds[info.index];

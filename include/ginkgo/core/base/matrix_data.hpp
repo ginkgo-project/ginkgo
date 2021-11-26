@@ -561,11 +561,6 @@ private:
 
 
 template <typename ValueType, typename IndexType>
-using matrix_data_entry =
-    typename matrix_data<ValueType, IndexType>::nonzero_type;
-
-
-template <typename ValueType, typename IndexType>
 void unpack_nonzeros(const matrix_data_entry<ValueType, IndexType>* data,
                      size_type nnz, IndexType* rows, IndexType* cols,
                      ValueType* values)

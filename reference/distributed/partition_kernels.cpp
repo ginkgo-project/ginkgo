@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/distributed/partition_kernels.hpp"
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 
 namespace gko {
