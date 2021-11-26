@@ -305,7 +305,6 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
     } else if (description == "bicgstab") {
         using Solver = gko::solver::BatchBicgstab<etype>;
         return Solver::build()
-            .with_num_shared_vectors(static_cast<int>(FLAGS_num_shared_vecs))
             .with_max_iterations(static_cast<int>(FLAGS_max_iters))
             .with_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
