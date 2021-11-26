@@ -38,8 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
-#include "core/matrix/batch_ell_kernels.hpp"
 #include "core/solver/batch_bicgstab_kernels.hpp"
+#include "core/solver/batch_solver.ipp"
 
 
 namespace gko {
@@ -47,8 +47,6 @@ namespace solver {
 namespace batch_bicgstab {
 
 
-GKO_REGISTER_OPERATION(pre_diag_scale_system, batch_csr::pre_diag_scale_system);
-GKO_REGISTER_OPERATION(vec_scale, batch_dense::batch_scale);
 GKO_REGISTER_OPERATION(apply, batch_bicgstab::apply);
 
 
@@ -63,7 +61,6 @@ std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::transpose() const
         .with_max_iterations(parameters_.max_iterations)
         .with_residual_tol(parameters_.residual_tol)
         .with_tolerance_type(parameters_.tolerance_type)
-        .with_num_shared_vectors(parameters_.num_shared_vectors)
         .on(this->get_executor())
         ->generate(share(
             as<BatchTransposable>(this->get_system_matrix())->transpose()));
@@ -78,7 +75,6 @@ std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::conj_transpose() const
         .with_max_iterations(parameters_.max_iterations)
         .with_residual_tol(parameters_.residual_tol)
         .with_tolerance_type(parameters_.tolerance_type)
-        .with_num_shared_vectors(parameters_.num_shared_vectors)
         .on(this->get_executor())
         ->generate(share(as<BatchTransposable>(this->get_system_matrix())
                              ->conj_transpose()));
@@ -86,76 +82,16 @@ std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp* b,
-                                          BatchLinOp* x) const
+void BatchBicgstab<ValueType>::solver_apply(
+    const BatchLinOp* const mtx, const matrix::BatchDense<ValueType>* b,
+    matrix::BatchDense<ValueType>* x, BatchInfo<ValueType>& info) const
 {
-    using Mtx = matrix::BatchCsr<ValueType>;
-    using EllMtx = matrix::BatchEll<ValueType>;
-    using Vector = matrix::BatchDense<ValueType>;
-    using real_type = remove_complex<ValueType>;
-
-    auto exec = this->get_executor();
-    auto dense_b = as<const Vector>(b);
-    auto dense_x = as<Vector>(x);
-    const bool to_scale =
-        this->get_left_scaling_vector() && this->get_right_scaling_vector();
-    const auto acsr = dynamic_cast<const Mtx*>(system_matrix_.get());
-    const Mtx* a_scaled{};
-    const Vector* b_scaled{};
-    auto a_scaled_smart = Mtx::create(exec);
-    auto b_scaled_smart = Vector::create(exec);
-    if (to_scale && !acsr) {
-        GKO_NOT_SUPPORTED(system_matrix_);
-    }
-
-    // copies to scale
-    if (to_scale) {
-        a_scaled_smart->copy_from(acsr);
-        b_scaled_smart->copy_from(dense_b);
-        exec->run(batch_bicgstab::make_pre_diag_scale_system(
-            this->get_left_scaling_vector(), this->get_right_scaling_vector(),
-            a_scaled_smart.get(), b_scaled_smart.get()));
-        a_scaled = a_scaled_smart.get();
-        b_scaled = b_scaled_smart.get();
-    } else if (acsr) {
-        a_scaled = acsr;
-        b_scaled = dense_b;
-    } else {
-        b_scaled = dense_b;
-    }
     const kernels::batch_bicgstab::BatchBicgstabOptions<
         remove_complex<ValueType>>
         opts{parameters_.preconditioner, parameters_.max_iterations,
              parameters_.residual_tol, parameters_.tolerance_type};
-
-    log::BatchLogData<ValueType> logdata;
-
-    // allocate logging arrays assuming uniform size batch
-    // GKO_ASSERT(dense_b->stores_equal_sizes());
-
-    const size_type num_rhs = dense_b->get_size().at(0)[1];
-    const size_type num_batches = dense_b->get_num_batch_entries();
-    batch_dim<> sizes(num_batches, dim<2>{1, num_rhs});
-
-    logdata.res_norms =
-        matrix::BatchDense<real_type>::create(this->get_executor(), sizes);
-    logdata.iter_counts.set_executor(this->get_executor());
-    logdata.iter_counts.resize_and_reset(num_rhs * num_batches);
-
-    if (acsr) {
-        exec->run(batch_bicgstab::make_apply(opts, a_scaled, b_scaled, dense_x,
-                                             logdata));
-    } else {
-        exec->run(batch_bicgstab::make_apply(opts, system_matrix_.get(),
-                                             b_scaled, dense_x, logdata));
-    }
-    this->template log<log::Logger::batch_solver_completed>(
-        logdata.iter_counts, logdata.res_norms.get());
-
-    if (to_scale) {
-        exec->run(batch_bicgstab::make_vec_scale(
-            this->get_right_scaling_vector(), dense_x));
-    }
+    auto exec = this->get_executor();
+    exec->run(batch_bicgstab::make_apply(opts, mtx, b, x, info.logdata));
 }
 
 
