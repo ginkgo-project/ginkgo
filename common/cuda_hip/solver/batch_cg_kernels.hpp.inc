@@ -54,9 +54,9 @@ __device__ __forceinline__ void initialize(
     __syncthreads();
 
     // r = b - A*x
-    single_advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_global_entry,
-                                x_shared_entry, static_cast<ValueType>(1.0),
-                                r_shared_entry);
+    single_advanced_matvec_kernel(static_cast<ValueType>(-1.0), A_global_entry,
+                                  x_shared_entry, static_cast<ValueType>(1.0),
+                                  r_shared_entry);
     __syncthreads();
 
     // z = precond * r
@@ -182,7 +182,7 @@ __global__ void apply_kernel(const int max_iter,
             }
 
             // Ap = A * p
-            single_spmv_kernel(A_global_entry, p_sh, Ap_sh);
+            single_matvec_kernel(A_global_entry, p_sh, Ap_sh);
             __syncthreads();
 
             // alpha = rho_old / (p' * Ap)
