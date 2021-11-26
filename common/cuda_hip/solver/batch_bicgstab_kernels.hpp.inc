@@ -59,9 +59,9 @@ __device__ __forceinline__ void initialize(
     __syncthreads();
 
     // r = b - A*x
-    single_advanced_spmv_kernel(static_cast<ValueType>(-1.0), a_global_entry,
-                                x_shared_entry, static_cast<ValueType>(1.0),
-                                r_shared_entry);
+    single_advanced_matvec_kernel(static_cast<ValueType>(-1.0), a_global_entry,
+                                  x_shared_entry, static_cast<ValueType>(1.0),
+                                  r_shared_entry);
     __syncthreads();
 
     if (threadIdx.x / config::warp_size == 0) {
@@ -319,7 +319,7 @@ __global__ void apply_kernel(
             __syncthreads();
 
             // v = A * p_hat
-            single_spmv_kernel(a_global_entry, p_hat_sh, v_sh);
+            single_matvec_kernel(a_global_entry, p_hat_sh, v_sh);
             __syncthreads();
 
             // alpha = rho_new / < r_hat , v>
@@ -348,7 +348,7 @@ __global__ void apply_kernel(
             __syncthreads();
 
             // t = A * s_hat
-            single_spmv_kernel(a_global_entry, s_hat_sh, t_sh);
+            single_matvec_kernel(a_global_entry, s_hat_sh, t_sh);
             __syncthreads();
 
             // omega = <t,s> / <t,t>
