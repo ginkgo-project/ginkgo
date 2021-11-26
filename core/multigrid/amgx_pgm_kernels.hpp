@@ -71,6 +71,16 @@ namespace amgx_pgm {
         const matrix::Diagonal<ValueType>* diag, Array<IndexType>& agg,    \
         Array<IndexType>& strongest_neighbor)
 
+#define GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR_NONLOCAL(ValueType, \
+                                                              IndexType) \
+    void find_strongest_neighbor_nonlocal(                               \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const matrix::Csr<ValueType, IndexType>* nonlocal_weight_mtx,    \
+        const matrix::Diagonal<ValueType>* local_diag,                   \
+        const matrix::Diagonal<ValueType>* nonlocal_diag,                \
+        Array<IndexType>& local_to_global, Array<IndexType>& agg,        \
+        Array<IndexType>& strongest_neighbor)
+
 #define GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType)  \
     void assign_to_exist_agg(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                    \
@@ -87,6 +97,9 @@ namespace amgx_pgm {
     GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL(IndexType);                    \
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR_NONLOCAL(ValueType,    \
+                                                          IndexType);   \
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType)
 

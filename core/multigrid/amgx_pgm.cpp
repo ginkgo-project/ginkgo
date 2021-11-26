@@ -71,19 +71,120 @@ GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
 
 template <typename ValueType, typename IndexType>
+void AmgxPgm<ValueType, IndexType>::dist_generate()
+{
+    using local_matrix_type = matrix::Csr<ValueType, IndexType>;
+    using local_vec_type = matrix::Dense<ValueType>;
+    using dist_matrix_type = gko::distributed::Matrix<ValueType, IndexType>;
+    using real_type = remove_complex<ValueType>;
+    using weight_matrix_type = remove_complex<local_matrix_type>;
+    using diagonal_type = matrix::Diagonal<remove_complex<ValueType>>;
+    auto exec = this->get_executor();
+    const dist_matrix_type* amgxpgm_op =
+        dynamic_cast<const dist_matrix_type*>(system_matrix_.get());
+    auto comm = amgxpgm_op->get_communicator();
+    const local_matrix_type* diag_block = amgxpgm_op->get_local_diag().get();
+    const local_matrix_type* offdiag_block =
+        amgxpgm_op->get_local_offdiag().get();
+    const auto num_rows = amgxpgm_op->get_size()[0];
+    const auto local_rows = diag_block->get_size()[0];
+    Array<IndexType> strongest_neighbor(this->get_executor(), local_rows);
+    Array<IndexType> intermediate_agg(this->get_executor(),
+                                      parameters_.deterministic * local_rows);
+
+    // Initial agg = -1
+    exec->run(amgx_pgm::make_fill_array(agg_.get_data(), agg_.get_num_elems(),
+                                        -one<IndexType>()));
+    IndexType num_unagg = num_rows;
+    IndexType num_unagg_prev = num_rows;
+    // TODO: implement distributed transpose, for now only symmetric matrices
+    // are supported. compute weight_mtx = abs(mtx);
+    auto abs_diag_block = diag_block->compute_absolute();
+    auto abs_offdiag_block = offdiag_block->compute_absolute();
+    // Extract the diagonal value of matrix
+    auto local_diag = abs_diag_block->extract_diagonal();
+    auto nonlocal_diag = amgxpgm_op->extract_relevant_nonlocal_diagonal();
+    auto local_to_global = amgxpgm_op->get_local_to_global();
+    for (int i = 0; i < parameters_.max_iterations; i++) {
+        // Find the strongest neighbor of each row
+        exec->run(amgx_pgm::make_find_strongest_neighbor(
+            abs_diag_block.get(), local_diag.get(), agg_, strongest_neighbor));
+        exec->run(amgx_pgm::make_find_strongest_neighbor_nonlocal(
+            abs_offdiag_block.get(), local_diag.get(), nonlocal_diag.get(),
+            local_to_global, agg_, strongest_neighbor));
+
+        // Match edges
+        /*exec->run(amgx_pgm::make_match_edge(strongest_neighbor, agg_));
+        // Get the num_unagg
+        exec->run(amgx_pgm::make_count_unagg(agg_, &num_unagg));
+        // no new match, all match, or the ratio of num_unagg/num is lower
+        // than parameter.max_unassigned_ratio
+        if (num_unagg == 0 || num_unagg == num_unagg_prev ||
+            num_unagg < parameters_.max_unassigned_ratio * num_rows) {
+            break;
+        }
+        num_unagg_prev = num_unagg;*/
+    }
+    // Handle the left unassign points
+    /*    if (num_unagg != 0 && parameters_.deterministic) {
+            // copy the agg to intermediate_agg
+            intermediate_agg = agg_;
+        }
+        if (num_unagg != 0) {
+            // Assign all left points
+            exec->run(amgx_pgm::make_assign_to_exist_agg(
+                weight_mtx.get(), diag.get(), agg_, intermediate_agg));
+        }
+        IndexType num_agg = 0;
+        // Renumber the index
+        exec->run(amgx_pgm::make_renumber(agg_, &num_agg));
+
+        gko::dim<2>::dimension_type coarse_dim = num_agg;
+        auto fine_dim = system_matrix_->get_size()[0];
+        // TODO: prolong_op can be done with lightway format
+        auto prolong_op = share(
+            matrix_type::create(exec, gko::dim<2>{fine_dim, coarse_dim},
+       fine_dim)); exec->copy_from(exec.get(), agg_.get_num_elems(),
+       agg_.get_const_data(), prolong_op->get_col_idxs());
+        exec->run(amgx_pgm::make_fill_seq_array(prolong_op->get_row_ptrs(),
+                                                fine_dim + 1));
+        exec->run(amgx_pgm::make_fill_array(prolong_op->get_values(), fine_dim,
+                                            one<ValueType>()));
+        // TODO: implement the restrict_op from aggregation.
+        auto restrict_op = gko::as<matrix_type>(share(prolong_op->transpose()));
+
+        // Construct the coarse matrix
+        // TODO: use less memory footprint to improve it
+        auto coarse_matrix =
+            share(matrix_type::create(exec, gko::dim<2>{coarse_dim,
+       coarse_dim})); auto tmp = matrix_type::create(exec, gko::dim<2>{fine_dim,
+       coarse_dim}); amgxpgm_op->apply(prolong_op.get(), tmp.get());
+        restrict_op->apply(tmp.get(), coarse_matrix.get());
+
+        this->set_multigrid_level(prolong_op, coarse_matrix, restrict_op);*/
+}
+
+
+template <typename ValueType, typename IndexType>
 void AmgxPgm<ValueType, IndexType>::generate()
 {
     using matrix_type = matrix::Csr<ValueType, IndexType>;
+    using dist_matrix_type = gko::distributed::Matrix<ValueType, IndexType>;
     using real_type = remove_complex<ValueType>;
     using weight_matrix_type = remove_complex<matrix_type>;
+    if (dynamic_cast<const dist_matrix_type*>(system_matrix_.get())) {
+        this->is_distributed_ = true;
+        this->dist_generate();
+        return;
+    }
     auto exec = this->get_executor();
     const auto num_rows = this->system_matrix_->get_size()[0];
     Array<IndexType> strongest_neighbor(this->get_executor(), num_rows);
     Array<IndexType> intermediate_agg(this->get_executor(),
                                       parameters_.deterministic * num_rows);
     // Only support csr matrix currently.
-    const matrix_type *amgxpgm_op =
-        dynamic_cast<const matrix_type *>(system_matrix_.get());
+    const matrix_type* amgxpgm_op =
+        dynamic_cast<const matrix_type*>(system_matrix_.get());
     std::shared_ptr<const matrix_type> amgxpgm_op_unique_ptr{};
     // If system matrix is not csr or need sorting, generate the csr.
     if (!parameters_.skip_sorting || !amgxpgm_op) {

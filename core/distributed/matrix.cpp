@@ -182,6 +182,36 @@ Matrix<ValueType, LocalIndexType>::get_block_approx(
 
 
 template <typename ValueType, typename LocalIndexType>
+std::shared_ptr<gko::matrix::Diagonal<ValueType>>
+Matrix<ValueType, LocalIndexType>::extract_relevant_nonlocal_diagonal() const
+{
+    auto exec = this->get_executor();
+    auto relevant_size = offdiag_mtx_->get_size()[1];
+    auto local_size = diag_mtx_->get_size()[0];
+    auto diag = diag_mtx_->extract_diagonal();
+    auto raw_values = diag->get_values();
+    auto values_array =
+        gko::Array<ValueType>::view(exec, local_size, raw_values);
+    auto values =
+        LocalVec::create(exec, gko::dim<2>{local_size, 1}, values_array, 1);
+    auto req = gko::mpi::request::create(this->get_communicator()->size());
+    this->communicate(values.get(), req);
+    gko::mpi::wait(req);
+    auto use_host_buffer =
+        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+    if (use_host_buffer) {
+        recv_buffer_->copy_from(host_recv_buffer_.get());
+    }
+    auto relevant_values = recv_buffer_->get_values();
+    auto relevant_array =
+        gko::Array<ValueType>::view(exec, relevant_size, relevant_values);
+    auto relevant_nonlocal_diagonal =
+        Diag::create(exec, relevant_size, relevant_array);
+    return relevant_nonlocal_diagonal;
+}
+
+
+template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::communicate(
     const LocalVec* local_b, std::shared_ptr<mpi::request> req) const
 {

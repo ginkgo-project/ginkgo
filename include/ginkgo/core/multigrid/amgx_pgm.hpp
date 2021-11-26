@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
@@ -190,9 +191,12 @@ protected:
 
     void generate();
 
+    void dist_generate();
+
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     Array<IndexType> agg_;
+    bool is_distributed_;
 };
 
 

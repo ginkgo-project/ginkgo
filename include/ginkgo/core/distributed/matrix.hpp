@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
 
 namespace gko {
@@ -69,6 +70,7 @@ public:
     using GlobalVec = Vector<value_type, LocalIndexType>;
     using LocalVec = gko::matrix::Dense<value_type>;
     using LocalMtx = gko::matrix::Csr<value_type, local_index_type>;
+    using Diag = gko::matrix::Diagonal<value_type>;
 
     void convert_to(Matrix<value_type, local_index_type>* result) const override
     {
@@ -122,18 +124,30 @@ public:
         const Overlap<size_type>& block_overlaps,
         const Array<size_type>& block_sizes) const;
 
+    std::shared_ptr<Diag> extract_relevant_nonlocal_diagonal() const;
+
+    Array<global_index_type> get_local_to_global()
+    {
+        return local_to_global_offdiag_col;
+    }
+
+    const Array<global_index_type> get_local_to_global() const
+    {
+        return local_to_global_offdiag_col;
+    }
+
 protected:
     Matrix(std::shared_ptr<const Executor> exec,
            std::shared_ptr<mpi::communicator> comm =
                std::make_shared<mpi::communicator>());
 
-    void communicate(const LocalVec* local_b,
-                     std::shared_ptr<mpi::request> req = {}) const;
-
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
+
+    void communicate(const LocalVec* local_b,
+                     std::shared_ptr<mpi::request> req = {}) const;
 
 private:
     std::vector<comm_index_type> send_offsets_;
