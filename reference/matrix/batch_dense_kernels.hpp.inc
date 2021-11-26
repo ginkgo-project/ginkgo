@@ -31,9 +31,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 template <typename ValueType>
-inline void spmv_kernel(const gko::batch_dense::BatchEntry<const ValueType>& a,
-                        const gko::batch_dense::BatchEntry<const ValueType>& b,
-                        const gko::batch_dense::BatchEntry<ValueType>& c)
+inline void matvec_kernel(
+    const gko::batch_dense::BatchEntry<const ValueType>& a,
+    const gko::batch_dense::BatchEntry<const ValueType>& b,
+    const gko::batch_dense::BatchEntry<ValueType>& c)
 {
     for (int row = 0; row < c.num_rows; ++row) {
         for (int col = 0; col < c.num_rhs; ++col) {
@@ -54,7 +55,7 @@ inline void spmv_kernel(const gko::batch_dense::BatchEntry<const ValueType>& a,
 
 
 template <typename ValueType>
-inline void advanced_spmv_kernel(
+inline void advanced_matvec_kernel(
     const ValueType alpha,
     const gko::batch_dense::BatchEntry<const ValueType>& a,
     const gko::batch_dense::BatchEntry<const ValueType>& b,

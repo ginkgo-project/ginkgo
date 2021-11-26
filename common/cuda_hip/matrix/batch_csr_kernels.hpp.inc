@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Assumes the input and output multi-vectors are stored row-major.
  */
 template <typename ValueType>
-__device__ __forceinline__ void spmv_kernel(
+__device__ __forceinline__ void matvec_kernel(
     const gko::batch_csr::BatchEntry<const ValueType>& a,
     const gko::batch_dense::BatchEntry<const ValueType>& b,
     const gko::batch_dense::BatchEntry<ValueType>& c)
@@ -85,7 +85,7 @@ __device__ __forceinline__ void spmv_kernel(
 }
 
 template <typename ValueType>
-__device__ __forceinline__ void single_spmv_kernel(
+__device__ __forceinline__ void single_matvec_kernel(
     const gko::batch_csr::BatchEntry<const ValueType>& a,
     const ValueType* const __restrict__ b, ValueType* const __restrict__ c)
 {
@@ -121,7 +121,7 @@ __device__ __forceinline__ void single_spmv_kernel(
 }
 
 template <typename ValueType>
-__device__ __forceinline__ void csr_spmv_kernel(
+__device__ __forceinline__ void csr_matvec_kernel(
     const int nrows, const ValueType* const __restrict__ avalues,
     const int* const __restrict__ col_idxs,
     const int* const __restrict__ row_ptrs, const size_type stride,
@@ -181,7 +181,7 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void spmv(
         const auto a_b = gko::batch::batch_entry(a, ibatch);
         const auto b_b = gko::batch::batch_entry(b, ibatch);
         const auto c_b = gko::batch::batch_entry(c, ibatch);
-        spmv_kernel(a_b, b_b, c_b);
+        matvec_kernel(a_b, b_b, c_b);
     }
 }
 
@@ -192,7 +192,7 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void spmv(
  * Assumes the input and output multi-vectors are stored row-major.
  */
 template <typename ValueType>
-__device__ __forceinline__ void advanced_spmv_kernel(
+__device__ __forceinline__ void advanced_matvec_kernel(
     const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType>& a,
     const gko::batch_dense::BatchEntry<const ValueType>& b,
     const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& c)
@@ -240,7 +240,7 @@ __device__ __forceinline__ void advanced_spmv_kernel(
 }
 
 template <typename ValueType>
-__device__ __forceinline__ void single_advanced_spmv_kernel(
+__device__ __forceinline__ void single_advanced_matvec_kernel(
     const ValueType alpha, const gko::batch_csr::BatchEntry<const ValueType>& a,
     const ValueType* const __restrict__ b, const ValueType beta,
     ValueType* const __restrict__ c)
@@ -277,7 +277,7 @@ __device__ __forceinline__ void single_advanced_spmv_kernel(
 }
 
 template <typename ValueType>
-__device__ __forceinline__ void csr_advanced_spmv_kernel(
+__device__ __forceinline__ void csr_advanced_matvec_kernel(
     const ValueType alpha, const int nrows,
     const ValueType* const __restrict__ avalues,
     const int* const __restrict__ col_idxs,
@@ -340,8 +340,8 @@ __global__
         const auto c_b = gko::batch::batch_entry(c, ibatch);
         const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
         const auto beta_b = gko::batch::batch_entry(beta, ibatch);
-        advanced_spmv_kernel(alpha_b.values[0], a_b, b_b, beta_b.values[0],
-                             c_b);
+        advanced_matvec_kernel(alpha_b.values[0], a_b, b_b, beta_b.values[0],
+                               c_b);
     }
 }
 
