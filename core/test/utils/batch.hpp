@@ -284,19 +284,6 @@ BatchSystem<typename MatrixType::value_type> generate_solvable_batch_system(
     mcsr->write(mdata);
     auto mtx = MatrixType::create(exec);
     mtx->read(mdata);
-    {
-        // check
-        std::vector<matrix_data<value_type, index_type>> mdata2;
-        mtx->write(mdata2);
-        if (mdata.size() != mdata2.size()) {
-            throw std::runtime_error("sizes not same");
-        }
-        for (size_t ib = 0; ib < mdata.size(); ib++) {
-            if (mdata[ib].nonzeros != mdata2[ib].nonzeros) {
-                throw std::runtime_error("Not same");
-            }
-        }
-    }
     BatchSystem<value_type> sys;
     sys.A = gko::give(mtx);
     sys.b = BatchSystem<value_type>::vec_type::create(exec, vec_size, h_allb,
