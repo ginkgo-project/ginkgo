@@ -47,7 +47,7 @@ echo -e "/*${GINKGO_LICENSE_BEACON}\n$(cat ${LICENSE_FILE})\n${GINKGO_LICENSE_BE
 
 # Does not work if a found file (including the path) contains a newline
 find "${GINKGO_ROOT_DIR}" \
-    \( -name '*.cuh' -o -name '*.hpp' -o -name '*.hpp.in' -o -name '*.cpp' -o -name '*.cu' -o -name '*.hpp.inc' \) \
+    \( -name '*.cuh' -o -name '*.hpp' -o -name '*.hpp.in' -o -name '*.cpp' -o -name '*.cu' -o -name '*.ipp' -o -name '*.hpp.inc' \) \
     -type f -print \
     | grep -F -v -f "${THIS_DIR}/add_license.ignore" \
     | \
