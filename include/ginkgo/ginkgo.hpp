@@ -141,6 +141,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/batch_gmres.hpp>
 #include <ginkgo/core/solver/batch_idr.hpp>
 #include <ginkgo/core/solver/batch_richardson.hpp>
+#include <ginkgo/core/solver/batch_solver.hpp>
 #include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cb_gmres.hpp>
