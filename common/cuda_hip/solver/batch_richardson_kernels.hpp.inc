@@ -88,8 +88,9 @@ __global__ void apply_kernel(const int max_iter,
             // r <- b - Ax
             single_copy(num_rows, b_b, residual);
             __syncthreads();
-            single_advanced_spmv_kernel(static_cast<ValueType>(-1.0), a_b, x_b,
-                                        static_cast<ValueType>(1.0), residual);
+            single_advanced_matvec_kernel(static_cast<ValueType>(-1.0), a_b,
+                                          x_b, static_cast<ValueType>(1.0),
+                                          residual);
             __syncthreads();
 
             if (threadIdx.x / config::warp_size == 0) {
