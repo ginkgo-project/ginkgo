@@ -78,6 +78,11 @@ struct UniformBatch {
     size_type stride;                    ///< Number of matrices in the batch
     int num_rows;  ///< (common) number of rows in each matrix
     int num_nnz;   ///< (common) number of nonzeros in each matrix
+
+    size_type get_entry_storage() const
+    {
+        return num_nnz * (sizeof(value_type) + sizeof(index_type));
+    }
 };
 
 
@@ -119,6 +124,12 @@ struct UniformBatch {
     size_type num_batch;  ///< Number of matrices in the batch
     int num_rows;         ///< (common) number of rows in each matrix
     int num_nnz;          ///< (common) number of nonzeros in each matrix
+
+    size_type get_entry_storage() const
+    {
+        return num_nnz * (sizeof(value_type) + sizeof(index_type)) +
+               (num_rows + 1) * sizeof(index_type);
+    }
 };
 
 
@@ -155,7 +166,10 @@ struct UniformBatch {
     size_type stride;     ///< Common stride of each dense matrix
     int num_rows;         ///< Common number of rows in each matrix
     int num_rhs;          ///< Common number of columns of each matrix
-    int num_nnz;          ///< Common number of non-zeros of each matrix
+    int num_nnz;          ///< Common number of non-zeros of each matrix, ie.,
+                          ///< the number or rows times the number of columns
+
+    size_type get_entry_storage() const { return num_nnz * sizeof(value_type); }
 };
 
 
