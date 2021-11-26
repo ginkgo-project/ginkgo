@@ -169,9 +169,6 @@ namespace formats {
 // some shortcuts
 using hybrid = gko::matrix::Hybrid<etype, itype>;
 using csr = gko::matrix::Csr<etype, itype>;
-using batch_csr = gko::matrix::BatchCsr<etype>;
-using batch_ell = gko::matrix::BatchEll<etype>;
-using batch_dense = gko::matrix::BatchDense<etype>;
 
 /**
  * Creates a Ginkgo matrix from the intermediate data representation format
