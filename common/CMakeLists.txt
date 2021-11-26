@@ -20,6 +20,7 @@ set(UNIFIED_SOURCES
     solver/cgs_kernels.cpp
     solver/fcg_kernels.cpp
     solver/ir_kernels.cpp
+    solver/multigrid_kernels.cpp
     )
 list(TRANSFORM UNIFIED_SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/unified/)
 set(GKO_UNIFIED_COMMON_SOURCES ${UNIFIED_SOURCES} PARENT_SCOPE)

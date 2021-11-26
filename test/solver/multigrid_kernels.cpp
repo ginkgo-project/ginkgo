@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/multigrid.hpp>
+#include "core/solver/multigrid_kernels.hpp"
 
 
 #include <random>
@@ -42,13 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/stop/combined.hpp>
-#include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 
 
-#include "core/solver/multigrid_kernels.hpp"
-#include "hip/test/utils.hip.hpp"
+#include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
@@ -56,35 +54,42 @@ namespace {
 
 class Multigrid : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+#if GINKGO_COMMON_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
+    using Mtx = gko::matrix::Dense<value_type>;
+    using Solver = gko::solver::Multigrid;
+
     Multigrid() : rand_engine(30) {}
 
     void SetUp()
     {
-        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        hip = gko::HipExecutor::create(0, ref);
+        init_executor(ref, exec);
     }
 
     void TearDown()
     {
-        if (hip != nullptr) {
-            ASSERT_NO_THROW(hip->synchronize());
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
         }
     }
 
-    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
+                                 gko::size_type num_cols)
     {
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
     }
 
     void initialize_data()
     {
-        int m = 597;
-        int n = 43;
+        gko::size_type m = 597;
+        gko::size_type n = 43;
         v = gen_mtx(m, n);
         d = gen_mtx(m, n);
         g = gen_mtx(m, n);
@@ -99,28 +104,17 @@ protected:
         this->modify_norm(old_norm, new_norm);
         this->modify_scalar(alpha, rho, beta, gamma, zeta);
 
-        d_v = Mtx::create(hip);
-        d_v->copy_from(v.get());
-        d_d = Mtx::create(hip);
-        d_d->copy_from(d.get());
-        d_g = Mtx::create(hip);
-        d_g->copy_from(g.get());
-        d_e = Mtx::create(hip);
-        d_e->copy_from(e.get());
-        d_alpha = Mtx::create(hip);
-        d_alpha->copy_from(alpha.get());
-        d_rho = Mtx::create(hip);
-        d_rho->copy_from(rho.get());
-        d_beta = Mtx::create(hip);
-        d_beta->copy_from(beta.get());
-        d_gamma = Mtx::create(hip);
-        d_gamma->copy_from(gamma.get());
-        d_zeta = Mtx::create(hip);
-        d_zeta->copy_from(zeta.get());
-        d_old_norm = Mtx::create(hip);
-        d_old_norm->copy_from(old_norm.get());
-        d_new_norm = Mtx::create(hip);
-        d_new_norm->copy_from(new_norm.get());
+        d_v = gko::clone(exec, v);
+        d_d = gko::clone(exec, d);
+        d_g = gko::clone(exec, g);
+        d_e = gko::clone(exec, e);
+        d_alpha = gko::clone(exec, alpha);
+        d_rho = gko::clone(exec, rho);
+        d_beta = gko::clone(exec, beta);
+        d_gamma = gko::clone(exec, gamma);
+        d_zeta = gko::clone(exec, zeta);
+        d_old_norm = gko::clone(exec, old_norm);
+        d_new_norm = gko::clone(exec, new_norm);
     }
 
     void modify_norm(std::unique_ptr<Mtx>& old_norm,
@@ -167,7 +161,7 @@ protected:
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::HipExecutor> hip;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::ranlux48 rand_engine;
 
@@ -197,39 +191,39 @@ protected:
 };
 
 
-TEST_F(Multigrid, HipMultigridKCycleStep1IsEquivalentToRef)
+TEST_F(Multigrid, MultigridKCycleStep1IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::multigrid::kcycle_step_1(
         ref, gko::lend(alpha), gko::lend(rho), gko::lend(v), gko::lend(g),
         gko::lend(d), gko::lend(e));
-    gko::kernels::hip::multigrid::kcycle_step_1(
-        hip, gko::lend(d_alpha), gko::lend(d_rho), gko::lend(d_v),
+    gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_step_1(
+        exec, gko::lend(d_alpha), gko::lend(d_rho), gko::lend(d_v),
         gko::lend(d_g), gko::lend(d_d), gko::lend(d_e));
 
-    GKO_ASSERT_MTX_NEAR(d_g, g, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_d, d, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_e, e, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_g, g, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_d, d, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_e, e, ::r<value_type>::value);
 }
 
 
-TEST_F(Multigrid, HipMultigridKCycleStep2IsEquivalentToRef)
+TEST_F(Multigrid, MultigridKCycleStep2IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::multigrid::kcycle_step_2(
         ref, gko::lend(alpha), gko::lend(rho), gko::lend(gamma),
         gko::lend(beta), gko::lend(zeta), gko::lend(d), gko::lend(e));
-    gko::kernels::hip::multigrid::kcycle_step_2(
-        hip, gko::lend(d_alpha), gko::lend(d_rho), gko::lend(d_gamma),
+    gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_step_2(
+        exec, gko::lend(d_alpha), gko::lend(d_rho), gko::lend(d_gamma),
         gko::lend(d_beta), gko::lend(d_zeta), gko::lend(d_d), gko::lend(d_e));
 
-    GKO_ASSERT_MTX_NEAR(d_e, e, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_e, e, ::r<value_type>::value);
 }
 
 
-TEST_F(Multigrid, HipMultigridKCycleCheckStopIsEquivalentToRef)
+TEST_F(Multigrid, MultigridKCycleCheckStopIsEquivalentToRef)
 {
     initialize_data();
     bool is_stop_10;
@@ -238,13 +232,17 @@ TEST_F(Multigrid, HipMultigridKCycleCheckStopIsEquivalentToRef)
     bool d_is_stop_5;
 
     gko::kernels::reference::multigrid::kcycle_check_stop(
-        ref, gko::lend(old_norm), gko::lend(new_norm), 1.0, is_stop_10);
-    gko::kernels::hip::multigrid::kcycle_check_stop(
-        hip, gko::lend(d_old_norm), gko::lend(d_new_norm), 1.0, d_is_stop_10);
+        ref, gko::lend(old_norm), gko::lend(new_norm), value_type{1.0},
+        is_stop_10);
+    gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_check_stop(
+        exec, gko::lend(d_old_norm), gko::lend(d_new_norm), value_type{1.0},
+        d_is_stop_10);
     gko::kernels::reference::multigrid::kcycle_check_stop(
-        ref, gko::lend(old_norm), gko::lend(new_norm), 0.5, is_stop_5);
-    gko::kernels::hip::multigrid::kcycle_check_stop(
-        hip, gko::lend(d_old_norm), gko::lend(d_new_norm), 0.5, d_is_stop_5);
+        ref, gko::lend(old_norm), gko::lend(new_norm), value_type{0.5},
+        is_stop_5);
+    gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_check_stop(
+        exec, gko::lend(d_old_norm), gko::lend(d_new_norm), value_type{0.5},
+        d_is_stop_5);
 
     GKO_ASSERT_EQ(d_is_stop_10, is_stop_10);
     GKO_ASSERT_EQ(d_is_stop_10, true);
