@@ -41,8 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-#include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
+#include <ginkgo/core/solver/batch_solver.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
 
@@ -71,9 +71,8 @@ namespace solver {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class BatchCg : public EnableBatchLinOp<BatchCg<ValueType>>,
-                public BatchTransposable,
-                public EnableBatchScaledSolver<ValueType> {
+class BatchCg : public EnableBatchSolver<ValueType, BatchCg<ValueType>>,
+                public BatchTransposable {
     friend class EnableBatchLinOp<BatchCg>;
     friend class EnablePolymorphicObject<BatchCg, BatchLinOp>;
 
@@ -81,16 +80,6 @@ public:
     using value_type = ValueType;
     using real_type = gko::remove_complex<ValueType>;
     using transposed_type = BatchCg<ValueType>;
-
-    /**
-     * Returns the system operator (matrix) of the linear system.
-     *
-     * @return the system operator (matrix)
-     */
-    std::shared_ptr<const BatchLinOp> get_system_matrix() const
-    {
-        return system_matrix_;
-    }
 
     std::unique_ptr<BatchLinOp> transpose() const override;
 
@@ -131,27 +120,24 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const BatchLinOp* b, BatchLinOp* x) const override;
+    void solver_apply(const BatchLinOp* const mtx,
+                      const matrix::BatchDense<value_type>* const b,
+                      matrix::BatchDense<value_type>* const x,
+                      BatchInfo<value_type>& info) const override;
 
     void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
                     const BatchLinOp* beta, BatchLinOp* x) const override;
 
     explicit BatchCg(std::shared_ptr<const Executor> exec)
-        : EnableBatchLinOp<BatchCg>(std::move(exec))
+        : EnableBatchSolver<ValueType, BatchCg>(std::move(exec))
     {}
 
     explicit BatchCg(const Factory* factory,
                      std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchLinOp<BatchCg>(factory->get_executor(),
-                                    gko::transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()},
-          system_matrix_{std::move(system_matrix)}
-    {
-        GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
-    }
-
-private:
-    std::shared_ptr<const BatchLinOp> system_matrix_{};
+        : EnableBatchSolver<ValueType, BatchCg>(factory->get_executor(),
+                                                std::move(system_matrix)),
+          parameters_{factory->get_parameters()}
+    {}
 };
 
 
