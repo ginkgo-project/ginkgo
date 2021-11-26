@@ -75,7 +75,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
         const auto b_b = gko::batch::batch_entry(b_ub, batch);
         const auto c_b = gko::batch::batch_entry(c_ub, batch);
-        spmv_kernel(a_b, b_b, c_b);
+        matvec_kernel(a_b, b_b, c_b);
     }
 }
 
@@ -104,8 +104,8 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
         const auto c_b = gko::batch::batch_entry(c_ub, batch);
         const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
         const auto beta_b = gko::batch::batch_entry(beta_ub, batch);
-        advanced_spmv_kernel(alpha_b.values[0], a_b, b_b, beta_b.values[0],
-                             c_b);
+        advanced_matvec_kernel(alpha_b.values[0], a_b, b_b, beta_b.values[0],
+                               c_b);
     }
 }
 
