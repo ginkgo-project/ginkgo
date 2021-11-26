@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Device kernel for SpMV of one ELL matrix in a batch.
  */
 template <typename ValueType>
-__device__ __forceinline__ void single_spmv_kernel(
+__device__ __forceinline__ void single_matvec_kernel(
     const gko::batch_ell::BatchEntry<const ValueType>& a,
     const ValueType* const __restrict__ b, ValueType* const __restrict__ c)
 {
@@ -67,7 +67,7 @@ __device__ __forceinline__ void single_spmv_kernel(
  * Device kernel for SpMV of one ELL matrix in a batch.
  */
 template <typename ValueType>
-__device__ __forceinline__ void single_advanced_spmv_kernel(
+__device__ __forceinline__ void single_advanced_matvec_kernel(
     const ValueType alpha, const gko::batch_ell::BatchEntry<const ValueType>& a,
     const ValueType* const __restrict__ b, const ValueType beta,
     ValueType* const __restrict__ c)
@@ -99,7 +99,7 @@ __device__ __forceinline__ void single_advanced_spmv_kernel(
  * Device kernel for SpMV of one ELL matrix in a batch.
  */
 template <typename ValueType>
-__device__ __forceinline__ void spmv_kernel(
+__device__ __forceinline__ void matvec_kernel(
     const gko::batch_ell::BatchEntry<const ValueType>& a,
     const gko::batch_dense::BatchEntry<const ValueType>& bobj,
     const gko::batch_dense::BatchEntry<ValueType>& cobj)
@@ -135,7 +135,7 @@ __device__ __forceinline__ void spmv_kernel(
  * Device kernel for SpMV of one ELL matrix in a batch.
  */
 template <typename ValueType>
-__device__ __forceinline__ void advanced_spmv_kernel(
+__device__ __forceinline__ void advanced_matvec_kernel(
     const ValueType alpha, const gko::batch_ell::BatchEntry<const ValueType>& a,
     const gko::batch_dense::BatchEntry<const ValueType>& bobj,
     const ValueType beta, const gko::batch_dense::BatchEntry<ValueType>& cobj)
@@ -178,7 +178,7 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void spmv(
         const auto a_b = gko::batch::batch_entry(a, ibatch);
         const auto b_b = gko::batch::batch_entry(b, ibatch);
         const auto c_b = gko::batch::batch_entry(c, ibatch);
-        spmv_kernel(a_b, b_b, c_b);
+        matvec_kernel(a_b, b_b, c_b);
     }
 }
 
@@ -200,7 +200,7 @@ __global__
         const auto beta_b = gko::batch::batch_entry(beta, ibatch);
         const ValueType alphav = alpha_b.values[0];
         const ValueType betav = beta_b.values[0];
-        advanced_spmv_kernel(alphav, a_b, b_b, betav, c_b);
+        advanced_matvec_kernel(alphav, a_b, b_b, betav, c_b);
     }
 }
 

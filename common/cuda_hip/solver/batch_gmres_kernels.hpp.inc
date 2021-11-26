@@ -53,9 +53,9 @@ __device__ __forceinline__ void initialize(
     __syncthreads();
 
     // r = b - A*x
-    single_advanced_spmv_kernel(static_cast<ValueType>(-1.0), a_gl_entry,
-                                x_shared_entry, static_cast<ValueType>(1.0),
-                                r_shared_entry);
+    single_advanced_matvec_kernel(static_cast<ValueType>(-1.0), a_gl_entry,
+                                  x_shared_entry, static_cast<ValueType>(1.0),
+                                  r_shared_entry);
     __syncthreads();
 
     if (threadIdx.x / config::warp_size == 0) {
@@ -125,7 +125,7 @@ __device__ __forceinline__ void arnoldi(
 
     const ValueType* const v_i_sh = V_shared_entry + inner_iter * num_rows;
 
-    single_spmv_kernel(a_gl_entry, v_i_sh, helper_shared_entry);
+    single_matvec_kernel(a_gl_entry, v_i_sh, helper_shared_entry);
     __syncthreads();
 
     prec_shared.apply(num_rows, helper_shared_entry, w_shared_entry);
@@ -425,9 +425,9 @@ __global__ void apply_kernel(const int global_gap, const int max_iter,
             single_copy(nrows, b_entry_ptr, r_sh);
             __syncthreads();
             // r = r - A*x
-            single_advanced_spmv_kernel(static_cast<ValueType>(-1.0),
-                                        a_gl_entry, x_sh,
-                                        static_cast<ValueType>(1.0), r_sh);
+            single_advanced_matvec_kernel(static_cast<ValueType>(-1.0),
+                                          a_gl_entry, x_sh,
+                                          static_cast<ValueType>(1.0), r_sh);
             __syncthreads();
 
             if (threadIdx.x / config::warp_size == 0) {
