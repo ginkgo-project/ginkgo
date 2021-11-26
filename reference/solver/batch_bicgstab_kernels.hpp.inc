@@ -61,9 +61,9 @@ inline void initialize(
     copy(b_entry, r_entry);
 
     // r = b - A*x
-    advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
-                         gko::batch::to_const(x_entry),
-                         static_cast<ValueType>(1.0), r_entry);
+    advanced_matvec_kernel(static_cast<ValueType>(-1.0), A_entry,
+                           gko::batch::to_const(x_entry),
+                           static_cast<ValueType>(1.0), r_entry);
     compute_norm2<ValueType>(gko::batch::to_const(r_entry), res_norms_entry);
 
     copy(gko::batch::to_const(r_entry), r_hat_entry);
@@ -310,7 +310,7 @@ inline void batch_entry_bicgstab_impl(
         prec.apply(gko::batch::to_const(p_entry), p_hat_entry);
 
         // v = A * p_hat
-        spmv_kernel(A_entry, gko::batch::to_const(p_hat_entry), v_entry);
+        matvec_kernel(A_entry, gko::batch::to_const(p_hat_entry), v_entry);
 
         // alpha = rho_new / < r_hat , v>
         compute_alpha(gko::batch::to_const(rho_new_entry),
@@ -342,7 +342,7 @@ inline void batch_entry_bicgstab_impl(
         prec.apply(gko::batch::to_const(s_entry), s_hat_entry);
 
         // t = A * s_hat
-        spmv_kernel(A_entry, gko::batch::to_const(s_hat_entry), t_entry);
+        matvec_kernel(A_entry, gko::batch::to_const(s_hat_entry), t_entry);
 
         // omega = <t,s> / <t,t>
         compute_omega(gko::batch::to_const(t_entry),
