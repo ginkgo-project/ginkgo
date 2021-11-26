@@ -51,9 +51,9 @@ inline void initialize(
     copy(b_entry, r_entry);
 
     // r = b - A*x
-    advanced_spmv_kernel(static_cast<ValueType>(-1.0), A_entry,
-                         gko::batch::to_const(x_entry),
-                         static_cast<ValueType>(1.0), r_entry);
+    advanced_matvec_kernel(static_cast<ValueType>(-1.0), A_entry,
+                           gko::batch::to_const(x_entry),
+                           static_cast<ValueType>(1.0), r_entry);
     // z = precond * r
     prec.apply(gko::batch::to_const(r_entry), z_entry);
 
@@ -189,7 +189,7 @@ inline void batch_entry_cg_impl(
         }
 
         // Ap = A * p
-        spmv_kernel(A_entry, gko::batch::to_const(p_entry), Ap_entry);
+        matvec_kernel(A_entry, gko::batch::to_const(p_entry), Ap_entry);
 
         // alpha = rho_old / (p' * Ap)
         // x = x + alpha * p
