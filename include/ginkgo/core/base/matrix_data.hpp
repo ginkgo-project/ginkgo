@@ -166,7 +166,7 @@ struct matrix_data {
     matrix_data(dim<2> size_ = dim<2>{}, ValueType value = zero<ValueType>())
         : size{size_}
     {
-        if (value == zero<ValueType>()) {
+        if (is_zero(value)) {
             return;
         }
         for (size_type row = 0; row < size[0]; ++row) {
@@ -194,7 +194,7 @@ struct matrix_data {
             for (size_type col = 0; col < size[1]; ++col) {
                 const auto value =
                     detail::get_rand_value<ValueType>(dist, engine);
-                if (value != zero<ValueType>()) {
+                if (is_nonzero(value)) {
                     nonzeros.emplace_back(row, col, value);
                 }
             }
@@ -214,7 +214,7 @@ struct matrix_data {
             size[1] = std::max(size[1], row_data.size());
             for (size_type col = 0; col < row_data.size(); ++col) {
                 const auto& val = begin(row_data)[col];
-                if (val != zero<ValueType>()) {
+                if (is_nonzero(val)) {
                     nonzeros.emplace_back(row, col, val);
                 }
             }
@@ -274,7 +274,7 @@ struct matrix_data {
     {
         for (gko::size_type row = 0; row < size[0]; ++row) {
             for (gko::size_type col = 0; col < size[1]; ++col) {
-                if (data(row, col) != zero<ValueType>()) {
+                if (is_nonzero(data(row, col))) {
                     nonzeros.emplace_back(row, col, data(row, col));
                 }
             }
@@ -292,7 +292,7 @@ struct matrix_data {
     static matrix_data diag(dim<2> size_, ValueType value)
     {
         matrix_data res(size_);
-        if (value != zero<ValueType>()) {
+        if (is_nonzero(value)) {
             const auto num_nnz = std::min(size_[0], size_[1]);
             res.nonzeros.reserve(num_nnz);
             for (size_type i = 0; i < num_nnz; ++i) {
@@ -492,11 +492,10 @@ struct matrix_data {
 
     void remove_zeros()
     {
-        nonzeros.erase(std::remove_if(begin(nonzeros), end(nonzeros),
-                                      [](nonzero_type nz) {
-                                          return nz.value == zero<ValueType>();
-                                      }),
-                       end(nonzeros));
+        nonzeros.erase(
+            std::remove_if(begin(nonzeros), end(nonzeros),
+                           [](nonzero_type nz) { return is_zero(nz.value); }),
+            end(nonzeros));
     }
 
 private:

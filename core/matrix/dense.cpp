@@ -729,7 +729,7 @@ inline void write_impl(const MatrixType* mtx, MatrixData& data)
 
     for (size_type row = 0; row < data.size[0]; ++row) {
         for (size_type col = 0; col < data.size[1]; ++col) {
-            if (tmp->at(row, col) != zero<typename MatrixType::value_type>()) {
+            if (is_nonzero(tmp->at(row, col))) {
                 data.nonzeros.emplace_back(row, col, tmp->at(row, col));
             }
         }

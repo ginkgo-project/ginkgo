@@ -96,7 +96,7 @@ void calculate_sin_and_cos_kernel(size_type col_idx, size_type num_cols,
                                   ValueType &register_sin,
                                   ValueType &register_cos)
 {
-    if (this_hess == zero<ValueType>()) {
+    if (is_zero(this_hess)) {
         register_cos = zero<ValueType>();
         register_sin = one<ValueType>();
     } else {

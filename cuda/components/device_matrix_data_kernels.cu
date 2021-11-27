@@ -62,9 +62,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
     auto nnz = thrust::count_if(
         thrust::device_pointer_cast(as_cuda_type(data.get_const_data())),
         thrust::device_pointer_cast(as_cuda_type(data.get_const_data() + size)),
-        [] __device__(nonzero_type entry) {
-            return entry.value != zero(entry.value);
-        });
+        [] __device__(nonzero_type entry) { return is_nonzero(entry.value); });
     if (nnz < size) {
         Array<matrix_data_entry<ValueType, IndexType>> result{
             exec, static_cast<size_type>(nnz)};
@@ -75,7 +73,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                 as_cuda_type(data.get_const_data() + size)),
             thrust::device_pointer_cast(as_cuda_type(result.get_data())),
             [] __device__(nonzero_type entry) {
-                return entry.value != zero(entry.value);
+                return is_nonzero(entry.value);
             });
         data = std::move(result);
     }

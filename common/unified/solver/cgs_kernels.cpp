@@ -102,7 +102,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto row, auto col, auto r, auto u, auto p, auto q,
                       auto beta, auto rho, auto prev_rho, auto stop) {
             if (!stop[col].has_stopped()) {
-                auto prev_rho_zero = prev_rho[col] == zero(prev_rho[col]);
+                auto prev_rho_zero = is_zero(prev_rho[col]);
                 auto tmp = prev_rho_zero ? beta[col] : rho[col] / prev_rho[col];
                 if (row == 0 && !prev_rho_zero) {
                     beta[col] = tmp;
@@ -134,7 +134,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto row, auto col, auto u, auto v_hat, auto q, auto t,
                       auto alpha, auto rho, auto gamma, auto stop) {
             if (!stop[col].has_stopped()) {
-                auto gamma_is_zero = gamma[col] == zero(gamma[col]);
+                auto gamma_is_zero = is_zero(gamma[col]);
                 auto tmp = gamma_is_zero ? alpha[col] : rho[col] / gamma[col];
                 if (row == 0 && !gamma_is_zero) {
                     alpha[col] = tmp;
