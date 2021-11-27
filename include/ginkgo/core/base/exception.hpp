@@ -174,6 +174,28 @@ public:
 
 
 /**
+ * MpiError is thrown when a MPI routine throws a non-zero error code.
+ */
+class MpiError : public Error {
+public:
+    /**
+     * Initializes a MPI error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The name of the MPI routine that failed
+     * @param error_code The resulting MPI error code
+     */
+    MpiError(const std::string& file, int line, const std::string& func,
+             int64 error_code)
+        : Error(file, line, func + ": " + get_error(error_code))
+    {}
+
+private:
+    static std::string get_error(int64 error_code);
+};
+
+
+/**
  * CudaError is thrown when a CUDA routine throws a non-zero error code.
  */
 class CudaError : public Error {

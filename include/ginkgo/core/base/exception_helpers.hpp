@@ -299,6 +299,15 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
 
 
 /**
+ * Instantiates a MpiError.
+ *
+ * @param errcode  The error code returned from the MPI routine.
+ */
+#define GKO_MPI_ERROR(_errcode) \
+    ::gko::MpiError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
  * Instantiates a CudaError.
  *
  * @param errcode  The error code returned from a CUDA runtime API routine.
@@ -525,6 +534,20 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
         if (_errcode != HIPFFT_SUCCESS) {         \
             throw GKO_HIPFFT_ERROR(_errcode);     \
         }                                         \
+    } while (false)
+
+
+/**
+ * Asserts that a MPI library call completed without errors.
+ *
+ * @param _mpi_call  a library call expression
+ */
+#define GKO_ASSERT_NO_MPI_ERRORS(_mpi_call) \
+    do {                                    \
+        auto _errcode = _mpi_call;          \
+        if (_errcode != MPI_SUCCESS) {      \
+            throw GKO_MPI_ERROR(_errcode);  \
+        }                                   \
     } while (false)
 
 

@@ -30,68 +30,29 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_INCLUDE_CONFIG_H
-#define GKO_INCLUDE_CONFIG_H
-
-// clang-format off
-#define GKO_VERSION_MAJOR @Ginkgo_VERSION_MAJOR@
-#define GKO_VERSION_MINOR @Ginkgo_VERSION_MINOR@
-#define GKO_VERSION_PATCH @Ginkgo_VERSION_PATCH@
-#define GKO_VERSION_TAG "@Ginkgo_VERSION_TAG@"
-#define GKO_VERSION_STR @Ginkgo_VERSION_MAJOR@, @Ginkgo_VERSION_MINOR@, @Ginkgo_VERSION_PATCH@
-// clang-format on
-
-/*
- * Controls the amount of messages output by Ginkgo.
- * 0 disables all output (except for test, benchmarks and examples).
- * 1 activates important messages.
- */
-// clang-format off
-#define GKO_VERBOSE_LEVEL @GINKGO_VERBOSE_LEVEL@
-// clang-format on
+#include <mpi.h>
 
 
-/* Is Itanium ABI available? */
-#cmakedefine GKO_HAVE_CXXABI_H
+#include <gtest/gtest.h>
 
 
-/* Should we use all optimizations for Jacobi? */
-#cmakedefine GINKGO_JACOBI_FULL_OPTIMIZATIONS
+#include <ginkgo/config.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
-/* Should we compile Ginkgo specifically to tune values? */
-#cmakedefine GINKGO_BENCHMARK_ENABLE_TUNING
+namespace {
 
 
-/* Should we compile mixed-precision kernels for Ginkgo? */
-#cmakedefine GINKGO_MIXED_PRECISION
+TEST(AssertNoMpiErrors, ThrowsOnError)
+{
+    ASSERT_THROW(GKO_ASSERT_NO_MPI_ERRORS(1), gko::MpiError);
+}
 
 
-/* What is HIP compiled for, hcc or nvcc? */
-// clang-format off
-#define GINKGO_HIP_PLATFORM_HCC @GINKGO_HIP_PLATFORM_HCC@
+TEST(AssertNoMpiErrors, DoesNotThrowOnSuccess)
+{
+    ASSERT_NO_THROW(GKO_ASSERT_NO_MPI_ERRORS(MPI_SUCCESS));
+}
 
 
-#define GINKGO_HIP_PLATFORM_NVCC @GINKGO_HIP_PLATFORM_NVCC@
-// clang-format on
-
-
-/* Is PAPI SDE available for Logging? */
-// clang-format off
-#define GKO_HAVE_PAPI_SDE @GINKGO_HAVE_PAPI_SDE@
-// clang-format on
-
-
-/* Is MPI available ? */
-// clang-format off
-#cmakedefine01 GINKGO_BUILD_MPI
-// clang-format on
-
-
-/* Is HWLOC available ? */
-// clang-format off
-#define GKO_HAVE_HWLOC @GINKGO_HAVE_HWLOC@
-// clang-format on
-
-
-#endif  // GKO_INCLUDE_CONFIG_H
+}  // namespace

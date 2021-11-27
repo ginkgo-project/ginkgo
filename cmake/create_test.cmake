@@ -60,6 +60,28 @@ function(ginkgo_create_thread_test test_name)
     ginkgo_set_test_target_properties(${test_name} ${test_target_name})
 endfunction(ginkgo_create_thread_test)
 
+function(ginkgo_create_mpi_test test_name num_mpi_procs)
+  file(RELATIVE_PATH REL_BINARY_DIR
+    ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+  string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
+  add_executable(${TEST_TARGET_NAME} ${test_name}.cpp)
+  set_target_properties(${TEST_TARGET_NAME} PROPERTIES
+    OUTPUT_NAME ${test_name})
+  if (GINKGO_CHECK_CIRCULAR_DEPS)
+    target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
+  endif()
+  if("${GINKGO_MPI_EXEC_SUFFIX}" MATCHES ".openmpi" AND MPI_RUN_AS_ROOT)
+      set(OPENMPI_RUN_AS_ROOT_FLAG "--allow-run-as-root")
+  else()
+      set(OPENMPI_RUN_AS_ROOT_FLAG "")
+  endif()
+  target_link_libraries(${TEST_TARGET_NAME} PRIVATE ginkgo GTest::MPI_main GTest::GTest ${ARGN})
+  target_link_libraries(${TEST_TARGET_NAME} PRIVATE MPI::MPI_CXX)
+  set(test_param ${MPIEXEC_NUMPROC_FLAG} ${num_mpi_procs} ${OPENMPI_RUN_AS_ROOT_FLAG} ${CMAKE_BINARY_DIR}/${REL_BINARY_DIR}/${test_name})
+  add_test(NAME ${REL_BINARY_DIR}/${test_name}
+    COMMAND ${MPIEXEC_EXECUTABLE} ${test_param})
+endfunction(ginkgo_create_mpi_test)
+
 function(ginkgo_create_test_cpp_cuda_header test_name)
     ginkgo_build_test_name(${test_name} test_target_name)
     add_executable(${test_target_name} ${test_name}.cpp)
