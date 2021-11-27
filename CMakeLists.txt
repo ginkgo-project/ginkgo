@@ -37,7 +37,6 @@ option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
 option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
 option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" ${GINKGO_HAS_OMP})
 option(GINKGO_BUILD_MPI "Compile the MPI module" ${GINKGO_HAS_MPI})
-option(GINKGO_FORCE_GPU_AWARE_MPI "Force the GPU Aware functionality to be enabled" OFF)
 option(GINKGO_BUILD_DPCPP
     "Compile DPC++ kernels for Intel GPUs or other DPC++ enabled hardware" ${GINKGO_HAS_DPCPP})
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
@@ -191,15 +190,8 @@ else()
     message(STATUS "HWLOC is being forcibly switched off")
 endif()
 
-set(GINKGO_HAVE_MPI 0)
-set(GINKGO_HAVE_GPU_AWARE_MPI 0)
 if(GINKGO_BUILD_MPI)
     find_package(MPI REQUIRED)
-    set(GINKGO_HAVE_MPI 1)
-    set(GINKGO_HAVE_GPU_AWARE_MPI 0)
-    if(GINKGO_FORCE_GPU_AWARE_MPI)
-        set(GINKGO_HAVE_GPU_AWARE_MPI 1)
-    endif()
 endif()
 
 # We keep using NVCC/HCC for consistency with previous releases even if AMD

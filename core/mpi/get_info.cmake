@@ -1,6 +1,4 @@
 ginkgo_print_module_header(${detailed_log} "MPI")
-ginkgo_print_variable(${detailed_log} "GINKGO_FORCE_CUDA_AWARE_MPI")
-ginkgo_print_variable(${detailed_log} "GKO_CUDA_AWARE_RUN_STATUS")
 ginkgo_print_variable(${detailed_log} "MPI_C_COMPILER")
 ginkgo_print_variable(${detailed_log} "MPI_CXX_COMPILER")
 ginkgo_print_variable(${detailed_log} "MPI_CXX_COMPILE_OPTIONS")
