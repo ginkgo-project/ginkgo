@@ -824,6 +824,36 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T&)
 
 
 /**
+ * Returns true if and only if the given value is zero.
+ *
+ * @tparam T  the type of the value
+ *
+ * @param value  the given value
+ * @return true iff the given value is zero, i.e. `value == zero<T>()`
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr bool is_zero(T value)
+{
+    return value == zero<T>();
+}
+
+
+/**
+ * Returns true if and only if the given value is not zero.
+ *
+ * @tparam T  the type of the value
+ *
+ * @param value  the given value
+ * @return true iff the given value is not zero, i.e. `value != zero<T>()`
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr bool is_nonzero(T value)
+{
+    return value != zero<T>();
+}
+
+
+/**
  * Returns the larger of the arguments.
  *
  * @tparam T  type of the arguments

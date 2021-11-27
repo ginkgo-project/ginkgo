@@ -95,7 +95,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
         if (stop_status->get_const_data()[j].has_stopped()) {
             continue;
         }
-        if (rho_prev->at(j) != zero<ValueType>()) {
+        if (is_nonzero(rho_prev->at(j))) {
             beta->at(j) = rho->at(j) / rho_prev->at(j);
         }
     }
@@ -128,7 +128,7 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
         if (stop_status->get_const_data()[j].has_stopped()) {
             continue;
         }
-        if (gamma->at(j) != zero<ValueType>()) {
+        if (is_nonzero(gamma->at(j))) {
             alpha->at(j) = rho->at(j) / gamma->at(j);
         }
     }

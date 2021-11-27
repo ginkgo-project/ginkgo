@@ -72,7 +72,7 @@ __device__ void calculate_sin_and_cos_kernel(
     ValueType* givens_sin, size_type stride_sin, ValueType* givens_cos,
     size_type stride_cos, ValueType& register_sin, ValueType& register_cos)
 {
-    if (this_hess == zero<ValueType>()) {
+    if (is_zero(this_hess)) {
         register_cos = zero<ValueType>();
         register_sin = one<ValueType>();
     } else {

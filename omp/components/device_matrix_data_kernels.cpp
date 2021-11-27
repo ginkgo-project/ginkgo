@@ -63,7 +63,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
         const auto end = std::min(size, begin + per_thread);
         for (auto i = begin; i < end; i++) {
             partial_counts[tidx] +=
-                data.get_const_data()[i].value != zero<ValueType>() ? 1 : 0;
+                is_nonzero(data.get_const_data()[i].value) ? 1 : 0;
         }
     }
     std::partial_sum(partial_counts.begin(), partial_counts.end(),
@@ -80,7 +80,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
             auto out_idx = tidx == 0 ? size_type{} : partial_counts[tidx - 1];
             for (auto i = begin; i < end; i++) {
                 auto entry = data.get_const_data()[i];
-                if (entry.value != zero<ValueType>()) {
+                if (is_nonzero(entry.value)) {
                     result.get_data()[out_idx] = entry;
                     out_idx++;
                 }

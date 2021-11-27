@@ -117,7 +117,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto t, auto p,
                       auto q, auto beta, auto rho, auto stop) {
-            if (!stop[col].has_stopped() && beta[col] != zero(beta[col])) {
+            if (!stop[col].has_stopped() && is_nonzero(beta[col])) {
                 auto tmp = rho[col] / beta[col];
                 auto prev_r = r(row, col);
                 x(row, col) += tmp * p(row, col);

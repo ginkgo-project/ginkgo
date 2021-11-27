@@ -56,14 +56,13 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
         oneapi::dpl::execution::make_device_policy(*exec->get_queue());
     auto nnz = std::count_if(
         policy, data.get_const_data(), data.get_const_data() + size,
-        [](nonzero_type entry) { return entry.value != zero<ValueType>(); });
+        [](nonzero_type entry) { return is_nonzero(entry.value); });
     if (nnz < size) {
         Array<nonzero_type> result{exec, static_cast<size_type>(nnz)};
-        std::copy_if(policy, data.get_const_data(),
-                     data.get_const_data() + size, result.get_data(),
-                     [](nonzero_type entry) {
-                         return entry.value != zero<ValueType>();
-                     });
+        std::copy_if(
+            policy, data.get_const_data(), data.get_const_data() + size,
+            result.get_data(),
+            [](nonzero_type entry) { return is_nonzero(entry.value); });
         data = std::move(result);
     }
 }

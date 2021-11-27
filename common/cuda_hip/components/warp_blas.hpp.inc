@@ -60,7 +60,7 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(
     ValueType* __restrict__ row, bool& __restrict__ status)
 {
     auto key_col_elem = group.shfl(row[key_col], key_row);
-    if (key_col_elem == zero<ValueType>()) {
+    if (is_zero(key_col_elem)) {
         // TODO: implement error handling for GPUs to be able to properly
         //       report it here
         status = false;
@@ -105,7 +105,7 @@ __device__ __forceinline__ void apply_gauss_jordan_transform_with_rhs(
 {
     auto key_col_elem = group.shfl(row[key_col], key_row);
     auto key_rhs_elem = group.shfl(rhs[0], key_row);
-    if (key_col_elem == zero<ValueType>()) {
+    if (is_zero(key_col_elem)) {
         // TODO: implement error handling for GPUs to be able to properly
         //       report it here
         status = false;

@@ -228,7 +228,7 @@ inline bool apply_gauss_jordan_transform(IndexType row, IndexType col,
                                          size_type stride)
 {
     const auto d = block[row * stride + col];
-    if (d == zero<ValueType>()) {
+    if (is_zero(d)) {
         return false;
     }
     for (IndexType i = 0; i < block_size; ++i) {
@@ -482,7 +482,7 @@ inline void apply_block(size_type block_size, size_type num_rhs,
                         ValueType beta, ValueType* x, size_type stride_x,
                         ValueConverter converter = {})
 {
-    if (beta != zero<ValueType>()) {
+    if (is_nonzero(beta)) {
         for (size_type row = 0; row < block_size; ++row) {
             for (size_type col = 0; col < num_rhs; ++col) {
                 x[row * stride_x + col] *= beta;
