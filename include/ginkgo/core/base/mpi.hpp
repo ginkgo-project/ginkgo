@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils_helper.hpp>
 
 
-#if GKO_HAVE_MPI
+#if GINKGO_BUILD_MPI
 
 
 #include <mpi.h>
@@ -131,7 +131,7 @@ public:
      *
      * @return the provided thread support
      */
-    int get_provided_thread_support() { return provided_thread_support_; }
+    int get_provided_thread_support() const { return provided_thread_support_; }
 
     /**
      * Call MPI_Init_thread and initialize the MPI environment
@@ -164,19 +164,6 @@ private:
     int required_thread_support_;
     int provided_thread_support_;
 };
-
-
-/**
- * Returns if GPU aware functionality has been enabled
- */
-static bool is_gpu_aware()
-{
-#if GKO_HAVE_GPU_AWARE_MPI
-    return true;
-#else
-    return false;
-#endif
-}
 
 
 namespace {
@@ -284,7 +271,7 @@ private:
  *
  * @return status  The vector of status objects that can be queried.
  */
-std::vector<status> wait_all(std::vector<request>& req)
+inline std::vector<status> wait_all(std::vector<request>& req)
 {
     std::vector<status> stat;
     for (auto i = 0; i < req.size(); ++i) {
@@ -312,9 +299,6 @@ public:
     communicator(const MPI_Comm& comm)
     {
         this->comm_.reset(new MPI_Comm(comm));
-        this->size_ = get_num_ranks();
-        this->rank_ = get_my_rank();
-        this->node_local_rank_ = get_node_local_rank();
     }
 
     /**
@@ -330,9 +314,6 @@ public:
         MPI_Comm comm_out;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split(comm, color, key, &comm_out));
         this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
-        this->size_ = get_num_ranks();
-        this->rank_ = get_my_rank();
-        this->node_local_rank_ = get_node_local_rank();
     }
 
     /**
@@ -349,9 +330,6 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Comm_split(comm.get(), color, key, &comm_out));
         this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
-        this->size_ = get_num_ranks();
-        this->rank_ = get_my_rank();
-        this->node_local_rank_ = get_node_local_rank();
     }
 
     /**
@@ -366,35 +344,38 @@ public:
      *
      * @return  the size
      */
-    int size() const { return size_; }
+    int size() const { return get_num_ranks(); }
 
     /**
      * Return the rank of the calling process in the communicator.
      *
      * @return  the rank
      */
-    int rank() const { return rank_; };
+    int rank() const { return get_my_rank(); };
 
     /**
      * Return the node local rank of the calling process in the communicator.
      *
      * @return  the node local rank
      */
-    int node_local_rank() const { return node_local_rank_; };
+    int node_local_rank() const { return get_node_local_rank(); };
 
     /**
      * Compare two communicator objects for equality.
      *
      * @return  if the two comm objects are equal
      */
-    bool operator==(const communicator& rhs) { return compare(rhs.get()); }
+    bool operator==(const communicator& rhs) const
+    {
+        return compare(rhs.get());
+    }
 
     /**
      * Compare two communicator objects for non-equality.
      *
      * @return  if the two comm objects are not equal
      */
-    bool operator!=(const communicator& rhs) { return !(*this == rhs); }
+    bool operator!=(const communicator& rhs) const { return !(*this == rhs); }
 
     /**
      * This function is used to synchronize the ranks in the communicator.
@@ -492,7 +473,7 @@ public:
      * @param root_rank  the rank to broadcast from
      */
     template <typename BroadcastType>
-    void broadcast(BroadcastType* buffer, int count, int root_rank)
+    void broadcast(BroadcastType* buffer, int count, int root_rank) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Bcast(buffer, count,
                                            type_impl<BroadcastType>::get_type(),
@@ -510,7 +491,7 @@ public:
      */
     template <typename ReduceType>
     void reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
-                int count, MPI_Op operation, int root_rank)
+                int count, MPI_Op operation, int root_rank) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Reduce(send_buffer, recv_buffer, count,
                                             type_impl<ReduceType>::get_type(),
@@ -530,7 +511,7 @@ public:
      */
     template <typename ReduceType>
     request i_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
-                     int count, MPI_Op operation, int root_rank)
+                     int count, MPI_Op operation, int root_rank) const
     {
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ireduce(
@@ -548,7 +529,7 @@ public:
      * @param operation  the MPI_Op type reduce operation.
      */
     template <typename ReduceType>
-    void all_reduce(ReduceType* recv_buffer, int count, MPI_Op operation)
+    void all_reduce(ReduceType* recv_buffer, int count, MPI_Op operation) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Allreduce(in_place<ReduceType>(), recv_buffer, count,
@@ -566,7 +547,8 @@ public:
      * @return  the request handle for the call
      */
     template <typename ReduceType>
-    request i_all_reduce(ReduceType* recv_buffer, int count, MPI_Op operation)
+    request i_all_reduce(ReduceType* recv_buffer, int count,
+                         MPI_Op operation) const
     {
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallreduce(
@@ -586,7 +568,7 @@ public:
      */
     template <typename ReduceType>
     void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
-                    int count, MPI_Op operation)
+                    int count, MPI_Op operation) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Allreduce(send_buffer, recv_buffer, count,
@@ -606,7 +588,7 @@ public:
      */
     template <typename ReduceType>
     request i_all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
-                         int count, MPI_Op operation)
+                         int count, MPI_Op operation) const
     {
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallreduce(
@@ -626,7 +608,8 @@ public:
      */
     template <typename SendType, typename RecvType>
     void gather(const SendType* send_buffer, const int send_count,
-                RecvType* recv_buffer, const int recv_count, int root_rank)
+                RecvType* recv_buffer, const int recv_count,
+                int root_rank) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Gather(send_buffer, send_count, type_impl<SendType>::get_type(),
@@ -648,7 +631,7 @@ public:
     template <typename SendType, typename RecvType>
     void gather_v(const SendType* send_buffer, const int send_count,
                   RecvType* recv_buffer, const int* recv_counts,
-                  const int* displacements, int root_rank)
+                  const int* displacements, int root_rank) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Gatherv(
             send_buffer, send_count, type_impl<SendType>::get_type(),
@@ -666,7 +649,7 @@ public:
      */
     template <typename SendType, typename RecvType>
     void all_gather(const SendType* send_buffer, const int send_count,
-                    RecvType* recv_buffer, const int recv_count)
+                    RecvType* recv_buffer, const int recv_count) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Allgather(
             send_buffer, send_count, type_impl<SendType>::get_type(),
@@ -683,7 +666,8 @@ public:
      */
     template <typename SendType, typename RecvType>
     void scatter(const SendType* send_buffer, const int send_count,
-                 RecvType* recv_buffer, const int recv_count, int root_rank)
+                 RecvType* recv_buffer, const int recv_count,
+                 int root_rank) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Scatter(
             send_buffer, send_count, type_impl<SendType>::get_type(),
@@ -705,7 +689,7 @@ public:
     template <typename SendType, typename RecvType>
     void scatter_v(const SendType* send_buffer, const int* send_counts,
                    const int* displacements, RecvType* recv_buffer,
-                   const int recv_count, int root_rank)
+                   const int recv_count, int root_rank) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Scatterv(
             send_buffer, send_counts, displacements,
@@ -725,7 +709,7 @@ public:
      * buffers are the same.
      */
     template <typename RecvType>
-    void all_to_all(RecvType* recv_buffer, const int recv_count)
+    void all_to_all(RecvType* recv_buffer, const int recv_count) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoall(
             in_place<RecvType>(), recv_count, type_impl<RecvType>::get_type(),
@@ -746,7 +730,7 @@ public:
      * buffers are the same.
      */
     template <typename RecvType>
-    request i_all_to_all(RecvType* recv_buffer, const int recv_count)
+    request i_all_to_all(RecvType* recv_buffer, const int recv_count) const
     {
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoall(
@@ -767,7 +751,7 @@ public:
      */
     template <typename SendType, typename RecvType>
     void all_to_all(const SendType* send_buffer, const int send_count,
-                    RecvType* recv_buffer, const int recv_count)
+                    RecvType* recv_buffer, const int recv_count) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoall(
             send_buffer, send_count, type_impl<SendType>::get_type(),
@@ -787,7 +771,7 @@ public:
      */
     template <typename SendType, typename RecvType>
     request i_all_to_all(const SendType* send_buffer, const int send_count,
-                         RecvType* recv_buffer, const int recv_count)
+                         RecvType* recv_buffer, const int recv_count) const
     {
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoall(
@@ -812,7 +796,7 @@ public:
     template <typename SendType, typename RecvType>
     void all_to_all_v(const SendType* send_buffer, const int* send_counts,
                       const int* send_offsets, RecvType* recv_buffer,
-                      const int* recv_counts, const int* recv_offsets)
+                      const int* recv_counts, const int* recv_offsets) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoallv(
             send_buffer, send_counts, send_offsets,
@@ -836,7 +820,8 @@ public:
     template <typename SendType, typename RecvType>
     request i_all_to_all_v(const SendType* send_buffer, const int* send_counts,
                            const int* send_offsets, RecvType* recv_buffer,
-                           const int* recv_counts, const int* recv_offsets)
+                           const int* recv_counts,
+                           const int* recv_offsets) const
     {
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoallv(
@@ -857,7 +842,7 @@ public:
      */
     template <typename ScanType>
     void scan(const ScanType* send_buffer, ScanType* recv_buffer, int count,
-              MPI_Op operation)
+              MPI_Op operation) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Scan(send_buffer, recv_buffer, count,
                                           type_impl<ScanType>::get_type(),
@@ -877,7 +862,7 @@ public:
      */
     template <typename ScanType>
     request i_scan(const ScanType* send_buffer, ScanType* recv_buffer,
-                   int count, MPI_Op operation)
+                   int count, MPI_Op operation) const
     {
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iscan(send_buffer, recv_buffer, count,
@@ -892,14 +877,14 @@ private:
     int rank_{};
     int node_local_rank_{};
 
-    int get_my_rank()
+    int get_my_rank() const
     {
         int my_rank = 0;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(get(), &my_rank));
         return my_rank;
     }
 
-    int get_node_local_rank()
+    int get_node_local_rank() const
     {
         MPI_Comm local_comm;
         int rank;
@@ -910,7 +895,7 @@ private:
         return rank;
     }
 
-    int get_num_ranks()
+    int get_num_ranks() const
     {
         int size = 1;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_size(get(), &size));
@@ -1153,7 +1138,7 @@ public:
     template <typename PutType>
     void put(const PutType* origin_buffer, const int origin_count,
              const int target_rank, const unsigned int target_disp,
-             const int target_count)
+             const int target_count) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Put(origin_buffer, origin_count, type_impl<PutType>::get_type(),

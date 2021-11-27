@@ -114,7 +114,8 @@ TEST_F(Communicator, CommunicatorCanBeMoveConstructed)
 TEST_F(Communicator, CommunicatorCanBeMoveAssigned)
 {
     gko::mpi::communicator comm2(MPI_COMM_WORLD);
-    gko::mpi::communicator copy = std::move(comm2);
+    gko::mpi::communicator copy(MPI_COMM_NULL);
+    copy = std::move(comm2);
 
     EXPECT_TRUE(copy == comm);
 }
