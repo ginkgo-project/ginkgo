@@ -109,28 +109,24 @@ TYPED_TEST(MpiBindings, CanNonBlockingSendAndNonBlockingRecvValues)
     std::vector<TypeParam> send_array;
     auto recv_array = gko::Array<TypeParam>{this->ref};
     TypeParam* data;
-    std::vector<MPI_Request> req1;
-    MPI_Request req2;
+    auto req1 = std::vector<gko::mpi::request>(num_ranks);
+    auto req2 = gko::mpi::request();
     if (my_rank == 0) {
         send_array = std::vector<TypeParam>{1, 2, 3, 4};
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
-                req1.emplace_back(
-                    comm.i_send(send_array.data(), 4, rank, 40 + rank));
+                req1[rank] = comm.i_send(send_array.data(), 4, rank, 40 + rank);
             }
         }
     } else {
         recv_array = gko::Array<TypeParam>{this->ref, 4};
-        req2 =
-            std::move(comm.i_recv(recv_array.get_data(), 4, 0, 40 + my_rank));
+        req2 = comm.i_recv(recv_array.get_data(), 4, 0, 40 + my_rank);
     }
     if (my_rank == 0) {
-        auto stat1 = gko::mpi::wait_all(req1);
+        auto stat1 = wait_all(req1);
     } else {
-        auto stat2 = gko::mpi::wait(req2);
-        int count;
-        MPI_Get_count(&stat2, gko::mpi::type_impl<TypeParam>::get_type(),
-                      &count);
+        auto stat2 = req2.wait();
+        auto count = stat2.get_count(recv_array.get_data());
         ASSERT_EQ(count, 4);
         auto ref_array = gko::Array<TypeParam>{this->ref, {1, 2, 3, 4}};
         GKO_ASSERT_ARRAY_EQ(ref_array, recv_array);
@@ -157,8 +153,6 @@ TYPED_TEST(MpiBindings, CanPutValuesWithLockAll)
             if (rank != my_rank) {
                 win.put(data.data(), 4, rank, 0, 4);
             }
-            win.flush_local(0);
-            win.flush(rank);
         }
         win.unlock_all();
     }
