@@ -202,6 +202,99 @@ public:
 
 
 /**
+ * The status struct is a light wrapper around the MPI_Status struct.
+ */
+struct status {
+    /**
+     * The default constructor. It creates an empty MPI_Status
+     */
+    status() : status_(MPI_Status{}) {}
+
+    /**
+     * Get a pointer to the underlying MPI_Status object.
+     *
+     * @return  a pointer to MPI_Status object
+     */
+    MPI_Status* get() { return &this->status_; }
+
+    /**
+     * Get the count of the number of elements received by the communication
+     * call.
+     *
+     * @tparam T  The datatype of the object that was received.
+     *
+     * @param data  The data object of type T that was received.
+     *
+     * @return  the count
+     */
+    template <typename T>
+    int get_count(const T* data) const
+    {
+        int count;
+        MPI_Get_count(&status_, type_impl<T>::get_type(), &count);
+        return count;
+    }
+
+private:
+    MPI_Status status_;
+};
+
+
+/**
+ * The request class is a light wrapper around the MPI_Request handle class.
+ */
+class request {
+public:
+    /**
+     * The default constructor. It creates a null MPI_Request of
+     * MPI_REQUEST_NULL type.
+     */
+    request() : req_(MPI_REQUEST_NULL) {}
+
+    /**
+     * Get a pointer to the underlying MPI_Request handle.
+     *
+     * @return  a pointer to MPI_Request handle
+     */
+    MPI_Request* get() { return &this->req_; }
+
+    /**
+     * Allows a rank to wait on a particular request handle.
+     *
+     * @param req  The request to wait on.
+     * @param status  The status variable that can be queried.
+     */
+    status wait()
+    {
+        status status;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Wait(&req_, status.get()));
+        return status;
+    }
+
+
+private:
+    MPI_Request req_;
+};
+
+
+/**
+ * Allows a rank to wait on multiple request handles.
+ *
+ * @param req  The vector of request handles to be waited on.
+ *
+ * @return status  The vector of status objects that can be queried.
+ */
+std::vector<status> wait_all(std::vector<request>& req)
+{
+    std::vector<status> stat;
+    for (auto i = 0; i < req.size(); ++i) {
+        stat.emplace_back(req[i].wait());
+    }
+    return stat;
+}
+
+
+/**
  * A communicator class that takes in the given communicator and duplicates it
  * for our purposes. As the class or object goes out of scope, the communicator
  * is freed.
@@ -261,23 +354,6 @@ public:
         this->node_local_rank_ = get_node_local_rank();
     }
 
-    communicator(const communicator& other) = default;
-
-    communicator& operator=(const communicator& other) = default;
-
-    communicator(communicator&& other)
-    {
-        this->comm_ = std::move(other.comm_);
-        other.comm_.reset(new MPI_Comm(MPI_COMM_NULL));
-    }
-
-    communicator& operator=(communicator&& other)
-    {
-        this->comm_ = std::move(other.comm_);
-        other.comm_.reset(new MPI_Comm(MPI_COMM_NULL));
-        return *this;
-    }
-
     /**
      * Return the underlying MPI_Comm object.
      *
@@ -307,18 +383,24 @@ public:
     int node_local_rank() const { return node_local_rank_; };
 
     /**
-     * Compare two communicator objects.
+     * Compare two communicator objects for equality.
      *
      * @return  if the two comm objects are equal
      */
     bool operator==(const communicator& rhs) { return compare(rhs.get()); }
 
     /**
+     * Compare two communicator objects for non-equality.
+     *
+     * @return  if the two comm objects are not equal
+     */
+    bool operator!=(const communicator& rhs) { return !(*this == rhs); }
+
+    /**
      * This function is used to synchronize the ranks in the communicator.
      * Calls MPI_Barrier
      */
     void synchronize() const { GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(get())); }
-
 
     /**
      * Send (Blocking) data from calling process to destination rank.
@@ -337,7 +419,6 @@ public:
                                           destination_rank, send_tag, get()));
     }
 
-
     /**
      * Send (Non-blocking, Immediate return) data from calling process to
      * destination rank.
@@ -350,16 +431,15 @@ public:
      * @return  the request handle for the send call
      */
     template <typename SendType>
-    MPI_Request i_send(const SendType* send_buffer, const int send_count,
-                       const int destination_rank, const int send_tag) const
+    request i_send(const SendType* send_buffer, const int send_count,
+                   const int destination_rank, const int send_tag) const
     {
-        MPI_Request req;
+        request req;
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Isend(send_buffer, send_count, type_impl<SendType>::get_type(),
-                      destination_rank, send_tag, get(), &req));
+                      destination_rank, send_tag, get(), req.get()));
         return req;
     }
-
 
     /**
      * Receive data from source rank.
@@ -372,16 +452,15 @@ public:
      * @return  the status of completion of this call
      */
     template <typename RecvType>
-    MPI_Status recv(RecvType* recv_buffer, const int recv_count,
-                    const int source_rank, const int recv_tag) const
+    status recv(RecvType* recv_buffer, const int recv_count,
+                const int source_rank, const int recv_tag) const
     {
-        MPI_Status status;
+        status st;
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Recv(recv_buffer, recv_count, type_impl<RecvType>::get_type(),
-                     source_rank, recv_tag, get(), &status));
-        return status;
+                     source_rank, recv_tag, get(), st.get()));
+        return st;
     }
-
 
     /**
      * Receive (Non-blocking, Immediate return) data from source rank.
@@ -395,16 +474,15 @@ public:
      * @return  the request handle for the send call
      */
     template <typename RecvType>
-    MPI_Request i_recv(RecvType* recv_buffer, const int recv_count,
-                       const int source_rank, const int recv_tag) const
+    request i_recv(RecvType* recv_buffer, const int recv_count,
+                   const int source_rank, const int recv_tag) const
     {
-        MPI_Request req;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Irecv(recv_buffer, recv_count,
-                                           type_impl<RecvType>::get_type(),
-                                           source_rank, recv_tag, get(), &req));
+        request req;
+        GKO_ASSERT_NO_MPI_ERRORS(
+            MPI_Irecv(recv_buffer, recv_count, type_impl<RecvType>::get_type(),
+                      source_rank, recv_tag, get(), req.get()));
         return req;
     }
-
 
     /**
      * Broadcast data from calling process to all ranks in the communicator
@@ -420,7 +498,6 @@ public:
                                            type_impl<BroadcastType>::get_type(),
                                            root_rank, get()));
     }
-
 
     /**
      * Reduce data into root from all calling processes on the same
@@ -440,7 +517,6 @@ public:
                                             operation, root_rank, get()));
     }
 
-
     /**
      * Reduce data into root from all calling processes on the same
      * communicator.
@@ -453,16 +529,15 @@ public:
      * @return  the request handle for the call
      */
     template <typename ReduceType>
-    MPI_Request i_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
-                         int count, MPI_Op operation, int root_rank)
+    request i_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
+                     int count, MPI_Op operation, int root_rank)
     {
-        MPI_Request req;
+        request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ireduce(
             send_buffer, recv_buffer, count, type_impl<ReduceType>::get_type(),
-            operation, root_rank, get(), &req));
+            operation, root_rank, get(), req.get()));
         return req;
     }
-
 
     /**
      * Reduce data from all calling processes from all calling processes on same
@@ -480,7 +555,6 @@ public:
                           type_impl<ReduceType>::get_type(), operation, get()));
     }
 
-
     /**
      * Reduce data from all calling processes from all calling processes on same
      * communicator.
@@ -492,16 +566,14 @@ public:
      * @return  the request handle for the call
      */
     template <typename ReduceType>
-    MPI_Request i_all_reduce(ReduceType* recv_buffer, int count,
-                             MPI_Op operation)
+    request i_all_reduce(ReduceType* recv_buffer, int count, MPI_Op operation)
     {
-        MPI_Request req;
+        request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallreduce(
             in_place<ReduceType>(), recv_buffer, count,
-            type_impl<ReduceType>::get_type(), operation, get(), &req));
+            type_impl<ReduceType>::get_type(), operation, get(), req.get()));
         return req;
     }
-
 
     /**
      * Reduce data from all calling processes from all calling processes on same
@@ -521,7 +593,6 @@ public:
                           type_impl<ReduceType>::get_type(), operation, get()));
     }
 
-
     /**
      * Reduce data from all calling processes from all calling processes on same
      * communicator.
@@ -534,17 +605,15 @@ public:
      * @return  the request handle for the call
      */
     template <typename ReduceType>
-    MPI_Request i_all_reduce(const ReduceType* send_buffer,
-                             ReduceType* recv_buffer, int count,
-                             MPI_Op operation)
+    request i_all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
+                         int count, MPI_Op operation)
     {
-        MPI_Request req;
+        request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallreduce(
             send_buffer, recv_buffer, count, type_impl<ReduceType>::get_type(),
-            operation, get(), &req));
+            operation, get(), req.get()));
         return req;
     }
-
 
     /**
      * Gather data onto the root rank from all ranks in the communicator.
@@ -564,7 +633,6 @@ public:
                        recv_buffer, recv_count, type_impl<RecvType>::get_type(),
                        root_rank, get()));
     }
-
 
     /**
      * Gather data onto the root rank from all ranks in the communicator with
@@ -588,7 +656,6 @@ public:
             type_impl<RecvType>::get_type(), root_rank, get()));
     }
 
-
     /**
      * Gather data onto all ranks from all ranks in the communicator.
      *
@@ -605,7 +672,6 @@ public:
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(), get()));
     }
-
 
     /**
      * Scatter data from root rank to all ranks in the communicator.
@@ -624,7 +690,6 @@ public:
             recv_buffer, recv_count, type_impl<RecvType>::get_type(), root_rank,
             get()));
     }
-
 
     /**
      * Scatter data from root rank to all ranks in the communicator with
@@ -648,7 +713,6 @@ public:
             type_impl<RecvType>::get_type(), root_rank, get()));
     }
 
-
     /**
      * Communicate data from all ranks to all other ranks in place
      * (MPI_Alltoall). See MPI documentation for more details.
@@ -668,7 +732,6 @@ public:
             recv_buffer, recv_count, type_impl<RecvType>::get_type(), get()));
     }
 
-
     /**
      * Communicate data from all ranks to all other ranks in place
      * (MPI_Alltoall). See MPI documentation for more details.
@@ -683,16 +746,15 @@ public:
      * buffers are the same.
      */
     template <typename RecvType>
-    MPI_Request i_all_to_all(RecvType* recv_buffer, const int recv_count)
+    request i_all_to_all(RecvType* recv_buffer, const int recv_count)
     {
-        MPI_Request req;
+        request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoall(
             in_place<RecvType>(), recv_count, type_impl<RecvType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(), get(),
-            &req));
+            req.get()));
         return req;
     }
-
 
     /**
      * Communicate data from all ranks to all other ranks (MPI_Alltoall).
@@ -712,7 +774,6 @@ public:
             recv_buffer, recv_count, type_impl<RecvType>::get_type(), get()));
     }
 
-
     /**
      * Communicate data from all ranks to all other ranks (MPI_Alltoall).
      * See MPI documentation for more details.
@@ -725,17 +786,16 @@ public:
      * @return  the request handle for the call
      */
     template <typename SendType, typename RecvType>
-    MPI_Request i_all_to_all(const SendType* send_buffer, const int send_count,
-                             RecvType* recv_buffer, const int recv_count)
+    request i_all_to_all(const SendType* send_buffer, const int send_count,
+                         RecvType* recv_buffer, const int recv_count)
     {
-        MPI_Request req;
+        request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoall(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(), get(),
-            &req));
+            req.get()));
         return req;
     }
-
 
     /**
      * Communicate data from all ranks to all other ranks with
@@ -760,7 +820,6 @@ public:
             recv_offsets, type_impl<RecvType>::get_type(), get()));
     }
 
-
     /**
      * Communicate data from all ranks to all other ranks with
      * offsets (MPI_Alltoallv). See MPI documentation for more details.
@@ -775,19 +834,17 @@ public:
      * @return  the request handle for the call
      */
     template <typename SendType, typename RecvType>
-    MPI_Request i_all_to_all_v(const SendType* send_buffer,
-                               const int* send_counts, const int* send_offsets,
-                               RecvType* recv_buffer, const int* recv_counts,
-                               const int* recv_offsets)
+    request i_all_to_all_v(const SendType* send_buffer, const int* send_counts,
+                           const int* send_offsets, RecvType* recv_buffer,
+                           const int* recv_counts, const int* recv_offsets)
     {
-        MPI_Request req;
+        request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoallv(
             send_buffer, send_counts, send_offsets,
             type_impl<SendType>::get_type(), recv_buffer, recv_counts,
-            recv_offsets, type_impl<RecvType>::get_type(), get(), &req));
+            recv_offsets, type_impl<RecvType>::get_type(), get(), req.get()));
         return req;
     }
-
 
     /**
      * Does a scan operation with the given operator.
@@ -807,7 +864,6 @@ public:
                                           operation, get()));
     }
 
-
     /**
      * Does a scan operation with the given operator.
      * (MPI_Scan). See MPI documentation for more details.
@@ -820,13 +876,13 @@ public:
      * @return  the request handle for the call
      */
     template <typename ScanType>
-    MPI_Request i_scan(const ScanType* send_buffer, ScanType* recv_buffer,
-                       int count, MPI_Op operation)
+    request i_scan(const ScanType* send_buffer, ScanType* recv_buffer,
+                   int count, MPI_Op operation)
     {
-        MPI_Request req;
+        request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iscan(send_buffer, recv_buffer, count,
                                            type_impl<ScanType>::get_type(),
-                                           operation, get(), &req));
+                                           operation, get(), req.get()));
         return req;
     }
 
@@ -876,35 +932,6 @@ private:
  * @param comm  the communicator
  */
 inline double get_walltime() { return MPI_Wtime(); }
-
-
-/**
- * Allows a rank to wait on a particular request handle.
- *
- * @param req  The request to wait on.
- * @param status  The status variable that can be queried.
- */
-inline MPI_Status wait(MPI_Request& req)
-{
-    MPI_Status status;
-    GKO_ASSERT_NO_MPI_ERRORS(MPI_Wait(&req, &status));
-    return status;
-}
-
-
-/**
- * Allows a rank to wait on multiple request handles.
- *
- * @param req  The request handles to wait on.
- * @param status  The status variable that can be queried.
- */
-inline std::vector<MPI_Status> wait_all(std::vector<MPI_Request>& req)
-{
-    std::vector<MPI_Status> status(req.size());
-    GKO_ASSERT_NO_MPI_ERRORS(
-        MPI_Waitall(req.size(), req.data(), status.data()));
-    return status;
-}
 
 
 /**
@@ -1114,7 +1141,6 @@ public:
         }
     }
 
-
     /**
      * Put data into the target window.
      *
@@ -1135,7 +1161,6 @@ public:
                     type_impl<PutType>::get_type(), get_window()));
     }
 
-
     /**
      * Put data into the target window.
      *
@@ -1148,18 +1173,17 @@ public:
      * @return  the request handle for the send call
      */
     template <typename PutType>
-    MPI_Request r_put(const PutType* origin_buffer, const int origin_count,
-                      const int target_rank, const unsigned int target_disp,
-                      const int target_count) const
+    request r_put(const PutType* origin_buffer, const int origin_count,
+                  const int target_rank, const unsigned int target_disp,
+                  const int target_count) const
     {
-        MPI_Request req;
+        request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Rput(
             origin_buffer, origin_count, type_impl<PutType>::get_type(),
             target_rank, target_disp, target_count,
-            type_impl<PutType>::get_type(), get_window(), &req));
+            type_impl<PutType>::get_type(), get_window(), req.get()));
         return req;
     }
-
 
     /**
      * Get data from the target window.
@@ -1181,7 +1205,6 @@ public:
                     type_impl<GetType>::get_type(), get_window()));
     }
 
-
     /**
      * Get data (with handle) from the target window.
      *
@@ -1194,15 +1217,15 @@ public:
      * @return  the request handle for the send call
      */
     template <typename GetType>
-    MPI_Request r_get(GetType* origin_buffer, const int origin_count,
-                      const int target_rank, const unsigned int target_disp,
-                      const int target_count) const
+    request r_get(GetType* origin_buffer, const int origin_count,
+                  const int target_rank, const unsigned int target_disp,
+                  const int target_count) const
     {
-        MPI_Request req;
+        request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Rget(
             origin_buffer, origin_count, type_impl<GetType>::get_type(),
             target_rank, target_disp, target_count,
-            type_impl<GetType>::get_type(), get_window(), &req));
+            type_impl<GetType>::get_type(), get_window(), req.get()));
         return req;
     }
 
