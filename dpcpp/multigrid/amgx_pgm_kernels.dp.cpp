@@ -33,14 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/multigrid/amgx_pgm_kernels.hpp"
 
 
-// #include <dpcpp/base/math.hpp>
-// #include <dpct/blas_utils.hpp>
-// #include <dpct/dpl_utils.hpp>
 #include <memory>
+#include <tuple>
 
 
 #include <CL/sycl.hpp>
-#include <oneapi/mkl.hpp>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -48,13 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/multigrid/amgx_pgm.hpp>
 
 
-#include "core/components/fill_array.hpp"
-#include "core/components/prefix_sum.hpp"
-#include "core/matrix/csr_builder.hpp"
-#include "core/matrix/csr_kernels.hpp"
+#include "core/components/fill_array_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/onemkl_bindings.hpp"
-#include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 
@@ -212,14 +205,13 @@ void find_strongest_neighbor_kernel(const size_type num,
         }
         auto weight =
             weight_vals[idx] / max(std::abs(diag[row]), std::abs(diag[col]));
-        if (agg[col] == -1 &&
-            (weight > max_weight_unagg ||
-             (weight == max_weight_unagg && col > strongest_unagg))) {
+        if (agg[col] == -1 && std::tie(weight, col) >
+                                  std::tie(max_weight_unagg, strongest_unagg)) {
             max_weight_unagg = weight;
             strongest_unagg = col;
         } else if (agg[col] != -1 &&
-                   (weight > max_weight_agg ||
-                    (weight == max_weight_agg && col > strongest_agg))) {
+                   std::tie(weight, col) >
+                       std::tie(max_weight_agg, strongest_agg)) {
             max_weight_agg = weight;
             strongest_agg = col;
         }
@@ -280,8 +272,7 @@ void assign_to_exist_agg_kernel(const size_type num,
         auto weight =
             weight_vals[idx] / max(std::abs(diag[row]), std::abs(diag[col]));
         if (agg_const_val[col] != -1 &&
-            (weight > max_weight_agg ||
-             (weight == max_weight_agg && col > strongest_agg))) {
+            std::tie(weight, col) > std::tie(max_weight_agg, strongest_agg)) {
             max_weight_agg = weight;
             strongest_agg = col;
         }
@@ -332,8 +323,7 @@ void assign_to_exist_agg_kernel(const size_type num,
         auto weight =
             weight_vals[idx] / max(std::abs(diag[row]), std::abs(diag[col]));
         if (agg_val[col] != -1 &&
-            (weight > max_weight_agg ||
-             (weight == max_weight_agg && col > strongest_agg))) {
+            std::tie(weight, col) > std::tie(max_weight_agg, strongest_agg)) {
             max_weight_agg = weight;
             strongest_agg = col;
         }
