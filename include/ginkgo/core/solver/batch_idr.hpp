@@ -74,7 +74,7 @@ namespace solver {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class BatchIdr : public EnableBatchSolver<ValueType, BatchIdr<ValueType>>,
+class BatchIdr : public EnableBatchSolver<BatchIdr<ValueType>>,
                  public BatchTransposable {
     friend class EnableBatchLinOp<BatchIdr>;
     friend class EnablePolymorphicObject<BatchIdr, BatchLinOp>;
@@ -253,22 +253,20 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void solver_apply(const BatchLinOp* const mtx,
-                      const matrix::BatchDense<value_type>* const b,
-                      matrix::BatchDense<value_type>* const x,
-                      BatchInfo<value_type>& info) const override;
+    void solver_apply(const BatchLinOp* const mtx, const BatchLinOp* const b,
+                      BatchLinOp* const x, BatchInfo& info) const override;
 
     void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
                     const BatchLinOp* beta, BatchLinOp* x) const override;
 
     explicit BatchIdr(std::shared_ptr<const Executor> exec)
-        : EnableBatchSolver<ValueType, BatchIdr>(std::move(exec))
+        : EnableBatchSolver<BatchIdr>(std::move(exec))
     {}
 
     explicit BatchIdr(const Factory* factory,
                       std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchSolver<ValueType, BatchIdr>(factory->get_executor(),
-                                                 std::move(system_matrix)),
+        : EnableBatchSolver<BatchIdr>(factory->get_executor(),
+                                      std::move(system_matrix)),
           parameters_{factory->get_parameters()}
     {}
 

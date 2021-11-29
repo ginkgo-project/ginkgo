@@ -42,18 +42,16 @@ namespace gko {
 namespace solver {
 
 
-template <typename ValueType>
 struct BatchInfo;
 
 
 /**
  * @tparam PolymorphicBase  The base class; must be a subclass of BatchLinOp.
  */
-template <typename ValueType, typename ConcreteSolver,
-          typename PolymorphicBase = BatchLinOp>
+template <typename ConcreteSolver, typename PolymorphicBase = BatchLinOp>
 class EnableBatchSolver
     : public EnableBatchLinOp<ConcreteSolver, PolymorphicBase>,
-      public EnableBatchScaledSolver<ValueType> {
+      public EnableBatchScaling {
 public:
     /**
      * Returns the system operator (matrix) of the linear system.
@@ -65,14 +63,19 @@ public:
         return system_matrix_;
     }
 
-private:
-    using value_type = ValueType;
-
 protected:
-    virtual void solver_apply(const BatchLinOp* const mtx,
-                              const matrix::BatchDense<value_type>* const b,
-                              matrix::BatchDense<value_type>* const x,
-                              BatchInfo<value_type>& info) const = 0;
+    /**
+     * Calls the concrete solver on the given system (not necessarily on
+     * system_matrix_).
+     *
+     * @param mtx  Left-hand side matrix for the linear solve.
+     * @param b  Right-hand side vector.
+     * @param x  Solution vector and initial guess.
+     * @param info  Batch logging information. NOTE: This may change in the
+     *              future.
+     */
+    virtual void solver_apply(const BatchLinOp* const mtx, const BatchLinOp* b,
+                              BatchLinOp* x, BatchInfo& info) const = 0;
 
     explicit EnableBatchSolver(std::shared_ptr<const Executor> exec)
         : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(std::move(exec))
