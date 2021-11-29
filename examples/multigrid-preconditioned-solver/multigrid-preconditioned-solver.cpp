@@ -81,8 +81,8 @@ int main(int argc, char* argv[])
              }},
             {"dpcpp",
              [] {
-                 return gko::DpcppExecutor::create(0,
-                                                   gko::OmpExecutor::create());
+                 return gko::DpcppExecutor::create(
+                     0, gko::ReferenceExecutor::create());
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
@@ -139,14 +139,14 @@ int main(int argc, char* argv[])
     auto smoother_gen = gko::share(
         ir::build()
             .with_solver(inner_solver_gen)
-            .with_relaxation_factor(0.9)
+            .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .on(exec));
     auto smoother_gen_f = gko::share(
         ir_f::build()
             .with_solver(inner_solver_gen_f)
-            .with_relaxation_factor(0.9)
+            .with_relaxation_factor(static_cast<MixedType>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .on(exec));
@@ -158,14 +158,14 @@ int main(int argc, char* argv[])
     auto coarsest_gen = gko::share(
         ir::build()
             .with_solver(inner_solver_gen)
-            .with_relaxation_factor(0.9)
+            .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec))
             .on(exec));
     auto coarsest_gen_f = gko::share(
         ir_f::build()
             .with_solver(inner_solver_gen_f)
-            .with_relaxation_factor(0.9)
+            .with_relaxation_factor(static_cast<MixedType>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec))
             .on(exec));
