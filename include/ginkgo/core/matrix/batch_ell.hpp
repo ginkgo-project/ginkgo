@@ -76,7 +76,7 @@ class BatchEll
       public BatchReadableFromMatrixData<ValueType, IndexType>,
       public BatchWritableToMatrixData<ValueType, IndexType>,
       public BatchTransposable,
-      public EnableBatchScaling<ValueType> {
+      public EnableBatchScaling {
     friend class EnableCreateMethod<BatchEll>;
     friend class EnablePolymorphicObject<BatchEll, BatchLinOp>;
     friend class BatchEll<to_complex<ValueType>, IndexType>;

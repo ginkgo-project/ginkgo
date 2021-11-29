@@ -215,7 +215,7 @@ int main(int argc, char* argv[])
     solver->apply(lend(b), lend(x));
     // This is not necessary, but one might want to remove the logger before
     //  the next solve using the same solver object.
-    // solver->remove_logger(logger.get());
+    solver->remove_logger(logger.get());
 
     // @sect3{Check result}
     // Compute norm of RHS on the device and automatically copy to host
