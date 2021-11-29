@@ -258,7 +258,7 @@ Result<ValueType> solve_poisson_uniform_core(
         }
         d_left->copy_from(left_scale);
         d_right->copy_from(right_scale);
-        dynamic_cast<gko::EnableBatchScaledSolver<ValueType>*>(solver.get())
+        dynamic_cast<gko::EnableBatchScaling*>(solver.get())
             ->batch_scale(lend(d_left), lend(d_right));
     }
 
@@ -316,7 +316,7 @@ void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
     auto right_scale = Dense::create(exec, s_vec_sz);
     right_scale->copy_from(ref_right_scale.get());
     if (use_scaling) {
-        dynamic_cast<gko::EnableBatchScaledSolver<T>*>(solver.get())
+        dynamic_cast<gko::EnableBatchScaling*>(solver.get())
             ->batch_scale(lend(left_scale), lend(right_scale));
     }
     std::shared_ptr<const gko::log::BatchConvergence<T>> logger =
@@ -435,7 +435,7 @@ void test_solve_iterations_with_scaling(
     std::shared_ptr<const gko::log::BatchConvergence<value_type>> logger_s =
         gko::log::BatchConvergence<value_type>::create(exec);
     auto solver_s = factory->generate(d_mtx);
-    dynamic_cast<gko::EnableBatchScaledSolver<value_type>*>(solver_s.get())
+    dynamic_cast<gko::EnableBatchScaling*>(solver_s.get())
         ->batch_scale(lend(d_left_scale), lend(d_right_scale));
 
     solver->add_logger(logger);
