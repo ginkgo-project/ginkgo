@@ -12,6 +12,7 @@ target_sources(ginkgo
     base/mtx_io.cpp
     base/perturbation.cpp
     base/version.cpp
+    distributed/partition.cpp
     factorization/ic.cpp
     factorization/ilu.cpp
     factorization/par_ic.cpp
@@ -60,6 +61,11 @@ if(GINKGO_HAVE_PAPI_SDE)
     target_sources(ginkgo PRIVATE log/papi.cpp)
 endif()
 
+if (GINKGO_BUILD_MPI)
+    target_sources(ginkgo
+        PRIVATE mpi/exception.cpp)
+endif()
+
 ginkgo_compile_features(ginkgo)
 
 target_compile_options(ginkgo PRIVATE "${GINKGO_COMPILER_FLAGS}")
@@ -75,6 +81,10 @@ if (GINKGO_HAVE_PAPI_SDE)
     list(GET PAPI_LIBRARIES 0 PAPI_FIRST_LIB)
     get_filename_component(GKO_PAPI_LIBDIR "${PAPI_FIRST_LIB}" DIRECTORY)
     list(APPEND GKO_RPATH_ADDITIONS "${GKO_PAPI_LIBDIR}")
+endif()
+
+if (GINKGO_BUILD_MPI)
+    target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
 endif()
 
 # Since we have a public dependency on HIP, this dependency appears

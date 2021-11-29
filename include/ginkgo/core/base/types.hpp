@@ -617,6 +617,63 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 /**
+ * Instantiates a template for each value type pair compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments, which are replaced by the
+ *                value and index types.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_PAIR(_macro)       \
+    template _macro(float, float);                             \
+    template _macro(double, double);                           \
+    template _macro(std::complex<float>, float);               \
+    template _macro(std::complex<double>, double);             \
+    template _macro(std::complex<float>, std::complex<float>); \
+    template _macro(std::complex<double>, std::complex<double>)
+
+
+/**
+ * Instantiates a template for each combined value and index type compiled by
+ * Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments, which are replaced by the
+ *                value and index types.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(_macro) \
+    template _macro(char, char);                                       \
+    template _macro(int32, int32);                                     \
+    template _macro(int64, int64);                                     \
+    template _macro(unsigned int, unsigned int);                       \
+    template _macro(unsigned long, unsigned long);                     \
+    template _macro(float, float);                                     \
+    template _macro(double, double);                                   \
+    template _macro(long double, long double);                         \
+    template _macro(std::complex<float>, std::complex<float>);         \
+    template _macro(std::complex<double>, std::complex<double>)
+
+/**
+ * Instantiates a template for each value and index type compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments, which are replaced by the
+ *                value and index types.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_POD_TYPE(_macro) \
+    template _macro(float);                       \
+    template _macro(double);                      \
+    template _macro(std::complex<float>);         \
+    template _macro(std::complex<double>);        \
+    template _macro(size_type);                   \
+    template _macro(bool);                        \
+    template _macro(int32);                       \
+    template _macro(int64)
+
+
+/**
  * Instantiates a template for each normal type
  *
  * @param _macro  A macro which expands the template instantiation
@@ -642,6 +699,33 @@ inline constexpr GKO_ATTRIBUTES IndexType invalid_index()
 }
 
 
+namespace distributed {
+
+
+/**
+ * Index type for enumerating processes in a distributed application
+ *
+ * Conforms to the MPI C interface of e.g. MPI rank or size
+ */
+using comm_index_type = int;
+
+
+/**
+ * Instantiates a template for each valid combination of local and global index
+ * type
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments, where the first is replaced by the
+ *                local index type and the second by the global index type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(_macro) \
+    template _macro(int32, int32);                               \
+    template _macro(int32, int64);                               \
+    template _macro(int64, int64)
+
+
+}  // namespace distributed
 }  // namespace gko
 
 
