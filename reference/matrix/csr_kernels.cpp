@@ -51,10 +51,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
+#include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "reference/components/csr_spgeam.hpp"
-#include "reference/components/format_conversion.hpp"
 
 
 namespace gko {
@@ -373,31 +374,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_FILL_IN_MATRIX_DATA_KERNEL);
 
 
-template <typename IndexType>
-void convert_row_ptrs_to_idxs(std::shared_ptr<const ReferenceExecutor> exec,
-                              const IndexType* ptrs, size_type num_rows,
-                              IndexType* idxs)
-{
-    convert_ptrs_to_idxs(ptrs, num_rows, idxs);
-}
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* source,
-                    matrix::Coo<ValueType, IndexType>* result)
-{
-    auto num_rows = result->get_size()[0];
-
-    auto row_idxs = result->get_row_idxs();
-    const auto source_row_ptrs = source->get_const_row_ptrs();
-
-    convert_row_ptrs_to_idxs(exec, source_row_ptrs, num_rows, row_idxs);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL);
-
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* source,
@@ -596,9 +572,12 @@ void transpose_and_transform(std::shared_ptr<const ReferenceExecutor> exec,
     auto orig_num_rows = orig->get_size()[0];
     auto orig_nnz = orig_row_ptrs[orig_num_rows];
 
-    trans_row_ptrs[0] = 0;
-    convert_idxs_to_ptrs(orig_col_idxs, orig_nnz, trans_row_ptrs + 1,
-                         orig_num_cols);
+    components::fill_array(exec, trans_row_ptrs, orig_num_cols + 1,
+                           IndexType{});
+    for (size_type i = 0; i < orig_nnz; i++) {
+        trans_row_ptrs[orig_col_idxs[i] + 1]++;
+    }
+    components::prefix_sum(exec, trans_row_ptrs + 1, orig_num_cols);
 
     convert_csr_to_csc(orig_num_rows, orig_row_ptrs, orig_col_idxs, orig_vals,
                        trans_col_idxs, trans_row_ptrs + 1, trans_vals, op);

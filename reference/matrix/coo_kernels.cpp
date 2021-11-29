@@ -39,8 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
-#include "reference/components/format_conversion.hpp"
 
 
 namespace gko {
@@ -146,35 +146,6 @@ void fill_in_matrix_data(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_FILL_IN_MATRIX_DATA_KERNEL);
-
-
-template <typename IndexType>
-void convert_row_idxs_to_ptrs(std::shared_ptr<const ReferenceExecutor> exec,
-                              const IndexType* idxs, size_type num_nonzeros,
-                              IndexType* ptrs, size_type length)
-{
-    convert_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
-}
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Coo<ValueType, IndexType>* source,
-                    matrix::Csr<ValueType, IndexType>* result)
-{
-    auto num_rows = result->get_size()[0];
-
-    auto row_ptrs = result->get_row_ptrs();
-    const auto nnz = result->get_num_stored_elements();
-
-    const auto source_row_idxs = source->get_const_row_idxs();
-
-    convert_row_idxs_to_ptrs(exec, source_row_idxs, nnz, row_ptrs,
-                             num_rows + 1);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

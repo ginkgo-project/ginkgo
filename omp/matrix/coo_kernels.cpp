@@ -47,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/dense_kernels.hpp"
 #include "omp/components/atomic.hpp"
-#include "omp/components/format_conversion.hpp"
 
 
 namespace gko {
@@ -354,34 +353,6 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL);
-
-
-template <typename IndexType>
-void convert_row_idxs_to_ptrs(std::shared_ptr<const OmpExecutor> exec,
-                              const IndexType* idxs, size_type num_nonzeros,
-                              IndexType* ptrs, size_type num_rows)
-{
-    convert_sorted_idxs_to_ptrs(idxs, num_nonzeros, ptrs, num_rows);
-}
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Coo<ValueType, IndexType>* source,
-                    matrix::Csr<ValueType, IndexType>* result)
-{
-    auto num_rows = result->get_size()[0];
-
-    auto row_ptrs = result->get_row_ptrs();
-    const auto nnz = result->get_num_stored_elements();
-
-    const auto source_row_idxs = source->get_const_row_idxs();
-
-    convert_row_idxs_to_ptrs(exec, source_row_idxs, nnz, row_ptrs, num_rows);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

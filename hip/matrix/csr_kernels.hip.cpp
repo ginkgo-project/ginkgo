@@ -696,36 +696,6 @@ void spgeam(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 
-template <typename IndexType>
-void convert_row_ptrs_to_idxs(std::shared_ptr<const HipExecutor> exec,
-                              const IndexType* ptrs, size_type num_rows,
-                              IndexType* idxs)
-{
-    const auto grid_dim = ceildiv(num_rows, default_block_size);
-
-    hipLaunchKernelGGL(kernel::convert_row_ptrs_to_idxs, dim3(grid_dim),
-                       dim3(default_block_size), 0, 0, num_rows,
-                       as_hip_type(ptrs), as_hip_type(idxs));
-}
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* source,
-                    matrix::Coo<ValueType, IndexType>* result)
-{
-    auto num_rows = result->get_size()[0];
-
-    auto row_idxs = result->get_row_idxs();
-    const auto source_row_ptrs = source->get_const_row_ptrs();
-
-    convert_row_ptrs_to_idxs(exec, source_row_ptrs, num_rows, row_idxs);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL);
-
-
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* source,

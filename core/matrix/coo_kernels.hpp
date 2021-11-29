@@ -86,11 +86,6 @@ namespace kernels {
                           const matrix::Coo<ValueType, IndexType>* source, \
                           matrix::Dense<ValueType>* result)
 
-#define GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
-    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,     \
-                        const matrix::Coo<ValueType, IndexType>* source, \
-                        matrix::Csr<ValueType, IndexType>* result)
-
 #define GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)    \
     void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,   \
                           const matrix::Coo<ValueType, IndexType>* orig, \
@@ -107,8 +102,6 @@ namespace kernels {
     GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType);      \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_COO_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);      \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);    \
     template <typename ValueType, typename IndexType>                 \

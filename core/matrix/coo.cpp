@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 
 
@@ -62,7 +63,7 @@ GKO_REGISTER_OPERATION(advanced_spmv, coo::advanced_spmv);
 GKO_REGISTER_OPERATION(spmv2, coo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, coo::fill_in_matrix_data);
-GKO_REGISTER_OPERATION(convert_to_csr, coo::convert_to_csr);
+GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense);
 GKO_REGISTER_OPERATION(extract_diagonal, coo::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
@@ -153,7 +154,9 @@ void Coo<ValueType, IndexType>::convert_to(
         result->get_strategy());
     tmp->values_ = this->values_;
     tmp->col_idxs_ = this->col_idxs_;
-    exec->run(coo::make_convert_to_csr(this, tmp.get()));
+    exec->run(coo::make_convert_idxs_to_ptrs(
+        this->get_const_row_idxs(), this->get_num_stored_elements(),
+        this->get_size()[0], tmp->get_row_ptrs()));
     tmp->make_srow();
     tmp->move_to(result);
 }
@@ -168,7 +171,9 @@ void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType>* result)
                                                  result->get_strategy());
     tmp->values_ = std::move(this->values_);
     tmp->col_idxs_ = std::move(this->col_idxs_);
-    exec->run(coo::make_convert_to_csr(this, tmp.get()));
+    exec->run(coo::make_convert_idxs_to_ptrs(this->get_const_row_idxs(), nnz,
+                                             this->get_size()[0],
+                                             tmp->get_row_ptrs()));
     tmp->make_srow();
     tmp->move_to(result);
 }

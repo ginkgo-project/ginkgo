@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/utils.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
@@ -74,7 +75,7 @@ GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
 GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 
 GKO_REGISTER_OPERATION(csr_conj_transpose, csr::conj_transpose);
-GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
+GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
 GKO_REGISTER_OPERATION(spgemm, csr::spgemm);
 
 
@@ -84,7 +85,7 @@ GKO_REGISTER_OPERATION(spgemm, csr::spgemm);
 
 using par_ict_factorization::make_add_candidates;
 using par_ict_factorization::make_compute_factor;
-using par_ict_factorization::make_convert_to_coo;
+using par_ict_factorization::make_convert_ptrs_to_idxs;
 using par_ict_factorization::make_csr_conj_transpose;
 using par_ict_factorization::make_initialize_l;
 using par_ict_factorization::make_initialize_row_ptrs_l;
@@ -242,7 +243,9 @@ void ParIctState<ValueType, IndexType>::iterate()
     }
 
     // convert L into COO format
-    exec->run(make_convert_to_coo(l_new.get(), l_coo.get()));
+    exec->run(make_convert_ptrs_to_idxs(l_new->get_const_row_ptrs(),
+                                        l_new->get_size()[0],
+                                        l_coo->get_row_idxs()));
 
     // execute asynchronous iteration
     exec->run(make_compute_factor(system_matrix, l_new.get(), l_coo.get()));

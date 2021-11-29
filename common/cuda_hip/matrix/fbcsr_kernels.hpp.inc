@@ -135,8 +135,9 @@ void fill_in_matrix_data(
                                                     data_ptr[i].column / bs);
                       });
     // build row pointers from row indices
-    components::build_row_ptrs_from_idxs(exec, row_idx_array, num_rows,
-                                         row_ptrs);
+    components::convert_idxs_to_ptrs(exec, row_idx_array.get_const_data(),
+                                     row_idx_array.get_num_elems(), num_rows,
+                                     row_ptrs);
     // fill in values
     components::fill_array(exec, value_array.get_data(), num_blocks * bs * bs,
                            zero<ValueType>());

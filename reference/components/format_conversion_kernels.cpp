@@ -30,55 +30,71 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/device_matrix_data_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 
 
 #include <ginkgo/core/base/types.hpp>
 
 
-#include "common/unified/base/kernel_launch.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace GKO_DEVICE_NAMESPACE {
+namespace reference {
 namespace components {
 
 
-template <typename ValueType, typename IndexType, typename RowPtrType>
-void build_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
-                    const Array<matrix_data_entry<ValueType, IndexType>>& data,
-                    size_type num_rows, RowPtrType* row_ptrs)
+template <typename IndexType, typename RowPtrType>
+void convert_ptrs_to_idxs(std::shared_ptr<const DefaultExecutor> exec,
+                          const RowPtrType* ptrs, size_type num_blocks,
+                          IndexType* idxs)
 {
-    if (data.get_num_elems() == 0) {
-        fill_array(exec, row_ptrs, num_rows + 1, RowPtrType{});
-    } else {
-        run_kernel(
-            exec,
-            [] GKO_KERNEL(auto i, auto num_nonzeros, auto num_rows,
-                          auto nonzeros, auto row_ptrs) {
-                auto begin_row = i == 0 ? IndexType{} : nonzeros[i - 1].row;
-                auto end_row = i == num_nonzeros ? num_rows : nonzeros[i].row;
-                for (auto row = begin_row; row < end_row; row++) {
-                    row_ptrs[row + 1] = i;
-                }
-                if (i == 0) {
-                    row_ptrs[0] = 0;
-                }
-            },
-            data.get_num_elems() + 1, data.get_num_elems(), num_rows, data,
-            row_ptrs);
+    for (size_type block = 0; block < num_blocks; block++) {
+        auto begin = ptrs[block];
+        auto end = ptrs[block + 1];
+        for (auto i = begin; i < end; i++) {
+            idxs[i] = block;
+        }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL32);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL64);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_IDXS32);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_IDXS64);
+
+
+template <typename IndexType, typename RowPtrType>
+void convert_idxs_to_ptrs(std::shared_ptr<const DefaultExecutor> exec,
+                          const IndexType* idxs, size_type num_idxs,
+                          size_type num_blocks, RowPtrType* ptrs)
+{
+    fill_array(exec, ptrs, num_blocks + 1, RowPtrType{});
+    for (size_type i = 0; i < num_idxs; i++) {
+        ptrs[idxs[i]]++;
+    }
+    prefix_sum(exec, ptrs, num_blocks + 1);
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_IDXS_TO_PTRS32);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_IDXS_TO_PTRS64);
+
+
+template <typename IndexType, typename RowPtrType>
+void convert_ptrs_to_sizes(std::shared_ptr<const DefaultExecutor> exec,
+                           const RowPtrType* ptrs, size_type num_blocks,
+                           IndexType* sizes)
+{
+    for (size_type block = 0; block < num_blocks; block++) {
+        sizes[block] = ptrs[block + 1] - ptrs[block];
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_SIZES32);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_SIZES64);
 
 
 }  // namespace components
-}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace reference
 }  // namespace kernels
 }  // namespace gko
