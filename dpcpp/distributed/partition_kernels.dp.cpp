@@ -30,49 +30,31 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_COMMON_UNIFIED_BASE_KERNEL_LAUNCH_SOLVER_HPP_
-#error \
-    "This file can only be used from inside common/unified/base/kernel_launch_solver.hpp"
-#endif
+#include "core/distributed/partition_kernels.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace dpcpp {
+namespace partition {
 
 
-template <typename KernelFunction, typename... KernelArgs>
-__global__ __launch_bounds__(default_block_size) void generic_kernel_2d_solver(
-    int64 rows, int64 cols, int64 default_stride, KernelFunction fn,
-    KernelArgs... args)
-{
-    auto tidx = thread::get_thread_id_flat<int64>();
-    auto col = tidx % cols;
-    auto row = tidx / cols;
-    if (row >= rows) {
-        return;
-    }
-    fn(row, col,
-       device_unpack_solver_impl<KernelArgs>::unpack(args, default_stride)...);
-}
+// TODO: wait until https://github.com/oneapi-src/oneDPL/pull/388 is release to
+// implement it similar to cuda/hip
+template <typename LocalIndexType, typename GlobalIndexType>
+void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
+                            const GlobalIndexType* range_offsets,
+                            const comm_index_type* range_parts,
+                            size_type num_ranges, comm_index_type num_parts,
+                            comm_index_type& num_empty_parts,
+                            LocalIndexType* starting_indices,
+                            LocalIndexType* part_sizes) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES);
 
 
-template <typename KernelFunction, typename... KernelArgs>
-void run_kernel_solver(std::shared_ptr<const CudaExecutor> exec,
-                       KernelFunction fn, dim<2> size, size_type default_stride,
-                       KernelArgs&&... args)
-{
-    if (size[0] * size[1] > 0) {
-        gko::cuda::device_guard guard{exec->get_device_id()};
-        constexpr auto block_size = default_block_size;
-        auto num_blocks = ceildiv(size[0] * size[1], block_size);
-        generic_kernel_2d_solver<<<num_blocks, block_size>>>(
-            static_cast<int64>(size[0]), static_cast<int64>(size[1]),
-            static_cast<int64>(default_stride), fn, map_to_device(args)...);
-    }
-}
-
-
-}  // namespace cuda
+}  // namespace partition
+}  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko

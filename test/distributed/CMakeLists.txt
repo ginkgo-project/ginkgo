@@ -1,0 +1,1 @@
+ginkgo_create_common_test(partition_kernels DISABLE_EXECUTORS dpcpp)

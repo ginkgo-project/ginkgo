@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
+#include "core/distributed/partition_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
@@ -110,6 +111,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     template <typename IndexType>                        \
     _macro(IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro)
+
+#define GKO_STUB_LOCAL_GLOBAL_TYPE(_macro)                                     \
+    template <typename LocalIndexType, typename GlobalIndexType>               \
+    _macro(LocalIndexType, GlobalIndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(_macro)
 
 #define GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro)           \
     template <typename ValueType, typename IndexType>               \
@@ -208,6 +214,20 @@ GKO_STUB_INDEX_TYPE(GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL);
 
 
 }  // namespace index_set
+
+
+namespace partition {
+
+
+GKO_STUB(GKO_PARTITION_COUNT_RANGES);
+GKO_STUB_INDEX_TYPE(GKO_PARTITION_BUILD_FROM_CONTIGUOUS);
+GKO_STUB_INDEX_TYPE(GKO_PARTITION_BUILD_FROM_MAPPING);
+GKO_STUB_INDEX_TYPE(GKO_PARTITION_BUILD_FROM_GLOBAL_SIZE);
+GKO_STUB_LOCAL_GLOBAL_TYPE(GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES);
+GKO_STUB_LOCAL_GLOBAL_TYPE(GKO_DECLARE_PARTITION_IS_ORDERED);
+
+
+}  // namespace partition
 
 
 namespace dense {
