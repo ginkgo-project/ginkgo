@@ -82,16 +82,19 @@ std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void BatchBicgstab<ValueType>::solver_apply(
-    const BatchLinOp* const mtx, const matrix::BatchDense<ValueType>* b,
-    matrix::BatchDense<ValueType>* x, BatchInfo<ValueType>& info) const
+void BatchBicgstab<ValueType>::solver_apply(const BatchLinOp* const mtx,
+                                            const BatchLinOp* b, BatchLinOp* x,
+                                            BatchInfo& info) const
 {
+    using Dense = matrix::BatchDense<ValueType>;
     const kernels::batch_bicgstab::BatchBicgstabOptions<
         remove_complex<ValueType>>
         opts{parameters_.preconditioner, parameters_.max_iterations,
              parameters_.residual_tol, parameters_.tolerance_type};
     auto exec = this->get_executor();
-    exec->run(batch_bicgstab::make_apply(opts, mtx, b, x, info.logdata));
+    exec->run(batch_bicgstab::make_apply(
+        opts, mtx, as<const Dense>(b), as<Dense>(x),
+        *static_cast<log::BatchLogData<ValueType>*>(info.logdata)));
 }
 
 
