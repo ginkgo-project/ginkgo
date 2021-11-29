@@ -210,50 +210,20 @@ void BatchCsr<ValueType, IndexType>::write(std::vector<mat_data>& data) const
 template <typename ValueType, typename IndexType>
 std::unique_ptr<BatchLinOp> BatchCsr<ValueType, IndexType>::transpose() const
     GKO_NOT_IMPLEMENTED;
-//{
-//    auto exec = this->get_executor();
-//    auto trans_cpy =
-//        BatchCsr::create(exec, gko::transpose(this->get_size()),
-//                    this->get_num_stored_elements(), this->get_strategy());
-//
-//    exec->run(batch_csr::make_transpose(this, trans_cpy.get()));
-//    trans_cpy->make_srow();
-//    return std::move(trans_cpy);
-//}
 
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<BatchLinOp> BatchCsr<ValueType, IndexType>::conj_transpose()
     const GKO_NOT_IMPLEMENTED;
-//{
-//    auto exec = this->get_executor();
-//    auto trans_cpy =
-//        BatchCsr::create(exec, gko::transpose(this->get_size()),
-//                    this->get_num_stored_elements(), this->get_strategy());
-//
-//    exec->run(batch_csr::make_conj_transpose(this, trans_cpy.get()));
-//    trans_cpy->make_srow();
-//    return std::move(trans_cpy);
-//}
 
 
 template <typename ValueType, typename IndexType>
 void BatchCsr<ValueType, IndexType>::sort_by_column_index() GKO_NOT_IMPLEMENTED;
-//{
-//    auto exec = this->get_executor();
-//    exec->run(batch_csr::make_sort_by_column_index(this));
-//}
 
 
 template <typename ValueType, typename IndexType>
 bool BatchCsr<ValueType, IndexType>::is_sorted_by_column_index() const
     GKO_NOT_IMPLEMENTED;
-//{
-//    auto exec = this->get_executor();
-//    bool is_sorted;
-//    exec->run(batch_csr::make_is_sorted_by_column_index(this, &is_sorted));
-//    return is_sorted;
-//}
 
 
 template <typename ValueType, typename IndexType>
@@ -262,9 +232,8 @@ void BatchCsr<ValueType, IndexType>::batch_scale_impl(
     const BatchLinOp* const right_scale_op)
 {
     auto exec = this->get_executor();
-    const auto left = static_cast<const BatchDense<ValueType>*>(left_scale_op);
-    const auto right =
-        static_cast<const BatchDense<ValueType>*>(right_scale_op);
+    const auto left = as<const BatchDense<ValueType>>(left_scale_op);
+    const auto right = as<const BatchDense<ValueType>>(right_scale_op);
     exec->run(batch_csr::make_batch_scale(left, right, this));
 }
 

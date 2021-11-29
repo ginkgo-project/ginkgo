@@ -671,9 +671,12 @@ class BatchDense;
  *
  * @see BatchScalable
  */
-template <typename ValueType>
 class EnableBatchScaling : public BatchScalable {
 public:
+    const BatchLinOp* get_left_scaling_vector() const { return left_scale_; }
+
+    const BatchLinOp* get_right_scaling_vector() const { return right_scale_; }
+
     /**
      * Scales each matrix in a batch from the left and right.
      *
@@ -690,16 +693,6 @@ public:
             return;
         }
 
-        if (left_scale) {
-            if (!dynamic_cast<const matrix::BatchDense<ValueType>*>(left_scale))
-                GKO_NOT_SUPPORTED(left_scale);
-        }
-        if (right_scale) {
-            if (!dynamic_cast<const matrix::BatchDense<ValueType>*>(
-                    right_scale))
-                GKO_NOT_SUPPORTED(right_scale);
-        }
-
         /* TODO: Somehow restrict BatchScalable and EnableBatchScaling to
          * BatchLinOp so that the following dynamic_cast is not needed.
          */
@@ -709,12 +702,19 @@ public:
             GKO_NOT_SUPPORTED(this);
         }
 
+        left_scale_ = left_scale;
+        right_scale_ = right_scale;
+
         this->batch_scale_impl(left_scale, right_scale);
     }
 
 private:
     virtual void batch_scale_impl(const BatchLinOp* left_scale,
-                                  const BatchLinOp* right_scale) = 0;
+                                  const BatchLinOp* right_scale)
+    {}
+
+    const BatchLinOp* left_scale_ = nullptr;
+    const BatchLinOp* right_scale_ = nullptr;
 };
 
 
@@ -728,7 +728,7 @@ private:
  * it represents a new solver F(S(A)) (F composed with S applied to A).
  */
 template <typename ValueType>
-class EnableBatchScaledSolver : public EnableBatchScaling<ValueType> {
+class EnableBatchScaledSolver : public EnableBatchScaling {
 public:
     using value_type = ValueType;
 
