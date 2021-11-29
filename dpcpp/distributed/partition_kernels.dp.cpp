@@ -39,6 +39,8 @@ namespace dpcpp {
 namespace partition {
 
 
+// TODO: wait until https://github.com/oneapi-src/oneDPL/pull/388 is release to
+// implement it similar to cuda/hip
 template <typename LocalIndexType, typename GlobalIndexType>
 void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
                             const GlobalIndexType* range_offsets,
