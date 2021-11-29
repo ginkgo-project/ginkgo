@@ -80,9 +80,8 @@ namespace solver {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class BatchRichardson
-    : public EnableBatchSolver<ValueType, BatchRichardson<ValueType>>,
-      public BatchTransposable {
+class BatchRichardson : public EnableBatchSolver<BatchRichardson<ValueType>>,
+                        public BatchTransposable {
     friend class EnableBatchLinOp<BatchRichardson>;
     friend class EnablePolymorphicObject<BatchRichardson, BatchLinOp>;
 
@@ -135,22 +134,20 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void solver_apply(const BatchLinOp* const mtx,
-                      const matrix::BatchDense<value_type>* const b,
-                      matrix::BatchDense<value_type>* const x,
-                      BatchInfo<value_type>& info) const override;
+    void solver_apply(const BatchLinOp* const mtx, const BatchLinOp* const b,
+                      BatchLinOp* const x, BatchInfo& info) const override;
 
     void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
                     const BatchLinOp* beta, BatchLinOp* x) const override;
 
     explicit BatchRichardson(std::shared_ptr<const Executor> exec)
-        : EnableBatchSolver<ValueType, BatchRichardson>(std::move(exec))
+        : EnableBatchSolver<BatchRichardson>(std::move(exec))
     {}
 
     explicit BatchRichardson(const Factory* factory,
                              std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchSolver<ValueType, BatchRichardson>(
-              factory->get_executor(), std::move(system_matrix)),
+        : EnableBatchSolver<BatchRichardson>(factory->get_executor(),
+                                             std::move(system_matrix)),
           parameters_{factory->get_parameters()}
     {}
 };
