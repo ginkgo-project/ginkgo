@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_BATCH_SOLVER_IPP_
 
 
+#include <ginkgo/core/log/batch_convergence.hpp>
 #include <ginkgo/core/solver/batch_solver.hpp>
 
 
@@ -54,16 +55,17 @@ GKO_REGISTER_OPERATION(vec_scale, batch_dense::batch_scale);
 }
 
 
-template <typename ValueType>
 struct BatchInfo {
-    gko::log::BatchLogData<ValueType> logdata;
+    //gko::log::BatchLogData<ValueType> logdata;
+    void* logdata;
 };
 
 
-template <typename ValueType, typename ConcreteSolver, typename PolymorphicBase>
-void EnableBatchSolver<ValueType, ConcreteSolver, PolymorphicBase>::apply_impl(const BatchLinOp* b,
+template <typename ConcreteSolver, typename PolymorphicBase>
+void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchLinOp* b,
                                           BatchLinOp* x) const
 {
+    using value_type = typename ConcreteSolver::value_type;
     using Csr = matrix::BatchCsr<value_type>;
     using Vector = matrix::BatchDense<value_type>;
     using real_type = remove_complex<value_type>;
@@ -87,7 +89,8 @@ void EnableBatchSolver<ValueType, ConcreteSolver, PolymorphicBase>::apply_impl(c
         a_scaled_smart->copy_from(acsr);
         b_scaled_smart->copy_from(dense_b);
         exec->run(batch::make_pre_diag_scale_system(
-            this->get_left_scaling_vector(), this->get_right_scaling_vector(),
+            as<const Vector>(this->get_left_scaling_vector()),
+            as<const Vector>(this->get_right_scaling_vector()),
             a_scaled_smart.get(), b_scaled_smart.get()));
         a_scaled = a_scaled_smart.get();
         b_scaled = b_scaled_smart.get();
@@ -96,8 +99,6 @@ void EnableBatchSolver<ValueType, ConcreteSolver, PolymorphicBase>::apply_impl(c
         b_scaled = dense_b;
     }
 
-    BatchInfo<value_type> info;
-
     // allocate logging arrays assuming uniform size batch
     // GKO_ASSERT(dense_b->stores_equal_sizes());
 
@@ -105,19 +106,22 @@ void EnableBatchSolver<ValueType, ConcreteSolver, PolymorphicBase>::apply_impl(c
     const size_type num_batches = dense_b->get_num_batch_entries();
     batch_dim<> sizes(num_batches, dim<2>{1, num_rhs});
 
-    info.logdata.res_norms =
+    log::BatchLogData<value_type> concrete_logdata;
+    concrete_logdata.res_norms =
         matrix::BatchDense<real_type>::create(this->get_executor(), sizes);
-    info.logdata.iter_counts.set_executor(this->get_executor());
-    info.logdata.iter_counts.resize_and_reset(num_rhs * num_batches);
+    concrete_logdata.iter_counts.set_executor(this->get_executor());
+    concrete_logdata.iter_counts.resize_and_reset(num_rhs * num_batches);
+    BatchInfo info;
+    info.logdata = &concrete_logdata;
 
     this->solver_apply(a_scaled, b_scaled, dense_x, info);
 
     this->template log<log::Logger::batch_solver_completed>(
-        info.logdata.iter_counts, info.logdata.res_norms.get());
+        concrete_logdata.iter_counts, concrete_logdata.res_norms.get());
 
     if (to_scale) {
         exec->run(batch::make_vec_scale(
-            this->get_right_scaling_vector(), dense_x));
+            as<Vector>(this->get_right_scaling_vector()), dense_x));
     }
 }
 
