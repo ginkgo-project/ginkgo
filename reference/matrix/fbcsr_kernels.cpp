@@ -50,10 +50,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/block_sizes.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/base/utils.hpp"
+#include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/fbcsr_builder.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "reference/components/format_conversion.hpp"
 
 
 namespace gko {
@@ -350,6 +351,7 @@ void convert_fbcsr_to_fbcsc(const IndexType num_blk_rows, const int blksz,
 
 template <typename ValueType, typename IndexType, typename UnaryOperator>
 void transpose_and_transform(
+    std::shared_ptr<const ReferenceExecutor> exec,
     matrix::Fbcsr<ValueType, IndexType>* const trans,
     const matrix::Fbcsr<ValueType, IndexType>* const orig, UnaryOperator op)
 {
@@ -365,8 +367,11 @@ void transpose_and_transform(
     const IndexType nbrows = orig->get_num_block_rows();
     auto orig_nbnz = orig_row_ptrs[nbrows];
 
-    trans_row_ptrs[0] = 0;
-    convert_idxs_to_ptrs(orig_col_idxs, orig_nbnz, trans_row_ptrs + 1, nbcols);
+    components::fill_array(exec, trans_row_ptrs, nbcols + 1, IndexType{});
+    for (size_type i = 0; i < orig_nbnz; i++) {
+        trans_row_ptrs[orig_col_idxs[i] + 1]++;
+    }
+    components::prefix_sum(exec, trans_row_ptrs + 1, nbcols);
 
     convert_fbcsr_to_fbcsc<ValueType, IndexType, UnaryOperator, true>(
         nbrows, bs, orig_row_ptrs, orig_col_idxs, orig_vals, trans_col_idxs,
@@ -375,11 +380,12 @@ void transpose_and_transform(
 
 
 template <typename ValueType, typename IndexType>
-void transpose(std::shared_ptr<const ReferenceExecutor>,
+void transpose(std::shared_ptr<const ReferenceExecutor> exec,
                const matrix::Fbcsr<ValueType, IndexType>* const orig,
                matrix::Fbcsr<ValueType, IndexType>* const trans)
 {
-    transpose_and_transform(trans, orig, [](const ValueType x) { return x; });
+    transpose_and_transform(exec, trans, orig,
+                            [](const ValueType x) { return x; });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -387,11 +393,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void conj_transpose(std::shared_ptr<const ReferenceExecutor>,
+void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Fbcsr<ValueType, IndexType>* const orig,
                     matrix::Fbcsr<ValueType, IndexType>* const trans)
 {
-    transpose_and_transform(trans, orig,
+    transpose_and_transform(exec, trans, orig,
                             [](const ValueType x) { return conj(x); });
 }
 

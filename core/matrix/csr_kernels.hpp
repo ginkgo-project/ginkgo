@@ -102,11 +102,6 @@ namespace kernels {
                           const matrix::Csr<ValueType, IndexType>* source, \
                           matrix::Dense<ValueType>* result)
 
-#define GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL(ValueType, IndexType)      \
-    void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,     \
-                        const matrix::Csr<ValueType, IndexType>* source, \
-                        matrix::Coo<ValueType, IndexType>* result)
-
 #define GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL(ValueType, IndexType)      \
     void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,     \
                         const matrix::Csr<ValueType, IndexType>* source, \
@@ -231,8 +226,6 @@ namespace kernels {
     GKO_DECLARE_CSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);        \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);           \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL(ValueType, IndexType);             \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);           \
     template <typename ValueType, typename IndexType>                        \

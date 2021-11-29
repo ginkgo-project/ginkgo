@@ -41,8 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 
 
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
-#include "reference/components/format_conversion.hpp"
 
 
 namespace gko {

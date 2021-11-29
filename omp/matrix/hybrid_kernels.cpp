@@ -42,8 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/format_conversion_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
-#include "omp/components/format_conversion.hpp"
 
 
 namespace gko {
@@ -151,7 +152,8 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
     const auto num_rows = source->get_size()[0];
     auto coo_row_ptrs_array = Array<IndexType>(exec, num_rows + 1);
     auto coo_row_ptrs = coo_row_ptrs_array.get_data();
-    convert_sorted_idxs_to_ptrs(coo_row, coo_nnz, coo_row_ptrs, num_rows);
+    components::convert_idxs_to_ptrs(exec, coo_row, coo_nnz, num_rows,
+                                     coo_row_ptrs);
 
     // Compute the row sizes of Coo without zeros
 #pragma omp parallel for

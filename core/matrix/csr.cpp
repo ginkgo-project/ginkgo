@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 
@@ -67,7 +68,7 @@ GKO_REGISTER_OPERATION(advanced_spgemm, csr::advanced_spgemm);
 GKO_REGISTER_OPERATION(spgeam, csr::spgeam);
 GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, csr::fill_in_matrix_data);
-GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
+GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
 GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
 GKO_REGISTER_OPERATION(calculate_total_cols, csr::calculate_total_cols);
@@ -187,7 +188,8 @@ void Csr<ValueType, IndexType>::convert_to(
         exec, this->get_size(), this->get_num_stored_elements());
     tmp->values_ = this->values_;
     tmp->col_idxs_ = this->col_idxs_;
-    exec->run(csr::make_convert_to_coo(this, tmp.get()));
+    exec->run(csr::make_convert_ptrs_to_idxs(
+        this->get_const_row_ptrs(), this->get_size()[0], tmp->get_row_idxs()));
     tmp->move_to(result);
 }
 
