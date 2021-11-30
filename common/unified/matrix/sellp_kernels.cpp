@@ -115,6 +115,35 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_FILL_IN_MATRIX_DATA_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
+                   const matrix::Sellp<ValueType, IndexType>* source,
+                   matrix::Dense<ValueType>* result)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto slice_size, auto slice_sets, auto cols,
+                      auto values, auto result) {
+            const auto slice = row / slice_size;
+            const auto local_row = row % slice_size;
+            const auto slice_begin = slice_sets[slice];
+            const auto slice_end = slice_sets[slice + 1];
+            const auto slice_length = slice_end - slice_begin;
+            auto in_idx = slice_begin * slice_size + local_row;
+            for (int64 i = 0; i < slice_length; i++) {
+                result(row, cols[in_idx]) += values[in_idx];
+                in_idx += slice_size;
+            }
+        },
+        source->get_size()[0], source->get_slice_size(),
+        source->get_const_slice_sets(), source->get_const_col_idxs(),
+        source->get_const_values(), result);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SELLP_FILL_IN_DENSE_KERNEL);
+
+
 }  // namespace sellp
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

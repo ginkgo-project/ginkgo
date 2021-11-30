@@ -63,7 +63,7 @@ GKO_REGISTER_OPERATION(advanced_spmv, ell::advanced_spmv);
 GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
 GKO_REGISTER_OPERATION(compute_max_row_nnz, ell::compute_max_row_nnz);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, ell::fill_in_matrix_data);
-GKO_REGISTER_OPERATION(convert_to_dense, ell::convert_to_dense);
+GKO_REGISTER_OPERATION(fill_in_dense, ell::fill_in_dense);
 GKO_REGISTER_OPERATION(convert_to_csr, ell::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, ell::count_nonzeros);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
@@ -157,9 +157,10 @@ template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(ell::make_convert_to_dense(this, tmp.get()));
-    tmp->move_to(result);
+    result->resize(this->get_size());
+    result->fill(zero<ValueType>());
+    exec->run(ell::make_fill_in_dense(
+        this, make_temporary_clone(exec, result).get()));
 }
 
 

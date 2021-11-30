@@ -64,7 +64,7 @@ GKO_REGISTER_OPERATION(spmv2, coo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, coo::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
-GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense);
+GKO_REGISTER_OPERATION(fill_in_dense, coo::fill_in_dense);
 GKO_REGISTER_OPERATION(extract_diagonal, coo::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
@@ -183,9 +183,10 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(coo::make_convert_to_dense(this, tmp.get()));
-    tmp->move_to(result);
+    result->resize(this->get_size());
+    result->fill(zero<ValueType>());
+    exec->run(coo::make_fill_in_dense(
+        this, make_temporary_clone(exec, result).get()));
 }
 
 

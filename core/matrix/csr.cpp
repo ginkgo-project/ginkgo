@@ -69,7 +69,7 @@ GKO_REGISTER_OPERATION(spgeam, csr::spgeam);
 GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, csr::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
-GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense);
+GKO_REGISTER_OPERATION(fill_in_dense, csr::fill_in_dense);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
 GKO_REGISTER_OPERATION(calculate_total_cols, csr::calculate_total_cols);
 GKO_REGISTER_OPERATION(convert_to_ell, csr::convert_to_ell);
@@ -206,7 +206,8 @@ void Csr<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(csr::make_convert_to_dense(this, tmp.get()));
+    tmp->fill(zero<ValueType>());
+    exec->run(csr::make_fill_in_dense(this, tmp.get()));
     tmp->move_to(result);
 }
 

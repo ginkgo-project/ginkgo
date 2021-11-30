@@ -64,6 +64,9 @@ template <typename ValueType, typename IndexType>
 class Ell;
 
 template <typename ValueType, typename IndexType>
+class Fbcsr;
+
+template <typename ValueType, typename IndexType>
 class Hybrid;
 
 template <typename ValueType, typename IndexType>
@@ -123,6 +126,8 @@ class Dense
     friend class Diagonal<ValueType>;
     friend class Ell<ValueType, int32>;
     friend class Ell<ValueType, int64>;
+    friend class Fbcsr<ValueType, int32>;
+    friend class Fbcsr<ValueType, int64>;
     friend class Hybrid<ValueType, int32>;
     friend class Hybrid<ValueType, int64>;
     friend class Sellp<ValueType, int32>;
@@ -988,6 +993,14 @@ protected:
      *        instead of compute_norm1(LinOp *result).
      */
     virtual void compute_norm1_impl(LinOp* result) const;
+
+    /**
+     * Resizes the matrix to the given size.
+     *
+     * If the new size matches the current size, the stride will be left
+     * unchanged, otherwise it will be set to the number of columns.
+     */
+    void resize(gko::dim<2> new_size);
 
     /**
      * @copydoc create_submatrix(const span, const span, const size_type)

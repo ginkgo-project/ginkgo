@@ -76,10 +76,10 @@ namespace kernels {
         const Array<matrix_data_entry<ValueType, IndexType>>& data,      \
         const int64* row_ptrs, matrix::Ell<ValueType, IndexType>* output)
 
-#define GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
-    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,     \
-                          const matrix::Ell<ValueType, IndexType>* source, \
-                          matrix::Dense<ValueType>* result)
+#define GKO_DECLARE_ELL_FILL_IN_DENSE_KERNEL(ValueType, IndexType)      \
+    void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,     \
+                       const matrix::Ell<ValueType, IndexType>* source, \
+                       matrix::Dense<ValueType>* result)
 
 #define GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
     void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,     \
@@ -117,7 +117,7 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);        \
     template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);           \
+    GKO_DECLARE_ELL_FILL_IN_DENSE_KERNEL(ValueType, IndexType);              \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);             \
     template <typename ValueType, typename IndexType>                        \

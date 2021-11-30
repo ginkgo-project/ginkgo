@@ -115,51 +115,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Sellp<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)
-{
-    const auto num_rows = source->get_size()[0];
-    const auto num_cols = source->get_size()[1];
-    const auto vals = source->get_const_values();
-    const auto col_idxs = source->get_const_col_idxs();
-    const auto slice_lengths = source->get_const_slice_lengths();
-    const auto slice_sets = source->get_const_slice_sets();
-    const auto slice_size = source->get_slice_size();
-
-    const auto slice_num = ceildiv(num_rows, slice_size);
-
-    const dim3 block_size(config::warp_size,
-                          config::max_block_size / config::warp_size, 1);
-    const dim3 init_grid_dim(ceildiv(num_cols, block_size.x),
-                             ceildiv(num_rows, block_size.y), 1);
-
-    if (num_rows > 0 && result->get_stride() > 0) {
-        hipLaunchKernelGGL(kernel::initialize_zero_dense, dim3(init_grid_dim),
-                           dim3(block_size), 0, 0, num_rows, num_cols,
-                           result->get_stride(),
-                           as_hip_type(result->get_values()));
-    }
-
-    constexpr auto threads_per_row = config::warp_size;
-    const auto grid_dim =
-        ceildiv(slice_size * slice_num * threads_per_row, default_block_size);
-
-    if (grid_dim > 0) {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(kernel::fill_in_dense<threads_per_row>),
-            dim3(grid_dim), dim3(default_block_size), 0, 0, num_rows, num_cols,
-            result->get_stride(), slice_size, as_hip_type(slice_lengths),
-            as_hip_type(slice_sets), as_hip_type(col_idxs), as_hip_type(vals),
-            as_hip_type(result->get_values()));
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SELLP_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
                     const matrix::Sellp<ValueType, IndexType>* source,
                     matrix::Csr<ValueType, IndexType>* result)

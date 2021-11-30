@@ -190,38 +190,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)
-{
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-    const auto stride = result->get_stride();
-
-    const auto nnz = source->get_num_stored_elements();
-
-    const dim3 block_size(config::warp_size,
-                          config::max_block_size / config::warp_size, 1);
-    const dim3 init_grid_dim(ceildiv(num_cols, block_size.x),
-                             ceildiv(num_rows, block_size.y), 1);
-    hipLaunchKernelGGL(kernel::initialize_zero_dense, dim3(init_grid_dim),
-                       dim3(block_size), 0, 0, num_rows, num_cols, stride,
-                       as_hip_type(result->get_values()));
-
-    const auto grid_dim = ceildiv(nnz, default_block_size);
-    hipLaunchKernelGGL(kernel::fill_in_dense, dim3(grid_dim),
-                       dim3(default_block_size), 0, 0, nnz,
-                       as_hip_type(source->get_const_row_idxs()),
-                       as_hip_type(source->get_const_col_idxs()),
-                       as_hip_type(source->get_const_values()), stride,
-                       as_hip_type(result->get_values()));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL);
-
-
 }  // namespace coo
 }  // namespace hip
 }  // namespace kernels

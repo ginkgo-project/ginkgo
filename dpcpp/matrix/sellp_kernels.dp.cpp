@@ -138,72 +138,6 @@ GKO_ENABLE_DEFAULT_HOST(advanced_spmv_kernel, advanced_spmv_kernel);
 namespace kernel {
 
 
-template <typename ValueType>
-void initialize_zero_dense(size_type num_rows, size_type num_cols,
-                           size_type stride, ValueType* __restrict__ result,
-                           sycl::nd_item<3> item_ct1)
-{
-    const auto tidx_x =
-        item_ct1.get_local_id(2) +
-        item_ct1.get_local_range().get(2) * item_ct1.get_group(2);
-    const auto tidx_y =
-        item_ct1.get_local_id(1) +
-        item_ct1.get_local_range().get(1) * item_ct1.get_group(1);
-    if (tidx_x < num_cols && tidx_y < num_rows) {
-        result[tidx_y * stride + tidx_x] = zero<ValueType>();
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(initialize_zero_dense, initialize_zero_dense);
-
-
-template <unsigned int threads_per_row, typename ValueType, typename IndexType>
-void fill_in_dense(size_type num_rows, size_type num_cols, size_type stride,
-                   size_type slice_size,
-                   const size_type* __restrict__ slice_lengths,
-                   const size_type* __restrict__ slice_sets,
-                   const IndexType* __restrict__ col_idxs,
-                   const ValueType* __restrict__ values,
-                   ValueType* __restrict__ result, sycl::nd_item<3> item_ct1)
-{
-    const auto global_row =
-        thread::get_subwarp_id_flat<threads_per_row>(item_ct1);
-    const auto row = global_row % slice_size;
-    const auto slice = global_row / slice_size;
-    const auto start_index = item_ct1.get_local_id(2) % threads_per_row;
-
-    if (global_row < num_rows) {
-        for (auto i = start_index; i < slice_lengths[slice];
-             i += threads_per_row) {
-            if (values[(slice_sets[slice] + i) * slice_size + row] !=
-                zero<ValueType>()) {
-                result[global_row * stride +
-                       col_idxs[(slice_sets[slice] + i) * slice_size + row]] =
-                    values[(slice_sets[slice] + i) * slice_size + row];
-            }
-        }
-    }
-}
-
-template <unsigned int threads_per_row, typename ValueType, typename IndexType>
-void fill_in_dense(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                   sycl::queue* queue, size_type num_rows, size_type num_cols,
-                   size_type stride, size_type slice_size,
-                   const size_type* slice_lengths, const size_type* slice_sets,
-                   const IndexType* col_idxs, const ValueType* values,
-                   ValueType* result)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                fill_in_dense<threads_per_row>(
-                    num_rows, num_cols, stride, slice_size, slice_lengths,
-                    slice_sets, col_idxs, values, result, item_ct1);
-            });
-    });
-}
-
-
 template <typename ValueType, typename IndexType>
 void count_nnz_per_row(size_type num_rows, size_type slice_size,
                        const size_type* __restrict__ slice_sets,
@@ -352,48 +286,6 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Sellp<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)
-{
-    const auto num_rows = source->get_size()[0];
-    const auto num_cols = source->get_size()[1];
-    const auto vals = source->get_const_values();
-    const auto col_idxs = source->get_const_col_idxs();
-    const auto slice_lengths = source->get_const_slice_lengths();
-    const auto slice_sets = source->get_const_slice_sets();
-    const auto slice_size = source->get_slice_size();
-
-    const auto slice_num = ceildiv(num_rows, slice_size);
-
-    const dim3 block_size(config::warp_size,
-                          config::max_block_size / config::warp_size, 1);
-    const dim3 init_grid_dim(ceildiv(num_cols, block_size.x),
-                             ceildiv(num_rows, block_size.y), 1);
-
-    if (num_rows > 0 && result->get_stride() > 0) {
-        kernel::initialize_zero_dense(
-            init_grid_dim, block_size, 0, exec->get_queue(), num_rows, num_cols,
-            result->get_stride(), result->get_values());
-    }
-
-    constexpr auto threads_per_row = config::warp_size;
-    const auto grid_dim =
-        ceildiv(slice_size * slice_num * threads_per_row, default_block_size);
-
-    if (grid_dim > 0) {
-        kernel::fill_in_dense<threads_per_row>(
-            grid_dim, default_block_size, 0, exec->get_queue(), num_rows,
-            num_cols, result->get_stride(), slice_size, slice_lengths,
-            slice_sets, col_idxs, vals, result->get_values());
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SELLP_CONVERT_TO_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

@@ -223,42 +223,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
-                      const matrix::Sellp<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)
-{
-    auto num_rows = source->get_size()[0];
-    auto num_cols = source->get_size()[1];
-    auto vals = source->get_const_values();
-    auto col_idxs = source->get_const_col_idxs();
-    auto slice_lengths = source->get_const_slice_lengths();
-    auto slice_sets = source->get_const_slice_sets();
-    auto slice_size = source->get_slice_size();
-    auto slice_num =
-        ceildiv(source->get_size()[0] + slice_size - 1, slice_size);
-#pragma omp parallel for collapse(2)
-    for (size_type slice = 0; slice < slice_num; slice++) {
-        for (size_type row = 0; row < slice_size; row++) {
-            size_type global_row = slice * slice_size + row;
-            if (global_row < num_rows) {
-                for (size_type col = 0; col < num_cols; col++) {
-                    result->at(global_row, col) = zero<ValueType>();
-                }
-                for (size_type i = slice_sets[slice]; i < slice_sets[slice + 1];
-                     i++) {
-                    result->at(global_row, col_idxs[row + i * slice_size]) +=
-                        vals[row + i * slice_size];
-                }
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SELLP_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Sellp<ValueType, IndexType>* source,
                     matrix::Csr<ValueType, IndexType>* result)

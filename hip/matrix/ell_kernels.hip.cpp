@@ -291,38 +291,6 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)
-{
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-    const auto result_stride = result->get_stride();
-    const auto col_idxs = source->get_const_col_idxs();
-    const auto vals = source->get_const_values();
-    const auto source_stride = source->get_stride();
-
-    const dim3 block_size(config::warp_size,
-                          config::max_block_size / config::warp_size, 1);
-    const dim3 init_grid_dim(ceildiv(num_cols, block_size.x),
-                             ceildiv(num_rows, block_size.y), 1);
-    hipLaunchKernelGGL(kernel::initialize_zero_dense, dim3(init_grid_dim),
-                       dim3(block_size), 0, 0, num_rows, num_cols,
-                       result_stride, as_hip_type(result->get_values()));
-
-    const auto grid_dim = ceildiv(num_rows, default_block_size);
-    hipLaunchKernelGGL(kernel::fill_in_dense, dim3(grid_dim),
-                       dim3(default_block_size), 0, 0, num_rows,
-                       source->get_num_stored_elements_per_row(), source_stride,
-                       as_hip_type(col_idxs), as_hip_type(vals), result_stride,
-                       as_hip_type(result->get_values()));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
                     const matrix::Ell<ValueType, IndexType>* source,
                     matrix::Csr<ValueType, IndexType>* result)

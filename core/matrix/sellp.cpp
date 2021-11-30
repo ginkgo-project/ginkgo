@@ -60,7 +60,7 @@ GKO_REGISTER_OPERATION(advanced_spmv, sellp::advanced_spmv);
 GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
 GKO_REGISTER_OPERATION(compute_slice_sets, sellp::compute_slice_sets);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, sellp::fill_in_matrix_data);
-GKO_REGISTER_OPERATION(convert_to_dense, sellp::convert_to_dense);
+GKO_REGISTER_OPERATION(fill_in_dense, sellp::fill_in_dense);
 GKO_REGISTER_OPERATION(convert_to_csr, sellp::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, sellp::count_nonzeros);
 GKO_REGISTER_OPERATION(extract_diagonal, sellp::extract_diagonal);
@@ -125,9 +125,10 @@ template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(sellp::make_convert_to_dense(this, tmp.get()));
-    tmp->move_to(result);
+    result->resize(this->get_size());
+    result->fill(zero<ValueType>());
+    exec->run(sellp::make_fill_in_dense(
+        this, make_temporary_clone(exec, result).get()));
 }
 
 

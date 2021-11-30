@@ -68,7 +68,7 @@ GKO_REGISTER_OPERATION(spmv, fbcsr::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, fbcsr::advanced_spmv);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, fbcsr::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_csr, fbcsr::convert_to_csr);
-GKO_REGISTER_OPERATION(convert_to_dense, fbcsr::convert_to_dense);
+GKO_REGISTER_OPERATION(fill_in_dense, fbcsr::fill_in_dense);
 GKO_REGISTER_OPERATION(transpose, fbcsr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, fbcsr::conj_transpose);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
@@ -159,9 +159,10 @@ void Fbcsr<ValueType, IndexType>::convert_to(
     Dense<ValueType>* const result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(fbcsr::make_convert_to_dense(this, tmp.get()));
-    tmp->move_to(result);
+    result->resize(this->get_size());
+    result->fill(zero<ValueType>());
+    exec->run(fbcsr::make_fill_in_dense(
+        this, make_temporary_clone(exec, result).get()));
 }
 
 
