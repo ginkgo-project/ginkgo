@@ -178,11 +178,10 @@ void Fbcsr<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType>* const result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, this->get_size(), this->get_num_stored_elements(),
-        result->get_strategy());
-    exec->run(fbcsr::make_convert_to_csr(this, tmp.get()));
-    tmp->move_to(result);
+    result->resize(this->get_size(), this->get_num_stored_elements());
+    exec->run(fbcsr::make_convert_to_csr(
+        this, make_temporary_clone(exec, result).get()));
+    result->make_srow();
 }
 
 

@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 
 
@@ -65,11 +66,10 @@ GKO_REGISTER_OPERATION(compute_max_row_nnz, ell::compute_max_row_nnz);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, ell::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(fill_in_dense, ell::fill_in_dense);
 GKO_REGISTER_OPERATION(convert_to_csr, ell::convert_to_csr);
-GKO_REGISTER_OPERATION(count_nonzeros, ell::count_nonzeros);
-GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
-                       ell::calculate_nonzeros_per_row);
+GKO_REGISTER_OPERATION(count_nonzeros_per_row, ell::count_nonzeros_per_row);
 GKO_REGISTER_OPERATION(extract_diagonal, ell::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
@@ -78,32 +78,6 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 }  // anonymous namespace
 }  // namespace ell
-
-
-namespace {
-
-
-template <typename ValueType, typename IndexType>
-size_type calculate_max_nnz_per_row(
-    const matrix_data<ValueType, IndexType>& data)
-{
-    size_type nnz = 0;
-    IndexType current_row = 0;
-    size_type num_stored_elements_per_row = 0;
-    for (const auto& elem : data.nonzeros) {
-        if (elem.row != current_row) {
-            current_row = elem.row;
-            num_stored_elements_per_row =
-                std::max(num_stored_elements_per_row, nnz);
-            nnz = 0;
-        }
-        nnz += (elem.value != zero<ValueType>());
-    }
-    return std::max(num_stored_elements_per_row, nnz);
-}
-
-
-}  // namespace
 
 
 template <typename ValueType, typename IndexType>
@@ -176,16 +150,26 @@ void Ell<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
+    const auto num_rows = this->get_size()[0];
 
-    size_type num_stored_elements = 0;
-    exec->run(ell::make_count_nonzeros(this, &num_stored_elements));
+    Array<IndexType> row_ptrs{exec, num_rows + 1};
 
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, this->get_size(), num_stored_elements, result->get_strategy());
-    exec->run(ell::make_convert_to_csr(this, tmp.get()));
+    exec->run(ell::make_count_nonzeros_per_row(this, row_ptrs.get_data()));
+    exec->run(ell::make_prefix_sum(row_ptrs.get_data(), num_rows + 1));
 
-    tmp->make_srow();
-    tmp->move_to(result);
+    const auto nnz = static_cast<size_type>(
+        exec->copy_val_to_host(row_ptrs.get_const_data() + num_rows));
+
+    result->row_ptrs_ = row_ptrs;
+    result->resize(this->get_size(), nnz);
+
+    {
+        auto tmp = make_temporary_clone(exec, result);
+        tmp->row_ptrs_ = row_ptrs;
+        exec->run(ell::make_convert_to_csr(
+            this, make_temporary_clone(exec, result).get()));
+    }
+    result->make_srow();
 }
 
 

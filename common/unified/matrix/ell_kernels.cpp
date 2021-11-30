@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
+#include "core/matrix/dense_kernels.hpp"
 
 
 namespace gko {
@@ -124,6 +125,59 @@ void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_FILL_IN_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Ell<ValueType, IndexType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
+{
+    // ELL is stored in column-major, so we swap row and column parameters
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto ell_col, auto row, auto ell_stride, auto in_cols,
+                      auto in_vals, auto out_row_ptrs, auto out_cols,
+                      auto out_vals) {
+            const auto ell_idx = ell_col * ell_stride + row;
+            const auto row_begin = out_row_ptrs[row];
+            const auto row_size = out_row_ptrs[row + 1] - row_begin;
+            if (ell_col < row_size) {
+                out_cols[row_begin + ell_col] = in_cols[ell_idx];
+                out_vals[row_begin + ell_col] = in_vals[ell_idx];
+            }
+        },
+        dim<2>{source->get_num_stored_elements_per_row(),
+               source->get_size()[0]},
+        static_cast<int64>(source->get_stride()), source->get_const_col_idxs(),
+        source->get_const_values(), result->get_row_ptrs(),
+        result->get_col_idxs(), result->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
+                            const matrix::Ell<ValueType, IndexType>* source,
+                            IndexType* result)
+{
+    // ELL is stored in column-major, so we swap row and column parameters
+    run_kernel_col_reduction(
+        exec,
+        [] GKO_KERNEL(auto ell_col, auto row, auto ell_stride, auto in_vals) {
+            const auto ell_idx = ell_col * ell_stride + row;
+            return is_nonzero(in_vals[ell_idx]) ? 1 : 0;
+        },
+        [] GKO_KERNEL(auto a, auto b) { return a + b; },
+        [] GKO_KERNEL(auto a) { return a; }, IndexType{}, result,
+        dim<2>{source->get_num_stored_elements_per_row(),
+               source->get_size()[0]},
+        static_cast<int64>(source->get_stride()), source->get_const_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_COUNT_NONZEROS_PER_ROW_KERNEL);
 
 
 }  // namespace ell

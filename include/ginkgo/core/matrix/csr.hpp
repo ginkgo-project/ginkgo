@@ -65,6 +65,9 @@ template <typename ValueType, typename IndexType>
 class Csr;
 
 template <typename ValueType, typename IndexType>
+class Fbcsr;
+
+template <typename ValueType, typename IndexType>
 class CsrBuilder;
 
 
@@ -141,6 +144,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class Hybrid<ValueType, IndexType>;
     friend class Sellp<ValueType, IndexType>;
     friend class SparsityCsr<ValueType, IndexType>;
+    friend class Fbcsr<ValueType, IndexType>;
     friend class CsrBuilder<ValueType, IndexType>;
     friend class Csr<to_complex<ValueType>, IndexType>;
 
@@ -1028,6 +1032,8 @@ protected:
         GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_num_elems());
         this->make_srow();
     }
+
+    void resize(gko::dim<2> new_size, size_type nnz);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

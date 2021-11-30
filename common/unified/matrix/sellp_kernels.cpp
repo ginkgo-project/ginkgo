@@ -144,6 +144,40 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_FILL_IN_DENSE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Sellp<ValueType, IndexType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto slice_size, auto slice_sets, auto cols,
+                      auto values, auto out_row_ptrs, auto out_cols,
+                      auto out_vals) {
+            const auto row_begin = out_row_ptrs[row];
+            const auto row_end = out_row_ptrs[row + 1];
+            const auto slice = row / slice_size;
+            const auto local_row = row % slice_size;
+            const auto slice_begin = slice_sets[slice];
+            const auto slice_end = slice_sets[slice + 1];
+            const auto slice_length = slice_end - slice_begin;
+            auto in_idx = slice_begin * slice_size + local_row;
+            for (auto i = row_begin; i < row_end; i++) {
+                out_cols[i] = cols[in_idx];
+                out_vals[i] = values[in_idx];
+                in_idx += slice_size;
+            }
+        },
+        source->get_size()[0], source->get_slice_size(),
+        source->get_const_slice_sets(), source->get_const_col_idxs(),
+        source->get_const_values(), result->get_row_ptrs(),
+        result->get_col_idxs(), result->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SELLP_CONVERT_TO_CSR_KERNEL);
+
+
 }  // namespace sellp
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

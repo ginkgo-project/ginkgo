@@ -149,16 +149,15 @@ void Coo<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, this->get_size(), this->get_num_stored_elements(),
-        result->get_strategy());
-    tmp->values_ = this->values_;
-    tmp->col_idxs_ = this->col_idxs_;
+    result->set_size(this->get_size());
+    result->row_ptrs_.resize_and_reset(this->get_size()[0] + 1);
+    result->col_idxs_ = this->col_idxs_;
+    result->values_ = this->values_;
     exec->run(coo::make_convert_idxs_to_ptrs(
         this->get_const_row_idxs(), this->get_num_stored_elements(),
-        this->get_size()[0], tmp->get_row_ptrs()));
-    tmp->make_srow();
-    tmp->move_to(result);
+        this->get_size()[0],
+        make_temporary_clone(exec, &result->row_ptrs_)->get_data()));
+    result->make_srow();
 }
 
 
@@ -167,15 +166,14 @@ void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType>* result)
 {
     auto exec = this->get_executor();
     const auto nnz = this->get_num_stored_elements();
-    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size(), nnz,
-                                                 result->get_strategy());
-    tmp->values_ = std::move(this->values_);
-    tmp->col_idxs_ = std::move(this->col_idxs_);
-    exec->run(coo::make_convert_idxs_to_ptrs(this->get_const_row_idxs(), nnz,
-                                             this->get_size()[0],
-                                             tmp->get_row_ptrs()));
-    tmp->make_srow();
-    tmp->move_to(result);
+    result->set_size(this->get_size());
+    result->row_ptrs_.resize_and_reset(this->get_size()[0] + 1);
+    result->col_idxs_ = std::move(this->col_idxs_);
+    result->values_ = std::move(this->values_);
+    exec->run(coo::make_convert_idxs_to_ptrs(
+        this->get_const_row_idxs(), nnz, this->get_size()[0],
+        make_temporary_clone(exec, &result->row_ptrs_)->get_data()));
+    result->make_srow();
 }
 
 

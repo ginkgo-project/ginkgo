@@ -246,38 +246,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Ell<ValueType, IndexType>* source,
-                    size_type* result)
-{
-    size_type nonzeros = 0;
-    const auto num_rows = source->get_size()[0];
-    const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
-    const auto stride = source->get_stride();
-
-    for (size_type row = 0; row < num_rows; row++) {
-        for (size_type i = 0; i < max_nnz_per_row; i++) {
-            nonzeros += (source->val_at(row, i) != zero<ValueType>());
-        }
-    }
-
-    *result = nonzeros;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
-                                const matrix::Ell<ValueType, IndexType>* source,
-                                Array<size_type>* result)
+void count_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
+                            const matrix::Ell<ValueType, IndexType>* source,
+                            IndexType* result)
 {
     const auto num_rows = source->get_size()[0];
     const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
     const auto stride = source->get_stride();
-
-    auto row_nnz_val = result->get_data();
 
     for (size_type row = 0; row < num_rows; row++) {
         size_type nonzeros_in_this_row = 0;
@@ -285,12 +260,12 @@ void calculate_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
             nonzeros_in_this_row +=
                 (source->val_at(row, i) != zero<ValueType>());
         }
-        row_nnz_val[row] = nonzeros_in_this_row;
+        result[row] = nonzeros_in_this_row;
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL);
+    GKO_DECLARE_ELL_COUNT_NONZEROS_PER_ROW_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

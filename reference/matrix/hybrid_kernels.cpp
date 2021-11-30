@@ -106,6 +106,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Hybrid<ValueType, IndexType>* source,
+                    const IndexType*, const IndexType*,
                     matrix::Csr<ValueType, IndexType>* result)
 {
     auto csr_val = result->get_values();
@@ -143,27 +144,6 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_HYBRID_CONVERT_TO_CSR_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Hybrid<ValueType, IndexType>* source,
-                    size_type* result)
-{
-    size_type ell_nnz = 0;
-    size_type coo_nnz = 0;
-    gko::kernels::reference::ell::count_nonzeros(exec, source->get_ell(),
-                                                 &ell_nnz);
-    const auto coo_val = source->get_const_coo_values();
-    const auto coo_max_nnz = source->get_coo_num_stored_elements();
-    for (size_type ind = 0; ind < coo_max_nnz; ind++) {
-        coo_nnz += (coo_val[ind] != zero<ValueType>());
-    }
-    *result = ell_nnz + coo_nnz;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_HYBRID_COUNT_NONZEROS_KERNEL);
 
 
 }  // namespace hybrid

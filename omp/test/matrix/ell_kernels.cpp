@@ -518,20 +518,6 @@ TEST_F(Ell, AdvancedApplyToComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, CountNonzerosIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    gko::size_type nnz;
-    gko::size_type dnnz;
-
-    gko::kernels::reference::ell::count_nonzeros(ref, mtx.get(), &nnz);
-    gko::kernels::omp::ell::count_nonzeros(omp, dmtx.get(), &dnnz);
-
-    ASSERT_EQ(nnz, dnnz);
-}
-
-
 TEST_F(Ell, ExtractDiagonalIsEquivalentToRef)
 {
     set_up_apply_data();

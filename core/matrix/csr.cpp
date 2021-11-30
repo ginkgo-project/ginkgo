@@ -369,6 +369,16 @@ void Csr<ValueType, IndexType>::write(mat_data& data) const
 
 
 template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::resize(gko::dim<2> new_size, size_type nnz)
+{
+    this->set_size(new_size);
+    this->row_ptrs_.resize_and_reset(new_size[0] + 1);
+    this->col_idxs_.resize_and_reset(nnz);
+    this->values_.resize_and_reset(nnz);
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::transpose() const
 {
     auto exec = this->get_executor();

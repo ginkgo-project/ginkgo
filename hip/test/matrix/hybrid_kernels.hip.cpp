@@ -210,19 +210,6 @@ TEST_F(Hybrid, AdvancedApplyToComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Hybrid, CountNonzerosIsEquivalentToRef)
-{
-    set_up_apply_data();
-    gko::size_type nonzeros;
-    gko::size_type dnonzeros;
-
-    gko::kernels::reference::hybrid::count_nonzeros(ref, mtx.get(), &nonzeros);
-    gko::kernels::hip::hybrid::count_nonzeros(hip, dmtx.get(), &dnonzeros);
-
-    ASSERT_EQ(nonzeros, dnonzeros);
-}
-
-
 TEST_F(Hybrid, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data(1, std::make_shared<Mtx::column_limit>(2));
