@@ -48,6 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
@@ -64,11 +66,13 @@ GKO_REGISTER_OPERATION(compute_row_nnz, hybrid::compute_row_nnz);
 GKO_REGISTER_OPERATION(split_matrix_data, hybrid::split_matrix_data);
 GKO_REGISTER_OPERATION(ell_fill_in_dense, ell::fill_in_dense);
 GKO_REGISTER_OPERATION(coo_fill_in_dense, coo::fill_in_dense);
+GKO_REGISTER_OPERATION(ell_extract_diagonal, ell::extract_diagonal);
+GKO_REGISTER_OPERATION(coo_extract_diagonal, coo::extract_diagonal);
+GKO_REGISTER_OPERATION(ell_count_nonzeros_per_row, ell::count_nonzeros_per_row);
+GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(convert_to_csr, hybrid::convert_to_csr);
-GKO_REGISTER_OPERATION(count_nonzeros, hybrid::count_nonzeros);
-GKO_REGISTER_OPERATION(extract_coo_diagonal, coo::extract_diagonal);
-GKO_REGISTER_OPERATION(extract_ell_diagonal, ell::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
@@ -156,16 +160,29 @@ void Hybrid<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
+    const auto num_rows = this->get_size()[0];
 
-    size_type num_stored_elements = 0;
-    exec->run(hybrid::make_count_nonzeros(this, &num_stored_elements));
+    Array<IndexType> ell_row_ptrs{exec, num_rows + 1};
+    Array<IndexType> coo_row_ptrs{exec, num_rows + 1};
 
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, this->get_size(), num_stored_elements, result->get_strategy());
-    exec->run(hybrid::make_convert_to_csr(this, tmp.get()));
+    exec->run(hybrid::make_ell_count_nonzeros_per_row(this->get_ell(),
+                                                      ell_row_ptrs.get_data()));
+    exec->run(hybrid::make_prefix_sum(ell_row_ptrs.get_data(), num_rows + 1));
+    exec->run(hybrid::make_convert_idxs_to_ptrs(
+        this->get_const_coo_row_idxs(), this->get_coo_num_stored_elements(),
+        num_rows, coo_row_ptrs.get_data()));
 
-    tmp->make_srow();
-    tmp->move_to(result);
+    const auto nnz = static_cast<size_type>(
+        exec->copy_val_to_host(ell_row_ptrs.get_const_data() + num_rows) +
+        exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows));
+
+    result->resize(this->get_size(), nnz);
+
+    exec->run(hybrid::make_convert_to_csr(
+        this, ell_row_ptrs.get_const_data(), coo_row_ptrs.get_const_data(),
+        make_temporary_clone(exec, result).get()));
+
+    result->make_srow();
 }
 
 
@@ -252,8 +269,8 @@ Hybrid<ValueType, IndexType>::extract_diagonal() const
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(hybrid::make_fill_array(diag->get_values(), diag->get_size()[0],
                                       zero<ValueType>()));
-    exec->run(hybrid::make_extract_ell_diagonal(this->get_ell(), lend(diag)));
-    exec->run(hybrid::make_extract_coo_diagonal(this->get_coo(), lend(diag)));
+    exec->run(hybrid::make_ell_extract_diagonal(this->get_ell(), lend(diag)));
+    exec->run(hybrid::make_coo_extract_diagonal(this->get_coo(), lend(diag)));
     return diag;
 }
 

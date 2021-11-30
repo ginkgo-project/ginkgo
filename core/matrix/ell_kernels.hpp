@@ -86,45 +86,36 @@ namespace kernels {
                         const matrix::Ell<ValueType, IndexType>* source, \
                         matrix::Csr<ValueType, IndexType>* result)
 
-#define GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL(ValueType, IndexType)      \
-    void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec,     \
-                        const matrix::Ell<ValueType, IndexType>* source, \
-                        size_type* result)
-
-#define GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, \
-                                                          IndexType) \
-    void calculate_nonzeros_per_row(                                 \
-        std::shared_ptr<const DefaultExecutor> exec,                 \
-        const matrix::Ell<ValueType, IndexType>* source,             \
-        Array<size_type>* result)
+#define GKO_DECLARE_ELL_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType) \
+    void count_nonzeros_per_row(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        const matrix::Ell<ValueType, IndexType>* source, IndexType* result)
 
 #define GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)    \
     void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,   \
                           const matrix::Ell<ValueType, IndexType>* orig, \
                           matrix::Diagonal<ValueType>* diag)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
-    template <typename InputValueType, typename MatrixValueType,             \
-              typename OutputValueType, typename IndexType>                  \
-    GKO_DECLARE_ELL_SPMV_KERNEL(InputValueType, MatrixValueType,             \
-                                OutputValueType, IndexType);                 \
-    template <typename InputValueType, typename MatrixValueType,             \
-              typename OutputValueType, typename IndexType>                  \
-    GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(InputValueType, MatrixValueType,    \
-                                         OutputValueType, IndexType);        \
-    template <typename IndexType>                                            \
-    GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL(IndexType);                   \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_ELL_FILL_IN_DENSE_KERNEL(ValueType, IndexType);              \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                        \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
+    template <typename InputValueType, typename MatrixValueType,          \
+              typename OutputValueType, typename IndexType>               \
+    GKO_DECLARE_ELL_SPMV_KERNEL(InputValueType, MatrixValueType,          \
+                                OutputValueType, IndexType);              \
+    template <typename InputValueType, typename MatrixValueType,          \
+              typename OutputValueType, typename IndexType>               \
+    GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(InputValueType, MatrixValueType, \
+                                         OutputValueType, IndexType);     \
+    template <typename IndexType>                                         \
+    GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL(IndexType);                \
+    template <typename ValueType, typename IndexType>                     \
+    GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                     \
+    GKO_DECLARE_ELL_FILL_IN_DENSE_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                     \
+    GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>                     \
+    GKO_DECLARE_ELL_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>                     \
     GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)
 
 

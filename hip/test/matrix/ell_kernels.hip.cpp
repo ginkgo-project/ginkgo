@@ -559,37 +559,15 @@ TEST_F(Ell, CalculateNNZPerRowIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    gko::Array<gko::size_type> nnz_per_row;
-    nnz_per_row.set_executor(ref);
-    nnz_per_row.resize_and_reset(mtx->get_size()[0]);
+    gko::Array<int> nnz_per_row{ref, mtx->get_size()[0]};
+    gko::Array<int> dnnz_per_row{hip, dmtx->get_size()[0]};
 
-    gko::Array<gko::size_type> dnnz_per_row;
-    dnnz_per_row.set_executor(hip);
-    dnnz_per_row.resize_and_reset(dmtx->get_size()[0]);
+    gko::kernels::reference::ell::count_nonzeros_per_row(
+        ref, mtx.get(), nnz_per_row.get_data());
+    gko::kernels::hip::ell::count_nonzeros_per_row(hip, dmtx.get(),
+                                                   dnnz_per_row.get_data());
 
-    gko::kernels::reference::ell::calculate_nonzeros_per_row(ref, mtx.get(),
-                                                             &nnz_per_row);
-    gko::kernels::hip::ell::calculate_nonzeros_per_row(hip, dmtx.get(),
-                                                       &dnnz_per_row);
-
-    auto tmp = gko::Array<gko::size_type>(ref, dnnz_per_row);
-    for (auto i = 0; i < nnz_per_row.get_num_elems(); i++) {
-        ASSERT_EQ(nnz_per_row.get_const_data()[i], tmp.get_const_data()[i]);
-    }
-}
-
-
-TEST_F(Ell, CountNNZIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    gko::size_type nnz;
-    gko::size_type dnnz;
-
-    gko::kernels::reference::ell::count_nonzeros(ref, mtx.get(), &nnz);
-    gko::kernels::hip::ell::count_nonzeros(hip, dmtx.get(), &dnnz);
-
-    ASSERT_EQ(nnz, dnnz);
+    GKO_ASSERT_ARRAY_EQ(nnz_per_row, dnnz_per_row);
 }
 
 

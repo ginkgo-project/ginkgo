@@ -490,17 +490,6 @@ TYPED_TEST(Hybrid, MovesEmptyToCsr)
 }
 
 
-TYPED_TEST(Hybrid, CountsNonzeros)
-{
-    gko::size_type nonzeros;
-
-    gko::kernels::reference::hybrid::count_nonzeros(
-        this->exec, this->mtx1.get(), &nonzeros);
-
-    ASSERT_EQ(nonzeros, 4);
-}
-
-
 TYPED_TEST(Hybrid, AppliesWithStrideToDenseVector)
 {
     using Vec = typename TestFixture::Vec;
