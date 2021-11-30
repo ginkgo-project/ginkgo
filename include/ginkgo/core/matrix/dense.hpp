@@ -48,6 +48,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace distributed {
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+class Vector;
+
+
+}
+
+
 namespace matrix {
 
 
@@ -138,6 +148,9 @@ class Dense
     friend class SparsityCsr<ValueType, int32>;
     friend class SparsityCsr<ValueType, int64>;
     friend class Dense<to_complex<ValueType>>;
+    friend class distributed::Vector<ValueType, int32, int32>;
+    friend class distributed::Vector<ValueType, int32, int64>;
+    friend class distributed::Vector<ValueType, int64, int64>;
 
 public:
     using ReadableFromMatrixData<ValueType, int32>::read;

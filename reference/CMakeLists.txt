@@ -11,6 +11,7 @@ target_sources(ginkgo_reference
     components/precision_conversion_kernels.cpp
     components/prefix_sum_kernels.cpp
     distributed/partition_kernels.cpp
+    distributed/vector_kernels.cpp
     factorization/factorization_kernels.cpp
     factorization/ic_kernels.cpp
     factorization/ilu_kernels.cpp
