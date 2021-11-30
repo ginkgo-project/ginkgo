@@ -184,6 +184,30 @@ using TwoValueIndexType =
 #endif
 
 
+using ValueLocalGlobalIndexTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<std::tuple<float, gko::int32, int32>,
+                     std::tuple<float, gko::int32, int64>,
+                     std::tuple<float, gko::int64, int64>,
+                     std::tuple<std::complex<float>, gko::int32, int32>,
+                     std::tuple<std::complex<float>, gko::int32, int64>,
+                     std::tuple<std::complex<float>, gko::int64, int64>>;
+#else
+    ::testing::Types<std::tuple<float, gko::int32, int32>,
+                     std::tuple<float, gko::int32, int64>,
+                     std::tuple<float, gko::int64, int64>,
+                     std::tuple<double, gko::int32, int32>,
+                     std::tuple<double, gko::int32, int64>,
+                     std::tuple<double, gko::int64, int64>,
+                     std::tuple<std::complex<float>, gko::int32, int32>,
+                     std::tuple<std::complex<float>, gko::int32, int64>,
+                     std::tuple<std::complex<float>, gko::int64, int64>,
+                     std::tuple<std::complex<double>, gko::int32, int32>,
+                     std::tuple<std::complex<double>, gko::int32, int64>,
+                     std::tuple<std::complex<double>, gko::int64, int64>>;
+#endif
+
+
 template <typename Precision, typename OutputType>
 struct reduction_factor {
     using nc_output = remove_complex<OutputType>;
