@@ -65,12 +65,6 @@ public:
     const gko::HipExecutor* get_gpu_exec() const { return gpu_exec_.get(); }
 
 protected:
-    void apply_impl(const gko::LinOp*, const gko::LinOp*, const gko::LinOp*,
-                    gko::LinOp*) const override
-    {
-        GKO_NOT_IMPLEMENTED;
-    }
-
     HipsparseBase(std::shared_ptr<const gko::Executor> exec,
                   const gko::dim<2>& size = gko::dim<2>{})
         : gko::LinOp(exec, size)
@@ -130,6 +124,12 @@ class HipsparseCsr
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
+    using device_mat_data = gko::device_matrix_data<ValueType, IndexType>;
+
+    void read(const device_mat_data& data) override
+    {
+        this->read(data.copy_to_host());
+    }
 
     void read(const mat_data& data) override
     {
@@ -161,6 +161,10 @@ protected:
             &scalars.get_const_data()[1], dx);
     }
 
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta,
+                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
+
     HipsparseCsr(std::shared_ptr<const gko::Executor> exec,
                  const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<HipsparseCsr, HipsparseBase>(exec, size),
@@ -191,6 +195,12 @@ class HipsparseCsrmm
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
+    using device_mat_data = gko::device_matrix_data<ValueType, IndexType>;
+
+    void read(const device_mat_data& data) override
+    {
+        this->read(data.copy_to_host());
+    }
 
     void read(const mat_data& data) override
     {
@@ -222,6 +232,10 @@ protected:
             dense_b->get_size()[0], &scalars.get_const_data()[1], dx,
             dense_x->get_size()[0]);
     }
+
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta,
+                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
 
     HipsparseCsrmm(std::shared_ptr<const gko::Executor> exec,
                    const gko::dim<2>& size = gko::dim<2>{})
@@ -257,6 +271,12 @@ class HipsparseHybrid
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
+    using device_mat_data = gko::device_matrix_data<ValueType, IndexType>;
+
+    void read(const device_mat_data& data) override
+    {
+        this->read(data.copy_to_host());
+    }
 
     void read(const mat_data& data) override
     {
@@ -305,6 +325,10 @@ protected:
             &scalars.get_const_data()[0], this->get_descr(), hyb_, db,
             &scalars.get_const_data()[1], dx);
     }
+
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta,
+                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
 
     HipsparseHybrid(std::shared_ptr<const gko::Executor> exec,
                     const gko::dim<2>& size = gko::dim<2>{})
