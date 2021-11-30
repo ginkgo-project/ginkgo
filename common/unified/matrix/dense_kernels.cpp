@@ -378,6 +378,37 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL_SIZE_T);
 
 
+template <typename ValueType>
+void compute_norm2_sqr(std::shared_ptr<const DefaultExecutor> exec,
+                       const matrix::Dense<ValueType>* x,
+                       matrix::Dense<remove_complex<ValueType>>* result)
+{
+    run_kernel_col_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
+        [] GKO_KERNEL(auto a, auto b) { return a + b; },
+        [] GKO_KERNEL(auto a) { return a; }, remove_complex<ValueType>{},
+        result->get_values(), x->get_size(), x);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_SQR_KERNEL);
+
+
+template <typename ValueType>
+void compute_sqrt(std::shared_ptr<const DefaultExecutor> exec,
+                  matrix::Dense<ValueType>* x)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto x) {
+            x(row, col) = sqrt(x(row, col));
+        },
+        x->get_size(), x);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void symm_permute(std::shared_ptr<const DefaultExecutor> exec,
                   const Array<IndexType>* permutation_indices,
