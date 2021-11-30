@@ -67,7 +67,9 @@ endif()
 
 if (GINKGO_BUILD_MPI)
     target_sources(ginkgo
-        PRIVATE mpi/exception.cpp)
+        PRIVATE
+        mpi/exception.cpp
+        distributed/vector.cpp)
 endif()
 
 ginkgo_compile_features(ginkgo)
