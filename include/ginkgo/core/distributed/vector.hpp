@@ -1,0 +1,334 @@
+/*******************************<GINKGO LICENSE>******************************
+Copyright (c) 2017-2022, the Ginkgo authors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+******************************<GINKGO LICENSE>*******************************/
+
+#ifndef GKO_PUBLIC_CORE_DISTRIBUTED_VECTOR_HPP_
+#define GKO_PUBLIC_CORE_DISTRIBUTED_VECTOR_HPP_
+
+
+#include <ginkgo/config.hpp>
+#include <ginkgo/core/base/mpi.hpp>
+#include <ginkgo/core/distributed/base.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+
+namespace gko {
+namespace distributed {
+
+
+/**
+ * Vector is a format which explicitly stores (multiple) distributed column
+ * vectors in a dense storage format.
+ *
+ * The (multi-)vector is distributed by row, which is described by a @see
+ * Partition. The local vectors are stored using the @see Dense format. The
+ * vector should be filled using the read_distributed method, e.g.
+ * ```
+ * auto part = Partition<...>::build_from_mapping(...);
+ * auto vector = Vector<...>::create(exec, comm);
+ * vector->read_distributed(matrix_data, part);
+ * ```
+ * Using this approach the size of the global vectors, as well as the size of
+ * the local vectors, will be automatically inferred. It is possible to create a
+ * vector with specified global and local sizes and fill the local vectors using
+ * the accessor get_local.
+ *
+ * @tparam ValueType  The precision of vector elements.
+ * @tparam LocalIndexType The index type for local indices used by the
+ * partition.
+ * @tparam GlobalIndexType The index type for the global indices used by the
+ * partition.
+ *
+ * @ingroup dist_vector
+ * @ingroup distributed
+ */
+template <typename ValueType = double, typename LocalIndexType = int32,
+          typename GlobalIndexType = int64>
+class Vector
+    : public EnableLinOp<Vector<ValueType, LocalIndexType, GlobalIndexType>>,
+      public EnableCreateMethod<
+          Vector<ValueType, LocalIndexType, GlobalIndexType>>,
+      public ConvertibleTo<
+          Vector<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
+      public EnableAbsoluteComputation<
+          remove_complex<Vector<ValueType, LocalIndexType, GlobalIndexType>>>,
+      public DistributedBase {
+    friend class EnableCreateMethod<
+        Vector<ValueType, LocalIndexType, GlobalIndexType>>;
+    friend class EnablePolymorphicObject<
+        Vector<ValueType, LocalIndexType, GlobalIndexType>, LinOp>;
+    friend class Vector<to_complex<ValueType>, LocalIndexType, GlobalIndexType>;
+    friend class Vector<next_precision<ValueType>, LocalIndexType,
+                        GlobalIndexType>;
+
+public:
+    using EnableLinOp<Vector>::convert_to;
+    using EnableLinOp<Vector>::move_to;
+
+    using value_type = ValueType;
+    using index_type = GlobalIndexType;
+    using local_index_type = LocalIndexType;
+    using global_index_type = GlobalIndexType;
+    using absolute_type = remove_complex<Vector>;
+    using real_type = absolute_type;
+    using complex_type =
+        Vector<to_complex<value_type>, local_index_type, global_index_type>;
+    using local_mtx_type = gko::matrix::Dense<value_type>;
+
+    /**
+     * Reads a vector from the matrix_data structure and a global row partition.
+     *
+     * The number of rows of the matrix data is ignored, only its number of
+     * columns is relevant. The number of rows is inferred from the partition.
+     *
+     * @note The matrix data can contain entries for rows other than those owned
+     *        by the process. Entries for those rows are discarded.
+     *
+     * @param data  The matrix_data structure
+     * @param partition  The global row partition
+     */
+    void read_distributed(
+        const matrix_data<ValueType, GlobalIndexType>& data,
+        std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+            partition);
+
+    /**
+     * Reads a vector from the device_matrix_data structure and a global row
+     * partition.
+     *
+     * See @read_distributed
+     */
+    void read_distributed(
+        const device_matrix_data<ValueType, GlobalIndexType>& data,
+        std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+            partition);
+
+    void convert_to(Vector<next_precision<ValueType>, LocalIndexType,
+                           GlobalIndexType>* result) const override;
+
+    void move_to(Vector<next_precision<ValueType>, LocalIndexType,
+                        GlobalIndexType>* result) override;
+
+    std::unique_ptr<absolute_type> compute_absolute() const override;
+
+    void compute_absolute_inplace() override;
+
+    /**
+     * Creates a complex copy of the original vectors. If the original vectors
+     * were real, the imaginary part of the result will be zero.
+     */
+    std::unique_ptr<complex_type> make_complex() const;
+
+    /**
+     * Writes a complex copy of the original vectors to given complex vectors.
+     * If the original vectors were real, the imaginary part of the result will
+     * be zero.
+     */
+    void make_complex(complex_type* result) const;
+
+    /**
+     * Creates new real vectors and extracts the real part of the original
+     * vectors into that.
+     */
+    std::unique_ptr<real_type> get_real() const;
+
+    /**
+     * Extracts the real part of the original vectors into given real vectors.
+     */
+    void get_real(real_type* result) const;
+
+    /**
+     * Creates new real vectors and extracts the imaginary part of the
+     * original vectors into that.
+     */
+    std::unique_ptr<real_type> get_imag() const;
+
+    /**
+     * Extracts the imaginary part of the original vectors into given real
+     * vectors.
+     */
+    void get_imag(real_type* result) const;
+
+    /**
+     * Fill the distributed vectors with a given value.
+     *
+     * @param value  the value to be filled
+     */
+    void fill(ValueType value);
+
+    /**
+     * Scales the vectors with a scalar (aka: BLAS scal).
+     *
+     * @param alpha  If alpha is 1x1 Dense matrx, the all vectors are scaled
+     *               by alpha. If it is a Dense row vector of values,
+     *               then i-th column vector is scaled with the i-th
+     *               element of alpha (the number of columns of alpha has to
+     *               match the number of vectors).
+     */
+    void scale(const LinOp* alpha);
+
+    /**
+     * Scales the vectors with the inverse of a scalar.
+     *
+     * @param alpha  If alpha is 1x1 Dense matrix, the all vectors are scaled
+     *               by 1 / alpha. If it is a Dense row vector of values,
+     *               then i-th column vector is scaled with the inverse
+     *               of the i-th element of alpha (the number of columns of
+     *               alpha has to match the number of vectors).
+     */
+    void inv_scale(const LinOp* alpha);
+
+    /**
+     * Adds `b` scaled by `alpha` to the vectors (aka: BLAS axpy).
+     *
+     * @param alpha  If alpha is 1x1 Dense matrix, the all vectors of b are
+     * scaled by alpha. If it is a Dense row vector of values, then i-th column
+     * vector of b is scaled with the i-th element of alpha (the number of
+     * columns of alpha has to match the number of vectors).
+     * @param b  a (multi-)vector of the same dimension as this
+     */
+    void add_scaled(const LinOp* alpha, const LinOp* b);
+
+    /**
+     * Subtracts `b` scaled by `alpha` from the vectors (aka: BLAS axpy).
+     *
+     * @param alpha  If alpha is 1x1 Dense matrix, the all vectors of b are
+     * scaled by alpha. If it is a Dense row vector of values, then i-th column
+     * vector of b is scaled with the i-th element of alpha (the number of c
+     * @param b  a (multi-)vector of the same dimension as this
+     */
+    void sub_scaled(const LinOp* alpha, const LinOp* b);
+
+    /**
+     * Computes the column-wise dot product of this (multi-)vector and `b` using
+     * a global reduction.
+     *
+     * @param b  a (multi-)vector of same dimension as this
+     * @param result  a Dense row matrix, used to store the dot product
+     *                (the number of column in result must match the number
+     *                of columns of this)
+     */
+    void compute_dot(const LinOp* b, LinOp* result) const;
+
+    /**
+     * Computes the column-wise dot product of this (multi-)vector and `conj(b)`
+     * using a global reduction.
+     *
+     * @param b  a (multi-)vector of same dimension as this
+     * @param result  a Dense row matrix, used to store the dot product
+     *                (the number of column in result must match the number
+     *                of columns of this)
+     */
+    void compute_conj_dot(const LinOp* b, LinOp* result) const;
+
+    /**
+     * Computes the Euclidian (L^2) norm of this (multi-)vector using a global
+     * reduction.
+     *
+     * @param result  a Dense row matrix, used to store the norm
+     *                (the number of columns in result must match the number
+     *                of columns of this)
+     */
+    void compute_norm2(LinOp* result) const;
+
+    /**
+     * Computes the column-wise (L^1) norm of this (multi-)vector.
+     *
+     * @param result  a Dense row matrix, used to store the norm
+     *                (the number of columns in result must match the number
+     *                of columns of this)
+     */
+    void compute_norm1(LinOp* result) const;
+
+    /**
+     * Direct (read) access to the underlying local local_mtx_type vectors.
+     *
+     * @return a constant pointer to the underlying local_mtx_type vectors
+     */
+    const local_mtx_type* get_const_local() const;
+
+    /*
+     * Direct (read/write) access to the underlying local_mtx_type Dense
+     * vectors.
+     *
+     * @return a constant pointer to the underlying local_mtx_type vectors
+     */
+    local_mtx_type* get_local();
+
+    /**
+     * Access to the partition that defines these global vectors.
+     *
+     * @return a shared_ptr to the global row partition
+     */
+    std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+    get_partition() const
+    {
+        return partition_;
+    }
+
+protected:
+    /**
+     * Creates an empty distributed vector with a specified size
+     * @param exec  Executor associated with vector
+     * @param comm  Communicator associated with vector, the default is
+     *              MPI_COMM_WORLD
+     * @param partition  Partition of global rows
+     * @param global_size  Global size of the vector
+     * @param local_size  Processor-local size of the vector
+     * @param stride  Stride of the local vector. If not specified, it defaults
+     *                to local_size[1]
+     */
+    explicit Vector(
+        std::shared_ptr<const Executor> exec,
+        mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD),
+        std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+            partition = nullptr,
+        dim<2> global_size = {}, dim<2> local_size = {},
+        size_type stride = invalid_index<size_type>());
+
+    void apply_impl(const LinOp*, LinOp*) const override;
+
+    void apply_impl(const LinOp*, const LinOp*, const LinOp*,
+                    LinOp*) const override;
+
+private:
+    std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+        partition_;
+    local_mtx_type local_;
+};
+
+
+}  // namespace distributed
+}  // namespace gko
+
+
+#endif  // GKO_PUBLIC_CORE_DISTRIBUTED_VECTOR_HPP_
