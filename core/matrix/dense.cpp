@@ -80,6 +80,8 @@ GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot_dispatch);
 GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot_dispatch);
 GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2_dispatch);
 GKO_REGISTER_OPERATION(compute_norm1, dense::compute_norm1);
+GKO_REGISTER_OPERATION(compute_norm2_sqr, dense::compute_norm2_sqr);
+GKO_REGISTER_OPERATION(compute_sqrt, dense::compute_sqrt);
 GKO_REGISTER_OPERATION(compute_max_nnz_per_row, dense::compute_max_nnz_per_row);
 GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
                        hybrid::compute_coo_row_ptrs);
