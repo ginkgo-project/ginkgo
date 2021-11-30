@@ -74,10 +74,10 @@ namespace kernels {
                             size_type slice_size, size_type stride_factor, \
                             size_type* slice_sets, size_type* slice_lengths)
 
-#define GKO_DECLARE_SELLP_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
-    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,       \
-                          const matrix::Sellp<ValueType, IndexType>* source, \
-                          matrix::Dense<ValueType>* result)
+#define GKO_DECLARE_SELLP_FILL_IN_DENSE_KERNEL(ValueType, IndexType)      \
+    void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,       \
+                       const matrix::Sellp<ValueType, IndexType>* source, \
+                       matrix::Dense<ValueType>* result)
 
 #define GKO_DECLARE_SELLP_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
     void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,       \
@@ -103,7 +103,7 @@ namespace kernels {
     GKO_DECLARE_SELLP_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType); \
     GKO_DECLARE_SELLP_COMPUTE_SLICE_SETS;                               \
     template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_SELLP_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);    \
+    GKO_DECLARE_SELLP_FILL_IN_DENSE_KERNEL(ValueType, IndexType);       \
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_SELLP_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);      \
     template <typename ValueType, typename IndexType>                   \

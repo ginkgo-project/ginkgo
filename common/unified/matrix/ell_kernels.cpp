@@ -99,6 +99,33 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
+                   const matrix::Ell<ValueType, IndexType>* source,
+                   matrix::Dense<ValueType>* result)
+{
+    // TODO simplify once we can guarantee unique column indices outside padding
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto cols, auto ell_cols, auto ell_stride,
+                      auto in_cols, auto in_vals, auto out) {
+            for (int64 ell_col = 0; ell_col < ell_cols; ell_col++) {
+                const auto ell_idx = ell_col * ell_stride + row;
+                const auto col = in_cols[ell_idx];
+                const auto val = in_vals[ell_idx];
+                out(row, col) += val;
+            }
+        },
+        source->get_size()[0], source->get_size()[1],
+        source->get_num_stored_elements_per_row(),
+        static_cast<int64>(source->get_stride()), source->get_const_col_idxs(),
+        source->get_const_values(), result);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_FILL_IN_DENSE_KERNEL);
+
+
 }  // namespace ell
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

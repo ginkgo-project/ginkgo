@@ -288,36 +288,6 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)
-{
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-    const auto result_stride = result->get_stride();
-    const auto col_idxs = source->get_const_col_idxs();
-    const auto vals = source->get_const_values();
-    const auto source_stride = source->get_stride();
-
-    const dim3 block_size(config::warp_size,
-                          config::max_block_size / config::warp_size, 1);
-    const dim3 init_grid_dim(ceildiv(num_cols, block_size.x),
-                             ceildiv(num_rows, block_size.y), 1);
-    kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(
-        num_rows, num_cols, result_stride, as_cuda_type(result->get_values()));
-
-    const auto grid_dim = ceildiv(num_rows, default_block_size);
-    kernel::fill_in_dense<<<grid_dim, default_block_size>>>(
-        num_rows, source->get_num_stored_elements_per_row(), source_stride,
-        as_cuda_type(col_idxs), as_cuda_type(vals), result_stride,
-        as_cuda_type(result->get_values()));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Ell<ValueType, IndexType>* source,
                     matrix::Csr<ValueType, IndexType>* result)

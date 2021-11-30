@@ -59,11 +59,6 @@ namespace kernels {
         Array<matrix_data_entry<ValueType, IndexType>>& ell_data,         \
         Array<matrix_data_entry<ValueType, IndexType>>& coo_data)
 
-#define GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
-    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,        \
-                          const matrix::Hybrid<ValueType, IndexType>* source, \
-                          matrix::Dense<ValueType>* result)
-
 #define GKO_DECLARE_HYBRID_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
     void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,        \
                         const matrix::Hybrid<ValueType, IndexType>* source, \
@@ -78,8 +73,6 @@ namespace kernels {
     GKO_DECLARE_HYBRID_COMPUTE_ROW_NNZ;                                \
     template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_HYBRID_SPLIT_MATRIX_DATA_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_HYBRID_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);  \
     template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_HYBRID_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);    \
     template <typename ValueType, typename IndexType>                  \

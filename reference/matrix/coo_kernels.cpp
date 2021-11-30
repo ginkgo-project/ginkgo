@@ -149,27 +149,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)
+void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::Coo<ValueType, IndexType>* source,
+                   matrix::Dense<ValueType>* result)
 {
     auto coo_val = source->get_const_values();
     auto coo_col = source->get_const_col_idxs();
     auto coo_row = source->get_const_row_idxs();
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    for (size_type row = 0; row < num_rows; row++) {
-        for (size_type col = 0; col < num_cols; col++) {
-            result->at(row, col) = zero<ValueType>();
-        }
-    }
     for (size_type i = 0; i < source->get_num_stored_elements(); i++) {
         result->at(coo_row[i], coo_col[i]) += coo_val[i];
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_COO_FILL_IN_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

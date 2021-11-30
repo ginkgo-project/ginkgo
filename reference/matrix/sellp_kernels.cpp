@@ -191,9 +191,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Sellp<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)
+void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::Sellp<ValueType, IndexType>* source,
+                   matrix::Dense<ValueType>* result)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
@@ -210,9 +210,6 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
             if (global_row >= num_rows) {
                 break;
             }
-            for (size_type col = 0; col < num_cols; col++) {
-                result->at(global_row, col) = zero<ValueType>();
-            }
             for (size_type i = slice_sets[slice]; i < slice_sets[slice + 1];
                  i++) {
                 result->at(global_row, col_idxs[row + i * slice_size]) +=
@@ -223,7 +220,7 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SELLP_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_SELLP_FILL_IN_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

@@ -300,45 +300,6 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 }  // namespace
 
 
-template <typename ValueType>
-void initialize_zero_dense(size_type num_rows, size_type num_cols,
-                           size_type stride, ValueType* __restrict__ result,
-                           sycl::nd_item<3> item_ct1)
-{
-    const auto tidx_x =
-        item_ct1.get_local_id(2) +
-        item_ct1.get_local_range().get(2) * item_ct1.get_group(2);
-    const auto tidx_y =
-        item_ct1.get_local_id(1) +
-        item_ct1.get_local_range().get(1) * item_ct1.get_group(1);
-    if (tidx_x < num_cols && tidx_y < num_rows) {
-        result[tidx_y * stride + tidx_x] = zero<ValueType>();
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(initialize_zero_dense, initialize_zero_dense);
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_dense(size_type num_rows, size_type nnz, size_type source_stride,
-                   const IndexType* __restrict__ col_idxs,
-                   const ValueType* __restrict__ values,
-                   size_type result_stride, ValueType* __restrict__ result,
-                   sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    if (tidx < num_rows) {
-        for (size_type col = 0; col < nnz; col++) {
-            result[tidx * result_stride +
-                   col_idxs[tidx + col * source_stride]] +=
-                values[tidx + col * source_stride];
-        }
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(fill_in_dense, fill_in_dense);
-
-
 template <typename ValueType, typename IndexType>
 void count_nnz_per_row(size_type num_rows, size_type max_nnz_per_row,
                        size_type stride, const ValueType* __restrict__ values,
@@ -616,37 +577,6 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)
-{
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-    const auto result_stride = result->get_stride();
-    const auto col_idxs = source->get_const_col_idxs();
-    const auto vals = source->get_const_values();
-    const auto source_stride = source->get_stride();
-
-    const dim3 block_size(config::warp_size,
-                          config::max_block_size / config::warp_size, 1);
-    const dim3 init_grid_dim(ceildiv(num_cols, block_size.x),
-                             ceildiv(num_rows, block_size.y), 1);
-    kernel::initialize_zero_dense(init_grid_dim, block_size, 0,
-                                  exec->get_queue(), num_rows, num_cols,
-                                  result_stride, result->get_values());
-
-    const auto grid_dim = ceildiv(num_rows, default_block_size);
-    kernel::fill_in_dense(grid_dim, default_block_size, 0, exec->get_queue(),
-                          num_rows, source->get_num_stored_elements_per_row(),
-                          source_stride, col_idxs, vals, result_stride,
-                          result->get_values());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

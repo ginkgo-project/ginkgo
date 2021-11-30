@@ -62,7 +62,8 @@ namespace {
 GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
 GKO_REGISTER_OPERATION(compute_row_nnz, hybrid::compute_row_nnz);
 GKO_REGISTER_OPERATION(split_matrix_data, hybrid::split_matrix_data);
-GKO_REGISTER_OPERATION(convert_to_dense, hybrid::convert_to_dense);
+GKO_REGISTER_OPERATION(ell_fill_in_dense, ell::fill_in_dense);
+GKO_REGISTER_OPERATION(coo_fill_in_dense, coo::fill_in_dense);
 GKO_REGISTER_OPERATION(convert_to_csr, hybrid::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, hybrid::count_nonzeros);
 GKO_REGISTER_OPERATION(extract_coo_diagonal, coo::extract_diagonal);
@@ -133,9 +134,13 @@ template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(hybrid::make_convert_to_dense(this, tmp.get()));
-    tmp->move_to(result);
+    result->resize(this->get_size());
+    result->fill(zero<ValueType>());
+    auto result_local = make_temporary_clone(exec, result);
+    exec->run(
+        hybrid::make_ell_fill_in_dense(this->get_ell(), result_local.get()));
+    exec->run(
+        hybrid::make_coo_fill_in_dense(this->get_coo(), result_local.get()));
 }
 
 

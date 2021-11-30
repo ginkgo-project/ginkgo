@@ -281,92 +281,6 @@ GKO_ENABLE_DEFAULT_HOST(abstract_spmm, abstract_spmm);
 }  // namespace
 
 
-namespace kernel {
-
-
-template <typename IndexType>
-void convert_row_idxs_to_ptrs(const IndexType* __restrict__ idxs,
-                              size_type num_nonzeros,
-                              IndexType* __restrict__ ptrs, size_type length,
-                              sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-
-    if (tidx == 0) {
-        ptrs[0] = 0;
-        ptrs[length - 1] = num_nonzeros;
-    }
-
-    if (0 < tidx && tidx < num_nonzeros) {
-        if (idxs[tidx - 1] < idxs[tidx]) {
-            for (auto i = idxs[tidx - 1] + 1; i <= idxs[tidx]; i++) {
-                ptrs[i] = tidx;
-            }
-        }
-    }
-}
-
-// can not use GKO_ENABLE_DEFAULT_HOST, otherwise we can not inistantiate it.
-template <typename IndexType>
-void convert_row_idxs_to_ptrs(dim3 grid, dim3 block,
-                              size_type dynamic_shared_memory,
-                              sycl::queue* queue, const IndexType* idxs,
-                              size_type num_nonzeros, IndexType* ptrs,
-                              size_type length)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             convert_row_idxs_to_ptrs(idxs, num_nonzeros, ptrs,
-                                                      length, item_ct1);
-                         });
-    });
-}
-
-template void convert_row_idxs_to_ptrs(dim3, dim3, size_type, sycl::queue*,
-                                       const int32* idxs, size_type, int32*,
-                                       size_type);
-template void convert_row_idxs_to_ptrs(dim3, dim3, size_type, sycl::queue*,
-                                       const int64* idxs, size_type, int64*,
-                                       size_type);
-
-template <typename ValueType>
-void initialize_zero_dense(size_type num_rows, size_type num_cols,
-                           size_type stride, ValueType* __restrict__ result,
-                           sycl::nd_item<3> item_ct1)
-{
-    const auto tidx_x =
-        item_ct1.get_local_id(2) +
-        item_ct1.get_local_range().get(2) * item_ct1.get_group(2);
-    const auto tidx_y =
-        item_ct1.get_local_id(1) +
-        item_ct1.get_local_range().get(1) * item_ct1.get_group(1);
-    if (tidx_x < num_cols && tidx_y < num_rows) {
-        result[tidx_y * stride + tidx_x] = zero<ValueType>();
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(initialize_zero_dense, initialize_zero_dense);
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_dense(size_type nnz, const IndexType* __restrict__ row_idxs,
-                   const IndexType* __restrict__ col_idxs,
-                   const ValueType* __restrict__ values, size_type stride,
-                   ValueType* __restrict__ result, sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    if (tidx < nnz) {
-        result[stride * row_idxs[tidx] + col_idxs[tidx]] = values[tidx];
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(fill_in_dense, fill_in_dense);
-
-
-}  // namespace kernel
-
-
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::Coo<ValueType, IndexType>* a,
@@ -469,36 +383,6 @@ void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)
-{
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-    const auto stride = result->get_stride();
-
-    const auto nnz = source->get_num_stored_elements();
-
-    const dim3 block_size(config::warp_size,
-                          config::max_block_size / config::warp_size, 1);
-    const dim3 init_grid_dim(ceildiv(num_cols, block_size.x),
-                             ceildiv(num_rows, block_size.y), 1);
-    kernel::initialize_zero_dense(init_grid_dim, block_size, 0,
-                                  exec->get_queue(), num_rows, num_cols, stride,
-                                  result->get_values());
-
-    const auto grid_dim = ceildiv(nnz, default_block_size);
-    kernel::fill_in_dense(
-        grid_dim, default_block_size, 0, exec->get_queue(), nnz,
-        source->get_const_row_idxs(), source->get_const_col_idxs(),
-        source->get_const_values(), stride, result->get_values());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL);
 
 
 }  // namespace coo

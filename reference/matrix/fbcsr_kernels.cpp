@@ -208,9 +208,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(const std::shared_ptr<const ReferenceExecutor>,
-                      const matrix::Fbcsr<ValueType, IndexType>* const source,
-                      matrix::Dense<ValueType>* const result)
+void fill_in_dense(const std::shared_ptr<const ReferenceExecutor>,
+                   const matrix::Fbcsr<ValueType, IndexType>* const source,
+                   matrix::Dense<ValueType>* const result)
 {
     const int bs = source->get_block_size();
     const IndexType nbrows = source->get_num_block_rows();
@@ -226,14 +226,6 @@ void convert_to_dense(const std::shared_ptr<const ReferenceExecutor>,
         vals};
 
     for (IndexType brow = 0; brow < nbrows; ++brow) {
-        for (size_type bcol = 0; bcol < nbcols; ++bcol) {
-            for (int ib = 0; ib < bs; ib++) {
-                for (int jb = 0; jb < bs; jb++) {
-                    result->at(brow * bs + ib, bcol * bs + jb) =
-                        zero<ValueType>();
-                }
-            }
-        }
         for (IndexType ibnz = row_ptrs[brow]; ibnz < row_ptrs[brow + 1];
              ++ibnz) {
             for (int ib = 0; ib < bs; ib++) {
@@ -248,7 +240,7 @@ void convert_to_dense(const std::shared_ptr<const ReferenceExecutor>,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

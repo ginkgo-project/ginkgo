@@ -672,14 +672,21 @@ void Dense<ValueType>::move_to(SparsityCsr<ValueType, int64>* result)
 
 
 template <typename ValueType>
+void Dense<ValueType>::resize(gko::dim<2> new_size)
+{
+    if (this->get_size() != new_size) {
+        this->set_size(new_size);
+        this->stride_ = new_size[1];
+        this->values_.resize_and_reset(new_size[0] * this->get_stride());
+    }
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::read(const device_mat_data& data)
 {
-    if (this->get_size() != data.size) {
-        this->set_size(data.size);
-        this->stride_ = data.size[1];
-        this->values_.resize_and_reset(data.size[0] * this->get_stride());
-    }
     auto exec = this->get_executor();
+    this->resize(data.size);
     this->fill(zero<ValueType>());
     exec->run(dense::make_fill_in_matrix_data(
         *make_temporary_clone(exec, &data.nonzeros), this));
@@ -689,12 +696,8 @@ void Dense<ValueType>::read(const device_mat_data& data)
 template <typename ValueType>
 void Dense<ValueType>::read(const device_mat_data32& data)
 {
-    if (this->get_size() != data.size) {
-        this->set_size(data.size);
-        this->stride_ = data.size[1];
-        this->values_.resize_and_reset(data.size[0] * this->get_stride());
-    }
     auto exec = this->get_executor();
+    this->resize(data.size);
     this->fill(zero<ValueType>());
     exec->run(dense::make_fill_in_matrix_data(
         *make_temporary_clone(exec, &data.nonzeros), this));
