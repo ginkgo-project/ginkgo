@@ -64,7 +64,7 @@ protected:
 
 
     static void assert_equal_to_original_mtx(
-        gko::matrix::BatchDense<value_type> *m)
+        gko::matrix::BatchDense<value_type>* m)
     {
         ASSERT_EQ(m->get_num_batch_entries(), 2);
         ASSERT_EQ(m->get_size().at(0), gko::dim<2>(2, 3));
@@ -88,7 +88,7 @@ protected:
         ASSERT_EQ(m->at(1, 1, 2), value_type{3.0});
     }
 
-    static void assert_empty(gko::matrix::BatchDense<value_type> *m)
+    static void assert_empty(gko::matrix::BatchDense<value_type>* m)
     {
         ASSERT_EQ(m->get_num_batch_entries(), 0);
         ASSERT_EQ(m->get_num_stored_elements(), 0);
@@ -183,11 +183,10 @@ TYPED_TEST(BatchDense, CanBeConstructedFromBatchDenseMatrices)
                                           this->exec);
 
     auto m = gko::matrix::BatchDense<TypeParam>::create(
-        this->exec, std::vector<DenseMtx *>{mat1.get(), mat2.get()});
+        this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
     auto m_ref = gko::matrix::BatchDense<TypeParam>::create(
-        this->exec,
-        std::vector<DenseMtx *>{mat1.get(), mat2.get(), mat1.get(), mat2.get(),
-                                mat1.get(), mat2.get()});
+        this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get(), mat1.get(),
+                                           mat2.get(), mat1.get(), mat2.get()});
     auto m2 =
         gko::matrix::BatchDense<TypeParam>::create(this->exec, 3, m.get());
 
@@ -206,8 +205,7 @@ TYPED_TEST(BatchDense, CanBeConstructedFromDenseMatricesByDuplication)
                                           this->exec);
 
     auto bat_m = gko::matrix::BatchDense<TypeParam>::create(
-        this->exec,
-        std::vector<DenseMtx *>{mat1.get(), mat1.get(), mat1.get()});
+        this->exec, std::vector<DenseMtx*>{mat1.get(), mat1.get(), mat1.get()});
     auto m =
         gko::matrix::BatchDense<TypeParam>::create(this->exec, 3, mat1.get());
 
@@ -226,7 +224,7 @@ TYPED_TEST(BatchDense, CanBeConstructedFromDenseMatrices)
                                           this->exec);
 
     auto m = gko::matrix::BatchDense<TypeParam>::create(
-        this->exec, std::vector<DenseMtx *>{mat1.get(), mat2.get()});
+        this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
 
     this->assert_equal_to_original_mtx(m.get());
 }

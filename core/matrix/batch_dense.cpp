@@ -86,7 +86,7 @@ GKO_REGISTER_OPERATION(conj_transpose, batch_dense::conj_transpose);
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
+void BatchDense<ValueType>::apply_impl(const BatchLinOp* b, BatchLinOp* x) const
 {
     // TODO: Remove this when non-uniform batching kernels have been
     // implemented
@@ -100,10 +100,10 @@ void BatchDense<ValueType>::apply_impl(const BatchLinOp *b, BatchLinOp *x) const
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::apply_impl(const BatchLinOp *alpha,
-                                       const BatchLinOp *b,
-                                       const BatchLinOp *beta,
-                                       BatchLinOp *x) const
+void BatchDense<ValueType>::apply_impl(const BatchLinOp* alpha,
+                                       const BatchLinOp* b,
+                                       const BatchLinOp* beta,
+                                       BatchLinOp* x) const
 {
     // TODO: Remove this when non-uniform batching kernels have been
     // implemented
@@ -118,7 +118,7 @@ void BatchDense<ValueType>::apply_impl(const BatchLinOp *alpha,
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::scale_impl(const BatchLinOp *alpha)
+void BatchDense<ValueType>::scale_impl(const BatchLinOp* alpha)
 {
     auto batch_alpha = as<BatchDense<ValueType>>(alpha);
     GKO_ASSERT_BATCH_EQUAL_ROWS(
@@ -135,8 +135,8 @@ void BatchDense<ValueType>::scale_impl(const BatchLinOp *alpha)
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::add_scaled_impl(const BatchLinOp *alpha,
-                                            const BatchLinOp *b)
+void BatchDense<ValueType>::add_scaled_impl(const BatchLinOp* alpha,
+                                            const BatchLinOp* b)
 {
     auto batch_alpha = as<BatchDense<ValueType>>(alpha);
     auto batch_b = as<BatchDense<ValueType>>(b);
@@ -155,7 +155,7 @@ void BatchDense<ValueType>::add_scaled_impl(const BatchLinOp *alpha,
 }
 
 
-inline const batch_dim<2> get_col_sizes(const batch_dim<2> &sizes)
+inline const batch_dim<2> get_col_sizes(const batch_dim<2>& sizes)
 {
     auto col_sizes = std::vector<dim<2>>(sizes.get_num_batch_entries());
     for (size_type i = 0; i < col_sizes.size(); ++i) {
@@ -166,8 +166,8 @@ inline const batch_dim<2> get_col_sizes(const batch_dim<2> &sizes)
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::compute_dot_impl(const BatchLinOp *b,
-                                             BatchLinOp *result) const
+void BatchDense<ValueType>::compute_dot_impl(const BatchLinOp* b,
+                                             BatchLinOp* result) const
 {
     auto batch_result = as<BatchDense<ValueType>>(result);
     auto batch_b = as<BatchDense<ValueType>>(b);
@@ -180,7 +180,7 @@ void BatchDense<ValueType>::compute_dot_impl(const BatchLinOp *b,
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::compute_norm2_impl(BatchLinOp *result) const
+void BatchDense<ValueType>::compute_norm2_impl(BatchLinOp* result) const
 {
     using NormVector = BatchDense<remove_complex<ValueType>>;
     auto batch_result = as<NormVector>(result);
@@ -194,7 +194,7 @@ void BatchDense<ValueType>::compute_norm2_impl(BatchLinOp *result) const
 
 template <typename ValueType>
 void BatchDense<ValueType>::convert_to(
-    BatchDense<next_precision<ValueType>> *result) const
+    BatchDense<next_precision<ValueType>>* result) const
 {
     result->values_ = this->values_;
     result->stride_ = this->stride_;
@@ -205,14 +205,14 @@ void BatchDense<ValueType>::convert_to(
 
 template <typename ValueType>
 void BatchDense<ValueType>::move_to(
-    BatchDense<next_precision<ValueType>> *result)
+    BatchDense<next_precision<ValueType>>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::convert_to(BatchCsr<ValueType, int32> *result) const
+void BatchDense<ValueType>::convert_to(BatchCsr<ValueType, int32>* result) const
 {
     auto exec = this->get_executor();
 
@@ -237,7 +237,7 @@ void BatchDense<ValueType>::convert_to(BatchCsr<ValueType, int32> *result) const
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::move_to(BatchCsr<ValueType, int32> *result)
+void BatchDense<ValueType>::move_to(BatchCsr<ValueType, int32>* result)
 {
     this->convert_to(result);
 }
@@ -247,11 +247,11 @@ namespace {
 
 
 template <typename MatrixType, typename MatrixData>
-inline void read_impl(MatrixType *mtx, const std::vector<MatrixData> &data)
+inline void read_impl(MatrixType* mtx, const std::vector<MatrixData>& data)
 {
     auto batch_sizes = std::vector<dim<2>>(data.size());
     size_type ind = 0;
-    for (const auto &b : data) {
+    for (const auto& b : data) {
         batch_sizes[ind] = b.size;
         ++ind;
     }
@@ -281,14 +281,14 @@ inline void read_impl(MatrixType *mtx, const std::vector<MatrixData> &data)
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::read(const std::vector<mat_data> &data)
+void BatchDense<ValueType>::read(const std::vector<mat_data>& data)
 {
     read_impl(this, data);
 }
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::read(const std::vector<mat_data32> &data)
+void BatchDense<ValueType>::read(const std::vector<mat_data32>& data)
 {
     read_impl(this, data);
 }
@@ -298,13 +298,13 @@ namespace {
 
 
 template <typename MatrixType, typename MatrixData>
-inline void write_impl(const MatrixType *mtx, std::vector<MatrixData> &data)
+inline void write_impl(const MatrixType* mtx, std::vector<MatrixData>& data)
 {
     std::unique_ptr<const BatchLinOp> op{};
-    const MatrixType *tmp{};
+    const MatrixType* tmp{};
     if (mtx->get_executor()->get_master() != mtx->get_executor()) {
         op = mtx->clone(mtx->get_executor()->get_master());
-        tmp = static_cast<const MatrixType *>(op.get());
+        tmp = static_cast<const MatrixType*>(op.get());
     } else {
         tmp = mtx;
     }
@@ -329,14 +329,14 @@ inline void write_impl(const MatrixType *mtx, std::vector<MatrixData> &data)
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::write(std::vector<mat_data> &data) const
+void BatchDense<ValueType>::write(std::vector<mat_data>& data) const
 {
     write_impl(this, data);
 }
 
 
 template <typename ValueType>
-void BatchDense<ValueType>::write(std::vector<mat_data32> &data) const
+void BatchDense<ValueType>::write(std::vector<mat_data32>& data) const
 {
     write_impl(this, data);
 }
