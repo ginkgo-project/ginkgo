@@ -85,8 +85,8 @@ std::unique_ptr<BatchLinOp> BatchRichardson<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void BatchRichardson<ValueType>::apply_impl(const BatchLinOp *const b,
-                                            BatchLinOp *const x) const
+void BatchRichardson<ValueType>::apply_impl(const BatchLinOp* const b,
+                                            BatchLinOp* const x) const
 {
     using Mtx = matrix::BatchCsr<ValueType>;
     using Vector = matrix::BatchDense<ValueType>;
@@ -94,7 +94,7 @@ void BatchRichardson<ValueType>::apply_impl(const BatchLinOp *const b,
     auto exec = this->get_executor();
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
-    const auto acsr = dynamic_cast<const Mtx *>(system_matrix_.get());
+    const auto acsr = dynamic_cast<const Mtx*>(system_matrix_.get());
     if (!acsr) {
         GKO_NOT_SUPPORTED(system_matrix_);
     }
@@ -102,8 +102,8 @@ void BatchRichardson<ValueType>::apply_impl(const BatchLinOp *const b,
     // copies to scale
     auto a_scaled_smart = Mtx::create(exec);
     auto b_scaled_smart = Vector::create(exec);
-    const Mtx *a_scaled{};
-    const Vector *b_scaled{};
+    const Mtx* a_scaled{};
+    const Vector* b_scaled{};
     const bool to_scale =
         this->get_left_scaling_vector() && this->get_right_scaling_vector();
     if (to_scale) {
@@ -148,10 +148,10 @@ void BatchRichardson<ValueType>::apply_impl(const BatchLinOp *const b,
 
 
 template <typename ValueType>
-void BatchRichardson<ValueType>::apply_impl(const BatchLinOp *alpha,
-                                            const BatchLinOp *b,
-                                            const BatchLinOp *beta,
-                                            BatchLinOp *x) const
+void BatchRichardson<ValueType>::apply_impl(const BatchLinOp* alpha,
+                                            const BatchLinOp* b,
+                                            const BatchLinOp* beta,
+                                            BatchLinOp* x) const
 {
     auto dense_x = as<matrix::BatchDense<ValueType>>(x);
 

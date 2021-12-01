@@ -86,11 +86,11 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs)
 #define GKO_DECLARE_BATCH_CG_APPLY_KERNEL(_type)                             \
     void apply(                                                              \
         std::shared_ptr<const DefaultExecutor> exec,                         \
-        const gko::kernels::batch_cg::BatchCgOptions<remove_complex<_type>>  \
-            &options,                                                        \
-        const BatchLinOp *const a, const matrix::BatchDense<_type> *const b, \
-        matrix::BatchDense<_type> *const x,                                  \
-        gko::log::BatchLogData<_type> &logdata)
+        const gko::kernels::batch_cg::BatchCgOptions<remove_complex<_type>>& \
+            options,                                                         \
+        const BatchLinOp* const a, const matrix::BatchDense<_type>* const b, \
+        matrix::BatchDense<_type>* const x,                                  \
+        gko::log::BatchLogData<_type>& logdata)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \

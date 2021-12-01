@@ -44,9 +44,9 @@ namespace batch_direct {
 
 template <typename ValueType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec,
-           matrix::BatchDense<ValueType> *const a,
-           matrix::BatchDense<ValueType> *const b,
-           gko::log::BatchLogData<ValueType> &logdata) GKO_NOT_IMPLEMENTED;
+           matrix::BatchDense<ValueType>* const a,
+           matrix::BatchDense<ValueType>* const b,
+           gko::log::BatchLogData<ValueType>& logdata) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL);
 
@@ -54,9 +54,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL);
 template <typename ValueType>
 void transpose_scale_copy(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::BatchDense<ValueType> *const scaling_vec,
-    const matrix::BatchDense<ValueType> *const orig,
-    matrix::BatchDense<ValueType> *const scaled)
+    const matrix::BatchDense<ValueType>* const scaling_vec,
+    const matrix::BatchDense<ValueType>* const orig,
+    matrix::BatchDense<ValueType>* const scaled)
 {
     GKO_NOT_IMPLEMENTED;
 }
@@ -68,12 +68,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void pre_diag_scale_system_transpose(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::BatchDense<ValueType> *const a,
-    const matrix::BatchDense<ValueType> *const b,
-    const matrix::BatchDense<ValueType> *const left_scale,
-    const matrix::BatchDense<ValueType> *const right_scale,
-    matrix::BatchDense<ValueType> *const a_scaled_t,
-    matrix::BatchDense<ValueType> *const b_scaled_t)
+    const matrix::BatchDense<ValueType>* const a,
+    const matrix::BatchDense<ValueType>* const b,
+    const matrix::BatchDense<ValueType>* const left_scale,
+    const matrix::BatchDense<ValueType>* const right_scale,
+    matrix::BatchDense<ValueType>* const a_scaled_t,
+    matrix::BatchDense<ValueType>* const b_scaled_t)
 {
     const size_type nbatch = a->get_num_batch_entries();
     const int nrows = static_cast<int>(a->get_size().at()[0]);
