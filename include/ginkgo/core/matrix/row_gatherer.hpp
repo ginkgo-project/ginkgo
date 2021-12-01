@@ -100,18 +100,6 @@ public:
         return row_gatherer_indices_.get_const_data();
     }
 
-    /**
-     * Returns the number of elements explicitly stored in the
-     * row_gatherer_indices array.
-     *
-     * @return the number of elements explicitly stored in the
-     * row_gatherer_indices array.
-     */
-    size_type get_row_gatherer_indices_size() const noexcept
-    {
-        return row_gatherer_indices_.get_num_elems();
-    }
-
 protected:
     /**
      * Creates an uninitialized RowGatherer arrays on the specified executor.
@@ -162,7 +150,6 @@ protected:
         auto gather = gko::as<RowGatherable<index_type>>(in);
         gather->row_gather(&row_gatherer_indices_, out);
     }
-
 
     void apply_impl(const LinOp* alpha, const LinOp* in, const LinOp* beta,
                     LinOp* out) const

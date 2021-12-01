@@ -89,7 +89,6 @@ protected:
     {
         auto gather = m->get_row_gatherer_indices();
         ASSERT_EQ(m->get_size(), gko::dim<2>(4, 3));
-        ASSERT_EQ(m->get_row_gatherer_indices_size(), 4);
         ASSERT_EQ(gather[0], 1);
         ASSERT_EQ(gather[1], 0);
         ASSERT_EQ(gather[2], 2);
@@ -99,7 +98,7 @@ protected:
     static void assert_empty(gko::matrix::RowGatherer<i_type>* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
-        ASSERT_EQ(m->get_row_gatherer_indices_size(), 0);
+        ASSERT_EQ(m->get_const_row_gatherer_indices(), nullptr);
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -117,7 +116,6 @@ TYPED_TEST(RowGatherer, CanBeEmpty)
     auto empty = gko::matrix::RowGatherer<i_type>::create(this->exec);
 
     this->assert_empty(empty.get());
-    ASSERT_EQ(empty->get_const_row_gatherer_indices(), nullptr);
 }
 
 
@@ -128,7 +126,6 @@ TYPED_TEST(RowGatherer, CanBeConstructedWithSize)
         gko::matrix::RowGatherer<i_type>::create(this->exec, gko::dim<2>{2, 3});
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(m->get_row_gatherer_indices_size(), 2);
 }
 
 
