@@ -49,11 +49,11 @@ using BatchCgOptions = gko::kernels::batch_cg::BatchCgOptions<T>;
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DpcppExecutor> exec,
-           const BatchCgOptions<remove_complex<ValueType>> &opts,
-           const BatchLinOp *const a,
-           const matrix::BatchDense<ValueType> *const b,
-           matrix::BatchDense<ValueType> *const x,
-           gko::log::BatchLogData<ValueType> &logdata) GKO_NOT_IMPLEMENTED;
+           const BatchCgOptions<remove_complex<ValueType>>& opts,
+           const BatchLinOp* const a,
+           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchDense<ValueType>* const x,
+           gko::log::BatchLogData<ValueType>& logdata) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG_APPLY_KERNEL);
 

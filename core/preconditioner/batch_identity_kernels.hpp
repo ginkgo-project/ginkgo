@@ -58,9 +58,9 @@ namespace kernels {
  */
 #define GKO_DECLARE_BATCH_IDENTITY_KERNEL(_type)                           \
     void batch_identity_apply(std::shared_ptr<const DefaultExecutor> exec, \
-                              const matrix::BatchCsr<_type> *a,            \
-                              const matrix::BatchDense<_type> *b,          \
-                              matrix::BatchDense<_type> *x)
+                              const matrix::BatchCsr<_type>* a,            \
+                              const matrix::BatchDense<_type>* b,          \
+                              matrix::BatchDense<_type>* x)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \

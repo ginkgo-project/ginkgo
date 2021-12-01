@@ -66,11 +66,11 @@ using BatchIdrOptions = gko::kernels::batch_idr::BatchIdrOptions<T>;
 
 template <typename ValueType>
 void apply(std::shared_ptr<const HipExecutor> exec,
-           const BatchIdrOptions<remove_complex<ValueType>> &opts,
-           const BatchLinOp *const a,
-           const matrix::BatchDense<ValueType> *const b,
-           matrix::BatchDense<ValueType> *const x,
-           log::BatchLogData<ValueType> &logdata) GKO_NOT_IMPLEMENTED;
+           const BatchIdrOptions<remove_complex<ValueType>>& opts,
+           const BatchLinOp* const a,
+           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchDense<ValueType>* const x,
+           log::BatchLogData<ValueType>& logdata) GKO_NOT_IMPLEMENTED;
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDR_APPLY_KERNEL);

@@ -62,7 +62,7 @@ struct DummyLogged : gko::log::EnableLogging<DummyLogged> {
     void apply()
     {
         gko::Array<int> iter_counts(exec, nbatch * nrhs);
-        int *const itervals = iter_counts.get_data();
+        int* const itervals = iter_counts.get_data();
         const gko::batch_dim<> sizes(nbatch, gko::dim<2>{1, nrhs});
         auto res_norms =
             gko::matrix::BatchDense<value_type>::create(exec, sizes);
@@ -102,7 +102,7 @@ TEST(BatchConvergence, CanGetLogData)
     dum.add_logger(logger);
 
     dum.apply();
-    const int *const iters = logger->get_num_iterations().get_const_data();
+    const int* const iters = logger->get_num_iterations().get_const_data();
     const auto resnorms = logger->get_residual_norm();
 
     ASSERT_EQ(logger->get_num_iterations().get_num_elems(),

@@ -47,15 +47,15 @@ namespace batch_direct {
 
 #define GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL(_type)        \
     void apply(std::shared_ptr<const DefaultExecutor> exec, \
-               matrix::BatchDense<_type> *const a,          \
-               matrix::BatchDense<_type> *const b,          \
-               gko::log::BatchLogData<_type> &logdata)
+               matrix::BatchDense<_type>* const a,          \
+               matrix::BatchDense<_type>* const b,          \
+               gko::log::BatchLogData<_type>& logdata)
 
 #define GKO_DECLARE_BATCH_DIRECT_TRANSPOSE_SCALE_COPY(_type)                \
     void transpose_scale_copy(std::shared_ptr<const DefaultExecutor> exec,  \
-                              const matrix::BatchDense<_type> *scaling_vec, \
-                              const matrix::BatchDense<_type> *orig,        \
-                              matrix::BatchDense<_type> *scaled)
+                              const matrix::BatchDense<_type>* scaling_vec, \
+                              const matrix::BatchDense<_type>* orig,        \
+                              matrix::BatchDense<_type>* scaled)
 
 /**
  * @fn pre_diag_scale_system_transpose
@@ -75,12 +75,12 @@ namespace batch_direct {
 #define GKO_DECLARE_BATCH_DIRECT_PRE_DIAG_SCALE_SYSTEM_TRANSPOSE(_type) \
     void pre_diag_scale_system_transpose(                               \
         std::shared_ptr<const DefaultExecutor> exec,                    \
-        const matrix::BatchDense<_type> *a,                             \
-        const matrix::BatchDense<_type> *b,                             \
-        const matrix::BatchDense<_type> *left_scale,                    \
-        const matrix::BatchDense<_type> *right_scale,                   \
-        matrix::BatchDense<_type> *a_scaled_t,                          \
-        matrix::BatchDense<_type> *b_scaled_t)
+        const matrix::BatchDense<_type>* a,                             \
+        const matrix::BatchDense<_type>* b,                             \
+        const matrix::BatchDense<_type>* left_scale,                    \
+        const matrix::BatchDense<_type>* right_scale,                   \
+        matrix::BatchDense<_type>* a_scaled_t,                          \
+        matrix::BatchDense<_type>* b_scaled_t)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                          \

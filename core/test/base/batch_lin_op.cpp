@@ -65,24 +65,24 @@ public:
     mutable std::shared_ptr<const gko::Executor> last_beta_access;
 
 protected:
-    void apply_impl(const gko::BatchLinOp *b, gko::BatchLinOp *x) const override
+    void apply_impl(const gko::BatchLinOp* b, gko::BatchLinOp* x) const override
     {
         this->access();
-        static_cast<const DummyBatchLinOp *>(b)->access();
-        static_cast<const DummyBatchLinOp *>(x)->access();
+        static_cast<const DummyBatchLinOp*>(b)->access();
+        static_cast<const DummyBatchLinOp*>(x)->access();
         last_b_access = b->get_executor();
         last_x_access = x->get_executor();
     }
 
-    void apply_impl(const gko::BatchLinOp *alpha, const gko::BatchLinOp *b,
-                    const gko::BatchLinOp *beta,
-                    gko::BatchLinOp *x) const override
+    void apply_impl(const gko::BatchLinOp* alpha, const gko::BatchLinOp* b,
+                    const gko::BatchLinOp* beta,
+                    gko::BatchLinOp* x) const override
     {
         this->access();
-        static_cast<const DummyBatchLinOp *>(alpha)->access();
-        static_cast<const DummyBatchLinOp *>(b)->access();
-        static_cast<const DummyBatchLinOp *>(beta)->access();
-        static_cast<const DummyBatchLinOp *>(x)->access();
+        static_cast<const DummyBatchLinOp*>(alpha)->access();
+        static_cast<const DummyBatchLinOp*>(b)->access();
+        static_cast<const DummyBatchLinOp*>(beta)->access();
+        static_cast<const DummyBatchLinOp*>(x)->access();
         last_alpha_access = alpha->get_executor();
         last_b_access = b->get_executor();
         last_beta_access = beta->get_executor();
@@ -349,7 +349,7 @@ public:
                                     Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    DummyBatchLinOpWithFactory(const Factory *factory,
+    DummyBatchLinOpWithFactory(const Factory* factory,
                                std::shared_ptr<const gko::BatchLinOp> op)
         : gko::EnableBatchLinOp<DummyBatchLinOpWithFactory>(
               factory->get_executor()),
@@ -360,12 +360,12 @@ public:
     std::shared_ptr<const gko::BatchLinOp> op_;
 
 protected:
-    void apply_impl(const gko::BatchLinOp *b, gko::BatchLinOp *x) const override
+    void apply_impl(const gko::BatchLinOp* b, gko::BatchLinOp* x) const override
     {}
 
-    void apply_impl(const gko::BatchLinOp *alpha, const gko::BatchLinOp *b,
-                    const gko::BatchLinOp *beta,
-                    gko::BatchLinOp *x) const override
+    void apply_impl(const gko::BatchLinOp* alpha, const gko::BatchLinOp* b,
+                    const gko::BatchLinOp* beta,
+                    gko::BatchLinOp* x) const override
     {}
 };
 
