@@ -84,7 +84,7 @@ namespace {
 template <typename ValueType>
 std::shared_ptr<matrix::BatchDense<ValueType>> convert_and_transpose(
     std::shared_ptr<const Executor> exec,
-    const matrix::BatchCsr<ValueType, int> *const a_csr)
+    const matrix::BatchCsr<ValueType, int>* const a_csr)
 {
     auto a_dense_t =
         matrix::BatchDense<ValueType>::create(exec, a_csr->get_size());
@@ -98,8 +98,8 @@ std::shared_ptr<matrix::BatchDense<ValueType>> convert_and_transpose(
 
 
 template <typename ValueType>
-void BatchDirect<ValueType>::apply_impl(const BatchLinOp *b,
-                                        BatchLinOp *x) const
+void BatchDirect<ValueType>::apply_impl(const BatchLinOp* b,
+                                        BatchLinOp* x) const
 {
     using Mtx = matrix::BatchCsr<ValueType>;
     using BDense = matrix::BatchDense<ValueType>;
@@ -109,7 +109,7 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp *b,
     auto exec = this->get_executor();
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
-    const auto acsr = dynamic_cast<const Mtx *>(system_matrix_.get());
+    const auto acsr = dynamic_cast<const Mtx*>(system_matrix_.get());
     if (!acsr) {
         GKO_NOT_SUPPORTED(system_matrix_);
     }
@@ -178,10 +178,10 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp *b,
 
 
 template <typename ValueType>
-void BatchDirect<ValueType>::apply_impl(const BatchLinOp *alpha,
-                                        const BatchLinOp *b,
-                                        const BatchLinOp *beta,
-                                        BatchLinOp *x) const
+void BatchDirect<ValueType>::apply_impl(const BatchLinOp* alpha,
+                                        const BatchLinOp* b,
+                                        const BatchLinOp* beta,
+                                        BatchLinOp* x) const
 {
     auto dense_x = as<matrix::BatchDense<ValueType>>(x);
 
