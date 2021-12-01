@@ -41,9 +41,9 @@ namespace batch_direct {
 
 template <typename ValueType>
 void apply(std::shared_ptr<const HipExecutor> exec,
-           matrix::BatchDense<ValueType> *const a,
-           matrix::BatchDense<ValueType> *const b,
-           gko::log::BatchLogData<ValueType> &logdata) GKO_NOT_IMPLEMENTED;
+           matrix::BatchDense<ValueType>* const a,
+           matrix::BatchDense<ValueType>* const b,
+           gko::log::BatchLogData<ValueType>& logdata) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL);
 
@@ -51,9 +51,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL);
 template <typename ValueType>
 void transpose_scale_copy(
     std::shared_ptr<const HipExecutor> exec,
-    const matrix::BatchDense<ValueType> *const scaling_vec,
-    const matrix::BatchDense<ValueType> *const orig,
-    matrix::BatchDense<ValueType> *const scaled) GKO_NOT_IMPLEMENTED;
+    const matrix::BatchDense<ValueType>* const scaling_vec,
+    const matrix::BatchDense<ValueType>* const orig,
+    matrix::BatchDense<ValueType>* const scaled) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DIRECT_TRANSPOSE_SCALE_COPY);
@@ -62,12 +62,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void pre_diag_scale_system_transpose(
     std::shared_ptr<const HipExecutor> exec,
-    const matrix::BatchDense<ValueType> *const a,
-    const matrix::BatchDense<ValueType> *const b,
-    const matrix::BatchDense<ValueType> *const scalevec,
-    const matrix::BatchDense<ValueType> *const scalevec2,
-    matrix::BatchDense<ValueType> *const a_scaled_t,
-    matrix::BatchDense<ValueType> *const b_scaled_t) GKO_NOT_IMPLEMENTED;
+    const matrix::BatchDense<ValueType>* const a,
+    const matrix::BatchDense<ValueType>* const b,
+    const matrix::BatchDense<ValueType>* const scalevec,
+    const matrix::BatchDense<ValueType>* const scalevec2,
+    matrix::BatchDense<ValueType>* const a_scaled_t,
+    matrix::BatchDense<ValueType>* const b_scaled_t) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DIRECT_PRE_DIAG_SCALE_SYSTEM_TRANSPOSE);

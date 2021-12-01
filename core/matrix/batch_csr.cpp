@@ -75,8 +75,8 @@ GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 template <typename ValueType, typename IndexType>
-void BatchCsr<ValueType, IndexType>::apply_impl(const BatchLinOp *b,
-                                                BatchLinOp *x) const
+void BatchCsr<ValueType, IndexType>::apply_impl(const BatchLinOp* b,
+                                                BatchLinOp* x) const
 {
     this->get_executor()->run(batch_csr::make_spmv(
         this, as<BatchDense<ValueType>>(b), as<BatchDense<ValueType>>(x)));
@@ -84,10 +84,10 @@ void BatchCsr<ValueType, IndexType>::apply_impl(const BatchLinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-void BatchCsr<ValueType, IndexType>::apply_impl(const BatchLinOp *alpha,
-                                                const BatchLinOp *b,
-                                                const BatchLinOp *beta,
-                                                BatchLinOp *x) const
+void BatchCsr<ValueType, IndexType>::apply_impl(const BatchLinOp* alpha,
+                                                const BatchLinOp* b,
+                                                const BatchLinOp* beta,
+                                                BatchLinOp* x) const
 {
     this->get_executor()->run(batch_csr::make_advanced_spmv(
         as<BatchDense<ValueType>>(alpha), this, as<BatchDense<ValueType>>(b),
@@ -97,7 +97,7 @@ void BatchCsr<ValueType, IndexType>::apply_impl(const BatchLinOp *alpha,
 
 template <typename ValueType, typename IndexType>
 void BatchCsr<ValueType, IndexType>::convert_to(
-    BatchCsr<next_precision<ValueType>, IndexType> *result) const
+    BatchCsr<next_precision<ValueType>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -108,7 +108,7 @@ void BatchCsr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void BatchCsr<ValueType, IndexType>::move_to(
-    BatchCsr<next_precision<ValueType>, IndexType> *result)
+    BatchCsr<next_precision<ValueType>, IndexType>* result)
 {
     this->convert_to(result);
 }
@@ -116,7 +116,7 @@ void BatchCsr<ValueType, IndexType>::move_to(
 
 template <typename ValueType, typename IndexType>
 void BatchCsr<ValueType, IndexType>::convert_to(
-    BatchDense<ValueType> *const result) const
+    BatchDense<ValueType>* const result) const
 {
     auto temp =
         BatchDense<ValueType>::create(this->get_executor(), this->get_size());
@@ -128,20 +128,20 @@ void BatchCsr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void BatchCsr<ValueType, IndexType>::move_to(
-    BatchDense<ValueType> *const result)
+    BatchDense<ValueType>* const result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
-void BatchCsr<ValueType, IndexType>::read(const std::vector<mat_data> &data)
+void BatchCsr<ValueType, IndexType>::read(const std::vector<mat_data>& data)
 {
     size_type num_batch_entries = data.size();
     std::vector<size_type> nnz(num_batch_entries, 0);
     size_type ind = 0;
-    for (const auto &batch_data : data) {
-        for (const auto &elem : batch_data.nonzeros) {
+    for (const auto& batch_data : data) {
+        for (const auto& elem : batch_data.nonzeros) {
             nnz[ind] += (elem.value != zero<ValueType>());
         }
         ++ind;
@@ -152,7 +152,7 @@ void BatchCsr<ValueType, IndexType>::read(const std::vector<mat_data> &data)
 
     size_type id = 0;
     size_type nnz_offset = 0;
-    for (const auto &batch_data : data) {
+    for (const auto& batch_data : data) {
         ind = 0;
         size_type cur_ptr = 0;
         tmp->get_row_ptrs()[0] = cur_ptr;
@@ -179,13 +179,13 @@ void BatchCsr<ValueType, IndexType>::read(const std::vector<mat_data> &data)
 
 
 template <typename ValueType, typename IndexType>
-void BatchCsr<ValueType, IndexType>::write(std::vector<mat_data> &data) const
+void BatchCsr<ValueType, IndexType>::write(std::vector<mat_data>& data) const
 {
     std::unique_ptr<const BatchLinOp> op{};
-    const BatchCsr *tmp{};
+    const BatchCsr* tmp{};
     if (this->get_executor()->get_master() != this->get_executor()) {
         op = this->clone(this->get_executor()->get_master());
-        tmp = static_cast<const BatchCsr *>(op.get());
+        tmp = static_cast<const BatchCsr*>(op.get());
     } else {
         tmp = this;
     }
@@ -262,13 +262,13 @@ bool BatchCsr<ValueType, IndexType>::is_sorted_by_column_index() const
 
 template <typename ValueType, typename IndexType>
 void BatchCsr<ValueType, IndexType>::batch_scale_impl(
-    const BatchLinOp *const left_scale_op,
-    const BatchLinOp *const right_scale_op)
+    const BatchLinOp* const left_scale_op,
+    const BatchLinOp* const right_scale_op)
 {
     auto exec = this->get_executor();
-    const auto left = static_cast<const BatchDense<ValueType> *>(left_scale_op);
+    const auto left = static_cast<const BatchDense<ValueType>*>(left_scale_op);
     const auto right =
-        static_cast<const BatchDense<ValueType> *>(right_scale_op);
+        static_cast<const BatchDense<ValueType>*>(right_scale_op);
     exec->run(batch_csr::make_batch_scale(left, right, this));
 }
 

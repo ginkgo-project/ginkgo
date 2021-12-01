@@ -141,9 +141,9 @@ TEST_F(BatchGenerator, OutputHasAllDiagonalEntriesWhenRequested)
         std::normal_distribution<double>(20.0, 5.0), std::ranlux48(42), true,
         exec);
 
-    const int *const row_ptrs = dmtx->get_const_row_ptrs();
-    const int *const col_idxs = dmtx->get_const_col_idxs();
-    const double *const vals = dmtx->get_const_values();
+    const int* const row_ptrs = dmtx->get_const_row_ptrs();
+    const int* const col_idxs = dmtx->get_const_col_idxs();
+    const double* const vals = dmtx->get_const_values();
     for (size_t row = 0; row < nrows; row++) {
         bool has_diag = false;
         for (int iz = row_ptrs[row]; iz < row_ptrs[row + 1]; iz++) {

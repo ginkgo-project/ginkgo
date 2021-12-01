@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/solver/batch_solver.hpp"
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     return read_data_and_launch_benchmark(argc, argv, false);
 }
