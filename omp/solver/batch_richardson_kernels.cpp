@@ -52,10 +52,10 @@ using BatchRichardsonOptions =
 
 template <typename ValueType>
 void apply(std::shared_ptr<const OmpExecutor>,
-           const BatchRichardsonOptions<remove_complex<ValueType>> &,
-           const BatchLinOp *, const matrix::BatchDense<ValueType> *,
-           matrix::BatchDense<ValueType> *,
-           log::BatchLogData<ValueType> &) GKO_NOT_IMPLEMENTED;
+           const BatchRichardsonOptions<remove_complex<ValueType>>&,
+           const BatchLinOp*, const matrix::BatchDense<ValueType>*,
+           matrix::BatchDense<ValueType>*,
+           log::BatchLogData<ValueType>&) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL);
 

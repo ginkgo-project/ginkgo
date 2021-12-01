@@ -81,9 +81,9 @@ protected:
           omp_mtx(Mtx::create(ompexec))
     {
         // make diagonal larger
-        const int *const row_ptrs = ref_mtx->get_const_row_ptrs();
-        const int *const col_idxs = ref_mtx->get_const_col_idxs();
-        value_type *const vals = ref_mtx->get_values();
+        const int* const row_ptrs = ref_mtx->get_const_row_ptrs();
+        const int* const col_idxs = ref_mtx->get_const_col_idxs();
+        value_type* const vals = ref_mtx->get_values();
         const int nnz = row_ptrs[nrows];
         for (int irow = 0; irow < nrows; irow++) {
             for (int iz = row_ptrs[irow]; iz < row_ptrs[irow + 1]; iz++) {
