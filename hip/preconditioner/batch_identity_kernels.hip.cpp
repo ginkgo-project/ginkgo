@@ -57,9 +57,9 @@ constexpr int default_block_size = 128;
 
 template <typename ValueType>
 void batch_identity_apply(std::shared_ptr<const gko::HipExecutor> exec,
-                          const matrix::BatchCsr<ValueType> *const a,
-                          const matrix::BatchDense<ValueType> *const b,
-                          matrix::BatchDense<ValueType> *const x)
+                          const matrix::BatchCsr<ValueType>* const a,
+                          const matrix::BatchDense<ValueType>* const b,
+                          matrix::BatchDense<ValueType>* const x)
     GKO_NOT_IMPLEMENTED;
 // {
 //     const auto a_ub = get_batch_struct(a);

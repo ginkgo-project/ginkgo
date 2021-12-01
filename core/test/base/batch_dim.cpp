@@ -77,15 +77,15 @@ TEST(BatchDim, ConstructsNullObject)
 class batch_dim_manager {
 public:
     using batch_dim = gko::batch_dim<3>;
-    const batch_dim &get_size() const { return size_; }
+    const batch_dim& get_size() const { return size_; }
 
-    static std::unique_ptr<batch_dim_manager> create(const batch_dim &size)
+    static std::unique_ptr<batch_dim_manager> create(const batch_dim& size)
     {
         return std::unique_ptr<batch_dim_manager>{new batch_dim_manager{size}};
     }
 
 private:
-    batch_dim_manager(const batch_dim &size) : size_{size} {}
+    batch_dim_manager(const batch_dim& size) : size_{size} {}
     batch_dim size_;
 };
 
