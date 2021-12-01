@@ -575,7 +575,7 @@ public:
     /**
      * Returns the LinOp containing a copy of the gathered rows
      *
-     * @param gather_indeces  pointer to an array containing row indices
+     * @param gather_indices  pointer to an array containing row indices
      *                        from this matrix. It may contain duplicates.
      *
      * @return a pointer to the new LinOp containing a copy of the gathered rows
@@ -634,7 +634,10 @@ template <typename OutputType, typename IndexType>
 class EnableRowGather : public RowGatherable<IndexType> {
 public:
     using output_type = OutputType;
-    // void row_gather(const Array<IndexType>*, LinOp*) const;
+
+    // this brings `void row_gather(const Array<IndexType>*, LinOp*) const` such
+    // that the compiler can distinguish it and
+    // `void row_gather(const Array<IndexType>*, OutputType*) const`
     using RowGatherable<IndexType>::row_gather;
 
     std::unique_ptr<LinOp> row_gather_linop(
