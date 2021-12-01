@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/iteration.hpp>
 
 
+#include "core/base/dispatch_helper.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/multigrid_kernels.hpp"
@@ -69,52 +70,6 @@ GKO_REGISTER_OPERATION(kcycle_check_stop, multigrid::kcycle_check_stop);
 
 
 namespace {
-
-/**
- * run uses template to go through the list and select the valid
- * template and run it.
- *
- * @tparam Base  the Base class with one template
- * @tparam T  the type of input object waiting converted
- * @tparam Func  the validation
- * @tparam ...Args  the variadic arguments.
- *
- * @note this is the end case
- */
-template <template <typename> class Base, typename T, typename Func,
-          typename... Args>
-void run(T, Func, Args...)
-{
-    GKO_NOT_IMPLEMENTED;
-}
-
-/**
- * run uses template to go through the list and select the valid
- * template and run it.
- *
- * @tparam Base  the Base class with one template
- * @tparam K  the current template type of B. pointer of const Base<K> is tried
- *            in the convertion.
- * @tparam ...Types  the other types will be tried in the conversion if K fails
- * @tparam T  the type of input object waiting converted
- * @tparam Func  the function will run if the object can be converted to pointer
- *               of const Base<K>
- * @tparam ...Args  the additional arguments for the Func
- *
- * @param obj  the input object waiting converted
- * @param f  the function will run if obj can be converted successfully
- * @param args  the additional arguments for the function
- */
-template <template <typename> class Base, typename K, typename... Types,
-          typename T, typename func, typename... Args>
-void run(T obj, func f, Args... args)
-{
-    if (auto dobj = std::dynamic_pointer_cast<const Base<K>>(obj)) {
-        f(dobj, args...);
-    } else {
-        run<Base, Types...>(obj, f, args...);
-    }
-}
 
 
 /**
