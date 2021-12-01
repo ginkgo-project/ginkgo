@@ -50,11 +50,11 @@ using BatchGmresOptions = gko::kernels::batch_gmres::BatchGmresOptions<T>;
 
 template <typename ValueType>
 void apply(std::shared_ptr<const OmpExecutor> exec,
-           const BatchGmresOptions<remove_complex<ValueType>> &opts,
-           const BatchLinOp *const a,
-           const matrix::BatchDense<ValueType> *const b,
-           matrix::BatchDense<ValueType> *const x,
-           gko::log::BatchLogData<ValueType> &logdata) GKO_NOT_IMPLEMENTED;
+           const BatchGmresOptions<remove_complex<ValueType>>& opts,
+           const BatchLinOp* const a,
+           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchDense<ValueType>* const x,
+           gko::log::BatchLogData<ValueType>& logdata) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_GMRES_APPLY_KERNEL);
 

@@ -512,8 +512,8 @@ TEST_F(BatchDense, IsTransposable)
     auto trans = x->transpose();
     auto dtrans = dx->transpose();
 
-    GKO_ASSERT_BATCH_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
-                              static_cast<Mtx *>(trans.get()), 0);
+    GKO_ASSERT_BATCH_MTX_NEAR(static_cast<Mtx*>(dtrans.get()),
+                              static_cast<Mtx*>(trans.get()), 0);
 }
 
 
@@ -524,8 +524,8 @@ TEST_F(BatchDense, IsConjugateTransposable)
     auto trans = c_x->conj_transpose();
     auto dtrans = dc_x->conj_transpose();
 
-    GKO_ASSERT_BATCH_MTX_NEAR(static_cast<ComplexMtx *>(dtrans.get()),
-                              static_cast<ComplexMtx *>(trans.get()), 0);
+    GKO_ASSERT_BATCH_MTX_NEAR(static_cast<ComplexMtx*>(dtrans.get()),
+                              static_cast<ComplexMtx*>(trans.get()), 0);
 }
 
 
