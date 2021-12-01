@@ -92,6 +92,29 @@ template <typename T>
 using to_integer = typename to_integer_impl<T>::type;
 
 
+template <typename T>
+struct to_posit_impl {};
+
+template <>
+struct to_posit_impl<double> {
+    using type = posit<64, 4>;
+};
+
+template <>
+struct to_posit_impl<float> {
+    using type = posit32_3;
+};
+
+template <>
+struct to_posit_impl<half> {
+    using type = posit16_2;
+};
+
+
+template <typename T>
+using to_posit = typename to_posit_impl<T>::type;
+
+
 template <typename T, typename Skip>
 using reduce_precision_skip =
     typename std::conditional_t<std::is_same<reduce_precision<T>, Skip>::value,
@@ -150,6 +173,12 @@ struct helper {
         case cb_gmres::storage_precision::ireduce2:
             callable(to_integer<reduce_precision_count<ValueType, 2>>{});
             break;
+        case cb_gmres::storage_precision::posit_reduce1:
+            callable(to_posit<reduce_precision_count<ValueType, 1>>{});
+            break;
+        case cb_gmres::storage_precision::posit_reduce2:
+            callable(to_posit<reduce_precision_count<ValueType, 2>>{});
+            break;
         default:
             callable(ValueType{});
         }
@@ -177,6 +206,8 @@ struct helper<std::complex<T>> {
         case cb_gmres::storage_precision::integer:
         case cb_gmres::storage_precision::ireduce1:
         case cb_gmres::storage_precision::ireduce2:
+        case cb_gmres::storage_precision::posit_reduce1:
+        case cb_gmres::storage_precision::posit_reduce2:
             GKO_NOT_SUPPORTED(st);
             break;
         default:
@@ -270,9 +301,11 @@ void CbGmres<ValueType>::apply_dense_impl(
                                            dense_b->get_size()[1]);
         // reorth_status and num_reorth are both helper variables for GPU
         // implementations at the moment.
-        // num_reorth := Number of vectors which require a re-orthogonalization
-        // reorth_status := stopping status for the re-orthogonalization,
-        //                  marking which RHS requires one, and which does not
+        // num_reorth := Number of vectors which require a
+        // re-orthogonalization reorth_status := stopping status for the
+        // re-orthogonalization,
+        //                  marking which RHS requires one, and which does
+        //                  not
         Array<stopping_status> reorth_status(this->get_executor(),
                                              dense_b->get_size()[1]);
         Array<size_type> num_reorth(this->get_executor(), 1);
@@ -320,8 +353,8 @@ void CbGmres<ValueType>::apply_dense_impl(
             stop_encountered_rhs.get_data()[i] = false;
             fully_converged_rhs.get_data()[i] = false;
         }
-        // Start only after this value with performing forced iterations after
-        // convergence detection
+        // Start only after this value with performing forced iterations
+        // after convergence detection
         constexpr decltype(total_iter) start_force_reset{10};
         bool perform_reset{false};
         // Fraction of the krylov_dim_ (or total_iter if it is lower),
@@ -329,15 +362,16 @@ void CbGmres<ValueType>::apply_dense_impl(
         constexpr decltype(krylov_dim_) forced_iteration_fraction{10};
         const decltype(krylov_dim_) forced_limit{krylov_dim_ /
                                                  forced_iteration_fraction};
-        // Counter for the forced iterations. Start at max in order to properly
-        // test convergence at the beginning
+        // Counter for the forced iterations. Start at max in order to
+        // properly test convergence at the beginning
         decltype(krylov_dim_) forced_iterations{forced_limit};
 
         while (true) {
             ++total_iter;
             this->template log<log::Logger::iteration_complete>(
                 this, total_iter, residual.get(), dense_x, residual_norm.get());
-            // In the beginning, only force a fraction of the total iterations
+            // In the beginning, only force a fraction of the total
+            // iterations
             if (forced_iterations < forced_limit &&
                 forced_iterations < total_iter / forced_iteration_fraction) {
                 ++forced_iterations;
@@ -376,9 +410,9 @@ void CbGmres<ValueType>::apply_dense_impl(
                         perform_reset = true;
                         stop_status = host_stop_status;
                     } else {
-                        // Stop here can happen if all RHS are "fully_converged"
-                        // or if it was stopped for non-convergence reason
-                        // (like time or iteration)
+                        // Stop here can happen if all RHS are
+                        // "fully_converged" or if it was stopped for
+                        // non-convergence reason (like time or iteration)
                         break;
                     }
                     forced_iterations = 0;

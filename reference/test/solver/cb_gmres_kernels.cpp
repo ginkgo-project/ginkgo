@@ -130,9 +130,11 @@ protected:
         switch (storage_prec) {
         case storage_precision::reduce1:
         case storage_precision::ireduce1:
+        case storage_precision::posit_reduce1:
             return r<reduce_precision<value_type>, nc_value_type>::value;
         case storage_precision::reduce2:
         case storage_precision::ireduce2:
+        case storage_precision::posit_reduce2:
             return r<reduce_precision<reduce_precision<value_type>>,
                      nc_value_type>::value;
         case storage_precision::integer:
@@ -169,6 +171,8 @@ using st_r2 = st_helper_type<st_enum::reduce2>;
 using st_i = st_helper_type<st_enum::integer>;
 using st_ir1 = st_helper_type<st_enum::ireduce1>;
 using st_ir2 = st_helper_type<st_enum::ireduce2>;
+using ps_r1 = st_helper_type<st_enum::posit_reduce1>;
+using ps_r2 = st_helper_type<st_enum::posit_reduce2>;
 
 using TestTypes =
     ::testing::Types<std::tuple<double, st_keep>, std::tuple<double, st_r1>,
@@ -180,7 +184,9 @@ using TestTypes =
                      std::tuple<std::complex<double>, st_keep>,
                      std::tuple<std::complex<double>, st_r1>,
                      std::tuple<std::complex<double>, st_r2>,
-                     std::tuple<std::complex<float>, st_keep>>;
+                     std::tuple<std::complex<float>, st_keep>,
+                     std::tuple<double, ps_r1>, std::tuple<double, ps_r2>,
+                     std::tuple<float, ps_r1>, std::tuple<float, ps_r2>>;
 
 TYPED_TEST_SUITE(CbGmres, TestTypes, PairTypenameNameGenerator);
 

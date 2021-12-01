@@ -54,6 +54,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "accessor/scaled_reduced_row_major.hpp"
 
 
+#include "core/base/posit.hpp"
+
+
 namespace gko {
 namespace cb_gmres {
 
@@ -147,6 +150,32 @@ public:
 private:
     std::array<acc::size_type, 3> krylov_dim_;
     Array<StorageType> bases_;
+};
+
+template <typename ValueType, int NumberBits, int ES>
+class Range3dHelper<ValueType, posit<NumberBits, ES>, false> {
+public:
+    using value_type = ValueType;
+    using storage_type = posit<NumberBits, ES>;
+    using Accessor = acc::reduced_row_major<3, value_type, storage_type>;
+    using Range = acc::range<Accessor>;
+
+    Range3dHelper() = default;
+
+    Range3dHelper(std::shared_ptr<const Executor> exec, dim<3> krylov_dim)
+        : krylov_dim_{{static_cast<acc::size_type>(krylov_dim[0]),
+                       static_cast<acc::size_type>(krylov_dim[1]),
+                       static_cast<acc::size_type>(krylov_dim[2])}},
+          bases_{std::move(exec), krylov_dim[0] * krylov_dim[1] * krylov_dim[2]}
+    {}
+
+    Range get_range() { return Range(krylov_dim_, bases_.get_data()); }
+
+    gko::Array<storage_type>& get_bases() { return bases_; }
+
+private:
+    std::array<acc::size_type, 3> krylov_dim_;
+    Array<storage_type> bases_;
 };
 
 

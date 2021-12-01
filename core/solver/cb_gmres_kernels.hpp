@@ -47,6 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/kernel_declaration.hpp"
 
 
+#include "core/base/posit.hpp"
+
+
 // TODO Find way around using it!
 #define GKO_UNPACK(...) __VA_ARGS__
 /**
@@ -75,6 +78,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         double,                                                                \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<3, double, _const half>>));      \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<3, double, _const posit32_3>>)); \
+    template _macro(                                                           \
+        double,                                                                \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<3, double, _const posit16_2>>)); \
+    template _macro(                                                           \
+        float,                                                                 \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<3, float, _const posit16_2>>));  \
     template _macro(double,                                                    \
                     GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
                                    3, double, _const int64, 0b101>>));         \

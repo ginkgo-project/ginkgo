@@ -90,7 +90,9 @@ enum class storage_precision {
     reduce2,
     integer,
     ireduce1,
-    ireduce2
+    ireduce2,
+    posit_reduce1,
+    posit_reduce2
 };
 
 
