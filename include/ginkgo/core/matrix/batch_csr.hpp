@@ -90,7 +90,7 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<BatchCsr>;
 
-    void convert_to(BatchCsr<ValueType, IndexType> *result) const override
+    void convert_to(BatchCsr<ValueType, IndexType>* result) const override
     {
         bool same_executor = this->get_executor() == result->get_executor();
         result->values_ = this->values_;
@@ -99,7 +99,7 @@ public:
         result->set_size(this->get_size());
     }
 
-    void move_to(BatchCsr<ValueType, IndexType> *result) override
+    void move_to(BatchCsr<ValueType, IndexType>* result) override
     {
         bool same_executor = this->get_executor() == result->get_executor();
         EnableBatchLinOp<BatchCsr>::move_to(result);
@@ -107,18 +107,18 @@ public:
     friend class BatchCsr<next_precision<ValueType>, IndexType>;
 
     void convert_to(
-        BatchCsr<next_precision<ValueType>, IndexType> *result) const override;
+        BatchCsr<next_precision<ValueType>, IndexType>* result) const override;
 
     void move_to(
-        BatchCsr<next_precision<ValueType>, IndexType> *result) override;
+        BatchCsr<next_precision<ValueType>, IndexType>* result) override;
 
-    void convert_to(BatchDense<ValueType> *result) const override;
+    void convert_to(BatchDense<ValueType>* result) const override;
 
-    void move_to(BatchDense<ValueType> *result) override;
+    void move_to(BatchDense<ValueType>* result) override;
 
-    void read(const std::vector<mat_data> &data) override;
+    void read(const std::vector<mat_data>& data) override;
 
-    void write(std::vector<mat_data> &data) const override;
+    void write(std::vector<mat_data>& data) const override;
 
     std::unique_ptr<BatchLinOp> transpose() const override;
 
@@ -170,7 +170,7 @@ public:
      *
      * @return the values of the matrix.
      */
-    value_type *get_values() noexcept { return values_.get_data(); }
+    value_type* get_values() noexcept { return values_.get_data(); }
 
     /**
      * @copydoc BatchCsr::get_values()
@@ -179,7 +179,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type *get_const_values() const noexcept
+    const value_type* get_const_values() const noexcept
     {
         return values_.get_const_data();
     }
@@ -189,7 +189,7 @@ public:
      *
      * @return the column indexes of the matrix.
      */
-    index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type* get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
     /**
      * @copydoc BatchCsr::get_col_idxs()
@@ -198,7 +198,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_col_idxs() const noexcept
+    const index_type* get_const_col_idxs() const noexcept
     {
         return col_idxs_.get_const_data();
     }
@@ -208,7 +208,7 @@ public:
      *
      * @return the row pointers of the matrix.
      */
-    index_type *get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
+    index_type* get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
 
     /**
      * @copydoc BatchCsr::get_row_ptrs()
@@ -217,7 +217,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_row_ptrs() const noexcept
+    const index_type* get_const_row_ptrs() const noexcept
     {
         return row_ptrs_.get_const_data();
     }
@@ -245,7 +245,7 @@ protected:
      */
     BatchCsr(std::shared_ptr<const Executor> exec,
              const size_type num_batch_entries = {},
-             const dim<2> &size = dim<2>{}, size_type num_nonzeros = {})
+             const dim<2>& size = dim<2>{}, size_type num_nonzeros = {})
         : EnableBatchLinOp<BatchCsr>(exec,
                                      batch_dim<2>(num_batch_entries, size)),
           values_(exec, num_nonzeros * num_batch_entries),
@@ -263,7 +263,7 @@ protected:
      */
     BatchCsr(std::shared_ptr<const Executor> exec,
              const size_type num_batch_entries,
-             const matrix::Csr<value_type, index_type> *csr_mat)
+             const matrix::Csr<value_type, index_type>* csr_mat)
         : EnableBatchLinOp<BatchCsr>(
               exec, batch_dim<2>(num_batch_entries, csr_mat->get_size())),
           values_(exec, csr_mat->get_num_stored_elements() * num_batch_entries),
@@ -284,7 +284,7 @@ protected:
      */
     BatchCsr(std::shared_ptr<const Executor> exec,
              const size_type num_duplications,
-             const matrix::BatchCsr<value_type, index_type> *batch_mat)
+             const matrix::BatchCsr<value_type, index_type>* batch_mat)
         : EnableBatchLinOp<BatchCsr>(
               exec, batch_dim<2>(
                         num_duplications * batch_mat->get_num_batch_entries(),
@@ -325,9 +325,9 @@ protected:
      */
     template <typename ValuesArray, typename ColIdxsArray,
               typename RowPtrsArray>
-    BatchCsr(std::shared_ptr<const Executor> exec, const batch_dim<2> &size,
-             ValuesArray &&values, ColIdxsArray &&col_idxs,
-             RowPtrsArray &&row_ptrs)
+    BatchCsr(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+             ValuesArray&& values, ColIdxsArray&& col_idxs,
+             RowPtrsArray&& row_ptrs)
         : EnableBatchLinOp<BatchCsr>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
@@ -366,27 +366,27 @@ protected:
     template <typename ValuesArray, typename ColIdxsArray,
               typename RowPtrsArray>
     BatchCsr(std::shared_ptr<const Executor> exec,
-             const size_type num_batch_entries, const dim<2> &size,
-             ValuesArray &&values, ColIdxsArray &&col_idxs,
-             RowPtrsArray &&row_ptrs)
+             const size_type num_batch_entries, const dim<2>& size,
+             ValuesArray&& values, ColIdxsArray&& col_idxs,
+             RowPtrsArray&& row_ptrs)
         : BatchCsr(exec, batch_dim<2>(num_batch_entries, size),
                    std::forward<ValuesArray>(values),
                    std::forward<ColIdxsArray>(col_idxs),
                    std::forward<RowPtrsArray>(row_ptrs))
     {}
 
-    void apply_impl(const BatchLinOp *b, BatchLinOp *x) const override;
+    void apply_impl(const BatchLinOp* b, BatchLinOp* x) const override;
 
-    void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
-                    const BatchLinOp *beta, BatchLinOp *x) const override;
+    void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
+                    const BatchLinOp* beta, BatchLinOp* x) const override;
 
 private:
     template <typename MatrixType>
     void batch_duplicator(std::shared_ptr<const Executor> exec,
                           const size_type num_batch_entries,
                           const size_type col_idxs_size,
-                          const MatrixType *input,
-                          BatchCsr<value_type, index_type> *output)
+                          const MatrixType* input,
+                          BatchCsr<value_type, index_type>* output)
     {
         auto row_ptrs = output->get_row_ptrs();
         auto col_idxs = output->get_col_idxs();
@@ -409,8 +409,8 @@ private:
     Array<index_type> col_idxs_;
     Array<index_type> row_ptrs_;
 
-    void batch_scale_impl(const BatchLinOp *left_scale,
-                          const BatchLinOp *right_scale) override;
+    void batch_scale_impl(const BatchLinOp* left_scale,
+                          const BatchLinOp* right_scale) override;
 };
 
 
