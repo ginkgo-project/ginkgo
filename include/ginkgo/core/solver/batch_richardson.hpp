@@ -144,16 +144,16 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const BatchLinOp *b, BatchLinOp *x) const override;
+    void apply_impl(const BatchLinOp* b, BatchLinOp* x) const override;
 
-    void apply_impl(const BatchLinOp *alpha, const BatchLinOp *b,
-                    const BatchLinOp *beta, BatchLinOp *x) const override;
+    void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
+                    const BatchLinOp* beta, BatchLinOp* x) const override;
 
     explicit BatchRichardson(std::shared_ptr<const Executor> exec)
         : EnableBatchLinOp<BatchRichardson>(std::move(exec))
     {}
 
-    explicit BatchRichardson(const Factory *factory,
+    explicit BatchRichardson(const Factory* factory,
                              std::shared_ptr<const BatchLinOp> system_matrix)
         : EnableBatchLinOp<BatchRichardson>(
               factory->get_executor(),
