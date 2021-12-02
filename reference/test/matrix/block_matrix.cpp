@@ -153,4 +153,18 @@ TYPED_TEST(BlockMatrix, AppliesToVector)
 }
 
 
+TYPED_TEST(BlockMatrix, AppliesToDenseVector)
+{
+    using value_type = typename TestFixture::value_type;
+    using mtx = typename TestFixture::mtx;
+    using vec = typename TestFixture::vec;
+    auto block_mtx = gko::matrix::BlockMatrix::create(
+        this->exec, this->size,
+        {{this->a_block, this->b_block}, {this->c_block, this->d_block}});
+
+    block_mtx->apply(this->b_dense.get(), this->x_dense.get());
+
+    GKO_ASSERT_MTX_NEAR(this->y_dense, this->x_dense, r<value_type>::value);
+}
+
 }  // namespace

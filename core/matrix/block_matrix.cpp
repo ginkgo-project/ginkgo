@@ -36,11 +36,74 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace matrix {
 
+namespace {
+
+
+template <typename DenseType>
+std::unique_ptr<std::conditional_t<std::is_const_v<DenseType>,
+                                   const BlockMatrix, BlockMatrix>>
+dense_to_block(DenseType* v, const std::vector<size_type>& block_sizes)
+{
+    using value_type = typename DenseType::value_type;
+    auto v_without_const = const_cast<std::remove_const_t<DenseType>*>(v);
+    std::vector<std::vector<std::shared_ptr<LinOp>>> blocks(block_sizes.size());
+    std::vector<int32> block_offsets(block_sizes.size() + 1, 0);
+    std::partial_sum(begin(block_sizes), end(block_sizes),
+                     begin(block_offsets) + 1);
+    for (size_t i = 0; i < block_sizes.size(); ++i) {
+        gko::span rows(block_offsets[i], block_offsets[i + 1]);
+        blocks[i] = std::vector<std::shared_ptr<LinOp>>{gko::share(
+            v_without_const->create_submatrix(rows, v->get_size()[1] - 1))};
+    }
+    return BlockMatrix::create(v->get_executor(), v->get_size(), blocks);
+}
+
+
+template <bool is_const, typename ValueType>
+using DenseType =
+    std::conditional_t<is_const, const gko::matrix::Dense<ValueType>,
+                       gko::matrix::Dense<ValueType>>;
+template <bool is_const>
+using BlockType = std::conditional_t<is_const, const gko::matrix::BlockMatrix,
+                                     gko::matrix::BlockMatrix>;
+
+
+template <typename LinOpType>
+std::unique_ptr<std::conditional_t<std::is_const_v<LinOpType>,
+                                   const BlockMatrix, BlockMatrix>,
+                std::function<void(BlockType<std::is_const_v<LinOpType>>*)>>
+as_block_vector(LinOpType* v, const std::vector<size_type>& block_sizes)
+{
+    constexpr bool is_const = std::is_const_v<LinOpType>;
+    if (auto block_dense = dynamic_cast<BlockType<is_const>*>(v)) {
+        return std::unique_ptr<
+            BlockType<is_const>,
+            std::function<void(BlockType<std::is_const_v<LinOpType>>*)>>(
+            block_dense, [](BlockType<is_const>*) {});
+    } else if (auto dense = dynamic_cast<DenseType<is_const, float>*>(v)) {
+        return dense_to_block(dense, block_sizes);
+    } else if (auto dense = dynamic_cast<DenseType<is_const, double>*>(v)) {
+        return dense_to_block(dense, block_sizes);
+    } else if (auto dense =
+                   dynamic_cast<DenseType<is_const, std::complex<float>>*>(v)) {
+        return dense_to_block(dense, block_sizes);
+    } else if (auto dense =
+                   dynamic_cast<DenseType<is_const, std::complex<double>>*>(
+                       v)) {
+        return dense_to_block(dense, block_sizes);
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+
+}  // namespace
+
 
 void BlockMatrix::apply_impl(const LinOp* b, LinOp* x) const
 {
-    auto block_b = dynamic_cast<const BlockMatrix*>(b);
-    auto block_x = dynamic_cast<BlockMatrix*>(x);
+    auto block_b = as_block_vector(b, size_per_block_);
+    auto block_x = as_block_vector(x, size_per_block_);
 
     auto one = gko::initialize<Dense<double>>({1}, this->get_executor());
     auto zero = gko::initialize<Dense<double>>({0}, this->get_executor());
@@ -59,11 +122,13 @@ void BlockMatrix::apply_impl(const LinOp* b, LinOp* x) const
         }
     }
 }
+
+
 void BlockMatrix::apply_impl(const LinOp* alpha, const LinOp* b,
                              const LinOp* beta, LinOp* x) const
 {
-    auto block_b = dynamic_cast<const BlockMatrix*>(b);
-    auto block_x = dynamic_cast<BlockMatrix*>(x);
+    auto block_b = as_block_vector(b, size_per_block_);
+    auto block_x = as_block_vector(x, size_per_block_);
 
     auto one = gko::initialize<Dense<double>>({1}, this->get_executor());
     auto zero = gko::initialize<Dense<double>>({0}, this->get_executor());
@@ -82,6 +147,7 @@ void BlockMatrix::apply_impl(const LinOp* alpha, const LinOp* b,
         }
     }
 }
+
 
 }  // namespace matrix
 }  // namespace gko
