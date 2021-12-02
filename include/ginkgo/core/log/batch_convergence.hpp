@@ -77,8 +77,8 @@ public:
      *     num_matrices x 1 x num_RHS, which stores the final residual norms.
      */
     void on_batch_solver_completed(
-        const Array<int> &num_iterations,
-        const BatchLinOp *residual_norm) const override;
+        const Array<int>& num_iterations,
+        const BatchLinOp* residual_norm) const override;
 
     /**
      * Creates a convergence logger. This dynamically allocates the memory,
@@ -96,7 +96,7 @@ public:
      */
     static std::unique_ptr<BatchConvergence> create(
         std::shared_ptr<const Executor> exec,
-        const mask_type &enabled_events = Logger::all_events_mask)
+        const mask_type& enabled_events = Logger::all_events_mask)
     {
         return std::unique_ptr<BatchConvergence>(
             new BatchConvergence(exec, enabled_events));
@@ -105,7 +105,7 @@ public:
     /**
      * @return  The number of iterations for entire batch
      */
-    const Array<int> &get_num_iterations() const noexcept
+    const Array<int>& get_num_iterations() const noexcept
     {
         return num_iterations_;
     }
@@ -113,7 +113,7 @@ public:
     /**
      * @return  The residual norms for the entire batch.
      */
-    const matrix::BatchDense<real_type> *get_residual_norm() const noexcept
+    const matrix::BatchDense<real_type>* get_residual_norm() const noexcept
     {
         return residual_norm_.get();
     }
@@ -128,7 +128,7 @@ protected:
      */
     explicit BatchConvergence(
         std::shared_ptr<const gko::Executor> exec,
-        const mask_type &enabled_events = Logger::all_events_mask)
+        const mask_type& enabled_events = Logger::all_events_mask)
         : Logger(exec, enabled_events),
           num_iterations_(exec->get_master()),
           residual_norm_(
