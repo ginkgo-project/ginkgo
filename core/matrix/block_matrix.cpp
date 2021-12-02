@@ -30,6 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/block_matrix.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -67,6 +68,43 @@ template <bool is_const>
 using BlockType = std::conditional_t<is_const, const gko::matrix::BlockMatrix,
                                      gko::matrix::BlockMatrix>;
 
+template <bool is_const, typename ValueType, typename LocalIndexType>
+using DistributedVector =
+    std::conditional_t<is_const,
+                       const distributed::Vector<ValueType, LocalIndexType>,
+                       distributed::Vector<ValueType, LocalIndexType>>;
+
+
+template <typename TypeList, typename Base, typename Fn, typename ReturnType>
+std::enable_if_t<syn::length_v<TypeList> != 0, ReturnType> type_dispatch_impl(
+    Base&& b, Fn&& fn)
+{
+    using rt = decltype(fn(std::declval<syn::head_t<TypeList>*>()));
+    if (auto cast = dynamic_cast<syn::head_t<TypeList>*>(b)) {
+        return fn(cast);
+    } else {
+        return type_dispatch_impl<syn::tail_t<TypeList>, Base, Fn, ReturnType>(
+            std::forward<Base>(b), std::forward<Fn>(fn));
+    }
+}
+template <typename TypeList, typename Base, typename Fn, typename ReturnType>
+std::enable_if_t<syn::length_v<TypeList> == 0, ReturnType> type_dispatch_impl(
+    Base&& b, Fn&& fn)
+{
+    GKO_NOT_IMPLEMENTED;
+    return ReturnType{};
+}
+
+
+template <typename TypeList, typename Base, typename Fn>
+auto type_dispatch(Base&& b, Fn&& fn)
+{
+    static_assert(syn::length_v<TypeList> > 0);
+    using rt = decltype(fn(std::declval<syn::head_t<TypeList>*>()));
+    return type_dispatch_impl<TypeList, Base, Fn, rt>(std::forward<Base>(b),
+                                                      std::forward<Fn>(fn));
+}
+
 
 template <typename LinOpType>
 std::unique_ptr<std::conditional_t<std::is_const_v<LinOpType>,
@@ -75,24 +113,34 @@ std::unique_ptr<std::conditional_t<std::is_const_v<LinOpType>,
 as_block_vector(LinOpType* v, const std::vector<size_type>& block_sizes)
 {
     constexpr bool is_const = std::is_const_v<LinOpType>;
+    using DistributedBase =
+        std::conditional_t<is_const, const distributed::DistributedBase,
+                           distributed::DistributedBase>;
     if (auto block_dense = dynamic_cast<BlockType<is_const>*>(v)) {
         return std::unique_ptr<
             BlockType<is_const>,
             std::function<void(BlockType<std::is_const_v<LinOpType>>*)>>(
             block_dense, [](BlockType<is_const>*) {});
-    } else if (auto dense = dynamic_cast<DenseType<is_const, float>*>(v)) {
-        return dense_to_block(dense, block_sizes);
-    } else if (auto dense = dynamic_cast<DenseType<is_const, double>*>(v)) {
-        return dense_to_block(dense, block_sizes);
-    } else if (auto dense =
-                   dynamic_cast<DenseType<is_const, std::complex<float>>*>(v)) {
-        return dense_to_block(dense, block_sizes);
-    } else if (auto dense =
-                   dynamic_cast<DenseType<is_const, std::complex<double>>*>(
-                       v)) {
-        return dense_to_block(dense, block_sizes);
+    } else if (dynamic_cast<DistributedBase*>(v)) {
+        return type_dispatch<syn::type_list<
+            DistributedVector<is_const, float, int32>,
+            DistributedVector<is_const, float, int64>,
+            DistributedVector<is_const, double, int32>,
+            DistributedVector<is_const, double, int64>,
+            DistributedVector<is_const, std::complex<float>, int32>,
+            DistributedVector<is_const, std::complex<float>, int64>,
+            DistributedVector<is_const, std::complex<double>, int32>,
+            DistributedVector<is_const, std::complex<double>, int64>>>(
+            v, [&](auto&& dist_vector) {
+                return dense_to_block(dist_vector->get_local(), block_sizes);
+            });
     } else {
-        GKO_NOT_IMPLEMENTED;
+        return type_dispatch<syn::type_list<
+            DenseType<is_const, float>, DenseType<is_const, double>,
+            DenseType<is_const, std::complex<float>>,
+            DenseType<is_const, std::complex<double>>>>(v, [&](auto&& dense) {
+            return dense_to_block(dense, block_sizes);
+        });
     }
 }
 
