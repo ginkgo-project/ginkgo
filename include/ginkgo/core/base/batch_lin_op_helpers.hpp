@@ -157,7 +157,7 @@ using EnableDefaultBatchLinOpFactory =
 #define GKO_ENABLE_BATCH_LIN_OP_FACTORY(_batch_lin_op, _parameters_name,       \
                                         _factory_name)                         \
 public:                                                                        \
-    const _parameters_name##_type &get_##_parameters_name() const              \
+    const _parameters_name##_type& get_##_parameters_name() const              \
     {                                                                          \
         return _parameters_name##_;                                            \
     }                                                                          \
@@ -175,7 +175,7 @@ public:                                                                        \
                   std::move(exec))                                             \
         {}                                                                     \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec,    \
-                               const _parameters_name##_type &parameters)      \
+                               const _parameters_name##_type& parameters)      \
             : ::gko::EnableDefaultBatchLinOpFactory<                           \
                   _factory_name, _batch_lin_op, _parameters_name##_type>(      \
                   std::move(exec), parameters)                                 \
