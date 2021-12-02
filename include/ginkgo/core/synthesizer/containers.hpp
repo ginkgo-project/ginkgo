@@ -206,6 +206,53 @@ constexpr std::array<T, sizeof...(Value)> as_array(value_list<T, Value...> vl)
 }
 
 
+template <typename T>
+struct head {
+    using type = void;
+};
+
+
+template <typename T, typename... Ts>
+struct head<syn::type_list<T, Ts...>> {
+    using type = T;
+};
+
+
+template <typename T>
+using head_t = typename head<T>::type;
+
+
+template <typename T>
+struct tail {
+    using type = void;
+};
+
+
+template <typename T, typename... Ts>
+struct tail<syn::type_list<T, Ts...>> {
+    using type = syn::type_list<Ts...>;
+};
+
+
+template <typename T>
+using tail_t = typename tail<T>::type;
+
+
+template <typename T>
+struct length {
+    static constexpr int value = 0;
+};
+
+
+template <typename... Ts>
+struct length<syn::type_list<Ts...>> {
+    static constexpr int value = sizeof...(Ts);
+};
+
+
+template <typename T>
+constexpr int length_v = length<T>::value;
+
 }  // namespace syn
 }  // namespace gko
 
