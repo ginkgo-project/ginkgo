@@ -253,6 +253,7 @@ struct length<syn::type_list<Ts...>> {
 template <typename T>
 constexpr int length_v = length<T>::value;
 
+
 }  // namespace syn
 }  // namespace gko
 
