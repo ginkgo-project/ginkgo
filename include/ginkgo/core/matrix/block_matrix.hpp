@@ -62,6 +62,13 @@ public:
         return blocks_;
     }
 
+    dim<2> get_block_size() const { return block_size_; }
+
+    const std::vector<size_type>& get_size_per_block() const
+    {
+        return size_per_block_;
+    }
+
 protected:
     explicit BlockMatrix(std::shared_ptr<const Executor> exec,
                          const dim<2>& size = {})
@@ -72,10 +79,16 @@ protected:
                 const std::vector<std::vector<std::shared_ptr<LinOp>>>& blocks)
         : EnableLinOp<BlockMatrix>(exec, size),
           block_size_(blocks.size(), begin(blocks)->size()),
+          size_per_block_(blocks.size()),
           blocks_(blocks.size())
     {
         for (size_t row = 0; row < blocks.size(); ++row) {
             blocks_[row] = std::vector(begin(blocks)[row]);
+            if (!blocks[row].empty()) {
+                size_per_block_[row] = blocks[row][0]->get_size()[0];
+            } else {
+                size_per_block_[row] = 0;
+            }
             GKO_ASSERT_EQ(block_size_[1], blocks_[row].size());
         }
     }
@@ -87,6 +100,7 @@ protected:
 
 private:
     dim<2> block_size_;
+    std::vector<size_type> size_per_block_;
     std::vector<std::vector<std::shared_ptr<LinOp>>> blocks_;
 };
 

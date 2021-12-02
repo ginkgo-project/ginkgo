@@ -71,6 +71,9 @@ protected:
           c_block(
               gko::share(gko::initialize<mtx>({{1, 2, 3}, {2, 3, 4}}, exec))),
           d_block(gko::share(gko::initialize<mtx>({{1, 2}, {2, 3}}, exec))),
+          b_dense(gko::share(gko::initialize<vec>({1, 1, 1, 1, 1}, exec))),
+          x_dense(gko::share(gko::initialize<vec>({0, 0, 0, 0, 0}, exec))),
+          y_dense(gko::share(gko::initialize<vec>({9, 14, 19, 9, 14}, exec))),
           b0_block(gko::share(gko::initialize<vec>({1, 1, 1}, exec))),
           b1_block(gko::share(gko::initialize<vec>({1, 1}, exec))),
           x0_block(gko::share(gko::initialize<vec>({0, 0, 0}, exec))),
@@ -88,6 +91,9 @@ protected:
     std::shared_ptr<mtx> c_block;
     std::shared_ptr<mtx> d_block;
 
+    std::shared_ptr<vec> b_dense;
+    std::shared_ptr<vec> x_dense;
+    std::shared_ptr<vec> y_dense;
     std::shared_ptr<vec> b0_block;
     std::shared_ptr<vec> b1_block;
     std::shared_ptr<vec> x0_block;
@@ -98,6 +104,28 @@ protected:
 
 
 TYPED_TEST_SUITE(BlockMatrix, gko::test::RealValueTypes, TypenameNameGenerator);
+
+
+TYPED_TEST(BlockMatrix, KnowsBlockSize)
+{
+    auto block_mtx = gko::matrix::BlockMatrix::create(
+        this->exec, this->size,
+        {{this->a_block, this->b_block}, {this->c_block, this->d_block}});
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(block_mtx->get_block_size(), gko::dim<2>(2, 2));
+}
+
+
+TYPED_TEST(BlockMatrix, KnowsSizePerBlock)
+{
+    auto block_mtx = gko::matrix::BlockMatrix::create(
+        this->exec, this->size,
+        {{this->a_block, this->b_block}, {this->c_block, this->d_block}});
+
+    ASSERT_EQ(block_mtx->get_size_per_block()[0], 3);
+    ASSERT_EQ(block_mtx->get_size_per_block()[1], 2);
+}
+
 
 TYPED_TEST(BlockMatrix, AppliesToVector)
 {
