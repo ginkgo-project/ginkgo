@@ -90,17 +90,19 @@ int main(int argc, char* argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     // const auto fileA = argc >= 3 ? argv[2] : "data/A.mtx";
-    const bool use_mixed = argc >= 3;
+    const bool use_mixed = argc >= 4;
     std::cout << "Use Mixed: " << use_mixed << std::endl;
     // Read data
-    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    auto A = share(gko::read<mtx>(std::ifstream(argv[2]), exec));
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
-    auto host_b = vec::create(exec->get_master(), gko::dim<2>(size, 1));
+    // auto host_b = vec::create(exec->get_master(), gko::dim<2>(size, 1));
+    auto host_b =
+        share(gko::read<vec>(std::ifstream(argv[3]), exec->get_master()));
     for (auto i = 0; i < size; i++) {
         host_x->at(i, 0) = 0.;
-        host_b->at(i, 0) = 1.;
+        // host_b->at(i, 0) = 1.;
     }
     auto x = vec::create(exec);
     auto b = vec::create(exec);
@@ -141,19 +143,20 @@ int main(int argc, char* argv[])
             .with_solver(inner_solver_gen)
             .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
     auto smoother_gen_f = gko::share(
         ir_f::build()
             .with_solver(inner_solver_gen_f)
             .with_relaxation_factor(static_cast<MixedType>(0.9))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
     // Create MultigridLevel factory
     auto mg_level_gen =
         gko::share(amgx_pgm::build().with_deterministic(true).on(exec));
-    auto mg_level_gen_f = gko::share(amgx_pgm_f::build().with_deterministic(true).on(exec));
+    auto mg_level_gen_f =
+        gko::share(amgx_pgm_f::build().with_deterministic(false).on(exec));
     // Create CoarsestSolver factory
     auto coarsest_gen = gko::share(
         ir::build()
@@ -175,12 +178,11 @@ int main(int argc, char* argv[])
         std::cout << "USE" << std::endl;
         multigrid_gen =
             mg::build()
-                .with_max_levels(9u)
+                .with_max_levels(10u)
                 .with_min_coarse_rows(2u)
                 .with_pre_smoother(smoother_gen, smoother_gen_f)
                 .with_post_uses_pre(true)
-                .with_mg_level(mg_level_gen,
-                               mg_level_gen_f)
+                .with_mg_level(mg_level_gen, mg_level_gen_f)
                 .with_level_selector([](const gko::size_type level,
                                         const gko::LinOp*) -> gko::size_type {
                     std::cout << "level " << level << std::endl;
@@ -194,7 +196,7 @@ int main(int argc, char* argv[])
     } else {
         multigrid_gen =
             mg::build()
-                .with_max_levels(9u)
+                .with_max_levels(10u)
                 .with_min_coarse_rows(2u)
                 .with_pre_smoother(smoother_gen)
                 .with_post_uses_pre(true)
