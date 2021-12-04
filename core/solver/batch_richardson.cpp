@@ -119,5 +119,11 @@ void BatchRichardson<ValueType>::apply_impl(const BatchLinOp* alpha,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_RICHARDSON);
 
 
+#define GKO_DECLARE_BATCH_RICH_APPLY_FUNCTION(_type)                        \
+    void EnableBatchSolver<BatchRichardson<_type>, BatchLinOp>::apply_impl( \
+        const BatchLinOp* b, BatchLinOp* x) const
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_RICH_APPLY_FUNCTION);
+
+
 }  // namespace solver
 }  // namespace gko
