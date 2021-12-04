@@ -117,5 +117,11 @@ void BatchBicgstab<ValueType>::apply_impl(const BatchLinOp* alpha,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB);
 
 
+#define GKO_DECLARE_BATCH_BICGSTAB_APPLY_FUNCTION(_type)                  \
+    void EnableBatchSolver<BatchBicgstab<_type>, BatchLinOp>::apply_impl( \
+        const BatchLinOp* b, BatchLinOp* x) const
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_FUNCTION);
+
+
 }  // namespace solver
 }  // namespace gko
