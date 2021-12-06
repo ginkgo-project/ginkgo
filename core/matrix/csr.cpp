@@ -67,6 +67,7 @@ GKO_REGISTER_OPERATION(advanced_spgemm, csr::advanced_spgemm);
 GKO_REGISTER_OPERATION(spgeam, csr::spgeam);
 GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, csr::fill_in_matrix_data);
+GKO_REGISTER_OPERATION(write_out_matrix_data, csr::write_out_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
@@ -362,6 +363,16 @@ void Csr<ValueType, IndexType>::write(mat_data& data) const
             data.nonzeros.emplace_back(row, col, val);
         }
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::write(device_mat_data& data)
+{
+    auto exec = this->get_executor();
+    data = {exec, this->get_size(), this->get_num_stored_elements()};
+
+    exec->run(csr::make_write_out_matrix_data(this, data.nonzeros));
 }
 
 

@@ -1721,4 +1721,26 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
 }
 
 
+TYPED_TEST(Csr, CanWriteDeviceMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using matrix_data_entry = gko::matrix_data_entry<value_type, index_type>;
+    gko::device_matrix_data<value_type, index_type> md{this->exec};
+    gko::device_matrix_data<value_type, index_type> md_ref{
+        gko::dim<2>{2, 3},
+        gko::Array<matrix_data_entry>{
+            this->exec,
+            I<matrix_data_entry>{{0, 0, 1}, {0, 1, 3}, {0, 2, 2}, {1, 1, 5}}}};
+    /*
+     * 1   3   2
+     * 0   5   0
+     */
+
+    this->mtx->write(md);
+
+    GKO_ASSERT_ARRAY_EQ(md.nonzeros, md_ref.nonzeros);
+}
+
+
 }  // namespace

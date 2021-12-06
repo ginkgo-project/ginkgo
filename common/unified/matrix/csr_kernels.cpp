@@ -152,6 +152,33 @@ void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_INV_SCALE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void write_out_matrix_data(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* input,
+    Array<matrix_data_entry<ValueType, IndexType>>& nonzeros)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto row_ptrs, auto col_idxs, auto vals,
+                      auto nonzeros) {
+            using md = std::remove_pointer_t<decltype(nonzeros)>;
+            auto begin_idxs = row_ptrs[i];
+            auto end_idxs = row_ptrs[i + 1];
+            for (auto idxs = begin_idxs; idxs < end_idxs; idxs++) {
+                nonzeros[idxs] =
+                    md{static_cast<IndexType>(i), col_idxs[idxs], vals[idxs]};
+            }
+        },
+        input->get_size()[0], input->get_const_row_ptrs(),
+        input->get_const_col_idxs(), input->get_const_values(),
+        nonzeros.get_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_WRITE_OUT_MATRIX_DATA_KERNEL);
+
+
 }  // namespace csr
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

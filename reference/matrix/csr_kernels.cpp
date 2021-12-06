@@ -373,6 +373,28 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_FILL_IN_MATRIX_DATA_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void write_out_matrix_data(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* input,
+    Array<matrix_data_entry<ValueType, IndexType>>& nonzeros)
+{
+    auto row_ptrs = input->get_const_row_ptrs();
+    auto col_idxs = input->get_const_col_idxs();
+    auto vals = input->get_const_values();
+
+    for (IndexType i = 0; i < static_cast<IndexType>(input->get_size()[0]);
+         ++i) {
+        for (size_type idx = row_ptrs[i]; idx < row_ptrs[i + 1]; ++idx) {
+            nonzeros.get_data()[idx] = {i, col_idxs[idx], vals[idx]};
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_WRITE_OUT_MATRIX_DATA_KERNEL);
+
+
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const ReferenceExecutor> exec,
                               const IndexType* ptrs, size_type num_rows,

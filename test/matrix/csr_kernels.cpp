@@ -132,5 +132,17 @@ TEST_F(Csr, InvScaleIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
+TEST_F(Csr, WriteDeviceMatrixDataIsEquivalentToRef)
+{
+    this->set_up_apply_data();
+    gko::device_matrix_data<vtype, itype> host_md{this->ref};
+    gko::device_matrix_data<vtype, itype> device_md{this->exec};
+
+    this->x->write(host_md);
+    this->dx->write(device_md);
+
+    GKO_ASSERT_ARRAY_EQ(host_md.nonzeros, device_md.nonzeros);
+}
+
 
 }  //  namespace
