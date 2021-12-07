@@ -67,6 +67,10 @@ include:
       CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
       CUDA_HOST_STR=-DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER});
       fi
+    - if [[ "${MPI_AS_ROOT}" == "ON" ]];then
+      export OMPI_ALLOW_RUN_AS_ROOT=1;
+      export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
+      fi
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
@@ -104,6 +108,10 @@ include:
       fi
     - if [ -n "${SYCL_DEVICE_TYPE}" ]; then export SYCL_DEVICE_TYPE; fi
     - if [ -n "${SYCL_DEVICE_FILTER}" ]; then export SYCL_DEVICE_FILTER; fi
+    - if [[ "${MPI_AS_ROOT}" == "ON" ]];then
+      export OMPI_ALLOW_RUN_AS_ROOT=1;
+      export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
+      fi
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
@@ -278,13 +286,14 @@ build/cuda92/gcc/all/release/shared:
 # cuda 10.0 and friends
 # Make sure that our jobs run when using self-installed
 # third-party HWLOC.
-build/cuda100/gcc/all/debug/shared:
+build/cuda100/mvapich2/gcc/all/debug/shared:
   <<: *default_build
   extends:
     - .quick_test_condition
     - .use_gko-cuda100-mvapich2-gnu7-llvm60-intel2018
   variables:
     <<: *default_variables
+    BUILD_MPI: "ON"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
@@ -632,13 +641,15 @@ build/nocuda/intel/omp/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
 
-build/nocuda-nomixed/gcc/omp/release/shared:
+build/nocuda-nomixed/openmpi/gcc/omp/release/shared:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
     - .use_gko-nocuda-openmpi-gnu9-llvm8
   variables:
     <<: *default_variables
+    BUILD_MPI: "ON"
+    MPI_AS_ROOT: "ON"
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
     MIXED_PRECISION: "OFF"
