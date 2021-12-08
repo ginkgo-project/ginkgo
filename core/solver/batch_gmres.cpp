@@ -101,29 +101,17 @@ void BatchGmres<ValueType>::solver_apply(const BatchLinOp* const mtx,
 }
 
 
-template <typename ValueType>
-void BatchGmres<ValueType>::apply_impl(const BatchLinOp* alpha,
-                                       const BatchLinOp* b,
-                                       const BatchLinOp* beta,
-                                       BatchLinOp* x) const
-
-{
-    auto dense_x = as<matrix::BatchDense<ValueType>>(x);
-
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, x_clone.get());
-}
-
-
 #define GKO_DECLARE_BATCH_GMRES(_type) class BatchGmres<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_GMRES);
 
 
-#define GKO_DECLARE_BATCH_GMRES_APPLY_FUNCTION(_type)                  \
-    void EnableBatchSolver<BatchGmres<_type>, BatchLinOp>::apply_impl( \
-        const BatchLinOp* b, BatchLinOp* x) const
+#define GKO_DECLARE_BATCH_GMRES_APPLY_FUNCTION(_type)                         \
+    void EnableBatchSolver<BatchGmres<_type>, BatchLinOp>::apply_impl(        \
+        const BatchLinOp* b, BatchLinOp* x) const;                            \
+    template void                                                             \
+    EnableBatchSolver<BatchGmres<_type>, BatchLinOp>::apply_impl(             \
+        const BatchLinOp* alpha, const BatchLinOp* b, const BatchLinOp* beta, \
+        BatchLinOp* x) const
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_GMRES_APPLY_FUNCTION);
 
 

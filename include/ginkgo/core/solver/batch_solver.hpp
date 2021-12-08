@@ -91,6 +91,9 @@ protected:
 
     void apply_impl(const BatchLinOp* b, BatchLinOp* x) const override;
 
+    void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
+                    const BatchLinOp* beta, BatchLinOp* x) const override;
+
 private:
     std::shared_ptr<const BatchLinOp> system_matrix_{};
 };
