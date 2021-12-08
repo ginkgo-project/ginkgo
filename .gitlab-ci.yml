@@ -269,7 +269,7 @@ trigger_pipeline:
 # Build jobs
 # Job with example runs.
 # cuda 9.2 and friends
-build/cuda92/gcc/all/release/shared:
+build/cuda92/nompi/gcc/all/release/shared:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
@@ -303,7 +303,7 @@ build/cuda100/mvapich2/gcc/all/debug/shared:
 
 # Make sure that our jobs run when HWLOC is
 # forcibly switched off
-build/cuda100/clang/all/release/static:
+build/cuda100/nompi/clang/all/release/static:
   <<: *default_build
   extends:
     - .full_test_condition
@@ -320,7 +320,7 @@ build/cuda100/clang/all/release/static:
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
 
-build/cuda100/intel/cuda/release/shared:
+build/cuda100/nompi/intel/cuda/release/shared:
   <<: *default_build
   extends:
     - .full_test_condition
@@ -335,7 +335,7 @@ build/cuda100/intel/cuda/release/shared:
     CUDA_ARCH: 35
 
 # Build CUDA NVIDIA without omp
-build/cuda100/intel/cuda_wo_omp/release/shared:
+build/cuda100/nompi/intel/cuda_wo_omp/release/shared:
   <<: *default_build
   extends:
     - .full_test_condition
@@ -351,7 +351,7 @@ build/cuda100/intel/cuda_wo_omp/release/shared:
     CUDA_ARCH: 35
 
 # cuda 10.1 and friends
-build/cuda101/gcc/all/debug/shared:
+build/cuda101/nompi/gcc/all/debug/shared:
   <<: *default_build
   extends:
     - .full_test_condition
@@ -365,7 +365,7 @@ build/cuda101/gcc/all/debug/shared:
     FAST_TESTS: "ON"
     CUDA_ARCH: 35
 
-build/cuda101/clang/all/release/static:
+build/cuda101/nompi/clang/all/release/static:
   <<: *default_build
   extends:
     - .full_test_condition
@@ -382,7 +382,7 @@ build/cuda101/clang/all/release/static:
     CUDA_ARCH: 35
 
 # clang-cuda with cuda 10.1 and friends
-build/clang-cuda101/gcc/cuda/release/shared:
+build/clang-cuda101/nompi/gcc/cuda/release/shared:
   <<: *default_build
   extends:
     - .quick_test_condition
@@ -396,7 +396,7 @@ build/clang-cuda101/gcc/cuda/release/shared:
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
 
-build/clang-cuda101/clang/cuda/debug/static:
+build/clang-cuda101/nompi/clang/cuda/debug/static:
   <<: *default_build
   extends:
     - .full_test_condition
@@ -416,7 +416,7 @@ build/clang-cuda101/clang/cuda/debug/static:
 # cuda 10.2 and friends
 
 # works when there is no hwloc and tpl hwloc is also switched off.
-build/cuda102/gcc/all/debug/shared:
+build/cuda102/nompi/gcc/all/debug/shared:
   <<: *default_build
   extends:
     - .full_test_condition
@@ -432,7 +432,7 @@ build/cuda102/gcc/all/debug/shared:
     CUDA_ARCH: 35
 
 # Use TPL hwloc when no system hwloc is available
-build/cuda102/clang/all/release/static:
+build/cuda102/nompi/clang/all/release/static:
   <<: *default_build
   extends:
     - .full_test_condition
@@ -448,7 +448,7 @@ build/cuda102/clang/all/release/static:
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
 
-build/cuda102/intel/cuda/debug/static:
+build/cuda102/nompi/intel/cuda/debug/static:
   <<: *default_build
   extends:
     - .full_test_condition
@@ -465,7 +465,7 @@ build/cuda102/intel/cuda/debug/static:
     CUDA_ARCH: 35
 
 # cuda 11.0 and friends
-build/cuda110/gcc/cuda/debug/shared:
+build/cuda110/nompi/gcc/cuda/debug/shared:
   <<: *default_build_with_test
   extends:
     - .full_test_condition
@@ -478,7 +478,7 @@ build/cuda110/gcc/cuda/debug/shared:
     FAST_TESTS: "ON"
     CUDA_ARCH: 61
 
-build/cuda110/clang/cuda/release/static:
+build/cuda110/nompi/clang/cuda/release/static:
   <<: *default_build_with_test
   extends:
     - .full_test_condition
@@ -493,7 +493,7 @@ build/cuda110/clang/cuda/release/static:
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 61
 
-build/cuda110/intel/cuda/debug/static:
+build/cuda110/nompi/intel/cuda/debug/static:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
@@ -510,7 +510,7 @@ build/cuda110/intel/cuda/debug/static:
     CUDA_ARCH: 61
 
 # cuda 11.4 and friends
-build/cuda114/gcc/cuda/debug/shared:
+build/cuda114/nompi/gcc/cuda/debug/shared:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
@@ -528,7 +528,7 @@ build/cuda114/gcc/cuda/debug/shared:
     CUDA_ARCH: 61
 
 # HIP AMD
-build/amd/gcc/hip/debug/shared:
+build/amd/nompi/gcc/hip/debug/shared:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
@@ -541,7 +541,7 @@ build/amd/gcc/hip/debug/shared:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
 
-build/amd/clang/hip/release/static:
+build/amd/nompi/clang/hip/release/static:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
@@ -556,7 +556,7 @@ build/amd/clang/hip/release/static:
     BUILD_SHARED_LIBS: "OFF"
 
 # Build HIP AMD without omp
-build/amd/clang/hip_wo_omp/release/shared:
+build/amd/nompi/clang/hip_wo_omp/release/shared:
   <<: *default_build_with_test
   extends:
     - .full_test_condition
@@ -569,7 +569,7 @@ build/amd/clang/hip_wo_omp/release/shared:
     BUILD_TYPE: "Release"
 
 # no cuda but latest gcc and clang
-build/nocuda/gcc/core/debug/static:
+build/nocuda/nompi/gcc/core/debug/static:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
@@ -581,7 +581,7 @@ build/nocuda/gcc/core/debug/static:
     BUILD_SHARED_LIBS: "OFF"
     BUILD_HWLOC: "OFF"
 
-build/nocuda/clang/core/release/shared:
+build/nocuda/nompi/clang/core/release/shared:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
@@ -592,7 +592,7 @@ build/nocuda/clang/core/release/shared:
     CXX_COMPILER: "clang++"
     BUILD_TYPE: "Release"
 
-build/nocuda/intel/core/debug/shared:
+build/nocuda/nompi/intel/core/debug/shared:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
@@ -604,7 +604,7 @@ build/nocuda/intel/core/debug/shared:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
 
-build/nocuda/gcc/omp/release/shared:
+build/nocuda/nompi/gcc/omp/release/shared:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
@@ -614,7 +614,7 @@ build/nocuda/gcc/omp/release/shared:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
 
-build/nocuda/clang/omp/debug/static:
+build/nocuda/nompi/clang/omp/debug/static:
   <<: *default_build_with_test
   extends:
     - .full_test_condition
@@ -628,7 +628,7 @@ build/nocuda/clang/omp/debug/static:
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
 
-build/nocuda/intel/omp/release/static:
+build/nocuda/nompi/intel/omp/release/static:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
@@ -654,7 +654,7 @@ build/nocuda-nomixed/openmpi/gcc/omp/release/shared:
     BUILD_TYPE: "Release"
     MIXED_PRECISION: "OFF"
 
-build/nocuda-nomixed/clang/omp/debug/static:
+build/nocuda-nomixed/nompi/clang/omp/debug/static:
   <<: *default_build_with_test
   extends:
     - .full_test_condition
@@ -668,7 +668,7 @@ build/nocuda-nomixed/clang/omp/debug/static:
     BUILD_SHARED_LIBS: "OFF"
     MIXED_PRECISION: "OFF"
 
-build/nocuda-nomixed/intel/omp/release/static:
+build/nocuda-nomixed/nompi/intel/omp/release/static:
   <<: *default_build_with_test
   extends:
     - .full_test_condition
