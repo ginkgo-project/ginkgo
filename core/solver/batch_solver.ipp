@@ -126,6 +126,20 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
 }
 
 
+template <typename ConcreteSolver, typename PolymorphicBase>
+void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(
+    const BatchLinOp* alpha, const BatchLinOp* b,
+    const BatchLinOp* beta, BatchLinOp* x) const
+{
+    using value_type = typename ConcreteSolver::value_type;
+    auto dense_x = as<matrix::BatchDense<value_type>>(x);
+    auto x_clone = dense_x->clone();
+    this->apply(b, x_clone.get());
+    dense_x->scale(beta);
+    dense_x->add_scaled(alpha, x_clone.get());
+}
+
+
 }
 }
 
