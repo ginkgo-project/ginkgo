@@ -137,9 +137,6 @@ protected:
     void solver_apply(const BatchLinOp* const mtx, const BatchLinOp* const b,
                       BatchLinOp* const x, BatchInfo& info) const override;
 
-    void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
-                    const BatchLinOp* beta, BatchLinOp* x) const override;
-
     explicit BatchRichardson(std::shared_ptr<const Executor> exec)
         : EnableBatchSolver<BatchRichardson>(std::move(exec))
     {}

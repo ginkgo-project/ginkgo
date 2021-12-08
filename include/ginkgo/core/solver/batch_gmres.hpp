@@ -140,9 +140,6 @@ protected:
     void solver_apply(const BatchLinOp* const mtx, const BatchLinOp* b,
                       BatchLinOp* x, BatchInfo& info) const override;
 
-    void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
-                    const BatchLinOp* beta, BatchLinOp* x) const override;
-
     explicit BatchGmres(std::shared_ptr<const Executor> exec)
         : EnableBatchSolver<BatchGmres>(std::move(exec))
     {}
