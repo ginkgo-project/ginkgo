@@ -100,28 +100,18 @@ void BatchRichardson<ValueType>::solver_apply(const BatchLinOp* const mtx,
         *static_cast<log::BatchLogData<ValueType>*>(info.logdata)));
 }
 
-template <typename ValueType>
-void BatchRichardson<ValueType>::apply_impl(const BatchLinOp* alpha,
-                                            const BatchLinOp* b,
-                                            const BatchLinOp* beta,
-                                            BatchLinOp* x) const
-{
-    auto dense_x = as<matrix::BatchDense<ValueType>>(x);
-
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, x_clone.get());
-}
-
 
 #define GKO_DECLARE_BATCH_RICHARDSON(_type) class BatchRichardson<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_RICHARDSON);
 
 
-#define GKO_DECLARE_BATCH_RICH_APPLY_FUNCTION(_type)                        \
-    void EnableBatchSolver<BatchRichardson<_type>, BatchLinOp>::apply_impl( \
-        const BatchLinOp* b, BatchLinOp* x) const
+#define GKO_DECLARE_BATCH_RICH_APPLY_FUNCTION(_type)                          \
+    void EnableBatchSolver<BatchRichardson<_type>, BatchLinOp>::apply_impl(   \
+        const BatchLinOp* b, BatchLinOp* x) const;                            \
+    template void                                                             \
+    EnableBatchSolver<BatchRichardson<_type>, BatchLinOp>::apply_impl(        \
+        const BatchLinOp* alpha, const BatchLinOp* b, const BatchLinOp* beta, \
+        BatchLinOp* x) const
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_RICH_APPLY_FUNCTION);
 
 
