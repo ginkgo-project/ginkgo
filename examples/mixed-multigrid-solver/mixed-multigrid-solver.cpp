@@ -79,26 +79,26 @@ int main(int argc, char* argv[])
              }},
             {"dpcpp",
              [] {
-                 return gko::DpcppExecutor::create(0,
-                                                   gko::OmpExecutor::create());
+                 return gko::DpcppExecutor::create(
+                     0, gko::ReferenceExecutor::create());
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
-    const bool use_mixed = argc >= 4;
+    const bool use_mixed = argc >= 5;
     std::cout << "Use Mixed: " << use_mixed << std::endl;
     // Read data
     auto A = share(gko::read<mtx>(std::ifstream(argv[2]), exec));
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
-    // auto host_b = vec::create(exec->get_master(), gko::dim<2>(size, 1));
-    auto host_b =
-        share(gko::read<vec>(std::ifstream(argv[3]), exec->get_master()));
+    auto host_b = vec::create(exec->get_master(), gko::dim<2>(size, 1));
+    // auto host_b =
+    //     share(gko::read<vec>(std::ifstream(argv[3]), exec->get_master()));
     for (auto i = 0; i < size; i++) {
         host_x->at(i, 0) = 0.;
-        // host_b->at(i, 0) = 1.;
+        host_b->at(i, 0) = 1.;
     }
     auto x = vec::create(exec);
     auto b = vec::create(exec);
@@ -133,14 +133,14 @@ int main(int argc, char* argv[])
     auto smoother_gen = gko::share(
         ir::build()
             .with_solver(bj::build().with_max_block_size(1u).on(exec))
-            .with_relaxation_factor(0.9)
+            .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
     auto smoother_gen2 = gko::share(
         ir2::build()
             .with_solver(bj2::build().with_max_block_size(1u).on(exec))
-            .with_relaxation_factor(0.9f)
+            .with_relaxation_factor(static_cast<ValueType2>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
@@ -153,14 +153,14 @@ int main(int argc, char* argv[])
     auto coarsest_solver_gen = gko::share(
         ir::build()
             .with_solver(bj::build().with_max_block_size(1u).on(exec))
-            .with_relaxation_factor(0.9)
+            .with_relaxation_factor(static_cast<ValueType>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec))
             .on(exec));
     auto coarsest_solver_gen2 = gko::share(
         ir2::build()
             .with_solver(bj2::build().with_max_block_size(1u).on(exec))
-            .with_relaxation_factor(0.9)
+            .with_relaxation_factor(static_cast<ValueType2>(0.9))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec))
             .on(exec));
@@ -223,14 +223,14 @@ int main(int argc, char* argv[])
     std::cout << "Final residual norm sqrt(r^T r): \n";
     write(std::cout, lend(res));
 
-    auto mg_level_list = solver->get_mg_level_list();
-    auto smoother_list = solver->get_pre_smoother_list();
-    // Check the MultigridLevel and smoother.
-    // throw error if there is mismatch
-    auto level0 = gko::as<amgx_pgm>(mg_level_list.at(0));
-    auto level1 = gko::as<amgx_pgm2>(mg_level_list.at(1));
-    auto smoother0 = gko::as<ir>(smoother_list.at(0));
-    auto smoother1 = gko::as<ir2>(smoother_list.at(1));
+    // auto mg_level_list = solver->get_mg_level_list();
+    // auto smoother_list = solver->get_pre_smoother_list();
+    // // Check the MultigridLevel and smoother.
+    // // throw error if there is mismatch
+    // auto level0 = gko::as<amgx_pgm>(mg_level_list.at(0));
+    // auto level1 = gko::as<amgx_pgm2>(mg_level_list.at(1));
+    // auto smoother0 = gko::as<ir>(smoother_list.at(0));
+    // auto smoother1 = gko::as<ir2>(smoother_list.at(1));
 
     // Print solver statistics
     std::cout << "Multigrid iteration count:     "
