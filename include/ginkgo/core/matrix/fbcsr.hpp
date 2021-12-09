@@ -378,6 +378,7 @@ protected:
           row_ptrs_(exec, detail::get_num_blocks(block_size, size[0]) + 1)
     {
         GKO_ASSERT_BLOCK_SIZE_CONFORMANT(size[1], bs_);
+        row_ptrs_.fill(0);
     }
 
     /**
