@@ -317,6 +317,10 @@ bool try_general_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
 
     cusparse::destroy(descr);
 #else  // CUDA_VERSION >= 11000
+    // workaround for a division by zero in cuSPARSE 11.?
+    if (a->get_size()[1] == 0) {
+        return false;
+    }
     cusparseOperation_t trans = CUSPARSE_OPERATION_NON_TRANSPOSE;
     auto row_ptrs = const_cast<IndexType*>(a->get_const_row_ptrs());
     auto col_idxs = const_cast<IndexType*>(a->get_const_col_idxs());
