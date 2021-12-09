@@ -54,9 +54,11 @@ void prefix_sum(std::shared_ptr<const CudaExecutor> exec, IndexType* counts,
         auto num_blocks = ceildiv(num_entries, prefix_sum_block_size);
         Array<IndexType> block_sum_array(exec, num_blocks - 1);
         auto block_sums = block_sum_array.get_data();
-        start_prefix_sum<prefix_sum_block_size>
-            <<<num_blocks, prefix_sum_block_size>>>(num_entries, counts,
-                                                    block_sums);
+        if (num_blocks > 0) {
+            start_prefix_sum<prefix_sum_block_size>
+                <<<num_blocks, prefix_sum_block_size>>>(num_entries, counts,
+                                                        block_sums);
+        }
         // add the total sum of the previous block only when the number of
         // blocks is larger than 1.
         if (num_blocks > 1) {

@@ -88,18 +88,21 @@ void apply(syn::value_list<int, max_block_size>, size_type num_blocks,
                          1, 1);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
-    if (block_precisions) {
-        kernel::adaptive_apply<max_block_size, subwarp_size, warps_per_block>
-            <<<grid_size, block_size, 0, 0>>>(
-                as_cuda_type(blocks), storage_scheme, block_precisions,
-                block_pointers, num_blocks, as_cuda_type(b), b_stride,
-                as_cuda_type(x), x_stride);
-    } else {
-        kernel::apply<max_block_size, subwarp_size, warps_per_block>
-            <<<grid_size, block_size, 0, 0>>>(
-                as_cuda_type(blocks), storage_scheme, block_pointers,
-                num_blocks, as_cuda_type(b), b_stride, as_cuda_type(x),
-                x_stride);
+    if (grid_size.x > 0) {
+        if (block_precisions) {
+            kernel::adaptive_apply<max_block_size, subwarp_size,
+                                   warps_per_block>
+                <<<grid_size, block_size, 0, 0>>>(
+                    as_cuda_type(blocks), storage_scheme, block_precisions,
+                    block_pointers, num_blocks, as_cuda_type(b), b_stride,
+                    as_cuda_type(x), x_stride);
+        } else {
+            kernel::apply<max_block_size, subwarp_size, warps_per_block>
+                <<<grid_size, block_size, 0, 0>>>(
+                    as_cuda_type(blocks), storage_scheme, block_pointers,
+                    num_blocks, as_cuda_type(b), b_stride, as_cuda_type(x),
+                    x_stride);
+        }
     }
 }
 

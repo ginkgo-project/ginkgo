@@ -81,8 +81,10 @@ void match_edge(std::shared_ptr<const CudaExecutor> exec,
 {
     const auto num = agg.get_num_elems();
     const dim3 grid(ceildiv(num, default_block_size));
-    kernel::match_edge_kernel<<<grid, default_block_size>>>(
-        num, strongest_neighbor.get_const_data(), agg.get_data());
+    if (grid.x > 0) {
+        kernel::match_edge_kernel<<<grid, default_block_size>>>(
+            num, strongest_neighbor.get_const_data(), agg.get_data());
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL);
@@ -94,9 +96,11 @@ void count_unagg(std::shared_ptr<const CudaExecutor> exec,
 {
     Array<IndexType> active_agg(exec, agg.get_num_elems());
     const dim3 grid(ceildiv(active_agg.get_num_elems(), default_block_size));
-    kernel::activate_kernel<<<grid, default_block_size>>>(
-        active_agg.get_num_elems(), agg.get_const_data(),
-        active_agg.get_data());
+    if (grid.x > 0) {
+        kernel::activate_kernel<<<grid, default_block_size>>>(
+            active_agg.get_num_elems(), agg.get_const_data(),
+            active_agg.get_data());
+    }
     *num_unagg = reduce_add_array(exec, active_agg.get_num_elems(),
                                   active_agg.get_const_data());
 }
@@ -111,11 +115,15 @@ void renumber(std::shared_ptr<const CudaExecutor> exec, Array<IndexType>& agg,
     const auto num = agg.get_num_elems();
     Array<IndexType> agg_map(exec, num + 1);
     const dim3 grid(ceildiv(num, default_block_size));
-    kernel::fill_agg_kernel<<<grid, default_block_size>>>(
-        num, agg.get_const_data(), agg_map.get_data());
+    if (grid.x > 0) {
+        kernel::fill_agg_kernel<<<grid, default_block_size>>>(
+            num, agg.get_const_data(), agg_map.get_data());
+    }
     components::prefix_sum(exec, agg_map.get_data(), agg_map.get_num_elems());
-    kernel::renumber_kernel<<<grid, default_block_size>>>(
-        num, agg_map.get_const_data(), agg.get_data());
+    if (grid.x > 0) {
+        kernel::renumber_kernel<<<grid, default_block_size>>>(
+            num, agg_map.get_const_data(), agg.get_data());
+    }
     *num_agg = exec->copy_val_to_host(agg_map.get_const_data() + num);
 }
 
@@ -131,10 +139,13 @@ void find_strongest_neighbor(
 {
     const auto num = agg.get_num_elems();
     const dim3 grid(ceildiv(num, default_block_size));
-    kernel::find_strongest_neighbor_kernel<<<grid, default_block_size>>>(
-        num, weight_mtx->get_const_row_ptrs(), weight_mtx->get_const_col_idxs(),
-        weight_mtx->get_const_values(), diag->get_const_values(),
-        agg.get_data(), strongest_neighbor.get_data());
+    if (grid.x > 0) {
+        kernel::find_strongest_neighbor_kernel<<<grid, default_block_size>>>(
+            num, weight_mtx->get_const_row_ptrs(),
+            weight_mtx->get_const_col_idxs(), weight_mtx->get_const_values(),
+            diag->get_const_values(), agg.get_data(),
+            strongest_neighbor.get_data());
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
@@ -151,19 +162,24 @@ void assign_to_exist_agg(std::shared_ptr<const CudaExecutor> exec,
     const dim3 grid(ceildiv(num, default_block_size));
     if (intermediate_agg.get_num_elems() > 0) {
         // determinstic kernel
-        kernel::assign_to_exist_agg_kernel<<<grid, default_block_size>>>(
-            num, weight_mtx->get_const_row_ptrs(),
-            weight_mtx->get_const_col_idxs(), weight_mtx->get_const_values(),
-            diag->get_const_values(), agg.get_const_data(),
-            intermediate_agg.get_data());
+        if (grid.x > 0) {
+            kernel::assign_to_exist_agg_kernel<<<grid, default_block_size>>>(
+                num, weight_mtx->get_const_row_ptrs(),
+                weight_mtx->get_const_col_idxs(),
+                weight_mtx->get_const_values(), diag->get_const_values(),
+                agg.get_const_data(), intermediate_agg.get_data());
+        }
         // Copy the intermediate_agg to agg
         agg = intermediate_agg;
     } else {
         // undeterminstic kernel
-        kernel::assign_to_exist_agg_kernel<<<grid, default_block_size>>>(
-            num, weight_mtx->get_const_row_ptrs(),
-            weight_mtx->get_const_col_idxs(), weight_mtx->get_const_values(),
-            diag->get_const_values(), agg.get_data());
+        if (grid.x > 0) {
+            kernel::assign_to_exist_agg_kernel<<<grid, default_block_size>>>(
+                num, weight_mtx->get_const_row_ptrs(),
+                weight_mtx->get_const_col_idxs(),
+                weight_mtx->get_const_values(), diag->get_const_values(),
+                agg.get_data());
+        }
     }
 }
 

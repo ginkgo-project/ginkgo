@@ -74,9 +74,11 @@ void apply_to_csr(std::shared_ptr<const CudaExecutor> exec,
 
     const auto grid_dim =
         ceildiv(num_rows * config::warp_size, default_block_size);
-    kernel::apply_to_csr<<<grid_dim, default_block_size>>>(
-        num_rows, as_cuda_type(diag_values), as_cuda_type(csr_row_ptrs),
-        as_cuda_type(csr_values));
+    if (grid_dim > 0) {
+        kernel::apply_to_csr<<<grid_dim, default_block_size>>>(
+            num_rows, as_cuda_type(diag_values), as_cuda_type(csr_row_ptrs),
+            as_cuda_type(csr_values));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

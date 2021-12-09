@@ -139,8 +139,11 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
     auto block_size = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(num_rows, block_size);
     auto new_row_ptrs = m_out->get_row_ptrs();
-    kernel::bucket_filter_nnz<subwarp_size><<<num_blocks, default_block_size>>>(
-        old_row_ptrs, oracles, num_rows, bucket, new_row_ptrs);
+    if (num_blocks > 0) {
+        kernel::bucket_filter_nnz<subwarp_size>
+            <<<num_blocks, default_block_size>>>(
+                old_row_ptrs, oracles, num_rows, bucket, new_row_ptrs);
+    }
 
     // build row pointers
     components::prefix_sum(exec, new_row_ptrs, num_rows + 1);
@@ -163,10 +166,12 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
             Array<ValueType>::view(exec, new_nnz, new_vals);
         new_row_idxs = m_out_coo->get_row_idxs();
     }
-    kernel::bucket_filter<subwarp_size><<<num_blocks, default_block_size>>>(
-        old_row_ptrs, old_col_idxs, as_cuda_type(old_vals), oracles, num_rows,
-        bucket, new_row_ptrs, new_row_idxs, new_col_idxs,
-        as_cuda_type(new_vals));
+    if (num_blocks > 0) {
+        kernel::bucket_filter<subwarp_size><<<num_blocks, default_block_size>>>(
+            old_row_ptrs, old_col_idxs, as_cuda_type(old_vals), oracles,
+            num_rows, bucket, new_row_ptrs, new_row_idxs, new_col_idxs,
+            as_cuda_type(new_vals));
+    }
 }
 
 

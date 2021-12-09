@@ -244,11 +244,13 @@ void convert_to_csr(const std::shared_ptr<const CudaExecutor> exec,
     constexpr auto warps_per_block = default_block_size / config::warp_size;
     const auto num_blocks =
         ceildiv(source->get_num_block_rows(), warps_per_block);
-    kernel::convert_to_csr<<<num_blocks, default_block_size>>>(
-        source->get_const_row_ptrs(), source->get_const_col_idxs(),
-        as_cuda_type(source->get_const_values()), result->get_row_ptrs(),
-        result->get_col_idxs(), as_cuda_type(result->get_values()),
-        source->get_num_block_rows(), source->get_block_size());
+    if (num_blocks > 0) {
+        kernel::convert_to_csr<<<num_blocks, default_block_size>>>(
+            source->get_const_row_ptrs(), source->get_const_col_idxs(),
+            as_cuda_type(source->get_const_values()), result->get_row_ptrs(),
+            result->get_col_idxs(), as_cuda_type(result->get_values()),
+            source->get_num_block_rows(), source->get_block_size());
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -268,8 +270,10 @@ void transpose_blocks_impl(syn::value_list<int, mat_blk_sz>,
     const size_type numblocks = ceildiv(numthreads, default_block_size);
     const dim3 block_size{static_cast<unsigned>(default_block_size), 1, 1};
     const dim3 grid_dim{static_cast<unsigned>(numblocks), 1, 1};
-    kernel::transpose_blocks<mat_blk_sz, subwarp_size>
-        <<<grid_dim, block_size, 0, 0>>>(nbnz, mat->get_values());
+    if (grid_dim.x > 0) {
+        kernel::transpose_blocks<mat_blk_sz, subwarp_size>
+            <<<grid_dim, block_size, 0, 0>>>(nbnz, mat->get_values());
+    }
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_transpose_blocks,
@@ -325,8 +329,11 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
     const int grid_size =
         ceildiv(trans->get_num_stored_elements(), default_block_size);
     transpose(exec, orig, trans);
-    csr_reuse::conjugate_kernel<<<grid_size, default_block_size>>>(
-        trans->get_num_stored_elements(), as_cuda_type(trans->get_values()));
+    if (grid_size > 0) {
+        csr_reuse::conjugate_kernel<<<grid_size, default_block_size>>>(
+            trans->get_num_stored_elements(),
+            as_cuda_type(trans->get_values()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -348,9 +355,11 @@ void is_sorted_by_column_index(
     const auto num_brows =
         static_cast<IndexType>(to_check->get_num_block_rows());
     const auto num_blocks = ceildiv(num_brows, block_size);
-    csr_reuse::kernel::check_unsorted<<<num_blocks, block_size>>>(
-        to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
-        num_brows, gpu_array.get_data());
+    if (num_blocks > 0) {
+        csr_reuse::kernel::check_unsorted<<<num_blocks, block_size>>>(
+            to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
+            num_brows, gpu_array.get_data());
+    }
     *is_sorted = exec->copy_val_to_host(gpu_array.get_data());
 }
 

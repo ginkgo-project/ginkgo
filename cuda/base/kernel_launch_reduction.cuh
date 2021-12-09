@@ -148,10 +148,12 @@ void run_kernel_reduction(std::shared_ptr<const CudaExecutor> exec,
         ceildiv(size, block_size), exec->get_num_warps() * oversubscription);
     if (num_blocks > 1) {
         Array<ValueType> partial{exec, static_cast<size_type>(num_blocks)};
-        generic_kernel_reduction_1d<<<num_blocks, block_size>>>(
-            static_cast<int64>(size), fn, op,
-            [] __device__(auto v) { return v; }, as_cuda_type(identity),
-            as_cuda_type(partial.get_data()), map_to_device(args)...);
+        if (num_blocks > 0) {
+            generic_kernel_reduction_1d<<<num_blocks, block_size>>>(
+                static_cast<int64>(size), fn, op,
+                [] __device__(auto v) { return v; }, as_cuda_type(identity),
+                as_cuda_type(partial.get_data()), map_to_device(args)...);
+        }
         generic_kernel_reduction_1d<<<1, block_size>>>(
             static_cast<int64>(num_blocks),
             [] __device__(auto i, auto v) { return v[i]; }, op, finalize,
@@ -181,10 +183,12 @@ void run_kernel_reduction(std::shared_ptr<const CudaExecutor> exec,
                         exec->get_num_warps() * oversubscription);
     if (num_blocks > 1) {
         Array<ValueType> partial{exec, static_cast<size_type>(num_blocks)};
-        generic_kernel_reduction_2d<<<num_blocks, block_size>>>(
-            rows, cols, fn, op, [] __device__(auto v) { return v; },
-            as_cuda_type(identity), as_cuda_type(partial.get_data()),
-            map_to_device(args)...);
+        if (num_blocks > 0) {
+            generic_kernel_reduction_2d<<<num_blocks, block_size>>>(
+                rows, cols, fn, op, [] __device__(auto v) { return v; },
+                as_cuda_type(identity), as_cuda_type(partial.get_data()),
+                map_to_device(args)...);
+        }
         generic_kernel_reduction_1d<<<1, block_size>>>(
             static_cast<int64>(num_blocks),
             [] __device__(auto i, auto v) { return v[i]; }, op, finalize,
@@ -366,10 +370,13 @@ void run_generic_kernel_row_reduction(syn::value_list<int, subwarp_size>,
 {
     const auto num_blocks =
         ceildiv(rows * col_blocks * subwarp_size, default_block_size);
-    generic_kernel_row_reduction_2d<subwarp_size>
-        <<<num_blocks, default_block_size>>>(
-            rows, cols, col_blocks, fn, op, finalize, as_cuda_type(identity),
-            as_cuda_type(result), result_stride, args...);
+    if (num_blocks > 0) {
+        generic_kernel_row_reduction_2d<subwarp_size>
+            <<<num_blocks, default_block_size>>>(
+                rows, cols, col_blocks, fn, op, finalize,
+                as_cuda_type(identity), as_cuda_type(result), result_stride,
+                args...);
+    }
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_generic_kernel_row_reduction,
@@ -399,16 +406,20 @@ void run_generic_col_reduction_small(syn::value_list<int, subwarp_size>,
     } else {
         Array<ValueType> tmp_storage{exec,
                                      static_cast<size_type>(num_blocks * cols)};
-        generic_kernel_col_reduction_2d_small<subwarp_size>
-            <<<num_blocks, default_block_size>>>(
-                rows, cols, fn, op, [] __device__(auto v) { return v; },
-                as_cuda_type(identity), as_cuda_type(tmp_storage.get_data()),
-                args...);
-        generic_kernel_reduction_finalize_2d<<<
-            ceildiv(cols, default_block_size), default_block_size>>>(
-            cols, num_blocks, op, finalize, as_cuda_type(identity),
-            as_cuda_type(tmp_storage.get_const_data()), 1,
-            as_cuda_type(result));
+        if (num_blocks > 0) {
+            generic_kernel_col_reduction_2d_small<subwarp_size>
+                <<<num_blocks, default_block_size>>>(
+                    rows, cols, fn, op, [] __device__(auto v) { return v; },
+                    as_cuda_type(identity),
+                    as_cuda_type(tmp_storage.get_data()), args...);
+        }
+        if (cols > 0) {
+            generic_kernel_reduction_finalize_2d<<<
+                ceildiv(cols, default_block_size), default_block_size>>>(
+                cols, num_blocks, op, finalize, as_cuda_type(identity),
+                as_cuda_type(tmp_storage.get_const_data()), 1,
+                as_cuda_type(result));
+        }
     }
 }
 
@@ -440,17 +451,22 @@ void run_kernel_row_reduction(std::shared_ptr<const CudaExecutor> exec,
                                  static_cast<size_type>(col_blocks * rows)};
         const auto num_blocks =
             ceildiv(rows * col_blocks * config::warp_size, default_block_size);
-        generic_kernel_row_reduction_2d<config::warp_size>
-            <<<num_blocks, default_block_size>>>(
-                rows, cols, col_blocks, fn, op,
-                [] __device__(auto v) { return v; }, as_cuda_type(identity),
-                as_cuda_type(partial.get_data()), 1, map_to_device(args)...);
+        if (num_blocks > 0) {
+            generic_kernel_row_reduction_2d<config::warp_size>
+                <<<num_blocks, default_block_size>>>(
+                    rows, cols, col_blocks, fn, op,
+                    [] __device__(auto v) { return v; }, as_cuda_type(identity),
+                    as_cuda_type(partial.get_data()), 1,
+                    map_to_device(args)...);
+        }
         const auto num_finalize_blocks = ceildiv(rows, default_block_size);
-        generic_kernel_reduction_finalize_2d<<<num_finalize_blocks,
-                                               default_block_size>>>(
-            rows, col_blocks, op, finalize, as_cuda_type(identity),
-            as_cuda_type(partial.get_const_data()),
-            static_cast<int64>(result_stride), as_cuda_type(result));
+        if (num_finalize_blocks > 0) {
+            generic_kernel_reduction_finalize_2d<<<num_finalize_blocks,
+                                                   default_block_size>>>(
+                rows, col_blocks, op, finalize, as_cuda_type(identity),
+                as_cuda_type(partial.get_const_data()),
+                static_cast<int64>(result_stride), as_cuda_type(result));
+        }
     } else {
         select_run_generic_kernel_row_reduction(
             subwarp_sizes(),
@@ -497,23 +513,30 @@ void run_kernel_col_reduction(std::shared_ptr<const CudaExecutor> exec,
                         max_blocks),
                     col_blocks);
         if (row_blocks <= 1) {
-            generic_kernel_col_reduction_2d_blocked<<<dim3(1, col_blocks),
-                                                      default_block_size>>>(
-                rows, cols, fn, op, finalize, as_cuda_type(identity),
-                as_cuda_type(result), map_to_device(args)...);
+            if (col_blocks > 0) {
+                generic_kernel_col_reduction_2d_blocked<<<dim3(1, col_blocks),
+                                                          default_block_size>>>(
+                    rows, cols, fn, op, finalize, as_cuda_type(identity),
+                    as_cuda_type(result), map_to_device(args)...);
+            }
         } else {
             Array<ValueType> tmp_storage{
                 exec, static_cast<size_type>(row_blocks * cols)};
-            generic_kernel_col_reduction_2d_blocked<<<
-                dim3(row_blocks, col_blocks), default_block_size>>>(
-                rows, cols, fn, op, [] __device__(auto v) { return v; },
-                as_cuda_type(identity), as_cuda_type(tmp_storage.get_data()),
-                map_to_device(args)...);
-            generic_kernel_reduction_finalize_2d<<<
-                ceildiv(cols, default_block_size), default_block_size>>>(
-                cols, row_blocks, op, finalize, as_cuda_type(identity),
-                as_cuda_type(tmp_storage.get_const_data()), 1,
-                as_cuda_type(result));
+            if (row_blocks * col_blocks > 0) {
+                generic_kernel_col_reduction_2d_blocked<<<
+                    dim3(row_blocks, col_blocks), default_block_size>>>(
+                    rows, cols, fn, op, [] __device__(auto v) { return v; },
+                    as_cuda_type(identity),
+                    as_cuda_type(tmp_storage.get_data()),
+                    map_to_device(args)...);
+            }
+            if (cols > 0) {
+                generic_kernel_reduction_finalize_2d<<<
+                    ceildiv(cols, default_block_size), default_block_size>>>(
+                    cols, row_blocks, op, finalize, as_cuda_type(identity),
+                    as_cuda_type(tmp_storage.get_const_data()), 1,
+                    as_cuda_type(result));
+            }
         }
     }
 }

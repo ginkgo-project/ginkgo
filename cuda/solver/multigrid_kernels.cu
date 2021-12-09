@@ -81,12 +81,14 @@ void kcycle_step_1(std::shared_ptr<const DefaultExecutor> exec,
     const size_type grid_nrows =
         max_size / nrhs < nrows ? max_size / nrhs : nrows;
     const dim3 grid(ceildiv(grid_nrows * nrhs, default_block_size));
-    kernel::kcycle_step_1_kernel<<<grid, default_block_size>>>(
-        nrows, nrhs, e->get_stride(), grid_nrows,
-        as_cuda_type(alpha->get_const_values()),
-        as_cuda_type(rho->get_const_values()),
-        as_cuda_type(v->get_const_values()), as_cuda_type(g->get_values()),
-        as_cuda_type(d->get_values()), as_cuda_type(e->get_values()));
+    if (grid.x > 0) {
+        kernel::kcycle_step_1_kernel<<<grid, default_block_size>>>(
+            nrows, nrhs, e->get_stride(), grid_nrows,
+            as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(rho->get_const_values()),
+            as_cuda_type(v->get_const_values()), as_cuda_type(g->get_values()),
+            as_cuda_type(d->get_values()), as_cuda_type(e->get_values()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL);
@@ -108,14 +110,16 @@ void kcycle_step_2(std::shared_ptr<const DefaultExecutor> exec,
     const size_type grid_nrows =
         max_size / nrhs < nrows ? max_size / nrhs : nrows;
     const dim3 grid(ceildiv(grid_nrows * nrhs, default_block_size));
-    kernel::kcycle_step_2_kernel<<<grid, default_block_size>>>(
-        nrows, nrhs, e->get_stride(), grid_nrows,
-        as_cuda_type(alpha->get_const_values()),
-        as_cuda_type(rho->get_const_values()),
-        as_cuda_type(gamma->get_const_values()),
-        as_cuda_type(beta->get_const_values()),
-        as_cuda_type(zeta->get_const_values()),
-        as_cuda_type(d->get_const_values()), as_cuda_type(e->get_values()));
+    if (grid.x > 0) {
+        kernel::kcycle_step_2_kernel<<<grid, default_block_size>>>(
+            nrows, nrhs, e->get_stride(), grid_nrows,
+            as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(rho->get_const_values()),
+            as_cuda_type(gamma->get_const_values()),
+            as_cuda_type(beta->get_const_values()),
+            as_cuda_type(zeta->get_const_values()),
+            as_cuda_type(d->get_const_values()), as_cuda_type(e->get_values()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL);
@@ -132,10 +136,12 @@ void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
                            true);
     const auto nrhs = new_norm->get_size()[1];
     const dim3 grid(ceildiv(nrhs, default_block_size));
-    kernel::kcycle_check_stop_kernel<<<grid, default_block_size>>>(
-        nrhs, as_cuda_type(old_norm->get_const_values()),
-        as_cuda_type(new_norm->get_const_values()), rel_tol,
-        as_cuda_type(dis_stop.get_data()));
+    if (grid.x > 0) {
+        kernel::kcycle_check_stop_kernel<<<grid, default_block_size>>>(
+            nrhs, as_cuda_type(old_norm->get_const_values()),
+            as_cuda_type(new_norm->get_const_values()), rel_tol,
+            as_cuda_type(dis_stop.get_data()));
+    }
     is_stop = exec->copy_val_to_host(dis_stop.get_const_data());
 }
 
