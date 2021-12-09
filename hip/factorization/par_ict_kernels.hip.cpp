@@ -107,9 +107,9 @@ void add_candidates(syn::value_list<int, subwarp_size>,
     auto l_new_row_ptrs = l_new->get_row_ptrs();
     // count non-zeros per row
     hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(kernel::ict_tri_spgeam_nnz<subwarp_size>),
-        dim3(num_blocks), dim3(default_block_size), 0, 0, llh_row_ptrs,
-        llh_col_idxs, a_row_ptrs, a_col_idxs, l_new_row_ptrs, num_rows);
+        HIP_KERNEL_NAME(kernel::ict_tri_spgeam_nnz<subwarp_size>), num_blocks,
+        default_block_size, 0, 0, llh_row_ptrs, llh_col_idxs, a_row_ptrs,
+        a_col_idxs, l_new_row_ptrs, num_rows);
 
     // build row ptrs
     components::prefix_sum(exec, l_new_row_ptrs, num_rows + 1);
@@ -124,11 +124,11 @@ void add_candidates(syn::value_list<int, subwarp_size>,
 
     // fill columns and values
     hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(kernel::ict_tri_spgeam_init<subwarp_size>),
-        dim3(num_blocks), dim3(default_block_size), 0, 0, llh_row_ptrs,
-        llh_col_idxs, as_hip_type(llh_vals), a_row_ptrs, a_col_idxs,
-        as_hip_type(a_vals), l_row_ptrs, l_col_idxs, as_hip_type(l_vals),
-        l_new_row_ptrs, l_new_col_idxs, as_hip_type(l_new_vals), num_rows);
+        HIP_KERNEL_NAME(kernel::ict_tri_spgeam_init<subwarp_size>), num_blocks,
+        default_block_size, 0, 0, llh_row_ptrs, llh_col_idxs,
+        as_hip_type(llh_vals), a_row_ptrs, a_col_idxs, as_hip_type(a_vals),
+        l_row_ptrs, l_col_idxs, as_hip_type(l_vals), l_new_row_ptrs,
+        l_new_col_idxs, as_hip_type(l_new_vals), num_rows);
 }
 
 
@@ -146,7 +146,7 @@ void compute_factor(syn::value_list<int, subwarp_size>,
     auto block_size = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(total_nnz, block_size);
     hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::ict_sweep<subwarp_size>),
-                       dim3(num_blocks), dim3(default_block_size), 0, 0,
+                       num_blocks, default_block_size, 0, 0,
                        a->get_const_row_ptrs(), a->get_const_col_idxs(),
                        as_hip_type(a->get_const_values()),
                        l->get_const_row_ptrs(), l_coo->get_const_row_idxs(),

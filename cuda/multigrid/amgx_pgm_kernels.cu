@@ -80,8 +80,8 @@ void match_edge(std::shared_ptr<const CudaExecutor> exec,
                 Array<IndexType>& agg)
 {
     const auto num = agg.get_num_elems();
-    const dim3 grid(ceildiv(num, default_block_size));
-    if (grid.x > 0) {
+    const auto grid = ceildiv(num, default_block_size);
+    if (grid > 0) {
         kernel::match_edge_kernel<<<grid, default_block_size>>>(
             num, strongest_neighbor.get_const_data(), agg.get_data());
     }
@@ -95,8 +95,8 @@ void count_unagg(std::shared_ptr<const CudaExecutor> exec,
                  const Array<IndexType>& agg, IndexType* num_unagg)
 {
     Array<IndexType> active_agg(exec, agg.get_num_elems());
-    const dim3 grid(ceildiv(active_agg.get_num_elems(), default_block_size));
-    if (grid.x > 0) {
+    const auto grid = ceildiv(active_agg.get_num_elems(), default_block_size);
+    if (grid > 0) {
         kernel::activate_kernel<<<grid, default_block_size>>>(
             active_agg.get_num_elems(), agg.get_const_data(),
             active_agg.get_data());
@@ -114,13 +114,13 @@ void renumber(std::shared_ptr<const CudaExecutor> exec, Array<IndexType>& agg,
 {
     const auto num = agg.get_num_elems();
     Array<IndexType> agg_map(exec, num + 1);
-    const dim3 grid(ceildiv(num, default_block_size));
-    if (grid.x > 0) {
+    const auto grid = ceildiv(num, default_block_size);
+    if (grid > 0) {
         kernel::fill_agg_kernel<<<grid, default_block_size>>>(
             num, agg.get_const_data(), agg_map.get_data());
     }
     components::prefix_sum(exec, agg_map.get_data(), agg_map.get_num_elems());
-    if (grid.x > 0) {
+    if (grid > 0) {
         kernel::renumber_kernel<<<grid, default_block_size>>>(
             num, agg_map.get_const_data(), agg.get_data());
     }
@@ -138,8 +138,8 @@ void find_strongest_neighbor(
     Array<IndexType>& strongest_neighbor)
 {
     const auto num = agg.get_num_elems();
-    const dim3 grid(ceildiv(num, default_block_size));
-    if (grid.x > 0) {
+    const auto grid = ceildiv(num, default_block_size);
+    if (grid > 0) {
         kernel::find_strongest_neighbor_kernel<<<grid, default_block_size>>>(
             num, weight_mtx->get_const_row_ptrs(),
             weight_mtx->get_const_col_idxs(), weight_mtx->get_const_values(),
@@ -159,10 +159,10 @@ void assign_to_exist_agg(std::shared_ptr<const CudaExecutor> exec,
                          Array<IndexType>& intermediate_agg)
 {
     const auto num = agg.get_num_elems();
-    const dim3 grid(ceildiv(num, default_block_size));
+    const auto grid = ceildiv(num, default_block_size);
     if (intermediate_agg.get_num_elems() > 0) {
         // determinstic kernel
-        if (grid.x > 0) {
+        if (grid > 0) {
             kernel::assign_to_exist_agg_kernel<<<grid, default_block_size>>>(
                 num, weight_mtx->get_const_row_ptrs(),
                 weight_mtx->get_const_col_idxs(),
@@ -173,7 +173,7 @@ void assign_to_exist_agg(std::shared_ptr<const CudaExecutor> exec,
         agg = intermediate_agg;
     } else {
         // undeterminstic kernel
-        if (grid.x > 0) {
+        if (grid > 0) {
             kernel::assign_to_exist_agg_kernel<<<grid, default_block_size>>>(
                 num, weight_mtx->get_const_row_ptrs(),
                 weight_mtx->get_const_col_idxs(),

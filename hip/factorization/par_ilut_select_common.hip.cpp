@@ -75,17 +75,16 @@ void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
     auto num_blocks =
         static_cast<IndexType>(ceildiv(num_threads_total, default_block_size));
     // pick sample, build searchtree
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::build_searchtree), dim3(1),
-                       dim3(bucket_count), 0, 0, as_hip_type(values), size,
-                       tree);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::build_searchtree), 1,
+                       bucket_count, 0, 0, as_hip_type(values), size, tree);
     // determine bucket sizes
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::count_buckets), dim3(num_blocks),
-                       dim3(default_block_size), 0, 0, as_hip_type(values),
-                       size, tree, partial_counts, oracles, items_per_thread);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::count_buckets), num_blocks,
+                       default_block_size, 0, 0, as_hip_type(values), size,
+                       tree, partial_counts, oracles, items_per_thread);
     // compute prefix sum and total sum over block-local values
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::block_prefix_sum),
-                       dim3(bucket_count), dim3(default_block_size), 0, 0,
-                       partial_counts, total_counts, num_blocks);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::block_prefix_sum), bucket_count,
+                       default_block_size, 0, 0, partial_counts, total_counts,
+                       num_blocks);
     // compute prefix sum over bucket counts
     components::prefix_sum(exec, total_counts, bucket_count + 1);
 }
@@ -106,8 +105,8 @@ sampleselect_bucket<IndexType> sampleselect_find_bucket(
     std::shared_ptr<const DefaultExecutor> exec, IndexType* prefix_sum,
     IndexType rank)
 {
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::find_bucket), dim3(1),
-                       dim3(config::warp_size), 0, 0, prefix_sum, rank);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::find_bucket), 1,
+                       config::warp_size, 0, 0, prefix_sum, rank);
     IndexType values[3]{};
     exec->get_master()->copy_from(exec.get(), 3, prefix_sum, values);
     return {values[0], values[1], values[2]};

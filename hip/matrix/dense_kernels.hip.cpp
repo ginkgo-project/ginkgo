@@ -152,10 +152,10 @@ void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
     const auto grid_dim =
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (grid_dim > 0) {
-        hipLaunchKernelGGL(kernel::fill_in_coo, dim3(grid_dim),
-                           dim3(default_block_size), 0, 0, num_rows, num_cols,
-                           stride, as_hip_type(source->get_const_values()),
-                           row_ptrs, row_idxs, col_idxs, as_hip_type(values));
+        hipLaunchKernelGGL(kernel::fill_in_coo, grid_dim, default_block_size, 0,
+                           0, num_rows, num_cols, stride,
+                           as_hip_type(source->get_const_values()), row_ptrs,
+                           row_idxs, col_idxs, as_hip_type(values));
     }
 }
 
@@ -181,8 +181,8 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (grid_dim > 0) {
         hipLaunchKernelGGL(
-            kernel::fill_in_csr, dim3(grid_dim), dim3(default_block_size), 0, 0,
-            num_rows, num_cols, stride, as_hip_type(source->get_const_values()),
+            kernel::fill_in_csr, grid_dim, default_block_size, 0, 0, num_rows,
+            num_cols, stride, as_hip_type(source->get_const_values()),
             as_hip_type(row_ptrs), as_hip_type(col_idxs), as_hip_type(values));
     }
 }
@@ -210,10 +210,9 @@ void convert_to_ell(std::shared_ptr<const HipExecutor> exec,
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (grid_dim > 0) {
         hipLaunchKernelGGL(
-            kernel::fill_in_ell, dim3(grid_dim), dim3(default_block_size), 0, 0,
-            num_rows, num_cols, source_stride,
-            as_hip_type(source->get_const_values()), max_nnz_per_row,
-            result_stride, col_idxs, as_hip_type(values));
+            kernel::fill_in_ell, grid_dim, default_block_size, 0, 0, num_rows,
+            num_cols, source_stride, as_hip_type(source->get_const_values()),
+            max_nnz_per_row, result_stride, col_idxs, as_hip_type(values));
     }
 }
 
@@ -273,11 +272,11 @@ void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
 
     auto grid_dim = ceildiv(num_rows, default_block_size / config::warp_size);
     if (grid_dim > 0) {
-        hipLaunchKernelGGL(
-            kernel::fill_in_sellp, dim3(grid_dim), dim3(default_block_size), 0,
-            0, num_rows, num_cols, slice_size, stride,
-            as_hip_type(source->get_const_values()), as_hip_type(slice_lengths),
-            as_hip_type(slice_sets), as_hip_type(col_idxs), as_hip_type(vals));
+        hipLaunchKernelGGL(kernel::fill_in_sellp, grid_dim, default_block_size,
+                           0, 0, num_rows, num_cols, slice_size, stride,
+                           as_hip_type(source->get_const_values()),
+                           as_hip_type(slice_lengths), as_hip_type(slice_sets),
+                           as_hip_type(col_idxs), as_hip_type(vals));
     }
 }
 

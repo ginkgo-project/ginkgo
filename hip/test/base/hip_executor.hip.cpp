@@ -186,7 +186,7 @@ TEST_F(HipExecutor, CopiesDataToHip)
 
     hip->copy_from(omp.get(), 2, orig, copy);
 
-    hipLaunchKernelGGL((check_data), dim3(1), dim3(1), 0, 0, copy);
+    hipLaunchKernelGGL((check_data), 1, 1, 0, 0, copy);
     ASSERT_NO_THROW(hip->synchronize());
     hip->free(copy);
 }
@@ -235,7 +235,7 @@ TEST_F(HipExecutor, CopiesDataFromHip)
 {
     int copy[2];
     auto orig = hip->alloc<int>(2);
-    hipLaunchKernelGGL((init_data), dim3(1), dim3(1), 0, 0, orig);
+    hipLaunchKernelGGL((init_data), 1, 1, 0, 0, orig);
 
     omp->copy_from(hip.get(), 2, orig, copy);
 
@@ -277,7 +277,7 @@ TEST_F(HipExecutor, CopiesDataFromHipToHip)
     int copy[2];
     auto orig = hip->alloc<int>(2);
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(0));
-    hipLaunchKernelGGL((init_data), dim3(1), dim3(1), 0, 0, orig);
+    hipLaunchKernelGGL((init_data), 1, 1, 0, 0, orig);
 
     auto copy_hip2 = hip2->alloc<int>(2);
     hip2->copy_from(hip.get(), 2, orig, copy_hip2);
@@ -285,7 +285,7 @@ TEST_F(HipExecutor, CopiesDataFromHipToHip)
     // Check that the data is really on GPU2 and ensure we did not cheat
     int value = -1;
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(hip2->get_device_id()));
-    hipLaunchKernelGGL((check_data), dim3(1), dim3(1), 0, 0, copy_hip2);
+    hipLaunchKernelGGL((check_data), 1, 1, 0, 0, copy_hip2);
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(0));
     hip2->run(ExampleOperation(value));
     ASSERT_EQ(value, hip2->get_device_id());

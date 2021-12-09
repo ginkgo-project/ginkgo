@@ -89,13 +89,13 @@ void initialize_1(std::shared_ptr<const HipExecutor> exec,
 {
     const auto num_threads = std::max(b->get_size()[0] * b->get_stride(),
                                       krylov_dim * b->get_size()[1]);
-    const dim3 grid_dim(ceildiv(num_threads, default_block_size), 1, 1);
-    const dim3 block_dim(default_block_size, 1, 1);
+    const auto grid_dim = ceildiv(num_threads, default_block_size);
+    const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
 
     hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(initialize_1_kernel<block_size>), dim3(grid_dim),
-        dim3(block_dim), 0, 0, b->get_size()[0], b->get_size()[1], krylov_dim,
+        HIP_KERNEL_NAME(initialize_1_kernel<block_size>), grid_dim, block_dim,
+        0, 0, b->get_size()[0], b->get_size()[1], krylov_dim,
         as_hip_type(b->get_const_values()), b->get_stride(),
         as_hip_type(residual->get_values()), residual->get_stride(),
         as_hip_type(givens_sin->get_values()), givens_sin->get_stride(),
@@ -116,20 +116,18 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
 {
     const auto num_rows = residual->get_size()[0];
     const auto num_rhs = residual->get_size()[1];
-    const dim3 grid_dim_1(
+    const auto grid_dim_1 =
         ceildiv(krylov_bases->get_size()[0] * krylov_bases->get_stride(),
-                default_block_size),
-        1, 1);
-    const dim3 block_dim(default_block_size, 1, 1);
+                default_block_size);
+    const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
 
     kernels::hip::dense::compute_norm2(exec, residual, residual_norm);
 
-    const dim3 grid_dim_2(ceildiv(num_rows * num_rhs, default_block_size), 1,
-                          1);
+    const auto grid_dim_2 = ceildiv(num_rows * num_rhs, default_block_size);
     hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(initialize_2_2_kernel<block_size>), dim3(grid_dim_2),
-        dim3(block_dim), 0, 0, residual->get_size()[0], residual->get_size()[1],
+        HIP_KERNEL_NAME(initialize_2_2_kernel<block_size>), grid_dim_2,
+        block_dim, 0, 0, residual->get_size()[0], residual->get_size()[1],
         as_hip_type(residual->get_const_values()), residual->get_stride(),
         as_hip_type(residual_norm->get_const_values()),
         as_hip_type(residual_norm_collection->get_values()),
@@ -167,12 +165,12 @@ void finish_arnoldi(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
             components::fill_array(
                 exec, hessenberg_iter->get_values() + k * stride_hessenberg,
                 hessenberg_iter->get_size()[1], zero<ValueType>());
-            hipLaunchKernelGGL(
-                multidot_kernel, dim3(grid_size), dim3(block_size), 0, 0, k,
-                num_rows, hessenberg_iter->get_size()[1],
-                as_hip_type(k_krylov_bases), as_hip_type(next_krylov_basis),
-                stride_krylov, as_hip_type(hessenberg_iter->get_values()),
-                stride_hessenberg, as_hip_type(stop_status));
+            hipLaunchKernelGGL(multidot_kernel, grid_size, block_size, 0, 0, k,
+                               num_rows, hessenberg_iter->get_size()[1],
+                               as_hip_type(k_krylov_bases),
+                               as_hip_type(next_krylov_basis), stride_krylov,
+                               as_hip_type(hessenberg_iter->get_values()),
+                               stride_hessenberg, as_hip_type(stop_status));
         } else {
             hipblas::dot(exec->get_hipblas_handle(), num_rows, k_krylov_bases,
                          stride_krylov, next_krylov_basis, stride_krylov,
@@ -180,8 +178,8 @@ void finish_arnoldi(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
         }
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(update_next_krylov_kernel<default_block_size>),
-            dim3(ceildiv(num_rows * stride_krylov, default_block_size)),
-            dim3(default_block_size), 0, 0, k, num_rows,
+            ceildiv(num_rows * stride_krylov, default_block_size),
+            default_block_size, 0, 0, k, num_rows,
             hessenberg_iter->get_size()[1], as_hip_type(k_krylov_bases),
             as_hip_type(next_krylov_basis), stride_krylov,
             as_hip_type(hessenberg_iter->get_const_values()), stride_hessenberg,
@@ -195,16 +193,16 @@ void finish_arnoldi(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
 
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(update_hessenberg_2_kernel<default_block_size>),
-        dim3(hessenberg_iter->get_size()[1]), dim3(default_block_size), 0, 0,
-        iter, num_rows, hessenberg_iter->get_size()[1],
+        hessenberg_iter->get_size()[1], default_block_size, 0, 0, iter,
+        num_rows, hessenberg_iter->get_size()[1],
         as_hip_type(next_krylov_basis), stride_krylov,
         as_hip_type(hessenberg_iter->get_values()), stride_hessenberg,
         as_hip_type(stop_status));
 
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(update_krylov_kernel<default_block_size>),
-        dim3(ceildiv(num_rows * stride_krylov, default_block_size)),
-        dim3(default_block_size), 0, 0, iter, num_rows,
+        ceildiv(num_rows * stride_krylov, default_block_size),
+        default_block_size, 0, 0, iter, num_rows,
         hessenberg_iter->get_size()[1], as_hip_type(next_krylov_basis),
         stride_krylov, as_hip_type(hessenberg_iter->get_const_values()),
         stride_hessenberg, as_hip_type(stop_status));
@@ -225,13 +223,13 @@ void givens_rotation(std::shared_ptr<const HipExecutor> exec,
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
     const auto num_cols = hessenberg_iter->get_size()[1];
-    const dim3 block_dim{block_size, 1, 1};
-    const dim3 grid_dim{
-        static_cast<unsigned int>(ceildiv(num_cols, block_size)), 1, 1};
+    const auto block_dim = block_size;
+    const auto grid_dim =
+        static_cast<unsigned int>(ceildiv(num_cols, block_size));
 
     hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(givens_rotation_kernel<block_size>), dim3(grid_dim),
-        dim3(block_dim), 0, 0, hessenberg_iter->get_size()[0],
+        HIP_KERNEL_NAME(givens_rotation_kernel<block_size>), grid_dim,
+        block_dim, 0, 0, hessenberg_iter->get_size()[0],
         hessenberg_iter->get_size()[1], iter,
         as_hip_type(hessenberg_iter->get_values()),
         hessenberg_iter->get_stride(), as_hip_type(givens_sin->get_values()),
@@ -256,10 +254,9 @@ void step_1(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
 {
     hipLaunchKernelGGL(
         increase_final_iteration_numbers_kernel,
-        dim3(static_cast<unsigned int>(
-            ceildiv(final_iter_nums->get_num_elems(), default_block_size))),
-        dim3(default_block_size), 0, 0,
-        as_hip_type(final_iter_nums->get_data()),
+        static_cast<unsigned int>(
+            ceildiv(final_iter_nums->get_num_elems(), default_block_size)),
+        default_block_size, 0, 0, as_hip_type(final_iter_nums->get_data()),
         as_hip_type(stop_status->get_const_data()),
         final_iter_nums->get_num_elems());
     finish_arnoldi(exec, num_rows, krylov_bases, hessenberg_iter, iter,
@@ -280,14 +277,14 @@ void solve_upper_triangular(
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
     const auto num_rhs = residual_norm_collection->get_size()[1];
-    const dim3 block_dim{block_size, 1, 1};
-    const dim3 grid_dim{static_cast<unsigned int>(ceildiv(num_rhs, block_size)),
-                        1, 1};
+    const auto block_dim = block_size;
+    const auto grid_dim =
+        static_cast<unsigned int>(ceildiv(num_rhs, block_size));
 
     hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(solve_upper_triangular_kernel<block_size>),
-        dim3(grid_dim), dim3(block_dim), 0, 0, hessenberg->get_size()[1],
-        num_rhs, as_hip_type(residual_norm_collection->get_const_values()),
+        HIP_KERNEL_NAME(solve_upper_triangular_kernel<block_size>), grid_dim,
+        block_dim, 0, 0, hessenberg->get_size()[1], num_rhs,
+        as_hip_type(residual_norm_collection->get_const_values()),
         residual_norm_collection->get_stride(),
         as_hip_type(hessenberg->get_const_values()), hessenberg->get_stride(),
         as_hip_type(y->get_values()), y->get_stride(),
@@ -308,21 +305,19 @@ void calculate_qy(const matrix::Dense<ValueType>* krylov_bases,
         before_preconditioner->get_stride();
 
     constexpr auto block_size = default_block_size;
-    const dim3 grid_dim{
-        static_cast<unsigned int>(
-            ceildiv(num_rows * stride_before_preconditioner, block_size)),
-        1, 1};
-    const dim3 block_dim{block_size, 1, 1};
+    const auto grid_dim = static_cast<unsigned int>(
+        ceildiv(num_rows * stride_before_preconditioner, block_size));
+    const auto block_dim = block_size;
 
 
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(calculate_Qy_kernel<block_size>), dim3(grid_dim),
-        dim3(block_dim), 0, 0, num_rows, num_cols, num_rhs,
-        as_hip_type(krylov_bases->get_const_values()),
-        krylov_bases->get_stride(), as_hip_type(y->get_const_values()),
-        y->get_stride(), as_hip_type(before_preconditioner->get_values()),
-        stride_before_preconditioner,
-        as_hip_type(final_iter_nums->get_const_data()));
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(calculate_Qy_kernel<block_size>),
+                       grid_dim, block_dim, 0, 0, num_rows, num_cols, num_rhs,
+                       as_hip_type(krylov_bases->get_const_values()),
+                       krylov_bases->get_stride(),
+                       as_hip_type(y->get_const_values()), y->get_stride(),
+                       as_hip_type(before_preconditioner->get_values()),
+                       stride_before_preconditioner,
+                       as_hip_type(final_iter_nums->get_const_data()));
     // Calculate qy
     // before_preconditioner = krylov_bases * y
 }

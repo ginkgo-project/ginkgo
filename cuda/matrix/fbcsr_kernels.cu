@@ -268,9 +268,9 @@ void transpose_blocks_impl(syn::value_list<int, mat_blk_sz>,
     const size_type nbnz = mat->get_num_stored_blocks();
     const size_type numthreads = nbnz * subwarp_size;
     const size_type numblocks = ceildiv(numthreads, default_block_size);
-    const dim3 block_size{static_cast<unsigned>(default_block_size), 1, 1};
-    const dim3 grid_dim{static_cast<unsigned>(numblocks), 1, 1};
-    if (grid_dim.x > 0) {
+    const auto block_size = static_cast<unsigned>(default_block_size);
+    const auto grid_dim = static_cast<unsigned>(numblocks);
+    if (grid_dim > 0) {
         kernel::transpose_blocks<mat_blk_sz, subwarp_size>
             <<<grid_dim, block_size, 0, 0>>>(nbnz, mat->get_values());
     }

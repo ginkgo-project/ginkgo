@@ -88,11 +88,11 @@ void generate(syn::value_list<int, max_block_size>,
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
     constexpr int blocks_per_warp = config::warp_size / subwarp_size;
-    const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
-                         1, 1);
+    const auto grid_size =
+        ceildiv(num_blocks, warps_per_block * blocks_per_warp);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
-    if (grid_size.x > 0) {
+    if (grid_size > 0) {
         if (block_precisions) {
             kernel::adaptive_generate<max_block_size, subwarp_size,
                                       warps_per_block>

@@ -102,15 +102,15 @@ void residual_norm(std::shared_ptr<const HipExecutor> exec,
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
-    hipLaunchKernelGGL((init_kernel), dim3(1), dim3(1), 0, 0,
+    hipLaunchKernelGGL((init_kernel), 1, 1, 0, 0,
                        as_hip_type(device_storage->get_data()));
 
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(tau->get_size()[1], block_size.x), 1, 1);
+    const auto block_size = default_block_size;
+    const auto grid_size = ceildiv(tau->get_size()[1], block_size);
 
-    hipLaunchKernelGGL((residual_norm_kernel), dim3(grid_size),
-                       dim3(block_size), 0, 0, tau->get_size()[1],
-                       rel_residual_goal, as_hip_type(tau->get_const_values()),
+    hipLaunchKernelGGL((residual_norm_kernel), grid_size, block_size, 0, 0,
+                       tau->get_size()[1], rel_residual_goal,
+                       as_hip_type(tau->get_const_values()),
                        as_hip_type(orig_tau->get_const_values()), stoppingId,
                        setFinalized, as_hip_type(stop_status->get_data()),
                        as_hip_type(device_storage->get_data()));
@@ -180,15 +180,15 @@ void implicit_residual_norm(
     bool setFinalized, Array<stopping_status>* stop_status,
     Array<bool>* device_storage, bool* all_converged, bool* one_changed)
 {
-    hipLaunchKernelGGL((init_kernel), dim3(1), dim3(1), 0, 0,
+    hipLaunchKernelGGL((init_kernel), 1, 1, 0, 0,
                        as_hip_type(device_storage->get_data()));
 
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(tau->get_size()[1], block_size.x), 1, 1);
+    const auto block_size = default_block_size;
+    const auto grid_size = ceildiv(tau->get_size()[1], block_size);
 
-    hipLaunchKernelGGL((implicit_residual_norm_kernel), dim3(grid_size),
-                       dim3(block_size), 0, 0, tau->get_size()[1],
-                       rel_residual_goal, as_hip_type(tau->get_const_values()),
+    hipLaunchKernelGGL((implicit_residual_norm_kernel), grid_size, block_size,
+                       0, 0, tau->get_size()[1], rel_residual_goal,
+                       as_hip_type(tau->get_const_values()),
                        as_hip_type(orig_tau->get_const_values()), stoppingId,
                        setFinalized, as_hip_type(stop_status->get_data()),
                        as_hip_type(device_storage->get_data()));
