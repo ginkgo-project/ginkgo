@@ -212,7 +212,31 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Fbcsr<ValueType, IndexType>* const source,
-                   matrix::Dense<ValueType>* const result) GKO_NOT_IMPLEMENTED;
+                   matrix::Dense<ValueType>* const result)
+{
+    const auto bs = source->get_block_size();
+    const auto nbrows = source->get_num_block_rows();
+    const auto nbnz = source->get_num_stored_blocks();
+    auto row_ptrs = source->get_const_row_ptrs();
+    auto col_idxs = source->get_const_col_idxs();
+    const acc::range<acc::block_col_major<const ValueType, 3>> values{
+        to_std_array<size_type>(nbnz, bs, bs), source->get_const_values()};
+#pragma omp parallel for
+    for (size_type block_row = 0; block_row < nbrows; block_row++) {
+        const auto row_begin = row_ptrs[block_row];
+        const auto row_end = row_ptrs[block_row + 1];
+        for (auto block = row_begin; block < row_end; block++) {
+            const auto block_col = col_idxs[block];
+            for (int local_row = 0; local_row < bs; local_row++) {
+                const auto row = block_row * bs + local_row;
+                for (int local_col = 0; local_col < bs; local_col++) {
+                    const auto col = block_col * bs + local_col;
+                    result->at(row, col) = values(block, local_row, local_col);
+                }
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL);
