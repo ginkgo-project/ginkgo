@@ -123,9 +123,9 @@ void spmv2(std::shared_ptr<const HipExecutor> exec,
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
             int num_lines = ceildiv(nnz, nwarps * config::warp_size);
             hipLaunchKernelGGL(
-                abstract_spmv, dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
-                num_lines, as_hip_type(a->get_const_values()),
-                a->get_const_col_idxs(), as_hip_type(a->get_const_row_idxs()),
+                abstract_spmv, coo_grid, coo_block, 0, 0, nnz, num_lines,
+                as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
+                as_hip_type(a->get_const_row_idxs()),
                 as_hip_type(b->get_const_values()), b->get_stride(),
                 as_hip_type(c->get_values()), c->get_stride());
         } else {
@@ -134,10 +134,10 @@ void spmv2(std::shared_ptr<const HipExecutor> exec,
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
                                 ceildiv(b_ncols, config::warp_size));
             hipLaunchKernelGGL(
-                abstract_spmm, dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
-                num_elems, as_hip_type(a->get_const_values()),
-                a->get_const_col_idxs(), as_hip_type(a->get_const_row_idxs()),
-                b_ncols, as_hip_type(b->get_const_values()), b->get_stride(),
+                abstract_spmm, coo_grid, coo_block, 0, 0, nnz, num_elems,
+                as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
+                as_hip_type(a->get_const_row_idxs()), b_ncols,
+                as_hip_type(b->get_const_values()), b->get_stride(),
                 as_hip_type(c->get_values()), c->get_stride());
         }
     }
@@ -164,8 +164,8 @@ void advanced_spmv2(std::shared_ptr<const HipExecutor> exec,
             int num_lines = ceildiv(nnz, nwarps * config::warp_size);
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
             hipLaunchKernelGGL(
-                abstract_spmv, dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
-                num_lines, as_hip_type(alpha->get_const_values()),
+                abstract_spmv, coo_grid, coo_block, 0, 0, nnz, num_lines,
+                as_hip_type(alpha->get_const_values()),
                 as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_hip_type(a->get_const_row_idxs()),
                 as_hip_type(b->get_const_values()), b->get_stride(),
@@ -176,8 +176,8 @@ void advanced_spmv2(std::shared_ptr<const HipExecutor> exec,
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
                                 ceildiv(b_ncols, config::warp_size));
             hipLaunchKernelGGL(
-                abstract_spmm, dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
-                num_elems, as_hip_type(alpha->get_const_values()),
+                abstract_spmm, coo_grid, coo_block, 0, 0, nnz, num_elems,
+                as_hip_type(alpha->get_const_values()),
                 as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_hip_type(a->get_const_row_idxs()), b_ncols,
                 as_hip_type(b->get_const_values()), b->get_stride(),

@@ -97,8 +97,8 @@ void compute_l_u_factors(syn::value_list<int, subwarp_size>,
     auto block_size = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(total_nnz, block_size);
     hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(kernel::sweep<subwarp_size>), dim3(num_blocks),
-        dim3(default_block_size), 0, 0, a->get_const_row_ptrs(),
+        HIP_KERNEL_NAME(kernel::sweep<subwarp_size>), num_blocks,
+        default_block_size, 0, 0, a->get_const_row_ptrs(),
         a->get_const_col_idxs(), as_hip_type(a->get_const_values()),
         l->get_const_row_ptrs(), l_coo->get_const_row_idxs(),
         l->get_const_col_idxs(), as_hip_type(l->get_values()),

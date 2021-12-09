@@ -101,10 +101,10 @@ void residual_norm(std::shared_ptr<const CudaExecutor> exec,
                   "ValueType must not be complex in this function!");
     init_kernel<<<1, 1>>>(as_cuda_type(device_storage->get_data()));
 
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(tau->get_size()[1], block_size.x), 1, 1);
+    const auto block_size = default_block_size;
+    const auto grid_size = ceildiv(tau->get_size()[1], block_size);
 
-    if (grid_size.x > 0) {
+    if (grid_size > 0) {
         residual_norm_kernel<<<grid_size, block_size>>>(
             tau->get_size()[1], rel_residual_goal,
             as_cuda_type(tau->get_const_values()),
@@ -180,10 +180,10 @@ void implicit_residual_norm(
 {
     init_kernel<<<1, 1>>>(as_cuda_type(device_storage->get_data()));
 
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(tau->get_size()[1], block_size.x), 1, 1);
+    const auto block_size = default_block_size;
+    const auto grid_size = ceildiv(tau->get_size()[1], block_size);
 
-    if (grid_size.x > 0) {
+    if (grid_size > 0) {
         implicit_residual_norm_kernel<<<grid_size, block_size>>>(
             tau->get_size()[1], rel_residual_goal,
             as_cuda_type(tau->get_const_values()),

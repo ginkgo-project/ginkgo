@@ -78,10 +78,9 @@ void sampleselect_filter(const ValueType* values, IndexType size,
     auto num_threads_total = ceildiv(size, items_per_thread);
     auto num_blocks =
         static_cast<IndexType>(ceildiv(num_threads_total, default_block_size));
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::filter_bucket), dim3(num_blocks),
-                       dim3(default_block_size), 0, 0, as_hip_type(values),
-                       size, bucket, oracles, partial_counts, out,
-                       items_per_thread);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::filter_bucket), num_blocks,
+                       default_block_size, 0, 0, as_hip_type(values), size,
+                       bucket, oracles, partial_counts, out, items_per_thread);
 }
 
 
@@ -173,9 +172,9 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
 
     // base case
     auto out_ptr = reinterpret_cast<AbsType*>(tmp1.get_data());
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::basecase_select), dim3(1),
-                       dim3(kernel::basecase_block_size), 0, 0, tmp22,
-                       bucket.size, rank, out_ptr);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::basecase_select), 1,
+                       kernel::basecase_block_size, 0, 0, tmp22, bucket.size,
+                       rank, out_ptr);
     threshold = exec->copy_val_to_host(out_ptr);
 }
 

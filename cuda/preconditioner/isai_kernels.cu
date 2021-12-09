@@ -80,9 +80,9 @@ void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = input->get_size()[0];
 
-    const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(num_rows, block.x / subwarp_size), 1, 1);
-    if (grid.x > 0) {
+    const auto block = default_block_size;
+    const auto grid = ceildiv(num_rows, block / subwarp_size);
+    if (grid > 0) {
         if (lower) {
             kernel::generate_l_inverse<subwarp_size, subwarps_per_block>
                 <<<grid, block>>>(
@@ -120,9 +120,9 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = input->get_size()[0];
 
-    const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(num_rows, block.x / subwarp_size), 1, 1);
-    if (grid.x > 0) {
+    const auto block = default_block_size;
+    const auto grid = ceildiv(num_rows, block / subwarp_size);
+    if (grid > 0) {
         kernel::generate_general_inverse<subwarp_size, subwarps_per_block>
             <<<grid, block>>>(static_cast<IndexType>(num_rows),
                               input->get_const_row_ptrs(),
@@ -152,9 +152,9 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = input->get_size()[0];
 
-    const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(e_end - e_start, block.x / subwarp_size), 1, 1);
-    if (grid.x > 0) {
+    const auto block = default_block_size;
+    const auto grid = ceildiv(e_end - e_start, block / subwarp_size);
+    if (grid > 0) {
         kernel::generate_excess_system<subwarp_size><<<grid, block>>>(
             static_cast<IndexType>(num_rows), input->get_const_row_ptrs(),
             input->get_const_col_idxs(),
@@ -177,9 +177,9 @@ void scale_excess_solution(std::shared_ptr<const DefaultExecutor>,
                            matrix::Dense<ValueType>* excess_solution,
                            size_type e_start, size_type e_end)
 {
-    const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(e_end - e_start, block.x / subwarp_size), 1, 1);
-    if (grid.x > 0) {
+    const auto block = default_block_size;
+    const auto grid = ceildiv(e_end - e_start, block / subwarp_size);
+    if (grid > 0) {
         kernel::scale_excess_solution<subwarp_size><<<grid, block>>>(
             excess_block_ptrs, as_cuda_type(excess_solution->get_values()),
             e_start, e_end);
@@ -199,9 +199,9 @@ void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = inverse->get_size()[0];
 
-    const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(e_end - e_start, block.x / subwarp_size), 1, 1);
-    if (grid.x > 0) {
+    const auto block = default_block_size;
+    const auto grid = ceildiv(e_end - e_start, block / subwarp_size);
+    if (grid > 0) {
         kernel::copy_excess_solution<subwarp_size><<<grid, block>>>(
             static_cast<IndexType>(num_rows), inverse->get_const_row_ptrs(),
             excess_rhs_ptrs, as_cuda_type(excess_solution->get_const_values()),

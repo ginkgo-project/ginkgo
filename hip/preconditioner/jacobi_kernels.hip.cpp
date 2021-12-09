@@ -86,14 +86,14 @@ size_type find_natural_blocks(std::shared_ptr<const HipExecutor> exec,
 
     Array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
 
-    const dim3 block_size(config::warp_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(mtx->get_size()[0] * config::warp_size, block_size.x), 1, 1);
-    hipLaunchKernelGGL(compare_adjacent_rows, dim3(grid_size), dim3(block_size),
-                       0, 0, mtx->get_size()[0], max_block_size,
+    const auto block_size = config::warp_size;
+    const auto grid_size =
+        ceildiv(mtx->get_size()[0] * config::warp_size, block_size);
+    hipLaunchKernelGGL(compare_adjacent_rows, grid_size, block_size, 0, 0,
+                       mtx->get_size()[0], max_block_size,
                        mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
                        matching_next_row.get_data());
-    hipLaunchKernelGGL(generate_natural_block_pointer, dim3(1), dim3(1), 0, 0,
+    hipLaunchKernelGGL(generate_natural_block_pointer, 1, 1, 0, 0,
                        mtx->get_size()[0], max_block_size,
                        matching_next_row.get_const_data(), block_ptrs,
                        nums.get_data());
@@ -109,8 +109,8 @@ inline size_type agglomerate_supervariables(
 {
     Array<size_type> nums(exec, 1);
 
-    hipLaunchKernelGGL(agglomerate_supervariables_kernel, dim3(1), dim3(1), 0,
-                       0, max_block_size, num_natural_blocks, block_ptrs,
+    hipLaunchKernelGGL(agglomerate_supervariables_kernel, 1, 1, 0, 0,
+                       max_block_size, num_natural_blocks, block_ptrs,
                        nums.get_data());
 
     nums.set_executor(exec->get_master());
@@ -130,9 +130,9 @@ void initialize_precisions(std::shared_ptr<const HipExecutor> exec,
         default_grid_size,
         static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));
     hipLaunchKernelGGL(HIP_KERNEL_NAME(duplicate_array<default_num_warps>),
-                       dim3(grid_size), dim3(block_size), 0, 0,
-                       source.get_const_data(), source.get_num_elems(),
-                       precisions.get_data(), precisions.get_num_elems());
+                       grid_size, block_size, 0, 0, source.get_const_data(),
+                       source.get_num_elems(), precisions.get_data(),
+                       precisions.get_num_elems());
 }
 
 
@@ -167,8 +167,8 @@ void transpose_jacobi(
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
     constexpr int blocks_per_warp = config::warp_size / subwarp_size;
-    const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
-                         1, 1);
+    const auto grid_size =
+        ceildiv(num_blocks, warps_per_block * blocks_per_warp);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
     if (block_precisions) {
@@ -176,16 +176,15 @@ void transpose_jacobi(
             HIP_KERNEL_NAME(
                 adaptive_transpose_jacobi<conjugate, max_block_size,
                                           subwarp_size, warps_per_block>),
-            dim3(grid_size), dim3(block_size), 0, 0, as_hip_type(blocks),
-            storage_scheme, block_precisions, block_pointers, num_blocks,
+            grid_size, block_size, 0, 0, as_hip_type(blocks), storage_scheme,
+            block_precisions, block_pointers, num_blocks,
             as_hip_type(out_blocks));
     } else {
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(transpose_jacobi<conjugate, max_block_size,
                                              subwarp_size, warps_per_block>),
-            dim3(grid_size), dim3(block_size), 0, 0, as_hip_type(blocks),
-            storage_scheme, block_pointers, num_blocks,
-            as_hip_type(out_blocks));
+            grid_size, block_size, 0, 0, as_hip_type(blocks), storage_scheme,
+            block_pointers, num_blocks, as_hip_type(out_blocks));
     }
 }
 

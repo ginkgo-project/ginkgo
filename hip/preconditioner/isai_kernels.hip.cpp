@@ -83,8 +83,8 @@ void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = input->get_size()[0];
 
-    const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(num_rows, block.x / subwarp_size), 1, 1);
+    const auto block = default_block_size;
+    const auto grid = ceildiv(num_rows, block / subwarp_size);
     if (lower) {
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(
@@ -121,8 +121,8 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = input->get_size()[0];
 
-    const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(num_rows, block.x / subwarp_size), 1, 1);
+    const auto block = default_block_size;
+    const auto grid = ceildiv(num_rows, block / subwarp_size);
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(
             kernel::generate_general_inverse<subwarp_size, subwarps_per_block>),
@@ -151,8 +151,8 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = input->get_size()[0];
 
-    const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(e_end - e_start, block.x / subwarp_size), 1, 1);
+    const auto block = default_block_size;
+    const auto grid = ceildiv(e_end - e_start, block / subwarp_size);
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(kernel::generate_excess_system<subwarp_size>), grid,
         block, 0, 0, static_cast<IndexType>(num_rows),
@@ -174,8 +174,8 @@ void scale_excess_solution(std::shared_ptr<const DefaultExecutor>,
                            matrix::Dense<ValueType>* excess_solution,
                            size_type e_start, size_type e_end)
 {
-    const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(e_end - e_start, block.x / subwarp_size), 1, 1);
+    const auto block = default_block_size;
+    const auto grid = ceildiv(e_end - e_start, block / subwarp_size);
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(kernel::scale_excess_solution<subwarp_size>), grid,
         block, 0, 0, excess_block_ptrs,
@@ -195,8 +195,8 @@ void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = inverse->get_size()[0];
 
-    const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(e_end - e_start, block.x / subwarp_size), 1, 1);
+    const auto block = default_block_size;
+    const auto grid = ceildiv(e_end - e_start, block / subwarp_size);
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(kernel::copy_excess_solution<subwarp_size>), grid,
         block, 0, 0, static_cast<IndexType>(num_rows),

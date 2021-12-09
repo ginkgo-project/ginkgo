@@ -70,7 +70,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Sellp<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    const dim3 blockSize(default_block_size);
+    const auto blockSize = default_block_size;
     const dim3 gridSize(ceildiv(a->get_size()[0], default_block_size),
                         b->get_size()[1]);
 
@@ -94,7 +94,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Dense<ValueType>* beta,
                    matrix::Dense<ValueType>* c)
 {
-    const dim3 blockSize(default_block_size);
+    const auto blockSize = default_block_size;
     const dim3 gridSize(ceildiv(a->get_size()[0], default_block_size),
                         b->get_size()[1]);
 

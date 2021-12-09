@@ -156,7 +156,7 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
     if (alpha == nullptr && beta == nullptr) {
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(kernel::spmv<num_thread_per_worker, atomic>),
-            dim3(grid_size), dim3(block_size), 0, 0, nrows, num_worker_per_row,
+            grid_size, block_size, 0, 0, nrows, num_worker_per_row,
             acc::as_hip_range(a_vals), a->get_const_col_idxs(), stride,
             num_stored_elements_per_row, acc::as_hip_range(b_vals),
             as_hip_type(c->get_values()), c->get_stride());
@@ -165,7 +165,7 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
             std::array<acc::size_type, 1>{1}, alpha->get_const_values());
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(kernel::spmv<num_thread_per_worker, atomic>),
-            dim3(grid_size), dim3(block_size), 0, 0, nrows, num_worker_per_row,
+            grid_size, block_size, 0, 0, nrows, num_worker_per_row,
             acc::as_hip_range(alpha_val), acc::as_hip_range(a_vals),
             a->get_const_col_idxs(), stride, num_stored_elements_per_row,
             acc::as_hip_range(b_vals), as_hip_type(beta->get_const_values()),

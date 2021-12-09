@@ -116,8 +116,8 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
     const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
     const IndexType grid_num =
         ceildiv(total, spmv_block_size * items_per_thread);
-    const dim3 grid(grid_num);
-    const dim3 block(spmv_block_size);
+    const auto grid = grid_num;
+    const auto block = spmv_block_size;
     Array<IndexType> row_out(exec, grid_num);
     Array<ValueType> val_out(exec, grid_num);
 
@@ -227,7 +227,7 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
         std::min(ceildiv(a->get_size()[0], spmv_block_size / subwarp_size),
                  int64(nwarps / warps_in_block));
     const dim3 grid(gridx, b->get_size()[1]);
-    const dim3 block(spmv_block_size);
+    const auto block = spmv_block_size;
 
     if (alpha == nullptr && beta == nullptr) {
         if (grid.x * grid.y > 0) {
@@ -953,9 +953,9 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
                     matrix::Csr<ValueType, IndexType>* trans)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
-        const dim3 block_size(default_block_size, 1, 1);
-        const dim3 grid_size(
-            ceildiv(trans->get_num_stored_elements(), block_size.x), 1, 1);
+        const auto block_size = default_block_size;
+        const auto grid_size =
+            ceildiv(trans->get_num_stored_elements(), block_size);
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
@@ -991,7 +991,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
             trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
             idxBase, alg, buffer);
 #endif
-        if (grid_size.x > 0) {
+        if (grid_size > 0) {
             conjugate_kernel<<<grid_size, block_size, 0, 0>>>(
                 trans->get_num_stored_elements(),
                 as_cuda_type(trans->get_values()));

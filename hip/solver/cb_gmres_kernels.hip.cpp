@@ -83,8 +83,8 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 template <typename ValueType>
 void zero_matrix(size_type m, size_type n, size_type stride, ValueType* array)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
+    const auto block_size = default_block_size;
+    const auto grid_size = ceildiv(n, block_size);
     hipLaunchKernelGGL(zero_matrix_kernel, grid_size, block_size, 0, 0, m, n,
                        stride, as_hip_type(array));
 }
@@ -100,8 +100,8 @@ void initialize_1(std::shared_ptr<const HipExecutor> exec,
 {
     const auto num_threads = std::max(b->get_size()[0] * b->get_stride(),
                                       krylov_dim * b->get_size()[1]);
-    const dim3 grid_dim(ceildiv(num_threads, default_block_size), 1, 1);
-    const dim3 block_dim(default_block_size, 1, 1);
+    const auto grid_dim = ceildiv(num_threads, default_block_size);
+    const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
 
     hipLaunchKernelGGL(
@@ -134,9 +134,9 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
     const auto krylov_stride =
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
             krylov_bases);
-    const dim3 grid_dim_1(
-        ceildiv((krylov_dim + 1) * krylov_stride[0], default_block_size), 1, 1);
-    const dim3 block_dim(default_block_size, 1, 1);
+    const auto grid_dim_1 =
+        ceildiv((krylov_dim + 1) * krylov_stride[0], default_block_size);
+    const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
     const auto stride_arnoldi = arnoldi_norm->get_stride();
 
@@ -164,16 +164,16 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
     if (gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value) {
         hipLaunchKernelGGL(
             set_scalar_kernel<default_block_size>,
-            dim3(ceildiv(num_rhs * (krylov_dim + 1), default_block_size)),
-            dim3(default_block_size), 0, 0, num_rhs, krylov_dim + 1,
+            ceildiv(num_rhs * (krylov_dim + 1), default_block_size),
+            default_block_size, 0, 0, num_rhs, krylov_dim + 1,
             as_hip_type(residual_norm->get_const_values()),
             residual_norm->get_stride(),
             as_hip_type(arnoldi_norm->get_const_values() + 2 * stride_arnoldi),
             stride_arnoldi, acc::as_hip_range(krylov_bases));
     }
 
-    const dim3 grid_dim_2(
-        ceildiv(num_rows * krylov_stride[1], default_block_size), 1, 1);
+    const auto grid_dim_2 =
+        ceildiv(num_rows * krylov_stride[1], default_block_size);
     hipLaunchKernelGGL(initialize_2_2_kernel<block_size>, grid_dim_2, block_dim,
                        0, 0, residual->get_size()[0], residual->get_size()[1],
                        as_hip_type(residual->get_const_values()),
@@ -222,7 +222,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
     //       further investigation.
     const dim3 grid_size_iters_single(exec->get_num_multiprocessor() * 2,
                                       iter + 1);
-    const dim3 block_size_iters_single(singledot_block_size);
+    const auto block_size_iters_single = singledot_block_size;
     size_type num_reorth_host;
 
     components::fill_array(exec, arnoldi_norm->get_values(), dim_size[1],
@@ -257,8 +257,8 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
     // end
     hipLaunchKernelGGL(
         update_next_krylov_kernel<default_block_size>,
-        dim3(ceildiv(dim_size[0] * stride_next_krylov, default_block_size)),
-        dim3(default_block_size), 0, 0, iter + 1, dim_size[0], dim_size[1],
+        ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+        default_block_size, 0, 0, iter + 1, dim_size[0], dim_size[1],
         as_hip_type(next_krylov_basis->get_values()), stride_next_krylov,
         acc::as_hip_range(krylov_bases),
         as_hip_type(hessenberg_iter->get_const_values()), stride_hessenberg,
@@ -285,9 +285,8 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
     components::fill_array(exec, num_reorth->get_data(), 1, zero<size_type>());
     hipLaunchKernelGGL(
         check_arnoldi_norms<default_block_size>,
-        dim3(ceildiv(dim_size[1], default_block_size)),
-        dim3(default_block_size), 0, 0, dim_size[1],
-        as_hip_type(arnoldi_norm->get_values()), stride_arnoldi,
+        ceildiv(dim_size[1], default_block_size), default_block_size, 0, 0,
+        dim_size[1], as_hip_type(arnoldi_norm->get_values()), stride_arnoldi,
         as_hip_type(hessenberg_iter->get_values()), stride_hessenberg, iter + 1,
         acc::as_hip_range(krylov_bases), as_hip_type(stop_status),
         as_hip_type(reorth_status), as_hip_type(num_reorth->get_data()));
@@ -318,8 +317,8 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
         // end
         hipLaunchKernelGGL(
             update_next_krylov_and_add_kernel<default_block_size>,
-            dim3(ceildiv(dim_size[0] * stride_next_krylov, default_block_size)),
-            dim3(default_block_size), 0, 0, iter + 1, dim_size[0], dim_size[1],
+            ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+            default_block_size, 0, 0, iter + 1, dim_size[0], dim_size[1],
             as_hip_type(next_krylov_basis->get_values()), stride_next_krylov,
             acc::as_hip_range(krylov_bases),
             as_hip_type(hessenberg_iter->get_values()), stride_hessenberg,
@@ -349,12 +348,12 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
                                zero<size_type>());
         hipLaunchKernelGGL(
             check_arnoldi_norms<default_block_size>,
-            dim3(ceildiv(dim_size[1], default_block_size)),
-            dim3(default_block_size), 0, 0, dim_size[1],
-            as_hip_type(arnoldi_norm->get_values()), stride_arnoldi,
-            as_hip_type(hessenberg_iter->get_values()), stride_hessenberg,
-            iter + 1, acc::as_hip_range(krylov_bases), as_hip_type(stop_status),
-            as_hip_type(reorth_status), as_hip_type(num_reorth->get_data()));
+            ceildiv(dim_size[1], default_block_size), default_block_size, 0, 0,
+            dim_size[1], as_hip_type(arnoldi_norm->get_values()),
+            stride_arnoldi, as_hip_type(hessenberg_iter->get_values()),
+            stride_hessenberg, iter + 1, acc::as_hip_range(krylov_bases),
+            as_hip_type(stop_status), as_hip_type(reorth_status),
+            as_hip_type(num_reorth->get_data()));
         num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
         // num_reorth_host := number of next_krylov vector to be
         // reorthogonalization
@@ -362,8 +361,8 @@ void finish_arnoldi_CGS(std::shared_ptr<const HipExecutor> exec,
 
     hipLaunchKernelGGL(
         update_krylov_next_krylov_kernel<default_block_size>,
-        dim3(ceildiv(dim_size[0] * stride_next_krylov, default_block_size)),
-        dim3(default_block_size), 0, 0, iter, dim_size[0], dim_size[1],
+        ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+        default_block_size, 0, 0, iter, dim_size[0], dim_size[1],
         as_hip_type(next_krylov_basis->get_values()), stride_next_krylov,
         acc::as_hip_range(krylov_bases),
         as_hip_type(hessenberg_iter->get_const_values()), stride_hessenberg,
@@ -385,9 +384,9 @@ void givens_rotation(std::shared_ptr<const HipExecutor> exec,
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
     const auto num_cols = hessenberg_iter->get_size()[1];
-    const dim3 block_dim{block_size, 1, 1};
-    const dim3 grid_dim{
-        static_cast<unsigned int>(ceildiv(num_cols, block_size)), 1, 1};
+    const auto block_dim = block_size;
+    const auto grid_dim =
+        static_cast<unsigned int>(ceildiv(num_cols, block_size));
 
     hipLaunchKernelGGL(
         givens_rotation_kernel<block_size>, grid_dim, block_dim, 0, 0,
@@ -418,10 +417,9 @@ void step_1(std::shared_ptr<const HipExecutor> exec,
 {
     hipLaunchKernelGGL(
         increase_final_iteration_numbers_kernel,
-        dim3(static_cast<unsigned int>(
-            ceildiv(final_iter_nums->get_num_elems(), default_block_size))),
-        dim3(default_block_size), 0, 0,
-        as_hip_type(final_iter_nums->get_data()),
+        static_cast<unsigned int>(
+            ceildiv(final_iter_nums->get_num_elems(), default_block_size)),
+        default_block_size, 0, 0, as_hip_type(final_iter_nums->get_data()),
         as_hip_type(stop_status->get_const_data()),
         final_iter_nums->get_num_elems());
     finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
@@ -444,9 +442,9 @@ void solve_upper_triangular(
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
     const auto num_rhs = residual_norm_collection->get_size()[1];
-    const dim3 block_dim{block_size, 1, 1};
-    const dim3 grid_dim{static_cast<unsigned int>(ceildiv(num_rhs, block_size)),
-                        1, 1};
+    const auto block_dim = block_size;
+    const auto grid_dim =
+        static_cast<unsigned int>(ceildiv(num_rhs, block_size));
 
     hipLaunchKernelGGL(
         solve_upper_triangular_kernel<block_size>, grid_dim, block_dim, 0, 0,
@@ -471,11 +469,9 @@ void calculate_qy(ConstAccessor3d krylov_bases, size_type num_krylov_bases,
         before_preconditioner->get_stride();
 
     constexpr auto block_size = default_block_size;
-    const dim3 grid_dim{
-        static_cast<unsigned int>(
-            ceildiv(num_rows * stride_before_preconditioner, block_size)),
-        1, 1};
-    const dim3 block_dim{block_size, 1, 1};
+    const auto grid_dim = static_cast<unsigned int>(
+        ceildiv(num_rows * stride_before_preconditioner, block_size));
+    const auto block_dim = block_size;
 
 
     hipLaunchKernelGGL(calculate_Qy_kernel<block_size>, grid_dim, block_dim, 0,

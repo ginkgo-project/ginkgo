@@ -86,8 +86,8 @@ void initialize_1(std::shared_ptr<const CudaExecutor> exec,
 {
     const auto num_threads = std::max(b->get_size()[0] * b->get_stride(),
                                       krylov_dim * b->get_size()[1]);
-    const dim3 grid_dim(ceildiv(num_threads, default_block_size), 1, 1);
-    const dim3 block_dim(default_block_size, 1, 1);
+    const auto grid_dim = ceildiv(num_threads, default_block_size);
+    const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
 
     initialize_1_kernel<block_size><<<grid_dim, block_dim>>>(
@@ -112,17 +112,15 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
 {
     const auto num_rows = residual->get_size()[0];
     const auto num_rhs = residual->get_size()[1];
-    const dim3 grid_dim_1(
+    const auto grid_dim_1 =
         ceildiv(krylov_bases->get_size()[0] * krylov_bases->get_stride(),
-                default_block_size),
-        1, 1);
-    const dim3 block_dim(default_block_size, 1, 1);
+                default_block_size);
+    const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
 
     kernels::cuda::dense::compute_norm2(exec, residual, residual_norm);
 
-    const dim3 grid_dim_2(ceildiv(num_rows * num_rhs, default_block_size), 1,
-                          1);
+    const auto grid_dim_2 = ceildiv(num_rows * num_rhs, default_block_size);
     initialize_2_2_kernel<block_size><<<grid_dim_2, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1],
         as_cuda_type(residual->get_const_values()), residual->get_stride(),
@@ -218,9 +216,9 @@ void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
     const auto num_cols = hessenberg_iter->get_size()[1];
-    const dim3 block_dim{block_size, 1, 1};
-    const dim3 grid_dim{
-        static_cast<unsigned int>(ceildiv(num_cols, block_size)), 1, 1};
+    const auto block_dim = block_size;
+    const auto grid_dim =
+        static_cast<unsigned int>(ceildiv(num_cols, block_size));
 
     givens_rotation_kernel<block_size><<<grid_dim, block_dim>>>(
         hessenberg_iter->get_size()[0], hessenberg_iter->get_size()[1], iter,
@@ -269,9 +267,9 @@ void solve_upper_triangular(
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
     const auto num_rhs = residual_norm_collection->get_size()[1];
-    const dim3 block_dim{block_size, 1, 1};
-    const dim3 grid_dim{static_cast<unsigned int>(ceildiv(num_rhs, block_size)),
-                        1, 1};
+    const auto block_dim = block_size;
+    const auto grid_dim =
+        static_cast<unsigned int>(ceildiv(num_rhs, block_size));
 
     solve_upper_triangular_kernel<block_size><<<grid_dim, block_dim>>>(
         hessenberg->get_size()[1], num_rhs,
@@ -296,11 +294,9 @@ void calculate_qy(const matrix::Dense<ValueType>* krylov_bases,
         before_preconditioner->get_stride();
 
     constexpr auto block_size = default_block_size;
-    const dim3 grid_dim{
-        static_cast<unsigned int>(
-            ceildiv(num_rows * stride_before_preconditioner, block_size)),
-        1, 1};
-    const dim3 block_dim{block_size, 1, 1};
+    const auto grid_dim = static_cast<unsigned int>(
+        ceildiv(num_rows * stride_before_preconditioner, block_size));
+    const auto block_dim = block_size;
 
 
     calculate_Qy_kernel<block_size><<<grid_dim, block_dim>>>(

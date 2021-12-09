@@ -73,12 +73,12 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
           const matrix::Sellp<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    const dim3 blockSize(default_block_size);
+    const auto blockSize = default_block_size;
     const dim3 gridSize(ceildiv(a->get_size()[0], default_block_size),
                         b->get_size()[1]);
 
     hipLaunchKernelGGL(
-        spmv_kernel, dim3(gridSize), dim3(blockSize), 0, 0, a->get_size()[0],
+        spmv_kernel, gridSize, blockSize, 0, 0, a->get_size()[0],
         b->get_size()[1], b->get_stride(), c->get_stride(), a->get_slice_size(),
         a->get_const_slice_sets(), as_hip_type(a->get_const_values()),
         a->get_const_col_idxs(), as_hip_type(b->get_const_values()),
@@ -96,15 +96,14 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                    const matrix::Dense<ValueType>* beta,
                    matrix::Dense<ValueType>* c)
 {
-    const dim3 blockSize(default_block_size);
+    const auto blockSize = default_block_size;
     const dim3 gridSize(ceildiv(a->get_size()[0], default_block_size),
                         b->get_size()[1]);
 
     hipLaunchKernelGGL(
-        advanced_spmv_kernel, dim3(gridSize), dim3(blockSize), 0, 0,
-        a->get_size()[0], b->get_size()[1], b->get_stride(), c->get_stride(),
-        a->get_slice_size(), a->get_const_slice_sets(),
-        as_hip_type(alpha->get_const_values()),
+        advanced_spmv_kernel, gridSize, blockSize, 0, 0, a->get_size()[0],
+        b->get_size()[1], b->get_stride(), c->get_stride(), a->get_slice_size(),
+        a->get_const_slice_sets(), as_hip_type(alpha->get_const_values()),
         as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
         as_hip_type(b->get_const_values()),
         as_hip_type(beta->get_const_values()), as_hip_type(c->get_values()));

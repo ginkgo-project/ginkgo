@@ -81,8 +81,8 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 template <typename ValueType>
 void zero_matrix(size_type m, size_type n, size_type stride, ValueType* array)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
+    const auto block_size = default_block_size;
+    const auto grid_size = ceildiv(n, block_size);
     zero_matrix_kernel<<<grid_size, block_size, 0, 0>>>(m, n, stride,
                                                         as_cuda_type(array));
 }
@@ -98,8 +98,8 @@ void initialize_1(std::shared_ptr<const CudaExecutor> exec,
 {
     const auto num_threads = std::max(b->get_size()[0] * b->get_stride(),
                                       krylov_dim * b->get_size()[1]);
-    const dim3 grid_dim(ceildiv(num_threads, default_block_size), 1, 1);
-    const dim3 block_dim(default_block_size, 1, 1);
+    const auto grid_dim = ceildiv(num_threads, default_block_size);
+    const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
 
     initialize_1_kernel<block_size><<<grid_dim, block_dim>>>(
@@ -131,9 +131,9 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
     const auto krylov_stride =
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
             krylov_bases);
-    const dim3 grid_dim_1(
-        ceildiv((krylov_dim + 1) * krylov_stride[0], default_block_size), 1, 1);
-    const dim3 block_dim(default_block_size, 1, 1);
+    const auto grid_dim_1 =
+        ceildiv((krylov_dim + 1) * krylov_stride[0], default_block_size);
+    const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
     const auto stride_arnoldi = arnoldi_norm->get_stride();
 
@@ -169,8 +169,8 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                 stride_arnoldi, acc::as_cuda_range(krylov_bases));
     }
 
-    const dim3 grid_dim_2(
-        ceildiv(num_rows * krylov_stride[1], default_block_size), 1, 1);
+    const auto grid_dim_2 =
+        ceildiv(num_rows * krylov_stride[1], default_block_size);
     initialize_2_2_kernel<block_size><<<grid_dim_2, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1],
         as_cuda_type(residual->get_const_values()), residual->get_stride(),
@@ -218,7 +218,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
     //       further investigation.
     const dim3 grid_size_iters_single(exec->get_num_multiprocessor() * 2,
                                       iter + 1);
-    const dim3 block_size_iters_single(singledot_block_size);
+    const auto block_size_iters_single = singledot_block_size;
     size_type num_reorth_host;
 
     components::fill_array(exec, arnoldi_norm->get_values(), dim_size[1],
@@ -372,9 +372,9 @@ void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
     const auto num_cols = hessenberg_iter->get_size()[1];
-    const dim3 block_dim{block_size, 1, 1};
-    const dim3 grid_dim{
-        static_cast<unsigned int>(ceildiv(num_cols, block_size)), 1, 1};
+    const auto block_dim = block_size;
+    const auto grid_dim =
+        static_cast<unsigned int>(ceildiv(num_cols, block_size));
 
     givens_rotation_kernel<block_size><<<grid_dim, block_dim>>>(
         hessenberg_iter->get_size()[0], hessenberg_iter->get_size()[1], iter,
@@ -428,9 +428,9 @@ void solve_upper_triangular(
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
     const auto num_rhs = residual_norm_collection->get_size()[1];
-    const dim3 block_dim{block_size, 1, 1};
-    const dim3 grid_dim{static_cast<unsigned int>(ceildiv(num_rhs, block_size)),
-                        1, 1};
+    const auto block_dim = block_size;
+    const auto grid_dim =
+        static_cast<unsigned int>(ceildiv(num_rhs, block_size));
 
     solve_upper_triangular_kernel<block_size><<<grid_dim, block_dim>>>(
         hessenberg->get_size()[1], num_rhs,
@@ -454,11 +454,9 @@ void calculate_qy(ConstAccessor3d krylov_bases, size_type num_krylov_bases,
         before_preconditioner->get_stride();
 
     constexpr auto block_size = default_block_size;
-    const dim3 grid_dim{
-        static_cast<unsigned int>(
-            ceildiv(num_rows * stride_before_preconditioner, block_size)),
-        1, 1};
-    const dim3 block_dim{block_size, 1, 1};
+    const auto grid_dim = static_cast<unsigned int>(
+        ceildiv(num_rows * stride_before_preconditioner, block_size));
+    const auto block_dim = block_size;
 
 
     calculate_Qy_kernel<block_size><<<grid_dim, block_dim>>>(

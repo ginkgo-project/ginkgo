@@ -79,11 +79,11 @@ size_type find_natural_blocks(std::shared_ptr<const DefaultExecutor> exec,
 
     Array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
 
-    const dim3 block_size(config::warp_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(mtx->get_size()[0] * config::warp_size, block_size.x), 1, 1);
+    const auto block_size = config::warp_size;
+    const auto grid_size =
+        ceildiv(mtx->get_size()[0] * config::warp_size, block_size);
 
-    if (grid_size.x > 0) {
+    if (grid_size > 0) {
         compare_adjacent_rows<<<grid_size, block_size, 0, 0>>>(
             mtx->get_size()[0], max_block_size, mtx->get_const_row_ptrs(),
             mtx->get_const_col_idxs(), matching_next_row.get_data());
@@ -161,11 +161,11 @@ void transpose_jacobi(
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
     constexpr int blocks_per_warp = config::warp_size / subwarp_size;
-    const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
-                         1, 1);
+    const auto grid_size =
+        ceildiv(num_blocks, warps_per_block * blocks_per_warp);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
-    if (grid_size.x > 0) {
+    if (grid_size > 0) {
         if (block_precisions) {
             adaptive_transpose_jacobi<conjugate, max_block_size, subwarp_size,
                                       warps_per_block>
