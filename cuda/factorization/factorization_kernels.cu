@@ -91,18 +91,20 @@ void add_diagonal_elements(std::shared_ptr<const CudaExecutor> exec,
     const dim3 grid_dim{
         static_cast<uint32>(ceildiv(num_rows, block_dim.x / subwarp_size)), 1,
         1};
-    if (is_sorted) {
-        kernel::find_missing_diagonal_elements<true, subwarp_size>
-            <<<grid_dim, block_dim>>>(
-                num_rows, num_cols, cuda_old_col_idxs, cuda_old_row_ptrs,
-                cuda_row_ptrs_add,
-                as_cuda_type(needs_change_device.get_data()));
-    } else {
-        kernel::find_missing_diagonal_elements<false, subwarp_size>
-            <<<grid_dim, block_dim>>>(
-                num_rows, num_cols, cuda_old_col_idxs, cuda_old_row_ptrs,
-                cuda_row_ptrs_add,
-                as_cuda_type(needs_change_device.get_data()));
+    if (num_rows > 0) {
+        if (is_sorted) {
+            kernel::find_missing_diagonal_elements<true, subwarp_size>
+                <<<grid_dim, block_dim>>>(
+                    num_rows, num_cols, cuda_old_col_idxs, cuda_old_row_ptrs,
+                    cuda_row_ptrs_add,
+                    as_cuda_type(needs_change_device.get_data()));
+        } else {
+            kernel::find_missing_diagonal_elements<false, subwarp_size>
+                <<<grid_dim, block_dim>>>(
+                    num_rows, num_cols, cuda_old_col_idxs, cuda_old_row_ptrs,
+                    cuda_row_ptrs_add,
+                    as_cuda_type(needs_change_device.get_data()));
+        }
     }
     needs_change_host = needs_change_device;
     if (!needs_change_host.get_const_data()[0]) {
@@ -123,6 +125,7 @@ void add_diagonal_elements(std::shared_ptr<const CudaExecutor> exec,
     auto cuda_new_values = as_cuda_type(new_values.get_data());
     auto cuda_new_col_idxs = as_cuda_type(new_col_idxs.get_data());
 
+    // no empty kernel guard needed here, we exit earlier already
     kernel::add_missing_diagonal_elements<subwarp_size>
         <<<grid_dim, block_dim>>>(num_rows, cuda_old_values, cuda_old_col_idxs,
                                   cuda_old_row_ptrs, cuda_new_values,
@@ -155,11 +158,13 @@ void initialize_row_ptrs_l_u(
         ceildiv(num_rows, static_cast<size_type>(block_size.x));
     const dim3 grid_dim{number_blocks, 1, 1};
 
-    kernel::count_nnz_per_l_u_row<<<grid_dim, block_size, 0, 0>>>(
-        num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
-        as_cuda_type(system_matrix->get_const_col_idxs()),
-        as_cuda_type(system_matrix->get_const_values()),
-        as_cuda_type(l_row_ptrs), as_cuda_type(u_row_ptrs));
+    if (num_rows > 0) {
+        kernel::count_nnz_per_l_u_row<<<grid_dim, block_size, 0, 0>>>(
+            num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
+            as_cuda_type(system_matrix->get_const_col_idxs()),
+            as_cuda_type(system_matrix->get_const_values()),
+            as_cuda_type(l_row_ptrs), as_cuda_type(u_row_ptrs));
+    }
 
     components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
     components::prefix_sum(exec, u_row_ptrs, num_rows + 1);
@@ -181,14 +186,18 @@ void initialize_l_u(std::shared_ptr<const CudaExecutor> exec,
                             num_rows, static_cast<size_type>(block_size.x))),
                         1, 1};
 
-    kernel::initialize_l_u<<<grid_dim, block_size, 0, 0>>>(
-        num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
-        as_cuda_type(system_matrix->get_const_col_idxs()),
-        as_cuda_type(system_matrix->get_const_values()),
-        as_cuda_type(csr_l->get_const_row_ptrs()),
-        as_cuda_type(csr_l->get_col_idxs()), as_cuda_type(csr_l->get_values()),
-        as_cuda_type(csr_u->get_const_row_ptrs()),
-        as_cuda_type(csr_u->get_col_idxs()), as_cuda_type(csr_u->get_values()));
+    if (num_rows > 0) {
+        kernel::initialize_l_u<<<grid_dim, block_size, 0, 0>>>(
+            num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
+            as_cuda_type(system_matrix->get_const_col_idxs()),
+            as_cuda_type(system_matrix->get_const_values()),
+            as_cuda_type(csr_l->get_const_row_ptrs()),
+            as_cuda_type(csr_l->get_col_idxs()),
+            as_cuda_type(csr_l->get_values()),
+            as_cuda_type(csr_u->get_const_row_ptrs()),
+            as_cuda_type(csr_u->get_col_idxs()),
+            as_cuda_type(csr_u->get_values()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -208,11 +217,13 @@ void initialize_row_ptrs_l(
         ceildiv(num_rows, static_cast<size_type>(block_size.x));
     const dim3 grid_dim{number_blocks, 1, 1};
 
-    kernel::count_nnz_per_l_row<<<grid_dim, block_size, 0, 0>>>(
-        num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
-        as_cuda_type(system_matrix->get_const_col_idxs()),
-        as_cuda_type(system_matrix->get_const_values()),
-        as_cuda_type(l_row_ptrs));
+    if (num_rows > 0) {
+        kernel::count_nnz_per_l_row<<<grid_dim, block_size, 0, 0>>>(
+            num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
+            as_cuda_type(system_matrix->get_const_col_idxs()),
+            as_cuda_type(system_matrix->get_const_values()),
+            as_cuda_type(l_row_ptrs));
+    }
 
     components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
 }
@@ -232,13 +243,15 @@ void initialize_l(std::shared_ptr<const CudaExecutor> exec,
                             num_rows, static_cast<size_type>(block_size.x))),
                         1, 1};
 
-    kernel::initialize_l<<<grid_dim, block_size, 0, 0>>>(
-        num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
-        as_cuda_type(system_matrix->get_const_col_idxs()),
-        as_cuda_type(system_matrix->get_const_values()),
-        as_cuda_type(csr_l->get_const_row_ptrs()),
-        as_cuda_type(csr_l->get_col_idxs()), as_cuda_type(csr_l->get_values()),
-        diag_sqrt);
+    if (num_rows > 0) {
+        kernel::initialize_l<<<grid_dim, block_size, 0, 0>>>(
+            num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
+            as_cuda_type(system_matrix->get_const_col_idxs()),
+            as_cuda_type(system_matrix->get_const_values()),
+            as_cuda_type(csr_l->get_const_row_ptrs()),
+            as_cuda_type(csr_l->get_col_idxs()),
+            as_cuda_type(csr_l->get_values()), diag_sqrt);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

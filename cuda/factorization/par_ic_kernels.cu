@@ -73,8 +73,10 @@ void init_factor(std::shared_ptr<const DefaultExecutor> exec,
     auto num_blocks = ceildiv(num_rows, default_block_size);
     auto l_row_ptrs = l->get_const_row_ptrs();
     auto l_vals = l->get_values();
-    kernel::ic_init<<<num_blocks, default_block_size>>>(
-        l_row_ptrs, as_cuda_type(l_vals), num_rows);
+    if (num_rows > 0) {
+        kernel::ic_init<<<num_blocks, default_block_size>>>(
+            l_row_ptrs, as_cuda_type(l_vals), num_rows);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -90,11 +92,14 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
     auto nnz = l->get_num_stored_elements();
     auto num_blocks = ceildiv(nnz, default_block_size);
     for (size_type i = 0; i < iterations; ++i) {
-        kernel::ic_sweep<<<num_blocks, default_block_size>>>(
-            a_lower->get_const_row_idxs(), a_lower->get_const_col_idxs(),
-            as_cuda_type(a_lower->get_const_values()), l->get_const_row_ptrs(),
-            l->get_const_col_idxs(), as_cuda_type(l->get_values()),
-            static_cast<IndexType>(l->get_num_stored_elements()));
+        if (num_blocks > 0) {
+            kernel::ic_sweep<<<num_blocks, default_block_size>>>(
+                a_lower->get_const_row_idxs(), a_lower->get_const_col_idxs(),
+                as_cuda_type(a_lower->get_const_values()),
+                l->get_const_row_ptrs(), l->get_const_col_idxs(),
+                as_cuda_type(l->get_values()),
+                static_cast<IndexType>(l->get_num_stored_elements()));
+        }
     }
 }
 

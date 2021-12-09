@@ -104,12 +104,14 @@ void residual_norm(std::shared_ptr<const CudaExecutor> exec,
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(tau->get_size()[1], block_size.x), 1, 1);
 
-    residual_norm_kernel<<<grid_size, block_size>>>(
-        tau->get_size()[1], rel_residual_goal,
-        as_cuda_type(tau->get_const_values()),
-        as_cuda_type(orig_tau->get_const_values()), stoppingId, setFinalized,
-        as_cuda_type(stop_status->get_data()),
-        as_cuda_type(device_storage->get_data()));
+    if (grid_size.x > 0) {
+        residual_norm_kernel<<<grid_size, block_size>>>(
+            tau->get_size()[1], rel_residual_goal,
+            as_cuda_type(tau->get_const_values()),
+            as_cuda_type(orig_tau->get_const_values()), stoppingId,
+            setFinalized, as_cuda_type(stop_status->get_data()),
+            as_cuda_type(device_storage->get_data()));
+    }
 
     /* Represents all_converged, one_changed */
     *all_converged = exec->copy_val_to_host(device_storage->get_const_data());
@@ -181,12 +183,14 @@ void implicit_residual_norm(
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(tau->get_size()[1], block_size.x), 1, 1);
 
-    implicit_residual_norm_kernel<<<grid_size, block_size>>>(
-        tau->get_size()[1], rel_residual_goal,
-        as_cuda_type(tau->get_const_values()),
-        as_cuda_type(orig_tau->get_const_values()), stoppingId, setFinalized,
-        as_cuda_type(stop_status->get_data()),
-        as_cuda_type(device_storage->get_data()));
+    if (grid_size.x > 0) {
+        implicit_residual_norm_kernel<<<grid_size, block_size>>>(
+            tau->get_size()[1], rel_residual_goal,
+            as_cuda_type(tau->get_const_values()),
+            as_cuda_type(orig_tau->get_const_values()), stoppingId,
+            setFinalized, as_cuda_type(stop_status->get_data()),
+            as_cuda_type(device_storage->get_data()));
+    }
 
     /* Represents all_converged, one_changed */
     *all_converged = exec->copy_val_to_host(device_storage->get_const_data());

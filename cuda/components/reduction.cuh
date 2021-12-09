@@ -82,8 +82,11 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const CudaExecutor> exec,
 
         block_results.resize_and_reset(grid_dim);
 
-        reduce_add_array<<<grid_dim, default_reduce_block_size>>>(
-            size, as_cuda_type(source), as_cuda_type(block_results.get_data()));
+        if (grid_dim > 0) {
+            reduce_add_array<<<grid_dim, default_reduce_block_size>>>(
+                size, as_cuda_type(source),
+                as_cuda_type(block_results.get_data()));
+        }
 
         block_results_val = block_results.get_const_data();
     }
