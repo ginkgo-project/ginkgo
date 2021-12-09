@@ -351,7 +351,7 @@ public:
          *
          * @retrun percent
          */
-        auto get_percentage() { return strategy_.get_percentage(); }
+        auto get_percentage() const { return strategy_.get_percentage(); }
 
     private:
         imbalance_limit strategy_;
