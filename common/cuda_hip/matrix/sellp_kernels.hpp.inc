@@ -32,55 +32,48 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(matrix::default_slice_size) void spmv_kernel(
+__global__ __launch_bounds__(default_block_size) void spmv_kernel(
     size_type num_rows, size_type num_right_hand_sides, size_type b_stride,
-    size_type c_stride, const size_type* __restrict__ slice_lengths,
+    size_type c_stride, size_type slice_size,
     const size_type* __restrict__ slice_sets, const ValueType* __restrict__ a,
     const IndexType* __restrict__ col, const ValueType* __restrict__ b,
     ValueType* __restrict__ c)
 {
-    const auto slice_id = blockIdx.x;
-    const auto slice_size = blockDim.x;
-    const auto row_in_slice = threadIdx.x;
-    const auto global_row =
-        static_cast<size_type>(slice_size) * slice_id + row_in_slice;
+    const auto row = thread::get_thread_id_flat();
+    const auto slice_id = row / slice_size;
+    const auto row_in_slice = row % slice_size;
     const auto column_id = blockIdx.y;
-    ValueType val = 0;
-    IndexType ind = 0;
-    if (global_row < num_rows && column_id < num_right_hand_sides) {
-        for (size_type i = 0; i < slice_lengths[slice_id]; i++) {
-            ind = row_in_slice + (slice_sets[slice_id] + i) * slice_size;
+    auto val = zero<ValueType>();
+    if (row < num_rows && column_id < num_right_hand_sides) {
+        for (auto i = slice_sets[slice_id]; i < slice_sets[slice_id + 1]; i++) {
+            const auto ind = row_in_slice + i * slice_size;
             val += a[ind] * b[col[ind] * b_stride + column_id];
         }
-        c[global_row * c_stride + column_id] = val;
+        c[row * c_stride + column_id] = val;
     }
 }
 
 
 template <typename ValueType, typename IndexType>
-__global__
-    __launch_bounds__(matrix::default_slice_size) void advanced_spmv_kernel(
-        size_type num_rows, size_type num_right_hand_sides, size_type b_stride,
-        size_type c_stride, const size_type* __restrict__ slice_lengths,
-        const size_type* __restrict__ slice_sets,
-        const ValueType* __restrict__ alpha, const ValueType* __restrict__ a,
-        const IndexType* __restrict__ col, const ValueType* __restrict__ b,
-        const ValueType* __restrict__ beta, ValueType* __restrict__ c)
+__global__ __launch_bounds__(default_block_size) void advanced_spmv_kernel(
+    size_type num_rows, size_type num_right_hand_sides, size_type b_stride,
+    size_type c_stride, size_type slice_size,
+    const size_type* __restrict__ slice_sets,
+    const ValueType* __restrict__ alpha, const ValueType* __restrict__ a,
+    const IndexType* __restrict__ col, const ValueType* __restrict__ b,
+    const ValueType* __restrict__ beta, ValueType* __restrict__ c)
 {
-    const auto slice_id = blockIdx.x;
-    const auto slice_size = blockDim.x;
-    const auto row_in_slice = threadIdx.x;
-    const auto global_row =
-        static_cast<size_type>(slice_size) * slice_id + row_in_slice;
+    const auto row = thread::get_thread_id_flat();
+    const auto slice_id = row / slice_size;
+    const auto row_in_slice = row % slice_size;
     const auto column_id = blockIdx.y;
-    ValueType val = 0;
-    IndexType ind = 0;
-    if (global_row < num_rows && column_id < num_right_hand_sides) {
-        for (size_type i = 0; i < slice_lengths[slice_id]; i++) {
-            ind = row_in_slice + (slice_sets[slice_id] + i) * slice_size;
-            val += alpha[0] * a[ind] * b[col[ind] * b_stride + column_id];
+    auto val = zero<ValueType>();
+    if (row < num_rows && column_id < num_right_hand_sides) {
+        for (auto i = slice_sets[slice_id]; i < slice_sets[slice_id + 1]; i++) {
+            const auto ind = row_in_slice + i * slice_size;
+            val += a[ind] * b[col[ind] * b_stride + column_id];
         }
-        c[global_row * c_stride + column_id] =
-            beta[0] * c[global_row * c_stride + column_id] + val;
+        c[row * c_stride + column_id] =
+            beta[0] * c[row * c_stride + column_id] + alpha[0] * val;
     }
 }
