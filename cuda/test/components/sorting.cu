@@ -125,8 +125,7 @@ TEST_F(Sorting, CudaBitonicSortWarp)
     auto data_ptr = ddata.get_const_data();
     auto ref_ptr = ref_warp.get_const_data();
 
-    ASSERT_TRUE(std::equal(data_ptr, data_ptr + (num_local * config::warp_size),
-                           ref_ptr));
+    GKO_ASSERT_ARRAY_EQ(ddata, ref_warp);
 }
 
 
@@ -137,7 +136,7 @@ TEST_F(Sorting, CudaBitonicSortShared)
     auto data_ptr = ddata.get_const_data();
     auto ref_ptr = ref_shared.get_const_data();
 
-    ASSERT_TRUE(std::equal(data_ptr, data_ptr + num_elements, ref_ptr));
+    GKO_ASSERT_ARRAY_EQ(ddata, ref_shared);
 }
 
 
