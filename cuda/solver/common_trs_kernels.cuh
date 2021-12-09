@@ -477,10 +477,12 @@ __global__ void sptrsv_naive_legacy_kernel(
     auto j = row_begin;
     while (j != row_diag + row_step) {
         auto col = colidxs[j];
-        while (!is_nan(load(x, col * x_stride + rhs))) {
-            sum += vals[j] * load(x, col * x_stride + rhs);
+        auto x_val = load(x, col * x_stride + rhs);
+        while (!is_nan(x_val)) {
+            sum += vals[j] * x_val;
             j += row_step;
             col = colidxs[j];
+            x_val = load(x, col * x_stride + rhs);
         }
         if (row == col) {
             const auto r = (b[row * b_stride + rhs] - sum) / vals[row_diag];
