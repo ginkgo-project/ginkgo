@@ -135,6 +135,7 @@ namespace kernels {
 #define GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(_type, _prec)        \
     void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec, \
                         const matrix::Dense<_type>* source,          \
+                        const int64* row_ptrs,                       \
                         matrix::Coo<_type, _prec>* other)
 
 #define GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(_type, _prec)        \
@@ -150,6 +151,7 @@ namespace kernels {
 #define GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL(_type, _prec)        \
     void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec, \
                            const matrix::Dense<_type>* source,          \
+                           const int64* coo_row_ptrs,                   \
                            matrix::Hybrid<_type, _prec>* other)
 
 #define GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(_type, _prec)        \
@@ -162,25 +164,24 @@ namespace kernels {
                                  const matrix::Dense<_type>* source,          \
                                  matrix::SparsityCsr<_type, _prec>* other)
 
-#define GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(_type)               \
-    void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec, \
-                        const matrix::Dense<_type>* source, size_type* result)
+#define GKO_DECLARE_DENSE_COMPUTE_MAX_NNZ_PER_ROW_KERNEL(_type)               \
+    void compute_max_nnz_per_row(std::shared_ptr<const DefaultExecutor> exec, \
+                                 const matrix::Dense<_type>* source,          \
+                                 size_type& result)
 
-#define GKO_DECLARE_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(_type) \
-    void calculate_max_nnz_per_row(                               \
-        std::shared_ptr<const DefaultExecutor> exec,              \
-        const matrix::Dense<_type>* source, size_type* result)
+#define GKO_DECLARE_DENSE_COMPUTE_SLICE_SETS_KERNEL(_type)                 \
+    void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,   \
+                            const matrix::Dense<_type>* source,            \
+                            size_type slice_size, size_type stride_factor, \
+                            size_type* slice_sets, size_type* slice_lengths)
 
-#define GKO_DECLARE_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL(_type) \
-    void calculate_nonzeros_per_row(                               \
-        std::shared_ptr<const DefaultExecutor> exec,               \
-        const matrix::Dense<_type>* source, Array<size_type>* result)
+#define GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL(_vtype, _itype)      \
+    void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec, \
+                                const matrix::Dense<_vtype>* source,         \
+                                _itype* result)
 
-#define GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL(_type)               \
-    void calculate_total_cols(std::shared_ptr<const DefaultExecutor> exec, \
-                              const matrix::Dense<_type>* source,          \
-                              size_type* result, size_type stride_factor,  \
-                              size_type slice_size)
+#define GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL_SIZE_T(_type) \
+    GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL(_type, ::gko::size_type)
 
 #define GKO_DECLARE_DENSE_TRANSPOSE_KERNEL(_type)               \
     void transpose(std::shared_ptr<const DefaultExecutor> exec, \
@@ -303,13 +304,11 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL(ValueType, IndexType); \
     template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(ValueType);                     \
+    GKO_DECLARE_DENSE_COMPUTE_MAX_NNZ_PER_ROW_KERNEL(ValueType);            \
     template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType);          \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType);         \
-    template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL(ValueType);               \
+    GKO_DECLARE_DENSE_COMPUTE_SLICE_SETS_KERNEL(ValueType);                 \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType);  \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_TRANSPOSE_KERNEL(ValueType);                          \
     template <typename ValueType>                                           \

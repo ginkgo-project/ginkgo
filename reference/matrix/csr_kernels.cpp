@@ -408,39 +408,15 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
     auto col_idxs = result->get_col_idxs();
     auto slice_lengths = result->get_slice_lengths();
     auto slice_sets = result->get_slice_sets();
-    auto slice_size = (result->get_slice_size() == 0)
-                          ? matrix::default_slice_size
-                          : result->get_slice_size();
-    auto stride_factor = (result->get_stride_factor() == 0)
-                             ? matrix::default_stride_factor
-                             : result->get_stride_factor();
+    auto slice_size = result->get_slice_size();
+    auto stride_factor = result->get_stride_factor();
 
     const auto source_row_ptrs = source->get_const_row_ptrs();
     const auto source_col_idxs = source->get_const_col_idxs();
     const auto source_values = source->get_const_values();
 
     auto slice_num = ceildiv(num_rows, slice_size);
-    slice_sets[0] = 0;
     for (size_type slice = 0; slice < slice_num; slice++) {
-        if (slice > 0) {
-            slice_sets[slice] =
-                slice_sets[slice - 1] + slice_lengths[slice - 1];
-        }
-        slice_lengths[slice] = 0;
-        for (size_type row = 0; row < slice_size; row++) {
-            size_type global_row = slice * slice_size + row;
-            if (global_row >= num_rows) {
-                break;
-            }
-            slice_lengths[slice] =
-                (slice_lengths[slice] >
-                 source_row_ptrs[global_row + 1] - source_row_ptrs[global_row])
-                    ? slice_lengths[slice]
-                    : source_row_ptrs[global_row + 1] -
-                          source_row_ptrs[global_row];
-        }
-        slice_lengths[slice] =
-            stride_factor * ceildiv(slice_lengths[slice], stride_factor);
         for (size_type row = 0; row < slice_size; row++) {
             size_type global_row = slice * slice_size + row;
             if (global_row >= num_rows) {
@@ -462,46 +438,10 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
     }
-    if (slice_num > 0) {
-        slice_sets[slice_num] =
-            slice_sets[slice_num - 1] + slice_lengths[slice_num - 1];
-    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_total_cols(std::shared_ptr<const ReferenceExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType>* source,
-                          size_type* result, size_type stride_factor,
-                          size_type slice_size)
-{
-    size_type total_cols = 0;
-    const auto num_rows = source->get_size()[0];
-    const auto slice_num = ceildiv(num_rows, slice_size);
-
-    const auto row_ptrs = source->get_const_row_ptrs();
-
-    for (size_type slice = 0; slice < slice_num; slice++) {
-        IndexType max_nnz_per_row_in_this_slice = 0;
-        for (size_type row = 0;
-             row < slice_size && row + slice * slice_size < num_rows; row++) {
-            size_type global_row = slice * slice_size + row;
-            max_nnz_per_row_in_this_slice =
-                max(row_ptrs[global_row + 1] - row_ptrs[global_row],
-                    max_nnz_per_row_in_this_slice);
-        }
-        total_cols += ceildiv(max_nnz_per_row_in_this_slice, stride_factor) *
-                      stride_factor;
-    }
-
-    *result = total_cols;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -607,26 +547,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void calculate_max_nnz_per_row(std::shared_ptr<const ReferenceExecutor> exec,
-                               const matrix::Csr<ValueType, IndexType>* source,
-                               size_type* result)
-{
-    const auto num_rows = source->get_size()[0];
-    const auto row_ptrs = source->get_const_row_ptrs();
-    IndexType max_nnz = 0;
-
-    for (size_type i = 0; i < num_rows; i++) {
-        max_nnz = std::max(row_ptrs[i + 1] - row_ptrs[i], max_nnz);
-    }
-
-    *result = max_nnz;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
@@ -687,6 +607,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
                        const matrix::Csr<ValueType, IndexType>* source,
+                       const int64*,
                        matrix::Hybrid<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
@@ -891,19 +812,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
-                                const matrix::Csr<ValueType, IndexType>* source,
-                                Array<size_type>* result)
+void count_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
+                            const matrix::Csr<ValueType, IndexType>* source,
+                            size_type* result)
 {
     const auto row_ptrs = source->get_const_row_ptrs();
-    auto row_nnz_val = result->get_data();
-    for (size_type i = 0; i < result->get_num_elems(); i++) {
-        row_nnz_val[i] = row_ptrs[i + 1] - row_ptrs[i];
+    for (size_type i = 0; i < source->get_size()[0]; i++) {
+        result[i] = row_ptrs[i + 1] - row_ptrs[i];
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
+    GKO_DECLARE_CSR_COUNT_NONZEROS_PER_ROW_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "common/unified/base/kernel_launch.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 
 namespace gko {
@@ -45,6 +46,21 @@ namespace GKO_DEVICE_NAMESPACE {
  * @ingroup hybrid
  */
 namespace hybrid {
+
+
+void compute_coo_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
+                          const Array<size_type>& row_nnz, size_type ell_lim,
+                          int64* coo_row_ptrs)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto row_nnz, auto ell_lim, auto coo_row_ptrs) {
+            coo_row_ptrs[i] = max(int64{}, static_cast<int64>(row_nnz[i]) -
+                                               static_cast<int64>(ell_lim));
+        },
+        row_nnz.get_num_elems(), row_nnz, ell_lim, coo_row_ptrs);
+    components::prefix_sum(exec, coo_row_ptrs, row_nnz.get_num_elems() + 1);
+}
 
 
 void compute_row_nnz(std::shared_ptr<const DefaultExecutor> exec,

@@ -110,18 +110,13 @@ namespace kernels {
 #define GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType)      \
     void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,     \
                            const matrix::Csr<ValueType, IndexType>* source, \
+                           const int64* coo_row_ptrs,                       \
                            matrix::Hybrid<ValueType, IndexType>* result)
 
 #define GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType)      \
     void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,     \
                           const matrix::Csr<ValueType, IndexType>* source, \
                           matrix::Sellp<ValueType, IndexType>* result)
-
-#define GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL(ValueType, IndexType)      \
-    void calculate_total_cols(std::shared_ptr<const DefaultExecutor> exec,     \
-                              const matrix::Csr<ValueType, IndexType>* source, \
-                              size_type* result, size_type stride_factor,      \
-                              size_type slice_size)
 
 #define GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType)    \
     void transpose(std::shared_ptr<const DefaultExecutor> exec,   \
@@ -163,17 +158,10 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec, size_type size, \
         const IndexType* permutation_indices, IndexType* inv_permutation)
 
-#define GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, IndexType) \
-    void calculate_max_nnz_per_row(                                            \
-        std::shared_ptr<const DefaultExecutor> exec,                           \
+#define GKO_DECLARE_CSR_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType) \
+    void count_nonzeros_per_row(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
         const matrix::Csr<ValueType, IndexType>* source, size_type* result)
-
-#define GKO_DECLARE_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, \
-                                                          IndexType) \
-    void calculate_nonzeros_per_row(                                 \
-        std::shared_ptr<const DefaultExecutor> exec,                 \
-        const matrix::Csr<ValueType, IndexType>* source,             \
-        Array<size_type>* result)
 
 #define GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL(ValueType, IndexType)  \
     void calculate_nonzeros_per_row_in_span(                                   \
@@ -211,60 +199,57 @@ namespace kernels {
                    const matrix::Dense<ValueType>* alpha,       \
                    matrix::Csr<ValueType, IndexType>* to_scale)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);                       \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);              \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_SPGEMM_KERNEL(ValueType, IndexType);                     \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL(ValueType, IndexType);            \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_SPGEAM_KERNEL(ValueType, IndexType);                     \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType);              \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);           \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL(ValueType, IndexType);       \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType);                  \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_INV_SYMM_PERMUTE_KERNEL(ValueType, IndexType);           \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL(ValueType, IndexType);                \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);     \
-    template <typename IndexType>                                            \
-    GKO_DECLARE_INVERT_PERMUTATION_KERNEL(IndexType);                        \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, IndexType);  \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL(ValueType, IndexType);         \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType);              \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType);         \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_EXTRACT_DIAGONAL(ValueType, IndexType);                  \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_SCALE_KERNEL(ValueType, IndexType);                      \
-    template <typename ValueType, typename IndexType>                        \
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);                     \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_SPGEMM_KERNEL(ValueType, IndexType);                   \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_SPGEAM_KERNEL(ValueType, IndexType);                   \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);      \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType);                \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_INV_SYMM_PERMUTE_KERNEL(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL(ValueType, IndexType);              \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType);      \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);   \
+    template <typename IndexType>                                          \
+    GKO_DECLARE_INVERT_PERMUTATION_KERNEL(IndexType);                      \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_EXTRACT_DIAGONAL(ValueType, IndexType);                \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_SCALE_KERNEL(ValueType, IndexType);                    \
+    template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_INV_SCALE_KERNEL(ValueType, IndexType)
 
 

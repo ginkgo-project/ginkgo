@@ -46,6 +46,9 @@ namespace matrix {
 template <typename ValueType>
 class Dense;
 
+template <typename ValueType>
+class Diagonal;
+
 template <typename ValueType, typename IndexType>
 class Coo;
 
@@ -140,6 +143,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
+    friend class Diagonal<ValueType>;
     friend class Ell<ValueType, IndexType>;
     friend class Hybrid<ValueType, IndexType>;
     friend class Sellp<ValueType, IndexType>;
@@ -1032,8 +1036,6 @@ protected:
         GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_num_elems());
         this->make_srow();
     }
-
-    void resize(gko::dim<2> new_size, size_type nnz);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

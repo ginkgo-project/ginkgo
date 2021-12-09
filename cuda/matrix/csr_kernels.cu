@@ -58,6 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/format_conversion.cuh"
 #include "cuda/components/intrinsics.cuh"
 #include "cuda/components/merging.cuh"
 #include "cuda/components/reduction.cuh"
@@ -870,151 +871,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* source,
-                      matrix::Sellp<ValueType, IndexType>* result)
-{
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-
-    auto result_values = result->get_values();
-    auto result_col_idxs = result->get_col_idxs();
-    auto slice_lengths = result->get_slice_lengths();
-    auto slice_sets = result->get_slice_sets();
-
-    const auto slice_size = (result->get_slice_size() == 0)
-                                ? matrix::default_slice_size
-                                : result->get_slice_size();
-    const auto stride_factor = (result->get_stride_factor() == 0)
-                                   ? matrix::default_stride_factor
-                                   : result->get_stride_factor();
-    const int slice_num = ceildiv(num_rows, slice_size);
-
-    const auto source_values = source->get_const_values();
-    const auto source_row_ptrs = source->get_const_row_ptrs();
-    const auto source_col_idxs = source->get_const_col_idxs();
-
-    auto nnz_per_row = Array<size_type>(exec, num_rows);
-    auto grid_dim = ceildiv(num_rows, default_block_size);
-
-    if (grid_dim > 0) {
-        kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
-            num_rows, as_cuda_type(source_row_ptrs),
-            as_cuda_type(nnz_per_row.get_data()));
-    }
-
-    grid_dim = slice_num;
-
-    if (grid_dim > 0) {
-        kernel::calculate_slice_lengths<<<grid_dim, config::warp_size>>>(
-            num_rows, slice_size, stride_factor,
-            as_cuda_type(nnz_per_row.get_const_data()),
-            as_cuda_type(slice_lengths), as_cuda_type(slice_sets));
-    }
-
-    components::prefix_sum(exec, slice_sets, slice_num + 1);
-
-    grid_dim = ceildiv(num_rows, default_block_size);
-    if (grid_dim > 0) {
-        kernel::fill_in_sellp<<<grid_dim, default_block_size>>>(
-            num_rows, slice_size, as_cuda_type(source_values),
-            as_cuda_type(source_row_ptrs), as_cuda_type(source_col_idxs),
-            as_cuda_type(slice_lengths), as_cuda_type(slice_sets),
-            as_cuda_type(result_col_idxs), as_cuda_type(result_values));
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_ell(std::shared_ptr<const CudaExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* source,
-                    matrix::Ell<ValueType, IndexType>* result)
-{
-    const auto source_values = source->get_const_values();
-    const auto source_row_ptrs = source->get_const_row_ptrs();
-    const auto source_col_idxs = source->get_const_col_idxs();
-
-    auto result_values = result->get_values();
-    auto result_col_idxs = result->get_col_idxs();
-    const auto stride = result->get_stride();
-    const auto max_nnz_per_row = result->get_num_stored_elements_per_row();
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-
-    const auto init_grid_dim =
-        ceildiv(max_nnz_per_row * num_rows, default_block_size);
-
-    kernel::initialize_zero_ell<<<init_grid_dim, default_block_size>>>(
-        max_nnz_per_row, stride, as_cuda_type(result_values),
-        as_cuda_type(result_col_idxs));
-
-    const auto grid_dim =
-        ceildiv(num_rows * config::warp_size, default_block_size);
-
-    kernel::fill_in_ell<<<grid_dim, default_block_size>>>(
-        num_rows, stride, as_cuda_type(source_values),
-        as_cuda_type(source_row_ptrs), as_cuda_type(source_col_idxs),
-        as_cuda_type(result_values), as_cuda_type(result_col_idxs));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType>* source,
-                          size_type* result, size_type stride_factor,
-                          size_type slice_size)
-{
-    const auto num_rows = source->get_size()[0];
-
-    if (num_rows == 0) {
-        *result = 0;
-        return;
-    }
-
-    const auto slice_num = ceildiv(num_rows, slice_size);
-    const auto row_ptrs = source->get_const_row_ptrs();
-
-    auto nnz_per_row = Array<size_type>(exec, num_rows);
-    auto grid_dim = ceildiv(num_rows, default_block_size);
-
-    kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
-        num_rows, as_cuda_type(row_ptrs), as_cuda_type(nnz_per_row.get_data()));
-
-    grid_dim = ceildiv(slice_num * config::warp_size, default_block_size);
-    auto max_nnz_per_slice = Array<size_type>(exec, slice_num);
-
-    kernel::reduce_max_nnz_per_slice<<<grid_dim, default_block_size>>>(
-        num_rows, slice_size, stride_factor,
-        as_cuda_type(nnz_per_row.get_const_data()),
-        as_cuda_type(max_nnz_per_slice.get_data()));
-
-    grid_dim = ceildiv(slice_num, default_block_size);
-    auto block_results = Array<size_type>(exec, grid_dim);
-
-    kernel::reduce_total_cols<<<grid_dim, default_block_size>>>(
-        slice_num, as_cuda_type(max_nnz_per_slice.get_const_data()),
-        as_cuda_type(block_results.get_data()));
-
-    auto d_result = Array<size_type>(exec, 1);
-
-    kernel::reduce_total_cols<<<1, default_block_size>>>(
-        grid_dim, as_cuda_type(block_results.get_const_data()),
-        as_cuda_type(d_result.get_data()));
-
-    *result = exec->copy_val_to_host(d_result.get_const_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const CudaExecutor> exec,
                const matrix::Csr<ValueType, IndexType>* orig,
                matrix::Csr<ValueType, IndexType>* trans)
@@ -1197,39 +1053,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
-                               const matrix::Csr<ValueType, IndexType>* source,
-                               size_type* result)
-{
-    const auto num_rows = source->get_size()[0];
-
-    auto nnz_per_row = Array<size_type>(exec, num_rows);
-    auto block_results = Array<size_type>(exec, default_block_size);
-    auto d_result = Array<size_type>(exec, 1);
-
-    const auto grid_dim = ceildiv(num_rows, default_block_size);
-    kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
-        num_rows, as_cuda_type(source->get_const_row_ptrs()),
-        as_cuda_type(nnz_per_row.get_data()));
-
-    const auto n = ceildiv(num_rows, default_block_size);
-    const auto reduce_dim = n <= default_block_size ? n : default_block_size;
-    kernel::reduce_max_nnz<<<reduce_dim, default_block_size>>>(
-        num_rows, as_cuda_type(nnz_per_row.get_const_data()),
-        as_cuda_type(block_results.get_data()));
-
-    kernel::reduce_max_nnz<<<1, default_block_size>>>(
-        reduce_dim, as_cuda_type(block_results.get_const_data()),
-        as_cuda_type(d_result.get_data()));
-
-    *result = exec->copy_val_to_host(d_result.get_const_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
@@ -1276,65 +1099,6 @@ void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_hybrid(std::shared_ptr<const CudaExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType>* source,
-                       matrix::Hybrid<ValueType, IndexType>* result)
-{
-    auto ell_val = result->get_ell_values();
-    auto ell_col = result->get_ell_col_idxs();
-    auto coo_val = result->get_coo_values();
-    auto coo_col = result->get_coo_col_idxs();
-    auto coo_row = result->get_coo_row_idxs();
-    const auto stride = result->get_ell_stride();
-    const auto max_nnz_per_row = result->get_ell_num_stored_elements_per_row();
-    const auto num_rows = result->get_size()[0];
-    const auto coo_num_stored_elements = result->get_coo_num_stored_elements();
-    auto grid_dim = ceildiv(max_nnz_per_row * num_rows, default_block_size);
-
-    kernel::initialize_zero_ell<<<grid_dim, default_block_size>>>(
-        max_nnz_per_row, stride, as_cuda_type(ell_val), as_cuda_type(ell_col));
-
-    grid_dim = ceildiv(num_rows, default_block_size);
-    auto coo_offset = Array<size_type>(exec, num_rows);
-    kernel::calculate_hybrid_coo_row_nnz<<<grid_dim, default_block_size>>>(
-        num_rows, max_nnz_per_row, as_cuda_type(source->get_const_row_ptrs()),
-        as_cuda_type(coo_offset.get_data()));
-
-    components::prefix_sum(exec, coo_offset.get_data(), num_rows);
-
-    grid_dim = ceildiv(num_rows * config::warp_size, default_block_size);
-    kernel::fill_in_hybrid<<<grid_dim, default_block_size>>>(
-        num_rows, stride, max_nnz_per_row,
-        as_cuda_type(source->get_const_values()),
-        as_cuda_type(source->get_const_row_ptrs()),
-        as_cuda_type(source->get_const_col_idxs()),
-        as_cuda_type(coo_offset.get_const_data()), as_cuda_type(ell_val),
-        as_cuda_type(ell_col), as_cuda_type(coo_val), as_cuda_type(coo_col),
-        as_cuda_type(coo_row));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(std::shared_ptr<const CudaExecutor> exec,
-                                const matrix::Csr<ValueType, IndexType>* source,
-                                Array<size_type>* result)
-{
-    const auto num_rows = source->get_size()[0];
-    auto row_ptrs = source->get_const_row_ptrs();
-    auto grid_dim = ceildiv(num_rows, default_block_size);
-
-    kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
-        num_rows, as_cuda_type(row_ptrs), as_cuda_type(result->get_data()));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

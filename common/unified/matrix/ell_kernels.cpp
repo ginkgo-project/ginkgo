@@ -180,6 +180,32 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_COUNT_NONZEROS_PER_ROW_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Ell<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag)
+{
+    // ELL is stored in column-major, so we swap row and column parameters
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto ell_col, auto row, auto ell_stride, auto in_cols,
+                      auto in_vals, auto out_vals) {
+            const auto ell_idx = ell_col * ell_stride + row;
+            const auto col = in_cols[ell_idx];
+            const auto val = in_vals[ell_idx];
+            if (row == col && is_nonzero(val)) {
+                out_vals[row] = val;
+            }
+        },
+        dim<2>{orig->get_num_stored_elements_per_row(), orig->get_size()[0]},
+        static_cast<int64>(orig->get_stride()), orig->get_const_col_idxs(),
+        orig->get_const_values(), diag->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL);
+
+
 }  // namespace ell
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

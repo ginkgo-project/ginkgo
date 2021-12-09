@@ -161,27 +161,28 @@ void Hybrid<ValueType, IndexType>::convert_to(
 {
     auto exec = this->get_executor();
     const auto num_rows = this->get_size()[0];
-
-    Array<IndexType> ell_row_ptrs{exec, num_rows + 1};
-    Array<IndexType> coo_row_ptrs{exec, num_rows + 1};
-
-    exec->run(hybrid::make_ell_count_nonzeros_per_row(this->get_ell(),
-                                                      ell_row_ptrs.get_data()));
-    exec->run(hybrid::make_prefix_sum(ell_row_ptrs.get_data(), num_rows + 1));
-    exec->run(hybrid::make_convert_idxs_to_ptrs(
-        this->get_const_coo_row_idxs(), this->get_coo_num_stored_elements(),
-        num_rows, coo_row_ptrs.get_data()));
-
-    const auto nnz = static_cast<size_type>(
-        exec->copy_val_to_host(ell_row_ptrs.get_const_data() + num_rows) +
-        exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows));
-
-    result->resize(this->get_size(), nnz);
-
-    exec->run(hybrid::make_convert_to_csr(
-        this, ell_row_ptrs.get_const_data(), coo_row_ptrs.get_const_data(),
-        make_temporary_clone(exec, result).get()));
-
+    {
+        auto tmp = make_temporary_clone(exec, result);
+        Array<IndexType> ell_row_ptrs{exec, num_rows + 1};
+        Array<IndexType> coo_row_ptrs{exec, num_rows + 1};
+        exec->run(hybrid::make_ell_count_nonzeros_per_row(
+            this->get_ell(), ell_row_ptrs.get_data()));
+        exec->run(
+            hybrid::make_prefix_sum(ell_row_ptrs.get_data(), num_rows + 1));
+        exec->run(hybrid::make_convert_idxs_to_ptrs(
+            this->get_const_coo_row_idxs(), this->get_coo_num_stored_elements(),
+            num_rows, coo_row_ptrs.get_data()));
+        const auto nnz = static_cast<size_type>(
+            exec->copy_val_to_host(ell_row_ptrs.get_const_data() + num_rows) +
+            exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows));
+        tmp->row_ptrs_.resize_and_reset(num_rows + 1);
+        tmp->col_idxs_.resize_and_reset(nnz);
+        tmp->values_.resize_and_reset(nnz);
+        tmp->set_size(this->get_size());
+        exec->run(hybrid::make_convert_to_csr(
+            this, ell_row_ptrs.get_const_data(), coo_row_ptrs.get_const_data(),
+            tmp.get()));
+    }
     result->make_srow();
 }
 
@@ -190,6 +191,16 @@ template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::move_to(Csr<ValueType, IndexType>* result)
 {
     this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::resize(dim<2> new_size,
+                                          size_type ell_row_nnz,
+                                          size_type coo_nnz)
+{
+    ell_->resize(new_size, ell_row_nnz);
+    coo_->resize(new_size, coo_nnz);
 }
 
 
@@ -244,7 +255,7 @@ void Hybrid<ValueType, IndexType>::write(mat_data& data) const
         for (size_type i = 0; i < tmp->get_ell_num_stored_elements_per_row();
              ++i) {
             const auto val = tmp->ell_val_at(row, i);
-            if (val != zero<ValueType>()) {
+            if (is_nonzero(val)) {
                 const auto col = tmp->ell_col_at(row, i);
                 data.nonzeros.emplace_back(row, col, val);
             }

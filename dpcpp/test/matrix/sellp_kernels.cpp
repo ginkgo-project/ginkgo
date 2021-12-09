@@ -254,7 +254,7 @@ TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
     mtx->convert_to(dense_mtx.get());
     dmtx->convert_to(ddense_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 0);
 }
 
 
@@ -267,7 +267,7 @@ TEST_F(Sellp, ConvertToCsrIsEquivalentToRef)
     mtx->convert_to(csr_mtx.get());
     dmtx->convert_to(dcsr_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 0);
 }
 
 
@@ -294,19 +294,6 @@ TEST_F(Sellp, ConvertEmptyToCsrIsEquivalentToRef)
     dempty->convert_to(dcsr_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 0);
-}
-
-
-TEST_F(Sellp, CountNonzerosIsEquivalentToRef)
-{
-    set_up_apply_matrix(64);
-    gko::size_type nnz;
-    gko::size_type dnnz;
-
-    gko::kernels::reference::sellp::count_nonzeros(ref, mtx.get(), &nnz);
-    gko::kernels::dpcpp::sellp::count_nonzeros(dpcpp, dmtx.get(), &dnnz);
-
-    ASSERT_EQ(nnz, dnnz);
 }
 
 
